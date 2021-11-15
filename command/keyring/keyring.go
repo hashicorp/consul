@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/agent/structs"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -185,21 +187,25 @@ func (c *cmd) Run(args []string) int {
 func formatResponse(response *consulapi.KeyringResponse, keys map[string]int) string {
 	b := new(strings.Builder)
 	b.WriteString("\n")
-	b.WriteString(poolName(response.Datacenter, response.WAN, response.Segment))
+	b.WriteString(poolName(response.Datacenter, response.WAN, response.Partition, response.Segment))
 	b.WriteString(formatMessages(response.Messages))
 	b.WriteString(formatKeys(keys, response.NumNodes))
 	return strings.TrimRight(b.String(), "\n")
 }
 
-func poolName(dc string, wan bool, segment string) string {
+func poolName(dc string, wan bool, partition, segment string) string {
 	pool := fmt.Sprintf("%s (LAN)", dc)
 	if wan {
 		pool = "WAN"
 	}
+
+	var suffix string
 	if segment != "" {
-		segment = fmt.Sprintf(" [%s]", segment)
+		suffix = fmt.Sprintf(" [%s]", segment)
+	} else if !structs.IsDefaultPartition(partition) {
+		suffix = fmt.Sprintf(" [partition: %s]", partition)
 	}
-	return fmt.Sprintf("%s%s:\n", pool, segment)
+	return fmt.Sprintf("%s%s:\n", pool, suffix)
 }
 
 func formatMessages(messages map[string]string) string {

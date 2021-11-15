@@ -16,6 +16,9 @@ type KeyringResponse struct {
 	// Segment has the network segment this request corresponds to.
 	Segment string
 
+	// Partition has the admin partition this request corresponds to.
+	Partition string `json:",omitempty"`
+
 	// Messages has information or errors from serf
 	Messages map[string]string `json:",omitempty"`
 

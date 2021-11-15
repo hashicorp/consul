@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"path/filepath"
@@ -32,29 +33,69 @@ const (
 	maxPeerRetries = 6
 )
 
+type setupSerfOptions struct {
+	Config       *serf.Config
+	EventCh      chan serf.Event
+	SnapshotPath string
+	Listener     net.Listener
+
+	// WAN only
+	WAN bool
+
+	// LAN only
+	Segment   string
+	Partition string
+}
+
 // setupSerf is used to setup and initialize a Serf
-func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, wan bool, wanPort int,
-	segment string, listener net.Listener) (*serf.Serf, error) {
+func (s *Server) setupSerf(opts setupSerfOptions) (*serf.Serf, error) {
+	conf, err := s.setupSerfConfig(opts)
+	if err != nil {
+		return nil, err
+	}
+	return serf.Create(conf)
+}
+
+func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
+	if opts.Config == nil {
+		return nil, errors.New("serf config is a required field")
+	}
+	if opts.Listener == nil {
+		return nil, errors.New("listener is a required field")
+	}
+	if opts.WAN {
+		if opts.Segment != "" {
+			return nil, errors.New("cannot configure segments on the WAN serf pool")
+		}
+		if opts.Partition != "" {
+			return nil, errors.New("cannot configure partitions on the WAN serf pool")
+		}
+	}
+
+	conf := opts.Config
 	conf.Init()
 
-	if wan {
+	if opts.WAN {
 		conf.NodeName = fmt.Sprintf("%s.%s", s.config.NodeName, s.config.Datacenter)
 	} else {
 		conf.NodeName = s.config.NodeName
-		if wanPort > 0 {
-			conf.Tags["wan_join_port"] = fmt.Sprintf("%d", wanPort)
+		if s.config.SerfWANConfig != nil {
+			serfBindPortWAN := s.config.SerfWANConfig.MemberlistConfig.BindPort
+			if serfBindPortWAN > 0 {
+				conf.Tags["wan_join_port"] = fmt.Sprintf("%d", serfBindPortWAN)
+			}
 		}
 	}
 	conf.Tags["role"] = "consul"
 	conf.Tags["dc"] = s.config.Datacenter
-	conf.Tags["segment"] = segment
+	conf.Tags["segment"] = opts.Segment
 	conf.Tags["id"] = string(s.config.NodeID)
 	conf.Tags["vsn"] = fmt.Sprintf("%d", s.config.ProtocolVersion)
 	conf.Tags["vsn_min"] = fmt.Sprintf("%d", ProtocolVersionMin)
 	conf.Tags["vsn_max"] = fmt.Sprintf("%d", ProtocolVersionMax)
 	conf.Tags["raft_vsn"] = fmt.Sprintf("%d", s.config.RaftConfig.ProtocolVersion)
 	conf.Tags["build"] = s.config.Build
-	addr := listener.Addr().(*net.TCPAddr)
+	addr := opts.Listener.Addr().(*net.TCPAddr)
 	conf.Tags["port"] = fmt.Sprintf("%d", addr.Port)
 	if s.config.Bootstrap {
 		conf.Tags["bootstrap"] = "1"
@@ -87,7 +128,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.Tags["ft_si"] = "1"
 
 	var subLoggerName string
-	if wan {
+	if opts.WAN {
 		subLoggerName = logging.WAN
 	} else {
 		subLoggerName = logging.LAN
@@ -107,22 +148,23 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 
 	conf.MemberlistConfig.Logger = memberlistLogger
 	conf.Logger = serfLogger
-	conf.EventCh = ch
+	conf.EventCh = opts.EventCh
 	conf.ProtocolVersion = protocolVersionMap[s.config.ProtocolVersion]
 	conf.RejoinAfterLeave = s.config.RejoinAfterLeave
-	if wan {
+	if opts.WAN {
 		conf.Merge = &wanMergeDelegate{}
 	} else {
 		conf.Merge = &lanMergeDelegate{
-			dc:       s.config.Datacenter,
-			nodeID:   s.config.NodeID,
-			nodeName: s.config.NodeName,
-			segment:  segment,
-			server:   true,
+			dc:        s.config.Datacenter,
+			nodeID:    s.config.NodeID,
+			nodeName:  s.config.NodeName,
+			segment:   opts.Segment,
+			partition: opts.Partition,
+			server:    true,
 		}
 	}
 
-	if wan {
+	if opts.WAN {
 		nt, err := memberlist.NewNetTransport(&memberlist.NetTransportConfig{
 			BindAddrs: []string{conf.MemberlistConfig.BindAddr},
 			BindPort:  conf.MemberlistConfig.BindPort,
@@ -154,7 +196,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	// node which is rather unexpected.
 	conf.EnableNameConflictResolution = false
 
-	if wan && s.config.ConnectMeshGatewayWANFederationEnabled {
+	if opts.WAN && s.config.ConnectMeshGatewayWANFederationEnabled {
 		conf.MemberlistConfig.RequireNodeNames = true
 		conf.MemberlistConfig.DisableTcpPingsForNode = func(nodeName string) bool {
 			_, dc, err := wanfed.SplitNodeName(nodeName)
@@ -169,7 +211,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	}
 
 	if !s.config.DevMode {
-		conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
+		conf.SnapshotPath = filepath.Join(s.config.DataDir, opts.SnapshotPath)
 	}
 	if err := lib.EnsurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
@@ -183,7 +225,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		s.config.OverrideInitialSerfTags(conf.Tags)
 	}
 
-	return serf.Create(conf)
+	return conf, nil
 }
 
 // userEventName computes the name of a user event

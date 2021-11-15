@@ -84,6 +84,31 @@ func (s *Server) validateEnterpriseIntentionNamespace(ns string, _ bool) error {
 	return errors.New("Namespaces is a Consul Enterprise feature")
 }
 
+// setupSerfLAN is used to setup and initialize a Serf for the LAN
+func (s *Server) setupSerfLAN(config *Config) error {
+	var err error
+	// Initialize the LAN Serf for the default network segment.
+	s.serfLAN, err = s.setupSerf(setupSerfOptions{
+		Config:       config.SerfLANConfig,
+		EventCh:      s.eventChLAN,
+		SnapshotPath: serfLANSnapshot,
+		Listener:     s.Listener,
+		WAN:          false,
+		Segment:      "",
+		Partition:    "",
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) shutdownSerfLAN() {
+	if s.serfLAN != nil {
+		s.serfLAN.Shutdown()
+	}
+}
+
 func addEnterpriseSerfTags(_ map[string]string, _ *structs.EnterpriseMeta) {
 	// do nothing
 }

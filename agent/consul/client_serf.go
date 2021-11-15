@@ -49,11 +49,12 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.ProtocolVersion = protocolVersionMap[c.config.ProtocolVersion]
 	conf.RejoinAfterLeave = c.config.RejoinAfterLeave
 	conf.Merge = &lanMergeDelegate{
-		dc:       c.config.Datacenter,
-		nodeID:   c.config.NodeID,
-		nodeName: c.config.NodeName,
-		segment:  c.config.Segment,
-		server:   false,
+		dc:        c.config.Datacenter,
+		nodeID:    c.config.NodeID,
+		nodeName:  c.config.NodeName,
+		segment:   c.config.Segment,
+		server:    false,
+		partition: c.config.AgentEnterpriseMeta().PartitionOrDefault(),
 	}
 
 	conf.SnapshotPath = filepath.Join(c.config.DataDir, path)
@@ -64,6 +65,8 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	addEnterpriseSerfTags(conf.Tags, c.config.AgentEnterpriseMeta())
 
 	conf.ReconnectTimeoutOverride = libserf.NewReconnectOverride(c.logger)
+
+	enterpriseModifyClientSerfConfigLAN(c.config, conf)
 
 	return serf.Create(conf)
 }

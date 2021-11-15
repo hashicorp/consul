@@ -87,11 +87,19 @@ func wantRaft(servers []*Server) error {
 
 // joinAddrLAN returns the address other servers can
 // use to join the cluster on the LAN interface.
-func joinAddrLAN(s *Server) string {
+func joinAddrLAN(s clientOrServer) string {
 	if s == nil {
-		panic("no server")
+		panic("no client or server")
 	}
-	port := s.config.SerfLANConfig.MemberlistConfig.BindPort
+	var port int
+	switch x := s.(type) {
+	case *Server:
+		port = x.config.SerfLANConfig.MemberlistConfig.BindPort
+	case *Client:
+		port = x.config.SerfLANConfig.MemberlistConfig.BindPort
+	default:
+		panic(fmt.Sprintf("unhandled type %T", s))
+	}
 	return fmt.Sprintf("127.0.0.1:%d", port)
 }
 
@@ -110,6 +118,8 @@ func joinAddrWAN(s *Server) string {
 type clientOrServer interface {
 	JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, error)
 	LANMembersInAgentPartition() []serf.Member
+	AgentEnterpriseMeta() *structs.EnterpriseMeta
+	agentSegmentName() string
 }
 
 // joinLAN is a convenience function for
@@ -117,27 +127,54 @@ type clientOrServer interface {
 //   member.JoinLAN("127.0.0.1:"+leader.config.SerfLANConfig.MemberlistConfig.BindPort)
 func joinLAN(t *testing.T, member clientOrServer, leader *Server) {
 	t.Helper()
+	joinLANWithOptions(t, member, leader, true)
+}
+func joinLANWithNoMembershipChecks(t *testing.T, member clientOrServer, leader *Server) {
+	t.Helper()
+	joinLANWithOptions(t, member, leader, false)
+}
+func joinLANWithOptions(t *testing.T, member clientOrServer, leader *Server, doMembershipChecks bool) {
+	t.Helper()
 
 	if member == nil || leader == nil {
 		panic("no server")
 	}
-	var memberAddr string
-	switch x := member.(type) {
-	case *Server:
-		memberAddr = joinAddrLAN(x)
-	case *Client:
-		memberAddr = fmt.Sprintf("127.0.0.1:%d", x.config.SerfLANConfig.MemberlistConfig.BindPort)
-	}
+	memberAddr := joinAddrLAN(member)
+
+	var (
+		memberEntMeta   = member.AgentEnterpriseMeta()
+		memberPartition = memberEntMeta.PartitionOrDefault()
+		memberSegment   = member.agentSegmentName()
+	)
+
 	leaderAddr := joinAddrLAN(leader)
-	if _, err := member.JoinLAN([]string{leaderAddr}, nil); err != nil {
+	if memberSegment != "" {
+		leaderAddr = leader.LANSegmentAddr(memberSegment)
+	}
+	if _, err := member.JoinLAN([]string{leaderAddr}, memberEntMeta); err != nil {
 		t.Fatal(err)
 	}
+
+	if !doMembershipChecks {
+		return
+	}
+
+	f := LANMemberFilter{
+		Partition: memberPartition,
+		Segment:   memberSegment,
+	}
 	retry.Run(t, func(r *retry.R) {
-		if !seeEachOther(leader.LANMembersInAgentPartition(), member.LANMembersInAgentPartition(), leaderAddr, memberAddr) {
+		leaderView, err := leader.LANMembers(f)
+		require.NoError(r, err)
+
+		if !seeEachOther(leaderView, member.LANMembersInAgentPartition(), leaderAddr, memberAddr) {
 			r.Fatalf("leader and member cannot see each other on LAN")
 		}
 	})
-	if !seeEachOther(leader.LANMembersInAgentPartition(), member.LANMembersInAgentPartition(), leaderAddr, memberAddr) {
+
+	leaderView, err := leader.LANMembers(f)
+	require.NoError(t, err)
+	if !seeEachOther(leaderView, member.LANMembersInAgentPartition(), leaderAddr, memberAddr) {
 		t.Fatalf("leader and member cannot see each other on LAN")
 	}
 }
@@ -147,6 +184,14 @@ func joinLAN(t *testing.T, member clientOrServer, leader *Server) {
 //   member.JoinWAN("127.0.0.1:"+leader.config.SerfWANConfig.MemberlistConfig.BindPort)
 func joinWAN(t *testing.T, member, leader *Server) {
 	t.Helper()
+	joinWANWithOptions(t, member, leader, true)
+}
+func joinWANWithNoMembershipChecks(t *testing.T, member, leader *Server) {
+	t.Helper()
+	joinWANWithOptions(t, member, leader, false)
+}
+func joinWANWithOptions(t *testing.T, member, leader *Server, doMembershipChecks bool) {
+	t.Helper()
 
 	if member == nil || leader == nil {
 		panic("no server")
@@ -155,6 +200,11 @@ func joinWAN(t *testing.T, member, leader *Server) {
 	if _, err := member.JoinWAN([]string{leaderAddr}); err != nil {
 		t.Fatal(err)
 	}
+
+	if !doMembershipChecks {
+		return
+	}
+
 	retry.Run(t, func(r *retry.R) {
 		if !seeEachOther(leader.WANMembers(), member.WANMembers(), leaderAddr, memberAddr) {
 			r.Fatalf("leader and member cannot see each other on WAN")

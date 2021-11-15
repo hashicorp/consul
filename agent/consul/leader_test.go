@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
-	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -1768,14 +1767,6 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			}
 		})
 	})
-}
-
-func updateSerfTags(s *Server, key, value string) {
-	libserf.UpdateTag(s.serfLAN, key, value)
-
-	if s.serfWAN != nil {
-		libserf.UpdateTag(s.serfWAN, key, value)
-	}
 }
 
 func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
