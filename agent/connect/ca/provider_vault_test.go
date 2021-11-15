@@ -554,6 +554,9 @@ func TestVaultProvider_Cleanup(t *testing.T) {
 }
 
 func TestVaultProvider_ConfigureWithAuthMethod(t *testing.T) {
+
+	SkipIfVaultNotPresent(t)
+
 	cases := []struct {
 		authMethodType          string
 		configureAuthMethodFunc func(t *testing.T, vaultClient *vaultapi.Client) map[string]interface{}
@@ -630,6 +633,9 @@ func TestVaultProvider_ConfigureWithAuthMethod(t *testing.T) {
 }
 
 func TestVaultProvider_RotateAuthMethodToken(t *testing.T) {
+
+	SkipIfVaultNotPresent(t)
+
 	testVault := NewTestVaultServer(t)
 
 	err := testVault.Client().Sys().EnableAuthWithOptions("approle", &vaultapi.EnableAuthOptions{Type: "approle"})
