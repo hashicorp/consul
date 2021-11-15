@@ -98,11 +98,11 @@ The configuration options are listed below.
   !> **Warning:** You must either provide a token or configure an auth method below.
 
 - `AuthMethod` / `auth_method` (`map: nil`) - Vault auth method to use for logging in to Vault.
-   Please see [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for more information
-   on how to configure individual auth methods. If auth method is provided, Consul will obtain a
-   a new token from Vault when the token can no longer be renewed.
+  Please see [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for more information
+  on how to configure individual auth methods. If auth method is provided, Consul will obtain a
+  a new token from Vault when the token can no longer be renewed.
 
-   !> **Warning:** You must either configure the auth method or provide a token above.
+  !> **Warning:** You must either configure the auth method or provide a token above.
 
    - `Type`/ `type` (`string: ""`) - The type of Vault auth method.
 
