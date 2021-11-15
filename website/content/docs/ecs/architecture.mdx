@@ -41,139 +41,23 @@ This diagram shows the timeline of a task starting up and all its containers:
 
 ### Task Shutdown
 
-Graceful shutdown is supported when deploying Consul on ECS, which is done by the following:
-
-* No incoming traffic from the mesh is directed to this task during shutdown.
-* Outgoing traffic to the mesh is possible during shutdown.
-
 This diagram shows an example timeline of a task shutting down:
 
 <img alt="Task Shutdown Timeline" src="/img/ecs-task-shutdown.svg" style={{display: "block", maxWidth: "400px"}} />
 
-- **T0**: ECS sends a TERM signal to all containers.
-  - `consul-client` begins to gracefully leave the Consul cluster, since it is configured with `leave_on_terminate = true`
+- **T0**: ECS sends a TERM signal to all containers. Each container reacts to the TERM signal:
+  - `consul-client` begins to gracefully leave the Consul cluster.
   - `health-sync` stops syncing health status from ECS into Consul checks.
-  - `sidecar-proxy` ignores the TERM signal and continues running until it notices that `user-app` container has exited. This allows the application container to continue to make outgoing requests through the proxy to the mesh. This possible due to an entrypoint override for the container, `consul-ecs envoy-entrypoint`.
-  - `user-app` exits since, in this example, it does not intercept the TERM signal
+  - `sidecar-proxy` ignores the TERM signal and continues running until the `user-app` container exits. This allows the application container to continue making outgoing requests through the proxy to the mesh.
+  - `user-app` exits if it does not ignore the TERM signal. Alternatively, if the `user-app` container is configured to ignore the TERM signal , it would continue running.
 - **T1**:
   - `health-sync` updates its Consul checks to critical status, and then exits. This ensures this service instance is marked unhealthy.
-  - The `sidecar-proxy` container checks the ECS task metadata. It notices the `user-app` container has stopped, and exits.
-- **T2**:
-  - `consul-client` finishes leaving the Consul cluster and exits
-  - Updates about this task have reached the rest of the Consul cluster, which means downstream proxies are updated to stop sending traffic to this task.
-- **T3**: All containers have exited
-  - `consul-client` finishes gracefully leaving the Consul datacenter and exits.
+  - `sidecar-proxy` notices the `user-app` container has stopped and exits.
+- **T2**: `consul-client` finishes gracefully leaving the Consul datacenter and exits.
+- **T3**:
   - ECS notices all containers have exited, and will soon change the Task status to `STOPPED`
-- **T4**: (Not applicable to this example, but if any conatiners are still running at this point, ECS forcefully stops them by sending a KILL signal)
-
-#### Task Shutdown: Completely Avoiding Application Errors
-
-Consul service mesh is a distributed and eventually-consistent system subject to network latency, so gracefully shutting down Consul is not always successful.
-
-In some cases, an exited application can receive incoming traffic. The following example of this behavior draws on the timeline described above:
-
-* The `user-app` container exits in **T0**
-* During **T2**, downstream services are updated to stop sending traffic to this task.
-
-As a result, downstream applications will report errors when requests are directed to this instance. Errors can be reported for a short period (seconds or less) at the beginning of task shutdown. Applications will stop reporting errors when all nodes in the Consul cluster have instructions to stop sending traffic to this instance.
-
-Use the following methods to resolve this issue:
-
-1. Modify your application container to continue running for a short period of time into task shutdown. By doing this, the application continues responding to incoming requests successfully at the beginning of task shutdown. This allows time for the Consul cluster to update downstream proxies to stop sending traffic to this task.
-
-   You can accomplish this by using an entrypoint override for your application container. Entrypoint overrides ignore the TERM signal sent by ECS. The following shell script contains an entrypoint override:
-
-   ```bash
-   # Run the provided command in a background subprocess.
-   $0 "$@" &
-   export PID=$!
-
-   onterm() {
-       echo "Caught sigterm. Sleeping 10s..."
-       sleep 10
-       exit 0
-   }
-
-   onexit() {
-       if [ -n "$PID" ]; then
-           kill $PID
-           wait $PID
-       fi
-   }
-
-   trap onterm TERM
-   trap onexit EXIT
-   wait $PID
-   ```
-
-   This script runs the application in a subprocess. It uses a `trap` to intercept the TERM signal. It then sleeps for ten seconds before exiting normally. This allows the application process to continue running after receiving the TERM signal.
-
-   If this script is saved as `./app-entrypoint.sh`, then you can use it for your ECS tasks using the `mesh-task` Terraform module:
-
-   ```hcl
-   module "my_task" {
-     source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
-     version = "<latest version>"
-     container_definitions = [
-       {
-         name  = "my-app"
-         image = "..."
-         entryPoint = ["/bin/sh", "-c", file("./app-entrypoint.sh")]
-         command = ["python", "manage.py", "runserver", "127.0.0.1:8080"]
-         ...
-       }
-     ...
-   }
-   ```
-
-   This example sets the `entryPoint` for the container, which overrides the default entrypoint from the image. When the container starts in ECS, the `command` list is passed as arguments to the `entryPoint` command. Putting this together, the container would start with the command, `/bin/sh -c "<app-entrypoint-contents>" python manage.py runserver 127.0.0.1:8080`.
-
-2. If the traffic is HTTP(S), you can enable retry logic through Consul Connect [Service Router](/docs/connect/config-entries/service-router). This will configure proxies retry when receiving an error. When Envoy receives a failed request an upstream service, it can retry the request to a different instance of that service that may be able to respond successfully.
-
-   To enable retries through Service Router for a service named `example`, first ensure the configured protocol is `http`:
-
-   ```hcl
-   Kind = "service-defaults"
-   Name = "example"
-   Protocol = "http"
-   ```
-
-   Apply the config entry:
-
-   ```shell-session
-   $ consul config write example-defaults.hcl
-   ```
-
-   Add retry settings for the service:
-
-   ```hcl
-   Kind = "service-router"
-   Name = "example"
-   Routes = [
-     {
-       Match {
-         HTTP {
-           PathPrefix = "/"
-         }
-       }
-       Destination {
-         NumRetries = 5
-         RetryOnConnectFailure = true
-         RetryOnStatusCodes = [503]
-       }
-     }
-   ]
-   ```
-
-   To apply this, run the following:
-
-   ```shell-session
-   $ consul config write example-router.hcl
-   ```
-
-   This Service Router configuration sets the `PathPrefix = "/"` which will match all requests to the `example` service. It sets the `NumRetries`, `RetryOnConnectFailure`, and `RetryOnStatusCodes = [503]` fields, so that incoming requests are retried. We've seen Envoy return a 503 when its application container has exited, but it is possible there could be other error codes dependening on your environment.
-
-   See the Consul Connect [Configuration Entries](/docs/connect/config-entries/index) documentation for more detail.
+  - Updates about this task have reached the rest of the Consul cluster, so downstream proxies have been updated to stopped sending traffic to this task.
+- **T4**: At this point task shutdown should be complete. Otherwise, ECS will send a KILL signal to any containers still running. The KILL signal cannot be ignored and will forcefully stop containers. This will interrupt in-progress operations and possibly cause errors.
 
 ### Automatic ACL Token Provisioning
 
