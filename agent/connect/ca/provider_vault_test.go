@@ -156,17 +156,14 @@ func TestVaultCAProvider_RenewToken(t *testing.T) {
 	_, err = createVaultProvider(t, true, testVault.Addr, providerToken, nil)
 	require.NoError(t, err)
 
+	// Check the last renewal time.
+	secret, err = testVault.client.Auth().Token().Lookup(providerToken)
+	require.NoError(t, err)
+	firstRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
+	require.NoError(t, err)
+
 	// Wait past the TTL and make sure the token has been renewed.
 	retry.Run(t, func(r *retry.R) {
-		// Check the last renewal time. We need to wait for the first renewal to happen
-		// for this value to be populated.
-		secret, err = testVault.client.Auth().Token().Lookup(providerToken)
-		require.NoError(r, err)
-		lastRenewalData, ok := secret.Data["last_renewal_time"]
-		require.True(r, ok)
-		firstRenewal, err := lastRenewalData.(json.Number).Int64()
-		require.NoError(r, err)
-
 		secret, err = testVault.client.Auth().Token().Lookup(providerToken)
 		require.NoError(r, err)
 		lastRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
