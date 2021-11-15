@@ -850,11 +850,11 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 	}
 
 	serviceReq := AddServiceRequest{
-		Service: service,
+		Service:  service,
 		chkTypes: nil,
-		persist: false,
-		token: "",
-		Source: ConfigSourceLocal,
+		persist:  false,
+		token:    "",
+		Source:   ConfigSourceLocal,
 	}
 	if err := a.AddService(serviceReq); err != nil {
 		t.Fatalf("err: %v", err)
@@ -866,7 +866,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 	if err := a.AddService(serviceReq); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	serviceReq.Service= &structs.NodeService{
+	serviceReq.Service = &structs.NodeService{
 		ID:      "mysql3",
 		Service: "mysql3",
 	}
@@ -1042,11 +1042,11 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		Service: "mysql-pool-r",
 	}
 	serviceReq := AddServiceRequest{
-		Service: service,
+		Service:  service,
 		chkTypes: nil,
-		persist: false,
-		token: "",
-		Source: ConfigSourceLocal,
+		persist:  false,
+		token:    "",
+		Source:   ConfigSourceLocal,
 	}
 	if err := a.AddService(serviceReq); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1197,7 +1197,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 			t.Helper()
 			req, _ := http.NewRequest("GET", url+"?format=text", nil)
 			resp := httptest.NewRecorder()
-			a.srv.h.ServeHTTP(resp ,req)
+			a.srv.h.ServeHTTP(resp, req)
 			if got, want := resp.Code, expectedCode; got != want {
 				t.Fatalf("returned bad status: %d. Body: %q", resp.Code, resp.Body.String())
 			}
@@ -1209,7 +1209,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 			t.Helper()
 			req, _ := http.NewRequest("GET", url, nil)
 			resp := httptest.NewRecorder()
-			a.srv.h.ServeHTTP(resp ,req)
+			a.srv.h.ServeHTTP(resp, req)
 			dec := json.NewDecoder(resp.Body)
 			data := make([]*api.AgentServiceChecksInfo, 0)
 			if err := dec.Decode(&data); err != nil {
@@ -1294,11 +1294,11 @@ func TestAgent_HealthServicesACLEnforcement(t *testing.T) {
 		Service: "mysql",
 	}
 	serviceReq := AddServiceRequest{
-		Service: service,
+		Service:  service,
 		chkTypes: nil,
-		persist: false,
-		token: "",
-		Source: ConfigSourceLocal,
+		persist:  false,
+		token:    "",
+		Source:   ConfigSourceLocal,
 	}
 	require.NoError(t, a.AddService(serviceReq))
 
@@ -4664,9 +4664,9 @@ func TestAgent_DeregisterService(t *testing.T) {
 			Service: "test",
 		},
 		chkTypes: nil,
-		persist: false,
-		token: "",
-		Source: ConfigSourceLocal,
+		persist:  false,
+		token:    "",
+		Source:   ConfigSourceLocal,
 	}
 	require.NoError(t, a.AddService(serviceReq))
 
@@ -4698,9 +4698,9 @@ func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
 			Service: "test",
 		},
 		chkTypes: nil,
-		persist: false,
-		token: "",
-		Source: ConfigSourceLocal,
+		persist:  false,
+		token:    "",
+		Source:   ConfigSourceLocal,
 	}
 	require.NoError(t, a.AddService(serviceReq))
 
@@ -4773,9 +4773,9 @@ func TestAgent_ServiceMaintenance_Enable(t *testing.T) {
 			Service: "test",
 		},
 		chkTypes: nil,
-		persist: false,
-		token: "",
-		Source: ConfigSourceLocal,
+		persist:  false,
+		token:    "",
+		Source:   ConfigSourceLocal,
 	}
 	require.NoError(t, a.AddService(serviceReq))
 
@@ -4822,9 +4822,9 @@ func TestAgent_ServiceMaintenance_Disable(t *testing.T) {
 			Service: "test",
 		},
 		chkTypes: nil,
-		persist: false,
-		token: "",
-		Source: ConfigSourceLocal,
+		persist:  false,
+		token:    "",
+		Source:   ConfigSourceLocal,
 	}
 	require.NoError(t, a.AddService(serviceReq))
 
@@ -4865,9 +4865,9 @@ func TestAgent_ServiceMaintenance_ACLDeny(t *testing.T) {
 			Service: "test",
 		},
 		chkTypes: nil,
-		persist: false,
-		token: "",
-		Source: ConfigSourceLocal,
+		persist:  false,
+		token:    "",
+		Source:   ConfigSourceLocal,
 	}
 	require.NoError(t, a.AddService(serviceReq))
 
@@ -5111,7 +5111,7 @@ func TestAgent_Monitor(t *testing.T) {
 			}, 3*time.Second, 100*time.Millisecond)
 
 			cancelFunc()
-			code := <- codeCh
+			code := <-codeCh
 			require.Equal(t, http.StatusOK, code)
 			got := resp.Body.String()
 
@@ -5198,7 +5198,7 @@ func TestAgent_Monitor(t *testing.T) {
 			}, 3*time.Second, 100*time.Millisecond)
 
 			cancelFunc()
-			code := <- codeCh
+			code := <-codeCh
 			require.Equal(t, http.StatusOK, code)
 
 			// Each line is output as a separate JSON object, we grab the first and
@@ -5235,7 +5235,7 @@ func TestAgent_Monitor(t *testing.T) {
 		}, 3*time.Second, 100*time.Millisecond)
 
 		cancelFunc()
-		code := <- codeCh
+		code := <-codeCh
 		require.Equal(t, http.StatusOK, code)
 
 		got := resp.Body.String()
