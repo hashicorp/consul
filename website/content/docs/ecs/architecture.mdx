@@ -49,9 +49,9 @@ This diagram shows an example timeline of a task shutting down:
   - `consul-client` begins to gracefully leave the Consul cluster.
   - `health-sync` stops syncing health status from ECS into Consul checks.
   - `sidecar-proxy` ignores the TERM signal and continues running until the `user-app` container exits. This allows the application container to continue making outgoing requests through the proxy to the mesh.
-  - `user-app` exits if it does not ignore the TERM signal. Alternatively, if the `user-app` container is configured to ignore the TERM signal , it would continue running.
+  - `user-app` exits if it is not configured to ignore the TERM signal. The `user-app` container will continue running if it is configured to ignore the TERM signal.
 - **T1**:
-  - `health-sync` updates its Consul checks to critical status, and then exits. This ensures this service instance is marked unhealthy.
+  - `health-sync` updates its Consul checks to critical status and exits. This ensures this service instance is marked unhealthy.
   - `sidecar-proxy` notices the `user-app` container has stopped and exits.
 - **T2**: `consul-client` finishes gracefully leaving the Consul datacenter and exits.
 - **T3**:
