@@ -5,7 +5,7 @@ import { generateStaticProps } from '@hashicorp/react-product-downloads-page/ser
 import baseProps from 'components/downloads-props'
 
 export default function DownloadsPage(staticProps) {
-  return <ProductDownloadsPage {...baseProps} {...staticProps} />
+  return <ProductDownloadsPage {...baseProps()} {...staticProps} />
 }
 
 export async function getStaticProps() {
