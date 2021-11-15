@@ -1208,7 +1208,7 @@ func TestResolveListenerSDSConfig(t *testing.T) {
 			listenerCfg = lisCfg
 		}
 
-		got, err := resolveListenerSDSConfig(snap, listenerCfg)
+		got, err := resolveListenerSDSConfig(snap.IngressGateway.TLSConfig.SDS, listenerCfg.TLS, listenerCfg.Port)
 		if tc.wantErr != "" {
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tc.wantErr)
