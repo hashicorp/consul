@@ -672,7 +672,7 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 	}
 
 	if config.Token != "" && config.AuthMethod != nil {
-		return nil, fmt.Errorf("only one of Vault token or auth method can be provided, but not both")
+		return nil, fmt.Errorf("only one of Vault token or Vault auth method can be provided, but not both")
 	}
 
 	if config.RootPKIPath == "" {
@@ -697,6 +697,7 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 }
 
 func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod) (*vaultapi.Secret, error) {
+	// Adapted from https://www.vaultproject.io/docs/auth/kubernetes#code-example
 	loginPath, err := configureVaultAuthMethod(authMethod)
 	if err != nil {
 		return nil, err
