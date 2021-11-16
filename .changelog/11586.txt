@@ -1,0 +1,6 @@
+```release-note:bug
+windows: fixes arm and arm64 builds
+```
+```release-note:bug
+macos: fixes building with a non-Apple LLVM (such as installed via Homebrew)
+```
