@@ -36,7 +36,6 @@ as |item index|>
       </dd>
     </dl>
 {{/if}}
-{{#if (and (can 'use nspaces') (not-eq item.Namespace @nspace))}}
     <a
       data-test-service-name
       href={{if (and (can 'use nspaces') (not-eq item.Namespace @nspace))
