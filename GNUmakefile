@@ -3,12 +3,13 @@ GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
 	github.com/hashicorp/go-bindata/go-bindata@master \
-	golang.org/x/tools/cmd/cover \
-	golang.org/x/tools/cmd/stringer \
+	golang.org/x/tools/cmd/cover@master \
+	golang.org/x/tools/cmd/stringer@master \
 	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
-	github.com/hashicorp/protoc-gen-go-binary \
-	github.com/vektra/mockery/cmd/mockery \
-	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1
+	github.com/hashicorp/protoc-gen-go-binary@master \
+	github.com/vektra/mockery/cmd/mockery@master \
+	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1 \
+	github.com/hashicorp/lint-consul-retry@master
 
 GOTAGS ?=
 GOOS?=$(shell go env GOOS)
@@ -283,12 +284,10 @@ static-assets:
 ui: ui-docker static-assets-docker
 
 tools:
-	@mkdir -p .gotools
-	@cd .gotools && for TOOL in $(GOTOOLS); do \
+	@if [[ -d .gotools ]]; then rm -rf .gotools ; fi
+	@for TOOL in $(GOTOOLS); do \
 		echo "=== TOOL: $$TOOL" ; \
-		rm -f go.mod go.sum ; \
-		go mod init consul-tools ; \
-		go get -v $$TOOL ; \
+		go install -v $$TOOL ; \
 	done
 
 version:
