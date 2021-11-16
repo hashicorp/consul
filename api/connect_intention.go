@@ -32,8 +32,8 @@ type Intention struct {
 
 	// SourcePartition and DestinationPartition cannot be wildcards "*" and
 	// are not compatible with legacy intentions.
-	SourcePartition      string
-	DestinationPartition string
+	SourcePartition      string `json:",omitempty"`
+	DestinationPartition string `json:",omitempty"`
 
 	// SourceType is the type of the value for the source.
 	SourceType IntentionSourceType
