@@ -4,74 +4,23 @@
 >
   {{yield}}
   <header>
-  {{#each flashMessages.queue as |flash|}}
-      <FlashMessage @flash={{flash}} as |component flash|>
-    {{#if flash.dom}}
-          {{{flash.dom}}}
-    {{else}}
-          {{#let (lowercase component.flashType) (lowercase flash.action) as |status type|}}
-            {{! flashes automatically ucfirst the type }}
-
-            <p data-notification role="alert" class={{concat status ' notification-' type}}>
-              <strong>
-                {{capitalize status}}!
-              </strong>
-              {{#yield-slot name="notification" params=(block-params status type flash.item flash.error)}}
-                {{yield}}
-                {{#if (eq type 'logout')}}
-                  {{#if (eq status 'success') }}
-                    You are now logged out.
-                  {{else}}
-                    There was an error logging out.
-                  {{/if}}
-                {{else if (eq type 'authorize')}}
-                  {{#if (eq status 'success') }}
-                    You are now logged in.
-                  {{else}}
-                    There was an error, please check your SecretID/Token
-                  {{/if}}
-                {{/if}}
-              {{else}}
-                {{#if (eq type 'logout')}}
-                  {{#if (eq status 'success') }}
-                    You are now logged out.
-                  {{else}}
-                    There was an error logging out.
-                  {{/if}}
-                {{else if (eq type 'authorize')}}
-                  {{#if (eq status 'success') }}
-                    You are now logged in.
-                  {{else}}
-                    There was an error, please check your SecretID/Token
-                  {{/if}}
-                {{/if}}
-              {{/yield-slot}}
-            </p>
-          {{/let}}
-    {{/if}}
-      </FlashMessage>
-  {{/each}}
       <div>
           <div>
-    {{#if authorized}}
               <nav aria-label="Breadcrumb" data-test-breadcrumbs>
                   <YieldSlot @name="breadcrumbs">
                     {{document-attrs class="with-breadcrumbs"}}
                     {{yield}}
                   </YieldSlot>
               </nav>
-    {{/if}}
               <div class="title">
                 <YieldSlot @name="header">
                     {{yield}}
                 </YieldSlot>
                 <div class="actions">
-          {{#if authorized}}
                     <YieldSlot @name="actions">
                       <PortalTarget @name="app-view-actions" />
                       {{yield}}
                     </YieldSlot>
-          {{/if}}
                 </div>
               </div>
               <YieldSlot @name="nav">
@@ -79,42 +28,12 @@
               </YieldSlot>
           </div>
       </div>
-    {{#if authorized}}
       <YieldSlot @name="toolbar">
         <input type="checkbox" id="toolbar-toggle" />
         {{yield}}
       </YieldSlot>
-    {{/if}}
   </header>
   <div>
-      {{#if (not enabled) }}
-        <EmptyState data-test-acls-disabled>
-          <BlockSlot @name="header">
-            <h2>Welcome to ACLs</h2>
-          </BlockSlot>
-          <BlockSlot @name="body">
-            <p>
-              ACLs are not enabled in this Consul cluster. We strongly encourage the use of ACLs in production environments for the best security practices.
-            </p>
-          </BlockSlot>
-          <BlockSlot @name="actions">
-            <li class="docs-link">
-              <a href="{{env 'CONSUL_DOCS_URL'}}/acl/index.html" rel="noopener noreferrer" target="_blank">Read the documentation</a>
-            </li>
-            <li class="learn-link">
-              <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/security-networking/production-acls" rel="noopener noreferrer" target="_blank">Follow the guide</a>
-            </li>
-          </BlockSlot>
-        </EmptyState>
-      {{else if (not authorized)}}
-        <ErrorState
-          @error={{hash
-            status='403'
-          }}
-          @login={{login}}
-        />
-      {{else}}
-        <YieldSlot @name="content">{{yield}}</YieldSlot>
-      {{/if}}
+    <YieldSlot @name="content">{{yield}}</YieldSlot>
   </div>
 </div>
