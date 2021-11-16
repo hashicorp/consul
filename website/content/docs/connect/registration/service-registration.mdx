@@ -9,7 +9,7 @@ description: >-
 
 # Proxy Service Registration
 
-This topic describes how to declare a proxy as a `connect-proxy` in service definitions. The type must be declared and information about the service they represent must be provided to function as a Consul service mesh proxy.
+This topic describes how to declare a proxy as a `connect-proxy` in service definitions. The `kind` must be declared and information about the service they represent must be provided to function as a Consul service mesh proxy.
 
 ## Configuration
 
@@ -22,7 +22,7 @@ Configure a service mesh proxy using the following syntax:
 name =  <name of the service>
 kind = "connect-proxy"
 proxy = {
-  destination_service_name = "<name of the services that the proxy represents>"
+  destination_service_name = "<name of the service that the proxy represents>"
   <additional proxy parameters> = "<additional parameter values>"
 }
 port = <port where services can discover and connect to proxied services>
@@ -36,7 +36,8 @@ port = <port where services can discover and connect to proxied services>
   "name": "<name of the service>",
   "kind": "connect-proxy",
   "proxy": {
-    "destination_service_name": "<name of the services that the proxy represents>","<additional proxy parameters>" : "<additional parameter values>"
+    "destination_service_name": "<name of the service that the proxy represents>",
+    "<additional proxy parameters>" : "<additional parameter values>"
   },
   "port": <port where services can discover and connect to proxied services> 
 }

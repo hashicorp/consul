@@ -3,8 +3,7 @@ layout: docs
 page_title: 'Configuration Entry Kind: Partition Exports'
 description: >-
   The partition-exports configuration entry enables you to export services from a single file.
-  Settings in this config entry apply across all namespaces and federated datacenters.
-  Write access to the mesh resource is required.
+  Settings in this configuration entry can apply to services in any namespace of the specified partition. Write access to the mesh resource is required.
 ---
 
 # Partition Exports
@@ -15,23 +14,25 @@ This topic describes the `partition-exports` configuration entry type. The `part
 
 ## Introduction
 
-You can configure Consul to export services contained in an admin partition to one or more additional partitions by declaring the `partition-exports` configuration entry in the `kind` field. This enables you to route traffic between services in different clusters when a single set of Consul servers running on each cluster are jonied using WAN federation. 
+You can configure Consul to export services contained in an admin partition to one or more additional partitions by declaring the `partition-exports` configuration entry in the `kind` field. This enables you to route traffic between services in different clusters that share a single set of Consul servers. 
 
-The settings defined in the `partition-exports` configuration entry apply to all namespaces and federated datacenters.
-
-TO DO: More background info and info about the use case(s).
+You can configure the settings defined in the `partition-exports` configuration entry to apply to all namespaces and federated datacenters.
 
 ## Requirements
 
-The consumer partition must have an `upstream` configuration that specifies the destination for the services. Refer to the [Upstream Configuration Reference](/docs/connect/registration/service-registration#upstream-configuration-reference) for information on how to configure the upstream.
+* A Consul Enterprise binary
+* A partition that corresponds to the configuration entry. As in, the partition exports config entry for partition "frontend" requires that the "frontend" partition exists
+
 
 ## Usage
 
 1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
 1. Specify the `partition-exports` configuration in the agent configuration file as described in [Configuration](#configuration).
 1. Deploy the configuration per your runtime:
-    * [VM](/docs/install) 
-    * [Kubernetes](/docs/k8s/installation/install) 
+    * [VM](docs/install) 
+    * [Kubernetes](docs/k8s/installation/install) 
+    * [HTTP API](api-docs/config#apply-configuration)
+    * [CLI](commands/config/write)
 
 ## Configuration
 
@@ -46,7 +47,7 @@ Partition = "<partition containing services to export>"
 Services = [
   {
     Name = "<name of service to export>"
-    Namespace = "<namespace of namespace in the partition>"  
+    Namespace = "<namespace in the partition containing the service to export>"  
     Consumers = [
       {
         Partition = "<name of destination partition>"
@@ -66,7 +67,7 @@ Services:
 - Consumers:
   - Partition: <name of destination partition>
   Name: <name of service to export>
-  Namespace: <namespace of namespace in the partition>
+  Namespace: <namespace in the partition containing the service to export>
 ```
 </CodeBlockConfig>
 <CodeBlockConfig>
@@ -78,11 +79,11 @@ Services:
   {
     "Consumers": [
       {
-        "Partition": "<name of destination partition>"
+        "Partition": "<name of partition that will dial the exported service>"
       }
     ],
     "Name": "<name of service to export>",
-    "Namespace": "<namespace of namespace in the partition>"
+    "Namespace": "<namespace in the partition containing the service to export>"
   }
 ]
 ```
@@ -105,7 +106,7 @@ The following table describes the parameters associated with the `partition-expo
 The `Services` parameter contains one or more lists of parameters that specify which services to export, which namespaces the services reside, and the destination partition for the exported services. Each list in the `Services` block must contain the following parameters:
 
 * `Name`: Specifies the name of the service to export. You can use a asterisk wildcard (`*`) to include all services in the namespace. 
-* `Namespace`: Specifies the name space containing the services to export. You can use a asterisk wildcard (`*`) to include all namespaces in the partition.
+* `Namespace`: Specifies the namespace containing the services to export. You can use a asterisk wildcard (`*`) to include all namespaces in the partition.
 * `Consumers`: Specifies one ore more objects that identify a destination partition for the exported services. 
 
 ## Example
@@ -203,5 +204,9 @@ When an exported service has been imported to another partition, you can use the
 ```shell-session
 $ curl 'localhost:8500/v1/health/connect/billing?partition=finance'
 ```
+
+An ACL token with `service:write` permissions is required for the partition from which the query is made. If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request will require a token with `write` permissions to `web` in the `frontend` partition. 
+
+Exports are available to all services in the consumer partition. In the previous example, any service with `write` permissions for the `frontend` partition will be able to read exports. 
 
 See [Health HTTP Endpoing](/api-docs/health) for additional information.
