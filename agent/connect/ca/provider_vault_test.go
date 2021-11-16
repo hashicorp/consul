@@ -30,7 +30,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 		},
 		"both token and auth method provided": {
 			rawConfig: map[string]interface{}{"Token": "test", "AuthMethod": map[string]interface{}{"Type": "test"}},
-			expError:  "only one of Vault token or auth method can be provided, but not both",
+			expError:  "only one of Vault token or Vault auth method can be provided, but not both",
 		},
 		"no root PKI path": {
 			rawConfig: map[string]interface{}{"Token": "test"},
