@@ -667,17 +667,19 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				reply.ServiceNodes = filtered
 			}
 
-			if err := c.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
-
 			// This is safe to do even when the filter is nil - its just a no-op then
 			raw, err := filter.Execute(reply.ServiceNodes)
 			if err != nil {
 				return err
 			}
-
 			reply.ServiceNodes = raw.(structs.ServiceNodes)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.ServiceNodes)
 		})

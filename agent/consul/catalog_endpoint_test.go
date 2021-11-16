@@ -2481,6 +2481,7 @@ node "foo" {
 	require.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	require.Equal(t, "foo-proxy", v.ServiceName)
+	require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 }
 
 func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
@@ -2836,6 +2837,7 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 			t.Fatalf("bad: %#v", reply.ServiceNodes)
 		}
 	}
+	require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	// We've already proven that we call the ACL filtering function so we
 	// test node filtering down in acl.go for node cases. This also proves

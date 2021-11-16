@@ -2320,83 +2320,72 @@ func TestACL_filterServices(t *testing.T) {
 
 func TestACL_filterServiceNodes(t *testing.T) {
 	t.Parallel()
-	// Create some service nodes.
-	fill := func() structs.ServiceNodes {
-		return structs.ServiceNodes{
-			&structs.ServiceNode{
-				Node:        "node1",
-				ServiceName: "foo",
+
+	logger := hclog.NewNullLogger()
+
+	makeList := func() *structs.IndexedServiceNodes {
+		return &structs.IndexedServiceNodes{
+			ServiceNodes: structs.ServiceNodes{
+				{
+					Node:        "node1",
+					ServiceName: "foo",
+				},
 			},
 		}
 	}
 
-	// Try permissive filtering.
-	{
-		nodes := fill()
-		filt := newACLFilter(acl.AllowAll(), nil)
-		filt.filterServiceNodes(&nodes)
-		if len(nodes) != 1 {
-			t.Fatalf("bad: %#v", nodes)
-		}
-	}
+	t.Run("allowed", func(t *testing.T) {
+		require := require.New(t)
 
-	// Try restrictive filtering.
-	{
-		nodes := fill()
-		filt := newACLFilter(acl.DenyAll(), nil)
-		filt.filterServiceNodes(&nodes)
-		if len(nodes) != 0 {
-			t.Fatalf("bad: %#v", nodes)
-		}
-	}
+		policy, err := acl.NewPolicyFromSource(`
+			service "foo" {
+			  policy = "read"
+			}
+			node "node1" {
+			  policy = "read"
+			}
+		`, acl.SyntaxLegacy, nil, nil)
+		require.NoError(err)
 
-	// Allowed to see the service but not the node.
-	policy, err := acl.NewPolicyFromSource(`
-service "foo" {
-  policy = "read"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(err)
 
-	// But with version 8 the node will block it.
-	{
-		nodes := fill()
-		filt := newACLFilter(perms, nil)
-		filt.filterServiceNodes(&nodes)
-		if len(nodes) != 0 {
-			t.Fatalf("bad: %#v", nodes)
-		}
-	}
+		list := makeList()
+		filterACLWithAuthorizer(logger, authz, list)
 
-	// Chain on access to the node.
-	policy, err = acl.NewPolicyFromSource(`
-node "node1" {
-  policy = "read"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		require.Len(list.ServiceNodes, 1)
+		require.False(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
 
-	// Now it should go through.
-	{
-		nodes := fill()
-		filt := newACLFilter(perms, nil)
-		filt.filterServiceNodes(&nodes)
-		if len(nodes) != 1 {
-			t.Fatalf("bad: %#v", nodes)
-		}
-	}
+	t.Run("allowed to read the service, but not the node", func(t *testing.T) {
+		require := require.New(t)
+
+		policy, err := acl.NewPolicyFromSource(`
+			service "foo" {
+			  policy = "read"
+			}
+		`, acl.SyntaxLegacy, nil, nil)
+		require.NoError(err)
+
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(err)
+
+		list := makeList()
+		filterACLWithAuthorizer(logger, authz, list)
+
+		require.Empty(list.ServiceNodes)
+		require.True(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("denied", func(t *testing.T) {
+		require := require.New(t)
+
+		list := makeList()
+		filterACLWithAuthorizer(logger, acl.DenyAll(), list)
+
+		require.Empty(list.ServiceNodes)
+		require.True(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
 }
 
 func TestACL_filterNodeServices(t *testing.T) {
