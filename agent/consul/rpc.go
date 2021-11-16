@@ -968,6 +968,32 @@ RUN_QUERY:
 
 	// Execute the queryFn
 	err := fn(ws, state)
+
+	// If the request is unauthenticated, we blank out ResultsFilteredByACLs to
+	// limit information leaking.
+	//
+	// Endpoints that support bexpr filtering could be used in combination with
+	// this flag/header to discover the existence of resources to which the user
+	// does not have access, therefore we only expose it when the user presents
+	// a valid ACL token. This doesn't completely remove the risk (by nature the
+	// purpose of this flag is to let the user know there are resources they can
+	// not access) but it prevents completely unauthenticated users from doing so.
+	//
+	// Notes:
+	//
+	//	* The definition of "unauthenticated" here is incomplete, as it doesn't
+	//	  account for the fact that operators can modify the anonymous token with
+	//	  custom policies, or set namespace default policies. As these scenarios
+	//	  are less common and this flag is a best-effort UX improvement, we think
+	//	  the trade-off for reduced complexity is acceptable.
+	//
+	//	* It's safe to assume that the token has already been validated (and just
+	//	  check that it's not blank) at this point, because ResultsFilteredByACLs
+	//	  is only set to true when applying the already-resolved token's policies.
+	if queryOpts.GetToken() == "" {
+		queryMeta.SetResultsFilteredByACLs(false)
+	}
+
 	// Note we check queryOpts.MinQueryIndex is greater than zero to determine if
 	// blocking was requested by client, NOT meta.Index since the state function
 	// might return zero if something is not initialized and care wasn't taken to
