@@ -54,7 +54,7 @@
     "@hashicorp/platform-cli": "^1.2.0",
     "@hashicorp/platform-nextjs-plugin": "^1.0.1",
     "@hashicorp/platform-types": "^0.1.1",
-    "@types/react": "^17.0.3",
+    "@types/react": "^17.0.35",
     "dart-linkcheck": "2.0.15",
     "husky": "4.3.7",
     "prettier": "2.2.1",
