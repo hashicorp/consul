@@ -1767,14 +1767,16 @@ func (f *aclFilter) filterAuthMethods(methods *structs.ACLAuthMethods) {
 	*methods = ret
 }
 
-func (f *aclFilter) filterServiceList(services *structs.ServiceList) {
+func (f *aclFilter) filterServiceList(services *structs.ServiceList) bool {
 	ret := make(structs.ServiceList, 0, len(*services))
+	var removed bool
 	for _, svc := range *services {
 		var authzContext acl.AuthorizerContext
 
 		svc.FillAuthzContext(&authzContext)
 
 		if f.authorizer.ServiceRead(svc.Name, &authzContext) != acl.Allow {
+			removed = true
 			sid := structs.NewServiceID(svc.Name, &svc.EnterpriseMeta)
 			f.logger.Debug("dropping service from result due to ACLs", "service", sid.String())
 			continue
@@ -1784,6 +1786,7 @@ func (f *aclFilter) filterServiceList(services *structs.ServiceList) {
 	}
 
 	*services = ret
+	return removed
 }
 
 // filterGatewayServices is used to filter gateway to service mappings based on ACL rules.
@@ -1896,7 +1899,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		filt.filterAuthMethod(v)
 
 	case *structs.IndexedServiceList:
-		filt.filterServiceList(&v.Services)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterServiceList(&v.Services)
 
 	case *structs.GatewayServices:
 		filt.filterGatewayServices(v)

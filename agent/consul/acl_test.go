@@ -3207,6 +3207,39 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 	}
 }
 
+func TestACL_filterServiceList(t *testing.T) {
+	logger := hclog.NewNullLogger()
+
+	makeList := func() *structs.IndexedServiceList {
+		return &structs.IndexedServiceList{
+			Services: structs.ServiceList{
+				{Name: "foo"},
+				{Name: "bar"},
+			},
+		}
+	}
+
+	t.Run("permissive filtering", func(t *testing.T) {
+		require := require.New(t)
+
+		list := makeList()
+		filterACLWithAuthorizer(logger, acl.AllowAll(), list)
+
+		require.False(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.Len(list.Services, 2)
+	})
+
+	t.Run("restrictive filtering", func(t *testing.T) {
+		require := require.New(t)
+
+		list := makeList()
+		filterACLWithAuthorizer(logger, acl.DenyAll(), list)
+
+		require.True(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.Empty(list.Services)
+	})
+}
+
 func TestACL_unhandledFilterType(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
