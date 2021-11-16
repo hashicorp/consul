@@ -2126,7 +2126,7 @@ func TestConfigSnapshotIngress_MultipleListenersUpstreamWithoutDiscoveryChain(t 
 
 	snap.IngressGateway.DiscoveryChain = map[string]*structs.CompiledDiscoveryChain{
 		"foo": fooChain,
-		// bar does not exist
+		// excluding bar should invalidate the upstream
 	}
 
 	return snap

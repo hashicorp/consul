@@ -645,7 +645,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "ingress-multiple-listeners-upstream-without-backing-endpoint",
-			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersUpstreamWithoutDiscoveryChain,
+			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersUpstreamWithoutBackingEndpoint,
 			setup:  nil,
 		},
 		{
