@@ -127,13 +127,13 @@ ${range(env('CONSUL_EXPOSED_COUNT', 3)).map((i) => `
                 ]
               },
               "Upstreams": [
-  ${range(env('CONSUL_UPSTREAM_COUNT', 10)).map((item, j) => `
+${range(env('CONSUL_UPSTREAM_COUNT', 10)).map((item, j) => `
                   {
                     "Datacenter": "${fake.address.countryCode().toLowerCase()} ${ i % 2 ? "west" : "east"}-${j}",
                     "DestinationName": "${fake.hacker.noun()}",
                     "DestinationNamespace": "${fake.hacker.noun()}",
                     "DestinationType": "${fake.helpers.randomize(['service', 'prepared_query'])}",
-${ false ? `
+${fake.random.number({min: 1, max: 10}) > 5 ? `
                     "LocalBindAddress": "${fake.internet.ip()}",
                     "LocalBindPort": ${fake.random.number({min: 0, max: 65535})}
 ` : `
@@ -141,7 +141,7 @@ ${ false ? `
                     "LocalBindSocketPath": "/${fake.lorem.words(fake.random.number({min: 1, max: 5})).split(' ').join('/')}${fake.random.boolean() ? fake.system.fileName() : ''}"
 ` }
                   }
-  `)}
+`)}
               ]
 ` : ``}
             },

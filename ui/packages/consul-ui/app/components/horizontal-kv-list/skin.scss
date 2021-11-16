@@ -1,8 +1,7 @@
-%horizontal-kv-list dt[class=""]::after,
-%horizontal-kv-list dt[class=""]::after {
+%horizontal-kv-list-visible-title::after {
   display: inline;
 }
-%horizontal-kv-list dt[class=""]::after {
+%horizontal-kv-list-visible-title::after {
   content: var(--horizontal-kv-list-key-separator);
 }
 %horizontal-kv-list-reversed dt[class=""]::after {
