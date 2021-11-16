@@ -104,7 +104,7 @@ export default class RepositoryService extends Service {
     }
     if (this.env.var('CONSUL_PARTITIONS_ENABLED')) {
       const partition = get(item, 'Partition');
-      if (typeof partiton !== 'undefined' && partition !== params.partition) {
+      if (typeof partition !== 'undefined' && partition !== params.partition) {
         return false;
       }
     }
