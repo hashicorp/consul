@@ -130,16 +130,19 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Index = maxIdx
 
-			if err := m.srv.filterACL(args.Token, &reply.Gateways); err != nil {
-				return err
-			}
-
 			raw, err := filter.Execute(reply.Nodes)
 			if err != nil {
 				return err
 			}
-
 			reply.Nodes = raw.(structs.CheckServiceNodes)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			return nil
 		})
 }
