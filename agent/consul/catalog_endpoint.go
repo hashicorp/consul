@@ -810,11 +810,8 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 				return err
 			}
 
-			if err := c.srv.filterACL(args.Token, &services); err != nil {
-				return err
-			}
-
 			reply.Index = index
+
 			if services != nil {
 				reply.NodeServices = *services
 
@@ -823,6 +820,13 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 					return err
 				}
 				reply.NodeServices.Services = raw.([]*structs.NodeService)
+			}
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
 			}
 
 			return nil

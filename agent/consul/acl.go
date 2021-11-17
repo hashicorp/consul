@@ -1315,39 +1315,37 @@ func (f *aclFilter) filterNodeServices(services **structs.NodeServices) bool {
 }
 
 // filterNodeServices is used to filter services on a given node base on ACLs.
-func (f *aclFilter) filterNodeServiceList(services **structs.NodeServiceList) {
-	if services == nil || *services == nil {
-		return
+// Returns true if any elements were removed.
+func (f *aclFilter) filterNodeServiceList(services *structs.NodeServiceList) bool {
+	if services.Node == nil {
+		return false
 	}
 
 	var authzContext acl.AuthorizerContext
-	(*services).Node.FillAuthzContext(&authzContext)
-	if !f.allowNode((*services).Node.Node, &authzContext) {
-		*services = nil
-		return
+	services.Node.FillAuthzContext(&authzContext)
+	if !f.allowNode(services.Node.Node, &authzContext) {
+		*services = structs.NodeServiceList{}
+		return true
 	}
 
-	svcs := (*services).Services
-	modified := false
+	var removed bool
+	svcs := services.Services
 	for i := 0; i < len(svcs); i++ {
 		svc := svcs[i]
 		svc.FillAuthzContext(&authzContext)
 
-		if f.allowNode((*services).Node.Node, &authzContext) && f.allowService(svc.Service, &authzContext) {
+		if f.allowService(svc.Service, &authzContext) {
 			continue
 		}
+
 		f.logger.Debug("dropping service from result due to ACLs", "service", svc.CompoundServiceID())
 		svcs = append(svcs[:i], svcs[i+1:]...)
 		i--
-		modified = true
+		removed = true
 	}
+	services.Services = svcs
 
-	if modified {
-		*services = &structs.NodeServiceList{
-			Node:     (*services).Node,
-			Services: svcs,
-		}
-	}
+	return removed
 }
 
 // filterCheckServiceNodes is used to filter nodes based on ACL rules. Returns
@@ -1859,8 +1857,8 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 	case *structs.IndexedNodeServices:
 		v.QueryMeta.ResultsFilteredByACLs = filt.filterNodeServices(&v.NodeServices)
 
-	case **structs.NodeServiceList:
-		filt.filterNodeServiceList(v)
+	case *structs.IndexedNodeServiceList:
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterNodeServiceList(&v.NodeServices)
 
 	case *structs.IndexedServiceNodes:
 		v.QueryMeta.ResultsFilteredByACLs = filt.filterServiceNodes(&v.ServiceNodes)
