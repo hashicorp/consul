@@ -1286,18 +1286,20 @@ func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) bool {
 }
 
 // filterNodeServices is used to filter services on a given node base on ACLs.
-func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
+// Returns true if any elements were removed
+func (f *aclFilter) filterNodeServices(services **structs.NodeServices) bool {
 	if *services == nil {
-		return
+		return false
 	}
 
 	var authzContext acl.AuthorizerContext
 	(*services).Node.FillAuthzContext(&authzContext)
 	if !f.allowNode((*services).Node.Node, &authzContext) {
 		*services = nil
-		return
+		return true
 	}
 
+	var removed bool
 	for svcName, svc := range (*services).Services {
 		svc.FillAuthzContext(&authzContext)
 
@@ -1305,8 +1307,11 @@ func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
 			continue
 		}
 		f.logger.Debug("dropping service from result due to ACLs", "service", svc.CompoundServiceID())
+		removed = true
 		delete((*services).Services, svcName)
 	}
+
+	return removed
 }
 
 // filterNodeServices is used to filter services on a given node base on ACLs.
@@ -1852,7 +1857,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		v.QueryMeta.ResultsFilteredByACLs = filt.filterNodes(&v.Nodes)
 
 	case *structs.IndexedNodeServices:
-		filt.filterNodeServices(&v.NodeServices)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterNodeServices(&v.NodeServices)
 
 	case **structs.NodeServiceList:
 		filt.filterNodeServiceList(v)

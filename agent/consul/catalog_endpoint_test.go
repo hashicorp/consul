@@ -2846,7 +2846,7 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 	// for now until we change the sense of the version 8 ACL flag).
 }
 
-func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
+func TestCatalog_NodeServices_ACL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2865,43 +2865,46 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// The node policy should not be ignored.
+	token := func(policy string) string {
+		rules := fmt.Sprintf(`
+				node "%s" { policy = "%s" }
+				service "consul" { policy = "%s" }
+			`,
+			s1.config.NodeName,
+			policy,
+			policy,
+		)
+		return createTokenWithPolicyName(t, policy, codec, rules)
+	}
+
 	args := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
 		Node:       s1.config.NodeName,
 	}
-	reply := structs.IndexedNodeServices{}
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply.NodeServices != nil {
-		t.Fatalf("should not nil")
-	}
 
-	rules := fmt.Sprintf(`
-node "%s" {
-	policy = "read"
-}
-`, s1.config.NodeName)
-	id := createToken(t, codec, rules)
+	t.Run("deny", func(t *testing.T) {
+		require := require.New(t)
 
-	// Now try with the token and it will go through.
-	args.Token = id
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply.NodeServices == nil {
-		t.Fatalf("should not be nil")
-	}
+		args.Token = token("deny")
 
-	// Make sure an unknown node doesn't cause trouble.
-	args.Node = "nope"
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply.NodeServices != nil {
-		t.Fatalf("should not nil")
-	}
+		var reply structs.IndexedNodeServices
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
+		require.NoError(err)
+		require.Nil(reply.NodeServices)
+		require.True(reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("allow", func(t *testing.T) {
+		require := require.New(t)
+
+		args.Token = token("read")
+
+		var reply structs.IndexedNodeServices
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
+		require.NoError(err)
+		require.NotNil(reply.NodeServices)
+		require.False(reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
 }
 
 func TestCatalog_NodeServices_FilterACL(t *testing.T) {
