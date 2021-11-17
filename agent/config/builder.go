@@ -1094,6 +1094,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
 
+	if c.RaftBoltDBConfig != nil {
+		rt.RaftBoltDBConfig = *c.RaftBoltDBConfig
+	}
+
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
 	}

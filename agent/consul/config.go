@@ -391,6 +391,8 @@ type Config struct {
 
 	RPCConfig RPCConfig
 
+	RaftBoltDBConfig RaftBoltDBConfig
+
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
 }
@@ -602,4 +604,8 @@ type ReloadableConfig struct {
 	RaftSnapshotThreshold int
 	RaftSnapshotInterval  time.Duration
 	RaftTrailingLogs      int
+}
+
+type RaftBoltDBConfig struct {
+	NoFreelistSync bool
 }

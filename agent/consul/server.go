@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-version"
+	"go.etcd.io/bbolt"
 
 	"github.com/armon/go-metrics"
 	connlimit "github.com/hashicorp/go-connlimit"
@@ -729,7 +730,12 @@ func (s *Server) setupRaft() error {
 		}
 
 		// Create the backend raft store for logs and stable storage.
-		store, err := raftboltdb.NewBoltStore(filepath.Join(path, "raft.db"))
+		store, err := raftboltdb.New(raftboltdb.Options{
+			BoltOptions: &bbolt.Options{
+				NoFreelistSync: s.config.RaftBoltDBConfig.NoFreelistSync,
+			},
+			Path: filepath.Join(path, "raft.db"),
+		})
 		if err != nil {
 			return err
 		}
