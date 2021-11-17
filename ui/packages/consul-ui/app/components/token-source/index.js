@@ -21,6 +21,7 @@ export default Component.extend({
           // in the response
           SecretID: this.SecretID,
           Namespace: this.Namespace,
+          Partition: this.Partition,
           ...{
             AuthMethod: typeof this.AuthMethod !== 'undefined' ? this.AuthMethod : undefined,
             // TODO: We should be able to only set namespaces if they are enabled
