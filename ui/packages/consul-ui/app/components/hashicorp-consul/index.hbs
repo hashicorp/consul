@@ -38,7 +38,11 @@
                     (if item.Local ' is-local')
                     (if item.Primary ' is-primary')
                   }}
-                  @href={{href-to '.' params=(hash dc=item.Name)}}
+                  @href={{href-to '.' params=(hash
+                    dc=item.Name
+                    partition=undefined
+                    nspace=(if (gt @nspace.length 0) @nspace undefined)
+                  )}}
                 >
                   <BlockSlot @name="label">
                     {{item.Name}}

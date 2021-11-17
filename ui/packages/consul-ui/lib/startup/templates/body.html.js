@@ -64,13 +64,7 @@ ${
   function(get, obj) {
     Object.entries(obj).forEach(([key, value]) => {
       if(get(key)) {
-        const appName = '${appName}';
-        const appNameJS = appName.split('-').map((item, i) => i ? \`\${item.substr(0, 1).toUpperCase()}\${item.substr(1)}\` : item).join('');
-        const $script = document.createElement('script');
-        $script.setAttribute('data-app-name', '${appName}');
-        $script.setAttribute('data-${appName}-routing', '');
-        $script.setAttribute('src', \`${rootURL}assets/\${value}/routes.js\`);
-        document.body.appendChild($script);
+        document.write(\`\\x3Cscript data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/\${value}/routes.js">\\x3C/script>\`);
       }
     });
   }
