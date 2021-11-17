@@ -27,7 +27,7 @@
                   class={{if (eq @partition item.Name) 'is-active'}}
                   @href={{href-to '.' params=(hash
                     partition=item.Name
-                    nspace=(if (gt @nspace.length 0) @nspace undefined)
+                    nspace=undefined
                   )}}
                 >
                   <BlockSlot @name="label">
