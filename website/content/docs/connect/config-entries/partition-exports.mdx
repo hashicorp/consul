@@ -8,7 +8,7 @@ description: >-
 
 # Partition Exports
 
-This topic describes the `partition-exports` configuration entry type. The `partition-exports` configuration entry enables Consul to export service instances to other admin partitions from a single file. This enables your services to be networked across admin partitions.    
+This topic describes the `partition-exports` configuration entry type. The `partition-exports` configuration entry enables Consul to export service instances to other admin partitions from a single file. This enables your services to be networked across admin partitions. See [Admin Partitions](/docs/enterprise/admin-partitions) for additional information.     
 
 -> **v1.11.0+:** This config entry is supported in Consul versions 1.11.0+.
 
@@ -209,4 +209,4 @@ An ACL token with `service:write` permissions is required for the partition from
 
 Exports are available to all services in the consumer partition. In the previous example, any service with `write` permissions for the `frontend` partition will be able to read exports. 
 
-See [Health HTTP Endpoing](/api-docs/health) for additional information.
+See [Health HTTP Endpoint](/api-docs/health) for additional information.
