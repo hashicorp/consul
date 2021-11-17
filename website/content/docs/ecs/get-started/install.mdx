@@ -49,7 +49,7 @@ module "my_task" {
   ]
 
   port       = "9090"
-  retry_join = "<address of the Consul server>"
+  retry_join = ["<address of the Consul server>"]
 }
 ```
 
@@ -63,7 +63,7 @@ however there are some important inputs worth highlighting:
 - `port` is the port that your application listens on. This should be set to a
   string, not an integer, i.e. `port = "9090"`, not `port = 9090`.
 - `retry_join` is passed to the [`-retry-join`](/docs/agent/options#_retry_join) option for the Consul agent. This tells
-  the agent the location of your Consul server so that it can join the Consul cluster.
+  the agent the location of your Consul servers so that it can join the Consul cluster.
 
 -> **NOTE:** If your tasks run in a public subnet, they must have `assign_public_ip = true`
 in their [`network_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service#network_configuration) block so that ECS can pull the Docker images.

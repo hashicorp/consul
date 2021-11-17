@@ -91,7 +91,7 @@ module "my_task" {
   ]
 
   port       = "9090"
-  retry_join = "<address of the Consul server>"
+  retry_join = ["<address of the Consul server>"]
 }
 ```
 
