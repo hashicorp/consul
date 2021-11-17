@@ -24,13 +24,23 @@ import (
 const (
 	VaultCALeafCertRole = "leaf-cert"
 
-	VaultAuthMethodTypeKubernetes = "kubernetes"
-	VaultAuthMethodTypeLDAP       = "ldap"
-	VaultAuthMethodTypeUserpass   = "userpass"
-	VaultAuthMethodTypeOkta       = "okta"
-	VaultAuthMethodTypeRadius     = "radius"
-	VaultAuthMethodTypeOCI        = "oci"
-	VaultAuthMethodTypeToken      = "token"
+	VaultAuthMethodTypeAliCloud     = "alicloud"
+	VaultAuthMethodTypeAppRole      = "approle"
+	VaultAuthMethodTypeAWS          = "aws"
+	VaultAuthMethodTypeAzure        = "azure"
+	VaultAuthMethodTypeCloudFoundry = "cf"
+	VaultAuthMethodTypeGitHub       = "github"
+	VaultAuthMethodTypeGCP          = "gcp"
+	VaultAuthMethodTypeJWT          = "jwt"
+	VaultAuthMethodTypeKerberos     = "kerberos"
+	VaultAuthMethodTypeKubernetes   = "kubernetes"
+	VaultAuthMethodTypeLDAP         = "ldap"
+	VaultAuthMethodTypeOCI          = "oci"
+	VaultAuthMethodTypeOkta         = "okta"
+	VaultAuthMethodTypeRadius       = "radius"
+	VaultAuthMethodTypeTLS          = "cert"
+	VaultAuthMethodTypeToken        = "token"
+	VaultAuthMethodTypeUserpass     = "userpass"
 
 	defaultK8SServiceAccountTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
@@ -751,8 +761,19 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (loginPath st
 		return "", fmt.Errorf("'token' auth method is not supported via auth method configuration; " +
 			"please provide the token with the 'token' parameter in the CA configuration")
 	// The rest of the auth methods use auth/<auth method path> login API path.
-	default:
+	case VaultAuthMethodTypeAliCloud,
+		VaultAuthMethodTypeAppRole,
+		VaultAuthMethodTypeAWS,
+		VaultAuthMethodTypeAzure,
+		VaultAuthMethodTypeCloudFoundry,
+		VaultAuthMethodTypeGitHub,
+		VaultAuthMethodTypeGCP,
+		VaultAuthMethodTypeJWT,
+		VaultAuthMethodTypeKerberos,
+		VaultAuthMethodTypeTLS:
 		loginPath = fmt.Sprintf("auth/%s/login", authMethod.MountPath)
+	default:
+		return "", fmt.Errorf("auth method %q is not supported", authMethod.Type)
 	}
 
 	return

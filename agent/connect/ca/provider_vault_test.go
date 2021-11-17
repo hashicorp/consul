@@ -64,6 +64,48 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 	}
 }
 
+func TestVaultCAProvider_configureVaultAuthMethod(t *testing.T) {
+	cases := map[string]struct {
+		expLoginPath string
+		params       map[string]interface{}
+		expError     string
+	}{
+		"alicloud":    {expLoginPath: "auth/alicloud/login"},
+		"approle":     {expLoginPath: "auth/approle/login"},
+		"aws":         {expLoginPath: "auth/aws/login"},
+		"azure":       {expLoginPath: "auth/azure/login"},
+		"cf":          {expLoginPath: "auth/cf/login"},
+		"github":      {expLoginPath: "auth/github/login"},
+		"gcp":         {expLoginPath: "auth/gcp/login"},
+		"jwt":         {expLoginPath: "auth/jwt/login"},
+		"kerberos":    {expLoginPath: "auth/kerberos/login"},
+		"kubernetes":  {expLoginPath: "auth/kubernetes/login", params: map[string]interface{}{"jwt": "fake"}},
+		"ldap":        {expLoginPath: "auth/ldap/login/foo", params: map[string]interface{}{"username": "foo"}},
+		"oci":         {expLoginPath: "auth/oci/login/foo", params: map[string]interface{}{"role": "foo"}},
+		"okta":        {expLoginPath: "auth/okta/login/foo", params: map[string]interface{}{"username": "foo"}},
+		"radius":      {expLoginPath: "auth/radius/login/foo", params: map[string]interface{}{"username": "foo"}},
+		"cert":        {expLoginPath: "auth/cert/login"},
+		"token":       {expError: "'token' auth method is not supported via auth method configuration; please provide the token with the 'token' parameter in the CA configuration"},
+		"userpass":    {expLoginPath: "auth/userpass/login/foo", params: map[string]interface{}{"username": "foo"}},
+		"unsupported": {expError: "auth method \"unsupported\" is not supported"},
+	}
+
+	for authMethodType, c := range cases {
+		t.Run(authMethodType, func(t *testing.T) {
+			loginPath, err := configureVaultAuthMethod(&structs.VaultAuthMethod{
+				Type:   authMethodType,
+				Params: c.params,
+			})
+			if c.expError == "" {
+				require.NoError(t, err)
+				require.Equal(t, c.expLoginPath, loginPath)
+			} else {
+				require.EqualError(t, err, c.expError)
+			}
+		})
+	}
+}
+
 func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 	config := &structs.VaultCAProviderConfig{
 		CAFile:        "/capath/ca.pem",
