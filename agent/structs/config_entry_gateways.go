@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/types"
 )
 
 // IngressGatewayConfigEntry manages the configuration for an ingress service
@@ -99,6 +100,13 @@ type GatewayTLSConfig struct {
 
 	// SDS allows configuring TLS certificate from an SDS service.
 	SDS *GatewayTLSSDSConfig `json:",omitempty"`
+
+	TLSMinVersion types.TLSVersion `json:",omitempty"`
+	TLSMaxVersion types.TLSVersion `json:",omitempty"`
+
+	// Define a subset of cipher suites to restrict
+	// Only applicable to connections negotiated via TLS 1.2 or earlier
+	CipherSuites []types.TLSCipherSuite `json:",omitempty"`
 }
 
 type GatewayServiceTLSConfig struct {
@@ -231,8 +239,46 @@ func (e *IngressGatewayConfigEntry) validateServiceSDS(lis IngressListener, svc 
 	return nil
 }
 
+func validateGatewayTLSConfig(tlsCfg GatewayTLSConfig) error {
+	if tlsCfg.TLSMinVersion != types.TLSVersionUnspecified {
+		if err := types.ValidateTLSVersion(tlsCfg.TLSMinVersion); err != nil {
+			return err
+		}
+	}
+
+	if tlsCfg.TLSMaxVersion != types.TLSVersionUnspecified {
+		if err := types.ValidateTLSVersion(tlsCfg.TLSMaxVersion); err != nil {
+			return err
+		}
+	}
+
+	// TODO: Is there any reasonable way to validate that TLSMaxVersion is
+	// greater than or equal to TLSMinVersion as string types?
+
+	if len(tlsCfg.CipherSuites) != 0 {
+		// TODO: is there any contextual way to determine Envoy's default TLS min and max versions if either
+		// TLSMinVersion or TLSMaxVersion are undefined or set to TLS_AUTO?
+		if tlsCfg.TLSMinVersion == types.TLSv1_3 {
+			return fmt.Errorf("configuring CipherSuites is only applicable to conncetions negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s", tlsCfg.TLSMinVersion)
+		}
+
+		// TODO: is it possible to emit a warning but not return an error from here if TLSMaxVersion is undefined,
+		// TLS_AUTO or TLSv1_3 and len(tlsCfg.CipherSuites) != 0?
+
+		if err := types.ValidateEnvoyCipherSuites(tlsCfg.CipherSuites); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (e *IngressGatewayConfigEntry) Validate() error {
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
+	if err := validateGatewayTLSConfig(e.TLS); err != nil {
 		return err
 	}
 
@@ -262,6 +308,12 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		if listener.Protocol != "http" && len(listener.Services) > 1 {
 			return fmt.Errorf("Multiple services per listener are only supported for protocol = 'http' (listener on port %d)",
 				listener.Port)
+		}
+
+		if listener.TLS != nil {
+			if err := validateGatewayTLSConfig(*listener.TLS); err != nil {
+				return err
+			}
 		}
 
 		declaredHosts := make(map[string]bool)

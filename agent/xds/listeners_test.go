@@ -520,6 +520,42 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "ingress-with-tls-listener-min-version",
+			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.TLSConfig.TLSMinVersion = types.TLSv1_3
+			},
+		},
+		{
+			name:   "ingress-with-tls-listener-max-version",
+			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.TLSConfig.TLSMaxVersion = types.TLSv1_2
+			},
+		},
+		{
+			name:   "ingress-with-tls-listener-cipher-suites",
+			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.TLSConfig.CipherSuites = []types.TLSCipherSuite{
+					types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+					types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+				}
+			},
+		},
+		{
+			name:   "ingress-with-tls-listener-invalid-min-version-cipher-suites",
+			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.TLSConfig.TLSMinVersion = types.TLSv1_3
+
+				snap.IngressGateway.TLSConfig.CipherSuites = []types.TLSCipherSuite{
+					types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+					types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+				}
+			},
+		},
+		{
 			name: "ingress-with-tls-mixed-listeners",
 			// Use SDS helper even though we aren't testing SDS since it already sets
 			// up most things we need.

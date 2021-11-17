@@ -8,8 +8,10 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
+
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 )
 
 func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
@@ -159,6 +161,9 @@ func makeCommonTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.ConfigSnap
 	// Enable connect TLS if it is enabled at the Gateway or specific listener
 	// level.
 	gatewayTLSCfg := cfgSnap.IngressGateway.TLSConfig
+
+	// TODO: should it be possible to explicitly _disable_ TLS on a listener if it's
+	// enabled on the gateway?
 	connectTLSEnabled := gatewayTLSCfg.Enabled ||
 		(listenerCfg.TLS != nil && listenerCfg.TLS.Enabled)
 
@@ -171,11 +176,15 @@ func makeCommonTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.ConfigSnap
 		// Set up listener TLS from SDS
 		tlsContext = makeCommonTLSContextFromGatewayTLSConfig(*tlsCfg)
 	} else if connectTLSEnabled {
-		tlsContext = makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf())
+		tlsContext = makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf(), makeTLSParametersFromGatewayTLSConfig(*tlsCfg))
 	}
 
-	return tlsContext, err
+	return tlsContext, nil
 }
+
+// func resolveGatewayServiceTLSConfig(mergedListenerTLSConfig *structs.GatewayTLSConfig, gatewayServiceCfg structs.GatewayServiceTLSConfig) (*structs.GatewayServiceTLSConfig, error) {
+// 	return nil, nil
+// }
 
 func resolveListenerTLSConfig(gatewayTLSCfg *structs.GatewayTLSConfig, listenerCfg structs.IngressListener) (*structs.GatewayTLSConfig, error) {
 	var mergedCfg structs.GatewayTLSConfig
@@ -187,9 +196,33 @@ func resolveListenerTLSConfig(gatewayTLSCfg *structs.GatewayTLSConfig, listenerC
 
 	mergedCfg.SDS = resolvedSDSCfg
 
-	// TODO: merge TLS config
+	if gatewayTLSCfg != nil {
+		mergedCfg.TLSMinVersion = gatewayTLSCfg.TLSMinVersion
+		mergedCfg.TLSMaxVersion = gatewayTLSCfg.TLSMaxVersion
+		mergedCfg.CipherSuites = gatewayTLSCfg.CipherSuites
+	}
 
-	return &mergedCfg, err
+	if listenerCfg.TLS != nil {
+		if listenerCfg.TLS.TLSMinVersion != types.TLSVersionUnspecified {
+			mergedCfg.TLSMinVersion = listenerCfg.TLS.TLSMinVersion
+		}
+		if listenerCfg.TLS.TLSMaxVersion != types.TLSVersionUnspecified {
+			mergedCfg.TLSMaxVersion = listenerCfg.TLS.TLSMaxVersion
+		}
+		if len(listenerCfg.TLS.CipherSuites) != 0 {
+			mergedCfg.CipherSuites = listenerCfg.TLS.CipherSuites
+		}
+	}
+
+	// Validate. Configuring cipher suites is only applicable to connections negotiated
+	// via TLS 1.2 or earlier. Other cases shouldn't be possible as we validate them at
+	// input but be resilient to bugs later.
+	switch {
+	case mergedCfg.TLSMinVersion >= types.TLSv1_3 && len(mergedCfg.CipherSuites) != 0:
+		return nil, fmt.Errorf("configuring CipherSuites is only applicable to conncetions negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s", mergedCfg.TLSMinVersion)
+	}
+
+	return &mergedCfg, nil
 }
 
 func resolveListenerSDSConfig(gatewaySDSCfg *structs.GatewayTLSSDSConfig, listenerTLSCfg *structs.GatewayTLSConfig, listenerPort int) (*structs.GatewayTLSSDSConfig, error) {
@@ -296,6 +329,13 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 			return nil, err
 		}
 
+		// TODO: Merge with the TLS config from the listener
+		// Is this necessary?
+		// tlsCfg, err := resolveGatewayServiceTLSConfig(listenerCfg.TLS, *svc.TLS)
+		// if err != nil {
+		// 	return nil, err
+		// }
+
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 			CommonTlsContext:         makeCommonTLSContextFromGatewayServiceTLSConfig(*svc.TLS),
 			RequireClientCertificate: &wrappers.BoolValue{Value: false},
@@ -321,8 +361,36 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 	return chains, nil
 }
 
+var envoyTLSVersions = map[types.TLSVersion]envoy_tls_v3.TlsParameters_TlsProtocol{
+	types.TLSVersionAuto: envoy_tls_v3.TlsParameters_TLS_AUTO,
+	types.TLSv1_0:        envoy_tls_v3.TlsParameters_TLSv1_0,
+	types.TLSv1_1:        envoy_tls_v3.TlsParameters_TLSv1_1,
+	types.TLSv1_2:        envoy_tls_v3.TlsParameters_TLSv1_2,
+	types.TLSv1_3:        envoy_tls_v3.TlsParameters_TLSv1_3,
+}
+
+func envoyTLSCipherSuites(cipherSuites []types.TLSCipherSuite) []string {
+	cipherSuiteStrings := []string{}
+	for _, c := range cipherSuites {
+		cipherSuiteStrings = append(cipherSuiteStrings, types.envoyTLSCipherSuiteStrings[c])
+	}
+	return cipherSuiteStrings
+}
+
 func makeTLSParametersFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.TlsParameters {
-	return &envoy_tls_v3.TlsParameters{}
+	tlsParams := envoy_tls_v3.TlsParameters{}
+
+	if tlsCfg.TLSMinVersion != types.TLSVersionUnspecified {
+		tlsParams.TlsMinimumProtocolVersion = envoyTLSVersions[tlsCfg.TLSMinVersion]
+	}
+	if tlsCfg.TLSMaxVersion != types.TLSVersionUnspecified {
+		tlsParams.TlsMaximumProtocolVersion = envoyTLSVersions[tlsCfg.TLSMaxVersion]
+	}
+	if len(tlsCfg.CipherSuites) != 0 {
+		tlsParams.CipherSuites = envoyTLSCipherSuites(tlsCfg.CipherSuites)
+	}
+
+	return &tlsParams
 }
 
 func makeCommonTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.CommonTlsContext {
@@ -334,6 +402,7 @@ func makeCommonTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *
 
 func makeCommonTLSContextFromGatewayServiceTLSConfig(tlsCfg structs.GatewayServiceTLSConfig) *envoy_tls_v3.CommonTlsContext {
 	return &envoy_tls_v3.CommonTlsContext{
+		// TODO: does this need to merge with TLS params from GatewayTLSConfig?
 		TlsParams:                      &envoy_tls_v3.TlsParameters{},
 		TlsCertificateSdsSecretConfigs: makeTLSCertificateSdsSecretConfigsFromSDS(*tlsCfg.SDS),
 	}
