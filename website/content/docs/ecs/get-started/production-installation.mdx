@@ -1,0 +1,108 @@
+---
+layout: docs
+page_title: Production Installation - AWS ECS
+description: >-
+  Production Installation of the Consul Service Mesh on AWS ECS (Elastic Container Service).
+---
+
+# Production Installation
+
+For a production-ready installation of Consul on ECS, you will need to make sure that the cluster is secured.
+A secure Consul cluster should include the following:
+
+1. [TLS Encryption](/docs/security/encryption#rpc-encryption-with-tls) for RPC communication between Consul clients and servers.
+1. [Gossip Encryption](/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
+1. [Access Control (ACLs)](/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
+
+-> **NOTE:** This page assumes that you have already configured your Consul server with the above features.
+
+## Deploy ACL Controller
+
+Before deploying your service, you will need to deploy the [ACL controller](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/acl-controller) so that it can provision the necessary tokens
+for tasks on the service mesh. To learn more about the ACL Controller, please see [Automatic ACL Token Provisioning](/docs/ecs/architecture#automatic-acl-token-provisioning).
+
+To deploy the controller, you will first need store an ACL token with `acl:write` privileges
+and a CA certificate for the Consul server in AWS Secrets Manager.
+
+```hcl
+resource "aws_secretsmanager_secret" "bootstrap_token" {
+  name  = "bootstrap-token"
+}
+
+resource "aws_secretsmanager_secret_version" "bootstrap_token" {
+  secret_id     = aws_secretsmanager_secret.bootstrap_token.id
+  secret_string = "<bootstrap token>"
+}
+
+resource "aws_secretsmanager_secret" "ca_cert" {
+  name  = "server-ca-cert"
+}
+
+resource "aws_secretsmanager_secret_version" "ca_cert" {
+  secret_id     = aws_secretsmanager_secret.ca_cert.id
+  secret_string = "<CA certificate for the Consul server's HTTPS endpoint>"
+}
+```
+
+Use the [`acl-controller` terraform module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/acl-controller?tab=inputs) to deploy the controller:
+
+```hcl
+module "acl_controller" {
+  source                            = "hashicorp/consul/aws-ecs//modules/acl-controller"
+  consul_bootstrap_token_secret_arn = aws_secretsmanager_secret.bootstrap_token.arn
+  consul_server_http_addr           = "https://consul-server.example.com:8501"
+  consul_server_ca_cert_arn         = aws_secretsmanager_secret.ca_cert.arn
+  ecs_cluster_arn                   = "arn:aws:ecs:my-region:111111111111:cluster/consul-ecs"
+  region                            = "my-region"
+  subnets                           = ["subnet-abcdef123456789"]
+  name_prefix                       = "consul-ecs"
+}
+```
+
+The `name_prefix` parameter is used to prefix any secrets that the ACL controller will
+update in AWS Secrets Manager.
+
+-> **NOTE:** Make sure that the `name_prefix` is unique for each ECS cluster where you are
+deploying this controller.
+
+## Deploy Services
+
+Once the ACL controller is up and running, you will be able to deploy services on the mesh using the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task).
+Start with the basic configuration for the [Task Module](/docs/ecs/get-started/install#task-module) and specify additional settings to make the configuration production-ready.
+
+First, you will need to create an AWS Secrets Manager secret for the gossip encryption key that the Consul clients
+should use.
+
+```hcl
+resource "aws_secretsmanager_secret" "gossip_key" {
+  name  = "gossip-encryption-key"
+}
+
+resource "aws_secretsmanager_secret_version" "gossip_key" {
+  secret_id     = aws_secretsmanager_secret.gossip_key.id
+  secret_string = "<Gossip encryption key>"
+}
+```
+
+Next, add the following configurations to enable secure deployment. Note that the `acl_secret_name_prefix`
+should be the same as the `name_prefix` you provide to the ACL controller module.
+
+```hcl
+module "my_task" {
+  source = "hashicorp/consul/aws-ecs//modules/mesh-task"
+  family = "my_task"
+
+  ...
+
+  tls                            = true
+  consul_server_ca_cert_arn      = aws_secretsmanager_secret.ca_cert.arn
+  gossip_key_secret_arn          = aws_secretsmanager_secret.gossip_key.arn
+
+  acls                           = true
+  consul_client_token_secret_arn = module.acl_controller.client_token_secret_arn
+  acl_secret_name_prefix         = "consul-ecs"
+}
+```
+
+Now you can deploy your services! Follow the rest of the steps in the [Installation instructions](/docs/ecs/get-started/install#task-module)
+to deploy and connect your services.
