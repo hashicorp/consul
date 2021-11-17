@@ -24,6 +24,18 @@ as |item index|>
           {{/if}}
       </dd>
     </dl>
+{{#if (and (can 'use partitions') (not-eq item.Partition @partition))}}
+    <dl class="partition">
+      <dt
+        {{tooltip}}
+      >
+        Admin Partition
+      </dt>
+      <dd>
+        {{item.Partition}}
+      </dd>
+    </dl>
+{{/if}}
     <a
       data-test-service-name
       href={{if (and (can 'use nspaces') (not-eq item.Namespace @nspace))
