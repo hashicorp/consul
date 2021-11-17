@@ -206,29 +206,19 @@ export default class FSMWithOptionalLocation {
         withOptional = false;
         break;
     }
-    const router = this.router._routerMicrolib;
-    let url;
-    try {
-      url = router.generate(routeName, ...params, {
-        queryParams: {},
-      });
-    } catch(e) {
-      if(
-        !(this.router.currentRouteName.startsWith('docs') &&
-          e.message.startsWith('There is no route named ')
-        )
-      ) {
-        if(this.router.currentRouteName.startsWith('docs') && routeName.startsWith('dc')) {
-          params.unshift('dc-1');
-          url = router.generate(routeName, ...params, {
-            queryParams: {},
-          });
-        } else {
-          throw e;
-        }
+    if(this.router.currentRouteName.startsWith('docs.')) {
+      // If we are in docs, then add a default dc as there won't be one in the
+      // URL
+      params.unshift(env('CONSUL_DATACENTER_PRIMARY'));
+      if(routeName.startsWith('dc')) {
+        // if its an app URL replace it with debugging instead of linking
+        return `console://${routeName} <= ${JSON.stringify(params)}`;
       }
-      return `console://${routeName} <= ${JSON.stringify(params)}`;
     }
+    const router = this.router._routerMicrolib;
+    const url = router.generate(routeName, ...params, {
+      queryParams: {},
+    });
     return this.formatURL(url, hash, withOptional);
   }
 
