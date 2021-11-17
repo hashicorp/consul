@@ -1796,7 +1796,9 @@ func (f *aclFilter) filterServiceList(services *structs.ServiceList) bool {
 }
 
 // filterGatewayServices is used to filter gateway to service mappings based on ACL rules.
-func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) {
+// Returns true if any elements were removed.
+func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) bool {
+	var removed bool
 	ret := make(structs.GatewayServices, 0, len(*mappings))
 	for _, s := range *mappings {
 		// This filter only checks ServiceRead on the linked service.
@@ -1806,11 +1808,13 @@ func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) {
 
 		if f.authorizer.ServiceRead(s.Service.Name, &authzContext) != acl.Allow {
 			f.logger.Debug("dropping service from result due to ACLs", "service", s.Service.String())
+			removed = true
 			continue
 		}
 		ret = append(ret, s)
 	}
 	*mappings = ret
+	return removed
 }
 
 func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, subj interface{}) {
@@ -1907,8 +1911,8 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 	case *structs.IndexedServiceList:
 		v.QueryMeta.ResultsFilteredByACLs = filt.filterServiceList(&v.Services)
 
-	case *structs.GatewayServices:
-		filt.filterGatewayServices(v)
+	case *structs.IndexedGatewayServices:
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterGatewayServices(&v.Services)
 
 	default:
 		panic(fmt.Errorf("Unhandled type passed to ACL filter: %T %#v", subj, subj))

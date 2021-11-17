@@ -888,12 +888,11 @@ func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *s
 			if err != nil {
 				return err
 			}
+			reply.Index, reply.Services = index, services
 
-			if err := c.srv.filterACL(args.Token, &services); err != nil {
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
-
-			reply.Index, reply.Services = index, services
 			return nil
 		})
 }
