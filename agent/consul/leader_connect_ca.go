@@ -1401,7 +1401,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	if err != nil {
 		return nil, err
 	}
-	signingID := connect.SpiffeIDSigningForCluster(config)
+	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
 	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
 	if !isService && !isAgent {

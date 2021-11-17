@@ -603,7 +603,7 @@ func (a *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 
 // SignIntermediate implements Provider
 func (a *AWSProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
-	err := validateSignIntermediate(csr, &connect.SpiffeIDSigning{ClusterID: a.clusterID, Domain: "consul"})
+	err := validateSignIntermediate(csr, connect.SpiffeIDSigningForCluster(a.clusterID))
 	if err != nil {
 		return "", err
 	}
