@@ -155,9 +155,11 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 	}
 	if enablePrometheusOutput(req) {
 		if s.agent.config.Telemetry.PrometheusOpts.Expiration < 1 {
-			resp.WriteHeader(http.StatusUnsupportedMediaType)
-			fmt.Fprint(resp, "Prometheus is not enabled since its retention time is not positive")
-			return nil, nil
+			return nil, CodeWithPayloadError{
+				StatusCode: http.StatusUnsupportedMediaType,
+				Reason: "Prometheus is not enabled since its retention time is not positive",
+				ContentType: "text/plain",
+			}
 		}
 		handlerOptions := promhttp.HandlerOpts{
 			ErrorLog: s.agent.logger.StandardLogger(&hclog.StandardLoggerOptions{
@@ -423,11 +425,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 
 			svcState := s.agent.State.ServiceState(sid)
 			if svcState == nil {
-				resp.WriteHeader(http.StatusNotFound)
-				fmt.Fprintf(resp,
-					"Unknown service ID %q. Ensure that the service ID is passed, not the service name.",
-					sid.String())
-				return "", nil, nil
+				return "", nil, NotFoundError{Reason: fmt.Sprintf("unknown service ID: %s", sid.String())}
 			}
 
 			svc := svcState.Service
@@ -557,9 +555,7 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 			// key are ok, otherwise the argument doesn't apply to
 			// the WAN.
 		default:
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(resp, "Cannot provide a segment with wan=true")
-			return nil, nil
+			return nil, BadRequestError{Reason: "Cannot provide a segment with wan=true"}
 		}
 	}
 
@@ -735,16 +731,16 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	}
 
 	if err := decodeBody(req.Body, &args); err != nil {
-		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Verify the check has a name.
 	if args.Name == "" {
-		return nil, BadRequestError{"Missing check name"}
+		return nil, BadRequestError{Reason: "Missing check name"}
 	}
 
 	if args.Status != "" && !structs.ValidStatus(args.Status) {
-		return nil, BadRequestError{"Bad check status"}
+		return nil, BadRequestError{Reason: "Bad check status"}
 	}
 
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
@@ -763,20 +759,17 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	chkType := args.CheckType()
 	err = chkType.Validate()
 	if err != nil {
-		return nil, BadRequestError{fmt.Sprintf("Invalid check: %v", err)}
+		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid check: %v", err)}
 	}
 
 	// Store the type of check based on the definition
 	health.Type = chkType.Type()
 
 	if health.ServiceID != "" {
-		cid := health.CompoundServiceID()
 		// fixup the service name so that vetCheckRegister requires the right ACLs
-		service := s.agent.State.Service(cid)
+		service := s.agent.State.Service(health.CompoundServiceID())
 		if service != nil {
 			health.ServiceName = service.Service
-		} else {
-			return nil, NotFoundError{fmt.Sprintf("ServiceID %q does not exist", cid.String())}
 		}
 	}
 
@@ -815,12 +808,12 @@ func (s *HTTPHandlers) AgentDeregisterCheck(resp http.ResponseWriter, req *http.
 
 	checkID.Normalize()
 
-	if !s.validateRequestPartition(resp, &checkID.EnterpriseMeta) {
-		return nil, nil
-	}
-
 	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, checkID); err != nil {
 		return nil, err
+	}
+
+	if !s.validateRequestPartition(resp, &checkID.EnterpriseMeta) {
+		return nil, nil
 	}
 
 	if err := s.agent.RemoveCheck(checkID, true); err != nil {
@@ -881,9 +874,7 @@ type checkUpdate struct {
 func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var update checkUpdate
 	if err := decodeBody(req.Body, &update); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	switch update.Status {
@@ -891,9 +882,7 @@ func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Requ
 	case api.HealthWarning:
 	case api.HealthCritical:
 	default:
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Invalid check status: '%s'", update.Status)
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid check status: '%s'", update.Status)}
 	}
 
 	ID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/agent/check/update/")
@@ -1298,12 +1287,12 @@ func (s *HTTPHandlers) AgentDeregisterService(resp http.ResponseWriter, req *htt
 
 	sid.Normalize()
 
-	if !s.validateRequestPartition(resp, &sid.EnterpriseMeta) {
-		return nil, nil
-	}
-
 	if err := s.agent.vetServiceUpdateWithAuthorizer(authz, sid); err != nil {
 		return nil, err
+	}
+
+	if !s.validateRequestPartition(resp, &sid.EnterpriseMeta) {
+		return nil, nil
 	}
 
 	if err := s.agent.RemoveService(sid); err != nil {
