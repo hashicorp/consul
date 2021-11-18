@@ -10,10 +10,21 @@ as |State Guard ChartAction dispatch state|>
     state=state
   )
 as |chart|}}
-  {{yield (hash
+{{#let
+  (hash
     reset=(action dispatch "RESET")
     focus=this.focus
-  )}}
+    disabled=(state-matches state "loading")
+    error=(queue
+      (action (mut this.error) value="error.errors.firstObject")
+      (action dispatch "ERROR")
+    )
+    submit=(queue
+      (action (mut this.value))
+      (action dispatch "SUBMIT")
+    )
+  )
+as |exported|}}
   <Guard
     @name="hasValue"
     @cond={{this.hasValue}}
@@ -108,33 +119,9 @@ as |chart|}}
       </em>
     </form>
 
+    {{yield exported to="content"}}
 
 
-{{#if (can "use SSO")}}
-    <DataSource
-      @src={{uri '/${partition}/${nspace}/${dc}/oidc/providers'
-        (hash
-          partition=@partition
-          nspace=@nspace
-          dc=@dc
-        )
-      }}
-      @onchange={{queue (action (mut this.providers) value="data")}}
-      @onerror={{queue (action (mut this.error) value="error.errors.firstObject")}}
-      @loading="lazy"
-    />
-  {{#if (gt this.providers.length 0)}}
-    <p>
-      <span>or</span>
-    </p>
-  {{/if}}
-  <OidcSelect
-    @items={{this.providers}}
-    @disabled={{state-matches state "loading"}}
-    @onchange={{queue (action (mut this.value)) (action dispatch "SUBMIT") }}
-    @onerror={{queue (action (mut this.error) value="error.errors.firstObject") (action dispatch "ERROR")}}
-  />
-{{/if}}
 
 
   </div>
@@ -144,10 +131,11 @@ as |chart|}}
       @nspace={{or this.value.Namespace @nspace}}
       @partition={{or this.value.Partition @partition}}
       @type={{if this.value.Name 'oidc' 'secret'}}
-      @value={{if this.value.Name value.Name value}}
+      @value={{if this.value.Name this.value.Name this.value}}
       @onchange={{queue (action dispatch "RESET") @onsubmit}}
       @onerror={{queue (action (mut this.error) value="error.errors.firstObject") (action dispatch "ERROR")}}
     />
   </State>
+{{/let}}
 {{/let}}
 </StateChart>

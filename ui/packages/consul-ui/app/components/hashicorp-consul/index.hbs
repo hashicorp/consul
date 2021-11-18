@@ -262,8 +262,38 @@
                       <h2>Log in to Consul</h2>
                     </BlockSlot>
                     <BlockSlot @name="body">
-                      <AuthForm as |authForm|>
-                        <Ref @target={{this}} @name="authForm" @value={{authForm}} />
+                      <AuthForm>
+                        <:content as |authForm|>
+
+                          <Ref @target={{this}} @name="authForm" @value={{authForm}} />
+
+                          {{#if (can "use SSO")}}
+                              <DataSource
+                                @src={{uri '/${partition}/${nspace}/${dc}/oidc/providers'
+                                  (hash
+                                    partition=@partition
+                                    nspace=@nspace
+                                    dc=@dc
+                                  )
+                                }}
+                                @loading="lazy"
+                                @onchange={{action (mut this.providers) value="data"}}
+                                @onerror={{authForm.error}}
+                              />
+                            {{#if (gt this.providers.length 0)}}
+                              <p>
+                                <span>or</span>
+                              </p>
+                            {{/if}}
+                            <OidcSelect
+                              @items={{this.providers}}
+                              @disabled={{authForm.disabled}}
+                              @onchange={{authForm.submit}}
+                              @onerror={{authForm.error}}
+                            />
+                          {{/if}}
+
+                        </:content>
                       </AuthForm>
                     </BlockSlot>
                     <BlockSlot @name="actions">
