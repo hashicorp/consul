@@ -88,12 +88,32 @@ The configuration options are listed below.
 - `Address` / `address` (`string: <required>`) - The address of the Vault
   server.
 
-- `Token` / `token` (`string: <required>`) - A token for accessing Vault.
+- `Token` / `token` (`string: ""`) - A token for accessing Vault.
   This is write-only and will not be exposed when reading the CA configuration.
   This token must have [proper privileges](#vault-acl-policies) for the PKI
   paths configured. In Consul 1.8.5 and later, if the token has the [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
   flag set, Consul will attempt to renew its lease periodically after half the
   duration has expired.
+
+  !> **Warning:** You must either provide a token or configure an auth method below.
+
+- `AuthMethod` / `auth_method` (`map: nil`) - Vault auth method to use for logging in to Vault.
+  Please see [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for more information
+  on how to configure individual auth methods. If auth method is provided, Consul will obtain a
+  a new token from Vault when the token can no longer be renewed.
+
+   - `Type`/ `type` (`string: ""`) - The type of Vault auth method.
+
+   - `MountPath`/ `mount_path` (`string: <AuthMethod.Type>`) - The mount path of the auth method.
+      If not provided the auth method type will be used as the mount path.
+
+   - `Params`/`params` (`map: nil`) - The parameters to configure the auth method. Please see
+    [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for information on how to configure the
+    auth method you wish to use. If using the Kubernetes auth method,
+    Consul will read the service account token from the
+    default mount path `/var/run/secrets/kubernetes.io/serviceaccount/token` if the `jwt` parameter
+    is not provided.
+
 
 - `RootPKIPath` / `root_pki_path` (`string: <required>`) - The path to
   a PKI secrets engine for the root certificate. If the path does not
