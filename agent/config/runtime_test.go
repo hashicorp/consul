@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -6310,8 +6309,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				CAPath:               "lOp1nhPa",
 				CertFile:             "dfJ4oPln",
 				KeyFile:              "aL1Knkpo",
-				TLSMinVersion:        "lPo1MklP",
-				CipherSuites:         []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				TLSMinVersion:        types.TLSv1_1, // FIXME: add a separate test for config parsing error
+				CipherSuites:         []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
 				VerifyOutgoing:       true,
 				VerifyServerHostname: true,
 			},
@@ -6321,8 +6320,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				CAPath:         "fLponKpl",
 				CertFile:       "a674klPn",
 				KeyFile:        "1y4prKjl",
-				TLSMinVersion:  "lPo4fNkl",
-				CipherSuites:   []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				TLSMinVersion:  types.TLSv1_0,
+				CipherSuites:   []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
 				VerifyOutgoing: false,
 			},
 			HTTPS: tlsutil.ProtocolConfig{
@@ -6331,8 +6330,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				CAPath:         "nu4PlHzn",
 				CertFile:       "1yrhPlMk",
 				KeyFile:        "1bHapOkL",
-				TLSMinVersion:  "mK14iOpz",
-				CipherSuites:   []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				TLSMinVersion:  types.TLSv1_3,
+				CipherSuites:   []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
 				VerifyOutgoing: true,
 			},
 			NodeName:                "otlLxGaI",

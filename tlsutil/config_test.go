@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestConfigurator_IncomingConfig_Common(t *testing.T) {
@@ -46,7 +47,7 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			t.Run("MinTLSVersion", func(t *testing.T) {
 				cfg := ProtocolConfig{
-					TLSMinVersion: "tls13",
+					TLSMinVersion: "TLSv1_3",
 					CertFile:      "../test/hostname/Alice.crt",
 					KeyFile:       "../test/hostname/Alice.key",
 				}
@@ -68,8 +69,22 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 			})
 
 			t.Run("CipherSuites", func(t *testing.T) {
+				// TODO: re-add test that should error with a valid but unsupported cipher suite
+				// cfg := ProtocolConfig{
+				// 	CipherSuites: []types.TLSCipherSuite{types.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256},
+				// 	CertFile:     "../test/hostname/Alice.crt",
+				// 	KeyFile:      "../test/hostname/Alice.key",
+				// }
+				// c := makeConfigurator(t, tc.setupFn(cfg))
+				// // empty config set for unrecognized values, error?
+				// require.Equal(t, []uint16{}, tlsConf.CipherSuites)
+				// // negotiated cipher suite is _not_ the specified option (may change with new Go versions,
+				// // so checking a negative case rather than positive)
+				// cipherSuite := tlsClient.ConnectionState().CipherSuite
+				// require.NotEqual(t, tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256, cipherSuite)
+
 				cfg := ProtocolConfig{
-					CipherSuites: []uint16{tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384},
+					CipherSuites: []types.TLSCipherSuite{types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384},
 					CertFile:     "../test/hostname/Alice.crt",
 					KeyFile:      "../test/hostname/Alice.key",
 				}
@@ -773,17 +788,17 @@ func TestConfig_ParseCiphers(t *testing.T) {
 		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
 		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
 	}, ",")
-	ciphers := []uint16{
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+	ciphers := []types.TLSCipherSuite{
+		types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+		types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		types.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		types.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+		types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		types.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 	}
 	v, err := ParseCiphers(testOk)
 	require.NoError(t, err)
@@ -796,7 +811,7 @@ func TestConfig_ParseCiphers(t *testing.T) {
 
 	v, err = ParseCiphers("")
 	require.NoError(t, err)
-	require.Equal(t, []uint16{}, v)
+	require.Equal(t, []types.TLSCipherSuite{}, v)
 }
 
 func TestLoadKeyPair(t *testing.T) {
@@ -866,14 +881,15 @@ func TestConfigurator_Validation(t *testing.T) {
 		}
 
 		testCases := map[string]testCase{
-			"invalid TLSMinVersion": {
-				ProtocolConfig{TLSMinVersion: "tls9"},
-				false,
-			},
-			"default TLSMinVersion": {
-				ProtocolConfig{TLSMinVersion: ""},
-				true,
-			},
+			// FIXME: move these parsing checks out to agent/config/builder
+			// "invalid TLSMinVersion": {
+			// 	ProtocolConfig{TLSMinVersion: "tls9"},
+			// 	false,
+			// },
+			// "default TLSMinVersion": {
+			// 	ProtocolConfig{TLSMinVersion: ""},
+			// 	true,
+			// },
 			"invalid CAFile": {
 				ProtocolConfig{CAFile: "bogus"},
 				false,
@@ -991,6 +1007,21 @@ func TestConfigurator_Validation(t *testing.T) {
 				ProtocolConfig{TLSMinVersion: v},
 				true,
 			}
+		}
+
+		// NOTE: checks for deprecated TLS version string warnings,
+		// should be removed when removing support for these config values
+		// for version := range types.DeprecatedAgentTLSVersions {
+		for _, v := range types.DeprecatedAgentTLSVersions() {
+			// TODO: check for warning log message? how?
+			testCases[fmt.Sprintf("MinTLSVersion(%s)", v)] = testCase{
+				ListenerConfig{TLSMinVersion: v},
+				true,
+			}
+			// TODO: how could this check that the actual config set is valid?
+			// tlsVersion, _ := ParseTLSVersion(version)
+			// require.Equal(t, c.commonTLSConfig(false).MinVersion,
+			//     goTLSVersions[tlsVersion])
 		}
 
 		for desc, tc := range testCases {
@@ -1229,7 +1260,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
-						TLSMinVersion: "tls12",
+						TLSMinVersion: types.TLSv1_2,
 					},
 					EnableAgentTLSForChecks: false,
 				}, nil)
@@ -1242,7 +1273,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
-						TLSMinVersion: "tls12",
+						TLSMinVersion: types.TLSv1_2,
 					},
 					EnableAgentTLSForChecks: false,
 					ServerName:              "servername",
@@ -1257,7 +1288,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
-						TLSMinVersion: "tls12",
+						TLSMinVersion: types.TLSv1_2,
 					},
 					EnableAgentTLSForChecks: false,
 					ServerName:              "servername",
@@ -1275,7 +1306,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
-						TLSMinVersion: "tls12",
+						TLSMinVersion: types.TLSv1_2,
 					},
 					EnableAgentTLSForChecks: true,
 					NodeName:                "nodename",
@@ -1292,7 +1323,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
-						TLSMinVersion: "tls12",
+						TLSMinVersion: types.TLSv1_2,
 					},
 					EnableAgentTLSForChecks: true,
 					NodeName:                "nodename",
@@ -1310,7 +1341,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
-						TLSMinVersion: "tls12",
+						TLSMinVersion: types.TLSv1_2,
 					},
 					EnableAgentTLSForChecks: true,
 					ServerName:              "servername",
@@ -1518,8 +1549,8 @@ func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
 }
 
 func TestConfig_tlsVersions(t *testing.T) {
-	require.Equal(t, []string{"tls10", "tls11", "tls12", "tls13"}, tlsVersions())
-	expected := "tls10, tls11, tls12, tls13"
+	require.Equal(t, []string{"TLS_AUTO", "TLSv1_0", "TLSv1_1", "TLSv1_2", "TLSv1_3"}, tlsVersions())
+	expected := "TLS_AUTO, TLSv1_0, TLSv1_1, TLSv1_2, TLSv1_3"
 	require.Equal(t, expected, strings.Join(tlsVersions(), ", "))
 }
 

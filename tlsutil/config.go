@@ -19,6 +19,7 @@ import (
 
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/pbconfig"
+	"github.com/hashicorp/consul/types"
 )
 
 // ALPNWrapper is a function that is used to wrap a non-TLS connection and
@@ -36,13 +37,35 @@ type DCWrapper func(dc string, conn net.Conn) (net.Conn, error)
 // a constant value. This is usually done by currying DCWrapper.
 type Wrapper func(conn net.Conn) (net.Conn, error)
 
-// tlsLookup maps the tls_min_version configuration to the internal value
-var tlsLookup = map[string]uint16{
-	"":      tls.VersionTLS10, // default in golang
-	"tls10": tls.VersionTLS10,
-	"tls11": tls.VersionTLS11,
-	"tls12": tls.VersionTLS12,
-	"tls13": tls.VersionTLS13,
+// goTLSVersions maps types.TLSVersion to the Go internal value
+var goTLSVersions = map[types.TLSVersion]uint16{
+	types.TLSVersionAuto: tls.VersionTLS10, // default in golang
+	types.TLSv1_0:        tls.VersionTLS10,
+	types.TLSv1_1:        tls.VersionTLS11,
+	types.TLSv1_2:        tls.VersionTLS12,
+	types.TLSv1_3:        tls.VersionTLS13,
+}
+
+// ParseTLSVersion maps a TLS version configuration string to the internal type
+func ParseTLSVersion(tlsVersionString string) (types.TLSVersion, error) {
+	// Handle empty string case for unspecified config
+	if tlsVersionString == "" {
+		return types.TLSVersionAuto, nil
+	}
+
+	if tlsVersion, ok := types.TLSVersions[tlsVersionString]; ok {
+		return tlsVersion, nil
+	} else {
+		// NOTE: This inner check for deprecated values should eventually be removed
+		if tlsVersion, ok := types.DeprecatedAgentTLSVersions[tlsVersionString]; ok {
+			// TODO: log warning about deprecated config
+			return tlsVersion, nil
+		} else {
+			// Only suggest non-deprecated values if configured value is invalid
+			versions := strings.Join(tlsVersions(), ", ")
+			return types.TLSVersionInvalid, fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [%s]", tlsVersionString, versions)
+		}
+	}
 }
 
 // ProtocolConfig contains configuration for a given protocol.
@@ -71,27 +94,15 @@ type ProtocolConfig struct {
 	KeyFile string
 
 	// TLSMinVersion is the minimum accepted TLS version that can be used.
-	TLSMinVersion string
+	TLSMinVersion types.TLSVersion
 
 	// CipherSuites is the list of TLS cipher suites to use.
 	//
-	// The values should be a list of the following values:
-	//
-	//   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
-	//   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
-	//   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-	//   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
-	//   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
-	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
-	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
-	//   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-	//   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
-	//   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-	//
-	// todo(fs): IMHO, we should also support the raw 0xNNNN values from
-	// todo(fs): https://golang.org/pkg/crypto/tls/#pkg-constants
-	// todo(fs): since they are standardized by IANA.
-	CipherSuites []uint16
+	// We don't support the raw 0xNNNN values from
+	// https://golang.org/pkg/crypto/tls/#pkg-constants
+	// even though they are standardized by IANA because it would increase
+	// the likelihood of an operator inadvertently setting an insecure configuration
+	CipherSuites []types.TLSCipherSuite
 
 	// VerifyOutgoing is used to verify the authenticity of outgoing
 	// connections.  This means that TLS requests are used, and TCP
@@ -150,10 +161,8 @@ type Config struct {
 
 func tlsVersions() []string {
 	versions := []string{}
-	for v := range tlsLookup {
-		if v != "" {
-			versions = append(versions, v)
-		}
+	for v := range types.TLSVersions {
+		versions = append(versions, v)
 	}
 	sort.Strings(versions)
 	return versions
@@ -291,11 +300,14 @@ func (c *Configurator) Update(config Config) error {
 // and performs validation.
 func (c *Configurator) loadProtocolConfig(base Config, lc ProtocolConfig) (*protocolConfig, error) {
 	if min := lc.TLSMinVersion; min != "" {
-		if _, ok := tlsLookup[min]; !ok {
+		_, err := ParseTLSVersion(min)
+		if err != nil {
 			versions := strings.Join(tlsVersions(), ", ")
 			return nil, fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [%s]", min, versions)
 		}
 	}
+
+	// TODO: error and return valid values for CipherSuites if unsupported values are specified
 
 	cert, err := loadKeyPair(lc.CertFile, lc.KeyFile)
 	if err != nil {
@@ -572,7 +584,14 @@ func (c *Configurator) commonTLSConfig(state protocolConfig, cfg ProtocolConfig,
 
 	// Set the cipher suites
 	if len(cfg.CipherSuites) != 0 {
-		tlsConfig.CipherSuites = cfg.CipherSuites
+		// TODO: is it safe to ignore the error case here?
+		// Should be checked on input, same as tlsConfig.MinVersion
+
+		// FIXME: move cipherSuiteLookup to be called externally, maybe
+		// in agent/config/runtime parsing before the tlsutil.Config struct is
+		// created?
+		cipherSuites, _ := cipherSuiteLookup(cfg.CipherSuites)
+		tlsConfig.CipherSuites = cipherSuites
 	}
 
 	// GetCertificate is used when acting as a server and responding to
@@ -607,10 +626,12 @@ func (c *Configurator) commonTLSConfig(state protocolConfig, cfg ProtocolConfig,
 	tlsConfig.ClientCAs = state.combinedCAPool
 	tlsConfig.RootCAs = state.combinedCAPool
 
-	// This is possible because tlsLookup also contains "" with golang's
-	// default (tls10). And because the initial check makes sure the
-	// version correctly matches.
-	tlsConfig.MinVersion = tlsLookup[cfg.TLSMinVersion]
+	// Error handling is not needed here because ParseTLSConfig handles "" as
+	// TLSVersionAuto with goTLSVersions mapping TLSVersionAuto to Go's
+	// default (TLS 1.0) and because the initial check in loadListenerConfig makes
+	// sure the version is not invalid.
+	// FIXME: should this be updated to set TLSVersionAuto to TLS 1.2 instead?
+	tlsConfig.MinVersion = goTLSVersions[cfg.TLSMinVersion]
 
 	// Set ClientAuth if necessary
 	if verifyIncoming {
@@ -1080,32 +1101,55 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn TLSConn) error {
 
 }
 
-// ParseCiphers parse ciphersuites from the comma-separated string into
-// recognized slice
-func ParseCiphers(cipherStr string) ([]uint16, error) {
+// NOTE: any new cipher suites will also need to be added in types/tls.go
+// TODO: should this be moved into types/tls.go? Would importing Go's tls
+// package in there be acceptable?
+var goTLSCipherSuites = map[types.TLSCipherSuite]uint16{
+	// TODO: CHACHA20_POLY1305 cipher suites are not currently implemented for Consul agent TLS
+	// but are available in Go, add them?
+	types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:    tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+	types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256: tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+	types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	types.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:    tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+	types.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:      tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+	types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256:   tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+	types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:   tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+	types.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:      tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+	types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+}
+
+func cipherSuiteLookup(ciphers []types.TLSCipherSuite) ([]uint16, error) {
 	suites := []uint16{}
+
+	if len(ciphers) == 0 {
+		return []uint16{}, nil
+	}
+
+	for _, cipher := range ciphers {
+		if v, ok := goTLSCipherSuites[cipher]; ok {
+			suites = append(suites, v)
+		} else {
+			return suites, fmt.Errorf("unsupported cipher %q", cipher)
+		}
+	}
+
+	return suites, nil
+}
+
+// ParseCiphers parse cipher suites from the comma-separated string into
+// recognized slice
+func ParseCiphers(cipherStr string) ([]types.TLSCipherSuite, error) {
+	suites := []types.TLSCipherSuite{}
 
 	cipherStr = strings.TrimSpace(cipherStr)
 	if cipherStr == "" {
-		return []uint16{}, nil
+		return []types.TLSCipherSuite{}, nil
 	}
 	ciphers := strings.Split(cipherStr, ",")
 
-	// Note: this needs to be kept up to date with the cipherMap in CipherString
-	cipherMap := map[string]uint16{
-		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-	}
 	for _, cipher := range ciphers {
-		if v, ok := cipherMap[cipher]; ok {
+		if v, ok := types.TLSCipherSuites[cipher]; ok {
 			suites = append(suites, v)
 		} else {
 			return suites, fmt.Errorf("unsupported cipher %q", cipher)
@@ -1116,24 +1160,10 @@ func ParseCiphers(cipherStr string) ([]uint16, error) {
 }
 
 // CipherString performs the inverse operation of ParseCiphers
-func CipherString(ciphers []uint16) (string, error) {
-	// Note: this needs to be kept up to date with the cipherMap in ParseCiphers
-	cipherMap := map[uint16]string{
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:    "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256: "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:    "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256:   "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:   "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:      "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:   "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-	}
-
+func CipherString(ciphers []types.TLSCipherSuite) (string, error) {
 	cipherStrings := make([]string, len(ciphers))
 	for i, cipher := range ciphers {
-		if v, ok := cipherMap[cipher]; ok {
+		if v, ok := types.HumanTLSCipherSuiteStrings[cipher]; ok {
 			cipherStrings[i] = v
 		} else {
 			return "", fmt.Errorf("unsupported cipher %d", cipher)
