@@ -1219,10 +1219,12 @@ func (f *aclFilter) allowSession(node string, ent *acl.AuthorizerContext) bool {
 }
 
 // filterHealthChecks is used to filter a set of health checks down based on
-// the configured ACL rules for a token.
-func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
+// the configured ACL rules for a token. Returns true if any elements were
+// removed.
+func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) bool {
 	hc := *checks
 	var authzContext acl.AuthorizerContext
+	var removed bool
 
 	for i := 0; i < len(hc); i++ {
 		check := hc[i]
@@ -1232,10 +1234,12 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
 		}
 
 		f.logger.Debug("dropping check from result due to ACLs", "check", check.CheckID)
+		removed = true
 		hc = append(hc[:i], hc[i+1:]...)
 		i--
 	}
 	*checks = hc
+	return removed
 }
 
 // filterServices is used to filter a set of services based on ACLs.
@@ -1817,7 +1821,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		filt.filterCoordinates(&v.Coordinates)
 
 	case *structs.IndexedHealthChecks:
-		filt.filterHealthChecks(&v.HealthChecks)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterHealthChecks(&v.HealthChecks)
 
 	case *structs.IndexedIntentions:
 		filt.filterIntentions(&v.Intentions)
