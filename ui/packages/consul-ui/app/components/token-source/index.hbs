@@ -6,7 +6,6 @@ as |State Guard Action dispatch state|>
     @name="isSecret"
     @cond={{this.isSecret}}
   />
-  {{!-- This `or` can be completely removed post 1.10 as 1.10 has optional params with default values --}}
   {{#let
     (uri '/${partition}/{$nspace}/${dc}'
       (hash
