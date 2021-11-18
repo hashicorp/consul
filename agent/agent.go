@@ -1920,7 +1920,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 		file := filepath.Join(configDir, fi.Name())
 		buf, err := ioutil.ReadFile(file)
 		if err != nil {
-			return nil, fmt.Errorf("failed reading service config file %q: %s", file, err)
+			return nil, fmt.Errorf("failed reading service config file %q: %w", file, err)
 		}
 
 		// Try decoding the service config definition
@@ -1939,8 +1939,26 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 		newPath := a.makeServiceConfigFilePath(serviceID)
 		if file != newPath {
 			if err := os.Rename(file, newPath); err != nil {
-				a.logger.Error("Failed renaming service config file from %s to %s", file, newPath, err)
+				a.logger.Error("Failed renaming service config file",
+					"file", file,
+					"targetFile", newPath,
+					"error", err,
+				)
 			}
+		}
+
+		if !structs.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
+			a.logger.Info("Purging service config file in wrong partition",
+				"file", file,
+				"partition", p.PartitionOrDefault(),
+			)
+			if err := os.Remove(file); err != nil {
+				a.logger.Error("Failed purging service config file",
+					"file", file,
+					"error", err,
+				)
+			}
+			continue
 		}
 
 		out[serviceID] = p.Defaults
@@ -3043,14 +3061,18 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 				if os.IsNotExist(err) {
 					return nil
 				} else {
-					return fmt.Errorf("failed reading file %q: %s", file, err)
+					return fmt.Errorf("failed reading check state %q: %w", file, err)
 				}
 			}
 			if err := os.Rename(oldFile, file); err != nil {
-				a.logger.Error("Failed renaming service file from %s to %s", oldFile, file, err)
+				a.logger.Error("Failed renaming check state",
+					"file", oldFile,
+					"targetFile", file,
+					"error", err,
+				)
 			}
 		} else {
-			return fmt.Errorf("failed reading file %q: %s", file, err)
+			return fmt.Errorf("failed reading file %q: %w", file, err)
 		}
 	}
 
@@ -3240,7 +3262,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("Failed reading services dir %q: %s", svcDir, err)
+		return fmt.Errorf("Failed reading services dir %q: %w", svcDir, err)
 	}
 	for _, fi := range files {
 		// Skip all dirs
@@ -3258,7 +3280,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		file := filepath.Join(svcDir, fi.Name())
 		buf, err := ioutil.ReadFile(file)
 		if err != nil {
-			return fmt.Errorf("failed reading service file %q: %s", file, err)
+			return fmt.Errorf("failed reading service file %q: %w", file, err)
 		}
 
 		// Try decoding the service definition
@@ -3278,8 +3300,26 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		newPath := a.makeServiceFilePath(p.Service.CompoundServiceID())
 		if file != newPath {
 			if err := os.Rename(file, newPath); err != nil {
-				a.logger.Error("Failed renaming service file from %s to %s", file, newPath, err)
+				a.logger.Error("Failed renaming service file",
+					"file", file,
+					"targetFile", newPath,
+					"error", err,
+				)
 			}
+		}
+
+		if !structs.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
+			a.logger.Info("Purging service file in wrong partition",
+				"file", file,
+				"partition", p.Service.EnterpriseMeta.PartitionOrDefault(),
+			)
+			if err := os.Remove(file); err != nil {
+				a.logger.Error("Failed purging service file",
+					"file", file,
+					"error", err,
+				)
+			}
+			continue
 		}
 
 		// Restore LocallyRegisteredAsSidecar, see persistedService.LocallyRegisteredAsSidecar
@@ -3294,10 +3334,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				"source", p.Source,
 			)
 			if err := a.purgeService(serviceID); err != nil {
-				return fmt.Errorf("failed purging service %q: %s", serviceID, err)
+				return fmt.Errorf("failed purging service %q: %w", serviceID, err)
 			}
 			if err := a.purgeServiceConfig(serviceID); err != nil {
-				return fmt.Errorf("failed purging service config %q: %s", serviceID, err)
+				return fmt.Errorf("failed purging service config %q: %w", serviceID, err)
 			}
 			continue
 		}
@@ -3310,10 +3350,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				"file", file,
 			)
 			if err := a.purgeService(serviceID); err != nil {
-				return fmt.Errorf("failed purging service %q: %s", serviceID.String(), err)
+				return fmt.Errorf("failed purging service %q: %w", serviceID.String(), err)
 			}
 			if err := a.purgeServiceConfig(serviceID); err != nil {
-				return fmt.Errorf("failed purging service config %q: %s", serviceID.String(), err)
+				return fmt.Errorf("failed purging service config %q: %w", serviceID.String(), err)
 			}
 		} else {
 			a.logger.Debug("restored service definition from file",
@@ -3334,7 +3374,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				checkStateSnapshot:   snap,
 			})
 			if err != nil {
-				return fmt.Errorf("failed adding service %q: %s", serviceID, err)
+				return fmt.Errorf("failed adding service %q: %w", serviceID, err)
 			}
 		}
 	}
@@ -3343,7 +3383,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		if a.State.Service(serviceID) == nil {
 			// This can be cleaned up now.
 			if err := a.purgeServiceConfig(serviceID); err != nil {
-				return fmt.Errorf("failed purging service config %q: %s", serviceID, err)
+				return fmt.Errorf("failed purging service config %q: %w", serviceID, err)
 			}
 		}
 	}
@@ -3386,7 +3426,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("Failed reading checks dir %q: %s", checkDir, err)
+		return fmt.Errorf("Failed reading checks dir %q: %w", checkDir, err)
 	}
 	for _, fi := range files {
 		// Ignore dirs - we only care about the check definition files
@@ -3398,7 +3438,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 		file := filepath.Join(checkDir, fi.Name())
 		buf, err := ioutil.ReadFile(file)
 		if err != nil {
-			return fmt.Errorf("failed reading check file %q: %s", file, err)
+			return fmt.Errorf("failed reading check file %q: %w", file, err)
 		}
 
 		// Decode the check
@@ -3416,8 +3456,23 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 		newPath := filepath.Join(a.config.DataDir, checksDir, checkID.StringHashSHA256())
 		if file != newPath {
 			if err := os.Rename(file, newPath); err != nil {
-				a.logger.Error("Failed renaming service file from %s to %s", file, newPath, err)
+				a.logger.Error("Failed renaming check file",
+					"file", file,
+					"targetFile", newPath,
+					"error", err,
+				)
 			}
+		}
+
+		if !structs.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Check.PartitionOrDefault()) {
+			a.logger.Info("Purging check file in wrong partition",
+				"file", file,
+				"partition", p.Check.PartitionOrDefault(),
+			)
+			if err := os.Remove(file); err != nil {
+				return fmt.Errorf("failed purging check %q: %w", checkID, err)
+			}
+			continue
 		}
 
 		source, ok := ConfigSourceFromName(p.Source)
@@ -3427,7 +3482,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 				"source", p.Source,
 			)
 			if err := a.purgeCheck(checkID); err != nil {
-				return fmt.Errorf("failed purging check %q: %s", checkID, err)
+				return fmt.Errorf("failed purging check %q: %w", checkID, err)
 			}
 			continue
 		}
@@ -3440,7 +3495,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 				"file", file,
 			)
 			if err := a.purgeCheck(checkID); err != nil {
-				return fmt.Errorf("Failed purging check %q: %s", checkID, err)
+				return fmt.Errorf("Failed purging check %q: %w", checkID, err)
 			}
 		} else {
 			// Default check to critical to avoid placing potentially unhealthy
@@ -3460,7 +3515,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 					"error", err,
 				)
 				if err := a.purgeCheck(checkID); err != nil {
-					return fmt.Errorf("Failed purging check %q: %s", checkID, err)
+					return fmt.Errorf("Failed purging check %q: %w", checkID, err)
 				}
 			}
 			a.logger.Debug("restored health check from file",
