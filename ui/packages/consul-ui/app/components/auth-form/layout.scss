@@ -6,7 +6,7 @@
   margin-bottom: 0.5em !important;
 }
 %auth-form .ember-basic-dropdown-trigger,
-%auth-form button {
+%auth-form button:not(.reset) {
   width: 100%;
 }
 %auth-form .progress {
