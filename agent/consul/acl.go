@@ -1336,10 +1336,12 @@ func (f *aclFilter) filterNodeServiceList(services **structs.NodeServiceList) {
 	}
 }
 
-// filterCheckServiceNodes is used to filter nodes based on ACL rules.
-func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
+// filterCheckServiceNodes is used to filter nodes based on ACL rules. Returns
+// true if any elements were removed.
+func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) bool {
 	csn := *nodes
 	var authzContext acl.AuthorizerContext
+	var removed bool
 
 	for i := 0; i < len(csn); i++ {
 		node := csn[i]
@@ -1348,22 +1350,20 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 			continue
 		}
 		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node.Node.Node, node.Node.GetEnterpriseMeta()))
+		removed = true
 		csn = append(csn[:i], csn[i+1:]...)
 		i--
 	}
 	*nodes = csn
+	return removed
 }
 
 // filterServiceTopology is used to filter upstreams/downstreams based on ACL rules.
 // this filter is unlike others in that it also returns whether the result was filtered by ACLs
 func (f *aclFilter) filterServiceTopology(topology *structs.ServiceTopology) bool {
-	numUp := len(topology.Upstreams)
-	numDown := len(topology.Downstreams)
-
-	f.filterCheckServiceNodes(&topology.Upstreams)
-	f.filterCheckServiceNodes(&topology.Downstreams)
-
-	return numUp != len(topology.Upstreams) || numDown != len(topology.Downstreams)
+	filteredUpstreams := f.filterCheckServiceNodes(&topology.Upstreams)
+	filteredDownstreams := f.filterCheckServiceNodes(&topology.Downstreams)
+	return filteredUpstreams || filteredDownstreams
 }
 
 // filterDatacenterCheckServiceNodes is used to filter nodes based on ACL rules.
@@ -1805,7 +1805,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		filt.filterCheckServiceNodes(v)
 
 	case *structs.IndexedCheckServiceNodes:
-		filt.filterCheckServiceNodes(&v.Nodes)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterCheckServiceNodes(&v.Nodes)
 
 	case *structs.IndexedServiceTopology:
 		filtered := filt.filterServiceTopology(v.ServiceTopology)

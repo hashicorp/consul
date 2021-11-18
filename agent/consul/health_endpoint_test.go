@@ -1519,6 +1519,9 @@ func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
 	}
 
 	t.Parallel()
+
+	require := require.New(t)
+
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1530,21 +1533,16 @@ func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedCheckServiceNodes{}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &opt, &reply); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(reply.Nodes) != 1 {
-		t.Fatalf("bad: %#v", reply.Nodes)
-	}
+	err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &opt, &reply)
+	require.NoError(err)
+	require.Len(reply.Nodes, 1)
 
 	opt.ServiceName = "bar"
 	reply = structs.IndexedCheckServiceNodes{}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &opt, &reply); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(reply.Nodes) != 0 {
-		t.Fatalf("bad: %#v", reply.Nodes)
-	}
+	err = msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &opt, &reply)
+	require.NoError(err)
+	require.Empty(reply.Nodes)
+	require.True(reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	// We've already proven that we call the ACL filtering function so we
 	// test node filtering down in acl.go for node cases. This also proves
