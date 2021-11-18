@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 func startRPCTLSServer(config *Config) (net.Conn, chan error) {
@@ -719,12 +720,24 @@ func TestConfigurator_CommonTLSConfigCAs(t *testing.T) {
 func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 	c, err := NewConfigurator(Config{TLSMinVersion: ""}, nil)
 	require.NoError(t, err)
-	require.Equal(t, c.commonTLSConfig(false).MinVersion, tlsLookup["tls10"])
+	tlsVersion, _ := tlsLookup("TLSv1_0")
+	require.Equal(t, c.commonTLSConfig(false).MinVersion, GoTLSVersions[tlsVersion])
 
 	for _, version := range tlsVersions() {
 		require.NoError(t, c.Update(Config{TLSMinVersion: version}))
+		tlsVersion, _ := tlsLookup(version)
 		require.Equal(t, c.commonTLSConfig(false).MinVersion,
-			tlsLookup[version])
+			GoTLSVersions[tlsVersion])
+	}
+
+	// NOTE: checks for deprecated TLS version string warnings,
+	// should be removed when removing support for these config values
+	for version := range types.DeprecatedAgentTLSVersions {
+		// TODO: check for warning log message? how?
+		require.NoError(t, c.Update(Config{TLSMinVersion: version}))
+		tlsVersion, _ := tlsLookup(version)
+		require.Equal(t, c.commonTLSConfig(false).MinVersion,
+			GoTLSVersions[tlsVersion])
 	}
 
 	require.Error(t, c.Update(Config{TLSMinVersion: "tlsBOGUS"}))
@@ -1439,7 +1452,7 @@ func certChain(t *testing.T, certs ...string) []*x509.Certificate {
 }
 
 func TestConfig_tlsVersions(t *testing.T) {
-	require.Equal(t, []string{"tls10", "tls11", "tls12", "tls13"}, tlsVersions())
-	expected := "tls10, tls11, tls12, tls13"
+	require.Equal(t, []string{"TLS_AUTO", "TLSv1_0", "TLSv1_1", "TLSv1_2", "TLSv1_3"}, tlsVersions())
+	expected := "TLS_AUTO, TLSv1_0, TLSv1_1, TLSv1_2, TLSv1_3"
 	require.Equal(t, expected, strings.Join(tlsVersions(), ", "))
 }

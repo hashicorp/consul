@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/types"
 )
 
 // ALPNWrapper is a function that is used to wrap a non-TLS connection and
@@ -35,13 +36,35 @@ type DCWrapper func(dc string, conn net.Conn) (net.Conn, error)
 // a constant value. This is usually done by currying DCWrapper.
 type Wrapper func(conn net.Conn) (net.Conn, error)
 
-// tlsLookup maps the tls_min_version configuration to the internal value
-var tlsLookup = map[string]uint16{
-	"":      tls.VersionTLS10, // default in golang
-	"tls10": tls.VersionTLS10,
-	"tls11": tls.VersionTLS11,
-	"tls12": tls.VersionTLS12,
-	"tls13": tls.VersionTLS13,
+// GoTLSVersions maps types.TLSVersion to the Go internal value
+var GoTLSVersions = map[types.TLSVersion]uint16{
+	types.TLSVersionAuto: tls.VersionTLS10, // default in golang
+	types.TLSv1_0:        tls.VersionTLS10,
+	types.TLSv1_1:        tls.VersionTLS11,
+	types.TLSv1_2:        tls.VersionTLS12,
+	types.TLSv1_3:        tls.VersionTLS13,
+}
+
+// tlsLookup maps a TLS version configuration string to the internal value
+func tlsLookup(tlsVersionString string) (types.TLSVersion, error) {
+	// Handle empty string case for unspecified config
+	if tlsVersionString == "" {
+		return types.TLSVersionAuto, nil
+	}
+
+	if tlsVersion, ok := types.TLSVersions[tlsVersionString]; ok {
+		return tlsVersion, nil
+	} else {
+		// NOTE: This inner check for deprecated values should eventually be removed
+		if tlsVersion, ok := types.DeprecatedAgentTLSVersions[tlsVersionString]; ok {
+			// TODO: log warning about deprecated config
+			return tlsVersion, nil
+		} else {
+			// Only suggest non-deprecated values if configured value is invalid
+			versions := strings.Join(tlsVersions(), ", ")
+			return types.TLSVersionInvalid, fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [%s]", tlsVersionString, versions)
+		}
+	}
 }
 
 // Config used to create tls.Config
@@ -131,10 +154,8 @@ type Config struct {
 
 func tlsVersions() []string {
 	versions := []string{}
-	for v := range tlsLookup {
-		if v != "" {
-			versions = append(versions, v)
-		}
+	for v := range types.TLSVersions {
+		versions = append(versions, v)
 	}
 	sort.Strings(versions)
 	return versions
@@ -371,12 +392,11 @@ func newX509CertPool(groups ...[]string) (*x509.CertPool, error) {
 // validateConfig checks that config is valid and does not conflict with the pool
 // or cert.
 func validateConfig(config Config, pool *x509.CertPool, cert *tls.Certificate) error {
-	// Check if a minimum TLS version was set
-	if config.TLSMinVersion != "" {
-		if _, ok := tlsLookup[config.TLSMinVersion]; !ok {
-			versions := strings.Join(tlsVersions(), ", ")
-			return fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [%s]", config.TLSMinVersion, versions)
-		}
+	// Check if a minimum TLS version was set,
+	// returns TLSVersionAuto if config.TLSMinVersion is empty
+	_, err := tlsLookup(config.TLSMinVersion)
+	if err != nil {
+		return err
 	}
 
 	// Ensure we have a CA if VerifyOutgoing is set
@@ -515,10 +535,12 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	tlsConfig.ClientCAs = c.caPool
 	tlsConfig.RootCAs = c.caPool
 
-	// This is possible because tlsLookup also contains "" with golang's
-	// default (tls10). And because the initial check makes sure the
-	// version correctly matches.
-	tlsConfig.MinVersion = tlsLookup[c.base.TLSMinVersion]
+	// Error handling is not needed here because tlsLookup handles "" as
+	// TLSVersionAuto with GoTLSVersions mapping TLSVersionAuto to Go's
+	// default (tls10) and because the initial check in validateConfig makes
+	// sure the version is not invalid.
+	tlsVersion, _ := tlsLookup(c.base.TLSMinVersion)
+	tlsConfig.MinVersion = GoTLSVersions[tlsVersion]
 
 	// Set ClientAuth if necessary
 	if verifyIncoming {
