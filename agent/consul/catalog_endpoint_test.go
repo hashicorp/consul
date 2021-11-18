@@ -2742,6 +2742,7 @@ node_prefix "" {
 			CheckID:   "service:bar",
 			Name:      "service:bar",
 			ServiceID: "bar",
+			Status:    api.HealthPassing,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
