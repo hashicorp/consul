@@ -4,7 +4,12 @@ class: ember
 # AuthDialog
 
 ```hbs preview-template
-<AuthDialog @dc={{'dc-1'}} @nspace={{'default'}} @onchange={{action (noop)}} as |api components|>
+<AuthDialog
+  @dc={{'dc-1'}}
+  @nspace={{'default'}}
+  @partition={{'default'}}
+  @onchange={{action (noop)}}
+as |api components|>
   {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
     <BlockSlot @name="unauthorized">
       Here's the login form:
@@ -27,6 +32,7 @@ A component to help orchestrate a login/logout flow.
 | --- | --- | --- | --- |
 | `dc` | `String` | | The name of the current datacenter |
 | `nspace` | `String` | | The name of the current namespace |
+| `partition` | `String` | | The name of the current partition |
 | `onchange` | `Function` | | An action to fire when the users token has changed (logged in/logged out/token changed) |
 
 ### Methods/Actions/api

@@ -18,4 +18,8 @@ export default class AuthMethodAbility extends BaseAbility {
   get canDelete() {
     return this.env.var('CONSUL_ACLS_ENABLED') && super.canDelete;
   }
+
+  get canUse() {
+    return this.env.var('CONSUL_SSO_ENABLED');
+  }
 }
