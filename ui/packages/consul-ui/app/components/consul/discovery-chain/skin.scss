@@ -63,7 +63,7 @@
 }
 %chain-node-active {
   opacity: 1;
-  background-color: rgb(var(--white));
+  background-color: rgb(var(--tone-gray-000));
   border-color: rgb(var(--tone-gray-500));
 }
 /* TODO: More text truncation, centralize */
@@ -99,7 +99,7 @@
 /**/
 %with-chain-outlet::before {
   @extend %as-pseudo;
-  background-color: rgb(var(--white));
+  background-color: rgb(var(--tone-gray-000));
 
   border-radius: var(--decor-radius-full);
   border: 2px solid rgb(var(--tone-gray-400));
@@ -107,5 +107,5 @@
 %discovery-chain circle {
   stroke-width: 2;
   stroke: rgb(var(--tone-gray-400));
-  fill: rgb(var(--white));
+  fill: rgb(var(--tone-gray-000));
 }

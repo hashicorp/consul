@@ -1,7 +1,7 @@
 %notice {
   border-radius: var(--decor-radius-100);
   border: var(--decor-border-100);
-  color: var(--black);
+  color: rgb(var(--tone-gray-999));
 }
 %notice::before {
   @extend %as-pseudo;
