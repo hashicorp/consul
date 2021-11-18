@@ -8,6 +8,9 @@
   dl.datacenter dt::before {
     @extend %with-user-organization-mask, %as-pseudo;
   }
+  dl.partition dt::before {
+    @extend %with-user-team-mask, %as-pseudo;
+  }
   dl.nspace dt::before {
     @extend %with-folder-outline-mask, %as-pseudo;
   }

@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Add upstream icons for upstreams and upstream instances
+```

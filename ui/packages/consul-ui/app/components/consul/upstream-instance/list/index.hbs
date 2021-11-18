@@ -11,7 +11,21 @@
         </p>
       </div>
       <div class="detail">
-{{#if (env 'CONSUL_NSPACES_ENABLED')}}
+{{#if (can 'use partitions')}}
+  {{#if (not-eq item.DestinationType 'prepared_query')}}
+        <dl class="partition">
+          <dt
+            {{tooltip}}
+          >
+            Admin Partition
+          </dt>
+          <dd>
+            {{or item.DestinationPartition 'default'}}
+          </dd>
+        </dl>
+  {{/if}}
+{{/if}}
+{{#if (can 'use nspaces')}}
   {{#if (not-eq item.DestinationType 'prepared_query')}}
         <dl class="nspace">
           <dt

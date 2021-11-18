@@ -1175,7 +1175,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   The following sub-keys are available:
 
   - `enabled` ((#connect_enabled)) Controls whether Connect features are
-    enabled on this agent. Should be enabled on all clients and servers in the cluster
+    enabled on this agent. Should be enabled on all servers in the cluster
     in order for Connect to function properly. Defaults to false.
 
   - `enable_mesh_gateway_wan_federation` ((#connect_enable_mesh_gateway_wan_federation)) Controls whether cross-datacenter federation traffic between servers is funneled
