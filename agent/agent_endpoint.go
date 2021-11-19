@@ -664,22 +664,16 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	}
 
 	if err := decodeBody(req.Body, &args); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Verify the check has a name.
 	if args.Name == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing check name")
-		return nil, nil
+		return nil, BadRequestError{"Missing check name"}
 	}
 
 	if args.Status != "" && !structs.ValidStatus(args.Status) {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Bad check status")
-		return nil, nil
+		return nil, BadRequestError{"Bad check status"}
 	}
 
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
@@ -698,19 +692,20 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	chkType := args.CheckType()
 	err = chkType.Validate()
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, fmt.Errorf("Invalid check: %v", err))
-		return nil, nil
+		return nil, BadRequestError{fmt.Sprintf("Invalid check: %v", err)}
 	}
 
 	// Store the type of check based on the definition
 	health.Type = chkType.Type()
 
 	if health.ServiceID != "" {
+		cid := health.CompoundServiceID()
 		// fixup the service name so that vetCheckRegister requires the right ACLs
-		service := s.agent.State.Service(health.CompoundServiceID())
+		service := s.agent.State.Service(cid)
 		if service != nil {
 			health.ServiceName = service.Service
+		} else {
+			return nil, NotFoundError{fmt.Sprintf("ServiceID %q does not exist", cid.String())}
 		}
 	}
 
@@ -746,12 +741,12 @@ func (s *HTTPHandlers) AgentDeregisterCheck(resp http.ResponseWriter, req *http.
 
 	checkID.Normalize()
 
-	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, checkID); err != nil {
-		return nil, err
-	}
-
 	if !s.validateRequestPartition(resp, &checkID.EnterpriseMeta) {
 		return nil, nil
+	}
+
+	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, checkID); err != nil {
+		return nil, err
 	}
 
 	if err := s.agent.RemoveCheck(checkID, true); err != nil {
@@ -1205,12 +1200,12 @@ func (s *HTTPHandlers) AgentDeregisterService(resp http.ResponseWriter, req *htt
 
 	sid.Normalize()
 
-	if err := s.agent.vetServiceUpdateWithAuthorizer(authz, sid); err != nil {
-		return nil, err
-	}
-
 	if !s.validateRequestPartition(resp, &sid.EnterpriseMeta) {
 		return nil, nil
+	}
+
+	if err := s.agent.vetServiceUpdateWithAuthorizer(authz, sid); err != nil {
+		return nil, err
 	}
 
 	if err := s.agent.RemoveService(sid); err != nil {
