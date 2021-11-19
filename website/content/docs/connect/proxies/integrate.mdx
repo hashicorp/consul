@@ -32,19 +32,23 @@ The proxy must accept TLS connections on some port to accept inbound connections
 
 Call the [`/v1/agent/connect/ca/leaf/`] API endpoint to obtain the client certificate, e.g.:
 
-```shell-session
+<CodeBlockConfig language="shell-session">
 
-curl http://<host-ip>:8500/v1/agent/connect/ca/leaf/<service-name>
-
+```shell
+$ curl http://<host-ip>:8500/v1/agent/connect/ca/leaf/<service-name>
 ```
+
+</CodeBlockConfig>
 
 The client certificate from the inbound connection must be validated against the Connect CA root certificates. Call the [`/v1/agent/connect/ca/roots`] endpoint to obtain the root certificates from the Connect CA, e.g.:
 
-```shell-session
+<CodeBlockConfig language="shell-session">
 
-curl http://<host-ip>:8500/v1/agent/connect/ca/roots
-
+```shell
+$ curl http://<host-ip>:8500/v1/agent/connect/ca/roots
 ```
+
+</CodeBlockConfig>
 
 ### Authorizing the connection
 
@@ -176,7 +180,7 @@ Alternatively, you may also use the flags `-token` or `-token-file` to provide t
 <CodeBlockConfig language="shell-session">
 
 ```shell
- consul connect envoy -sidecar-for "web" -token-file=/etc/consul.d/consul.token
+$ consul connect envoy -sidecar-for "web" -token-file=/etc/consul.d/consul.token
 ```
 
 </CodeBlockConfig>
@@ -184,7 +188,7 @@ Alternatively, you may also use the flags `-token` or `-token-file` to provide t
 <CodeBlockConfig >
 
 ```shell
- $ consul connect proxy -sidecar-for "web" -token-file=/etc/consul.d/consul.token
+$ consul connect proxy -sidecar-for "web" -token-file=/etc/consul.d/consul.token
 ```
 
 </CodeBlockConfig>
