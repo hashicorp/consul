@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/types"
 )
 
 // aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
@@ -182,10 +183,10 @@ func (a *Agent) filterServicesWithAuthorizer(authz acl.Authorizer, services map[
 	return nil
 }
 
-func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[structs.CheckID]*structs.HealthCheck) error {
+func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks map[types.CheckID]*structs.HealthCheck) error {
 	var authzContext acl.AuthorizerContext
 	// Filter out checks based on the node or service policy.
-	for id, check := range *checks {
+	for id, check := range checks {
 		check.FillAuthzContext(&authzContext)
 		if len(check.ServiceName) > 0 {
 			if authz.ServiceRead(check.ServiceName, &authzContext) == acl.Allow {
@@ -196,8 +197,8 @@ func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[str
 				continue
 			}
 		}
-		a.logger.Debug("dropping check from result due to ACLs", "check", id.String())
-		delete(*checks, id)
+		a.logger.Debug("dropping check from result due to ACLs", "check", id)
+		delete(checks, id)
 	}
 	return nil
 }

@@ -489,7 +489,7 @@ func TestACL_filterChecksWithAuthorizer(t *testing.T) {
 	t.Parallel()
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
-	filterChecks := func(token string, checks *map[structs.CheckID]*structs.HealthCheck) error {
+	filterChecks := func(token string, checks map[types.CheckID]*structs.HealthCheck) error {
 		authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 		if err != nil {
 			return err
@@ -498,29 +498,29 @@ func TestACL_filterChecksWithAuthorizer(t *testing.T) {
 		return a.filterChecksWithAuthorizer(authz, checks)
 	}
 
-	checks := make(map[structs.CheckID]*structs.HealthCheck)
-	require.NoError(t, filterChecks(nodeROSecret, &checks))
+	checks := make(map[types.CheckID]*structs.HealthCheck)
+	require.NoError(t, filterChecks(nodeROSecret, checks))
 
-	checks[structs.NewCheckID("my-node", nil)] = &structs.HealthCheck{}
-	checks[structs.NewCheckID("my-service", nil)] = &structs.HealthCheck{ServiceName: "service"}
-	checks[structs.NewCheckID("my-other", nil)] = &structs.HealthCheck{ServiceName: "other"}
-	require.NoError(t, filterChecks(serviceROSecret, &checks))
-	_, ok := checks[structs.NewCheckID("my-node", nil)]
+	checks["my-node"] = &structs.HealthCheck{}
+	checks["my-service"] = &structs.HealthCheck{ServiceName: "service"}
+	checks["my-other"] = &structs.HealthCheck{ServiceName: "other"}
+	require.NoError(t, filterChecks(serviceROSecret, checks))
+	_, ok := checks["my-node"]
 	require.False(t, ok)
-	_, ok = checks[structs.NewCheckID("my-service", nil)]
+	_, ok = checks["my-service"]
 	require.True(t, ok)
-	_, ok = checks[structs.NewCheckID("my-other", nil)]
+	_, ok = checks["my-other"]
 	require.False(t, ok)
 
-	checks[structs.NewCheckID("my-node", nil)] = &structs.HealthCheck{}
-	checks[structs.NewCheckID("my-service", nil)] = &structs.HealthCheck{ServiceName: "service"}
-	checks[structs.NewCheckID("my-other", nil)] = &structs.HealthCheck{ServiceName: "other"}
-	require.NoError(t, filterChecks(nodeROSecret, &checks))
-	_, ok = checks[structs.NewCheckID("my-node", nil)]
+	checks["my-node"] = &structs.HealthCheck{}
+	checks["my-service"] = &structs.HealthCheck{ServiceName: "service"}
+	checks["my-other"] = &structs.HealthCheck{ServiceName: "other"}
+	require.NoError(t, filterChecks(nodeROSecret, checks))
+	_, ok = checks["my-node"]
 	require.True(t, ok)
-	_, ok = checks[structs.NewCheckID("my-service", nil)]
+	_, ok = checks["my-service"]
 	require.False(t, ok)
-	_, ok = checks[structs.NewCheckID("my-other", nil)]
+	_, ok = checks["my-other"]
 	require.False(t, ok)
 }
 

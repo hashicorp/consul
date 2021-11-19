@@ -1321,36 +1321,74 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
-	chk1 := &structs.HealthCheck{
-		Node:    a.Config.NodeName,
-		CheckID: "mysql",
-		Name:    "mysql",
-		Status:  api.HealthPassing,
+
+	checks := structs.HealthChecks{
+		{
+			Node:        a.Config.NodeName,
+			CheckID:     "web",
+			ServiceName: "web",
+			Status:      api.HealthPassing,
+		},
+		{
+			Node:        a.Config.NodeName,
+			CheckID:     "api",
+			ServiceName: "api",
+			Status:      api.HealthPassing,
+		},
 	}
-	a.State.AddCheck(chk1, "")
+	for _, c := range checks {
+		a.State.AddCheck(c, "")
+	}
 
 	t.Run("no token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/checks", nil)
-		obj, err := a.srv.AgentChecks(nil, req)
-		if err != nil {
-			t.Fatalf("Err: %v", err)
-		}
+		require := require.New(t)
+
+		req := httptest.NewRequest("GET", "/v1/agent/checks", nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentChecks(rsp, req)
+		require.NoError(err)
+
 		val := obj.(map[types.CheckID]*structs.HealthCheck)
-		if len(val) != 0 {
-			t.Fatalf("bad checks: %v", obj)
-		}
+		require.Empty(val)
+		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
+
+	t.Run("limited token", func(t *testing.T) {
+		require := require.New(t)
+
+		token := testCreateToken(t, a, fmt.Sprintf(`
+			service "web" {
+				policy = "read"
+			}
+			node "%s" {
+				policy = "read"
+			}
+		`, a.Config.NodeName))
+
+		req := httptest.NewRequest("GET", fmt.Sprintf("/v1/agent/checks?token=%s", token), nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentChecks(rsp, req)
+		require.NoError(err)
+
+		val := obj.(map[types.CheckID]*structs.HealthCheck)
+		require.Len(val, 1)
+		require.NotEmpty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/checks?token=root", nil)
-		obj, err := a.srv.AgentChecks(nil, req)
-		if err != nil {
-			t.Fatalf("Err: %v", err)
-		}
+		require := require.New(t)
+
+		req := httptest.NewRequest("GET", "/v1/agent/checks?token=root", nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentChecks(rsp, req)
+		require.NoError(err)
+
 		val := obj.(map[types.CheckID]*structs.HealthCheck)
-		if len(val) != 1 {
-			t.Fatalf("bad checks: %v", obj)
-		}
+		require.Len(val, 2)
+		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 }
 
