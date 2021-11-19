@@ -568,9 +568,24 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 			return nil, err
 		}
 	}
+
+	total := len(members)
 	if err := s.agent.filterMembers(token, &members); err != nil {
 		return nil, err
 	}
+
+	// Set the X-Consul-Results-Filtered-By-ACLs header, but only if the user is
+	// authenticated (to prevent information leaking).
+	//
+	// This is done automatically for HTTP endpoints that proxy to an RPC endpoint
+	// that sets QueryMeta.ResultsFilteredByACLs, but must be done manually for
+	// agent-local endpoints.
+	//
+	// For more information see the comment in: Server.blockingQuery.
+	if token != "" {
+		setResultsFilteredByACLs(resp, total != len(members))
+	}
+
 	return members, nil
 }
 

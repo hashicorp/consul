@@ -1891,32 +1891,67 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 	}
 
 	t.Parallel()
+
+	// Start 2 agents and join them together.
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 
+	b := NewTestAgent(t, TestACLConfig())
+	defer b.Shutdown()
+
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForLeader(t, b.RPC, "dc1")
+
+	joinPath := fmt.Sprintf("/v1/agent/join/127.0.0.1:%d?token=root", b.Config.SerfPortLAN)
+	_, err := a.srv.AgentJoin(nil, httptest.NewRequest(http.MethodPut, joinPath, nil))
+	require.NoError(t, err)
+
 	t.Run("no token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/members", nil)
-		obj, err := a.srv.AgentMembers(nil, req)
-		if err != nil {
-			t.Fatalf("Err: %v", err)
-		}
+		require := require.New(t)
+
+		req := httptest.NewRequest("GET", "/v1/agent/members", nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentMembers(rsp, req)
+		require.NoError(err)
+
 		val := obj.([]serf.Member)
-		if len(val) != 0 {
-			t.Fatalf("bad members: %v", obj)
-		}
+		require.Empty(val)
+		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
+
+	t.Run("limited token", func(t *testing.T) {
+		require := require.New(t)
+
+		token := testCreateToken(t, a, fmt.Sprintf(`
+			node "%s" {
+				policy = "read"
+			}
+		`, b.Config.NodeName))
+
+		req := httptest.NewRequest("GET", fmt.Sprintf("/v1/agent/members?token=%s", token), nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentMembers(rsp, req)
+		require.NoError(err)
+
+		val := obj.([]serf.Member)
+		require.Len(val, 1)
+		require.NotEmpty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/members?token=root", nil)
-		obj, err := a.srv.AgentMembers(nil, req)
-		if err != nil {
-			t.Fatalf("Err: %v", err)
-		}
+		require := require.New(t)
+
+		req := httptest.NewRequest("GET", "/v1/agent/members?token=root", nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentMembers(rsp, req)
+		require.NoError(err)
+
 		val := obj.([]serf.Member)
-		if len(val) != 1 {
-			t.Fatalf("bad members: %v", obj)
-		}
+		require.Len(val, 2)
+		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 }
 
