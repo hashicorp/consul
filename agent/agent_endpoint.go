@@ -327,9 +327,6 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 	// NOTE: we're explicitly fetching things in the requested partition and
 	// namespace here.
 	services := s.agent.State.Services(&entMeta)
-	if err := s.agent.filterServicesWithAuthorizer(authz, &services); err != nil {
-		return nil, err
-	}
 
 	// Convert into api.AgentService since that includes Connect config but so far
 	// NodeService doesn't need to internally. They are otherwise identical since
@@ -337,11 +334,8 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 	// anyway.
 	agentSvcs := make(map[string]*api.AgentService)
 
-	dc := s.agent.config.Datacenter
-
-	// Use empty list instead of nil
-	for id, s := range services {
-		agentService := buildAgentService(s, dc)
+	for id, svc := range services {
+		agentService := buildAgentService(svc, s.agent.config.Datacenter)
 		agentSvcs[id.ID] = &agentService
 	}
 
@@ -350,7 +344,34 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 		return nil, err
 	}
 
-	return filter.Execute(agentSvcs)
+	raw, err := filter.Execute(agentSvcs)
+	if err != nil {
+		return nil, err
+	}
+	agentSvcs = raw.(map[string]*api.AgentService)
+
+	// Note: we filter the results with ACLs *after* applying the user-supplied
+	// bexpr filter, to ensure total (and the filter-by-acls header we set below)
+	// do not include results that would be filtered out even if the user did have
+	// permission.
+	total := len(agentSvcs)
+	if err := s.agent.filterServicesWithAuthorizer(authz, agentSvcs); err != nil {
+		return nil, err
+	}
+
+	// Set the X-Consul-Results-Filtered-By-ACLs header, but only if the user is
+	// authenticated (to prevent information leaking).
+	//
+	// This is done automatically for HTTP endpoints that proxy to an RPC endpoint
+	// that sets QueryMeta.ResultsFilteredByACLs, but must be done manually for
+	// agent-local endpoints.
+	//
+	// For more information see the comment in: Server.blockingQuery.
+	if token != "" {
+		setResultsFilteredByACLs(resp, total != len(agentSvcs))
+	}
+
+	return agentSvcs, nil
 }
 
 // GET /v1/agent/service/:service_id

@@ -283,7 +283,7 @@ func TestAgent_Services_MeshGateway(t *testing.T) {
 	a.State.AddService(srv1, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(nil, req)
+	obj, err := a.srv.AgentServices(httptest.NewRecorder(), req)
 	require.NoError(t, err)
 	val := obj.(map[string]*api.AgentService)
 	require.Len(t, val, 1)
@@ -319,7 +319,7 @@ func TestAgent_Services_TerminatingGateway(t *testing.T) {
 	require.NoError(t, a.State.AddService(srv1, ""))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(nil, req)
+	obj, err := a.srv.AgentServices(httptest.NewRecorder(), req)
 	require.NoError(t, err)
 	val := obj.(map[string]*api.AgentService)
 	require.Len(t, val, 1)
@@ -339,36 +339,69 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
-	srv1 := &structs.NodeService{
-		ID:      "mysql",
-		Service: "mysql",
-		Tags:    []string{"master"},
-		Port:    5000,
+
+	services := []*structs.NodeService{
+		{
+			ID:      "web",
+			Service: "web",
+			Port:    5000,
+		},
+		{
+			ID:      "api",
+			Service: "api",
+			Port:    6000,
+		},
 	}
-	a.State.AddService(srv1, "")
+	for _, s := range services {
+		a.State.AddService(s, "")
+	}
 
 	t.Run("no token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-		obj, err := a.srv.AgentServices(nil, req)
-		if err != nil {
-			t.Fatalf("Err: %v", err)
-		}
+		require := require.New(t)
+
+		req := httptest.NewRequest("GET", "/v1/agent/services", nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentServices(rsp, req)
+		require.NoError(err)
+
 		val := obj.(map[string]*api.AgentService)
-		if len(val) != 0 {
-			t.Fatalf("bad: %v", obj)
-		}
+		require.Empty(val)
+		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
+
+	t.Run("limited token", func(t *testing.T) {
+		require := require.New(t)
+
+		token := testCreateToken(t, a, `
+			service "web" {
+				policy = "read"
+			}
+		`)
+
+		req := httptest.NewRequest("GET", fmt.Sprintf("/v1/agent/services?token=%s", token), nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentServices(rsp, req)
+		require.NoError(err)
+
+		val := obj.(map[string]*api.AgentService)
+		require.Len(val, 1)
+		require.NotEmpty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/services?token=root", nil)
-		obj, err := a.srv.AgentServices(nil, req)
-		if err != nil {
-			t.Fatalf("Err: %v", err)
-		}
+		require := require.New(t)
+
+		req := httptest.NewRequest("GET", "/v1/agent/services?token=root", nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentServices(rsp, req)
+		require.NoError(err)
+
 		val := obj.(map[string]*api.AgentService)
-		if len(val) != 1 {
-			t.Fatalf("bad: %v", obj)
-		}
+		require.Len(val, 2)
+		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 }
 
@@ -6970,7 +7003,7 @@ func TestAgent_Services_ExposeConfig(t *testing.T) {
 	a.State.AddService(srv1, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(nil, req)
+	obj, err := a.srv.AgentServices(httptest.NewRecorder(), req)
 	require.NoError(t, err)
 	val := obj.(map[string]*api.AgentService)
 	require.Len(t, val, 1)
