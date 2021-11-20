@@ -24,7 +24,7 @@ Admin partitions exist a level above namespaces in the identity hierarchy. They 
 
 Each Consul cluster will have at least one default admin partition (named `default`). Any resource created without specifying an admin partition will inherit the partition of the ACL token.
 
-The `default` admin partition is special in that it may contain namespaces and other entities that are replicated between datacenters.
+The `default` admin partition is special in that it may contain namespaces and other entities that are replicated between datacenters. The `default` partition should also contain the Consul servers.  
 
 -> **Preexisting resources and the `default` partition**: Admin partitions were introduced in Consul 1.11. After upgrading to Consul 1.11 or later, the `default` partition will contain all resources created in previous versions.
 
@@ -57,7 +57,7 @@ Values specified for [`proxy-defaults`](/docs/connect/config-entries/proxy-defau
 
 You can configure services to be discoverable and accessible by downstream services in any partition within the datacenter. Specify the upstream services that you want to be available for discovery by configuring the `partition-exports` configuration entry in the partition where the services are registered. Refer to the [`partition-exports` documentation](/docs/connect/config-entries/partition-exports) for details.
 
-Additionally, the `upstreams` configuration for proxies in the source partition must specify the name of the destination partition so that listeners can be created. Refer to the [Upstreamd Configuration Reference](/docs/connect/registration/service-registration#upstream-configuration-reference) for additional information.
+Additionally, the `upstreams` configuration for proxies in the source partition must specify the name of the destination partition so that listeners can be created. Refer to the [Upstream Configuration Reference](/docs/connect/registration/service-registration#upstream-configuration-reference) for additional information.
 
 ## Requirements
 
@@ -88,12 +88,12 @@ Your Consul configuration must meet the following requirements to use admin part
 
 One of the primary use cases for admin partitions is for enabling a service mesh on Kubernetes clusters. The following requirements must be met to create admin partitions on Kubernetes:
 
-* Two or more Kubernetes clusters with Consul servers installed on one of them. The other clusters should run Consul clients.
+* Two or more Kubernetes clusters. Consul servers must be deployed on one of the clusters. The other clusters should run Consul clients.
 * A Consul Enterprise license must be installed on each instance of Consul.
-* The helm chart consul-k8s v0.34.1 or greater.
+* The helm chart for consul-k8s v0.34.1 or greater.
 * Consul 1.11.0-ent-alpha or greater.
-* All instances in the VPC must be able to communicate with each other.
-* Pods must be able to communicate with each other (flat pod and node network). See [step 3](#firewall-rules) in the Deploying Consul with Admin Partitions on Kubernetes section for additional information
+* All Consul clients in the VPC must be able to communicate with the Consul servers. 
+* VPC firewall rules should be implemented that enable clients to communicate with the Consul servers in the `default` partition. The server nodes should be deployed to a single cluster.
 
 ## Usage
 
@@ -101,63 +101,49 @@ This section describes how to deploy Consul admin partitions to Kubernetes clust
 
 ### Deploying Consul with Admin Partitions on Kubernetes
 
-The expected use case to create admin partitions on Kubernetes clusters. This is because many organizations prefer to use cloud-managed Kubernetes offerings to provision separate Kubernetes clusters for individual teams, business units, or environments. This is opposed to deploying a single, large Kubernetes cluster. When these organizations attempt to use a service mesh to enable cross-cluster activities, such as administration tasks and communication between nodes, they encounter problems.
+The expected use case is to create admin partitions on Kubernetes clusters. This is because many organizations prefer to use cloud-managed Kubernetes offerings to provision separate Kubernetes clusters for individual teams, business units, or environments. This is opposed to deploying a single, large Kubernetes cluster. When these organizations attempt to use a service mesh to enable cross-cluster activities, such as administration tasks and communication between nodes, they encounter problems.
 
-The following procedure will result in different admin partitions in each Kubernetes cluster. The Consul clients running in the cluster with servers will be in the `default` partition. Another partition called `clients` will also be created.
+The following procedure will result in a different admin partition in each Kubernetes cluster. The Consul clients running in the cluster with servers will be in the `default` partition. Another partition called `clients` will also be created. 
 
 Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernetes-requirements) before proceeding.
 
-1. <a id="firewall-rules"/> Update the firewall rules to ensure the pod network is flat. The following example for Google Kubernetes Engine (GKE) describes how to create a firewall rule that allows all pod and node network traffic to talk to the server and workload nodegroups:
-
-    1. Open the **VPC Network > Firewall** section and identify the rules associated with your clusters. The cluster name is a part of the rule.
-
-     ![IP address ranges for GKE clusters](/img/admin-partitions/consul-admin-partitions-gke-cluster-1.png)
-
-     ![IP address ranges for GKE clusters](/img/admin-partitions/consul-admin-partitions-gke-cluster-2.png)
-
-     The `gke-cluster-1-7b43116f-node` and `gke-cluster-2-48d3bee6-node` labels are the node names for the GKE clusters.
-
-     The `10.128.0.0/9` IP range represents the node IP network. The IP range of the node VMs in the clusters are within this range.
-
-     The `10.44.0.0/14` and `10.4.0.0/14` IP ranges are the pod IP ranges for the GKE clusters.
-
-    1. Enter the `gke-cluster-1-7b43116f-node` and `gke-cluster-2-48d3bee6-node` node names in the target fields of the firewall rule.
-    1. Enter the `10.128.0.0/9`, `10.44.0.0/14`, and `10.4.0.0/14` IP into the source fields. This will ensure that traffic from the nodes and the pods in each cluster can access the nodes and pods in the other.
-
-    ![Configured GKE cluster firewall rule for Consul admin partitions](/img/admin-partitions/consul-admin-partitions-gke-firewall-rule.png)
-
+1. Update the firewall rules so that pods containing Consul clients and pods containing Consul servers can send and receive traffic. Refer to your virtual cloud provider's documentation for instructions on how to configure firewall rules. 
 1. Create the license secret in each cluster, e.g.:
 
   ```shell-session
-kubectl create secret generic license --from-file=key=[license file path i.e. ./license.hclic]
+  kubectl create secret generic license --from-file=key=[license file path i.e. ./license.hclic]
   ```
   This step must also be completed for each workload cluster.
 
 1. Create a server configuration file to override the default Consul Helm chart settings:
 
+  <CodeBlockConfig lineNumbers>
+
   ```yaml
   global:
-  enableConsulNamespaces: true
+    enableConsulNamespaces: true
   tls:
     enabled: true
-  image: hashicorp/consul-enterprise:1.11.0-ent-beta1
+  image: hashicorp/consul-enterprise:1.11.0-ent-beta3
   adminPartitions:
     enabled: true
   server:
     exposeGossipAndRPCPorts: true
-   enterpriseLicense:
-     secretName: license
-     secretKey: key
+  enterpriseLicense:
+    secretName: license
+    secretKey: key
   connectInject:
-   enabled: true
-   transparentProxy:
-    defaultEnabled: false
-   consulNamespaces:
-      mirroringK8S: true
+    enabled: true
+    transparentProxy:
+      defaultEnabled: false
+  consulNamespaces:
+    mirroringK8S: true
   controller:
-   enabled: true
+    enabled: true
   ```
-    Note that the `transparentProxy` configuration is disabled. This is to enable multi-cluster networking.
+  </CodeBlockConfig>
+  
+  Note that the `transparentProxy` configuration is disabled. This is to enable multi-cluster networking.
 
 1. Start the Consul server(s) using the custom configuration file:
   ```shell-session
@@ -182,7 +168,7 @@ kubectl create secret generic license --from-file=key=[license file path i.e. ./
   global:
   enabled: false
   enableConsulNamespaces: true
-  image: hashicorp/consul-enterprise:1.11.0-ent-beta1
+  image: hashicorp/consul-enterprise:1.11.0-ent-beta3
   adminPartitions:
     enabled: true
     name: "clients" // partition name
@@ -212,7 +198,6 @@ kubectl create secret generic license --from-file=key=[license file path i.e. ./
      mirroringK8S: true
   controller:
     enabled: true
-
   ```
 
 1. Copy the server certificate to the workload cluster.
