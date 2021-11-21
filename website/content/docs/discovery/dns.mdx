@@ -102,7 +102,7 @@ Consul support setting an alternative domain, which is usefull during DNS migrat
 internal and external queries with different domains.
 
 If you are using [`alt_domain`](/docs/agent/options#alt_domain) parameter, Consul will respond  based on the presence of it in your queries.
-For exmaple if `test-domain` is configured as an alternative domain the following query:
+For example, if `test-domain` is configured as the alternative domain, the following query:
 
 ```shell-session
 $ dig @127.0.0.1 -p 8600  consul.service.test-domain SRV
