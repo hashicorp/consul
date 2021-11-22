@@ -3176,70 +3176,97 @@ func TestFilterACL_redactTokenSecrets(t *testing.T) {
 
 func TestACL_filterPreparedQueries(t *testing.T) {
 	t.Parallel()
-	queries := structs.PreparedQueries{
-		&structs.PreparedQuery{
-			ID: "f004177f-2c28-83b7-4229-eacc25fe55d1",
-		},
-		&structs.PreparedQuery{
-			ID:   "f004177f-2c28-83b7-4229-eacc25fe55d2",
-			Name: "query-with-no-token",
-		},
-		&structs.PreparedQuery{
-			ID:    "f004177f-2c28-83b7-4229-eacc25fe55d3",
-			Name:  "query-with-a-token",
-			Token: "root",
-		},
+
+	logger := hclog.NewNullLogger()
+
+	makeList := func() *structs.IndexedPreparedQueries {
+		return &structs.IndexedPreparedQueries{
+			Queries: structs.PreparedQueries{
+				{ID: "f004177f-2c28-83b7-4229-eacc25fe55d1"},
+				{
+					ID:   "f004177f-2c28-83b7-4229-eacc25fe55d2",
+					Name: "query-with-no-token",
+				},
+				{
+					ID:    "f004177f-2c28-83b7-4229-eacc25fe55d3",
+					Name:  "query-with-a-token",
+					Token: "root",
+				},
+			},
+		}
 	}
 
-	expected := structs.PreparedQueries{
-		&structs.PreparedQuery{
-			ID: "f004177f-2c28-83b7-4229-eacc25fe55d1",
-		},
-		&structs.PreparedQuery{
-			ID:   "f004177f-2c28-83b7-4229-eacc25fe55d2",
-			Name: "query-with-no-token",
-		},
-		&structs.PreparedQuery{
-			ID:    "f004177f-2c28-83b7-4229-eacc25fe55d3",
-			Name:  "query-with-a-token",
-			Token: "root",
-		},
-	}
+	t.Run("management token", func(t *testing.T) {
+		require := require.New(t)
 
-	// Try permissive filtering with a management token. This will allow the
-	// embedded token to be seen.
-	filt := newACLFilter(acl.ManageAll(), nil)
-	filt.filterPreparedQueries(&queries)
-	if !reflect.DeepEqual(queries, expected) {
-		t.Fatalf("bad: %#v", queries)
-	}
+		list := makeList()
+		filterACLWithAuthorizer(logger, acl.ManageAll(), list)
 
-	// Hang on to the entry with a token, which needs to survive the next
-	// operation.
-	original := queries[2]
+		// Check we get the un-named query.
+		require.Len(list.Queries, 3)
 
-	// Now try permissive filtering with a client token, which should cause
-	// the embedded token to get redacted, and the query with no name to get
-	// filtered out.
-	filt = newACLFilter(acl.AllowAll(), nil)
-	filt.filterPreparedQueries(&queries)
-	expected[2].Token = redactedToken
-	expected = append(structs.PreparedQueries{}, expected[1], expected[2])
-	if !reflect.DeepEqual(queries, expected) {
-		t.Fatalf("bad: %#v", queries)
-	}
+		// Check we get the un-redacted token.
+		require.Equal("root", list.Queries[2].Token)
 
-	// Make sure that the original object didn't lose its token.
-	if original.Token != "root" {
-		t.Fatalf("bad token: %s", original.Token)
-	}
+		require.False(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
 
-	// Now try restrictive filtering.
-	filt = newACLFilter(acl.DenyAll(), nil)
-	filt.filterPreparedQueries(&queries)
-	if len(queries) != 0 {
-		t.Fatalf("bad: %#v", queries)
-	}
+	t.Run("permissive filtering", func(t *testing.T) {
+		require := require.New(t)
+
+		list := makeList()
+		queryWithToken := list.Queries[2]
+
+		filterACLWithAuthorizer(logger, acl.AllowAll(), list)
+
+		// Check the un-named query is filtered out.
+		require.Len(list.Queries, 2)
+
+		// Check the token is redacted.
+		require.Equal(redactedToken, list.Queries[1].Token)
+
+		// Check the original object is unmodified.
+		require.Equal("root", queryWithToken.Token)
+
+		// ResultsFilteredByACLs should not include un-named queries, which are only
+		// readable by a management token.
+		require.False(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
+
+	t.Run("limited access", func(t *testing.T) {
+		require := require.New(t)
+
+		policy, err := acl.NewPolicyFromSource(`
+			query "query-with-a-token" {
+			  policy = "read"
+			}
+		`, acl.SyntaxLegacy, nil, nil)
+		require.NoError(err)
+
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(err)
+
+		list := makeList()
+		filterACLWithAuthorizer(logger, authz, list)
+
+		// Check we only get the query we have access to.
+		require.Len(list.Queries, 1)
+
+		// Check the token is redacted.
+		require.Equal(redactedToken, list.Queries[0].Token)
+
+		require.True(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("restrictive filtering", func(t *testing.T) {
+		require := require.New(t)
+
+		list := makeList()
+		filterACLWithAuthorizer(logger, acl.DenyAll(), list)
+
+		require.Empty(list.Queries)
+		require.True(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
 }
 
 func TestACL_unhandledFilterType(t *testing.T) {

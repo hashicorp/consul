@@ -1167,6 +1167,31 @@ func TestPreparedQuery_List(t *testing.T) {
 		}
 	}
 
+	// Same for a token without access to the query.
+	{
+		token := createTokenWithPolicyName(t, "deny-queries", codec, `
+			query_prefix "" {
+				policy = "deny"
+			}
+		`)
+
+		req := &structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.List", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 0 {
+			t.Fatalf("bad: %v", resp)
+		}
+		if !resp.QueryMeta.ResultsFilteredByACLs {
+			t.Fatal("ResultsFilteredByACLs should be true")
+		}
+	}
+
 	// But a management token should work, and be able to see the captured
 	// token.
 	query.Query.Token = "le-token"
