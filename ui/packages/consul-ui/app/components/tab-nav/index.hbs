@@ -16,7 +16,7 @@ as |select name|}}
   ...attributes
 >
   <ul>
-{{#each @items as |item index|}}
+{{#each @items as |item|}}
   <li
     {{on 'click' (fn select)}}
     {{did-upsert
