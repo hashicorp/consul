@@ -1075,7 +1075,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		StartJoinAddrsLAN:           b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
 		StartJoinAddrsWAN:           b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
 		TLSCipherSuites:             b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
-		TLSMinVersion:               stringVal(c.TLSMinVersion),
+		TLSMinVersion:               b.tlsVersion("tls_min_version", c.TLSMinVersion),
 		TLSPreferServerCipherSuites: boolVal(c.TLSPreferServerCipherSuites),
 		TaggedAddresses:             c.TaggedAddresses,
 		TranslateWANAddrs:           boolVal(c.TranslateWANAddrs),
@@ -1986,12 +1986,25 @@ func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
 	return
 }
 
-func (b *builder) tlsCipherSuites(name string, v *string) []uint16 {
+func (b *builder) tlsVersion(name string, v *string) types.TLSVersion {
 	if v == nil {
 		return nil
 	}
 
-	var a []uint16
+	a, err := tlsutil.ParseTLSVersion(*v)
+	if err != nil {
+		// TODO: should a warning for deprecated config values be surfaced here somehow?
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid tls version: %s", name, err))
+	}
+	return a
+}
+
+func (b *builder) tlsCipherSuites(name string, v *string) []types.TLSCipherSuite {
+	if v == nil {
+		return nil
+	}
+
+	var a []types.TLSCipherSuite
 	a, err := tlsutil.ParseCiphers(*v)
 	if err != nil {
 		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid tls cipher suites: %s", name, err))
