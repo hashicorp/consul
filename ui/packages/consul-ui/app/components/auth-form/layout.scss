@@ -7,11 +7,12 @@
   display: inline-block;
   margin-top: 1em;
 }
+%auth-form form,
+%auth-form .oidc-select {
+  padding-top: 1em;
+}
 %auth-form form {
   margin-bottom: 0 !important;
-}
-%auth-form .tab-nav {
-  margin-bottom: 1em;
 }
 %auth-form .ember-basic-dropdown-trigger,
 %auth-form button:not(.reset) {

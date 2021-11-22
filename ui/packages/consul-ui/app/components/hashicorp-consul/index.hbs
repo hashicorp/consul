@@ -268,17 +268,17 @@
                           @name="authForm"
                           @value={{authForm}}
                         />
-                        <authForm.Method @matches="sso">
-                          {{#if (can "use SSO")}}
-                              <OidcSelect
-                                @dc={{@dc.Name}}
-                                @nspace={{@nspace}}
-                                @disabled={{authForm.disabled}}
-                                @onchange={{authForm.submit}}
-                                @onerror={{authForm.error}}
-                              />
-                          {{/if}}
-                        </authForm.Method>
+                        {{#if (can "use SSO")}}
+                          <authForm.Method @matches="sso">
+                            <OidcSelect
+                              @dc={{@dc.Name}}
+                              @nspace={{@nspace}}
+                              @disabled={{authForm.disabled}}
+                              @onchange={{authForm.submit}}
+                              @onerror={{authForm.error}}
+                            />
+                          </authForm.Method>
+                        {{/if}}
                       </AuthForm>
                     </BlockSlot>
                     <BlockSlot @name="actions">

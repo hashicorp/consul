@@ -41,6 +41,7 @@ as |exported|}}
 <StateChart
   @src={{this.tabsChart}}
 as |TabState IgnoredGuard IgnoredAction tabDispatch tabState|>
+{{#if (can 'use SSO')}}
     <TabNav
       @items={{array
         (hash
@@ -54,6 +55,7 @@ as |TabState IgnoredGuard IgnoredAction tabDispatch tabState|>
       }}
       @onclick={{queue (action tabDispatch) (action dispatch "RESET")}}
     />
+{{/if}}
     <State @matches="error">
       {{#if this.error.status}}
         <Notice
@@ -138,6 +140,7 @@ as |TabState IgnoredGuard IgnoredAction tabDispatch tabState|>
 </TabState>
 
 {{yield (assign exported (hash Method=TabState))}}
+
       <em>
         Contact your administrator for login credentials.
       </em>
