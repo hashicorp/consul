@@ -262,9 +262,13 @@
                       <h2>Log in to Consul</h2>
                     </BlockSlot>
                     <BlockSlot @name="body">
-                      <AuthForm>
-                        <:content as |authForm|>
-                          <Ref @target={{this}} @name="authForm" @value={{authForm}} />
+                      <AuthForm as |authForm|>
+                        <Ref
+                          @target={{this}}
+                          @name="authForm"
+                          @value={{authForm}}
+                        />
+                        <authForm.Method @matches="sso">
                           {{#if (can "use SSO")}}
                               <OidcSelect
                                 @dc={{@dc.Name}}
@@ -274,7 +278,7 @@
                                 @onerror={{authForm.error}}
                               />
                           {{/if}}
-                        </:content>
+                        </authForm.Method>
                       </AuthForm>
                     </BlockSlot>
                     <BlockSlot @name="actions">
