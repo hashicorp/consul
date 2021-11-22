@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/proto/pbconnect"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 )
 
 type AutoConfigOptions struct {
@@ -284,7 +285,12 @@ func (ac *AutoConfig) updateTLSSettingsInConfig(_ AutoConfigOptions, resp *pbaut
 	resp.Config.TLS.PreferServerCipherSuites = base.PreferServerCipherSuites
 
 	var err error
+	// FIXME: is the base.CipherSuites uint16 value exported or stored in
+	// memory remotely anywhere, or is this always passed as a string?
+	// This _might_ be okay regardless, as the underlying values are both
+	// IANA uint16 constant values.
 	resp.Config.TLS.CipherSuites, err = tlsutil.CipherString(base.CipherSuites)
+
 	return err
 }
 

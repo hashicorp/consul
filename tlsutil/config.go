@@ -131,9 +131,11 @@ type Config struct {
 	Domain string
 
 	// TLSMinVersion is the minimum accepted TLS version that can be used.
+	// TODO: change this to types.TLSVersion?
 	TLSMinVersion string
 
 	// CipherSuites is the list of TLS cipher suites to use.
+	// TODO: change this to types.TLSCipherSuite?
 	CipherSuites []uint16
 
 	// PreferServerCipherSuites specifies whether to prefer the server's
@@ -966,6 +968,24 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn TLSConn) error {
 
 }
 
+// NOTE: any new cipher suites will also need to be added in types/tls.go
+// TODO: should this be moved into types/tls.go? Would importing Go's tls
+// package in there be acceptable?
+var ConsulAgentTLSCipherSuites = map[types.TLSCipherSuite]uint16{
+	// TODO: CHACHA20_POLY1305 cipher suites are not currently implemented for Consul agent TLS
+	// but are available in Go, add them?
+	types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:    tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+	types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256: tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+	types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	types.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:    tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+	types.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:      tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+	types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256:   tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+	types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:   tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+	types.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:      tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+	types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+}
+
 // ParseCiphers parse ciphersuites from the comma-separated string into
 // recognized slice
 func ParseCiphers(cipherStr string) ([]uint16, error) {
@@ -977,21 +997,9 @@ func ParseCiphers(cipherStr string) ([]uint16, error) {
 	}
 	ciphers := strings.Split(cipherStr, ",")
 
-	// Note: this needs to be kept up to date with the cipherMap in CipherString
-	cipherMap := map[string]uint16{
-		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-	}
 	for _, cipher := range ciphers {
-		if v, ok := cipherMap[cipher]; ok {
+		// FIXME: check ok on inner map lookup
+		if v, ok := ConsulAgentTLSCipherSuites[types.TLSCipherSuites[cipher]]; ok {
 			suites = append(suites, v)
 		} else {
 			return suites, fmt.Errorf("unsupported cipher %q", cipher)
@@ -1002,24 +1010,10 @@ func ParseCiphers(cipherStr string) ([]uint16, error) {
 }
 
 // CipherString performs the inverse operation of ParseCiphers
-func CipherString(ciphers []uint16) (string, error) {
-	// Note: this needs to be kept up to date with the cipherMap in ParseCiphers
-	cipherMap := map[uint16]string{
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:    "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256: "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:    "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256:   "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:   "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:      "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:   "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-	}
-
+func CipherString(ciphers []types.TLSCipherSuite) (string, error) {
 	cipherStrings := make([]string, len(ciphers))
 	for i, cipher := range ciphers {
-		if v, ok := cipherMap[cipher]; ok {
+		if v, ok := types.HumanTLSCipherSuiteStrings[cipher]; ok {
 			cipherStrings[i] = v
 		} else {
 			return "", fmt.Errorf("unsupported cipher %d", cipher)
