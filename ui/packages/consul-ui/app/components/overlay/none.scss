@@ -26,7 +26,7 @@
     transition-timing-function: cubic-bezier(0.54, 1.5, 0.38, 1.11);
   }
   & {
-    background-color: rgb(var(--white));
+    background-color: rgb(var(--tone-gray-000));
     border-radius: var(--decor-radius-100);
     box-shadow: var(--decor-elevation-400);
   }
