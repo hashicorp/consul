@@ -36,8 +36,8 @@ type DCWrapper func(dc string, conn net.Conn) (net.Conn, error)
 // a constant value. This is usually done by currying DCWrapper.
 type Wrapper func(conn net.Conn) (net.Conn, error)
 
-// GoTLSVersions maps types.TLSVersion to the Go internal value
-var GoTLSVersions = map[types.TLSVersion]uint16{
+// goTLSVersions maps types.TLSVersion to the Go internal value
+var goTLSVersions = map[types.TLSVersion]uint16{
 	types.TLSVersionAuto: tls.VersionTLS10, // default in golang
 	types.TLSv1_0:        tls.VersionTLS10,
 	types.TLSv1_1:        tls.VersionTLS11,
@@ -45,8 +45,8 @@ var GoTLSVersions = map[types.TLSVersion]uint16{
 	types.TLSv1_3:        tls.VersionTLS13,
 }
 
-// tlsLookup maps a TLS version configuration string to the internal value
-func tlsLookup(tlsVersionString string) (types.TLSVersion, error) {
+// ParseTLSVersion maps a TLS version configuration string to the internal type
+func ParseTLSVersion(tlsVersionString string) (types.TLSVersion, error) {
 	// Handle empty string case for unspecified config
 	if tlsVersionString == "" {
 		return types.TLSVersionAuto, nil
@@ -131,12 +131,10 @@ type Config struct {
 	Domain string
 
 	// TLSMinVersion is the minimum accepted TLS version that can be used.
-	// TODO: change this to types.TLSVersion?
-	TLSMinVersion string
+	TLSMinVersion types.TLSVersion
 
 	// CipherSuites is the list of TLS cipher suites to use.
-	// TODO: change this to types.TLSCipherSuite?
-	CipherSuites []uint16
+	CipherSuites []types.TLSCipherSuite
 
 	// PreferServerCipherSuites specifies whether to prefer the server's
 	// ciphersuite over the client ciphersuites.
@@ -396,10 +394,11 @@ func newX509CertPool(groups ...[]string) (*x509.CertPool, error) {
 func validateConfig(config Config, pool *x509.CertPool, cert *tls.Certificate) error {
 	// Check if a minimum TLS version was set,
 	// returns TLSVersionAuto if config.TLSMinVersion is empty
-	_, err := tlsLookup(config.TLSMinVersion)
-	if err != nil {
-		return err
-	}
+	// FIXME: this check needs to happen, but can it happen earlier?
+	// _, err := ParseTLSVersion(config.TLSMinVersion)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// Ensure we have a CA if VerifyOutgoing is set
 	if config.VerifyOutgoing && pool == nil {
@@ -503,7 +502,14 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 
 	// Set the cipher suites
 	if len(c.base.CipherSuites) != 0 {
-		tlsConfig.CipherSuites = c.base.CipherSuites
+		// TODO: is it safe to ignore the error case here?
+		// Should be checked on input, same as tlsConfig.MinVersion
+
+		// FIXME: move cipherSuiteLookup to be called externally, maybe
+		// in agent/config/runtime parsing before the tlsutil.Config struct is
+		// created?
+		cipherSuites, _ := cipherSuiteLookup(c.base.CipherSuites)
+		tlsConfig.CipherSuites = cipherSuites
 	}
 
 	tlsConfig.PreferServerCipherSuites = c.base.PreferServerCipherSuites
@@ -537,12 +543,16 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	tlsConfig.ClientCAs = c.caPool
 	tlsConfig.RootCAs = c.caPool
 
-	// Error handling is not needed here because tlsLookup handles "" as
-	// TLSVersionAuto with GoTLSVersions mapping TLSVersionAuto to Go's
-	// default (tls10) and because the initial check in validateConfig makes
+	// Error handling is not needed here because ParseTLSConfig handles "" as
+	// TLSVersionAuto with goTLSVersions mapping TLSVersionAuto to Go's
+	// default (TLS 1.0) and because the initial check in validateConfig makes
 	// sure the version is not invalid.
-	tlsVersion, _ := tlsLookup(c.base.TLSMinVersion)
-	tlsConfig.MinVersion = GoTLSVersions[tlsVersion]
+
+	// FIXME: move ParseTLSVersion to be called externally, maybe in
+	// agent/config/runtime parsing before the tlsutil.Config struct is created?
+	// tlsVersion, _ := ParseTLSVersion(c.base.TLSMinVersion)
+
+	tlsConfig.MinVersion = goTLSVersions[c.base.TLSMinVersion]
 
 	// Set ClientAuth if necessary
 	if verifyIncoming {
@@ -971,7 +981,7 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn TLSConn) error {
 // NOTE: any new cipher suites will also need to be added in types/tls.go
 // TODO: should this be moved into types/tls.go? Would importing Go's tls
 // package in there be acceptable?
-var ConsulAgentTLSCipherSuites = map[types.TLSCipherSuite]uint16{
+var goTLSCipherSuites = map[types.TLSCipherSuite]uint16{
 	// TODO: CHACHA20_POLY1305 cipher suites are not currently implemented for Consul agent TLS
 	// but are available in Go, add them?
 	types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:    tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
@@ -986,20 +996,37 @@ var ConsulAgentTLSCipherSuites = map[types.TLSCipherSuite]uint16{
 	types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 }
 
-// ParseCiphers parse ciphersuites from the comma-separated string into
-// recognized slice
-func ParseCiphers(cipherStr string) ([]uint16, error) {
+func cipherSuiteLookup(ciphers []types.TLSCipherSuite) ([]uint16, error) {
 	suites := []uint16{}
+
+	if len(ciphers) == 0 {
+		return []uint16{}, nil
+	}
+
+	for _, cipher := range ciphers {
+		if v, ok := goTLSCipherSuites[cipher]; ok {
+			suites = append(suites, v)
+		} else {
+			return suites, fmt.Errorf("unsupported cipher %q", cipher)
+		}
+	}
+
+	return suites, nil
+}
+
+// ParseCiphers parse cipher suites from the comma-separated string into
+// recognized slice
+func ParseCiphers(cipherStr string) ([]types.TLSCipherSuite, error) {
+	suites := []types.TLSCipherSuite{}
 
 	cipherStr = strings.TrimSpace(cipherStr)
 	if cipherStr == "" {
-		return []uint16{}, nil
+		return []types.TLSCipherSuite{}, nil
 	}
 	ciphers := strings.Split(cipherStr, ",")
 
 	for _, cipher := range ciphers {
-		// FIXME: check ok on inner map lookup
-		if v, ok := ConsulAgentTLSCipherSuites[types.TLSCipherSuites[cipher]]; ok {
+		if v, ok := types.TLSCipherSuites[cipher]; ok {
 			suites = append(suites, v)
 		} else {
 			return suites, fmt.Errorf("unsupported cipher %q", cipher)
