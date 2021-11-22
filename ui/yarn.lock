@@ -5506,7 +5506,7 @@ ember-auto-import@^1.5.2, ember-auto-import@^1.5.3, ember-auto-import@^1.6.0:
     walk-sync "^0.3.3"
     webpack "^4.43.0"
 
-ember-basic-dropdown@^3.0.10, ember-basic-dropdown@^3.0.16:
+ember-basic-dropdown@^3.0.16:
   version "3.0.21"
   resolved "https://registry.yarnpkg.com/ember-basic-dropdown/-/ember-basic-dropdown-3.0.21.tgz#5711d071966919c9578d2d5ac2c6dcadbb5ea0e0"
   integrity sha512-Wu9hJWyqorKo+ZT2PMSIO1BxAeAdaiIC2IjSic0+HcKjmMU47botvG0xbxlprimOWaS9vM+nHat6Pt3xPvcB0A==
@@ -5551,7 +5551,7 @@ ember-changeset-validations@~3.9.0:
     ember-get-config "^0.2.4"
     ember-validators "^2.0.0"
 
-ember-changeset@3.10.1, ember-changeset@^3.9.1:
+ember-changeset@^3.9.1:
   version "3.10.1"
   resolved "https://registry.yarnpkg.com/ember-changeset/-/ember-changeset-3.10.1.tgz#d6f06bc55f867a2c1ac7c5fd780776bd1e5a9b60"
   integrity sha512-4FoGKRcKxixSr+NBQ+ZoiwwbJE0/fuZRULUp9M1RIHejYhst+U8/ni47SsphrMhoRAcZCeyl+JqlBMlwR7v50g==
@@ -14270,7 +14270,7 @@ validate-npm-package-name@^3.0.0:
   dependencies:
     builtins "^1.0.3"
 
-validated-changeset@0.10.0, validated-changeset@~0.10.0:
+validated-changeset@~0.10.0:
   version "0.10.0"
   resolved "https://registry.yarnpkg.com/validated-changeset/-/validated-changeset-0.10.0.tgz#2e8188c089ab282c1b51fba3c289073f6bd14c8b"
   integrity sha512-n8NB3ol6Tbi0O7bnq1wz81m5Wd1gfHw0HUcH4MatOfqO3DyXzWZV+bUaNq6wThXn20rMFB82C8pTNFSWbgXJLA==
@@ -14695,10 +14695,10 @@ xmldom@^0.1.19:
   resolved "https://registry.yarnpkg.com/xmldom/-/xmldom-0.1.31.tgz#b76c9a1bd9f0a9737e5a72dc37231cf38375e2ff"
   integrity sha512-yS2uJflVQs6n+CyjHoaBmVSqIDevTAWrzMmjG1Gc7h1qQ7uVozNhEPJAwZXWyGQ/Gafo3fCwrcaokezLPupVyQ==
 
-xmlhttprequest-ssl@~1.5.4:
-  version "1.5.5"
-  resolved "https://registry.yarnpkg.com/xmlhttprequest-ssl/-/xmlhttprequest-ssl-1.5.5.tgz#c2876b06168aadc40e57d97e81191ac8f4398b3e"
-  integrity sha1-wodrBhaKrcQOV9l+gRkayPQ5iz4=
+xmlhttprequest-ssl@^1.6.3, xmlhttprequest-ssl@~1.5.4:
+  version "1.6.3"
+  resolved "https://registry.yarnpkg.com/xmlhttprequest-ssl/-/xmlhttprequest-ssl-1.6.3.tgz#03b713873b01659dfa2c1c5d056065b27ddc2de6"
+  integrity sha512-3XfeQE/wNkvrIktn2Kf0869fC0BN6UpydVasGIeSm2B1Llihf7/0UfZM+eCkOw3P7bP4+qPgqhm7ZoxuJtFU0Q==
 
 xtend@^4.0.0, xtend@^4.0.1, xtend@~4.0.1:
   version "4.0.2"
