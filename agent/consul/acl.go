@@ -1396,10 +1396,11 @@ func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
 }
 
 // filterCoordinates is used to filter nodes in a coordinate dump based on ACL
-// rules.
-func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
+// rules. Returns true if any elements were removed.
+func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) bool {
 	c := *coords
 	var authzContext acl.AuthorizerContext
+	var removed bool
 
 	for i := 0; i < len(c); i++ {
 		c[i].FillAuthzContext(&authzContext)
@@ -1408,10 +1409,12 @@ func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 			continue
 		}
 		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node, c[i].GetEnterpriseMeta()))
+		removed = true
 		c = append(c[:i], c[i+1:]...)
 		i--
 	}
 	*coords = c
+	return removed
 }
 
 // filterIntentions is used to filter intentions based on ACL rules.
@@ -1814,7 +1817,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		filt.filterDatacenterCheckServiceNodes(&v.DatacenterNodes)
 
 	case *structs.IndexedCoordinates:
-		filt.filterCoordinates(&v.Coordinates)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterCoordinates(&v.Coordinates)
 
 	case *structs.IndexedHealthChecks:
 		filt.filterHealthChecks(&v.HealthChecks)
