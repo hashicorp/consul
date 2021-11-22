@@ -62,32 +62,102 @@ func (v TLSVersion) EnvoyString() string {
 	return EnvoyTLSVersionStrings[v]
 }
 
+// IANA cipher suite constants and values as defined at
+// https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml
+// This is the total list of TLS 1.2-style cipher suites
+// which are currently supported by either Envoy 1.21 or the Consul agent
+// via Go, and may change as some older suites are removed in future
+// Envoy releases and Consul drops support for older Envoy versions,
+// and as supported cipher suites in the Go runtime change.
+//
 // The naming convention for cipher suites changed in TLS 1.3
 // but constant values should still be globally unqiue
 // Handling validation on a subset of TLSCipherSuite constants
 // would be a future exercise if cipher suites for TLS 1.3 ever
 // become configurable in BoringSSL, Envoy, or other implementation
-type TLSCipherSuite string
+type TLSCipherSuite uint16
 
-// IANA cipher suite constants
-// NOTE: This is the total list of TLS 1.2-style cipher suites
-// which are currently supported by Envoy 1.21 and may change
-// as some older suites are removed in future Envoy releases
-// and Consul drops support for older Envoy versions
-// TODO: Is there any better/less verbose way to handle this mapping?
 const (
-	ECDHE_ECDSA_AES128_GCM_SHA256 TLSCipherSuite = "ECDHE-ECDSA-AES128-GCM-SHA256"
-	ECDHE_ECDSA_CHACHA20_POLY1305                = "ECDHE-ECDSA-CHACHA20-POLY1305"
-	ECDHE_RSA_AES128_GCM_SHA256                  = "ECDHE-RSA-AES128-GCM-SHA256"
-	ECDHE_RSA_CHACHA20_POLY1305                  = "ECDHE-RSA-CHACHA20-POLY1305"
-	ECDHE_ECDSA_AES128_SHA                       = "ECDHE-ECDSA-AES128-SHA"
-	ECDHE_RSA_AES128_SHA                         = "ECDHE-RSA-AES128-SHA"
-	AES128_GCM_SHA256                            = "AES128-GCM-SHA256"
-	AES128_SHA                                   = "AES128-SHA"
-	ECDHE_ECDSA_AES256_GCM_SHA384                = "ECDHE-ECDSA-AES256-GCM-SHA384"
-	ECDHE_RSA_AES256_GCM_SHA384                  = "ECDHE-RSA-AES256-GCM-SHA384"
-	ECDHE_ECDSA_AES256_SHA                       = "ECDHE-ECDSA-AES256-SHA"
-	ECDHE_RSA_AES256_SHA                         = "ECDHE-RSA-AES256-SHA"
-	AES256_GCM_SHA384                            = "AES256-GCM-SHA384"
-	AES256_SHA                                   = "AES256-SHA"
+	// Envoy cipher suites also used by Consul agent
+	TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       TLSCipherSuite = 0xc02b
+	TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256                = 0xcca9 // Not used by Consul agent yet
+	TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256                        = 0xc02f
+	TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256                  = 0xcca8 // Not used by Consul agent yet
+	TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA                         = 0xc009
+	TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA                           = 0xc013
+	TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384                      = 0xc02c
+	TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384                        = 0xc030
+	TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA                         = 0xc00a
+	TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA                           = 0xc014
+
+	// Older cipher suites not supported for Consul agent TLS, will eventually be removed from Envoy defaults
+	TLS_RSA_WITH_AES_128_GCM_SHA256 = 0x009c
+	TLS_RSA_WITH_AES_128_CBC_SHA    = 0x002f
+	TLS_RSA_WITH_AES_256_GCM_SHA384 = 0x009d
+	TLS_RSA_WITH_AES_256_CBC_SHA    = 0x0035
+
+	// Additional cipher suites used by Consul agent but not Envoy
+	// TODO: these are both explicitly listed as insecure and disabled in the Go source, should they be removed?
+	// https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/crypto/tls/cipher_suites.go;l=329-330
+	TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 = 0x0023
+	TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256   = 0xc027
+)
+
+var (
+	TLSCipherSuites = map[string]TLSCipherSuite{
+		"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256": TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":          TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256":       TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA":          TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384":       TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256":   TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":            TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":         TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA":            TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":         TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+
+		"TLS_RSA_WITH_AES_128_GCM_SHA256": TLS_RSA_WITH_AES_128_GCM_SHA256,
+		"TLS_RSA_WITH_AES_128_CBC_SHA":    TLS_RSA_WITH_AES_128_CBC_SHA,
+		"TLS_RSA_WITH_AES_256_GCM_SHA384": TLS_RSA_WITH_AES_256_GCM_SHA384,
+		"TLS_RSA_WITH_AES_256_CBC_SHA":    TLS_RSA_WITH_AES_256_CBC_SHA,
+
+		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256": TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256":   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+	}
+	HumanTLSCipherSuiteStrings = map[TLSCipherSuite]string{
+		TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256: "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
+		TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:          "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+		TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:       "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+		TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:          "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+		TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:       "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+		TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:   "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+		TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+		TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:         "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+		TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+		TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:         "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+
+		TLS_RSA_WITH_AES_128_GCM_SHA256: "TLS_RSA_WITH_AES_128_GCM_SHA256",
+		TLS_RSA_WITH_AES_128_CBC_SHA:    "TLS_RSA_WITH_AES_128_CBC_SHA",
+		TLS_RSA_WITH_AES_256_GCM_SHA384: "TLS_RSA_WITH_AES_256_GCM_SHA384",
+		TLS_RSA_WITH_AES_256_CBC_SHA:    "TLS_RSA_WITH_AES_256_CBC_SHA",
+
+		TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256: "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+		TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256:   "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+	}
+	EnvoyTLSCipherSuiteStrings = map[TLSCipherSuite]string{
+		TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:       "ECDHE-ECDSA-AES128-GCM-SHA256",
+		TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256: "ECDHE-ECDSA-CHACHA20-POLY1305",
+		TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:         "ECDHE-RSA-AES128-GCM-SHA256",
+		TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:   "ECDHE-RSA-CHACHA20-POLY1305",
+		TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:          "ECDHE-ECDSA-AES128-SHA",
+		TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:            "ECDHE-RSA-AES128-SHA",
+		TLS_RSA_WITH_AES_128_GCM_SHA256:               "AES128-GCM-SHA256",
+		TLS_RSA_WITH_AES_128_CBC_SHA:                  "AES128-SHA",
+		TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:       "ECDHE-ECDSA-AES256-GCM-SHA384",
+		TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:         "ECDHE-RSA-AES256-GCM-SHA384",
+		TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:          "ECDHE-ECDSA-AES256-SHA",
+		TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:            "ECDHE-RSA-AES256-SHA",
+		TLS_RSA_WITH_AES_256_GCM_SHA384:               "AES256-GCM-SHA384",
+		TLS_RSA_WITH_AES_256_CBC_SHA:                  "AES256-SHA",
+	}
 )
