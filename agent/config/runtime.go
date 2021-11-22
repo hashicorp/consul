@@ -1350,14 +1350,16 @@ type RuntimeConfig struct {
 	// todo(fs): since they are standardized by IANA.
 	//
 	// hcl: tls_cipher_suites = []string
-	TLSCipherSuites []uint16
+	// TODO: is using types possible here or does this need to be a []string?
+	TLSCipherSuites []types.TLSCipherSuite
 
 	// TLSMinVersion is used to set the minimum TLS version used for TLS
-	// connections. Should be either "tls10", "tls11", "tls12" or "tls13".
-	// Defaults to tls12.
+	// connections. Should be either "TLSv1_0", "TLSv1_1", "TLSv1_2" or "TLSv1_3".
+	// Defaults to TLSv1_2.
 	//
 	// hcl: tls_min_version = string
-	TLSMinVersion string
+	// TODO: is using types possible here or does this need to be a string?
+	TLSMinVersion types.TLSVersion
 
 	// TLSPreferServerCipherSuites specifies whether to prefer the server's
 	// cipher suite over the client cipher suites.
@@ -1707,6 +1709,9 @@ func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 	return sanitize("rt", reflect.ValueOf(c)).Interface().(map[string]interface{})
 }
 
+// TODO: Convert TLSMinVersion and CipherSuites from raw string input to types
+// here or somewhere earlier? Call ParseTLSVersion and ParseCipherSuites
+// somewhere around here?
 func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
 	return tlsutil.Config{
 		VerifyIncoming:           c.VerifyIncoming,
