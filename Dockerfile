@@ -24,6 +24,7 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.title="consul" \
       org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
 
+RUN apk add --no-cache dumb-init
 # Create a consul user and group first so the IDs get set the same way, even as
 # the rest of this may change over time.
 RUN addgroup $BIN_NAME && \
