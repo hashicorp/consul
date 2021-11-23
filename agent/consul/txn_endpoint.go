@@ -194,6 +194,14 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	if err != nil {
 		return err
 	}
+
+	// There are currently two different ways we handle permission issues.
+	//
+	// For simple reads such as KVGet and KVGetTree, the txn succeeds but the
+	// offending results are omitted. For more involved operations such as
+	// KVCheckIndex, the txn fails and permission denied errors are returned.
+	//
+	// TODO: Maybe we should unify these, or at least cover it in the docs?
 	reply.Errors = t.preCheck(authz, args.Ops)
 	if len(reply.Errors) > 0 {
 		return nil
@@ -202,7 +210,10 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	// Run the read transaction.
 	state := t.srv.fsm.State()
 	reply.Results, reply.Errors = state.TxnRO(args.Ops)
+
+	total := len(reply.Results)
 	reply.Results = FilterTxnResults(authz, reply.Results)
+	reply.QueryMeta.ResultsFilteredByACLs = total != len(reply.Results)
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
 	t.srv.setQueryMeta(&reply.QueryMeta, args.Token)
