@@ -46,7 +46,8 @@ func (s *HTTPHandlers) IntentionList(resp http.ResponseWriter, req *http.Request
 	return reply.Intentions, nil
 }
 
-// POST /v1/connect/intentions
+// IntentionCreate is used to create legacy intentions.
+// Deprecated: use IntentionPutExact.
 func (s *HTTPHandlers) IntentionCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in IntentionEndpoint
 
@@ -348,7 +349,8 @@ func (s *HTTPHandlers) IntentionExact(resp http.ResponseWriter, req *http.Reques
 	}
 }
 
-// IntentionSpecific handles the endpoint for /v1/connect/intentions/:id
+// IntentionSpecific handles the endpoint for /v1/connect/intentions/:id.
+// Deprecated: use IntentionExact.
 func (s *HTTPHandlers) IntentionSpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	id := strings.TrimPrefix(req.URL.Path, "/v1/connect/intentions/")
 
@@ -367,7 +369,7 @@ func (s *HTTPHandlers) IntentionSpecific(resp http.ResponseWriter, req *http.Req
 	}
 }
 
-// GET /v1/connect/intentions/:id
+// Deprecated: use IntentionGetExact.
 func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in IntentionEndpoint
 
@@ -408,7 +410,7 @@ func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter,
 	return reply.Intentions[0], nil
 }
 
-// PUT /v1/connect/intentions/:id
+// Deprecated: use IntentionPutExact.
 func (s *HTTPHandlers) IntentionSpecificUpdate(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in IntentionEndpoint
 
@@ -493,7 +495,7 @@ func (s *HTTPHandlers) IntentionPutExact(resp http.ResponseWriter, req *http.Req
 	return true, nil
 }
 
-// DELETE /v1/connect/intentions/:id
+// Deprecated: use IntentionDeleteExact.
 func (s *HTTPHandlers) IntentionSpecificDelete(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in IntentionEndpoint
 
