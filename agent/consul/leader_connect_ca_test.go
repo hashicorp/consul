@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/rpc"
+	"net/url"
 	"testing"
 	"time"
 
@@ -131,11 +132,12 @@ func verifyLeafCert(t *testing.T, root *structs.CARoot, leafCertPEM string) {
 }
 
 type mockCAServerDelegate struct {
-	t           *testing.T
-	config      *Config
-	store       *state.Store
-	primaryRoot *structs.CARoot
-	callbackCh  chan string
+	t                     *testing.T
+	config                *Config
+	store                 *state.Store
+	primaryRoot           *structs.CARoot
+	secondaryIntermediate string
+	callbackCh            chan string
 }
 
 func NewMockCAServerDelegate(t *testing.T, config *Config) *mockCAServerDelegate {
@@ -198,7 +200,7 @@ func (m *mockCAServerDelegate) forwardDC(method, dc string, args interface{}, re
 		roots.ActiveRootID = m.primaryRoot.ID
 	case "ConnectCA.SignIntermediate":
 		r := reply.(*string)
-		*r = m.primaryRoot.RootCert
+		*r = m.secondaryIntermediate
 	default:
 		return fmt.Errorf("received call to unsupported method %q", method)
 	}
@@ -305,13 +307,14 @@ func initTestManager(t *testing.T, manager *CAManager, delegate *mockCAServerDel
 }
 
 func TestCAManager_Initialize(t *testing.T) {
-
 	conf := DefaultConfig()
 	conf.ConnectEnabled = true
 	conf.PrimaryDatacenter = "dc1"
 	conf.Datacenter = "dc2"
 	delegate := NewMockCAServerDelegate(t, conf)
+	delegate.secondaryIntermediate = delegate.primaryRoot.RootCert
 	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
+
 	manager.providerShim = &mockCAProvider{
 		callbackCh: delegate.callbackCh,
 		rootPEM:    delegate.primaryRoot.RootCert,
@@ -356,6 +359,7 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	conf.PrimaryDatacenter = "dc1"
 	conf.Datacenter = "dc2"
 	delegate := NewMockCAServerDelegate(t, conf)
+	delegate.secondaryIntermediate = delegate.primaryRoot.RootCert
 	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 	manager.providerShim = &mockCAProvider{
 		callbackCh: delegate.callbackCh,
@@ -447,6 +451,8 @@ func TestCAManager_SignCertificate_WithExpiredCert(t *testing.T) {
 			intermediatePEM := generateCertPEM(t, caPrivKey, arg.notBeforeIntermediate, arg.notAfterIntermediate)
 
 			delegate := NewMockCAServerDelegate(t, conf)
+			delegate.primaryRoot.RootCert = rootPEM
+			delegate.secondaryIntermediate = intermediatePEM
 			manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 
 			manager.providerShim = &mockCAProvider{
@@ -458,14 +464,13 @@ func TestCAManager_SignCertificate_WithExpiredCert(t *testing.T) {
 
 			// Simulate Wait half the TTL for the cert to need renewing.
 			manager.timeNow = func() time.Time {
-				return time.Now().Add(500 * time.Millisecond)
+				return time.Now().UTC().Add(500 * time.Millisecond)
 			}
 
 			// Call RenewIntermediate and then confirm the RPCs and provider calls
 			// happen in the expected order.
 
 			_, err := manager.SignCertificate(&x509.CertificateRequest{}, &connect.SpiffeIDAgent{})
-
 			if arg.isError {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), arg.errorMsg)
@@ -494,6 +499,7 @@ func generateCertPEM(t *testing.T, caPrivKey *rsa.PrivateKey, notBefore time.Tim
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
+		URIs:                  []*url.URL{connect.SpiffeIDAgent{Host: "foo"}.URI()},
 	}
 
 	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
