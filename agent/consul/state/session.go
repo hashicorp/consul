@@ -14,7 +14,8 @@ import (
 const (
 	tableSessions      = "sessions"
 	tableSessionChecks = "session_checks"
-	indexNodeCheck     = "node_check"
+
+	indexNodeCheck = "node_check"
 )
 
 func indexFromSession(raw interface{}) ([]byte, error) {
@@ -83,8 +84,8 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 	}
 }
 
-// indexFromNodeLowerCase creates an index key from *structs.Session
-func indexFromNodeLowerCase(raw interface{}) ([]byte, error) {
+// indexNodeFromSession creates an index key from *structs.Session
+func indexNodeFromSession(raw interface{}) ([]byte, error) {
 	e, ok := raw.(*structs.Session)
 	if !ok {
 		return nil, fmt.Errorf("unexpected type %T, does not implement *structs.Session", raw)
