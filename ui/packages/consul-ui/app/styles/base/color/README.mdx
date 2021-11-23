@@ -18,7 +18,7 @@ In other words always use `rgb` this gives us the flexibility to easily use thes
 property: rgb(var(--tone-gray-500) / 50);
 ```
 
-Currently, alphas are mainly used for shadows. Please consider whether you should be using an alpha before using an alpha'ed color.
+Currently, alphas are mainly used for shadows. Please avoid the use of alphas for adjusting hues as they can produce unpredictable results. We should be utilizing our pre-defined color palette or adding new colors to it with proper RGB values. If you do need to add a color with alpha, please include a code comment or a self-comment explaining the use case.
 
 Lastly, there is currently one non-color alias group which is `--tone-brand` which is a group of our current brand colors.
 
