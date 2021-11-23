@@ -718,29 +718,29 @@ func TestConfigurator_CommonTLSConfigCAs(t *testing.T) {
 }
 
 func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
-	c, err := NewConfigurator(Config{TLSMinVersion: ""}, nil)
+	c, err := NewConfigurator(Config{TLSMinVersion: types.TLSVersionAuto}, nil)
 	require.NoError(t, err)
-	tlsVersion, _ := ParseTLSVersion("TLSv1_0")
-	require.Equal(t, c.commonTLSConfig(false).MinVersion, goTLSVersions[tlsVersion])
+	require.Equal(t, c.commonTLSConfig(false).MinVersion, goTLSVersions[types.TLSv1_0])
 
-	for _, version := range tlsVersions() {
+	for version, _ := range goTLSVersions {
 		require.NoError(t, c.Update(Config{TLSMinVersion: version}))
-		tlsVersion, _ := ParseTLSVersion(version)
 		require.Equal(t, c.commonTLSConfig(false).MinVersion,
-			goTLSVersions[tlsVersion])
+			goTLSVersions[version])
 	}
 
+	// FIXME: this and a version of the prior test to check string parsing are
+	// necessary, but need to move out to agent/config/builder
 	// NOTE: checks for deprecated TLS version string warnings,
 	// should be removed when removing support for these config values
-	for version := range types.DeprecatedAgentTLSVersions {
-		// TODO: check for warning log message? how?
-		require.NoError(t, c.Update(Config{TLSMinVersion: version}))
-		tlsVersion, _ := ParseTLSVersion(version)
-		require.Equal(t, c.commonTLSConfig(false).MinVersion,
-			goTLSVersions[tlsVersion])
-	}
+	// for version := range types.DeprecatedAgentTLSVersions {
+	// 	// TODO: check for warning log message? how?
+	// 	require.NoError(t, c.Update(Config{TLSMinVersion: version}))
+	// 	tlsVersion, _ := ParseTLSVersion(version)
+	// 	require.Equal(t, c.commonTLSConfig(false).MinVersion,
+	// 		goTLSVersions[tlsVersion])
+	// }
 
-	require.Error(t, c.Update(Config{TLSMinVersion: "tlsBOGUS"}))
+	// require.Error(t, c.Update(Config{TLSMinVersion: "tlsBOGUS"}))
 }
 
 func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
@@ -998,7 +998,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "default tls, skip verify, no server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					TLSMinVersion:           "tls12",
+					TLSMinVersion:           types.TLSv1_2,
 					EnableAgentTLSForChecks: false,
 				}, nil)
 			},
@@ -1009,7 +1009,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "default tls, skip verify, default server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					TLSMinVersion:           "tls12",
+					TLSMinVersion:           types.TLSv1_2,
 					EnableAgentTLSForChecks: false,
 					ServerName:              "servername",
 					NodeName:                "nodename",
@@ -1022,7 +1022,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "default tls, skip verify, check server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					TLSMinVersion:           "tls12",
+					TLSMinVersion:           types.TLSv1_2,
 					EnableAgentTLSForChecks: false,
 					ServerName:              "servername",
 				}, nil)
@@ -1038,7 +1038,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "agent tls, default server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					TLSMinVersion:           "tls12",
+					TLSMinVersion:           types.TLSv1_2,
 					EnableAgentTLSForChecks: true,
 					NodeName:                "nodename",
 					ServerName:              "servername",
@@ -1053,7 +1053,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "agent tls, skip verify, node name for server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					TLSMinVersion:           "tls12",
+					TLSMinVersion:           types.TLSv1_2,
 					EnableAgentTLSForChecks: true,
 					NodeName:                "nodename",
 				}, nil)
@@ -1069,7 +1069,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "agent tls, skip verify, with server name override",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					TLSMinVersion:           "tls12",
+					TLSMinVersion:           types.TLSv1_2,
 					EnableAgentTLSForChecks: true,
 					ServerName:              "servername",
 				}, nil)
