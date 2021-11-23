@@ -461,7 +461,7 @@ func TestInternal_NodeInfo_FilterACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedNodeDump{}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &opt, &reply); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Internal.NodeInfo", &opt, &reply); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	for _, info := range reply.Dump {
@@ -490,6 +490,10 @@ func TestInternal_NodeInfo_FilterACL(t *testing.T) {
 		if !found {
 			t.Fatalf("bad: %#v", info.Services)
 		}
+	}
+
+	if !reply.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should be true")
 	}
 
 	// We've already proven that we call the ACL filtering function so we
@@ -515,7 +519,7 @@ func TestInternal_NodeDump_FilterACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedNodeDump{}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &opt, &reply); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &opt, &reply); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	for _, info := range reply.Dump {
@@ -544,6 +548,10 @@ func TestInternal_NodeDump_FilterACL(t *testing.T) {
 		if !found {
 			t.Fatalf("bad: %#v", info.Services)
 		}
+	}
+
+	if !reply.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should be true")
 	}
 
 	// We've already proven that we call the ACL filtering function so we
