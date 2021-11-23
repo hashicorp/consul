@@ -68,7 +68,7 @@ ${
 (
   function(get, obj) {
     Object.entries(obj).forEach(([key, value]) => {
-      if(get(key) || (key === 'CONSUL_NSPACES_ENABLE' && ${
+      if(get(key) || (key === 'CONSUL_NSPACES_ENABLED' && ${
         env('CONSUL_NSPACES_ENABLE') === '1' ? `true` : `false`
       })) {
         document.write(\`\\x3Cscript data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/\${value}/routes.js">\\x3C/script>\`);
