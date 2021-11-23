@@ -46,7 +46,7 @@ $syntax-dark-gray: #535f73;
 .cm-s-hashi {
   &.CodeMirror {
     width: 100%;
-    background-color: rgb(var(--black)) !important;
+    background-color: rgb(var(--tone-gray-999)) !important;
     color: #cfd2d1 !important;
     border: none;
     font-family: var(--typo-family-mono);
@@ -81,7 +81,7 @@ $syntax-dark-gray: #535f73;
   .CodeMirror-line::-moz-selection,
   .CodeMirror-line > span::-moz-selection,
   .CodeMirror-line > span > span::-moz-selection {
-    background: rgb(var(--white) / 10%);
+    background: rgb(var(--tone-gray-000) / 10%);
   }
 
   span.cm-comment {
@@ -154,7 +154,7 @@ $syntax-dark-gray: #535f73;
 
   .CodeMirror-matchingbracket {
     text-decoration: underline;
-    color: rgb(var(--white)) !important;
+    color: rgb(var(--tone-gray-000)) !important;
   }
 }
 
@@ -178,7 +178,7 @@ $syntax-dark-gray: #535f73;
     }
 
     span.cm-property {
-      color: rgb(var(--white));
+      color: rgb(var(--tone-gray-000));
     }
 
     span.cm-variable-2 {

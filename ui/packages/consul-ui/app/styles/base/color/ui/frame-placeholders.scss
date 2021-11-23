@@ -9,8 +9,8 @@
 %frame-brand-300 {
   @extend %frame-border-000;
   background-color: var(--transparent);
-  border-color: rgb(var(--decor-brand-600, inherit));
-  color: rgb(var(--typo-brand-600, inherit));
+  border-color: rgb(var(--decor-brand-600));
+  color: rgb(var(--typo-brand-600));
 }
 
 /* possibly filter bar */
