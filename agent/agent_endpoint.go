@@ -366,7 +366,7 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 	// that sets QueryMeta.ResultsFilteredByACLs, but must be done manually for
 	// agent-local endpoints.
 	//
-	// For more information see the comment in: Server.blockingQuery.
+	// For more information see the comment on: Server.maskResultsFilteredByACLs.
 	if token != "" {
 		setResultsFilteredByACLs(resp, total != len(agentSvcs))
 	}
@@ -528,7 +528,7 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 	// that sets QueryMeta.ResultsFilteredByACLs, but must be done manually for
 	// agent-local endpoints.
 	//
-	// For more information see the comment in: Server.blockingQuery.
+	// For more information see the comment on: Server.maskResultsFilteredByACLs.
 	if token != "" {
 		setResultsFilteredByACLs(resp, total != len(agentChecks))
 	}
@@ -603,7 +603,7 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 	// that sets QueryMeta.ResultsFilteredByACLs, but must be done manually for
 	// agent-local endpoints.
 	//
-	// For more information see the comment in: Server.blockingQuery.
+	// For more information see the comment on: Server.maskResultsFilteredByACLs.
 	if token != "" {
 		setResultsFilteredByACLs(resp, total != len(members))
 	}
