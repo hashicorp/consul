@@ -86,11 +86,20 @@ type CARoot struct {
 	NotBefore time.Time
 	NotAfter  time.Time
 
-	// RootCert is the PEM-encoded public certificate.
+	// RootCert is the PEM-encoded public certificate for the root CA. The
+	// certificate is the same for all federated clusters.
 	RootCert string
 
 	// IntermediateCerts is a list of PEM-encoded intermediate certs to
-	// attach to any leaf certs signed by this CA.
+	// attach to any leaf certs signed by this CA. The list may include a
+	// certificate cross-signed by an old root CA, any subordinate CAs below the
+	// root CA, and the intermediate CA used to sign leaf certificates in the
+	// local Datacenter.
+	//
+	// If the provider which created this root uses an intermediate to sign
+	// leaf certificates (Vault provider), or this is a secondary Datacenter then
+	// the intermediate used to sign leaf certificates will be the last in the
+	// list.
 	IntermediateCerts []string
 
 	// SigningCert is the PEM-encoded signing certificate and SigningKey

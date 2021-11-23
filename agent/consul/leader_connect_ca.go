@@ -1149,10 +1149,8 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 
 	// If this is the primary, check if this is a provider that uses an intermediate cert. If
 	// it isn't, we don't need to check for a renewal.
-	if isPrimary {
-		if _, ok := provider.(ca.PrimaryUsesIntermediate); !ok {
-			return nil
-		}
+	if isPrimary && !primaryUsesIntermediate(provider) {
+		return nil
 	}
 
 	activeIntermediate, err := provider.ActiveIntermediate()
@@ -1535,4 +1533,17 @@ func (c *CAManager) checkExpired(pem string) error {
 		return fmt.Errorf("certificate expired, expiration date: %s ", cert.NotAfter.String())
 	}
 	return nil
+}
+
+func primaryUsesIntermediate(provider ca.Provider) bool {
+	_, ok := provider.(ca.PrimaryUsesIntermediate)
+	return ok
+}
+
+func (c *CAManager) isIntermediateUsedToSignLeaf() bool {
+	if c.serverConf.Datacenter != c.serverConf.PrimaryDatacenter {
+		return true
+	}
+	provider, _ := c.getCAProvider()
+	return primaryUsesIntermediate(provider)
 }
