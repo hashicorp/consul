@@ -641,7 +641,7 @@ telemetry {
     disable_compat_1.9 = true
 }
 tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-tls_min_version = "pAOWafkR"
+tls_min_version = "TLSv1_1"
 tls_prefer_server_cipher_suites = true
 translate_wan_addrs = true
 ui_config {

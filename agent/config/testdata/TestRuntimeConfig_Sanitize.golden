@@ -351,7 +351,7 @@
     "SyncCoordinateIntervalMin": "0s",
     "SyncCoordinateRateTarget": 0,
     "TLSCipherSuites": [],
-    "TLSMinVersion": "",
+    "TLSMinVersion": 0,
     "TLSPreferServerCipherSuites": false,
     "TaggedAddresses": {},
     "Telemetry": {

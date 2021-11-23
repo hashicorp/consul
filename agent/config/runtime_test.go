@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -5962,8 +5961,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				Name:       "ftO6DySn", // notice this is the same as the metrics prefix
 			},
 		},
-		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
-		TLSMinVersion:               "pAOWafkR",
+		TLSCipherSuites:             []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+		TLSMinVersion:               types.TLSv1_1, // FIXME: add a separate test for config parsing error
 		TLSPreferServerCipherSuites: true,
 		TaggedAddresses: map[string]string{
 			"7MYgHrYH": "dALJAhLD",
@@ -6522,8 +6521,8 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 		NodeName:                    "e",
 		ServerName:                  "f",
 		DNSDomain:                   "g",
-		TLSMinVersion:               "tls12",
-		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA},
+		TLSMinVersion:               types.TLSv1_2,
+		TLSCipherSuites:             []types.TLSCipherSuite{types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA},
 		TLSPreferServerCipherSuites: true,
 		EnableAgentTLSForChecks:     true,
 		AutoEncryptTLS:              true,
@@ -6544,8 +6543,8 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 	require.Equal(t, "e", r.NodeName)
 	require.Equal(t, "f", r.ServerName)
 	require.Equal(t, "g", r.Domain)
-	require.Equal(t, "tls12", r.TLSMinVersion)
-	require.Equal(t, []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA}, r.CipherSuites)
+	require.Equal(t, types.TLSv1_2, r.TLSMinVersion)
+	require.Equal(t, []types.TLSCipherSuite{types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA}, r.CipherSuites)
 }
 
 func TestRuntime_ToTLSUtilConfig_AutoConfig(t *testing.T) {
@@ -6562,8 +6561,8 @@ func TestRuntime_ToTLSUtilConfig_AutoConfig(t *testing.T) {
 		NodeName:                    "e",
 		ServerName:                  "f",
 		DNSDomain:                   "g",
-		TLSMinVersion:               "tls12",
-		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA},
+		TLSMinVersion:               types.TLSv1_2,
+		TLSCipherSuites:             []types.TLSCipherSuite{types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA},
 		TLSPreferServerCipherSuites: true,
 		EnableAgentTLSForChecks:     true,
 		AutoConfig:                  AutoConfig{Enabled: true},
@@ -6584,8 +6583,8 @@ func TestRuntime_ToTLSUtilConfig_AutoConfig(t *testing.T) {
 	require.Equal(t, "e", r.NodeName)
 	require.Equal(t, "f", r.ServerName)
 	require.Equal(t, "g", r.Domain)
-	require.Equal(t, "tls12", r.TLSMinVersion)
-	require.Equal(t, []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA}, r.CipherSuites)
+	require.Equal(t, types.TLSv1_2, r.TLSMinVersion)
+	require.Equal(t, []types.TLSCipherSuite{types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA}, r.CipherSuites)
 }
 
 func Test_UIPathBuilder(t *testing.T) {
