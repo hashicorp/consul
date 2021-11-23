@@ -183,7 +183,6 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	defer metrics.MeasureSince([]string{"txn", "read"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
-	t.srv.setQueryMeta(&reply.QueryMeta)
 	if args.RequireConsistent {
 		if err := t.srv.consistentRead(); err != nil {
 			return err
@@ -204,5 +203,9 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	state := t.srv.fsm.State()
 	reply.Results, reply.Errors = state.TxnRO(args.Ops)
 	reply.Results = FilterTxnResults(authz, reply.Results)
+
+	// We have to do this ourselves since we are not doing a blocking RPC.
+	t.srv.setQueryMeta(&reply.QueryMeta, args.Token)
+
 	return nil
 }

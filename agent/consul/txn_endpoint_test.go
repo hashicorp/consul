@@ -941,11 +941,7 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 	}
 
 	// Verify the transaction's return value.
-	expected := structs.TxnReadResponse{
-		QueryMeta: structs.QueryMeta{
-			KnownLeader: true,
-		},
-	}
+	var expected structs.TxnReadResponse
 	for i, op := range arg.Ops {
 		switch {
 		case op.KV != nil:

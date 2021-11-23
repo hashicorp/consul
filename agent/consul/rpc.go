@@ -938,8 +938,6 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 
 RUN_QUERY:
 	// Setup blocking loop
-	// Update the query metadata.
-	s.setQueryMeta(queryMeta)
 
 	// Validate
 	// If the read must be consistent we verify that we are still the leader.
@@ -969,8 +967,8 @@ RUN_QUERY:
 	// Execute the queryFn
 	err := fn(ws, state)
 
-	// Mask the ResultsFilteredByACLs flag for unauthenticated users.
-	s.maskResultsFilteredByACLs(queryOpts.GetToken(), queryMeta)
+	// Update the query metadata.
+	s.setQueryMeta(queryMeta, queryOpts.GetToken())
 
 	// Note we check queryOpts.MinQueryIndex is greater than zero to determine if
 	// blocking was requested by client, NOT meta.Index since the state function
@@ -1005,7 +1003,9 @@ RUN_QUERY:
 }
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
-func (s *Server) setQueryMeta(m structs.QueryMetaCompat) {
+//
+// Note: This method must be called *after* filtering query results with ACLs.
+func (s *Server) setQueryMeta(m structs.QueryMetaCompat, token string) {
 	if s.IsLeader() {
 		m.SetLastContact(0)
 		m.SetKnownLeader(true)
@@ -1013,6 +1013,7 @@ func (s *Server) setQueryMeta(m structs.QueryMetaCompat) {
 		m.SetLastContact(time.Since(s.raft.LastContact()))
 		m.SetKnownLeader(s.raft.Leader() != "")
 	}
+	s.maskResultsFilteredByACLs(token, m)
 }
 
 // consistentRead is used to ensure we do not perform a stale
