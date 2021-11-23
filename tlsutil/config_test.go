@@ -720,14 +720,14 @@ func TestConfigurator_CommonTLSConfigCAs(t *testing.T) {
 func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 	c, err := NewConfigurator(Config{TLSMinVersion: ""}, nil)
 	require.NoError(t, err)
-	tlsVersion, _ := tlsLookup("TLSv1_0")
-	require.Equal(t, c.commonTLSConfig(false).MinVersion, GoTLSVersions[tlsVersion])
+	tlsVersion, _ := ParseTLSVersion("TLSv1_0")
+	require.Equal(t, c.commonTLSConfig(false).MinVersion, goTLSVersions[tlsVersion])
 
 	for _, version := range tlsVersions() {
 		require.NoError(t, c.Update(Config{TLSMinVersion: version}))
-		tlsVersion, _ := tlsLookup(version)
+		tlsVersion, _ := ParseTLSVersion(version)
 		require.Equal(t, c.commonTLSConfig(false).MinVersion,
-			GoTLSVersions[tlsVersion])
+			goTLSVersions[tlsVersion])
 	}
 
 	// NOTE: checks for deprecated TLS version string warnings,
@@ -735,9 +735,9 @@ func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 	for version := range types.DeprecatedAgentTLSVersions {
 		// TODO: check for warning log message? how?
 		require.NoError(t, c.Update(Config{TLSMinVersion: version}))
-		tlsVersion, _ := tlsLookup(version)
+		tlsVersion, _ := ParseTLSVersion(version)
 		require.Equal(t, c.commonTLSConfig(false).MinVersion,
-			GoTLSVersions[tlsVersion])
+			goTLSVersions[tlsVersion])
 	}
 
 	require.Error(t, c.Update(Config{TLSMinVersion: "tlsBOGUS"}))
