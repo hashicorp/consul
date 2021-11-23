@@ -1824,6 +1824,9 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 	case *structs.IndexedCheckServiceNodes:
 		v.QueryMeta.ResultsFilteredByACLs = filt.filterCheckServiceNodes(&v.Nodes)
 
+	case *structs.PreparedQueryExecuteResponse:
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterCheckServiceNodes(&v.Nodes)
+
 	case *structs.IndexedServiceTopology:
 		filtered := filt.filterServiceTopology(v.ServiceTopology)
 		if filtered {

@@ -2149,6 +2149,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 0)
+		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("normal operation again with exec token", func(t *testing.T) {
@@ -2269,6 +2270,20 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectFailoverNodes(t, &query, &reply, 0)
+	})
+
+	t.Run("nodes in response from dc2 are filtered by ACL token", func(t *testing.T) {
+		req := structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions:  structs.QueryOptions{Token: execNoNodesToken},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
+
+		expectFailoverNodes(t, &query, &reply, 0)
+		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	// Bake the exec token into the query.
