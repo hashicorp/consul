@@ -45,6 +45,16 @@ var (
 		TLSv1_2:        "TLS 1.2",
 		TLSv1_3:        "TLS 1.3",
 	}
+	// NOTE: these currently map to the deprecated config strings to support the
+	// deployment pattern of upgrading servers first. These should be updated to
+	// the newer config strings in a future release.
+	ConsulAutoConfigTLSVersionStrings = map[TLSVersion]string{
+		TLSVersionAuto: "",
+		TLSv1_0:        "tls10",
+		TLSv1_1:        "tls11",
+		TLSv1_2:        "tls12",
+		TLSv1_3:        "tls13",
+	}
 	EnvoyTLSVersionStrings = map[TLSVersion]string{
 		TLSVersionAuto: "TLS_AUTO",
 		TLSv1_0:        "TLSv1_0",
