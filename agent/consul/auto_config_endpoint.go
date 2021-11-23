@@ -281,16 +281,13 @@ func (ac *AutoConfig) updateTLSSettingsInConfig(_ AutoConfigOptions, resp *pbaut
 	resp.Config.TLS.VerifyServerHostname = ac.tlsConfigurator.VerifyServerHostname()
 	base := ac.tlsConfigurator.Base()
 	resp.Config.TLS.VerifyOutgoing = base.VerifyOutgoing
-	resp.Config.TLS.MinVersion = base.TLSMinVersion
+	// FIXME: is the response from this not actually validated in
+	// auto_config_endpoint_test.go?
+	resp.Config.TLS.MinVersion = types.ConsulAutoConfigTLSVersionStrings[base.TLSMinVersion]
 	resp.Config.TLS.PreferServerCipherSuites = base.PreferServerCipherSuites
 
 	var err error
-	// FIXME: is the base.CipherSuites uint16 value exported or stored in
-	// memory remotely anywhere, or is this always passed as a string?
-	// This _might_ be okay regardless, as the underlying values are both
-	// IANA uint16 constant values.
 	resp.Config.TLS.CipherSuites, err = tlsutil.CipherString(base.CipherSuites)
-
 	return err
 }
 

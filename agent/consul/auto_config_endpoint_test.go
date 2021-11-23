@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 
 	"gopkg.in/square/go-jose.v2/jwt"
 )
@@ -171,7 +172,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		c.TLSConfig.VerifyOutgoing = true
 		c.TLSConfig.VerifyIncoming = true
 		c.TLSConfig.VerifyServerHostname = true
-		c.TLSConfig.TLSMinVersion = "tls12"
+		c.TLSConfig.TLSMinVersion = types.TLSv1_2
 		c.TLSConfig.PreferServerCipherSuites = true
 
 		c.ConnectEnabled = true
@@ -386,7 +387,7 @@ func TestAutoConfig_baseConfig(t *testing.T) {
 	}
 }
 
-func parseCiphers(t *testing.T, cipherStr string) []uint16 {
+func parseCiphers(t *testing.T, cipherStr string) []types.TLSCipherSuite {
 	t.Helper()
 	ciphers, err := tlsutil.ParseCiphers(cipherStr)
 	require.NoError(t, err)
@@ -412,7 +413,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 			tlsConfig: tlsutil.Config{
 				VerifyOutgoing:           true,
 				VerifyServerHostname:     true,
-				TLSMinVersion:            "tls12",
+				TLSMinVersion:            types.TLSv1_2,
 				PreferServerCipherSuites: true,
 				CAFile:                   cafile,
 				CipherSuites:             parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
@@ -433,7 +434,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 			tlsConfig: tlsutil.Config{
 				VerifyOutgoing:           true,
 				VerifyServerHostname:     false,
-				TLSMinVersion:            "tls10",
+				TLSMinVersion:            types.TLSv1_0,
 				PreferServerCipherSuites: false,
 				CAFile:                   cafile,
 				CipherSuites:             parseCiphers(t, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
@@ -629,7 +630,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 			tlsConfig: tlsutil.Config{
 				VerifyOutgoing:           true,
 				VerifyServerHostname:     true,
-				TLSMinVersion:            "tls12",
+				TLSMinVersion:            types.TLSv1_2,
 				PreferServerCipherSuites: true,
 				CAFile:                   cafile,
 				CipherSuites:             parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
@@ -647,7 +648,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 			tlsConfig: tlsutil.Config{
 				VerifyOutgoing:           true,
 				VerifyServerHostname:     true,
-				TLSMinVersion:            "tls12",
+				TLSMinVersion:            types.TLSv1_2,
 				PreferServerCipherSuites: true,
 				CAFile:                   cafile,
 				CipherSuites:             parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
