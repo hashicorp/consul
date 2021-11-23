@@ -1987,8 +1987,10 @@ func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
 }
 
 func (b *builder) tlsVersion(name string, v *string) types.TLSVersion {
+	// TODO: should the nil check be moved into ParseTLSVersion and the arguments
+	// switched to take a pointer?
 	if v == nil {
-		return nil
+		return types.TLSVersionAuto
 	}
 
 	a, err := tlsutil.ParseTLSVersion(*v)
