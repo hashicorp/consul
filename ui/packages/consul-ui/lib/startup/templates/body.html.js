@@ -47,7 +47,9 @@ ${
     ? `
   <script data-app-name="${appName}" data-${appName}-services src="${rootURL}assets/consul-ui/services-debug.js"></script>
   <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-ui/routes-debug.js"></script>
-` : ``}
+`
+    : ``
+}
 ${
   environment === 'production'
     ? `
@@ -56,6 +58,9 @@ ${
 {{end}}
 {{if .PartitionsEnabled}}
   <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-partitions/routes.js"></script>
+{{end}}
+{{if .NamespacesEnabled}}
+  <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-nspaces/routes.js"></script>
 {{end}}
 `
     : `
@@ -72,7 +77,8 @@ ${
   key => document.cookie.split('; ').find(item => item.startsWith(\`\${key}=\`)),
   {
     'CONSUL_ACLS_ENABLE': 'consul-acls',
-    'CONSUL_PARTITIONS_ENABLE': 'consul-partitions'
+    'CONSUL_PARTITIONS_ENABLE': 'consul-partitions',
+    'CONSUL_NSPACES_ENABLE': 'consul-nspaces'
   }
 );
 </script>

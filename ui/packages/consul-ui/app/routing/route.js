@@ -22,11 +22,14 @@ export default class BaseRoute extends Route {
       .filter(item => item !== 'index')
       .join('.');
     const template = get(routes, `${routeName}._options.template`);
-    if(template) {
+    if (template) {
       this.templateName = template;
     }
     const queryParams = get(routes, `${routeName}._options.queryParams`);
-    if(queryParams && (this.routeName === 'dc.partitions.index' || this.routeName === 'oauth-provider-debug')) {
+    if (
+      queryParams &&
+      ['dc.partitions.index', 'dc.nspaces.index', 'oauth-provider-debug'].includes(this.routeName)
+    ) {
       this.queryParams = queryParams;
     }
   }

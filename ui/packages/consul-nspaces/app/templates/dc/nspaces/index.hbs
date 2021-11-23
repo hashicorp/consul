@@ -72,6 +72,18 @@ as |route|>
       {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
+        <DataWriter
+          @sink={{uri '/${partition}/${dc}/${nspace}/nspace/'
+            (hash
+              partition=route.params.partition
+              nspace=route.params.nspace
+              dc=route.params.dc
+            )
+          }}
+          @type="nspace"
+          @ondelete={{refresh-route}}
+        as |writer|>
+          <BlockSlot @name="content">
         <DataCollection
           @type="nspace"
           @sort={{sort.value}}
@@ -82,7 +94,7 @@ as |route|>
           <collection.Collection>
             <Consul::Nspace::List
               @items={{collection.items}}
-              @ondelete={{route-action 'delete'}}
+              @ondelete={{writer.delete}}
             />
           </collection.Collection>
           <collection.Empty>
@@ -118,6 +130,8 @@ as |route|>
             </EmptyState>
           </collection.Empty>
         </DataCollection>
+    </BlockSlot>
+  </DataWriter>
       </BlockSlot>
     </AppView>
   {{/let}}

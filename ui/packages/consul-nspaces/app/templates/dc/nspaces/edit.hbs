@@ -50,7 +50,13 @@ as |dc partition nspace item create|}}
     <BlockSlot @name="actions">
     </BlockSlot>
     <BlockSlot @name="content">
-      {{ partial 'dc/nspaces/form'}}
+      <Consul::Nspace::Form
+        @item={{item}}
+        @dc={{route.params.dc}}
+        @nspace={{route.params.nspace}}
+        @partition={{route.params.partition}}
+        @onsubmit={{transition-to 'dc.nspaces.index'}}
+      />
     </BlockSlot>
   </AppView>
 {{/let}}
