@@ -15,7 +15,7 @@ const hbs = (path, attrs = {}) =>
 const BrandLoader = attrs => hbs('brand-loader/index.hbs', attrs);
 const Enterprise = attrs => hbs('brand-loader/enterprise.hbs', attrs);
 
-module.exports = ({ appName, environment, rootURL, config }) => `
+module.exports = ({ appName, environment, rootURL, config, env }) => `
   <noscript>
       <div style="margin: 0 auto;">
           <h2>JavaScript Required</h2>
@@ -68,7 +68,9 @@ ${
 (
   function(get, obj) {
     Object.entries(obj).forEach(([key, value]) => {
-      if(get(key)) {
+      if(get(key) || (key === 'CONSUL_NSPACES_ENABLE' && ${
+        env('CONSUL_NSPACES_ENABLE') === '1' ? `true` : `false`
+      })) {
         document.write(\`\\x3Cscript data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/\${value}/routes.js">\\x3C/script>\`);
       }
     });
