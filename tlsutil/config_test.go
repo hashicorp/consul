@@ -487,9 +487,10 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 	certfile := "../test/key/ourdomain.cer"
 	keyfile := "../test/key/ourdomain.key"
 	variants := []variant{
-		{Config{}, false, false},                                              // 1
-		{Config{TLSMinVersion: "tls9"}, true, false},                          // 1
-		{Config{TLSMinVersion: ""}, false, false},                             // 2
+		{Config{}, false, false}, // 1
+		// FIXME: move these parsing checks out to agent/config/builder
+		// {Config{TLSMinVersion: "tls9"}, true, false},                          // 1
+		// {Config{TLSMinVersion: ""}, false, false},                             // 2
 		{Config{VerifyOutgoing: true, CAFile: "", CAPath: ""}, true, false},   // 6
 		{Config{VerifyOutgoing: false, CAFile: "", CAPath: ""}, false, false}, // 7
 		{Config{VerifyOutgoing: false, CAFile: cafile, CAPath: ""},
@@ -518,7 +519,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		{Config{CAPath: "bogus"}, true, true},                                       // 22
 		{Config{VerifyIncoming: true, CAFile: cafile, AutoTLS: true}, false, false}, // 22
 	}
-	for _, v := range tlsVersions() {
+	for v := range goTLSVersions {
 		variants = append(variants, variant{Config{TLSMinVersion: v}, false, false})
 	}
 
@@ -650,8 +651,10 @@ func TestConfigurator_CommonTLSConfigCipherSuites(t *testing.T) {
 	tlsConf := c.commonTLSConfig(false)
 	require.Empty(t, tlsConf.CipherSuites)
 
-	conf := Config{CipherSuites: []uint16{
-		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305}}
+	// TODO: this test previously was expected to pass with an unexpected, but
+	// valid, value??
+	conf := Config{CipherSuites: []types.TLSCipherSuite{
+		types.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256}}
 	require.NoError(t, c.Update(conf))
 	tlsConf = c.commonTLSConfig(false)
 	require.Equal(t, conf.CipherSuites, tlsConf.CipherSuites)
@@ -722,7 +725,7 @@ func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, c.commonTLSConfig(false).MinVersion, goTLSVersions[types.TLSv1_0])
 
-	for version, _ := range goTLSVersions {
+	for version := range goTLSVersions {
 		require.NoError(t, c.Update(Config{TLSMinVersion: version}))
 		require.Equal(t, c.commonTLSConfig(false).MinVersion,
 			goTLSVersions[version])
