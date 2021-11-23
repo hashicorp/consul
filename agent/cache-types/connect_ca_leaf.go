@@ -689,5 +689,7 @@ func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
 		Datacenter: r.Datacenter,
 		MinIndex:   r.MinQueryIndex,
 		Timeout:    r.MaxQueryTime,
+		// this makes sure we pick up updated leaf certs every ~ 72hrs
+		MaxAge:     72 * time.Hour,
 	}
 }
