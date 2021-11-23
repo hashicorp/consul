@@ -24,7 +24,7 @@ func sessionIndexer() indexerSingleWithPrefix {
 func nodeSessionsIndexer() indexerSingle {
 	return indexerSingle{
 		readIndex:  readIndex(indexFromIDValueLowerCase),
-		writeIndex: writeIndex(indexFromNodeLowerCase),
+		writeIndex: writeIndex(indexNodeFromSession),
 	}
 }
 
