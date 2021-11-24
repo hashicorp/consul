@@ -272,7 +272,7 @@ TRY:
 
 	var deadline time.Time
 	if info != nil {
-		deadline = firstCheck.Add(info.Timeout(c.config.RPCHoldTimeout, c.config.MaxQueryTime, c.config.DefaultQueryTime))
+		deadline = time.Now().Add(info.Timeout(c.config.RPCHoldTimeout, c.config.MaxQueryTime, c.config.DefaultQueryTime))
 	} else {
 		deadline = time.Time{}
 	}
