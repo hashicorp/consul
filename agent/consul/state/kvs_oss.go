@@ -39,23 +39,6 @@ func prefixIndexForIDValue(arg interface{}) ([]byte, error) {
 	return nil, fmt.Errorf("unexpected type %T for singleValueID prefix index", arg)
 }
 
-func prefixIndexForKVEntry(arg interface{}) ([]byte, error) {
-	var b indexBuilder
-	switch v := arg.(type) {
-	// DeletePrefix always uses a string, pass it along unmodified
-	case string:
-		return []byte(v), nil
-	case structs.EnterpriseMeta:
-		return nil, nil
-	case singleValueID:
-		// Omit null terminator, because we want to prefix match keys
-		(*bytes.Buffer)(&b).WriteString(v.IDValue())
-		return b.Bytes(), nil
-	}
-
-	return nil, fmt.Errorf("unexpected type %T for singleValueID prefix index", arg)
-}
-
 func insertKVTxn(tx WriteTxn, entry *structs.DirEntry, updateMax bool, _ bool) error {
 	if err := tx.Insert(tableKVs, entry); err != nil {
 		return err

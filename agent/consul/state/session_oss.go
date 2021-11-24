@@ -5,6 +5,7 @@ package state
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-memdb"
 
@@ -20,23 +21,54 @@ func sessionIndexer() indexerSingleWithPrefix {
 	}
 }
 
-func nodeSessionsIndexer() *memdb.StringFieldIndex {
-	return &memdb.StringFieldIndex{
-		Field:     "Node",
-		Lowercase: true,
+func nodeSessionsIndexer() indexerSingle {
+	return indexerSingle{
+		readIndex:  readIndex(indexFromIDValueLowerCase),
+		writeIndex: writeIndex(indexNodeFromSession),
 	}
 }
 
-func nodeChecksIndexer() *memdb.CompoundIndex {
-	return &memdb.CompoundIndex{
-		Indexes: []memdb.Indexer{
-			&memdb.StringFieldIndex{
-				Field:     "Node",
-				Lowercase: true,
-			},
-			&CheckIDIndex{},
-		},
+func idCheckIndexer() indexerSingle {
+	return indexerSingle{
+		readIndex:  indexFromNodeCheckIDSession,
+		writeIndex: indexFromNodeCheckIDSession,
 	}
+}
+
+func sessionCheckIndexer() indexerSingle {
+	return indexerSingle{
+		readIndex:  indexFromQuery,
+		writeIndex: indexSessionCheckFromSession,
+	}
+}
+
+func nodeChecksIndexer() indexerSingle {
+	return indexerSingle{
+		readIndex:  indexFromMultiValueID,
+		writeIndex: indexFromNodeCheckID,
+	}
+}
+
+// indexFromNodeCheckID creates an index key from a sessionCheck structure
+func indexFromNodeCheckID(raw interface{}) ([]byte, error) {
+	e, ok := raw.(*sessionCheck)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T, does not implement *structs.Session", raw)
+	}
+	var b indexBuilder
+	v := strings.ToLower(e.Node)
+	if v == "" {
+		return nil, errMissingValueForIndex
+	}
+	b.String(v)
+
+	v = strings.ToLower(string(e.CheckID.ID))
+	if v == "" {
+		return nil, errMissingValueForIndex
+	}
+	b.String(v)
+
+	return b.Bytes(), nil
 }
 
 func sessionDeleteWithSession(tx WriteTxn, session *structs.Session, idx uint64) error {
@@ -64,7 +96,7 @@ func insertSessionTxn(tx WriteTxn, session *structs.Session, idx uint64, updateM
 			CheckID: structs.CheckID{ID: checkID},
 			Session: session.ID,
 		}
-		if err := tx.Insert("session_checks", mapping); err != nil {
+		if err := tx.Insert(tableSessionChecks, mapping); err != nil {
 			return fmt.Errorf("failed inserting session check mapping: %s", err)
 		}
 	}
@@ -91,7 +123,7 @@ func allNodeSessionsTxn(tx ReadTxn, node string) (structs.Sessions, error) {
 func nodeSessionsTxn(tx ReadTxn,
 	ws memdb.WatchSet, node string, entMeta *structs.EnterpriseMeta) (structs.Sessions, error) {
 
-	sessions, err := tx.Get(tableSessions, indexNode, node)
+	sessions, err := tx.Get(tableSessions, indexNode, Query{Value: node})
 	if err != nil {
 		return nil, fmt.Errorf("failed session lookup: %s", err)
 	}

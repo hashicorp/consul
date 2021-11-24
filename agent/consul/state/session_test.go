@@ -143,7 +143,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	// Check mappings were inserted
 	{
 
-		check, err := tx.First("session_checks", "session", sess.ID)
+		check, err := tx.First(tableSessionChecks, indexSession, Query{Value: sess.ID})
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -174,7 +174,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	checks, err := tx.Get("session_checks", "session", sess2.ID)
+	checks, err := tx.Get(tableSessionChecks, indexSession, Query{Value: sess2.ID})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -509,7 +509,7 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		check, err := tx.First("session_checks", "session", session1)
+		check, err := tx.First(tableSessionChecks, indexSession, Query{Value: session1})
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -730,7 +730,7 @@ func TestStateStore_Session_Invalidate_DeleteCheck(t *testing.T) {
 
 	// Manually make sure the session checks mapping is clear.
 	tx := s.db.Txn(false)
-	mapping, err := tx.First("session_checks", "session", session.ID)
+	mapping, err := tx.First(tableSessionChecks, indexSession, Query{Value: session.ID})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
