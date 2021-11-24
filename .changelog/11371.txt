@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Adding support of Consul API Gateway as an external source.
+```

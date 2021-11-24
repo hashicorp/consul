@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 // SpiffeIDSigning is the structure to represent the SPIFFE ID for a
@@ -64,6 +62,6 @@ func (id SpiffeIDSigning) CanSign(cu CertURI) bool {
 // break all certificate validation. That does mean that DNS prefix might not
 // match the identity URIs and so the trust domain might not actually resolve
 // which we would like but don't actually need.
-func SpiffeIDSigningForCluster(config *structs.CAConfiguration) *SpiffeIDSigning {
-	return &SpiffeIDSigning{ClusterID: config.ClusterID, Domain: "consul"}
+func SpiffeIDSigningForCluster(clusterID string) *SpiffeIDSigning {
+	return &SpiffeIDSigning{ClusterID: clusterID, Domain: "consul"}
 }

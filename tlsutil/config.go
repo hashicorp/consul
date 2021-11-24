@@ -613,9 +613,9 @@ func (c *Configurator) VerifyServerHostname() bool {
 	return c.base.VerifyServerHostname || c.autoTLS.verifyServerHostname
 }
 
-// IncomingXDSConfig generates a *tls.Config for incoming xDS connections.
-func (c *Configurator) IncomingXDSConfig() *tls.Config {
-	c.log("IncomingXDSConfig")
+// IncomingGRPCConfig generates a *tls.Config for incoming GRPC connections.
+func (c *Configurator) IncomingGRPCConfig() *tls.Config {
+	c.log("IncomingGRPCConfig")
 
 	// false has the effect that this config doesn't require a client cert
 	// verification. This is because there is no verify_incoming_grpc
@@ -624,7 +624,7 @@ func (c *Configurator) IncomingXDSConfig() *tls.Config {
 	// effect on the grpc server.
 	config := c.commonTLSConfig(false)
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
-		return c.IncomingXDSConfig(), nil
+		return c.IncomingGRPCConfig(), nil
 	}
 	return config
 }
@@ -893,6 +893,10 @@ func (c *Configurator) wrapALPNTLSClient(dc, nodeName, alpnProto string, conn ne
 	return tlsConn, nil
 }
 
+type TLSConn interface {
+	ConnectionState() tls.ConnectionState
+}
+
 // AuthorizeServerConn is used to validate that the connection is being established
 // by a Consul server in the same datacenter.
 //
@@ -900,10 +904,10 @@ func (c *Configurator) wrapALPNTLSClient(dc, nodeName, alpnProto string, conn ne
 // presented is signed by the Agent TLS CA, and has a DNSName that matches the
 // local ServerSNI name.
 //
-// Note this check is only performed if VerifyServerHostname is enabled, otherwise
-// it does no authorization.
-func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
-	if !c.VerifyServerHostname() {
+// Note this check is only performed if VerifyServerHostname and VerifyIncomingRPC
+// are both enabled, otherwise it does no authorization.
+func (c *Configurator) AuthorizeServerConn(dc string, conn TLSConn) error {
+	if !c.VerifyIncomingRPC() || !c.VerifyServerHostname() {
 		return nil
 	}
 
@@ -931,7 +935,10 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
 		if err == nil {
 			return nil
 		}
-		multierror.Append(errs, err)
+		errs = multierror.Append(errs, err)
+	}
+	if errs == nil {
+		errs = fmt.Errorf("no verified chains")
 	}
 	return fmt.Errorf("AuthorizeServerConn failed certificate validation for certificate with a SAN.DNSName of %v: %w", expected, errs)
 

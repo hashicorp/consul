@@ -1,0 +1,6 @@
+```release-note:improvement
+config: Support Check-And-Set (CAS) deletion of config entries
+```
+```release-note:improvement
+cli: Add `-cas` and `-modify-index` flags to the `consul config delete` command to support Check-And-Set (CAS) deletion of config entries
+```

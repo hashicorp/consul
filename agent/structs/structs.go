@@ -3,6 +3,7 @@ package structs
 import (
 	"bytes"
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -41,7 +42,7 @@ const (
 	DeregisterRequestType                       = 1
 	KVSRequestType                              = 2
 	SessionRequestType                          = 3
-	ACLRequestType                              = 4 // DEPRECATED (ACL-Legacy-Compat)
+	DeprecatedACLRequestType                    = 4 // Removed with the legacy ACL system
 	TombstoneRequestType                        = 5
 	CoordinateBatchUpdateType                   = 6
 	PreparedQueryRequestType                    = 7
@@ -81,7 +82,7 @@ var requestTypeStrings = map[MessageType]string{
 	DeregisterRequestType:           "Deregister",
 	KVSRequestType:                  "KVS",
 	SessionRequestType:              "Session",
-	ACLRequestType:                  "ACL", // DEPRECATED (ACL-Legacy-Compat)
+	DeprecatedACLRequestType:        "ACL", // DEPRECATED (ACL-Legacy-Compat)
 	TombstoneRequestType:            "Tombstone",
 	CoordinateBatchUpdateType:       "CoordinateBatchUpdate",
 	PreparedQueryRequestType:        "PreparedQuery",
@@ -1506,7 +1507,7 @@ type HealthCheck struct {
 func (hc *HealthCheck) NodeIdentity() Identity {
 	return Identity{
 		ID:             hc.Node,
-		EnterpriseMeta: *hc.NodeEnterpriseMetaForPartition(),
+		EnterpriseMeta: *NodeEnterpriseMetaInPartition(hc.PartitionOrDefault()),
 	}
 }
 
@@ -1544,6 +1545,7 @@ type HealthCheckDefinition struct {
 	Body                           string              `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
+	H2PingUseTLS                   bool                `json:",omitempty"`
 	Interval                       time.Duration       `json:",omitempty"`
 	OutputMaxSize                  uint                `json:",omitempty"`
 	Timeout                        time.Duration       `json:",omitempty"`
@@ -1691,6 +1693,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Body:                           c.Definition.Body,
 		TCP:                            c.Definition.TCP,
 		H2PING:                         c.Definition.H2PING,
+		H2PingUseTLS:                   c.Definition.H2PingUseTLS,
 		Interval:                       c.Definition.Interval,
 		DockerContainerID:              c.Definition.DockerContainerID,
 		Shell:                          c.Definition.Shell,
@@ -1862,6 +1865,18 @@ type CheckID struct {
 	EnterpriseMeta
 }
 
+// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (c CheckID) NamespaceOrDefault() string {
+	return c.EnterpriseMeta.NamespaceOrDefault()
+}
+
+// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (c CheckID) PartitionOrDefault() string {
+	return c.EnterpriseMeta.PartitionOrDefault()
+}
+
 func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
 	var cid CheckID
 	cid.ID = id
@@ -1874,10 +1889,20 @@ func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
 	return cid
 }
 
-// StringHash is used mainly to populate part of the filename of a check
-// definition persisted on the local agent
-func (cid CheckID) StringHash() string {
+// StringHashMD5 is used mainly to populate part of the filename of a check
+// definition persisted on the local agent (deprecated in favor of StringHashSHA256)
+// Kept around for backwards compatibility
+func (cid CheckID) StringHashMD5() string {
 	hasher := md5.New()
+	hasher.Write([]byte(cid.ID))
+	cid.EnterpriseMeta.addToHash(hasher, true)
+	return fmt.Sprintf("%x", hasher.Sum(nil))
+}
+
+// StringHashSHA256 is used mainly to populate part of the filename of a check
+// definition persisted on the local agent
+func (cid CheckID) StringHashSHA256() string {
+	hasher := sha256.New()
 	hasher.Write([]byte(cid.ID))
 	cid.EnterpriseMeta.addToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
@@ -1904,10 +1929,10 @@ func (sid ServiceID) Matches(other ServiceID) bool {
 	return sid.ID == other.ID && sid.EnterpriseMeta.Matches(&other.EnterpriseMeta)
 }
 
-// StringHash is used mainly to populate part of the filename of a service
+// StringHashSHA256 is used mainly to populate part of the filename of a service
 // definition persisted on the local agent
-func (sid ServiceID) StringHash() string {
-	hasher := md5.New()
+func (sid ServiceID) StringHashSHA256() string {
+	hasher := sha256.New()
 	hasher.Write([]byte(sid.ID))
 	sid.EnterpriseMeta.addToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
@@ -2220,6 +2245,11 @@ func (d *DirEntry) Equal(o *DirEntry) bool {
 		d.Session == o.Session
 }
 
+// IDValue implements the state.singleValueID interface for indexing.
+func (d *DirEntry) IDValue() string {
+	return d.Key
+}
+
 type DirEntries []*DirEntry
 
 // KVSRequest is used to operate on the Key-Value store
@@ -2305,6 +2335,11 @@ type Session struct {
 type ServiceCheck struct {
 	ID        string
 	Namespace string
+}
+
+// IDValue implements the state.singleValueID interface for indexing.
+func (s *Session) IDValue() string {
+	return s.ID
 }
 
 func (s *Session) UnmarshalJSON(data []byte) (err error) {
@@ -2568,11 +2603,16 @@ type KeyringResponse struct {
 	WAN         bool
 	Datacenter  string
 	Segment     string
+	Partition   string            `json:",omitempty"`
 	Messages    map[string]string `json:",omitempty"`
 	Keys        map[string]int
 	PrimaryKeys map[string]int
 	NumNodes    int
 	Error       string `json:",omitempty"`
+}
+
+func (r *KeyringResponse) PartitionOrDefault() string {
+	return PartitionOrDefault(r.Partition)
 }
 
 // KeyringResponses holds multiple responses to keyring queries. Each

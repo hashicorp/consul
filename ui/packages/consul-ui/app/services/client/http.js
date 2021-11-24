@@ -233,7 +233,6 @@ export default class HttpService extends Service {
                 // 'default' which will mainly be used in OSS
                 [CONSUL_DATACENTER]: params.data.dc,
                 [CONSUL_NAMESPACE]: params.data.ns || token.Namespace || 'default',
-                // FIXME: Is the default partition '' or 'default'?
                 [CONSUL_PARTITION]: params.data.partition || token.Partition || 'default',
               };
               const respond = function(cb) {

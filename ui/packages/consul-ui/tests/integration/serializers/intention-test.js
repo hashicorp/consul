@@ -26,7 +26,7 @@ module('Integration | Serializer | intention', function(hooks) {
           // refactored out our Serializer this can go
           Namespace: nspace,
           Partition: partition,
-          uid: `["${partition}","${nspace}","${dc}","${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}"]`,
+          uid: `["${partition}","${nspace}","${dc}","${item.SourcePartition}:${item.SourceNS}:${item.SourceName}:${item.DestinationPartition}:${item.DestinationNS}:${item.DestinationName}"]`,
         })
       );
       const actual = serializer.respondForQuery(
@@ -55,10 +55,12 @@ module('Integration | Serializer | intention', function(hooks) {
       url: `/v1/connect/intentions/${id}?dc=${dc}`,
     };
     const item = {
-      SourceNS: 'SourceNS',
       SourceName: 'SourceName',
-      DestinationNS: 'DestinationNS',
       DestinationName: 'DestinationName',
+      SourceNS: 'SourceNS',
+      DestinationNS: 'DestinationNS',
+      SourcePartition: 'SourcePartition',
+      DestinationPartition: 'DestinationPartition',
     };
     return get(request.url).then(function(payload) {
       payload = {
@@ -76,7 +78,7 @@ module('Integration | Serializer | intention', function(hooks) {
         // refactored out our Serializer this can go
         Namespace: nspace,
         Partition: partition,
-        uid: `["${partition}","${nspace}","${dc}","${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}"]`,
+        uid: `["${partition}","${nspace}","${dc}","${item.SourcePartition}:${item.SourceNS}:${item.SourceName}:${item.DestinationPartition}:${item.DestinationNS}:${item.DestinationName}"]`,
       });
       const actual = serializer.respondForQueryRecord(
         function(cb) {

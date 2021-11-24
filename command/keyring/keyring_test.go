@@ -4,10 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
-	consulapi "github.com/hashicorp/consul/api"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent"
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 func TestKeyringCommand_noTabs(t *testing.T) {
@@ -195,9 +196,8 @@ func removeKey(t *testing.T, addr string, key string) {
 }
 
 func TestKeyringCommand_poolName(t *testing.T) {
-	require.Equal(t, "dc1 (LAN):\n", poolName("dc1", false, ""))
-	require.Equal(t, "dc1 (LAN) [segment1]:\n", poolName("dc1", false, "segment1"))
-	require.Equal(t, "WAN:\n", poolName("dc1", true, ""))
+	require.Equal(t, "dc1 (LAN):\n", poolName("dc1", false, "", ""))
+	require.Equal(t, "WAN:\n", poolName("dc1", true, "", ""))
 }
 
 func TestKeyringCommand_formatKeys(t *testing.T) {

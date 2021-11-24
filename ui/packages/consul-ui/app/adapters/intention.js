@@ -6,11 +6,11 @@ import { get } from '@ember/object';
 // Listing of intentions still requires the `ns` query string parameter which
 // will give us all the intentions that have the `ns` as either the SourceNS or
 // the DestinationNS.
-// We currently list intentions by the * wildcard namespace for back compat reasons
 
-// TODO: Update to use this.formatDatacenter()
+// TODO: Investigate the above to see if we should only list intentions with
+// Source/Destination in the currently selected nspace or leave as is.
 export default class IntentionAdapter extends Adapter {
-  requestForQuery(request, { dc, ns, filter, index, uri }) {
+  requestForQuery(request, { dc, ns, partition, filter, index, uri }) {
     return request`
       GET /v1/connect/intentions?${{ dc }}
       X-Request-ID: ${uri}${
@@ -21,7 +21,7 @@ export default class IntentionAdapter extends Adapter {
     }
 
       ${{
-        partition: '',
+        partition,
         ns: '*',
         index,
         filter,
@@ -36,14 +36,19 @@ export default class IntentionAdapter extends Adapter {
 
     // get the information we need from the id, which has been previously
     // encoded
-    const [SourceNS, SourceName, DestinationNS, DestinationName] = id
-      .split(':')
-      .map(decodeURIComponent);
+    const [
+      SourcePartition,
+      SourceNS,
+      SourceName,
+      DestinationPartition,
+      DestinationNS,
+      DestinationName,
+    ] = id.split(':').map(decodeURIComponent);
 
     return request`
       GET /v1/connect/intentions/exact?${{
-        source: `${SourceNS}/${SourceName}`,
-        destination: `${DestinationNS}/${DestinationName}`,
+        source: `${SourcePartition}/${SourceNS}/${SourceName}`,
+        destination: `${DestinationPartition}/${DestinationNS}/${DestinationName}`,
         dc: dc,
       }}
       Cache-Control: no-store
@@ -54,10 +59,12 @@ export default class IntentionAdapter extends Adapter {
 
   requestForCreateRecord(request, serialized, data) {
     const body = {
-      SourceNS: serialized.SourceNS,
-      DestinationNS: serialized.DestinationNS,
       SourceName: serialized.SourceName,
       DestinationName: serialized.DestinationName,
+      SourceNS: serialized.SourceNS,
+      DestinationNS: serialized.DestinationNS,
+      SourcePartition: serialized.SourcePartition,
+      DestinationPartition: serialized.DestinationPartition,
       SourceType: serialized.SourceType,
       Meta: serialized.Meta,
       Description: serialized.Description,
@@ -74,8 +81,8 @@ export default class IntentionAdapter extends Adapter {
     }
     return request`
       PUT /v1/connect/intentions/exact?${{
-        source: `${data.SourceNS}/${data.SourceName}`,
-        destination: `${data.DestinationNS}/${data.DestinationName}`,
+        source: `${data.SourcePartition}/${data.SourceNS}/${data.SourceName}`,
+        destination: `${data.DestinationPartition}/${data.DestinationNS}/${data.DestinationName}`,
         dc: data.Datacenter,
       }}
 
@@ -85,16 +92,17 @@ export default class IntentionAdapter extends Adapter {
 
   requestForUpdateRecord(request, serialized, data) {
     // you can no longer save Destinations
-    delete serialized.DestinationNS;
     delete serialized.DestinationName;
+    delete serialized.DestinationNS;
+    delete serialized.DestinationPartition;
     return this.requestForCreateRecord(...arguments);
   }
 
   requestForDeleteRecord(request, serialized, data) {
     return request`
       DELETE /v1/connect/intentions/exact?${{
-        source: `${data.SourceNS}/${data.SourceName}`,
-        destination: `${data.DestinationNS}/${data.DestinationName}`,
+        source: `${data.SourcePartition}/${data.SourceNS}/${data.SourceName}`,
+        destination: `${data.DestinationPartition}/${data.DestinationNS}/${data.DestinationName}`,
         dc: data.Datacenter,
       }}
     `;

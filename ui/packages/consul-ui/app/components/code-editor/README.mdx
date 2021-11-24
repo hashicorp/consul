@@ -6,6 +6,49 @@ state: needs-love
 # CodeEditor
 
 ```hbs preview-template
-<CodeEditor />
-
+<CodeEditor
+    @readonly={{true}}
+    @name={{concat name "[Rules]"}}
+    @syntax="hcl"
+    @oninput={{noop}}
+>
+    <:label>
+    Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
+    </:label>
+    <:content>
+    <!-- Plain text or something that renders data like the following -->
+    <Consul::ServiceIdentity::Template
+        @nspace={{nspace}}
+        @name={{item.Name}}
+    />
+    </:content>
+</CodeEditor>
 ```
+
+A code-editor with syntax highlighting supporting multiple languages (JSON, HCL, YAML), validation and simple tools such as "Copy to clipboard"
+
+
+### Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `readonly` | `Boolean` | false | If true, the content (value) of the CodeEditor cannot be changed by the user |
+| `name` | `String` |  | The name attribute of the form element |
+| `syntax` | `String` |  | Identifies the language used to validate/syntax highlight the code (possible values: hcl, json, yaml) |
+| `oninput` | `Action` | noop | Action/callback that is triggered when the user inputs data |
+
+### Named Blocks
+
+| Name | Description | Behaviour if empty |
+| --- | --- | --- |
+| `:label` | Used to define the title that's displayed on the left inside the toolbar above the CodeEditor | Nothing is displayed |
+| `:tools` | Used to define tools, buttons, widgets that will be displayed on the right inside the toolbar above the CodeEditor | By default it renders a `language selector` dropdown (if `readonly`== false and `syntax` is falsy) and a `CopyButton`
+| `:content` | Used to display specific content such as code templates inside the CodeEditor | if the block is defined, @value will be displayed instead |
+
+
+### See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

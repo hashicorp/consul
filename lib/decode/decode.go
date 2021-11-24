@@ -73,12 +73,28 @@ func translationsForType(to reflect.Type) map[string]string {
 	translations := map[string]string{}
 	for i := 0; i < to.NumField(); i++ {
 		field := to.Field(i)
+		tags := fieldTags(field)
+		if tags.squash {
+			embedded := field.Type
+			if embedded.Kind() == reflect.Ptr {
+				embedded = embedded.Elem()
+			}
+			if embedded.Kind() != reflect.Struct {
+				// mapstructure will handle reporting this error
+				continue
+			}
+
+			for k, v := range translationsForType(embedded) {
+				translations[k] = v
+			}
+			continue
+		}
+
 		tag, ok := field.Tag.Lookup("alias")
 		if !ok {
 			continue
 		}
-
-		canonKey := strings.ToLower(canonicalFieldKey(field))
+		canonKey := strings.ToLower(tags.name)
 		for _, alias := range strings.Split(tag, ",") {
 			translations[strings.ToLower(alias)] = canonKey
 		}
@@ -86,19 +102,31 @@ func translationsForType(to reflect.Type) map[string]string {
 	return translations
 }
 
-func canonicalFieldKey(field reflect.StructField) string {
+func fieldTags(field reflect.StructField) mapstructureFieldTags {
 	tag, ok := field.Tag.Lookup("mapstructure")
 	if !ok {
-		return field.Name
+		return mapstructureFieldTags{name: field.Name}
 	}
-	parts := strings.SplitN(tag, ",", 2)
-	switch {
-	case len(parts) < 1:
-		return field.Name
-	case parts[0] == "":
-		return field.Name
+
+	tags := mapstructureFieldTags{name: field.Name}
+	parts := strings.Split(tag, ",")
+	if len(parts) == 0 {
+		return tags
 	}
-	return parts[0]
+	if parts[0] != "" {
+		tags.name = parts[0]
+	}
+	for _, part := range parts[1:] {
+		if part == "squash" {
+			tags.squash = true
+		}
+	}
+	return tags
+}
+
+type mapstructureFieldTags struct {
+	name   string
+	squash bool
 }
 
 // HookWeakDecodeFromSlice looks for []map[string]interface{} and []interface{}

@@ -113,7 +113,7 @@ Then you have likely enabled ACLs. You need to specify your ACL token when
 running the `license get` command. First, assign the ACL token to the `CONSUL_HTTP_TOKEN` environment variable:
 
 ```shell-session
-$ export CONSUL_HTTP_TOKEN=$(kubectl get secrets/hashicorp-consul-bootstrap-acl-token --template={{.data.token}} | base64 --decode)
+$ export CONSUL_HTTP_TOKEN=$(kubectl get secrets/hashicorp-consul-bootstrap-acl-token --template='{{.data.token | base64decode }}')
 ```
 
 Now the token will be used when running Consul commands:

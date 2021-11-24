@@ -4,11 +4,11 @@
       <dl>
         <dt>Destination</dt>
         <dd>
-          {{item.DestinationName}}{{#if (env "CONSUL_NSPACES_ENABLED")}} / {{item.DestinationNS}}{{/if}}
+          {{item.DestinationName}}{{#if (can "use partitions")}} / {{item.DestinationPartition}}{{/if}}{{#if (can "use nspaces")}} / {{item.DestinationNS}}{{/if}}
         </dd>
         <dt>Source</dt>
         <dd>
-        {{item.SourceName}}{{#if (env "CONSUL_NSPACES_ENABLED")}} / {{item.SourceNS}}{{/if}}
+        {{item.SourceName}}{{#if (can "use partitions")}} / {{item.SourcePartition}}{{/if}}{{#if (can "use nspaces")}} / {{item.SourceNS}}{{/if}}
         </dd>
 {{#if item.Action}}
         <dt>Action</dt>

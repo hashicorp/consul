@@ -97,7 +97,7 @@ as |item|}}
             <h1>
               <route.Title @title={{item.Service.ID}} />
             </h1>
-            <Consul::ExternalSource @item={{item}} />
+            <Consul::ExternalSource @item={{item}} @withInfo={{true}} />
             <Consul::Kind @item={{item}} @withInfo={{true}} />
             {{#if (eq proxy.ServiceProxy.Mode 'transparent')}}
               <Consul::TransparentProxy />

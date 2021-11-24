@@ -28,7 +28,7 @@ export default class KvAdapter extends Adapter {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
-    return request`
+    const respond = await request`
       GET /v1/kv/${keyToArray(id)}?${{ dc }}
 
       ${{
@@ -37,6 +37,8 @@ export default class KvAdapter extends Adapter {
         index,
       }}
     `;
+    await respond((headers, body) => delete headers['x-consul-index']);
+    return respond;
   }
 
   // TODO: Should we replace text/plain here with x-www-form-encoded? See

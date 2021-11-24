@@ -48,7 +48,6 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out))
 	require.Equal(t, 36, len(out.AccessorID))
 	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
-	require.Equal(t, out.Type, structs.ACLTokenTypeManagement)
 	require.True(t, out.CreateIndex > 0)
 	require.Equal(t, out.CreateIndex, out.ModifyIndex)
 
@@ -69,382 +68,8 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	require.Equal(t, 36, len(out.AccessorID))
 	require.NotEqual(t, oldID, out.AccessorID)
 	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
-	require.Equal(t, out.Type, structs.ACLTokenTypeManagement)
 	require.True(t, out.CreateIndex > 0)
 	require.Equal(t, out.CreateIndex, out.ModifyIndex)
-}
-
-func TestACLEndpoint_Apply(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-	waitForLeaderEstablishment(t, srv)
-
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-		},
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
-	}
-	var out string
-	err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-	require.NoError(t, err)
-	id := out
-
-	// Verify
-	state := srv.fsm.State()
-	_, s, err := state.ACLTokenGetBySecret(nil, out, nil)
-	require.NoError(t, err)
-	require.NotNil(t, s)
-	require.Equal(t, out, s.SecretID)
-	require.Equal(t, "User token", s.Description)
-
-	// Do a delete
-	arg.Op = structs.ACLDelete
-	arg.ACL.ID = out
-	err = msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-	require.NoError(t, err)
-
-	// Verify
-	_, s, err = state.ACLTokenGetBySecret(nil, id, nil)
-	require.NoError(t, err)
-	require.Nil(t, s)
-}
-
-func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-	waitForLeaderEstablishment(t, srv)
-
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: `key "" { policy = "read"}`,
-		},
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
-	}
-	var out string
-	err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-	require.NoError(t, err)
-	id := out
-
-	// Resolve
-	acl1, err := srv.ResolveToken(id)
-	require.NoError(t, err)
-	require.NotNil(t, acl1)
-	require.Equal(t, acl.Allow, acl1.KeyRead("foo", nil))
-
-	// Do an update
-	arg.ACL.ID = out
-	arg.ACL.Rules = `{"key": {"": {"policy": "deny"}}}`
-	err = msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-	require.NoError(t, err)
-
-	// Resolve again
-	acl2, err := srv.ResolveToken(id)
-	require.NoError(t, err)
-	require.NotNil(t, acl2)
-	require.NotSame(t, acl2, acl1)
-	require.NotEqual(t, acl.Allow, acl2.KeyRead("foo", nil))
-
-	// Do a delete
-	arg.Op = structs.ACLDelete
-	arg.ACL.Rules = ""
-	err = msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-	require.NoError(t, err)
-
-	// Resolve again
-	acl3, err := srv.ResolveToken(id)
-	require.True(t, acl.IsErrNotFound(err), "Error %v is not acl.ErrNotFound", err)
-	require.Nil(t, acl3)
-}
-
-func TestACLEndpoint_Apply_CustomID(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-	waitForLeaderEstablishment(t, srv)
-
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			ID:   "foobarbaz", // Specify custom ID, does not exist
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-		},
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
-	}
-	var out string
-	err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-	require.NoError(t, err)
-	require.Equal(t, "foobarbaz", out)
-
-	// Verify
-	state := srv.fsm.State()
-	_, s, err := state.ACLTokenGetBySecret(nil, out, nil)
-	require.NoError(t, err)
-	require.NotNil(t, s)
-	require.Equal(t, out, s.SecretID)
-	require.Equal(t, "User token", s.Description)
-}
-
-func TestACLEndpoint_Apply_Denied(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-	waitForLeaderEstablishment(t, srv)
-
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-		},
-	}
-	var out string
-	err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-	require.True(t, acl.IsErrPermissionDenied(err), "Err %v is not acl.PermissionDenied", err)
-}
-
-func TestACLEndpoint_Apply_DeleteAnon(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-	waitForLeaderEstablishment(t, srv)
-
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLDelete,
-		ACL: structs.ACL{
-			ID:   anonymousToken,
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-		},
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
-	}
-	var out string
-	err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-	testutil.RequireErrorContains(t, err, "delete anonymous")
-}
-
-func TestACLEndpoint_Apply_RootChange(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-	waitForLeaderEstablishment(t, srv)
-
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			ID:   "manage",
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-		},
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
-	}
-	var out string
-	err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-	testutil.RequireErrorContains(t, err, "root ACL")
-}
-
-func TestACLEndpoint_Get(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-	waitForLeaderEstablishment(t, srv)
-
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-		},
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
-	}
-	var out string
-	err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-	require.NoError(t, err)
-
-	getR := structs.ACLSpecificRequest{
-		Datacenter: "dc1",
-		ACL:        out,
-	}
-	var acls structs.IndexedACLs
-	err = msgpackrpc.CallWithCodec(codec, "ACL.Get", &getR, &acls)
-	require.NoError(t, err)
-	require.NotEqual(t, uint64(0), acls.Index)
-	require.Len(t, acls.ACLs, 1)
-	require.Equal(t, out, acls.ACLs[0].ID)
-}
-
-func TestACLEndpoint_GetPolicy(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-	waitForLeaderEstablishment(t, srv)
-
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-		},
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
-	}
-	var out string
-	err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-	require.NoError(t, err)
-
-	getR := structs.ACLPolicyResolveLegacyRequest{
-		Datacenter: "dc1",
-		ACL:        out,
-	}
-
-	var acls structs.ACLPolicyResolveLegacyResponse
-	retry.Run(t, func(r *retry.R) {
-		err := msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &acls)
-
-		require.NoError(r, err)
-		require.NotNil(t, acls.Policy)
-		require.Equal(t, 30*time.Second, acls.TTL)
-	})
-
-	// Do a conditional lookup with etag
-	getR.ETag = acls.ETag
-	var out2 structs.ACLPolicyResolveLegacyResponse
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &out2))
-
-	require.Nil(t, out2.Policy)
-	require.Equal(t, 30*time.Second, out2.TTL)
-}
-
-func TestACLEndpoint_GetPolicy_Management(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-
-	// wait for leader election and leader establishment to finish.
-	// after this the global management policy, master token and
-	// anonymous token will have been injected into the state store
-	// and we will be ready to resolve the master token
-	waitForLeaderEstablishment(t, srv)
-
-	req := structs.ACLPolicyResolveLegacyRequest{
-		Datacenter: srv.config.Datacenter,
-		ACL:        TestDefaultMasterToken,
-	}
-
-	var resp structs.ACLPolicyResolveLegacyResponse
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &req, &resp))
-	require.Equal(t, "manage", resp.Parent)
-}
-
-func TestACLEndpoint_List(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-	waitForLeaderEstablishment(t, srv)
-	var expectedIDs []string
-
-	for i := 0; i < 5; i++ {
-		arg := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name: "User token",
-				Type: structs.ACLTokenTypeClient,
-			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
-		}
-		var out string
-		err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-		require.NoError(t, err)
-		expectedIDs = append(expectedIDs, out)
-	}
-
-	getR := structs.DCSpecificRequest{
-		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
-	}
-	var acls structs.IndexedACLs
-	err := msgpackrpc.CallWithCodec(codec, "ACL.List", &getR, &acls)
-	require.NoError(t, err)
-	require.NotEqual(t, uint64(0), acls.Index)
-
-	// 5  + master
-	require.Len(t, acls.ACLs, 6)
-	var actualIDs []string
-	for i := 0; i < len(acls.ACLs); i++ {
-		s := acls.ACLs[i]
-		if s.ID == anonymousToken || s.ID == TestDefaultMasterToken {
-			continue
-		}
-
-		require.Equal(t, "User token", s.Name)
-
-		actualIDs = append(actualIDs, s.ID)
-	}
-
-	require.ElementsMatch(t, expectedIDs, actualIDs)
-}
-
-func TestACLEndpoint_List_Denied(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-	waitForLeaderEstablishment(t, srv)
-
-	getR := structs.DCSpecificRequest{
-		Datacenter: "dc1",
-	}
-	var acls structs.IndexedACLs
-	err := msgpackrpc.CallWithCodec(codec, "ACL.List", &getR, &acls)
-	require.True(t, acl.IsErrPermissionDenied(err), "Err %v is not an acl.ErrPermissionDenied", err)
 }
 
 func TestACLEndpoint_ReplicationStatus(t *testing.T) {
@@ -1765,9 +1390,6 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 	// Try to join
 	joinWAN(t, s2, s1)
-
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 
 	// Ensure s2 is authoritative.
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
@@ -4005,9 +3627,6 @@ func TestACLEndpoint_SecureIntroEndpoints_LocalTokensDisabled(t *testing.T) {
 	// Try to join
 	joinWAN(t, s2, s1)
 
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
-
 	acl2 := ACL{srv: s2}
 	var ignored bool
 
@@ -4108,9 +3727,6 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 
 	// Try to join
 	joinWAN(t, s2, s1)
-
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 
 	// Ensure s2 is authoritative.
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
@@ -4996,9 +4612,6 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 
 	joinWAN(t, s2, s1)
 
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
-
 	// Ensure s2 is authoritative.
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
@@ -5635,14 +5248,18 @@ func TestValidateBindingRuleBindName(t *testing.T) {
 }
 
 // upsertTestToken creates a token for testing purposes
-func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter string,
-	tokenModificationFn func(token *structs.ACLToken)) (*structs.ACLToken, error) {
+func upsertTestTokenInEntMeta(codec rpc.ClientCodec, masterToken string, datacenter string,
+	tokenModificationFn func(token *structs.ACLToken), entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
 	arg := structs.ACLTokenSetRequest{
 		Datacenter: datacenter,
 		ACLToken: structs.ACLToken{
-			Description: "User token",
-			Local:       false,
-			Policies:    nil,
+			Description:    "User token",
+			Local:          false,
+			Policies:       nil,
+			EnterpriseMeta: *entMeta,
 		},
 		WriteRequest: structs.WriteRequest{Token: masterToken},
 	}
@@ -5666,20 +5283,30 @@ func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter strin
 	return &out, nil
 }
 
-func upsertTestTokenWithPolicyRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLToken, error) {
-	policy, err := upsertTestPolicyWithRules(codec, masterToken, datacenter, rules)
+func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter string,
+	tokenModificationFn func(token *structs.ACLToken)) (*structs.ACLToken, error) {
+	return upsertTestTokenInEntMeta(codec, masterToken, datacenter,
+		tokenModificationFn, structs.DefaultEnterpriseMetaInDefaultPartition())
+}
+
+func upsertTestTokenWithPolicyRulesInEntMeta(codec rpc.ClientCodec, masterToken string, datacenter string, rules string, entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
+	policy, err := upsertTestPolicyWithRulesInEntMeta(codec, masterToken, datacenter, rules, entMeta)
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := upsertTestToken(codec, masterToken, datacenter, func(token *structs.ACLToken) {
+	token, err := upsertTestTokenInEntMeta(codec, masterToken, datacenter, func(token *structs.ACLToken) {
 		token.Policies = []structs.ACLTokenPolicyLink{{ID: policy.ID}}
-	})
+	}, entMeta)
 	if err != nil {
 		return nil, err
 	}
 
 	return token, nil
+}
+
+func upsertTestTokenWithPolicyRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLToken, error) {
+	return upsertTestTokenWithPolicyRulesInEntMeta(codec, masterToken, datacenter, rules, nil)
 }
 
 func retrieveTestTokenAccessorForSecret(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (string, error) {
@@ -5789,8 +5416,16 @@ func upsertTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter stri
 }
 
 func upsertTestPolicyWithRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLPolicy, error) {
+	return upsertTestPolicyWithRulesInEntMeta(codec, masterToken, datacenter, rules, structs.DefaultEnterpriseMetaInDefaultPartition())
+}
+
+func upsertTestPolicyWithRulesInEntMeta(codec rpc.ClientCodec, masterToken string, datacenter string, rules string, entMeta *structs.EnterpriseMeta) (*structs.ACLPolicy, error) {
 	return upsertTestCustomizedPolicy(codec, masterToken, datacenter, func(policy *structs.ACLPolicy) {
+		if entMeta == nil {
+			entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+		}
 		policy.Rules = rules
+		policy.EnterpriseMeta = *entMeta
 	})
 }
 

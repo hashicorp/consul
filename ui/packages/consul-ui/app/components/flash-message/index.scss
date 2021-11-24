@@ -12,7 +12,7 @@
 /* flash message usage we should be able to remove this */
 %flash-message p.exists strong::before {
   @extend %with-cancel-square-fill-mask;
-  color: $red-500;
+  color: rgb(var(--tone-red-500));
 }
 %flash-message p.exists {
   @extend %frame-red-500;

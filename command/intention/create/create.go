@@ -153,24 +153,26 @@ func (c *cmd) ixnsFromArgs(args []string) ([]*api.Intention, error) {
 		return nil, fmt.Errorf("Must specify two arguments: source and destination")
 	}
 
-	srcName, srcNamespace, err := intention.ParseIntentionTarget(args[0])
+	srcName, srcNS, srcPart, err := intention.ParseIntentionTarget(args[0])
 	if err != nil {
 		return nil, fmt.Errorf("Invalid intention source: %v", err)
 	}
 
-	dstName, dstNamespace, err := intention.ParseIntentionTarget(args[1])
+	dstName, dstNS, dstPart, err := intention.ParseIntentionTarget(args[1])
 	if err != nil {
 		return nil, fmt.Errorf("Invalid intention destination: %v", err)
 	}
 
 	return []*api.Intention{{
-		SourceNS:        srcNamespace,
-		SourceName:      srcName,
-		DestinationNS:   dstNamespace,
-		DestinationName: dstName,
-		SourceType:      api.IntentionSourceConsul,
-		Action:          c.ixnAction(),
-		Meta:            c.flagMeta,
+		SourcePartition:      srcPart,
+		SourceNS:             srcNS,
+		SourceName:           srcName,
+		DestinationPartition: dstPart,
+		DestinationNS:        dstNS,
+		DestinationName:      dstName,
+		SourceType:           api.IntentionSourceConsul,
+		Action:               c.ixnAction(),
+		Meta:                 c.flagMeta,
 	}}, nil
 }
 

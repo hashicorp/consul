@@ -60,7 +60,7 @@ return `
               ],
 ${ fake.random.number({min: 1, max: 10}) > 2 ? `
             "Meta": {
-              "external-source": "${fake.helpers.randomize(['consul', 'nomad', 'terraform', 'kubernetes', ''])}"
+              "external-source": "${fake.helpers.randomize(['consul-api-gateway', 'consul', 'nomad', 'terraform', 'kubernetes', ''])}"
             },
 ` : `` }
               "Address":"",

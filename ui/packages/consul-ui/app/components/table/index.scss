@@ -21,7 +21,7 @@ table.consul-metadata-list tbody tr:hover {
 
 %table th span::after {
   @extend %with-info-circle-outline-mask, %as-pseudo;
-  color: $gray-500;
+  color: rgb(var(--tone-gray-500));
   margin-left: 4px;
 }
 %table tbody tr {
@@ -31,12 +31,12 @@ table.consul-metadata-list tbody tr:hover {
   padding: 0;
 }
 %table tbody tr:hover {
-  box-shadow: $decor-elevation-300;
+  box-shadow: var(--decor-elevation-300);
 }
 
 %table td.folder::before {
   @extend %with-folder-outline-mask, %as-pseudo;
-  background-color: $gray-300;
+  background-color: rgb(var(--tone-gray-300));
   margin-top: 1px;
   margin-right: 5px;
 }

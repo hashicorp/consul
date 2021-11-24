@@ -1,5 +1,5 @@
 %main-nav-horizontal-action {
-  border-radius: $decor-radius-200;
+  border-radius: var(--decor-radius-200);
   cursor: pointer;
 }
 %main-nav-horizontal-action > a {
@@ -16,11 +16,11 @@
   cursor: pointer;
 }
 %main-nav-horizontal-toggle-button::before {
-  background-color: var(--gray-800);
+  background-color: rgb(var(--tone-gray-800));
 }
 %main-nav-horizontal-action,
 %main-nav-horizontal-action-intent,
 %main-nav-horizontal-action-active {
-  color: var(--gray-600);
+  color: rgb(var(--tone-gray-600));
 }
 /**/

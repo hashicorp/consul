@@ -101,12 +101,27 @@ func (s *HTTPHandlers) configDelete(resp http.ResponseWriter, req *http.Request)
 		return nil, err
 	}
 
-	var reply struct{}
+	// Check for cas value
+	if casStr := req.URL.Query().Get("cas"); casStr != "" {
+		casVal, err := strconv.ParseUint(casStr, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		args.Op = structs.ConfigEntryDeleteCAS
+		args.Entry.GetRaftIndex().ModifyIndex = casVal
+	}
+
+	var reply structs.ConfigEntryDeleteResponse
 	if err := s.agent.RPC("ConfigEntry.Delete", &args, &reply); err != nil {
 		return nil, err
 	}
 
-	return reply, nil
+	// Return the `deleted` boolean for CAS operations, but not normal deletions
+	// to maintain backwards-compatibility with existing callers.
+	if args.Op == structs.ConfigEntryDeleteCAS {
+		return reply.Deleted, nil
+	}
+	return struct{}{}, nil
 }
 
 // ConfigApply applies the given config entry update.

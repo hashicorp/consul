@@ -448,6 +448,8 @@ func TestRPC_MagicByteTimeout(t *testing.T) {
 }
 
 func TestRPC_TLSHandshakeTimeout(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -684,6 +686,8 @@ func connectClient(t *testing.T, s1 *Server, mb pool.RPCType, useTLS, wantOpen b
 }
 
 func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -873,11 +877,6 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-
-	// Wait for legacy acls to be disabled so we are clear that
-	// legacy replication isn't meddling.
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	// create simple kv policy
@@ -1010,11 +1009,6 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-
-	// Wait for legacy acls to be disabled so we are clear that
-	// legacy replication isn't meddling.
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	// create simple service policy

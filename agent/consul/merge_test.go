@@ -1,190 +1,232 @@
 package consul
 
 import (
-	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/types"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
-func makeNode(dc, name, id string, server bool, build string) *serf.Member {
-	var role string
-	if server {
-		role = "consul"
-	} else {
-		role = "node"
+func TestMerge_LAN(t *testing.T) {
+	type testcase struct {
+		members []*serf.Member
+		expect  string
 	}
 
-	return &serf.Member{
-		Name: name,
+	const thisNodeID = "ee954a2f-80de-4b34-8780-97b942a50a99"
+
+	run := func(t *testing.T, tc testcase) {
+		delegate := &lanMergeDelegate{
+			dc:       "dc1",
+			nodeID:   types.NodeID(thisNodeID),
+			nodeName: "node0",
+		}
+
+		err := delegate.NotifyMerge(tc.members)
+
+		if tc.expect == "" {
+			require.NoError(t, err)
+		} else {
+			testutil.RequireErrorContains(t, err, tc.expect)
+		}
+	}
+
+	cases := map[string]testcase{
+		"client in the wrong datacenter": {
+			members: []*serf.Member{
+				makeTestNode(t, testMember{
+					dc:     "dc2",
+					name:   "node1",
+					server: false,
+					build:  "0.7.5",
+				}),
+			},
+			expect: "wrong datacenter",
+		},
+		"server in the wrong datacenter": {
+			members: []*serf.Member{
+				makeTestNode(t, testMember{
+					dc:     "dc2",
+					name:   "node1",
+					server: true,
+					build:  "0.7.5",
+				}),
+			},
+			expect: "wrong datacenter",
+		},
+		"node ID conflict with delegate's ID": {
+			members: []*serf.Member{
+				makeTestNode(t, testMember{
+					dc:     "dc1",
+					name:   "node1",
+					id:     thisNodeID,
+					server: true,
+					build:  "0.7.5",
+				}),
+			},
+			expect: "with this agent's ID",
+		},
+		"cluster with existing conflicting node IDs": {
+			members: []*serf.Member{
+				makeTestNode(t, testMember{
+					dc:     "dc1",
+					name:   "node1",
+					id:     "6185913b-98d7-4441-bd8f-f7f7d854a4af",
+					server: true,
+					build:  "0.8.5",
+				}),
+				makeTestNode(t, testMember{
+					dc:     "dc1",
+					name:   "node2",
+					id:     "6185913b-98d7-4441-bd8f-f7f7d854a4af",
+					server: true,
+					build:  "0.9.0",
+				}),
+			},
+			expect: "with member",
+		},
+		"cluster with existing conflicting node IDs, but version is old enough to skip the check": {
+			members: []*serf.Member{
+				makeTestNode(t, testMember{
+					dc:     "dc1",
+					name:   "node1",
+					id:     "6185913b-98d7-4441-bd8f-f7f7d854a4af",
+					server: true,
+					build:  "0.8.5",
+				}),
+				makeTestNode(t, testMember{
+					dc:     "dc1",
+					name:   "node2",
+					id:     "6185913b-98d7-4441-bd8f-f7f7d854a4af",
+					server: true,
+					build:  "0.8.4",
+				}),
+			},
+			expect: "with member",
+		},
+		"good cluster": {
+			members: []*serf.Member{
+				makeTestNode(t, testMember{
+					dc:     "dc1",
+					name:   "node1",
+					server: true,
+					build:  "0.8.5",
+				}),
+				makeTestNode(t, testMember{
+					dc:     "dc1",
+					name:   "node2",
+					server: true,
+					build:  "0.8.5",
+				}),
+			},
+			expect: "",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestMerge_WAN(t *testing.T) {
+	type testcase struct {
+		members []*serf.Member
+		expect  string
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		delegate := &wanMergeDelegate{}
+		err := delegate.NotifyMerge(tc.members)
+		if tc.expect == "" {
+			require.NoError(t, err)
+		} else {
+			testutil.RequireErrorContains(t, err, tc.expect)
+		}
+	}
+
+	cases := map[string]testcase{
+		"not a server": {
+			members: []*serf.Member{
+				makeTestNode(t, testMember{
+					dc:     "dc2",
+					name:   "node1",
+					server: false,
+					build:  "0.7.5",
+				}),
+			},
+			expect: "not a server",
+		},
+		"good cluster": {
+			members: []*serf.Member{
+				makeTestNode(t, testMember{
+					dc:     "dc2",
+					name:   "node1",
+					server: true,
+					build:  "0.7.5",
+				}),
+				makeTestNode(t, testMember{
+					dc:     "dc3",
+					name:   "node2",
+					server: true,
+					build:  "0.7.5",
+				}),
+			},
+			expect: "",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+type testMember struct {
+	dc        string
+	name      string
+	id        string
+	server    bool
+	build     string
+	segment   string
+	partition string
+}
+
+func (tm testMember) role() string {
+	if tm.server {
+		return "consul"
+	}
+	return "node"
+}
+
+func makeTestNode(t *testing.T, tm testMember) *serf.Member {
+	if tm.id == "" {
+		uuid, err := uuid.GenerateUUID()
+		require.NoError(t, err)
+		tm.id = uuid
+	}
+	m := &serf.Member{
+		Name: tm.name,
 		Tags: map[string]string{
-			"role":    role,
-			"dc":      dc,
-			"id":      id,
+			"role":    tm.role(),
+			"dc":      tm.dc,
+			"id":      tm.id,
 			"port":    "8300",
-			"build":   build,
+			"segment": tm.segment,
+			"build":   tm.build,
 			"vsn":     "2",
 			"vsn_max": "3",
 			"vsn_min": "2",
 		},
 	}
-}
-
-func TestMerge_LAN(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		members []*serf.Member
-		expect  string
-	}{
-		// Client in the wrong datacenter.
-		{
-			members: []*serf.Member{
-				makeNode("dc2",
-					"node1",
-					"96430788-246f-4379-94ce-257f7429e340",
-					false,
-					"0.7.5"),
-			},
-			expect: "wrong datacenter",
-		},
-		// Server in the wrong datacenter.
-		{
-			members: []*serf.Member{
-				makeNode("dc2",
-					"node1",
-					"96430788-246f-4379-94ce-257f7429e340",
-					true,
-					"0.7.5"),
-			},
-			expect: "wrong datacenter",
-		},
-		// Node ID conflict with delegate's ID.
-		{
-			members: []*serf.Member{
-				makeNode("dc1",
-					"node1",
-					"ee954a2f-80de-4b34-8780-97b942a50a99",
-					true,
-					"0.7.5"),
-			},
-			expect: "with this agent's ID",
-		},
-		// Cluster with existing conflicting node IDs.
-		{
-			members: []*serf.Member{
-				makeNode("dc1",
-					"node1",
-					"6185913b-98d7-4441-bd8f-f7f7d854a4af",
-					true,
-					"0.8.5"),
-				makeNode("dc1",
-					"node2",
-					"6185913b-98d7-4441-bd8f-f7f7d854a4af",
-					true,
-					"0.9.0"),
-			},
-			expect: "with member",
-		},
-		// Cluster with existing conflicting node IDs, but version is
-		// old enough to skip the check.
-		{
-			members: []*serf.Member{
-				makeNode("dc1",
-					"node1",
-					"6185913b-98d7-4441-bd8f-f7f7d854a4af",
-					true,
-					"0.8.5"),
-				makeNode("dc1",
-					"node2",
-					"6185913b-98d7-4441-bd8f-f7f7d854a4af",
-					true,
-					"0.8.4"),
-			},
-			expect: "with member",
-		},
-		// Good cluster.
-		{
-			members: []*serf.Member{
-				makeNode("dc1",
-					"node1",
-					"6185913b-98d7-4441-bd8f-f7f7d854a4af",
-					true,
-					"0.8.5"),
-				makeNode("dc1",
-					"node2",
-					"cda916bc-a357-4a19-b886-59419fcee50c",
-					true,
-					"0.8.5"),
-			},
-			expect: "",
-		},
+	if tm.partition != "" {
+		m.Tags["ap"] = tm.partition
 	}
-
-	delegate := &lanMergeDelegate{
-		dc:       "dc1",
-		nodeID:   types.NodeID("ee954a2f-80de-4b34-8780-97b942a50a99"),
-		nodeName: "node0",
-		segment:  "",
-	}
-	for i, c := range cases {
-		if err := delegate.NotifyMerge(c.members); c.expect == "" {
-			if err != nil {
-				t.Fatalf("case %d: err: %v", i+1, err)
-			}
-		} else {
-			if err == nil || !strings.Contains(err.Error(), c.expect) {
-				t.Fatalf("case %d: err: %v", i+1, err)
-			}
-		}
-	}
-}
-
-func TestMerge_WAN(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		members []*serf.Member
-		expect  string
-	}{
-		// Not a server
-		{
-			members: []*serf.Member{
-				makeNode("dc2",
-					"node1",
-					"96430788-246f-4379-94ce-257f7429e340",
-					false,
-					"0.7.5"),
-			},
-			expect: "not a server",
-		},
-		// Good cluster.
-		{
-			members: []*serf.Member{
-				makeNode("dc2",
-					"node1",
-					"6185913b-98d7-4441-bd8f-f7f7d854a4af",
-					true,
-					"0.7.5"),
-				makeNode("dc3",
-					"node2",
-					"cda916bc-a357-4a19-b886-59419fcee50c",
-					true,
-					"0.7.5"),
-			},
-			expect: "",
-		},
-	}
-
-	delegate := &wanMergeDelegate{}
-	for i, c := range cases {
-		if err := delegate.NotifyMerge(c.members); c.expect == "" {
-			if err != nil {
-				t.Fatalf("case %d: err: %v", i+1, err)
-			}
-		} else {
-			if err == nil || !strings.Contains(err.Error(), c.expect) {
-				t.Fatalf("case %d: err: %v", i+1, err)
-			}
-		}
-	}
+	return m
 }

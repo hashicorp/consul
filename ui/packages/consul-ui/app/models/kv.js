@@ -12,6 +12,9 @@ export default class Kv extends Model {
   @attr('string') uid;
   @attr('string') Key;
 
+  @attr('number') SyncTime;
+  @attr() meta; // {}
+
   @attr('string') Datacenter;
   @attr('string') Namespace;
   @attr('string') Partition;

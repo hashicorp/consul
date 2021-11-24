@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package structs
@@ -71,11 +72,6 @@ func (ixn *Intention) FillPartitionAndNamespace(entMeta *EnterpriseMeta, fillDef
 		ixn.DestinationNS = ns
 	}
 
-	ixn.SourcePartition = ""
-	ixn.DestinationPartition = ""
-}
-
-func (ixn *Intention) NormalizePartitionFields() {
 	ixn.SourcePartition = ""
 	ixn.DestinationPartition = ""
 }

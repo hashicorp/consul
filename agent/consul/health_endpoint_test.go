@@ -993,26 +993,18 @@ func TestHealth_ServiceNodes_ConnectProxy_ACL(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
+	policy = "write"
+}
+service "foo-proxy" {
 	policy = "write"
 }
 node "foo" {
 	policy = "write"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var token string
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", arg, &token))
+`
+	token := createToken(t, codec, rules)
 
 	{
 		var out struct{}

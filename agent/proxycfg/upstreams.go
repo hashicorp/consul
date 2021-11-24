@@ -107,6 +107,8 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 						Addrs: make(map[string]struct{}),
 					}
 				}
+
+				// TODO(partitions) Update to account for upstream in remote partition once tproxy supports it
 				addr, _ := node.BestAddress(false)
 				upstreamsSnapshot.PassthroughUpstreams[svc.String()].Addrs[addr] = struct{}{}
 			}
@@ -118,14 +120,15 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		correlationID := strings.TrimPrefix(u.CorrelationID, "mesh-gateway:")
-		dc, svc, ok := removeColonPrefix(correlationID)
+		key, svc, ok := removeColonPrefix(correlationID)
 		if !ok {
 			return fmt.Errorf("invalid correlation id %q", u.CorrelationID)
 		}
 		if _, ok = upstreamsSnapshot.WatchedGatewayEndpoints[svc]; !ok {
 			upstreamsSnapshot.WatchedGatewayEndpoints[svc] = make(map[string]structs.CheckServiceNodes)
 		}
-		upstreamsSnapshot.WatchedGatewayEndpoints[svc][dc] = resp.Nodes
+		upstreamsSnapshot.WatchedGatewayEndpoints[svc][key] = resp.Nodes
+
 	default:
 		return fmt.Errorf("unknown correlation ID: %s", u.CorrelationID)
 	}
@@ -207,11 +210,22 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 
 		// We'll get endpoints from the gateway query, but the health still has
 		// to come from the backing service query.
+		var gk GatewayKey
+
 		switch target.MeshGateway.Mode {
 		case structs.MeshGatewayModeRemote:
-			needGateways[target.Datacenter] = struct{}{}
+			gk = GatewayKey{
+				Partition:  target.Partition,
+				Datacenter: target.Datacenter,
+			}
 		case structs.MeshGatewayModeLocal:
-			needGateways[s.source.Datacenter] = struct{}{}
+			gk = GatewayKey{
+				Partition:  s.source.NodePartitionOrDefault(),
+				Datacenter: s.source.Datacenter,
+			}
+		}
+		if s.source.Datacenter != target.Datacenter || s.proxyID.PartitionOrDefault() != target.Partition {
+			needGateways[gk.String()] = struct{}{}
 		}
 	}
 
@@ -240,38 +254,51 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 		}
 	}
 
-	for dc := range needGateways {
-		if _, ok := snap.WatchedGateways[id][dc]; ok {
+	for key := range needGateways {
+		if _, ok := snap.WatchedGateways[id][key]; ok {
 			continue
 		}
+		gwKey := gatewayKeyFromString(key)
 
-		s.logger.Trace("initializing watch of mesh gateway in datacenter",
+		s.logger.Trace("initializing watch of mesh gateway",
 			"upstream", id,
 			"chain", chain.ServiceName,
-			"datacenter", dc,
+			"datacenter", gwKey.Datacenter,
+			"partition", gwKey.Partition,
 		)
 
 		ctx, cancel := context.WithCancel(ctx)
-		err := s.watchMeshGateway(ctx, dc, id)
+		opts := gatewayWatchOpts{
+			notifier:   s.cache,
+			notifyCh:   s.ch,
+			source:     *s.source,
+			token:      s.token,
+			key:        gwKey,
+			upstreamID: id,
+		}
+		err := watchMeshGateway(ctx, opts)
 		if err != nil {
 			cancel()
 			return err
 		}
 
-		snap.WatchedGateways[id][dc] = cancel
+		snap.WatchedGateways[id][key] = cancel
 	}
 
-	for dc, cancelFn := range snap.WatchedGateways[id] {
-		if _, ok := needGateways[dc]; ok {
+	for key, cancelFn := range snap.WatchedGateways[id] {
+		if _, ok := needGateways[key]; ok {
 			continue
 		}
-		s.logger.Trace("stopping watch of mesh gateway in datacenter",
+		gwKey := gatewayKeyFromString(key)
+
+		s.logger.Trace("stopping watch of mesh gateway",
 			"upstream", id,
 			"chain", chain.ServiceName,
-			"datacenter", dc,
+			"datacenter", gwKey.Datacenter,
+			"partition", gwKey.Partition,
 		)
-		delete(snap.WatchedGateways[id], dc)
-		delete(snap.WatchedGatewayEndpoints[id], dc)
+		delete(snap.WatchedGateways[id], key)
+		delete(snap.WatchedGatewayEndpoints[id], key)
 		cancelFn()
 	}
 
@@ -285,17 +312,6 @@ type targetWatchOpts struct {
 	filter     string
 	datacenter string
 	entMeta    *structs.EnterpriseMeta
-}
-
-func (s *handlerUpstreams) watchMeshGateway(ctx context.Context, dc string, upstreamID string) error {
-	return s.cache.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
-		Datacenter:     dc,
-		QueryOptions:   structs.QueryOptions{Token: s.token},
-		ServiceKind:    structs.ServiceKindMeshGateway,
-		UseServiceKind: true,
-		Source:         *s.source,
-		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-	}, "mesh-gateway:"+dc+":"+upstreamID, s.ch)
 }
 
 func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *ConfigSnapshotUpstreams, opts targetWatchOpts) error {

@@ -276,6 +276,12 @@ The table below shows this endpoint's support for
   `X-Consul-Namespace` header. If not provided, the namespace will be inherited
   from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
 
+- `cas` `(int: 0)` - Specifies to use a Check-And-Set operation. Unlike `PUT`,
+  the index must be greater than 0 for Consul to take any action: a 0 index will
+  not delete the config entry. If the index is non-zero, the config entry is only
+  deleted if the index matches the `ModifyIndex` of that config entry. This is
+  specified as part of the URL as a query parameter.
+
 ### Sample Request
 
 ```shell-session

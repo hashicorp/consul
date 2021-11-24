@@ -15,14 +15,14 @@ references:
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.16.7
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.17.2
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
 
   paths:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
 
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v4-{{ checksum "ui/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v5-{{ checksum "ui/yarn.lock" }}
     rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
 
   environment: &ENVIRONMENT
@@ -113,7 +113,7 @@ jobs:
       - image: *GOLANG_IMAGE
     steps:
       - checkout
-      - run: go get -u github.com/hashicorp/lint-consul-retry && lint-consul-retry
+      - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
       - run: *notify-slack-failure
 
   lint:
@@ -184,9 +184,8 @@ jobs:
           name: Install gogo/protobuf
           command: |
             gogo_version=$(go list -m github.com/gogo/protobuf | awk '{print $2}')
-            mkdir -p .gotools; cd .gotools; go mod init consul-tools
-            go get -v github.com/hashicorp/protoc-gen-go-binary
-            go get -v github.com/gogo/protobuf/protoc-gen-gofast@${gogo_version}
+            go install -v github.com/hashicorp/protoc-gen-go-binary@master
+            go install -v github.com/gogo/protobuf/protoc-gen-gofast@${gogo_version}
 
       - run:
           command: make --always-make proto
@@ -213,7 +212,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: /go/bin
-      - run: sudo apt-get update && sudo apt-get install -y rsyslog
+      - run: sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y rsyslog
       - run: sudo service rsyslog start
       - run: *install-gotestsum
       - run: go mod download
@@ -406,7 +405,7 @@ jobs:
       GOOS: linux
     steps:
       - checkout
-      - run: sudo apt-get update && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
+      - run: sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
       - run:
           environment:
             GOARM: 5
@@ -602,7 +601,7 @@ jobs:
 
       - run:
           name: install yarn packages
-          command: cd ui && yarn install
+          command: cd ui && make deps
 
       - save_cache:
           key: *YARN_CACHE_KEY
@@ -792,14 +791,14 @@ jobs:
           command: make test-coverage-ci
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_15_5: &ENVOY_TESTS
+  envoy-integration-test-1_17_4: &ENVOY_TESTS
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
       - image: *GOLANG_IMAGE
     parallelism: 2
     environment:
-      ENVOY_VERSION: "1.15.5"
+      ENVOY_VERSION: "1.17.4"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -832,32 +831,20 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_15_5-v2compat:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.15.5"
-      TEST_V2_XDS: "1"
-
-  envoy-integration-test-1_16_5:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.16.5"
-
-  envoy-integration-test-1_16_5-v2compat:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.16.5"
-      TEST_V2_XDS: "1"
-
-  envoy-integration-test-1_17_4:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.17.4"
-
   envoy-integration-test-1_18_4:
     <<: *ENVOY_TESTS
     environment:
       ENVOY_VERSION: "1.18.4"
+
+  envoy-integration-test-1_19_1:
+    <<: *ENVOY_TESTS
+    environment:
+      ENVOY_VERSION: "1.19.1"
+
+  envoy-integration-test-1_20_0:
+    <<: *ENVOY_TESTS
+    environment:
+      ENVOY_VERSION: "1.20.0"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -1023,9 +1010,9 @@ workflows:
           go-version: "1.16"
           requires: [dev-build]
       - go-test-lib:
-          name: "go-test-api go1.15"
+          name: "go-test-api go1.17"
           path: api
-          go-version: "1.15"
+          go-version: "1.17"
           requires: [dev-build]
       - go-test-lib:
           name: "go-test-sdk go1.16"
@@ -1033,9 +1020,9 @@ workflows:
           go-version: "1.16"
           <<: *filter-ignore-non-go-branches
       - go-test-lib:
-          name: "go-test-sdk go1.15"
+          name: "go-test-sdk go1.17"
           path: sdk
-          go-version: "1.15"
+          go-version: "1.17"
           <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-32bit: *filter-ignore-non-go-branches
@@ -1099,22 +1086,16 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_15_5:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_15_5-v2compat:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_16_5:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_16_5-v2compat:
-          requires:
-            - dev-build
       - envoy-integration-test-1_17_4:
           requires:
             - dev-build
       - envoy-integration-test-1_18_4:
+          requires:
+            - dev-build
+      - envoy-integration-test-1_19_1:
+          requires:
+            - dev-build
+      - envoy-integration-test-1_20_0:
           requires:
             - dev-build
 

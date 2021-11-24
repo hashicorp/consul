@@ -14,8 +14,8 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
     <div className="p-home">
       <HomepageHero
         alert={{
-          url: 'https://www.hashicorp.com/blog/announcing-consul-1-10',
-          text: 'Consul 1.10 Is Now Generally Available',
+          url: 'https://www.hashicorp.com/blog/announcing-hashicorp-consul-api-gateway',
+          text: 'Introducing the Consul API Gateway',
           tag: 'Blog',
         }}
         title="Service Mesh for any runtime or cloud"
@@ -136,14 +136,12 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
         callouts={[
           {
             icon: require('./img/kubernetes/logo.svg?include'),
-            title: 'Consul for Kubernetes',
+            title: 'Consul on Kubernetes',
             description:
               'Consul service mesh works on any Kubernetes distribution, connects multiple clusters, and supports VM-based applications. Consul CRDs provide a self-service, Kubernetes native workflow to manage traffic patterns and permissions in the mesh.',
-            eyebrow: 'Tutorial',
             link: {
-              text: 'Get Started with Consul on Kubernetes',
-              url:
-                'https://learn.hashicorp.com/tutorials/consul/kubernetes-custom-resource-definitions?in=consul/kubernetes',
+              text: 'Learn more',
+              url: '/consul-on-kubernetes',
             },
           },
           {

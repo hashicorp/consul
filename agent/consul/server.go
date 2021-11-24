@@ -17,6 +17,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/go-version"
+
 	"github.com/armon/go-metrics"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
@@ -92,6 +94,8 @@ const (
 	// from Serf with the Catalog. If this is exhausted we will drop updates,
 	// and wait for a periodic reconcile.
 	reconcileChSize = 256
+
+	LeaderTransferMinVersion = "1.6.0"
 )
 
 const (
@@ -117,6 +121,11 @@ var (
 	ErrWANFederationDisabled = fmt.Errorf("WAN Federation is disabled")
 )
 
+const (
+	PoolKindPartition = "partition"
+	PoolKindSegment   = "segment"
+)
+
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
 type Server struct {
@@ -133,10 +142,6 @@ type Server struct {
 	acls *ACLResolver
 
 	aclAuthMethodValidators authmethod.Cache
-
-	// DEPRECATED (ACL-Legacy-Compat) - only needed while we support both
-	// useNewACLs is used to determine whether we can use new ACLs or not
-	useNewACLs int32
 
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
@@ -248,10 +253,14 @@ type Server struct {
 
 	// serfLAN is the Serf cluster maintained inside the DC
 	// which contains all the DC nodes
+	//
+	// - If Network Segments are active, this only contains members in the
+	//   default segment.
+	//
+	// - If Admin Partitions are active, this only contains members in the
+	//   default partition.
+	//
 	serfLAN *serf.Serf
-
-	// segmentLAN maps segment names to their Serf cluster
-	segmentLAN map[string]*serf.Serf
 
 	// serfWAN is the Serf cluster maintained between DC's
 	// which SHOULD only consist of Consul servers
@@ -362,7 +371,6 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		insecureRPCServer:       rpc.NewServer(),
 		tlsConfigurator:         flat.TLSConfigurator,
 		reassertLeaderCh:        make(chan chan error),
-		segmentLAN:              make(map[string]*serf.Serf, len(config.Segments)),
 		sessionTimers:           NewSessionTimers(),
 		tombstoneGC:             gc,
 		serverLookup:            NewServerLookup(),
@@ -388,6 +396,8 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		s.Shutdown()
 		return nil, err
 	}
+
+	initLeaderMetrics()
 
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
@@ -427,8 +437,8 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
-	s.aclConfig = newACLConfig(logger)
-	s.useNewACLs = 0
+	partitionInfo := serverPartitionInfo(s)
+	s.aclConfig = newACLConfig(partitionInfo, logger)
 	aclConfig := ACLResolverConfig{
 		Config:      config.ACLResolverSettings,
 		Delegate:    s,
@@ -481,10 +491,14 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	// a little gross to be reading the updated config.
 
 	// Initialize the WAN Serf if enabled
-	serfBindPortWAN := -1
 	if config.SerfWANConfig != nil {
-		serfBindPortWAN = config.SerfWANConfig.MemberlistConfig.BindPort
-		s.serfWAN, err = s.setupSerf(config.SerfWANConfig, s.eventChWAN, serfWANSnapshot, true, serfBindPortWAN, "", s.Listener)
+		s.serfWAN, err = s.setupSerf(setupSerfOptions{
+			Config:       config.SerfWANConfig,
+			EventCh:      s.eventChWAN,
+			SnapshotPath: serfWANSnapshot,
+			WAN:          true,
+			Listener:     s.Listener,
+		})
 		if err != nil {
 			s.Shutdown()
 			return nil, fmt.Errorf("Failed to start WAN Serf: %v", err)
@@ -495,6 +509,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		s.memberlistTransportWAN = config.SerfWANConfig.MemberlistConfig.Transport.(wanfed.IngestionAwareTransport)
 
 		// See big comment above why we are doing this.
+		serfBindPortWAN := config.SerfWANConfig.MemberlistConfig.BindPort
 		if serfBindPortWAN == 0 {
 			serfBindPortWAN = config.SerfWANConfig.MemberlistConfig.BindPort
 			if serfBindPortWAN == 0 {
@@ -506,14 +521,13 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 
 	// Initialize the LAN segments before the default LAN Serf so we have
 	// updated port information to publish there.
-	if err := s.setupSegments(config, serfBindPortWAN, segmentListeners); err != nil {
+	if err := s.setupSegments(config, segmentListeners); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to setup network segments: %v", err)
 	}
 
 	// Initialize the LAN Serf for the default network segment.
-	s.serfLAN, err = s.setupSerf(config.SerfLANConfig, s.eventChLAN, serfLANSnapshot, false, serfBindPortWAN, "", s.Listener)
-	if err != nil {
+	if err := s.setupSerfLAN(config); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start LAN Serf: %v", err)
 	}
@@ -562,7 +576,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 			WithDatacenter(s.config.Datacenter).
 			WithReportingInterval(s.config.MetricsReportingInterval).
 			WithGetMembersFunc(func() []serf.Member {
-				members, err := s.LANMembersAllSegments()
+				members, err := s.lanPoolAllMembers()
 				if err != nil {
 					return []serf.Member{}
 				}
@@ -924,13 +938,7 @@ func (s *Server) Shutdown() error {
 		s.leaderRoutineManager.StopAll()
 	}
 
-	if s.serfLAN != nil {
-		s.serfLAN.Shutdown()
-	}
-
-	for _, segment := range s.segmentLAN {
-		segment.Shutdown()
-	}
+	s.shutdownSerfLAN()
 
 	if s.serfWAN != nil {
 		s.serfWAN.Shutdown()
@@ -939,6 +947,8 @@ func (s *Server) Shutdown() error {
 		}
 	}
 	s.router.Shutdown()
+
+	// TODO: actually shutdown areas?
 
 	if s.raft != nil {
 		s.raftTransport.Close()
@@ -978,7 +988,23 @@ func (s *Server) Shutdown() error {
 	return nil
 }
 
-// Leave is used to prepare for a graceful shutdown of the server
+func (s *Server) attemptLeadershipTransfer() (success bool) {
+	leadershipTransferVersion := version.Must(version.NewVersion(LeaderTransferMinVersion))
+
+	ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, leadershipTransferVersion)
+	if !ok {
+		return false
+	}
+
+	future := s.raft.LeadershipTransfer()
+	if err := future.Error(); err != nil {
+		s.logger.Error("failed to transfer leadership, removing the server", "error", err)
+		return false
+	}
+	return true
+}
+
+// Leave is used to prepare for a graceful shutdown.
 func (s *Server) Leave() error {
 	s.logger.Info("server starting leave")
 
@@ -997,8 +1023,13 @@ func (s *Server) Leave() error {
 	// removed for some reasonable period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		if err := s.autopilot.RemoveServer(raft.ServerID(s.config.NodeID)); err != nil {
-			s.logger.Error("failed to remove ourself as a Raft peer", "error", err)
+		if s.attemptLeadershipTransfer() {
+			isLeader = false
+		} else {
+			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
+			if err := future.Error(); err != nil {
+				s.logger.Error("failed to remove ourself as raft peer", "error", err)
+			}
 		}
 	}
 
@@ -1077,13 +1108,6 @@ func (s *Server) Leave() error {
 	return nil
 }
 
-// JoinLAN is used to have Consul join the inner-DC pool
-// The target address should be another node inside the DC
-// listening on the Serf LAN address
-func (s *Server) JoinLAN(addrs []string) (int, error) {
-	return s.serfLAN.Join(addrs, true)
-}
-
 // JoinWAN is used to have Consul join the cross-WAN Consul ring
 // The target address should be another node listening on the
 // Serf WAN address
@@ -1129,13 +1153,15 @@ func (s *Server) PrimaryGatewayFallbackAddresses() []string {
 	return s.gatewayLocator.PrimaryGatewayFallbackAddresses()
 }
 
-// LocalMember is used to return the local node
-func (s *Server) LocalMember() serf.Member {
+// AgentLocalMember is used to retrieve the LAN member for the local node.
+func (s *Server) AgentLocalMember() serf.Member {
 	return s.serfLAN.LocalMember()
 }
 
-// LANMembers is used to return the members of the LAN cluster
-func (s *Server) LANMembers() []serf.Member {
+// LANMembersInAgentPartition returns the LAN members for this agent's
+// canonical serf pool. For clients this is the only pool that exists. For
+// servers it's the pool in the default segment and the default partition.
+func (s *Server) LANMembersInAgentPartition() []serf.Member {
 	return s.serfLAN.Members()
 }
 
@@ -1147,17 +1173,13 @@ func (s *Server) WANMembers() []serf.Member {
 	return s.serfWAN.Members()
 }
 
-// RemoveFailedNode is used to remove a failed node from the cluster
-func (s *Server) RemoveFailedNode(node string, prune bool) error {
+// RemoveFailedNode is used to remove a failed node from the cluster.
+func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
 	var removeFn func(*serf.Serf, string) error
 	if prune {
 		removeFn = (*serf.Serf).RemoveFailedNodePrune
 	} else {
 		removeFn = (*serf.Serf).RemoveFailedNode
-	}
-
-	if err := removeFn(s.serfLAN, node); err != nil {
-		return err
 	}
 
 	wanNode := node
@@ -1167,13 +1189,8 @@ func (s *Server) RemoveFailedNode(node string, prune bool) error {
 	if !strings.HasSuffix(node, "."+s.config.Datacenter) {
 		wanNode = node + "." + s.config.Datacenter
 	}
-	if s.serfWAN != nil {
-		if err := removeFn(s.serfWAN, wanNode); err != nil {
-			return err
-		}
-	}
 
-	return s.removeFailedNodeEnterprise(removeFn, node, wanNode)
+	return s.removeFailedNode(removeFn, node, wanNode, entMeta)
 }
 
 // IsLeader checks if this server is the cluster leader
@@ -1189,6 +1206,7 @@ func (s *Server) LeaderLastContact() time.Time {
 
 // KeyManagerLAN returns the LAN Serf keyring manager
 func (s *Server) KeyManagerLAN() *serf.KeyManager {
+	// NOTE: The serfLAN keymanager is shared by all partitions.
 	return s.serfLAN.KeyManager()
 }
 
@@ -1197,15 +1215,8 @@ func (s *Server) KeyManagerWAN() *serf.KeyManager {
 	return s.serfWAN.KeyManager()
 }
 
-// LANSegments returns a map of LAN segments by name
-func (s *Server) LANSegments() map[string]*serf.Serf {
-	segments := make(map[string]*serf.Serf, len(s.segmentLAN)+1)
-	segments[""] = s.serfLAN
-	for name, segment := range s.segmentLAN {
-		segments[name] = segment
-	}
-
-	return segments
+func (s *Server) AgentEnterpriseMeta() *structs.EnterpriseMeta {
+	return s.config.AgentEnterpriseMeta()
 }
 
 // inmemCodec is used to do an RPC call without going over a network
@@ -1346,11 +1357,7 @@ func (s *Server) Stats() map[string]map[string]string {
 	}
 
 	if s.config.ACLsEnabled {
-		if s.UseLegacyACLs() {
-			stats["consul"]["acl"] = "legacy"
-		} else {
-			stats["consul"]["acl"] = "enabled"
-		}
+		stats["consul"]["acl"] = "enabled"
 	} else {
 		stats["consul"]["acl"] = "disabled"
 	}
@@ -1359,10 +1366,25 @@ func (s *Server) Stats() map[string]map[string]string {
 		stats["serf_wan"] = s.serfWAN.Stats()
 	}
 
+	s.addEnterpriseStats(stats)
+
 	return stats
 }
 
-// GetLANCoordinate returns the coordinate of the server in the LAN gossip pool.
+// GetLANCoordinate returns the coordinate of the node in the LAN gossip
+// pool.
+//
+// - Clients return a single coordinate for the single gossip pool they are
+//   in (default, segment, or partition).
+//
+// - Servers return one coordinate for their canonical gossip pool (i.e.
+//   default partition/segment) and one per segment they are also ancillary
+//   members of.
+//
+// NOTE: servers do not emit coordinates for partitioned gossip pools they
+// are ancillary members of.
+//
+// NOTE: This assumes coordinates are enabled, so check that before calling.
 func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 	lan, err := s.serfLAN.GetCoordinate()
 	if err != nil {
@@ -1370,14 +1392,15 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 	}
 
 	cs := lib.CoordinateSet{"": lan}
-	for name, segment := range s.segmentLAN {
-		c, err := segment.GetCoordinate()
-		if err != nil {
-			return nil, err
-		}
-		cs[name] = c
+	if err := s.addEnterpriseLANCoordinates(cs); err != nil {
+		return nil, err
 	}
+
 	return cs, nil
+}
+
+func (s *Server) agentSegmentName() string {
+	return s.config.Segment
 }
 
 // ReloadConfig is used to have the Server do an online reload of

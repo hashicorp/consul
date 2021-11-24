@@ -5,17 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
-
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSpiffeIDSigningForCluster(t *testing.T) {
 	// For now it should just append .consul to the ID.
-	config := &structs.CAConfiguration{
-		ClusterID: TestClusterID,
-	}
-	id := SpiffeIDSigningForCluster(config)
+	id := SpiffeIDSigningForCluster(TestClusterID)
 	assert.Equal(t, id.URI().String(), "spiffe://"+TestClusterID+".consul")
 }
 

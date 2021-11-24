@@ -31,13 +31,38 @@ at startup and sets up initial configuration for Consul and Envoy.
 
 This diagram shows the timeline of a task starting up and all its containers:
 
-![Task Startup Timeline](/img/ecs-task-startup.png)
+<img alt="Task Startup Timeline" src="/img/ecs-task-startup.svg" style={{display: "block", maxWidth: "400px"}} />
 
 - **T0:** ECS starts the task. The `consul-client` and `mesh-init` containers start:
   - `consul-client` uses the `retry-join` option to join the Consul cluster
-  - `mesh-init` registers the service for this task and its sidecar proxy into Consul. It runs `consul connect envoy -bootstrap` to generate Envoy’s bootstrap JSON file and write it to a shared volume. After registration and bootstrapping, `mesh-init` exits.
-- **T1:** The `sidecar-proxy` container starts. It runs Envoy by executing `envoy -c <path-to-bootstrap-json>`.
+  - `mesh-init` registers the service for the current task and its sidecar proxy with
+    Consul. It runs `consul connect envoy -bootstrap` to generate Envoy’s
+    bootstrap JSON file and write it to a shared volume. `mesh-init` exits after completing these operations.
+
+- **T1:** The following containers start:
+  - The `sidecar-proxy` container starts and runs Envoy by executing `envoy -c <path-to-bootstrap-json>`.
+  - If applicable, the `health-sync` container syncs health checks from ECS to Consul (see [ECS Health Check Syncing](#ecs-health-check-syncing)).
 - **T2:** The `sidecar-proxy` container is marked as healthy by ECS. It uses a health check that detects if its public listener port is open. At this time, your application containers are started since all Consul machinery is ready to service requests. The only running containers are `consul-client`, `sidecar-proxy`, and your application container(s).
+
+### Task Shutdown
+
+This diagram shows an example timeline of a task shutting down:
+
+<img alt="Task Shutdown Timeline" src="/img/ecs-task-shutdown.svg" style={{display: "block", maxWidth: "400px"}} />
+
+- **T0**: ECS sends a TERM signal to all containers. Each container reacts to the TERM signal:
+  - `consul-client` begins to gracefully leave the Consul cluster.
+  - `health-sync` stops syncing health status from ECS into Consul checks.
+  - `sidecar-proxy` ignores the TERM signal and continues running until the `user-app` container exits. This allows the application container to continue making outgoing requests through the proxy to the mesh.
+  - `user-app` exits if it is not configured to ignore the TERM signal. The `user-app` container will continue running if it is configured to ignore the TERM signal.
+- **T1**:
+  - `health-sync` updates its Consul checks to critical status and exits. This ensures this service instance is marked unhealthy.
+  - `sidecar-proxy` notices the `user-app` container has stopped and exits.
+- **T2**: `consul-client` finishes gracefully leaving the Consul datacenter and exits.
+- **T3**:
+  - ECS notices all containers have exited, and will soon change the Task status to `STOPPED`
+  - Updates about this task have reached the rest of the Consul cluster, so downstream proxies have been updated to stopped sending traffic to this task.
+- **T4**: At this point task shutdown should be complete. Otherwise, ECS will send a KILL signal to any containers still running. The KILL signal cannot be ignored and will forcefully stop containers. This will interrupt in-progress operations and possibly cause errors.
 
 ### Automatic ACL Token Provisioning
 
@@ -57,3 +82,15 @@ token does not yet exist.
 
 The ACL controller stores all ACL tokens in AWS Secrets Manager, and tasks are configured to pull these
 tokens from AWS Secrets Manager when they start.
+
+### ECS Health Check Syncing
+
+If the following conditions apply, ECS health checks automatically sync with Consul health checks for all application containers:
+
+* marked as `essential` 
+* have ECS `healthChecks` 
+* are not configured with native Consul health checks 
+
+The `mesh-init` container creates a TTL health check for
+every container that fits these criteria and the `health-sync` container ensures
+that the ECS and Consul health checks remain in sync.

@@ -6,36 +6,21 @@
 %tab-nav.animatable {
   @extend %with-animated-tab-selection;
 }
-.tab-section {
-  @extend %tab-section;
-  /* this keeps in-tab-section toolbars flush to the top, see Node Detail > Services */
-  margin-top: 0 !important;
-}
 %with-animated-tab-selection ul::after,
 %tab-button-selected {
   @extend %frame-blue-300;
 }
-%tab-nav li a {
+%tab-nav li > * {
   @extend %tab-button;
 }
-%tab-nav li:not(.selected) a:hover,
-%tab-nav li:not(.selected) a:focus {
+%tab-nav li:not(.selected) > *:hover,
+%tab-nav li:not(.selected) > *:focus {
   @extend %tab-button-intent;
 }
-%tab-nav li:not(.selected) a:active {
+%tab-nav li:not(.selected) > *:active {
   @extend %tab-button-active;
 }
 /* TODO: need to add an empty class here */
-%tab-nav .selected a {
+%tab-nav .selected > * {
   @extend %tab-button-selected;
-}
-%display-state,
-%display-state + * {
-  display: none;
-}
-%display-state:checked + * {
-  display: block;
-}
-%tab-section > input[type='radio'] {
-  @extend %display-state;
 }

@@ -14,16 +14,10 @@ import (
 // ring. We check that the peers are in the same datacenter and abort the
 // merge if there is a mis-match.
 type lanMergeDelegate struct {
-	dc       string
-	nodeID   types.NodeID
-	nodeName string
-	segment  string
-
-	// TODO(partitions): use server and partition to reject gossip messages
-	// from nodes in the wrong partition depending upon the role the node is
-	// playing. For example servers will always be in the default partition,
-	// but all clients in all partitions should be aware of the servers so that
-	// general RPC routing works.
+	dc        string
+	nodeID    types.NodeID
+	nodeName  string
+	segment   string
 	server    bool
 	partition string
 }
@@ -81,9 +75,8 @@ func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 			}
 		}
 
-		if segment := m.Tags["segment"]; segment != md.segment {
-			return fmt.Errorf("Member '%s' part of wrong segment '%s' (expected '%s')",
-				m.Name, segment, md.segment)
+		if err := md.enterpriseNotifyMergeMember(m); err != nil {
+			return err
 		}
 	}
 	return nil

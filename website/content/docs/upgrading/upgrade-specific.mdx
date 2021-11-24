@@ -14,6 +14,20 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
+## Consul 1.11.0
+
+### Envoy xDS Protocol Upgrades
+
+As noted in earlier upgrades, previous versions of Consul supported both v2 and v3
+variants of the XDS Transport Protocol. In Consul 1.11, support for Envoy 1.16 is
+removed and consequently v2 is no longer supported. What this means is that if
+you have generated your Envoy bootstrap files using the Consul CLI that is newer
+than 1.10, you must make sure that you upgrade Consul and Envoy per the
+[Stairstep Upgrade Path](#stairstep-upgrade-path) before upgrading to Consul 1.11.
+When upgrading to Consul 1.10, you must ensure that the Envoy sidecars are
+restarted and bootstrapped using a version of the Consul CLI >= 1.10. This
+ensures your sidecars are supported by Consul 1.11.
+
 ## Consul 1.10.0
 
 ### Licensing Changes <EnterpriseAlert inline />
@@ -51,8 +65,7 @@ protocol variant as the preferred way of conversing with Envoy. Both protocol
 variants are supported in this Consul version to facilitate upgrading Consul
 and Envoy in a stairstep order to avoid downtime.
 
-In a future version of Consul the v2 State of the World protocol support will
-be removed.
+In [Consul 1.11](#consul-1-11-0) the v2 State of the World protocol support will be removed.
 
 | Protocol           | Version | Compatible Envoy Versions      | Compatible Consul Versions |
 | ------------------ | ------- | ------------------------------ | -------------------------- |

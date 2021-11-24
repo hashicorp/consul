@@ -348,23 +348,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 	check := structs.HealthCheck{Node: "nope", CheckID: types.CheckID("nope")}
 	state.EnsureCheck(4, &check)
 
-	// Create the ACL.
-	var id string
-	{
-		arg := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: testTxnRules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	id := createToken(t, rpcClient(t, s1), testTxnRules)
 
 	// Set up a transaction where every operation should get blocked due to
 	// ACLs.
@@ -888,23 +872,7 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 	check := structs.HealthCheck{Node: "nope", CheckID: types.CheckID("nope")}
 	state.EnsureCheck(4, &check)
 
-	// Create the ACL.
-	var id string
-	{
-		arg := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: testTxnRules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	id := createToken(t, codec, testTxnRules)
 
 	// Set up a transaction where every operation should get blocked due to
 	// ACLs.

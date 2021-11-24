@@ -58,7 +58,7 @@ ${range(env('CONSUL_EXPOSED_COUNT', 3)).map((i) => `
           ${ location.pathname.slice(4) === "service-0" ? `
           ,
           "DestinationServiceID": "${location.pathname.slice(4)}-with-id",
-${ fake.random.number({min: 1, max: 10}) > 2 ? `
+${ fake.random.number({min: 1, max: 10}) > 5 ? `
           "LocalServiceAddress": "${fake.internet.ip()}",
           "LocalServicePort": ${fake.random.number({min: 0, max: 65535})}
 ` : `

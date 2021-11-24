@@ -7,25 +7,28 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-// ParseIntentionTarget parses a target of the form <namespace>/<name> and returns
-// the two distinct parts. In some cases the namespace may be elided and this function
-// will return the empty string for the namespace then.
-func ParseIntentionTarget(input string) (name string, namespace string, err error) {
-	// Get the index to the '/'. If it doesn't exist, we have just a name
-	// so just set that and return.
-	idx := strings.IndexByte(input, '/')
-	if idx == -1 {
-		// let the agent do token based defaulting of the namespace
-		return input, "", nil
+// ParseIntentionTarget parses a target of the form <partition>/<namespace>/<name> and returns
+// the distinct parts. In some cases the partition and namespace may be elided and this function
+// will return the empty string for them then.
+// If two parts are present, it is assumed they are namespace/name and not partition/name.
+func ParseIntentionTarget(input string) (name string, ns string, partition string, err error) {
+	ss := strings.Split(input, "/")
+	switch len(ss) {
+	case 1: // Name only
+		name = ss[0]
+		return
+	case 2: // namespace/name
+		ns = ss[0]
+		name = ss[1]
+		return
+	case 3: // partition/namespace/name
+		partition = ss[0]
+		ns = ss[1]
+		name = ss[2]
+		return
+	default:
+		return "", "", "", fmt.Errorf("input can contain at most two '/'")
 	}
-
-	namespace = input[:idx]
-	name = input[idx+1:]
-	if strings.IndexByte(name, '/') != -1 {
-		return "", "", fmt.Errorf("target can contain at most one '/'")
-	}
-
-	return name, namespace, nil
 }
 
 func GetFromArgs(client *api.Client, args []string) (*api.Intention, error) {

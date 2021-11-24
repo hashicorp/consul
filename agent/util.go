@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,14 +14,13 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-// stringHash returns a simple md5sum for a string.
-func stringHash(s string) string {
-	return fmt.Sprintf("%x", md5.Sum([]byte(s)))
+func stringHashSHA256(s string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
 }
 
 // checkIDHash returns a simple md5sum for a types.CheckID.
 func checkIDHash(checkID types.CheckID) string {
-	return stringHash(string(checkID))
+	return stringHashSHA256(string(checkID))
 }
 
 // setFilePermissions handles configuring ownership and permissions

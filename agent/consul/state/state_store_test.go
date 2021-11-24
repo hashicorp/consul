@@ -238,7 +238,8 @@ func testSetKey(t *testing.T, s *Store, idx uint64, key, value string, entMeta *
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	e, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
+
+	e, err := tx.First(tableKVs, indexID, entry)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

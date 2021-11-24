@@ -359,7 +359,7 @@
         "title": "Get Started",
         "routes": [
           {
-            "title": "Install with Helm Chart",
+            "title": "Installing Consul on Kubernetes",
             "path": "k8s/installation/install"
           },
           {
@@ -463,8 +463,8 @@
             "path": "k8s/connect/connect-ca-provider"
           },
           {
-            "title": "Ambassador Integration",
-            "path": "k8s/connect/ambassador"
+            "title": "Ambassador Edge Stack Integration",
+            "href": "https://learn.hashicorp.com/tutorials/consul/load-balancing-ambassador"
           },
           {
             "title": "Health Checks",
@@ -552,11 +552,15 @@
       {
         "title": "Helm Chart Configuration",
         "path": "k8s/helm"
+      },
+      {
+        "title": "Consul K8s CLI Reference",
+        "path": "k8s/k8s-cli"
       }
     ]
   },
   {
-    "title": "AWS ECS <sup>BETA</sup>",
+    "title": "AWS ECS",
     "routes": [
       {
         "title": "Overview",
@@ -565,14 +569,6 @@
       {
         "title": "Get Started",
         "routes": [
-          {
-            "title": "Example Installation on ECS Fargate",
-            "href": "https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-fargate"
-          },
-          {
-            "title": "Example Installation on ECS EC2",
-            "href": "https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-ec2"
-          },
           {
             "title": "Requirements",
             "path": "ecs/get-started/requirements"
@@ -594,6 +590,10 @@
       {
         "title": "Architecture",
         "path": "ecs/architecture"
+      },
+      {
+        "title": "Consul Enterprise",
+        "path": "ecs/enterprise"
       }
     ]
   },
@@ -843,6 +843,10 @@
         "path": "enterprise"
       },
       {
+        "title": "Admin Partitions <sup>BETA</sup>",
+        "path": "enterprise/admin-partitions"
+      },
+      {
         "title": "Audit Logging",
         "path": "enterprise/audit-logging"
       },
@@ -944,10 +948,6 @@
       {
         "title": "Vault Integration",
         "href": "/docs/connect/ca/vault"
-      },
-      {
-        "title": "Ambassador Integration",
-        "href": "/docs/k8s/connect/ambassador"
       },
       {
         "title": "Proxy Integration",

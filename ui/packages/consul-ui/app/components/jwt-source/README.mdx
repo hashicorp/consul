@@ -1,27 +1,93 @@
----
-class: ember
----
 # JwtSource
 
-```hbs
-<JwtSource @src={{url}} @onchange={{action 'change'}} @onerror={{action 'error'}} />
+This is a Source-like component and with most of our Source components, the
+component only needs to be added to the page in order to start the flow and is
+meant to be used as such (think 'this is like an `<img />`).
+
+The component will go through the steps of requesting a JWT token from a third
+party OAuth provider. `src` should contain the full URL of the authorization
+URL for the 3rd party provider including `redirect_uri`. Once the user has
+logged into the 3rd party provider the `onchange` event will be fired
+containing an event-like object whose data contains the JWT information.
+
+During development you can use the `CONSUL_OIDC_PROVIDER_URL`
+environment/cookie value to inject/mock the provider URL of your choice. This
+var/cookie value **does not** need the `redirect_uri` parameter adding as that
+will be automatically added by the UI . This URL will then be returned by our
+mock API when requesting the AuthURL for **all** OIDC AuthMethods.
+
+This component **does not store the resulting JWT**, it only emits it via
+its `onchange` argument/event handler. Errors are emitted via the `onerror`
+argument/event handler.
+
+
+```hbs preview-template
+<figure>
+  <figcaption>Provide a widget to set the URL</figcaption>
+
+  <input
+    oninput={{action (mut this.value) value="target.value"}}
+    type="text"
+    value={{this.value}}
+    {{did-insert (set this 'value'
+      (concat
+        (or
+          (env 'CONSUL_OIDC_PROVIDER_URL')
+          (concat (env 'CONSUL_BASE_UI_URL') '/oauth-provider-debug?client_id=oauth-double&nonce=1&state=123456789abc')
+        )
+        (concat '&redirect_uri=' (env 'CONSUL_BASE_UI_URL') '/oidc/callback&response_type=code&scope=openid')
+      )
+    )}}
+  />
+  <button
+    type="button"
+    {{on 'click' (fn (mut this.state) 'authenticating')}}
+  >
+    Go
+  </button>
+</figure>
+
+<figure>
+  <figcaption>When the button is clicked add TokenSource to the page</figcaption>
+
+{{#if (eq this.state 'authenticating')}}
+<JwtSource
+  @src={{this.value}}
+  @onchange={{queue (action (mut this.jwt) value="data") (fn (mut this.state) '')}}
+  @onerror={{queue (action (mut this.error) value="error.errors.firstObject") (fn (mut this.state) '')}}
+/>
+{{/if}}
+</figure>
+<figure>
+  <figcaption>Show the results</figcaption>
+  <dl>
+{{#if this.jwt}}
+    <dt>authorizationState</dt>
+    <dd>{{this.jwt.authorizationState}}</dd>
+    <dt>authorizationCode</dt>
+    <dd>{{this.jwt.authorizationCode}}</dd>
+    <dt>provider</dt>
+    <dd>{{this.jwt.provider}}</dd>
+{{/if}}
+{{#if this.error}}
+    <dt>Error</dt>
+    <dd>{{this.error.detail}}</dd>
+{{/if}}
+  </dl>
+</figure>
 ```
 
-### Arguments
+## Arguments
 
 | Argument | Type | Default | Description |
 | --- | --- | --- | --- |
-| `src` | `String` | | The source to subscribe to updates to, this should map to a string based URI |
-| `onchange` | `Function` |  | The action to fire when the data changes. Emits an Event-like object with a `data` property containing the jwt data, in this case the autorizationCode and the status |
+| `src` | `String` | | The **full** AuthURL for the 3rd party OIDC provider as provided by Consul (including `redirect_uri`) |
+| `onchange` | `Function` |  | The action to fire when the data changes. Emits an Event-like object with a `data` property containing the JWT data, in this case the `autorizationStatus`, `autorizationCode`, plus the UI added `provider` name |
 | `onerror` | `Function` |  | The action to fire when an error occurs. Emits ErrorEvent object with an `error` property containing the Error. |
 
-This component will go through the steps of requesting a JWT token from a third party oauth provider. `src` should contain the full URL of the authorization URL for the 3rd party provider. Once the user has logged into the 3rd party provider the `onchange` event will be fired containing an event-like object whose data contains the JWT information.
 
-The component need only be place into the DOM in order to begin the OAuth dance.
-
-### See
+## See
 
 - [Component Source Code](./index.js)
-- [Template Source Code](./index.hbs)
 
 ---

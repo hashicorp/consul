@@ -32,7 +32,6 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -380,44 +379,47 @@ func TestServer_JoinLAN(t *testing.T) {
 	// Try to join
 	joinLAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(s1.LANMembers()), 2; got != want {
+		if got, want := len(s1.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d s1 LAN members want %d", got, want)
 		}
-		if got, want := len(s2.LANMembers()), 2; got != want {
+		if got, want := len(s2.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d s2 LAN members want %d", got, want)
 		}
 	})
 }
 
-// TestServer_JoinLAN_SerfAllowedCIDRs test that IPs might be blocked
-// with Serf.
-// To run properly, this test requires to be able to bind and have access
-// on 127.0.1.1 which is the case for most Linux machines and Windows,
-// so Unit test will run in the CI.
-// To run it on Mac OS, please run this commandd first, otherwise the
-// test will be skipped: `sudo ifconfig lo0 alias 127.0.1.1 up`
+// TestServer_JoinLAN_SerfAllowedCIDRs test that IPs might be blocked with
+// Serf.
+//
+// To run properly, this test requires to be able to bind and have access on
+// 127.0.1.1 which is the case for most Linux machines and Windows, so Unit
+// test will run in the CI.
+//
+// To run it on Mac OS, please run this command first, otherwise the test will
+// be skipped: `sudo ifconfig lo0 alias 127.0.1.1 up`
 func TestServer_JoinLAN_SerfAllowedCIDRs(t *testing.T) {
 	t.Parallel()
+
+	const targetAddr = "127.0.1.1"
+
+	skipIfCannotBindToIP(t, targetAddr)
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.BootstrapExpect = 1
 		lan, err := memberlist.ParseCIDRs([]string{"127.0.0.1/32"})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		c.SerfLANConfig.MemberlistConfig.CIDRsAllowed = lan
 		wan, err := memberlist.ParseCIDRs([]string{"127.0.0.0/24", "::1/128"})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		c.SerfWANConfig.MemberlistConfig.CIDRsAllowed = wan
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	targetAddr := "127.0.1.1"
-	dir2, a2, err := testClientWithConfigWithErr(t, func(c *Config) {
+	dir2, a2 := testClientWithConfig(t, func(c *Config) {
 		c.SerfLANConfig.MemberlistConfig.BindAddr = targetAddr
 	})
 	defer os.RemoveAll(dir2)
-	if err != nil {
-		t.Skipf("Cannot bind on %s, to run on Mac OS: `sudo ifconfig lo0 alias 127.0.1.1 up`", targetAddr)
-	}
 	defer a2.Shutdown()
 
 	dir3, rs3 := testServerWithConfig(t, func(c *Config) {
@@ -428,17 +430,17 @@ func TestServer_JoinLAN_SerfAllowedCIDRs(t *testing.T) {
 	defer rs3.Shutdown()
 
 	leaderAddr := joinAddrLAN(s1)
-	if _, err := a2.JoinLAN([]string{leaderAddr}); err != nil {
+	if _, err := a2.JoinLAN([]string{leaderAddr}, nil); err != nil {
 		t.Fatalf("Expected no error, had: %#v", err)
 	}
 	// Try to join
 	joinWAN(t, rs3, s1)
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(s1.LANMembers()), 1; got != want {
+		if got, want := len(s1.LANMembersInAgentPartition()), 1; got != want {
 			// LAN is blocked, should be 1 only
 			r.Fatalf("got %d s1 LAN members want %d", got, want)
 		}
-		if got, want := len(a2.LANMembers()), 2; got != want {
+		if got, want := len(a2.LANMembersInAgentPartition()), 2; got != want {
 			// LAN is blocked a2 can see s1, but not s1
 			r.Fatalf("got %d a2 LAN members want %d", got, want)
 		}
@@ -449,6 +451,80 @@ func TestServer_JoinLAN_SerfAllowedCIDRs(t *testing.T) {
 			r.Fatalf("got %d rs3 WAN members want %d", got, want)
 		}
 	})
+}
+
+// TestServer_JoinWAN_SerfAllowedCIDRs test that IPs might be
+// blocked with Serf.
+//
+// To run properly, this test requires to be able to bind and have access on
+// 127.0.1.1 which is the case for most Linux machines and Windows, so Unit
+// test will run in the CI.
+//
+// To run it on Mac OS, please run this command first, otherwise the test will
+// be skipped: `sudo ifconfig lo0 alias 127.0.1.1 up`
+func TestServer_JoinWAN_SerfAllowedCIDRs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	const targetAddr = "127.0.1.1"
+
+	skipIfCannotBindToIP(t, targetAddr)
+
+	wanCIDRs, err := memberlist.ParseCIDRs([]string{"127.0.0.1/32"})
+	require.NoError(t, err)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = true
+		c.BootstrapExpect = 1
+		c.Datacenter = "dc1"
+		c.SerfWANConfig.MemberlistConfig.CIDRsAllowed = wanCIDRs
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	waitForLeaderEstablishment(t, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = true
+		c.BootstrapExpect = 1
+		c.PrimaryDatacenter = "dc1"
+		c.Datacenter = "dc2"
+		c.SerfWANConfig.MemberlistConfig.BindAddr = targetAddr
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	waitForLeaderEstablishment(t, s2)
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+
+	// Joining should be fine
+	joinWANWithNoMembershipChecks(t, s2, s1)
+
+	// But membership is blocked if you go and take a peek on the server.
+	t.Run("LAN membership should only show each other", func(t *testing.T) {
+		require.Len(t, s1.LANMembersInAgentPartition(), 1)
+		require.Len(t, s2.LANMembersInAgentPartition(), 1)
+	})
+	t.Run("WAN membership in the primary should not show the secondary", func(t *testing.T) {
+		require.Len(t, s1.WANMembers(), 1)
+	})
+	t.Run("WAN membership in the secondary can show the primary", func(t *testing.T) {
+		require.Len(t, s2.WANMembers(), 2)
+	})
+}
+
+func skipIfCannotBindToIP(t *testing.T, ip string) {
+	ports := freeport.MustTake(1)
+	defer freeport.Return(ports)
+
+	addr := ipaddr.FormatAddressPort(ip, ports[0])
+	l, err := net.Listen("tcp", addr)
+	l.Close()
+	if err != nil {
+		t.Skipf("Cannot bind on %s, to run on Mac OS: `sudo ifconfig lo0 alias %s up`", ip, ip)
+	}
 }
 
 func TestServer_LANReap(t *testing.T) {
@@ -497,9 +573,9 @@ func TestServer_LANReap(t *testing.T) {
 	testrpc.WaitForLeader(t, s3.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {
-		require.Len(r, s1.LANMembers(), 3)
-		require.Len(r, s2.LANMembers(), 3)
-		require.Len(r, s3.LANMembers(), 3)
+		require.Len(r, s1.LANMembersInAgentPartition(), 3)
+		require.Len(r, s2.LANMembersInAgentPartition(), 3)
+		require.Len(r, s3.LANMembersInAgentPartition(), 3)
 	})
 
 	// Check the router has both
@@ -513,7 +589,7 @@ func TestServer_LANReap(t *testing.T) {
 	s2.Shutdown()
 
 	retry.Run(t, func(r *retry.R) {
-		require.Len(r, s1.LANMembers(), 2)
+		require.Len(r, s1.LANMembersInAgentPartition(), 2)
 		servers := s1.serverLookup.Servers()
 		require.Len(r, servers, 2)
 		// require.Equal(r, s1.config.NodeName, servers[0].Name)
@@ -641,6 +717,8 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 
 // This is a mirror of a similar test in agent/agent_test.go
 func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -930,10 +1008,10 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 		if got, want := len(s2.WANMembers()), 3; got != want {
 			r.Fatalf("got %d s2 WAN members want %d", got, want)
 		}
-		if got, want := len(s2.LANMembers()), 2; got != want {
+		if got, want := len(s2.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d s2 LAN members want %d", got, want)
 		}
-		if got, want := len(s3.LANMembers()), 2; got != want {
+		if got, want := len(s3.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d s3 LAN members want %d", got, want)
 		}
 	})
@@ -964,7 +1042,7 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 
 	// Get and check the lan address of s2 from s3
 	var s2LanAddr string
-	for _, lanmember := range s3.LANMembers() {
+	for _, lanmember := range s3.LANMembersInAgentPartition() {
 		if lanmember.Name == s2Name {
 			s2LanAddr = lanmember.Addr.String()
 		}

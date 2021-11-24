@@ -99,7 +99,7 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 		}
 	} else {
 		if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-			return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.agentEnterpriseMeta()))
+			return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
 		}
 	}
 
@@ -111,7 +111,7 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 			}
 		} else {
 			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.agentEnterpriseMeta()))
+				return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
 			}
 		}
 	}
@@ -131,7 +131,7 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 			}
 		} else {
 			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.agentEnterpriseMeta()))
+				return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
 			}
 		}
 	} else {
@@ -150,11 +150,11 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	}
 
 	var authzContext acl.AuthorizerContext
-	a.agentEnterpriseMeta().FillAuthzContext(&authzContext)
 	// Filter out members based on the node policy.
 	m := *members
 	for i := 0; i < len(m); i++ {
 		node := m[i].Name
+		serfMemberFillAuthzContext(&m[i], &authzContext)
 		if authz.NodeRead(node, &authzContext) == acl.Allow {
 			continue
 		}

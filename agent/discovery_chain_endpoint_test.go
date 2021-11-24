@@ -264,6 +264,11 @@ func TestDiscoveryChainRead(t *testing.T) {
 		})
 	}))
 
+	expectTarget_DC1 := newTarget("web", "", "default", "default", "dc1")
+	expectTarget_DC1.MeshGateway = structs.MeshGatewayConfig{
+		Mode: structs.MeshGatewayModeLocal,
+	}
+
 	expectTarget_DC2 := newTarget("web", "", "default", "default", "dc2")
 	expectTarget_DC2.MeshGateway = structs.MeshGatewayConfig{
 		Mode: structs.MeshGatewayModeLocal,
@@ -291,8 +296,8 @@ func TestDiscoveryChainRead(t *testing.T) {
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
-			expectTarget_DC2.ID:       expectTarget_DC2,
+			expectTarget_DC1.ID: expectTarget_DC1,
+			expectTarget_DC2.ID: expectTarget_DC2,
 		},
 	}
 

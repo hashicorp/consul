@@ -248,7 +248,7 @@ func TestLeader_ReapMember(t *testing.T) {
 	})
 
 	// Simulate a node reaping
-	mems := s1.LANMembers()
+	mems := s1.LANMembersInAgentPartition()
 	var c1mem serf.Member
 	for _, m := range mems {
 		if m.Name == c1.config.NodeName {
@@ -687,7 +687,7 @@ func TestLeader_LeftServer(t *testing.T) {
 	servers[0].Shutdown()
 
 	// Force remove the non-leader (transition to left state)
-	if err := servers[1].RemoveFailedNode(servers[0].config.NodeName, false); err != nil {
+	if err := servers[1].RemoveFailedNode(servers[0].config.NodeName, false, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1044,7 +1044,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		alive := 0
-		for _, m := range s1.LANMembers() {
+		for _, m := range s1.LANMembersInAgentPartition() {
 			if m.Status == serf.StatusAlive {
 				alive++
 			}
@@ -1117,10 +1117,10 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 
 	// Shut down a server, freeing up its address/port
 	s3.Shutdown()
-	// wait for s1.LANMembers() to show s3 as StatusFailed or StatusLeft on
+	// wait for s1.LANMembersInAgentPartition() to show s3 as StatusFailed or StatusLeft on
 	retry.Run(t, func(r *retry.R) {
 		var gone bool
-		for _, m := range s1.LANMembers() {
+		for _, m := range s1.LANMembersInAgentPartition() {
 			if m.Name == s3.config.NodeName && (m.Status == serf.StatusFailed || m.Status == serf.StatusLeft) {
 				gone = true
 			}
@@ -1148,7 +1148,7 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 	})
 
 	retry.Run(t, func(r *retry.R) {
-		for _, m := range s1.LANMembers() {
+		for _, m := range s1.LANMembersInAgentPartition() {
 			require.Equal(r, serf.StatusAlive, m.Status)
 		}
 	})
@@ -1208,73 +1208,6 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 	}
 }
 
-func TestLeader_ACLUpgrade(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLsEnabled = true
-		c.PrimaryDatacenter = "dc1"
-		c.ACLMasterToken = "root"
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	// create a legacy management ACL
-	mgmt := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "Management token",
-			Type: structs.ACLTokenTypeManagement,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var mgmt_id string
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &mgmt, &mgmt_id))
-
-	// wait for it to be upgraded
-	retry.Run(t, func(t *retry.R) {
-		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, mgmt_id, nil)
-		require.NoError(t, err)
-		require.NotNil(t, token)
-		require.NotEqual(t, "", token.AccessorID)
-		require.Equal(t, structs.ACLTokenTypeManagement, token.Type)
-		require.Len(t, token.Policies, 1)
-		require.Equal(t, structs.ACLPolicyGlobalManagementID, token.Policies[0].ID)
-	})
-
-	// create a legacy management ACL
-	client := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "Management token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: `node "" { policy = "read"}`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var client_id string
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &client, &client_id))
-
-	// wait for it to be upgraded
-	retry.Run(t, func(t *retry.R) {
-		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, client_id, nil)
-		require.NoError(t, err)
-		require.NotNil(t, token)
-		require.NotEqual(t, "", token.AccessorID)
-		require.Len(t, token.Policies, 0)
-		require.Equal(t, structs.ACLTokenTypeClient, token.Type)
-		require.Equal(t, client.ACL.Rules, token.Rules)
-	})
-}
-
 func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1324,9 +1257,6 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	joinWAN(t, s2, s1)
 	waitForLeaderEstablishment(t, s1)
 	waitForLeaderEstablishment(t, s2)
-
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies, 1, 0, 0)
 
 	// Everybody has the management policy.
@@ -1363,9 +1293,6 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	defer s2new.Shutdown()
 
 	waitForLeaderEstablishment(t, s2new)
-
-	// It should be able to transition without connectivity to the primary.
-	waitForNewACLs(t, s2new)
 }
 
 func TestLeader_ConfigEntryBootstrap(t *testing.T) {
@@ -1574,7 +1501,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1629,7 +1556,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1804,7 +1731,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 

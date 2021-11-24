@@ -310,12 +310,6 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				}
 				if sent {
 					sentType[op.TypeUrl] = struct{}{}
-					if generator.ProxyFeatures.IncrementalXDSUpdatesMustBeSerial {
-						// For more justification for this hacky fix, check the
-						// comments associated with
-						// generator.ProxyFeatures.IncrementalXDSUpdatesMustBeSerial
-						break
-					}
 				}
 			}
 		}

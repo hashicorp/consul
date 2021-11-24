@@ -114,7 +114,9 @@ func (c *cmd) startupJoin(agent *agent.Agent, cfg *config.RuntimeConfig) error {
 	}
 
 	c.logger.Info("Joining cluster")
-	n, err := agent.JoinLAN(cfg.StartJoinAddrsLAN)
+	// NOTE: For partitioned servers you are only capable of using start join
+	// to join nodes in the default partition.
+	n, err := agent.JoinLAN(cfg.StartJoinAddrsLAN, agent.AgentEnterpriseMeta())
 	if err != nil {
 		return err
 	}
@@ -200,8 +202,8 @@ func (c *cmd) run(args []string) int {
 	}
 	ui.Info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
 	ui.Info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	ui.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, xDS: %d, DNS: %d)", config.ClientAddrs,
-		config.HTTPPort, config.HTTPSPort, config.XDSPort, config.DNSPort))
+	ui.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
+		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
 	ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
 	ui.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",

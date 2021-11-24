@@ -29,11 +29,12 @@ as |route|>
   route.params.dc
   route.params.partition
   route.params.nspace
+  (or route.params.id '')
 
   loader.data
   loader.data.isNew
 
-as |dc partition nspace item create|}}
+as |dc partition nspace id item create|}}
   <AppView
     @login={{route.model.app.login.open}}
     >
@@ -104,7 +105,7 @@ as |dc partition nspace item create|}}
           partition=partition
           nspace=nspace
           dc=dc
-          id=(or id '')
+          id=id
         )
       }}
     as |loader|>

@@ -57,6 +57,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/api-docs/acl-legacy',
+    destination: '/api-docs/acl/legacy',
+    permanent: true,
+  },
+  {
     source: '/docs/guides/acl-migrate-tokens',
     destination: '/docs/security/acl/acl-migrate-tokens',
     permanent: true,
@@ -1081,6 +1086,11 @@ module.exports = [
   {
     source: '/docs/compatibility',
     destination: '/docs/upgrading/compatibility',
+    permanent: true,
+  },
+  {
+    source: '/docs/commands/acl/role',
+    destination: '/commands/acl/role',
     permanent: true,
   },
   {

@@ -52,7 +52,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 		SecretID:   "72e81982-7a0f-491f-a60e-c9c802ac1402",
 	}
 	token2.SetHash(false)
-	require.NoError(s.ACLTokenSet(3, token2.Clone(), false))
+	require.NoError(s.ACLTokenSet(3, token2.Clone()))
 
 	// Ensure there's no reset event.
 	assertNoEvent(t, eventCh)
@@ -64,7 +64,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 		Description: "something else",
 	}
 	token3.SetHash(false)
-	require.NoError(s.ACLTokenSet(4, token3.Clone(), false))
+	require.NoError(s.ACLTokenSet(4, token3.Clone()))
 
 	// Ensure the reset event was sent.
 	err = assertErr(t, eventCh)
@@ -484,7 +484,7 @@ func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLTo
 	eventCh := testRunSub(sub)
 
 	// Create the ACL token to be used in the subscription.
-	require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
+	require.NoError(t, s.ACLTokenSet(2, token.Clone()))
 
 	// Wait for the pre-subscription to be reset
 	assertReset(t, eventCh, true)

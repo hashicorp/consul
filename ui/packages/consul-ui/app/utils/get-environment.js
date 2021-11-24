@@ -68,9 +68,12 @@ export default function(config = {}, win = window, doc = document) {
       return {};
     }
   };
-  const operatorConfig = JSON.parse(
-    doc.querySelector(`[data-${config.modulePrefix}-config]`).textContent
-  );
+  const operatorConfig = {
+    ...config.operatorConfig,
+    ...JSON.parse(
+      doc.querySelector(`[data-${config.modulePrefix}-config]`).textContent
+    )
+  };
   const ui_config = operatorConfig.UIConfig || {};
   const scripts = doc.getElementsByTagName('script');
   // we use the currently executing script as a reference
@@ -101,6 +104,8 @@ export default function(config = {}, win = window, doc = document) {
           : operatorConfig.PartitionsEnabled;
       case 'CONSUL_DATACENTER_LOCAL':
         return operatorConfig.LocalDatacenter;
+      case 'CONSUL_DATACENTER_PRIMARY':
+        return operatorConfig.PrimaryDatacenter;
       case 'CONSUL_UI_CONFIG':
         dashboards = {};
         provider = env('CONSUL_METRICS_PROVIDER');
@@ -209,6 +214,7 @@ export default function(config = {}, win = window, doc = document) {
         return user(str) || ui(str);
       case 'CONSUL_UI_CONFIG':
       case 'CONSUL_DATACENTER_LOCAL':
+      case 'CONSUL_DATACENTER_PRIMARY':
       case 'CONSUL_ACLS_ENABLED':
       case 'CONSUL_NSPACES_ENABLED':
       case 'CONSUL_SSO_ENABLED':

@@ -52,7 +52,6 @@ func TestMerge(t *testing.T) {
 	}
 }
 
-func pBool(v bool) *bool                { return &v }
 func pInt(v int) *int                   { return &v }
 func pString(v string) *string          { return &v }
 func pDuration(v time.Duration) *string { s := v.String(); return &s }

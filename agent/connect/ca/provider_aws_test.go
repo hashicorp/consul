@@ -3,7 +3,9 @@ package ca
 import (
 	"os"
 	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/acmpca"
@@ -40,6 +42,7 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 			cfg := map[string]interface{}{
 				"PrivateKeyType": tc.KeyType,
 				"PrivateKeyBits": tc.KeyBits,
+				"RootCertTTL":    "8761h",
 			}
 			provider := testAWSProvider(t, testProviderConfigPrimary(t, cfg))
 			defer provider.Cleanup(true, nil)
@@ -68,10 +71,37 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 			require.Equal(tc.KeyType, keyType)
 			require.Equal(tc.KeyBits, keyBits)
 
+			// Ensure that the root cert ttl is withing the configured value
+			// computation is similar to how we are passing the TTL thru the aws client
+			expectedTime := time.Now().AddDate(0, 0, int(8761*60*time.Minute/day)).UTC()
+			require.WithinDuration(expectedTime, rootCert.NotAfter, 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
+
 			// Sign a leaf with it
 			testSignAndValidate(t, provider, rootPEM, nil)
 		})
 	}
+
+	t.Run("Test default root ttl for aws ca provider", func(t *testing.T) {
+
+		provider := testAWSProvider(t, testProviderConfigPrimary(t, nil))
+		defer provider.Cleanup(true, nil)
+
+		// Generate the root
+		require.NoError(t, provider.GenerateRoot())
+
+		// Fetch Active Root
+		rootPEM, err := provider.ActiveRoot()
+		require.NoError(t, err)
+
+		// Ensure they use the right key type
+		rootCert, err := connect.ParseCert(rootPEM)
+		require.NoError(t, err)
+
+		// Ensure that the root cert ttl is withing the configured value
+		// computation is similar to how we are passing the TTL thru the aws client
+		expectedTime := time.Now().AddDate(0, 0, int(87600*60*time.Minute/day)).UTC()
+		require.WithinDuration(t, expectedTime, rootCert.NotAfter, 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
+	})
 }
 
 func testSignAndValidate(t *testing.T, p Provider, rootPEM string, intermediatePEMs []string) {
@@ -114,7 +144,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 
 	// TEST LOAD FROM PREVIOUS STATE
 	{
-		// Now create new providers fromthe state of the first ones simulating
+		// Now create new providers from the state of the first ones simulating
 		// leadership change in both DCs
 		t.Log("Restarting Providers with State")
 
@@ -178,6 +208,28 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		// Should both be able to sign leafs again
 		testSignAndValidate(t, p1, rootPEM, nil)
 		testSignAndValidate(t, p2, rootPEM, []string{intPEM})
+	}
+
+	// Test that SetIntermediate() gives back certs with trailing new lines
+	{
+
+		// "Set" root, intermediate certs without a trailing new line
+		newIntPEM := strings.TrimSuffix(intPEM, "\n")
+		newRootPEM := strings.TrimSuffix(rootPEM, "\n")
+
+		cfg2 := testProviderConfigSecondary(t, map[string]interface{}{
+			"ExistingARN": p2State[AWSStateCAARNKey],
+		})
+		p2 = testAWSProvider(t, cfg2)
+		require.NoError(t, p2.SetIntermediate(newIntPEM, newRootPEM))
+
+		newRootPEM, err = p1.ActiveRoot()
+		require.NoError(t, err)
+		newIntPEM, err = p2.ActiveIntermediate()
+		require.NoError(t, err)
+
+		require.Equal(t, rootPEM, newRootPEM)
+		require.Equal(t, intPEM, newIntPEM)
 	}
 }
 

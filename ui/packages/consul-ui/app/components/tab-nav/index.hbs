@@ -1,31 +1,47 @@
+{{#let
+  (dom-position (set this 'style') offset=true)
+  "tab"
+as |select name|}}
 <nav
-  style={{{if selectedWidth (concat
-      '--selected-width:' selectedWidth ';'
-      '--selected-left:' selectedLeft ';'
-      '--selected-height:' selectedHeight ';'
-      '--selected-top:' selectedTop
+  style={{{if this.style (concat
+      '--selected-width:' this.style.width ';'
+      '--selected-left:' this.style.left ';'
+      '--selected-height:' this.style.height ';'
+      '--selected-top:' this.style.top
     )
     undefined
   }}}
   aria-label="Secondary"
-  class={{concat 'tab-nav' (if isAnimatable ' animatable' '')}}
-  id={{guid}}
+  class={{concat 'tab-nav' ' animatable'}}
   ...attributes
-  >
+>
   <ul>
-{{#each items as |item|}}
-<li
-  data-test-tab={{concat name '_' (if item.label (slugify item.label) (slugify item))}}
-  class={{if (or item.selected (eq selected (if item.label (slugify item.label) (slugify item)))) 'selected'}}
+{{#each @items as |item|}}
+  <li
+    {{on 'click' (fn select)}}
+    {{did-upsert
+      (if item.selected
+        (fn select)
+        (noop)
+      )
+      @items.length
+    }}
+    data-test-tab={{concat name '_' (if item.label (slugify item.label) (slugify item))}}
+    class={{if (or item.selected (eq selected (if item.label (slugify item.label) (slugify item)))) 'selected'}}
   >
-{{#if item.href }}
-        <a href={{item.href}}>{{item.label}}</a>
-{{else}}
-      <label role="tab" onkeydown={{action 'keydown'}} tabindex="0" aria-controls="radiogroup_{{name}}_{{if item.label (slugify item.label) (slugify item)}}_panel" for="radiogroup_{{name}}_{{if item.label (slugify item.label) (slugify item)}}" data-test-radiobutton="{{name}}_{{if item.label (slugify item.label) (slugify item)}}">
-        <a>{{item}}</a>
-      </label>
-{{/if}}
-    </li>
+    <Action
+      {{on 'click'
+        (if (not-eq @onclick undefined)
+          (fn @onclick (uppercase item.label))
+          (noop)
+        )
+      }}
+      @href={{item.href}}
+    >
+      {{item.label}}
+    </Action>
+  </li>
 {{/each}}
   </ul>
 </nav>
+{{/let}}

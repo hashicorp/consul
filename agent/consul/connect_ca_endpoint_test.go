@@ -1118,25 +1118,7 @@ func TestConnectCASignValidation(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Create an ACL token with service:write for web*
-	var webToken string
-	{
-		arg := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name: "User token",
-				Type: structs.ACLTokenTypeClient,
-				Rules: `
-				service "web" {
-					policy = "write"
-				}`,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &webToken))
-	}
-
+	webToken := createToken(t, codec, `service "web" { policy = "write" }`)
 	testWebID := connect.TestSpiffeIDService(t, "web")
 
 	tests := []struct {

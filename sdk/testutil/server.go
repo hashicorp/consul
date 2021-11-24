@@ -224,6 +224,7 @@ type TestServer struct {
 // callback function to modify the configuration. If there is an error
 // configuring or starting the server, the server will NOT be running when the
 // function returns (thus you do not need to stop it).
+// This function will call the `consul` binary in GOPATH.
 func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, error) {
 	path, err := exec.LookPath("consul")
 	if err != nil || path == "" {

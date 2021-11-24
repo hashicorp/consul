@@ -37,7 +37,7 @@ module('Unit | Utility | create fingerprinter', function() {
     const fingerprint = createFingerprinter('Datacenter', 'Namespace', 'Partition');
     [undefined, null].forEach(function(item) {
       assert.throws(function() {
-        fingerprint('uid', 'ID', item);
+        fingerprint('uid', 'ID', item)({Datacenter: item});
       }, /missing foreignKey/);
     });
   });

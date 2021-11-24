@@ -18,20 +18,15 @@ func DefaultSource() Source {
 	serfLAN := cfg.SerfLANConfig.MemberlistConfig
 	serfWAN := cfg.SerfWANConfig.MemberlistConfig
 
-	// DEPRECATED (ACL-Legacy-Compat) - when legacy ACL support is removed these defaults
-	//   the acl_* config entries here should be transitioned to their counterparts in the
-	//   acl stanza for now we need to be able to detect the new entries not being set (not
-	//   just set to the defaults here) so that we can use the old entries. So the true
-	//   default still needs to reside in the original config values
 	return FileSource{
 		Name:   "default",
 		Format: "hcl",
 		Data: `
-		acl_default_policy = "allow"
-		acl_down_policy = "extend-cache"
-		acl_ttl = "30s"
 		acl = {
+			token_ttl = "30s"
 			policy_ttl = "30s"
+			default_policy = "allow"
+			down_policy = "extend-cache"
 		}
 		bind_addr = "0.0.0.0"
 		bootstrap = false
