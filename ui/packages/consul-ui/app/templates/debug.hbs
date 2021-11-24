@@ -2,6 +2,20 @@
 
 {{document-attrs class="is-debug"}}
 <App class="docs" id="wrapper">
+
+  <:notifications as |app|>
+    {{#each flashMessages.queue as |flash|}}
+      {{#if flash.dom}}
+        <app.Notification
+          @delay={{sub flash.timeout flash.extendedTimeout}}
+          @sticky={{flash.sticky}}
+        >
+          {{{flash.dom}}}
+        </app.Notification>
+      {{/if}}
+    {{/each}}
+  </:notifications>
+
   <:main-nav>
 
     <DocfyOutput as |node|>

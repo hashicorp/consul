@@ -36,14 +36,6 @@ as |dc partition nspace item create|}}
   <AppView
     @login={{route.model.app.login.open}}
     >
-      <BlockSlot @name="notification" as |status type item error|>
-        <Consul::Role::Notifications
-          @type={{type}}
-          @status={{status}}
-          @item={{item}}
-          @error={{error}}
-        />
-      </BlockSlot>
       <BlockSlot @name="breadcrumbs">
           <ol>
               <li><a data-test-back href={{href-to 'dc.acls.roles'}}>All Roles</a></li>

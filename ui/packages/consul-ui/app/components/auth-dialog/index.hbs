@@ -47,7 +47,7 @@ as |State Guard Action dispatch state|>
       </State>
 
       <State @matches="unauthorized">
-      {{#yield-slot name="unauthorized"}}
+        {{#yield-slot name="unauthorized"}}
           {{yield api components}}
         {{/yield-slot}}
       </State>

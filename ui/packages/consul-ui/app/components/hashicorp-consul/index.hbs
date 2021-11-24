@@ -3,7 +3,81 @@
     class="hashicorp-consul"
     ...attributes
   >
+    <:notifications as |app|>
+  {{#each flashMessages.queue as |flash|}}
+    <app.Notification
+      @delay={{sub flash.timeout flash.extendedTimeout}}
+      @sticky={{flash.sticky}}
+    >
+    {{#if flash.dom}}
+        {{{flash.dom}}}
+    {{else}}
+{{#let (lowercase flash.type) (lowercase flash.action) as |status type|}}
+    <Notice
+      role="alert"
+      class={{concat status ' notification-' type}}
+      data-notification
+      @type={{status}}
+    as |notice|>
+      <notice.Header>
+        <strong>
+          {{capitalize status}}!
+        </strong>
+      </notice.Header>
+      <notice.Body>
+        <p>
+          {{#if (eq type 'logout')}}
+            {{#if (eq status 'success') }}
+              You are now logged out.
+            {{else}}
+              There was an error logging out.
+            {{/if}}
+          {{else if (eq type 'authorize')}}
+            {{#if (eq status 'success') }}
+              You are now logged in.
+            {{else}}
+              There was an error, please check your SecretID/Token
+            {{/if}}
+          {{else}}
+            {{#if (eq flash.model 'token')}}
+              <Consul::Token::Notifications
+                @type={{type}}
+                @status={{status}}
+                @item={{flash.item}}
+                @error={{flash.error}}
+              />
+            {{else if (eq flash.model 'role')}}
+              <Consul::Role::Notifications
+                @type={{type}}
+                @status={{status}}
+                @item={{flash.item}}
+                @error={{flash.error}}
+              />
+            {{else if (eq flash.model 'policy')}}
+              <Consul::Policy::Notifications
+                @type={{type}}
+                @status={{status}}
+                @item={{flash.item}}
+                @error={{flash.error}}
+              />
+            {{else if (eq flash.model 'nspace')}}
+              <Consul::Nspace::Notifications
+                @type={{type}}
+                @status={{status}}
+                @item={{flash.item}}
+                @error={{flash.error}}
+              />
+            {{/if}}
+          {{/if}}
+        </p>
+      </notice.Body>
+    </Notice>
+{{/let}}
+    {{/if}}
+    </app.Notification>
+  {{/each}}
 
+    </:notifications>
     <:home-nav>
       <a
         href={{href-to 'index'}}

@@ -1,0 +1,19 @@
+<div
+  class="app-notification"
+  ...attributes
+  {{style
+    (array
+      (array 'opacity' '1')
+      (array 'transition-delay' (concat @delay 'ms'))
+    )
+  }}
+  {{style
+    (array
+      (array 'opacity' (if @sticky '1' '0'))
+    )
+    delay=0
+  }}
+>
+  {{yield}}
+</div>
+
