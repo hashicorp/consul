@@ -422,6 +422,9 @@ func TestCAManager_SignCertificate_WithExpiredCert(t *testing.T) {
 		{"root in the future", time.Now().AddDate(0, 0, 1), time.Now().AddDate(0, 0, 2), time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), false, ""},
 	}
 
+	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	require.NoError(t, err, "failed to generate key")
+
 	for _, arg := range args {
 		t.Run(arg.testName, func(t *testing.T) {
 			// No parallel execution because we change globals
@@ -439,11 +442,13 @@ func TestCAManager_SignCertificate_WithExpiredCert(t *testing.T) {
 			conf.ConnectEnabled = true
 			conf.PrimaryDatacenter = "dc1"
 			conf.Datacenter = "dc2"
+
+			rootPEM := generateCertPEM(t, caPrivKey, arg.notBeforeRoot, arg.notAfterRoot)
+			intermediatePEM := generateCertPEM(t, caPrivKey, arg.notBeforeIntermediate, arg.notAfterIntermediate)
+
 			delegate := NewMockCAServerDelegate(t, conf)
 			manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 
-			rootPEM := generateCertPEM(t, arg.notBeforeRoot, arg.notAfterRoot)
-			intermediatePEM := generateCertPEM(t, arg.notBeforeIntermediate, arg.notAfterIntermediate)
 			manager.providerShim = &mockCAProvider{
 				callbackCh:      delegate.callbackCh,
 				rootPEM:         rootPEM,
@@ -471,7 +476,7 @@ func TestCAManager_SignCertificate_WithExpiredCert(t *testing.T) {
 	}
 }
 
-func generateCertPEM(t *testing.T, notBefore time.Time, notAfter time.Time) string {
+func generateCertPEM(t *testing.T, caPrivKey *rsa.PrivateKey, notBefore time.Time, notAfter time.Time) string {
 	t.Helper()
 	ca := &x509.Certificate{
 		SerialNumber: big.NewInt(2019),
@@ -490,8 +495,6 @@ func generateCertPEM(t *testing.T, notBefore time.Time, notAfter time.Time) stri
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
-	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
-	require.NoError(t, err, "failed to generate key")
 
 	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
 	require.NoError(t, err, "failed to create cert")
