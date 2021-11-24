@@ -16,6 +16,14 @@
       @ondelete={{fn (if @ondelete @ondelete @onsubmit) @item}}
       @onchange={{fn (optional @onsubmit) @item}}
       as |writer|>
+    <BlockSlot @name="removed" as |after|>
+      <Consul::Partition::Notifications 
+        {{notification
+          after=(action after)
+        }}
+        @type="remove"
+      />
+    </BlockSlot>
 
     <BlockSlot @name="content">
 

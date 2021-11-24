@@ -42,13 +42,6 @@ as |route|>
   as |sort filters items|}}
 
     <AppView>
-      <BlockSlot @name="notification" as |status type item error|>
-        <Consul::Nspace::Notifications
-          @type={{type}}
-          @status={{status}}
-          @error={{error}}
-        />
-      </BlockSlot>
       <BlockSlot @name="header">
         <h1>
           <route.Title @title="Namespaces" />
@@ -81,8 +74,27 @@ as |route|>
             )
           }}
           @type="nspace"
+          @label="Namespace"
           @ondelete={{refresh-route}}
         as |writer|>
+          <BlockSlot @name="removed" as |after|>
+            <Notice
+              {{notification
+                after=(action after)
+              }}
+              class="notification-delete"
+              @type="success"
+            as |notice|>
+              <notice.Header>
+                <strong>Success!</strong>
+              </notice.Header>
+              <notice.Body>
+                <p>
+                  Your Namespace has been marked for deletion.
+                </p>
+              </notice.Body>
+            </Notice>
+          </BlockSlot>
           <BlockSlot @name="content">
         <DataCollection
           @type="nspace"

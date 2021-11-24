@@ -29,13 +29,6 @@ as |route|>
   loader.data
 as |dc partition nspace item|}}
   <AppView>
-    <BlockSlot @name="notification" as |status type item error|>
-      <Consul::Partition::Notifications
-        @type={{type}}
-        @status={{status}}
-        @error={{error}}
-      />
-    </BlockSlot>
     <BlockSlot @name="breadcrumbs">
       <ol>
           <li><a data-test-back href={{href-to 'dc.partitions'}}>All Admin Partitions</a></li>

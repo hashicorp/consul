@@ -60,13 +60,6 @@
                 @item={{flash.item}}
                 @error={{flash.error}}
               />
-            {{else if (eq flash.model 'nspace')}}
-              <Consul::Nspace::Notifications
-                @type={{type}}
-                @status={{status}}
-                @item={{flash.item}}
-                @error={{flash.error}}
-              />
             {{/if}}
           {{/if}}
         </p>

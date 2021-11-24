@@ -42,13 +42,6 @@ as |route|>
   as |sort filters items|}}
 
     <AppView>
-      <BlockSlot @name="notification" as |status type item error|>
-        <Consul::Partition::Notifications
-          @type={{type}}
-          @status={{status}}
-          @error={{error}}
-        />
-      </BlockSlot>
       <BlockSlot @name="header">
         <h1>
           <route.Title @title="Admin Partitions" />
@@ -79,8 +72,17 @@ as |route|>
             )
           }}
           @type="partition"
+          @label="Admin Partition"
           @ondelete={{refresh-route}}
         as |writer|>
+          <BlockSlot @name="removed" as |after|>
+            <Consul::Partition::Notifications 
+              {{notification
+                after=(action after)
+              }}
+              @type="remove"
+            />
+          </BlockSlot>
           <BlockSlot @name="content">
         <DataCollection
           @type="nspace"
