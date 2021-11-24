@@ -1821,8 +1821,8 @@ func (f *aclFilter) filterServiceList(services *structs.ServiceList) bool {
 // filterGatewayServices is used to filter gateway to service mappings based on ACL rules.
 // Returns true if any elements were removed.
 func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) bool {
-	var removed bool
 	ret := make(structs.GatewayServices, 0, len(*mappings))
+	var removed bool
 	for _, s := range *mappings {
 		// This filter only checks ServiceRead on the linked service.
 		// ServiceRead on the gateway is checked in the GatewayServices endpoint before filtering.
@@ -1936,6 +1936,14 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 
 	case *structs.IndexedGatewayServices:
 		v.QueryMeta.ResultsFilteredByACLs = filt.filterGatewayServices(&v.Services)
+
+	case *structs.IndexedNodesWithGateways:
+		if filt.filterCheckServiceNodes(&v.Nodes) {
+			v.QueryMeta.ResultsFilteredByACLs = true
+		}
+		if filt.filterGatewayServices(&v.Gateways) {
+			v.QueryMeta.ResultsFilteredByACLs = true
+		}
 
 	case *structs.IndexedNodesWithGateways:
 		if filt.filterCheckServiceNodes(&v.Nodes) {

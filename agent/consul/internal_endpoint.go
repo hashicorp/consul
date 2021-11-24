@@ -117,10 +117,6 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Nodes = nodes
 
-			if err := m.srv.filterACL(args.Token, &reply.Nodes); err != nil {
-				return err
-			}
-
 			// Get, store, and filter gateway services
 			idx, gatewayServices, err := state.DumpGatewayServices(ws)
 			if err != nil {
