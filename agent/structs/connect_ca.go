@@ -481,6 +481,14 @@ type VaultCAProviderConfig struct {
 	KeyFile       string
 	TLSServerName string
 	TLSSkipVerify bool
+
+	AuthMethod *VaultAuthMethod `alias:"auth_method"`
+}
+
+type VaultAuthMethod struct {
+	Type      string
+	MountPath string `alias:"mount_path"`
+	Params    map[string]interface{}
 }
 
 type AWSCAProviderConfig struct {

@@ -40,6 +40,7 @@ Workspace automation requirements for Consul-Terraform-Sync are in place to avoi
 * Must be set to remote execution mode
 * Cannot be connected to a VCS
 * Cannot have an existing configuration version uploaded by another application
+* Must satisfy workspace [tag requirements](/docs/nia/configuration#tags_allowlist) and [tag restrictions](/docs/nia/configuration#tags_denylist) set by the CTS operator
 
 Workspaces created by Consul-Terraform-Sync will be configured with the following settings:
 
@@ -50,6 +51,7 @@ Workspaces created by Consul-Terraform-Sync will be configured with the followin
 | Execution mode | Remote |
 | Apply method | Auto apply |
 | Terraform Version | [`task.terraform_version`](/docs/nia/configuration#terraform_version) or the latest [Terraform version compatible with CTS](/docs/nia/compatibility#terraform) available for the organization. |
+| Tags | `source:cts` and [additional tags](/docs/nia/configuration#tags) set by the CTS operator |
 
 Other workspace settings can be pre-configured or updated, such as setting the workspace to [manual apply](#manual-apply) or adding a [run notification](https://www.terraform.io/docs/cloud/workspaces/notifications.html) to send messages to a Slack channel when Consul-Terraform-Sync updates your network infrastructure.
 

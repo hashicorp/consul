@@ -1,36 +1,89 @@
----
-class: ember
----
-## TokenSource
+# TokenSource
 
-```hbs
-  <TokenSource
-    @dc={{dc}}
-    @nspace={{nspace}}
-    @partition={{partition}}
-    @type={{or 'oidc' 'secret'}}
-    @value={{or identifierForProvider secret}}
-    @onchange={{action 'change'}}
-    @onerror={{action 'error'}}
+This is a Source-like component that goes through either traditional 'secret'
+based login or a 'oidc' flow depending on the `type` argument given.
+
+As with most of our Source components, the component only needs to be added to
+the page in order to start the flow and is meant to be used as such (think
+'this is like an `<img />`). It is also loosely based on a HTML `<input />`
+element (it has `type` and `value` arguments/attributes)
+
+When using the `oidc` type the component will go through the steps of
+requesting the OIDC providers authorization URL from Consul, go through the
+OIDC flow with the user and the 3rd party provider (via our `<JwtSource />`
+component), then lastly exchanging the resulting JWT with Consul for a normal
+Consul token.
+
+When using the `secret` type, the component simply exchanges the users secret
+for a normal Consul token.
+
+This component **does not store the resulting token**, it only emits it via
+its `onchange` argument/event handler. Errors are emitted via the `onerror`
+argument/event handler.
+
+```hbs preview-template
+<figure>
+  <figcaption>Provide a widget to login with</figcaption>
+
+  <input
+    oninput={{action (mut this.value) value="target.value"}}
+    type="text"
   />
+  <button
+    type="button"
+    {{on 'click' (fn (mut this.state) 'authenticating')}}
+  >
+    Login
+  </button>
+</figure>
+
+<figure>
+  <figcaption>When the button is clicked add TokenSource to the page</figcaption>
+
+{{#if (eq this.state 'authenticating')}}
+  <TokenSource
+    @dc={{'dc-1'}}
+    @nspace={{''}}
+    @partition={{''}}
+    @type={{or 'secret' 'oidc'}}
+    @value={{this.value}}
+    @onchange={{queue (action (mut this.token) value="data") (fn (mut this.state) '')}}
+    @onerror={{queue (action (mut this.error) value="error.errors.firstObject") (fn (mut this.state) '')}}
+  />
+{{/if}}
+</figure>
+<figure>
+  <figcaption>Show the results</figcaption>
+  <dl>
+{{#if this.token}}
+    <dt>AccessorID</dt>
+    <dd>{{this.token.AccessorID}}</dd>
+{{/if}}
+{{#if this.error}}
+    <dt>Error</dt>
+    <dd>{{this.error.detail}}</dd>
+{{/if}}
+  </dl>
+</figure>
 ```
 
-### Arguments
+## Arguments
 
 | Argument | Type | Default | Description |
 | --- | --- | --- | --- |
 | `dc` | `String` | | The name of the current datacenter |
 | `nspace` | `String` | | The name of the current namespace |
 | `partition` | `String` | | The name of the current partition |
+| `type` | `String` | | `secret` or `oidc`. `secret` is just traditional login, whereas `oidc` uses the users OIDC provider |
+| `value` | `String` | | When `type` is `secret` this should be the users secret. When `type` is `oidc` this should be the name of the `AuthMethod` to use for authentication |
 | `onchange` | `Function` |  | The action to fire when the data changes. Emits an Event-like object with a `data` property containing the jwt data, in this case the autorizationCode and the status |
 | `onerror` | `Function` |  | The action to fire when an error occurs. Emits ErrorEvent object with an `error` property containing the Error. |
 
-This component will go through the steps of requesting a JWT token from a third party oauth provider. `src` should contain the full URL of the authorization URL for the 3rd party provider. Once the user has logged into the 3rd party provider the `onchange` event will be fired containing an event-like object whose data contains the JWT information.
 
-The component need only be place into the DOM in order to begin the OAuth dance.
+## See
 
-### See
-
+- [JwtSource Component](../jwt-source/README.mdx)
+- [StateChart](./chart.xstate.js)
 - [Component Source Code](./index.js)
 - [Template Source Code](./index.hbs)
 

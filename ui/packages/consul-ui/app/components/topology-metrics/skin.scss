@@ -24,7 +24,7 @@
 // Metrics Container
 #metrics-container {
   div:first-child {
-    background-color: rgb(var(--white));
+    background-color: rgb(var(--tone-gray-000));
   }
   .link {
     background-color: rgb(var(--tone-gray-100));
@@ -53,7 +53,7 @@
     fill: var(--transparent);
   }
   circle {
-    fill: rgb(var(--white));
+    fill: rgb(var(--tone-gray-000));
   }
   .allow-arrow {
     fill: rgb(var(--tone-gray-300));

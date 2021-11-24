@@ -113,5 +113,5 @@
 %composite-row-header .policy-management dd::before,
 %composite-row-detail .policy-management::before {
   @extend %with-star-fill-mask, %as-pseudo;
-  background-color: rgb(var(--brand-600));
+  background-color: rgb(var(--tone-brand-600));
 }
