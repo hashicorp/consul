@@ -1,0 +1,31 @@
+---
+layout: docs
+page_title: Vault as Secrets Backend Overview
+description: >-
+  Using Vault as secrets backend for Consul on Kubernetes.
+---
+
+# Vault as Secrets Backend Overview
+
+By default, Consul Helm chart will expect that any credentials it needs are stored as Kubernetes secrets.
+As of Consul 1.11 and Consul Helm chart v0.?.?, we integrate more natively with Vault making it easier
+to use Consul Helm chart with Vault as the secrets storage backend.
+
+At a high level, there are two points of integration with Vault:
+- **Gossip encryption** - The encryption key for gossip communication is stored in Vault.
+- **TLS certificates and keys**:
+  - **Consul Server TLS credentials** - TLS certificate and key for the Consul server is stored in Vault
+  - **Service Mesh and Consul client TLS credentials** - Consul uses Vault as the provider for mTLS certificates and keys for the service mesh services
+  and TLS certificates and keys for the Consul clients.
+
+## Requirements
+
+TODO
+
+## Known Limitations
+
+TODO
+
+## Next Steps
+
+TODO
