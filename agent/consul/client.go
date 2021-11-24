@@ -284,17 +284,23 @@ TRY:
 	}
 
 	// Move off to another server, and see if we can retry.
-	c.logger.Error("RPC failed to server",
+	manager.NotifyFailedServer(server)
+
+	if retry := canRetry(info, rpcErr, firstCheck, c.config); !retry {
+		c.logger.Error("RPC failed to server",
+			"method", method,
+			"server", server.Addr,
+			"error", rpcErr,
+		)
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "failed"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
+		return rpcErr
+	}
+
+	c.logger.Warn("Retrying RPC to server",
 		"method", method,
 		"server", server.Addr,
 		"error", rpcErr,
 	)
-	metrics.IncrCounterWithLabels([]string{"client", "rpc", "failed"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
-	manager.NotifyFailedServer(server)
-
-	if retry := canRetry(info, rpcErr, firstCheck, c.config); !retry {
-		return rpcErr
-	}
 
 	// We can wait a bit and retry!
 	jitter := lib.RandomStagger(c.config.RPCHoldTimeout / structs.JitterFraction)
