@@ -548,10 +548,6 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	// default (TLS 1.0) and because the initial check in validateConfig makes
 	// sure the version is not invalid.
 
-	// FIXME: move ParseTLSVersion to be called externally, maybe in
-	// agent/config/runtime parsing before the tlsutil.Config struct is created?
-	// tlsVersion, _ := ParseTLSVersion(c.base.TLSMinVersion)
-
 	tlsConfig.MinVersion = goTLSVersions[c.base.TLSMinVersion]
 
 	// Set ClientAuth if necessary

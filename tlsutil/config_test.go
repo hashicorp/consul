@@ -395,17 +395,17 @@ func TestConfig_ParseCiphers(t *testing.T) {
 		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
 		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
 	}, ",")
-	ciphers := []uint16{
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+	ciphers := []types.TLSCipherSuite{
+		types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+		types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		types.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		types.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+		types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		types.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 	}
 	v, err := ParseCiphers(testOk)
 	require.NoError(t, err)
@@ -418,7 +418,7 @@ func TestConfig_ParseCiphers(t *testing.T) {
 
 	v, err = ParseCiphers("")
 	require.NoError(t, err)
-	require.Equal(t, []uint16{}, v)
+	require.Equal(t, []types.TLSCipherSuite{}, v)
 }
 
 func TestLoadKeyPair(t *testing.T) {
@@ -651,13 +651,20 @@ func TestConfigurator_CommonTLSConfigCipherSuites(t *testing.T) {
 	tlsConf := c.commonTLSConfig(false)
 	require.Empty(t, tlsConf.CipherSuites)
 
-	// TODO: this test previously was expected to pass with an unexpected, but
-	// valid, value??
 	conf := Config{CipherSuites: []types.TLSCipherSuite{
 		types.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256}}
 	require.NoError(t, c.Update(conf))
 	tlsConf = c.commonTLSConfig(false)
-	require.Equal(t, conf.CipherSuites, tlsConf.CipherSuites)
+
+	// TODO: this test previously was expected to pass with an unexpected, but
+	// valid, value??
+	require.Equal(t, []uint16{}, tlsConf.CipherSuites)
+
+	conf = Config{CipherSuites: []types.TLSCipherSuite{
+		types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA}}
+	require.NoError(t, c.Update(conf))
+	tlsConf = c.commonTLSConfig(false)
+	require.Equal(t, []uint16{0xc009}, tlsConf.CipherSuites)
 }
 
 func TestConfigurator_CommonTLSConfigGetClientCertificate(t *testing.T) {
