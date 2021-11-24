@@ -72,7 +72,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	if err := s.SessionCreate(2, sess); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex("sessions"); idx != 2 {
+	if idx := s.maxIndex(partitionedAndNamespacedIndexEntryName(tableSessions, &sess.EnterpriseMeta)); idx != 2 {
 		t.Fatalf("bad index: %s", err)
 	}
 	if !watchFired(ws) {
@@ -379,7 +379,7 @@ func TestStateStore_SessionDestroy(t *testing.T) {
 	}
 
 	// Check that the index was updated
-	if idx := s.maxIndex("sessions"); idx != 3 {
+	if idx := s.maxIndex(partitionedAndNamespacedIndexEntryName(tableSessions, &sess.EnterpriseMeta)); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 

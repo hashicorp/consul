@@ -183,3 +183,7 @@ func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) 
 
 	return idx, result, nil
 }
+
+func maxIndexTxnSessions(tx *memdb.Txn, _ *structs.EnterpriseMeta) uint64 {
+	return maxIndexTxn(tx, tableSessions)
+}
