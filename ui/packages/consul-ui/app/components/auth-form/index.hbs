@@ -16,8 +16,8 @@ as |chart|}}
     focus=this.focus
     disabled=(state-matches state "loading")
     error=(queue
-      (action (mut this.error) value="error.errors.firstObject")
       (action dispatch "ERROR")
+      (action (mut this.error) value="error.errors.firstObject")
     )
     submit=(queue
       (action (mut this.value))
@@ -38,6 +38,24 @@ as |exported|}}
     class="auth-form"
     ...attributes
   >
+<StateChart
+  @src={{this.tabsChart}}
+as |TabState IgnoredGuard IgnoredAction tabDispatch tabState|>
+{{#if (can 'use SSO')}}
+    <TabNav
+      @items={{array
+        (hash
+          label='Token'
+          selected=(state-matches tabState 'token')
+        )
+        (hash
+          label='SSO'
+          selected=(state-matches tabState 'sso')
+        )
+      }}
+      @onclick={{queue (action tabDispatch) (action dispatch "RESET")}}
+    />
+{{/if}}
     <State @matches="error">
       {{#if this.error.status}}
         <Notice
@@ -64,6 +82,9 @@ as |exported|}}
                 {{#if (eq this.error.status '403')}}
                   <strong>Invalid token</strong><br />
                   The token entered does not exist. Please enter a valid token to log in.
+                {{else if (eq this.error.status '404')}}
+                  <strong>No providers</strong><br />
+                  No SSO providers are configured for that Admin Partition.
                 {{else}}
                   <strong>Error</strong><br />
                   {{this.error.detail}}
@@ -74,12 +95,13 @@ as |exported|}}
         </Notice>
       {{/if}}
     </State>
+<TabState @matches="token">
     <form
       onsubmit={{action dispatch "SUBMIT"}}
     >
       <fieldset>
         <label
-          class={{concat "type-password" (if (and (state-matches state 'error') (not this.error.status)) ' has-error' '')}}
+          class={{concat "type-password" (if (and (state-matches state 'error') (not this.error.status)) ' has-error')}}
         >
           <span>Log in with a token</span>
 
@@ -114,14 +136,15 @@ as |exported|}}
       >
         Log in
       </Action>
+    </form>
+</TabState>
+
+{{yield (assign exported (hash Method=TabState))}}
+
       <em>
         Contact your administrator for login credentials.
       </em>
-    </form>
-
-    {{yield exported to="content"}}
-
-
+</StateChart>
 
 
   </div>
