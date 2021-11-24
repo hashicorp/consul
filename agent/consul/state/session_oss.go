@@ -42,20 +42,6 @@ func sessionCheckIndexer() indexerSingle {
 	}
 }
 
-func idCheckIndexer() indexerSingle {
-	return indexerSingle{
-		readIndex:  indexFromNodeCheckIDSession,
-		writeIndex: indexFromNodeCheckIDSession,
-	}
-}
-
-func sessionCheckIndexer() indexerSingle {
-	return indexerSingle{
-		readIndex:  indexFromQuery,
-		writeIndex: indexSessionCheckFromSession,
-	}
-}
-
 func nodeChecksIndexer() indexerSingle {
 	return indexerSingle{
 		readIndex:  indexFromMultiValueID,
