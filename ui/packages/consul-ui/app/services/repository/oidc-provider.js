@@ -21,7 +21,14 @@ export default class OidcProviderService extends RepositoryService {
 
   @dataSource('/:partition/:ns/:dc/oidc/providers')
   async findAllByDatacenter() {
-    return super.findAllByDatacenter(...arguments);
+    const res = await super.findAllByDatacenter(...arguments);
+    if (res.length === 0) {
+      const err = new Error('Not found');
+      err.statusCode = 404;
+      this.store.adapterFor(this.getModelName()).error(err);
+      return;
+    }
+    return res;
   }
 
   @dataSource('/:partition/:ns/:dc/oidc/provider/:id')

@@ -263,7 +263,22 @@
                     </BlockSlot>
                     <BlockSlot @name="body">
                       <AuthForm as |authForm|>
-                        <Ref @target={{this}} @name="authForm" @value={{authForm}} />
+                        <Ref
+                          @target={{this}}
+                          @name="authForm"
+                          @value={{authForm}}
+                        />
+                        {{#if (can "use SSO")}}
+                          <authForm.Method @matches="sso">
+                            <OidcSelect
+                              @dc={{@dc.Name}}
+                              @nspace={{@nspace}}
+                              @disabled={{authForm.disabled}}
+                              @onchange={{authForm.submit}}
+                              @onerror={{authForm.error}}
+                            />
+                          </authForm.Method>
+                        {{/if}}
                       </AuthForm>
                     </BlockSlot>
                     <BlockSlot @name="actions">

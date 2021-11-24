@@ -1,0 +1,50 @@
+# OptionInput
+
+Form component to be used for choosing options, both compacted form (coming
+soon) and expanded form. Certain API decision are based on the usage of
+`ember-power-select` which is currently used internally. This is likely to
+change slightly at some point in the future.
+
+```hbs preview-template
+  <OptionInput
+    @name="Choice"
+    @label="Choice of different options"
+    @item={{hash
+      Choice="selection"
+    }}
+    @selected={{or this.selected 'option 2'}}
+    @items={{array
+      'option 1'
+      'option 2'
+      'option 3'
+      'option 4'
+    }}
+    @onchange={{action (mut this.selected)}}
+  >
+    <:option as |option|>
+      <span>{{option.item}}</span>
+    </:option>
+  </OptionInput>
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `item` | `Object` |  | An object whose properties are to be edited |
+| `name` | `String` | '' | An identifier for the property to be edited on the `item` |
+| `label` | `String` | `@name` | A label to use to label the text input element |
+| `placeholder` | `String` | | Equivalent to the HTML `placeholder=""` attribute |
+| `help` | `String` | | Provide some help text for the input (consider using `@validations` instead) |
+| `multiple` | `Boolean` | `false` | Set the OptionInput to be multiple choice (coming soon) |
+| `expanded` | `Boolean` | `false` | Whether to use expanded radiobuttons/checkboxes or just a non-expanded select-like input |
+| `validations` | `Object` |  | A `validations` object to be passed to the underlying `validate` modifier |
+| `chart` | `Object` | | A StateChart object (implementing `state` and `dispatch` to be passed to the underlying `validate` modifier  |
+| `onchange` | `Function` | | An event listener fired onchange of the input |
+
+## See
+
+- [Validate Modifier](../modifiers/validate.mdx)
+- [Template Source Code](./index.hbs)
+
+---

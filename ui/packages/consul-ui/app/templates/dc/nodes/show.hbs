@@ -77,11 +77,11 @@ as |item tomography|}}
               <TabNav @items={{
                 compact
                     (array
-                                (hash label="Health Checks" href=(href-to "dc.nodes.show.healthchecks") selected=(is-href "dc.nodes.show.healthchecks"))
-                                (hash label="Service Instances" href=(href-to "dc.nodes.show.services") selected=(is-href "dc.nodes.show.services"))
-      (if tomography.distances  (hash label="Round Trip Time" href=(href-to "dc.nodes.show.rtt") selected=(is-href "dc.nodes.show.rtt")) '')
-                                (hash label="Lock Sessions" href=(href-to "dc.nodes.show.sessions") selected=(is-href "dc.nodes.show.sessions"))
-                                (hash label="Metadata" href=(href-to "dc.nodes.show.metadata") selected=(is-href "dc.nodes.show.metadata"))
+                          (hash label="Health Checks" href=(href-to "dc.nodes.show.healthchecks") selected=(is-href "dc.nodes.show.healthchecks"))
+                          (hash label="Service Instances" href=(href-to "dc.nodes.show.services") selected=(is-href "dc.nodes.show.services"))
+(if tomography.distances  (hash label="Round Trip Time" href=(href-to "dc.nodes.show.rtt") selected=(is-href "dc.nodes.show.rtt")) '')
+                          (hash label="Lock Sessions" href=(href-to "dc.nodes.show.sessions") selected=(is-href "dc.nodes.show.sessions"))
+                          (hash label="Metadata" href=(href-to "dc.nodes.show.metadata") selected=(is-href "dc.nodes.show.metadata"))
                     )
               }}/>
           </BlockSlot>

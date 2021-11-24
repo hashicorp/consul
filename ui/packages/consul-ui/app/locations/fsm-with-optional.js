@@ -206,19 +206,31 @@ export default class FSMWithOptionalLocation {
         withOptional = false;
         break;
     }
-    if(this.router.currentRouteName.startsWith('docs.')) {
+    if (this.router.currentRouteName.startsWith('docs.')) {
       // If we are in docs, then add a default dc as there won't be one in the
       // URL
       params.unshift(env('CONSUL_DATACENTER_PRIMARY'));
-      if(routeName.startsWith('dc')) {
+      if (routeName.startsWith('dc')) {
         // if its an app URL replace it with debugging instead of linking
         return `console://${routeName} <= ${JSON.stringify(params)}`;
       }
     }
     const router = this.router._routerMicrolib;
-    const url = router.generate(routeName, ...params, {
-      queryParams: {},
-    });
+    let url;
+    try {
+      url = router.generate(routeName, ...params, {
+        queryParams: {},
+      });
+    } catch (e) {
+      // if the previous generation throws due to params not being available
+      // its probably due to the view wanting to re-render even though we are
+      // leaving the view and the router has already moved the state to old
+      // state so try again with the old state to avoid errors
+      params = Object.values(router.oldState.params).reduce((prev, item) => {
+        return prev.concat(Object.keys(item).length > 0 ? item : []);
+      }, []);
+      url = router.generate(routeName, ...params);
+    }
     return this.formatURL(url, hash, withOptional);
   }
 
@@ -227,7 +239,7 @@ export default class FSMWithOptionalLocation {
    * performs an ember transition/refresh and browser location update using that
    */
   transitionTo(url) {
-    if(this.router.currentRouteName.startsWith('docs') && url.startsWith('console://')) {
+    if (this.router.currentRouteName.startsWith('docs') && url.startsWith('console://')) {
       console.log(`location.transitionTo: ${url.substr(10)}`);
       return true;
     }
@@ -241,7 +253,7 @@ export default class FSMWithOptionalLocation {
       // this.setURL(url);
     } else {
       const currentOptional = this.optionalParams();
-      if(previousOptional.some(([key, value]) => currentOptional[key] !== value)) {
+      if (previousOptional.some(([key, value]) => currentOptional[key] !== value)) {
         // an optional parameter change and a normal param change as the Ember
         // URLs are different and we know the optional params changed
         // TODO: Consider changing the above previousURL === transitionURL to

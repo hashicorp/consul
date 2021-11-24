@@ -1,8 +1,20 @@
-<StateChart @src={{chart}} as |State Guard Action dispatch state|>
+<StateChart
+  @src={{chart}}
+as |State Guard Action dispatch state|>
 
-  <Guard @name="hasToken" @cond={{action 'hasToken'}} />
-  <Action @name="login" @exec={{action 'login'}} />
-  <Action @name="logout" @exec={{action 'logout'}} />
+  <Guard
+    @name="hasToken"
+    @cond={{action 'hasToken'}}
+  />
+  <Action
+    @name="login"
+    @exec={{action 'login'}}
+  />
+  <Action
+    @name="logout"
+    @exec={{action 'logout'}}
+  />
+
   {{! This DataSource just permanently listens to any changes to the users }}
   {{! token, whether thats a new token, a changed token or a deleted token }}
   <DataSource
