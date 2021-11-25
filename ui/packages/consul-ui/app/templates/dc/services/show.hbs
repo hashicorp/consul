@@ -85,7 +85,10 @@
           {{#if urls.service}}
             <a href={{render-template urls.service (hash
               Datacenter=dc.Name
-              Service=(hash Name=item.Service.Service)
+              Service=(hash
+                Name=item.Service.Service
+                Namespace=(or item.Service.Namespace '')
+              )
             )}}
               target="_blank"
               rel="noopener noreferrer"
