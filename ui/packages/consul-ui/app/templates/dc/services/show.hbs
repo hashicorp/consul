@@ -186,10 +186,16 @@ as |items item dc|}}
               }}
             as |config|>
             {{#if config.data.dashboard_url_templates.service}}
-              <a href={{render-template config.data.dashboard_url_templates.service (hash
-                Datacenter=dc.Name
-                Service=(hash Name=item.Service.Service)
-              )}}
+              <a
+                href={{render-template config.data.dashboard_url_templates.service
+                  (hash
+                    Datacenter=dc.Name
+                    Service=(hash
+                      Name=item.Service.Service
+                      Namespace=(or item.Service.Namespace '')
+                    )
+                  )
+                }}
                 target="_blank"
                 rel="noopener noreferrer"
                 data-test-dashboard-anchor
