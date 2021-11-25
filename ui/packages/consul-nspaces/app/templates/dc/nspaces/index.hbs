@@ -78,22 +78,12 @@ as |route|>
           @ondelete={{refresh-route}}
         as |writer|>
           <BlockSlot @name="removed" as |after|>
-            <Notice
+            <Consul::Nspace::Notifications 
               {{notification
                 after=(action after)
               }}
-              class="notification-delete"
-              @type="success"
-            as |notice|>
-              <notice.Header>
-                <strong>Success!</strong>
-              </notice.Header>
-              <notice.Body>
-                <p>
-                  Your Namespace has been marked for deletion.
-                </p>
-              </notice.Body>
-            </Notice>
+              @type="remove"
+            />
           </BlockSlot>
           <BlockSlot @name="content">
         <DataCollection
