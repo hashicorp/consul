@@ -1498,11 +1498,6 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 		pem = pem + ca.EnsureTrailingNewline(p)
 	}
 
-	// Append our local CA's intermediate if there is one.
-	if inter != root {
-		pem = pem + ca.EnsureTrailingNewline(inter)
-	}
-
 	modIdx, err := c.delegate.ApplyCALeafRequest()
 	if err != nil {
 		return nil, err
