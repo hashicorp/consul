@@ -17,6 +17,7 @@ var watchFuncFactory map[string]watchFactory
 func init() {
 	watchFuncFactory = map[string]watchFactory{
 		"key":           keyWatch,
+		"keys":          keysWatch,
 		"keyprefix":     keyPrefixWatch,
 		"services":      servicesWatch,
 		"nodes":         nodesWatch,
@@ -82,6 +83,39 @@ func keyPrefixWatch(params map[string]interface{}) (WatcherFunc, error) {
 			return nil, nil, err
 		}
 		return WaitIndexVal(meta.LastIndex), pairs, err
+	}
+	return fn, nil
+}
+
+// keysWatch is used to return a keys prefix watching function
+func keysWatch(params map[string]interface{}) (WatcherFunc, error) {
+	stale := false
+	if err := assignValueBool(params, "stale", &stale); err != nil {
+		return nil, err
+	}
+
+	var prefix string
+	if err := assignValue(params, "prefix", &prefix); err != nil {
+		return nil, err
+	}
+	if prefix == "" {
+		return nil, fmt.Errorf("Must specify a single prefix to watch")
+	}
+
+	var separator string
+	if err := assignValue(params, "separator", &separator); err != nil {
+		return nil, err
+	}
+
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
+		kv := p.client.KV()
+		opts := makeQueryOptionsWithContext(p, stale)
+		defer p.cancelFunc()
+		keys, meta, err := kv.Keys(prefix, separator, &opts)
+		if err != nil {
+			return nil, nil, err
+		}
+		return WaitIndexVal(meta.LastIndex), keys, err
 	}
 	return fn, nil
 }
