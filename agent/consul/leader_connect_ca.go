@@ -621,48 +621,22 @@ func (c *CAManager) secondaryInitializeIntermediateCA(provider ca.Provider, conf
 		return err
 	}
 
-	var (
-		storedRootID         string
-		expectedSigningKeyID string
-		currentSigningKeyID  string
-		activeSecondaryRoot  *structs.CARoot
-	)
+	_, activeRoot, err := c.delegate.State().CARootActive(nil)
+	if err != nil {
+		return err
+	}
+	var currentSigningKeyID string
+	if activeRoot != nil {
+		currentSigningKeyID = activeRoot.SigningKeyID
+	}
+
+	var expectedSigningKeyID string
 	if activeIntermediate != "" {
-		// In the event that we already have an intermediate, we must have
-		// already replicated some primary root information locally, so check
-		// to see if we're up to date by fetching the rootID and the
-		// signingKeyID used in the secondary.
-		//
-		// Note that for the same rootID the primary representation of the root
-		// will have a different SigningKeyID field than the secondary
-		// representation of the same root. This is because it's derived from
-		// the intermediate which is different in all datacenters.
-		storedRoot, err := provider.ActiveRoot()
-		if err != nil {
-			return err
-		}
-
-		storedRootID, err = connect.CalculateCertFingerprint(storedRoot)
-		if err != nil {
-			return fmt.Errorf("error parsing root fingerprint: %v, %#v", err, storedRoot)
-		}
-
 		intermediateCert, err := connect.ParseCert(activeIntermediate)
 		if err != nil {
 			return fmt.Errorf("error parsing active intermediate cert: %v", err)
 		}
 		expectedSigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
-
-		// This will fetch the secondary's exact current representation of the
-		// active root. Note that this data should only be used if the IDs
-		// match, otherwise it's out of date and should be regenerated.
-		_, activeSecondaryRoot, err = c.delegate.State().CARootActive(nil)
-		if err != nil {
-			return err
-		}
-		if activeSecondaryRoot != nil {
-			currentSigningKeyID = activeSecondaryRoot.SigningKeyID
-		}
 	}
 
 	newActiveRoot, err := c.secondaryGetActivePrimaryCARoot()
@@ -670,12 +644,10 @@ func (c *CAManager) secondaryInitializeIntermediateCA(provider ca.Provider, conf
 		return err
 	}
 
-	_ = storedRootID // TODO: will be removed in the next commit
-
 	// Get a signed intermediate from the primary DC if the provider
 	// hasn't been initialized yet or if the primary's root has changed.
-	needsNewIntermediate := false
-	if activeIntermediate == "" {
+	needsNewIntermediate := activeIntermediate == ""
+	if activeRoot != nil && newActiveRoot.ID != activeRoot.ID {
 		needsNewIntermediate = true
 	}
 
@@ -694,14 +666,7 @@ func (c *CAManager) secondaryInitializeIntermediateCA(provider ca.Provider, conf
 	} else {
 		// Discard the primary's representation since our local one is
 		// sufficiently up to date.
-		newActiveRoot = activeSecondaryRoot
-	}
-
-	// Update the roots list in the state store if there's a new active root.
-	state := c.delegate.State()
-	_, activeRoot, err := state.CARootActive(nil)
-	if err != nil {
-		return err
+		newActiveRoot = activeRoot
 	}
 
 	// Determine whether a root update is needed, and persist the roots/config accordingly.
