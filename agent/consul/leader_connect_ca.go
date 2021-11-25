@@ -197,11 +197,18 @@ func (c *CAManager) secondarySetPrimaryRoots(newRoots structs.IndexedCARoots) {
 	c.primaryRoots = newRoots
 }
 
-func (c *CAManager) secondaryGetPrimaryRoots() structs.IndexedCARoots {
+func (c *CAManager) secondaryGetActivePrimaryCARoot() (*structs.CARoot, error) {
 	// TODO: this could be a different lock, as long as its the same lock in secondarySetPrimaryRoots
 	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
-	return c.primaryRoots
+	primaryRoots := c.primaryRoots
+	c.stateLock.Unlock()
+
+	for _, root := range primaryRoots.Roots {
+		if root.ID == primaryRoots.ActiveRootID && root.Active {
+			return root, nil
+		}
+	}
+	return nil, fmt.Errorf("primary datacenter does not have an active root CA for Connect")
 }
 
 // initializeCAConfig is used to initialize the CA config if necessary
@@ -658,25 +665,17 @@ func (c *CAManager) secondaryInitializeIntermediateCA(provider ca.Provider, conf
 		}
 	}
 
-	// Determine which of the provided PRIMARY representations of roots is the
-	// active one. We'll use this as a template to generate any new root
-	// representations meant for this secondary.
-	var newActiveRoot *structs.CARoot
-	primaryRoots := c.secondaryGetPrimaryRoots()
-	for _, root := range primaryRoots.Roots {
-		if root.ID == primaryRoots.ActiveRootID && root.Active {
-			newActiveRoot = root
-			break
-		}
+	newActiveRoot, err := c.secondaryGetActivePrimaryCARoot()
+	if err != nil {
+		return err
 	}
-	if newActiveRoot == nil {
-		return fmt.Errorf("primary datacenter does not have an active root CA for Connect")
-	}
+
+	_ = storedRootID // TODO: will be removed in the next commit
 
 	// Get a signed intermediate from the primary DC if the provider
 	// hasn't been initialized yet or if the primary's root has changed.
 	needsNewIntermediate := false
-	if activeIntermediate == "" || storedRootID != primaryRoots.ActiveRootID {
+	if activeIntermediate == "" {
 		needsNewIntermediate = true
 	}
 
