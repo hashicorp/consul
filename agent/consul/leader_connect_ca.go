@@ -520,12 +520,26 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 		}
 	}
 
+	var rootUpdateRequired bool
+
 	// Versions prior to 1.9.3, 1.8.8, and 1.7.12 incorrectly used the primary
 	// rootCA's subjectKeyID here instead of the intermediate. For
 	// provider=consul this didn't matter since there are no intermediates in
 	// the primaryDC, but for vault it does matter.
 	expectedSigningKeyID := connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
-	needsSigningKeyUpdate := (rootCA.SigningKeyID != expectedSigningKeyID)
+	if rootCA.SigningKeyID != expectedSigningKeyID {
+		c.logger.Info("Correcting stored CARoot values",
+			"previous-signing-key", rootCA.SigningKeyID, "updated-signing-key", expectedSigningKeyID)
+		rootCA.SigningKeyID = expectedSigningKeyID
+		rootUpdateRequired = true
+	}
+
+	// Add the local leaf signing cert to the rootCA struct. This handles both
+	// upgrades of existing state, and new rootCA.
+	if rootCA.LeafSigningCert() != interPEM {
+		rootCA.IntermediateCerts = append(rootCA.IntermediateCerts, interPEM)
+		rootUpdateRequired = true
+	}
 
 	// Check if the CA root is already initialized and exit if it is,
 	// adding on any existing intermediate certs since they aren't directly
@@ -537,24 +551,19 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	if err != nil {
 		return err
 	}
-	if activeRoot != nil && needsSigningKeyUpdate {
-		c.logger.Info("Correcting stored SigningKeyID value", "previous", rootCA.SigningKeyID, "updated", expectedSigningKeyID)
-
-	} else if activeRoot != nil && !needsSigningKeyUpdate {
+	if activeRoot != nil && !rootUpdateRequired {
 		// This state shouldn't be possible to get into because we update the root and
 		// CA config in the same FSM operation.
 		if activeRoot.ID != rootCA.ID {
 			return fmt.Errorf("stored CA root %q is not the active root (%s)", rootCA.ID, activeRoot.ID)
 		}
 
+		// TODO: why doesn't this c.setCAProvider(provider, activeRoot) ?
 		rootCA.IntermediateCerts = activeRoot.IntermediateCerts
 		c.setCAProvider(provider, rootCA)
 
+		c.logger.Info("initialized primary datacenter CA from existing CARoot with provider", "provider", conf.Provider)
 		return nil
-	}
-
-	if needsSigningKeyUpdate {
-		rootCA.SigningKeyID = expectedSigningKeyID
 	}
 
 	// Get the highest index

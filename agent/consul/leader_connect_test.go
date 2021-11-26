@@ -396,8 +396,15 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 	provider, _ := getCAProviderWithLock(s1)
 	intermediatePEM, err := provider.ActiveIntermediate()
 	require.NoError(err)
-	_, err = connect.ParseCert(intermediatePEM)
+	intermediateCert, err := connect.ParseCert(intermediatePEM)
 	require.NoError(err)
+
+	// Check that the state store has the correct intermediate
+	store := s1.caManager.delegate.State()
+	_, activeRoot, err := store.CARootActive(nil)
+	require.NoError(err)
+	require.Equal(intermediatePEM, activeRoot.LeafSigningCert())
+	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
 	// Wait for dc1's intermediate to be refreshed.
 	// It is possible that test fails when the blocking query doesn't return.
@@ -405,14 +412,18 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 		provider, _ = getCAProviderWithLock(s1)
 		newIntermediatePEM, err := provider.ActiveIntermediate()
 		r.Check(err)
-		_, err = connect.ParseCert(intermediatePEM)
-		r.Check(err)
 		if newIntermediatePEM == intermediatePEM {
 			r.Fatal("not a renewed intermediate")
 		}
+		intermediateCert, err = connect.ParseCert(newIntermediatePEM)
+		r.Check(err)
 		intermediatePEM = newIntermediatePEM
 	})
+
+	_, activeRoot, err = store.CARootActive(nil)
 	require.NoError(err)
+	require.Equal(intermediatePEM, activeRoot.LeafSigningCert())
+	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
 	// Get the root from dc1 and validate a chain of:
 	// dc1 leaf -> dc1 intermediate -> dc1 root
@@ -439,6 +450,8 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 	// Check that the leaf signed by the new intermediate can be verified using the
 	// returned cert chain (signed intermediate + remote root).
 	intermediatePool := x509.NewCertPool()
+	// TODO: do not explicitly add the intermediatePEM, we should have it available
+	// from leafPEM. Use connect.ParseLeafCerts to do the right thing.
 	intermediatePool.AppendCertsFromPEM([]byte(intermediatePEM))
 	rootPool := x509.NewCertPool()
 	rootPool.AppendCertsFromPEM([]byte(caRoot.RootCert))
@@ -515,10 +528,10 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	secondaryProvider, _ := getCAProviderWithLock(s2)
 	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(err)
-	cert, err := connect.ParseCert(intermediatePEM)
+	intermediateCert, err := connect.ParseCert(intermediatePEM)
 	require.NoError(err)
-	currentCertSerialNumber := cert.SerialNumber
-	currentCertAuthorityKeyId := cert.AuthorityKeyId
+	currentCertSerialNumber := intermediateCert.SerialNumber
+	currentCertAuthorityKeyId := intermediateCert.AuthorityKeyId
 
 	// Capture the current root
 	var originalRoot *structs.CARoot
@@ -531,6 +544,12 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 
 	waitForActiveCARoot(t, s1, originalRoot)
 	waitForActiveCARoot(t, s2, originalRoot)
+
+	store := s2.fsm.State()
+	_, activeRoot, err := store.CARootActive(nil)
+	require.NoError(err)
+	require.Equal(intermediatePEM, activeRoot.LeafSigningCert())
+	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
 	// Wait for dc2's intermediate to be refreshed.
 	// It is possible that test fails when the blocking query doesn't return.
@@ -548,8 +567,13 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 			currentCertAuthorityKeyId = cert.AuthorityKeyId
 			r.Fatal("not a renewed intermediate")
 		}
+		intermediateCert = cert
 	})
+
+	_, activeRoot, err = store.CARootActive(nil)
 	require.NoError(err)
+	require.Equal(intermediatePEM, activeRoot.LeafSigningCert())
+	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
 	// Get the root from dc1 and validate a chain of:
 	// dc2 leaf -> dc2 intermediate -> dc1 root
@@ -570,17 +594,19 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	leafPEM, err := secondaryProvider.Sign(leafCsr)
 	require.NoError(err)
 
-	cert, err = connect.ParseCert(leafPEM)
+	intermediateCert, err = connect.ParseCert(leafPEM)
 	require.NoError(err)
 
 	// Check that the leaf signed by the new intermediate can be verified using the
 	// returned cert chain (signed intermediate + remote root).
 	intermediatePool := x509.NewCertPool()
+	// TODO: do not explicitly add the intermediatePEM, we should have it available
+	// from leafPEM. Use connect.ParseLeafCerts to do the right thing.
 	intermediatePool.AppendCertsFromPEM([]byte(intermediatePEM))
 	rootPool := x509.NewCertPool()
 	rootPool.AppendCertsFromPEM([]byte(caRoot.RootCert))
 
-	_, err = cert.Verify(x509.VerifyOptions{
+	_, err = intermediateCert.Verify(x509.VerifyOptions{
 		Intermediates: intermediatePool,
 		Roots:         rootPool,
 	})
