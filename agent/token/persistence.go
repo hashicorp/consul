@@ -69,10 +69,10 @@ func (t *Store) WithPersistenceLock(f func() error) error {
 }
 
 type persistedTokens struct {
-	Replication string `json:"replication,omitempty"`
-	AgentMaster string `json:"agent_master,omitempty"`
-	Default     string `json:"default,omitempty"`
-	Agent       string `json:"agent,omitempty"`
+	Replication   string `json:"replication,omitempty"`
+	AgentRecovery string `json:"agent_master,omitempty"`
+	Default       string `json:"default,omitempty"`
+	Agent         string `json:"agent,omitempty"`
 }
 
 type fileStore struct {
@@ -110,14 +110,14 @@ func loadTokens(s *Store, cfg Config, tokens persistedTokens, logger Logger) {
 		s.UpdateAgentToken(cfg.ACLAgentToken, TokenSourceConfig)
 	}
 
-	if tokens.AgentMaster != "" {
-		s.UpdateAgentMasterToken(tokens.AgentMaster, TokenSourceAPI)
+	if tokens.AgentRecovery != "" {
+		s.UpdateAgentRecoveryToken(tokens.AgentRecovery, TokenSourceAPI)
 
 		if cfg.ACLAgentRecoveryToken != "" {
-			logger.Warn("\"agent_master\" token present in both the configuration and persisted token store, using the persisted token")
+			logger.Warn("\"agent_recovery\" token present in both the configuration and persisted token store, using the persisted token")
 		}
 	} else {
-		s.UpdateAgentMasterToken(cfg.ACLAgentRecoveryToken, TokenSourceConfig)
+		s.UpdateAgentRecoveryToken(cfg.ACLAgentRecoveryToken, TokenSourceConfig)
 	}
 
 	if tokens.Replication != "" {
@@ -170,8 +170,8 @@ func (p *fileStore) saveToFile(s *Store) error {
 		tokens.Agent = tok
 	}
 
-	if tok, source := s.AgentMasterTokenAndSource(); tok != "" && source == TokenSourceAPI {
-		tokens.AgentMaster = tok
+	if tok, source := s.AgentRecoveryTokenAndSource(); tok != "" && source == TokenSourceAPI {
+		tokens.AgentRecovery = tok
 	}
 
 	if tok, source := s.ReplicationTokenAndSource(); tok != "" && source == TokenSourceAPI {

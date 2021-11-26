@@ -1053,7 +1053,7 @@ func (r *ACLResolver) resolveLocallyManagedToken(token string) (structs.ACLIdent
 		return nil, nil, false
 	}
 
-	if r.tokens.IsAgentMasterToken(token) {
+	if r.tokens.IsAgentRecoveryToken(token) {
 		return structs.NewAgentMasterTokenIdentity(r.config.NodeName, token), r.agentMasterAuthz, true
 	}
 
