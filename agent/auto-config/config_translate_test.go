@@ -129,9 +129,7 @@ func TestTranslateConfig(t *testing.T) {
 			EnableKeyListPolicy:    boolPointer(true),
 			EnableTokenPersistence: boolPointer(true),
 			Tokens: config.Tokens{
-				Master:      stringPointer("99e7e490-6baf-43fc-9010-78b6aa9a6813"),
 				Replication: stringPointer("51308d40-465c-4ac6-a636-7c0747edec89"),
-				AgentMaster: stringPointer("e012e1ea-78a2-41cc-bc8b-231a44196f39"),
 				Default:     stringPointer("8781a3f5-de46-4b45-83e1-c92f4cfd0332"),
 				Agent:       stringPointer("ddb8f1b0-8a99-4032-b601-87926bce244e"),
 				ManagedServiceProvider: []config.ServiceProviderToken{
@@ -139,6 +137,10 @@ func TestTranslateConfig(t *testing.T) {
 						AccessorID: stringPointer("23f37987-7b9e-4e5b-acae-dbc9bc137bae"),
 						SecretID:   stringPointer("e28b820a-438e-4e2b-ad24-fe59e6a4914f"),
 					},
+				},
+				DeprecatedTokens: config.DeprecatedTokens{
+					Master:      stringPointer("99e7e490-6baf-43fc-9010-78b6aa9a6813"),
+					AgentMaster: stringPointer("e012e1ea-78a2-41cc-bc8b-231a44196f39"),
 				},
 			},
 		},
