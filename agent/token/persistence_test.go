@@ -18,11 +18,11 @@ func TestStore_Load(t *testing.T) {
 
 	t.Run("with empty store", func(t *testing.T) {
 		cfg := Config{
-			DataDir:             dataDir,
-			ACLAgentToken:       "alfa",
-			ACLAgentMasterToken: "bravo",
-			ACLDefaultToken:     "charlie",
-			ACLReplicationToken: "delta",
+			DataDir:               dataDir,
+			ACLAgentToken:         "alfa",
+			ACLAgentRecoveryToken: "bravo",
+			ACLDefaultToken:       "charlie",
+			ACLReplicationToken:   "delta",
 		}
 		require.NoError(t, store.Load(cfg, logger))
 		require.Equal(t, "alfa", store.AgentToken())
@@ -33,11 +33,11 @@ func TestStore_Load(t *testing.T) {
 
 	t.Run("updated from Config", func(t *testing.T) {
 		cfg := Config{
-			DataDir:             dataDir,
-			ACLDefaultToken:     "echo",
-			ACLAgentToken:       "foxtrot",
-			ACLAgentMasterToken: "golf",
-			ACLReplicationToken: "hotel",
+			DataDir:               dataDir,
+			ACLDefaultToken:       "echo",
+			ACLAgentToken:         "foxtrot",
+			ACLAgentRecoveryToken: "golf",
+			ACLReplicationToken:   "hotel",
 		}
 		// ensures no error for missing persisted tokens file
 		require.NoError(t, store.Load(cfg, logger))
@@ -49,11 +49,11 @@ func TestStore_Load(t *testing.T) {
 
 	t.Run("with persisted tokens", func(t *testing.T) {
 		cfg := Config{
-			DataDir:             dataDir,
-			ACLDefaultToken:     "echo",
-			ACLAgentToken:       "foxtrot",
-			ACLAgentMasterToken: "golf",
-			ACLReplicationToken: "hotel",
+			DataDir:               dataDir,
+			ACLDefaultToken:       "echo",
+			ACLAgentToken:         "foxtrot",
+			ACLAgentRecoveryToken: "golf",
+			ACLReplicationToken:   "hotel",
 		}
 
 		tokens := `{
@@ -93,12 +93,12 @@ func TestStore_Load(t *testing.T) {
 		}`
 
 		cfg := Config{
-			EnablePersistence:   true,
-			DataDir:             dataDir,
-			ACLDefaultToken:     "quebec",
-			ACLAgentToken:       "romeo",
-			ACLAgentMasterToken: "sierra",
-			ACLReplicationToken: "tango",
+			EnablePersistence:     true,
+			DataDir:               dataDir,
+			ACLDefaultToken:       "quebec",
+			ACLAgentToken:         "romeo",
+			ACLAgentRecoveryToken: "sierra",
+			ACLReplicationToken:   "tango",
 		}
 
 		require.NoError(t, ioutil.WriteFile(tokenFile, []byte(tokens), 0600))
@@ -117,12 +117,12 @@ func TestStore_Load(t *testing.T) {
 		}`
 
 		cfg := Config{
-			EnablePersistence:   true,
-			DataDir:             dataDir,
-			ACLDefaultToken:     "whiskey",
-			ACLAgentToken:       "xray",
-			ACLAgentMasterToken: "yankee",
-			ACLReplicationToken: "zulu",
+			EnablePersistence:     true,
+			DataDir:               dataDir,
+			ACLDefaultToken:       "whiskey",
+			ACLAgentToken:         "xray",
+			ACLAgentRecoveryToken: "yankee",
+			ACLReplicationToken:   "zulu",
 		}
 
 		require.NoError(t, ioutil.WriteFile(tokenFile, []byte(tokens), 0600))
@@ -136,12 +136,12 @@ func TestStore_Load(t *testing.T) {
 
 	t.Run("persisted file contains invalid data", func(t *testing.T) {
 		cfg := Config{
-			EnablePersistence:   true,
-			DataDir:             dataDir,
-			ACLDefaultToken:     "one",
-			ACLAgentToken:       "two",
-			ACLAgentMasterToken: "three",
-			ACLReplicationToken: "four",
+			EnablePersistence:     true,
+			DataDir:               dataDir,
+			ACLDefaultToken:       "one",
+			ACLAgentToken:         "two",
+			ACLAgentRecoveryToken: "three",
+			ACLReplicationToken:   "four",
 		}
 
 		require.NoError(t, ioutil.WriteFile(tokenFile, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, 0600))
@@ -157,12 +157,12 @@ func TestStore_Load(t *testing.T) {
 
 	t.Run("persisted file contains invalid json", func(t *testing.T) {
 		cfg := Config{
-			EnablePersistence:   true,
-			DataDir:             dataDir,
-			ACLDefaultToken:     "alfa",
-			ACLAgentToken:       "bravo",
-			ACLAgentMasterToken: "charlie",
-			ACLReplicationToken: "foxtrot",
+			EnablePersistence:     true,
+			DataDir:               dataDir,
+			ACLDefaultToken:       "alfa",
+			ACLAgentToken:         "bravo",
+			ACLAgentRecoveryToken: "charlie",
+			ACLReplicationToken:   "foxtrot",
 		}
 
 		require.NoError(t, ioutil.WriteFile(tokenFile, []byte("[1,2,3]"), 0600))
@@ -181,12 +181,12 @@ func TestStore_WithPersistenceLock(t *testing.T) {
 	dataDir := testutil.TempDir(t, "datadir")
 	store := new(Store)
 	cfg := Config{
-		EnablePersistence:   true,
-		DataDir:             dataDir,
-		ACLDefaultToken:     "default-token",
-		ACLAgentToken:       "agent-token",
-		ACLAgentMasterToken: "master-token",
-		ACLReplicationToken: "replication-token",
+		EnablePersistence:     true,
+		DataDir:               dataDir,
+		ACLDefaultToken:       "default-token",
+		ACLAgentToken:         "agent-token",
+		ACLAgentRecoveryToken: "master-token",
+		ACLReplicationToken:   "replication-token",
 	}
 	err := store.Load(cfg, hclog.New(nil))
 	require.NoError(t, err)

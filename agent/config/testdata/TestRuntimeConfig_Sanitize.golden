@@ -14,7 +14,7 @@
     },
     "ACLTokenReplication": false,
     "ACLTokens": {
-        "ACLAgentMasterToken": "hidden",
+        "ACLAgentRecoveryToken": "hidden",
         "ACLAgentToken": "hidden",
         "ACLDefaultToken": "hidden",
         "ACLReplicationToken": "hidden",

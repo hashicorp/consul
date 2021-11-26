@@ -17,12 +17,12 @@ type Logger interface {
 
 // Config used by Store.Load, which includes tokens and settings for persistence.
 type Config struct {
-	EnablePersistence   bool
-	DataDir             string
-	ACLDefaultToken     string
-	ACLAgentToken       string
-	ACLAgentMasterToken string
-	ACLReplicationToken string
+	EnablePersistence     bool
+	DataDir               string
+	ACLDefaultToken       string
+	ACLAgentToken         string
+	ACLAgentRecoveryToken string
+	ACLReplicationToken   string
 
 	EnterpriseConfig
 }
@@ -113,11 +113,11 @@ func loadTokens(s *Store, cfg Config, tokens persistedTokens, logger Logger) {
 	if tokens.AgentMaster != "" {
 		s.UpdateAgentMasterToken(tokens.AgentMaster, TokenSourceAPI)
 
-		if cfg.ACLAgentMasterToken != "" {
+		if cfg.ACLAgentRecoveryToken != "" {
 			logger.Warn("\"agent_master\" token present in both the configuration and persisted token store, using the persisted token")
 		}
 	} else {
-		s.UpdateAgentMasterToken(cfg.ACLAgentMasterToken, TokenSourceConfig)
+		s.UpdateAgentMasterToken(cfg.ACLAgentRecoveryToken, TokenSourceConfig)
 	}
 
 	if tokens.Replication != "" {
