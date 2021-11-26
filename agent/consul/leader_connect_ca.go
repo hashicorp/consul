@@ -38,6 +38,8 @@ const (
 // easier testing.
 type caServerDelegate interface {
 	ca.ConsulProviderStateDelegate
+
+	State() *state.Store
 	IsLeader() bool
 	ApplyCALeafRequest() (uint64, error)
 
@@ -136,6 +138,11 @@ func (c *caDelegateWithState) ServersSupportMultiDCConnectCA() error {
 		return fmt.Errorf("all servers in the primary datacenter are not at the minimum version %v", minMultiDCConnectVersion)
 	}
 	return nil
+}
+
+func (c *caDelegateWithState) ProviderState(id string) (*structs.CAConsulProviderState, error) {
+	_, s, err := c.fsm.State().CAProviderState(id)
+	return s, err
 }
 
 func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manager, logger hclog.Logger, config *Config) *CAManager {

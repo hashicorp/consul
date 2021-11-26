@@ -17,8 +17,9 @@ type consulCAMockDelegate struct {
 	state *state.Store
 }
 
-func (c *consulCAMockDelegate) State() *state.Store {
-	return c.state
+func (c *consulCAMockDelegate) ProviderState(id string) (*structs.CAConsulProviderState, error) {
+	_, s, err := c.state.CAProviderState(id)
+	return s, err
 }
 
 func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
