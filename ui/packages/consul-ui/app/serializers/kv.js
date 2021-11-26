@@ -16,7 +16,18 @@ export default class KvSerializer extends Serializer {
 
   respondForQueryRecord(respond, query) {
     return super.respondForQueryRecord(
-      cb => respond((headers, body) => cb(headers, body[0])),
+      cb =>
+        respond((headers, body) => {
+          // If item.Session is not set make sure we overwrite any existing one.
+          // Using @replace, defaultValue or similar model apporaches does not work
+          // as if a property is undefined ember-data just ignores it instead of
+          // deleting the value of the existing property.
+          if (typeof body[0].Session === 'undefined') {
+            body[0].Session = '';
+          }
+          //
+          return cb(headers, body[0]);
+        }),
       query
     );
   }

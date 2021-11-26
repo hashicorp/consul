@@ -1,3 +1,12 @@
+.consul-lock-session-list ul > li:not(:first-child) dl:not([class]) dt {
+  @extend %iconless-dt;
+}
+.consul-lock-session-list ul > li:not(:first-child) {
+  @extend %composite-row;
+  /* The has the old one button type of button/confirmation still */
+  grid-template-columns: 1fr auto;
+  padding-right: 12px;
+}
 .consul-lock-session-list .checks dd {
   display: inline-flex;
   flex-wrap: wrap;

@@ -28,5 +28,5 @@ Feature: dc / kvs / sessions / invalidate: Invalidate Lock Sessions
     And I click delete on the session
     And I click confirmDelete on the session
     Then the url should be /datacenter/kv/key/edit
-    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "error" class

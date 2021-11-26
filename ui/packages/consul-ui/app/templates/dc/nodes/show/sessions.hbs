@@ -18,38 +18,97 @@ as |route|>
     </BlockSlot>
 
     <BlockSlot @name="loaded">
-{{#let api.data as |sessions|}}
-  <div class="tab-section">
-  {{#if (gt sessions.length 0)}}
-      <Consul::LockSession::List
-        @items={{sessions}}
-        @onInvalidate={{action send 'invalidateSession'}}
-      />
-  {{else}}
-      <EmptyState
-        @login={{route.model.app.login.open}}
-      >
-        <BlockSlot @name="header">
-          <h2>
-              Welcome to Lock Sessions
-          </h2>
+{{#let api.data as |items|}}
+    <div class="tab-section">
+      <DataWriter
+        @sink={{uri '/${partition}/${dc}/${nspace}/session/'
+          (hash
+            partition=route.params.partition
+            nspace=route.params.nspace
+            dc=route.params.dc
+          )
+        }}
+        @type="session"
+        @label="Lock Session"
+        @ondelete={{refresh-route}}
+      as |writer|>
+
+        <BlockSlot @name="removed" as |after|>
+          <Consul::LockSession::Notifications
+            {{notification
+              after=(action after)
+            }}
+            @type="remove"
+          />
         </BlockSlot>
-        <BlockSlot @name="body">
-          <p>
-            Consul provides a session mechanism which can be used to build distributed locks. Sessions act as a binding layer between nodes, health checks, and key/value data. There are currently no lock sessions present, or you may not have permission to view lock sessions.
-          </p>
+
+        <BlockSlot @name="error" as |after error|>
+          <Consul::LockSession::Notifications
+            {{notification
+              after=(action after)
+            }}
+            @type="remove"
+            @error={{error}}
+          />
         </BlockSlot>
-        <BlockSlot @name="actions">
-          <li class="docs-link">
-            <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html" rel="noopener noreferrer" target="_blank">Documentation on sessions</a>
-          </li>
-          <li class="learn-link">
-            <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/tutorials/consul/distributed-semaphore" rel="noopener noreferrer" target="_blank">Read the guide</a>
-          </li>
+
+        <BlockSlot @name="content">
+
+          <DataCollection
+            @type="session"
+            @items={{items}}
+          as |collection|>
+
+            <collection.Collection>
+              <Consul::LockSession::List
+                @items={{collection.items}}
+                @ondelete={{writer.delete}}
+              />
+            </collection.Collection>
+
+            <collection.Empty>
+              <EmptyState
+                @login={{route.model.app.login.open}}
+              >
+                <BlockSlot @name="header">
+                  <h2>
+                      Welcome to Lock Sessions
+                  </h2>
+                </BlockSlot>
+
+                <BlockSlot @name="body">
+                  <p>
+                    Consul provides a session mechanism which can be used to build distributed locks. Sessions act as a binding layer between nodes, health checks, and key/value data. There are currently no lock sessions present, or you may not have permission to view lock sessions.
+                  </p>
+                </BlockSlot>
+
+                <BlockSlot @name="actions">
+                  <li class="docs-link">
+                    <Action
+                      @href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html"
+                      @external={{true}}
+                    >
+                      Documentation on Lock Sessions
+                    </Action>
+                  </li>
+                  <li class="learn-link">
+                    <Action
+                      @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/tutorials/consul/distributed-semaphore"
+                      @external={{true}}
+                    >
+                      Read the guide
+                    </Action>
+                  </li>
+                </BlockSlot>
+
+              </EmptyState>
+            </collection.Empty>
+
+          </DataCollection>
+
         </BlockSlot>
-      </EmptyState>
-  {{/if}}
-  </div>
+      </DataWriter>
+    </div>
 {{/let}}
   </BlockSlot>
 </DataLoader>

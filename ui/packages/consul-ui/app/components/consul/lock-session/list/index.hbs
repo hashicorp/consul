@@ -1,5 +1,8 @@
-{{#if (gt items.length 0)}}
-<ListCollection @items={{items}} class="consul-lock-session-list" as |item index|>
+<ListCollection
+  class="consul-lock-session-list"
+  ...attributes
+  @items={{@items}}
+as |item index|>
   <BlockSlot @name="header">
   {{#if item.Name}}
     <span>{{item.Name}}</span>
@@ -35,7 +38,9 @@
       <dd data-test-session-delay>{{duration-from item.LockDelay}}</dd>
     </dl>
     <dl class="ttl">
-      <dt {{tooltip}}>
+      <dt
+        {{tooltip}}
+      >
         TTL
       </dt>
     {{#if (eq item.TTL "")}}
@@ -45,14 +50,18 @@
     {{/if}}
     </dl>
     <dl class="behavior">
-      <dt {{tooltip}}>
+      <dt
+        {{tooltip}}
+      >
         Behavior
       </dt>
       <dd>{{item.Behavior}}</dd>
     </dl>
 {{#let (union item.NodeChecks item.ServiceChecks) as |checks|}}
     <dl class="checks">
-      <dt {{tooltip}}>
+      <dt
+        {{tooltip}}
+      >
         Checks
       </dt>
       <dd>
@@ -67,27 +76,36 @@
     </dl>
 {{/let}}
   </BlockSlot>
-{{#if (can "delete sessions")}}
   <BlockSlot @name="actions">
-    <ConfirmationDialog @message="Are you sure you want to invalidate this session?">
+    <ConfirmationDialog
+      @message="Are you sure you want to invalidate this session?"
+    >
       <BlockSlot @name="action" as |confirm|>
-          <button data-test-delete
-            type="button"
-            class="type-delete"
-            onclick={{action confirm onInvalidate item}}
-          >
-            Invalidate
-          </button>
+        <Action
+          data-test-delete
+          class="type-delete"
+          {{on 'click' (fn confirm (fn @ondelete item))}}
+        >
+          Invalidate
+        </Action>
       </BlockSlot>
       <BlockSlot @name="dialog" as |execute cancel message|>
-          <p>
-              {{message}}
-          </p>
-          <button type="button" class="type-delete" onclick={{action execute}}>Confirm Invalidate</button>
-          <button type="button" class="type-cancel" onclick={{action cancel}}>Cancel</button>
+        <p>
+          {{message}}
+        </p>
+        <Action
+          class="type-delete"
+          {{on 'click' (fn execute)}}
+        >
+          Confirm Invalidate
+        </Action>
+        <Action
+          class="type-cancel"
+          {{on 'click' (fn cancel)}}
+        >
+          Cancel
+        </Action>
       </BlockSlot>
     </ConfirmationDialog>
   </BlockSlot>
-{{/if}}
 </ListCollection>
-{{/if}}
