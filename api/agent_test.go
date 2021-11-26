@@ -1518,6 +1518,10 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
+		if _, err := agent.UpdateAgentRecoveryACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
 		if _, err := agent.UpdateReplicationACLToken("root", nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1568,6 +1572,9 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = agent.UpdateAgentMasterACLToken("root", nil)
+		require.NoError(t, err)
+
+		_, err = agent.UpdateAgentRecoveryACLToken("root", nil)
 		require.NoError(t, err)
 
 		_, err = agent.UpdateReplicationACLToken("root", nil)
