@@ -70,7 +70,7 @@ func (t *Store) WithPersistenceLock(f func() error) error {
 
 type persistedTokens struct {
 	Replication   string `json:"replication,omitempty"`
-	AgentRecovery string `json:"agent_master,omitempty"`
+	AgentRecovery string `json:"agent_recovery,omitempty"`
 	Default       string `json:"default,omitempty"`
 	Agent         string `json:"agent,omitempty"`
 }
@@ -134,22 +134,32 @@ func loadTokens(s *Store, cfg Config, tokens persistedTokens, logger Logger) {
 }
 
 func readPersistedFromFile(filename string) (persistedTokens, error) {
-	tokens := persistedTokens{}
+	var tokens struct {
+		persistedTokens
+
+		// Support reading tokens persisted by versions <1.11, where agent_master was
+		// renamed to agent_recovery.
+		LegacyAgentMaster string `json:"agent_master"`
+	}
 
 	buf, err := ioutil.ReadFile(filename)
 	switch {
 	case os.IsNotExist(err):
 		// non-existence is not an error we care about
-		return tokens, nil
+		return tokens.persistedTokens, nil
 	case err != nil:
-		return tokens, fmt.Errorf("failed reading tokens file %q: %w", filename, err)
+		return tokens.persistedTokens, fmt.Errorf("failed reading tokens file %q: %w", filename, err)
 	}
 
 	if err := json.Unmarshal(buf, &tokens); err != nil {
-		return tokens, fmt.Errorf("failed to decode tokens file %q: %w", filename, err)
+		return tokens.persistedTokens, fmt.Errorf("failed to decode tokens file %q: %w", filename, err)
 	}
 
-	return tokens, nil
+	if tokens.AgentRecovery == "" {
+		tokens.AgentRecovery = tokens.LegacyAgentMaster
+	}
+
+	return tokens.persistedTokens, nil
 }
 
 func (p *fileStore) withPersistenceLock(s *Store, f func() error) error {

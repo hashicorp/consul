@@ -58,7 +58,7 @@ func TestStore_Load(t *testing.T) {
 
 		tokens := `{
 			"agent" : "india",
-			"agent_master" : "juliett",
+			"agent_recovery" : "juliett",
 			"default": "kilo",
 			"replication" : "lima"
 		}`
@@ -84,10 +84,24 @@ func TestStore_Load(t *testing.T) {
 		require.NotNil(t, store.persistence)
 	})
 
+	t.Run("persisted tokens include pre-1.11 agent_master naming", func(t *testing.T) {
+		cfg := Config{
+			EnablePersistence:     true,
+			DataDir:               dataDir,
+			ACLAgentRecoveryToken: "golf",
+		}
+
+		tokens := `{"agent_master": "juliett"}`
+		require.NoError(t, ioutil.WriteFile(tokenFile, []byte(tokens), 0600))
+		require.NoError(t, store.Load(cfg, logger))
+
+		require.Equal(t, "juliett", store.AgentRecoveryToken())
+	})
+
 	t.Run("with persisted tokens, persisted tokens override config", func(t *testing.T) {
 		tokens := `{
 			"agent" : "mike",
-			"agent_master" : "november",
+			"agent_recovery" : "november",
 			"default": "oscar",
 			"replication" : "papa"
 		}`
@@ -113,7 +127,7 @@ func TestStore_Load(t *testing.T) {
 	t.Run("with some persisted tokens", func(t *testing.T) {
 		tokens := `{
 			"agent" : "uniform",
-			"agent_master" : "victor"
+			"agent_recovery" : "victor"
 		}`
 
 		cfg := Config{
