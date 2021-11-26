@@ -33,7 +33,7 @@ func TestAgentTokensCommand(t *testing.T) {
 		enabled = true
 
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -78,11 +78,11 @@ func TestAgentTokensCommand(t *testing.T) {
 		assert.Empty(ui.ErrorWriter.String())
 	}
 
-	// master token
+	// recovery token
 	{
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"master",
+			"recovery",
 			token.SecretID,
 		}
 
