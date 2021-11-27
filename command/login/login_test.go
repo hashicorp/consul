@@ -352,7 +352,7 @@ func TestLoginCommand_jwt(t *testing.T) {
 	bearerTokenFile := filepath.Join(testDir, "bearer.token")
 
 	// spin up a fake oidc server
-	oidcServer := startSSOTestServer(t)
+	oidcServer := oidcauthtest.Start(t, oidcauthtest.WithPort(freeport.Port(t)))
 	pubKey, privKey := oidcServer.SigningKeys()
 
 	type mConfig = map[string]interface{}
@@ -469,12 +469,4 @@ func TestLoginCommand_jwt(t *testing.T) {
 			require.Len(t, token, 36, "must be a valid uid: %s", token)
 		})
 	}
-}
-
-func startSSOTestServer(t *testing.T) *oidcauthtest.Server {
-	ports := freeport.MustTake(1)
-	return oidcauthtest.Start(t, oidcauthtest.WithPort(
-		ports[0],
-		func() { freeport.Return(ports) },
-	))
 }

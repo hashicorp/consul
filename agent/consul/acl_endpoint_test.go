@@ -4868,7 +4868,7 @@ func TestACLEndpoint_Login_jwt(t *testing.T) {
 	acl := ACL{srv: srv}
 
 	// spin up a fake oidc server
-	oidcServer := startSSOTestServer(t)
+	oidcServer := oidcauthtest.Start(t, oidcauthtest.WithPort(freeport.Port(t)))
 	pubKey, privKey := oidcServer.SigningKeys()
 
 	type mConfig = map[string]interface{}
@@ -5001,14 +5001,6 @@ func TestACLEndpoint_Login_jwt(t *testing.T) {
 			})
 		})
 	}
-}
-
-func startSSOTestServer(t *testing.T) *oidcauthtest.Server {
-	ports := freeport.MustTake(1)
-	return oidcauthtest.Start(t, oidcauthtest.WithPort(
-		ports[0],
-		func() { freeport.Return(ports) },
-	))
 }
 
 func TestACLEndpoint_Logout(t *testing.T) {

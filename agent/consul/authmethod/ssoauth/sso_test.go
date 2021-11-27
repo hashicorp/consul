@@ -32,7 +32,7 @@ func TestJWT_NewValidator(t *testing.T) {
 		return method
 	}
 
-	oidcServer := startTestServer(t)
+	oidcServer := oidcauthtest.Start(t, oidcauthtest.WithPort(freeport.Port(t)))
 
 	// Note that we won't test ALL of the available config variations here.
 	// The go-sso library has exhaustive tests.
@@ -110,7 +110,7 @@ func TestJWT_ValidateLogin(t *testing.T) {
 		return v
 	}
 
-	oidcServer := startTestServer(t)
+	oidcServer := oidcauthtest.Start(t, oidcauthtest.WithPort(freeport.Port(t)))
 	pubKey, privKey := oidcServer.SigningKeys()
 
 	cases := map[string]struct {
@@ -259,12 +259,4 @@ func kv(a ...string) map[string]string {
 		m[a[i]] = a[i+1]
 	}
 	return m
-}
-
-func startTestServer(t *testing.T) *oidcauthtest.Server {
-	ports := freeport.MustTake(1)
-	return oidcauthtest.Start(t, oidcauthtest.WithPort(
-		ports[0],
-		func() { freeport.Return(ports) },
-	))
 }
