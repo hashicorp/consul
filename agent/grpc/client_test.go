@@ -29,10 +29,7 @@ func useTLSForDcAlwaysTrue(_ string) bool {
 }
 
 func TestNewDialer_WithTLSWrapper(t *testing.T) {
-	ports := freeport.MustTake(1)
-	defer freeport.Return(ports)
-
-	lis, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(ports[0])))
+	lis, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(freeport.Port(t))))
 	require.NoError(t, err)
 	t.Cleanup(logError(t, lis.Close))
 
@@ -68,8 +65,7 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 }
 
 func TestNewDialer_WithALPNWrapper(t *testing.T) {
-	ports := freeport.MustTake(3)
-	defer freeport.Return(ports)
+	ports := freeport.GetN(t, 3)
 
 	var (
 		s1addr = ipaddr.FormatAddressPort("127.0.0.1", ports[0])
@@ -193,10 +189,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
-	ports := freeport.MustTake(1)
-	defer freeport.Return(ports)
-
-	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", ports[0])
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", freeport.Port(t))
 
 	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)

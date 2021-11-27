@@ -116,11 +116,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports := freeport.MustTake(3)
-	t.Cleanup(func() {
-		freeport.Return(ports)
-	})
-
+	ports := freeport.GetN(t, 3)
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
@@ -516,10 +512,7 @@ func TestServer_JoinWAN_SerfAllowedCIDRs(t *testing.T) {
 }
 
 func skipIfCannotBindToIP(t *testing.T, ip string) {
-	ports := freeport.MustTake(1)
-	defer freeport.Return(ports)
-
-	addr := ipaddr.FormatAddressPort(ip, ports[0])
+	addr := ipaddr.FormatAddressPort(ip, freeport.Port(t))
 	l, err := net.Listen("tcp", addr)
 	l.Close()
 	if err != nil {
@@ -725,9 +718,8 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 
 	t.Parallel()
 
-	gwPort := freeport.MustTake(1)
-	defer freeport.Return(gwPort)
-	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", gwPort[0])
+	port := freeport.Port(t)
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", port)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.TLSConfig.Domain = "consul"
@@ -813,7 +805,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 				ID:      "mesh-gateway",
 				Service: "mesh-gateway",
 				Meta:    map[string]string{structs.MetaWANFederationKey: "1"},
-				Port:    gwPort[0],
+				Port:    port,
 			},
 		}
 
@@ -868,7 +860,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 				ID:      "mesh-gateway",
 				Service: "mesh-gateway",
 				Meta:    map[string]string{structs.MetaWANFederationKey: "1"},
-				Port:    gwPort[0],
+				Port:    port,
 			},
 		}
 
@@ -885,7 +877,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 				ID:      "mesh-gateway",
 				Service: "mesh-gateway",
 				Meta:    map[string]string{structs.MetaWANFederationKey: "1"},
-				Port:    gwPort[0],
+				Port:    port,
 			},
 		}
 

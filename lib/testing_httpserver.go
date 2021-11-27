@@ -18,12 +18,7 @@ import (
 // _know_ nothing is listening. If you simply assumed unbound ports were free
 // you'd end up with test cross-talk and weirdness.
 func StartTestServer(t testing.T, handler http.Handler) string {
-	ports := freeport.MustTake(1)
-	t.Cleanup(func() {
-		freeport.Return(ports)
-	})
-
-	addr := ipaddr.FormatAddressPort("127.0.0.1", ports[0])
+	addr := ipaddr.FormatAddressPort("127.0.0.1", freeport.Port(t))
 
 	server := &http.Server{Addr: addr, Handler: handler}
 	t.Cleanup(func() {

@@ -33,9 +33,8 @@ import (
 //   - GET  /api/v1/namespaces/<NAMESPACE>/serviceaccounts/<NAME>
 //
 type TestAPIServer struct {
-	srv        *httptest.Server
-	caCert     string
-	returnFunc func()
+	srv    *httptest.Server
+	caCert string
 
 	mu                       sync.Mutex
 	authorizedJWT            string                 // token review and sa read
@@ -48,12 +47,7 @@ type TestAPIServer struct {
 // random free port.
 func StartTestAPIServer(t testing.T) *TestAPIServer {
 	s := &TestAPIServer{}
-
-	ports := freeport.MustTake(1)
-	s.returnFunc = func() {
-		freeport.Return(ports)
-	}
-	s.srv = httptestNewUnstartedServerWithPort(s, ports[0])
+	s.srv = httptestNewUnstartedServerWithPort(s, freeport.Port(t))
 	s.srv.Config.ErrorLog = log.New(ioutil.Discard, "", 0)
 	s.srv.StartTLS()
 
@@ -101,10 +95,6 @@ func (s *TestAPIServer) SetAllowedServiceAccount(
 // Stop stops the running TestAPIServer.
 func (s *TestAPIServer) Stop() {
 	s.srv.Close()
-	if s.returnFunc != nil {
-		s.returnFunc()
-		s.returnFunc = nil
-	}
 }
 
 // Addr returns the current base URL for the running webserver.

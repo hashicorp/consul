@@ -1737,11 +1737,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	testCtx, testCancel := context.WithCancel(context.Background())
 	defer testCancel()
 
-	testHTTPServer, returnPort := launchHTTPCheckServer(t, testCtx)
-	defer func() {
-		testHTTPServer.Close()
-		returnPort()
-	}()
+	testHTTPServer := launchHTTPCheckServer(t, testCtx)
 
 	registerServicesAndChecks := func(t *testing.T, a *TestAgent) {
 		// add one persistent service with a simple check
@@ -1846,11 +1842,8 @@ node_name = "` + a.Config.NodeName + `"
 	}
 }
 
-func launchHTTPCheckServer(t *testing.T, ctx context.Context) (srv *httptest.Server, returnPortsFn func()) {
-	ports := freeport.MustTake(1)
-	port := ports[0]
-
-	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+func launchHTTPCheckServer(t *testing.T, ctx context.Context) *httptest.Server {
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(freeport.Port(t)))
 
 	var lc net.ListenConfig
 	listener, err := lc.Listen(ctx, "tcp", addr)
@@ -1861,12 +1854,13 @@ func launchHTTPCheckServer(t *testing.T, ctx context.Context) (srv *httptest.Ser
 		_, _ = w.Write([]byte("OK\n"))
 	})
 
-	srv = &httptest.Server{
+	srv := &httptest.Server{
 		Listener: listener,
 		Config:   &http.Server{Handler: handler},
 	}
 	srv.Start()
-	return srv, func() { freeport.Return(ports) }
+	t.Cleanup(srv.Close)
+	return srv
 }
 
 func TestAgent_AddCheck_Alias(t *testing.T) {
@@ -4704,14 +4698,12 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 
 	t.Parallel()
 
-	gwPort := freeport.MustTake(1)
-	defer freeport.Return(gwPort)
-	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", gwPort[0])
+	port := freeport.Port(t)
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", port)
 
 	// Due to some ordering, we'll have to manually configure these ports in
 	// advance.
-	secondaryRPCPorts := freeport.MustTake(2)
-	defer freeport.Return(secondaryRPCPorts)
+	secondaryRPCPorts := freeport.GetN(t, 2)
 
 	a1 := StartTestAgent(t, TestAgent{Name: "bob", HCL: `
 		domain = "consul"
@@ -4765,7 +4757,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			ID:   "mesh-gateway",
 			Name: "mesh-gateway",
 			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
-			Port: gwPort[0],
+			Port: port,
 		}
 		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		require.NoError(t, err)
@@ -4879,7 +4871,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			ID:   "mesh-gateway",
 			Name: "mesh-gateway",
 			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
-			Port: gwPort[0],
+			Port: port,
 		}
 		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		require.NoError(t, err)
@@ -4894,7 +4886,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			ID:   "mesh-gateway",
 			Name: "mesh-gateway",
 			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
-			Port: gwPort[0],
+			Port: port,
 		}
 		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		require.NoError(t, err)
