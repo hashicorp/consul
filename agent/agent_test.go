@@ -295,10 +295,6 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ports, err := freeport.Take(1)
-			require.NoError(t, err)
-			t.Cleanup(func() { freeport.Return(ports) })
-
 			caConfig := tlsutil.Config{}
 			tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
 			require.NoError(t, err)
@@ -312,7 +308,7 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 				},
 				RuntimeConfig: &config.RuntimeConfig{
 					HTTPAddrs: []net.Addr{
-						&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+						&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: freeport.Port(t)},
 					},
 					HTTPMaxHeaderBytes: tt.maxHeaderBytes,
 				},
@@ -5281,10 +5277,7 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	ports, err := freeport.Take(2)
-	require.NoError(t, err)
-	t.Cleanup(func() { freeport.Return(ports) })
-
+	ports := freeport.GetN(t, 2)
 	caConfig := tlsutil.Config{}
 	tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
 	require.NoError(t, err)
