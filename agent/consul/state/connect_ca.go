@@ -176,13 +176,10 @@ func (s *Store) caSetConfigTxn(idx uint64, tx WriteTxn, config *structs.CAConfig
 	if err != nil {
 		return fmt.Errorf("failed CA config lookup: %s", err)
 	}
-	// Set the indexes, prevent the cluster ID from changing.
+	// Set the indexes
 	if prev != nil {
 		existing := prev.(*structs.CAConfiguration)
 		config.CreateIndex = existing.CreateIndex
-		if config.ClusterID == "" {
-			config.ClusterID = existing.ClusterID
-		}
 	} else {
 		config.CreateIndex = idx
 	}

@@ -1854,10 +1854,10 @@ func TestSourcesForTarget(t *testing.T) {
 			s := testStateStore(t)
 			ws := memdb.NewWatchSet()
 
-			ca := &structs.CAConfiguration{
-				Provider: "consul",
+			roots := []*structs.CARoot{
+				{ID: "123", Active: true, ExternalTrustDomain: "12345"},
 			}
-			err := s.CASetConfig(0, ca)
+			_, err := s.CARootSetCAS(0, 0, roots)
 			require.NoError(t, err)
 
 			var i uint64 = 1
@@ -2056,10 +2056,10 @@ func TestTargetsForSource(t *testing.T) {
 			s := testStateStore(t)
 			ws := memdb.NewWatchSet()
 
-			ca := &structs.CAConfiguration{
-				Provider: "consul",
+			roots := []*structs.CARoot{
+				{ID: "123", Active: true, ExternalTrustDomain: "12345"},
 			}
-			err := s.CASetConfig(0, ca)
+			_, err := s.CARootSetCAS(0, 0, roots)
 			require.NoError(t, err)
 
 			var i uint64 = 1

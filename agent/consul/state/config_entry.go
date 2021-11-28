@@ -792,20 +792,16 @@ func (s *Store) serviceDiscoveryChainTxn(
 	}
 	req.Entries = entries
 
-	_, config, err := s.CAConfig(ws)
-	if err != nil {
+	_, activeRoot, err := s.CARootActive(ws)
+	switch {
+	case err != nil:
 		return 0, nil, err
-	} else if config == nil {
-		return 0, nil, errors.New("no cluster ca config setup")
+	case activeRoot == nil:
+		return 0, nil, errors.New("no active root CA")
 	}
 
 	// Build TrustDomain based on the ClusterID stored.
-	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
-	if signingID == nil {
-		// If CA is bootstrapped at all then this should never happen but be
-		// defensive.
-		return 0, nil, errors.New("no cluster trust domain setup")
-	}
+	signingID := connect.SpiffeIDSigningForCluster(activeRoot.ExternalTrustDomain)
 	req.EvaluateInTrustDomain = signingID.Host()
 
 	// Then we compile it into something useful.

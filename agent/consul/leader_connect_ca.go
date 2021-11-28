@@ -12,16 +12,15 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
-
-	"github.com/hashicorp/consul/lib/semaphore"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/routine"
+	"github.com/hashicorp/consul/lib/semaphore"
 )
 
 type caState string
@@ -213,17 +212,14 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 	if err != nil {
 		return nil, err
 	}
-	if config == nil {
+	switch {
+	// No existing config, start with whatever defaults came from agent/config
+	case config == nil:
 		config = c.serverConf.CAConfig
 
-		if c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter && config.ClusterID == "" {
-			id, err := uuid.GenerateUUID()
-			if err != nil {
-				return nil, err
-			}
-			config.ClusterID = id
-		}
-	} else if _, ok := config.Config["IntermediateCertTTL"]; !ok {
+	// Update any existing config to include the default IntermediateCertTTL. It
+	// was not always set in previous versions.
+	case config.Config["IntermediateCertTTL"] == nil:
 		dup := *config
 		copied := make(map[string]interface{})
 		for k, v := range dup.Config {
@@ -232,7 +228,9 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 		copied["IntermediateCertTTL"] = connect.DefaultIntermediateCertTTL.String()
 		dup.Config = copied
 		config = &dup
-	} else {
+
+	// Otherwise, nothing to update, return early
+	default:
 		return config, nil
 	}
 
@@ -465,8 +463,19 @@ func (c *CAManager) newProvider(provider string) (ca.Provider, error) {
 // primaryInitialize runs the initialization logic for a root CA. It should only
 // be called while the state lock is held by setting the state to non-ready.
 func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConfiguration) error {
+	store := c.delegate.State()
+	_, activeRoot, err := store.CARootActive(nil)
+	if err != nil {
+		return err
+	}
+
+	clusterID, err := getClusterID(activeRoot, conf)
+	if err != nil {
+		return err
+	}
+
 	pCfg := ca.ProviderConfig{
-		ClusterID:  conf.ClusterID,
+		ClusterID:  clusterID,
 		Datacenter: c.serverConf.Datacenter,
 		IsPrimary:  true,
 		RawConfig:  conf.Config,
@@ -484,7 +493,7 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	if err != nil {
 		return fmt.Errorf("error getting root cert: %v", err)
 	}
-	rootCA, err := parseCARoot(rootPEM, conf.Provider, conf.ClusterID)
+	rootCA, err := parseCARoot(rootPEM, conf.Provider, clusterID)
 	if err != nil {
 		return err
 	}
@@ -529,15 +538,10 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	// tied to the provider.
 	// Every change to the CA after this initial bootstrapping should
 	// be done through the rotation process.
-	state := c.delegate.State()
-	_, activeRoot, err := state.CARootActive(nil)
-	if err != nil {
-		return err
-	}
 
 	// Ensure that any stored CARoot has their ClusterID set
 	if activeRoot != nil && activeRoot.ExternalTrustDomain == "" {
-		activeRoot.ExternalTrustDomain = rootCA.ExternalTrustDomain
+		activeRoot.ExternalTrustDomain = clusterID
 		needsSigningKeyUpdate = true
 	}
 
@@ -562,7 +566,7 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	}
 
 	// Get the highest index
-	idx, _, err := state.CARoots(nil)
+	idx, _, err := store.CARoots(nil)
 	if err != nil {
 		return err
 	}
@@ -808,9 +812,12 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		return err
 	}
 
-	// Exit early if it's a no-op change
-	state := c.delegate.State()
-	_, config, err := state.CAConfig(nil)
+	_, roots, config, err := c.delegate.State().CARootsAndConfig(nil)
+	if err != nil {
+		return err
+	}
+
+	clusterID, err := getClusterID(roots.Active(), config)
 	if err != nil {
 		return err
 	}
@@ -822,8 +829,6 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		return ErrStateReadOnly
 	}
 
-	// Don't allow users to change the ClusterID.
-	args.Config.ClusterID = config.ClusterID
 	if args.Config.Provider == config.Provider && reflect.DeepEqual(args.Config.Config, config.Config) {
 		return nil
 	}
@@ -847,7 +852,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		return fmt.Errorf("could not initialize provider: %v", err)
 	}
 	pCfg := ca.ProviderConfig{
-		ClusterID:  args.Config.ClusterID,
+		ClusterID:  clusterID,
 		Datacenter: c.serverConf.Datacenter,
 		// This endpoint can be called in a secondary DC too so set this correctly.
 		IsPrimary: c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter,
@@ -878,6 +883,22 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		return err
 	}
 	return nil
+}
+
+func getClusterID(activeRoot *structs.CARoot, config *structs.CAConfiguration) (string, error) {
+	switch {
+	case activeRoot == nil:
+		clusterID, err := uuid.GenerateUUID()
+		if err != nil {
+			return "", fmt.Errorf("failed to generate clusterID: %w", err)
+		}
+		return clusterID, nil
+	case activeRoot.ExternalTrustDomain == "" && config.ClusterID != "":
+		// fallback to old location of the ClusterID
+		return config.ClusterID, nil
+	default:
+		return activeRoot.ExternalTrustDomain, nil
+	}
 }
 
 func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.CARequest, config *structs.CAConfiguration) error {

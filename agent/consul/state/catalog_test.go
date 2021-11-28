@@ -7188,10 +7188,10 @@ func TestCatalog_DownstreamsForService(t *testing.T) {
 				i++
 			}
 
-			ca := &structs.CAConfiguration{
-				Provider: "consul",
+			roots := []*structs.CARoot{
+				{ID: "123", Active: true, ExternalTrustDomain: "12345"},
 			}
-			err := s.CASetConfig(0, ca)
+			_, err := s.CARootSetCAS(0, 0, roots)
 			require.NoError(t, err)
 
 			for _, entry := range tc.entries {
@@ -7221,10 +7221,10 @@ func TestCatalog_DownstreamsForService_Updates(t *testing.T) {
 	)
 
 	s := testStateStore(t)
-	ca := &structs.CAConfiguration{
-		Provider: "consul",
+	roots := []*structs.CARoot{
+		{ID: "123", Active: true, ExternalTrustDomain: "12345"},
 	}
-	err := s.CASetConfig(1, ca)
+	_, err := s.CARootSetCAS(0, 0, roots)
 	require.NoError(t, err)
 
 	require.NoError(t, s.EnsureNode(2, &structs.Node{
