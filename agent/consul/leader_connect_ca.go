@@ -534,6 +534,13 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	if err != nil {
 		return err
 	}
+
+	// Ensure that any stored CARoot has their ClusterID set
+	if activeRoot != nil && activeRoot.ExternalTrustDomain == "" {
+		activeRoot.ExternalTrustDomain = rootCA.ExternalTrustDomain
+		needsSigningKeyUpdate = true
+	}
+
 	if activeRoot != nil && needsSigningKeyUpdate {
 		c.logger.Info("Correcting stored SigningKeyID value", "previous", rootCA.SigningKeyID, "updated", expectedSigningKeyID)
 

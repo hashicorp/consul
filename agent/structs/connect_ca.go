@@ -31,12 +31,6 @@ type IndexedCARoots struct {
 	// implement other protocols in future with equivalent semantics. It should be
 	// compared against the "authority" section of a URI (i.e. host:port).
 	//
-	// We need to support migrating a cluster between trust domains to support
-	// Multi-DC migration in Enterprise. In this case the current trust domain is
-	// here but entries in Roots may also have ExternalTrustDomain set to a
-	// non-empty value implying they were previous roots that are still trusted
-	// but under a different trust domain.
-	//
 	// Note that we DON'T validate trust domain during AuthZ since it causes
 	// issues of loss of connectivity during migration between trust domains. The
 	// only time the additional validation adds value is where the cluster shares
@@ -72,14 +66,14 @@ type CARoot struct {
 	// raw AuthorityKeyID bytes.
 	SigningKeyID string
 
-	// ExternalTrustDomain is the trust domain this root was generated under. It
-	// is usually empty implying "the current cluster trust-domain". It is set
-	// only in the case that a cluster changes trust domain and then all old roots
-	// that are still trusted have the old trust domain set here.
+	// ExternalTrustDomain is the ClusterID of the trust domain this root was
+	// generated under.
 	//
-	// We currently DON'T validate these trust domains explicitly anywhere, see
-	// IndexedRoots.TrustDomain doc. We retain this information for debugging and
-	// future flexibility.
+	// Note this value is different from IndexedCARoots.TrustDomain. This value
+	// does not have a .consul suffix. It is only the ClusterID portion of the
+	// TrustDomain.
+	//
+	// TODO: rename to make it clear this is the canonical data source for the cluster ID.
 	ExternalTrustDomain string
 
 	// Time validity bounds.
