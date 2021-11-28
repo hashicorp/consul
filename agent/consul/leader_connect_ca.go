@@ -404,7 +404,7 @@ func (c *CAManager) InitializeCA() (reterr error) {
 	if err != nil {
 		return err
 	}
-	provider, err := c.newProvider(conf)
+	provider, err := c.newProvider(conf.Provider)
 	if err != nil {
 		return err
 	}
@@ -445,9 +445,9 @@ func (c *CAManager) secondaryInitialize(provider ca.Provider, conf *structs.CACo
 }
 
 // createProvider returns a connect CA provider from the given config.
-func (c *CAManager) newProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
-	logger := c.logger.Named(conf.Provider)
-	switch conf.Provider {
+func (c *CAManager) newProvider(provider string) (ca.Provider, error) {
+	logger := c.logger.Named(provider)
+	switch provider {
 	case structs.ConsulCAProvider:
 		return ca.NewConsulProvider(c.delegate, logger), nil
 	case structs.VaultCAProvider:
@@ -458,7 +458,7 @@ func (c *CAManager) newProvider(conf *structs.CAConfiguration) (ca.Provider, err
 		if c.providerShim != nil {
 			return c.providerShim, nil
 		}
-		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
+		return nil, fmt.Errorf("unknown CA provider %q", provider)
 	}
 }
 
@@ -842,7 +842,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	// and get the current active root CA. This acts as a good validation
 	// of the config and makes sure the provider is functioning correctly
 	// before we commit any changes to Raft.
-	newProvider, err := c.newProvider(args.Config)
+	newProvider, err := c.newProvider(args.Config.Provider)
 	if err != nil {
 		return fmt.Errorf("could not initialize provider: %v", err)
 	}
