@@ -12,24 +12,19 @@ import (
 )
 
 func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.IndexedCARoots, error) {
-	index, roots, config, err := state.CARootsAndConfig(ws)
+	index, roots, err := state.CARoots(ws)
 	if err != nil {
 		return nil, err
 	}
-	if config == nil || config.ClusterID == "" {
+	active := roots.Active()
+	if active == nil {
 		return nil, fmt.Errorf("CA has not finished initializing")
 	}
 
 	indexedRoots := &structs.IndexedCARoots{}
 
 	// Build TrustDomain based on the ClusterID stored.
-	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
-	if signingID == nil {
-		// If CA is bootstrapped at all then this should never happen but be
-		// defensive.
-		return nil, fmt.Errorf("no cluster trust domain setup")
-	}
-
+	signingID := connect.SpiffeIDSigningForCluster(active.ExternalTrustDomain)
 	indexedRoots.TrustDomain = signingID.Host()
 
 	indexedRoots.Index, indexedRoots.Roots = index, roots

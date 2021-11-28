@@ -723,6 +723,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		return fmt.Errorf("local CA not initialized yet")
 	}
 	// Exit early if the change is a no-op.
+	// TODO: this comparison is partially duplicated in UpdateConfiguration
 	if newActiveRoot == nil && config != nil && config.Provider == storedConfig.Provider && reflect.DeepEqual(config.Config, storedConfig.Config) {
 		return nil
 	}
@@ -731,19 +732,6 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		newConf = *config
 	} else {
 		newConf = *storedConfig
-	}
-
-	// Update the trust domain for the config if there's a new root, or keep the old
-	// one if the root isn't being updated.
-	newConf.ModifyIndex = storedConfig.ModifyIndex
-	if newActiveRoot != nil {
-		newConf.ClusterID = newActiveRoot.ExternalTrustDomain
-	} else {
-		_, activeRoot, err := state.CARootActive(nil)
-		if err != nil {
-			return err
-		}
-		newConf.ClusterID = activeRoot.ExternalTrustDomain
 	}
 
 	// Persist any state the provider needs us to
@@ -755,6 +743,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 	// If there's a new active root, copy the root list and append it, updating
 	// the old root with the time it was rotated out.
 	var newRoots structs.CARoots
+	active := oldRoots.Active()
 	for _, r := range oldRoots {
 		newRoot := *r
 		if newRoot.Active && newActiveRoot != nil {
@@ -762,7 +751,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 			newRoot.RotatedOutAt = c.timeNow()
 		}
 		if newRoot.ExternalTrustDomain == "" {
-			newRoot.ExternalTrustDomain = newConf.ClusterID
+			newRoot.ExternalTrustDomain = active.ExternalTrustDomain
 		}
 		newRoots = append(newRoots, &newRoot)
 	}
@@ -878,7 +867,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		c.logger.Info("Secondary CA provider config updated")
 		return nil
 	}
-	if err := c.primaryUpdateRootCA(newProvider, args, config); err != nil {
+	if err := c.primaryUpdateRootCA(newProvider, args, config, clusterID); err != nil {
 		cleanupNewProvider()
 		return err
 	}
@@ -901,7 +890,7 @@ func getClusterID(activeRoot *structs.CARoot, config *structs.CAConfiguration) (
 	}
 }
 
-func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.CARequest, config *structs.CAConfiguration) error {
+func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.CARequest, config *structs.CAConfiguration, clusterID string) error {
 	if err := newProvider.GenerateRoot(); err != nil {
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
@@ -911,7 +900,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 		return err
 	}
 
-	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
+	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider, clusterID)
 	if err != nil {
 		return err
 	}
@@ -1401,7 +1390,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	if err != nil {
 		return nil, err
 	}
-	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
+	signingID := connect.SpiffeIDSigningForCluster(caRoot.ExternalTrustDomain)
 	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
 	if !isService && !isAgent {
