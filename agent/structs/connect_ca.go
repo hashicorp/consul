@@ -145,6 +145,20 @@ func (c *CARoot) Clone() *CARoot {
 // CARoots is a list of CARoot structures.
 type CARoots []*CARoot
 
+// Active returns the single CARoot that is marked as active, or nil if there
+// is no active root (ex: when they are no roots).
+func (c CARoots) Active() *CARoot {
+	if c == nil {
+		return nil
+	}
+	for _, r := range c {
+		if r.Active {
+			return r
+		}
+	}
+	return nil
+}
+
 // CASignRequest is the request for signing a service certificate.
 type CASignRequest struct {
 	// Datacenter is the target for this request.
