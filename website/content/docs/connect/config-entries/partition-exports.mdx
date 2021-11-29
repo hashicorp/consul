@@ -50,7 +50,7 @@ Services = [
     Namespace = "<namespace in the partition containing the service to export>"  
     Consumers = [
       {
-        Partition = "<name of destination partition>"
+        Partition = "<name of the partition that will dial the exported service>"
       },      
     ]
   }
@@ -65,7 +65,7 @@ Kind: PartitionExports
 Partition: <partition containing services to export>
 Services:
 - Consumers:
-  - Partition: <name of destination partition>
+  - Partition: <name of the partition that will dial the exported service>
   Name: <name of service to export>
   Namespace: <namespace in the partition containing the service to export>
 ```

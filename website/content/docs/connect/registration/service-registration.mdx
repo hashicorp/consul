@@ -92,15 +92,15 @@ proxy = {
 ### Sidecar Proxy Configuration
 
 Many service mesh proxies are deployed as sidecars. 
-Sidecar proxies are co-located with a single service instance that they represent and proxy all inbound traffic to. 
+Sidecar proxies are co-located with the single service instance they represent and proxy all inbound traffic to. 
 
-Specify the following parameters in the `proxy` code block to configure the proxy as a sidecar if your use case calls for deploying the proxy as a sidecar defined in its own service registration:
+Specify the following parameters in the `proxy` code block to configure a sidecar proxy in its own service registration:
 
 * `destination_service_id`: String value that specifies the ID of the service being proxied. Refer to the [proxy parameters reference](#destination-service-id) for details.
 * `local_service_port`: Integer value that specifes the port that the proxy should use to connect to the _local_ service instance. Refer to the [proxy parameters reference](#local-service-port) for details. 
 * `local_service_address`: String value that specifies the IP address or hostname that the proxy should use to connect to the _local_ service. Refer to the [proxy parameters reference](#local-service-address) for details. 
 
-See (Sidecar Service Registration)[/docs/connect/registration/sidecar-service] for additiona information about configuring service mesh proxies as sidecars.
+See (Sidecar Service Registration)[/docs/connect/registration/sidecar-service] for additional information about configuring service mesh proxies as sidecars.
 
 ### Complete Configuration Example
 
@@ -159,7 +159,7 @@ The following table describes all parameters that can be defined in the `proxy` 
 
 | Parameter | Description | Required | Default |
 | ---       | ---         | ---      | ---     |
-| `destination_service_id` <a name="destination-service-id"/>| String value that specifies the ID of a single service instance represented by the proxy. <br/>This parameter is only applicable to for sidecar proxies that run on the same node. <br/>Consul checks for the proxied service on the same agent, so the ID is unique and no node qualifier.<br/>Note that the proxied service `id` value may differ from its `name` value. <br/>Specifying this parameter helps tools identify which sidecar proxy instances are associated with which application instance, as well as enable fine-grained analysis of the metrics coming from the proxy.| Required when registering proxy as a sidecar | None |
+| `destination_service_id` <a name="destination-service-id"/>| String value that specifies the ID of a single service instance represented by the proxy. <br/>This parameter is only applicable for sidecar proxies that run on the same node as the service. <br/>Consul checks for the proxied service on the same agent. <br/>The ID is unique and may differ from its `name` value. <br/>Specifying this parameter helps tools identify which sidecar proxy instances are associated with which application instance, as well as enable fine-grained analysis of the metrics coming from the proxy.| Required when registering proxy as a sidecar | None |
 | `local_service_port` <a name="local-service-port"/>| Integer value that specifes the port that a sidecar proxy should use to connect to the _local_ service instance. | Required when registering proxy as a sidecar | Port advertised by the service instance configured in `destination_service_id` |
 | `local_service_address` <a name="local-service-address"/>| String value that specifies the IP address or hostname that a sidecar proxy should use to connect to the _local_ service. | Optional | `127.0.0.1` |
 | `destination_service_name` | String value that specifies the _name_ of the service the instance is proxying. The name is used during service discovery to route to the correct proxy instances for a given service name. | Required | None |
