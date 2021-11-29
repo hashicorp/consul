@@ -131,7 +131,9 @@ The configuration options are listed below.
   The path to a PKI secrets engine for the generated intermediate certificate.
   This certificate will be signed by the configured root PKI path. If this
   path does not exist, Consul will attempt to mount and configure this
-  automatically. When WAN Federation is enabled, every secondary 
+  automatically. 
+
+  When WAN Federation is enabled, every secondary 
   datacenter must specify a unique `intermediate_pki_path`. 
 
 - `CAFile` / `ca_file` (`string: ""`) - Specifies an optional path to the CA
