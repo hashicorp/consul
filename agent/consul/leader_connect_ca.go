@@ -240,12 +240,9 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 		Op:     structs.CAOpSetConfig,
 		Config: config,
 	}
-	if resp, err := c.delegate.ApplyCARequest(&req); err != nil {
+	if _, err := c.delegate.ApplyCARequest(&req); err != nil {
 		return nil, err
-	} else if respErr, ok := resp.(error); ok {
-		return nil, respErr
 	}
-
 	return config, nil
 }
 
@@ -564,17 +561,13 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	}
 
 	// Store the root cert in raft
-	resp, err := c.delegate.ApplyCARequest(&structs.CARequest{
+	_, err = c.delegate.ApplyCARequest(&structs.CARequest{
 		Op:    structs.CAOpSetRoots,
 		Index: idx,
 		Roots: []*structs.CARoot{rootCA},
 	})
 	if err != nil {
-		c.logger.Error("Raft apply failed", "error", err)
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
+		return fmt.Errorf("raft apply failed: %w", err)
 	}
 
 	c.setCAProvider(provider, rootCA)
@@ -776,9 +769,6 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 	if err != nil {
 		return err
 	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
 	if respOk, ok := resp.(bool); ok && !respOk {
 		return fmt.Errorf("could not atomically update roots and config")
 	}
@@ -917,12 +907,9 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 	// If the root didn't change, just update the config and return.
 	if root != nil && root.ID == newActiveRoot.ID {
 		args.Op = structs.CAOpSetConfig
-		resp, err := c.delegate.ApplyCARequest(args)
+		_, err := c.delegate.ApplyCARequest(args)
 		if err != nil {
 			return err
-		}
-		if respErr, ok := resp.(error); ok {
-			return respErr
 		}
 
 		// If the config has been committed, update the local provider instance
@@ -1020,9 +1007,6 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
 		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
 	}
 	if respOk, ok := resp.(bool); ok && !respOk {
 		return fmt.Errorf("could not atomically update roots and config")
