@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/authmethod"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/consul/sdk/freeport"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/square/go-jose.v2/jwt"
+
+	"github.com/hashicorp/consul/agent/consul/authmethod"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestJWT_NewValidator(t *testing.T) {
@@ -32,7 +32,7 @@ func TestJWT_NewValidator(t *testing.T) {
 		return method
 	}
 
-	oidcServer := oidcauthtest.Start(t, oidcauthtest.WithPort(freeport.Port(t)))
+	oidcServer := oidcauthtest.Start(t)
 
 	// Note that we won't test ALL of the available config variations here.
 	// The go-sso library has exhaustive tests.
@@ -110,7 +110,7 @@ func TestJWT_ValidateLogin(t *testing.T) {
 		return v
 	}
 
-	oidcServer := oidcauthtest.Start(t, oidcauthtest.WithPort(freeport.Port(t)))
+	oidcServer := oidcauthtest.Start(t)
 	pubKey, privKey := oidcServer.SigningKeys()
 
 	cases := map[string]struct {

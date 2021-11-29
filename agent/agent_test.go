@@ -1734,10 +1734,12 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
-	testCtx, testCancel := context.WithCancel(context.Background())
-	defer testCancel()
-
-	testHTTPServer := launchHTTPCheckServer(t, testCtx)
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK\n"))
+	})
+	testHTTPServer := httptest.NewServer(handler)
+	t.Cleanup(testHTTPServer.Close)
 
 	registerServicesAndChecks := func(t *testing.T, a *TestAgent) {
 		// add one persistent service with a simple check
@@ -1840,27 +1842,6 @@ node_name = "` + a.Config.NodeName + `"
 		})
 		require.True(t, ok, name+" failed")
 	}
-}
-
-func launchHTTPCheckServer(t *testing.T, ctx context.Context) *httptest.Server {
-	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(freeport.Port(t)))
-
-	var lc net.ListenConfig
-	listener, err := lc.Listen(ctx, "tcp", addr)
-	require.NoError(t, err)
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("OK\n"))
-	})
-
-	srv := &httptest.Server{
-		Listener: listener,
-		Config:   &http.Server{Handler: handler},
-	}
-	srv.Start()
-	t.Cleanup(srv.Close)
-	return srv
 }
 
 func TestAgent_AddCheck_Alias(t *testing.T) {

@@ -8,10 +8,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/connect"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/connect"
 )
 
 // TestLocalAddr makes a localhost address on the given port
@@ -30,12 +30,10 @@ type TestTCPServer struct {
 // a TestTCPServer serving requests to it. The server is already started and can
 // be stopped by calling Close().
 func NewTestTCPServer(t testing.T) *TestTCPServer {
-	addr := TestLocalAddr(freeport.Port(t))
-
-	l, err := net.Listen("tcp", addr)
+	l, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 
-	log.Printf("test tcp server listening on %s", addr)
+	log.Printf("test tcp server listening on %s", l.Addr())
 	s := &TestTCPServer{l: l}
 	go s.accept()
 

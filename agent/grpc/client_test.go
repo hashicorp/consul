@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -29,7 +28,7 @@ func useTLSForDcAlwaysTrue(_ string) bool {
 }
 
 func TestNewDialer_WithTLSWrapper(t *testing.T) {
-	lis, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(freeport.Port(t))))
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	t.Cleanup(logError(t, lis.Close))
 
@@ -65,25 +64,18 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 }
 
 func TestNewDialer_WithALPNWrapper(t *testing.T) {
-	ports := freeport.GetN(t, 3)
-
-	var (
-		s1addr = ipaddr.FormatAddressPort("127.0.0.1", ports[0])
-		s2addr = ipaddr.FormatAddressPort("127.0.0.1", ports[1])
-		gwAddr = ipaddr.FormatAddressPort("127.0.0.1", ports[2])
-	)
-
-	lis1, err := net.Listen("tcp", s1addr)
+	lis1, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	t.Cleanup(logError(t, lis1.Close))
 
-	lis2, err := net.Listen("tcp", s2addr)
+	lis2, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	t.Cleanup(logError(t, lis2.Close))
 
 	// Send all of the traffic to dc2's server
 	var p tcpproxy.Proxy
-	p.AddRoute(gwAddr, tcpproxy.To(s2addr))
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", freeport.Port(t))
+	p.AddRoute(gwAddr, tcpproxy.To(lis2.Addr().String()))
 	p.AddStopACMESearch(gwAddr)
 	require.NoError(t, p.Start())
 	defer func() {

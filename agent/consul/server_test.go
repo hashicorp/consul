@@ -512,12 +512,11 @@ func TestServer_JoinWAN_SerfAllowedCIDRs(t *testing.T) {
 }
 
 func skipIfCannotBindToIP(t *testing.T, ip string) {
-	addr := ipaddr.FormatAddressPort(ip, freeport.Port(t))
-	l, err := net.Listen("tcp", addr)
-	l.Close()
+	l, err := net.Listen("tcp", net.JoinHostPort(ip, "0"))
 	if err != nil {
 		t.Skipf("Cannot bind on %s, to run on Mac OS: `sudo ifconfig lo0 alias %s up`", ip, ip)
 	}
+	l.Close()
 }
 
 func TestServer_LANReap(t *testing.T) {
