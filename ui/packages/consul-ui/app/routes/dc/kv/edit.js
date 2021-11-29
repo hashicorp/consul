@@ -49,7 +49,7 @@ export default class EditRoute extends Route {
       // TODO: Consider loading this after initial page load
       if (typeof model.item !== 'undefined') {
         const session = get(model.item, 'Session');
-        if (session && this.permissions.can('read sessions')) {
+        if (session) {
           return hash({
             ...model,
             ...{
@@ -57,7 +57,7 @@ export default class EditRoute extends Route {
                 ns: nspace,
                 dc: dc,
                 id: session,
-              }),
+              }).catch((e) => null),
             },
           });
         }
