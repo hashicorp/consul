@@ -1,0 +1,20 @@
+# is
+
+`{{is "something model" item=item}}` is used to perform a test on based on a
+type of model, almost the same as `ember-can` but reads better to test for a
+characteristic rather than an ability:
+
+```hbs
+
+{{#if (is "crd intention" item=item)}}
+I'm a CRD intention
+{{/if}}
+
+```
+
+Consider using the `test` helper instead.
+
+## See also
+
+- [`test` helper](./test.mdx)
+

@@ -1,7 +1,23 @@
 export default {
   id: 'oidc-select',
-  initial: 'loading',
+  initial: 'idle',
+  on: {
+    RESET: [
+      {
+        target: 'idle',
+      },
+    ],
+  },
   states: {
+    idle: {
+      on: {
+        LOAD: [
+          {
+            target: 'loading',
+          },
+        ],
+      },
+    },
     loaded: {},
     loading: {
       on: {

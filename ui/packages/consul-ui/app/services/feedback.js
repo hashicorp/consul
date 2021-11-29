@@ -10,6 +10,7 @@ const notificationDefaults = function() {
   return {
     timeout: 6000,
     extendedTimeout: 300,
+    destroyOnClick: true
   };
 };
 export default class FeedbackService extends Service {
@@ -23,7 +24,7 @@ export default class FeedbackService extends Service {
     };
   }
 
-  success(item, action, status = defaultStatus) {
+  success(item, action, status = defaultStatus, model) {
     const getAction = callableType(action);
     const getStatus = callableType(status);
     // returning exactly `false` for a feedback action means even though
@@ -38,11 +39,12 @@ export default class FeedbackService extends Service {
         // here..
         action: getAction(),
         item: item,
+        model:  model
       });
     }
   }
 
-  error(e, action, status = defaultStatus) {
+  error(e, action, status = defaultStatus, model) {
     const getAction = callableType(action);
     const getStatus = callableType(status);
     this.notify.clearMessages();
@@ -53,6 +55,7 @@ export default class FeedbackService extends Service {
         type: getStatus(TYPE_SUCCESS),
         // and here
         action: getAction(),
+        model:  model
       });
     } else {
       this.notify.add({
@@ -60,17 +63,18 @@ export default class FeedbackService extends Service {
         type: getStatus(TYPE_ERROR, e),
         action: getAction(),
         error: e,
+        model:  model
       });
     }
   }
 
-  async execute(handle, action, status) {
+  async execute(handle, action, status, routeName) {
     let result;
     try {
       result = await handle();
-      this.success(result, action, status);
+      this.success(result, action, status, routeName);
     } catch (e) {
-      this.error(e, action, status);
+      this.error(e, action, status, routeName);
     }
   }
 }

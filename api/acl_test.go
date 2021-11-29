@@ -1,7 +1,6 @@
 package api
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -628,74 +627,4 @@ SxTJANJHqf4BiFtVjN7LZXi3HUIRAsceEbd0TfW5be9SQ0tbDyyGYt/bXtBLGTIh
 		"ServiceAccountJWT": `eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImp0aSI6ImQxYTZiYzE5LWZiODItNDI5ZC05NmUxLTg1YTFjYjEyNGQ3MCIsImlhdCI6MTYxMTcxNTQ5NiwiZXhwIjoxNjExNzE5MDk2fQ.rrVS5h1Yw20eI41RsTl2YAqzKKikKNg3qMkDmspTPQs`,
 	}
 	return
-}
-
-func TestAPI_RulesTranslate_Raw(t *testing.T) {
-	t.Parallel()
-	c, s := makeACLClient(t)
-	defer s.Stop()
-
-	acl := c.ACL()
-
-	input := `#start of policy
-agent "" {
-   policy = "read"
-}
-
-node "" {
-   policy = "read"
-}
-
-service "" {
-   policy = "read"
-}
-
-key "" {
-   policy = "read"
-}
-
-session "" {
-   policy = "read"
-}
-
-event "" {
-   policy = "read"
-}
-
-query "" {
-   policy = "read"
-}`
-
-	expected := `#start of policy
-agent_prefix "" {
-  policy = "read"
-}
-
-node_prefix "" {
-  policy = "read"
-}
-
-service_prefix "" {
-  policy = "read"
-}
-
-key_prefix "" {
-  policy = "read"
-}
-
-session_prefix "" {
-  policy = "read"
-}
-
-event_prefix "" {
-  policy = "read"
-}
-
-query_prefix "" {
-  policy = "read"
-}`
-
-	rules, err := acl.RulesTranslate(strings.NewReader(input))
-	require.NoError(t, err)
-	require.Equal(t, expected, rules)
 }

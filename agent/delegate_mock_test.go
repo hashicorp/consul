@@ -3,12 +3,13 @@ package agent
 import (
 	"io"
 
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/mock"
 )
 
 type delegateMock struct {
@@ -24,31 +25,26 @@ func (m *delegateMock) Leave() error {
 	return m.Called().Error(0)
 }
 
-func (m *delegateMock) LANMembers() []serf.Member {
+func (m *delegateMock) LANMembersInAgentPartition() []serf.Member {
 	return m.Called().Get(0).([]serf.Member)
 }
 
-func (m *delegateMock) LANMembersAllSegments() ([]serf.Member, error) {
-	ret := m.Called()
+func (m *delegateMock) LANMembers(f consul.LANMemberFilter) ([]serf.Member, error) {
+	ret := m.Called(f)
 	return ret.Get(0).([]serf.Member), ret.Error(1)
 }
 
-func (m *delegateMock) LANSegmentMembers(segment string) ([]serf.Member, error) {
-	ret := m.Called()
-	return ret.Get(0).([]serf.Member), ret.Error(1)
-}
-
-func (m *delegateMock) LocalMember() serf.Member {
+func (m *delegateMock) AgentLocalMember() serf.Member {
 	return m.Called().Get(0).(serf.Member)
 }
 
-func (m *delegateMock) JoinLAN(addrs []string) (n int, err error) {
-	ret := m.Called(addrs)
+func (m *delegateMock) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (n int, err error) {
+	ret := m.Called(addrs, entMeta)
 	return ret.Int(0), ret.Error(1)
 }
 
-func (m *delegateMock) RemoveFailedNode(node string, prune bool) error {
-	return m.Called(node, prune).Error(0)
+func (m *delegateMock) RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+	return m.Called(node, prune, entMeta).Error(0)
 }
 
 func (m *delegateMock) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
@@ -63,10 +59,6 @@ func (m *delegateMock) ResolveTokenAndDefaultMeta(token string, entMeta *structs
 
 func (m *delegateMock) RPC(method string, args interface{}, reply interface{}) error {
 	return m.Called(method, args, reply).Error(0)
-}
-
-func (m *delegateMock) UseLegacyACLs() bool {
-	return m.Called().Bool(0)
 }
 
 func (m *delegateMock) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error {

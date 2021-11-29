@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -432,7 +434,6 @@ type ACLResolverTestDelegate struct {
 	localTokens     bool
 	localPolicies   bool
 	localRoles      bool
-	getPolicyFn     func(*structs.ACLPolicyResolveLegacyRequest, *structs.ACLPolicyResolveLegacyResponse) error
 	tokenReadFn     func(*structs.ACLTokenGetRequest, *structs.ACLTokenResponse) error
 	policyResolveFn func(*structs.ACLPolicyBatchGetRequest, *structs.ACLPolicyBatchResponse) error
 	roleResolveFn   func(*structs.ACLRoleBatchGetRequest, *structs.ACLRoleBatchResponse) error
@@ -612,7 +613,7 @@ func (d *ACLResolverTestDelegate) plainRoleResolveFn(args *structs.ACLRoleBatchG
 	return nil
 }
 
-func (d *ACLResolverTestDelegate) ACLDatacenter(legacy bool) string {
+func (d *ACLResolverTestDelegate) ACLDatacenter() string {
 	return d.datacenter
 }
 
@@ -673,12 +674,6 @@ func (d *ACLResolverTestDelegate) ResolveRoleFromID(roleID string) (bool, *struc
 
 func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply interface{}) error {
 	switch method {
-	case "ACL.GetPolicy":
-		atomic.AddInt32(&d.remoteLegacyResolutions, 1)
-		if d.getPolicyFn != nil {
-			return d.getPolicyFn(args.(*structs.ACLPolicyResolveLegacyRequest), reply.(*structs.ACLPolicyResolveLegacyResponse))
-		}
-		panic("Bad Test Implementation: should provide a getPolicyFn to the ACLResolverTestDelegate")
 	case "ACL.TokenRead":
 		atomic.AddInt32(&d.remoteTokenResolutions, 1)
 		if d.tokenReadFn != nil {
@@ -780,8 +775,6 @@ func TestACLResolver_ResolveRootACL(t *testing.T) {
 }
 
 func TestACLResolver_DownPolicy(t *testing.T) {
-	t.Parallel()
-
 	requireIdentityCached := func(t *testing.T, r *ACLResolver, id string, present bool, msg string) {
 		t.Helper()
 
@@ -806,7 +799,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	}
 
 	t.Run("Deny", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -831,7 +823,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Allow", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -856,7 +847,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Expired-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -893,7 +883,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Expired-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -925,7 +914,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -955,8 +943,28 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.Equal(t, acl.Allow, authz2.NodeWrite("foo", nil))
 	})
 
+	t.Run("Extend-Cache with no cache entry defaults to default_policy", func(t *testing.T) {
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			localPolicies: true,
+			localRoles:    true,
+		}
+		delegate.tokenReadFn = func(*structs.ACLTokenGetRequest, *structs.ACLTokenResponse) error {
+			return ACLRemoteError{Err: fmt.Errorf("connection problem")}
+		}
+
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "extend-cache"
+		})
+
+		_, authz, err := r.ResolveTokenToIdentityAndAuthorizer("not-found")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
+	})
+
 	t.Run("Extend-Cache-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -988,7 +996,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Expired-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1025,7 +1032,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Expired-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1058,7 +1064,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Async-Cache-Expired-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1106,7 +1111,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Async-Cache-Expired-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1149,7 +1153,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Client-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1185,7 +1188,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Client-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1222,7 +1224,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Async-Cache", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1264,8 +1265,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("PolicyResolve-TokenNotFound", func(t *testing.T) {
-		t.Parallel()
-
 		_, rawToken, _ := testIdentityForToken("found")
 		foundToken := rawToken.(*structs.ACLToken)
 		secretID := foundToken.SecretID
@@ -1331,8 +1330,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("PolicyResolve-PermissionDenied", func(t *testing.T) {
-		t.Parallel()
-
 		_, rawToken, _ := testIdentityForToken("found")
 		foundToken := rawToken.(*structs.ACLToken)
 		secretID := foundToken.SecretID
@@ -1565,49 +1562,6 @@ func TestACLResolver_Client(t *testing.T) {
 		require.EqualValues(t, 0, delegate.localRoleResolutions)
 		require.EqualValues(t, 0, delegate.remoteRoleResolutions)
 		require.EqualValues(t, 0, delegate.remoteLegacyResolutions)
-	})
-
-	t.Run("Resolve-Identity-Legacy", func(t *testing.T) {
-		t.Parallel()
-
-		delegate := &ACLResolverTestDelegate{
-			enabled:       true,
-			datacenter:    "dc1",
-			legacy:        true,
-			localTokens:   false,
-			localPolicies: false,
-			getPolicyFn: func(_ *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
-				reply.Parent = "deny"
-				reply.TTL = 30
-				reply.ETag = "nothing"
-				reply.Policy = &acl.Policy{
-					ID: "not-needed",
-					PolicyRules: acl.PolicyRules{
-						Nodes: []*acl.NodeRule{
-							{
-								Name:   "foo",
-								Policy: acl.PolicyWrite,
-							},
-						},
-					},
-				}
-				return nil
-			},
-		}
-
-		r := newTestACLResolver(t, delegate, nil)
-
-		ident, err := r.ResolveTokenToIdentity("found-policy-and-role")
-		require.NoError(t, err)
-		require.NotNil(t, ident)
-		require.Equal(t, "legacy-token", ident.ID())
-		require.EqualValues(t, 0, delegate.localTokenResolutions)
-		require.EqualValues(t, 0, delegate.remoteTokenResolutions)
-		require.EqualValues(t, 0, delegate.localPolicyResolutions)
-		require.EqualValues(t, 0, delegate.remotePolicyResolutions)
-		require.EqualValues(t, 0, delegate.localRoleResolutions)
-		require.EqualValues(t, 0, delegate.remoteRoleResolutions)
-		require.EqualValues(t, 1, delegate.remoteLegacyResolutions)
 	})
 
 	t.Run("Concurrent-Token-Resolve", func(t *testing.T) {
@@ -2158,38 +2112,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 	})
 
-	runTwiceAndReset("legacy-management", func(t *testing.T) {
-		delegate.UseTestLocalData([]interface{}{
-			&structs.ACLToken{
-				AccessorID: "d109a033-99d1-47e2-a711-d6593373a973",
-				SecretID:   "legacy-management",
-				Type:       structs.ACLTokenTypeManagement,
-			},
-		})
-		authz, err := r.ResolveToken("legacy-management")
-		require.NotNil(t, authz)
-		require.NoError(t, err)
-		require.Equal(t, acl.Allow, authz.ACLWrite(nil))
-		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
-	})
-
-	runTwiceAndReset("legacy-client", func(t *testing.T) {
-		delegate.UseTestLocalData([]interface{}{
-			&structs.ACLToken{
-				AccessorID: "b7375838-b104-4a25-b457-329d939bf257",
-				SecretID:   "legacy-client",
-				Type:       structs.ACLTokenTypeClient,
-				Rules:      `service "" { policy = "read" }`,
-			},
-		})
-		authz, err := r.ResolveToken("legacy-client")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		require.Equal(t, acl.Deny, authz.MeshRead(nil))
-		require.Equal(t, acl.Deny, authz.OperatorRead(nil))
-		require.Equal(t, acl.Allow, authz.ServiceRead("foo", nil))
-	})
-
 	runTwiceAndReset("service and intention wildcard write", func(t *testing.T) {
 		delegate.UseTestLocalData([]interface{}{
 			&structs.ACLToken{
@@ -2227,463 +2149,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 	})
 }
 
-func TestACLResolver_Legacy(t *testing.T) {
-	t.Parallel()
-
-	t.Run("Cached", func(t *testing.T) {
-		t.Parallel()
-		cached := false
-		delegate := &ACLResolverTestDelegate{
-			enabled:       true,
-			datacenter:    "dc1",
-			legacy:        true,
-			localTokens:   false,
-			localPolicies: false,
-			getPolicyFn: func(_ *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
-				if !cached {
-					reply.Parent = "deny"
-					reply.TTL = 30
-					reply.ETag = "nothing"
-					reply.Policy = &acl.Policy{
-						ID: "not-needed",
-						PolicyRules: acl.PolicyRules{
-							Nodes: []*acl.NodeRule{
-								{
-									Name:   "foo",
-									Policy: acl.PolicyWrite,
-								},
-							},
-						},
-					}
-					cached = true
-					return nil
-				}
-				return errRPC
-			},
-		}
-		r := newTestACLResolver(t, delegate, nil)
-
-		authz, err := r.ResolveToken("foo")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		// there is a bit of translation that happens
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
-		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
-
-		// this should be from the cache
-		authz, err = r.ResolveToken("foo")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		// there is a bit of translation that happens
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
-		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
-	})
-
-	t.Run("Cache-Expiry-Extend", func(t *testing.T) {
-		t.Parallel()
-		cached := false
-		delegate := &ACLResolverTestDelegate{
-			enabled:       true,
-			datacenter:    "dc1",
-			legacy:        true,
-			localTokens:   false,
-			localPolicies: false,
-			getPolicyFn: func(_ *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
-				if !cached {
-					reply.Parent = "deny"
-					reply.TTL = 0
-					reply.ETag = "nothing"
-					reply.Policy = &acl.Policy{
-						ID: "not-needed",
-						PolicyRules: acl.PolicyRules{
-							Nodes: []*acl.NodeRule{
-								{
-									Name:   "foo",
-									Policy: acl.PolicyWrite,
-								},
-							},
-						},
-					}
-					cached = true
-					return nil
-				}
-				return errRPC
-			},
-		}
-		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
-			config.Config.ACLTokenTTL = 0
-		})
-
-		authz, err := r.ResolveToken("foo")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		// there is a bit of translation that happens
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
-		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
-
-		// this should be from the cache
-		authz, err = r.ResolveToken("foo")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		// there is a bit of translation that happens
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
-		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
-	})
-
-	t.Run("Cache-Expiry-Allow", func(t *testing.T) {
-		t.Parallel()
-		cached := false
-		delegate := &ACLResolverTestDelegate{
-			enabled:       true,
-			datacenter:    "dc1",
-			legacy:        true,
-			localTokens:   false,
-			localPolicies: false,
-			getPolicyFn: func(_ *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
-				if !cached {
-					reply.Parent = "deny"
-					reply.TTL = 0
-					reply.ETag = "nothing"
-					reply.Policy = &acl.Policy{
-						ID: "not-needed",
-						PolicyRules: acl.PolicyRules{
-							Nodes: []*acl.NodeRule{
-								{
-									Name:   "foo",
-									Policy: acl.PolicyWrite,
-								},
-							},
-						},
-					}
-					cached = true
-					return nil
-				}
-				return errRPC
-			},
-		}
-		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
-			config.Config.ACLDownPolicy = "allow"
-			config.Config.ACLTokenTTL = 0
-		})
-
-		authz, err := r.ResolveToken("foo")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		// there is a bit of translation that happens
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
-		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
-
-		// this should be from the cache
-		authz, err = r.ResolveToken("foo")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		// there is a bit of translation that happens
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
-		require.Equal(t, acl.Allow, authz.NodeWrite("fo", nil))
-	})
-
-	t.Run("Cache-Expiry-Deny", func(t *testing.T) {
-		t.Parallel()
-		cached := false
-		delegate := &ACLResolverTestDelegate{
-			enabled:       true,
-			datacenter:    "dc1",
-			legacy:        true,
-			localTokens:   false,
-			localPolicies: false,
-			getPolicyFn: func(_ *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
-				if !cached {
-					reply.Parent = "deny"
-					reply.TTL = 0
-					reply.ETag = "nothing"
-					reply.Policy = &acl.Policy{
-						ID: "not-needed",
-						PolicyRules: acl.PolicyRules{
-							Nodes: []*acl.NodeRule{
-								{
-									Name:   "foo",
-									Policy: acl.PolicyWrite,
-								},
-							},
-						},
-					}
-					cached = true
-					return nil
-				}
-				return errRPC
-			},
-		}
-		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
-			config.Config.ACLDownPolicy = "deny"
-			config.Config.ACLTokenTTL = 0
-		})
-
-		authz, err := r.ResolveToken("foo")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		// there is a bit of translation that happens
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
-		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
-
-		// this should be from the cache
-		authz, err = r.ResolveToken("foo")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		// there is a bit of translation that happens
-		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
-		require.Equal(t, acl.Deny, authz.NodeWrite("foo/bar", nil))
-		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
-	})
-
-	t.Run("Cache-Expiry-Async-Cache", func(t *testing.T) {
-		t.Parallel()
-		cached := false
-		delegate := &ACLResolverTestDelegate{
-			enabled:       true,
-			datacenter:    "dc1",
-			legacy:        true,
-			localTokens:   false,
-			localPolicies: false,
-			getPolicyFn: func(_ *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
-				if !cached {
-					reply.Parent = "deny"
-					reply.TTL = 0
-					reply.ETag = "nothing"
-					reply.Policy = &acl.Policy{
-						ID: "not-needed",
-						PolicyRules: acl.PolicyRules{
-							Nodes: []*acl.NodeRule{
-								{
-									Name:   "foo",
-									Policy: acl.PolicyWrite,
-								},
-							},
-						},
-					}
-					cached = true
-					return nil
-				}
-				return acl.ErrNotFound
-			},
-		}
-		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
-			config.Config.ACLDownPolicy = "async-cache"
-			config.Config.ACLTokenTTL = 0
-		})
-
-		authz, err := r.ResolveToken("foo")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		// there is a bit of translation that happens
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
-		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
-		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
-
-		// delivered from the cache
-		authz2, err := r.ResolveToken("foo")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		require.True(t, authz == authz2)
-
-		// the go routine spawned will eventually return and this will be a not found error
-		retry.Run(t, func(t *retry.R) {
-			authz3, err := r.ResolveToken("foo")
-			assert.Error(t, err)
-			assert.True(t, acl.IsErrNotFound(err))
-			assert.Nil(t, authz3)
-		})
-	})
-}
-
-/*
-
-func TestACL_Replication(t *testing.T) {
-	t.Parallel()
-	aclExtendPolicies := []string{"extend-cache", "async-cache"} //"async-cache"
-
-	for _, aclDownPolicy := range aclExtendPolicies {
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
-			c.PrimaryDatacenter = "dc1"
-			c.ACLMasterToken = "root"
-		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
-		client := rpcClient(t, s1)
-		defer client.Close()
-
-		dir2, s2 := testServerWithConfig(t, func(c *Config) {
-			c.Datacenter = "dc2"
-			c.PrimaryDatacenter = "dc1"
-			c.ACLResolverSettings.ACLDefaultPolicy = "deny"
-			c.ACLDownPolicy = aclDownPolicy
-			c.ACLTokenReplication = true
-			c.ACLReplicationRate = 100
-			c.ACLReplicationBurst = 100
-			c.ACLReplicationApplyLimit = 1000000
-		})
-		s2.tokens.UpdateReplicationToken("root")
-		defer os.RemoveAll(dir2)
-		defer s2.Shutdown()
-
-		dir3, s3 := testServerWithConfig(t, func(c *Config) {
-			c.Datacenter = "dc3"
-			c.PrimaryDatacenter = "dc1"
-			c.ACLDownPolicy = "deny"
-			c.ACLTokenReplication = true
-			c.ACLReplicationRate = 100
-			c.ACLReplicationBurst = 100
-			c.ACLReplicationApplyLimit = 1000000
-		})
-		s3.tokens.UpdateReplicationToken("root")
-		defer os.RemoveAll(dir3)
-		defer s3.Shutdown()
-
-		// Try to join.
-		joinWAN(t, s2, s1)
-		joinWAN(t, s3, s1)
-		testrpc.WaitForLeader(t, s1.RPC, "dc1")
-		testrpc.WaitForLeader(t, s1.RPC, "dc2")
-		testrpc.WaitForLeader(t, s1.RPC, "dc3")
-
-		// Create a new token.
-		arg := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: testACLPolicy,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		var id string
-		if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		// Wait for replication to occur.
-		retry.Run(t, func(r *retry.R) {
-			_, acl, err := s2.fsm.State().ACLTokenGetBySecret(nil, id)
-			if err != nil {
-				r.Fatal(err)
-			}
-			if acl == nil {
-				r.Fatal(nil)
-			}
-			_, acl, err = s3.fsm.State().ACLTokenGetBySecret(nil, id)
-			if err != nil {
-				r.Fatal(err)
-			}
-			if acl == nil {
-				r.Fatal(nil)
-			}
-		})
-
-		// Kill the ACL datacenter.
-		s1.Shutdown()
-
-		// Token should resolve on s2, which has replication + extend-cache.
-		acl, err := s2.ResolveToken(id)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if acl == nil {
-			t.Fatalf("missing acl")
-		}
-
-		// Check the policy
-		if acl.KeyRead("bar") {
-			t.Fatalf("unexpected read")
-		}
-		if !acl.KeyRead("foo/test") {
-			t.Fatalf("unexpected failed read")
-		}
-
-		// Although s3 has replication, and we verified that the ACL is there,
-		// it can not be used because of the down policy.
-		acl, err = s3.ResolveToken(id)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if acl == nil {
-			t.Fatalf("missing acl")
-		}
-
-		// Check the policy.
-		if acl.KeyRead("bar") {
-			t.Fatalf("unexpected read")
-		}
-		if acl.KeyRead("foo/test") {
-			t.Fatalf("unexpected read")
-		}
-	}
-}
-
-func TestACL_MultiDC_Found(t *testing.T) {
-	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.PrimaryDatacenter = "dc1"
-		c.ACLMasterToken = "root"
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
-
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc2"
-		c.PrimaryDatacenter = "dc1" // Enable ACLs!
-	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
-
-	// Try to join
-	joinWAN(t, s2, s1)
-
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-
-	// Create a new token
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testACLPolicy,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Token should resolve
-	acl, err := s2.ResolveToken(id)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if acl == nil {
-		t.Fatalf("missing acl")
-	}
-
-	// Check the policy
-	if acl.KeyRead("bar") {
-		t.Fatalf("unexpected read")
-	}
-	if !acl.KeyRead("foo/test") {
-		t.Fatalf("unexpected failed read")
-	}
-}
-*/
-
 func TestACL_filterHealthChecks(t *testing.T) {
 	t.Parallel()
 	// Create some health checks.
@@ -2707,7 +2172,7 @@ func TestACL_filterHealthChecks(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 service "foo" {
   policy = "read"
 }
@@ -2730,7 +2195,7 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 node "node1" {
   policy = "read"
 }
@@ -2788,7 +2253,7 @@ func TestACL_filterIntentions(t *testing.T) {
 	}
 
 	// Policy to see one
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 service "foo" {
   policy = "read"
 }
@@ -2863,7 +2328,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 service "foo" {
   policy = "read"
 }
@@ -2887,7 +2352,7 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 node "node1" {
   policy = "read"
 }
@@ -2959,7 +2424,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 service "foo" {
   policy = "read"
 }
@@ -2983,7 +2448,7 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 node "node1" {
   policy = "read"
 }
@@ -3055,7 +2520,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 service "foo" {
   policy = "read"
 }
@@ -3078,7 +2543,7 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 node "node1" {
   policy = "read"
 }
@@ -3181,7 +2646,7 @@ node "node1" {
 service "foo" {
   policy = "read"
 }`
-		policy, err := acl.NewPolicyFromSource("", 0, rules, acl.SyntaxLegacy, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxLegacy, nil, nil)
 		if err != nil {
 			t.Fatalf("err %v", err)
 		}
@@ -3209,7 +2674,7 @@ node "node2" {
 service "bar" {
   policy = "read"
 }`
-		policy, err := acl.NewPolicyFromSource("", 0, rules, acl.SyntaxLegacy, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxLegacy, nil, nil)
 		if err != nil {
 			t.Fatalf("err %v", err)
 		}
@@ -3243,7 +2708,7 @@ node "node2" {
 service "bar" {
   policy = "read"
 }`
-		policy, err := acl.NewPolicyFromSource("", 0, rules, acl.SyntaxLegacy, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxLegacy, nil, nil)
 		if err != nil {
 			t.Fatalf("err %v", err)
 		}
@@ -3372,7 +2837,7 @@ func TestACL_filterNodeDump(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 service "foo" {
   policy = "read"
 }
@@ -3396,7 +2861,7 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 node "node1" {
   policy = "read"
 }
@@ -3505,7 +2970,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 		perms  acl.Authorizer
 	)
 	// Allowed to see the service but not the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 	service_prefix "" { policy = "read" }
 	`, acl.SyntaxCurrent, nil, nil)
 	require.NoError(t, err)
@@ -3520,7 +2985,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 	}
 
 	// Allowed to see the node but not the service.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 	node_prefix "" { policy = "read" }
 	`, acl.SyntaxCurrent, nil, nil)
 	require.NoError(t, err)
@@ -3535,7 +3000,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 	}
 
 	// Allowed to see the service AND the node
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 	service_prefix "" { policy = "read" }
 	node_prefix "" { policy = "read" }
 	`, acl.SyntaxCurrent, nil, nil)
@@ -3953,4 +3418,81 @@ func TestACLResolver_ACLsEnabled(t *testing.T) {
 		})
 	}
 
+}
+
+func TestACLResolver_ResolveTokenToIdentityAndAuthorizer_UpdatesPurgeTheCache(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, srv, codec := testACLServerWithConfig(t, nil, false)
+	waitForLeaderEstablishment(t, srv)
+
+	reqPolicy := structs.ACLPolicySetRequest{
+		Datacenter: "dc1",
+		Policy: structs.ACLPolicy{
+			Name:  "the-policy",
+			Rules: `key_prefix "" { policy = "read"}`,
+		},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+	}
+	var respPolicy = structs.ACLPolicy{}
+	err := msgpackrpc.CallWithCodec(codec, "ACL.PolicySet", &reqPolicy, &respPolicy)
+	require.NoError(t, err)
+
+	token, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	reqToken := structs.ACLTokenSetRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			SecretID: token,
+			Policies: []structs.ACLTokenPolicyLink{{Name: "the-policy"}},
+		},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+	}
+	var respToken structs.ACLToken
+	err = msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &reqToken, &respToken)
+	require.NoError(t, err)
+
+	runStep(t, "first resolve", func(t *testing.T) {
+		_, authz, err := srv.acls.ResolveTokenToIdentityAndAuthorizer(token)
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
+	})
+
+	runStep(t, "update the policy and resolve again", func(t *testing.T) {
+		reqPolicy := structs.ACLPolicySetRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				ID:    respPolicy.ID,
+				Name:  "the-policy",
+				Rules: `{"key_prefix": {"": {"policy": "deny"}}}`,
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		}
+		err := msgpackrpc.CallWithCodec(codec, "ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
+		require.NoError(t, err)
+
+		_, authz, err := srv.acls.ResolveTokenToIdentityAndAuthorizer(token)
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.Equal(t, acl.Deny, authz.KeyRead("foo", nil))
+	})
+
+	runStep(t, "delete the token", func(t *testing.T) {
+		req := structs.ACLTokenDeleteRequest{
+			Datacenter:   "dc1",
+			TokenID:      respToken.AccessorID,
+			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		}
+		var resp string
+		err := msgpackrpc.CallWithCodec(codec, "ACL.TokenDelete", &req, &resp)
+		require.NoError(t, err)
+
+		_, _, err = srv.acls.ResolveTokenToIdentityAndAuthorizer(token)
+		require.True(t, acl.IsErrNotFound(err), "Error %v is not acl.ErrNotFound", err)
+	})
 }

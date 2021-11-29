@@ -267,8 +267,8 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 
 // NewAuthorizerFromRules is a convenience function to invoke NewPolicyFromSource followed by NewPolicyAuthorizer with
 // the parse policy.
-func NewAuthorizerFromRules(id string, revision uint64, rules string, syntax SyntaxVersion, conf *Config, meta *EnterprisePolicyMeta) (Authorizer, error) {
-	policy, err := NewPolicyFromSource(id, revision, rules, syntax, conf, meta)
+func NewAuthorizerFromRules(rules string, syntax SyntaxVersion, conf *Config, meta *EnterprisePolicyMeta) (Authorizer, error) {
+	policy, err := NewPolicyFromSource(rules, syntax, conf, meta)
 	if err != nil {
 		return nil, err
 	}

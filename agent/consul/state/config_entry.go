@@ -242,6 +242,41 @@ func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry)
 	return err == nil, err
 }
 
+// DeleteConfigEntryCAS performs a check-and-set deletion of a config entry
+// with the given raft index. If the index is not specified, or is not equal
+// to the entry's current ModifyIndex then the call is a noop, otherwise the
+// normal deletion is performed.
+func (s *Store) DeleteConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry) (bool, error) {
+	tx := s.db.WriteTxn(idx)
+	defer tx.Abort()
+
+	existing, err := tx.First(tableConfigEntries, indexID, newConfigEntryQuery(conf))
+	if err != nil {
+		return false, fmt.Errorf("failed config entry lookup: %s", err)
+	}
+
+	if existing == nil {
+		return false, nil
+	}
+
+	if existing.(structs.ConfigEntry).GetRaftIndex().ModifyIndex != cidx {
+		return false, nil
+	}
+
+	if err := deleteConfigEntryTxn(
+		tx,
+		idx,
+		conf.GetKind(),
+		conf.GetName(),
+		conf.GetEnterpriseMeta(),
+	); err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	return err == nil, err
+}
+
 func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *structs.EnterpriseMeta) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
@@ -360,6 +395,7 @@ func validateProposedConfigEntryInGraph(
 		}
 	case structs.ServiceIntentions:
 	case structs.MeshConfig:
+	case structs.PartitionExports:
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
@@ -393,7 +429,6 @@ func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, serv
 		EvaluateInNamespace:  source.NamespaceOrDefault(),
 		EvaluateInPartition:  source.PartitionOrDefault(),
 		EvaluateInDatacenter: dc,
-		UseInDatacenter:      dc,
 	}
 	idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, source.Name, entMeta, req)
 	if err != nil {
@@ -402,8 +437,8 @@ func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, serv
 
 	var resp []structs.ServiceName
 	for _, t := range chain.Targets {
-		em := entMeta.NewEnterpriseMetaInPartition(t.Namespace)
-		target := structs.NewServiceName(t.Service, em)
+		em := structs.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), t.Namespace)
+		target := structs.NewServiceName(t.Service, &em)
 
 		// TODO (freddy): Allow upstream DC and encode in response
 		if t.Datacenter == dc {
@@ -451,7 +486,6 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 			EvaluateInNamespace:  sn.NamespaceOrDefault(),
 			EvaluateInPartition:  sn.PartitionOrDefault(),
 			EvaluateInDatacenter: dc,
-			UseInDatacenter:      dc,
 		}
 		idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, req)
 		if err != nil {
@@ -459,8 +493,8 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 		}
 
 		for _, t := range chain.Targets {
-			em := sn.NewEnterpriseMetaInPartition(t.Namespace)
-			candidate := structs.NewServiceName(t.Service, em)
+			em := structs.NewEnterpriseMetaWithPartition(sn.PartitionOrDefault(), t.Namespace)
+			candidate := structs.NewServiceName(t.Service, &em)
 
 			if !candidate.Matches(destination) {
 				continue
@@ -491,7 +525,7 @@ func validateProposedConfigEntryInServiceGraph(
 		enforceIngressProtocolsMatch bool
 	)
 
-	wildcardEntMeta := kindName.WildcardEnterpriseMetaForPartition()
+	wildcardEntMeta := kindName.WithWildcardNamespace()
 
 	switch kindName.Kind {
 	case structs.ProxyDefaults:
@@ -722,7 +756,6 @@ func testCompileDiscoveryChain(
 		EvaluateInPartition:   entMeta.PartitionOrDefault(),
 		EvaluateInDatacenter:  "dc1",
 		EvaluateInTrustDomain: "b6fc9da3-03d4-4b5a-9134-c045e9b20152.consul",
-		UseInDatacenter:       "dc1",
 		Entries:               speculativeEntries,
 	}
 	chain, err := discoverychain.Compile(req)
@@ -767,7 +800,7 @@ func (s *Store) serviceDiscoveryChainTxn(
 	}
 
 	// Build TrustDomain based on the ClusterID stored.
-	signingID := connect.SpiffeIDSigningForCluster(config)
+	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
 	if signingID == nil {
 		// If CA is bootstrapped at all then this should never happen but be
 		// defensive.
@@ -1207,7 +1240,6 @@ func protocolForService(
 		EvaluateInDatacenter: "dc1",
 		// Use a dummy trust domain since that won't affect the protocol here.
 		EvaluateInTrustDomain: "b6fc9da3-03d4-4b5a-9134-c045e9b20152.consul",
-		UseInDatacenter:       "dc1",
 		Entries:               entries,
 	}
 	chain, err := discoverychain.Compile(req)

@@ -31,10 +31,6 @@ var ACLCounters = []prometheus.CounterDefinition{
 
 var ACLSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"acl", "resolveTokenLegacy"},
-		Help: "This measures the time it takes to resolve an ACL token using the legacy ACL system.",
-	},
-	{
 		Name: []string{"acl", "ResolveToken"},
 		Help: "This measures the time it takes to resolve an ACL token.",
 	},
@@ -54,14 +50,6 @@ const (
 	// are not allowed to be displayed.
 	redactedToken = "<hidden>"
 
-	// aclUpgradeBatchSize controls how many tokens we look at during each round of upgrading. Individual raft logs
-	// will be further capped using the aclBatchUpsertSize. This limit just prevents us from creating a single slice
-	// with all tokens in it.
-	aclUpgradeBatchSize = 128
-
-	// aclUpgradeRateLimit is the number of batch upgrade requests per second allowed.
-	aclUpgradeRateLimit rate.Limit = 1.0
-
 	// aclTokenReapingRateLimit is the number of batch token reaping requests per second allowed.
 	aclTokenReapingRateLimit rate.Limit = 1.0
 
@@ -76,18 +64,6 @@ const (
 	// aclBatchUpsertSize is the target size in bytes we want to submit for a batch upsert request. We estimate the size at runtime
 	// due to the data being more variable in its size.
 	aclBatchUpsertSize = 256 * 1024
-
-	// DEPRECATED (ACL-Legacy-Compat) aclModeCheck* are all only for legacy usage
-	// aclModeCheckMinInterval is the minimum amount of time between checking if the
-	// agent should be using the new or legacy ACL system. All the places it is
-	// currently used will backoff as it detects that it is remaining in legacy mode.
-	// However the initial min value is kept small so that new cluster creation
-	// can enter into new ACL mode quickly.
-	aclModeCheckMinInterval = 50 * time.Millisecond
-
-	// aclModeCheckMaxInterval controls the maximum interval for how often the agent
-	// checks if it should be using the new or legacy ACL system.
-	aclModeCheckMaxInterval = 30 * time.Second
 
 	// Maximum number of re-resolution requests to be made if the token is modified between
 	// resolving the token and resolving its policies that would remove one of its policies.
@@ -120,10 +96,6 @@ func (id *missingIdentity) RoleIDs() []string {
 	return nil
 }
 
-func (id *missingIdentity) EmbeddedPolicy() *structs.ACLPolicy {
-	return nil
-}
-
 func (id *missingIdentity) ServiceIdentityList() []*structs.ACLServiceIdentity {
 	return nil
 }
@@ -144,13 +116,6 @@ func (id *missingIdentity) EnterpriseMetadata() *structs.EnterpriseMeta {
 	return structs.DefaultEnterpriseMetaInDefaultPartition()
 }
 
-func minTTL(a time.Duration, b time.Duration) time.Duration {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 type ACLRemoteError struct {
 	Err error
 }
@@ -169,8 +134,7 @@ func tokenSecretCacheID(token string) string {
 }
 
 type ACLResolverDelegate interface {
-	ACLDatacenter(legacy bool) string
-	UseLegacyACLs() bool
+	ACLDatacenter() string
 	ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error)
 	ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error)
 	ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error)
@@ -328,7 +292,10 @@ func agentMasterAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta) (ac
 			},
 		},
 	}
-	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+
+	cfg := acl.Config{}
+	setEnterpriseConf(entMeta, &cfg)
+	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, &cfg)
 }
 
 func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
@@ -355,7 +322,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	case "deny":
 		down = acl.DenyAll()
 	case "async-cache", "extend-cache":
-		// Leave the down policy as nil to signal this.
+		down = acl.RootAuthorizer(config.Config.ACLDefaultPolicy)
 	default:
 		return nil, fmt.Errorf("invalid ACL down policy %q", config.Config.ACLDownPolicy)
 	}
@@ -382,139 +349,11 @@ func (r *ACLResolver) Close() {
 	r.aclConf.Close()
 }
 
-func (r *ACLResolver) fetchAndCacheTokenLegacy(token string, cached *structs.AuthorizerCacheEntry) (acl.Authorizer, error) {
-	req := structs.ACLPolicyResolveLegacyRequest{
-		Datacenter: r.delegate.ACLDatacenter(true),
-		ACL:        token,
-	}
-
-	cacheTTL := r.config.ACLTokenTTL
-	if cached != nil {
-		cacheTTL = cached.TTL
-	}
-
-	var reply structs.ACLPolicyResolveLegacyResponse
-	err := r.delegate.RPC("ACL.GetPolicy", &req, &reply)
-	if err == nil {
-		parent := acl.RootAuthorizer(reply.Parent)
-		if parent == nil {
-			var authorizer acl.Authorizer
-			if cached != nil {
-				authorizer = cached.Authorizer
-			}
-			r.cache.PutAuthorizerWithTTL(token, authorizer, cacheTTL)
-			return authorizer, acl.ErrInvalidParent
-		}
-
-		var policies []*acl.Policy
-		policy := reply.Policy
-		if policy != nil {
-			policies = append(policies, policy.ConvertFromLegacy())
-		}
-
-		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(parent, policies, r.aclConf)
-
-		r.cache.PutAuthorizerWithTTL(token, authorizer, reply.TTL)
-		return authorizer, err
-	}
-
-	if acl.IsErrNotFound(err) {
-		// Make sure to remove from the cache if it was deleted
-		r.cache.PutAuthorizerWithTTL(token, nil, cacheTTL)
-		return nil, acl.ErrNotFound
-
-	}
-
-	// some other RPC error
-	switch r.config.ACLDownPolicy {
-	case "allow":
-		r.cache.PutAuthorizerWithTTL(token, acl.AllowAll(), cacheTTL)
-		return acl.AllowAll(), nil
-	case "async-cache", "extend-cache":
-		if cached != nil {
-			r.cache.PutAuthorizerWithTTL(token, cached.Authorizer, cacheTTL)
-			return cached.Authorizer, nil
-		}
-		fallthrough
-	default:
-		r.cache.PutAuthorizerWithTTL(token, acl.DenyAll(), cacheTTL)
-		return acl.DenyAll(), nil
-	}
-}
-
-func (r *ACLResolver) resolveTokenLegacy(token string) (structs.ACLIdentity, acl.Authorizer, error) {
-	defer metrics.MeasureSince([]string{"acl", "resolveTokenLegacy"}, time.Now())
-
-	// Attempt to resolve locally first (local results are not cached)
-	// This is only useful for servers where either legacy replication is being
-	// done or the server is within the primary datacenter.
-	if done, identity, err := r.delegate.ResolveIdentityFromToken(token); done {
-		if err == nil && identity != nil {
-			policies, err := r.resolvePoliciesForIdentity(identity)
-			if err != nil {
-				return identity, nil, err
-			}
-
-			authz, err := policies.Compile(r.cache, r.aclConf)
-			if err != nil {
-				return identity, nil, err
-			}
-
-			return identity, acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.RootAuthorizer(r.config.ACLDefaultPolicy)}), nil
-		}
-
-		return nil, nil, err
-	}
-
-	identity := &missingIdentity{
-		reason: "legacy-token",
-		token:  token,
-	}
-
-	// Look in the cache prior to making a RPC request
-	entry := r.cache.GetAuthorizer(token)
-
-	if entry != nil && entry.Age() <= minTTL(entry.TTL, r.config.ACLTokenTTL) {
-		metrics.IncrCounter([]string{"acl", "token", "cache_hit"}, 1)
-		if entry.Authorizer != nil {
-			return identity, entry.Authorizer, nil
-		}
-		return identity, nil, acl.ErrNotFound
-	}
-
-	metrics.IncrCounter([]string{"acl", "token", "cache_miss"}, 1)
-
-	// Resolve the token in the background and wait on the result if we must
-	waitChan := r.legacyGroup.DoChan(token, func() (interface{}, error) {
-		authorizer, err := r.fetchAndCacheTokenLegacy(token, entry)
-		return authorizer, err
-	})
-
-	waitForResult := entry == nil || r.config.ACLDownPolicy != "async-cache"
-	if !waitForResult {
-		// waitForResult being false requires the cacheEntry to not be nil
-		if entry.Authorizer != nil {
-			return identity, entry.Authorizer, nil
-		}
-		return identity, nil, acl.ErrNotFound
-	}
-
-	// block waiting for the async RPC to finish.
-	res := <-waitChan
-
-	var authorizer acl.Authorizer
-	if res.Val != nil { // avoid a nil-not-nil bug
-		authorizer = res.Val.(acl.Authorizer)
-	}
-
-	return identity, authorizer, res.Err
-}
-
 func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *structs.IdentityCacheEntry) (structs.ACLIdentity, error) {
 	cacheID := tokenSecretCacheID(token)
 
 	req := structs.ACLTokenGetRequest{
-		Datacenter:  r.delegate.ACLDatacenter(false),
+		Datacenter:  r.delegate.ACLDatacenter(),
 		TokenID:     token,
 		TokenIDType: structs.ACLTokenSecret,
 		QueryOptions: structs.QueryOptions{
@@ -602,7 +441,7 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 
 func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdentity, policyIDs []string, cached map[string]*structs.PolicyCacheEntry) (map[string]*structs.ACLPolicy, error) {
 	req := structs.ACLPolicyBatchGetRequest{
-		Datacenter: r.delegate.ACLDatacenter(false),
+		Datacenter: r.delegate.ACLDatacenter(),
 		PolicyIDs:  policyIDs,
 		QueryOptions: structs.QueryOptions{
 			Token:      identity.SecretToken(),
@@ -657,7 +496,7 @@ func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdent
 
 func (r *ACLResolver) fetchAndCacheRolesForIdentity(identity structs.ACLIdentity, roleIDs []string, cached map[string]*structs.RoleCacheEntry) (map[string]*structs.ACLRole, error) {
 	req := structs.ACLRoleBatchGetRequest{
-		Datacenter: r.delegate.ACLDatacenter(false),
+		Datacenter: r.delegate.ACLDatacenter(),
 		RoleIDs:    roleIDs,
 		QueryOptions: structs.QueryOptions{
 			Token:      identity.SecretToken(),
@@ -765,11 +604,6 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	)
 
 	if len(policyIDs) == 0 && len(serviceIdentities) == 0 && len(roleIDs) == 0 && len(nodeIdentities) == 0 {
-		policy := identity.EmbeddedPolicy()
-		if policy != nil {
-			return []*structs.ACLPolicy{policy}, nil
-		}
-
 		// In this case the default policy will be all that is in effect.
 		return nil, nil
 	}
@@ -1244,13 +1078,6 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 		return ident, authz, nil
 	}
 
-	if r.delegate.UseLegacyACLs() {
-		// TODO(partitions,acls): do we have to care about legacy acls?
-		identity, authorizer, err := r.resolveTokenLegacy(token)
-		r.handleACLDisabledError(err)
-		return identity, authorizer, err
-	}
-
 	defer metrics.MeasureSince([]string{"acl", "ResolveToken"}, time.Now())
 
 	identity, policies, err := r.resolveTokenToIdentityAndPolicies(token)
@@ -1266,8 +1093,13 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 
 	// Build the Authorizer
 	var chain []acl.Authorizer
+	var conf acl.Config
+	if r.aclConf != nil {
+		conf = *r.aclConf
+	}
+	setEnterpriseConf(identity.EnterpriseMetadata(), &conf)
 
-	authz, err := policies.Compile(r.cache, r.aclConf)
+	authz, err := policies.Compile(r.cache, &conf)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1310,12 +1142,6 @@ func (r *ACLResolver) ResolveTokenToIdentity(token string) (structs.ACLIdentity,
 		return ident, nil
 	}
 
-	if r.delegate.UseLegacyACLs() {
-		identity, _, err := r.resolveTokenLegacy(token)
-		r.handleACLDisabledError(err)
-		return identity, err
-	}
-
 	defer metrics.MeasureSince([]string{"acl", "ResolveTokenToIdentity"}, time.Now())
 
 	return r.resolveIdentityFromToken(token)
@@ -1335,19 +1161,6 @@ func (r *ACLResolver) ACLsEnabled() bool {
 	}
 
 	return true
-}
-
-func (r *ACLResolver) GetMergedPolicyForToken(token string) (structs.ACLIdentity, *acl.Policy, error) {
-	ident, policies, err := r.resolveTokenToIdentityAndPolicies(token)
-	if err != nil {
-		return nil, nil, err
-	}
-	if len(policies) == 0 {
-		return nil, nil, acl.ErrNotFound
-	}
-
-	policy, err := policies.Merge(r.cache, r.aclConf)
-	return ident, policy, err
 }
 
 // aclFilter is used to filter results from our state store based on ACL rules
@@ -2089,4 +1902,10 @@ func filterACL(r *ACLResolver, token string, subj interface{}) error {
 	}
 	filterACLWithAuthorizer(r.logger, authorizer, subj)
 	return nil
+}
+
+type partitionInfoNoop struct{}
+
+func (p *partitionInfoNoop) ExportsForPartition(partition string) acl.PartitionExports {
+	return acl.PartitionExports{}
 }

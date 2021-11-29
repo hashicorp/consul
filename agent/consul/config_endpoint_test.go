@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"os"
 	"sort"
 	"testing"
@@ -163,26 +164,13 @@ func TestConfigEntry_Apply_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "write"
 }
 operator = "write"
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// This should fail since we don't have write perms for the "db" service.
 	args := structs.ConfigEntryRequest{
@@ -292,26 +280,13 @@ func TestConfigEntry_Get_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "read"
 }
 operator = "read"
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
@@ -505,26 +480,13 @@ func TestConfigEntry_List_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "read"
 }
 operator = "read"
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
@@ -590,26 +552,13 @@ func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "read"
 }
 operator = "read"
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
@@ -728,6 +677,64 @@ func TestConfigEntry_Delete(t *testing.T) {
 	})
 }
 
+func TestConfigEntry_DeleteCAS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	require := require.New(t)
+
+	dir, s := testServer(t)
+	defer os.RemoveAll(dir)
+	defer s.Shutdown()
+
+	codec := rpcClient(t, s)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s.RPC, "dc1")
+
+	// Create a simple config entry.
+	entry := &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "foo",
+	}
+	state := s.fsm.State()
+	require.NoError(state.EnsureConfigEntry(1, entry))
+
+	// Verify it's there.
+	_, existing, err := state.ConfigEntry(nil, entry.Kind, entry.Name, nil)
+	require.NoError(err)
+
+	// Send a delete CAS request with an invalid index.
+	args := structs.ConfigEntryRequest{
+		Datacenter: "dc1",
+		Op:         structs.ConfigEntryDeleteCAS,
+	}
+	args.Entry = entry.Clone()
+	args.Entry.GetRaftIndex().ModifyIndex = existing.GetRaftIndex().ModifyIndex - 1
+
+	var rsp structs.ConfigEntryDeleteResponse
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &rsp))
+	require.False(rsp.Deleted)
+
+	// Verify the entry was not deleted.
+	_, existing, err = s.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+	require.NoError(err)
+	require.NotNil(existing)
+
+	// Restore the valid index and try again.
+	args.Entry.GetRaftIndex().ModifyIndex = existing.GetRaftIndex().ModifyIndex
+
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &rsp))
+	require.True(rsp.Deleted)
+
+	// Verify the entry was deleted.
+	_, existing, err = s.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+	require.NoError(err)
+	require.Nil(existing)
+}
+
 func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -749,26 +756,13 @@ func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "write"
 }
 operator = "write"
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
@@ -1971,26 +1965,13 @@ func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "write"
 }
 operator = "write"
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
@@ -2076,5 +2057,147 @@ func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 	t.Helper()
 	if !t.Run(name, fn) {
 		t.FailNow()
+	}
+}
+
+func Test_gateWriteToSecondary(t *testing.T) {
+	type args struct {
+		targetDC  string
+		localDC   string
+		primaryDC string
+		kind      string
+	}
+	type testCase struct {
+		name    string
+		args    args
+		wantErr string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		err := gateWriteToSecondary(tc.args.targetDC, tc.args.localDC, tc.args.primaryDC, tc.args.kind)
+		if tc.wantErr != "" {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.wantErr)
+			return
+		}
+		require.NoError(t, err)
+	}
+
+	tt := []testCase{
+		{
+			name: "primary to primary with implicit primary and target",
+			args: args{
+				targetDC:  "",
+				localDC:   "dc1",
+				primaryDC: "",
+				kind:      structs.PartitionExports,
+			},
+		},
+		{
+			name: "primary to primary with explicit primary and implicit target",
+			args: args{
+				targetDC:  "",
+				localDC:   "dc1",
+				primaryDC: "dc1",
+				kind:      structs.PartitionExports,
+			},
+		},
+		{
+			name: "primary to primary with all filled in",
+			args: args{
+				targetDC:  "dc1",
+				localDC:   "dc1",
+				primaryDC: "dc1",
+				kind:      structs.PartitionExports,
+			},
+		},
+		{
+			name: "primary to secondary with implicit primary and target",
+			args: args{
+				targetDC:  "dc2",
+				localDC:   "dc1",
+				primaryDC: "",
+				kind:      structs.PartitionExports,
+			},
+			wantErr: "writes must not target secondary datacenters",
+		},
+		{
+			name: "primary to secondary with all filled in",
+			args: args{
+				targetDC:  "dc2",
+				localDC:   "dc1",
+				primaryDC: "dc1",
+				kind:      structs.PartitionExports,
+			},
+			wantErr: "writes must not target secondary datacenters",
+		},
+		{
+			name: "secondary to secondary with all filled in",
+			args: args{
+				targetDC:  "dc2",
+				localDC:   "dc2",
+				primaryDC: "dc1",
+				kind:      structs.PartitionExports,
+			},
+			wantErr: "writes must not target secondary datacenters",
+		},
+		{
+			name: "implicit write to secondary",
+			args: args{
+				targetDC:  "",
+				localDC:   "dc2",
+				primaryDC: "dc1",
+				kind:      structs.PartitionExports,
+			},
+			wantErr: "must target the primary datacenter explicitly",
+		},
+		{
+			name: "empty local DC",
+			args: args{
+				localDC: "",
+				kind:    structs.PartitionExports,
+			},
+			wantErr: "unknown local datacenter",
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func Test_gateWriteToSecondary_AllowedKinds(t *testing.T) {
+	type args struct {
+		targetDC  string
+		localDC   string
+		primaryDC string
+		kind      string
+	}
+
+	for _, kind := range structs.AllConfigEntryKinds {
+		if kind == structs.PartitionExports {
+			continue
+		}
+
+		t.Run(fmt.Sprintf("%s-secondary-to-secondary", kind), func(t *testing.T) {
+			tcase := args{
+				targetDC:  "",
+				localDC:   "dc2",
+				primaryDC: "dc1",
+				kind:      kind,
+			}
+			require.NoError(t, gateWriteToSecondary(tcase.targetDC, tcase.localDC, tcase.primaryDC, tcase.kind))
+		})
+
+		t.Run(fmt.Sprintf("%s-primary-to-secondary", kind), func(t *testing.T) {
+			tcase := args{
+				targetDC:  "dc2",
+				localDC:   "dc1",
+				primaryDC: "dc1",
+				kind:      kind,
+			}
+			require.NoError(t, gateWriteToSecondary(tcase.targetDC, tcase.localDC, tcase.primaryDC, tcase.kind))
+		})
 	}
 }

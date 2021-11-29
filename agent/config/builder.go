@@ -346,10 +346,12 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		for _, err := range validateEnterpriseConfigKeys(&c2) {
 			b.warn("%s", err)
 		}
+		b.Warnings = append(b.Warnings, md.Warnings...)
 
 		// if we have a single 'check' or 'service' we need to add them to the
 		// list of checks and services first since we cannot merge them
 		// generically and later values would clobber earlier ones.
+		// TODO: move to applyDeprecatedConfig
 		if c2.Check != nil {
 			c2.Checks = append(c2.Checks, *c2.Check)
 			c2.Check = nil
@@ -426,10 +428,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	httpPort := b.portVal("ports.http", c.Ports.HTTP)
 	httpsPort := b.portVal("ports.https", c.Ports.HTTPS)
 	serverPort := b.portVal("ports.server", c.Ports.Server)
-	if c.Ports.XDS == nil {
-		c.Ports.XDS = c.Ports.GRPC
-	}
-	xdsPort := b.portVal("ports.xds", c.Ports.XDS)
+	grpcPort := b.portVal("ports.grpc", c.Ports.GRPC)
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
@@ -553,13 +552,13 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	// determine client addresses
 	clientAddrs := b.expandIPs("client_addr", c.ClientAddr)
+	if len(clientAddrs) == 0 {
+		b.warn("client_addr is empty, client services (DNS, HTTP, HTTPS, GRPC) will not be listening for connections")
+	}
 	dnsAddrs := b.makeAddrs(b.expandAddrs("addresses.dns", c.Addresses.DNS), clientAddrs, dnsPort)
 	httpAddrs := b.makeAddrs(b.expandAddrs("addresses.http", c.Addresses.HTTP), clientAddrs, httpPort)
 	httpsAddrs := b.makeAddrs(b.expandAddrs("addresses.https", c.Addresses.HTTPS), clientAddrs, httpsPort)
-	if c.Addresses.XDS == nil {
-		c.Addresses.XDS = c.Addresses.GRPC
-	}
-	xdsAddrs := b.makeAddrs(b.expandAddrs("addresses.xds", c.Addresses.XDS), clientAddrs, xdsPort)
+	grpcAddrs := b.makeAddrs(b.expandAddrs("addresses.grpc", c.Addresses.GRPC), clientAddrs, grpcPort)
 
 	for _, a := range dnsAddrs {
 		if x, ok := a.(*net.TCPAddr); ok {
@@ -728,21 +727,12 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			"csr_max_concurrent": "CSRMaxConcurrent",
 			"private_key_type":   "PrivateKeyType",
 			"private_key_bits":   "PrivateKeyBits",
+			"root_cert_ttl":      "RootCertTTL",
 		})
 	}
 
 	aclsEnabled := false
 	primaryDatacenter := strings.ToLower(stringVal(c.PrimaryDatacenter))
-	if c.ACLDatacenter != nil {
-		b.warn("The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.")
-
-		if primaryDatacenter == "" {
-			primaryDatacenter = strings.ToLower(stringVal(c.ACLDatacenter))
-		}
-
-		// when the acl_datacenter config is used it implicitly enables acls
-		aclsEnabled = true
-	}
 
 	if c.ACL.Enabled != nil {
 		aclsEnabled = boolVal(c.ACL.Enabled)
@@ -752,13 +742,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	if primaryDatacenter == "" {
 		primaryDatacenter = datacenter
 	}
-
-	enableTokenReplication := false
-	if c.ACLReplicationToken != nil {
-		enableTokenReplication = true
-	}
-
-	boolValWithDefault(c.ACL.TokenReplication, boolValWithDefault(c.EnableACLReplication, enableTokenReplication))
 
 	enableRemoteScriptChecks := boolVal(c.EnableScriptChecks)
 	enableLocalScriptChecks := boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
@@ -871,24 +854,24 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			Datacenter:       datacenter,
 			NodeName:         b.nodeName(c.NodeName),
 			ACLPolicyTTL:     b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
-			ACLTokenTTL:      b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
+			ACLTokenTTL:      b.durationVal("acl.token_ttl", c.ACL.TokenTTL),
 			ACLRoleTTL:       b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
-			ACLDownPolicy:    stringValWithDefault(c.ACL.DownPolicy, stringVal(c.ACLDownPolicy)),
-			ACLDefaultPolicy: stringValWithDefault(c.ACL.DefaultPolicy, stringVal(c.ACLDefaultPolicy)),
+			ACLDownPolicy:    stringVal(c.ACL.DownPolicy),
+			ACLDefaultPolicy: stringVal(c.ACL.DefaultPolicy),
 		},
 
-		ACLEnableKeyListPolicy: boolValWithDefault(c.ACL.EnableKeyListPolicy, boolVal(c.ACLEnableKeyListPolicy)),
-		ACLMasterToken:         stringValWithDefault(c.ACL.Tokens.Master, stringVal(c.ACLMasterToken)),
+		ACLEnableKeyListPolicy: boolVal(c.ACL.EnableKeyListPolicy),
+		ACLMasterToken:         stringVal(c.ACL.Tokens.Master),
 
-		ACLTokenReplication: boolValWithDefault(c.ACL.TokenReplication, boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
+		ACLTokenReplication: boolVal(c.ACL.TokenReplication),
 
 		ACLTokens: token.Config{
 			DataDir:             dataDir,
 			EnablePersistence:   boolValWithDefault(c.ACL.EnableTokenPersistence, false),
-			ACLDefaultToken:     stringValWithDefault(c.ACL.Tokens.Default, stringVal(c.ACLToken)),
-			ACLAgentToken:       stringValWithDefault(c.ACL.Tokens.Agent, stringVal(c.ACLAgentToken)),
-			ACLAgentMasterToken: stringValWithDefault(c.ACL.Tokens.AgentMaster, stringVal(c.ACLAgentMasterToken)),
-			ACLReplicationToken: stringValWithDefault(c.ACL.Tokens.Replication, stringVal(c.ACLReplicationToken)),
+			ACLDefaultToken:     stringVal(c.ACL.Tokens.Default),
+			ACLAgentToken:       stringVal(c.ACL.Tokens.Agent),
+			ACLAgentMasterToken: stringVal(c.ACL.Tokens.AgentMaster),
+			ACLReplicationToken: stringVal(c.ACL.Tokens.Replication),
 		},
 
 		// Autopilot
@@ -961,6 +944,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			StatsiteAddr:                       stringVal(c.Telemetry.StatsiteAddr),
 			PrometheusOpts: prometheus.PrometheusOpts{
 				Expiration: b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
+				Name:       stringVal(c.Telemetry.MetricsPrefix),
 			},
 		},
 
@@ -1023,8 +1007,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		EncryptKey:                 stringVal(c.EncryptKey),
 		EncryptVerifyIncoming:      boolVal(c.EncryptVerifyIncoming),
 		EncryptVerifyOutgoing:      boolVal(c.EncryptVerifyOutgoing),
-		XDSPort:                    xdsPort,
-		XDSAddrs:                   xdsAddrs,
+		GRPCPort:                   grpcPort,
+		GRPCAddrs:                  grpcAddrs,
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
 		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
 		KeyFile:                    stringVal(c.KeyFile),
@@ -1562,6 +1546,13 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		return nil
 	}
 
+	var H2PingUseTLSVal bool
+	if stringVal(v.H2PING) != "" {
+		H2PingUseTLSVal = boolValWithDefault(v.H2PingUseTLS, true)
+	} else {
+		H2PingUseTLSVal = boolVal(v.H2PingUseTLS)
+	}
+
 	id := types.CheckID(stringVal(v.ID))
 
 	return &structs.CheckDefinition{
@@ -1592,6 +1583,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		FailuresBeforeCritical:         intVal(v.FailuresBeforeCritical),
 		FailuresBeforeWarning:          intValWithDefault(v.FailuresBeforeWarning, intVal(v.FailuresBeforeCritical)),
 		H2PING:                         stringVal(v.H2PING),
+		H2PingUseTLS:                   H2PingUseTLSVal,
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),

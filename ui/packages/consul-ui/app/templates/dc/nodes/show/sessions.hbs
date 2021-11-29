@@ -1,8 +1,7 @@
 <Route
   @name={{routeName}}
 as |route|>
-  <DataLoader @src={{
-    uri '/${partition}/${nspace}/${dc}/sessions/for-node/${node}'
+  <DataLoader @src={{uri '/${partition}/${nspace}/${dc}/sessions/for-node/${node}'
     (hash
       partition=route.params.partition
       nspace=route.params.nspace

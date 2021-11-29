@@ -2,7 +2,6 @@ package xds
 
 import (
 	"fmt"
-
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
@@ -19,7 +18,16 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		var tlsContext *envoy_tls_v3.DownstreamTlsContext
 
-		sdsCfg, err := resolveListenerSDSConfig(cfgSnap, listenerKey)
+		listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
+		if !ok {
+			return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
+		}
+		// Enable connect TLS if it is enabled at the Gateway or specific listener
+		// level.
+		connectTLSEnabled := cfgSnap.IngressGateway.TLSConfig.Enabled ||
+			(listenerCfg.TLS != nil && listenerCfg.TLS.Enabled)
+
+		sdsCfg, err := resolveListenerSDSConfig(cfgSnap, listenerCfg)
 		if err != nil {
 			return nil, err
 		}
@@ -30,7 +38,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				CommonTlsContext:         makeCommonTLSContextFromSDS(*sdsCfg),
 				RequireClientCertificate: &wrappers.BoolValue{Value: false},
 			}
-		} else if cfgSnap.IngressGateway.TLSConfig.Enabled {
+		} else if connectTLSEnabled {
 			tlsContext = &envoy_tls_v3.DownstreamTlsContext{
 				CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 				RequireClientCertificate: &wrappers.BoolValue{Value: false},
@@ -45,19 +53,47 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			id := u.Identifier()
 
 			chain := cfgSnap.IngressGateway.DiscoveryChain[id]
+			if chain == nil {
+				// Wait until a chain is present in the snapshot.
+				continue
+			}
 
-			var upstreamListener proto.Message
-			upstreamListener, err := s.makeUpstreamListenerForDiscoveryChain(
-				&u,
-				address,
-				chain,
-				cfgSnap,
-				tlsContext,
-			)
+			cfg := s.getAndModifyUpstreamConfigForListener(id, &u, chain)
+
+			// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
+			// TODO(freddy): Why can the protocol of the listener be overridden here?
+			useRDS := cfg.Protocol != "tcp" && !chain.IsDefault()
+
+			var clusterName string
+			if !useRDS {
+				// When not using RDS we must generate a cluster name to attach to the filter chain.
+				// With RDS, cluster names get attached to the dynamic routes instead.
+				target, err := simpleChainTarget(chain)
+				if err != nil {
+					return nil, err
+				}
+				clusterName = CustomizeClusterName(target.Name, chain)
+			}
+
+			filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
+
+			l := makePortListenerWithDefault(id, address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+				routeName:   id,
+				useRDS:      useRDS,
+				clusterName: clusterName,
+				filterName:  filterName,
+				protocol:    cfg.Protocol,
+				tlsContext:  tlsContext,
+			})
 			if err != nil {
 				return nil, err
 			}
-			resources = append(resources, upstreamListener)
+			l.FilterChains = []*envoy_listener_v3.FilterChain{
+				filterChain,
+			}
+			resources = append(resources, l)
+
 		} else {
 			// If multiple upstreams share this port, make a special listener for the protocol.
 			listener := makePortListener(listenerKey.Protocol, address, listenerKey.Port, envoy_core_v3.TrafficDirection_OUTBOUND)
@@ -116,6 +152,44 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 	}
 
 	return resources, nil
+}
+
+func resolveListenerSDSConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.IngressListener) (*structs.GatewayTLSSDSConfig, error) {
+	var mergedCfg structs.GatewayTLSSDSConfig
+
+	gwSDS := cfgSnap.IngressGateway.TLSConfig.SDS
+	if gwSDS != nil {
+		mergedCfg.ClusterName = gwSDS.ClusterName
+		mergedCfg.CertResource = gwSDS.CertResource
+	}
+
+	if listenerCfg.TLS != nil && listenerCfg.TLS.SDS != nil {
+		if listenerCfg.TLS.SDS.ClusterName != "" {
+			mergedCfg.ClusterName = listenerCfg.TLS.SDS.ClusterName
+		}
+		if listenerCfg.TLS.SDS.CertResource != "" {
+			mergedCfg.CertResource = listenerCfg.TLS.SDS.CertResource
+		}
+	}
+
+	// Validate. Either merged should have both fields empty or both set. Other
+	// cases shouldn't be possible as we validate them at input but be robust to
+	// bugs later.
+	switch {
+	case mergedCfg.ClusterName == "" && mergedCfg.CertResource == "":
+		return nil, nil
+
+	case mergedCfg.ClusterName != "" && mergedCfg.CertResource != "":
+		return &mergedCfg, nil
+
+	case mergedCfg.ClusterName == "" && mergedCfg.CertResource != "":
+		return nil, fmt.Errorf("missing SDS cluster name for listener on port %d", listenerCfg.Port)
+
+	case mergedCfg.ClusterName != "" && mergedCfg.CertResource == "":
+		return nil, fmt.Errorf("missing SDS cert resource for listener on port %d", listenerCfg.Port)
+	}
+
+	return &mergedCfg, nil
 }
 
 func routeNameForUpstream(l structs.IngressListener, s structs.IngressService) string {

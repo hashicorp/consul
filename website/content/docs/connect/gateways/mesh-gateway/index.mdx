@@ -32,7 +32,7 @@ Each mesh gateway needs three things:
 
 Mesh gateways also require that your Consul datacenters are configured correctly:
 
-- You'll need to use Consul version 1.6.0.
+-  Consul version 1.6.0 or newer is required.
 - Consul [Connect](/docs/agent/options#connect) must be enabled in both datacenters.
 - Each of your [datacenters](/docs/agent/options#datacenter) must have a unique name.
 - Your datacenters must be [WAN joined](https://learn.hashicorp.com/tutorials/consul/federarion-gossip-wan).
@@ -61,7 +61,8 @@ receive incoming traffic even if that traffic has passed through a gateway.
 ## Modes of Operation
 
 Each upstream of a Connect proxy can be configured to be routed through a mesh gateway. Depending on
-your network, the proxy's connection to the gateway can happen in one of the following modes:
+your network, the proxy's connection to the gateway can happen in one of the following modes
+illustrated in the diagram above:
 
 - `local` - In this mode the Connect proxy makes its outbound connection to a gateway running in the
   same datacenter. That gateway is then responsible for ensuring the data gets forwarded along to

@@ -74,7 +74,7 @@ func (s *Restore) ACLAuthMethod(method *structs.ACLAuthMethod) error {
 
 // ACLBootstrap is used to perform a one-time ACL bootstrap operation on a
 // cluster to get the first management token.
-func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, legacy bool) error {
+func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -91,7 +91,7 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, le
 		}
 	}
 
-	if err := aclTokenSetTxn(tx, idx, token, ACLTokenSetOptions{Legacy: legacy}); err != nil {
+	if err := aclTokenSetTxn(tx, idx, token, ACLTokenSetOptions{}); err != nil {
 		return fmt.Errorf("failed inserting bootstrap token: %v", err)
 	}
 	if err := tx.Insert(tableIndex, &IndexEntry{"acl-token-bootstrap", idx}); err != nil {
@@ -411,25 +411,17 @@ func fixupRolePolicyLinks(tx ReadTxn, original *structs.ACLRole) (*structs.ACLRo
 	return role, nil
 }
 
-// ACLTokenSet is used to insert an ACL rule into the state store.
-// Deprecated (ACL-Legacy-Compat)
-func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) error {
-	tx := s.db.WriteTxn(idx)
-	defer tx.Abort()
-
-	// Call set on the ACL
-	if err := aclTokenSetTxn(tx, idx, token, ACLTokenSetOptions{Legacy: legacy}); err != nil {
-		return err
-	}
-
-	return tx.Commit()
+// ACLTokenSet is used in many tests to set a single ACL token. It is now a shim
+// for calling ACLTokenBatchSet with default options.
+func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken) error {
+	return s.ACLTokenBatchSet(idx, structs.ACLTokens{token}, ACLTokenSetOptions{})
 }
 
 type ACLTokenSetOptions struct {
 	CAS                          bool
 	AllowMissingPolicyAndRoleIDs bool
 	ProhibitUnprivileged         bool
-	Legacy                       bool
+	Legacy                       bool // TODO(ACL-Legacy-Compat): remove
 	FromReplication              bool
 }
 
@@ -506,11 +498,7 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 	}
 
 	if opts.Legacy && original != nil {
-		if original.UsesNonLegacyFields() {
-			return fmt.Errorf("failed inserting acl token: cannot use legacy endpoint to modify a non-legacy token")
-		}
-
-		token.AccessorID = original.AccessorID
+		return fmt.Errorf("legacy tokens can not be modified")
 	}
 
 	if err := aclTokenUpsertValidateEnterprise(tx, token, original); err != nil {
@@ -528,7 +516,9 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 	}
 
 	if token.AuthMethod != "" && !opts.FromReplication {
-		method, err := getAuthMethodWithTxn(tx, nil, token.AuthMethod, token.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta())
+		methodMeta := token.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta()
+		methodMeta.Merge(&token.EnterpriseMeta)
+		method, err := getAuthMethodWithTxn(tx, nil, token.AuthMethod, methodMeta)
 		if err != nil {
 			return err
 		} else if method == nil {
@@ -728,6 +718,7 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	return idx, result, nil
 }
 
+// TODO(ACL-Legacy-Compat): remove in phase 2
 func (s *Store) ACLTokenListUpgradeable(max int) (structs.ACLTokens, <-chan struct{}, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -806,13 +797,6 @@ func (s *Store) expiresIndexName(local bool) string {
 	return indexExpiresGlobal
 }
 
-// ACLTokenDeleteBySecret is used to remove an existing ACL from the state store. If
-// the ACL does not exist this is a no-op and no error is returned.
-// Deprecated (ACL-Legacy-Compat)
-func (s *Store) ACLTokenDeleteBySecret(idx uint64, secret string, entMeta *structs.EnterpriseMeta) error {
-	return s.aclTokenDelete(idx, secret, "id", entMeta)
-}
-
 // ACLTokenDeleteByAccessor is used to remove an existing ACL from the state store. If
 // the ACL does not exist this is a no-op and no error is returned.
 func (s *Store) ACLTokenDeleteByAccessor(idx uint64, accessor string, entMeta *structs.EnterpriseMeta) error {
@@ -863,7 +847,7 @@ func aclTokenDeleteTxn(tx WriteTxn, idx uint64, value, index string, entMeta *st
 
 func aclTokenDeleteAllForAuthMethodTxn(tx WriteTxn, idx uint64, methodName string, methodGlobalLocality bool, methodMeta *structs.EnterpriseMeta) error {
 	// collect all the tokens linked with the given auth method.
-	iter, err := aclTokenListByAuthMethod(tx, methodName, methodMeta, methodMeta.WildcardEnterpriseMetaForPartition())
+	iter, err := aclTokenListByAuthMethod(tx, methodName, methodMeta, methodMeta.WithWildcardNamespace())
 	if err != nil {
 		return fmt.Errorf("failed acl token lookup: %v", err)
 	}

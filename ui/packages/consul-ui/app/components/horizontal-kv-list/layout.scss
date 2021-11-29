@@ -19,6 +19,7 @@
   flex-wrap: wrap;
 }
 %horizontal-kv-list-visible-title {
+  display: inline-flex;
   min-width: 18px;
 }
 %horizontal-kv-list-reversed:not(:first-of-type),
@@ -35,8 +36,11 @@
 }
 /**/
 %horizontal-kv-list-reversed dt,
-%horizontal-kv-list-visible-title + dd {
+%horizontal-kv-list dt + dd {
   margin-left: 4px;
+}
+%horizontal-kv-list-hidden-title + dd {
+  margin-left: 0 !important;
 }
 
 %horizontal-kv-list-reversed dt + dd {

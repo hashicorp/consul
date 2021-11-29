@@ -1540,7 +1540,7 @@ func (s *Store) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 func updateAllServiceIndexesOfNode(tx WriteTxn, idx uint64, nodeID string, entMeta *structs.EnterpriseMeta) error {
 	services, err := tx.Get(tableServices, indexNode, Query{
 		Value:          nodeID,
-		EnterpriseMeta: *entMeta.WildcardEnterpriseMetaForPartition(),
+		EnterpriseMeta: *entMeta.WithWildcardNamespace(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed updating services for node %s: %s", nodeID, err)
@@ -2359,7 +2359,7 @@ func parseCheckServiceNodes(
 		q := NodeServiceQuery{
 			Node:           sn.Node,
 			Service:        "", // node checks have no service
-			EnterpriseMeta: *sn.EnterpriseMeta.WildcardEnterpriseMetaForPartition(),
+			EnterpriseMeta: *sn.EnterpriseMeta.WithWildcardNamespace(),
 		}
 		iter, err := tx.Get(tableChecks, indexNodeService, q)
 		if err != nil {
@@ -2562,7 +2562,8 @@ func parseNodes(tx ReadTxn, ws memdb.WatchSet, idx uint64,
 
 // checkSessionsTxn returns the IDs of all sessions associated with a health check
 func checkSessionsTxn(tx ReadTxn, hc *structs.HealthCheck) ([]*sessionCheck, error) {
-	mappings, err := getCompoundWithTxn(tx, "session_checks", "node_check", &hc.EnterpriseMeta, hc.Node, string(hc.CheckID))
+	mappings, err := tx.Get(tableSessionChecks, indexNodeCheck, MultiQuery{Value: []string{hc.Node, string(hc.CheckID)},
+		EnterpriseMeta: hc.EnterpriseMeta})
 	if err != nil {
 		return nil, fmt.Errorf("failed session checks lookup: %s", err)
 	}
@@ -3451,8 +3452,8 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 	oldUpstreams := make(map[structs.ServiceName]bool)
 	if e, ok := existing.(*structs.ServiceNode); ok {
 		for _, u := range e.ServiceProxy.Upstreams {
-			upstreamMeta := e.NewEnterpriseMetaInPartition(u.DestinationNamespace)
-			sn := structs.NewServiceName(u.DestinationName, upstreamMeta)
+			upstreamMeta := structs.NewEnterpriseMetaWithPartition(e.PartitionOrDefault(), u.DestinationNamespace)
+			sn := structs.NewServiceName(u.DestinationName, &upstreamMeta)
 
 			oldUpstreams[sn] = true
 		}
@@ -3467,8 +3468,8 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 		}
 
 		// TODO (freddy): Account for upstream datacenter
-		upstreamMeta := svc.NewEnterpriseMetaInPartition(u.DestinationNamespace)
-		upstream := structs.NewServiceName(u.DestinationName, upstreamMeta)
+		upstreamMeta := structs.NewEnterpriseMetaWithPartition(svc.PartitionOrDefault(), u.DestinationNamespace)
+		upstream := structs.NewServiceName(u.DestinationName, &upstreamMeta)
 
 		obj, err := tx.First(tableMeshTopology, indexID, upstream, downstream)
 		if err != nil {

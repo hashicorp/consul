@@ -30,9 +30,8 @@ func (d *Debug) Heap() ([]byte, error) {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
 	defer closeResponseBody(resp)
-
-	if resp.StatusCode != 200 {
-		return nil, generateUnexpectedResponseCodeError(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
 	}
 
 	// We return a raw response because we're just passing through a response
@@ -57,9 +56,8 @@ func (d *Debug) Profile(seconds int) ([]byte, error) {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
 	defer closeResponseBody(resp)
-
-	if resp.StatusCode != 200 {
-		return nil, generateUnexpectedResponseCodeError(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
 	}
 
 	// We return a raw response because we're just passing through a response
@@ -85,9 +83,8 @@ func (d *Debug) PProf(ctx context.Context, name string, seconds int) (io.ReadClo
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
-
-	if resp.StatusCode != 200 {
-		return nil, generateUnexpectedResponseCodeError(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
 	}
 	return resp.Body, nil
 }
@@ -104,9 +101,8 @@ func (d *Debug) Trace(seconds int) ([]byte, error) {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
 	defer closeResponseBody(resp)
-
-	if resp.StatusCode != 200 {
-		return nil, generateUnexpectedResponseCodeError(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
 	}
 
 	// We return a raw response because we're just passing through a response
@@ -128,9 +124,8 @@ func (d *Debug) Goroutine() ([]byte, error) {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
 	defer closeResponseBody(resp)
-
-	if resp.StatusCode != 200 {
-		return nil, generateUnexpectedResponseCodeError(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
 	}
 
 	// We return a raw response because we're just passing through a response

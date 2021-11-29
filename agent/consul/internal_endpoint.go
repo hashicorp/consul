@@ -6,7 +6,6 @@ import (
 	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
@@ -418,16 +417,7 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	eventName := userEventName(args.Name)
 
 	// Fire the event on all LAN segments
-	segments := m.srv.LANSegments()
-	var errs error
-	for name, segment := range segments {
-		err := segment.UserEvent(eventName, args.Payload, false)
-		if err != nil {
-			err = fmt.Errorf("error broadcasting event to segment %q: %v", name, err)
-			errs = multierror.Append(errs, err)
-		}
-	}
-	return errs
+	return m.srv.LANSendUserEvent(eventName, args.Payload, false)
 }
 
 // KeyringOperation will query the WAN and LAN gossip keyrings of all nodes.
@@ -492,14 +482,18 @@ func (m *Internal) KeyringOperation(
 
 func (m *Internal) executeKeyringOpLAN(args *structs.KeyringRequest) []*structs.KeyringResponse {
 	responses := []*structs.KeyringResponse{}
-	segments := m.srv.LANSegments()
-	for name, segment := range segments {
-		mgr := segment.KeyManager()
+	_ = m.srv.DoWithLANSerfs(func(poolName, poolKind string, pool *serf.Serf) error {
+		mgr := pool.KeyManager()
 		serfResp, err := m.executeKeyringOpMgr(mgr, args)
 		resp := translateKeyResponseToKeyringResponse(serfResp, m.srv.config.Datacenter, err)
-		resp.Segment = name
+		if poolKind == PoolKindSegment {
+			resp.Segment = poolName
+		} else {
+			resp.Partition = poolName
+		}
 		responses = append(responses, &resp)
-	}
+		return nil
+	}, nil)
 	return responses
 }
 

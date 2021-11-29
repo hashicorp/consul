@@ -1,11 +1,11 @@
 %list-collection > ul {
   border-top: 1px solid;
-  border-color: var(--gray-200);
+  border-color: rgb(var(--tone-gray-200));
 }
 %list-collection-partial-button {
   cursor: pointer;
-  background-color: var(--gray-050);
-  color: var(--blue-500);
+  background-color: rgb(var(--tone-gray-050));
+  color: rgb(var(--tone-blue-500));
 }
 %list-collection-partial-button::after {
   @extend %with-chevron-up-mask, %as-pseudo;

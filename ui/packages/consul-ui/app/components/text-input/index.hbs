@@ -1,0 +1,40 @@
+<FormInput
+  class={{concat 'text-input' ' type-text'}}
+  ...attributes
+  @item={{@item}}
+  @placeholder={{@placeholder}}
+  @name={{@name}}
+  @label={{@label}}
+  @help={{@help}}
+  @validations={{@validations}}
+  @chart={{@chart}}
+>
+  <:label>
+    {{!- add an optional slot here called <:label>-}}
+    {{or @label @name}}
+  </:label>
+  <:input>
+  {{#if @expanded}}
+    <textarea
+      {{validate @item
+        validations=@validations
+        chart=@chart
+      }}
+      {{on 'input' (optional @oninput)}}
+      name={{@name}}
+    >{{or @value (get @item @name)}}</textarea>
+  {{else}}
+    <input
+      {{validate @item
+        validations=@validations
+        chart=@chart
+      }}
+      {{on 'input' (optional @oninput)}}
+      type="text"
+      value={{or @value (get @item @name)}}
+      name={{@name}}
+      placeholder={{or @placeholder}}
+    />
+  {{/if}}
+  </:input>
+</FormInput>

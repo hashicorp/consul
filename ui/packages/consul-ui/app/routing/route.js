@@ -15,6 +15,22 @@ export default class BaseRoute extends Route {
   @service('repository/permission') permissions;
   @service('router') router;
 
+  _setRouteName() {
+    super._setRouteName(...arguments);
+    const routeName = this.routeName
+      .split('.')
+      .filter(item => item !== 'index')
+      .join('.');
+    const template = get(routes, `${routeName}._options.template`);
+    if(template) {
+      this.templateName = template;
+    }
+    const queryParams = get(routes, `${routeName}._options.queryParams`);
+    if(queryParams && (this.routeName === 'dc.partitions.index' || this.routeName === 'oauth-provider-debug')) {
+      this.queryParams = queryParams;
+    }
+  }
+
   redirect(model, transition) {
     // remove any references to index as it is the same as the root routeName
     const routeName = this.routeName
@@ -84,7 +100,10 @@ export default class BaseRoute extends Route {
     return value;
   }
 
-  // FIXME: this is only required due to intention_id trying to do too much
+  // TODO: this is only required due to intention_id trying to do too much
+  // therefore we need to change the route parameter intention_id to just
+  // intention or id or similar then we can revert to only returning a model if
+  // we have searchProps (or a child route overwrites model)
   model() {
     const model = {};
     if (

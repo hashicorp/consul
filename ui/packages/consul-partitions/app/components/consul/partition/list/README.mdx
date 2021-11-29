@@ -1,0 +1,32 @@
+# Consul::Partition::List
+
+A presentational component for rendering Consul Partitions
+
+Please note: 
+
+- For the moment, make sure you have enabled partitions using developer debug
+  cookies.
+
+```hbs preview-template
+<DataSource @src={{uri '/partition/default/dc-1/partitions'}} as |source|>
+  <Consul::Partition::List
+    @items={{source.data}}
+    @ondelete={{noop}}
+  />
+</DataSource>
+```
+
+
+### Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `items` | `array` |  | An array of Partitions |
+| `ondelete` | `function` |  | An action to execute when the `Delete` action is clicked |
+
+### See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

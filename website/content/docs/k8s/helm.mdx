@@ -6,17 +6,36 @@ description: Configuration for the Consul Helm chart.
 
 # Helm Chart Configuration
 
-## Configuration (Values)
-
 The chart is highly customizable using
 [Helm configuration values](https://helm.sh/docs/intro/using_helm/#customizing-the-chart-before-installing).
 Each value has a reasonable default tuned for an optimal getting started experience
-with Consul. Before going into production, please review the parameters below
-and consider if they're appropriate for your deployment.
+with Consul.
 
 <!-- DO NOT EDIT. The docs below are generated automatically. To change, edit
                   the consul-helm repo's values.yaml file -->
 <!-- codegen: start -->
+
+## Top-Level Stanzas
+
+Use these links to navigate to a particular top-level stanza.
+
+- [`global`](#global)
+- [`server`](#server)
+- [`externalServers`](#externalservers)
+- [`client`](#client)
+- [`dns`](#dns)
+- [`ui`](#ui)
+- [`syncCatalog`](#synccatalog)
+- [`connectInject`](#connectinject)
+- [`controller`](#controller)
+- [`meshGateway`](#meshgateway)
+- [`ingressGateways`](#ingressgateways)
+- [`terminatingGateways`](#terminatinggateways)
+- [`webhookCertManager`](#webhookcertmanager)
+- [`prometheus`](#prometheus)
+- [`tests`](#tests)
+
+## All Values
 
 ### global
 
@@ -112,25 +131,20 @@ and consider if they're appropriate for your deployment.
   - `enablePodSecurityPolicies` ((#v-global-enablepodsecuritypolicies)) (`boolean: false`) - Controls whether pod security policies are created for the Consul components
     created by this chart. See https://kubernetes.io/docs/concepts/policy/pod-security-policy/.
 
-  - `gossipEncryption` ((#v-global-gossipencryption)) - Configures which Kubernetes secret to retrieve Consul's
-    gossip encryption key from (see `-encrypt` (https://consul.io/docs/agent/options#_encrypt)). If secretName or
-    secretKey are not set, gossip encryption will not be enabled. The secret must
-    be in the same namespace that Consul is installed into.
+  - `gossipEncryption` ((#v-global-gossipencryption)) - Configures Consul's gossip encryption key, set as a Kubernetes secret
+    (see `-encrypt` (https://consul.io/docs/agent/options#_encrypt)).
+    By default, gossip encryption is not enabled. The gossip encryption key may be set automatically or manually.
+    The recommended method is to automatically generate the key.
+    To automatically generate and set a gossip encryption key, set autoGenerate to true.
+    Values for secretName and secretKey should not be set if autoGenerate is true.
+    To manually generate a gossip encryption key, set secretName and secretKey and use Consul to generate
+    a Kubernetes secret referencing these values.
 
-    The secret can be created by running:
-
-    ```shell
+    ```
     $ kubectl create secret generic consul-gossip-encryption-key --from-literal=key=$(consul keygen)
     ```
 
-    To reference, use:
-
-    ```yaml
-    global:
-      gossipEncryption:
-        secretName: consul-gossip-encryption-key
-        secretKey: key
-    ```
+    - `autoGenerate` ((#v-global-gossipencryption-autogenerate)) (`boolean: false`) - Automatically generate a gossip encryption key and save it to a Kubernetes secret.
 
     - `secretName` ((#v-global-gossipencryption-secretname)) (`string: ""`) - secretName is the name of the Kubernetes secret that holds the gossip
       encryption key. The secret must be in the same namespace that Consul is installed into.
@@ -502,6 +516,17 @@ and consider if they're appropriate for your deployment.
       configured to automatically load HCL/JSON configuration files from this volume
       with `-config-dir`. This defaults to false.
 
+  - `extraContainers` ((#v-server-extracontainers)) (`array<map>`) - A list of sidecar containers.
+    Example:
+
+    ```yaml
+    extraContainers:
+    - name: extra-container
+      image: example-image:latest
+      command:
+       - ...
+    ```
+
   - `affinity` ((#v-server-affinity)) (`string`) - This value defines the affinity (https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
     for server pods. It defaults to allowing only a single server pod on each node, which
     minimizes risk of the cluster becoming unusable if a node is lost. If you need
@@ -756,6 +781,17 @@ and consider if they're appropriate for your deployment.
     - `load` - If true, then the agent will be
       configured to automatically load HCL/JSON configuration files from this volume
       with `-config-dir`. This defaults to false.
+
+  - `extraContainers` ((#v-client-extracontainers)) (`array<map>`) - A list of sidecar containers.
+    Example:
+
+    ```yaml
+    extraContainers:
+    - name: extra-container
+      image: example-image:latest
+      command:
+       - ...
+    ```
 
   - `tolerations` ((#v-client-tolerations)) (`string: ""`) - Toleration Settings for Client pods
     This should be a multi-line string matching the Toleration array
@@ -1282,10 +1318,15 @@ and consider if they're appropriate for your deployment.
     which can lead to hangs. In these environments it is recommend to use "Ignore" instead.
     This setting can be safely disabled by setting to "Ignore".
 
-  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: null`) - Selector for restricting the webhook to only specific namespaces. 
+  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string`) - Selector for restricting the webhook to only specific namespaces. 
     Use with `connectInject.default: true` to automatically inject all pods in namespaces that match the selector. This should be set to a multiline string.
     See https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-namespaceselector
     for more details.
+
+    By default, we exclude the kube-system namespace since usually users won't
+    want those pods injected and also the local-path-storage namespace so that
+    Kind (Kubernetes In Docker) can provision Pods used to create PVCs.
+    Note that this exclusion is only supported in Kubernetes v1.21.1+.
 
     Example:
 
@@ -1570,6 +1611,8 @@ and consider if they're appropriate for your deployment.
 
   - `initCopyConsulContainer` ((#v-meshgateway-initcopyconsulcontainer)) (`map`) - Resource settings for the `copy-consul-bin` init container.
 
+  - `initServiceInitContainer` ((#v-meshgateway-initserviceinitcontainer)) (`map`) - Resource settings for the `service-init` init container.
+
   - `affinity` ((#v-meshgateway-affinity)) (`string`) - By default, we set an anti-affinity so that two gateway pods won't be
     on the same node. NOTE: Gateways require that Consul client agents are
     also running on the nodes alongside each gateway pod.
@@ -1788,6 +1831,7 @@ and consider if they're appropriate for your deployment.
   is only useful when running helm template.
 
   - `enabled` ((#v-tests-enabled)) (`boolean: true`)
+
   <!-- codegen: end -->
 
 ## Helm Chart Examples

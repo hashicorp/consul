@@ -1,12 +1,10 @@
 package consul
 
 import (
-	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/serf"
 )
 
 var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -84,75 +82,13 @@ func (s *Server) checkBindingRuleUUID(id string) (bool, error) {
 	return !structs.ACLIDReserved(id), nil
 }
 
-func (s *Server) updateSerfTags(key, value string) {
-	// Update the LAN serf
-	serf.UpdateTag(s.serfLAN, key, value)
-
-	if s.serfWAN != nil {
-		serf.UpdateTag(s.serfWAN, key, value)
-	}
-
-	s.updateEnterpriseSerfTags(key, value)
-}
-
-func (s *Server) updateACLAdvertisement() {
-	// One thing to note is that once in new ACL mode the server will
-	// never transition to legacy ACL mode. This is not currently a
-	// supported use case.
-	s.updateSerfTags("acls", string(structs.ACLModeEnabled))
-}
-
-func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
-	if atomic.LoadInt32(&s.useNewACLs) != 0 {
-		// can't upgrade because we are already upgraded
-		return false
-	}
-
-	// Check to see if we already upgraded the last time we ran by seeing if we
-	// have a copy of any global management policy stored locally. This should
-	// always be true because policies always replicate.
-	_, mgmtPolicy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
-	if err != nil {
-		s.logger.Warn("Failed to get the builtin global-management policy to check for a completed ACL upgrade; skipping this optimization", "error", err)
-	} else if mgmtPolicy != nil {
-		return true
-	}
-
-	if !s.InACLDatacenter() {
-		foundServers, mode, _ := ServersGetACLMode(s, "", s.config.PrimaryDatacenter)
-		if mode != structs.ACLModeEnabled || !foundServers {
-			s.logger.Debug("Cannot upgrade to new ACLs, servers in acl datacenter are not yet upgraded", "PrimaryDatacenter", s.config.PrimaryDatacenter, "mode", mode, "found", foundServers)
-			return false
-		}
-	}
-
-	leaderAddr := string(s.raft.Leader())
-	foundServers, mode, leaderMode := ServersGetACLMode(s, leaderAddr, s.config.Datacenter)
-	if isLeader {
-		if mode == structs.ACLModeLegacy {
-			return true
-		}
-	} else {
-		if leaderMode == structs.ACLModeEnabled {
-			return true
-		}
-	}
-
-	s.logger.Debug("Cannot upgrade to new ACLs", "leaderMode", leaderMode, "mode", mode, "found", foundServers, "leader", leaderAddr)
-	return false
-}
-
-func (s *Server) InACLDatacenter() bool {
+func (s *Server) InPrimaryDatacenter() bool {
 	return s.config.PrimaryDatacenter == "" || s.config.Datacenter == s.config.PrimaryDatacenter
-}
-
-func (s *Server) UseLegacyACLs() bool {
-	return atomic.LoadInt32(&s.useNewACLs) == 0
 }
 
 func (s *Server) LocalTokensEnabled() bool {
 	// in ACL datacenter so local tokens are always enabled
-	if s.InACLDatacenter() {
+	if s.InPrimaryDatacenter() {
 		return true
 	}
 
@@ -164,7 +100,7 @@ func (s *Server) LocalTokensEnabled() bool {
 	return true
 }
 
-func (s *Server) ACLDatacenter(legacy bool) string {
+func (s *Server) ACLDatacenter() string {
 	// For resolution running on servers the only option
 	// is to contact the configured ACL Datacenter
 	if s.config.PrimaryDatacenter != "" {
@@ -181,7 +117,7 @@ func (s *Server) ACLDatacenter(legacy bool) string {
 func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
 	// only allow remote RPC resolution when token replication is off and
 	// when not in the ACL datacenter
-	if !s.InACLDatacenter() && !s.config.ACLTokenReplication {
+	if !s.InPrimaryDatacenter() && !s.config.ACLTokenReplication {
 		return false, nil, nil
 	}
 
@@ -192,7 +128,7 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 		return true, aclToken, nil
 	}
 
-	return s.InACLDatacenter() || index > 0, nil, acl.ErrNotFound
+	return s.InPrimaryDatacenter() || index > 0, nil, acl.ErrNotFound
 }
 
 func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {
@@ -206,7 +142,7 @@ func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy,
 	// If the max index of the policies table is non-zero then we have acls, until then
 	// we may need to allow remote resolution. This is particularly useful to allow updating
 	// the replication token via the API in a non-primary dc.
-	return s.InACLDatacenter() || index > 0, policy, acl.ErrNotFound
+	return s.InPrimaryDatacenter() || index > 0, policy, acl.ErrNotFound
 }
 
 func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
@@ -220,7 +156,7 @@ func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error
 	// If the max index of the roles table is non-zero then we have acls, until then
 	// we may need to allow remote resolution. This is particularly useful to allow updating
 	// the replication token via the API in a non-primary dc.
-	return s.InACLDatacenter() || index > 0, role, acl.ErrNotFound
+	return s.InPrimaryDatacenter() || index > 0, role, acl.ErrNotFound
 }
 
 func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
@@ -240,6 +176,10 @@ func (s *Server) ResolveTokenAndDefaultMeta(token string, entMeta *structs.Enter
 	identity, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {
 		return nil, err
+	}
+
+	if entMeta == nil {
+		entMeta = &structs.EnterpriseMeta{}
 	}
 
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults

@@ -115,14 +115,19 @@ function assert_proxy_presents_cert_uri {
   local SERVICENAME=$2
   local DC=${3:-primary}
   local NS=${4:-default}
+  local PARTITION=${5:default}
 
   CERT=$(retry_default get_cert $HOSTPORT)
 
-  echo "WANT SERVICE: ${NS}/${SERVICENAME}"
+  echo "WANT SERVICE: ${PARTITION}/${NS}/${SERVICENAME}"
   echo "GOT CERT:"
   echo "$CERT"
 
-  echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
+  if [[ -z $PARTITION ]] || [[ $PARTITION = "default" ]]; then
+    echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
+  else
+    echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ap/${PARTITION}/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
+  fi
 }
 
 function assert_dnssan_in_cert {
@@ -544,13 +549,7 @@ function docker_consul_for_proxy_bootstrap {
   local DC=$1
   shift 1
 
-  if [[ -n "${TEST_V2_XDS}" ]]; then
-      # pre-pull this image and discard any output so we don't corrupt the bootstrap file
-      docker pull "${OLD_XDSV2_AWARE_CONSUL_VERSION}" &>/dev/null
-      docker run -i --rm --network container:envoy_consul-${DC}_1 "${OLD_XDSV2_AWARE_CONSUL_VERSION}" "$@"
-  else
-      docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
-  fi
+  docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
 }
 
 function docker_wget {

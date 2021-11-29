@@ -29,22 +29,15 @@ as |route|>
   route.params.dc
   route.params.partition
   route.params.nspace
+  (or route.params.id '')
 
   loader.data
   loader.data.isNew
 
-as |dc partition nspace item create|}}
+as |dc partition nspace id item create|}}
   <AppView
     @login={{route.model.app.login.open}}
     >
-      <BlockSlot @name="notification" as |status type item error|>
-        <Consul::Policy::Notifications
-          @type={{type}}
-          @status={{status}}
-          @item={{item}}
-          @error={{error}}
-        />
-      </BlockSlot>
       <BlockSlot @name="breadcrumbs">
           <ol>
               <li><a data-test-back href={{href-to 'dc.acls.policies'}}>All Policies</a></li>
@@ -104,7 +97,7 @@ as |dc partition nspace item create|}}
           partition=partition
           nspace=nspace
           dc=dc
-          id=(or id '')
+          id=id
         )
       }}
     as |loader|>

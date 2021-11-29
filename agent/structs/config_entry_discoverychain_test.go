@@ -17,7 +17,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 	// This test tests both of these because they are related functions.
 
 	newAuthz := func(t *testing.T, src string) acl.Authorizer {
-		policy, err := acl.NewPolicyFromSource("", 0, src, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(src, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -34,7 +34,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 			buf.WriteString(fmt.Sprintf("service %q { policy = %q }\n", s, "write"))
 		}
 
-		policy, err := acl.NewPolicyFromSource("", 0, buf.String(), acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(buf.String(), acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -551,6 +551,17 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				},
 			},
 			validateErr: "Subset defined with empty name",
+		},
+		{
+			name: "invalid boolean expression subset filter",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Subsets: map[string]ServiceResolverSubset{
+					"v1": {Filter: "random string"},
+				},
+			},
+			validateErr: `Filter for subset "v1" is not a valid expression`,
 		},
 		{
 			name: "default subset does not exist",

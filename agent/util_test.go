@@ -14,13 +14,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStringHash(t *testing.T) {
+func TestStringHashSHA256(t *testing.T) {
 	t.Parallel()
-	in := "hello world"
-	expected := "5eb63bbbe01eeed093cb22bb8f5acdc3"
+	in := "hello world\n"
+	expected := "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447"
 
-	if out := stringHash(in); out != expected {
-		t.Fatalf("bad: %s", out)
+	if out := stringHashSHA256(in); out != expected {
+		t.Fatalf("bad: %s expected %s", out, expected)
 	}
 }
 

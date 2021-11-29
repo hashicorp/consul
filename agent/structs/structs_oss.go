@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package structs
@@ -42,19 +43,7 @@ func (m *EnterpriseMeta) LessThan(_ *EnterpriseMeta) bool {
 	return false
 }
 
-func (m *EnterpriseMeta) WildcardEnterpriseMetaForPartition() *EnterpriseMeta {
-	return &emptyEnterpriseMeta
-}
-
-func (m *EnterpriseMeta) DefaultEnterpriseMetaForPartition() *EnterpriseMeta {
-	return &emptyEnterpriseMeta
-}
-
-func (m *EnterpriseMeta) NodeEnterpriseMetaForPartition() *EnterpriseMeta {
-	return &emptyEnterpriseMeta
-}
-
-func (m *EnterpriseMeta) NewEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
+func (m *EnterpriseMeta) WithWildcardNamespace() *EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
 
@@ -85,6 +74,14 @@ func (m *EnterpriseMeta) InDefaultNamespace() bool {
 
 func (m *EnterpriseMeta) PartitionOrDefault() string {
 	return "default"
+}
+
+func EqualPartitions(_, _ string) bool {
+	return true
+}
+
+func IsDefaultPartition(partition string) bool {
+	return true
 }
 
 func PartitionOrDefault(_ string) string {

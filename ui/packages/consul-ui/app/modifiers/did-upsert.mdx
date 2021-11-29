@@ -1,0 +1,31 @@
+# did-upsert
+
+Modifier that is called when a DOM node is inserted and/or an argument is
+updated.
+
+Additionally the callback function provided should expect an event shaped
+object rather than a reference to a DOM node itself, therefore the DOM node
+can be obtained by referencing `target` or `currentTarget` instead. This means
+that you can use the same callback function for both `{{on 'click'}}`
+modifiers and `{{did-upsert}}` modifiers. The one dowbside is that the
+signature of functions used for `did-upsert` are slightly different than when
+you use `did-insert/did-update`, but moving forwards we are more likely to
+make `did-insert/did-update` use a more standard based signature (or some
+other approach to make things consistent)
+
+```hbs
+<div
+  {{did-upsert this.callback @arrayThatMightGetAddedToTODetectAnUpdate.length}}
+>
+</div>
+```
+
+```javascript
+  callback(e) {
+    console.log(e.currentTarget);
+    console.log(e.target);
+  }
+```
+
+Other than the above exception, the modifer works the same as the
+`did-insert/did-update` modifiers.

@@ -1,5 +1,9 @@
-{{#if (eq @item.Name '* (All Services)')}}
-<a data-test-topology-metrics-card class="topology-metrics-card" href={{href-to 'dc.services.index'}}>
+{{#if (eq @item.Datacenter '')}}
+<a
+  class="topology-metrics-card"
+  href={{href-to 'dc.services.index'}}
+  data-permission={{service/card-permissions @item}}
+>
   <p class="empty">
     {{@item.Name}}
   </p>
@@ -12,7 +16,7 @@
     (href-to this.hrefPath @item.Datacenter @item.Name params=(hash nspace=@item.Namespace))
     (href-to this.hrefPath @item.Name)
   }}
-  data-permission={{service/intention-permissions @item}}
+  data-permission={{service/card-permissions @item}}
   id="{{@item.Namespace}}{{@item.Name}}"
 >
   <p>

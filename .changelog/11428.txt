@@ -1,0 +1,3 @@
+```release-note:feature
+ca: Add a configurable TTL for Connect CA root certificates. The configuration is supported by the Vault and Consul providers.
+```

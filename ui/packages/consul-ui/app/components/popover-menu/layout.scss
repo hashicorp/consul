@@ -5,7 +5,7 @@
   display: block;
 }
 %popover-menu-panel {
-  width: 192px;
+  min-width: 192px;
 }
 %popover-menu-panel:not(.above) {
   top: 38px;

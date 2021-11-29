@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -853,6 +854,32 @@ func TestAgent_AddServiceWithH2PINGCheck(t *testing.T) {
 		t.Fatalf("Error registering service: %v", err)
 	}
 	requireCheckExists(t, a, "test-h2ping-check")
+}
+
+func TestAgent_AddServiceWithH2CPINGCheck(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	check := []*structs.CheckType{
+		{
+			CheckID:       "test-h2cping-check",
+			Name:          "test-h2cping-check",
+			H2PING:        "localhost:12345",
+			TLSSkipVerify: true,
+			Interval:      10 * time.Second,
+			H2PingUseTLS:  false,
+		},
+	}
+
+	nodeService := &structs.NodeService{
+		ID:      "test-h2cping-check-service",
+		Service: "test-h2cping-check-service",
+	}
+	err := a.addServiceFromSource(nodeService, check, false, "", ConfigSourceLocal)
+	if err != nil {
+		t.Fatalf("Error registering service: %v", err)
+	}
+	requireCheckExists(t, a, "test-h2cping-check")
 }
 
 func TestAgent_AddServiceNoExec(t *testing.T) {
@@ -2228,7 +2255,7 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 		Port:    8000,
 	}
 
-	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
+	file := filepath.Join(a.Config.DataDir, servicesDir, structs.NewServiceID(svc.ID, nil).StringHashSHA256())
 
 	// Check is not persisted unless requested
 	if err := a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal); err != nil {
@@ -2339,7 +2366,7 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 	}
 
 	// Write the content to the file
-	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
+	file := filepath.Join(a.Config.DataDir, servicesDir, structs.NewServiceID(svc.ID, nil).StringHashSHA256())
 	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2355,6 +2382,85 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 	// Ensure the service was restored
 	result := requireServiceExists(t, a, "redis")
 	require.Equal(t, svc, result)
+}
+
+func TestAgent_persistedService_compat_hash(t *testing.T) {
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_persistedService_compat_hash(t, "enable_central_service_config = false")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_persistedService_compat_hash(t, "enable_central_service_config = true")
+	})
+
+}
+
+func testAgent_persistedService_compat_hash(t *testing.T, extraHCL string) {
+	t.Helper()
+
+	// Tests backwards compatibility of persisted services from pre-0.5.1
+	a := NewTestAgent(t, extraHCL)
+	defer a.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:              "redis",
+		Service:         "redis",
+		Tags:            []string{"foo"},
+		Port:            8000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
+		Weights:         &structs.Weights{Passing: 1, Warning: 1},
+		EnterpriseMeta:  *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	}
+
+	// Encode the NodeService directly. This is what previous versions
+	// would serialize to the file (without the wrapper)
+	encoded, err := json.Marshal(svc)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Write the content to the file using the old md5 based path
+	file := filepath.Join(a.Config.DataDir, servicesDir, stringHashMD5(svc.ID))
+	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := ioutil.WriteFile(file, encoded, 0600); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	wrapped := persistedServiceConfig{
+		ServiceID:      "redis",
+		Defaults:       &structs.ServiceConfigResponse{},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	}
+
+	encodedConfig, err := json.Marshal(wrapped)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, stringHashMD5(svc.ID))
+	if err := os.MkdirAll(filepath.Dir(configFile), 0700); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := ioutil.WriteFile(configFile, encodedConfig, 0600); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Load the services
+	if err := a.loadServices(a.Config, nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the service was restored
+	result := requireServiceExists(t, a, "redis")
+	require.Equal(t, svc, result)
+}
+
+// Exists for backwards compatibility testing
+func stringHashMD5(s string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(s)))
 }
 
 func TestAgent_PurgeService(t *testing.T) {
@@ -2385,7 +2491,7 @@ func testAgent_PurgeService(t *testing.T, extraHCL string) {
 		Port:    8000,
 	}
 
-	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
+	file := filepath.Join(a.Config.DataDir, servicesDir, structs.NewServiceID(svc.ID, nil).StringHashSHA256())
 	if err := a.addServiceFromSource(svc, nil, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2465,7 +2571,7 @@ func testAgent_PurgeServiceOnDuplicate(t *testing.T, extraHCL string) {
 	defer a2.Shutdown()
 
 	sid := svc1.CompoundServiceID()
-	file := filepath.Join(a.Config.DataDir, servicesDir, sid.StringHash())
+	file := filepath.Join(a.Config.DataDir, servicesDir, sid.StringHashSHA256())
 	_, err := os.Stat(file)
 	require.Error(t, err, "should have removed persisted service")
 	result := requireServiceExists(t, a, "redis")
@@ -2499,7 +2605,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	}
 
 	cid := check.CompoundCheckID()
-	file := filepath.Join(a.Config.DataDir, checksDir, cid.StringHash())
+	file := filepath.Join(a.Config.DataDir, checksDir, cid.StringHashSHA256())
 
 	// Not persisted if not requested
 	require.NoError(t, a.AddCheck(check, chkType, false, "", ConfigSourceLocal))
@@ -2645,7 +2751,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	defer a2.Shutdown()
 
 	cid := check1.CompoundCheckID()
-	file := filepath.Join(a.DataDir, checksDir, cid.StringHash())
+	file := filepath.Join(a.DataDir, checksDir, cid.StringHashSHA256())
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted check")
 	}
@@ -3426,6 +3532,69 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 	}
 }
 
+func TestAgent_checkStateSnapshot_backcompat(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// First register a service
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+	if err := a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a check
+	check1 := &structs.HealthCheck{
+		Node:        a.Config.NodeName,
+		CheckID:     "service:redis",
+		Name:        "redischeck",
+		Status:      api.HealthPassing,
+		ServiceID:   "redis",
+		ServiceName: "redis",
+	}
+	if err := a.AddCheck(check1, nil, true, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Snapshot the state
+	snap := a.snapshotCheckState()
+
+	// Unload all of the checks
+	if err := a.unloadChecks(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Mutate the path to look like the old md5 checksum
+	dir := filepath.Join(a.config.DataDir, checksDir)
+	new_path := filepath.Join(dir, check1.CompoundCheckID().StringHashSHA256())
+	old_path := filepath.Join(dir, check1.CompoundCheckID().StringHashMD5())
+	if err := os.Rename(new_path, old_path); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Reload the checks and restore the snapshot.
+	if err := a.loadChecks(a.Config, snap); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Search for the check
+	out := requireCheckExists(t, a, check1.CheckID)
+
+	// Make sure state was restored
+	if out.Status != api.HealthPassing {
+		t.Fatalf("should have restored check state")
+	}
+}
+
 func TestAgent_loadChecks_checkFails(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -3488,7 +3657,7 @@ func TestAgent_persistCheckState(t *testing.T) {
 	}
 
 	// Check the persisted file exists and has the content
-	file := filepath.Join(a.Config.DataDir, checkStateDir, cid.StringHash())
+	file := filepath.Join(a.Config.DataDir, checkStateDir, cid.StringHashSHA256())
 	buf, err := ioutil.ReadFile(file)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -3556,7 +3725,7 @@ func TestAgent_loadCheckState(t *testing.T) {
 	}
 
 	// Should have purged the state
-	file := filepath.Join(a.Config.DataDir, checksDir, stringHash("check1"))
+	file := filepath.Join(a.Config.DataDir, checksDir, structs.NewCheckID("check1", nil).StringHashSHA256())
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
 		t.Fatalf("should have purged state")
 	}
@@ -3613,7 +3782,7 @@ func TestAgent_purgeCheckState(t *testing.T) {
 	}
 
 	// Removed the file
-	file := filepath.Join(a.Config.DataDir, checkStateDir, cid.StringHash())
+	file := filepath.Join(a.Config.DataDir, checkStateDir, cid.StringHashSHA256())
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
 		t.Fatalf("should have removed file")
 	}
@@ -4500,7 +4669,7 @@ services {
 	// Now connect to server
 	_, err := a1.JoinLAN([]string{
 		fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN),
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	t.Logf("joined client to server")
@@ -4531,6 +4700,8 @@ LOOP:
 // TODO(rb): implement something similar to this as a full containerized test suite with proper
 // isolation so requests can't "cheat" and bypass the mesh gateways
 func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

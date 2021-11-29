@@ -186,8 +186,7 @@ func (s *ConnectCA) Sign(
 				"we are %s", serviceID.Datacenter, s.srv.config.Datacenter)
 		}
 	} else if isAgent {
-		// TODO(partitions): support auto-config in different partitions
-		structs.DefaultEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
+		agentID.GetEnterpriseMeta().FillAuthzContext(&authzContext)
 		if authz.NodeWrite(agentID.Agent, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}

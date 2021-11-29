@@ -61,11 +61,6 @@
     ]
   },
   {
-    "title": "ACL (Legacy)",
-    "path": "acl-legacy",
-    "hidden": true
-  },
-  {
     "title": "Agent",
     "routes": [
       {

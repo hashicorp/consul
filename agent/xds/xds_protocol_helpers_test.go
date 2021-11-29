@@ -125,33 +125,12 @@ type testServerScenario struct {
 	errCh  <-chan error
 }
 
-func newTestServerScenario(
-	t *testing.T,
-	resolveToken ACLResolverFunc,
-	proxyID string,
-	token string,
-	authCheckFrequency time.Duration,
-) *testServerScenario {
-	return newTestServerScenarioInner(t, resolveToken, proxyID, token, authCheckFrequency, false)
-}
-
 func newTestServerDeltaScenario(
 	t *testing.T,
 	resolveToken ACLResolverFunc,
 	proxyID string,
 	token string,
 	authCheckFrequency time.Duration,
-) *testServerScenario {
-	return newTestServerScenarioInner(t, resolveToken, proxyID, token, authCheckFrequency, true)
-}
-
-func newTestServerScenarioInner(
-	t *testing.T,
-	resolveToken ACLResolverFunc,
-	proxyID string,
-	token string,
-	authCheckFrequency time.Duration,
-	incremental bool,
 ) *testServerScenario {
 	mgr := newTestManager(t)
 	envoy := NewTestEnvoy(t, proxyID, token)
@@ -183,12 +162,7 @@ func newTestServerScenarioInner(
 
 	errCh := make(chan error, 1)
 	go func() {
-		if incremental {
-			errCh <- s.DeltaAggregatedResources(envoy.deltaStream)
-		} else {
-			shim := &adsServerV2Shim{srv: s}
-			errCh <- shim.StreamAggregatedResources(envoy.stream)
-		}
+		errCh <- s.DeltaAggregatedResources(envoy.deltaStream)
 	}()
 
 	return &testServerScenario{

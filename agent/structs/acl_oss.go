@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package structs
@@ -68,10 +69,6 @@ func aclNodeIdentityRules(node string, _ *EnterpriseMeta) string {
 
 func (p *ACLPolicy) EnterprisePolicyMeta() *acl.EnterprisePolicyMeta {
 	return nil
-}
-
-func (m *ACLAuthMethod) TargetEnterpriseMeta(_ *EnterpriseMeta) *EnterpriseMeta {
-	return &m.EnterpriseMeta
 }
 
 func (t *ACLToken) NodeIdentityList() []*ACLNodeIdentity {

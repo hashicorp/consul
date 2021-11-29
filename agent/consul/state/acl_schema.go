@@ -107,6 +107,7 @@ func tokensTableSchema() *memdb.TableSchema {
 
 			//DEPRECATED (ACL-Legacy-Compat) - This index is only needed while we support upgrading v1 to v2 acls
 			// This table indexes all the ACL tokens that do not have an AccessorID
+			// TODO(ACL-Legacy-Compat): remove in phase 2
 			"needs-upgrade": {
 				Name:         "needs-upgrade",
 				AllowMissing: false,

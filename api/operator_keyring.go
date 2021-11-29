@@ -16,6 +16,9 @@ type KeyringResponse struct {
 	// Segment has the network segment this request corresponds to.
 	Segment string
 
+	// Partition has the admin partition this request corresponds to.
+	Partition string `json:",omitempty"`
+
 	// Messages has information or errors from serf
 	Messages map[string]string `json:",omitempty"`
 
@@ -36,11 +39,14 @@ func (op *Operator) KeyringInstall(key string, q *WriteOptions) error {
 	r.obj = keyringRequest{
 		Key: key,
 	}
-	_, resp, err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -48,11 +54,14 @@ func (op *Operator) KeyringInstall(key string, q *WriteOptions) error {
 func (op *Operator) KeyringList(q *QueryOptions) ([]*KeyringResponse, error) {
 	r := op.c.newRequest("GET", "/v1/operator/keyring")
 	r.setQueryOptions(q)
-	_, resp, err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	var out []*KeyringResponse
 	if err := decodeBody(resp, &out); err != nil {
@@ -68,11 +77,14 @@ func (op *Operator) KeyringRemove(key string, q *WriteOptions) error {
 	r.obj = keyringRequest{
 		Key: key,
 	}
-	_, resp, err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -83,10 +95,13 @@ func (op *Operator) KeyringUse(key string, q *WriteOptions) error {
 	r.obj = keyringRequest{
 		Key: key,
 	}
-	_, resp, err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }

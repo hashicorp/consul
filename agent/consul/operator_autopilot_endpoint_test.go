@@ -75,27 +75,7 @@ func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create an ACL with operator read permissions.
-	var token string
-	{
-		var rules = `
-                    operator = "read"
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	token := createToken(t, codec, `operator = "read"`)
 
 	// Now we can read and verify the config
 	arg.Token = token
@@ -182,27 +162,7 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create an ACL with operator write permissions.
-	var token string
-	{
-		var rules = `
-                    operator = "write"
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	token := createToken(t, codec, `operator = "write"`)
 
 	// Now we can update the config
 	arg.Token = token

@@ -9,6 +9,8 @@ export default class PartitionModel extends Model {
   @attr('string') uid;
   @attr('string') Name;
   @attr('string') Description;
+  // TODO: Is there some sort of date we can use here
+  @attr('string') DeletedAt;
   @attr('string') Datacenter;
 
   @attr('string') Namespace; // always ""

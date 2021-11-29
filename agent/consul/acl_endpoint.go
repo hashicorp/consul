@@ -170,11 +170,6 @@ func (a *ACL) aclPreCheck() error {
 	if !a.srv.config.ACLsEnabled {
 		return acl.ErrDisabled
 	}
-
-	if a.srv.UseLegacyACLs() {
-		return fmt.Errorf("The ACL system is currently in legacy mode.")
-	}
-
 	return nil
 }
 
@@ -193,7 +188,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 	}
 
 	// Verify we are allowed to serve this request
-	if !a.srv.InACLDatacenter() {
+	if !a.srv.InPrimaryDatacenter() {
 		return acl.ErrDisabled
 	}
 
@@ -240,10 +235,8 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
-			CreateTime: time.Now(),
-			Local:      false,
-			// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
-			Type:           structs.ACLTokenTypeManagement,
+			CreateTime:     time.Now(),
+			Local:          false,
 			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		ResetIndex: specifiedIndex,
@@ -367,7 +360,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		return err
 	} else if token == nil || token.IsExpired(time.Now()) {
 		return acl.ErrNotFound
-	} else if !a.srv.InACLDatacenter() && !token.Local {
+	} else if !a.srv.InPrimaryDatacenter() && !token.Local {
 		// global token writes must be forwarded to the primary DC
 		args.Datacenter = a.srv.config.PrimaryDatacenter
 		return a.srv.forwardDC("ACL.TokenClone", a.srv.config.PrimaryDatacenter, args, reply)
@@ -442,7 +435,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	if !a.srv.LocalTokensEnabled() {
 		// local token operations
 		return fmt.Errorf("Cannot upsert tokens within this datacenter")
-	} else if !a.srv.InACLDatacenter() && !token.Local {
+	} else if !a.srv.InPrimaryDatacenter() && !token.Local {
 		return fmt.Errorf("Cannot upsert global tokens within this datacenter")
 	}
 
@@ -861,11 +854,11 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		// No need to check expiration time because it's being deleted.
 
 		// token found in secondary DC but its not local so it must be deleted in the primary
-		if !a.srv.InACLDatacenter() && !token.Local {
+		if !a.srv.InPrimaryDatacenter() && !token.Local {
 			args.Datacenter = a.srv.config.PrimaryDatacenter
 			return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.PrimaryDatacenter, args, reply)
 		}
-	} else if !a.srv.InACLDatacenter() {
+	} else if !a.srv.InPrimaryDatacenter() {
 		// token not found in secondary DC - attempt to delete within the primary
 		args.Datacenter = a.srv.config.PrimaryDatacenter
 		return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.PrimaryDatacenter, args, reply)
@@ -1094,7 +1087,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		return err
 	}
 
-	if !a.srv.InACLDatacenter() {
+	if !a.srv.InPrimaryDatacenter() {
 		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
@@ -1183,7 +1176,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	}
 
 	// validate the rules
-	_, err = acl.NewPolicyFromSource("", 0, policy.Rules, policy.Syntax, a.srv.aclConfig, policy.EnterprisePolicyMeta())
+	_, err = acl.NewPolicyFromSource(policy.Rules, policy.Syntax, a.srv.aclConfig, policy.EnterprisePolicyMeta())
 	if err != nil {
 		return err
 	}
@@ -1225,7 +1218,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		return err
 	}
 
-	if !a.srv.InACLDatacenter() {
+	if !a.srv.InPrimaryDatacenter() {
 		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
@@ -1372,56 +1365,6 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 	return nil
 }
 
-// makeACLETag returns an ETag for the given parent and policy.
-func makeACLETag(parent string, policy *acl.Policy) string {
-	return fmt.Sprintf("%s:%s", parent, policy.ID)
-}
-
-// GetPolicy is used to retrieve a compiled policy object with a TTL. Does not
-// support a blocking query.
-//
-// TODO(ACL-Legacy): remove this
-func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
-	if done, err := a.srv.ForwardRPC("ACL.GetPolicy", args, reply); done {
-		return err
-	}
-
-	// Verify we are allowed to serve this request
-	if a.srv.config.PrimaryDatacenter != a.srv.config.Datacenter {
-		return acl.ErrDisabled
-	}
-
-	// Get the policy via the cache
-	parent := a.srv.config.ACLResolverSettings.ACLDefaultPolicy
-
-	ident, policy, err := a.srv.acls.GetMergedPolicyForToken(args.ACL)
-	if err != nil {
-		return err
-	}
-
-	if token, ok := ident.(*structs.ACLToken); ok && token.Type == structs.ACLTokenTypeManagement {
-		parent = "manage"
-	}
-
-	// translates the structures internals to most closely match what could be expressed in the original rule language
-	policy = policy.ConvertToLegacy()
-
-	// Generate an ETag
-	etag := makeACLETag(parent, policy)
-
-	// Setup the response
-	reply.ETag = etag
-	reply.TTL = a.srv.config.ACLResolverSettings.ACLTokenTTL
-	a.srv.setQueryMeta(&reply.QueryMeta)
-
-	// Only send the policy on an Etag mis-match
-	if args.ETag != etag {
-		reply.Parent = parent
-		reply.Policy = policy
-	}
-	return nil
-}
-
 // ReplicationStatus is used to retrieve the current ACL replication status.
 func (a *ACL) ReplicationStatus(args *structs.DCSpecificRequest,
 	reply *structs.ACLReplicationStatus) error {
@@ -1528,7 +1471,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		return err
 	}
 
-	if !a.srv.InACLDatacenter() {
+	if !a.srv.InPrimaryDatacenter() {
 		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
@@ -1686,7 +1629,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 		return err
 	}
 
-	if !a.srv.InACLDatacenter() {
+	if !a.srv.InPrimaryDatacenter() {
 		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
@@ -2199,7 +2142,7 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 	switch method.TokenLocality {
 	case "local", "":
 	case "global":
-		if !a.srv.InACLDatacenter() {
+		if !a.srv.InPrimaryDatacenter() {
 			return fmt.Errorf("Invalid Auth Method: TokenLocality 'global' can only be used in the primary datacenter")
 		}
 	default:
@@ -2458,7 +2401,7 @@ func (a *ACL) tokenSetFromAuthMethod(
 	}
 
 	if method.TokenLocality == "global" {
-		if !a.srv.InACLDatacenter() {
+		if !a.srv.InPrimaryDatacenter() {
 			return errors.New("creating global tokens via auth methods is only permitted in the primary datacenter")
 		}
 		createReq.ACLToken.Local = false
@@ -2522,7 +2465,7 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 		// Can't "logout" of a token that wasn't a result of login.
 		return acl.ErrPermissionDenied
 
-	} else if !a.srv.InACLDatacenter() && !token.Local {
+	} else if !a.srv.InPrimaryDatacenter() && !token.Local {
 		// global token writes must be forwarded to the primary DC
 		args.Datacenter = a.srv.config.PrimaryDatacenter
 		return a.srv.forwardDC("ACL.Logout", a.srv.config.PrimaryDatacenter, args, reply)

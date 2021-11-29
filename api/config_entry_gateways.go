@@ -103,11 +103,13 @@ type IngressService struct {
 	// using a "tcp" listener.
 	Hosts []string
 
-	// Referencing other partitions is not supported.
-
 	// Namespace is the namespace where the service is located.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition where the service is located.
+	// Partitioning is a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
 
 	// TLS allows specifying some TLS configuration per listener.
 	TLS *GatewayServiceTLSConfig `json:",omitempty"`

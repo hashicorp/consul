@@ -3,7 +3,81 @@
     class="hashicorp-consul"
     ...attributes
   >
+    <:notifications as |app|>
+  {{#each flashMessages.queue as |flash|}}
+    <app.Notification
+      @delay={{sub flash.timeout flash.extendedTimeout}}
+      @sticky={{flash.sticky}}
+    >
+    {{#if flash.dom}}
+        {{{flash.dom}}}
+    {{else}}
+{{#let (lowercase flash.type) (lowercase flash.action) as |status type|}}
+    <Notice
+      role="alert"
+      class={{concat status ' notification-' type}}
+      data-notification
+      @type={{status}}
+    as |notice|>
+      <notice.Header>
+        <strong>
+          {{capitalize status}}!
+        </strong>
+      </notice.Header>
+      <notice.Body>
+        <p>
+          {{#if (eq type 'logout')}}
+            {{#if (eq status 'success') }}
+              You are now logged out.
+            {{else}}
+              There was an error logging out.
+            {{/if}}
+          {{else if (eq type 'authorize')}}
+            {{#if (eq status 'success') }}
+              You are now logged in.
+            {{else}}
+              There was an error, please check your SecretID/Token
+            {{/if}}
+          {{else}}
+            {{#if (eq flash.model 'token')}}
+              <Consul::Token::Notifications
+                @type={{type}}
+                @status={{status}}
+                @item={{flash.item}}
+                @error={{flash.error}}
+              />
+            {{else if (eq flash.model 'role')}}
+              <Consul::Role::Notifications
+                @type={{type}}
+                @status={{status}}
+                @item={{flash.item}}
+                @error={{flash.error}}
+              />
+            {{else if (eq flash.model 'policy')}}
+              <Consul::Policy::Notifications
+                @type={{type}}
+                @status={{status}}
+                @item={{flash.item}}
+                @error={{flash.error}}
+              />
+            {{else if (eq flash.model 'nspace')}}
+              <Consul::Nspace::Notifications
+                @type={{type}}
+                @status={{status}}
+                @item={{flash.item}}
+                @error={{flash.error}}
+              />
+            {{/if}}
+          {{/if}}
+        </p>
+      </notice.Body>
+    </Notice>
+{{/let}}
+    {{/if}}
+    </app.Notification>
+  {{/each}}
 
+    </:notifications>
     <:home-nav>
       <a
         href={{href-to 'index'}}
@@ -26,18 +100,29 @@
             <BlockSlot @name="menu">
 {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
               <DataSource
-                @src="/*/*/*/datacenters"
+                @src={{uri '/*/*/*/datacenters'}}
                 @onchange={{action (mut @dcs) value="data"}}
                 @loading="lazy"
               />
   {{#each (sort-by 'Name' @dcs) as |item|}}
                 <MenuItem
                   data-test-datacenter-picker
-                  class={{concat (if (eq @dc.Name item.Name) 'is-active') (if item.Local ' is-local') }}
-                  @href={{href-to '.' params=(hash dc=item.Name)}}
+                  class={{concat
+                    (if (eq @dc.Name item.Name) 'is-active')
+                    (if item.Local ' is-local')
+                    (if item.Primary ' is-primary')
+                  }}
+                  @href={{href-to '.' params=(hash
+                    dc=item.Name
+                    partition=undefined
+                    nspace=(if (gt @nspace.length 0) @nspace undefined)
+                  )}}
                 >
                   <BlockSlot @name="label">
                     {{item.Name}}
+                  {{#if item.Primary}}
+                    <span>Primary</span>
+                  {{/if}}
                   {{#if item.Local}}
                     <span>Local</span>
                   {{/if}}
@@ -48,61 +133,13 @@
             </BlockSlot>
           </PopoverMenu>
         </li>
-
-    {{#if (can "choose partitions")}}
-          <li
-            class="partitions"
-            data-test-partition-menu
-          >
-              <PopoverMenu
-                aria-label="Admin Partition"
-                @position="left"
-              as |components api|>
-                <BlockSlot @name="trigger">
-                  {{@partition}}
-                </BlockSlot>
-                <BlockSlot @name="menu">
-                  {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-                    <DataSource
-                      @src={{uri
-                        '/*/*/${dc}/partitions'
-                        (hash
-                          dc=@dc.Name
-                        )
-                      }}
-                      @onchange={{action (mut this.partitions) value="data"}}
-                    />
-                  {{!FIXME: Do partitions do the same as namespace deletion? }}
-                  {{#each (reject-by 'DeletedAt' this.partitions) as |item|}}
-                    <MenuItem
-                      class={{if (eq @partition item.Name) 'is-active'}}
-                      @href={{href-to '.' params=(hash
-                        partition=item.Name
-                        nspace=(if (gt @nspace.length 0) @nspace undefined)
-                      )}}
-                    >
-                      <BlockSlot @name="label">
-                        {{item.Name}}
-                      </BlockSlot>
-                    </MenuItem>
-                  {{/each}}
-          {{#if (and false (can 'manage partitions'))}}
-                    <MenuSeparator />
-                    <MenuItem
-                      data-test-main-nav-partitions
-                      @href={{href-to 'dc.nspaces' @dc.Name}}
-                    >
-                      <BlockSlot @name="label">
-                        Manage Admin Partitions
-                      </BlockSlot>
-                    </MenuItem>
-          {{/if}}
-                  {{/let}}
-                </BlockSlot>
-              </PopoverMenu>
-          </li>
-    {{/if}}
-
+        <Consul::Partition::Selector
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+          @partitions={{this.partitions}}
+          @onchange={{action (mut this.partitions) value="data"}}
+        />
     {{#if (can "choose nspaces")}}
           <li
             class="nspaces"
@@ -115,13 +152,6 @@
                 <BlockSlot @name="trigger">
                   {{@nspace}}
                 </BlockSlot>
-              {{#if (is-href 'dc.nspaces')}}
-                <BlockSlot @name="header">
-                  <p>
-					          Namespaces themselves are not namespaced, so switching will not change the current view.
-                  </p>
-                </BlockSlot>
-              {{/if}}
                 <BlockSlot @name="menu">
                   {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
                     <DataSource
@@ -307,7 +337,22 @@
                     </BlockSlot>
                     <BlockSlot @name="body">
                       <AuthForm as |authForm|>
-                        <Ref @target={{this}} @name="authForm" @value={{authForm}} />
+                        <Ref
+                          @target={{this}}
+                          @name="authForm"
+                          @value={{authForm}}
+                        />
+                        {{#if (can "use SSO")}}
+                          <authForm.Method @matches="sso">
+                            <OidcSelect
+                              @dc={{@dc.Name}}
+                              @nspace={{@nspace}}
+                              @disabled={{authForm.disabled}}
+                              @onchange={{authForm.submit}}
+                              @onerror={{authForm.error}}
+                            />
+                          </authForm.Method>
+                        {{/if}}
                       </AuthForm>
                     </BlockSlot>
                     <BlockSlot @name="actions">

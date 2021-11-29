@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/command/acl/policy"
 	"github.com/hashicorp/consul/command/flags"
@@ -67,19 +68,26 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	var policyID string
+	var pol *api.ACLPolicy
 	if c.policyID != "" {
 		policyID, err = acl.GetPolicyIDFromPartial(client, c.policyID)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error determining policy ID: %v", err))
+			return 1
+		}
+		pol, _, err = client.ACL().PolicyRead(policyID, nil)
 	} else {
-		policyID, err = acl.GetPolicyIDByName(client, c.policyName)
-	}
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error determining policy ID: %v", err))
-		return 1
+		pol, err = acl.GetPolicyByName(client, c.policyName)
 	}
 
-	p, _, err := client.ACL().PolicyRead(policyID, nil)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error reading policy %q: %v", policyID, err))
+		var errArg string
+		if c.policyID != "" {
+			errArg = fmt.Sprintf("id:%s", policyID)
+		} else {
+			errArg = fmt.Sprintf("name:%s", c.policyName)
+		}
+		c.UI.Error(fmt.Sprintf("Error reading policy %q: %v", errArg, err))
 		return 1
 	}
 
@@ -88,7 +96,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(err.Error())
 		return 1
 	}
-	out, err := formatter.FormatPolicy(p)
+	out, err := formatter.FormatPolicy(pol)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1

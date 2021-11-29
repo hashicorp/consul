@@ -89,8 +89,6 @@ type PolicyRules struct {
 
 // Policy is used to represent the policy specified by an ACL configuration.
 type Policy struct {
-	ID                    string `hcl:"id"`
-	Revision              uint64 `hcl:"revision"`
 	PolicyRules           `hcl:",squash"`
 	EnterprisePolicyRules `hcl:",squash"`
 }
@@ -429,10 +427,10 @@ func parseLegacy(rules string, conf *Config) (*Policy, error) {
 // NewPolicyFromSource is used to parse the specified ACL rules into an
 // intermediary set of policies, before being compiled into
 // the ACL
-func NewPolicyFromSource(id string, revision uint64, rules string, syntax SyntaxVersion, conf *Config, meta *EnterprisePolicyMeta) (*Policy, error) {
+func NewPolicyFromSource(rules string, syntax SyntaxVersion, conf *Config, meta *EnterprisePolicyMeta) (*Policy, error) {
 	if rules == "" {
 		// Hot path for empty source
-		return &Policy{ID: id, Revision: revision}, nil
+		return &Policy{}, nil
 	}
 
 	var policy *Policy
@@ -445,60 +443,7 @@ func NewPolicyFromSource(id string, revision uint64, rules string, syntax Syntax
 	default:
 		return nil, fmt.Errorf("Invalid rules version: %d", syntax)
 	}
-
-	if err == nil {
-		policy.ID = id
-		policy.Revision = revision
-	}
 	return policy, err
-}
-
-// TODO(ACL-Legacy): remove this
-func (policy *Policy) ConvertToLegacy() *Policy {
-	converted := &Policy{
-		ID:       policy.ID,
-		Revision: policy.Revision,
-		PolicyRules: PolicyRules{
-			ACL:      policy.ACL,
-			Keyring:  policy.Keyring,
-			Operator: policy.Operator,
-		},
-	}
-
-	converted.Agents = append(converted.Agents, policy.Agents...)
-	converted.Agents = append(converted.Agents, policy.AgentPrefixes...)
-	converted.Keys = append(converted.Keys, policy.Keys...)
-	converted.Keys = append(converted.Keys, policy.KeyPrefixes...)
-	converted.Nodes = append(converted.Nodes, policy.Nodes...)
-	converted.Nodes = append(converted.Nodes, policy.NodePrefixes...)
-	converted.Services = append(converted.Services, policy.Services...)
-	converted.Services = append(converted.Services, policy.ServicePrefixes...)
-	converted.Sessions = append(converted.Sessions, policy.Sessions...)
-	converted.Sessions = append(converted.Sessions, policy.SessionPrefixes...)
-	converted.Events = append(converted.Events, policy.Events...)
-	converted.Events = append(converted.Events, policy.EventPrefixes...)
-	converted.PreparedQueries = append(converted.PreparedQueries, policy.PreparedQueries...)
-	converted.PreparedQueries = append(converted.PreparedQueries, policy.PreparedQueryPrefixes...)
-	return converted
-}
-
-// TODO(ACL-Legacy): remove this
-func (policy *Policy) ConvertFromLegacy() *Policy {
-	return &Policy{
-		ID:       policy.ID,
-		Revision: policy.Revision,
-		PolicyRules: PolicyRules{
-			AgentPrefixes:         policy.Agents,
-			KeyPrefixes:           policy.Keys,
-			NodePrefixes:          policy.Nodes,
-			ServicePrefixes:       policy.Services,
-			SessionPrefixes:       policy.Sessions,
-			EventPrefixes:         policy.Events,
-			PreparedQueryPrefixes: policy.PreparedQueries,
-			Keyring:               policy.Keyring,
-			Operator:              policy.Operator,
-		},
-	}
 }
 
 // takesPrecedenceOver returns true when permission a

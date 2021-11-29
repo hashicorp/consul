@@ -1,0 +1,3 @@
+```release-note:bug
+snapshot: **(Enterprise only)** snapshot agent no longer attempts to refresh its license from the server when a local license is provided (i.e. via config or an environment variable)
+```

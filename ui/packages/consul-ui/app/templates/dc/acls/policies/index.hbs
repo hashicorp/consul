@@ -55,21 +55,15 @@ as |route|>
     <AppView
       @login={{route.model.app.login.open}}
       >
-      <BlockSlot @name="notification" as |status type item error|>
-        <Consul::Policy::Notifications
-          @type={{type}}
-          @status={{status}}
-          @item={{item}}
-          @error={{error}}
-        />
-      </BlockSlot>
       <BlockSlot @name="header">
         <h1>
           <route.Title @title="Policies" />
         </h1>
       </BlockSlot>
       <BlockSlot @name="actions">
+  {{#if (can "create policies")}}
           <a data-test-create href="{{href-to 'dc.acls.policies.create'}}" class="type-create">Create</a>
+  {{/if}}
       </BlockSlot>
       <BlockSlot @name="toolbar">
       {{#if (gt items.length 0) }}

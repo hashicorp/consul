@@ -15,6 +15,6 @@ func TestIntention(t testing.T) *Intention {
 		SourceType:      IntentionSourceConsul,
 		Meta:            map[string]string{},
 	}
-	ixn.NormalizePartitionFields()
+	ixn.FillPartitionAndNamespace(nil, true)
 	return ixn
 }

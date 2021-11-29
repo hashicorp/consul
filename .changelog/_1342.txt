@@ -1,0 +1,3 @@
+```release-note:improvement
+namespaces: **(Enterprise only)** policy and role defaults can reference policies in any namespace in the same partition by ID
+```

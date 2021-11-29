@@ -105,7 +105,6 @@ func TestCompile(t *testing.T) {
 				EvaluateInPartition:   "default",
 				EvaluateInDatacenter:  "dc1",
 				EvaluateInTrustDomain: "trustdomain.consul",
-				UseInDatacenter:       "dc1",
 				Entries:               tc.entries,
 			}
 			if tc.setup != nil {
@@ -1338,7 +1337,11 @@ func testcase_DatacenterFailover_WithMeshGateways() compileTestCase {
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			"main.default.default.dc1": newTarget("main", "", "default", "default", "dc1", nil),
+			"main.default.default.dc1": newTarget("main", "", "default", "default", "dc1", func(t *structs.DiscoveryTarget) {
+				t.MeshGateway = structs.MeshGatewayConfig{
+					Mode: structs.MeshGatewayModeRemote,
+				}
+			}),
 			"main.default.default.dc2": newTarget("main", "", "default", "default", "dc2", func(t *structs.DiscoveryTarget) {
 				t.MeshGateway = structs.MeshGatewayConfig{
 					Mode: structs.MeshGatewayModeRemote,
@@ -1469,7 +1472,11 @@ func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			"main.default.default.dc1": newTarget("main", "", "default", "default", "dc1", nil),
+			"main.default.default.dc1": newTarget("main", "", "default", "default", "dc1", func(t *structs.DiscoveryTarget) {
+				t.MeshGateway = structs.MeshGatewayConfig{
+					Mode: structs.MeshGatewayModeRemote,
+				}
+			}),
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true}
