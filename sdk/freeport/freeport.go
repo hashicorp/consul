@@ -1,5 +1,16 @@
-// Package freeport provides a helper for allocating free ports across multiple
-// processes on the same machine.
+// Package freeport provides a helper for reserving free TCP ports across multiple
+// processes on the same machine. Each process reserves a block of ports outside
+// the ephemeral port range. Tests can request one of these reserved ports
+// and freeport will ensure that no other test uses that port until it is returned
+// to freeport.
+//
+// Freeport is particularly useful when the code being tested does not accept
+// a net.Listener. Any code that accepts a net.Listener (or uses net/http/httptest.Server)
+// can use port 0 (ex: 127.0.0.1:0) to find an unused ephemeral port that will
+// not conflict.
+//
+// Any code that does not accept a net.Listener or can not bind directly to port
+// zero should use freeport to find an unused port.
 package freeport
 
 import (
@@ -259,7 +270,7 @@ func MustTake(n int) (ports []int) {
 	return ports
 }
 
-// Take returns a list of free ports from the allocated port block. It is safe
+// Take returns a list of free ports from the reserved port block. It is safe
 // to call this method concurrently. Ports have been tested to be available on
 // 127.0.0.1 TCP but there is no guarantee that they will remain free in the
 // future.
@@ -383,13 +394,18 @@ func logf(severity string, format string, a ...interface{}) {
 	fmt.Fprintf(os.Stderr, "["+severity+"] freeport: "+format+"\n", a...)
 }
 
+// TestingT is the minimal set of methods implemented by *testing.T that are
+// used by functions in freelist.
+//
+// In the future new methods may be added to this interface, but those methods
+// should always be implemented by *testing.T
 type TestingT interface {
 	Helper()
 	Fatalf(format string, args ...interface{})
 	Cleanup(func())
 }
 
-// GetN returns n free ports from the allocated port block, and returns the
+// GetN returns n free ports from the reserved port block, and returns the
 // ports to the pool when the test ends. See Take for more details.
 func GetN(t TestingT, n int) []int {
 	t.Helper()
@@ -403,7 +419,7 @@ func GetN(t TestingT, n int) []int {
 	return ports
 }
 
-// Port returns a single free port from the allocated port block, and returns the
+// Port returns a single free port from the reserved port block, and returns the
 // port to the pool when the test ends. See Take for more details.
 // Use GetN if more than a single port is required.
 func Port(t TestingT) int {
