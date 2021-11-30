@@ -261,7 +261,7 @@ func alloc() (int, net.Listener) {
 
 // MustTake is the same as Take except it panics on error.
 //
-// Deprecated: Use GetN or Port instead.
+// Deprecated: Use GetN or GetOne instead.
 func MustTake(n int) (ports []int) {
 	ports, err := Take(n)
 	if err != nil {
@@ -275,7 +275,7 @@ func MustTake(n int) (ports []int) {
 // 127.0.0.1 TCP but there is no guarantee that they will remain free in the
 // future.
 //
-// Most callers should prefer GetN or Port.
+// Most callers should prefer GetN or GetOne.
 func Take(n int) (ports []int, err error) {
 	if n <= 0 {
 		return nil, fmt.Errorf("freeport: cannot take %d ports", n)
@@ -419,10 +419,10 @@ func GetN(t TestingT, n int) []int {
 	return ports
 }
 
-// Port returns a single free port from the reserved port block, and returns the
+// GetOne returns a single free port from the reserved port block, and returns the
 // port to the pool when the test ends. See Take for more details.
 // Use GetN if more than a single port is required.
-func Port(t TestingT) int {
+func GetOne(t TestingT) int {
 	t.Helper()
 	return GetN(t, 1)[0]
 }

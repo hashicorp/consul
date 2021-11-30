@@ -717,7 +717,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 
 	t.Parallel()
 
-	port := freeport.Port(t)
+	port := freeport.GetOne(t)
 	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", port)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {

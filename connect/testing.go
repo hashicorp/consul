@@ -109,7 +109,7 @@ func NewTestServer(t testing.T, service string, ca *structs.CARoot) *TestServer 
 		CA:        ca,
 		stopChan:  make(chan struct{}),
 		TLSCfg:    TestTLSConfig(t, service, ca),
-		Addr:      fmt.Sprintf("127.0.0.1:%d", freeport.Port(t)),
+		Addr:      fmt.Sprintf("127.0.0.1:%d", freeport.GetOne(t)),
 		Listening: make(chan struct{}),
 	}
 }

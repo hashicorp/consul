@@ -74,7 +74,7 @@ func TestNewDialer_WithALPNWrapper(t *testing.T) {
 
 	// Send all of the traffic to dc2's server
 	var p tcpproxy.Proxy
-	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", freeport.Port(t))
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", freeport.GetOne(t))
 	p.AddRoute(gwAddr, tcpproxy.To(lis2.Addr().String()))
 	p.AddStopACMESearch(gwAddr)
 	require.NoError(t, p.Start())
@@ -181,7 +181,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
-	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", freeport.Port(t))
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", freeport.GetOne(t))
 
 	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)

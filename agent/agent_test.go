@@ -308,7 +308,7 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 				},
 				RuntimeConfig: &config.RuntimeConfig{
 					HTTPAddrs: []net.Addr{
-						&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: freeport.Port(t)},
+						&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: freeport.GetOne(t)},
 					},
 					HTTPMaxHeaderBytes: tt.maxHeaderBytes,
 				},
@@ -4679,7 +4679,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 
 	t.Parallel()
 
-	port := freeport.Port(t)
+	port := freeport.GetOne(t)
 	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", port)
 
 	// Due to some ordering, we'll have to manually configure these ports in

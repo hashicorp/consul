@@ -115,7 +115,7 @@ func TestPublicListener(t *testing.T) {
 	testApp := NewTestTCPServer(t)
 	defer testApp.Close()
 
-	port := freeport.Port(t)
+	port := freeport.GetOne(t)
 	cfg := PublicListenerConfig{
 		BindAddress:           "127.0.0.1",
 		BindPort:              port,
@@ -179,7 +179,7 @@ func TestUpstreamListener(t *testing.T) {
 		DestinationName:      "db",
 		Config:               map[string]interface{}{"connect_timeout_ms": 100},
 		LocalBindAddress:     "localhost",
-		LocalBindPort:        freeport.Port(t),
+		LocalBindPort:        freeport.GetOne(t),
 	}
 
 	// Setup metrics to test they are recorded
