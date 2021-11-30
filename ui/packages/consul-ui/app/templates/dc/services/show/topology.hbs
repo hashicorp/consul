@@ -29,7 +29,10 @@
       @topology={{topology}}
       @metricsHref={{render-template urls.service (hash
         Datacenter=dc.Name
-        Service=items.firstObject
+        Service=(hash
+          Name=items.firstObject.Name
+          Namespace=(or items.firstObject.Namespace '')
+        )
       )}}
       @isRemoteDC={{not dc.Local}}
       @hasMetricsProvider={{hasMetricsProvider}}
