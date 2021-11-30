@@ -151,6 +151,10 @@
             "path": "connect/config-entries/mesh"
           },
           {
+            "title": "Partition Exports",
+            "path": "connect/config-entries/partition-exports"
+          },
+          {
             "title": "Proxy Defaults",
             "path": "connect/config-entries/proxy-defaults"
           },
@@ -841,6 +845,10 @@
       {
         "title": "Overview",
         "path": "enterprise"
+      },
+      {
+        "title": "Admin Partitions <sup>BETA</sup>",
+        "path": "enterprise/admin-partitions"
       },
       {
         "title": "Audit Logging",
