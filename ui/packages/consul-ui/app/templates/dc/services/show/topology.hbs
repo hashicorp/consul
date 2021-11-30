@@ -106,11 +106,15 @@ as |route|>
         @dc={{dc.Name}}
         @service={{items.firstObject}}
         @topology={{topology}}
-
-        @metricsHref={{render-template urls.service (hash
-          Datacenter=dc.Name
-          Service=items.firstObject
-        )}}
+        @metricsHref={{render-template urls.service
+          (hash
+            Datacenter=dc.Name
+            Service=(hash
+              Name=items.firstObject.Name
+              Namespace=(or items.firstObject.Namespace '')
+            )
+          )
+        }}
         @isRemoteDC={{not dc.Local}}
         @hasMetricsProvider={{hasMetricsProvider}}
         @oncreate={{route-action 'createIntention'}}
