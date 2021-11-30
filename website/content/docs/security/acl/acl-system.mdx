@@ -212,6 +212,7 @@ injected.
 - **Initial Management Token** - When an initial management token is present within the Consul configuration, it is created
   and will be linked with the builtin Global Management policy giving it unrestricted privileges. The initial management
   token is created with the Secret ID set to the value of the configuration entry.
+  In Consul 1.4 - 1.10, this was called the `master` token. It was renamed to `initial_management` token in Consul 1.11.
 
 #### Authorization
 
@@ -300,9 +301,18 @@ system, or accessing Consul in special situations:
 
 All of these tokens except the `initial_management` token can all be introduced or updated via the [/v1/agent/token API](/api/agent#update-acl-tokens).
 
+In Consul 1.4 - 1.10, the following special tokens were known by different names:
+
+| New Name (1.11+)                                                                     | Old Name (1.4 - 1.10)                                                    |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery)         | [`acl.tokens.agent_master`](/docs/agent/options#acl_tokens_agent_master) |
+| [`acl.tokens.initial_management`](/docs/agent/options#acl_tokens_initial_management) | [`acl.tokens.master`](/docs/agent/options#acl_tokens_master)             |
+
 #### ACL Agent Recovery Token
 
 Since the [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it
+
+In Consul 1.4 - 1.10, this was called the `agent_master` token. It was renamed to `agent_recovery` token in Consul 1.11.
 
 ```hcl
 agent "<node name of agent>" {
