@@ -263,10 +263,10 @@ node "foo" {
 
 func createToken(t *testing.T, cc rpc.ClientCodec, policyRules string) string {
 	t.Helper()
-	return createTokenWithPolicyName(t, "the-policy", cc, policyRules)
+	return createTokenWithPolicyName(t, cc, "the-policy", policyRules, "root")
 }
 
-func createTokenWithPolicyName(t *testing.T, policyName string, cc rpc.ClientCodec, policyRules string) string {
+func createTokenWithPolicyName(t *testing.T, cc rpc.ClientCodec, policyName string, policyRules string, token string) string {
 	t.Helper()
 
 	reqPolicy := structs.ACLPolicySetRequest{
@@ -275,25 +275,25 @@ func createTokenWithPolicyName(t *testing.T, policyName string, cc rpc.ClientCod
 			Name:  policyName,
 			Rules: policyRules,
 		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
+		WriteRequest: structs.WriteRequest{Token: token},
 	}
 	err := msgpackrpc.CallWithCodec(cc, "ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
 	require.NoError(t, err)
 
-	token, err := uuid.GenerateUUID()
+	secretId, err := uuid.GenerateUUID()
 	require.NoError(t, err)
 
 	reqToken := structs.ACLTokenSetRequest{
 		Datacenter: "dc1",
 		ACLToken: structs.ACLToken{
-			SecretID: token,
+			SecretID: secretId,
 			Policies: []structs.ACLTokenPolicyLink{{Name: policyName}},
 		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
+		WriteRequest: structs.WriteRequest{Token: token},
 	}
 	err = msgpackrpc.CallWithCodec(cc, "ACL.TokenSet", &reqToken, &structs.ACLToken{})
 	require.NoError(t, err)
-	return token
+	return secretId
 }
 
 func TestCatalog_Register_ForwardLeader(t *testing.T) {
