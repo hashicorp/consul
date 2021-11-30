@@ -142,7 +142,8 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	var authzContext acl.AuthorizerContext
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
 	}
@@ -151,8 +152,6 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 		return err
 	}
 
-	var authzContext acl.AuthorizerContext
-	args.FillAuthzContext(&authzContext)
 	if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
@@ -236,8 +235,8 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-
-	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	var authzContext acl.AuthorizerContext
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
 	}
@@ -246,8 +245,6 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 		return err
 	}
 
-	var authzContext acl.AuthorizerContext
-	args.FillAuthzContext(&authzContext)
 	if authz.NodeRead(args.Node, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
