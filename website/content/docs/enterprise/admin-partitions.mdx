@@ -24,7 +24,7 @@ Admin partitions exist a level above namespaces in the identity hierarchy. They 
 
 Each Consul cluster will have at least one default admin partition (named `default`). Any resource created without specifying an admin partition will inherit the partition of the ACL token.
 
-The `default` admin partition is special in that it may contain namespaces and other entities that are replicated between datacenters. The `default` partition should also contain the Consul servers.  
+The `default` admin partition is special in that it may contain namespaces and other entities that are replicated between datacenters. The `default` partition must also contain the Consul servers.  
 
 -> **Preexisting resources and the `default` partition**: Admin partitions were introduced in Consul 1.11. After upgrading to Consul 1.11 or later, the `default` partition will contain all resources created in previous versions.
 
@@ -73,7 +73,7 @@ Your Consul configuration must meet the following requirements to use admin part
 * The `write` permission for `proxy-defaults` requires `mesh:write`. See [Admin Partition Rules](/docs/security/acl/acl-rules#admin-partition-rules) for additional information.
 * The `write` permissions for ingress and terminating gateways require `mesh:write` privileges.
 * Wildcards (`*`) are not supported when creating intentions for admin partitions, but you can use a wildcard to specify services within a partition.
-* With the exception of the `default` admin partition, ACL rules configured for admin partitions are isolated, so policies defined in partitions outside of the `default` partition can only reference its local partition.
+* With the exception of the `default` admin partition, ACL rules configured for admin partitions are isolated, so policies defined in partitions outside of the `default` partition can only reference their local partition.
 
 ### Agent Configurations
 
