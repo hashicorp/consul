@@ -171,14 +171,21 @@ type PrimaryProvider interface {
 }
 
 type SecondaryProvider interface {
-	// GenerateIntermediateCSR generates a CSR for an intermediate CA
-	// certificate, to be signed by the root of another datacenter. If IsPrimary was
-	// set to true with Configure(), calling this is an error.
+	// GenerateIntermediateCSR should return a CSR for an intermediate CA
+	// certificate. The intermediate CA will be signed by the primary CA and
+	// should be used by the provider to sign leaf certificates in the local
+	// datacenter.
+	//
+	// After the certificate is signed, SecondaryProvider.SetIntermediate will
+	// be called to store the intermediate CA.
 	GenerateIntermediateCSR() (string, error)
 
-	// SetIntermediate sets the provider to use the given intermediate certificate
-	// as well as the root it was signed by. This completes the initialization for
-	// a provider where IsPrimary was set to false in Configure().
+	// SetIntermediate is called to store a newly signed leaf signing certificate and
+	// the chain of certificates back to the root CA certificate.
+	//
+	// The provider should save the certificates and use them to
+	// Provider.Sign leaf certificates.
+	// TODO: document exactly how the chain is passed. probably in intermediatePEM
 	SetIntermediate(intermediatePEM, rootPEM string) error
 }
 
