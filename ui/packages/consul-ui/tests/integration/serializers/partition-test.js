@@ -16,9 +16,9 @@ module('Integration | Serializer | partition', function(hooks) {
       const expected = payload.Partitions.map(item =>
         Object.assign({}, item, {
           Datacenter: dc,
-          Namespace: '',
-          Partition: item.Name,
-          uid: `["${item.Name}","","${dc}","${item.Name}"]`,
+          Namespace: '*',
+          Partition: '*',
+          uid: `["*","*","${dc}","${item.Name}"]`,
         })
       );
       const actual = serializer.respondForQuery(

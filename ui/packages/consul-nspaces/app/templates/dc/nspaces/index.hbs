@@ -42,13 +42,6 @@ as |route|>
   as |sort filters items|}}
 
     <AppView>
-      <BlockSlot @name="notification" as |status type item error|>
-        <Consul::Nspace::Notifications
-          @type={{type}}
-          @status={{status}}
-          @error={{error}}
-        />
-      </BlockSlot>
       <BlockSlot @name="header">
         <h1>
           <route.Title @title="Namespaces" />
@@ -72,6 +65,27 @@ as |route|>
       {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
+        <DataWriter
+          @sink={{uri '/${partition}/${dc}/${nspace}/nspace/'
+            (hash
+              partition=route.params.partition
+              nspace=route.params.nspace
+              dc=route.params.dc
+            )
+          }}
+          @type="nspace"
+          @label="Namespace"
+          @ondelete={{refresh-route}}
+        as |writer|>
+          <BlockSlot @name="removed" as |after|>
+            <Consul::Nspace::Notifications 
+              {{notification
+                after=(action after)
+              }}
+              @type="remove"
+            />
+          </BlockSlot>
+          <BlockSlot @name="content">
         <DataCollection
           @type="nspace"
           @sort={{sort.value}}
@@ -82,7 +96,7 @@ as |route|>
           <collection.Collection>
             <Consul::Nspace::List
               @items={{collection.items}}
-              @ondelete={{route-action 'delete'}}
+              @ondelete={{writer.delete}}
             />
           </collection.Collection>
           <collection.Empty>
@@ -118,6 +132,8 @@ as |route|>
             </EmptyState>
           </collection.Empty>
         </DataCollection>
+    </BlockSlot>
+  </DataWriter>
       </BlockSlot>
     </AppView>
   {{/let}}

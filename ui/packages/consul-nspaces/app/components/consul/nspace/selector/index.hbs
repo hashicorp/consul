@@ -1,0 +1,74 @@
+{{#if (can "use nspaces")}}
+    {{#if (can "choose nspaces")}}
+{{#let
+  (or @nspace 'default')
+as |nspace|}}
+          <li
+            class="nspaces"
+            data-test-nspace-menu
+          >
+              <PopoverMenu
+                aria-label="Namespace"
+                @position="left"
+              as |components api|>
+                <BlockSlot @name="trigger">
+                  {{nspace}}
+                </BlockSlot>
+                <BlockSlot @name="menu">
+                  {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
+                  {{#if (gt @nspaces.length 0)}}
+                    <DataSource
+                      @src={{uri
+                      '/${partition}/*/${dc}/namespaces'
+                        (hash
+                          partition=@partition
+                          dc=@dc.Name
+                        )
+                      }}
+                      @onchange={{fn (optional @onchange)}}
+                      @loading="lazy"
+                    />
+                  {{else}}
+                    <DataSource
+                      @src={{uri
+                      '/${partition}/*/${dc}/namespaces'
+                        (hash
+                          partition=@partition
+                          dc=@dc.Name
+                        )
+                      }}
+                      @onchange={{fn (optional @onchange)}}
+                    />
+                  {{/if}}
+                  {{#each (reject-by 'DeletedAt' @nspaces) as |item|}}
+                    <MenuItem
+                      class={{if (eq nspace item.Name) 'is-active'}}
+                      @href={{href-to '.' params=(hash
+                        partition=(if (gt @partition.length 0) @partition undefined)
+                        nspace=item.Name
+                      )}}
+                    >
+                      <BlockSlot @name="label">
+                        {{item.Name}}
+                      </BlockSlot>
+                    </MenuItem>
+                  {{/each}}
+          {{#if (can 'manage nspaces')}}
+                    <MenuSeparator />
+                    <MenuItem
+                      data-test-main-nav-nspaces
+                      @href={{href-to 'dc.nspaces' @dc.Name}}
+                    >
+                      <BlockSlot @name="label">
+                        Manage Namespaces
+                      </BlockSlot>
+                    </MenuItem>
+          {{/if}}
+                  {{/let}}
+                </BlockSlot>
+              </PopoverMenu>
+          </li>
+{{/let}}
+    {{/if}}
+  {{/if}}
+

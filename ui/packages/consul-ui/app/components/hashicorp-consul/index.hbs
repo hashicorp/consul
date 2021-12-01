@@ -60,13 +60,6 @@
                 @item={{flash.item}}
                 @error={{flash.error}}
               />
-            {{else if (eq flash.model 'nspace')}}
-              <Consul::Nspace::Notifications
-                @type={{type}}
-                @status={{status}}
-                @item={{flash.item}}
-                @error={{flash.error}}
-              />
             {{/if}}
           {{/if}}
         </p>
@@ -140,60 +133,13 @@
           @partitions={{this.partitions}}
           @onchange={{action (mut this.partitions) value="data"}}
         />
-    {{#if (can "choose nspaces")}}
-          <li
-            class="nspaces"
-            data-test-nspace-menu
-          >
-              <PopoverMenu
-                aria-label="Namespace"
-                @position="left"
-              as |components api|>
-                <BlockSlot @name="trigger">
-                  {{@nspace}}
-                </BlockSlot>
-                <BlockSlot @name="menu">
-                  {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-                    <DataSource
-                      @src={{uri
-                      '/${partition}/*/${dc}/namespaces'
-                        (hash
-                          partition=@partition
-                          dc=@dc.Name
-                        )
-                      }}
-                      @onchange={{action (mut this.nspaces) value="data"}}
-                      @loading="lazy"
-                    />
-                  {{#each (reject-by 'DeletedAt' this.nspaces) as |item|}}
-                    <MenuItem
-                      class={{if (eq @nspace item.Name) 'is-active'}}
-                      @href={{href-to '.' params=(hash
-                        partition=(if (gt @partition.length 0) @partition undefined)
-                        nspace=item.Name
-                      )}}
-                    >
-                      <BlockSlot @name="label">
-                        {{item.Name}}
-                      </BlockSlot>
-                    </MenuItem>
-                  {{/each}}
-          {{#if (can 'manage nspaces')}}
-                    <MenuSeparator />
-                    <MenuItem
-                      data-test-main-nav-nspaces
-                      @href={{href-to 'dc.nspaces' @dc.Name}}
-                    >
-                      <BlockSlot @name="label">
-                        Manage Namespaces
-                      </BlockSlot>
-                    </MenuItem>
-          {{/if}}
-                  {{/let}}
-                </BlockSlot>
-              </PopoverMenu>
-          </li>
-    {{/if}}
+        <Consul::Nspace::Selector
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+          @nspaces={{this.nspaces}}
+          @onchange={{action (mut this.nspaces) value="data"}}
+        />
 {{#if (can "read services")}}
           <li data-test-main-nav-services class={{if (is-href 'dc.services' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.services' @dc.Name}}>Services</a>

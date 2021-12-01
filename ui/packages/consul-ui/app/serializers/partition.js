@@ -12,8 +12,8 @@ export default class PartitionSerializer extends Serializer {
           return cb(
             headers,
             body.Partitions.map(item => {
-              item.Partition = item.Name;
-              item.Namespace = '';
+              item.Partition = '*';
+              item.Namespace = '*';
               return item;
             })
           );

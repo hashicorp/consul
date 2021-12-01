@@ -81,6 +81,7 @@
     "clipboard": "^2.0.4",
     "consul-acls": "*",
     "consul-partitions": "*",
+    "consul-nspaces": "*",
     "css.escape": "^1.5.1",
     "d3-array": "^2.8.0",
     "d3-scale": "^3.2.3",

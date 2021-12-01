@@ -4,6 +4,8 @@ import RepositoryService, { softDelete } from 'consul-ui/services/repository';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/nspace';
 import dataSource from 'consul-ui/decorators/data-source';
 
+import { defaultChangeset as changeset } from 'consul-ui/utils/form/builder';
+
 const findActiveNspace = function(nspaces, nspace) {
   let found = nspaces.find(function(item) {
     return item.Name === nspace.Name;
@@ -24,7 +26,7 @@ const findActiveNspace = function(nspaces, nspace) {
   return found;
 };
 const modelName = 'nspace';
-export default class NspaceEnabledService extends RepositoryService {
+export default class NspaceService extends RepositoryService {
   @service('router') router;
   @service('container') container;
   @service('env') env;
@@ -68,10 +70,7 @@ export default class NspaceEnabledService extends RepositoryService {
     } else {
       item = await super.findBySlug(...arguments);
     }
-    return this.form
-      .form(this.getModelName())
-      .setData(item)
-      .getData();
+    return changeset(item);
   }
 
   remove(item) {
