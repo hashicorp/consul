@@ -9,6 +9,7 @@ message Config {
    string      PrimaryDatacenter = 2;
    string      NodeName = 3;
    string      SegmentName = 4;
+   string      Partition = 9;
    ACL         ACL = 5;
    AutoEncrypt AutoEncrypt = 6;
    Gossip      Gossip = 7;

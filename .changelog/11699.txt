@@ -1,0 +1,3 @@
+```release-note:improvement
+auto-config: ensure the feature works properly with partitions
+```

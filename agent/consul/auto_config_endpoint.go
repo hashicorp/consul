@@ -25,9 +25,14 @@ import (
 type AutoConfigOptions struct {
 	NodeName    string
 	SegmentName string
+	Partition   string
 
 	CSR      *x509.CertificateRequest
 	SpiffeID *connect.SpiffeIDAgent
+}
+
+func (opts AutoConfigOptions) PartitionOrDefault() string {
+	return structs.PartitionOrDefault(opts.Partition)
 }
 
 type AutoConfigAuthorizer interface {
@@ -57,8 +62,9 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 	}
 
 	varMap := map[string]string{
-		"node":    req.Node,
-		"segment": req.Segment,
+		"node":      req.Node,
+		"segment":   req.Segment,
+		"partition": req.PartitionOrDefault(),
 	}
 
 	for _, raw := range a.claimAssertions {
@@ -86,6 +92,7 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 	opts := AutoConfigOptions{
 		NodeName:    req.Node,
 		SegmentName: req.Segment,
+		Partition:   req.Partition,
 	}
 
 	if req.CSR != "" {
@@ -94,8 +101,12 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 			return AutoConfigOptions{}, err
 		}
 
-		if id.Agent != req.Node {
-			return AutoConfigOptions{}, fmt.Errorf("Spiffe ID agent name (%s) of the certificate signing request is not for the correct node (%s)", id.Agent, req.Node)
+		if id.Agent != req.Node || !structs.EqualPartitions(id.Partition, req.Partition) {
+			return AutoConfigOptions{},
+				fmt.Errorf("Spiffe ID agent name (%s) of the certificate signing request is not for the correct node (%s)",
+					printNodeName(id.Agent, id.Partition),
+					printNodeName(req.Node, req.Partition),
+				)
 		}
 
 		opts.CSR = csr
@@ -107,7 +118,7 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 
 type AutoConfigBackend interface {
 	CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error)
-	DatacenterJoinAddresses(segment string) ([]string, error)
+	DatacenterJoinAddresses(partition, segment string) ([]string, error)
 	ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error)
 	GetCARoots() (*structs.IndexedCARoots, error)
 	SignCertificate(csr *x509.CertificateRequest, id connect.CertURI) (*structs.IssuedCert, error)
@@ -200,7 +211,7 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautocon
 	if ac.config.ACLsEnabled {
 		// set up the token template - the ids and create
 		template := structs.ACLToken{
-			Description: fmt.Sprintf("Auto Config Token for Node %q", opts.NodeName),
+			Description: fmt.Sprintf("Auto Config Token for Node %q", printNodeName(opts.NodeName, opts.Partition)),
 			Local:       true,
 			NodeIdentities: []*structs.ACLNodeIdentity{
 				{
@@ -208,13 +219,12 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautocon
 					Datacenter: ac.config.Datacenter,
 				},
 			},
-			// TODO(partitions): support auto-config in different partitions
-			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(opts.PartitionOrDefault()),
 		}
 
 		token, err := ac.backend.CreateACLToken(&template)
 		if err != nil {
-			return fmt.Errorf("Failed to generate an ACL token for node %q - %w", opts.NodeName, err)
+			return fmt.Errorf("Failed to generate an ACL token for node %q: %w", printNodeName(opts.NodeName, opts.Partition), err)
 		}
 
 		acl.Tokens = &pbconfig.ACLTokens{Agent: token.SecretID}
@@ -227,7 +237,7 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautocon
 // updateJoinAddressesInConfig determines the correct gossip endpoints that clients should
 // be connecting to for joining the cluster based on the segment given in the opts parameter.
 func (ac *AutoConfig) updateJoinAddressesInConfig(opts AutoConfigOptions, resp *pbautoconf.AutoConfigResponse) error {
-	joinAddrs, err := ac.backend.DatacenterJoinAddresses(opts.SegmentName)
+	joinAddrs, err := ac.backend.DatacenterJoinAddresses(opts.Partition, opts.SegmentName)
 	if err != nil {
 		return err
 	}
@@ -299,6 +309,7 @@ func (ac *AutoConfig) baseConfig(opts AutoConfigOptions, resp *pbautoconf.AutoCo
 	resp.Config.PrimaryDatacenter = ac.config.PrimaryDatacenter
 	resp.Config.NodeName = opts.NodeName
 	resp.Config.SegmentName = opts.SegmentName
+	resp.Config.Partition = opts.Partition
 
 	return nil
 }
@@ -421,4 +432,11 @@ func mapstructureTranslateToProtobuf(in interface{}, out interface{}) error {
 	}
 
 	return decoder.Decode(in)
+}
+
+func printNodeName(nodeName, partition string) string {
+	if structs.IsDefaultPartition(partition) {
+		return nodeName
+	}
+	return partition + "/" + nodeName
 }

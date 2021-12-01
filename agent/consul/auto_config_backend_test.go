@@ -27,7 +27,7 @@ func TestAutoConfigBackend_DatacenterJoinAddresses(t *testing.T) {
 	}
 
 	backend := autoConfigBackend{Server: nodes.Servers[0]}
-	actual, err := backend.DatacenterJoinAddresses("")
+	actual, err := backend.DatacenterJoinAddresses("", "")
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, actual)
 }
