@@ -108,8 +108,10 @@ as |parts|}}
         @parent={{parentKey}}
       />
 
-    {{! session is slightly different to item.Session as we only have session if you have session:read perms}}
-{{#if (and item.Session (can "read sessions"))}}
+{{! `session` is slightly different to `item.Session` as we only have `session` }}
+{{! if you have `session:read perms` whereas you can get the sessions ID from }}
+{{! `item.Session` without any session perms }}
+{{#if (and item.Session)}}
       <DataSource
         @src={{uri '/${partition}/${nspace}/${dc}/sessions/for-key/${id}'
             (hash
