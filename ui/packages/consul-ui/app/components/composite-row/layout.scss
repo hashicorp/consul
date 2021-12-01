@@ -7,11 +7,6 @@
     'header actions'
     'detail actions';
 }
-%with-one-action-row {
-  @extend %composite-row;
-  grid-template-columns: 1fr auto;
-  padding-right: 12px;
-}
 %composite-row-header {
   grid-area: header;
   align-self: start;

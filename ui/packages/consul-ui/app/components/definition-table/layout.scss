@@ -2,6 +2,8 @@
   display: grid;
   grid-template-columns: 140px auto;
   grid-gap: 0.4em 20px;
+}
+%definition-table > dl {
   margin-bottom: 1.4em;
 }
 %definition-table dd > * {

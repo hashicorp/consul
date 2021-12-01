@@ -39,11 +39,17 @@ as |parentKey|}}
 as |dc partition nspace item|}}
 
   <AppView>
+
     <BlockSlot @name="breadcrumbs">
       <ol>
-          <li>
-            <a data-test-back href={{href-to 'dc.kv.index'}}>Key / Values</a>
-          </li>
+        <li>
+          <Action
+            data-test-back
+            @href={{href-to 'dc.kv.index'}}
+          >
+            Key / Values
+          </Action>
+        </li>
 {{#if (not-eq parentKey separator)}}
 
 {{#let
@@ -56,8 +62,8 @@ as |parts|}}
         {{! to make the correct href. 'Enough' is the current index plus 1.}}
         {{! We push on a '' here so make sure we get a trailing slash/separator }}
           <li>
-            <a
-              href={{href-to 'dc.kv.folder'
+            <Action
+              @href={{href-to 'dc.kv.folder'
                   (join '/'
                     (append
                       (slice 0 (add index 1) parts) ''
@@ -66,7 +72,7 @@ as |parts|}}
               }}
             >
               {{breadcrumb}}
-            </a>
+            </Action>
           </li>
       {{/if}}
     {{/each}}
@@ -75,18 +81,21 @@ as |parts|}}
 {{/if}}
       </ol>
     </BlockSlot>
+
     <BlockSlot @name="header">
         <h1>
-  {{#if (and item.Key (not-eq item.Key parentKey))}}
+{{#if (and item.Key (not-eq item.Key parentKey))}}
           <route.Title @title="Edit Key / Value" @render={{false}} />
           {{left-trim item.Key parentKey}}
-  {{else}}
+{{else}}
           <route.Title @title="New Key / Value" @render={{true}} />
-  {{/if}}
+{{/if}}
         </h1>
     </BlockSlot>
+
     <BlockSlot @name="content">
-    {{! if a KV has a session `Session` will always be populated despite any specific session permissions }}
+
+{{! if a KV has a session `Session` will always be populated despite any specific session permissions }}
 {{#if item.Session}}
       <Notice
         @type="warning"
@@ -99,6 +108,7 @@ as |parts|}}
         </notice.Body>
       </Notice>
 {{/if}}
+
       <Consul::Kv::Form
         @item={{item}}
         @dc={{route.params.dc}}
@@ -107,6 +117,7 @@ as |parts|}}
         @onsubmit={{if (eq parentKey separator) (transition-to 'dc.kv.index') (transition-to 'dc.kv.folder' parentKey)}}
         @parent={{parentKey}}
       />
+
 
 {{! `session` is slightly different to `item.Session` as we only have `session` }}
 {{! if you have `session:read perms` whereas you can get the sessions ID from }}
@@ -123,17 +134,21 @@ as |parts|}}
         }}
         @onchange={{action (mut session) value="data"}}
       />
-  {{#if session}}
-      {{!FIXME}}
+      <h2>
+        <Action
+          rel="help"
+          @href={{concat (env 'CONSUL_DOCS_URL') '/internals/sessions.html#session-design'}}
+          @external={{true}}
+        >
+          Lock Session
+        </Action>
+      </h2>
+  {{#if session.ID}}
       <Consul::LockSession::Form
         @item={{session}}
-        @dc={{route.params.dc}}
-        @nspace={{route.params.nspace}}
-        @partition={{route.params.partition}}
-        @onsubmit={{action (noop) undefined}}
+        @ondelete={{loader.invalidate}}
       />
   {{/if}}
-
 {{/if}}
 
     </BlockSlot>

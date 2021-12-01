@@ -11,6 +11,9 @@ fieldset > header,
 %form-element > span {
   @extend %h400;
 }
+%definition-table dt {
+  line-height: var(--typo-lead-700);
+}
 %internal-button,
 %breadcrumbs li > *,
 %tab-nav {

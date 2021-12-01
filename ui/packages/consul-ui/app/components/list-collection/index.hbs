@@ -22,7 +22,7 @@
       <li
         data-test-list-row
         onclick={{action 'click'}} style={{{cell.style}}}
-        class={{if (not linkable) 'linkable' (if (is linkable item=cell.item) 'linkable')}}
+        class={{if linkable (if (is linkable item=cell.item) 'linkable')}}
       >
         <YieldSlot @name="header"><div class="header">{{yield cell.item cell.index}}</div></YieldSlot>
         <YieldSlot @name="details"><div class="detail">{{yield cell.item cell.index}}</div></YieldSlot>
