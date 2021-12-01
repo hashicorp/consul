@@ -96,13 +96,15 @@ export default class DataSourceService extends Service {
     if (!(uri instanceof URI) && typeof uri !== 'string') {
       return this.unwrap(uri, ref);
     }
-    runInDebug(
-      _ => {
-        if(!(uri instanceof URI)) {
-          console.error(new Error(`DataSource '${uri}' does not use the uri helper. Please ensure you use the uri helper to ensure correct encoding`))
-        }
+    runInDebug(_ => {
+      if (!(uri instanceof URI)) {
+        console.error(
+          new Error(
+            `DataSource '${uri}' does not use the uri helper. Please ensure you use the uri helper to ensure correct encoding`
+          )
+        );
       }
-    );
+    });
     uri = uri.toString();
     let source;
     // Check the cache for an EventSource that is already being used
@@ -130,7 +132,11 @@ export default class DataSourceService extends Service {
           const event = source.getCurrentEvent();
           const cursor = source.configuration.cursor;
           // only cache data if we have any
-          if (typeof event !== 'undefined' && typeof cursor !== 'undefined') {
+          if (
+            typeof event !== 'undefined' &&
+            typeof cursor !== 'undefined' &&
+            e.errors && e.errors[0].status !== '401'
+          ) {
             cache.set(uri, {
               currentEvent: event,
               cursor: cursor,
