@@ -12,10 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul/lib/decode"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -220,19 +221,14 @@ func (v *VaultProvider) State() (map[string]string, error) {
 	return nil, nil
 }
 
-// ActiveRoot returns the active root CA certificate.
-func (v *VaultProvider) ActiveRoot() (string, error) {
-	return v.getCA(v.config.RootPKIPath)
-}
-
 // GenerateRoot mounts and initializes a new root PKI backend if needed.
-func (v *VaultProvider) GenerateRoot() error {
+func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 	if !v.isPrimary {
-		return fmt.Errorf("provider is not the root certificate authority")
+		return RootResult{}, fmt.Errorf("provider is not the root certificate authority")
 	}
 
 	// Set up the root PKI backend if necessary.
-	rootPEM, err := v.ActiveRoot()
+	rootPEM, err := v.getCA(v.config.RootPKIPath)
 	switch err {
 	case ErrBackendNotMounted:
 		err := v.client.Sys().Mount(v.config.RootPKIPath, &vaultapi.MountInput{
@@ -247,14 +243,14 @@ func (v *VaultProvider) GenerateRoot() error {
 			},
 		})
 		if err != nil {
-			return err
+			return RootResult{}, err
 		}
 
 		fallthrough
 	case ErrBackendNotInitialized:
 		uid, err := connect.CompactUID()
 		if err != nil {
-			return err
+			return RootResult{}, err
 		}
 		_, err = v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
@@ -263,17 +259,25 @@ func (v *VaultProvider) GenerateRoot() error {
 			"key_bits":    v.config.PrivateKeyBits,
 		})
 		if err != nil {
-			return err
+			return RootResult{}, err
 		}
+
+		// retrieve the newly generated cert so that we can return it
+		// TODO: is this already available from the Local().Write() above?
+		rootPEM, err = v.getCA(v.config.RootPKIPath)
+		if err != nil {
+			return RootResult{}, err
+		}
+
 	default:
 		if err != nil {
-			return err
+			return RootResult{}, err
 		}
 
 		if rootPEM != "" {
 			rootCert, err := connect.ParseCert(rootPEM)
 			if err != nil {
-				return err
+				return RootResult{}, err
 			}
 
 			// Vault PKI doesn't allow in-place cert/key regeneration. That
@@ -285,18 +289,18 @@ func (v *VaultProvider) GenerateRoot() error {
 			// ForceWithoutCrossSigning option when changing key types.
 			foundKeyType, foundKeyBits, err := connect.KeyInfoFromCert(rootCert)
 			if err != nil {
-				return err
+				return RootResult{}, err
 			}
 			if v.config.PrivateKeyType != foundKeyType {
-				return fmt.Errorf("cannot update the PrivateKeyType field without choosing a new PKI mount for the root CA")
+				return RootResult{}, fmt.Errorf("cannot update the PrivateKeyType field without choosing a new PKI mount for the root CA")
 			}
 			if v.config.PrivateKeyBits != foundKeyBits {
-				return fmt.Errorf("cannot update the PrivateKeyBits field without choosing a new PKI mount for the root CA")
+				return RootResult{}, fmt.Errorf("cannot update the PrivateKeyBits field without choosing a new PKI mount for the root CA")
 			}
 		}
 	}
 
-	return nil
+	return RootResult{PEM: rootPEM}, nil
 }
 
 // GenerateIntermediateCSR creates a private key and generates a CSR
@@ -574,7 +578,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
 // back to our active root.
 func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
-	rootPEM, err := v.ActiveRoot()
+	rootPEM, err := v.getCA(v.config.RootPKIPath)
 	if err != nil {
 		return "", err
 	}

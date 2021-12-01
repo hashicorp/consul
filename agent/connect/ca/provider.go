@@ -129,14 +129,7 @@ type PrimaryProvider interface {
 	//
 	// The provider should return an existing root certificate if one exists,
 	// otherwise it should generate a new root certificate and return it.
-	GenerateRoot() error
-
-	// ActiveRoot returns the currently active root CA for this
-	// provider. This should be a parent of the certificate returned by
-	// ActiveIntermediate()
-	//
-	// TODO: currently called from secondaries, but shouldn't be so is on PrimaryProvider
-	ActiveRoot() (string, error)
+	GenerateRoot() (RootResult, error)
 
 	// GenerateIntermediate returns a new intermediate signing cert and sets it to
 	// the active intermediate. If multiple intermediates are needed to complete
@@ -187,6 +180,14 @@ type SecondaryProvider interface {
 	// as well as the root it was signed by. This completes the initialization for
 	// a provider where IsPrimary was set to false in Configure().
 	SetIntermediate(intermediatePEM, rootPEM string) error
+}
+
+// RootResult is the result returned by PrimaryProvider.GenerateRoot.
+//
+// TODO: rename this struct
+type RootResult struct {
+	// PEM encoded certificate that will be used as the primary CA.
+	PEM string
 }
 
 // NeedsStop is an optional interface that allows a CA to define a function
