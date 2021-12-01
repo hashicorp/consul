@@ -742,14 +742,23 @@ type ACL struct {
 }
 
 type Tokens struct {
-	Master      *string `mapstructure:"master"`
-	Replication *string `mapstructure:"replication"`
-	AgentMaster *string `mapstructure:"agent_master"`
-	Default     *string `mapstructure:"default"`
-	Agent       *string `mapstructure:"agent"`
+	InitialManagement *string `mapstructure:"initial_management"`
+	Replication       *string `mapstructure:"replication"`
+	AgentRecovery     *string `mapstructure:"agent_recovery"`
+	Default           *string `mapstructure:"default"`
+	Agent             *string `mapstructure:"agent"`
 
 	// Enterprise Only
 	ManagedServiceProvider []ServiceProviderToken `mapstructure:"managed_service_provider"`
+
+	DeprecatedTokens `mapstructure:",squash"`
+}
+
+type DeprecatedTokens struct {
+	// DEPRECATED (ACL) - renamed to "initial_management"
+	Master *string `mapstructure:"master"`
+	// DEPRECATED (ACL) - renamed to "agent_recovery"
+	AgentMaster *string `mapstructure:"agent_master"`
 }
 
 // ServiceProviderToken groups an accessor and secret for a service provider token. Enterprise Only

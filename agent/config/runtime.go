@@ -77,7 +77,7 @@ type RuntimeConfig struct {
 	// on the servers in the PrimaryDatacenter. When the leader comes online, it ensures
 	// that the Master token is available. This provides the initial token.
 	//
-	// hcl: acl.tokens.master = string
+	// hcl: acl.tokens.initial_management = string
 	ACLMasterToken string
 
 	// ACLtokenReplication is used to indicate that both tokens and policies

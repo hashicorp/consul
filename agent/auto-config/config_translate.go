@@ -65,12 +65,14 @@ func translateConfig(c *pbconfig.Config) config.Config {
 			}
 
 			result.ACL.Tokens = config.Tokens{
-				Master:                 stringPtrOrNil(t.Master),
 				Replication:            stringPtrOrNil(t.Replication),
-				AgentMaster:            stringPtrOrNil(t.AgentMaster),
 				Default:                stringPtrOrNil(t.Default),
 				Agent:                  stringPtrOrNil(t.Agent),
 				ManagedServiceProvider: tokens,
+				DeprecatedTokens: config.DeprecatedTokens{
+					Master:      stringPtrOrNil(t.Master),
+					AgentMaster: stringPtrOrNil(t.AgentMaster),
+				},
 			}
 		}
 	}

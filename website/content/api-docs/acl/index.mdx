@@ -16,7 +16,7 @@ the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-s
 ## Bootstrap ACLs
 
 This endpoint does a special one-time bootstrap of the ACL system, making the first
-management token if the [`acl.tokens.master`](/docs/agent/options#acl_tokens_master)
+management token if the [`acl.tokens.initial_management`](/docs/agent/options#acl_tokens_initial_management)
 configuration entry is not specified in the Consul server configuration and if the
 cluster has not been bootstrapped previously. This is available in Consul 0.9.1 and later,
 and requires all Consul servers to be upgraded in order to operate.

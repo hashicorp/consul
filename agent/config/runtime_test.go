@@ -5343,7 +5343,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			DataDir:             dataDir,
 			ACLDefaultToken:     "418fdff1",
 			ACLAgentToken:       "bed2377c",
-			ACLAgentMasterToken: "64fd0e08",
+			ACLAgentMasterToken: "1dba6aba",
 			ACLReplicationToken: "5795983a",
 		},
 
@@ -5361,7 +5361,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			ACLRoleTTL:       9876 * time.Second,
 		},
 		ACLEnableKeyListPolicy:           true,
-		ACLMasterToken:                   "8a19ac27",
+		ACLMasterToken:                   "3820e09a",
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
 		AdvertiseAddrWAN:                 ipAddr("78.63.37.19"),
@@ -6020,10 +6020,12 @@ func TestLoad_FullConfig(t *testing.T) {
 
 	expectedWarns := []string{
 		deprecationWarning("acl_datacenter", "primary_datacenter"),
-		deprecationWarning("acl_agent_master_token", "acl.tokens.agent_master"),
+		deprecationWarning("acl_agent_master_token", "acl.tokens.agent_recovery"),
+		deprecationWarning("acl.tokens.agent_master", "acl.tokens.agent_recovery"),
 		deprecationWarning("acl_agent_token", "acl.tokens.agent"),
 		deprecationWarning("acl_token", "acl.tokens.default"),
-		deprecationWarning("acl_master_token", "acl.tokens.master"),
+		deprecationWarning("acl_master_token", "acl.tokens.initial_management"),
+		deprecationWarning("acl.tokens.master", "acl.tokens.initial_management"),
 		deprecationWarning("acl_replication_token", "acl.tokens.replication"),
 		deprecationWarning("enable_acl_replication", "acl.enable_token_replication"),
 		deprecationWarning("acl_default_policy", "acl.default_policy"),

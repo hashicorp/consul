@@ -861,7 +861,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		},
 
 		ACLEnableKeyListPolicy: boolVal(c.ACL.EnableKeyListPolicy),
-		ACLMasterToken:         stringVal(c.ACL.Tokens.Master),
+		ACLMasterToken:         stringVal(c.ACL.Tokens.InitialManagement),
 
 		ACLTokenReplication: boolVal(c.ACL.TokenReplication),
 
@@ -870,7 +870,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			EnablePersistence:   boolValWithDefault(c.ACL.EnableTokenPersistence, false),
 			ACLDefaultToken:     stringVal(c.ACL.Tokens.Default),
 			ACLAgentToken:       stringVal(c.ACL.Tokens.Agent),
-			ACLAgentMasterToken: stringVal(c.ACL.Tokens.AgentMaster),
+			ACLAgentMasterToken: stringVal(c.ACL.Tokens.AgentRecovery),
 			ACLReplicationToken: stringVal(c.ACL.Tokens.Replication),
 		},
 
