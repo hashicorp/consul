@@ -863,7 +863,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 								Address: "9.9.9.9",
 								Port:    9090,
 								TaggedAddresses: map[string]structs.ServiceAddress{
-									"virtual": {Address: "10.0.0.1"},
+									"virtual":                      {Address: "10.0.0.1"},
+									structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
 								},
 							},
 						},
