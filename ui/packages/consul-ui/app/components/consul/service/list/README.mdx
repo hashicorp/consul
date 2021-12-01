@@ -1,0 +1,28 @@
+# Consul::Service::List
+
+A presentational component for rendering a list of Consul Services.
+
+```hbs preview-template
+<DataSource
+  @src={{uri "/partition/default/dc-1/gateways/for-service/service-name"}} as |source|>
+    <Consul::Service::List
+      @items={{source.data}}
+      @nspace={{'nspace'}}
+      @partition={{'partition'}}
+    />
+</DataSource>
+```
+
+## Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `items` | `array` |  | An array of Consul Services |
+| `nspace` | `string` | | The name of the current namespace |
+| `partition` | `string` | | The name of the current partition |
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

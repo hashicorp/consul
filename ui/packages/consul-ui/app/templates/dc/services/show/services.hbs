@@ -69,7 +69,8 @@ as |route|>
       as |collection|>
         <collection.Collection>
           <Consul::Service::List
-            @nspace={{nspace}}
+            @nspace={{route.params.nspace}}
+            @partition={{route.params.partition}}
             @items={{collection.items}}
           >
           </Consul::Service::List>
