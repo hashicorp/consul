@@ -301,7 +301,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 		return nil, fmt.Errorf("ACL Resolver must be initialized with a config")
 	}
 	if config.Backend == nil {
-		return nil, fmt.Errorf("ACL Resolver must be initialized with a valid delegate")
+		return nil, fmt.Errorf("ACL Resolver must be initialized with a valid backend")
 	}
 
 	if config.Logger == nil {
