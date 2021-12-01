@@ -2151,7 +2151,7 @@ func TestACL_Authorize(t *testing.T) {
 		false, // agent:write
 		false, // event:read
 		false, // event:write
-		true,  // intention:read
+		true,  // intentions:read
 		false, // intention:write
 		false, // key:read
 		false, // key:list

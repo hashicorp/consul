@@ -605,10 +605,10 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 	}
 
 	var authzContext acl.AuthorizerContext
-	// Go through each entry to ensure we have intention:read for the resource.
+	// Go through each entry to ensure we have intentions:read for the resource.
 
 	// TODO - should we do this instead of filtering the result set? This will only allow
-	// queries for which the token has intention:read permissions on the requested side
+	// queries for which the token has intentions:read permissions on the requested side
 	// of the service. Should it instead return all matches that it would be able to list.
 	// if so we should remove this and call filterACL instead. Based on how this is used
 	// its probably fine. If you have intention read on the source just do a source type
