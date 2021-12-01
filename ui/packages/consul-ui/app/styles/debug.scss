@@ -31,24 +31,24 @@
   @extend %p3;
   text-align: center;
 }
-[id^="docfy-demo-preview-color"] ul,
-[id^="docfy-demo-preview-typography"] ul,
-[id^="docfy-demo-preview-icons"] ul {
+[id^='docfy-demo-preview-color'] ul,
+[id^='docfy-demo-preview-typography'] ul,
+[id^='docfy-demo-preview-icons'] ul {
   @extend %debug-grid;
 }
 
-[id^="docfy-demo-preview-typography"] figure,
-[id^="docfy-demo-preview-icons"] figure {
+[id^='docfy-demo-preview-typography'] figure,
+[id^='docfy-demo-preview-icons'] figure {
   border: var(--decor-border-100);
   border-color: rgb(var(--tone-gray-300));
   height: 80px;
 }
-[id^="docfy-demo-preview-icons"] figure::before {
+[id^='docfy-demo-preview-icons'] figure::before {
   position: relative;
   top: 20px;
 }
 
-[id^="docfy-demo-preview-color"] figure {
+[id^='docfy-demo-preview-color'] figure {
   height: 40px;
 }
 #docfy-demo-preview-color0 {
@@ -60,7 +60,7 @@
   @extend %theme-dark;
 }
 
-[id^="docfy-demo-preview-typography"] {
+[id^='docfy-demo-preview-typography'] {
   .debug-h000 {
     @extend %h000;
   }
@@ -247,6 +247,9 @@ html.with-route-announcer .route-title {
       }
       figcaption code {
         @extend %inline-code;
+      }
+      pre code {
+        @extend %block-code;
       }
       figure > [type='text'] {
         border: 1px solid rgb(var(--tone-gray-999));

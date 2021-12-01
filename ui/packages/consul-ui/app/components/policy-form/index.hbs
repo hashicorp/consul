@@ -47,12 +47,11 @@
           <:label>
             Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
           </:label>
-          <:content>
-            <Consul::ServiceIdentity::Template
+          <:content><Consul::ServiceIdentity::Template
               @nspace={{nspace}}
+              @partition={{partition}}
               @name={{item.Name}}
-            />
-          </:content>
+            /></:content>
         </CodeEditor>
 {{else if (eq item.template 'node-identity')}}
         <CodeEditor
@@ -64,11 +63,10 @@
           <:label>
             Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
           </:label>
-          <:content>
-            <Consul::NodeIdentity::Template
+          <:content><Consul::NodeIdentity::Template
               @name={{item.Name}}
-            />
-          </:content>
+              @partition={{partition}}
+            /></:content>
         </CodeEditor>
 {{else}}
         <CodeEditor

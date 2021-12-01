@@ -1,5 +1,38 @@
-{{#if (env "CONSUL_NSPACES_ENABLED")}}
-namespace "{{@nspace}}" {
+{{#if (can "use partitions")}}
+partition "{{or @partition 'default'}}" {
+  {{#if (can 'use nspaces')}}
+  namespace "{{or @nspace 'default'}}" {
+    service "{{@name}}" {
+	    policy = "write"
+    }
+    service "{{@name}}-sidecar-proxy" {
+	    policy = "write"
+    }
+    service_prefix "" {
+	    policy = "read"
+    }
+    node_prefix "" {
+	    policy = "read"
+    }
+  }
+  {{else}}
+  service "{{@name}}" {
+	  policy = "write"
+  }
+  service "{{@name}}-sidecar-proxy" {
+	  policy = "write"
+  }
+  service_prefix "" {
+	  policy = "read"
+  }
+  node_prefix "" {
+	  policy = "read"
+  }
+  {{/if}}
+}
+{{else}}
+{{#if (can 'use nspaces')}}
+namespace "{{or @nspace 'default'}}" {
   service "{{@name}}" {
 	  policy = "write"
   }
@@ -26,4 +59,5 @@ service_prefix "" {
 node_prefix "" {
 	policy = "read"
 }
+{{/if}}
 {{/if}}
