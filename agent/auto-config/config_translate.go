@@ -26,9 +26,12 @@ func translateConfig(c *pbconfig.Config) config.Config {
 		Datacenter:        stringPtrOrNil(c.Datacenter),
 		PrimaryDatacenter: stringPtrOrNil(c.PrimaryDatacenter),
 		NodeName:          stringPtrOrNil(c.NodeName),
-		// only output the SegmentName in the configuration if its non-empty
+		// only output the SegmentName in the configuration if it's non-empty
 		// this will avoid a warning later when parsing the persisted configuration
 		SegmentName: stringPtrOrNil(c.SegmentName),
+		// only output the Partition in the configuration if it's non-empty
+		// this will avoid a warning later when parsing the persisted configuration
+		Partition: stringPtrOrNil(c.Partition),
 	}
 
 	if a := c.AutoEncrypt; a != nil {

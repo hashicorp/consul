@@ -2374,8 +2374,9 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	// create a blank identity for use to validate the claim assertions.
 	blankID := validator.NewIdentity()
 	varMap := map[string]string{
-		"node":    "fake",
-		"segment": "fake",
+		"node":      "fake",
+		"segment":   "fake",
+		"partition": "fake",
 	}
 
 	// validate all the claim assertions

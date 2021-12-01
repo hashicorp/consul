@@ -5117,6 +5117,9 @@ func TestAutoConfig_Integration(t *testing.T) {
 	// verify_incoming config on the server would not let it work.
 	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
 
+	// spot check that we now have an ACL token
+	require.NotEmpty(t, client.tokens.AgentToken())
+
 	// grab the existing cert
 	cert1 := client.Agent.tlsConfigurator.Cert()
 	require.NotNil(t, cert1)
@@ -5159,9 +5162,6 @@ func TestAutoConfig_Integration(t *testing.T) {
 		require.NoError(r, err)
 		require.Equal(r, client.Agent.tlsConfigurator.Cert(), &actual)
 	})
-
-	// spot check that we now have an ACL token
-	require.NotEmpty(t, client.tokens.AgentToken())
 }
 
 func TestAgent_AutoEncrypt(t *testing.T) {
@@ -5350,4 +5350,11 @@ func uniqueAddrs(srvs []apiServer) map[string]struct{} {
 		result[s.Addr.String()] = struct{}{}
 	}
 	return result
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
 }
