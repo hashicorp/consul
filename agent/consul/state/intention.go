@@ -995,19 +995,6 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 		maxIdx = index
 	}
 
-	// Check for a wildcard intention (* -> *) since it overrides the default decision from ACLs
-	if len(intentions) > 0 {
-		// Intentions with wildcard source and destination have the lowest precedence, so they are last in the list
-		ixn := intentions[len(intentions)-1]
-
-		if ixn.HasWildcardSource() && ixn.HasWildcardDestination() {
-			defaultDecision = acl.Allow
-			if ixn.Action == structs.IntentionActionDeny {
-				defaultDecision = acl.Deny
-			}
-		}
-	}
-
 	index, allServices, err := serviceListTxn(tx, ws, func(svc *structs.ServiceNode) bool {
 		// Only include ingress gateways as downstreams, since they cannot receive service mesh traffic
 		// TODO(freddy): One remaining issue is that this includes non-Connect services (typical services without a proxy)
