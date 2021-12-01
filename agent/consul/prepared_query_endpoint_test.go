@@ -1430,13 +1430,13 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	testrpc.WaitForLeader(t, s1.RPC, "dc2", testrpc.WithToken("root"))
 
-	execNoNodesToken := createTokenWithPolicyName(t, "no-nodes", codec1, `service_prefix "foo" { policy = "read" }`)
+	execNoNodesToken := createTokenWithPolicyName(t, codec1, "no-nodes", `service_prefix "foo" { policy = "read" }`, "root")
 	rules := `
 		service_prefix "foo" { policy = "read" }
 		node_prefix "" { policy = "read" }
 	`
-	execToken := createTokenWithPolicyName(t, "with-read", codec1, rules)
-	denyToken := createTokenWithPolicyName(t, "with-deny", codec1, `service_prefix "foo" { policy = "deny" }`)
+	execToken := createTokenWithPolicyName(t, codec1, "with-read", rules, "root")
+	denyToken := createTokenWithPolicyName(t, codec1, "with-deny", `service_prefix "foo" { policy = "deny" }`, "root")
 
 	newSessionDC1 := func(t *testing.T) string {
 		t.Helper()

@@ -53,6 +53,11 @@ func (m *mockCAServerDelegate) State() *state.Store {
 	return m.store
 }
 
+func (m *mockCAServerDelegate) ProviderState(id string) (*structs.CAConsulProviderState, error) {
+	_, s, err := m.store.CAProviderState(id)
+	return s, err
+}
+
 func (m *mockCAServerDelegate) IsLeader() bool {
 	return true
 }

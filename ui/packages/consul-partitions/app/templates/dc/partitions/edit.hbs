@@ -27,27 +27,23 @@ as |route|>
   route.params.nspace
 
   loader.data
-  loader.data.isNew
-as |dc partition nspace item create|}}
+as |dc partition nspace item|}}
   <AppView>
-    <BlockSlot @name="notification" as |status type item error|>
-      <Consul::Partition::Notifications
-        @type={{type}}
-        @status={{status}}
-        @error={{error}}
-      />
-    </BlockSlot>
     <BlockSlot @name="breadcrumbs">
       <ol>
-          <li><a data-test-back href={{href-to 'dc.partitions'}}>All Partitions</a></li>
+          <li><a data-test-back href={{href-to 'dc.partitions'}}>All Admin Partitions</a></li>
       </ol>
     </BlockSlot>
     <BlockSlot @name="header">
       <h1>
-        <route.Title @title={{if create "New Partition" (concat "Edit " item.Name)}} />
+        <route.Title
+          @title={{if 
+            (is "new partition" item=item)
+              "New Admin Partition"
+              (concat "Edit " item.Name)
+          }}
+        />
       </h1>
-    </BlockSlot>
-    <BlockSlot @name="actions">
     </BlockSlot>
     <BlockSlot @name="content">
 
@@ -58,7 +54,6 @@ as |dc partition nspace item create|}}
         @partition={{route.params.partition}}
         @onsubmit={{transition-to 'dc.partitions.index'}}
       />
-
 
     </BlockSlot>
   </AppView>

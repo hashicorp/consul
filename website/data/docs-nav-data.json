@@ -151,6 +151,10 @@
             "path": "connect/config-entries/mesh"
           },
           {
+            "title": "Partition Exports",
+            "path": "connect/config-entries/partition-exports"
+          },
+          {
             "title": "Proxy Defaults",
             "path": "connect/config-entries/proxy-defaults"
           },

@@ -30,13 +30,6 @@ as |route|>
   loader.data.isNew
 as |dc partition nspace item create|}}
   <AppView>
-    <BlockSlot @name="notification" as |status type item error|>
-      <Consul::Nspace::Notifications
-        @type={{type}}
-        @status={{status}}
-        @error={{error}}
-      />
-    </BlockSlot>
     <BlockSlot @name="breadcrumbs">
       <ol>
           <li><a data-test-back href={{href-to 'dc.nspaces'}}>All Namespaces</a></li>
@@ -50,7 +43,13 @@ as |dc partition nspace item create|}}
     <BlockSlot @name="actions">
     </BlockSlot>
     <BlockSlot @name="content">
-      {{ partial 'dc/nspaces/form'}}
+      <Consul::Nspace::Form
+        @item={{item}}
+        @dc={{route.params.dc}}
+        @nspace={{route.params.nspace}}
+        @partition={{route.params.partition}}
+        @onsubmit={{transition-to 'dc.nspaces.index'}}
+      />
     </BlockSlot>
   </AppView>
 {{/let}}

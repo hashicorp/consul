@@ -13,7 +13,7 @@ export default class NspaceSerializer extends Serializer {
           cb(
             headers,
             body.map(function(item) {
-              item.Namespace = item.Name;
+              item.Namespace = '*';
               item.Datacenter = query.dc;
               if (get(item, 'ACLs.PolicyDefaults')) {
                 item.ACLs.PolicyDefaults = item.ACLs.PolicyDefaults.map(function(item) {
@@ -45,7 +45,7 @@ export default class NspaceSerializer extends Serializer {
       cb =>
         respond((headers, body) => {
           body.Datacenter = serialized.dc;
-          body.Namespace = body.Name;
+          body.Namespace = '*';
           return cb(headers, body);
         }),
       serialized,
@@ -58,7 +58,7 @@ export default class NspaceSerializer extends Serializer {
       cb =>
         respond((headers, body) => {
           body.Datacenter = serialized.dc;
-          body.Namespace = body.Name;
+          body.Namespace = '*';
           return cb(headers, body);
         }),
       serialized,

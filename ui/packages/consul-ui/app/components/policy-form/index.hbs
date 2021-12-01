@@ -105,6 +105,8 @@
       </PowerSelect>
     </label>
 {{else}}
+{{! only show Valid Datacenters for the default partition }}
+{{#if (eq (or partition 'default') 'default')}}
     <div class="type-toggle">
       <span>Valid datacenters</span>
       <label>
@@ -112,6 +114,7 @@
         <span>All</span>
       </label>
     </div>
+{{/if}}
   {{#if isScoped }}
     <DataSource
       @src={{uri '/*/*/*/datacenters'}}

@@ -12,14 +12,24 @@
         )
       }}
       @type={{'partition'}}
-      @label={{label}}
+      @label={{'Admin Partition'}}
       @ondelete={{fn (if @ondelete @ondelete @onsubmit) @item}}
       @onchange={{fn (optional @onsubmit) @item}}
       as |writer|>
+    <BlockSlot @name="removed" as |after|>
+      <Consul::Partition::Notifications 
+        {{notification
+          after=(action after)
+        }}
+        @type="remove"
+      />
+    </BlockSlot>
 
     <BlockSlot @name="content">
 
 {{#let 
+  
+  (not (can "write partition"))
 
   @item
 
@@ -37,19 +47,18 @@
     Description=(array)
   )
 
-as |item Name Description|}}
-
+as |readOnly item Name Description|}}
 <form
   {{on 'submit' (fn writer.persist item)}}
-  {{disabled (not (can "write partition" item=item))}}
+  {{disabled readOnly}}
 >
 
 <StateChart 
   @src={{state-chart 'validate'}}
-as |State Guard Action dispatch state|>
+as |State Guard ChartAction dispatch state|>
 
   <fieldset>
-    {{#if (is "new partition" item=item)}}
+{{#if (is "new partition" item=item)}}
     <TextInput
       @name="Name"
       @placeholder="Name"
@@ -76,34 +85,33 @@ as |State Guard Action dispatch state|>
 
   <div>
 {{#if (and (is "new partition" item=item) (can "create partitions")) }}
-      <button
-        type="submit"
+      <Action
+        @type="submit"
         {{disabled (or (is "pristine partition" item=item) (state-matches state "error"))}}
       >
         Save
-      </button>
-{{else if (can "write partition" item=item)}}
-      <button type="submit">Save</button>
+      </Action>
+{{else if (not readOnly)}}
+      <Action @type="submit">Save</Action>
 {{/if}}
 
-      <button
-        type="reset"
+      <Action
+        @type="reset"
         {{on 'click' (if @oncancel (fn @oncancel item) (fn @onsubmit item))}}
       >
         Cancel
-      </button>
+      </Action>
 
 {{#if (and (not (is "new partition" item=item)) (can "delete partition" item=item))}}
       <ConfirmationDialog @message="Are you sure you want to delete this Partition?">
         <BlockSlot @name="action" as |confirm|>
-          <button
+          <Action
             data-test-delete
-            type="button"
             class="type-delete"
             {{on 'click' (fn confirm (fn writer.delete item))}}
           >
             Delete
-          </button>
+          </Action>
         </BlockSlot>
         <BlockSlot @name="dialog" as |execute cancel message|>
           <DeleteConfirmation

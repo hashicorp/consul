@@ -15,7 +15,7 @@ const hbs = (path, attrs = {}) =>
 const BrandLoader = attrs => hbs('brand-loader/index.hbs', attrs);
 const Enterprise = attrs => hbs('brand-loader/enterprise.hbs', attrs);
 
-module.exports = ({ appName, environment, rootURL, config }) => `
+module.exports = ({ appName, environment, rootURL, config, env }) => `
   <noscript>
       <div style="margin: 0 auto;">
           <h2>JavaScript Required</h2>
@@ -47,7 +47,9 @@ ${
     ? `
   <script data-app-name="${appName}" data-${appName}-services src="${rootURL}assets/consul-ui/services-debug.js"></script>
   <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-ui/routes-debug.js"></script>
-` : ``}
+`
+    : ``
+}
 ${
   environment === 'production'
     ? `
@@ -57,13 +59,18 @@ ${
 {{if .PartitionsEnabled}}
   <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-partitions/routes.js"></script>
 {{end}}
+{{if .NamespacesEnabled}}
+  <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-nspaces/routes.js"></script>
+{{end}}
 `
     : `
 <script>
 (
   function(get, obj) {
     Object.entries(obj).forEach(([key, value]) => {
-      if(get(key)) {
+      if(get(key) || (key === 'CONSUL_NSPACES_ENABLE' && ${
+        env('CONSUL_NSPACES_ENABLED') === '1' ? `true` : `false`
+      })) {
         document.write(\`\\x3Cscript data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/\${value}/routes.js">\\x3C/script>\`);
       }
     });
@@ -72,7 +79,8 @@ ${
   key => document.cookie.split('; ').find(item => item.startsWith(\`\${key}=\`)),
   {
     'CONSUL_ACLS_ENABLE': 'consul-acls',
-    'CONSUL_PARTITIONS_ENABLE': 'consul-partitions'
+    'CONSUL_PARTITIONS_ENABLE': 'consul-partitions',
+    'CONSUL_NSPACES_ENABLE': 'consul-nspaces'
   }
 );
 </script>
