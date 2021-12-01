@@ -958,7 +958,7 @@ func (l *State) updateSyncState() error {
 		if ls == nil {
 			// The consul service is managed automatically and does
 			// not need to be deregistered
-			if id == structs.ConsulCompoundServiceID {
+			if structs.IsConsulServiceID(id) {
 				continue
 			}
 
@@ -1002,7 +1002,7 @@ func (l *State) updateSyncState() error {
 		if lc == nil {
 			// The Serf check is created automatically and does not
 			// need to be deregistered.
-			if id == structs.SerfCompoundCheckID {
+			if structs.IsSerfCheckID(id) {
 				l.logger.Debug("Skipping remote check since it is managed automatically", "check", structs.SerfCheckID)
 				continue
 			}

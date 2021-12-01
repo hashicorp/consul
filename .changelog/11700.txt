@@ -1,0 +1,3 @@
+```release-note:bug
+agent: **(Enterprise only)** fix bug where 1.10.x agents would deregister serf checks from 1.11.x servers
+```
