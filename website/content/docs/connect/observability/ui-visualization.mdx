@@ -104,7 +104,8 @@ ui_config {
   dashboard_url_templates {
     service = "https://grafana.example.com/d/lDlaj-NGz/
       service-overview?orgId=1&var-service={{Service.Name}}&
-      var-namespace={{Service.Namespace}}&var-dc={{Datacenter}}"
+      var-namespace={{Service.Namespace}}&
+      var-partition={{Service.Partition}}&var-dc={{Datacenter}}"
   }
 }
 ```

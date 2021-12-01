@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Include `Service.Partition` into available variables for `dashboard_url_templates`
+```
