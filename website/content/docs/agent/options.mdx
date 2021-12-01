@@ -659,8 +659,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       and an upgrade path this restriction is not currently enforced but will be in a
       future major Consul release.
 
-    - `master` ((#acl_tokens_master)) **Deprecated in Consul 1.11. Use the
-      [`acl.tokens.initial_management`](#acl_tokens_initial_management) field instead.**
+    - `master` ((#acl_tokens_master)) **Renamed in Consul 1.11 to
+      [`acl.tokens.initial_management`](#acl_tokens_initial_management).**
 
     - `default` ((#acl_tokens_default)) - When provided, the agent will
       use this token when making requests to the Consul servers. Clients can override
@@ -684,8 +684,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       This should only be used by operators during outages, regular ACL tokens should normally
       be used by applications.
 
-    - `agent_master` ((#acl_tokens_agent_master)) **Deprecated in Consul 1.11. Use the
-      [`acl.tokens.agent_recovery`](#acl_tokens_agent_recovery) field instead.**
+    - `agent_master` ((#acl_tokens_agent_master)) **Renamed in Consul 1.11 to
+      [`acl.tokens.agent_recovery`](#acl_tokens_agent_recovery).**
 
     - `replication` ((#acl_tokens_replication)) - The ACL token used to
       authorize secondary datacenters with the primary datacenter for replication
