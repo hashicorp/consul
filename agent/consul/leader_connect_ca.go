@@ -536,7 +536,7 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 
 	// Add the local leaf signing cert to the rootCA struct. This handles both
 	// upgrades of existing state, and new rootCA.
-	if rootCA.LeafSigningCert() != interPEM {
+	if c.getLeafSigningCertFromRoot(rootCA) != interPEM {
 		rootCA.IntermediateCerts = append(rootCA.IntermediateCerts, interPEM)
 		rootUpdateRequired = true
 	}
@@ -591,6 +591,22 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	c.logger.Info("initialized primary datacenter CA with provider", "provider", conf.Provider)
 
 	return nil
+}
+
+// getLeafSigningCertFromRoot returns the PEM encoded certificate that should be used to
+// sign leaf certificates in the local datacenter. The SubjectKeyId of the
+// returned cert should always match the SigningKeyID of the CARoot.
+//
+// TODO: fix the data model so that we don't need this complicated lookup to
+// find the leaf signing cert. See github.com/hashicorp/consul/issues/11347.
+func (c *CAManager) getLeafSigningCertFromRoot(root *structs.CARoot) string {
+	if !c.isIntermediateUsedToSignLeaf() {
+		return root.RootCert
+	}
+	if len(root.IntermediateCerts) == 0 {
+		return ""
+	}
+	return root.IntermediateCerts[len(root.IntermediateCerts)-1]
 }
 
 // secondaryInitializeIntermediateCA runs the routine for generating an intermediate CA CSR and getting

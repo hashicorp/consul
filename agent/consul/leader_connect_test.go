@@ -403,7 +403,7 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 	store := s1.caManager.delegate.State()
 	_, activeRoot, err := store.CARootActive(nil)
 	require.NoError(err)
-	require.Equal(intermediatePEM, activeRoot.LeafSigningCert())
+	require.Equal(intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
 	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
 	// Wait for dc1's intermediate to be refreshed.
@@ -422,7 +422,7 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 
 	_, activeRoot, err = store.CARootActive(nil)
 	require.NoError(err)
-	require.Equal(intermediatePEM, activeRoot.LeafSigningCert())
+	require.Equal(intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
 	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
 	// Get the root from dc1 and validate a chain of:
@@ -548,7 +548,7 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	store := s2.fsm.State()
 	_, activeRoot, err := store.CARootActive(nil)
 	require.NoError(err)
-	require.Equal(intermediatePEM, activeRoot.LeafSigningCert())
+	require.Equal(intermediatePEM, s2.caManager.getLeafSigningCertFromRoot(activeRoot))
 	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
 	// Wait for dc2's intermediate to be refreshed.
@@ -572,7 +572,7 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 
 	_, activeRoot, err = store.CARootActive(nil)
 	require.NoError(err)
-	require.Equal(intermediatePEM, activeRoot.LeafSigningCert())
+	require.Equal(intermediatePEM, s2.caManager.getLeafSigningCertFromRoot(activeRoot))
 	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
 	// Get the root from dc1 and validate a chain of:

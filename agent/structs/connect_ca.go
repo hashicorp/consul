@@ -142,23 +142,6 @@ func (c *CARoot) Clone() *CARoot {
 	return &newCopy
 }
 
-// LeafSigningCert returns the PEM encoded certificate that should be used to
-// sign leaf certificates in the local datacenter. The SubjectKeyId of the
-// returned cert should always match the SigningKeyID of the CARoot.
-//
-// This method has no knowledge of the provider, so it makes assumptions about
-// which cert is used based on established convention. Generally you should
-// check CAManager.isIntermediateUsedToSignLeaf first.
-//
-// If there are no IntermediateCerts the RootCert is returned. If there are
-// IntermediateCerts the last one in the list is returned.
-func (c *CARoot) LeafSigningCert() string {
-	if len(c.IntermediateCerts) == 0 {
-		return c.RootCert
-	}
-	return c.IntermediateCerts[len(c.IntermediateCerts)-1]
-}
-
 // CARoots is a list of CARoot structures.
 type CARoots []*CARoot
 
