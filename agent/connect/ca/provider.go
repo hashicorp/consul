@@ -118,9 +118,17 @@ type Provider interface {
 }
 
 type PrimaryProvider interface {
-	// GenerateRoot causes the creation of a new root certificate for this provider.
-	// This can also be a no-op if a root certificate already exists for the given
-	// config. If IsPrimary is false, calling this method is an error.
+	// GenerateRoot is called:
+	//   * to initialize the CA system when a server is elected as a raft leader
+	//   * when the CA configuration is updated in a way that might require
+	//     generating a new root certificate.
+	//
+	// In both cases GenerateRoot is always called on a newly created provider
+	// after calling Provider.Configure, and before any other calls to the
+	// provider.
+	//
+	// The provider should return an existing root certificate if one exists,
+	// otherwise it should generate a new root certificate and return it.
 	GenerateRoot() error
 
 	// ActiveRoot returns the currently active root CA for this
