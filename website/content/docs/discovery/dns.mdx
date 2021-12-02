@@ -107,7 +107,9 @@ external queries by using different domains.
 
 Consul versions 1.5.2+ can be configured to respond to DNS queries on an alternative domain
 through the [`alt_domain`](/docs/agent/options#alt_domain) agent configuration
-option. Consul's DNS response will use the same domain as was used in the query.
+option. As of Consul versions 1.11.0+, Consul's DNS response will use the same domain as was used in the query;
+in prior versions, the response may use the primary [`domain`](/docs/agent/options#domain) no matter which
+domain was used in the query.
 For example, if `test-domain` is configured as the alternative domain, the following query:
 
 ```shell-session
