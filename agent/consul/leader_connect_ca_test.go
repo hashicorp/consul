@@ -23,6 +23,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 // TODO(kyhavlov): replace with t.Deadline()
@@ -221,7 +223,7 @@ func initTestManager(t *testing.T, manager *CAManager, delegate *mockCAServerDel
 	t.Helper()
 	initCh := make(chan struct{})
 	go func() {
-		require.NoError(t, manager.InitializeCA())
+		require.NoError(t, manager.Initialize())
 		close(initCh)
 	}()
 	for i := 0; i < 5; i++ {
@@ -251,12 +253,12 @@ func TestCAManager_Initialize(t *testing.T) {
 		rootPEM:    delegate.primaryRoot.RootCert,
 	}
 
-	// Call InitializeCA and then confirm the RPCs and provider calls
+	// Call Initialize and then confirm the RPCs and provider calls
 	// happen in the expected order.
 	require.Equal(t, caStateUninitialized, manager.state)
 	errCh := make(chan error)
 	go func() {
-		err := manager.InitializeCA()
+		err := manager.Initialize()
 		assert.NoError(t, err)
 		errCh <- err
 	}()
@@ -269,7 +271,7 @@ func TestCAManager_Initialize(t *testing.T) {
 	waitForCh(t, delegate.callbackCh, "raftApply/ConnectCA")
 	waitForEmptyCh(t, delegate.callbackCh)
 
-	// Make sure the InitializeCA call returned successfully.
+	// Make sure the Initialize call returned successfully.
 	select {
 	case err := <-errCh:
 		require.NoError(t, err)
@@ -461,4 +463,35 @@ func TestCADelegateWithState_GenerateCASignRequest(t *testing.T) {
 	d := &caDelegateWithState{Server: &s}
 	req := d.generateCASignRequest("A")
 	require.Equal(t, "east", req.RequestDatacenter())
+}
+
+func TestCAManager_Initialize_Logging(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, conf1 := testServerConfig(t)
+
+	// Setup dummy logger to catch output
+	var buf bytes.Buffer
+	logger := testutil.LoggerWithOutput(t, &buf)
+
+	deps := newDefaultDeps(t, conf1)
+	deps.Logger = logger
+
+	s1, err := NewServer(conf1, deps)
+	require.NoError(t, err)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Wait til CA root is setup
+	retry.Run(t, func(r *retry.R) {
+		var out structs.IndexedCARoots
+		r.Check(s1.RPC("ConnectCA.Roots", structs.DCSpecificRequest{
+			Datacenter: conf1.Datacenter,
+		}, &out))
+	})
+
+	require.Contains(t, buf.String(), "consul CA provider configured")
 }
