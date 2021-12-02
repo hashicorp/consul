@@ -5837,11 +5837,8 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 
 		// Test caching for the leaf cert
 		{
-			fetched := 0
-			for {
-				if fetched == 4 {
-					break
-				}
+			
+			for fetched := 0; fetched < 4; fetches++ {
 
 				// Fetch it again
 				resp := httptest.NewRecorder()
