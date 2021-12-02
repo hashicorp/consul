@@ -1465,7 +1465,7 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 
 func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+		return nil, UnauthorizedError{Reason: "ACL support disabled"}
 	}
 
 	// Fetch the ACL token, if any, and enforce agent policy.
