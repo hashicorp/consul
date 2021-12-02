@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
-func TestLeader_Builtin_PrimaryCA_ChangeKeyConfig(t *testing.T) {
+func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -175,7 +175,7 @@ func TestLeader_Builtin_PrimaryCA_ChangeKeyConfig(t *testing.T) {
 
 }
 
-func TestLeader_SecondaryCA_Initialize(t *testing.T) {
+func TestCAManager_Initialize_Secondary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -330,7 +330,7 @@ func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
 	return s.caManager.getCAProvider()
 }
 
-func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
+func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -463,7 +463,7 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 	require.NoError(err)
 }
 
-func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
+func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -613,7 +613,7 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	require.NoError(err)
 }
 
-func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
+func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -764,7 +764,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	require.NoError(err)
 }
 
-func TestLeader_Vault_PrimaryCA_FixSigningKeyID_OnRestart(t *testing.T) {
+func TestCAManager_Initialize_Vault_FixesSigningKeyID_Primary(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 
 	if testing.Short() {
@@ -866,7 +866,7 @@ func TestLeader_Vault_PrimaryCA_FixSigningKeyID_OnRestart(t *testing.T) {
 	})
 }
 
-func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T) {
+func TestCAManager_Initialize_FixesSigningKeyID_Secondary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -967,7 +967,7 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 	})
 }
 
-func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
+func TestCAManager_Initialize_TransitionFromPrimaryToSecondary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1059,7 +1059,7 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 	})
 }
 
-func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
+func TestCAManager_Initialize_SecondaryBeforePrimary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1268,7 +1268,7 @@ func TestLeader_CARootPruning(t *testing.T) {
 	require.NotEqual(roots[0].ID, oldRoot.ID)
 }
 
-func TestLeader_PersistIntermediateCAs(t *testing.T) {
+func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1351,7 +1351,7 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 	})
 }
 
-func TestLeader_ParseCARoot(t *testing.T) {
+func TestParseCARoot(t *testing.T) {
 	type test struct {
 		name             string
 		pem              string
@@ -1434,7 +1434,7 @@ func readTestData(t *testing.T, name string) string {
 	return string(bs)
 }
 
-func TestLeader_lessThanHalfTimePassed(t *testing.T) {
+func TestLessThanHalfTimePassed(t *testing.T) {
 	now := time.Now()
 	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(-5*time.Second)))
 	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now))
@@ -1444,7 +1444,7 @@ func TestLeader_lessThanHalfTimePassed(t *testing.T) {
 	require.True(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(20*time.Second)))
 }
 
-func TestLeader_retryLoopBackoffHandleSuccess(t *testing.T) {
+func TestRetryLoopBackoffHandleSuccess(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1488,7 +1488,7 @@ func TestLeader_retryLoopBackoffHandleSuccess(t *testing.T) {
 	}
 }
 
-func TestLeader_Vault_BadCAConfigShouldntPreventLeaderEstablishment(t *testing.T) {
+func TestCAManager_Initialize_Vault_BadCAConfigDoesNotPreventLeaderEstablishment(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 
 	testVault := ca.NewTestVaultServer(t)
@@ -1545,7 +1545,7 @@ func TestLeader_Vault_BadCAConfigShouldntPreventLeaderEstablishment(t *testing.T
 	require.NotNil(t, activeRoot)
 }
 
-func TestLeader_Consul_BadCAConfigShouldntPreventLeaderEstablishment(t *testing.T) {
+func TestCAManager_Initialize_BadCAConfigDoesNotPreventLeaderEstablishment(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 
 	_, s1 := testServerWithConfig(t, func(c *Config) {
@@ -1589,7 +1589,7 @@ func TestLeader_Consul_BadCAConfigShouldntPreventLeaderEstablishment(t *testing.
 	require.NotNil(t, activeRoot)
 }
 
-func TestLeader_Consul_ForceWithoutCrossSigning(t *testing.T) {
+func TestConnectCA_ConfigurationSet_ForceWithoutCrossSigning(t *testing.T) {
 	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1645,7 +1645,7 @@ func TestLeader_Consul_ForceWithoutCrossSigning(t *testing.T) {
 	}
 }
 
-func TestLeader_Vault_ForceWithoutCrossSigning(t *testing.T) {
+func TestConnectCA_ConfigurationSet_Vault_ForceWithoutCrossSigning(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 
 	require := require.New(t)
