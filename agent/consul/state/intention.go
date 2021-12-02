@@ -995,21 +995,27 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 		maxIdx = index
 	}
 
-	index, allServices, err := serviceListTxn(tx, ws, func(svc *structs.ServiceNode) bool {
-		// Only include ingress gateways as downstreams, since they cannot receive service mesh traffic
-		// TODO(freddy): One remaining issue is that this includes non-Connect services (typical services without a proxy)
-		//				 Ideally those should be excluded as well, since they can't be upstreams/downstreams without a proxy.
-		//				 Maybe start tracking services represented by proxies? (both sidecar and ingress)
-		if svc.ServiceKind == structs.ServiceKindTypical || (svc.ServiceKind == structs.ServiceKindIngressGateway && downstreams) {
-			return true
-		}
-		return false
-	}, target.WithWildcardNamespace())
+	// TODO(tproxy): One remaining improvement is that this includes non-Connect services (typical services without a proxy)
+	//				 Ideally those should be excluded as well, since they can't be upstreams/downstreams without a proxy.
+	//				 Maybe narrow serviceNamesOfKindTxn to services represented by proxies? (ingress, sidecar-proxy, terminating)
+	index, services, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical)
 	if err != nil {
-		return index, nil, fmt.Errorf("failed to fetch catalog service list: %v", err)
+		return index, nil, fmt.Errorf("failed to list ingress service names: %v", err)
 	}
 	if index > maxIdx {
 		maxIdx = index
+	}
+
+	if downstreams {
+		// Ingress gateways can only ever be downstreams, since mesh services don't dial them.
+		index, ingress, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindIngressGateway)
+		if err != nil {
+			return index, nil, fmt.Errorf("failed to list ingress service names: %v", err)
+		}
+		if index > maxIdx {
+			maxIdx = index
+		}
+		services = append(services, ingress...)
 	}
 
 	// When checking authorization to upstreams, the match type for the decision is `destination` because we are deciding
@@ -1019,11 +1025,13 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 	if downstreams {
 		decisionMatchType = structs.IntentionMatchSource
 	}
-	result := make([]ServiceWithDecision, 0, len(allServices))
-	for _, candidate := range allServices {
+	result := make([]ServiceWithDecision, 0, len(services))
+	for _, svc := range services {
+		candidate := svc.Service
 		if candidate.Name == structs.ConsulServiceName {
 			continue
 		}
+
 		opts := IntentionDecisionOpts{
 			Target:           candidate.Name,
 			Namespace:        candidate.NamespaceOrDefault(),

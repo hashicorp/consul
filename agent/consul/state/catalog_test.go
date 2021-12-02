@@ -7714,7 +7714,7 @@ func TestStateStore_EnsureService_ServiceNames(t *testing.T) {
 		require.NoError(t, s.EnsureService(idx, "node1", &svc))
 
 		// Ensure the service name was stored for all of them under the appropriate kind
-		gotIdx, gotNames, err := s.KindServiceNamesOfKind(nil, svc.Kind)
+		gotIdx, gotNames, err := s.ServiceNamesOfKind(nil, svc.Kind)
 		require.NoError(t, err)
 		require.Equal(t, idx, gotIdx)
 		require.Len(t, gotNames, 1)
@@ -7734,7 +7734,7 @@ func TestStateStore_EnsureService_ServiceNames(t *testing.T) {
 	idx++
 	require.NoError(t, s.EnsureService(idx, "node1", &newIngress))
 
-	gotIdx, got, err := s.KindServiceNamesOfKind(nil, structs.ServiceKindIngressGateway)
+	gotIdx, got, err := s.ServiceNamesOfKind(nil, structs.ServiceKindIngressGateway)
 	require.NoError(t, err)
 	require.Equal(t, idx, gotIdx)
 
@@ -7779,7 +7779,7 @@ func TestStateStore_EnsureService_ServiceNames(t *testing.T) {
 	idx++
 	require.NoError(t, s.EnsureService(idx, "node1", &newMGW))
 
-	gotIdx, _, err = s.KindServiceNamesOfKind(nil, structs.ServiceKindMeshGateway)
+	gotIdx, _, err = s.ServiceNamesOfKind(nil, structs.ServiceKindMeshGateway)
 	require.NoError(t, err)
 	require.Equal(t, uint64(2), gotIdx)
 
@@ -7787,7 +7787,7 @@ func TestStateStore_EnsureService_ServiceNames(t *testing.T) {
 	idx++
 	require.NoError(t, s.DeleteService(idx, "node1", "web", entMeta))
 
-	gotIdx, got, err = s.KindServiceNamesOfKind(nil, structs.ServiceKindTypical)
+	gotIdx, got, err = s.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
 	require.NoError(t, err)
 	require.Equal(t, idx, gotIdx)
 	require.Empty(t, got)

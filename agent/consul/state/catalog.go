@@ -968,16 +968,14 @@ func (s *Store) Services(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (ui
 	return idx, results, nil
 }
 
-func (s *Store) ServiceList(ws memdb.WatchSet,
-	include func(svc *structs.ServiceNode) bool, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
+func (s *Store) ServiceList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return serviceListTxn(tx, ws, include, entMeta)
+	return serviceListTxn(tx, ws, entMeta)
 }
 
-func serviceListTxn(tx ReadTxn, ws memdb.WatchSet,
-	include func(svc *structs.ServiceNode) bool, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
+func serviceListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
 	idx := catalogServicesMaxIndex(tx, entMeta)
 
 	services, err := tx.Get(tableServices, indexID+"_prefix", entMeta)
@@ -989,11 +987,7 @@ func serviceListTxn(tx ReadTxn, ws memdb.WatchSet,
 	unique := make(map[structs.ServiceName]struct{})
 	for service := services.Next(); service != nil; service = services.Next() {
 		svc := service.(*structs.ServiceNode)
-		// TODO (freddy) This is a hack to exclude certain kinds.
-		//				 Need a new index to query by kind and namespace, have to coordinate with consul foundations first
-		if include == nil || include(svc) {
-			unique[svc.CompoundServiceName()] = struct{}{}
-		}
+		unique[svc.CompoundServiceName()] = struct{}{}
 	}
 
 	results := make(structs.ServiceList, 0, len(unique))
@@ -2532,10 +2526,14 @@ func (s *Store) VirtualIPForService(sn structs.ServiceName) (string, error) {
 	return result.String(), nil
 }
 
-func (s *Store) KindServiceNamesOfKind(ws memdb.WatchSet, kind structs.ServiceKind) (uint64, []*KindServiceName, error) {
+func (s *Store) ServiceNamesOfKind(ws memdb.WatchSet, kind structs.ServiceKind) (uint64, []*KindServiceName, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	return serviceNamesOfKindTxn(tx, ws, kind)
+}
+
+func serviceNamesOfKindTxn(tx ReadTxn, ws memdb.WatchSet, kind structs.ServiceKind) (uint64, []*KindServiceName, error) {
 	var names []*KindServiceName
 	iter, err := tx.Get(tableKindServiceNames, indexKindOnly, kind)
 	if err != nil {
