@@ -1336,8 +1336,8 @@ func (a *Agent) updateTokenFallback(token string, q *WriteOptions, targets ...st
 	for _, target := range targets {
 		var status int
 		meta, status, err = a.updateTokenOnce(target, token, q)
-		if err == nil || status != http.StatusNotFound {
-			break
+		if err == nil && status != http.StatusNotFound {
+			return meta, err
 		}
 	}
 	return meta, err
