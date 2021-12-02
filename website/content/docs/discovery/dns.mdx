@@ -105,7 +105,7 @@ Some use cases require responding to queries for more than one domain,
 such as during a DNS migration or to distinguish between internal and
 external queries by using different domains.
 
-Consul can be configured to respond to DNS queries on an alternative domain
+Consul versions 1.5.2+ can be configured to respond to DNS queries on an alternative domain
 through the [`alt_domain`](/docs/agent/options#alt_domain) agent configuration
 option. Consul's DNS response will use the same domain as was used in the query.
 For example, if `test-domain` is configured as the alternative domain, the following query:
