@@ -1553,11 +1553,31 @@ func (a *Agent) RefreshPrimaryGatewayFallbackAddresses(addrs []string) error {
 }
 
 // ForceLeave is used to remove a failed node from the cluster
-func (a *Agent) ForceLeave(node string, prune bool, entMeta *structs.EnterpriseMeta) (err error) {
+func (a *Agent) ForceLeave(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
 	a.logger.Info("Force leaving node", "node", node)
-	err = a.delegate.RemoveFailedNode(node, prune, entMeta)
+
+	err := a.delegate.RemoveFailedNode(node, prune, entMeta)
 	if err != nil {
 		a.logger.Warn("Failed to remove node",
+			"node", node,
+			"error", err,
+		)
+	}
+	return err
+}
+
+// ForceLeaveWAN is used to remove a failed node from the WAN cluster
+func (a *Agent) ForceLeaveWAN(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+	a.logger.Info("(WAN) Force leaving node", "node", node)
+
+	srv, ok := a.delegate.(*consul.Server)
+	if !ok {
+		return fmt.Errorf("Must be a server to force-leave a node from the WAN cluster")
+	}
+
+	err := srv.RemoveFailedNodeWAN(node, prune, entMeta)
+	if err != nil {
+		a.logger.Warn("(WAN) Failed to remove node",
 			"node", node,
 			"error", err,
 		)

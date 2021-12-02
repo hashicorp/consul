@@ -1193,6 +1193,18 @@ func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *structs.Ente
 	return s.removeFailedNode(removeFn, node, wanNode, entMeta)
 }
 
+// RemoveFailedNodeWAN is used to remove a failed node from the WAN cluster.
+func (s *Server) RemoveFailedNodeWAN(wanNode string, prune bool, entMeta *structs.EnterpriseMeta) error {
+	var removeFn func(*serf.Serf, string) error
+	if prune {
+		removeFn = (*serf.Serf).RemoveFailedNodePrune
+	} else {
+		removeFn = (*serf.Serf).RemoveFailedNode
+	}
+
+	return s.removeFailedNode(removeFn, "", wanNode, entMeta)
+}
+
 // IsLeader checks if this server is the cluster leader
 func (s *Server) IsLeader() bool {
 	return s.raft.State() == raft.Leader

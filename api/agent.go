@@ -1021,25 +1021,36 @@ func (a *Agent) Leave() error {
 	return nil
 }
 
+type ForceLeaveOpts struct {
+	// Prune indicates if we should remove a failed agent from the list of
+	// members in addition to ejecting it.
+	Prune bool
+
+	// WAN indicates that the request should exclusively target the WAN pool.
+	WAN bool
+}
+
 // ForceLeave is used to have the agent eject a failed node
 func (a *Agent) ForceLeave(node string) error {
-	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
-	_, resp, err := a.c.doRequest(r)
-	if err != nil {
-		return err
-	}
-	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return err
-	}
-	return nil
+	return a.ForceLeaveOpts(node, ForceLeaveOpts{})
 }
 
 // ForceLeavePrune is used to have an a failed agent removed
 // from the list of members
 func (a *Agent) ForceLeavePrune(node string) error {
+	return a.ForceLeaveOpts(node, ForceLeaveOpts{Prune: true})
+}
+
+// ForceLeaveOpts is used to have the agent eject a failed node or remove it
+// completely from the list of members.
+func (a *Agent) ForceLeaveOpts(node string, opts ForceLeaveOpts) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
-	r.params.Set("prune", "1")
+	if opts.Prune {
+		r.params.Set("prune", "1")
+	}
+	if opts.WAN {
+		r.params.Set("wan", "1")
+	}
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err

@@ -640,8 +640,15 @@ func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Reque
 	// Check the value of the prune query
 	_, prune := req.URL.Query()["prune"]
 
+	// Check if the WAN is being queried
+	_, wan := req.URL.Query()["wan"]
+
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
-	return nil, s.agent.ForceLeave(addr, prune, entMeta)
+	if wan {
+		return nil, s.agent.ForceLeaveWAN(addr, prune, entMeta)
+	} else {
+		return nil, s.agent.ForceLeave(addr, prune, entMeta)
+	}
 }
 
 // syncChanges is a helper function which wraps a blocking call to sync
