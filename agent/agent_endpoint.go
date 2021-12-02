@@ -1520,6 +1520,7 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 	args.MaxQueryTime = qOpts.MaxQueryTime
 	args.Token = qOpts.Token
 
+	// TODO(ffmmmm): maybe set MustRevalidate in ConnectCALeafRequest (as part of CacheInfo())
 	// We don't want non-blocking queries to return expired leaf certs
 	// or leaf certs not valid under the current CA. So always revalidate
 	// the leaf cert on non-blocking queries (ie when MinQueryIndex == 0)

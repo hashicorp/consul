@@ -5837,16 +5837,14 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 
 		// Test caching for the leaf cert
 		{
-			
-			for fetched := 0; fetched < 4; fetches++ {
+
+			for fetched := 0; fetched < 4; fetched++ {
 
 				// Fetch it again
 				resp := httptest.NewRecorder()
 				obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
 				require.NoError(err)
 				require.Equal(obj, obj2)
-
-				fetched++
 			}
 		}
 	})
