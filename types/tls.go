@@ -6,7 +6,7 @@ type TLSVersion int
 
 const (
 	// Error value, excluded from lookup maps
-	TLSVersionInvalid TLSVersion = iota - 1
+	TLSVersionInvalid TLSVersion = iota
 
 	// Explictly allow implementation to select TLS version
 	// May be useful to supercede defaults specified at a higher layer
