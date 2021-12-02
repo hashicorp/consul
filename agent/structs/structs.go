@@ -72,6 +72,7 @@ const (
 	SystemMetadataRequestType                   = 31
 	ServiceVirtualIPRequestType                 = 32
 	FreeVirtualIPRequestType                    = 33
+	KindServiceNamesType                        = 34
 )
 
 // if a new request type is added above it must be
@@ -114,6 +115,7 @@ var requestTypeStrings = map[MessageType]string{
 	SystemMetadataRequestType:       "SystemMetadata",
 	ServiceVirtualIPRequestType:     "ServiceVirtualIP",
 	FreeVirtualIPRequestType:        "FreeVirtualIP",
+	KindServiceNamesType:            "KindServiceName",
 }
 
 const (
@@ -1028,6 +1030,13 @@ type ServiceNodes []*ServiceNode
 
 // ServiceKind is the kind of service being registered.
 type ServiceKind string
+
+func (k ServiceKind) Normalized() string {
+	if k == ServiceKindTypical {
+		return "typical"
+	}
+	return string(k)
+}
 
 const (
 	// ServiceKindTypical is a typical, classic Consul service. This is

@@ -40,6 +40,7 @@ func newDBSchema() *memdb.DBSchema {
 		tombstonesTableSchema,
 		usageTableSchema,
 		freeVirtualIPTableSchema,
+		kindServiceNameTableSchema,
 	)
 	withEnterpriseSchema(db)
 	return db
