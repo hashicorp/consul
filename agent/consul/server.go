@@ -742,6 +742,9 @@ func (s *Server) setupRaft() error {
 		s.raftStore = store
 		stable = store
 
+		// start publishing boltdb metrics
+		go store.RunMetrics(&lib.StopChannelContext{StopCh: s.shutdownCh}, 0)
+
 		// Wrap the store in a LogCache to improve performance.
 		cacheStore, err := raft.NewLogCache(raftLogCacheSize, store)
 		if err != nil {
