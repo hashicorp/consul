@@ -378,10 +378,19 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "ca"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
+
+	result := ApplyConnectCAOperationFromRequest(c.state, &req, index)
+	if err, ok := result.(error); ok && err != nil {
+		c.logger.Warn("Failed to apply CA operation", "operation", req.Op)
+	}
+	return result
+}
+
+func ApplyConnectCAOperationFromRequest(state *state.Store, req *structs.CARequest, index uint64) interface{} {
 	switch req.Op {
 	case structs.CAOpSetConfig:
 		if req.Config.ModifyIndex != 0 {
-			act, err := c.state.CACheckAndSetConfig(index, req.Config.ModifyIndex, req.Config)
+			act, err := state.CACheckAndSetConfig(index, req.Config.ModifyIndex, req.Config)
 			if err != nil {
 				return err
 			}
@@ -389,29 +398,29 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 			return act
 		}
 
-		return c.state.CASetConfig(index, req.Config)
+		return state.CASetConfig(index, req.Config)
 	case structs.CAOpSetRoots:
-		act, err := c.state.CARootSetCAS(index, req.Index, req.Roots)
+		act, err := state.CARootSetCAS(index, req.Index, req.Roots)
 		if err != nil {
 			return err
 		}
 
 		return act
 	case structs.CAOpSetProviderState:
-		act, err := c.state.CASetProviderState(index, req.ProviderState)
+		act, err := state.CASetProviderState(index, req.ProviderState)
 		if err != nil {
 			return err
 		}
 
 		return act
 	case structs.CAOpDeleteProviderState:
-		if err := c.state.CADeleteProviderState(index, req.ProviderState.ID); err != nil {
+		if err := state.CADeleteProviderState(index, req.ProviderState.ID); err != nil {
 			return err
 		}
 
 		return true
 	case structs.CAOpSetRootsAndConfig:
-		act, err := c.state.CARootSetCAS(index, req.Index, req.Roots)
+		act, err := state.CARootSetCAS(index, req.Index, req.Roots)
 		if err != nil {
 			return err
 		}
@@ -419,20 +428,19 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 			return act
 		}
 
-		act, err = c.state.CACheckAndSetConfig(index, req.Config.ModifyIndex, req.Config)
+		act, err = state.CACheckAndSetConfig(index, req.Config.ModifyIndex, req.Config)
 		if err != nil {
 			return err
 		}
 		return act
 	case structs.CAOpIncrementProviderSerialNumber:
-		sn, err := c.state.CAIncrementProviderSerialNumber(index)
+		sn, err := state.CAIncrementProviderSerialNumber(index)
 		if err != nil {
 			return err
 		}
 
 		return sn
 	default:
-		c.logger.Warn("Invalid CA operation", "operation", req.Op)
 		return fmt.Errorf("Invalid CA operation '%s'", req.Op)
 	}
 }
