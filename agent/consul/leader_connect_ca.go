@@ -517,12 +517,26 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 		}
 	}
 
+	var rootUpdateRequired bool
+
 	// Versions prior to 1.9.3, 1.8.8, and 1.7.12 incorrectly used the primary
 	// rootCA's subjectKeyID here instead of the intermediate. For
 	// provider=consul this didn't matter since there are no intermediates in
 	// the primaryDC, but for vault it does matter.
 	expectedSigningKeyID := connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
-	needsSigningKeyUpdate := (rootCA.SigningKeyID != expectedSigningKeyID)
+	if rootCA.SigningKeyID != expectedSigningKeyID {
+		c.logger.Info("Correcting stored CARoot values",
+			"previous-signing-key", rootCA.SigningKeyID, "updated-signing-key", expectedSigningKeyID)
+		rootCA.SigningKeyID = expectedSigningKeyID
+		rootUpdateRequired = true
+	}
+
+	// Add the local leaf signing cert to the rootCA struct. This handles both
+	// upgrades of existing state, and new rootCA.
+	if c.getLeafSigningCertFromRoot(rootCA) != interPEM {
+		rootCA.IntermediateCerts = append(rootCA.IntermediateCerts, interPEM)
+		rootUpdateRequired = true
+	}
 
 	// Check if the CA root is already initialized and exit if it is,
 	// adding on any existing intermediate certs since they aren't directly
@@ -534,24 +548,19 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	if err != nil {
 		return err
 	}
-	if activeRoot != nil && needsSigningKeyUpdate {
-		c.logger.Info("Correcting stored SigningKeyID value", "previous", rootCA.SigningKeyID, "updated", expectedSigningKeyID)
-
-	} else if activeRoot != nil && !needsSigningKeyUpdate {
+	if activeRoot != nil && !rootUpdateRequired {
 		// This state shouldn't be possible to get into because we update the root and
 		// CA config in the same FSM operation.
 		if activeRoot.ID != rootCA.ID {
 			return fmt.Errorf("stored CA root %q is not the active root (%s)", rootCA.ID, activeRoot.ID)
 		}
 
+		// TODO: why doesn't this c.setCAProvider(provider, activeRoot) ?
 		rootCA.IntermediateCerts = activeRoot.IntermediateCerts
 		c.setCAProvider(provider, rootCA)
 
+		c.logger.Info("initialized primary datacenter CA from existing CARoot with provider", "provider", conf.Provider)
 		return nil
-	}
-
-	if needsSigningKeyUpdate {
-		rootCA.SigningKeyID = expectedSigningKeyID
 	}
 
 	// Get the highest index
@@ -575,6 +584,22 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	c.logger.Info("initialized primary datacenter CA with provider", "provider", conf.Provider)
 
 	return nil
+}
+
+// getLeafSigningCertFromRoot returns the PEM encoded certificate that should be used to
+// sign leaf certificates in the local datacenter. The SubjectKeyId of the
+// returned cert should always match the SigningKeyID of the CARoot.
+//
+// TODO: fix the data model so that we don't need this complicated lookup to
+// find the leaf signing cert. See github.com/hashicorp/consul/issues/11347.
+func (c *CAManager) getLeafSigningCertFromRoot(root *structs.CARoot) string {
+	if !c.isIntermediateUsedToSignLeaf() {
+		return root.RootCert
+	}
+	if len(root.IntermediateCerts) == 0 {
+		return ""
+	}
+	return root.IntermediateCerts[len(root.IntermediateCerts)-1]
 }
 
 // secondaryInitializeIntermediateCA runs the routine for generating an intermediate CA CSR and getting
@@ -1133,10 +1158,8 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 
 	// If this is the primary, check if this is a provider that uses an intermediate cert. If
 	// it isn't, we don't need to check for a renewal.
-	if isPrimary {
-		if _, ok := provider.(ca.PrimaryUsesIntermediate); !ok {
-			return nil
-		}
+	if isPrimary && !primaryUsesIntermediate(provider) {
+		return nil
 	}
 
 	activeIntermediate, err := provider.ActiveIntermediate()
@@ -1519,4 +1542,17 @@ func (c *CAManager) checkExpired(pem string) error {
 		return fmt.Errorf("certificate expired, expiration date: %s ", cert.NotAfter.String())
 	}
 	return nil
+}
+
+func primaryUsesIntermediate(provider ca.Provider) bool {
+	_, ok := provider.(ca.PrimaryUsesIntermediate)
+	return ok
+}
+
+func (c *CAManager) isIntermediateUsedToSignLeaf() bool {
+	if c.serverConf.Datacenter != c.serverConf.PrimaryDatacenter {
+		return true
+	}
+	provider, _ := c.getCAProvider()
+	return primaryUsesIntermediate(provider)
 }
