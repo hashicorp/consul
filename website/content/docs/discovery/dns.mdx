@@ -129,7 +129,7 @@ machine.node.dc1.test-domain. 0	IN	A	127.0.0.1
 machine.node.dc1.test-domain. 0	IN	TXT	"consul-network-segment="
 ```
 
--> **Note:** Responses to PTR queries (`<ip>.in-addr.arpa.`) will always use the
+-> **PTR queries:**  Responses to PTR queries (`<ip>.in-addr.arpa.`) will always use the
 [primary domain](/docs/agent/options#domain) (not the alternative domain),
 as there is no way for the query to specify a domain.
 
