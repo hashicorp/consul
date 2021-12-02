@@ -98,19 +98,23 @@ node's metadata key starts with `rfc1035-`.
 
 ## Alternative Domain
 
-By default, Consul responds to DNS queries only for its configured
-[`domain`](/docs/agent/options#domain).
+By default, Consul responds to DNS queries in the `consul` domain,
+but you can set a specific domain for responding to DNS queries by configuring the [`domain`](/docs/agent/options#domain) parameter.
 
-Some use cases require responding to queries for more than one domain,
-such as during a DNS migration or to distinguish between internal and
-external queries by using different domains.
+In some instances, Consul may need to respond to queries in more than one domain,
+such as during a DNS migration or to distinguish between internal and external queries.
 
 Consul versions 1.5.2+ can be configured to respond to DNS queries on an alternative domain
 through the [`alt_domain`](/docs/agent/options#alt_domain) agent configuration
 option. As of Consul versions 1.11.0+, Consul's DNS response will use the same domain as was used in the query;
 in prior versions, the response may use the primary [`domain`](/docs/agent/options#domain) no matter which
 domain was used in the query.
-For example, if `test-domain` is configured as the alternative domain, the following query:
+
+In the following example, the `alt_domain` parameter is set to `test-domain`:
+
+```hcl
+ alt_domain = "test-domain"
+```
 
 ```shell-session
 $ dig @127.0.0.1 -p 8600  consul.service.test-domain SRV
