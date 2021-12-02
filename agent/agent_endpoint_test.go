@@ -5797,16 +5797,13 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
 		require.NoError(err)
 		require.Equal(obj, obj2)
-
-		// Should cache hit this time and not make request
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
+
+	// Set a new CA
+	ca2 := connect.TestCAConfigSet(t, a, nil)
 
 	// Issue a blocking query to ensure that the cert gets updated appropriately
 	{
-		// Set a new CA
-		ca := connect.TestCAConfigSet(t, a, nil)
-
 		resp := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil)
 		obj, err := a.srv.AgentConnectCALeafCert(resp, req)
@@ -5816,12 +5813,59 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		require.NotEqual(issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
 
 		// Verify that the cert is signed by the new CA
-		requireLeafValidUnderCA(t, issued2, ca)
+		requireLeafValidUnderCA(t, issued2, ca2)
 
 		// Should not be a cache hit! The data was updated in response to the blocking
 		// query being made.
 		require.Equal("MISS", resp.Header().Get("X-Cache"))
 	}
+
+	t.Run("test non-blocking queries update leaf cert", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.AgentConnectCALeafCert(resp, req)
+		require.NoError(err)
+
+		// Get the issued cert
+		issued, ok := obj.(*structs.IssuedCert)
+		assert.True(ok)
+
+		// Verify that the cert is signed by the CA
+		requireLeafValidUnderCA(t, issued, ca2)
+
+		// Issue a non blocking query to ensure that the cert gets updated appropriately
+		{
+			// Set a new CA
+			ca3 := connect.TestCAConfigSet(t, a, nil)
+
+			resp := httptest.NewRecorder()
+			req, err := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
+			require.NoError(err)
+			obj, err = a.srv.AgentConnectCALeafCert(resp, req)
+			require.NoError(err)
+			issued2 := obj.(*structs.IssuedCert)
+			require.NotEqual(issued.CertPEM, issued2.CertPEM)
+			require.NotEqual(issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
+
+			// Verify that the cert is signed by the new CA
+			requireLeafValidUnderCA(t, issued2, ca3)
+
+			// Should not be a cache hit!
+			require.Equal("MISS", resp.Header().Get("X-Cache"))
+		}
+
+		// Test caching for the leaf cert
+		{
+
+			for fetched := 0; fetched < 4; fetched++ {
+
+				// Fetch it again
+				resp := httptest.NewRecorder()
+				obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
+				require.NoError(err)
+				require.Equal(obj, obj2)
+			}
+		}
+	})
 }
 
 // Test we can request a leaf cert for a service we have permission for
@@ -5894,9 +5938,6 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 		obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
 		require.NoError(err)
 		require.Equal(obj, obj2)
-
-		// Should cache hit this time and not make request
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Test Blocking - see https://github.com/hashicorp/consul/issues/4462
@@ -5944,12 +5985,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 			// Verify that the cert is signed by the new CA
 			requireLeafValidUnderCA(t, issued2, ca)
 
-			// Should be a cache hit! The data should've updated in the cache
-			// in the background so this should've been fetched directly from
-			// the cache.
-			if resp.Header().Get("X-Cache") != "HIT" {
-				r.Fatalf("should be a cache hit")
-			}
+			require.NotEqual(issued, issued2)
 		})
 	}
 }
@@ -6044,9 +6080,6 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 		obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
 		require.NoError(err)
 		require.Equal(obj, obj2)
-
-		// Should cache hit this time and not make request
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Test that we aren't churning leaves for no reason at idle.
@@ -6153,7 +6186,8 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	}
 
 	// List
-	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
+	req, err := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
+	require.NoError(err)
 	resp := httptest.NewRecorder()
 	obj, err := a2.srv.AgentConnectCALeafCert(resp, req)
 	require.NoError(err)
@@ -6178,9 +6212,6 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		obj2, err := a2.srv.AgentConnectCALeafCert(resp, req)
 		require.NoError(err)
 		require.Equal(obj, obj2)
-
-		// Should cache hit this time and not make request
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Test that we aren't churning leaves for no reason at idle.
@@ -6245,12 +6276,7 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		// Verify that the cert is signed by the new CA
 		requireLeafValidUnderCA(t, issued2, dc1_ca2)
 
-		// Should be a cache hit! The data should've updated in the cache
-		// in the background so this should've been fetched directly from
-		// the cache.
-		if resp.Header().Get("X-Cache") != "HIT" {
-			r.Fatalf("should be a cache hit")
-		}
+		require.NotEqual(issued, issued2)
 	})
 }
 
