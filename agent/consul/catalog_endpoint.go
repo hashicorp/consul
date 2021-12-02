@@ -885,3 +885,27 @@ func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *s
 			return nil
 		})
 }
+
+func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, reply *string) error {
+	if done, err := c.srv.ForwardRPC("Catalog.VirtualIPForService", args, reply); done {
+		return err
+	}
+
+	var authzContext acl.AuthorizerContext
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+
+	state := c.srv.fsm.State()
+	*reply, err = state.VirtualIPForService(structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta))
+	return err
+}

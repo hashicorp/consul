@@ -1561,7 +1561,7 @@ func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
 		},
 		"reserved key prefix denied": {
 			map[string]string{
-				metaKeyReservedPrefix + "key": "value1",
+				MetaKeyReservedPrefix + "key": "value1",
 			},
 			false,
 			"reserved for internal use",
@@ -1570,7 +1570,7 @@ func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
 		},
 		"reserved key prefix allowed": {
 			map[string]string{
-				metaKeyReservedPrefix + "key": "value1",
+				MetaKeyReservedPrefix + "key": "value1",
 			},
 			true,
 			"",
@@ -1640,13 +1640,13 @@ func TestStructs_validateMetaPair(t *testing.T) {
 		// key too long
 		{longKey, "value", "Key is too long", false, nil},
 		// reserved prefix
-		{metaKeyReservedPrefix + "key", "value", "reserved for internal use", false, nil},
+		{MetaKeyReservedPrefix + "key", "value", "reserved for internal use", false, nil},
 		// reserved prefix, allowed
-		{metaKeyReservedPrefix + "key", "value", "", true, nil},
+		{MetaKeyReservedPrefix + "key", "value", "", true, nil},
 		// reserved prefix, not allowed via an allowlist
-		{metaKeyReservedPrefix + "bad", "value", "reserved for internal use", false, map[string]struct{}{metaKeyReservedPrefix + "good": {}}},
+		{MetaKeyReservedPrefix + "bad", "value", "reserved for internal use", false, map[string]struct{}{MetaKeyReservedPrefix + "good": {}}},
 		// reserved prefix, allowed via an allowlist
-		{metaKeyReservedPrefix + "good", "value", "", true, map[string]struct{}{metaKeyReservedPrefix + "good": {}}},
+		{MetaKeyReservedPrefix + "good", "value", "", true, map[string]struct{}{MetaKeyReservedPrefix + "good": {}}},
 		// value too long
 		{"key", longValue, "Value is too long", false, nil},
 	}

@@ -3905,3 +3905,100 @@ node "node" {
 		})
 	}
 }
+
+func TestCatalog_VirtualIPForService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.11.0"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	err := s1.fsm.State().EnsureRegistration(1, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	args := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "api",
+	}
+	var out string
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.VirtualIPForService", &args, &out))
+	require.Equal(t, "240.0.0.1", out)
+}
+
+func TestCatalog_VirtualIPForService_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+		c.Build = "1.11.0"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	err := s1.fsm.State().EnsureRegistration(1, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// Call the endpoint with no token and expect permission denied.
+	args := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "api",
+	}
+	var out string
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.VirtualIPForService", &args, &out)
+	require.Contains(t, err.Error(), acl.ErrPermissionDenied.Error())
+	require.Equal(t, "", out)
+
+	id := createToken(t, codec, `
+	service "api" {
+		policy = "read"
+	}`)
+
+	// Now try with the token and it will go through.
+	args.Token = id
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.VirtualIPForService", &args, &out))
+	require.Equal(t, "240.0.0.1", out)
+
+	// Make sure we still get permission denied for an unknown service.
+	args.ServiceName = "nope"
+	var out2 string
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.VirtualIPForService", &args, &out2)
+	require.Contains(t, err.Error(), acl.ErrPermissionDenied.Error())
+	require.Equal(t, "", out2)
+}
