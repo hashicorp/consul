@@ -1315,7 +1315,9 @@ func (s *HTTPHandlers) AgentConnectCARoots(resp http.ResponseWriter, req *http.R
 }
 
 // AgentConnectCALeafCert returns the certificate bundle for a service
-// instance. This supports blocking queries to update the returned bundle.
+// instance. This endpoint ignores all "Cache-Control" attributes.
+// This supports blocking queries to update the returned bundle.
+// Non-blocking queries will always verify that the cache entry is still valid.
 func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Get the service name. Note that this is the name of the service,
 	// not the ID of the service instance.
@@ -1337,6 +1339,14 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 	args.MinQueryIndex = qOpts.MinQueryIndex
 	args.MaxQueryTime = qOpts.MaxQueryTime
 	args.Token = qOpts.Token
+
+	// TODO(ffmmmm): maybe set MustRevalidate in ConnectCALeafRequest (as part of CacheInfo())
+	// We don't want non-blocking queries to return expired leaf certs
+	// or leaf certs not valid under the current CA. So always revalidate
+	// the leaf cert on non-blocking queries (ie when MinQueryIndex == 0)
+	if args.MinQueryIndex == 0 {
+		args.MustRevalidate = true
+	}
 
 	raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCALeafName, &args)
 	if err != nil {
