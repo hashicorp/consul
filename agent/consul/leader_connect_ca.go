@@ -1005,7 +1005,9 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 		return err
 	}
 	if intermediate != newRootPEM {
-		newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediate)
+		if err := setLeafSigningCert(newActiveRoot, intermediate); err != nil {
+			return err
+		}
 	}
 
 	// Update the roots and CA config in the state store at the same time
@@ -1060,15 +1062,9 @@ func (c *CAManager) primaryRenewIntermediate(provider ca.Provider, newActiveRoot
 		return fmt.Errorf("error generating new intermediate cert: %v", err)
 	}
 
-	intermediateCert, err := connect.ParseCert(intermediatePEM)
-	if err != nil {
-		return fmt.Errorf("error parsing intermediate cert: %v", err)
+	if err := setLeafSigningCert(newActiveRoot, intermediatePEM); err != nil {
+		return err
 	}
-
-	// Append the new intermediate to our local active root entry. This is
-	// where the root representations start to diverge.
-	newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediatePEM)
-	newActiveRoot.SigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
 
 	c.logger.Info("generated new intermediate certificate for primary datacenter")
 	return nil
@@ -1093,17 +1089,25 @@ func (c *CAManager) secondaryRenewIntermediate(provider ca.Provider, newActiveRo
 		return fmt.Errorf("Failed to set the intermediate certificate with the CA provider: %v", err)
 	}
 
-	intermediateCert, err := connect.ParseCert(intermediatePEM)
-	if err != nil {
-		return fmt.Errorf("error parsing intermediate cert: %v", err)
+	if err := setLeafSigningCert(newActiveRoot, intermediatePEM); err != nil {
+		return err
 	}
 
-	// Append the new intermediate to our local active root entry. This is
-	// where the root representations start to diverge.
-	newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediatePEM)
-	newActiveRoot.SigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
-
 	c.logger.Info("received new intermediate certificate from primary datacenter")
+	return nil
+}
+
+// setLeafSigningCert updates the CARoot by appending the pem to the list of
+// intermediate certificates, and setting the SigningKeyID to the encoded
+// SubjectKeyId of the certificate.
+func setLeafSigningCert(caRoot *structs.CARoot, pem string) error {
+	cert, err := connect.ParseCert(pem)
+	if err != nil {
+		return fmt.Errorf("error parsing leaf signing cert: %w", err)
+	}
+
+	caRoot.IntermediateCerts = append(caRoot.IntermediateCerts, pem)
+	caRoot.SigningKeyID = connect.EncodeSigningKeyID(cert.SubjectKeyId)
 	return nil
 }
 

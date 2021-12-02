@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -24,7 +26,6 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/testrpc"
 )
 
 // TODO(kyhavlov): replace with t.Deadline()
@@ -494,4 +495,59 @@ func TestCAManager_Initialize_Logging(t *testing.T) {
 	})
 
 	require.Contains(t, buf.String(), "consul CA provider configured")
+}
+
+func TestCAManager_UpdateConfiguration_Vault_Primary(t *testing.T) {
+	ca.SkipIfVaultNotPresent(t)
+	vault := ca.NewTestVaultServer(t)
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             vault.Addr,
+				"Token":               vault.RootToken,
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-intermediate/",
+			},
+		}
+	})
+	defer func() {
+		s1.Shutdown()
+		s1.leaderRoutineManager.Wait()
+	}()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	_, origRoot, err := s1.fsm.State().CARootActive(nil)
+	require.NoError(t, err)
+	require.Len(t, origRoot.IntermediateCerts, 1)
+
+	cert, err := connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(origRoot))
+	require.NoError(t, err)
+	require.Equal(t, connect.HexString(cert.SubjectKeyId), origRoot.SigningKeyID)
+
+	err = s1.caManager.UpdateConfiguration(&structs.CARequest{
+		Config: &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             vault.Addr,
+				"Token":               vault.RootToken,
+				"RootPKIPath":         "pki-root-2/",
+				"IntermediatePKIPath": "pki-intermediate-2/",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	_, newRoot, err := s1.fsm.State().CARootActive(nil)
+	require.NoError(t, err)
+	require.Len(t, newRoot.IntermediateCerts, 2,
+		"expected one cross-sign cert and one local leaf sign cert")
+	require.NotEqual(t, origRoot.ID, newRoot.ID)
+
+	cert, err = connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(newRoot))
+	require.NoError(t, err)
+	require.Equal(t, connect.HexString(cert.SubjectKeyId), newRoot.SigningKeyID)
 }
