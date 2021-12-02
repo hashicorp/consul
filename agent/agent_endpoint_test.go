@@ -2265,6 +2265,74 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 	})
 }
 
+func TestAgent_ForceLeavePrune_WAN(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a1 := StartTestAgent(t, TestAgent{Name: "dc1", HCL: `
+		datacenter = "dc1"
+		primary_datacenter = "dc1"
+		gossip_wan {
+			probe_interval = "50ms"
+			suspicion_mult = 2
+		}
+	`})
+	defer a1.Shutdown()
+
+	a2 := StartTestAgent(t, TestAgent{Name: "dc2", HCL: `
+		datacenter = "dc2"
+		primary_datacenter = "dc1"
+	`})
+	defer a2.Shutdown()
+
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
+	testrpc.WaitForLeader(t, a2.RPC, "dc2")
+
+	// Wait for the WAN join.
+	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
+	_, err := a2.JoinWAN([]string{addr})
+	require.NoError(t, err)
+
+	testrpc.WaitForLeader(t, a1.RPC, "dc2")
+	testrpc.WaitForLeader(t, a2.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, a1.WANMembers(), 2)
+		require.Len(r, a2.WANMembers(), 2)
+	})
+
+	wanNodeName_a2 := a2.Config.NodeName + ".dc2"
+
+	// Shutdown and wait for agent being marked as failed, so we wait for full
+	// shutdown of Agent.
+	require.NoError(t, a2.Shutdown())
+	retry.Run(t, func(r *retry.R) {
+		m := a1.WANMembers()
+		for _, member := range m {
+			if member.Name == wanNodeName_a2 {
+				if member.Status != serf.StatusFailed {
+					r.Fatalf("got status %q want %q", member.Status, serf.StatusFailed)
+				}
+			}
+		}
+	})
+
+	// Force leave now
+	req, err := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/force-leave/%s?prune=1&wan=1", wanNodeName_a2), nil)
+	require.NoError(t, err)
+
+	resp := httptest.NewRecorder()
+	a1.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
+
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, a1.WANMembers(), 1)
+	})
+}
+
 func TestAgent_RegisterCheck(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
