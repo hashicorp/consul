@@ -326,7 +326,11 @@ This `services` source input object defines services registered to Consul whose 
 
 | Parameter |  Required |Description | Default |
 | --------- | --------- | ---------- | ------- |
-| `regexp` |  Optional | String value matching the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
+| `regexp` |  Optional | String value matching the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) list must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
+| `datacenter` |  Optional | String value specifying the name of a datacenter to query for the task. | Datacenter of the agent that Consul-Terraform-Sync queries. |
+| `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the Consul-Terraform-Sync ACL token <br/> 2. The `default` namespace. |
+| `filter` |  Optional | String value specifying the expression used to filter nodes for the service. <br/><br/> For more details, see the Consul documentation on [supported filters for services](/api-docs/health#filtering-2) and [how to write filter expressions](/api-docs/features/filtering#creating-expressions) | none |
+| `cts_user_defined_meta` | Optional | Map of strings defined by the user that will be appended to  each [service input variables](/docs/nia/terraform-modules#services-source-input). <br/><br/> Not all modules use the configured metadata. Refer to the module configured for this task to understand the metadata usage and expected keys and format. | none|
 
 In the following example, the scheduled task queries all Consul services with `web` as the suffix. The metadata of matching services are provided to the Terraform module.
 
@@ -342,6 +346,12 @@ task {
 
   source_input “services” {
     regexp = "^web.*"
+    datacenter = "dc1"
+    namespace  = "default"
+    filter     = "Service.Tags not contains \"prod\""
+    cts_user_defined_meta {
+      key = "value"
+    }
   }
 }
 ```
