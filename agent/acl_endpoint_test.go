@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -1658,7 +1657,7 @@ func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// spin up a fake oidc server
-	oidcServer := startSSOTestServer(t)
+	oidcServer := oidcauthtest.Start(t)
 	pubKey, privKey := oidcServer.SigningKeys()
 
 	type mConfig = map[string]interface{}
@@ -2328,14 +2327,6 @@ func upsertTestCustomizedBindingRule(rpc rpcFn, masterToken string, datacenter s
 	}
 
 	return &out, nil
-}
-
-func startSSOTestServer(t *testing.T) *oidcauthtest.Server {
-	ports := freeport.MustTake(1)
-	return oidcauthtest.Start(t, oidcauthtest.WithPort(
-		ports[0],
-		func() { freeport.Return(ports) },
-	))
 }
 
 func TestHTTPHandlers_ACLReplicationStatus(t *testing.T) {

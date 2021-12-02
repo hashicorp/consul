@@ -295,10 +295,6 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ports, err := freeport.Take(1)
-			require.NoError(t, err)
-			t.Cleanup(func() { freeport.Return(ports) })
-
 			caConfig := tlsutil.Config{}
 			tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
 			require.NoError(t, err)
@@ -312,7 +308,7 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 				},
 				RuntimeConfig: &config.RuntimeConfig{
 					HTTPAddrs: []net.Addr{
-						&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+						&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: freeport.GetOne(t)},
 					},
 					HTTPMaxHeaderBytes: tt.maxHeaderBytes,
 				},
@@ -1738,14 +1734,12 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
-	testCtx, testCancel := context.WithCancel(context.Background())
-	defer testCancel()
-
-	testHTTPServer, returnPort := launchHTTPCheckServer(t, testCtx)
-	defer func() {
-		testHTTPServer.Close()
-		returnPort()
-	}()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK\n"))
+	})
+	testHTTPServer := httptest.NewServer(handler)
+	t.Cleanup(testHTTPServer.Close)
 
 	registerServicesAndChecks := func(t *testing.T, a *TestAgent) {
 		// add one persistent service with a simple check
@@ -1848,29 +1842,6 @@ node_name = "` + a.Config.NodeName + `"
 		})
 		require.True(t, ok, name+" failed")
 	}
-}
-
-func launchHTTPCheckServer(t *testing.T, ctx context.Context) (srv *httptest.Server, returnPortsFn func()) {
-	ports := freeport.MustTake(1)
-	port := ports[0]
-
-	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
-
-	var lc net.ListenConfig
-	listener, err := lc.Listen(ctx, "tcp", addr)
-	require.NoError(t, err)
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("OK\n"))
-	})
-
-	srv = &httptest.Server{
-		Listener: listener,
-		Config:   &http.Server{Handler: handler},
-	}
-	srv.Start()
-	return srv, func() { freeport.Return(ports) }
 }
 
 func TestAgent_AddCheck_Alias(t *testing.T) {
@@ -4708,14 +4679,12 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 
 	t.Parallel()
 
-	gwPort := freeport.MustTake(1)
-	defer freeport.Return(gwPort)
-	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", gwPort[0])
+	port := freeport.GetOne(t)
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", port)
 
 	// Due to some ordering, we'll have to manually configure these ports in
 	// advance.
-	secondaryRPCPorts := freeport.MustTake(2)
-	defer freeport.Return(secondaryRPCPorts)
+	secondaryRPCPorts := freeport.GetN(t, 2)
 
 	a1 := StartTestAgent(t, TestAgent{Name: "bob", HCL: `
 		domain = "consul"
@@ -4769,7 +4738,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			ID:   "mesh-gateway",
 			Name: "mesh-gateway",
 			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
-			Port: gwPort[0],
+			Port: port,
 		}
 		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		require.NoError(t, err)
@@ -4883,7 +4852,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			ID:   "mesh-gateway",
 			Name: "mesh-gateway",
 			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
-			Port: gwPort[0],
+			Port: port,
 		}
 		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		require.NoError(t, err)
@@ -4898,7 +4867,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			ID:   "mesh-gateway",
 			Name: "mesh-gateway",
 			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
-			Port: gwPort[0],
+			Port: port,
 		}
 		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		require.NoError(t, err)
@@ -5281,10 +5250,7 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	ports, err := freeport.Take(2)
-	require.NoError(t, err)
-	t.Cleanup(func() { freeport.Return(ports) })
-
+	ports := freeport.GetN(t, 2)
 	caConfig := tlsutil.Config{}
 	tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
 	require.NoError(t, err)

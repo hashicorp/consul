@@ -33,11 +33,7 @@ func testClientConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports := freeport.MustTake(2)
-	t.Cleanup(func() {
-		freeport.Return(ports)
-	})
-
+	ports := freeport.GetN(t, 2)
 	config.Datacenter = "dc1"
 	config.DataDir = dir
 	config.NodeName = uniqueNodeName(t.Name())

@@ -120,11 +120,7 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 		return nil, fmt.Errorf("%q not found on $PATH", vaultBinaryName)
 	}
 
-	ports := freeport.MustTake(2)
-	returnPortsFn := func() {
-		freeport.Return(ports)
-	}
-
+	ports := freeport.GetN(t, 2)
 	var (
 		clientAddr  = fmt.Sprintf("127.0.0.1:%d", ports[0])
 		clusterAddr = fmt.Sprintf("127.0.0.1:%d", ports[1])
@@ -136,7 +132,6 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 		Address: "http://" + clientAddr,
 	})
 	if err != nil {
-		returnPortsFn()
 		return nil, err
 	}
 	client.SetToken(token)
@@ -156,16 +151,14 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 	cmd.Stdout = ioutil.Discard
 	cmd.Stderr = ioutil.Discard
 	if err := cmd.Start(); err != nil {
-		returnPortsFn()
 		return nil, err
 	}
 
 	testVault := &TestVaultServer{
-		RootToken:     token,
-		Addr:          "http://" + clientAddr,
-		cmd:           cmd,
-		client:        client,
-		returnPortsFn: returnPortsFn,
+		RootToken: token,
+		Addr:      "http://" + clientAddr,
+		cmd:       cmd,
+		client:    client,
 	}
 	t.Cleanup(func() {
 		if err := testVault.Stop(); err != nil {
@@ -181,9 +174,6 @@ type TestVaultServer struct {
 	Addr      string
 	cmd       *exec.Cmd
 	client    *vaultapi.Client
-
-	// returnPortsFn will put the ports claimed for the test back into the
-	returnPortsFn func()
 }
 
 var printedVaultVersion sync.Once
@@ -229,11 +219,6 @@ func (v *TestVaultServer) Stop() error {
 	if err := v.cmd.Wait(); err != nil {
 		return err
 	}
-
-	if v.returnPortsFn != nil {
-		v.returnPortsFn()
-	}
-
 	return nil
 }
 
