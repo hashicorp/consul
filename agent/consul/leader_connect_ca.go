@@ -260,7 +260,7 @@ func (c *CAManager) Start() {
 	// Attempt to initialize the Connect CA now. This will
 	// happen during leader establishment and it would be great
 	// if the CA was ready to go once that process was finished.
-	if err := c.InitializeCA(); err != nil {
+	if err := c.Initialize(); err != nil {
 		c.logger.Error("Failed to initialize Connect CA", "error", err)
 
 		// we failed to fully initialize the CA so we need to spawn a
@@ -290,7 +290,7 @@ func (c *CAManager) startPostInitializeRoutines() {
 }
 
 func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
-	retryLoopBackoffAbortOnSuccess(ctx, c.InitializeCA, func(err error) {
+	retryLoopBackoffAbortOnSuccess(ctx, c.Initialize, func(err error) {
 		c.logger.Error("Failed to initialize Connect CA",
 			"routine", backgroundCAInitializationRoutineName,
 			"error", err,
@@ -307,10 +307,10 @@ func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
 	return nil
 }
 
-// InitializeCA sets up the CA provider when gaining leadership, either bootstrapping
+// Initialize sets up the CA provider when gaining leadership, either bootstrapping
 // the CA if this is the primary DC or making a remote RPC for intermediate signing
 // if this is a secondary DC.
-func (c *CAManager) InitializeCA() (reterr error) {
+func (c *CAManager) Initialize() (reterr error) {
 	// Bail if connect isn't enabled.
 	if !c.serverConf.ConnectEnabled {
 		return nil
@@ -758,7 +758,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		}
 	}()
 
-	// Attempt to initialize the config if we failed to do so in InitializeCA for some reason
+	// Attempt to initialize the config if we failed to do so in Initialize for some reason
 	_, err = c.initializeCAConfig()
 	if err != nil {
 		return err
