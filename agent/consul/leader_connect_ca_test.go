@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
 	"errors"
@@ -15,6 +16,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 // TODO(kyhavlov): replace with t.Deadline()
@@ -173,7 +176,7 @@ func testCAConfig() *structs.CAConfiguration {
 func initTestManager(t *testing.T, manager *CAManager, delegate *mockCAServerDelegate) {
 	initCh := make(chan struct{})
 	go func() {
-		require.NoError(t, manager.InitializeCA())
+		require.NoError(t, manager.Initialize())
 		close(initCh)
 	}()
 	for i := 0; i < 5; i++ {
@@ -202,12 +205,12 @@ func TestCAManager_Initialize(t *testing.T) {
 	delegate := NewMockCAServerDelegate(t, conf)
 	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 
-	// Call InitializeCA and then confirm the RPCs and provider calls
+	// Call Initialize and then confirm the RPCs and provider calls
 	// happen in the expected order.
 	require.EqualValues(t, caStateUninitialized, manager.state)
 	errCh := make(chan error)
 	go func() {
-		errCh <- manager.InitializeCA()
+		errCh <- manager.Initialize()
 	}()
 
 	waitForCh(t, delegate.callbackCh, "forwardDC/ConnectCA.Roots")
@@ -218,7 +221,7 @@ func TestCAManager_Initialize(t *testing.T) {
 	waitForCh(t, delegate.callbackCh, "raftApply/ConnectCA")
 	waitForEmptyCh(t, delegate.callbackCh)
 
-	// Make sure the InitializeCA call returned successfully.
+	// Make sure the Initialize call returned successfully.
 	select {
 	case err := <-errCh:
 		require.NoError(t, err)
@@ -286,4 +289,35 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	}
 
 	require.EqualValues(t, caStateInitialized, manager.state)
+}
+
+func TestCAManager_Initialize_Logging(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, conf1 := testServerConfig(t)
+
+	// Setup dummy logger to catch output
+	var buf bytes.Buffer
+	logger := testutil.LoggerWithOutput(t, &buf)
+
+	deps := newDefaultDeps(t, conf1)
+	deps.Logger = logger
+
+	s1, err := NewServer(conf1, deps)
+	require.NoError(t, err)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Wait til CA root is setup
+	retry.Run(t, func(r *retry.R) {
+		var out structs.IndexedCARoots
+		r.Check(s1.RPC("ConnectCA.Roots", structs.DCSpecificRequest{
+			Datacenter: conf1.Datacenter,
+		}, &out))
+	})
+
+	require.Contains(t, buf.String(), "consul CA provider configured")
 }
