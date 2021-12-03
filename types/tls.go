@@ -10,7 +10,10 @@ type TLSVersion int
 
 const (
 	// Error value, excluded from lookup maps
-	TLSVersionInvalid TLSVersion = iota
+	TLSVersionInvalid TLSVersion = iota - 1
+
+	// Explicit unspecified zero-value to avoid overwriting parent defaults
+	TLSVersionUnspecified
 
 	// Explictly allow implementation to select TLS version
 	// May be useful to supercede defaults specified at a higher layer
@@ -93,6 +96,7 @@ func (v *TLSVersion) UnmarshalJSON(bytes []byte) error {
 		return nil
 	}
 
+	*v = TLSVersionInvalid
 	return fmt.Errorf("no matching TLS Version found for %s", versionStr)
 }
 
