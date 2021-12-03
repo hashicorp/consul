@@ -6,6 +6,7 @@ import homepageQuery from './query.graphql'
 import { renderMetaTags } from 'react-datocms'
 import Button from '@hashicorp/react-button'
 import IoHomeHero from 'components/io-home-hero'
+import IoHomeInPractice from 'components/io-home-in-practice'
 import IoVideoCallout from 'components/io-video-callout'
 import IoCardContainer from 'components/io-card-container'
 import IoHomeCaseStudies from 'components/io-home-case-studies'
@@ -105,54 +106,30 @@ export default function Homepage({ data }): React.ReactElement {
         ) : null}
       </section>
 
-      <section className={s.inPractice}>
-        <div className={s.container}>
-          <IoCardContainer
-            theme="dark"
-            heading={inPractice.heading}
-            description={inPractice.description}
-            cardsPerRow={3}
-            cards={inPractice.cards.map((card) => {
-              return {
-                eyebrow: card.eyebrow,
-                link: {
-                  url: card.link,
-                  type: 'inbound',
-                },
-                heading: card.heading,
-                description: card.description,
-                products: card.products,
-              }
-            })}
-          />
-
-          <div className={s.inPracticeCta}>
-            <div className={s.inPracticeCtaContent}>
-              <h3 className={s.inPracticeCtaHeading}>
-                {inPractice.cta.heading}
-              </h3>
-              <p className={s.inPracticeCtaDescription}>
-                {inPractice.cta.description}
-              </p>
-              <Button
-                title="Learn more"
-                url={inPractice.cta.link}
-                theme={{
-                  brand: 'consul',
-                }}
-              />
-            </div>
-            <div className={s.inPracticeCtaMedia}>
-              <Image
-                src={inPractice.cta.image.url}
-                width={inPractice.cta.image.width}
-                height={inPractice.cta.image.height}
-                alt={inPractice.cta.image.alt}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+      <IoHomeInPractice
+        brand="consul"
+        pattern="/img/practice-pattern.svg"
+        heading={inPractice.heading}
+        description={inPractice.description}
+        cards={inPractice.cards.map((card) => {
+          return {
+            eyebrow: card.eyebrow,
+            link: {
+              url: card.link,
+              type: 'inbound',
+            },
+            heading: card.heading,
+            description: card.description,
+            products: card.products,
+          }
+        })}
+        cta={{
+          heading: inPractice.cta.heading,
+          description: inPractice.cta.description,
+          link: inPractice.cta.link,
+          image: inPractice.cta.image,
+        }}
+      />
 
       <section className={s.useCases}>
         <div className={s.container}>
