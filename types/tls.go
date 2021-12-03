@@ -47,7 +47,8 @@ var (
 	}
 	// NOTE: these currently map to the deprecated config strings to support the
 	// deployment pattern of upgrading servers first. These should be updated to
-	// be the inverse of the TLSVersions map with newer config strings in a future release.
+	// be the inverse of the TLSVersions map with newer config strings in a future
+	// release.
 	ConsulAutoConfigTLSVersionStrings = map[TLSVersion]string{
 		TLSVersionAuto: "",
 		TLSv1_0:        "tls10",
@@ -55,21 +56,10 @@ var (
 		TLSv1_2:        "tls12",
 		TLSv1_3:        "tls13",
 	}
-	EnvoyTLSVersionStrings = map[TLSVersion]string{
-		TLSVersionAuto: "TLS_AUTO",
-		TLSv1_0:        "TLSv1_0",
-		TLSv1_1:        "TLSv1_1",
-		TLSv1_2:        "TLSv1_2",
-		TLSv1_3:        "TLSv1_3",
-	}
 )
 
 func (v TLSVersion) String() string {
 	return HumanTLSVersionStrings[v]
-}
-
-func (v TLSVersion) EnvoyString() string {
-	return EnvoyTLSVersionStrings[v]
 }
 
 // IANA cipher suite constants and values as defined at
