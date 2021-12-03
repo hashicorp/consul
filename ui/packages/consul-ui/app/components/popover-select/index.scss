@@ -21,6 +21,8 @@
   margin-right: 10px;
 }
 
+/* TODO: Consider moving these to their specific search bard componets or */
+/* even their own search bar sub menu components */
 %popover-select .value-passing button::before {
   @extend %with-check-circle-fill-mask, %as-pseudo;
   color: rgb(var(--tone-green-500));
@@ -37,11 +39,15 @@
   @extend %with-minus-square-fill-mask, %as-pseudo;
   color: rgb(var(--tone-gray-400));
 }
-%popover-select.type-source li button {
+%popover-select.type-source li:not(.partition) button {
   text-transform: capitalize;
 }
 %popover-select.type-source li.aws button {
   text-transform: uppercase;
+}
+%popover-select.type-source li.partition button::before {
+  @extend %with-user-team-mask, %as-pseudo;
+  color: rgb(var(--tone-gray-500));
 }
 %popover-select .aws button::before {
   @extend %with-logo-aws-color-icon, %as-pseudo;
@@ -68,3 +74,4 @@
 %popover-select .terraform button::before {
   @extend %with-logo-terraform-color-icon, %as-pseudo;
 }
+/**/

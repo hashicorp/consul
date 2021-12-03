@@ -66,9 +66,12 @@ as |sort filters items partition nspace|}}
         <label for="toolbar-toggle"></label>
     </BlockSlot>
     <BlockSlot @name="toolbar">
-      {{#if (gt items.length 0) }}
+{{#if (gt items.length 0) }}
+  {{#let (collection items) as |items|}}
         <Consul::Service::SearchBar
-          @sources={{get (collection items) 'ExternalSources'}}
+          @sources={{get items 'ExternalSources'}}
+          @partitions={{get items 'Partitions'}}
+          @partition={{partition}}
 
           @search={{search}}
           @onsearch={{action (mut search) value="target.value"}}
@@ -78,7 +81,8 @@ as |sort filters items partition nspace|}}
           @filter={{filters}}
 
         />
-      {{/if}}
+  {{/let}}
+{{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
       <DataCollection

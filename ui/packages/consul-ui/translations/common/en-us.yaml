@@ -46,6 +46,7 @@ search:
   critical: Failing
   in-mesh: In service mesh
   not-in-mesh: Not in service mesh
+  integrations: Integrations
 sort:
   alpha:
     asc: A to Z
