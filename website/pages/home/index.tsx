@@ -1,12 +1,13 @@
 import * as React from 'react'
 import Head from 'next/head'
+import Image from 'next/image'
 import rivetQuery from '@hashicorp/nextjs-scripts/dato/client'
 import homepageQuery from './query.graphql'
 import { renderMetaTags } from 'react-datocms'
+import Button from '@hashicorp/react-button'
 import IoHomeHero from 'components/io-home-hero'
 import IoVideoCallout from 'components/io-video-callout'
 import IoCardContainer from 'components/io-card-container'
-import IoHomeFeature from 'components/io-home-feature'
 import IoHomeCaseStudies from 'components/io-home-case-studies'
 import IoHomeCallToAction from 'components/io-home-call-to-action'
 import IoHomePreFooter from 'components/io-home-pre-footer'
@@ -45,19 +46,47 @@ export default function Homepage({ data }): React.ReactElement {
           </div>
         </header>
 
-        <ul className={s.features}>
-          {intro.features.map((feature, index) => {
-            return (
-              // Index is stable
-              // eslint-disable-next-line react/no-array-index-key
-              <li key={index}>
-                <div className={s.container}>
-                  <IoHomeFeature {...feature} />
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+        <div className={s.offerings}>
+          {intro.offerings.image ? (
+            <div className={s.offeringsMedia}>
+              <Image
+                src={intro.offerings.image.url}
+                width={intro.offerings.image.width}
+                height={intro.offerings.image.height}
+                alt={intro.offerings.image.alt}
+              />
+            </div>
+          ) : null}
+          <div className={s.offeringsContent}>
+            <ul className={s.offeringsList}>
+              {intro.offerings.list.map((offering, index) => {
+                return (
+                  // Index is stable
+                  // eslint-disable-next-line react/no-array-index-key
+                  <li key={index}>
+                    <h3 className={s.offeringsListHeading}>
+                      {offering.heading}
+                    </h3>
+                    <p className={s.offeringsListDescription}>
+                      {offering.description}
+                    </p>
+                  </li>
+                )
+              })}
+            </ul>
+            {intro.offerings.cta ? (
+              <div className={s.offeringsCta}>
+                <Button
+                  title={intro.offerings.cta.title}
+                  url={intro.offerings.cta.link}
+                  theme={{
+                    brand: 'neutral',
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
+        </div>
 
         {intro.video ? (
           <div className={s.container}>
@@ -194,7 +223,9 @@ export async function getStaticProps() {
     heroCards,
     introHeading,
     introDescription,
-    introFeatures,
+    introOfferingsImage,
+    introOfferings,
+    introOfferingsCta,
     introVideo,
     inPracticeHeading,
     inPracticeDescription,
@@ -234,7 +265,11 @@ export async function getStaticProps() {
         intro: {
           heading: introHeading,
           description: introDescription,
-          features: introFeatures,
+          offerings: {
+            image: introOfferingsImage,
+            list: introOfferings,
+            cta: introOfferingsCta[0],
+          },
           video: introVideo[0],
         },
         inPractice: {

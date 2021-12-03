@@ -22,14 +22,19 @@ query homepageQuery {
     }
     introHeading
     introDescription
-    introFeatures {
+    introOfferingsImage {
+      url
+      width
+      height
+      alt
+    }
+    introOfferings {
       heading
       description
+    }
+    introOfferingsCta {
+      title
       link
-      image {
-        url
-        alt
-      }
     }
     introVideo {
       youtubeId
