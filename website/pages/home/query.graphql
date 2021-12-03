@@ -60,6 +60,15 @@ query homepageQuery {
         name
       }
     }
+    inPracticeCtaHeading
+    inPracticeCtaDescription
+    inPracticeCtaLink
+    inPracticeCtaImage {
+      url
+      alt
+      width
+      height
+    }
     useCasesHeading
     useCasesDescription
     useCasesCards {

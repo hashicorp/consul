@@ -125,6 +125,32 @@ export default function Homepage({ data }): React.ReactElement {
               }
             })}
           />
+
+          <div className={s.inPracticeCta}>
+            <div className={s.inPracticeCtaContent}>
+              <h3 className={s.inPracticeCtaHeading}>
+                {inPractice.cta.heading}
+              </h3>
+              <p className={s.inPracticeCtaDescription}>
+                {inPractice.cta.description}
+              </p>
+              <Button
+                title="Learn more"
+                url={inPractice.cta.link}
+                theme={{
+                  brand: 'consul',
+                }}
+              />
+            </div>
+            <div className={s.inPracticeCtaMedia}>
+              <Image
+                src={inPractice.cta.image.url}
+                width={inPractice.cta.image.width}
+                height={inPractice.cta.image.height}
+                alt={inPractice.cta.image.alt}
+              />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -230,6 +256,10 @@ export async function getStaticProps() {
     inPracticeHeading,
     inPracticeDescription,
     inPracticeCards,
+    inPracticeCtaHeading,
+    inPracticeCtaDescription,
+    inPracticeCtaLink,
+    inPracticeCtaImage,
     useCasesHeading,
     useCasesDescription,
     useCasesCards,
@@ -276,6 +306,12 @@ export async function getStaticProps() {
           heading: inPracticeHeading,
           description: inPracticeDescription,
           cards: inPracticeCards,
+          cta: {
+            heading: inPracticeCtaHeading,
+            description: inPracticeCtaDescription,
+            link: inPracticeCtaLink,
+            image: inPracticeCtaImage,
+          },
         },
         useCases: {
           heading: useCasesHeading,

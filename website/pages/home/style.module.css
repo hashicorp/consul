@@ -156,6 +156,47 @@
   }
 }
 
+.inPracticeCta {
+  --columns: 1;
+
+  margin-top: 64px;
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  gap: 64px 32px;
+
+  @media (--medium-up) {
+    --columns: 12;
+  }
+}
+
+.inPracticeCtaContent {
+  grid-column: 1 / -1;
+
+  @media (--medium-up) {
+    grid-column: 1 / 5;
+  }
+}
+
+.inPracticeCtaMedia {
+  grid-column: 1 / -1;
+
+  @media (--medium-up) {
+    grid-column: 6 / -1;
+  }
+}
+
+.inPracticeCtaHeading {
+  margin: 0;
+  color: var(--white);
+  composes: g-type-display-3 from global;
+}
+
+.inPracticeCtaDescription {
+  margin: 8px 0 32px;
+  color: var(--gray-5);
+  composes: g-type-body from global;
+}
+
 /*
  * Use cases
  */
