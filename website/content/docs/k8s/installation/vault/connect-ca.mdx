@@ -7,4 +7,41 @@ description: >-
 
 # Vault as the Service Mesh Certificate Provider on Kubernetes
 
-TODO
+To configure [Vault as the provider](/docs/connect/ca/vault) for the Consul service certificates,
+you will first need to decide on the type of policy that is suitable for you.
+To see the permissions that Consul would need in Vault, please see [Vault ACL policies](/docs/connect/ca/vault#vault-acl-policies)
+documentation.
+
+Once you have a policy, you will need to link that policy to the Consul server service account.
+
+```shell-session
+vault write auth/kubernetes/role/consul-server \
+    bound_service_account_names=<Consul server service account> \
+    bound_service_account_namespaces=<Consul installation namespace> \
+    policies=<Connect CA policy> \
+    ttl=1h
+```
+
+-> **Note:** To find out the service account names of the Consul server and client,
+you can run
+`helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul`
+
+Now we can configure the Consul Helm chart to use Vault as the Connect CA provider:
+
+```yaml
+global:
+  secretsBackend:
+    vault:
+      enabled: true
+      consulServerRole: consul-server
+      consulClientRole: consul-client
+      connectCA:
+        address: <the address of the Vault server>
+        rootPKIPath: <the path to root PKI>
+        intermediatePKIPath: <the path to intermediate PKI>
+```
+
+The `address` you provide to the `connectCA` configuration can be a Kubernetes DNS
+address if the Vault cluster is running the same Kubernetes cluster.
+The `rootPKIPath` and `intermediatePKIPath` should be the same as the ones
+defined in your Connect CA policy.
