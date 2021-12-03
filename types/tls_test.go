@@ -17,5 +17,7 @@ func TestTLSVersion_PartialEq(t *testing.T) {
 }
 
 func TestTLSVersion_Invalid(t *testing.T) {
-	require.NotEqual(t, TLSVersionAuto, TLSVersionInvalid)
+	var zeroValue TLSVersion
+	require.Equal(t, TLSVersionInvalid, zeroValue)
+	require.NotEqual(t, TLSVersionInvalid, TLSVersionAuto)
 }
