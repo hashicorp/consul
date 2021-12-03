@@ -9,7 +9,6 @@ import { ErrorBoundary } from '@hashicorp/platform-runtime-error-monitoring'
 import createConsentManager from '@hashicorp/react-consent-manager/loader'
 import useAnchorLinkAnalytics from '@hashicorp/platform-util/anchor-link-analytics'
 import HashiHead from '@hashicorp/react-head'
-import HashiStackMenu from '@hashicorp/react-hashi-stack-menu'
 import AlertBanner from '@hashicorp/react-alert-banner'
 import Footer from '../components/footer'
 import ProductSubnav from '../components/subnav'
@@ -44,7 +43,6 @@ export default function App({ Component, pageProps }) {
       {ALERT_BANNER_ACTIVE && (
         <AlertBanner {...alertBannerData} product="consul" hideOnMobile />
       )}
-      <HashiStackMenu />
       <ProductSubnav />
       <div className="content">
         <Component {...pageProps} />
