@@ -1013,7 +1013,7 @@ func (s *Server) setQueryMeta(m structs.QueryMetaCompat, token string) {
 		m.SetLastContact(time.Since(s.raft.LastContact()))
 		m.SetKnownLeader(s.raft.Leader() != "")
 	}
-	s.maskResultsFilteredByACLs(token, m)
+	maskResultsFilteredByACLs(token, m)
 }
 
 // consistentRead is used to ensure we do not perform a stale
@@ -1071,7 +1071,7 @@ func (s *Server) consistentRead() error {
 //	  will only check whether it is blank or not). It's a safe assumption because
 //	  ResultsFilteredByACLs is only set to try when applying the already-resolved
 //	  token's policies.
-func (s *Server) maskResultsFilteredByACLs(token string, meta structs.QueryMetaCompat) {
+func maskResultsFilteredByACLs(token string, meta structs.QueryMetaCompat) {
 	if token == "" {
 		meta.SetResultsFilteredByACLs(false)
 	}
