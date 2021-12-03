@@ -1,0 +1,91 @@
+.cardContainer {
+  position: relative;
+
+  & + .cardContainer {
+    margin-top: 64px;
+
+    @media (--medium-up) {
+      margin-top: 132px;
+    }
+  }
+}
+
+.header {
+  margin: 0 auto 64px;
+  text-align: center;
+  max-width: 600px;
+}
+
+.heading {
+  margin: 0;
+  composes: g-type-display-2 from global;
+
+  @nest .dark & {
+    color: var(--white);
+  }
+}
+
+.description {
+  margin: 8px 0 0;
+  composes: g-type-body-large from global;
+
+  @nest .dark & {
+    color: var(--gray-5);
+  }
+}
+
+.subHeader {
+  margin: 0 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  @nest .dark & {
+    color: var(--gray-5);
+  }
+}
+
+.label {
+  margin: 0;
+  composes: g-type-display-4 from global;
+}
+
+.cardList {
+  list-style: none;
+
+  --minCol: 250px;
+  --columns: var(--length);
+
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(var(--minCol), 1fr));
+  gap: 32px;
+  overflow-x: auto;
+  margin: -4px;
+  padding: 4px;
+
+  @media (--medium-up) {
+    overflow-x: unset;
+  }
+
+  &.threeUp {
+    @media (--medium-up) {
+      --columns: 3;
+      --minCol: 0;
+    }
+  }
+
+  &.fourUp {
+    @media (--medium-up) {
+      --columns: 3;
+      --minCol: 0;
+    }
+
+    @media (--large) {
+      --columns: 4;
+    }
+  }
+
+  & > li {
+    display: flex;
+  }
+}
