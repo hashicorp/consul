@@ -194,13 +194,7 @@ export default function Homepage({ data }): React.ReactElement {
         brand="consul"
         heading={callToAction.heading}
         content={callToAction.description}
-        links={callToAction.links.map(({ text, url }, index) => {
-          return {
-            text,
-            url,
-            type: index === 1 ? 'inbound' : null,
-          }
-        })}
+        links={callToAction.links}
       />
 
       <IoHomePreFooter
