@@ -47,7 +47,7 @@ var (
 	}
 	// NOTE: these currently map to the deprecated config strings to support the
 	// deployment pattern of upgrading servers first. These should be updated to
-	// the newer config strings in a future release.
+	// be the inverse of the TLSVersions map with newer config strings in a future release.
 	ConsulAutoConfigTLSVersionStrings = map[TLSVersion]string{
 		TLSVersionAuto: "",
 		TLSv1_0:        "tls10",
