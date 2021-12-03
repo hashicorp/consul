@@ -1219,10 +1219,12 @@ func (f *aclFilter) allowSession(node string, ent *acl.AuthorizerContext) bool {
 }
 
 // filterHealthChecks is used to filter a set of health checks down based on
-// the configured ACL rules for a token.
-func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
+// the configured ACL rules for a token. Returns true if any elements were
+// removed.
+func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) bool {
 	hc := *checks
 	var authzContext acl.AuthorizerContext
+	var removed bool
 
 	for i := 0; i < len(hc); i++ {
 		check := hc[i]
@@ -1232,10 +1234,12 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
 		}
 
 		f.logger.Debug("dropping check from result due to ACLs", "check", check.CheckID)
+		removed = true
 		hc = append(hc[:i], hc[i+1:]...)
 		i--
 	}
 	*checks = hc
+	return removed
 }
 
 // filterServices is used to filter a set of services based on ACLs.
@@ -1332,10 +1336,12 @@ func (f *aclFilter) filterNodeServiceList(services **structs.NodeServiceList) {
 	}
 }
 
-// filterCheckServiceNodes is used to filter nodes based on ACL rules.
-func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
+// filterCheckServiceNodes is used to filter nodes based on ACL rules. Returns
+// true if any elements were removed.
+func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) bool {
 	csn := *nodes
 	var authzContext acl.AuthorizerContext
+	var removed bool
 
 	for i := 0; i < len(csn); i++ {
 		node := csn[i]
@@ -1344,22 +1350,20 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 			continue
 		}
 		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node.Node.Node, node.Node.GetEnterpriseMeta()))
+		removed = true
 		csn = append(csn[:i], csn[i+1:]...)
 		i--
 	}
 	*nodes = csn
+	return removed
 }
 
 // filterServiceTopology is used to filter upstreams/downstreams based on ACL rules.
 // this filter is unlike others in that it also returns whether the result was filtered by ACLs
 func (f *aclFilter) filterServiceTopology(topology *structs.ServiceTopology) bool {
-	numUp := len(topology.Upstreams)
-	numDown := len(topology.Downstreams)
-
-	f.filterCheckServiceNodes(&topology.Upstreams)
-	f.filterCheckServiceNodes(&topology.Downstreams)
-
-	return numUp != len(topology.Upstreams) || numDown != len(topology.Downstreams)
+	filteredUpstreams := f.filterCheckServiceNodes(&topology.Upstreams)
+	filteredDownstreams := f.filterCheckServiceNodes(&topology.Downstreams)
+	return filteredUpstreams || filteredDownstreams
 }
 
 // filterDatacenterCheckServiceNodes is used to filter nodes based on ACL rules.
@@ -1801,7 +1805,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		filt.filterCheckServiceNodes(v)
 
 	case *structs.IndexedCheckServiceNodes:
-		filt.filterCheckServiceNodes(&v.Nodes)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterCheckServiceNodes(&v.Nodes)
 
 	case *structs.IndexedServiceTopology:
 		filtered := filt.filterServiceTopology(v.ServiceTopology)
@@ -1817,7 +1821,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		filt.filterCoordinates(&v.Coordinates)
 
 	case *structs.IndexedHealthChecks:
-		filt.filterHealthChecks(&v.HealthChecks)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterHealthChecks(&v.HealthChecks)
 
 	case *structs.IndexedIntentions:
 		filt.filterIntentions(&v.Intentions)
