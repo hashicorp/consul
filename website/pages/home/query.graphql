@@ -49,6 +49,19 @@ query homepageQuery {
         url
       }
     }
+    introVideo {
+      youtubeId
+      heading
+      description
+      thumbnail {
+        url
+      }
+      personName
+      personDescription
+      personAvatar {
+        url
+      }
+    }
     inPracticeHeading
     inPracticeDescription
     inPracticeCards {
