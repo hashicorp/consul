@@ -170,14 +170,20 @@ func testRegisterIngressService(t *testing.T, s *Store, idx uint64, nodeID, serv
 		t.Fatalf("bad service: %#v", result)
 	}
 }
-
 func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 	nodeID string, serviceID string, checkID types.CheckID, state string) {
+	testRegisterCheckWithPartition(t, s, idx,
+		nodeID, serviceID, checkID, state, "")
+}
+
+func testRegisterCheckWithPartition(t *testing.T, s *Store, idx uint64,
+	nodeID string, serviceID string, checkID types.CheckID, state string, partition string) {
 	chk := &structs.HealthCheck{
-		Node:      nodeID,
-		CheckID:   checkID,
-		ServiceID: serviceID,
-		Status:    state,
+		Node:           nodeID,
+		CheckID:        checkID,
+		ServiceID:      serviceID,
+		Status:         state,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(partition),
 	}
 	if err := s.EnsureCheck(idx, chk); err != nil {
 		t.Fatalf("err: %s", err)
@@ -185,7 +191,7 @@ func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	c, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: nodeID, CheckID: string(checkID)})
+	c, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: nodeID, CheckID: string(checkID), EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(partition)})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

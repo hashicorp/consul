@@ -116,7 +116,7 @@ func insertSessionTxn(tx WriteTxn, session *structs.Session, idx uint64, updateM
 	return nil
 }
 
-func allNodeSessionsTxn(tx ReadTxn, node string) (structs.Sessions, error) {
+func allNodeSessionsTxn(tx ReadTxn, node string, _ string) (structs.Sessions, error) {
 	return nodeSessionsTxn(tx, nil, node, nil)
 }
 

@@ -666,7 +666,7 @@ func (s *Store) deleteNodeTxn(tx WriteTxn, idx uint64, nodeName string, entMeta 
 	}
 
 	// Invalidate any sessions for this node.
-	toDelete, err := allNodeSessionsTxn(tx, nodeName)
+	toDelete, err := allNodeSessionsTxn(tx, nodeName, entMeta.PartitionOrDefault())
 	if err != nil {
 		return err
 	}
@@ -2792,7 +2792,7 @@ func parseNodes(tx ReadTxn, ws memdb.WatchSet, idx uint64,
 // checkSessionsTxn returns the IDs of all sessions associated with a health check
 func checkSessionsTxn(tx ReadTxn, hc *structs.HealthCheck) ([]*sessionCheck, error) {
 	mappings, err := tx.Get(tableSessionChecks, indexNodeCheck, MultiQuery{Value: []string{hc.Node, string(hc.CheckID)},
-		EnterpriseMeta: hc.EnterpriseMeta})
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(hc.PartitionOrDefault())})
 	if err != nil {
 		return nil, fmt.Errorf("failed session checks lookup: %s", err)
 	}
