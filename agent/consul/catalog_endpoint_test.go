@@ -1313,7 +1313,7 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 			s1.config.NodeName,
 			policy,
 		)
-		return createTokenWithPolicyName(t, policy, codec, rules)
+		return createTokenWithPolicyName(t, codec, policy, rules, "root")
 	}
 
 	args := structs.DCSpecificRequest{
@@ -2874,7 +2874,7 @@ func TestCatalog_NodeServices_ACL(t *testing.T) {
 			policy,
 			policy,
 		)
-		return createTokenWithPolicyName(t, policy, codec, rules)
+		return createTokenWithPolicyName(t, codec, policy, rules, "root")
 	}
 
 	args := structs.NodeSpecificRequest{
