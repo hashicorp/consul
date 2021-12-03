@@ -1980,6 +1980,6 @@ func filterACL(r *ACLResolver, token string, subj interface{}) error {
 
 type partitionInfoNoop struct{}
 
-func (p *partitionInfoNoop) ExportsForPartition(partition string) acl.PartitionExports {
-	return acl.PartitionExports{}
+func (p *partitionInfoNoop) ExportsForPartition(partition string) acl.ExportedServices {
+	return acl.ExportedServices{}
 }

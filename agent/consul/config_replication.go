@@ -93,7 +93,7 @@ func (s *Server) reconcileLocalConfig(ctx context.Context, configs []structs.Con
 
 	for i, entry := range configs {
 		// Partition exports only apply to the primary datacenter.
-		if entry.GetKind() == structs.PartitionExports {
+		if entry.GetKind() == structs.ExportedServices {
 			continue
 		}
 		req := structs.ConfigEntryRequest{

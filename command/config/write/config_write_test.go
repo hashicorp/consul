@@ -2722,9 +2722,9 @@ func TestParseConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "partition-exports",
+			name: "exported-services",
 			snake: `
-				kind = "partition-exports"
+				kind = "exported-services"
 				name = "foo"
 				meta {
 					"foo" = "bar"
@@ -2755,7 +2755,7 @@ func TestParseConfigEntry(t *testing.T) {
 				]
 			`,
 			camel: `
-				Kind = "partition-exports"
+				Kind = "exported-services"
 				Name = "foo"
 				Meta {
 					"foo" = "bar"
@@ -2787,7 +2787,7 @@ func TestParseConfigEntry(t *testing.T) {
 			`,
 			snakeJSON: `
 			{
-				"kind": "partition-exports",
+				"kind": "exported-services",
 				"name": "foo",
 				"meta": {
 					"foo": "bar",
@@ -2820,7 +2820,7 @@ func TestParseConfigEntry(t *testing.T) {
 			`,
 			camelJSON: `
 			{
-				"Kind": "partition-exports",
+				"Kind": "exported-services",
 				"Name": "foo",
 				"Meta": {
 					"foo": "bar",
@@ -2851,7 +2851,7 @@ func TestParseConfigEntry(t *testing.T) {
 				]
 			}
 			`,
-			expect: &api.PartitionExportsConfigEntry{
+			expect: &api.ExportedServicesConfigEntry{
 				Name: "foo",
 				Meta: map[string]string{
 					"foo": "bar",

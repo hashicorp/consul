@@ -2093,7 +2093,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "",
 				localDC:   "dc1",
 				primaryDC: "",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 		},
 		{
@@ -2102,7 +2102,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "",
 				localDC:   "dc1",
 				primaryDC: "dc1",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 		},
 		{
@@ -2111,7 +2111,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "dc1",
 				localDC:   "dc1",
 				primaryDC: "dc1",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 		},
 		{
@@ -2120,7 +2120,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "dc2",
 				localDC:   "dc1",
 				primaryDC: "",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 			wantErr: "writes must not target secondary datacenters",
 		},
@@ -2130,7 +2130,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "dc2",
 				localDC:   "dc1",
 				primaryDC: "dc1",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 			wantErr: "writes must not target secondary datacenters",
 		},
@@ -2140,7 +2140,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "dc2",
 				localDC:   "dc2",
 				primaryDC: "dc1",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 			wantErr: "writes must not target secondary datacenters",
 		},
@@ -2150,7 +2150,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "",
 				localDC:   "dc2",
 				primaryDC: "dc1",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 			wantErr: "must target the primary datacenter explicitly",
 		},
@@ -2158,7 +2158,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 			name: "empty local DC",
 			args: args{
 				localDC: "",
-				kind:    structs.PartitionExports,
+				kind:    structs.ExportedServices,
 			},
 			wantErr: "unknown local datacenter",
 		},
@@ -2179,7 +2179,7 @@ func Test_gateWriteToSecondary_AllowedKinds(t *testing.T) {
 	}
 
 	for _, kind := range structs.AllConfigEntryKinds {
-		if kind == structs.PartitionExports {
+		if kind == structs.ExportedServices {
 			continue
 		}
 

@@ -152,7 +152,7 @@
           },
           {
             "title": "Partition Exports",
-            "path": "connect/config-entries/partition-exports"
+            "path": "connect/config-entries/exported-services"
           },
           {
             "title": "Proxy Defaults",
