@@ -2449,10 +2449,11 @@ func TestSnapshotRequestResponse_MsgpackEncodeDecode(t *testing.T) {
 		in := &SnapshotResponse{
 			Error: "blah",
 			QueryMeta: QueryMeta{
-				Index:            3,
-				LastContact:      5 * time.Second,
-				KnownLeader:      true,
-				ConsistencyLevel: "default",
+				Index:                 3,
+				LastContact:           5 * time.Second,
+				KnownLeader:           true,
+				ConsistencyLevel:      "default",
+				ResultsFilteredByACLs: true,
 			},
 		}
 		TestMsgpackEncodeDecode(t, in, true)

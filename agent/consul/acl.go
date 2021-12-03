@@ -1807,6 +1807,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		filtered := filt.filterServiceTopology(v.ServiceTopology)
 		if filtered {
 			v.FilteredByACLs = true
+			v.QueryMeta.ResultsFilteredByACLs = true
 		}
 
 	case *structs.DatacenterIndexedCheckServiceNodes:

@@ -1728,6 +1728,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			var out structs.IndexedServiceTopology
 			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 			require.False(r, out.FilteredByACLs)
+			require.False(r, out.QueryMeta.ResultsFilteredByACLs)
 			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			// foo/api, foo/api-proxy
@@ -1767,6 +1768,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			var out structs.IndexedServiceTopology
 			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 			require.False(r, out.FilteredByACLs)
+			require.False(r, out.QueryMeta.ResultsFilteredByACLs)
 			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			// edge/ingress
@@ -1822,6 +1824,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			var out structs.IndexedServiceTopology
 			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 			require.False(r, out.FilteredByACLs)
+			require.False(r, out.QueryMeta.ResultsFilteredByACLs)
 			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			// foo/api, foo/api-proxy
@@ -1875,6 +1878,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			var out structs.IndexedServiceTopology
 			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 			require.False(r, out.FilteredByACLs)
+			require.False(r, out.QueryMeta.ResultsFilteredByACLs)
 			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			require.Len(r, out.ServiceTopology.Upstreams, 0)
@@ -1931,6 +1935,7 @@ func TestInternal_ServiceTopology_RoutingConfig(t *testing.T) {
 			var out structs.IndexedServiceTopology
 			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 			require.False(r, out.FilteredByACLs)
+			require.False(r, out.QueryMeta.ResultsFilteredByACLs)
 			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			require.Empty(r, out.ServiceTopology.Downstreams)
@@ -2010,6 +2015,7 @@ service "web" { policy = "read" }
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 
 		require.True(t, out.FilteredByACLs)
+		require.True(t, out.QueryMeta.ResultsFilteredByACLs)
 		require.Equal(t, "http", out.ServiceTopology.MetricsProtocol)
 
 		// The web-proxy upstream gets filtered out from both bar and baz
@@ -2030,6 +2036,7 @@ service "web" { policy = "read" }
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 
 		require.True(t, out.FilteredByACLs)
+		require.True(t, out.QueryMeta.ResultsFilteredByACLs)
 		require.Equal(t, "http", out.ServiceTopology.MetricsProtocol)
 
 		// The redis upstream gets filtered out but the api and proxy downstream are returned

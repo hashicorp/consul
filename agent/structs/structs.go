@@ -392,6 +392,11 @@ type QueryMeta struct {
 
 	// Backend used to handle this query, either blocking-query or streaming.
 	Backend QueryBackend
+
+	// ResultsFilteredByACLs is true when some of the query's results were
+	// filtered out by enforcing ACLs. It may be false because nothing was
+	// removed, or because the endpoint does not yet support this flag.
+	ResultsFilteredByACLs bool
 }
 
 // RegisterRequest is used for the Catalog.Register endpoint
