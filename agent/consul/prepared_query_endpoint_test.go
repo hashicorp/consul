@@ -1169,11 +1169,11 @@ func TestPreparedQuery_List(t *testing.T) {
 
 	// Same for a token without access to the query.
 	{
-		token := createTokenWithPolicyName(t, "deny-queries", codec, `
+		token := createTokenWithPolicyName(t, codec, "deny-queries", `
 			query_prefix "" {
 				policy = "deny"
 			}
-		`)
+		`, "root")
 
 		req := &structs.DCSpecificRequest{
 			Datacenter:   "dc1",
