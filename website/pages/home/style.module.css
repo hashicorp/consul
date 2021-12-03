@@ -176,8 +176,7 @@
     left: 0;
     width: 100%;
     bottom: -64px;
-    background: red;
-    background: radial-gradient(
+    background-image: radial-gradient(
       42.33% 42.33% at 50% 100%,
       #363638 0%,
       #000 100%
