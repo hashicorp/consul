@@ -1,9 +1,8 @@
 import Subnav from '@hashicorp/react-subnav'
-import subnavItems from '../../data/subnav'
 import { useRouter } from 'next/router'
 import s from './style.module.css'
 
-export default function ConsulSubnav() {
+export default function ConsulSubnav({ menuItems }) {
   const router = useRouter()
   return (
     <Subnav
@@ -31,7 +30,7 @@ export default function ConsulSubnav() {
       ]}
       currentPath={router.asPath}
       menuItemsAlign="right"
-      menuItems={subnavItems}
+      menuItems={menuItems}
       constrainWidth
       matchOnBasePath
     />
