@@ -13,7 +13,6 @@ interface IoUsecaseCallToActionProps {
     text: string
     url: string
   }>
-  // TODO document intended usage
   pattern: string
 }
 
