@@ -550,16 +550,18 @@ func (s *Intention) List(args *structs.IntentionListRequest, reply *structs.Inde
 			} else {
 				reply.DataOrigin = structs.IntentionDataOriginLegacy
 			}
-
-			if err := s.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
-
 			raw, err := filter.Execute(reply.Intentions)
 			if err != nil {
 				return err
 			}
 			reply.Intentions = raw.(structs.Intentions)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := s.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 
 			return nil
 		},

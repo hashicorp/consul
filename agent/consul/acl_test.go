@@ -2243,54 +2243,63 @@ func TestACL_filterHealthChecks(t *testing.T) {
 
 func TestACL_filterIntentions(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
-	fill := func() structs.Intentions {
-		return structs.Intentions{
-			&structs.Intention{
-				ID:              "f004177f-2c28-83b7-4229-eacc25fe55d1",
-				DestinationName: "bar",
-			},
-			&structs.Intention{
-				ID:              "f004177f-2c28-83b7-4229-eacc25fe55d2",
-				DestinationName: "foo",
+	logger := hclog.NewNullLogger()
+
+	makeList := func() *structs.IndexedIntentions {
+		return &structs.IndexedIntentions{
+			Intentions: structs.Intentions{
+				&structs.Intention{
+					ID:              "f004177f-2c28-83b7-4229-eacc25fe55d1",
+					DestinationName: "bar",
+				},
+				&structs.Intention{
+					ID:              "f004177f-2c28-83b7-4229-eacc25fe55d2",
+					DestinationName: "foo",
+				},
 			},
 		}
 	}
 
-	// Try permissive filtering.
-	{
-		ixns := fill()
-		filt := newACLFilter(acl.AllowAll(), nil)
-		filt.filterIntentions(&ixns)
-		assert.Len(ixns, 2)
-	}
+	t.Run("allowed", func(t *testing.T) {
+		require := require.New(t)
 
-	// Try restrictive filtering.
-	{
-		ixns := fill()
-		filt := newACLFilter(acl.DenyAll(), nil)
-		filt.filterIntentions(&ixns)
-		assert.Len(ixns, 0)
-	}
+		list := makeList()
+		filterACLWithAuthorizer(logger, acl.AllowAll(), list)
 
-	// Policy to see one
-	policy, err := acl.NewPolicyFromSource(`
-service "foo" {
-  policy = "read"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	assert.Nil(err)
-	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-	assert.Nil(err)
+		require.Len(list.Intentions, 2)
+		require.False(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
 
-	// Filter
-	{
-		ixns := fill()
-		filt := newACLFilter(perms, nil)
-		filt.filterIntentions(&ixns)
-		assert.Len(ixns, 1)
-	}
+	t.Run("allowed to read 1", func(t *testing.T) {
+		require := require.New(t)
+
+		policy, err := acl.NewPolicyFromSource(`
+			service "foo" {
+			  policy = "read"
+			}
+		`, acl.SyntaxLegacy, nil, nil)
+		require.NoError(err)
+
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(err)
+
+		list := makeList()
+		filterACLWithAuthorizer(logger, authz, list)
+
+		require.Len(list.Intentions, 1)
+		require.True(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("denied", func(t *testing.T) {
+		require := require.New(t)
+
+		list := makeList()
+		filterACLWithAuthorizer(logger, acl.DenyAll(), list)
+
+		require.Empty(list.Intentions)
+		require.True(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
 }
 
 func TestACL_filterServices(t *testing.T) {

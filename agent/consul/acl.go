@@ -1420,11 +1420,14 @@ func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 
 // filterIntentions is used to filter intentions based on ACL rules.
 // We prune entries the user doesn't have access to, and we redact any tokens
-// if the user doesn't have a management token.
-func (f *aclFilter) filterIntentions(ixns *structs.Intentions) {
+// if the user doesn't have a management token. Returns true if any elements
+// were removed.
+func (f *aclFilter) filterIntentions(ixns *structs.Intentions) bool {
 	ret := make(structs.Intentions, 0, len(*ixns))
+	var removed bool
 	for _, ixn := range *ixns {
 		if !ixn.CanRead(f.authorizer) {
+			removed = true
 			f.logger.Debug("dropping intention from result due to ACLs", "intention", ixn.ID)
 			continue
 		}
@@ -1433,6 +1436,7 @@ func (f *aclFilter) filterIntentions(ixns *structs.Intentions) {
 	}
 
 	*ixns = ret
+	return removed
 }
 
 // filterNodeDump is used to filter through all parts of a node dump and
@@ -1824,7 +1828,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		v.QueryMeta.ResultsFilteredByACLs = filt.filterHealthChecks(&v.HealthChecks)
 
 	case *structs.IndexedIntentions:
-		filt.filterIntentions(&v.Intentions)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterIntentions(&v.Intentions)
 
 	case *structs.IndexedNodeDump:
 		filt.filterNodeDump(&v.Dump)
