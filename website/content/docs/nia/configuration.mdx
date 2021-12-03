@@ -113,14 +113,15 @@ service {
 }
 ```
 
-- `datacenter` - (string) The datacenter the service is deployed in.
-- `description` - (string) The human readable text to describe the service.
-- `id` - (string) ID identifies the service for Consul-Terraform-Sync. This is used to explicitly identify the service config for a task to use. If no ID is provided, the service is identified by the service name within a [task definition](#task).
-- `name` - (string: required) The Consul logical name of the service (required).
-- `namespace` <EnterpriseAlert inline /> - (string: "default") The namespace of the service. If not provided, the namespace will be inferred from the Consul-Terraform-Sync ACL token, or default to the `default` namespace.
-- `filter` - (string) String value specifying an expression used to additionally filter the services to monitor. Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information.
-- `cts_user_defined_meta` - (map[string]) User-defined metadata specified as a map of strings that will be appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. By default, no metadata is appended. Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format.
-  - If multiple tasks depend on the same service but require different metadata, you can declare different sets of metadata for the same service. Define multiple service blocks for the service with unique IDs (and identical names) for those blocks. The metadata can then be separated per task based on the service IDs.
+| Parameter |  Required |Description | Default |
+| --------- | --------- | ---------- | ------- |
+| `name` |  required | String value specifying the Consul logical name of the service. | none |
+| `id` |  Optional | String value specifying the service for Consul-Terraform-Sync. This is used to explicitly identify the service config for a task to use. If no ID is provided, the service is identified by the service name within a [task definition](#task). | none |
+| `description` |  Optional | String value specifying the human readable text to describe the service | none |
+| `datacenter` |  Optional | String value specifying the name of a datacenter to query for the task. | Datacenter of the agent that Consul-Terraform-Sync queries. |
+| `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the Consul-Terraform-Sync ACL token <br/> 2. The `default` namespace. |
+| `filter` |  Optional | String value specifying an expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
+| `cts_user_defined_meta` | Optional | User-defined metadata specified as a map of strings that will be appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. By default, no metadata is appended. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. <br/><br/> If multiple tasks depend on the same service but require different metadata, you can declare different sets of metadata for the same service. Define multiple service blocks for the service with unique IDs (and identical names) for those blocks. The metadata can then be separated per task based on the service IDs. | none|
 
 ## Task
 
