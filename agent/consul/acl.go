@@ -1379,17 +1379,22 @@ func (f *aclFilter) filterServiceTopology(topology *structs.ServiceTopology) boo
 }
 
 // filterDatacenterCheckServiceNodes is used to filter nodes based on ACL rules.
-func (f *aclFilter) filterDatacenterCheckServiceNodes(datacenterNodes *map[string]structs.CheckServiceNodes) {
+// Returns true if any elements are removed.
+func (f *aclFilter) filterDatacenterCheckServiceNodes(datacenterNodes *map[string]structs.CheckServiceNodes) bool {
 	dn := *datacenterNodes
 	out := make(map[string]structs.CheckServiceNodes)
+	var removed bool
 	for dc := range dn {
 		nodes := dn[dc]
-		f.filterCheckServiceNodes(&nodes)
+		if f.filterCheckServiceNodes(&nodes) {
+			removed = true
+		}
 		if len(nodes) > 0 {
 			out[dc] = nodes
 		}
 	}
 	*datacenterNodes = out
+	return removed
 }
 
 // filterSessions is used to filter a set of sessions based on ACLs. Returns
@@ -1850,7 +1855,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		}
 
 	case *structs.DatacenterIndexedCheckServiceNodes:
-		filt.filterDatacenterCheckServiceNodes(&v.DatacenterNodes)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterDatacenterCheckServiceNodes(&v.DatacenterNodes)
 
 	case *structs.IndexedCoordinates:
 		v.QueryMeta.ResultsFilteredByACLs = filt.filterCoordinates(&v.Coordinates)
