@@ -2767,31 +2767,57 @@ service "bar" {
 
 func TestACL_filterCoordinates(t *testing.T) {
 	t.Parallel()
-	// Create some coordinates.
-	coords := structs.Coordinates{
-		&structs.Coordinate{
-			Node:  "node1",
-			Coord: generateRandomCoordinate(),
-		},
-		&structs.Coordinate{
-			Node:  "node2",
-			Coord: generateRandomCoordinate(),
-		},
+
+	logger := hclog.NewNullLogger()
+
+	makeList := func() *structs.IndexedCoordinates {
+		return &structs.IndexedCoordinates{
+			Coordinates: structs.Coordinates{
+				{Node: "node1", Coord: generateRandomCoordinate()},
+				{Node: "node2", Coord: generateRandomCoordinate()},
+			},
+		}
 	}
 
-	// Try permissive filtering.
-	filt := newACLFilter(acl.AllowAll(), nil)
-	filt.filterCoordinates(&coords)
-	if len(coords) != 2 {
-		t.Fatalf("bad: %#v", coords)
-	}
+	t.Run("allowed", func(t *testing.T) {
+		require := require.New(t)
 
-	// Try restrictive filtering
-	filt = newACLFilter(acl.DenyAll(), nil)
-	filt.filterCoordinates(&coords)
-	if len(coords) != 0 {
-		t.Fatalf("bad: %#v", coords)
-	}
+		list := makeList()
+		filterACLWithAuthorizer(logger, acl.AllowAll(), list)
+
+		require.Len(list.Coordinates, 2)
+		require.False(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
+
+	t.Run("allowed to read one node", func(t *testing.T) {
+		require := require.New(t)
+
+		policy, err := acl.NewPolicyFromSource(`
+			node "node1" {
+			  policy = "read"
+			}
+		`, acl.SyntaxLegacy, nil, nil)
+		require.NoError(err)
+
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(err)
+
+		list := makeList()
+		filterACLWithAuthorizer(logger, authz, list)
+
+		require.Len(list.Coordinates, 1)
+		require.True(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("denied", func(t *testing.T) {
+		require := require.New(t)
+
+		list := makeList()
+		filterACLWithAuthorizer(logger, acl.DenyAll(), list)
+
+		require.Empty(list.Coordinates)
+		require.True(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
 }
 
 func TestACL_filterSessions(t *testing.T) {
