@@ -12,7 +12,7 @@ type Partition struct {
 	Name string `json:"Name"`
 
 	// Description is where the user puts any information they want
-	// about the partition. It is not used internally.
+	// about the admin partition. It is not used internally.
 	Description string `json:"Description,omitempty"`
 
 	// DeletedAt is the time when the Partition was marked for deletion
@@ -29,7 +29,7 @@ type Partition struct {
 // PartitionDefaultName is the default partition value.
 const PartitionDefaultName = "default"
 
-// Partitions can be used to manage Partitions in Consul Enterprise..
+// Partitions can be used to manage Partitions in Consul Enterprise.
 type Partitions struct {
 	c *Client
 }
