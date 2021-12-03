@@ -7,6 +7,10 @@ description: >-
 
 # Vault as the Service Mesh Certificate Provider on Kubernetes
 
+-> **Note:** This feature requires Consul 1.11 or higher. As of v1.11,
+Consul allows using Kubernetes auth methods to configure Connect CA.
+This allows for automatic token rotation once the renewal is no longer possible.
+
 To configure [Vault as the provider](/docs/connect/ca/vault) for the Consul service certificates,
 you will first need to decide on the type of policy that is suitable for you.
 To see the permissions that Consul would need in Vault, please see [Vault ACL policies](/docs/connect/ca/vault#vault-acl-policies)
@@ -45,3 +49,10 @@ The `address` you provide to the `connectCA` configuration can be a Kubernetes D
 address if the Vault cluster is running the same Kubernetes cluster.
 The `rootPKIPath` and `intermediatePKIPath` should be the same as the ones
 defined in your Connect CA policy.
+
+### Secondary Datacenters
+
+To configure Vault as the Connect CA in secondary datacenters, you need to make sure that the Root CA path is the same,
+but the intermediate is different for each datacenter. In the `connectCA` Helm configuration for a secondary datacenter,
+you can specify a `intermediatePKIPath` that is, for example, prefixed with the datacenter
+for which this configuration is intended (e.g. `dc2/connect-intermediate`).
