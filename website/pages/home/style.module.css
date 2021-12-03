@@ -110,6 +110,18 @@
 }
 
 /*
+ * Tutorials
+ */
+
+.tutorials {
+  margin-bottom: 64px;
+
+  @media (--medium-up) {
+    margin-bottom: 128px;
+  }
+}
+
+/*
  * Case studies
  */
 

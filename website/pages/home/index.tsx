@@ -20,6 +20,7 @@ export default function Homepage({ data }): React.ReactElement {
     inPractice,
     useCases,
     caseStudies,
+    tutorials,
     callToAction,
     preFooter,
   } = data
@@ -57,6 +58,22 @@ export default function Homepage({ data }): React.ReactElement {
             )
           })}
         </ul>
+
+        {intro.video ? (
+          <div className={s.container}>
+            <IoVideoCallout
+              youtubeId={intro.video.youtubeId}
+              thumbnail={intro.video.thumbnail.url}
+              heading={intro.video.heading}
+              description={intro.video.description}
+              person={{
+                name: intro.video.personName,
+                description: intro.video.personDescription,
+                avatar: intro.video.personAvatar?.url,
+              }}
+            />
+          </div>
+        ) : null}
       </section>
 
       <section className={s.inPractice}>
@@ -89,6 +106,27 @@ export default function Homepage({ data }): React.ReactElement {
             description={useCases.description}
             cardsPerRow={4}
             cards={useCases.cards.map((card) => {
+              return {
+                eyebrow: card.eyebrow,
+                link: {
+                  url: card.link,
+                  type: 'inbound',
+                },
+                heading: card.heading,
+                description: card.description,
+                products: card.products,
+              }
+            })}
+          />
+        </div>
+      </section>
+
+      <section className={s.tutorials}>
+        <div className={s.container}>
+          <IoCardContainer
+            heading={tutorials.heading}
+            cardsPerRow={3}
+            cards={tutorials.cards.map((card) => {
               return {
                 eyebrow: card.eyebrow,
                 link: {
@@ -157,12 +195,15 @@ export async function getStaticProps() {
     introHeading,
     introDescription,
     introFeatures,
+    introVideo,
     inPracticeHeading,
     inPracticeDescription,
     inPracticeCards,
     useCasesHeading,
     useCasesDescription,
     useCasesCards,
+    tutorialsHeading,
+    tutorialCards,
     caseStudiesHeading,
     caseStudiesDescription,
     caseStudiesFeatured,
@@ -194,6 +235,7 @@ export async function getStaticProps() {
           heading: introHeading,
           description: introDescription,
           features: introFeatures,
+          video: introVideo[0],
         },
         inPractice: {
           heading: inPracticeHeading,
@@ -204,6 +246,10 @@ export async function getStaticProps() {
           heading: useCasesHeading,
           description: useCasesDescription,
           cards: useCasesCards,
+        },
+        tutorials: {
+          heading: tutorialsHeading,
+          cards: tutorialCards,
         },
         caseStudies: {
           heading: caseStudiesHeading,

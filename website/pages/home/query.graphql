@@ -31,6 +31,19 @@ query homepageQuery {
         alt
       }
     }
+    introVideo {
+      youtubeId
+      heading
+      description
+      thumbnail {
+        url
+      }
+      personName
+      personDescription
+      personAvatar {
+        url
+      }
+    }
     inPracticeHeading
     inPracticeDescription
     inPracticeCards {
@@ -45,6 +58,16 @@ query homepageQuery {
     useCasesHeading
     useCasesDescription
     useCasesCards {
+      eyebrow
+      heading
+      description
+      link
+      products {
+        name
+      }
+    }
+    tutorialsHeading
+    tutorialCards {
       eyebrow
       heading
       description
