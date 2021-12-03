@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -73,15 +74,11 @@ var (
 )
 
 func (v TLSVersion) String() string {
-	return HumanTLSVersionStrings[v]
-}
-
-func (v TLSVersion) ConsulConfigString() string {
 	return ConsulConfigTLSVersionStrings[v]
 }
 
 func (v TLSVersion) MarshalJSON() ([]byte, error) {
-	return []byte(`"` + v.ConsulConfigString() + `"`), nil
+	return json.Marshal(v.String())
 }
 
 func (v *TLSVersion) UnmarshalJSON(bytes []byte) error {
