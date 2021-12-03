@@ -2796,29 +2796,57 @@ func TestACL_filterCoordinates(t *testing.T) {
 
 func TestACL_filterSessions(t *testing.T) {
 	t.Parallel()
-	// Create a session list.
-	sessions := structs.Sessions{
-		&structs.Session{
-			Node: "foo",
-		},
-		&structs.Session{
-			Node: "bar",
-		},
+
+	logger := hclog.NewNullLogger()
+
+	makeList := func() *structs.IndexedSessions {
+		return &structs.IndexedSessions{
+			Sessions: structs.Sessions{
+				{Node: "foo"},
+				{Node: "bar"},
+			},
+		}
 	}
 
-	// Try permissive filtering.
-	filt := newACLFilter(acl.AllowAll(), nil)
-	filt.filterSessions(&sessions)
-	if len(sessions) != 2 {
-		t.Fatalf("bad: %#v", sessions)
-	}
+	t.Run("all allowed", func(t *testing.T) {
+		require := require.New(t)
 
-	// Try restrictive filtering
-	filt = newACLFilter(acl.DenyAll(), nil)
-	filt.filterSessions(&sessions)
-	if len(sessions) != 0 {
-		t.Fatalf("bad: %#v", sessions)
-	}
+		list := makeList()
+		filterACLWithAuthorizer(logger, acl.AllowAll(), list)
+
+		require.Len(list.Sessions, 2)
+		require.False(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
+
+	t.Run("just one node's sessions allowed", func(t *testing.T) {
+		require := require.New(t)
+
+		policy, err := acl.NewPolicyFromSource(`
+			session "foo" {
+			  policy = "read"
+			}
+		`, acl.SyntaxLegacy, nil, nil)
+		require.NoError(err)
+
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(err)
+
+		list := makeList()
+		filterACLWithAuthorizer(logger, authz, list)
+
+		require.Len(list.Sessions, 1)
+		require.True(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("denied", func(t *testing.T) {
+		require := require.New(t)
+
+		list := makeList()
+		filterACLWithAuthorizer(logger, acl.DenyAll(), list)
+
+		require.Empty(list.Sessions)
+		require.True(list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
 }
 
 func TestACL_filterNodeDump(t *testing.T) {

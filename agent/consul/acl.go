@@ -1380,9 +1380,12 @@ func (f *aclFilter) filterDatacenterCheckServiceNodes(datacenterNodes *map[strin
 	*datacenterNodes = out
 }
 
-// filterSessions is used to filter a set of sessions based on ACLs.
-func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
+// filterSessions is used to filter a set of sessions based on ACLs. Returns
+// true if any elements were removed.
+func (f *aclFilter) filterSessions(sessions *structs.Sessions) bool {
 	s := *sessions
+
+	var removed bool
 	for i := 0; i < len(s); i++ {
 		session := s[i]
 
@@ -1392,11 +1395,13 @@ func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
 		if f.allowSession(session.Node, &entCtx) {
 			continue
 		}
+		removed = true
 		f.logger.Debug("dropping session from result due to ACLs", "session", session.ID)
 		s = append(s[:i], s[i+1:]...)
 		i--
 	}
 	*sessions = s
+	return removed
 }
 
 // filterCoordinates is used to filter nodes in a coordinate dump based on ACL
@@ -1852,7 +1857,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		filt.filterServices(v.Services, &v.EnterpriseMeta)
 
 	case *structs.IndexedSessions:
-		filt.filterSessions(&v.Sessions)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterSessions(&v.Sessions)
 
 	case *structs.IndexedPreparedQueries:
 		filt.filterPreparedQueries(&v.Queries)
