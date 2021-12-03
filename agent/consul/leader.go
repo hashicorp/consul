@@ -55,6 +55,8 @@ var (
 	// minCentralizedConfigVersion is the minimum Consul version in which centralized
 	// config is supported
 	minCentralizedConfigVersion = version.Must(version.NewVersion("1.5.0"))
+
+	minVirtualIPVersion = version.Must(version.NewVersion("1.11.0"))
 )
 
 // monitorLeadership is used to monitor if we acquire or lose our role
@@ -186,6 +188,10 @@ RECONCILE:
 		s.logger.Error("failed to reconcile", "error", err)
 		goto WAIT
 	}
+	if err := s.setVirtualIPFlag(); err != nil {
+		s.logger.Error("failed to set virtual IP flag", "error", err)
+		goto WAIT
+	}
 
 	// Initial reconcile worked, now we can process the channel
 	// updates
@@ -213,6 +219,7 @@ WAIT:
 			goto RECONCILE
 		case member := <-reconcileCh:
 			s.reconcileMember(member)
+			s.setVirtualIPFlag()
 		case index := <-s.tombstoneGC.ExpireCh():
 			go s.reapTombstones(index)
 		case errCh := <-s.reassertLeaderCh:
@@ -312,6 +319,10 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 	// Connect leader tasks so we hopefully have transitioned to supporting
 	// service-intentions.
 	if err := s.bootstrapConfigEntries(s.config.ConfigEntryBootstrap); err != nil {
+		return err
+	}
+
+	if err := s.setVirtualIPFlag(); err != nil {
 		return err
 	}
 
@@ -881,6 +892,25 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 	return nil
 }
 
+func (s *Server) setVirtualIPFlag() error {
+	// Return early if the flag is already set.
+	val, err := s.getSystemMetadata(structs.SystemMetadataVirtualIPsEnabled)
+	if err != nil {
+		return err
+	}
+	if val != "" {
+		return nil
+	}
+
+	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minVirtualIPVersion); !ok {
+		s.logger.Warn(fmt.Sprintf("can't allocate Virtual IPs until all servers >= %s",
+			minVirtualIPVersion.String()))
+		return nil
+	}
+
+	return s.setSystemMetadataKey(structs.SystemMetadataVirtualIPsEnabled, "true")
+}
+
 // reconcileReaped is used to reconcile nodes that have failed and been reaped
 // from Serf but remain in the catalog. This is done by looking for unknown nodes with serfHealth checks registered.
 // We generate a "reap" event to cause the node to be cleaned up.
@@ -996,6 +1026,7 @@ func (s *Server) reconcileMember(member serf.Member) error {
 			return nil
 		}
 	}
+
 	return nil
 }
 

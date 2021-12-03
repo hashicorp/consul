@@ -73,6 +73,11 @@ func TestServiceHealthSnapshot(t *testing.T) {
 func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 	store := NewStateStore(nil)
 
+	require.NoError(t, store.SystemMetadataSet(0, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataVirtualIPsEnabled,
+		Value: "true",
+	}))
+
 	counter := newIndexCounter()
 	err := store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "db"))
 	require.NoError(t, err)
@@ -1574,6 +1579,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 
 func (tc eventsTestCase) run(t *testing.T) {
 	s := NewStateStore(nil)
+	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataVirtualIPsEnabled,
+		Value: "true",
+	}))
 
 	setupIndex := uint64(10)
 	mutateIndex := uint64(100)
@@ -1936,7 +1945,14 @@ func evServiceUnchanged(e *stream.Event) error {
 // evConnectNative option converts the base event to represent a connect-native
 // service instance.
 func evConnectNative(e *stream.Event) error {
-	getPayloadCheckServiceNode(e.Payload).Service.Connect.Native = true
+	csn := getPayloadCheckServiceNode(e.Payload)
+	csn.Service.Connect.Native = true
+	csn.Service.TaggedAddresses = map[string]structs.ServiceAddress{
+		structs.TaggedAddressVirtualIP: {
+			Address: "240.0.0.1",
+			Port:    csn.Service.Port,
+		},
+	}
 	return nil
 }
 
@@ -1969,6 +1985,13 @@ func evSidecar(e *stream.Event) error {
 	csn.Service.Proxy.DestinationServiceName = svc
 	csn.Service.Proxy.DestinationServiceID = svc
 
+	csn.Service.TaggedAddresses = map[string]structs.ServiceAddress{
+		structs.TaggedAddressVirtualIP: {
+			Address: "240.0.0.1",
+			Port:    csn.Service.Port,
+		},
+	}
+
 	// Convert the check to point to the right ID now. This isn't totally
 	// realistic - sidecars should have alias checks etc but this is good enough
 	// to test this code path.
@@ -1990,7 +2013,12 @@ func evSidecar(e *stream.Event) error {
 // amount to simulate a service change. Can be used with evSidecar since it's a
 // relative change (+10).
 func evMutatePort(e *stream.Event) error {
-	getPayloadCheckServiceNode(e.Payload).Service.Port += 10
+	csn := getPayloadCheckServiceNode(e.Payload)
+	csn.Service.Port += 10
+	if addr, ok := csn.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; ok {
+		addr.Port = csn.Service.Port
+		csn.Service.TaggedAddresses[structs.TaggedAddressVirtualIP] = addr
+	}
 	return nil
 }
 
@@ -2066,6 +2094,10 @@ func evRenameService(e *stream.Event) error {
 
 	// We don't need to update our own details, only the name of the destination
 	csn.Service.Proxy.DestinationServiceName += "_changed"
+
+	taggedAddr := csn.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]
+	taggedAddr.Address = "240.0.0.2"
+	csn.Service.TaggedAddresses[structs.TaggedAddressVirtualIP] = taggedAddr
 
 	if e.Topic == topicServiceHealthConnect {
 		payload := e.Payload.(EventPayloadCheckServiceNode)

@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"net"
 	"reflect"
 	"strings"
 
@@ -11,11 +12,13 @@ import (
 )
 
 const (
-	tableNodes           = "nodes"
-	tableServices        = "services"
-	tableChecks          = "checks"
-	tableGatewayServices = "gateway-services"
-	tableMeshTopology    = "mesh-topology"
+	tableNodes             = "nodes"
+	tableServices          = "services"
+	tableChecks            = "checks"
+	tableGatewayServices   = "gateway-services"
+	tableMeshTopology      = "mesh-topology"
+	tableServiceVirtualIPs = "service-virtual-ips"
+	tableFreeVirtualIPs    = "free-virtual-ips"
 
 	indexID          = "id"
 	indexService     = "service"
@@ -30,6 +33,7 @@ const (
 	indexGateway     = "gateway"
 	indexUUID        = "uuid"
 	indexMeta        = "meta"
+	indexCounterOnly = "counter"
 )
 
 // nodesTableSchema returns a new table schema used for storing struct.Node.
@@ -597,4 +601,63 @@ func (q NodeCheckQuery) NamespaceOrDefault() string {
 // receiver for this method. Remove once that is fixed.
 func (q NodeCheckQuery) PartitionOrDefault() string {
 	return q.EnterpriseMeta.PartitionOrDefault()
+}
+
+// ServiceVirtualIP is used to store a virtual IP associated with a service.
+// It is also used to store assigned virtual IPs when a snapshot is created.
+type ServiceVirtualIP struct {
+	Service structs.ServiceName
+	IP      net.IP
+}
+
+// FreeVirtualIP is used to store a virtual IP freed up by a service deregistration.
+// It is also used to store free virtual IPs when a snapshot is created.
+type FreeVirtualIP struct {
+	IP        net.IP
+	IsCounter bool
+}
+
+func serviceVirtualIPTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: tableServiceVirtualIPs,
+		Indexes: map[string]*memdb.IndexSchema{
+			indexID: {
+				Name:         indexID,
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &ServiceNameIndex{
+					Field: "Service",
+				},
+			},
+		},
+	}
+}
+
+func freeVirtualIPTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: tableFreeVirtualIPs,
+		Indexes: map[string]*memdb.IndexSchema{
+			indexID: {
+				Name:         indexID,
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.StringFieldIndex{
+					Field: "IP",
+				},
+			},
+			indexCounterOnly: {
+				Name:         indexCounterOnly,
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &memdb.ConditionalIndex{
+					Conditional: func(obj interface{}) (bool, error) {
+						if vip, ok := obj.(FreeVirtualIP); ok {
+							return vip.IsCounter, nil
+						}
+						return false, fmt.Errorf("object is not a virtual IP entry")
+					},
+				},
+			},
+		},
+	}
 }

@@ -3,6 +3,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"net"
 	"reflect"
 	"strings"
 
@@ -25,6 +26,14 @@ const (
 	// we test to see if the name is actually a UUID and perform an ID-based node
 	// lookup.
 	minUUIDLookupLen = 2
+)
+
+var (
+	// startingVirtualIP is the start of the virtual IP range we assign to services.
+	// The effective CIDR range is startingVirtualIP to (startingVirtualIP + virtualIPMaxOffset).
+	startingVirtualIP = net.IP{240, 0, 0, 0}
+
+	virtualIPMaxOffset = net.IP{15, 255, 255, 254}
 )
 
 func resizeNodeLookupKey(s string) string {
@@ -72,11 +81,37 @@ func (s *Snapshot) Checks(node string, entMeta *structs.EnterpriseMeta) (memdb.R
 	})
 }
 
+// ServiceVirtualIPs is used to pull the service virtual IP mappings for use during snapshots.
+func (s *Snapshot) ServiceVirtualIPs() (memdb.ResultIterator, error) {
+	iter, err := s.tx.Get(tableServiceVirtualIPs, indexID)
+	if err != nil {
+		return nil, err
+	}
+	return iter, nil
+}
+
+// FreeVirtualIPs is used to pull the freed virtual IPs for use during snapshots.
+func (s *Snapshot) FreeVirtualIPs() (memdb.ResultIterator, error) {
+	iter, err := s.tx.Get(tableFreeVirtualIPs, indexID)
+	if err != nil {
+		return nil, err
+	}
+	return iter, nil
+}
+
 // Registration is used to make sure a node, service, and check registration is
 // performed within a single transaction to avoid race conditions on state
 // updates.
 func (s *Restore) Registration(idx uint64, req *structs.RegisterRequest) error {
 	return s.store.ensureRegistrationTxn(s.tx, idx, true, req, true)
+}
+
+func (s *Restore) ServiceVirtualIP(req ServiceVirtualIP) error {
+	return s.tx.Insert(tableServiceVirtualIPs, req)
+}
+
+func (s *Restore) FreeVirtualIP(req FreeVirtualIP) error {
+	return s.tx.Insert(tableFreeVirtualIPs, req)
 }
 
 // EnsureRegistration is used to make sure a node, service, and check
@@ -706,10 +741,34 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 	if err = checkGatewayWildcardsAndUpdate(tx, idx, svc); err != nil {
 		return fmt.Errorf("failed updating gateway mapping: %s", err)
 	}
+
 	// Update upstream/downstream mappings if it's a connect service
-	if svc.Kind == structs.ServiceKindConnectProxy {
+	if svc.Kind == structs.ServiceKindConnectProxy || svc.Connect.Native {
 		if err = updateMeshTopology(tx, idx, node, svc, existing); err != nil {
 			return fmt.Errorf("failed updating upstream/downstream association")
+		}
+
+		supported, err := virtualIPsSupported(tx, nil)
+		if err != nil {
+			return err
+		}
+
+		// Update the virtual IP for the service
+		if supported {
+			service := svc.Service
+			if svc.Kind == structs.ServiceKindConnectProxy {
+				service = svc.Proxy.DestinationServiceName
+			}
+
+			sn := structs.ServiceName{Name: service, EnterpriseMeta: svc.EnterpriseMeta}
+			vip, err := assignServiceVirtualIP(tx, sn)
+			if err != nil {
+				return fmt.Errorf("failed updating virtual IP: %s", err)
+			}
+			if svc.TaggedAddresses == nil {
+				svc.TaggedAddresses = make(map[string]structs.ServiceAddress)
+			}
+			svc.TaggedAddresses[structs.TaggedAddressVirtualIP] = structs.ServiceAddress{Address: vip, Port: svc.Port}
 		}
 	}
 
@@ -749,6 +808,120 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 
 	// Insert the service and update the index
 	return catalogInsertService(tx, entry)
+}
+
+// assignServiceVirtualIP assigns a virtual IP to the target service and updates
+// the global virtual IP counter if necessary.
+func assignServiceVirtualIP(tx WriteTxn, sn structs.ServiceName) (string, error) {
+	serviceVIP, err := tx.First(tableServiceVirtualIPs, indexID, sn)
+	if err != nil {
+		return "", fmt.Errorf("failed service virtual IP lookup: %s", err)
+	}
+
+	// Service already has a virtual IP assigned, nothing to do.
+	if serviceVIP != nil {
+		sVIP := serviceVIP.(ServiceVirtualIP).IP
+		result, err := addIPOffset(startingVirtualIP, sVIP)
+		if err != nil {
+			return "", err
+		}
+
+		return result.String(), nil
+	}
+
+	// Get the next available virtual IP, drawing from any freed from deleted services
+	// first and then falling back to the global counter if none are available.
+	latestVIP, err := tx.First(tableFreeVirtualIPs, indexCounterOnly, false)
+	if err != nil {
+		return "", fmt.Errorf("failed virtual IP index lookup: %s", err)
+	}
+	if latestVIP == nil {
+		latestVIP, err = tx.First(tableFreeVirtualIPs, indexCounterOnly, true)
+		if err != nil {
+			return "", fmt.Errorf("failed virtual IP index lookup: %s", err)
+		}
+	}
+	if latestVIP != nil {
+		if err := tx.Delete(tableFreeVirtualIPs, latestVIP); err != nil {
+			return "", fmt.Errorf("failed updating freed virtual IP table: %v", err)
+		}
+	}
+
+	var latest FreeVirtualIP
+	if latestVIP == nil {
+		latest = FreeVirtualIP{
+			IP:        net.IPv4zero,
+			IsCounter: true,
+		}
+	} else {
+		latest = latestVIP.(FreeVirtualIP)
+	}
+
+	// Store the next virtual IP from the counter if there aren't any freed IPs to draw from.
+	// Then increment to store the next free virtual IP.
+	newEntry := FreeVirtualIP{
+		IP:        latest.IP,
+		IsCounter: latest.IsCounter,
+	}
+	if latest.IsCounter {
+		newEntry.IP = make(net.IP, len(latest.IP))
+		copy(newEntry.IP, latest.IP)
+		for i := len(newEntry.IP) - 1; i >= 0; i-- {
+			newEntry.IP[i]++
+			if newEntry.IP[i] != 0 {
+				break
+			}
+		}
+
+		// Out of virtual IPs, fail registration.
+		if newEntry.IP.Equal(virtualIPMaxOffset) {
+			return "", fmt.Errorf("cannot allocate any more unique service virtual IPs")
+		}
+
+		if err := tx.Insert(tableFreeVirtualIPs, newEntry); err != nil {
+			return "", fmt.Errorf("failed updating freed virtual IP table: %v", err)
+		}
+	}
+
+	assignedVIP := ServiceVirtualIP{
+		Service: sn,
+		IP:      newEntry.IP,
+	}
+	if err := tx.Insert(tableServiceVirtualIPs, assignedVIP); err != nil {
+		return "", fmt.Errorf("failed inserting service virtual IP entry: %s", err)
+	}
+
+	result, err := addIPOffset(startingVirtualIP, assignedVIP.IP)
+	if err != nil {
+		return "", err
+	}
+	return result.String(), nil
+}
+
+func addIPOffset(a, b net.IP) (net.IP, error) {
+	a4 := a.To4()
+	b4 := b.To4()
+	if a4 == nil || b4 == nil {
+		return nil, errors.New("ip is not ipv4")
+	}
+
+	var raw uint64
+	for i := 0; i < 4; i++ {
+		raw = raw<<8 + uint64(a4[i]) + uint64(b4[i])
+	}
+	return net.IPv4(byte(raw>>24), byte(raw>>16), byte(raw>>8), byte(raw)), nil
+}
+
+func virtualIPsSupported(tx ReadTxn, ws memdb.WatchSet) (bool, error) {
+	_, entry, err := systemMetadataGetTxn(tx, ws, structs.SystemMetadataVirtualIPsEnabled)
+	if err != nil {
+		return false, fmt.Errorf("failed system metadata lookup: %s", err)
+	}
+	if entry == nil {
+		return false, nil
+	}
+
+	return entry.Value != "", nil
 }
 
 // Services returns all services along with a list of associated tags.
@@ -1515,9 +1688,46 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 			if err := cleanupGatewayWildcards(tx, idx, svc); err != nil {
 				return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", name.String(), err)
 			}
+			if err := freeServiceVirtualIP(tx, svc.ServiceName, entMeta); err != nil {
+				return fmt.Errorf("failed to clean up virtual IP for %q: %v", name.String(), err)
+			}
 		}
 	} else {
 		return fmt.Errorf("Could not find any service %s: %s", svc.ServiceName, err)
+	}
+
+	return nil
+}
+
+// freeServiceVirtualIP is used to free a virtual IP for a service after the last instance
+// is removed.
+func freeServiceVirtualIP(tx WriteTxn, svc string, entMeta *structs.EnterpriseMeta) error {
+	supported, err := virtualIPsSupported(tx, nil)
+	if err != nil {
+		return err
+	}
+	if !supported {
+		return nil
+	}
+
+	sn := structs.NewServiceName(svc, entMeta)
+	serviceVIP, err := tx.First(tableServiceVirtualIPs, indexID, sn)
+	if err != nil {
+		return fmt.Errorf("failed service virtual IP lookup: %s", err)
+	}
+	// Service has no virtual IP assigned, nothing to do.
+	if serviceVIP == nil {
+		return nil
+	}
+
+	// Delete the service virtual IP and add it to the freed IPs list.
+	if err := tx.Delete(tableServiceVirtualIPs, serviceVIP); err != nil {
+		return fmt.Errorf("failed updating freed virtual IP table: %v", err)
+	}
+
+	newEntry := FreeVirtualIP{IP: serviceVIP.(ServiceVirtualIP).IP}
+	if err := tx.Insert(tableFreeVirtualIPs, newEntry); err != nil {
+		return fmt.Errorf("failed updating freed virtual IP table: %v", err)
 	}
 
 	return nil
@@ -2295,6 +2505,25 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *stru
 	idx := maxIndexTxn(tx, tableGatewayServices)
 
 	return lib.MaxUint64(maxIdx, idx), results, nil
+}
+
+func (s *Store) VirtualIPForService(sn structs.ServiceName) (string, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	vip, err := tx.First(tableServiceVirtualIPs, indexID, sn)
+	if err != nil {
+		return "", fmt.Errorf("failed service virtual IP lookup: %s", err)
+	}
+	if vip == nil {
+		return "", nil
+	}
+
+	result, err := addIPOffset(startingVirtualIP, vip.(ServiceVirtualIP).IP)
+	if err != nil {
+		return "", err
+	}
+	return result.String(), nil
 }
 
 // parseCheckServiceNodes is used to parse through a given set of services,

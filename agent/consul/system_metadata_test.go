@@ -32,7 +32,7 @@ func TestLeader_SystemMetadata_CRUD(t *testing.T) {
 
 	state := srv.fsm.State()
 
-	// Initially empty
+	// Initially has no entries
 	_, entries, err := state.SystemMetadataList(nil)
 	require.NoError(t, err)
 	require.Len(t, entries, 0)
