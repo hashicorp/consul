@@ -7,10 +7,31 @@
  */
 
 .intro {
+  position: relative;
   padding-bottom: 64px;
 
   @media (--medium-up) {
     padding-bottom: 128px;
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: radial-gradient(
+      93.55% 93.55% at 50% 0%,
+      var(--gray-6) 0%,
+      rgba(242, 242, 243, 0) 100%
+    );
+
+    @media (--large) {
+      border-radius: 6px;
+      left: 24px;
+      right: 24px;
+    }
   }
 }
 
