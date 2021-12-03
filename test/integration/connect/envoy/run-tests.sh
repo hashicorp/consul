@@ -352,7 +352,7 @@ function run_tests {
     start_consul secondary
   fi
   if is_set $REQUIRE_PARTITIONS; then
-    docker_consul "primary" admin-partition create -name ap1 > /dev/null
+    docker_consul "primary" consul partition create -name ap1 > /dev/null
     start_partitioned_client ap1
   fi
 
