@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 func generateUUID() (ret string) {
@@ -59,50 +59,6 @@ func TestInitializeSessionTimers(t *testing.T) {
 	}
 }
 
-func TestResetSessionTimer_Fault(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	// Should not exist
-	err := s1.resetSessionTimer(generateUUID(), nil)
-	if err == nil || !strings.Contains(err.Error(), "not found") {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Create a session
-	state := s1.fsm.State()
-	if err := state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	session := &structs.Session{
-		ID:   generateUUID(),
-		Node: "foo",
-		TTL:  "10s",
-	}
-	if err := state.SessionCreate(100, session); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Reset the session timer
-	err = s1.resetSessionTimer(session.ID, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Check that we have a timer
-	if s1.sessionTimers.Get(session.ID) == nil {
-		t.Fatalf("missing session timer")
-	}
-}
-
 func TestResetSessionTimer_NoTTL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -130,7 +86,7 @@ func TestResetSessionTimer_NoTTL(t *testing.T) {
 	}
 
 	// Reset the session timer
-	err := s1.resetSessionTimer(session.ID, session)
+	err := s1.resetSessionTimer(session)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -155,7 +111,7 @@ func TestResetSessionTimer_InvalidTTL(t *testing.T) {
 	}
 
 	// Reset the session timer
-	err := s1.resetSessionTimer(session.ID, session)
+	err := s1.resetSessionTimer(session)
 	if err == nil || !strings.Contains(err.Error(), "Invalid Session TTL") {
 		t.Fatalf("err: %v", err)
 	}
