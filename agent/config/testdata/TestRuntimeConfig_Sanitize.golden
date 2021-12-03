@@ -252,6 +252,9 @@
     "RPCMaxConnsPerClient": 0,
     "RPCProtocol": 0,
     "RPCRateLimit": 0,
+    "RaftBoltDBConfig": {
+        "NoFreelistSync": false
+    },
     "RaftProtocol": 3,
     "RaftSnapshotInterval": "0s",
     "RaftSnapshotThreshold": 0,

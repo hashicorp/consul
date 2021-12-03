@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-version"
+	"go.etcd.io/bbolt"
 
 	"github.com/armon/go-metrics"
 	connlimit "github.com/hashicorp/go-connlimit"
@@ -25,7 +26,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
-	raftboltdb "github.com/hashicorp/raft-boltdb"
+	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
@@ -729,12 +730,20 @@ func (s *Server) setupRaft() error {
 		}
 
 		// Create the backend raft store for logs and stable storage.
-		store, err := raftboltdb.NewBoltStore(filepath.Join(path, "raft.db"))
+		store, err := raftboltdb.New(raftboltdb.Options{
+			BoltOptions: &bbolt.Options{
+				NoFreelistSync: s.config.RaftBoltDBConfig.NoFreelistSync,
+			},
+			Path: filepath.Join(path, "raft.db"),
+		})
 		if err != nil {
 			return err
 		}
 		s.raftStore = store
 		stable = store
+
+		// start publishing boltdb metrics
+		go store.RunMetrics(&lib.StopChannelContext{StopCh: s.shutdownCh}, 0)
 
 		// Wrap the store in a LogCache to improve performance.
 		cacheStore, err := raft.NewLogCache(raftLogCacheSize, store)
