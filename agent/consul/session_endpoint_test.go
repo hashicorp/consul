@@ -393,17 +393,17 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	deniedToken := createTokenWithPolicyName(t, "denied", codec, `
+	deniedToken := createTokenWithPolicyName(t, codec, "denied", `
 		session "foo" {
 			policy = "deny"
 		}
-	`)
+	`, "root")
 
-	allowedToken := createTokenWithPolicyName(t, "allowed", codec, `
+	allowedToken := createTokenWithPolicyName(t, codec, "allowed", `
 		session "foo" {
 			policy = "read"
 		}
-	`)
+	`, "root")
 
 	// Create a node and a session.
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
