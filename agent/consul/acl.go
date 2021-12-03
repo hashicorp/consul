@@ -1949,14 +1949,6 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 			v.QueryMeta.ResultsFilteredByACLs = true
 		}
 
-	case *structs.IndexedNodesWithGateways:
-		if filt.filterCheckServiceNodes(&v.Nodes) {
-			v.QueryMeta.ResultsFilteredByACLs = true
-		}
-		if filt.filterGatewayServices(&v.Gateways) {
-			v.QueryMeta.ResultsFilteredByACLs = true
-		}
-
 	default:
 		panic(fmt.Errorf("Unhandled type passed to ACL filter: %T %#v", subj, subj))
 	}
