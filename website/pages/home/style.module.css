@@ -159,6 +159,7 @@
 .inPracticeCta {
   --columns: 1;
 
+  position: relative;
   margin-top: 64px;
   display: grid;
   grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
@@ -167,9 +168,29 @@
   @media (--medium-up) {
     --columns: 12;
   }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    bottom: -64px;
+    background: red;
+    background: radial-gradient(
+      42.33% 42.33% at 50% 100%,
+      #363638 0%,
+      #000 100%
+    );
+
+    @media (--medium-up) {
+      bottom: -80px;
+    }
+  }
 }
 
 .inPracticeCtaContent {
+  position: relative;
   grid-column: 1 / -1;
 
   @media (--medium-up) {
