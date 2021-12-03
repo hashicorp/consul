@@ -9,7 +9,6 @@ interface IoHomeCallToActionProps {
   links: Array<{
     text: string
     url: string
-    type?: 'inbound'
   }>
 }
 
@@ -27,7 +26,7 @@ export default function IoHomeCallToAction({
         content={content}
         product={brand}
         theme="dark"
-        links={links..map(({ text, url }, index) => {
+        links={links.map(({ text, url }, index) => {
           return {
             text,
             url,
