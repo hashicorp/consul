@@ -518,6 +518,7 @@ operator = "read"
 	require.True(ok)
 	require.Equal("foo", serviceConf.Name)
 	require.Equal(structs.ServiceDefaults, serviceConf.Kind)
+	require.True(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	// Get the global proxy config.
 	args.Kind = structs.ProxyDefaults
@@ -529,6 +530,7 @@ operator = "read"
 	require.True(ok)
 	require.Equal(structs.ProxyConfigGlobal, proxyConf.Name)
 	require.Equal(structs.ProxyDefaults, proxyConf.Kind)
+	require.False(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 }
 
 func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
@@ -601,6 +603,7 @@ operator = "read"
 	require.Equal(structs.ServiceDefaults, svcConf.Kind)
 	require.Equal(structs.ProxyConfigGlobal, proxyConf.Name)
 	require.Equal(structs.ProxyDefaults, proxyConf.Kind)
+	require.True(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 }
 
 func TestConfigEntry_Delete(t *testing.T) {

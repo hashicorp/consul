@@ -186,6 +186,7 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
 				if !entry.CanRead(authz) {
+					reply.QueryMeta.ResultsFilteredByACLs = true
 					continue
 				}
 				filteredEntries = append(filteredEntries, entry)
@@ -246,6 +247,7 @@ func (c *ConfigEntry) ListAll(args *structs.ConfigEntryListAllRequest, reply *st
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
 				if !entry.CanRead(authz) {
+					reply.QueryMeta.ResultsFilteredByACLs = true
 					continue
 				}
 				// Doing this filter outside of memdb isn't terribly
