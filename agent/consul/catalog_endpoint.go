@@ -488,15 +488,18 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 				return nil
 			}
 
-			if err := c.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
-
 			raw, err := filter.Execute(reply.Nodes)
 			if err != nil {
 				return err
 			}
 			reply.Nodes = raw.(structs.Nodes)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
 		})
@@ -664,17 +667,19 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				reply.ServiceNodes = filtered
 			}
 
-			if err := c.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
-
 			// This is safe to do even when the filter is nil - its just a no-op then
 			raw, err := filter.Execute(reply.ServiceNodes)
 			if err != nil {
 				return err
 			}
-
 			reply.ServiceNodes = raw.(structs.ServiceNodes)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.ServiceNodes)
 		})
@@ -750,11 +755,7 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 			if err != nil {
 				return err
 			}
-
 			reply.Index, reply.NodeServices = index, services
-			if err := c.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			if reply.NodeServices != nil {
 				raw, err := filter.Execute(reply.NodeServices.Services)
@@ -762,6 +763,13 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 					return err
 				}
 				reply.NodeServices.Services = raw.(map[string]*structs.NodeService)
+			}
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
 			}
 
 			return nil
@@ -802,11 +810,8 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 				return err
 			}
 
-			if err := c.srv.filterACL(args.Token, &services); err != nil {
-				return err
-			}
-
 			reply.Index = index
+
 			if services != nil {
 				reply.NodeServices = *services
 
@@ -815,6 +820,13 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 					return err
 				}
 				reply.NodeServices.Services = raw.([]*structs.NodeService)
+			}
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
 			}
 
 			return nil
@@ -876,12 +888,11 @@ func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *s
 			if err != nil {
 				return err
 			}
+			reply.Index, reply.Services = index, services
 
-			if err := c.srv.filterACL(args.Token, &services); err != nil {
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
-
-			reply.Index, reply.Services = index, services
 			return nil
 		})
 }
