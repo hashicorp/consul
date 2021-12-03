@@ -13,7 +13,12 @@ export default function StandardLayout(props: Props): React.ReactElement {
           { text: 'Overview', url: '/' },
           {
             text: 'Use Cases',
-            submenu: useCaseNavItems,
+            submenu: useCaseNavItems.map((item) => {
+              return {
+                text: item.text,
+                url: `/use-cases/${item.url}`,
+              }
+            }),
           },
           {
             text: 'Enterprise',
