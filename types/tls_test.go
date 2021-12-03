@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -20,4 +21,21 @@ func TestTLSVersion_Invalid(t *testing.T) {
 	var zeroValue TLSVersion
 	require.Equal(t, TLSVersionInvalid, zeroValue)
 	require.NotEqual(t, TLSVersionInvalid, TLSVersionAuto)
+}
+
+func TestTLSVersion_ToJSON(t *testing.T) {
+	var tlsVersion TLSVersion
+	err := tlsVersion.UnmarshalJSON([]byte(`"foo"`))
+	require.Error(t, err)
+	require.Equal(t, tlsVersion, TLSVersionInvalid)
+
+	for str, version := range TLSVersions {
+		versionJSON, err := json.Marshal(version)
+		require.NoError(t, err)
+		require.Equal(t, versionJSON, []byte(`"`+str+`"`))
+
+		err = tlsVersion.UnmarshalJSON([]byte(`"` + str + `"`))
+		require.NoError(t, err)
+		require.Equal(t, tlsVersion, version)
+	}
 }

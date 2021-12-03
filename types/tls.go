@@ -1,5 +1,9 @@
 package types
 
+import (
+	"fmt"
+)
+
 // TLSVersion is a strongly-typed int used for relative comparison
 // (minimum, maximum, greater than, less than) of TLS versions
 type TLSVersion int
@@ -31,7 +35,7 @@ var (
 	}
 	// NOTE: This interface is deprecated in favor of TLSVersions
 	// and should be eventually removed in a future release.
-	DeprecatedAgentTLSVersions = map[string]TLSVersion{
+	DeprecatedConsulAgentTLSVersions = map[string]TLSVersion{
 		"":      TLSVersionAuto,
 		"tls10": TLSv1_0,
 		"tls11": TLSv1_1,
@@ -45,10 +49,17 @@ var (
 		TLSv1_2:        "TLS 1.2",
 		TLSv1_3:        "TLS 1.3",
 	}
+	ConsulConfigTLSVersionStrings = func() map[TLSVersion]string {
+		inverted := make(map[TLSVersion]string, len(TLSVersions))
+		for k, v := range TLSVersions {
+			inverted[v] = k
+		}
+		return inverted
+	}()
 	// NOTE: these currently map to the deprecated config strings to support the
-	// deployment pattern of upgrading servers first. These should be updated to
-	// be the inverse of the TLSVersions map with newer config strings in a future
-	// release.
+	// deployment pattern of upgrading servers first. This map should eventually
+	// be removed and any lookups updated to use ConsulConfigTLSVersionStrings
+	// with newer config strings instead in a future release.
 	ConsulAutoConfigTLSVersionStrings = map[TLSVersion]string{
 		TLSVersionAuto: "",
 		TLSv1_0:        "tls10",
@@ -60,6 +71,29 @@ var (
 
 func (v TLSVersion) String() string {
 	return HumanTLSVersionStrings[v]
+}
+
+func (v TLSVersion) ConsulConfigString() string {
+	return ConsulConfigTLSVersionStrings[v]
+}
+
+func (v TLSVersion) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + v.ConsulConfigString() + `"`), nil
+}
+
+func (v *TLSVersion) UnmarshalJSON(bytes []byte) error {
+	versionStr := string(bytes)
+
+	if n := len(versionStr); n > 1 && versionStr[0] == '"' && versionStr[n-1] == '"' {
+		versionStr = versionStr[1 : n-1] // trim surrounding quotes
+	}
+
+	if version, ok := TLSVersions[versionStr]; ok {
+		*v = version
+		return nil
+	}
+
+	return fmt.Errorf("no matching TLS Version found for %s", versionStr)
 }
 
 // IANA cipher suite constants and values as defined at
