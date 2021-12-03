@@ -1756,6 +1756,24 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 		require.Equal(t, uint32(0), srvRec.Hdr.Ttl)
 		require.Equal(t, "127.0.0.55", cnameRec.A.String())
 	}
+
+	// Look up the virtual IP of the proxy.
+	questions = []string{
+		"db.virtual.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeA)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		require.Nil(t, err)
+		require.Len(t, in.Answer, 1)
+
+		aRec, ok := in.Answer[0].(*dns.A)
+		require.True(t, ok)
+		require.Equal(t, "240.0.0.1", aRec.A.String())
+	}
 }
 
 func TestDNS_IngressServiceLookup(t *testing.T) {

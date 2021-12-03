@@ -1,0 +1,3 @@
+```release-note:improvement
+dns: Added a `virtual` endpoint for querying the assigned virtual IP for a service.
+```
