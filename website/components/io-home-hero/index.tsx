@@ -98,7 +98,7 @@ interface IoHomeHeroCardProps {
   cta: {
     title: string
     link: string
-    brand?: 'neutral' | 'vault' | 'consul'
+    brand?: 'neutral' | Products
   }
   subText: string
 }
