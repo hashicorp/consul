@@ -570,7 +570,7 @@ func (c *Catalog) ServiceList(args *structs.DCSpecificRequest, reply *structs.In
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, services, err := state.ServiceList(ws, nil, &args.EnterpriseMeta)
+			index, services, err := state.ServiceList(ws, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}

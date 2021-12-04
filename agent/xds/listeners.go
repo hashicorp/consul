@@ -168,13 +168,22 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// We do not match on all endpoints here since it would lead to load balancing across
 		// all instances when any instance address is dialed.
 		for _, e := range endpoints {
-			if vip := e.Service.TaggedAddresses[virtualIPTag]; vip.Address != "" {
+			if vip := e.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; vip.Address != "" {
 				uniqueAddrs[vip.Address] = struct{}{}
 			}
+
+			// The virtualIPTag is used by consul-k8s to store the ClusterIP for a service.
+			// We only match on this virtual IP if the upstream is in the proxy's partition.
+			// This is because the IP is not guaranteed to be unique across k8s clusters.
+			if structs.EqualPartitions(e.Node.PartitionOrDefault(), cfgSnap.ProxyID.PartitionOrDefault()) {
+				if vip := e.Service.TaggedAddresses[virtualIPTag]; vip.Address != "" {
+					uniqueAddrs[vip.Address] = struct{}{}
+				}
+			}
 		}
-		if len(uniqueAddrs) > 1 {
-			s.Logger.Warn("detected multiple virtual IPs for an upstream, all will be used to match traffic",
-				"upstream", id)
+		if len(uniqueAddrs) > 2 {
+			s.Logger.Debug("detected multiple virtual IPs for an upstream, all will be used to match traffic",
+				"upstream", id, "ip_count", len(uniqueAddrs))
 		}
 
 		// For every potential address we collected, create the appropriate address prefix to match on.
