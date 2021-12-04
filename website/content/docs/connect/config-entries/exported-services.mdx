@@ -1,12 +1,12 @@
 ---
 layout: docs
-page_title: 'Configuration Entry Kind: Partition Exports'
+page_title: 'Configuration Entry Kind: Exported Services'
 description: >-
   The exported-services configuration entry enables you to export services from a single file.
   Settings in this configuration entry can apply to services in any namespace of the specified partition. Write access to the mesh resource is required.
 ---
 
-# Partition Exports
+# Exported Services
 
 This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other admin partitions from a single file. This enables your services to be networked across admin partitions. See [Admin Partitions](/docs/enterprise/admin-partitions) for additional information.     
 
@@ -21,7 +21,7 @@ You can configure the settings defined in the `exported-services` configuration 
 ## Requirements
 
 * A Consul Enterprise binary
-* A partition that corresponds to the configuration entry. As in, the partition exports config entry for partition "frontend" requires that the "frontend" partition exists
+* A partition that corresponds to the configuration entry. As in, the exported services config entry for partition "frontend" requires that the "frontend" partition exists
 
 
 ## Usage
@@ -36,7 +36,7 @@ You can configure the settings defined in the `exported-services` configuration 
 
 Configure the following parameters to define a `exported-services` configuration entry:
 
-<CodeTabs heading="Partition exports configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<CodeTabs heading="Exported services configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 <CodeBlockConfig>
 
 ```hcl

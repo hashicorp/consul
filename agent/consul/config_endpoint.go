@@ -594,7 +594,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 }
 
 func gateWriteToSecondary(targetDC, localDC, primaryDC, kind string) error {
-	// Partition exports are gated from interactions from secondary DCs
+	// ExportedServices entries are gated from interactions from secondary DCs
 	// because non-default partitions cannot be created in secondaries
 	// and services cannot be exported to another datacenter.
 	if kind != structs.ExportedServices {
