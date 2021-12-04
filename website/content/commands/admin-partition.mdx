@@ -1,32 +1,32 @@
 ---
 layout: commands
-page_title: 'Commands: admin-partition'
+page_title: 'Commands: partition'
 description: |
-  The admin-partition command enables you create and manage Consul Enterprise admin partitions.
+  The partition command enables you create and manage Consul Enterprise admin partitions.
 ---
 
 # Consul Admin Partition
 
-Command: `consul admin-partition`
+Command: `consul partition`
 
 <EnterpriseAlert />
 
-The `admin-partition` command enables you to create and manage Consul Enterprise administrative or admin partitions. Admin partitions are boundaries that allow multiple tenants to exist independently of each other on a shared set of Consul servers. This feature is currently in beta.
+The `partition` command enables you to create and manage Consul Enterprise administrative or admin partitions. Admin partitions are boundaries that allow multiple tenants to exist independently of each other on a shared set of Consul servers. This feature is currently in beta.
 
 If ACLs are enabled then a token with operator privileges may be required in order to use this command.
 
-You should only run the `admin-partition` command in the primary datacenter.
+You should only run the `partition` command in the primary datacenter.
 
 ## Usage
 
 ```shell-session
-consul admin-partition <SUBCOMMAND> <OPTIONS>
+consul partition <SUBCOMMAND> <OPTIONS>
 ```
 
-Issue the `consul admin-partition -h` command to view the subcommands.
+Issue the `consul partition -h` command to view the subcommands.
 
 ```shell-session
-Usage: consul admin-partition <subcommand> [options] [args]
+Usage: consul partition <subcommand> [options] [args]
 
   This command has subcommands for interacting with Consul Enterprise
   admin partitions. Here are some simple examples. More detailed
@@ -34,41 +34,41 @@ Usage: consul admin-partition <subcommand> [options] [args]
 
   Create an admin partition
 
-    $ consul admin-partition create -name team1
+    $ consul partition create -name team1
 
   Create or Update an admin partition from its full definition:
 
-    $ consul admin-partition write part1
+    $ consul partition write part1
 
   Read an admin partition:
 
-    $ consul admin-partition read team1
+    $ consul partition read team1
 
   List all admin partitions:
 
-    $ consul admin-partition list
+    $ consul partition list
 
   Update an admin partition
 
-    $ consul admin-partition update -name team1 -description "first admin-partition"
+    $ consul partition update -name team1 -description "first partition"
 
   Delete an admin partition:
 
-    $ consul admin-partition delete team1
+    $ consul partition delete team1
 
   For more examples, ask for subcommand help or view the documentation.
 ```
 
 ## Subcommands
 
-You can issue the following subcommands with the `consul admin-partition` command.
+You can issue the following subcommands with the `consul partition` command.
 
 ### `create`
 
 The `create` subcommand sends a request to the server to create a new admin partition.
 
 ```shell-session
-consul admin-partition create <OPTIONS>
+consul partition create <OPTIONS>
 ```
 
 The admin partition is created according to the values specified in the options. You can specify the following options:
@@ -83,7 +83,7 @@ The admin partition is created according to the values specified in the options.
 In the following example, a partition named `webdev` is created:
 
 ```shell-session
-consul admin-partition create -name "webdev" -description "Partition for admin of webdev services" -format  json -show-meta
+consul partition create -name "webdev" -description "Partition for admin of webdev services" -format  json -show-meta
 
 {
    "Name": "webdev",
@@ -100,16 +100,16 @@ The `write` subcommand sends a request to the server to create a new admin parti
 Use the following syntax to write from file:
 
 ```shell-session
-consul admin-partition write <OPTIONS> <FILE>
+consul partition write <OPTIONS> <FILE>
 ```
 
 Use the following syntax to write from `stdin`:
 
 ```shell-session
-consul admin-partition write <OPTIONS> -
+consul partition write <OPTIONS> -
 ```
 
-The definition file or `stdin` values can be provided in JSON or HCL format. Refer to the  [Admin Partition Definition](#admin-partition-definition) section for details about the supported parameters.
+The definition file or `stdin` values can be provided in JSON or HCL format. Refer to the  [Admin Partition Definition](#partition-definition) section for details about the supported parameters.
 
 You can specify the following options:
 
@@ -121,7 +121,7 @@ You can specify the following options:
 In the following example, the `webdev-bu` partition is written using `stdin` values:
 
 ```shell-session
-consul admin-partition write -format  json -show-meta - <<< 'name = "webdev-bu" description = "backup webdev partition"'
+consul partition write -format  json -show-meta - <<< 'name = "webdev-bu" description = "backup webdev partition"'
 
 {
    "Name": "webdev-bu",
@@ -136,7 +136,7 @@ consul admin-partition write -format  json -show-meta - <<< 'name = "webdev-bu" 
 The `read` subcommand sends a request to the server to read the configuration for the specified partition and print it to the console.
 
 ```shell-session
-consul admin-partition read <OPTIONS> <PARTITION_NAME>
+consul partition read <OPTIONS> <PARTITION_NAME>
 ```
 
 The admin partition is created according to the values specified in the options. You can specify the following options:
@@ -149,7 +149,7 @@ The admin partition is created according to the values specified in the options.
 In the following example, the configuration for the `webdev` partition is read:
 
 ```shell-session
-consul admin-partition read -format json -meta webdev
+consul partition read -format json -meta webdev
 
 {
    "Name": "webdev",
@@ -163,7 +163,7 @@ consul admin-partition read -format json -meta webdev
 The `list` subcommand prints existing admin partitions to the console.
 
 ```shell-session
-consul admin-partition list <OPTIONS>
+consul partition list <OPTIONS>
 ```
 
 The admin partition is created according to the values specified in the options. You can specify the following options:
@@ -176,7 +176,7 @@ The admin partition is created according to the values specified in the options.
 The following example lists the admin partitions and their meta data in JSON format:
 
 ```shell-session
-consul admin-partition list -format  json -show-meta
+consul partition list -format  json -show-meta
 
 [
    {
@@ -204,12 +204,12 @@ consul admin-partition list -format  json -show-meta
 The `delete` subcommand sends a request to the server to remove the specified partition.
 
 ```shell-session
-consul admin-partition delete <PARTITION_NAME>
+consul partition delete <PARTITION_NAME>
 ```
 In the following example, the `webdev-bu` partition is deleted:
 
 ```shell-session
-consul admin-partition delete webdev
+consul partition delete webdev
 ```
 
 ## Admin Partition Definition
@@ -234,7 +234,7 @@ Description = "Partition for dev team"
 
 ## HTTP API Options
 
-You can include the following options to interact with the HTTP API when using the `admin-partition` command.
+You can include the following options to interact with the HTTP API when using the `partition` command.
 
 | Option | Description | Default | Required |
 | ---    | ---         | ---     | ---      |
