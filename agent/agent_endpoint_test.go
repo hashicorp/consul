@@ -401,14 +401,16 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 		`)
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/v1/agent/services?token=%s", token), nil)
-		rsp := httptest.NewRecorder()
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
 
-		obj, err := a.srv.AgentServices(rsp, req)
-		require.NoError(err)
-
-		val := obj.(map[string]*api.AgentService)
+		dec := json.NewDecoder(resp.Body)
+		var val map[string]*api.AgentService
+		if err := dec.Decode(&val); err != nil {
+			t.Fatalf("Err: %v", err)
+		}
 		require.Len(val, 1)
-		require.NotEmpty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+		require.NotEmpty(resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("root token", func(t *testing.T) {
@@ -1384,9 +1386,7 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 			t.Fatalf("Err: %v", err)
 		}
 
-		if len(val) != 0 {
-			t.Fatalf("bad checks: %v", val)
-		}
+		require.Len(t, val, 0)
 		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
@@ -1403,14 +1403,16 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 		`, a.Config.NodeName))
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/v1/agent/checks?token=%s", token), nil)
-		rsp := httptest.NewRecorder()
+		resp := httptest.NewRecorder()
 
-		obj, err := a.srv.AgentChecks(rsp, req)
-		require.NoError(err)
-
-		val := obj.(map[types.CheckID]*structs.HealthCheck)
+		a.srv.h.ServeHTTP(resp, req)
+		dec := json.NewDecoder(resp.Body)
+		var val map[types.CheckID]*structs.HealthCheck
+		if err := dec.Decode(&val); err != nil {
+			t.Fatalf("Err: %v", err)
+		}
 		require.Len(val, 1)
-		require.NotEmpty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+		require.NotEmpty(resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("root token", func(t *testing.T) {
@@ -1423,9 +1425,7 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 		if err := dec.Decode(&val); err != nil {
 			t.Fatalf("Err: %v", err)
 		}
-		if len(val) != 1 {
-			t.Fatalf("bad checks: %v", val)
-		}
+		require.Len(t, val, 1)
 	})
 }
 
@@ -1989,8 +1989,9 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 	testrpc.WaitForLeader(t, b.RPC, "dc1")
 
 	joinPath := fmt.Sprintf("/v1/agent/join/127.0.0.1:%d?token=root", b.Config.SerfPortLAN)
-	_, err := a.srv.AgentJoin(nil, httptest.NewRequest(http.MethodPut, joinPath, nil))
-	require.NoError(t, err)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, httptest.NewRequest(http.MethodPut, joinPath, nil))
+	require.Equal(t, http.StatusOK, resp.Code)
 
 	t.Run("no token", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/agent/members", nil)
@@ -2002,10 +2003,7 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 		if err := dec.Decode(&val); err != nil {
 			t.Fatalf("Err: %v", err)
 		}
-
-		if len(val) != 0 {
-			t.Fatalf("bad members: %v", val)
-		}
+		require.Len(t, val, 0)
 		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
@@ -2019,14 +2017,16 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 		`, b.Config.NodeName))
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/v1/agent/members?token=%s", token), nil)
-		rsp := httptest.NewRecorder()
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
 
-		obj, err := a.srv.AgentMembers(rsp, req)
-		require.NoError(err)
-
-		val := obj.([]serf.Member)
+		dec := json.NewDecoder(resp.Body)
+		val := make([]serf.Member, 0)
+		if err := dec.Decode(&val); err != nil {
+			t.Fatalf("Err: %v", err)
+		}
 		require.Len(val, 1)
-		require.NotEmpty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+		require.NotEmpty(resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("root token", func(t *testing.T) {
@@ -2039,9 +2039,7 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 		if err := dec.Decode(&val); err != nil {
 			t.Fatalf("Err: %v", err)
 		}
-		if len(val) != 1 {
-			t.Fatalf("bad members: %v", val)
-		}
+		require.Len(t, val, 1)
 	})
 }
 
@@ -5998,9 +5996,6 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		issued2 := &structs.IssuedCert{}
 		require.NoError(dec.Decode(issued2))
 		require.Equal(issued, issued2)
-
-		// Should cache hit this time and not make request
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Set a new CA
@@ -6144,9 +6139,6 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 		issued2 := &structs.IssuedCert{}
 		require.NoError(dec.Decode(issued2))
 		require.Equal(issued, issued2)
-
-		// Should cache hit this time and not make request
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Test Blocking - see https://github.com/hashicorp/consul/issues/4462
@@ -6291,9 +6283,6 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 		issued2 := &structs.IssuedCert{}
 		require.NoError(dec.Decode(issued2))
 		require.Equal(issued, issued2)
-
-		// Should cache hit this time and not make request
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Test that we aren't churning leaves for no reason at idle.
@@ -6433,9 +6422,6 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		issued2 := &structs.IssuedCert{}
 		require.NoError(dec.Decode(issued2))
 		require.Equal(issued, issued2)
-
-		// Should cache hit this time and not make request
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Test that we aren't churning leaves for no reason at idle.
