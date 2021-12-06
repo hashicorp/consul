@@ -594,10 +594,10 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 }
 
 func gateWriteToSecondary(targetDC, localDC, primaryDC, kind string) error {
-	// Partition exports are gated from interactions from secondary DCs
+	// ExportedServices entries are gated from interactions from secondary DCs
 	// because non-default partitions cannot be created in secondaries
 	// and services cannot be exported to another datacenter.
-	if kind != structs.PartitionExports {
+	if kind != structs.ExportedServices {
 		return nil
 	}
 	if localDC == "" {
@@ -611,10 +611,10 @@ func gateWriteToSecondary(targetDC, localDC, primaryDC, kind string) error {
 
 	switch {
 	case targetDC == "" && localDC != primaryDC:
-		return fmt.Errorf("partition-exports writes in secondary datacenters must target the primary datacenter explicitly.")
+		return fmt.Errorf("exported-services writes in secondary datacenters must target the primary datacenter explicitly.")
 
 	case targetDC != "" && targetDC != primaryDC:
-		return fmt.Errorf("partition-exports writes must not target secondary datacenters.")
+		return fmt.Errorf("exported-services writes must not target secondary datacenters.")
 
 	}
 	return nil

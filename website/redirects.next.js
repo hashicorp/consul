@@ -87,6 +87,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/connect/config-entries/partition-exports',
+    destination: '/docs/connect/config-entries/exported-services',
+    permanent: true,
+  },
+  {
     source: '/docs/enterprise/license',
     destination: '/docs/enterprise/license/overview',
     permanent: true,

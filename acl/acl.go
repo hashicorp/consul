@@ -16,10 +16,10 @@ type Config struct {
 
 type ExportFetcher interface {
 	// ExportsForPartition returns the config entry defining exports for a partition
-	ExportsForPartition(partition string) PartitionExports
+	ExportsForPartition(partition string) ExportedServices
 }
 
-type PartitionExports struct {
+type ExportedServices struct {
 	Data map[string]map[string][]string
 }
 
