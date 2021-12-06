@@ -55,7 +55,7 @@ func setupPrimaryServer(t *testing.T) *agent.TestAgent {
 	require.NoError(t, ioutil.WriteFile(keyPath, []byte(keyPEM), 0600))
 	require.NoError(t, ioutil.WriteFile(caPath, []byte(caPEM), 0600))
 
-	aclParams := agent.DefaulTestACLConfigParams()
+	aclParams := agent.DefaultTestACLConfigParams()
 	aclParams.PrimaryDatacenter = "primary"
 	aclParams.EnableTokenReplication = true
 

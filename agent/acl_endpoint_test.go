@@ -1848,7 +1848,7 @@ func TestACL_Authorize(t *testing.T) {
 	require.NoError(t, a1.RPC("ACL.TokenSet", &tokenReq, &token))
 
 	// secondary also needs to setup a replication token to pull tokens and policies
-	secondaryParams := DefaulTestACLConfigParams()
+	secondaryParams := DefaultTestACLConfigParams()
 	secondaryParams.ReplicationToken = secondaryParams.InitialManagementToken
 	secondaryParams.EnableTokenReplication = true
 

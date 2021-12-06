@@ -485,7 +485,7 @@ type TestACLConfigParams struct {
 	EnableTokenReplication bool
 }
 
-func DefaulTestACLConfigParams() *TestACLConfigParams {
+func DefaultTestACLConfigParams() *TestACLConfigParams {
 	return &TestACLConfigParams{
 		PrimaryDatacenter:      "dc1",
 		DefaultPolicy:          "deny",
@@ -550,7 +550,7 @@ func TestACLConfigWithParams(params *TestACLConfigParams) string {
 
 	cfg := params
 	if params == nil {
-		cfg = DefaulTestACLConfigParams()
+		cfg = DefaultTestACLConfigParams()
 	}
 
 	err := aclConfigTpl.Execute(&buf, &cfg)
