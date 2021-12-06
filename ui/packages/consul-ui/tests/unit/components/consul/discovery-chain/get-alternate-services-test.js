@@ -8,8 +8,8 @@ module('Unit | Component | consul/discovery-chain/get-alternative-services', fun
       Targets: ['different-ns', 'different-ns2'],
     };
     const actual = getAlternateServices(
-      ['service.different-ns.dc', 'service.different-ns2.dc'],
-      'service.namespace.dc'
+      ['service.different-ns.partition.dc', 'service.different-ns2.partition.dc'],
+      'service.namespace.partition.dc'
     );
     assert.equal(actual.Type, expected.Type);
     assert.deepEqual(actual.Targets, expected.Targets);
@@ -20,8 +20,8 @@ module('Unit | Component | consul/discovery-chain/get-alternative-services', fun
       Targets: ['dc1', 'dc2'],
     };
     const actual = getAlternateServices(
-      ['service.namespace.dc1', 'service.namespace.dc2'],
-      'service.namespace.dc'
+      ['service.namespace.partition.dc1', 'service.namespace.partition.dc2'],
+      'service.namespace.partition.dc'
     );
     assert.equal(actual.Type, expected.Type);
     assert.deepEqual(actual.Targets, expected.Targets);
@@ -32,8 +32,8 @@ module('Unit | Component | consul/discovery-chain/get-alternative-services', fun
       Targets: ['service-2', 'service-3'],
     };
     const actual = getAlternateServices(
-      ['service-2.namespace.dc', 'service-3.namespace.dc'],
-      'service.namespace.dc'
+      ['service-2.namespace.partition.dc', 'service-3.namespace.partition.dc'],
+      'service.namespace.partition.dc'
     );
     assert.equal(actual.Type, expected.Type);
     assert.deepEqual(actual.Targets, expected.Targets);
@@ -44,8 +44,8 @@ module('Unit | Component | consul/discovery-chain/get-alternative-services', fun
       Targets: ['v3', 'v2'],
     };
     const actual = getAlternateServices(
-      ['v3.service.namespace.dc', 'v2.service.namespace.dc'],
-      'v1.service.namespace.dc'
+      ['v3.service.namespace.partition.dc', 'v2.service.namespace.partition.dc'],
+      'v1.service.namespace.partition.dc'
     );
     assert.equal(actual.Type, expected.Type);
     assert.deepEqual(actual.Targets, expected.Targets);

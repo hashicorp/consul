@@ -44,8 +44,8 @@ export default Component.extend({
       !routes.find(item => typeof item.Definition === 'undefined')
     ) {
       let nextNode;
-      const resolverID = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Datacenter}`;
-      const splitterID = `splitter:${this.chain.ServiceName}.${this.chain.Namespace}`;
+      const resolverID = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Partition}.${this.chain.Datacenter}`;
+      const splitterID = `splitter:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Partition}`;
       // The default router should look for a splitter first,
       // if there isn't one try the default resolver
       if (typeof this.chain.Nodes[splitterID] !== 'undefined') {
@@ -106,6 +106,7 @@ export default Component.extend({
   resolvers: computed('chain.{Nodes,Targets}', function() {
     return getResolvers(
       this.chain.Datacenter,
+      this.chain.Partition,
       this.chain.Namespace,
       get(this, 'chain.Targets'),
       get(this, 'chain.Nodes')
