@@ -5856,7 +5856,7 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 
 	// Get the issued cert
 	dec := json.NewDecoder(resp.Body)
-	value := &structs.IndexedCARoots{}
+	value := &structs.IssuedCert{}
 	require.NoError(dec.Decode(value))
 	require.NotNil(value)
 }
@@ -6303,6 +6303,11 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 			req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+strconv.Itoa(int(issued.ModifyIndex)), nil)
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
+			if resp.Code != http.StatusOK {
+				ch <- fmt.Errorf(resp.Body.String())
+				return
+			}
+
 			dec := json.NewDecoder(resp.Body)
 			issued2 := &structs.IssuedCert{}
 			if err := dec.Decode(issued2); err != nil {
@@ -6317,7 +6322,6 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 		}()
 
 		start := time.Now()
-
 		select {
 		case <-time.After(5 * time.Second):
 		case err := <-ch:
@@ -6441,6 +6445,11 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+strconv.Itoa(int(issued.ModifyIndex)), nil)
 			resp := httptest.NewRecorder()
 			a2.srv.h.ServeHTTP(resp, req)
+			if resp.Code != http.StatusOK {
+				ch <- fmt.Errorf(resp.Body.String())
+				return
+			}
+
 			dec := json.NewDecoder(resp.Body)
 			issued2 := &structs.IssuedCert{}
 			if err := dec.Decode(issued2); err != nil {
