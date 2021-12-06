@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Adds support for partitions to Service and Node Identity template visuals.
+```

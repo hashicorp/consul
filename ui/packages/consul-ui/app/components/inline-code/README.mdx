@@ -20,3 +20,19 @@ p code {
   @extend %inline-code;
 }
 ```
+
+We also have a `%block-code` that is currently contained in the same CSS files here as it shares so much of this (this should potentially be thought about and reorganized at some stage)
+
+At the time of writing we only use this in the docs for all `<pre><code>`s.
+
+```hbs preview-template
+<pre><code>{
+  "Code": true
+}</code></pre>
+```
+
+```css
+pre code {
+  @extend %block-code;
+}
+```
