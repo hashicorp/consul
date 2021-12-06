@@ -989,7 +989,7 @@ RESOLVE_AGAIN:
 						target,
 						failover.Service,
 						failover.ServiceSubset,
-						failover.Partition,
+						target.Partition,
 						failover.Namespace,
 						dc,
 					)
@@ -1003,7 +1003,7 @@ RESOLVE_AGAIN:
 					target,
 					failover.Service,
 					failover.ServiceSubset,
-					failover.Partition,
+					target.Partition,
 					failover.Namespace,
 					"",
 				)

@@ -946,7 +946,7 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 
 	if e.Redirect != nil {
 		if !e.InDefaultPartition() && e.Redirect.Datacenter != "" {
-			return fmt.Errorf("Cross-datacenter redirect is not supported in non-default partitions")
+			return fmt.Errorf("Cross-datacenter redirect is only supported in the default partition")
 		}
 		if PartitionOrDefault(e.Redirect.Partition) != e.PartitionOrDefault() && e.Redirect.Datacenter != "" {
 			return fmt.Errorf("Cross-datacenter and cross-partition redirect is not supported")
@@ -985,18 +985,15 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 
 		for subset, f := range e.Failover {
 			if !e.InDefaultPartition() && len(f.Datacenters) != 0 {
-				return fmt.Errorf("Cross-datacenter failover is not supported in non-default partitions")
-			}
-			if PartitionOrDefault(f.Partition) != e.PartitionOrDefault() && len(f.Datacenters) != 0 {
-				return fmt.Errorf("Cross-datacenter and cross-partition failover is not supported")
+				return fmt.Errorf("Cross-datacenter failover is only supported in the default partition")
 			}
 
 			if subset != "*" && !isSubset(subset) {
 				return fmt.Errorf("Bad Failover[%q]: not a valid subset", subset)
 			}
 
-			if f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && f.Partition == "" && len(f.Datacenters) == 0 {
-				return fmt.Errorf("Bad Failover[%q] one of Service, ServiceSubset, Namespace, Partition, or Datacenters is required", subset)
+			if f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && len(f.Datacenters) == 0 {
+				return fmt.Errorf("Bad Failover[%q] one of Service, ServiceSubset, Namespace, or Datacenters is required", subset)
 			}
 
 			if f.ServiceSubset != "" {
@@ -1201,13 +1198,6 @@ type ServiceResolverFailover struct {
 	//
 	// This is a DESTINATION during failover.
 	Namespace string `json:",omitempty"`
-
-	// Partition is the partition to resolve the requested service from to form
-	// the failover group of instances. If empty the current partition is used
-	// (optional).
-	//
-	// This is a DESTINATION during failover.
-	Partition string `json:",omitempty"`
 
 	// Datacenters is a fixed list of datacenters to try. We never try a
 	// datacenter multiple times, so those are subtracted from this list before
