@@ -48,12 +48,18 @@ type setupSerfOptions struct {
 }
 
 // setupSerf is used to setup and initialize a Serf
-func (s *Server) setupSerf(opts setupSerfOptions) (*serf.Serf, error) {
+func (s *Server) setupSerf(opts setupSerfOptions) (*serf.Serf, *serf.Config, error) {
 	conf, err := s.setupSerfConfig(opts)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return serf.Create(conf)
+
+	cluster, err := serf.Create(conf)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cluster, conf, nil
 }
 
 func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
@@ -152,7 +158,9 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 	conf.ProtocolVersion = protocolVersionMap[s.config.ProtocolVersion]
 	conf.RejoinAfterLeave = s.config.RejoinAfterLeave
 	if opts.WAN {
-		conf.Merge = &wanMergeDelegate{}
+		conf.Merge = &wanMergeDelegate{
+			localDatacenter: s.config.Datacenter,
+		}
 	} else {
 		conf.Merge = &lanMergeDelegate{
 			dc:        s.config.Datacenter,
