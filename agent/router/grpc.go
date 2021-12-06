@@ -1,13 +1,16 @@
 package router
 
-import "github.com/hashicorp/consul/agent/metadata"
+import (
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/types"
+)
 
 // ServerTracker is called when Router is notified of a server being added or
 // removed.
 type ServerTracker interface {
 	NewRebalancer(dc string) func()
-	AddServer(*metadata.Server)
-	RemoveServer(*metadata.Server)
+	AddServer(types.AreaID, *metadata.Server)
+	RemoveServer(types.AreaID, *metadata.Server)
 }
 
 // Rebalancer is called periodically to re-order the servers so that the load on the
@@ -24,7 +27,7 @@ func (NoOpServerTracker) NewRebalancer(string) func() {
 }
 
 // AddServer does nothing
-func (NoOpServerTracker) AddServer(*metadata.Server) {}
+func (NoOpServerTracker) AddServer(types.AreaID, *metadata.Server) {}
 
 // RemoveServer does nothing
-func (NoOpServerTracker) RemoveServer(*metadata.Server) {}
+func (NoOpServerTracker) RemoveServer(types.AreaID, *metadata.Server) {}
