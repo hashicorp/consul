@@ -431,14 +431,14 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 			s.logger.Info("Created ACL 'global-management' policy")
 		}
 
-		// Check for configured master token.
-		if master := s.config.ACLMasterToken; len(master) > 0 {
+		// Check for configured initial management token.
+		if initialManagement := s.config.ACLInitialManagementToken; len(initialManagement) > 0 {
 			state := s.fsm.State()
-			if _, err := uuid.ParseUUID(master); err != nil {
+			if _, err := uuid.ParseUUID(initialManagement); err != nil {
 				s.logger.Warn("Configuring a non-UUID initial management token is deprecated")
 			}
 
-			_, token, err := state.ACLTokenGetBySecret(nil, master, nil)
+			_, token, err := state.ACLTokenGetBySecret(nil, initialManagement, nil)
 			if err != nil {
 				return fmt.Errorf("failed to get initial management token: %v", err)
 			}
@@ -451,7 +451,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 				token := structs.ACLToken{
 					AccessorID:  accessor,
-					SecretID:    master,
+					SecretID:    initialManagement,
 					Description: "Initial Management Token",
 					Policies: []structs.ACLTokenPolicyLink{
 						{

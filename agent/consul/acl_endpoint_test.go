@@ -32,7 +32,7 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	t.Parallel()
 	dir, srv, codec := testACLServerWithConfig(t, func(c *Config) {
 		// remove this as we are bootstrapping
-		c.ACLMasterToken = ""
+		c.ACLInitialManagementToken = ""
 	}, false)
 	waitForLeaderEstablishment(t, srv)
 

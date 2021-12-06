@@ -860,8 +860,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			ACLDefaultPolicy: stringVal(c.ACL.DefaultPolicy),
 		},
 
-		ACLEnableKeyListPolicy: boolVal(c.ACL.EnableKeyListPolicy),
-		ACLMasterToken:         stringVal(c.ACL.Tokens.InitialManagement),
+		ACLEnableKeyListPolicy:    boolVal(c.ACL.EnableKeyListPolicy),
+		ACLInitialManagementToken: stringVal(c.ACL.Tokens.InitialManagement),
 
 		ACLTokenReplication: boolVal(c.ACL.TokenReplication),
 
