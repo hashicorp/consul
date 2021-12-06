@@ -1,1 +1,78 @@
-{"Chain":{"ServiceName":"virtual-admin-2","Namespace":"default","Datacenter":"dc-gcp","Protocol":"http","StartNode":"splitter:virtual-admin-2.default","Nodes":{"resolver:web.default.dc-aws":{"Type":"resolver","Name":"web.default.dc-aws","Resolver":{"ConnectTimeout":"15s","Target":"web.default.dc-aws","Failover":{"Targets":["web.default.dc-gcp"]}}},"resolver:web.default.dc-gcp":{"Type":"resolver","Name":"web.default.dc-gcp","Resolver":{"ConnectTimeout":"15s","Target":"web.default.dc-gcp","Failover":{"Targets":["web.default.dc-aws"]}}},"splitter:virtual-admin-2.default":{"Type":"splitter","Name":"virtual-admin-2.default","Splits":[{"Weight":50,"NextNode":"resolver:web.default.dc-gcp"},{"Weight":50,"NextNode":"resolver:web.default.dc-aws"}]}},"Targets":{"web.default.dc-aws":{"ID":"web.default.dc-aws","Service":"web","Namespace":"default","Datacenter":"dc-aws","MeshGateway":{"Mode":"local"},"Subset":{},"SNI":"web.default.dc-aws.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul","Name":"web.default.dc-aws.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"},"web.default.dc-gcp":{"ID":"web.default.dc-gcp","Service":"web","Namespace":"default","Datacenter":"dc-gcp","MeshGateway":{},"Subset":{},"SNI":"web.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul","Name":"web.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"}}}}
+{
+  "Chain": {
+    "ServiceName": "virtual-admin-2",
+    "Partition": "default",
+    "Namespace": "default",
+    "Datacenter": "dc-gcp",
+    "Protocol": "http",
+    "StartNode": "splitter:virtual-admin-2.default.default",
+    "Nodes": {
+      "resolver:web.default.default.dc-aws": {
+        "Type": "resolver",
+        "Name": "web.default.default.dc-aws",
+        "Resolver": {
+          "ConnectTimeout": "15s",
+          "Target": "web.default.default.dc-aws",
+          "Failover": {
+            "Targets": [
+              "web.default.default.dc-gcp"
+            ]
+          }
+        }
+      },
+      "resolver:web.default.default.dc-gcp": {
+        "Type": "resolver",
+        "Name": "web.default.default.dc-gcp",
+        "Resolver": {
+          "ConnectTimeout": "15s",
+          "Target": "web.default.default.dc-gcp",
+          "Failover": {
+            "Targets": [
+              "web.default.default.dc-aws"
+            ]
+          }
+        }
+      },
+      "splitter:virtual-admin-2.default.default": {
+        "Type": "splitter",
+        "Name": "virtual-admin-2.default.default",
+        "Splits": [
+          {
+            "Weight": 50,
+            "NextNode": "resolver:web.default.default.dc-gcp"
+          },
+          {
+            "Weight": 50,
+            "NextNode": "resolver:web.default.default.dc-aws"
+          }
+        ]
+      }
+    },
+    "Targets": {
+      "web.default.default.dc-aws": {
+        "ID": "web.default.default.dc-aws",
+        "Service": "web",
+        "Partition": "default",
+        "Namespace": "default",
+        "Datacenter": "dc-aws",
+        "MeshGateway": {
+          "Mode": "local"
+        },
+        "Subset": {},
+        "SNI": "web.default.default.dc-aws.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul",
+        "Name": "web.default.default.dc-aws.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"
+      },
+      "web.default.default.dc-gcp": {
+        "ID": "web.default.default.dc-gcp",
+        "Service": "web",
+        "Partition": "default",
+        "Namespace": "default",
+        "Datacenter": "dc-gcp",
+        "MeshGateway": {},
+        "Subset": {},
+        "SNI": "web.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul",
+        "Name": "web.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"
+      }
+    }
+  }
+}
