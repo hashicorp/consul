@@ -36,7 +36,7 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -187,7 +187,7 @@ func TestBindingRuleCreateCommand_JSON(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
