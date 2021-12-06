@@ -881,7 +881,7 @@ func TestACL_HTTP(t *testing.T) {
 			require.True(t, ok)
 			require.Len(t, tokens, 1)
 			token := tokens[0]
-			require.Equal(t, "Master Token", token.Description)
+			require.Equal(t, "Initial Management Token", token.Description)
 			require.Len(t, token.Policies, 1)
 			require.Equal(t, structs.ACLPolicyGlobalManagementID, token.Policies[0].ID)
 		})
