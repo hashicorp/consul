@@ -89,6 +89,19 @@ const (
 
 var ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
 
+// partitionUnsetter is used to describe requests values that can unset their
+// EnterpriseMeta.Partition value.
+type partitionUnsetter interface {
+	// UnsetPartition is used to strip a Partition value from the request before
+	// it is forwarded to a remote datacenter. By unsetting the value, the server
+	// that handles the request can decide which partition should be used (or do nothing).
+	// This ensures that servers that are Partition-enabled (pre-1.11, or non-Enterprise)
+	// don't inadvertently cause servers that are not Partition-enabled (<= 1.10 or non-Enterprise)
+	// to filter their responses by Partition. In other words, this ensures upgraded servers
+	// remain compatible with non-upgraded servers.
+	UnsetPartition()
+}
+
 func (s *Server) rpcLogger() hclog.Logger {
 	return s.loggers.Named(logging.RPC)
 }
@@ -654,6 +667,14 @@ func (s *Server) forwardRequestToOtherDatacenter(info structs.RPCInfo, forwardTo
 					defer info.SetTokenSecret(token)
 				}
 			}
+		}
+		// In order to interoperate with servers that can interpret Partition, but
+		// may not handle it correctly (eg. 1.10 servers), we need to unset the value.
+		// Unsetting the Partition ensures that the server that handles the request
+		// uses its Partition, or an empty value (aka doing nothing).
+		// For requests that are not Partition-aware, this is a no-op.
+		if v, ok := info.(partitionUnsetter); ok {
+			v.UnsetPartition()
 		}
 
 		return true, forwardToDC(dc)
