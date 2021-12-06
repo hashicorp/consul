@@ -461,11 +461,18 @@ func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeCo
 // with ACLs.
 func TestACLConfig() string {
 	return `
-		acl_datacenter = "dc1"
-		acl_default_policy = "deny"
-		acl_master_token = "root"
-		acl_agent_token = "root"
-		acl_agent_master_token = "towel"
+		primary_datacenter = "dc1"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+				agent = "root"
+				agent_recovery = "towel"
+			}
+		}
 	`
 }
 

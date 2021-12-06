@@ -91,9 +91,14 @@ func TestACL_Bootstrap(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, TestACLConfig()+`
-      acl_master_token = ""
-   `)
+	a := NewTestAgent(t, `
+		primary_datacenter = "dc1"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+		}
+	`)
 	defer a.Shutdown()
 
 	tests := []struct {

@@ -214,10 +214,14 @@ func TestAgent_TokenStore(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestAgent(t, `
-		acl_token = "user"
-		acl_agent_token = "agent"
-		acl_agent_master_token = "master"`,
-	)
+		acl {
+			tokens {
+				default = "user"
+				agent = "agent"
+				agent_recovery = "recovery"
+			}
+		}
+	`)
 	defer a.Shutdown()
 
 	if got, want := a.tokens.UserToken(), "user"; got != want {
@@ -226,7 +230,7 @@ func TestAgent_TokenStore(t *testing.T) {
 	if got, want := a.tokens.AgentToken(), "agent"; got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
-	if got, want := a.tokens.IsAgentRecoveryToken("master"), true; got != want {
+	if got, want := a.tokens.IsAgentRecoveryToken("recovery"), true; got != want {
 		t.Fatalf("got %v want %v", got, want)
 	}
 }
