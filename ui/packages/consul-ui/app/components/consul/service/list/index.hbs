@@ -25,7 +25,18 @@
       </dd>
     </dl>
 {{#if (gt item.InstanceCount 0)}}
-  <a data-test-service-name href={{href-to "dc.services.show.index" item.Name}}>
+  <a
+    data-test-service-name
+    href={{href-to "dc.services.show.index" item.Name
+      params=(if (not-eq item.Partition @partition)
+        (hash
+          partition=item.Partition
+          nspace=item.Namespace
+        )
+        (hash)
+      )
+    }}
+  >
     {{item.Name}}
   </a>
 {{else}}
