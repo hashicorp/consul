@@ -47,7 +47,7 @@ ${typeof location.search.ns !== 'undefined' ? `
             "Namespace": "${location.search.ns}",
 ` : ``}
 ${typeof location.search.partition !== 'undefined' ? `
-            "Partition": "${location.search.ns}",
+            "Partition": "${fake.helpers.randomize([env('CONSUL_PARTITION_EXPORTER', location.search.partition), location.search.partition])}",
 ` : ``}
             "Tags": [
                 ${
