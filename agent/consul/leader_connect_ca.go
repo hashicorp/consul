@@ -9,13 +9,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	uuid "github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/routine"
-	"github.com/hashicorp/go-hclog"
-	uuid "github.com/hashicorp/go-uuid"
 )
 
 type caState string
@@ -272,7 +273,7 @@ func (c *CAManager) Start(ctx context.Context) {
 	// Attempt to initialize the Connect CA now. This will
 	// happen during leader establishment and it would be great
 	// if the CA was ready to go once that process was finished.
-	if err := c.InitializeCA(); err != nil {
+	if err := c.Initialize(); err != nil {
 		c.logger.Error("Failed to initialize Connect CA", "error", err)
 
 		// we failed to fully initialize the CA so we need to spawn a
@@ -302,7 +303,7 @@ func (c *CAManager) startPostInitializeRoutines(ctx context.Context) {
 }
 
 func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
-	retryLoopBackoffAbortOnSuccess(ctx, c.InitializeCA, func(err error) {
+	retryLoopBackoffAbortOnSuccess(ctx, c.Initialize, func(err error) {
 		c.logger.Error("Failed to initialize Connect CA",
 			"routine", backgroundCAInitializationRoutineName,
 			"error", err,
@@ -319,10 +320,10 @@ func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
 	return nil
 }
 
-// InitializeCA sets up the CA provider when gaining leadership, either bootstrapping
+// Initialize sets up the CA provider when gaining leadership, either bootstrapping
 // the CA if this is the primary DC or making a remote RPC for intermediate signing
 // if this is a secondary DC.
-func (c *CAManager) InitializeCA() (reterr error) {
+func (c *CAManager) Initialize() (reterr error) {
 	// Bail if connect isn't enabled.
 	if !c.serverConf.ConnectEnabled {
 		return nil
@@ -453,12 +454,26 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 		}
 	}
 
+	var rootUpdateRequired bool
+
 	// Versions prior to 1.9.3, 1.8.8, and 1.7.12 incorrectly used the primary
 	// rootCA's subjectKeyID here instead of the intermediate. For
 	// provider=consul this didn't matter since there are no intermediates in
 	// the primaryDC, but for vault it does matter.
 	expectedSigningKeyID := connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
-	needsSigningKeyUpdate := (rootCA.SigningKeyID != expectedSigningKeyID)
+	if rootCA.SigningKeyID != expectedSigningKeyID {
+		c.logger.Info("Correcting stored CARoot values",
+			"previous-signing-key", rootCA.SigningKeyID, "updated-signing-key", expectedSigningKeyID)
+		rootCA.SigningKeyID = expectedSigningKeyID
+		rootUpdateRequired = true
+	}
+
+	// Add the local leaf signing cert to the rootCA struct. This handles both
+	// upgrades of existing state, and new rootCA.
+	if c.getLeafSigningCertFromRoot(rootCA) != interPEM {
+		rootCA.IntermediateCerts = append(rootCA.IntermediateCerts, interPEM)
+		rootUpdateRequired = true
+	}
 
 	// Check if the CA root is already initialized and exit if it is,
 	// adding on any existing intermediate certs since they aren't directly
@@ -470,24 +485,19 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	if err != nil {
 		return err
 	}
-	if activeRoot != nil && needsSigningKeyUpdate {
-		c.logger.Info("Correcting stored SigningKeyID value", "previous", rootCA.SigningKeyID, "updated", expectedSigningKeyID)
-
-	} else if activeRoot != nil && !needsSigningKeyUpdate {
+	if activeRoot != nil && !rootUpdateRequired {
 		// This state shouldn't be possible to get into because we update the root and
 		// CA config in the same FSM operation.
 		if activeRoot.ID != rootCA.ID {
 			return fmt.Errorf("stored CA root %q is not the active root (%s)", rootCA.ID, activeRoot.ID)
 		}
 
+		// TODO: why doesn't this c.setCAProvider(provider, activeRoot) ?
 		rootCA.IntermediateCerts = activeRoot.IntermediateCerts
 		c.setCAProvider(provider, rootCA)
 
+		c.logger.Info("initialized primary datacenter CA from existing CARoot with provider", "provider", conf.Provider)
 		return nil
-	}
-
-	if needsSigningKeyUpdate {
-		rootCA.SigningKeyID = expectedSigningKeyID
 	}
 
 	// Get the highest index
@@ -515,6 +525,22 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	c.logger.Info("initialized primary datacenter CA with provider", "provider", conf.Provider)
 
 	return nil
+}
+
+// getLeafSigningCertFromRoot returns the PEM encoded certificate that should be used to
+// sign leaf certificates in the local datacenter. The SubjectKeyId of the
+// returned cert should always match the SigningKeyID of the CARoot.
+//
+// TODO: fix the data model so that we don't need this complicated lookup to
+// find the leaf signing cert. See github.com/hashicorp/consul/issues/11347.
+func (c *CAManager) getLeafSigningCertFromRoot(root *structs.CARoot) string {
+	if !c.isIntermediateUsedToSignLeaf() {
+		return root.RootCert
+	}
+	if len(root.IntermediateCerts) == 0 {
+		return ""
+	}
+	return root.IntermediateCerts[len(root.IntermediateCerts)-1]
 }
 
 // initializeSecondaryCA runs the routine for generating an intermediate CA CSR and getting
@@ -738,7 +764,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		}
 	}()
 
-	// Attempt to initialize the config if we failed to do so in InitializeCA for some reason
+	// Attempt to initialize the config if we failed to do so in Initialize for some reason
 	_, err = c.initializeCAConfig()
 	if err != nil {
 		return err
@@ -925,7 +951,9 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		return err
 	}
 	if intermediate != newRootPEM {
-		newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediate)
+		if err := setLeafSigningCert(newActiveRoot, intermediate); err != nil {
+			return err
+		}
 	}
 
 	// Update the roots and CA config in the state store at the same time
@@ -984,15 +1012,9 @@ func (c *CAManager) getIntermediateCAPrimary(provider ca.Provider, newActiveRoot
 		return fmt.Errorf("error generating new intermediate cert: %v", err)
 	}
 
-	intermediateCert, err := connect.ParseCert(intermediatePEM)
-	if err != nil {
-		return fmt.Errorf("error parsing intermediate cert: %v", err)
+	if err := setLeafSigningCert(newActiveRoot, intermediatePEM); err != nil {
+		return err
 	}
-
-	// Append the new intermediate to our local active root entry. This is
-	// where the root representations start to diverge.
-	newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediatePEM)
-	newActiveRoot.SigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
 
 	c.logger.Info("generated new intermediate certificate for primary datacenter")
 	return nil
@@ -1017,17 +1039,25 @@ func (c *CAManager) getIntermediateCASigned(provider ca.Provider, newActiveRoot 
 		return fmt.Errorf("Failed to set the intermediate certificate with the CA provider: %v", err)
 	}
 
-	intermediateCert, err := connect.ParseCert(intermediatePEM)
-	if err != nil {
-		return fmt.Errorf("error parsing intermediate cert: %v", err)
+	if err := setLeafSigningCert(newActiveRoot, intermediatePEM); err != nil {
+		return err
 	}
 
-	// Append the new intermediate to our local active root entry. This is
-	// where the root representations start to diverge.
-	newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediatePEM)
-	newActiveRoot.SigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
-
 	c.logger.Info("received new intermediate certificate from primary datacenter")
+	return nil
+}
+
+// setLeafSigningCert updates the CARoot by appending the pem to the list of
+// intermediate certificates, and setting the SigningKeyID to the encoded
+// SubjectKeyId of the certificate.
+func setLeafSigningCert(caRoot *structs.CARoot, pem string) error {
+	cert, err := connect.ParseCert(pem)
+	if err != nil {
+		return fmt.Errorf("error parsing leaf signing cert: %w", err)
+	}
+
+	caRoot.IntermediateCerts = append(caRoot.IntermediateCerts, pem)
+	caRoot.SigningKeyID = connect.EncodeSigningKeyID(cert.SubjectKeyId)
 	return nil
 }
 
@@ -1082,15 +1112,8 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 
 	// If this is the primary, check if this is a provider that uses an intermediate cert. If
 	// it isn't, we don't need to check for a renewal.
-	if isPrimary {
-		_, config, err := state.CAConfig(nil)
-		if err != nil {
-			return err
-		}
-
-		if _, ok := ca.PrimaryIntermediateProviders[config.Provider]; !ok {
-			return nil
-		}
+	if isPrimary && !primaryUsesIntermediate(provider) {
+		return nil
 	}
 
 	activeIntermediate, err := provider.ActiveIntermediate()
@@ -1270,4 +1293,17 @@ func (c *CAManager) configuredSecondaryCA() bool {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 	return c.actingSecondaryCA
+}
+
+func primaryUsesIntermediate(provider ca.Provider) bool {
+	_, ok := provider.(ca.PrimaryUsesIntermediate)
+	return ok
+}
+
+func (c *CAManager) isIntermediateUsedToSignLeaf() bool {
+	if c.serverConf.Datacenter != c.serverConf.PrimaryDatacenter {
+		return true
+	}
+	provider, _ := c.getCAProvider()
+	return primaryUsesIntermediate(provider)
 }

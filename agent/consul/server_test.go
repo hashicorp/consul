@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"bytes"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -16,7 +15,6 @@ import (
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 
-	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/ipaddr"
 
 	"github.com/hashicorp/go-uuid"
@@ -1625,41 +1623,6 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 	})
-}
-
-func TestServer_CALogging(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, conf1 := testServerConfig(t)
-
-	// Setup dummy logger to catch output
-	var buf bytes.Buffer
-	logger := testutil.LoggerWithOutput(t, &buf)
-
-	deps := newDefaultDeps(t, conf1)
-	deps.Logger = logger
-
-	s1, err := NewServer(conf1, deps)
-	require.NoError(t, err)
-	defer s1.Shutdown()
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	if _, ok := s1.caManager.provider.(ca.NeedsLogger); !ok {
-		t.Fatalf("provider does not implement NeedsLogger")
-	}
-
-	// Wait til CA root is setup
-	retry.Run(t, func(r *retry.R) {
-		var out structs.IndexedCARoots
-		r.Check(s1.RPC("ConnectCA.Roots", structs.DCSpecificRequest{
-			Datacenter: conf1.Datacenter,
-		}, &out))
-	})
-
-	require.Contains(t, buf.String(), "consul CA provider configured")
 }
 
 func TestServer_DatacenterJoinAddresses(t *testing.T) {
