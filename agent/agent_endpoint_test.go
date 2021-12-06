@@ -425,6 +425,7 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 			t.Fatalf("Err: %v", err)
 		}
 		require.Len(t, val, 2)
+		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 }
 
@@ -1424,6 +1425,7 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 			t.Fatalf("Err: %v", err)
 		}
 		require.Len(t, val, 2)
+		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 }
 
@@ -2038,6 +2040,7 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 			t.Fatalf("Err: %v", err)
 		}
 		require.Len(t, val, 2)
+		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 }
 
