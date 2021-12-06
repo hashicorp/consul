@@ -880,23 +880,20 @@ func readDiscoveryChainConfigEntriesTxn(
 
 	sid := structs.NewServiceID(serviceName, entMeta)
 
-	// Grab the proxy defaults if they exist.
-	idx, proxy, err := getProxyConfigEntryTxn(tx, ws, structs.ProxyConfigGlobal, overrides, entMeta)
-	if err != nil {
-		return 0, nil, err
-	} else if proxy != nil {
-		res.GlobalProxy = proxy
-	}
-
-	// At every step we'll need service defaults.
+	// At every step we'll need service and proxy defaults.
 	todoDefaults[sid] = struct{}{}
 
+	var maxIdx uint64
+
 	// first fetch the router, of which we only collect 1 per chain eval
-	_, router, err := getRouterConfigEntryTxn(tx, ws, serviceName, overrides, entMeta)
+	idx, router, err := getRouterConfigEntryTxn(tx, ws, serviceName, overrides, entMeta)
 	if err != nil {
 		return 0, nil, err
 	} else if router != nil {
 		res.Routers[sid] = router
+	}
+	if idx > maxIdx {
+		maxIdx = idx
 	}
 
 	if router != nil {
@@ -922,9 +919,12 @@ func readDiscoveryChainConfigEntriesTxn(
 		// Yes, even for splitters.
 		todoDefaults[splitID] = struct{}{}
 
-		_, splitter, err := getSplitterConfigEntryTxn(tx, ws, splitID.ID, overrides, &splitID.EnterpriseMeta)
+		idx, splitter, err := getSplitterConfigEntryTxn(tx, ws, splitID.ID, overrides, &splitID.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
 		}
 
 		if splitter == nil {
@@ -959,9 +959,12 @@ func readDiscoveryChainConfigEntriesTxn(
 		// And resolvers, too.
 		todoDefaults[resolverID] = struct{}{}
 
-		_, resolver, err := getResolverConfigEntryTxn(tx, ws, resolverID.ID, overrides, &resolverID.EnterpriseMeta)
+		idx, resolver, err := getResolverConfigEntryTxn(tx, ws, resolverID.ID, overrides, &resolverID.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
 		}
 
 		if resolver == nil {
@@ -987,16 +990,31 @@ func readDiscoveryChainConfigEntriesTxn(
 			continue // already fetched
 		}
 
-		_, entry, err := getServiceConfigEntryTxn(tx, ws, svcID.ID, overrides, &svcID.EnterpriseMeta)
+		if _, ok := res.ProxyDefaults[svcID.PartitionOrDefault()]; !ok {
+			idx, proxy, err := getProxyConfigEntryTxn(tx, ws, structs.ProxyConfigGlobal, overrides, &svcID.EnterpriseMeta)
+			if err != nil {
+				return 0, nil, err
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+			if proxy != nil {
+				res.ProxyDefaults[proxy.PartitionOrDefault()] = proxy
+			}
+		}
+
+		idx, entry, err := getServiceConfigEntryTxn(tx, ws, svcID.ID, overrides, &svcID.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
 		}
 
 		if entry == nil {
 			res.Services[svcID] = nil
 			continue
 		}
-
 		res.Services[svcID] = entry
 	}
 
@@ -1022,7 +1040,7 @@ func readDiscoveryChainConfigEntriesTxn(
 		}
 	}
 
-	return idx, res, nil
+	return maxIdx, res, nil
 }
 
 // anyKey returns any key from the provided map if any exist. Useful for using

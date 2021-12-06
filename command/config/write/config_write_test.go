@@ -791,6 +791,7 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind = "service-router"
 				name = "main"
+				partition = "pepper"
 				meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -830,12 +831,13 @@ func TestParseConfigEntry(t *testing.T) {
 							}
 						}
 						destination {
-						  service               = "carrot"
-						  service_subset         = "kale"
-						  namespace             = "leek"
-						  prefix_rewrite         = "/alternate"
-						  request_timeout        = "99s"
-						  num_retries            = 12345
+						  service                  = "carrot"
+						  service_subset           = "kale"
+						  namespace                = "leek"
+						  partition                = "chard"
+						  prefix_rewrite           = "/alternate"
+						  request_timeout          = "99s"
+						  num_retries              = 12345
 						  retry_on_connect_failure = true
 						  retry_on_status_codes    = [401, 209]
 						}
@@ -874,6 +876,7 @@ func TestParseConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "service-router"
 				Name = "main"
+				Partition = "pepper"
 				Meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -916,6 +919,7 @@ func TestParseConfigEntry(t *testing.T) {
 						  Service               = "carrot"
 						  ServiceSubset         = "kale"
 						  Namespace             = "leek"
+						  Partition             = "chard"
 						  PrefixRewrite         = "/alternate"
 						  RequestTimeout        = "99s"
 						  NumRetries            = 12345
@@ -958,6 +962,7 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"kind": "service-router",
 				"name": "main",
+				"partition": "pepper",
 				"meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -1000,6 +1005,7 @@ func TestParseConfigEntry(t *testing.T) {
 							"service": "carrot",
 							"service_subset": "kale",
 							"namespace": "leek",
+							"partition": "chard",
 							"prefix_rewrite": "/alternate",
 							"request_timeout": "99s",
 							"num_retries": 12345,
@@ -1049,6 +1055,7 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"Kind": "service-router",
 				"Name": "main",
+				"Partition": "pepper",
 				"Meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -1091,6 +1098,7 @@ func TestParseConfigEntry(t *testing.T) {
 							"Service": "carrot",
 							"ServiceSubset": "kale",
 							"Namespace": "leek",
+							"Partition": "chard",
 							"PrefixRewrite": "/alternate",
 							"RequestTimeout": "99s",
 							"NumRetries": 12345,
@@ -1137,8 +1145,9 @@ func TestParseConfigEntry(t *testing.T) {
 			}
 			`,
 			expect: &api.ServiceRouterConfigEntry{
-				Kind: "service-router",
-				Name: "main",
+				Kind:      "service-router",
+				Name:      "main",
+				Partition: "pepper",
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",
@@ -1181,6 +1190,7 @@ func TestParseConfigEntry(t *testing.T) {
 							Service:               "carrot",
 							ServiceSubset:         "kale",
 							Namespace:             "leek",
+							Partition:             "chard",
 							PrefixRewrite:         "/alternate",
 							RequestTimeout:        99 * time.Second,
 							NumRetries:            12345,
@@ -1225,6 +1235,7 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind = "service-splitter"
 				name = "main"
+				partition = "east"
 				meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -1242,12 +1253,14 @@ func TestParseConfigEntry(t *testing.T) {
 					weight    = 0.9
 					service   = "other"
 					namespace = "alt"
+					partition = "west"
 				  },
 				]
 			`,
 			camel: `
 				Kind = "service-splitter"
 				Name = "main"
+				Partition = "east"
 				Meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -1265,6 +1278,7 @@ func TestParseConfigEntry(t *testing.T) {
 					Weight    = 0.9
 					Service   = "other"
 					Namespace = "alt"
+					Partition = "west"
 				  },
 				]
 			`,
@@ -1272,6 +1286,7 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"kind": "service-splitter",
 				"name": "main",
+				"partition": "east",
 				"meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -1288,7 +1303,8 @@ func TestParseConfigEntry(t *testing.T) {
 					{
 						"weight": 0.9,
 						"service": "other",
-						"namespace": "alt"
+						"namespace": "alt",
+						"partition": "west"
 					}
 				]
 			}
@@ -1297,6 +1313,7 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"Kind": "service-splitter",
 				"Name": "main",
+				"Partition": "east",
 				"Meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -1313,14 +1330,16 @@ func TestParseConfigEntry(t *testing.T) {
 					{
 						"Weight": 0.9,
 						"Service": "other",
-						"Namespace": "alt"
+						"Namespace": "alt",
+						"Partition": "west"
 					}
 				]
 			}
 			`,
 			expect: &api.ServiceSplitterConfigEntry{
-				Kind: api.ServiceSplitter,
-				Name: "main",
+				Kind:      api.ServiceSplitter,
+				Name:      "main",
+				Partition: "east",
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",
@@ -1338,6 +1357,7 @@ func TestParseConfigEntry(t *testing.T) {
 						Weight:    0.9,
 						Service:   "other",
 						Namespace: "alt",
+						Partition: "west",
 					},
 				},
 			},
@@ -1512,20 +1532,24 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind = "service-resolver"
 				name = "main"
+				partition = "east"
 				redirect {
 					service = "other"
 					service_subset = "backup"
 					namespace = "alt"
+					partition = "west"
 					datacenter = "dc9"
 				}
 			`,
 			camel: `
 				Kind = "service-resolver"
 				Name = "main"
+				Partition = "east"
 				Redirect {
 					Service = "other"
 					ServiceSubset = "backup"
 					Namespace = "alt"
+					Partition = "west"
 					Datacenter = "dc9"
 				}
 			`,
@@ -1533,10 +1557,12 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"kind": "service-resolver",
 				"name": "main",
+				"partition": "east",
 				"redirect": {
 					"service": "other",
 					"service_subset": "backup",
 					"namespace": "alt",
+					"partition": "west",
 					"datacenter": "dc9"
 				}
 			}
@@ -1545,21 +1571,25 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"Kind": "service-resolver",
 				"Name": "main",
+				"Partition": "east",
 				"Redirect": {
 					"Service": "other",
 					"ServiceSubset": "backup",
 					"Namespace": "alt",
+					"Partition": "west",
 					"Datacenter": "dc9"
 				}
 			}
 			`,
 			expect: &api.ServiceResolverConfigEntry{
-				Kind: "service-resolver",
-				Name: "main",
+				Kind:      "service-resolver",
+				Name:      "main",
+				Partition: "east",
 				Redirect: &api.ServiceResolverRedirect{
 					Service:       "other",
 					ServiceSubset: "backup",
 					Namespace:     "alt",
+					Partition:     "west",
 					Datacenter:    "dc9",
 				},
 			},

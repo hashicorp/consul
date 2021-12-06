@@ -242,6 +242,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 							Service:               "test-failover",
 							ServiceSubset:         "v2",
 							Namespace:             defaultNamespace,
+							Partition:             defaultPartition,
 							PrefixRewrite:         "/",
 							RequestTimeout:        5 * time.Second,
 							NumRetries:            5,
