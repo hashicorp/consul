@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -18,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -47,12 +45,7 @@ func newTestServer(t *testing.T, name string, dc string, tlsConf *tlsutil.Config
 		testservice.RegisterSimpleServer(server, &simple{name: name, dc: dc})
 	})
 
-	ports := freeport.MustTake(1)
-	t.Cleanup(func() {
-		freeport.Return(ports)
-	})
-
-	lis, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(ports[0])))
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 
 	rpc := &fakeRPCListener{t: t, handler: handler, tlsConf: tlsConf}

@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"bytes"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -116,11 +115,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports := freeport.MustTake(3)
-	t.Cleanup(func() {
-		freeport.Return(ports)
-	})
-
+	ports := freeport.GetN(t, 3)
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
@@ -516,15 +511,11 @@ func TestServer_JoinWAN_SerfAllowedCIDRs(t *testing.T) {
 }
 
 func skipIfCannotBindToIP(t *testing.T, ip string) {
-	ports := freeport.MustTake(1)
-	defer freeport.Return(ports)
-
-	addr := ipaddr.FormatAddressPort(ip, ports[0])
-	l, err := net.Listen("tcp", addr)
-	l.Close()
+	l, err := net.Listen("tcp", net.JoinHostPort(ip, "0"))
 	if err != nil {
 		t.Skipf("Cannot bind on %s, to run on Mac OS: `sudo ifconfig lo0 alias %s up`", ip, ip)
 	}
+	l.Close()
 }
 
 func TestServer_LANReap(t *testing.T) {
@@ -725,9 +716,8 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 
 	t.Parallel()
 
-	gwPort := freeport.MustTake(1)
-	defer freeport.Return(gwPort)
-	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", gwPort[0])
+	port := freeport.GetOne(t)
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", port)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.TLSConfig.Domain = "consul"
@@ -813,7 +803,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 				ID:      "mesh-gateway",
 				Service: "mesh-gateway",
 				Meta:    map[string]string{structs.MetaWANFederationKey: "1"},
-				Port:    gwPort[0],
+				Port:    port,
 			},
 		}
 
@@ -868,7 +858,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 				ID:      "mesh-gateway",
 				Service: "mesh-gateway",
 				Meta:    map[string]string{structs.MetaWANFederationKey: "1"},
-				Port:    gwPort[0],
+				Port:    port,
 			},
 		}
 
@@ -885,7 +875,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 				ID:      "mesh-gateway",
 				Service: "mesh-gateway",
 				Meta:    map[string]string{structs.MetaWANFederationKey: "1"},
-				Port:    gwPort[0],
+				Port:    port,
 			},
 		}
 
@@ -1710,35 +1700,4 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 	})
-}
-
-func TestServer_CALogging(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, conf1 := testServerConfig(t)
-
-	// Setup dummy logger to catch output
-	var buf bytes.Buffer
-	logger := testutil.LoggerWithOutput(t, &buf)
-
-	deps := newDefaultDeps(t, conf1)
-	deps.Logger = logger
-
-	s1, err := NewServer(conf1, deps)
-	require.NoError(t, err)
-	defer s1.Shutdown()
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	// Wait til CA root is setup
-	retry.Run(t, func(r *retry.R) {
-		var out structs.IndexedCARoots
-		r.Check(s1.RPC("ConnectCA.Roots", structs.DCSpecificRequest{
-			Datacenter: conf1.Datacenter,
-		}, &out))
-	})
-
-	require.Contains(t, buf.String(), "consul CA provider configured")
 }

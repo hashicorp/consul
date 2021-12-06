@@ -202,16 +202,17 @@ the token itself.
 
 #### Builtin Tokens
 
-During cluster bootstrapping when ACLs are enabled both the special `anonymous` and the `master` token will be
+During cluster bootstrapping when ACLs are enabled both the special `anonymous` and the `initial_management` token will be
 injected.
 
 - **Anonymous Token** - The anonymous token is used when a request is made to Consul without specifying a bearer token.
   The anonymous token's description and policies may be updated but Consul will prevent this token's deletion. When created,
   it will be assigned `00000000-0000-0000-0000-000000000002` for its Accessor ID and `anonymous` for its Secret ID.
 
-- **Master Token** - When a master token is present within the Consul configuration, it is created and will be linked
-  With the builtin Global Management policy giving it unrestricted privileges. The master token is created with the Secret ID
-  set to the value of the configuration entry.
+- **Initial Management Token** - When an initial management token is present within the Consul configuration, it is created
+  and will be linked with the builtin Global Management policy giving it unrestricted privileges. The initial management
+  token is created with the Secret ID set to the value of the configuration entry.
+  In Consul 1.4 - 1.10, this was called the `master` token. It was renamed to `initial_management` token in Consul 1.11.
 
 #### Authorization
 
@@ -291,18 +292,27 @@ as to whether they are set on servers, clients, or both.
 A number of special tokens can also be configured which allow for bootstrapping the ACL
 system, or accessing Consul in special situations:
 
-| Special Token                                                            | Servers    | Clients    | Purpose                                                                                                                                                                                                                                                               |
-| ------------------------------------------------------------------------ | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`acl.tokens.agent_master`](/docs/agent/options#acl_tokens_agent_master) | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent) when remote bearer token resolution fails; used for setting up the cluster such as doing initial join operations, see the [ACL Agent Master Token](#acl-agent-master-token) section for more details |
-| [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent)               | `OPTIONAL` | `OPTIONAL` | Special token that is used for an agent's internal operations, see the [ACL Agent Token](#acl-agent-token) section for more details                                                                                                                                   |
-| [`acl.tokens.master`](/docs/agent/options#acl_tokens_master)             | `OPTIONAL` | `N/A`      | Special token used to bootstrap the ACL system, check the [Bootstrapping ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production) tutorial for more details                                                                                |
-| [`acl.tokens.default`](/docs/agent/options#acl_tokens_default)           | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents                                                                                             |
+| Special Token                                                                        | Servers    | Clients    | Purpose                                                                                                                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------ | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery)         | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent) when remote bearer token resolution fails; used for setting up the cluster such as doing initial join operations, see the [ACL Agent Recovery Token](#acl-agent-recovery-token) section for more details |
+| [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent)                           | `OPTIONAL` | `OPTIONAL` | Special token that is used for an agent's internal operations, see the [ACL Agent Token](#acl-agent-token) section for more details                                                                                                                                       |
+| [`acl.tokens.initial_management`](/docs/agent/options#acl_tokens_initial_management) | `OPTIONAL` | `N/A`      | Special token used to bootstrap the ACL system, check the [Bootstrapping ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production) tutorial for more details                                                                                    |
+| [`acl.tokens.default`](/docs/agent/options#acl_tokens_default)                       | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents                                                                                                 |
 
-All of these tokens except the `master` token can all be introduced or updated via the [/v1/agent/token API](/api/agent#update-acl-tokens).
+All of these tokens except the `initial_management` token can all be introduced or updated via the [/v1/agent/token API](/api/agent#update-acl-tokens).
 
-#### ACL Agent Master Token
+In Consul 1.4 - 1.10, the following special tokens were known by different names:
 
-Since the [`acl.tokens.agent_master`](/docs/agent/options#acl_tokens_agent_master) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it
+| New Name (1.11+)                                                                     | Old Name (1.4 - 1.10)                                                    |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery)         | [`acl.tokens.agent_master`](/docs/agent/options#acl_tokens_agent_master) |
+| [`acl.tokens.initial_management`](/docs/agent/options#acl_tokens_initial_management) | [`acl.tokens.master`](/docs/agent/options#acl_tokens_master)             |
+
+#### ACL Agent Recovery Token
+
+Since the [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it
+
+In Consul 1.4 - 1.10, this was called the `agent_master` token. It was renamed to `agent_recovery` token in Consul 1.11.
 
 ```hcl
 agent "<node name of agent>" {

@@ -268,7 +268,7 @@ func sessionCreateTxn(tx WriteTxn, idx uint64, sess *structs.Session) error {
 	sess.ModifyIndex = idx
 
 	// Check that the node exists
-	node, err := tx.First(tableNodes, indexID, Query{Value: sess.Node})
+	node, err := tx.First(tableNodes, indexID, Query{Value: sess.Node, EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(sess.PartitionOrDefault())})
 	if err != nil {
 		return fmt.Errorf("failed node lookup: %s", err)
 	}

@@ -121,10 +121,12 @@ as |route|>
               </BlockSlot>
               <BlockSlot @name="actions">
                 <li class="docs-link">
-                  <a href="{{env 'CONSUL_DOCS_URL'}}/commands/FIXME" rel="noopener noreferrer" target="_blank">Documentation on partitions</a>
-                </li>
-                <li class="learn-link">
-                  <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/FIXME" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                  <Action
+                    @href="{{env 'CONSUL_DOCS_URL'}}/enterprise/admin-partitions"
+                    @external={{true}}
+                  >
+                    Documentation on Admin Partitions
+                  </Action>
                 </li>
               </BlockSlot>
             </EmptyState>

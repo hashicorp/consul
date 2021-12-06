@@ -2120,3 +2120,86 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 		)
 	})
 }
+
+func TestLeader_EnableVirtualIPs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	conf := func(c *Config) {
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.Datacenter = "dc1"
+		c.Build = "1.11.0"
+	}
+	dir1, s1 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		conf(c)
+		c.Build = "1.10.0"
+	})
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join and wait for all servers to get promoted
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Should have nothing stored.
+	state := s1.fsm.State()
+	_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
+	require.NoError(t, err)
+	require.Nil(t, entry)
+
+	// Register a connect-native service and make sure we don't have a virtual IP yet.
+	err = state.EnsureRegistration(10, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	vip, err := state.VirtualIPForService(structs.NewServiceName("api", nil))
+	require.NoError(t, err)
+	require.Equal(t, "", vip)
+
+	// Leave s3 and wait for the version to get updated.
+	require.NoError(t, s3.Leave())
+	retry.Run(t, func(r *retry.R) {
+		_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
+		require.NoError(r, err)
+		require.NotNil(r, entry)
+		require.Equal(r, "true", entry.Value)
+	})
+
+	// Update the connect-native service - now there should be a virtual IP assigned.
+	err = state.EnsureRegistration(20, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.2",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	vip, err = state.VirtualIPForService(structs.NewServiceName("api", nil))
+	require.NoError(t, err)
+	require.Equal(t, "240.0.0.1", vip)
+}

@@ -94,3 +94,7 @@ func (r *ACLRole) NodeIdentityList() []*ACLNodeIdentity {
 	}
 	return out
 }
+
+func IsValidPartitionAndDatacenter(meta EnterpriseMeta, datacenters []string, primaryDatacenter string) bool {
+	return true
+}

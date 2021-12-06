@@ -452,6 +452,9 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 	if len(resp.Coordinates) != 1 || resp.Coordinates[0].Node != "foo" {
 		t.Fatalf("bad: %#v", resp.Coordinates)
 	}
+	if !resp.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should be true")
+	}
 }
 
 func TestCoordinate_Node(t *testing.T) {

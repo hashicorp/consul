@@ -374,8 +374,17 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	assert.Len(services.NodeServices.Services, 5)
 
 	// All the services should match
+	vips := make(map[string]struct{})
+	srv1.TaggedAddresses = nil
+	srv2.TaggedAddresses = nil
 	for id, serv := range services.NodeServices.Services {
 		serv.CreateIndex, serv.ModifyIndex = 0, 0
+		if serv.TaggedAddresses != nil {
+			serviceVIP := serv.TaggedAddresses[structs.TaggedAddressVirtualIP].Address
+			assert.NotEmpty(serviceVIP)
+			vips[serviceVIP] = struct{}{}
+		}
+		serv.TaggedAddresses = nil
 		switch id {
 		case "mysql-proxy":
 			assert.Equal(srv1, serv)
@@ -392,6 +401,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		}
 	}
 
+	assert.Len(vips, 4)
 	assert.Nil(servicesInSync(a.State, 4, structs.DefaultEnterpriseMetaInDefaultPartition()))
 
 	// Remove one of the services

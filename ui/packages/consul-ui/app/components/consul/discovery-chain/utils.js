@@ -1,10 +1,10 @@
 const getNodesByType = function(nodes = {}, type) {
   return Object.values(nodes).filter(item => item.Type === type);
 };
-const findResolver = function(resolvers, service, nspace = 'default', dc) {
+const findResolver = function(resolvers, service, nspace = 'default', partition = 'default', dc) {
   if (typeof resolvers[service] === 'undefined') {
     resolvers[service] = {
-      ID: `${service}.${nspace}.${dc}`,
+      ID: `${service}.${nspace}.${partition}.${dc}`,
       Name: service,
       Children: [],
     };
@@ -19,7 +19,7 @@ export const getAlternateServices = function(targets, a) {
     // we might have more data from the endpoint so we don't have to guess
     // right now the backend also doesn't support dots in service names
     const [aRev, bRev] = [a, b].map(item => item.split('.').reverse());
-    const types = ['Datacenter', 'Namespace', 'Service', 'Subset'];
+    const types = ['Datacenter', 'Partition', 'Namespace', 'Service', 'Subset'];
     return bRev.find(function(item, i) {
       const res = item !== aRev[i];
       if (res) {
@@ -61,7 +61,13 @@ export const getRoutes = function(nodes, uid) {
     );
   }, []);
 };
-export const getResolvers = function(dc, nspace = 'default', targets = {}, nodes = {}) {
+export const getResolvers = function(
+  dc,
+  partition = 'default',
+  nspace = 'default',
+  targets = {},
+  nodes = {}
+) {
   const resolvers = {};
   // make all our resolver nodes
   Object.values(nodes)
@@ -70,7 +76,7 @@ export const getResolvers = function(dc, nspace = 'default', targets = {}, nodes
       const parts = item.Name.split('.');
       let subset;
       // this will leave behind the service.name.nspace.dc even if the service name contains a dot
-      if (parts.length > 3) {
+      if (parts.length > 4) {
         subset = parts.shift();
       }
       parts.reverse();
@@ -79,10 +85,12 @@ export const getResolvers = function(dc, nspace = 'default', targets = {}, nodes
       parts.shift();
       // const nodeNspace =
       parts.shift();
+      // const nodePartition =
+      parts.shift();
       // if it does contain a dot put it back to the correct order
       parts.reverse();
       const service = parts.join('.');
-      const resolver = findResolver(resolvers, service, nspace, dc);
+      const resolver = findResolver(resolvers, service, nspace, partition, dc);
       let failovers;
       if (typeof item.Resolver.Failover !== 'undefined') {
         // figure out what type of failover this is
@@ -108,12 +116,12 @@ export const getResolvers = function(dc, nspace = 'default', targets = {}, nodes
     // Failovers don't have a specific node
     if (typeof nodes[`resolver:${target.ID}`] !== 'undefined') {
       // We use this to figure out whether this target is a redirect target
-      const alternate = getAlternateServices([target.ID], `service.${nspace}.${dc}`);
+      const alternate = getAlternateServices([target.ID], `service.${nspace}.${partition}.${dc}`);
       // as Failovers don't make it here, we know anything that has alternateServices
       // must be a redirect
       if (alternate.Type !== 'Service') {
         // find the already created resolver
-        const resolver = findResolver(resolvers, target.Service, nspace, dc);
+        const resolver = findResolver(resolvers, target.Service, nspace, partition, dc);
         // and add the redirect as a child, redirects are always children
         const child = {
           Redirect: true,

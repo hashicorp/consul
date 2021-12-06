@@ -8,10 +8,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/connect"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/connect"
 )
 
 // TestLocalAddr makes a localhost address on the given port
@@ -24,24 +24,17 @@ type TestTCPServer struct {
 	l                        net.Listener
 	stopped                  int32
 	accepted, closed, active int32
-	returnPortsFn            func()
 }
 
 // NewTestTCPServer opens as a listening socket on the given address and returns
 // a TestTCPServer serving requests to it. The server is already started and can
 // be stopped by calling Close().
 func NewTestTCPServer(t testing.T) *TestTCPServer {
-	ports := freeport.MustTake(1)
-	addr := TestLocalAddr(ports[0])
-
-	l, err := net.Listen("tcp", addr)
+	l, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 
-	log.Printf("test tcp server listening on %s", addr)
-	s := &TestTCPServer{
-		l:             l,
-		returnPortsFn: func() { freeport.Return(ports) },
-	}
+	log.Printf("test tcp server listening on %s", l.Addr())
+	s := &TestTCPServer{l: l}
 	go s.accept()
 
 	return s
@@ -52,10 +45,6 @@ func (s *TestTCPServer) Close() {
 	atomic.StoreInt32(&s.stopped, 1)
 	if s.l != nil {
 		s.l.Close()
-	}
-	if s.returnPortsFn != nil {
-		s.returnPortsFn()
-		s.returnPortsFn = nil
 	}
 }
 

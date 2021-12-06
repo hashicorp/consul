@@ -283,7 +283,7 @@ func TestAgent_Services_MeshGateway(t *testing.T) {
 	a.State.AddService(srv1, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(nil, req)
+	obj, err := a.srv.AgentServices(httptest.NewRecorder(), req)
 	require.NoError(t, err)
 	val := obj.(map[string]*api.AgentService)
 	require.Len(t, val, 1)
@@ -319,7 +319,7 @@ func TestAgent_Services_TerminatingGateway(t *testing.T) {
 	require.NoError(t, a.State.AddService(srv1, ""))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(nil, req)
+	obj, err := a.srv.AgentServices(httptest.NewRecorder(), req)
 	require.NoError(t, err)
 	val := obj.(map[string]*api.AgentService)
 	require.Len(t, val, 1)
@@ -339,36 +339,69 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
-	srv1 := &structs.NodeService{
-		ID:      "mysql",
-		Service: "mysql",
-		Tags:    []string{"master"},
-		Port:    5000,
+
+	services := []*structs.NodeService{
+		{
+			ID:      "web",
+			Service: "web",
+			Port:    5000,
+		},
+		{
+			ID:      "api",
+			Service: "api",
+			Port:    6000,
+		},
 	}
-	a.State.AddService(srv1, "")
+	for _, s := range services {
+		a.State.AddService(s, "")
+	}
 
 	t.Run("no token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-		obj, err := a.srv.AgentServices(nil, req)
-		if err != nil {
-			t.Fatalf("Err: %v", err)
-		}
+		require := require.New(t)
+
+		req := httptest.NewRequest("GET", "/v1/agent/services", nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentServices(rsp, req)
+		require.NoError(err)
+
 		val := obj.(map[string]*api.AgentService)
-		if len(val) != 0 {
-			t.Fatalf("bad: %v", obj)
-		}
+		require.Empty(val)
+		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
+
+	t.Run("limited token", func(t *testing.T) {
+		require := require.New(t)
+
+		token := testCreateToken(t, a, `
+			service "web" {
+				policy = "read"
+			}
+		`)
+
+		req := httptest.NewRequest("GET", fmt.Sprintf("/v1/agent/services?token=%s", token), nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentServices(rsp, req)
+		require.NoError(err)
+
+		val := obj.(map[string]*api.AgentService)
+		require.Len(val, 1)
+		require.NotEmpty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/services?token=root", nil)
-		obj, err := a.srv.AgentServices(nil, req)
-		if err != nil {
-			t.Fatalf("Err: %v", err)
-		}
+		require := require.New(t)
+
+		req := httptest.NewRequest("GET", "/v1/agent/services?token=root", nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentServices(rsp, req)
+		require.NoError(err)
+
 		val := obj.(map[string]*api.AgentService)
-		if len(val) != 1 {
-			t.Fatalf("bad: %v", obj)
-		}
+		require.Len(val, 2)
+		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 }
 
@@ -1288,36 +1321,74 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
-	chk1 := &structs.HealthCheck{
-		Node:    a.Config.NodeName,
-		CheckID: "mysql",
-		Name:    "mysql",
-		Status:  api.HealthPassing,
+
+	checks := structs.HealthChecks{
+		{
+			Node:        a.Config.NodeName,
+			CheckID:     "web",
+			ServiceName: "web",
+			Status:      api.HealthPassing,
+		},
+		{
+			Node:        a.Config.NodeName,
+			CheckID:     "api",
+			ServiceName: "api",
+			Status:      api.HealthPassing,
+		},
 	}
-	a.State.AddCheck(chk1, "")
+	for _, c := range checks {
+		a.State.AddCheck(c, "")
+	}
 
 	t.Run("no token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/checks", nil)
-		obj, err := a.srv.AgentChecks(nil, req)
-		if err != nil {
-			t.Fatalf("Err: %v", err)
-		}
+		require := require.New(t)
+
+		req := httptest.NewRequest("GET", "/v1/agent/checks", nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentChecks(rsp, req)
+		require.NoError(err)
+
 		val := obj.(map[types.CheckID]*structs.HealthCheck)
-		if len(val) != 0 {
-			t.Fatalf("bad checks: %v", obj)
-		}
+		require.Empty(val)
+		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
+
+	t.Run("limited token", func(t *testing.T) {
+		require := require.New(t)
+
+		token := testCreateToken(t, a, fmt.Sprintf(`
+			service "web" {
+				policy = "read"
+			}
+			node "%s" {
+				policy = "read"
+			}
+		`, a.Config.NodeName))
+
+		req := httptest.NewRequest("GET", fmt.Sprintf("/v1/agent/checks?token=%s", token), nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentChecks(rsp, req)
+		require.NoError(err)
+
+		val := obj.(map[types.CheckID]*structs.HealthCheck)
+		require.Len(val, 1)
+		require.NotEmpty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/checks?token=root", nil)
-		obj, err := a.srv.AgentChecks(nil, req)
-		if err != nil {
-			t.Fatalf("Err: %v", err)
-		}
+		require := require.New(t)
+
+		req := httptest.NewRequest("GET", "/v1/agent/checks?token=root", nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentChecks(rsp, req)
+		require.NoError(err)
+
 		val := obj.(map[types.CheckID]*structs.HealthCheck)
-		if len(val) != 1 {
-			t.Fatalf("bad checks: %v", obj)
-		}
+		require.Len(val, 2)
+		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 }
 
@@ -1858,32 +1929,67 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 	}
 
 	t.Parallel()
+
+	// Start 2 agents and join them together.
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 
+	b := NewTestAgent(t, TestACLConfig())
+	defer b.Shutdown()
+
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForLeader(t, b.RPC, "dc1")
+
+	joinPath := fmt.Sprintf("/v1/agent/join/127.0.0.1:%d?token=root", b.Config.SerfPortLAN)
+	_, err := a.srv.AgentJoin(nil, httptest.NewRequest(http.MethodPut, joinPath, nil))
+	require.NoError(t, err)
+
 	t.Run("no token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/members", nil)
-		obj, err := a.srv.AgentMembers(nil, req)
-		if err != nil {
-			t.Fatalf("Err: %v", err)
-		}
+		require := require.New(t)
+
+		req := httptest.NewRequest("GET", "/v1/agent/members", nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentMembers(rsp, req)
+		require.NoError(err)
+
 		val := obj.([]serf.Member)
-		if len(val) != 0 {
-			t.Fatalf("bad members: %v", obj)
-		}
+		require.Empty(val)
+		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
+
+	t.Run("limited token", func(t *testing.T) {
+		require := require.New(t)
+
+		token := testCreateToken(t, a, fmt.Sprintf(`
+			node "%s" {
+				policy = "read"
+			}
+		`, b.Config.NodeName))
+
+		req := httptest.NewRequest("GET", fmt.Sprintf("/v1/agent/members?token=%s", token), nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentMembers(rsp, req)
+		require.NoError(err)
+
+		val := obj.([]serf.Member)
+		require.Len(val, 1)
+		require.NotEmpty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/members?token=root", nil)
-		obj, err := a.srv.AgentMembers(nil, req)
-		if err != nil {
-			t.Fatalf("Err: %v", err)
-		}
+		require := require.New(t)
+
+		req := httptest.NewRequest("GET", "/v1/agent/members?token=root", nil)
+		rsp := httptest.NewRecorder()
+
+		obj, err := a.srv.AgentMembers(rsp, req)
+		require.NoError(err)
+
 		val := obj.([]serf.Member)
-		if len(val) != 1 {
-			t.Fatalf("bad members: %v", obj)
-		}
+		require.Len(val, 2)
+		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 }
 
@@ -2262,6 +2368,74 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 		if m != 1 {
 			r.Fatalf("want one member, got %v", m)
 		}
+	})
+}
+
+func TestAgent_ForceLeavePrune_WAN(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a1 := StartTestAgent(t, TestAgent{Name: "dc1", HCL: `
+		datacenter = "dc1"
+		primary_datacenter = "dc1"
+		gossip_wan {
+			probe_interval = "50ms"
+			suspicion_mult = 2
+		}
+	`})
+	defer a1.Shutdown()
+
+	a2 := StartTestAgent(t, TestAgent{Name: "dc2", HCL: `
+		datacenter = "dc2"
+		primary_datacenter = "dc1"
+	`})
+	defer a2.Shutdown()
+
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
+	testrpc.WaitForLeader(t, a2.RPC, "dc2")
+
+	// Wait for the WAN join.
+	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
+	_, err := a2.JoinWAN([]string{addr})
+	require.NoError(t, err)
+
+	testrpc.WaitForLeader(t, a1.RPC, "dc2")
+	testrpc.WaitForLeader(t, a2.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, a1.WANMembers(), 2)
+		require.Len(r, a2.WANMembers(), 2)
+	})
+
+	wanNodeName_a2 := a2.Config.NodeName + ".dc2"
+
+	// Shutdown and wait for agent being marked as failed, so we wait for full
+	// shutdown of Agent.
+	require.NoError(t, a2.Shutdown())
+	retry.Run(t, func(r *retry.R) {
+		m := a1.WANMembers()
+		for _, member := range m {
+			if member.Name == wanNodeName_a2 {
+				if member.Status != serf.StatusFailed {
+					r.Fatalf("got status %q want %q", member.Status, serf.StatusFailed)
+				}
+			}
+		}
+	})
+
+	// Force leave now
+	req, err := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/force-leave/%s?prune=1&wan=1", wanNodeName_a2), nil)
+	require.NoError(t, err)
+
+	resp := httptest.NewRecorder()
+	a1.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
+
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, a1.WANMembers(), 1)
 	})
 }
 
@@ -5308,13 +5482,22 @@ func TestAgent_Token(t *testing.T) {
 			effective: tokens{master: "M"},
 		},
 		{
-			name:      "set master ",
+			name:      "set master",
 			method:    "PUT",
 			url:       "agent_master?token=root",
 			body:      body("M"),
 			code:      http.StatusOK,
 			raw:       tokens{master: "M", masterSource: tokenStore.TokenSourceAPI},
 			effective: tokens{master: "M"},
+		},
+		{
+			name:      "set recovery",
+			method:    "PUT",
+			url:       "agent_recovery?token=root",
+			body:      body("R"),
+			code:      http.StatusOK,
+			raw:       tokens{master: "R", masterSource: tokenStore.TokenSourceAPI},
+			effective: tokens{master: "R", masterSource: tokenStore.TokenSourceAPI},
 		},
 		{
 			name:      "set repl legacy",
@@ -5386,6 +5569,15 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{master: "M"},
+			raw:    tokens{masterSource: tokenStore.TokenSourceAPI},
+		},
+		{
+			name:   "clear recovery",
+			method: "PUT",
+			url:    "agent_recovery?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			init:   tokens{master: "R"},
 			raw:    tokens{masterSource: tokenStore.TokenSourceAPI},
 		},
 		{
@@ -5779,16 +5971,13 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
 		require.NoError(err)
 		require.Equal(obj, obj2)
-
-		// Should cache hit this time and not make request
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
+
+	// Set a new CA
+	ca2 := connect.TestCAConfigSet(t, a, nil)
 
 	// Issue a blocking query to ensure that the cert gets updated appropriately
 	{
-		// Set a new CA
-		ca := connect.TestCAConfigSet(t, a, nil)
-
 		resp := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil)
 		obj, err := a.srv.AgentConnectCALeafCert(resp, req)
@@ -5798,12 +5987,59 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		require.NotEqual(issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
 
 		// Verify that the cert is signed by the new CA
-		requireLeafValidUnderCA(t, issued2, ca)
+		requireLeafValidUnderCA(t, issued2, ca2)
 
 		// Should not be a cache hit! The data was updated in response to the blocking
 		// query being made.
 		require.Equal("MISS", resp.Header().Get("X-Cache"))
 	}
+
+	t.Run("test non-blocking queries update leaf cert", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.AgentConnectCALeafCert(resp, req)
+		require.NoError(err)
+
+		// Get the issued cert
+		issued, ok := obj.(*structs.IssuedCert)
+		assert.True(ok)
+
+		// Verify that the cert is signed by the CA
+		requireLeafValidUnderCA(t, issued, ca2)
+
+		// Issue a non blocking query to ensure that the cert gets updated appropriately
+		{
+			// Set a new CA
+			ca3 := connect.TestCAConfigSet(t, a, nil)
+
+			resp := httptest.NewRecorder()
+			req, err := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
+			require.NoError(err)
+			obj, err = a.srv.AgentConnectCALeafCert(resp, req)
+			require.NoError(err)
+			issued2 := obj.(*structs.IssuedCert)
+			require.NotEqual(issued.CertPEM, issued2.CertPEM)
+			require.NotEqual(issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
+
+			// Verify that the cert is signed by the new CA
+			requireLeafValidUnderCA(t, issued2, ca3)
+
+			// Should not be a cache hit!
+			require.Equal("MISS", resp.Header().Get("X-Cache"))
+		}
+
+		// Test caching for the leaf cert
+		{
+
+			for fetched := 0; fetched < 4; fetched++ {
+
+				// Fetch it again
+				resp := httptest.NewRecorder()
+				obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
+				require.NoError(err)
+				require.Equal(obj, obj2)
+			}
+		}
+	})
 }
 
 // Test we can request a leaf cert for a service we have permission for
@@ -5876,9 +6112,6 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 		obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
 		require.NoError(err)
 		require.Equal(obj, obj2)
-
-		// Should cache hit this time and not make request
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Test Blocking - see https://github.com/hashicorp/consul/issues/4462
@@ -5926,12 +6159,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 			// Verify that the cert is signed by the new CA
 			requireLeafValidUnderCA(t, issued2, ca)
 
-			// Should be a cache hit! The data should've updated in the cache
-			// in the background so this should've been fetched directly from
-			// the cache.
-			if resp.Header().Get("X-Cache") != "HIT" {
-				r.Fatalf("should be a cache hit")
-			}
+			require.NotEqual(issued, issued2)
 		})
 	}
 }
@@ -6026,9 +6254,6 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 		obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
 		require.NoError(err)
 		require.Equal(obj, obj2)
-
-		// Should cache hit this time and not make request
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Test that we aren't churning leaves for no reason at idle.
@@ -6135,7 +6360,8 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	}
 
 	// List
-	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
+	req, err := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
+	require.NoError(err)
 	resp := httptest.NewRecorder()
 	obj, err := a2.srv.AgentConnectCALeafCert(resp, req)
 	require.NoError(err)
@@ -6160,9 +6386,6 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		obj2, err := a2.srv.AgentConnectCALeafCert(resp, req)
 		require.NoError(err)
 		require.Equal(obj, obj2)
-
-		// Should cache hit this time and not make request
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Test that we aren't churning leaves for no reason at idle.
@@ -6227,12 +6450,7 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		// Verify that the cert is signed by the new CA
 		requireLeafValidUnderCA(t, issued2, dc1_ca2)
 
-		// Should be a cache hit! The data should've updated in the cache
-		// in the background so this should've been fetched directly from
-		// the cache.
-		if resp.Header().Get("X-Cache") != "HIT" {
-			r.Fatalf("should be a cache hit")
-		}
+		require.NotEqual(issued, issued2)
 	})
 }
 
@@ -6858,7 +7076,7 @@ func TestAgent_Services_ExposeConfig(t *testing.T) {
 	a.State.AddService(srv1, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(nil, req)
+	obj, err := a.srv.AgentServices(httptest.NewRecorder(), req)
 	require.NoError(t, err)
 	val := obj.(map[string]*api.AgentService)
 	require.Len(t, val, 1)

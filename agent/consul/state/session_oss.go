@@ -116,7 +116,7 @@ func insertSessionTxn(tx WriteTxn, session *structs.Session, idx uint64, updateM
 	return nil
 }
 
-func allNodeSessionsTxn(tx ReadTxn, node string) (structs.Sessions, error) {
+func allNodeSessionsTxn(tx ReadTxn, node string, _ string) (structs.Sessions, error) {
 	return nodeSessionsTxn(tx, nil, node, nil)
 }
 
@@ -186,4 +186,8 @@ func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) 
 
 func maxIndexTxnSessions(tx *memdb.Txn, _ *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, tableSessions)
+}
+
+func (s *Store) SessionListAll(ws memdb.WatchSet) (uint64, structs.Sessions, error) {
+	return s.SessionList(ws, nil)
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/mitchellh/cli"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 )
 
@@ -21,14 +22,17 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	//flags
+	// flags
 	prune bool
+	wan   bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.prune, "prune", false,
 		"Remove agent completely from list of members")
+	c.flags.BoolVar(&c.wan, "wan", false,
+		"Exclusively leave the agent from the WAN serf pool.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.PartitionFlag())
@@ -54,12 +58,10 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.prune {
-		err = client.Agent().ForceLeavePrune(nodes[0])
-	} else {
-		err = client.Agent().ForceLeave(nodes[0])
-	}
-
+	err = client.Agent().ForceLeaveOpts(nodes[0], api.ForceLeaveOpts{
+		Prune: c.prune,
+		WAN:   c.wan,
+	})
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error force leaving: %s", err))
 		return 1
@@ -88,4 +90,5 @@ Usage: consul force-leave [options] name
   time before eventually reaping them.
 
   -prune    Remove agent completely from list of members
+  -wan      Exclusively leave the agent from the WAN serf pool.
 `

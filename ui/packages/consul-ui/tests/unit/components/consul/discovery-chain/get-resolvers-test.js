@@ -4,6 +4,7 @@ import { get } from 'consul-ui/tests/helpers/api';
 
 const dc = 'dc-1';
 const nspace = 'default';
+const partition = 'default';
 const request = {
   url: `/v1/discovery-chain/service-name?dc=${dc}`,
 };
@@ -19,7 +20,7 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function() {
         },
       },
     }).then(function({ Chain }) {
-      const actual = getResolvers(dc, nspace, Chain.Targets, Chain.Nodes);
+      const actual = getResolvers(dc, partition, nspace, Chain.Targets, Chain.Nodes);
       const childId = Object.keys(Chain.Targets)[1];
       const target = Chain.Targets[`${childId}`];
       const firstChild = actual[0].Children[0];
@@ -39,7 +40,7 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function() {
         },
       },
     }).then(function({ Chain }) {
-      const actual = getResolvers(dc, nspace, Chain.Targets, Chain.Nodes);
+      const actual = getResolvers(dc, partition, nspace, Chain.Targets, Chain.Nodes);
       const childId = Object.keys(Chain.Targets)[1];
       const target = Chain.Targets[`${childId}`];
       const firstChild = actual[0].Children[0];
@@ -61,7 +62,7 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function() {
             },
           },
         }).then(function({ Chain }) {
-          const actual = getResolvers(dc, nspace, Chain.Targets, Chain.Nodes);
+          const actual = getResolvers(dc, partition, nspace, Chain.Targets, Chain.Nodes);
           const actualSubset = actual[0].Children[0];
           assert.equal(actualSubset.Subset, true);
           assert.equal(actualSubset.Failover.Type, failoverType);
@@ -71,7 +72,7 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function() {
   });
   test('it assigns Failovers correctly', function(assert) {
     return Promise.all(
-      ['Datacenter', 'Namespace'].map(function(failoverType, i) {
+      ['Datacenter', 'Partition', 'Namespace'].map(function(failoverType, i) {
         return get(request.url, {
           headers: {
             cookie: {
@@ -83,7 +84,7 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function() {
             },
           },
         }).then(function({ Chain }) {
-          const actual = getResolvers(dc, nspace, Chain.Targets, Chain.Nodes);
+          const actual = getResolvers(dc, partition, nspace, Chain.Targets, Chain.Nodes);
           const node = Chain.Nodes[`resolver:${Object.keys(Chain.Targets)[0]}`];
           const expected = node.Resolver.Failover.Targets.map(item => item.split('.').reverse()[i]);
           assert.equal(actual[0].Failover.Type, failoverType);
@@ -101,31 +102,36 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function() {
         Protocol: 'http',
         StartNode: '',
         Nodes: {
-          'resolver:v2.dc-failover.default.dc-1': {
+          'resolver:v2.dc-failover.default.default.dc-1': {
             Type: 'resolver',
-            Name: 'v2.dc-failover.default.dc-1',
+            Name: 'v2.dc-failover.default.default.dc-1',
             Resolver: {
-              Target: 'v2.dc-failover.default.dc-1',
+              Target: 'v2.dc-failover.default.default.dc-1',
               Failover: {
-                Targets: ['v2.dc-failover.default.dc-5', 'v2.dc-failover.default.dc-6'],
+                Targets: [
+                  'v2.dc-failover.default.default.dc-5',
+                  'v2.dc-failover.default.default.dc-6',
+                ],
               },
             },
           },
         },
         Targets: {
-          'v2.dc-failover.default.dc-1': {
-            ID: 'v2.dc-failover.default.dc-1',
+          'v2.dc-failover.default.default.dc-1': {
+            ID: 'v2.dc-failover.default.default.dc-1',
             Service: 'dc-failover',
             Namespace: 'default',
+            Partition: 'default',
             Datacenter: 'dc-1',
             Subset: {
               Filter: '',
             },
           },
-          'v2.dc-failover.default.dc-6': {
-            ID: 'v2.dc-failover.default.dc-6',
+          'v2.dc-failover.default.default.dc-6': {
+            ID: 'v2.dc-failover.default.default.dc-6',
             Service: 'dc-failover',
             Namespace: 'default',
+            Partition: 'default',
             Datacenter: 'dc-6',
             Subset: {
               Filter: '',
@@ -134,14 +140,14 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function() {
         },
       },
     }).then(function({ Chain }) {
-      const actual = getResolvers(dc, nspace, Chain.Targets, Chain.Nodes);
+      const actual = getResolvers(dc, partition, nspace, Chain.Targets, Chain.Nodes);
       const expected = {
-        ID: 'dc-failover.default.dc-1',
+        ID: 'dc-failover.default.default.dc-1',
         Name: 'dc-failover',
         Children: [
           {
             Subset: true,
-            ID: 'v2.dc-failover.default.dc-1',
+            ID: 'v2.dc-failover.default.default.dc-1',
             Name: 'v2',
             Failover: {
               Type: 'Datacenter',
@@ -162,30 +168,31 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function() {
         Protocol: 'http',
         StartNode: '',
         Nodes: {
-          'resolver:dc-failover.default.dc-1': {
+          'resolver:dc-failover.default.default.dc-1': {
             Type: 'resolver',
-            Name: 'dc-failover.default.dc-1',
+            Name: 'dc-failover.default.default.dc-1',
             Resolver: {
-              Target: 'dc-failover.default.dc-1',
+              Target: 'dc-failover.default.default.dc-1',
               Failover: {
-                Targets: ['dc-failover.default.dc-5', 'dc-failover.default.dc-6'],
+                Targets: ['dc-failover.default.default.dc-5', 'dc-failover.default.default.dc-6'],
               },
             },
           },
         },
         Targets: {
-          'dc-failover.default.dc-1': {
-            ID: 'dc-failover.default.dc-1',
+          'dc-failover.default.default.dc-1': {
+            ID: 'dc-failover.default.default.dc-1',
             Service: 'dc-failover',
             Namespace: 'default',
+            Partition: 'default',
             Datacenter: 'dc-1',
           },
         },
       },
     }).then(function({ Chain }) {
-      const actual = getResolvers(dc, nspace, Chain.Targets, Chain.Nodes);
+      const actual = getResolvers(dc, partition, nspace, Chain.Targets, Chain.Nodes);
       const expected = {
-        ID: 'dc-failover.default.dc-1',
+        ID: 'dc-failover.default.default.dc-1',
         Name: 'dc-failover',
         Children: [],
         Failover: {
@@ -201,37 +208,42 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function() {
       Chain: {
         ServiceName: 'service-name',
         Namespace: 'default',
+        Partition: 'default',
         Datacenter: 'dc-1',
         Protocol: 'http',
         StartNode: '',
         Nodes: {
-          'resolver:dc-failover.default.redirect-dc-1': {
+          'resolver:dc-failover.default.default.redirect-dc-1': {
             Type: 'resolver',
-            Name: 'dc-failover.default.redirect-dc-1',
+            Name: 'dc-failover.default.default.redirect-dc-1',
             Resolver: {
-              Target: 'dc-failover.default.redirect-dc-1',
+              Target: 'dc-failover.default.default.redirect-dc-1',
               Failover: {
-                Targets: ['dc-failover.default.redirect-dc-5', 'dc-failover.default.redirect-dc-6'],
+                Targets: [
+                  'dc-failover.default.default.redirect-dc-5',
+                  'dc-failover.default.default.redirect-dc-6',
+                ],
               },
             },
           },
         },
         Targets: {
           'dc-failover.default.redirect-dc-1': {
-            ID: 'dc-failover.default.redirect-dc-1',
+            ID: 'dc-failover.default.default.redirect-dc-1',
             Service: 'dc-failover',
             Namespace: 'default',
+            Partition: 'default',
             Datacenter: 'redirect-dc-1',
           },
         },
       },
     }).then(function({ Chain }) {
-      const actual = getResolvers(dc, nspace, Chain.Targets, Chain.Nodes);
+      const actual = getResolvers(dc, partition, nspace, Chain.Targets, Chain.Nodes);
       // Both the parent and the child should have a Failover property
       // as in order for a redirect to have failovers it must redirect to a
       // service that already has failovers
       const expected = {
-        ID: 'dc-failover.default.dc-1',
+        ID: 'dc-failover.default.default.dc-1',
         Name: 'dc-failover',
         Failover: {
           Targets: ['redirect-dc-5', 'redirect-dc-6'],
@@ -243,7 +255,7 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function() {
               Targets: ['redirect-dc-5', 'redirect-dc-6'],
               Type: 'Datacenter',
             },
-            ID: 'dc-failover.default.redirect-dc-1',
+            ID: 'dc-failover.default.default.redirect-dc-1',
             Name: 'redirect-dc-1',
             Redirect: true,
           },

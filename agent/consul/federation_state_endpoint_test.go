@@ -502,9 +502,10 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 	type tcase struct {
 		token string
 
-		listDenied  bool
-		listEmpty   bool
-		gwListEmpty bool
+		listDenied       bool
+		listEmpty        bool
+		gwListEmpty      bool
+		gwFilteredByACLs bool
 	}
 
 	cases := map[string]tcase{
@@ -514,27 +515,31 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 			gwListEmpty: true,
 		},
 		"no perms": {
-			token:       nadaToken.SecretID,
-			listDenied:  true,
-			gwListEmpty: true,
+			token:            nadaToken.SecretID,
+			listDenied:       true,
+			gwListEmpty:      true,
+			gwFilteredByACLs: true,
 		},
 		"service:read": {
-			token:       svcReadToken.SecretID,
-			listDenied:  true,
-			gwListEmpty: true,
+			token:            svcReadToken.SecretID,
+			listDenied:       true,
+			gwListEmpty:      true,
+			gwFilteredByACLs: true,
 		},
 		"node:read": {
-			token:       nodeReadToken.SecretID,
-			listDenied:  true,
-			gwListEmpty: true,
+			token:            nodeReadToken.SecretID,
+			listDenied:       true,
+			gwListEmpty:      true,
+			gwFilteredByACLs: true,
 		},
 		"service:read and node:read": {
 			token:      svcAndNodeReadToken.SecretID,
 			listDenied: true,
 		},
 		"operator:read": {
-			token:       opReadToken.SecretID,
-			gwListEmpty: true,
+			token:            opReadToken.SecretID,
+			gwListEmpty:      true,
+			gwFilteredByACLs: true,
 		},
 		"master token": {
 			token: "root",
@@ -585,6 +590,11 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 					require.NoError(t, err)
 					require.Equal(t, expectedMeshGateways.DatacenterNodes, out.DatacenterNodes)
 				}
+				require.Equal(t,
+					tc.gwFilteredByACLs,
+					out.QueryMeta.ResultsFilteredByACLs,
+					"ResultsFilteredByACLs should be %v", tc.gwFilteredByACLs,
+				)
 			})
 		})
 	}

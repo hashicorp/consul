@@ -113,7 +113,12 @@ func (e *PartitionExportsConfigEntry) Validate() error {
 		return fmt.Errorf("partition-exports Name must be the name of a partition, and not a wildcard")
 	}
 
-	validationErr := validateConfigEntryMeta(e.Meta)
+	if err := requireEnterprise(e.GetKind()); err != nil {
+		return err
+	}
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
 
 	for _, svc := range e.Services {
 		if svc.Name == "" {
@@ -128,8 +133,7 @@ func (e *PartitionExportsConfigEntry) Validate() error {
 			}
 		}
 	}
-
-	return validationErr
+	return nil
 }
 
 func (e *PartitionExportsConfigEntry) CanRead(authz acl.Authorizer) bool {

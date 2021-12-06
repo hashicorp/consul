@@ -29,11 +29,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/freeport"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
 	"github.com/pkg/errors"
+
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 // TestPerformanceConfig configures the performance parameters.
@@ -142,7 +143,11 @@ func defaultServerConfig(t TestingTB) *TestServerConfig {
 		panic(err)
 	}
 
-	ports := freeport.MustTake(6)
+	ports, err := freeport.Take(6)
+	if err != nil {
+		t.Fatalf("failed to take ports: %v", err)
+	}
+
 	logBuffer := NewLogBuffer(t)
 
 	return &TestServerConfig{

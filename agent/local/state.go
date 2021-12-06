@@ -1082,6 +1082,19 @@ func (l *State) updateSyncState() error {
 			ls.Service.Tags = make([]string, len(rs.Tags))
 			copy(ls.Service.Tags, rs.Tags)
 		}
+
+		// Merge any tagged addresses with the consul- prefix (set by the server)
+		// back into the local state.
+		if !reflect.DeepEqual(ls.Service.TaggedAddresses, rs.TaggedAddresses) {
+			if ls.Service.TaggedAddresses == nil {
+				ls.Service.TaggedAddresses = make(map[string]structs.ServiceAddress)
+			}
+			for k, v := range rs.TaggedAddresses {
+				if strings.HasPrefix(k, structs.MetaKeyReservedPrefix) {
+					ls.Service.TaggedAddresses[k] = v
+				}
+			}
+		}
 		ls.InSync = ls.Service.IsSame(rs)
 	}
 
