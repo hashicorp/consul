@@ -189,6 +189,12 @@ type Server struct {
 	// serf cluster that spans datacenters
 	eventChWAN chan serf.Event
 
+	// wanMembershipNotifyCh is used to receive notifications that the the
+	// serfWAN wan pool may have changed.
+	//
+	// If this is nil, notification is skipped.
+	wanMembershipNotifyCh chan struct{}
+
 	// fsm is the state machine used with Raft to provide
 	// strong consistency.
 	fsm *fsm.FSM
@@ -266,6 +272,7 @@ type Server struct {
 	// serfWAN is the Serf cluster maintained between DC's
 	// which SHOULD only consist of Consul servers
 	serfWAN                *serf.Serf
+	serfWANConfig          *serf.Config
 	memberlistTransportWAN wanfed.IngestionAwareTransport
 	gatewayLocator         *GatewayLocator
 
@@ -493,7 +500,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 
 	// Initialize the WAN Serf if enabled
 	if config.SerfWANConfig != nil {
-		s.serfWAN, err = s.setupSerf(setupSerfOptions{
+		s.serfWAN, s.serfWANConfig, err = s.setupSerf(setupSerfOptions{
 			Config:       config.SerfWANConfig,
 			EventCh:      s.eventChWAN,
 			SnapshotPath: serfWANSnapshot,
@@ -548,7 +555,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 			s.Shutdown()
 			return nil, fmt.Errorf("Failed to add WAN serf route: %v", err)
 		}
-		go router.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
+		go router.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN, s.wanMembershipNotifyCh)
 
 		// Fire up the LAN <-> WAN join flooder.
 		addrFn := func(s *metadata.Server) (string, error) {
@@ -1124,6 +1131,11 @@ func (s *Server) JoinWAN(addrs []string) (int, error) {
 	if s.serfWAN == nil {
 		return 0, ErrWANFederationDisabled
 	}
+
+	if err := s.enterpriseValidateJoinWAN(); err != nil {
+		return 0, err
+	}
+
 	return s.serfWAN.Join(addrs, true)
 }
 
