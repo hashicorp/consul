@@ -1295,7 +1295,7 @@ func TestAgent_HealthServicesACLEnforcement(t *testing.T) {
 	t.Run("root-token-health-by-id", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/v1/agent/health/service/id/foo1", nil)
 		require.NoError(t, err)
-		req.Header.Add("X-Consul-Token", TestDefaultMasterToken)
+		req.Header.Add("X-Consul-Token", TestDefaultInitialManagementToken)
 		resp := httptest.NewRecorder()
 		_, err = a.srv.AgentHealthServiceByID(resp, req)
 		require.NotEqual(t, acl.ErrPermissionDenied, err)
@@ -1304,7 +1304,7 @@ func TestAgent_HealthServicesACLEnforcement(t *testing.T) {
 	t.Run("root-token-health-by-name", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/v1/agent/health/service/name/foo", nil)
 		require.NoError(t, err)
-		req.Header.Add("X-Consul-Token", TestDefaultMasterToken)
+		req.Header.Add("X-Consul-Token", TestDefaultInitialManagementToken)
 		resp := httptest.NewRecorder()
 		_, err = a.srv.AgentHealthServiceByName(resp, req)
 		require.NotEqual(t, acl.ErrPermissionDenied, err)
