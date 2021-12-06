@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 )
 
 // useTLSForDcAlwaysTrue tell GRPC to always return the TLS is enabled
@@ -33,7 +34,7 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 	t.Cleanup(logError(t, lis.Close))
 
 	builder := resolver.NewServerResolverBuilder(newConfig(t))
-	builder.AddServer(&metadata.Server{
+	builder.AddServer(types.AreaWAN, &metadata.Server{
 		Name:       "server-1",
 		ID:         "ID1",
 		Datacenter: "dc1",
@@ -84,14 +85,14 @@ func TestNewDialer_WithALPNWrapper(t *testing.T) {
 	}()
 
 	builder := resolver.NewServerResolverBuilder(newConfig(t))
-	builder.AddServer(&metadata.Server{
+	builder.AddServer(types.AreaWAN, &metadata.Server{
 		Name:       "server-1",
 		ID:         "ID1",
 		Datacenter: "dc1",
 		Addr:       lis1.Addr(),
 		UseTLS:     true,
 	})
-	builder.AddServer(&metadata.Server{
+	builder.AddServer(types.AreaWAN, &metadata.Server{
 		Name:       "server-2",
 		ID:         "ID2",
 		Datacenter: "dc2",
@@ -153,7 +154,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	srv := newTestServer(t, "server-1", "dc1", tlsConf)
 
 	md := srv.Metadata()
-	res.AddServer(md)
+	res.AddServer(types.AreaWAN, md)
 	t.Cleanup(srv.shutdown)
 
 	pool := NewClientConnPool(ClientConnPoolConfig{
@@ -211,7 +212,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	}()
 
 	md := srv.Metadata()
-	res.AddServer(md)
+	res.AddServer(types.AreaWAN, md)
 	t.Cleanup(srv.shutdown)
 
 	clientTLSConf, err := tlsutil.NewConfigurator(tlsutil.Config{
@@ -266,7 +267,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
 		srv := newTestServer(t, name, "dc1", nil)
-		res.AddServer(srv.Metadata())
+		res.AddServer(types.AreaWAN, srv.Metadata())
 		t.Cleanup(srv.shutdown)
 	}
 
@@ -280,7 +281,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	first, err := client.Something(ctx, &testservice.Req{})
 	require.NoError(t, err)
 
-	res.RemoveServer(&metadata.Server{ID: first.ServerName, Datacenter: "dc1"})
+	res.RemoveServer(types.AreaWAN, &metadata.Server{ID: first.ServerName, Datacenter: "dc1"})
 
 	resp, err := client.Something(ctx, &testservice.Req{})
 	require.NoError(t, err)
@@ -302,7 +303,7 @@ func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
 		srv := newTestServer(t, name, "dc1", nil)
-		res.AddServer(srv.Metadata())
+		res.AddServer(types.AreaWAN, srv.Metadata())
 		servers = append(servers, srv)
 		t.Cleanup(srv.shutdown)
 	}
@@ -352,7 +353,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
 		srv := newTestServer(t, name, "dc1", nil)
-		res.AddServer(srv.Metadata())
+		res.AddServer(types.AreaWAN, srv.Metadata())
 		t.Cleanup(srv.shutdown)
 	}
 
@@ -406,7 +407,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 	for _, dc := range dcs {
 		name := "server-0-" + dc
 		srv := newTestServer(t, name, dc, nil)
-		res.AddServer(srv.Metadata())
+		res.AddServer(types.AreaWAN, srv.Metadata())
 		t.Cleanup(srv.shutdown)
 	}
 
