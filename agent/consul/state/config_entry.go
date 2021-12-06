@@ -1040,7 +1040,7 @@ func readDiscoveryChainConfigEntriesTxn(
 		}
 	}
 
-	return idx, res, nil
+	return maxIdx, res, nil
 }
 
 // anyKey returns any key from the provided map if any exist. Useful for using
