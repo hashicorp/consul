@@ -388,6 +388,9 @@
     </:main>
 
     <:content-info>
+      <p>
+        Consul v{{env 'CONSUL_VERSION'}}
+      </p>
       {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
     </:content-info>
   </App>
