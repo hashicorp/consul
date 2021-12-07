@@ -994,13 +994,21 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 	dc1 := "dc1"
 
 	a := NewTestAgent(t, `
-	acl_datacenter = "`+dc1+`"
-	acl_default_policy = "deny"
-	acl_master_token = "master"
-	acl_agent_token = "agent"
-	acl_agent_master_token = "towel"
-	enable_debug = false
-`)
+		primary_datacenter = "`+dc1+`"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+				agent = "agent"
+				agent_recovery = "towel"
+			}
+		}
+
+		enable_debug = false
+	`)
 
 	cases := []struct {
 		code        int
@@ -1010,7 +1018,7 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 	}{
 		{
 			code:        http.StatusOK,
-			token:       "master",
+			token:       "root",
 			endpoint:    "/debug/pprof/heap",
 			nilResponse: false,
 		},
@@ -1034,7 +1042,7 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 		},
 		{
 			code:        http.StatusOK,
-			token:       "master",
+			token:       "root",
 			endpoint:    "/debug/pprof/heap",
 			nilResponse: false,
 		},

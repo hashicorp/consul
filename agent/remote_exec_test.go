@@ -117,10 +117,17 @@ func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
 	t.Parallel()
 	dc := "dc1"
 	testRemoteExecGetSpec(t, `
-		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
-		acl_token = "root"
-		acl_default_policy = "deny"
+		primary_datacenter = "`+dc+`"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+				default = "root"
+			}
+		}
 	`, "root", true, dc)
 }
 
@@ -132,10 +139,17 @@ func TestRemoteExecGetSpec_ACLAgentToken(t *testing.T) {
 	t.Parallel()
 	dc := "dc1"
 	testRemoteExecGetSpec(t, `
-		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
-		acl_agent_token = "root"
-		acl_default_policy = "deny"
+		primary_datacenter = "`+dc+`"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+				agent = "root"
+			}
+		}
 	`, "root", true, dc)
 }
 
@@ -147,9 +161,16 @@ func TestRemoteExecGetSpec_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dc := "dc1"
 	testRemoteExecGetSpec(t, `
-		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
-		acl_default_policy = "deny"
+		primary_datacenter = "`+dc+`"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+			}
+		}
 	`, "root", false, dc)
 }
 
@@ -207,10 +228,17 @@ func TestRemoteExecWrites_ACLToken(t *testing.T) {
 	t.Parallel()
 	dc := "dc1"
 	testRemoteExecWrites(t, `
-		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
-		acl_token = "root"
-		acl_default_policy = "deny"
+		primary_datacenter = "`+dc+`"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+				default = "root"
+			}
+		}
 	`, "root", true, dc)
 }
 
@@ -222,10 +250,17 @@ func TestRemoteExecWrites_ACLAgentToken(t *testing.T) {
 	t.Parallel()
 	dc := "dc1"
 	testRemoteExecWrites(t, `
-		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
-		acl_agent_token = "root"
-		acl_default_policy = "deny"
+		primary_datacenter = "`+dc+`"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+				agent = "root"
+			}
+		}
 	`, "root", true, dc)
 }
 
@@ -237,9 +272,16 @@ func TestRemoteExecWrites_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dc := "dc1"
 	testRemoteExecWrites(t, `
-		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
-		acl_default_policy = "deny"
+		primary_datacenter = "`+dc+`"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+			}
+		}
 	`, "root", false, dc)
 }
 

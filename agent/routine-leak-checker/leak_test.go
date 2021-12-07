@@ -55,7 +55,7 @@ func setupPrimaryServer(t *testing.T) *agent.TestAgent {
 	require.NoError(t, ioutil.WriteFile(keyPath, []byte(keyPEM), 0600))
 	require.NoError(t, ioutil.WriteFile(caPath, []byte(caPEM), 0600))
 
-	aclParams := agent.DefaulTestACLConfigParams()
+	aclParams := agent.DefaultTestACLConfigParams()
 	aclParams.PrimaryDatacenter = "primary"
 	aclParams.EnableTokenReplication = true
 
@@ -76,7 +76,7 @@ func setupPrimaryServer(t *testing.T) *agent.TestAgent {
 	a := agent.NewTestAgent(t, config)
 	t.Cleanup(func() { a.Shutdown() })
 
-	testrpc.WaitForTestAgent(t, a.RPC, "primary", testrpc.WithToken(agent.TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, a.RPC, "primary", testrpc.WithToken(agent.TestDefaultInitialManagementToken))
 
 	return a
 }

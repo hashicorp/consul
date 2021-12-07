@@ -44,7 +44,7 @@ func TestLoginCommand(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -241,7 +241,7 @@ func TestLoginCommand_k8s(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -339,7 +339,7 @@ func TestLoginCommand_jwt(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
