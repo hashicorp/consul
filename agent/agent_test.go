@@ -226,7 +226,7 @@ func TestAgent_TokenStore(t *testing.T) {
 	if got, want := a.tokens.AgentToken(), "agent"; got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
-	if got, want := a.tokens.IsAgentMasterToken("master"), true; got != want {
+	if got, want := a.tokens.IsAgentRecoveryToken("master"), true; got != want {
 		t.Fatalf("got %v want %v", got, want)
 	}
 }

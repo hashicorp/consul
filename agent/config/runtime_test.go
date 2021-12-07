@@ -5341,12 +5341,12 @@ func TestLoad_FullConfig(t *testing.T) {
 		// user configurable values
 
 		ACLTokens: token.Config{
-			EnablePersistence:   true,
-			DataDir:             dataDir,
-			ACLDefaultToken:     "418fdff1",
-			ACLAgentToken:       "bed2377c",
-			ACLAgentMasterToken: "1dba6aba",
-			ACLReplicationToken: "5795983a",
+			EnablePersistence:     true,
+			DataDir:               dataDir,
+			ACLDefaultToken:       "418fdff1",
+			ACLAgentToken:         "bed2377c",
+			ACLAgentRecoveryToken: "1dba6aba",
+			ACLReplicationToken:   "5795983a",
 		},
 
 		ACLsEnabled:       true,
