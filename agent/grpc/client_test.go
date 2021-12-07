@@ -151,7 +151,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	}, hclog.New(nil))
 	require.NoError(t, err)
 
-	srv := newTestServer(t, "server-1", "dc1", tlsConf)
+	srv := newSimpleTestServer(t, "server-1", "dc1", tlsConf)
 
 	md := srv.Metadata()
 	res.AddServer(types.AreaWAN, md)
@@ -199,7 +199,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	}, hclog.New(nil))
 	require.NoError(t, err)
 
-	srv := newTestServer(t, "bob", "dc1", tlsConf)
+	srv := newSimpleTestServer(t, "bob", "dc1", tlsConf)
 
 	// Send all of the traffic to dc1's server
 	var p tcpproxy.Proxy
@@ -266,7 +266,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
-		srv := newTestServer(t, name, "dc1", nil)
+		srv := newSimpleTestServer(t, name, "dc1", nil)
 		res.AddServer(types.AreaWAN, srv.Metadata())
 		t.Cleanup(srv.shutdown)
 	}
@@ -302,7 +302,7 @@ func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	var servers []testServer
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
-		srv := newTestServer(t, name, "dc1", nil)
+		srv := newSimpleTestServer(t, name, "dc1", nil)
 		res.AddServer(types.AreaWAN, srv.Metadata())
 		servers = append(servers, srv)
 		t.Cleanup(srv.shutdown)
@@ -352,7 +352,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
-		srv := newTestServer(t, name, "dc1", nil)
+		srv := newSimpleTestServer(t, name, "dc1", nil)
 		res.AddServer(types.AreaWAN, srv.Metadata())
 		t.Cleanup(srv.shutdown)
 	}
@@ -406,7 +406,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 
 	for _, dc := range dcs {
 		name := "server-0-" + dc
-		srv := newTestServer(t, name, dc, nil)
+		srv := newSimpleTestServer(t, name, dc, nil)
 		res.AddServer(types.AreaWAN, srv.Metadata())
 		t.Cleanup(srv.shutdown)
 	}
