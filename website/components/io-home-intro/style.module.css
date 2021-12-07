@@ -61,6 +61,10 @@
 .description {
   margin: 24px 0 0;
   composes: g-type-body-large from global;
+
+  @nest .withOfferings:not(.withFeatures) & {
+    color: var(--gray-3);
+  }
 }
 
 /*
