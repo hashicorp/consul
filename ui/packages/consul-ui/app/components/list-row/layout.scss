@@ -1,8 +1,16 @@
 %list-row {
-  padding-top: 10px;
-  padding-bottom: 10px;
+  /* this can be reused by internal components */
+  /* for positioning if required */
+  --horizontal-padding: 12px;
+  --vertical-padding: 10px;
+  padding: var(--vertical-padding) 0;
   /* whilst this isn't in the designs this makes our temporary rollover look better */
-  padding-left: 12px;
+  /* it doesn't happen on the right as we use a larger hit area with our */
+  /* meatball menu which would overlap this and the meatball is the most */
+  /* right hand 'action' button */
+  padding-left: var(--horizontal-padding);
+  /* once we have our scroll pane refresh we no longer need a padding for */
+  /* shadowing/rollover purposes so a lot of that ^ can go */
 }
 %list-row-detail,
 %list-row-header-icon {

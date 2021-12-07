@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -92,9 +91,14 @@ func TestACL_Bootstrap(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, TestACLConfig()+`
-      acl_master_token = ""
-   `)
+	a := NewTestAgent(t, `
+		primary_datacenter = "dc1"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+		}
+	`)
 	defer a.Shutdown()
 
 	tests := []struct {
@@ -882,7 +886,7 @@ func TestACL_HTTP(t *testing.T) {
 			require.True(t, ok)
 			require.Len(t, tokens, 1)
 			token := tokens[0]
-			require.Equal(t, "Master Token", token.Description)
+			require.Equal(t, "Initial Management Token", token.Description)
 			require.Len(t, token.Policies, 1)
 			require.Equal(t, structs.ACLPolicyGlobalManagementID, token.Policies[0].ID)
 		})
@@ -1658,7 +1662,7 @@ func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// spin up a fake oidc server
-	oidcServer := startSSOTestServer(t)
+	oidcServer := oidcauthtest.Start(t)
 	pubKey, privKey := oidcServer.SigningKeys()
 
 	type mConfig = map[string]interface{}
@@ -1690,7 +1694,7 @@ func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			method, err := upsertTestCustomizedAuthMethod(a.RPC, TestDefaultMasterToken, "dc1", func(method *structs.ACLAuthMethod) {
+			method, err := upsertTestCustomizedAuthMethod(a.RPC, TestDefaultInitialManagementToken, "dc1", func(method *structs.ACLAuthMethod) {
 				method.Type = "jwt"
 				method.Config = map[string]interface{}{
 					"JWTSupportedAlgs": []string{"ES256"},
@@ -1759,7 +1763,7 @@ func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
 				testutil.RequireErrorContains(t, err, "Permission denied")
 			})
 
-			_, err = upsertTestCustomizedBindingRule(a.RPC, TestDefaultMasterToken, "dc1", func(rule *structs.ACLBindingRule) {
+			_, err = upsertTestCustomizedBindingRule(a.RPC, TestDefaultInitialManagementToken, "dc1", func(rule *structs.ACLBindingRule) {
 				rule.AuthMethod = method.Name
 				rule.BindType = structs.BindingRuleBindTypeService
 				rule.BindName = "test--${value.name}--${value.primary_org}"
@@ -1799,7 +1803,7 @@ func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
 
 				// verify the token was deleted
 				req, _ = http.NewRequest("GET", "/v1/acl/token/"+token.AccessorID, nil)
-				req.Header.Add("X-Consul-Token", TestDefaultMasterToken)
+				req.Header.Add("X-Consul-Token", TestDefaultInitialManagementToken)
 				resp = httptest.NewRecorder()
 
 				// make the request
@@ -1820,7 +1824,7 @@ func TestACL_Authorize(t *testing.T) {
 	a1 := NewTestAgent(t, TestACLConfigWithParams(nil))
 	defer a1.Shutdown()
 
-	testrpc.WaitForTestAgent(t, a1.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
 	policyReq := structs.ACLPolicySetRequest{
 		Policy: structs.ACLPolicy{
@@ -1828,7 +1832,7 @@ func TestACL_Authorize(t *testing.T) {
 			Rules: `acl = "read" operator = "write" service_prefix "" { policy = "read"} node_prefix "" { policy= "write" } key_prefix "/foo" { policy = "write" } `,
 		},
 		Datacenter:   "dc1",
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 	var policy structs.ACLPolicy
 	require.NoError(t, a1.RPC("ACL.PolicySet", &policyReq, &policy))
@@ -1842,15 +1846,15 @@ func TestACL_Authorize(t *testing.T) {
 			},
 		},
 		Datacenter:   "dc1",
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 
 	var token structs.ACLToken
 	require.NoError(t, a1.RPC("ACL.TokenSet", &tokenReq, &token))
 
 	// secondary also needs to setup a replication token to pull tokens and policies
-	secondaryParams := DefaulTestACLConfigParams()
-	secondaryParams.ReplicationToken = secondaryParams.MasterToken
+	secondaryParams := DefaultTestACLConfigParams()
+	secondaryParams.ReplicationToken = secondaryParams.InitialManagementToken
 	secondaryParams.EnableTokenReplication = true
 
 	a2 := NewTestAgent(t, `datacenter = "dc2" `+TestACLConfigWithParams(secondaryParams))
@@ -1860,7 +1864,7 @@ func TestACL_Authorize(t *testing.T) {
 	_, err := a2.JoinWAN([]string{addr})
 	require.NoError(t, err)
 
-	testrpc.WaitForTestAgent(t, a2.RPC, "dc2", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc2", testrpc.WithToken(TestDefaultInitialManagementToken))
 	// this actually ensures a few things. First the dcs got connect okay, secondly that the policy we
 	// are about ready to use in our local token creation exists in the secondary DC
 	testrpc.WaitForACLReplication(t, a2.RPC, "dc2", structs.ACLReplicateTokens, policy.CreateIndex, 1, 0)
@@ -1875,7 +1879,7 @@ func TestACL_Authorize(t *testing.T) {
 			Local: true,
 		},
 		Datacenter:   "dc2",
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 
 	var localToken structs.ACLToken
@@ -2005,7 +2009,7 @@ func TestACL_Authorize(t *testing.T) {
 		for _, dc := range []string{"dc1", "dc2"} {
 			t.Run(dc, func(t *testing.T) {
 				req, _ := http.NewRequest("POST", "/v1/internal/acl/authorize?dc="+dc, jsonBody(request))
-				req.Header.Add("X-Consul-Token", TestDefaultMasterToken)
+				req.Header.Add("X-Consul-Token", TestDefaultInitialManagementToken)
 				recorder := httptest.NewRecorder()
 				raw, err := a1.srv.ACLAuthorize(recorder, req)
 				require.NoError(t, err)
@@ -2151,7 +2155,7 @@ func TestACL_Authorize(t *testing.T) {
 		false, // agent:write
 		false, // event:read
 		false, // event:write
-		true,  // intention:read
+		true,  // intentions:read
 		false, // intention:write
 		false, // key:read
 		false, // key:list
@@ -2328,14 +2332,6 @@ func upsertTestCustomizedBindingRule(rpc rpcFn, masterToken string, datacenter s
 	}
 
 	return &out, nil
-}
-
-func startSSOTestServer(t *testing.T) *oidcauthtest.Server {
-	ports := freeport.MustTake(1)
-	return oidcauthtest.Start(t, oidcauthtest.WithPort(
-		ports[0],
-		func() { freeport.Return(ports) },
-	))
 }
 
 func TestHTTPHandlers_ACLReplicationStatus(t *testing.T) {

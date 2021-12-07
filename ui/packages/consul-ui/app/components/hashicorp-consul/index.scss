@@ -7,7 +7,7 @@
     display: none;
   }
   [role='banner'] a svg {
-    fill: rgb(var(--brand-600));
+    fill: rgb(var(--tone-brand-600));
   }
   .docs-link a::after {
     @extend %with-docs-mask, %as-pseudo;

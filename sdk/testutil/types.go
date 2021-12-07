@@ -8,4 +8,5 @@ type TestingTB interface {
 	Failed() bool
 	Logf(format string, args ...interface{})
 	Name() string
+	Fatalf(fmt string, args ...interface{})
 }

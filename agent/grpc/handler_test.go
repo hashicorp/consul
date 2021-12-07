@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/types"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -28,7 +30,7 @@ func TestHandler_PanicRecoveryInterceptor(t *testing.T) {
 	registerWithGRPC(t, res)
 
 	srv := newPanicTestServer(t, logger, "server-1", "dc1", nil)
-	res.AddServer(srv.Metadata())
+	res.AddServer(types.AreaWAN, srv.Metadata())
 	t.Cleanup(srv.shutdown)
 
 	pool := NewClientConnPool(ClientConnPoolConfig{

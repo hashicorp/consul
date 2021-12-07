@@ -1,0 +1,11 @@
+```release-note:improvement
+raft: Use bbolt instead of the legacy boltdb implementation
+```
+
+```release-note:improvement
+raft: Emit boltdb related performance metrics
+```
+
+```release-note:improvement
+raft: Added a configuration to disable boltdb freelist syncing
+```

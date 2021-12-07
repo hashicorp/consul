@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -21,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 )
 
 // useTLSForDcAlwaysTrue tell GRPC to always return the TLS is enabled
@@ -29,15 +29,12 @@ func useTLSForDcAlwaysTrue(_ string) bool {
 }
 
 func TestNewDialer_WithTLSWrapper(t *testing.T) {
-	ports := freeport.MustTake(1)
-	defer freeport.Return(ports)
-
-	lis, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(ports[0])))
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	t.Cleanup(logError(t, lis.Close))
 
 	builder := resolver.NewServerResolverBuilder(newConfig(t))
-	builder.AddServer(&metadata.Server{
+	builder.AddServer(types.AreaWAN, &metadata.Server{
 		Name:       "server-1",
 		ID:         "ID1",
 		Datacenter: "dc1",
@@ -68,26 +65,18 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 }
 
 func TestNewDialer_WithALPNWrapper(t *testing.T) {
-	ports := freeport.MustTake(3)
-	defer freeport.Return(ports)
-
-	var (
-		s1addr = ipaddr.FormatAddressPort("127.0.0.1", ports[0])
-		s2addr = ipaddr.FormatAddressPort("127.0.0.1", ports[1])
-		gwAddr = ipaddr.FormatAddressPort("127.0.0.1", ports[2])
-	)
-
-	lis1, err := net.Listen("tcp", s1addr)
+	lis1, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	t.Cleanup(logError(t, lis1.Close))
 
-	lis2, err := net.Listen("tcp", s2addr)
+	lis2, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	t.Cleanup(logError(t, lis2.Close))
 
 	// Send all of the traffic to dc2's server
 	var p tcpproxy.Proxy
-	p.AddRoute(gwAddr, tcpproxy.To(s2addr))
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", freeport.GetOne(t))
+	p.AddRoute(gwAddr, tcpproxy.To(lis2.Addr().String()))
 	p.AddStopACMESearch(gwAddr)
 	require.NoError(t, p.Start())
 	defer func() {
@@ -96,14 +85,14 @@ func TestNewDialer_WithALPNWrapper(t *testing.T) {
 	}()
 
 	builder := resolver.NewServerResolverBuilder(newConfig(t))
-	builder.AddServer(&metadata.Server{
+	builder.AddServer(types.AreaWAN, &metadata.Server{
 		Name:       "server-1",
 		ID:         "ID1",
 		Datacenter: "dc1",
 		Addr:       lis1.Addr(),
 		UseTLS:     true,
 	})
-	builder.AddServer(&metadata.Server{
+	builder.AddServer(types.AreaWAN, &metadata.Server{
 		Name:       "server-2",
 		ID:         "ID2",
 		Datacenter: "dc2",
@@ -165,7 +154,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	srv := newSimpleTestServer(t, "server-1", "dc1", tlsConf)
 
 	md := srv.Metadata()
-	res.AddServer(md)
+	res.AddServer(types.AreaWAN, md)
 	t.Cleanup(srv.shutdown)
 
 	pool := NewClientConnPool(ClientConnPoolConfig{
@@ -193,10 +182,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
-	ports := freeport.MustTake(1)
-	defer freeport.Return(ports)
-
-	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", ports[0])
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", freeport.GetOne(t))
 
 	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
@@ -226,7 +212,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	}()
 
 	md := srv.Metadata()
-	res.AddServer(md)
+	res.AddServer(types.AreaWAN, md)
 	t.Cleanup(srv.shutdown)
 
 	clientTLSConf, err := tlsutil.NewConfigurator(tlsutil.Config{
@@ -281,7 +267,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
 		srv := newSimpleTestServer(t, name, "dc1", nil)
-		res.AddServer(srv.Metadata())
+		res.AddServer(types.AreaWAN, srv.Metadata())
 		t.Cleanup(srv.shutdown)
 	}
 
@@ -295,7 +281,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	first, err := client.Something(ctx, &testservice.Req{})
 	require.NoError(t, err)
 
-	res.RemoveServer(&metadata.Server{ID: first.ServerName, Datacenter: "dc1"})
+	res.RemoveServer(types.AreaWAN, &metadata.Server{ID: first.ServerName, Datacenter: "dc1"})
 
 	resp, err := client.Something(ctx, &testservice.Req{})
 	require.NoError(t, err)
@@ -317,7 +303,7 @@ func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
 		srv := newSimpleTestServer(t, name, "dc1", nil)
-		res.AddServer(srv.Metadata())
+		res.AddServer(types.AreaWAN, srv.Metadata())
 		servers = append(servers, srv)
 		t.Cleanup(srv.shutdown)
 	}
@@ -367,7 +353,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
 		srv := newSimpleTestServer(t, name, "dc1", nil)
-		res.AddServer(srv.Metadata())
+		res.AddServer(types.AreaWAN, srv.Metadata())
 		t.Cleanup(srv.shutdown)
 	}
 
@@ -421,7 +407,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 	for _, dc := range dcs {
 		name := "server-0-" + dc
 		srv := newSimpleTestServer(t, name, dc, nil)
-		res.AddServer(srv.Metadata())
+		res.AddServer(types.AreaWAN, srv.Metadata())
 		t.Cleanup(srv.shutdown)
 	}
 

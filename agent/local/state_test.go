@@ -374,8 +374,17 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	assert.Len(services.NodeServices.Services, 5)
 
 	// All the services should match
+	vips := make(map[string]struct{})
+	srv1.TaggedAddresses = nil
+	srv2.TaggedAddresses = nil
 	for id, serv := range services.NodeServices.Services {
 		serv.CreateIndex, serv.ModifyIndex = 0, 0
+		if serv.TaggedAddresses != nil {
+			serviceVIP := serv.TaggedAddresses[structs.TaggedAddressVirtualIP].Address
+			assert.NotEmpty(serviceVIP)
+			vips[serviceVIP] = struct{}{}
+		}
+		serv.TaggedAddresses = nil
 		switch id {
 		case "mysql-proxy":
 			assert.Equal(srv1, serv)
@@ -392,6 +401,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		}
 	}
 
+	assert.Len(vips, 4)
 	assert.Nil(servicesInSync(a.State, 4, structs.DefaultEnterpriseMetaInDefaultPartition()))
 
 	// Remove one of the services
@@ -786,9 +796,17 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
-		acl_datacenter = "dc1"
-		acl_master_token = "root"
-		acl_default_policy = "deny" `)
+		primary_datacenter = "dc1"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+			}
+		}
+	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1231,9 +1249,17 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dc := "dc1"
 	a := &agent.TestAgent{HCL: `
-		acl_datacenter = "` + dc + `"
-		acl_master_token = "root"
-		acl_default_policy = "deny" `}
+		primary_datacenter = "` + dc + `"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+			}
+		}
+	`}
 	if err := a.Start(t); err != nil {
 		t.Fatal(err)
 	}
@@ -2042,6 +2068,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	}
 
 	t.Parallel()
+
 	a := agent.StartTestAgent(t, agent.TestAgent{Overrides: `
 		sync_coordinate_interval_min = "1ms"
 		sync_coordinate_rate_target = 10.0

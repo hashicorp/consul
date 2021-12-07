@@ -964,7 +964,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 						"Services": [
 							{
 								"Name": "web",
-								"Namespace": "foo"
+								"Namespace": "foo",
+								"Partition": "bar"
 							},
 							{
 								"Name": "db"
@@ -1001,6 +1002,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							{
 								Name:      "web",
 								Namespace: "foo",
+								Partition: "bar",
 							},
 							{
 								Name: "db",

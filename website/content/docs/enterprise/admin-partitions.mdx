@@ -24,7 +24,7 @@ Admin partitions exist a level above namespaces in the identity hierarchy. They 
 
 Each Consul cluster will have at least one default admin partition (named `default`). Any resource created without specifying an admin partition will inherit the partition of the ACL token.
 
-The `default` admin partition is special in that it may contain namespaces and other entities that are replicated between datacenters.
+The `default` admin partition is special in that it may contain namespaces and other entities that are replicated between datacenters. The `default` partition must also contain the Consul servers.  
 
 -> **Preexisting resources and the `default` partition**: Admin partitions were introduced in Consul 1.11. After upgrading to Consul 1.11 or later, the `default` partition will contain all resources created in previous versions.
 
@@ -51,7 +51,13 @@ Client agents will be configured to operate within a specific admin partition. T
 
 ### Service Mesh Configurations
 
-Values specified for [`proxy-defaults`](docs/connect/config-entries/proxy-defaults) configurations are scoped to a specific partition. Services registered in the partition will use the partition's `proxy-defaults` values.
+Values specified for [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) configurations are scoped to a specific partition. Services registered in the partition will use the partition's `proxy-defaults` values.
+
+### Cross-partition Networking
+
+You can configure services to be discoverable and accessible by downstream services in any partition within the datacenter. Specify the upstream services that you want to be available for discovery by configuring the `exported-services` configuration entry in the partition where the services are registered. Refer to the [`exported-services` documentation](/docs/connect/config-entries/exported-services) for details.
+
+Additionally, the `upstreams` configuration for proxies in the source partition must specify the name of the destination partition so that listeners can be created. Refer to the [Upstream Configuration Reference](/docs/connect/registration/service-registration#upstream-configuration-reference) for additional information.
 
 ## Requirements
 
@@ -67,6 +73,7 @@ Your Consul configuration must meet the following requirements to use admin part
 * The `write` permission for `proxy-defaults` requires `mesh:write`. See [Admin Partition Rules](/docs/security/acl/acl-rules#admin-partition-rules) for additional information.
 * The `write` permissions for ingress and terminating gateways require `mesh:write` privileges.
 * Wildcards (`*`) are not supported when creating intentions for admin partitions, but you can use a wildcard to specify services within a partition.
+* With the exception of the `default` admin partition, ACL rules configured for admin partitions are isolated, so policies defined in partitions outside of the `default` partition can only reference their local partition.
 
 ### Agent Configurations
 
@@ -81,12 +88,12 @@ Your Consul configuration must meet the following requirements to use admin part
 
 One of the primary use cases for admin partitions is for enabling a service mesh on Kubernetes clusters. The following requirements must be met to create admin partitions on Kubernetes:
 
-* Two or more Kubernetes clusters with Consul servers installed on one of them. The other clusters should run Consul clients.
+* Two or more Kubernetes clusters. Consul servers must be deployed on one of the clusters. The other clusters should run Consul clients.
 * A Consul Enterprise license must be installed on each instance of Consul.
-* The helm chart consul-k8s v0.34.1 or greater.
+* The helm chart for consul-k8s v0.34.1 or greater.
 * Consul 1.11.0-ent-alpha or greater.
-* All instances in the VPC must be able to communicate with each other.
-* Pods must be able to communicate with each other (flat pod and node network). See [step 3](#firewall-rules) in the Deploying Consul with Admin Partitions on Kubernetes section for additional information
+* All Consul clients in the VPC must be able to communicate with the Consul servers. 
+* VPC firewall rules should be implemented that enable clients to communicate with the Consul servers in the `default` partition. The server nodes should be deployed to a single cluster.
 
 ## Usage
 
@@ -94,63 +101,51 @@ This section describes how to deploy Consul admin partitions to Kubernetes clust
 
 ### Deploying Consul with Admin Partitions on Kubernetes
 
-The expected use case to create admin partitions on Kubernetes clusters. This is because many organizations prefer to use cloud-managed Kubernetes offerings to provision separate Kubernetes clusters for individual teams, business units, or environments. This is opposed to deploying a single, large Kubernetes cluster. When these organizations attempt to use a service mesh to enable cross-cluster activities, such as administration tasks and communication between nodes, they encounter problems.
+The expected use case is to create admin partitions on Kubernetes clusters. This is because many organizations prefer to use cloud-managed Kubernetes offerings to provision separate Kubernetes clusters for individual teams, business units, or environments. This is opposed to deploying a single, large Kubernetes cluster. When these organizations attempt to use a service mesh to enable cross-cluster activities, such as administration tasks and communication between nodes, they encounter problems.
 
-The following procedure will result in different admin partitions in each Kubernetes cluster. The Consul clients running in the cluster with servers will be in the `default` partition. Another partition called `clients` will also be created.
+The following procedure will result in a different admin partition in each Kubernetes cluster. The Consul clients running in the cluster with servers will be in the `default` partition. Another partition called `clients` will also be created. 
 
 Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernetes-requirements) before proceeding.
 
-1. <a id="firewall-rules"/> Update the firewall rules to ensure the pod network is flat. The following example for Google Kubernetes Engine (GKE) describes how to create a firewall rule that allows all pod and node network traffic to talk to the server and workload nodegroups:
-
-    1. Open the **VPC Network > Firewall** section and identify the rules associated with your clusters. The cluster name is a part of the rule.
-
-     ![IP address ranges for GKE clusters](/img/admin-partitions/consul-admin-partitions-gke-cluster-1.png)
-
-     ![IP address ranges for GKE clusters](/img/admin-partitions/consul-admin-partitions-gke-cluster-2.png)
-
-     The `gke-cluster-1-7b43116f-node` and `gke-cluster-2-48d3bee6-node` labels are the node names for the GKE clusters.
-
-     The `10.128.0.0/9` IP range represents the node IP network. The IP range of the node VMs in the clusters are within this range.
-
-     The `10.44.0.0/14` and `10.4.0.0/14` IP ranges are the pod IP ranges for the GKE clusters.
-
-    1. Enter the `gke-cluster-1-7b43116f-node` and `gke-cluster-2-48d3bee6-node` node names in the target fields of the firewall rule.
-    1. Enter the `10.128.0.0/9`, `10.44.0.0/14`, and `10.4.0.0/14` IP into the source fields. This will ensure that traffic from the nodes and the pods in each cluster can access the nodes and pods in the other.
-
-    ![Configured GKE cluster firewall rule for Consul admin partitions](/img/admin-partitions/consul-admin-partitions-gke-firewall-rule.png)
-
+1. Update the firewall rules so that pods containing Consul clients and pods containing Consul servers can send and receive traffic. Refer to your virtual cloud provider's documentation for instructions on how to configure firewall rules. 
 1. Create the license secret in each cluster, e.g.:
 
   ```shell-session
-kubectl create secret generic license --from-file=key=[license file path i.e. ./license.hclic]
+  kubectl create secret generic license --from-file=key=[license file path i.e. ./license.hclic]
   ```
   This step must also be completed for each workload cluster.
 
 1. Create a server configuration file to override the default Consul Helm chart settings:
 
+  <CodeTabs heading="server.yaml">
+  <CodeBlockConfig lineNumbers>
+
   ```yaml
   global:
-  enableConsulNamespaces: true
-  tls:
-    enabled: true
-  image: hashicorp/consul-enterprise:1.11.0-ent-beta1
-  adminPartitions:
-    enabled: true
+    enableConsulNamespaces: true
+    tls:
+      enabled: true
+    image: hashicorp/consul-enterprise:1.11.0-ent-beta3
+    adminPartitions:
+      enabled: true
+    enterpriseLicense:
+      secretName: consul-ent-license
+      secretKey: key
   server:
     exposeGossipAndRPCPorts: true
-   enterpriseLicense:
-     secretName: license
-     secretKey: key
   connectInject:
-   enabled: true
-   transparentProxy:
-    defaultEnabled: false
-   consulNamespaces:
+    enabled: true
+    transparentProxy:
+      defaultEnabled: false
+  consulNamespaces:
       mirroringK8S: true
   controller:
-   enabled: true
+    enabled: true
   ```
-    Note that the `transparentProxy` configuration is disabled. This is to enable multi-cluster networking.
+  </CodeBlockConfig>
+  </CodeTabs>
+  
+  Note that the `transparentProxy` configuration is disabled. This is to enable multi-cluster networking.
 
 1. Start the Consul server(s) using the custom configuration file:
   ```shell-session
@@ -161,24 +156,34 @@ kubectl create secret generic license --from-file=key=[license file path i.e. ./
   ```shell-session
   kubectl get service
   NAME                                  TYPE           CLUSTER-IP       EXTERNAL-IP       PORT(S)                                                                   AGE
-  kubernetes                            ClusterIP      10.96.0.1        <none>            443/TCP                                                                   3m
-  servers-consul-connect-injector-svc   ClusterIP      10.97.175.39     <none>            443/TCP                                                                   30s
-  servers-consul-controller-webhook     ClusterIP      10.100.22.99     <none>            443/TCP                                                                   30s
-  servers-consul-dns                    ClusterIP      10.103.43.20     <none>            53/TCP,53/UDP                                                             30s
-  servers-consul-partition-service      LoadBalancer   10.111.255.152   35.192.119.38     8501:30643/TCP,8301:30466/TCP,8300:30657/TCP                              30s
-  servers-consul-server                 ClusterIP      None             <none>            8501/TCP,8301/TCP,8301/UDP,8302/TCP,8302/UDP,8300/TCP,8600/TCP,8600/UDP   30s
-  servers-consul-ui                     ClusterIP      10.106.240.55    <none>            443/TCP                                                                   30s
+  kubernetes                           ClusterIP      10.8.0.1      <none>            443/TCP                                                                   77m
+  server-consul-connect-injector-svc   ClusterIP      10.8.13.188   <none>            443/TCP                                                                   76s
+  server-consul-controller-webhook     ClusterIP      10.8.14.178   <none>            443/TCP                                                                   77s
+  server-consul-dns                    ClusterIP      10.8.6.6      <none>            53/TCP,53/UDP                                                             77s
+  server-consul-partition-service      LoadBalancer   10.8.1.186    34.135.103.67     8501:31130/TCP,8301:31587/TCP,8300:30378/TCP                              76s
+  server-consul-server                 ClusterIP      None          <none>            8501/TCP,8301/TCP,8301/UDP,8302/TCP,8302/UDP,8300/TCP,8600/TCP,8600/UDP   76s
+  server-consul-ui                     ClusterIP      10.8.0.218    <none>            443/TCP                                                                   77s
+  ```
+1. Get the Kubernetes authentication method URL for the workload cluster:
 
-1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition. In the following example, the external IP address from the previous step has been applied:
+  ```shell-session
+  kubectl config view -o "jsonpath={.clusters[?(@.name=='<workload-cluster-name>')].cluster.server}"
+  ```
+  Use the IP address printed to the console to configure the `k8sAuthMethodHost` parameter in the workload configuration file for your client nodes. 
+
+1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition. In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied:
+
+  <CodeTabs heading="clients.yaml">
+  <CodeBlockConfig lineNumbers>
 
   ```yaml
   global:
   enabled: false
   enableConsulNamespaces: true
-  image: hashicorp/consul-enterprise:1.11.0-ent-beta1
+  image: hashicorp/consul-enterprise:1.11.0-ent-beta3
   adminPartitions:
     enabled: true
-    name: "clients" // partition name
+    name: "clients"
   tls:
     enabled: true
     caCert:
@@ -187,37 +192,40 @@ kubectl create secret generic license --from-file=key=[license file path i.e. ./
     caKey:
       secretName: consul-consul-ca-key
       secretKey: tls.key
-  server:
-    enterpriseLicense:
-      secretName: license
-      secretKey: key
+  enterpriseLicense:
+    secretName: license
+    secretKey: key
   externalServers:
     enabled: true
-    hosts: "35.192.119.38" # Insert External IP of LoadBalancer here
+    hosts: [ "34.135.103.67" ]
     tlsServerName: server.dc1.consul
+    k8sAuthMethodHost: "104.154.156.146"
   client:
     enabled: true
     exposeGossipPorts: true
-    join: "35.192.119.38"
+    join: [ "34.135.103.67" ]
   connectInject:
     enabled: true
     consulNamespaces:
-     mirroringK8S: true
+      mirroringK8S: true
   controller:
     enabled: true
-
+  meshGateway:
+    enabled: true
   ```
+  </CodeBlockConfig>
+  </CodeTabs>
 
 1. Copy the server certificate to the workload cluster.
 
   ```shell-session
-  kubectl get secret server-consul-ca-cert --context server -o yaml | kubectl apply --context client -f -
+  kubectl get secret server-consul-ca-cert --context <server-context> -o yaml | kubectl apply --context <client-context> -f -
   ```
 
 1. Copy the server key to the workload cluster.
 
   ```shell-session
-  kubectl get secret consul-consul-ca-key --context server -o yaml | kubectl apply --context client -f -
+  kubectl get secret server-consul-ca-key --context <server-context> -o yaml | kubectl apply --context <client-context> -f -
   ```
 1. Start the workload client clusters:
 

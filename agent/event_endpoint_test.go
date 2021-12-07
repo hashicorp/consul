@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEventFire(t *testing.T) {
@@ -199,47 +200,78 @@ func TestEventList_ACLFilter(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Fire an event.
-	p := &UserEvent{Name: "foo"}
-	if err := a.UserEvent("dc1", "root", p); err != nil {
-		t.Fatalf("err: %v", err)
+	// Fire some events.
+	events := []*UserEvent{
+		{Name: "foo"},
+		{Name: "bar"},
+	}
+	for _, e := range events {
+		err := a.UserEvent("dc1", "root", e)
+		require.NoError(t, err)
 	}
 
 	t.Run("no token", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			req, _ := http.NewRequest("GET", "/v1/event/list", nil)
+			require := require.New(r)
+
+			req := httptest.NewRequest("GET", "/v1/event/list", nil)
 			resp := httptest.NewRecorder()
+
 			obj, err := a.srv.EventList(resp, req)
-			if err != nil {
-				r.Fatal(err)
-			}
+			require.NoError(err)
 
 			list, ok := obj.([]*UserEvent)
-			if !ok {
-				r.Fatalf("bad: %#v", obj)
-			}
-			if len(list) != 0 {
-				r.Fatalf("bad: %#v", list)
-			}
+			require.True(ok)
+			require.Empty(list)
+			require.Empty(resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+		})
+	})
+
+	t.Run("token with access to one event type", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			require := require.New(r)
+
+			token := testCreateToken(t, a, `
+				event "foo" {
+					policy = "read"
+				}
+			`)
+
+			req := httptest.NewRequest("GET", fmt.Sprintf("/v1/event/list?token=%s", token), nil)
+			resp := httptest.NewRecorder()
+
+			obj, err := a.srv.EventList(resp, req)
+			require.NoError(err)
+
+			list, ok := obj.([]*UserEvent)
+			require.True(ok)
+			require.Len(list, 1)
+			require.Equal("foo", list[0].Name)
+			require.NotEmpty(resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 		})
 	})
 
 	t.Run("root token", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			req, _ := http.NewRequest("GET", "/v1/event/list?token=root", nil)
+			require := require.New(r)
+
+			req := httptest.NewRequest("GET", "/v1/event/list?token=root", nil)
 			resp := httptest.NewRecorder()
+
 			obj, err := a.srv.EventList(resp, req)
-			if err != nil {
-				r.Fatal(err)
-			}
+			require.NoError(err)
 
 			list, ok := obj.([]*UserEvent)
-			if !ok {
-				r.Fatalf("bad: %#v", obj)
+			require.True(ok)
+			require.Len(list, 2)
+
+			var names []string
+			for _, e := range list {
+				names = append(names, e.Name)
 			}
-			if len(list) != 1 || list[0].Name != "foo" {
-				r.Fatalf("bad: %#v", list)
-			}
+			require.ElementsMatch([]string{"foo", "bar"}, names)
+
+			require.Empty(resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 		})
 	})
 }

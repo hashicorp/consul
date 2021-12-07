@@ -34,11 +34,21 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 	dep := d.DeprecatedConfig
 	var warns []string
 
-	if dep.ACLAgentMasterToken != nil {
-		if d.Config.ACL.Tokens.AgentMaster == nil {
-			d.Config.ACL.Tokens.AgentMaster = dep.ACLAgentMasterToken
+	// TODO(boxofrad): The DeprecatedConfig struct only holds fields that were once
+	// on the top-level Config struct (not nested fields e.g. ACL.Tokens) maybe we
+	// should rethink this a bit?
+	if d.Config.ACL.Tokens.AgentMaster != nil {
+		if d.Config.ACL.Tokens.AgentRecovery == nil {
+			d.Config.ACL.Tokens.AgentRecovery = d.Config.ACL.Tokens.AgentMaster
 		}
-		warns = append(warns, deprecationWarning("acl_agent_master_token", "acl.tokens.agent_master"))
+		warns = append(warns, deprecationWarning("acl.tokens.agent_master", "acl.tokens.agent_recovery"))
+	}
+
+	if dep.ACLAgentMasterToken != nil {
+		if d.Config.ACL.Tokens.AgentRecovery == nil {
+			d.Config.ACL.Tokens.AgentRecovery = dep.ACLAgentMasterToken
+		}
+		warns = append(warns, deprecationWarning("acl_agent_master_token", "acl.tokens.agent_recovery"))
 	}
 
 	if dep.ACLAgentToken != nil {
@@ -55,11 +65,18 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 		warns = append(warns, deprecationWarning("acl_token", "acl.tokens.default"))
 	}
 
-	if dep.ACLMasterToken != nil {
-		if d.Config.ACL.Tokens.Master == nil {
-			d.Config.ACL.Tokens.Master = dep.ACLMasterToken
+	if d.Config.ACL.Tokens.Master != nil {
+		if d.Config.ACL.Tokens.InitialManagement == nil {
+			d.Config.ACL.Tokens.InitialManagement = d.Config.ACL.Tokens.Master
 		}
-		warns = append(warns, deprecationWarning("acl_master_token", "acl.tokens.master"))
+		warns = append(warns, deprecationWarning("acl.tokens.master", "acl.tokens.initial_management"))
+	}
+
+	if dep.ACLMasterToken != nil {
+		if d.Config.ACL.Tokens.InitialManagement == nil {
+			d.Config.ACL.Tokens.InitialManagement = dep.ACLMasterToken
+		}
+		warns = append(warns, deprecationWarning("acl_master_token", "acl.tokens.initial_management"))
 	}
 
 	if dep.ACLReplicationToken != nil {

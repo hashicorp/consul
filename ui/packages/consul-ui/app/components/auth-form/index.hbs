@@ -1,41 +1,93 @@
-<StateChart @src={{chart}} as |State Guard Action dispatch state|>
-  {{yield (hash
+<StateChart
+  @src={{this.chart}}
+as |State Guard ChartAction dispatch state|>
+{{#let
+  (hash
+    State=State
+    Guard=Guard
+    Action=ChartAction
+    dispatch=dispatch
+    state=state
+  )
+as |chart|}}
+{{#let
+  (hash
     reset=(action dispatch "RESET")
-    focus=(action 'focus')
-  )}}
-  <Guard @name="hasValue" @cond={{action 'hasValue'}} />
+    focus=this.focus
+    disabled=(state-matches state "loading")
+    error=(queue
+      (action dispatch "ERROR")
+      (action (mut this.error) value="error.errors.firstObject")
+    )
+    submit=(queue
+      (action (mut this.value))
+      (action dispatch "SUBMIT")
+    )
+  )
+as |exported|}}
+  <Guard
+    @name="hasValue"
+    @cond={{this.hasValue}}
+  />
   {{!TODO: Call this reset or similar }}
-  <Action @name="clearError" @exec={{queue (action (mut error) undefined) (action (mut secret) undefined)}} />
-  <div class="auth-form" ...attributes>
+  <chart.Action
+    @name="clearError"
+    @exec={{queue (action (mut this.error) undefined) (action (mut this.secret) undefined)}}
+  />
+  <div
+    class="auth-form"
+    ...attributes
+  >
+<StateChart
+  @src={{this.tabsChart}}
+as |TabState IgnoredGuard IgnoredAction tabDispatch tabState|>
+{{#if (can 'use SSO')}}
+    <TabNav
+      @items={{array
+        (hash
+          label='Token'
+          selected=(state-matches tabState 'token')
+        )
+        (hash
+          label='SSO'
+          selected=(state-matches tabState 'sso')
+        )
+      }}
+      @onclick={{queue (action tabDispatch) (action dispatch "RESET")}}
+    />
+{{/if}}
     <State @matches="error">
-      {{#if error.status}}
+      {{#if this.error.status}}
         <Notice
           @type="error"
           role="alert"
         as |notice|>
           <notice.Body>
             <p>
-              {{#if value.Name}}
-                {{#if (eq error.status '403')}}
+              {{#if this.value.Name}}
+                {{#if (eq this.error.status '403')}}
                   <strong>Consul login failed</strong><br />
                   We received a token from your OIDC provider but could not log in to Consul with it.
-                {{else if (eq error.status '401')}}
+                {{else if (eq this.error.status '401')}}
                   <strong>Could not log in to provider</strong><br />
                   The OIDC provider has rejected this access token. Please have an administrator check your auth method configuration.
-                {{else if (eq error.status '499')}}
+                {{else if (eq this.error.status '499')}}
                   <strong>SSO log in window closed</strong><br />
                   The OIDC provider window was closed. Please try again.
                 {{else}}
                   <strong>Error</strong><br />
-                  {{error.detail}}
+                  {{this.error.detail}}
                 {{/if}}
               {{else}}
-                {{#if (eq error.status '403')}}
+                {{#if (eq this.error.status '403')}}
                   <strong>Invalid token</strong><br />
                   The token entered does not exist. Please enter a valid token to log in.
+                {{else if (eq this.error.status '404')}}
+                  <strong>No providers</strong><br />
+                  No SSO providers are configured for that Admin Partition.
                 {{else}}
                   <strong>Error</strong><br />
-                  {{error.detail}}
+                  {{this.error.detail}}
                 {{/if}}
               {{/if}}
             </p>
@@ -43,25 +95,34 @@
         </Notice>
       {{/if}}
     </State>
-    <form onsubmit={{action dispatch "SUBMIT"}}>
+<TabState @matches="token">
+    <form
+      onsubmit={{action dispatch "SUBMIT"}}
+    >
       <fieldset>
-        <label class={{concat "type-password" (if (and (state-matches state 'error') (not error.status)) ' has-error' '')}}>
+        <label
+          class={{concat "type-password" (if (and (state-matches state 'error') (not this.error.status)) ' has-error')}}
+        >
           <span>Log in with a token</span>
+
+          {{! Blink/Webkit based seem to leak password inputs }}
+          {{! this will only occur during acceptance testing so }}
+          {{! turn them into text inputs during acceptance testing }}
           <input
-            {{ref this 'input'}}
+            {{did-insert (set this 'input')}}
             disabled={{state-matches state "loading"}}
-            type={{inputType}}
+            type={{if (eq (env 'environment') 'testing') 'text' 'password'}}
             name="auth[SecretID]"
             placeholder="SecretID"
-            value={{secret}}
+            value={{this.secret}}
             oninput={{queue
-              (action (mut secret) value="target.value")
-              (action (mut value) value="target.value")
+              (action (mut this.secret) value="target.value")
+              (action (mut this.value) value="target.value")
               (action dispatch "TYPING")
             }}
           />
           <State @matches="error">
-            {{#if (not error.status)}}
+            {{#if (not this.error.status)}}
               <strong role="alert">
                 Please enter your secret
               </strong>
@@ -69,47 +130,35 @@
           </State>
         </label>
       </fieldset>
-      <button type="submit" disabled={{state-matches state "loading"}}>
+      <Action
+        @type="submit"
+        disabled={{state-matches state "loading"}}
+      >
         Log in
-      </button>
-      <em>Contact your administrator for login credentials.</em>
+      </Action>
     </form>
-{{#if (env 'CONSUL_SSO_ENABLED')}}
-    {{!-- This `or` can be completely removed post 1.10 as 1.10 has optional params with default values --}}
-    <DataSource
-      @src={{uri '/${partition}/${nspace}/${dc}/oidc/providers'
-        (hash
-          partition=partition
-          nspace=nspace
-          dc=dc
-        )
-      }}
-      @onchange={{queue (action (mut providers) value="data")}}
-      @onerror={{queue (action (mut error) value="error.errors.firstObject")}}
-      @loading="lazy"
-    />
-  {{#if (gt providers.length 0)}}
-    <p>
-      <span>or</span>
-    </p>
-  {{/if}}
-  <OidcSelect
-    @items={{providers}}
-    @disabled={{state-matches state "loading"}}
-    @onchange={{queue (action (mut value)) (action dispatch "SUBMIT") }}
-    @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
-  />
-{{/if}}
+</TabState>
+
+{{yield (assign exported (hash Method=TabState))}}
+
+      <em>
+        Contact your administrator for login credentials.
+      </em>
+</StateChart>
+
+
   </div>
   <State @matches="loading">
     <TokenSource
-      @dc={{dc}}
-      @nspace={{or value.Namespace nspace}}
-      @partition={{or value.Partition partition}}
-      @type={{if value.Name 'oidc' 'secret'}}
-      @value={{if value.Name value.Name value}}
-      @onchange={{queue (action dispatch "RESET") (action onsubmit)}}
-      @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+      @dc={{@dc}}
+      @nspace={{or this.value.Namespace @nspace}}
+      @partition={{or this.value.Partition @partition}}
+      @type={{if this.value.Name 'oidc' 'secret'}}
+      @value={{if this.value.Name this.value.Name this.value}}
+      @onchange={{queue (action dispatch "RESET") @onsubmit}}
+      @onerror={{queue (action (mut this.error) value="error.errors.firstObject") (action dispatch "ERROR")}}
     />
   </State>
+{{/let}}
+{{/let}}
 </StateChart>

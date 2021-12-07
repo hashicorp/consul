@@ -1,0 +1,36 @@
+<FormInput
+  class="option-input type-select"
+  ...attributes
+  @item={{@item}}
+  @placeholder={{@placeholder}}
+  @name={{@name}}
+  @label={{@label}}
+  @help={{@help}}
+  @validations={{@validations}}
+  @chart={{@chart}}
+>
+  <:label>
+    {{!- add an optional slot here called <:label>-}}
+    {{or @label @name}}
+  </:label>
+  <:input>
+    {{#if @expanded}}
+      {{#if @multiple}}
+        {{! checkboxes }}
+      {{else}}
+        {{! radiobuttons }}
+      {{/if}}
+    {{else}}
+      <PowerSelect
+        @disabled={{@disabled}}
+        @onChange={{@onchange}}
+        @selected={{@selected}}
+        @searchEnabled={{false}}
+        @options={{@items}} as |item|>
+        {{yield (hash
+          item=item
+        ) to='option'}}
+      </PowerSelect>
+    {{/if}}
+  </:input>
+</FormInput>

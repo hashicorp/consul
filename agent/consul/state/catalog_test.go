@@ -1548,6 +1548,142 @@ func TestStateStore_EnsureService_connectProxy(t *testing.T) {
 	assert.Equal(&expect1, out.Services["connect-proxy"])
 }
 
+func TestStateStore_EnsureService_virtualIps(t *testing.T) {
+	assert := assert.New(t)
+	s := testStateStore(t)
+	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataVirtualIPsEnabled,
+		Value: "true",
+	}))
+
+	// Create the service registration.
+	entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+	ns1 := &structs.NodeService{
+		ID:      "foo",
+		Service: "foo",
+		Address: "1.1.1.1",
+		Port:    1111,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Connect:        structs.ServiceConnect{Native: true},
+		EnterpriseMeta: *entMeta,
+	}
+
+	// Service successfully registers into the state store.
+	testRegisterNode(t, s, 0, "node1")
+	require.NoError(t, s.EnsureService(10, "node1", ns1))
+
+	// Make sure there's a virtual IP for the foo service.
+	vip, err := s.VirtualIPForService(structs.ServiceName{Name: "foo"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.1", vip)
+
+	// Retrieve and verify
+	_, out, err := s.NodeServices(nil, "node1", nil)
+	require.NoError(t, err)
+	assert.NotNil(out)
+	assert.Len(out.Services, 1)
+
+	taggedAddress := out.Services["foo"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns1.Port, taggedAddress.Port)
+
+	// Create the service registration.
+	ns2 := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "redis-proxy",
+		Service: "redis-proxy",
+		Address: "2.2.2.2",
+		Port:    2222,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Proxy:          structs.ConnectProxyConfig{DestinationServiceName: "redis"},
+		EnterpriseMeta: *entMeta,
+	}
+	require.NoError(t, s.EnsureService(11, "node1", ns2))
+
+	// Make sure the virtual IP has been incremented for the redis service.
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.2", vip)
+
+	// Retrieve and verify
+	_, out, err = s.NodeServices(nil, "node1", nil)
+	assert.Nil(err)
+	assert.NotNil(out)
+	assert.Len(out.Services, 2)
+
+	taggedAddress = out.Services["redis-proxy"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns2.Port, taggedAddress.Port)
+
+	// Delete the first service and make sure it no longer has a virtual IP assigned.
+	require.NoError(t, s.DeleteService(12, "node1", "foo", entMeta))
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "connect-proxy"})
+	require.NoError(t, err)
+	assert.Equal("", vip)
+
+	// Register another instance of redis-proxy and make sure the virtual IP is unchanged.
+	ns3 := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "redis-proxy2",
+		Service: "redis-proxy",
+		Address: "3.3.3.3",
+		Port:    3333,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Proxy:          structs.ConnectProxyConfig{DestinationServiceName: "redis"},
+		EnterpriseMeta: *entMeta,
+	}
+	require.NoError(t, s.EnsureService(13, "node1", ns3))
+
+	// Make sure the virtual IP is unchanged for the redis service.
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.2", vip)
+
+	// Make sure the new instance has the same virtual IP.
+	_, out, err = s.NodeServices(nil, "node1", nil)
+	require.NoError(t, err)
+	taggedAddress = out.Services["redis-proxy2"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns3.Port, taggedAddress.Port)
+
+	// Register another service to take its virtual IP.
+	ns4 := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "4.4.4.4",
+		Port:    4444,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Proxy:          structs.ConnectProxyConfig{DestinationServiceName: "web"},
+		EnterpriseMeta: *entMeta,
+	}
+	require.NoError(t, s.EnsureService(14, "node1", ns4))
+
+	// Make sure the virtual IP has allocated from the previously freed service.
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "web"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.1", vip)
+
+	// Retrieve and verify
+	_, out, err = s.NodeServices(nil, "node1", nil)
+	require.NoError(t, err)
+	taggedAddress = out.Services["web-proxy"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns4.Port, taggedAddress.Port)
+}
+
 func TestStateStore_Services(t *testing.T) {
 	s := testStateStore(t)
 
@@ -7518,6 +7654,143 @@ func TestProtocolForIngressGateway(t *testing.T) {
 			require.Equal(t, tc.expect, protocol)
 		})
 	}
+}
+
+func TestStateStore_EnsureService_ServiceNames(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create the service registration.
+	entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+
+	services := []structs.NodeService{
+		{
+			Kind:           structs.ServiceKindIngressGateway,
+			ID:             "ingress-gateway",
+			Service:        "ingress-gateway",
+			Address:        "2.2.2.2",
+			Port:           2222,
+			EnterpriseMeta: *entMeta,
+		},
+		{
+			Kind:           structs.ServiceKindMeshGateway,
+			ID:             "mesh-gateway",
+			Service:        "mesh-gateway",
+			Address:        "4.4.4.4",
+			Port:           4444,
+			EnterpriseMeta: *entMeta,
+		},
+		{
+			Kind:           structs.ServiceKindConnectProxy,
+			ID:             "connect-proxy",
+			Service:        "connect-proxy",
+			Address:        "1.1.1.1",
+			Port:           1111,
+			Proxy:          structs.ConnectProxyConfig{DestinationServiceName: "foo"},
+			EnterpriseMeta: *entMeta,
+		},
+		{
+			Kind:           structs.ServiceKindTerminatingGateway,
+			ID:             "terminating-gateway",
+			Service:        "terminating-gateway",
+			Address:        "3.3.3.3",
+			Port:           3333,
+			EnterpriseMeta: *entMeta,
+		},
+		{
+			Kind:           structs.ServiceKindTypical,
+			ID:             "web",
+			Service:        "web",
+			Address:        "5.5.5.5",
+			Port:           5555,
+			EnterpriseMeta: *entMeta,
+		},
+	}
+
+	var idx uint64
+	testRegisterNode(t, s, idx, "node1")
+
+	for _, svc := range services {
+		idx++
+		require.NoError(t, s.EnsureService(idx, "node1", &svc))
+
+		// Ensure the service name was stored for all of them under the appropriate kind
+		gotIdx, gotNames, err := s.ServiceNamesOfKind(nil, svc.Kind)
+		require.NoError(t, err)
+		require.Equal(t, idx, gotIdx)
+		require.Len(t, gotNames, 1)
+		require.Equal(t, svc.CompoundServiceName(), gotNames[0].Service)
+		require.Equal(t, svc.Kind, gotNames[0].Kind)
+	}
+
+	// Register another ingress gateway and there should be two names under the kind index
+	newIngress := structs.NodeService{
+		Kind:           structs.ServiceKindIngressGateway,
+		ID:             "new-ingress-gateway",
+		Service:        "new-ingress-gateway",
+		Address:        "6.6.6.6",
+		Port:           6666,
+		EnterpriseMeta: *entMeta,
+	}
+	idx++
+	require.NoError(t, s.EnsureService(idx, "node1", &newIngress))
+
+	gotIdx, got, err := s.ServiceNamesOfKind(nil, structs.ServiceKindIngressGateway)
+	require.NoError(t, err)
+	require.Equal(t, idx, gotIdx)
+
+	expect := []*KindServiceName{
+		{
+			Kind:    structs.ServiceKindIngressGateway,
+			Service: structs.NewServiceName("ingress-gateway", nil),
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 1,
+				ModifyIndex: 1,
+			},
+		},
+		{
+			Kind:    structs.ServiceKindIngressGateway,
+			Service: structs.NewServiceName("new-ingress-gateway", nil),
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: idx,
+				ModifyIndex: idx,
+			},
+		},
+	}
+	require.Equal(t, expect, got)
+
+	// Deregister an ingress gateway and the index should not slide back
+	idx++
+	require.NoError(t, s.DeleteService(idx, "node1", "new-ingress-gateway", entMeta))
+
+	gotIdx, got, err = s.ServiceNamesOfKind(nil, structs.ServiceKindIngressGateway)
+	require.NoError(t, err)
+	require.Equal(t, idx, gotIdx)
+	require.Equal(t, expect[:1], got)
+
+	// Registering another instance of a known service should not bump the kind index
+	newMGW := structs.NodeService{
+		Kind:           structs.ServiceKindMeshGateway,
+		ID:             "mesh-gateway-1",
+		Service:        "mesh-gateway",
+		Address:        "7.7.7.7",
+		Port:           7777,
+		EnterpriseMeta: *entMeta,
+	}
+	idx++
+	require.NoError(t, s.EnsureService(idx, "node1", &newMGW))
+
+	gotIdx, _, err = s.ServiceNamesOfKind(nil, structs.ServiceKindMeshGateway)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), gotIdx)
+
+	// Deregister the single typical service and the service name should also be dropped
+	idx++
+	require.NoError(t, s.DeleteService(idx, "node1", "web", entMeta))
+
+	gotIdx, got, err = s.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
+	require.NoError(t, err)
+	require.Equal(t, idx, gotIdx)
+	require.Empty(t, got)
 }
 
 func runStep(t *testing.T, name string, fn func(t *testing.T)) {

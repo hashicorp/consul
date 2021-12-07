@@ -151,6 +151,10 @@
             "path": "connect/config-entries/mesh"
           },
           {
+            "title": "Exported Services",
+            "path": "connect/config-entries/exported-services"
+          },
+          {
             "title": "Proxy Defaults",
             "path": "connect/config-entries/proxy-defaults"
           },
@@ -459,12 +463,12 @@
             "path": "k8s/connect/ingress-controllers"
           },
           {
-            "title": "Ambassador Edge Stack Integration",
-            "href": "https://learn.hashicorp.com/tutorials/consul/load-balancing-ambassador"
-          },
-          {
             "title": "Configuring a Connect CA Provider",
             "path": "k8s/connect/connect-ca-provider"
+          },
+          {
+            "title": "Ambassador Edge Stack Integration",
+            "href": "https://learn.hashicorp.com/tutorials/consul/load-balancing-ambassador"
           },
           {
             "title": "Health Checks",
@@ -560,7 +564,7 @@
     ]
   },
   {
-    "title": "AWS ECS <sup>BETA</sup>",
+    "title": "AWS ECS",
     "routes": [
       {
         "title": "Overview",
@@ -569,14 +573,6 @@
       {
         "title": "Get Started",
         "routes": [
-          {
-            "title": "Example Installation on ECS Fargate",
-            "href": "https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-fargate"
-          },
-          {
-            "title": "Example Installation on ECS EC2",
-            "href": "https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-ec2"
-          },
           {
             "title": "Requirements",
             "path": "ecs/get-started/requirements"
@@ -598,6 +594,10 @@
       {
         "title": "Architecture",
         "path": "ecs/architecture"
+      },
+      {
+        "title": "Consul Enterprise",
+        "path": "ecs/enterprise"
       }
     ]
   },
@@ -952,10 +952,6 @@
       {
         "title": "Vault Integration",
         "href": "/docs/connect/ca/vault"
-      },
-      {
-        "title": "Ambassador Integration",
-        "href": "/docs/k8s/connect/ambassador"
       },
       {
         "title": "Proxy Integration",

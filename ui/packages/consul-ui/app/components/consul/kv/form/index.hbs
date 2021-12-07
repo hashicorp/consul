@@ -38,16 +38,19 @@
                   <span>Code</span>
               </label>
             </div>
+
             <label for="" class="type-text{{if api.data.error.Value ' has-error'}}">
-                <span>Value</span>
 {{#if json}}
                 <CodeEditor
                   @name="value"
                   @readonly={{or disabld api.disabled}}
                   @value={{atob api.data.Value}}
                   @onkeyup={{action api.change "value"}}
-                />
+                >
+                  <:label>Value</:label>
+                </CodeEditor>
 {{else}}
+                <span>Value</span>
                 <textarea
                   {{disabled (or disabld api.disabled)}}
                   autofocus={{not api.isCreate}}

@@ -1,5 +1,8 @@
 {{#if (can "use partitions")}}
   {{#if (can "choose partitions" dc=@dc)}}
+{{#let
+  (or @partition 'default')
+as |partition|}}
       <li
         class="partitions"
         data-test-partition-menu
@@ -9,7 +12,7 @@
             @position="left"
           as |components api|>
             <BlockSlot @name="trigger">
-              {{@partition}}
+              {{partition}}
             </BlockSlot>
             <BlockSlot @name="menu">
               {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
@@ -24,10 +27,10 @@
                 />
               {{#each (reject-by 'DeletedAt' @partitions) as |item|}}
                 <MenuItem
-                  class={{if (eq @partition item.Name) 'is-active'}}
+                  class={{if (eq partition item.Name) 'is-active'}}
                   @href={{href-to '.' params=(hash
                     partition=item.Name
-                    nspace=(if (gt @nspace.length 0) @nspace undefined)
+                    nspace=undefined
                   )}}
                 >
                   <BlockSlot @name="label">
@@ -55,8 +58,9 @@
       class="partition"
       aria-label="Admin Partition"
     >
-      {{@partition}}
+      {{partition}}
     </li>
+{{/let}}
   {{/if}}
 {{/if}}
 

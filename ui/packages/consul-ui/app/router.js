@@ -231,23 +231,6 @@ export const routes = merge.all(
   )
 );
 
-if (env('CONSUL_NSPACES_ENABLED')) {
-  routes.dc.nspaces = {
-    _options: {
-      path: '/namespaces',
-      abilities: ['read nspaces'],
-    },
-    edit: {
-      _options: { path: '/:name' },
-    },
-    create: {
-      _options: {
-        path: '/create',
-        abilities: ['create nspaces'],
-      },
-    },
-  };
-}
 runInDebug(() => {
   // check to see if we are running docfy and if so add its routes to our
   // route config

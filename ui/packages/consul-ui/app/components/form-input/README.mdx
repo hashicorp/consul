@@ -1,0 +1,53 @@
+---
+state: wip
+---
+# FormInput
+
+Base component for making all types of form components.
+
+This component should 'generally' not be used in application code, but instead
+be used as a base component for creating application form components/elements.
+
+This component should contain the shared functionality for all form
+components, such as labels, errors, notes/messages/notices etc etc. Specific
+input types should be provided using the `input` slot.
+
+
+The following example shows how to create new form input components and
+'generally' shouldn't be used in application code.
+
+```hbs preview-template
+  <FormInput
+    @name="single"
+    @help="Help me if you can, I'm feeling down"
+  >
+    <:label>
+      Single Line Text Input
+    </:label>
+    <:input>
+      <input type="text" />
+    </:input>
+  </FormInput>
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `name` | `String` | '' | An identifier for retriving values/errors etc for this input |
+| `help` | `String` | | Provide some help text for the input (consider using `@validations` instead) |
+| `validations` | `Object` |  | A `validations` object |
+| `chart` | `Object` | | A StateChart object (implementing `state` and `dispatch` to be passed to the underlying `validate` modifier  |
+
+### Slots
+
+| Name  | Description |
+| --- | --- |
+| `input` | Slot to hold the specific input element |
+| `label`   | The label to be rendered |
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

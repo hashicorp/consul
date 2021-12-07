@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
-	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -32,7 +31,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -107,7 +106,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -172,7 +171,7 @@ func TestLeader_LeftMember(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -222,7 +221,7 @@ func TestLeader_ReapMember(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -287,7 +286,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = true
 	})
@@ -297,7 +296,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
@@ -307,7 +306,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
@@ -395,7 +394,7 @@ func TestLeader_ReapServer(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = true
 	})
@@ -405,7 +404,7 @@ func TestLeader_ReapServer(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
@@ -415,7 +414,7 @@ func TestLeader_ReapServer(t *testing.T) {
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
@@ -474,7 +473,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -527,7 +526,7 @@ func TestLeader_Reconcile(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -876,7 +875,7 @@ func TestLeader_ReapTombstones(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.TombstoneTTL = 50 * time.Millisecond
 		c.TombstoneTTLGranularity = 10 * time.Millisecond
@@ -1181,7 +1180,7 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				c.Datacenter = "dc1"
 				c.PrimaryDatacenter = "dc1"
 				c.ACLsEnabled = true
-				c.ACLMasterToken = tt.master
+				c.ACLInitialManagementToken = tt.master
 			}
 			dir1, s1 := testServerWithConfig(t, conf)
 			defer os.RemoveAll(dir1)
@@ -1226,7 +1225,7 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 		c.Datacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1770,14 +1769,6 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 	})
 }
 
-func updateSerfTags(s *Server, key, value string) {
-	libserf.UpdateTag(s.serfLAN, key, value)
-
-	if s.serfWAN != nil {
-		libserf.UpdateTag(s.serfWAN, key, value)
-	}
-}
-
 func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -2128,4 +2119,87 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 			ErrIntentionsNotUpgradedYet.Error(),
 		)
 	})
+}
+
+func TestLeader_EnableVirtualIPs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	conf := func(c *Config) {
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.Datacenter = "dc1"
+		c.Build = "1.11.0"
+	}
+	dir1, s1 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		conf(c)
+		c.Build = "1.10.0"
+	})
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join and wait for all servers to get promoted
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Should have nothing stored.
+	state := s1.fsm.State()
+	_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
+	require.NoError(t, err)
+	require.Nil(t, entry)
+
+	// Register a connect-native service and make sure we don't have a virtual IP yet.
+	err = state.EnsureRegistration(10, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	vip, err := state.VirtualIPForService(structs.NewServiceName("api", nil))
+	require.NoError(t, err)
+	require.Equal(t, "", vip)
+
+	// Leave s3 and wait for the version to get updated.
+	require.NoError(t, s3.Leave())
+	retry.Run(t, func(r *retry.R) {
+		_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
+		require.NoError(r, err)
+		require.NotNil(r, entry)
+		require.Equal(r, "true", entry.Value)
+	})
+
+	// Update the connect-native service - now there should be a virtual IP assigned.
+	err = state.EnsureRegistration(20, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.2",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	vip, err = state.VirtualIPForService(structs.NewServiceName("api", nil))
+	require.NoError(t, err)
+	require.Equal(t, "240.0.0.1", vip)
 }

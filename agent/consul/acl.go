@@ -1053,7 +1053,7 @@ func (r *ACLResolver) resolveLocallyManagedToken(token string) (structs.ACLIdent
 		return nil, nil, false
 	}
 
-	if r.tokens.IsAgentMasterToken(token) {
+	if r.tokens.IsAgentRecoveryToken(token) {
 		return structs.NewAgentMasterTokenIdentity(r.config.NodeName, token), r.agentMasterAuthz, true
 	}
 
@@ -1219,10 +1219,12 @@ func (f *aclFilter) allowSession(node string, ent *acl.AuthorizerContext) bool {
 }
 
 // filterHealthChecks is used to filter a set of health checks down based on
-// the configured ACL rules for a token.
-func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
+// the configured ACL rules for a token. Returns true if any elements were
+// removed.
+func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) bool {
 	hc := *checks
 	var authzContext acl.AuthorizerContext
+	var removed bool
 
 	for i := 0; i < len(hc); i++ {
 		check := hc[i]
@@ -1232,31 +1234,40 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
 		}
 
 		f.logger.Debug("dropping check from result due to ACLs", "check", check.CheckID)
+		removed = true
 		hc = append(hc[:i], hc[i+1:]...)
 		i--
 	}
 	*checks = hc
+	return removed
 }
 
-// filterServices is used to filter a set of services based on ACLs.
-func (f *aclFilter) filterServices(services structs.Services, entMeta *structs.EnterpriseMeta) {
+// filterServices is used to filter a set of services based on ACLs. Returns
+// true if any elements were removed.
+func (f *aclFilter) filterServices(services structs.Services, entMeta *structs.EnterpriseMeta) bool {
 	var authzContext acl.AuthorizerContext
 	entMeta.FillAuthzContext(&authzContext)
+
+	var removed bool
 
 	for svc := range services {
 		if f.allowService(svc, &authzContext) {
 			continue
 		}
 		f.logger.Debug("dropping service from result due to ACLs", "service", svc)
+		removed = true
 		delete(services, svc)
 	}
+
+	return removed
 }
 
 // filterServiceNodes is used to filter a set of nodes for a given service
-// based on the configured ACL rules.
-func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) {
+// based on the configured ACL rules. Returns true if any elements were removed.
+func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) bool {
 	sn := *nodes
 	var authzContext acl.AuthorizerContext
+	var removed bool
 
 	for i := 0; i < len(sn); i++ {
 		node := sn[i]
@@ -1265,26 +1276,30 @@ func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) {
 		if f.allowNode(node.Node, &authzContext) && f.allowService(node.ServiceName, &authzContext) {
 			continue
 		}
+		removed = true
 		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node.Node, &node.EnterpriseMeta))
 		sn = append(sn[:i], sn[i+1:]...)
 		i--
 	}
 	*nodes = sn
+	return removed
 }
 
 // filterNodeServices is used to filter services on a given node base on ACLs.
-func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
+// Returns true if any elements were removed
+func (f *aclFilter) filterNodeServices(services **structs.NodeServices) bool {
 	if *services == nil {
-		return
+		return false
 	}
 
 	var authzContext acl.AuthorizerContext
 	(*services).Node.FillAuthzContext(&authzContext)
 	if !f.allowNode((*services).Node.Node, &authzContext) {
 		*services = nil
-		return
+		return true
 	}
 
+	var removed bool
 	for svcName, svc := range (*services).Services {
 		svc.FillAuthzContext(&authzContext)
 
@@ -1292,50 +1307,53 @@ func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
 			continue
 		}
 		f.logger.Debug("dropping service from result due to ACLs", "service", svc.CompoundServiceID())
+		removed = true
 		delete((*services).Services, svcName)
 	}
+
+	return removed
 }
 
 // filterNodeServices is used to filter services on a given node base on ACLs.
-func (f *aclFilter) filterNodeServiceList(services **structs.NodeServiceList) {
-	if services == nil || *services == nil {
-		return
+// Returns true if any elements were removed.
+func (f *aclFilter) filterNodeServiceList(services *structs.NodeServiceList) bool {
+	if services.Node == nil {
+		return false
 	}
 
 	var authzContext acl.AuthorizerContext
-	(*services).Node.FillAuthzContext(&authzContext)
-	if !f.allowNode((*services).Node.Node, &authzContext) {
-		*services = nil
-		return
+	services.Node.FillAuthzContext(&authzContext)
+	if !f.allowNode(services.Node.Node, &authzContext) {
+		*services = structs.NodeServiceList{}
+		return true
 	}
 
-	svcs := (*services).Services
-	modified := false
+	var removed bool
+	svcs := services.Services
 	for i := 0; i < len(svcs); i++ {
 		svc := svcs[i]
 		svc.FillAuthzContext(&authzContext)
 
-		if f.allowNode((*services).Node.Node, &authzContext) && f.allowService(svc.Service, &authzContext) {
+		if f.allowService(svc.Service, &authzContext) {
 			continue
 		}
+
 		f.logger.Debug("dropping service from result due to ACLs", "service", svc.CompoundServiceID())
 		svcs = append(svcs[:i], svcs[i+1:]...)
 		i--
-		modified = true
+		removed = true
 	}
+	services.Services = svcs
 
-	if modified {
-		*services = &structs.NodeServiceList{
-			Node:     (*services).Node,
-			Services: svcs,
-		}
-	}
+	return removed
 }
 
-// filterCheckServiceNodes is used to filter nodes based on ACL rules.
-func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
+// filterCheckServiceNodes is used to filter nodes based on ACL rules. Returns
+// true if any elements were removed.
+func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) bool {
 	csn := *nodes
 	var authzContext acl.AuthorizerContext
+	var removed bool
 
 	for i := 0; i < len(csn); i++ {
 		node := csn[i]
@@ -1344,41 +1362,47 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 			continue
 		}
 		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node.Node.Node, node.Node.GetEnterpriseMeta()))
+		removed = true
 		csn = append(csn[:i], csn[i+1:]...)
 		i--
 	}
 	*nodes = csn
+	return removed
 }
 
 // filterServiceTopology is used to filter upstreams/downstreams based on ACL rules.
 // this filter is unlike others in that it also returns whether the result was filtered by ACLs
 func (f *aclFilter) filterServiceTopology(topology *structs.ServiceTopology) bool {
-	numUp := len(topology.Upstreams)
-	numDown := len(topology.Downstreams)
-
-	f.filterCheckServiceNodes(&topology.Upstreams)
-	f.filterCheckServiceNodes(&topology.Downstreams)
-
-	return numUp != len(topology.Upstreams) || numDown != len(topology.Downstreams)
+	filteredUpstreams := f.filterCheckServiceNodes(&topology.Upstreams)
+	filteredDownstreams := f.filterCheckServiceNodes(&topology.Downstreams)
+	return filteredUpstreams || filteredDownstreams
 }
 
 // filterDatacenterCheckServiceNodes is used to filter nodes based on ACL rules.
-func (f *aclFilter) filterDatacenterCheckServiceNodes(datacenterNodes *map[string]structs.CheckServiceNodes) {
+// Returns true if any elements are removed.
+func (f *aclFilter) filterDatacenterCheckServiceNodes(datacenterNodes *map[string]structs.CheckServiceNodes) bool {
 	dn := *datacenterNodes
 	out := make(map[string]structs.CheckServiceNodes)
+	var removed bool
 	for dc := range dn {
 		nodes := dn[dc]
-		f.filterCheckServiceNodes(&nodes)
+		if f.filterCheckServiceNodes(&nodes) {
+			removed = true
+		}
 		if len(nodes) > 0 {
 			out[dc] = nodes
 		}
 	}
 	*datacenterNodes = out
+	return removed
 }
 
-// filterSessions is used to filter a set of sessions based on ACLs.
-func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
+// filterSessions is used to filter a set of sessions based on ACLs. Returns
+// true if any elements were removed.
+func (f *aclFilter) filterSessions(sessions *structs.Sessions) bool {
 	s := *sessions
+
+	var removed bool
 	for i := 0; i < len(s); i++ {
 		session := s[i]
 
@@ -1388,18 +1412,21 @@ func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
 		if f.allowSession(session.Node, &entCtx) {
 			continue
 		}
+		removed = true
 		f.logger.Debug("dropping session from result due to ACLs", "session", session.ID)
 		s = append(s[:i], s[i+1:]...)
 		i--
 	}
 	*sessions = s
+	return removed
 }
 
 // filterCoordinates is used to filter nodes in a coordinate dump based on ACL
-// rules.
-func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
+// rules. Returns true if any elements were removed.
+func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) bool {
 	c := *coords
 	var authzContext acl.AuthorizerContext
+	var removed bool
 
 	for i := 0; i < len(c); i++ {
 		c[i].FillAuthzContext(&authzContext)
@@ -1408,19 +1435,24 @@ func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 			continue
 		}
 		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node, c[i].GetEnterpriseMeta()))
+		removed = true
 		c = append(c[:i], c[i+1:]...)
 		i--
 	}
 	*coords = c
+	return removed
 }
 
 // filterIntentions is used to filter intentions based on ACL rules.
 // We prune entries the user doesn't have access to, and we redact any tokens
-// if the user doesn't have a management token.
-func (f *aclFilter) filterIntentions(ixns *structs.Intentions) {
+// if the user doesn't have a management token. Returns true if any elements
+// were removed.
+func (f *aclFilter) filterIntentions(ixns *structs.Intentions) bool {
 	ret := make(structs.Intentions, 0, len(*ixns))
+	var removed bool
 	for _, ixn := range *ixns {
 		if !ixn.CanRead(f.authorizer) {
+			removed = true
 			f.logger.Debug("dropping intention from result due to ACLs", "intention", ixn.ID)
 			continue
 		}
@@ -1429,14 +1461,17 @@ func (f *aclFilter) filterIntentions(ixns *structs.Intentions) {
 	}
 
 	*ixns = ret
+	return removed
 }
 
 // filterNodeDump is used to filter through all parts of a node dump and
-// remove elements the provided ACL token cannot access.
-func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
+// remove elements the provided ACL token cannot access. Returns true if
+// any elements were removed.
+func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) bool {
 	nd := *dump
 
 	var authzContext acl.AuthorizerContext
+	var removed bool
 	for i := 0; i < len(nd); i++ {
 		info := nd[i]
 
@@ -1444,6 +1479,7 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		info.FillAuthzContext(&authzContext)
 		if node := info.Node; !f.allowNode(node, &authzContext) {
 			f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node, info.GetEnterpriseMeta()))
+			removed = true
 			nd = append(nd[:i], nd[i+1:]...)
 			i--
 			continue
@@ -1457,6 +1493,7 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 				continue
 			}
 			f.logger.Debug("dropping service from result due to ACLs", "service", svc)
+			removed = true
 			info.Services = append(info.Services[:j], info.Services[j+1:]...)
 			j--
 		}
@@ -1469,17 +1506,21 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 				continue
 			}
 			f.logger.Debug("dropping check from result due to ACLs", "check", chk.CheckID)
+			removed = true
 			info.Checks = append(info.Checks[:j], info.Checks[j+1:]...)
 			j--
 		}
 	}
 	*dump = nd
+	return removed
 }
 
-// filterServiceDump is used to filter nodes based on ACL rules.
-func (f *aclFilter) filterServiceDump(services *structs.ServiceDump) {
+// filterServiceDump is used to filter nodes based on ACL rules. Returns true
+// if any elements were removed.
+func (f *aclFilter) filterServiceDump(services *structs.ServiceDump) bool {
 	svcs := *services
 	var authzContext acl.AuthorizerContext
+	var removed bool
 
 	for i := 0; i < len(svcs); i++ {
 		service := svcs[i]
@@ -1497,18 +1538,22 @@ func (f *aclFilter) filterServiceDump(services *structs.ServiceDump) {
 		}
 
 		f.logger.Debug("dropping service from result due to ACLs", "service", service.GatewayService.Service)
+		removed = true
 		svcs = append(svcs[:i], svcs[i+1:]...)
 		i--
 	}
 	*services = svcs
+	return removed
 }
 
 // filterNodes is used to filter through all parts of a node list and remove
-// elements the provided ACL token cannot access.
-func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
+// elements the provided ACL token cannot access. Returns true if any elements
+// were removed.
+func (f *aclFilter) filterNodes(nodes *structs.Nodes) bool {
 	n := *nodes
 
 	var authzContext acl.AuthorizerContext
+	var removed bool
 
 	for i := 0; i < len(n); i++ {
 		n[i].FillAuthzContext(&authzContext)
@@ -1517,10 +1562,12 @@ func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
 			continue
 		}
 		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node, n[i].GetEnterpriseMeta()))
+		removed = true
 		n = append(n[:i], n[i+1:]...)
 		i--
 	}
 	*nodes = n
+	return removed
 }
 
 // redactPreparedQueryTokens will redact any tokens unless the client has a
@@ -1555,8 +1602,10 @@ func (f *aclFilter) redactPreparedQueryTokens(query **structs.PreparedQuery) {
 
 // filterPreparedQueries is used to filter prepared queries based on ACL rules.
 // We prune entries the user doesn't have access to, and we redact any tokens
-// if the user doesn't have a management token.
-func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) {
+// if the user doesn't have a management token. Returns true if any (named)
+// queries were removed - un-named queries are meant to be ephemeral and can
+// only be enumerated by a management token
+func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) bool {
 	var authzContext acl.AuthorizerContext
 	structs.DefaultEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 	// Management tokens can see everything with no filtering.
@@ -1564,17 +1613,22 @@ func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) {
 	// the 1.4 ACL rewrite. The global-management token will provide unrestricted query privileges
 	// so asking for ACLWrite should be unnecessary.
 	if f.authorizer.ACLWrite(&authzContext) == acl.Allow {
-		return
+		return false
 	}
 
 	// Otherwise, we need to see what the token has access to.
+	var namedQueriesRemoved bool
 	ret := make(structs.PreparedQueries, 0, len(*queries))
 	for _, query := range *queries {
 		// If no prefix ACL applies to this query then filter it, since
 		// we know at this point the user doesn't have a management
 		// token, otherwise see what the policy says.
-		prefix, ok := query.GetACLPrefix()
-		if !ok || f.authorizer.PreparedQueryRead(prefix, &authzContext) != acl.Allow {
+		prefix, hasName := query.GetACLPrefix()
+		switch {
+		case hasName && f.authorizer.PreparedQueryRead(prefix, &authzContext) != acl.Allow:
+			namedQueriesRemoved = true
+			fallthrough
+		case !hasName:
 			f.logger.Debug("dropping prepared query from result due to ACLs", "query", query.ID)
 			continue
 		}
@@ -1586,6 +1640,7 @@ func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) {
 		ret = append(ret, final)
 	}
 	*queries = ret
+	return namedQueriesRemoved
 }
 
 func (f *aclFilter) filterToken(token **structs.ACLToken) {
@@ -1753,14 +1808,16 @@ func (f *aclFilter) filterAuthMethods(methods *structs.ACLAuthMethods) {
 	*methods = ret
 }
 
-func (f *aclFilter) filterServiceList(services *structs.ServiceList) {
+func (f *aclFilter) filterServiceList(services *structs.ServiceList) bool {
 	ret := make(structs.ServiceList, 0, len(*services))
+	var removed bool
 	for _, svc := range *services {
 		var authzContext acl.AuthorizerContext
 
 		svc.FillAuthzContext(&authzContext)
 
 		if f.authorizer.ServiceRead(svc.Name, &authzContext) != acl.Allow {
+			removed = true
 			sid := structs.NewServiceID(svc.Name, &svc.EnterpriseMeta)
 			f.logger.Debug("dropping service from result due to ACLs", "service", sid.String())
 			continue
@@ -1770,11 +1827,14 @@ func (f *aclFilter) filterServiceList(services *structs.ServiceList) {
 	}
 
 	*services = ret
+	return removed
 }
 
 // filterGatewayServices is used to filter gateway to service mappings based on ACL rules.
-func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) {
+// Returns true if any elements were removed.
+func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) bool {
 	ret := make(structs.GatewayServices, 0, len(*mappings))
+	var removed bool
 	for _, s := range *mappings {
 		// This filter only checks ServiceRead on the linked service.
 		// ServiceRead on the gateway is checked in the GatewayServices endpoint before filtering.
@@ -1783,11 +1843,13 @@ func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) {
 
 		if f.authorizer.ServiceRead(s.Service.Name, &authzContext) != acl.Allow {
 			f.logger.Debug("dropping service from result due to ACLs", "service", s.Service.String())
+			removed = true
 			continue
 		}
 		ret = append(ret, s)
 	}
 	*mappings = ret
+	return removed
 }
 
 func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, subj interface{}) {
@@ -1801,52 +1863,56 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		filt.filterCheckServiceNodes(v)
 
 	case *structs.IndexedCheckServiceNodes:
-		filt.filterCheckServiceNodes(&v.Nodes)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterCheckServiceNodes(&v.Nodes)
+
+	case *structs.PreparedQueryExecuteResponse:
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterCheckServiceNodes(&v.Nodes)
 
 	case *structs.IndexedServiceTopology:
 		filtered := filt.filterServiceTopology(v.ServiceTopology)
 		if filtered {
 			v.FilteredByACLs = true
+			v.QueryMeta.ResultsFilteredByACLs = true
 		}
 
 	case *structs.DatacenterIndexedCheckServiceNodes:
-		filt.filterDatacenterCheckServiceNodes(&v.DatacenterNodes)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterDatacenterCheckServiceNodes(&v.DatacenterNodes)
 
 	case *structs.IndexedCoordinates:
-		filt.filterCoordinates(&v.Coordinates)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterCoordinates(&v.Coordinates)
 
 	case *structs.IndexedHealthChecks:
-		filt.filterHealthChecks(&v.HealthChecks)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterHealthChecks(&v.HealthChecks)
 
 	case *structs.IndexedIntentions:
-		filt.filterIntentions(&v.Intentions)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterIntentions(&v.Intentions)
 
 	case *structs.IndexedNodeDump:
-		filt.filterNodeDump(&v.Dump)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterNodeDump(&v.Dump)
 
 	case *structs.IndexedServiceDump:
-		filt.filterServiceDump(&v.Dump)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterServiceDump(&v.Dump)
 
 	case *structs.IndexedNodes:
-		filt.filterNodes(&v.Nodes)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterNodes(&v.Nodes)
 
 	case *structs.IndexedNodeServices:
-		filt.filterNodeServices(&v.NodeServices)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterNodeServices(&v.NodeServices)
 
-	case **structs.NodeServiceList:
-		filt.filterNodeServiceList(v)
+	case *structs.IndexedNodeServiceList:
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterNodeServiceList(&v.NodeServices)
 
 	case *structs.IndexedServiceNodes:
-		filt.filterServiceNodes(&v.ServiceNodes)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterServiceNodes(&v.ServiceNodes)
 
 	case *structs.IndexedServices:
-		filt.filterServices(v.Services, &v.EnterpriseMeta)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterServices(v.Services, &v.EnterpriseMeta)
 
 	case *structs.IndexedSessions:
-		filt.filterSessions(&v.Sessions)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterSessions(&v.Sessions)
 
 	case *structs.IndexedPreparedQueries:
-		filt.filterPreparedQueries(&v.Queries)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterPreparedQueries(&v.Queries)
 
 	case **structs.PreparedQuery:
 		filt.redactPreparedQueryTokens(v)
@@ -1881,10 +1947,18 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		filt.filterAuthMethod(v)
 
 	case *structs.IndexedServiceList:
-		filt.filterServiceList(&v.Services)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterServiceList(&v.Services)
 
-	case *structs.GatewayServices:
-		filt.filterGatewayServices(v)
+	case *structs.IndexedGatewayServices:
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterGatewayServices(&v.Services)
+
+	case *structs.IndexedNodesWithGateways:
+		if filt.filterCheckServiceNodes(&v.Nodes) {
+			v.QueryMeta.ResultsFilteredByACLs = true
+		}
+		if filt.filterGatewayServices(&v.Gateways) {
+			v.QueryMeta.ResultsFilteredByACLs = true
+		}
 
 	default:
 		panic(fmt.Errorf("Unhandled type passed to ACL filter: %T %#v", subj, subj))
@@ -1906,6 +1980,6 @@ func filterACL(r *ACLResolver, token string, subj interface{}) error {
 
 type partitionInfoNoop struct{}
 
-func (p *partitionInfoNoop) ExportsForPartition(partition string) acl.PartitionExports {
-	return acl.PartitionExports{}
+func (p *partitionInfoNoop) ExportsForPartition(partition string) acl.ExportedServices {
+	return acl.ExportedServices{}
 }

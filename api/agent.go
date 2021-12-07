@@ -1021,25 +1021,36 @@ func (a *Agent) Leave() error {
 	return nil
 }
 
+type ForceLeaveOpts struct {
+	// Prune indicates if we should remove a failed agent from the list of
+	// members in addition to ejecting it.
+	Prune bool
+
+	// WAN indicates that the request should exclusively target the WAN pool.
+	WAN bool
+}
+
 // ForceLeave is used to have the agent eject a failed node
 func (a *Agent) ForceLeave(node string) error {
-	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
-	_, resp, err := a.c.doRequest(r)
-	if err != nil {
-		return err
-	}
-	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return err
-	}
-	return nil
+	return a.ForceLeaveOpts(node, ForceLeaveOpts{})
 }
 
 // ForceLeavePrune is used to have an a failed agent removed
 // from the list of members
 func (a *Agent) ForceLeavePrune(node string) error {
+	return a.ForceLeaveOpts(node, ForceLeaveOpts{Prune: true})
+}
+
+// ForceLeaveOpts is used to have the agent eject a failed node or remove it
+// completely from the list of members.
+func (a *Agent) ForceLeaveOpts(node string, opts ForceLeaveOpts) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
-	r.params.Set("prune", "1")
+	if opts.Prune {
+		r.params.Set("prune", "1")
+	}
+	if opts.WAN {
+		r.params.Set("wan", "1")
+	}
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
@@ -1287,25 +1298,33 @@ func (a *Agent) UpdateACLReplicationToken(token string, q *WriteOptions) (*Write
 // UpdateDefaultACLToken updates the agent's "default" token. See updateToken
 // for more details
 func (a *Agent) UpdateDefaultACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateTokenFallback("default", "acl_token", token, q)
+	return a.updateTokenFallback(token, q, "default", "acl_token")
 }
 
 // UpdateAgentACLToken updates the agent's "agent" token. See updateToken
 // for more details
 func (a *Agent) UpdateAgentACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateTokenFallback("agent", "acl_agent_token", token, q)
+	return a.updateTokenFallback(token, q, "agent", "acl_agent_token")
+}
+
+// UpdateAgentRecoveryACLToken updates the agent's "agent_recovery" token. See updateToken
+// for more details.
+func (a *Agent) UpdateAgentRecoveryACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return a.updateTokenFallback(token, q, "agent_recovery", "agent_master", "acl_agent_master_token")
 }
 
 // UpdateAgentMasterACLToken updates the agent's "agent_master" token. See updateToken
-// for more details
+// for more details.
+//
+// DEPRECATED - Prefer UpdateAgentRecoveryACLToken for v1.11 and above.
 func (a *Agent) UpdateAgentMasterACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateTokenFallback("agent_master", "acl_agent_master_token", token, q)
+	return a.updateTokenFallback(token, q, "agent_master", "acl_agent_master_token")
 }
 
 // UpdateReplicationACLToken updates the agent's "replication" token. See updateToken
 // for more details
 func (a *Agent) UpdateReplicationACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateTokenFallback("replication", "acl_replication_token", token, q)
+	return a.updateTokenFallback(token, q, "replication", "acl_replication_token")
 }
 
 // updateToken can be used to update one of an agent's ACL tokens after the agent has
@@ -1316,10 +1335,21 @@ func (a *Agent) updateToken(target, token string, q *WriteOptions) (*WriteMeta, 
 	return meta, err
 }
 
-func (a *Agent) updateTokenFallback(target, fallback, token string, q *WriteOptions) (*WriteMeta, error) {
-	meta, status, err := a.updateTokenOnce(target, token, q)
-	if err != nil && status == 404 {
-		meta, _, err = a.updateTokenOnce(fallback, token, q)
+func (a *Agent) updateTokenFallback(token string, q *WriteOptions, targets ...string) (*WriteMeta, error) {
+	if len(targets) == 0 {
+		panic("targets must not be empty")
+	}
+
+	var (
+		meta *WriteMeta
+		err  error
+	)
+	for _, target := range targets {
+		var status int
+		meta, status, err = a.updateTokenOnce(target, token, q)
+		if err == nil && status != http.StatusNotFound {
+			return meta, err
+		}
 	}
 	return meta, err
 }

@@ -206,28 +206,30 @@ export default class FSMWithOptionalLocation {
         withOptional = false;
         break;
     }
+    if (this.router.currentRouteName.startsWith('docs.')) {
+      // If we are in docs, then add a default dc as there won't be one in the
+      // URL
+      params.unshift(env('CONSUL_DATACENTER_PRIMARY'));
+      if (routeName.startsWith('dc')) {
+        // if its an app URL replace it with debugging instead of linking
+        return `console://${routeName} <= ${JSON.stringify(params)}`;
+      }
+    }
     const router = this.router._routerMicrolib;
     let url;
     try {
       url = router.generate(routeName, ...params, {
         queryParams: {},
       });
-    } catch(e) {
-      if(
-        !(this.router.currentRouteName.startsWith('docs') &&
-          e.message.startsWith('There is no route named ')
-        )
-      ) {
-        if(this.router.currentRouteName.startsWith('docs') && routeName.startsWith('dc')) {
-          params.unshift('dc-1');
-          url = router.generate(routeName, ...params, {
-            queryParams: {},
-          });
-        } else {
-          throw e;
-        }
-      }
-      return `console://${routeName} <= ${JSON.stringify(params)}`;
+    } catch (e) {
+      // if the previous generation throws due to params not being available
+      // its probably due to the view wanting to re-render even though we are
+      // leaving the view and the router has already moved the state to old
+      // state so try again with the old state to avoid errors
+      params = Object.values(router.oldState.params).reduce((prev, item) => {
+        return prev.concat(Object.keys(item).length > 0 ? item : []);
+      }, []);
+      url = router.generate(routeName, ...params);
     }
     return this.formatURL(url, hash, withOptional);
   }
@@ -237,17 +239,27 @@ export default class FSMWithOptionalLocation {
    * performs an ember transition/refresh and browser location update using that
    */
   transitionTo(url) {
-    if(this.router.currentRouteName.startsWith('docs') && url.startsWith('console://')) {
+    if (this.router.currentRouteName.startsWith('docs') && url.startsWith('console://')) {
       console.log(`location.transitionTo: ${url.substr(10)}`);
       return true;
     }
+    const previousOptional = Object.entries(this.optionalParams());
     const transitionURL = this.getURLForTransition(url);
     if (this._previousURL === transitionURL) {
-      // probably an optional parameter change
+      // probably an optional parameter change as the Ember URLs are the same
+      // whereas the entire URL is different
       this.dispatch('push', url);
       return Promise.resolve();
       // this.setURL(url);
     } else {
+      const currentOptional = this.optionalParams();
+      if (previousOptional.some(([key, value]) => currentOptional[key] !== value)) {
+        // an optional parameter change and a normal param change as the Ember
+        // URLs are different and we know the optional params changed
+        // TODO: Consider changing the above previousURL === transitionURL to
+        // use the same 'check the optionalParams' approach
+        this.dispatch('push', url);
+      }
       // use ember to transition, which will eventually come around to use location.setURL
       return this.container.lookup('router:main').transitionTo(transitionURL);
     }

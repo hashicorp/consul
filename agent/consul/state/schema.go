@@ -32,12 +32,15 @@ func newDBSchema() *memdb.DBSchema {
 		preparedQueriesTableSchema,
 		rolesTableSchema,
 		servicesTableSchema,
+		serviceVirtualIPTableSchema,
 		sessionChecksTableSchema,
 		sessionsTableSchema,
 		systemMetadataTableSchema,
 		tokensTableSchema,
 		tombstonesTableSchema,
 		usageTableSchema,
+		freeVirtualIPTableSchema,
+		kindServiceNameTableSchema,
 	)
 	withEnterpriseSchema(db)
 	return db

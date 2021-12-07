@@ -43,12 +43,17 @@ func TestNewDBSchema_Indexers(t *testing.T) {
 		tableACLRoles:        testIndexerTableACLRoles,
 		tableACLTokens:       testIndexerTableACLTokens,
 		// catalog
-		tableChecks:          testIndexerTableChecks,
-		tableServices:        testIndexerTableServices,
-		tableNodes:           testIndexerTableNodes,
-		tableCoordinates:     testIndexerTableCoordinates,
-		tableMeshTopology:    testIndexerTableMeshTopology,
-		tableGatewayServices: testIndexerTableGatewayServices,
+		tableChecks:            testIndexerTableChecks,
+		tableServices:          testIndexerTableServices,
+		tableNodes:             testIndexerTableNodes,
+		tableCoordinates:       testIndexerTableCoordinates,
+		tableMeshTopology:      testIndexerTableMeshTopology,
+		tableGatewayServices:   testIndexerTableGatewayServices,
+		tableServiceVirtualIPs: testIndexerTableServiceVirtualIPs,
+		tableKindServiceNames:  testIndexerTableKindServiceNames,
+		// KV
+		tableKVs:        testIndexerTableKVs,
+		tableTombstones: testIndexerTableTombstones,
 		// config
 		tableConfigEntries: testIndexerTableConfigEntries,
 	}

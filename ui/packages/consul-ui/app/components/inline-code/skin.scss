@@ -1,6 +1,7 @@
+%block-code,
 %inline-code {
   border: 1px solid;
-  color: var(rgb(var(--brand-600)), inherit);
+  color: rgb(var(--tone-brand-600));
   background-color: rgb(var(--tone-gray-050));
   border-color: rgb(var(--tone-gray-200));
 }

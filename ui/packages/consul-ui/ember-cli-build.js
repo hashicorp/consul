@@ -28,7 +28,8 @@ module.exports = function(defaults, $ = process.env) {
 
   const apps = [
     'consul-acls',
-    'consul-partitions'
+    'consul-partitions',
+    'consul-nspaces'
   ].map(item => {
     return {
       name: item,
@@ -59,6 +60,8 @@ module.exports = function(defaults, $ = process.env) {
     excludeFiles = excludeFiles.concat([
       'instance-initializers/debug.js',
       'routing/**/*-debug.js',
+      'helpers/**/*-debug.js',
+      'modifiers/**/*-debug.js',
       'services/**/*-debug.js',
       'templates/debug.hbs',
       'components/debug/**/*.*'

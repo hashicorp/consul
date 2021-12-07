@@ -22,7 +22,7 @@ references:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
 
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v5-{{ checksum "ui/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v6-{{ checksum "ui/yarn.lock" }}
     rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
 
   environment: &ENVIRONMENT
@@ -113,7 +113,7 @@ jobs:
       - image: *GOLANG_IMAGE
     steps:
       - checkout
-      - run: go get -u github.com/hashicorp/lint-consul-retry && lint-consul-retry
+      - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
       - run: *notify-slack-failure
 
   lint:
@@ -184,9 +184,8 @@ jobs:
           name: Install gogo/protobuf
           command: |
             gogo_version=$(go list -m github.com/gogo/protobuf | awk '{print $2}')
-            mkdir -p .gotools; cd .gotools; go mod init consul-tools
-            go get -v github.com/hashicorp/protoc-gen-go-binary
-            go get -v github.com/gogo/protobuf/protoc-gen-gofast@${gogo_version}
+            go install -v github.com/hashicorp/protoc-gen-go-binary@master
+            go install -v github.com/gogo/protobuf/protoc-gen-gofast@${gogo_version}
 
       - run:
           command: make --always-make proto

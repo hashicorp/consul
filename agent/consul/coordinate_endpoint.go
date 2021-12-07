@@ -24,8 +24,9 @@ type Coordinate struct {
 	logger hclog.Logger
 
 	// updates holds pending coordinate updates for the given nodes. This is
-	// keyed by node:segment so we can get a coordinate for each segment for
-	// servers, and we only track the latest update per node:segment.
+	// keyed by partition/node:segment so we can get a coordinate for each
+	// segment for servers, and we only track the latest update per
+	// partition/node:segment.
 	updates map[string]*structs.CoordinateUpdateRequest
 
 	// updatesLock synchronizes access to the updates map.
@@ -132,7 +133,7 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 
 	// Since this is a coordinate coming from some place else we harden this
 	// and look for dimensionality problems proactively.
-	coord, err := c.srv.serfLAN.GetCoordinate()
+	coord, err := c.srv.GetMatchingLANCoordinate(args.PartitionOrDefault(), args.Segment)
 	if err != nil {
 		return err
 	}
@@ -141,7 +142,8 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	var authzContext acl.AuthorizerContext
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
 	}
@@ -150,14 +152,12 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 		return err
 	}
 
-	var authzContext acl.AuthorizerContext
-	args.FillAuthzContext(&authzContext)
 	if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	// Add the coordinate to the map of pending updates.
-	key := fmt.Sprintf("%s:%s", args.Node, args.Segment)
+	key := fmt.Sprintf("%s/%s:%s", args.PartitionOrDefault(), args.Node, args.Segment)
 	c.updatesLock.Lock()
 	c.updates[key] = args
 	c.updatesLock.Unlock()
@@ -173,8 +173,6 @@ func (c *Coordinate) ListDatacenters(args *struct{}, reply *[]structs.Datacenter
 	if err != nil {
 		return err
 	}
-
-	// TODO(partitions): should we filter any of this out?
 
 	var out []structs.DatacenterMap
 
@@ -237,8 +235,8 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-
-	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	var authzContext acl.AuthorizerContext
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
 	}
@@ -247,13 +245,9 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 		return err
 	}
 
-	var authzContext acl.AuthorizerContext
-	args.FillAuthzContext(&authzContext)
 	if authz.NodeRead(args.Node, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
-
-	// TODO(partitions): do we have to add EnterpriseMeta to the reply like in Catalog.ListServices?
 
 	return c.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,

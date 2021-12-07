@@ -151,7 +151,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 
 	if args.Op == structs.SessionCreate && args.Session.TTL != "" {
 		// If we created a session with a TTL, reset the expiration timer
-		s.srv.resetSessionTimer(args.Session.ID, &args.Session)
+		s.srv.resetSessionTimer(&args.Session)
 	} else if args.Op == structs.SessionDestroy {
 		// If we destroyed a session, it might potentially have a TTL,
 		// and we need to clear the timer
@@ -308,7 +308,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 
 	// Reset the session TTL timer.
 	reply.Sessions = structs.Sessions{session}
-	if err := s.srv.resetSessionTimer(args.SessionID, session); err != nil {
+	if err := s.srv.resetSessionTimer(session); err != nil {
 		s.logger.Error("Session renew failed", "error", err)
 		return err
 	}

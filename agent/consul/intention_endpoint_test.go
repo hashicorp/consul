@@ -867,7 +867,7 @@ func TestIntentionApply_aclDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1257,7 +1257,7 @@ func TestIntentionApply_aclDelete(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1323,7 +1323,7 @@ func TestIntentionApply_aclUpdate(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1377,7 +1377,7 @@ func TestIntentionApply_aclManagement(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1422,7 +1422,7 @@ func TestIntentionApply_aclUpdateChange(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1472,7 +1472,7 @@ func TestIntentionGet_acl(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1635,6 +1635,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 0)
+		require.False(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	// Test with management token
@@ -1646,6 +1647,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 3)
+		require.False(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	// Test with user token
@@ -1657,6 +1659,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 1)
+		require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("filtered", func(t *testing.T) {
@@ -1671,6 +1674,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 1)
+		require.False(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 }
 
@@ -1875,7 +1879,7 @@ func TestIntentionCheck_defaultACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1911,7 +1915,7 @@ func TestIntentionCheck_defaultACLAllow(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 	})
 	defer os.RemoveAll(dir1)
@@ -1947,7 +1951,7 @@ func TestIntentionCheck_aclDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)

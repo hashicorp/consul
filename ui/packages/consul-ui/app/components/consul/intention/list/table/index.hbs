@@ -24,6 +24,7 @@ as |item index|>
             {{else}}
               {{item.SourceName}}
             {{/if}}
+            {{#if (or (can 'use nspaces') (can 'use partitions'))}}
             {{! TODO: slugify }}
             <em>
               <span
@@ -32,6 +33,7 @@ as |item index|>
                 class={{concat 'nspace-' (or item.SourceNS 'default')}}
               >{{or item.SourceNS 'default'}}</span>
             </em>
+            {{/if}}
           </a>
         </td>
         <td class="intent intent-{{slugify item.Action}}" data-test-intention-action={{item.Action}}>
@@ -44,6 +46,7 @@ as |item index|>
             {{else}}
               {{item.DestinationName}}
             {{/if}}
+            {{#if (or (can 'use nspaces') (can 'use partitions'))}}
             {{! TODO: slugify }}
             <em>
               <span
@@ -52,6 +55,7 @@ as |item index|>
                 class={{concat 'nspace-' (or item.DestinationNS 'default')}}
               >{{or item.DestinationNS 'default'}}</span>
             </em>
+            {{/if}}
           </span>
         </td>
         <td class="permissions">
@@ -65,7 +69,7 @@ as |item index|>
         {{/if}}
         </td>
     </BlockSlot>
-{{#if (or (can "write intention" item=item) (can "view CRD intention" item=item))}}
+{{#if (and (or (can "write intention" item=item) (can "view CRD intention" item=item)) (not-eq item.Meta.external-source 'consul-api-gateway'))}}
     <BlockSlot @name="actions" as |index change checked|>
       <PopoverMenu
         @expanded={{if (eq checked index) true false}}

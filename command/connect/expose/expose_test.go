@@ -43,6 +43,7 @@ func TestConnectExpose(t *testing.T) {
 	entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
 	require.NoError(err)
 	ns := entry.(*api.IngressGatewayConfigEntry).Namespace
+	ap := entry.(*api.IngressGatewayConfigEntry).Partition
 	expected := &api.IngressGatewayConfigEntry{
 		Kind:      api.IngressGateway,
 		Name:      "ingress",
@@ -55,6 +56,7 @@ func TestConnectExpose(t *testing.T) {
 					{
 						Name:      "foo",
 						Namespace: ns,
+						Partition: ap,
 					},
 				},
 			},
@@ -95,6 +97,7 @@ func TestConnectExpose(t *testing.T) {
 				{
 					Name:      "foo",
 					Namespace: ns,
+					Partition: ap,
 				},
 			},
 		})
@@ -283,6 +286,7 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 		ingressConf.Namespace = entryConf.Namespace
 		for i, listener := range ingressConf.Listeners {
 			listener.Services[0].Namespace = entryConf.Listeners[i].Services[0].Namespace
+			listener.Services[0].Partition = entryConf.Listeners[i].Services[0].Partition
 		}
 		ingressConf.CreateIndex = entry.GetCreateIndex()
 		ingressConf.ModifyIndex = entry.GetModifyIndex()
@@ -317,6 +321,7 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 		ingressConf.Listeners[1].Services = append(ingressConf.Listeners[1].Services, api.IngressService{
 			Name:      "zoo",
 			Namespace: entryConf.Listeners[1].Services[1].Namespace,
+			Partition: entryConf.Listeners[1].Services[1].Partition,
 			Hosts:     []string{"foo.com", "foo.net"},
 		})
 		ingressConf.CreateIndex = entry.GetCreateIndex()

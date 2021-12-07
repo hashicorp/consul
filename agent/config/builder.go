@@ -552,6 +552,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	// determine client addresses
 	clientAddrs := b.expandIPs("client_addr", c.ClientAddr)
+	if len(clientAddrs) == 0 {
+		b.warn("client_addr is empty, client services (DNS, HTTP, HTTPS, GRPC) will not be listening for connections")
+	}
 	dnsAddrs := b.makeAddrs(b.expandAddrs("addresses.dns", c.Addresses.DNS), clientAddrs, dnsPort)
 	httpAddrs := b.makeAddrs(b.expandAddrs("addresses.http", c.Addresses.HTTP), clientAddrs, httpPort)
 	httpsAddrs := b.makeAddrs(b.expandAddrs("addresses.https", c.Addresses.HTTPS), clientAddrs, httpsPort)
@@ -857,18 +860,18 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			ACLDefaultPolicy: stringVal(c.ACL.DefaultPolicy),
 		},
 
-		ACLEnableKeyListPolicy: boolVal(c.ACL.EnableKeyListPolicy),
-		ACLMasterToken:         stringVal(c.ACL.Tokens.Master),
+		ACLEnableKeyListPolicy:    boolVal(c.ACL.EnableKeyListPolicy),
+		ACLInitialManagementToken: stringVal(c.ACL.Tokens.InitialManagement),
 
 		ACLTokenReplication: boolVal(c.ACL.TokenReplication),
 
 		ACLTokens: token.Config{
-			DataDir:             dataDir,
-			EnablePersistence:   boolValWithDefault(c.ACL.EnableTokenPersistence, false),
-			ACLDefaultToken:     stringVal(c.ACL.Tokens.Default),
-			ACLAgentToken:       stringVal(c.ACL.Tokens.Agent),
-			ACLAgentMasterToken: stringVal(c.ACL.Tokens.AgentMaster),
-			ACLReplicationToken: stringVal(c.ACL.Tokens.Replication),
+			DataDir:               dataDir,
+			EnablePersistence:     boolValWithDefault(c.ACL.EnableTokenPersistence, false),
+			ACLDefaultToken:       stringVal(c.ACL.Tokens.Default),
+			ACLAgentToken:         stringVal(c.ACL.Tokens.Agent),
+			ACLAgentRecoveryToken: stringVal(c.ACL.Tokens.AgentRecovery),
+			ACLReplicationToken:   stringVal(c.ACL.Tokens.Replication),
 		},
 
 		// Autopilot
@@ -1090,6 +1093,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 
 	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
+
+	if c.RaftBoltDBConfig != nil {
+		rt.RaftBoltDBConfig = *c.RaftBoltDBConfig
+	}
 
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
@@ -2371,8 +2378,9 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	// create a blank identity for use to validate the claim assertions.
 	blankID := validator.NewIdentity()
 	varMap := map[string]string{
-		"node":    "fake",
-		"segment": "fake",
+		"node":      "fake",
+		"segment":   "fake",
+		"partition": "fake",
 	}
 
 	// validate all the claim assertions

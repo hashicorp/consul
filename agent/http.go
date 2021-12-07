@@ -734,6 +734,7 @@ func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) {
 	setKnownLeader(resp, m.GetKnownLeader())
 	setConsistency(resp, m.GetConsistencyLevel())
 	setQueryBackend(resp, m.GetBackend())
+	setResultsFilteredByACLs(resp, m.GetResultsFilteredByACLs())
 }
 
 func setQueryBackend(resp http.ResponseWriter, backend structs.QueryBackend) {
@@ -754,6 +755,16 @@ func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
 	resp.Header().Set("X-Cache", str)
 	if m.Hit {
 		resp.Header().Set("Age", fmt.Sprintf("%.0f", m.Age.Seconds()))
+	}
+}
+
+// setResultsFilteredByACLs sets an HTTP response header to indicate that the
+// query results were filtered by enforcing ACLs. If the given filtered value
+// is false the header will be omitted, as its ambiguous whether the results
+// were not filtered or whether the endpoint doesn't yet support this header.
+func setResultsFilteredByACLs(resp http.ResponseWriter, filtered bool) {
+	if filtered {
+		resp.Header().Set("X-Consul-Results-Filtered-By-ACLs", "true")
 	}
 }
 

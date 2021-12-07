@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -33,7 +32,7 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	t.Parallel()
 	dir, srv, codec := testACLServerWithConfig(t, func(c *Config) {
 		// remove this as we are bootstrapping
-		c.ACLMasterToken = ""
+		c.ACLInitialManagementToken = ""
 	}, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -4868,7 +4867,7 @@ func TestACLEndpoint_Login_jwt(t *testing.T) {
 	acl := ACL{srv: srv}
 
 	// spin up a fake oidc server
-	oidcServer := startSSOTestServer(t)
+	oidcServer := oidcauthtest.Start(t)
 	pubKey, privKey := oidcServer.SigningKeys()
 
 	type mConfig = map[string]interface{}
@@ -5001,14 +5000,6 @@ func TestACLEndpoint_Login_jwt(t *testing.T) {
 			})
 		})
 	}
-}
-
-func startSSOTestServer(t *testing.T) *oidcauthtest.Server {
-	ports := freeport.MustTake(1)
-	return oidcauthtest.Start(t, oidcauthtest.WithPort(
-		ports[0],
-		func() { freeport.Return(ports) },
-	))
 }
 
 func TestACLEndpoint_Logout(t *testing.T) {
@@ -5248,14 +5239,18 @@ func TestValidateBindingRuleBindName(t *testing.T) {
 }
 
 // upsertTestToken creates a token for testing purposes
-func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter string,
-	tokenModificationFn func(token *structs.ACLToken)) (*structs.ACLToken, error) {
+func upsertTestTokenInEntMeta(codec rpc.ClientCodec, masterToken string, datacenter string,
+	tokenModificationFn func(token *structs.ACLToken), entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
 	arg := structs.ACLTokenSetRequest{
 		Datacenter: datacenter,
 		ACLToken: structs.ACLToken{
-			Description: "User token",
-			Local:       false,
-			Policies:    nil,
+			Description:    "User token",
+			Local:          false,
+			Policies:       nil,
+			EnterpriseMeta: *entMeta,
 		},
 		WriteRequest: structs.WriteRequest{Token: masterToken},
 	}
@@ -5279,20 +5274,30 @@ func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter strin
 	return &out, nil
 }
 
-func upsertTestTokenWithPolicyRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLToken, error) {
-	policy, err := upsertTestPolicyWithRules(codec, masterToken, datacenter, rules)
+func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter string,
+	tokenModificationFn func(token *structs.ACLToken)) (*structs.ACLToken, error) {
+	return upsertTestTokenInEntMeta(codec, masterToken, datacenter,
+		tokenModificationFn, structs.DefaultEnterpriseMetaInDefaultPartition())
+}
+
+func upsertTestTokenWithPolicyRulesInEntMeta(codec rpc.ClientCodec, masterToken string, datacenter string, rules string, entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
+	policy, err := upsertTestPolicyWithRulesInEntMeta(codec, masterToken, datacenter, rules, entMeta)
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := upsertTestToken(codec, masterToken, datacenter, func(token *structs.ACLToken) {
+	token, err := upsertTestTokenInEntMeta(codec, masterToken, datacenter, func(token *structs.ACLToken) {
 		token.Policies = []structs.ACLTokenPolicyLink{{ID: policy.ID}}
-	})
+	}, entMeta)
 	if err != nil {
 		return nil, err
 	}
 
 	return token, nil
+}
+
+func upsertTestTokenWithPolicyRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLToken, error) {
+	return upsertTestTokenWithPolicyRulesInEntMeta(codec, masterToken, datacenter, rules, nil)
 }
 
 func retrieveTestTokenAccessorForSecret(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (string, error) {
@@ -5402,8 +5407,16 @@ func upsertTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter stri
 }
 
 func upsertTestPolicyWithRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLPolicy, error) {
+	return upsertTestPolicyWithRulesInEntMeta(codec, masterToken, datacenter, rules, structs.DefaultEnterpriseMetaInDefaultPartition())
+}
+
+func upsertTestPolicyWithRulesInEntMeta(codec rpc.ClientCodec, masterToken string, datacenter string, rules string, entMeta *structs.EnterpriseMeta) (*structs.ACLPolicy, error) {
 	return upsertTestCustomizedPolicy(codec, masterToken, datacenter, func(policy *structs.ACLPolicy) {
+		if entMeta == nil {
+			entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+		}
 		policy.Rules = rules
+		policy.EnterpriseMeta = *entMeta
 	})
 }
 

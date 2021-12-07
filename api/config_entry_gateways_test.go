@@ -157,8 +157,9 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 
 			require.Len(t, readIngress.Listeners, 1)
 			require.Len(t, readIngress.Listeners[0].Services, 1)
-			// Set namespace to blank so that OSS and ent can utilize the same tests
+			// Set namespace and partition to blank so that OSS and ent can utilize the same tests
 			readIngress.Listeners[0].Services[0].Namespace = ""
+			readIngress.Listeners[0].Services[0].Partition = ""
 
 			require.Equal(t, ingress1.Listeners, readIngress.Listeners)
 		case "bar":
@@ -168,8 +169,9 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 			require.Equal(t, ingress2.Name, readIngress.Name)
 			require.Len(t, readIngress.Listeners, 1)
 			require.Len(t, readIngress.Listeners[0].Services, 1)
-			// Set namespace to blank so that OSS and ent can utilize the same tests
+			// Set namespace and partition to blank so that OSS and ent can utilize the same tests
 			readIngress.Listeners[0].Services[0].Namespace = ""
+			readIngress.Listeners[0].Services[0].Partition = ""
 
 			require.Equal(t, ingress2.Listeners, readIngress.Listeners)
 		}

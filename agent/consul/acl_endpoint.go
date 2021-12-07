@@ -700,9 +700,8 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 
 	token.SetHash(true)
 
-	// validate the enterprise meta
-	err = state.ACLTokenUpsertValidateEnterprise(token, accessorMatch)
-	if err != nil {
+	// validate the enterprise specific fields
+	if err = a.tokenUpsertValidateEnterprise(token, accessorMatch); err != nil {
 		return err
 	}
 
@@ -1181,9 +1180,8 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		return err
 	}
 
-	// validate the enterprise meta
-	err = state.ACLPolicyUpsertValidateEnterprise(policy, idMatch)
-	if err != nil {
+	// validate the enterprise specific fields
+	if err = a.policyUpsertValidateEnterprise(policy, idMatch); err != nil {
 		return err
 	}
 
@@ -1360,7 +1358,7 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 		}
 	}
 
-	a.srv.setQueryMeta(&reply.QueryMeta)
+	a.srv.setQueryMeta(&reply.QueryMeta, args.Token)
 
 	return nil
 }
@@ -1543,8 +1541,8 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		}
 	}
 
-	// validate the enterprise meta
-	if err := state.ACLRoleUpsertValidateEnterprise(role, existing); err != nil {
+	// validate the enterprise specific fields
+	if err := a.roleUpsertValidateEnterprise(role, existing); err != nil {
 		return err
 	}
 
@@ -1761,7 +1759,7 @@ func (a *ACL) RoleResolve(args *structs.ACLRoleBatchGetRequest, reply *structs.A
 		}
 	}
 
-	a.srv.setQueryMeta(&reply.QueryMeta)
+	a.srv.setQueryMeta(&reply.QueryMeta, args.Token)
 
 	return nil
 }

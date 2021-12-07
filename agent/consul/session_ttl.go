@@ -47,13 +47,12 @@ func (s *Server) initializeSessionTimers() error {
 	// Scan all sessions and reset their timer
 	state := s.fsm.State()
 
-	// TODO(partitions): track all session timers in all partitions
-	_, sessions, err := state.SessionList(nil, structs.WildcardEnterpriseMetaInDefaultPartition())
+	_, sessions, err := state.SessionListAll(nil)
 	if err != nil {
 		return err
 	}
 	for _, session := range sessions {
-		if err := s.resetSessionTimer(session.ID, session); err != nil {
+		if err := s.resetSessionTimer(session); err != nil {
 			return err
 		}
 	}
@@ -63,20 +62,7 @@ func (s *Server) initializeSessionTimers() error {
 // resetSessionTimer is used to renew the TTL of a session.
 // This can be used for new sessions and existing ones. A session
 // will be faulted in if not given.
-func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
-	// Fault the session in if not given
-	if session == nil {
-		state := s.fsm.State()
-		_, s, err := state.SessionGet(nil, id, nil)
-		if err != nil {
-			return err
-		}
-		if s == nil {
-			return fmt.Errorf("Session '%s' not found", id)
-		}
-		session = s
-	}
-
+func (s *Server) resetSessionTimer(session *structs.Session) error {
 	// Bail if the session has no TTL, fast-path some common inputs
 	switch session.TTL {
 	case "", "0", "0s", "0m", "0h":

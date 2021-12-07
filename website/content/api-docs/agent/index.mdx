@@ -727,17 +727,26 @@ only if the [`acl.enable_token_persistence`](/docs/agent/options#acl_enable_toke
 configuration is `true`. When not being persisted, they will need to be reset if the agent
 is restarted.
 
-| Method | Path                        | Produces           |
-| ------ | --------------------------- | ------------------ |
-| `PUT`  | `/agent/token/default`      | `application/json` |
-| `PUT`  | `/agent/token/agent`        | `application/json` |
-| `PUT`  | `/agent/token/agent_master` | `application/json` |
-| `PUT`  | `/agent/token/replication`  | `application/json` |
+| Method | Path                          | Produces           |
+| ------ | ----------------------------- | ------------------ |
+| `PUT`  | `/agent/token/default`        | `application/json` |
+| `PUT`  | `/agent/token/agent`          | `application/json` |
+| `PUT`  | `/agent/token/agent_recovery` | `application/json` |
+| `PUT`  | `/agent/token/replication`    | `application/json` |
 
 The paths above correspond to the token names as found in the agent configuration:
 [`default`](/docs/agent/options#acl_tokens_default), [`agent`](/docs/agent/options#acl_tokens_agent),
-[`agent_master`](/docs/agent/options#acl_tokens_agent_master), and
+[`agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery), and
 [`replication`](/docs/agent/options#acl_tokens_replication).
+
+-> **Deprecation Note:** The following paths were deprecated in version 1.11
+
+| Method | Path                        | Produces           |
+| ------ | --------------------------- | ------------------ |
+| `PUT`  | `/agent/token/agent_master` | `application/json` |
+
+The paths above correspond to the token names as found in the agent configuration:
+[`agent_master`](/docs/agent/options#acl_tokens_agent_master).
 
 -> **Deprecation Note:** The following paths were deprecated in version 1.4.3
 

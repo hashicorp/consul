@@ -21,7 +21,9 @@ acl = {
     msp_disable_bootstrap = true
     tokens = {
         master = "8a19ac27",
+        initial_management = "3820e09a",
         agent_master = "64fd0e08",
+        agent_recovery = "1dba6aba",
         replication = "5795983a",
         agent = "bed2377c",
         default = "418fdff1",
@@ -326,6 +328,9 @@ raft_protocol = 3
 raft_snapshot_threshold = 16384
 raft_snapshot_interval = "30s"
 raft_trailing_logs = 83749
+raft_boltdb {
+    NoFreelistSync = true
+}
 read_replica = true
 reconnect_timeout = "23739s"
 reconnect_timeout_wan = "26694s"

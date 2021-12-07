@@ -327,9 +327,6 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 	// NOTE: we're explicitly fetching things in the requested partition and
 	// namespace here.
 	services := s.agent.State.Services(&entMeta)
-	if err := s.agent.filterServicesWithAuthorizer(authz, &services); err != nil {
-		return nil, err
-	}
 
 	// Convert into api.AgentService since that includes Connect config but so far
 	// NodeService doesn't need to internally. They are otherwise identical since
@@ -337,11 +334,8 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 	// anyway.
 	agentSvcs := make(map[string]*api.AgentService)
 
-	dc := s.agent.config.Datacenter
-
-	// Use empty list instead of nil
-	for id, s := range services {
-		agentService := buildAgentService(s, dc)
+	for id, svc := range services {
+		agentService := buildAgentService(svc, s.agent.config.Datacenter)
 		agentSvcs[id.ID] = &agentService
 	}
 
@@ -350,7 +344,34 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 		return nil, err
 	}
 
-	return filter.Execute(agentSvcs)
+	raw, err := filter.Execute(agentSvcs)
+	if err != nil {
+		return nil, err
+	}
+	agentSvcs = raw.(map[string]*api.AgentService)
+
+	// Note: we filter the results with ACLs *after* applying the user-supplied
+	// bexpr filter, to ensure total (and the filter-by-acls header we set below)
+	// do not include results that would be filtered out even if the user did have
+	// permission.
+	total := len(agentSvcs)
+	if err := s.agent.filterServicesWithAuthorizer(authz, agentSvcs); err != nil {
+		return nil, err
+	}
+
+	// Set the X-Consul-Results-Filtered-By-ACLs header, but only if the user is
+	// authenticated (to prevent information leaking).
+	//
+	// This is done automatically for HTTP endpoints that proxy to an RPC endpoint
+	// that sets QueryMeta.ResultsFilteredByACLs, but must be done manually for
+	// agent-local endpoints.
+	//
+	// For more information see the comment on: Server.maskResultsFilteredByACLs.
+	if token != "" {
+		setResultsFilteredByACLs(resp, total != len(agentSvcs))
+	}
+
+	return agentSvcs, nil
 }
 
 // GET /v1/agent/service/:service_id
@@ -473,13 +494,8 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 
 	// NOTE(partitions): this works because nodes exist in ONE partition
 	checks := s.agent.State.Checks(&entMeta)
-	if err := s.agent.filterChecksWithAuthorizer(authz, &checks); err != nil {
-		return nil, err
-	}
 
 	agentChecks := make(map[types.CheckID]*structs.HealthCheck)
-
-	// Use empty list instead of nil
 	for id, c := range checks {
 		if c.ServiceTags == nil {
 			clone := *c
@@ -490,7 +506,34 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 		}
 	}
 
-	return filter.Execute(agentChecks)
+	raw, err := filter.Execute(agentChecks)
+	if err != nil {
+		return nil, err
+	}
+	agentChecks = raw.(map[types.CheckID]*structs.HealthCheck)
+
+	// Note: we filter the results with ACLs *after* applying the user-supplied
+	// bexpr filter, to ensure total (and the filter-by-acls header we set below)
+	// do not include results that would be filtered out even if the user did have
+	// permission.
+	total := len(agentChecks)
+	if err := s.agent.filterChecksWithAuthorizer(authz, agentChecks); err != nil {
+		return nil, err
+	}
+
+	// Set the X-Consul-Results-Filtered-By-ACLs header, but only if the user is
+	// authenticated (to prevent information leaking).
+	//
+	// This is done automatically for HTTP endpoints that proxy to an RPC endpoint
+	// that sets QueryMeta.ResultsFilteredByACLs, but must be done manually for
+	// agent-local endpoints.
+	//
+	// For more information see the comment on: Server.maskResultsFilteredByACLs.
+	if token != "" {
+		setResultsFilteredByACLs(resp, total != len(agentChecks))
+	}
+
+	return agentChecks, nil
 }
 
 func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -547,9 +590,24 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 			return nil, err
 		}
 	}
+
+	total := len(members)
 	if err := s.agent.filterMembers(token, &members); err != nil {
 		return nil, err
 	}
+
+	// Set the X-Consul-Results-Filtered-By-ACLs header, but only if the user is
+	// authenticated (to prevent information leaking).
+	//
+	// This is done automatically for HTTP endpoints that proxy to an RPC endpoint
+	// that sets QueryMeta.ResultsFilteredByACLs, but must be done manually for
+	// agent-local endpoints.
+	//
+	// For more information see the comment on: Server.maskResultsFilteredByACLs.
+	if token != "" {
+		setResultsFilteredByACLs(resp, total != len(members))
+	}
+
 	return members, nil
 }
 
@@ -640,8 +698,15 @@ func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Reque
 	// Check the value of the prune query
 	_, prune := req.URL.Query()["prune"]
 
+	// Check if the WAN is being queried
+	_, wan := req.URL.Query()["wan"]
+
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
-	return nil, s.agent.ForceLeave(addr, prune, entMeta)
+	if wan {
+		return nil, s.agent.ForceLeaveWAN(addr, prune, entMeta)
+	} else {
+		return nil, s.agent.ForceLeave(addr, prune, entMeta)
+	}
 }
 
 // syncChanges is a helper function which wraps a blocking call to sync
@@ -664,22 +729,16 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	}
 
 	if err := decodeBody(req.Body, &args); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Verify the check has a name.
 	if args.Name == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing check name")
-		return nil, nil
+		return nil, BadRequestError{"Missing check name"}
 	}
 
 	if args.Status != "" && !structs.ValidStatus(args.Status) {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Bad check status")
-		return nil, nil
+		return nil, BadRequestError{"Bad check status"}
 	}
 
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
@@ -698,19 +757,20 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	chkType := args.CheckType()
 	err = chkType.Validate()
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, fmt.Errorf("Invalid check: %v", err))
-		return nil, nil
+		return nil, BadRequestError{fmt.Sprintf("Invalid check: %v", err)}
 	}
 
 	// Store the type of check based on the definition
 	health.Type = chkType.Type()
 
 	if health.ServiceID != "" {
+		cid := health.CompoundServiceID()
 		// fixup the service name so that vetCheckRegister requires the right ACLs
-		service := s.agent.State.Service(health.CompoundServiceID())
+		service := s.agent.State.Service(cid)
 		if service != nil {
 			health.ServiceName = service.Service
+		} else {
+			return nil, NotFoundError{fmt.Sprintf("ServiceID %q does not exist", cid.String())}
 		}
 	}
 
@@ -746,12 +806,12 @@ func (s *HTTPHandlers) AgentDeregisterCheck(resp http.ResponseWriter, req *http.
 
 	checkID.Normalize()
 
-	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, checkID); err != nil {
-		return nil, err
-	}
-
 	if !s.validateRequestPartition(resp, &checkID.EnterpriseMeta) {
 		return nil, nil
+	}
+
+	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, checkID); err != nil {
+		return nil, err
 	}
 
 	if err := s.agent.RemoveCheck(checkID, true); err != nil {
@@ -945,7 +1005,7 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 	}
 	notFoundReason := fmt.Sprintf("ServiceId %s not found", sid.String())
 	if returnTextPlain(req) {
-		return notFoundReason, CodeWithPayloadError{StatusCode: http.StatusNotFound, Reason: notFoundReason, ContentType: "application/json"}
+		return notFoundReason, CodeWithPayloadError{StatusCode: http.StatusNotFound, Reason: notFoundReason, ContentType: "text/plain"}
 	}
 	return &api.AgentServiceChecksInfo{
 		AggregatedStatus: api.HealthCritical,
@@ -1205,12 +1265,12 @@ func (s *HTTPHandlers) AgentDeregisterService(resp http.ResponseWriter, req *htt
 
 	sid.Normalize()
 
-	if err := s.agent.vetServiceUpdateWithAuthorizer(authz, sid); err != nil {
-		return nil, err
-	}
-
 	if !s.validateRequestPartition(resp, &sid.EnterpriseMeta) {
 		return nil, nil
+	}
+
+	if err := s.agent.vetServiceUpdateWithAuthorizer(authz, sid); err != nil {
+		return nil, err
 	}
 
 	if err := s.agent.RemoveService(sid); err != nil {
@@ -1449,8 +1509,8 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 				triggerAntiEntropySync = true
 			}
 
-		case "acl_agent_master_token", "agent_master":
-			s.agent.tokens.UpdateAgentMasterToken(args.Token, token_store.TokenSourceAPI)
+		case "acl_agent_master_token", "agent_master", "agent_recovery":
+			s.agent.tokens.UpdateAgentRecoveryToken(args.Token, token_store.TokenSourceAPI)
 
 		case "acl_replication_token", "replication":
 			s.agent.tokens.UpdateReplicationToken(args.Token, token_store.TokenSourceAPI)
@@ -1499,7 +1559,9 @@ func (s *HTTPHandlers) AgentConnectCARoots(resp http.ResponseWriter, req *http.R
 }
 
 // AgentConnectCALeafCert returns the certificate bundle for a service
-// instance. This supports blocking queries to update the returned bundle.
+// instance. This endpoint ignores all "Cache-Control" attributes.
+// This supports blocking queries to update the returned bundle.
+// Non-blocking queries will always verify that the cache entry is still valid.
 func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Get the service name. Note that this is the name of the service,
 	// not the ID of the service instance.
@@ -1522,6 +1584,14 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 	args.MinQueryIndex = qOpts.MinQueryIndex
 	args.MaxQueryTime = qOpts.MaxQueryTime
 	args.Token = qOpts.Token
+
+	// TODO(ffmmmm): maybe set MustRevalidate in ConnectCALeafRequest (as part of CacheInfo())
+	// We don't want non-blocking queries to return expired leaf certs
+	// or leaf certs not valid under the current CA. So always revalidate
+	// the leaf cert on non-blocking queries (ie when MinQueryIndex == 0)
+	if args.MinQueryIndex == 0 {
+		args.MustRevalidate = true
+	}
 
 	if !s.validateRequestPartition(resp, &args.EnterpriseMeta) {
 		return nil, nil

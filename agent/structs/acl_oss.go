@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package structs
@@ -92,4 +93,8 @@ func (r *ACLRole) NodeIdentityList() []*ACLNodeIdentity {
 		out = append(out, n.Clone())
 	}
 	return out
+}
+
+func IsValidPartitionAndDatacenter(meta EnterpriseMeta, datacenters []string, primaryDatacenter string) bool {
+	return true
 }

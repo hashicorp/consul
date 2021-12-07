@@ -123,13 +123,56 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			continue
 		}
 
-		endpoints, ok := cfgSnap.MeshGateway.GatewayGroups[key.String()]
-		if !ok {
-			endpoints, ok = cfgSnap.MeshGateway.FedStateGateways[key.String()]
-			if !ok { // not possible
-				s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", key)
-				continue
+		// Mesh gateways in remote DCs are discovered in two ways:
+		//
+		//	1. Via an Internal.ServiceDump RPC in the remote DC (GatewayGroups).
+		//	2. In the federation state that is replicated from the primary DC (FedStateGateways).
+		//
+		// We determine which set to use based on whichever contains the highest
+		// raft ModifyIndex (and is therefore most up-to-date).
+		//
+		// Previously, GatewayGroups was always given presedence over FedStateGateways
+		// but this was problematic when using mesh gateways for WAN federation.
+		//
+		// Consider the following example:
+		//
+		//	- Primary and Secondary DCs are WAN Federated via local mesh gateways.
+		//
+		//	- Secondary DC's mesh gateway is running on an ephemeral compute instance
+		//	  and is abruptly terminated and rescheduled with a *new IP address*.
+		//
+		//	- Primary DC's mesh gateway is no longer able to connect to the Secondary
+		//	  DC as its proxy is configured with the old IP address. Therefore any RPC
+		//	  from the Primary to the Secondary DC will fail (including the one to
+		//	  discover the gateway's new IP address).
+		//
+		//	- Secondary DC performs its regular anti-entropy of federation state data
+		//	  to the Primary DC (this succeeds as there is still connectivity in this
+		//	  direction).
+		//
+		//	- At this point the Primary DC's mesh gateway should observe the new IP
+		//	  address and reconfigure its proxy, however as we always prioritised
+		//	  GatewayGroups this didn't happen and the connection remained severed.
+		maxModifyIndex := func(vals structs.CheckServiceNodes) uint64 {
+			var max uint64
+			for _, v := range vals {
+				if i := v.Service.RaftIndex.ModifyIndex; i > max {
+					max = i
+				}
 			}
+			return max
+		}
+
+		endpoints := cfgSnap.MeshGateway.GatewayGroups[key.String()]
+		fedStateEndpoints := cfgSnap.MeshGateway.FedStateGateways[key.String()]
+
+		if maxModifyIndex(fedStateEndpoints) > maxModifyIndex(endpoints) {
+			endpoints = fedStateEndpoints
+		}
+
+		if len(endpoints) == 0 {
+			s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", key)
+			continue
 		}
 
 		{ // standard connect

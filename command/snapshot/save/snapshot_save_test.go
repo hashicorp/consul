@@ -5,19 +5,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestSnapshotSaveCommand_noTabs(t *testing.T) {
@@ -138,7 +139,7 @@ func TestSnapshotSaveCommand_TruncatedStream(t *testing.T) {
 	var fakeResult atomic.Value
 
 	// Run a fake webserver to pretend to be the snapshot API.
-	fakeAddr := lib.StartTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path != "/v1/snapshot" {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -157,10 +158,11 @@ func TestSnapshotSaveCommand_TruncatedStream(t *testing.T) {
 		data := raw.([]byte)
 		_, _ = w.Write(data)
 	}))
+	t.Cleanup(srv.Close)
 
 	// Wait until the server is actually listening.
 	retry.Run(t, func(r *retry.R) {
-		resp, err := http.Get("http://" + fakeAddr + "/not-real")
+		resp, err := srv.Client().Get(srv.URL + "/not-real")
 		require.NoError(r, err)
 		require.Equal(r, http.StatusNotFound, resp.StatusCode)
 	})
@@ -179,7 +181,7 @@ func TestSnapshotSaveCommand_TruncatedStream(t *testing.T) {
 
 			file := filepath.Join(dir, "backup.tgz")
 			args := []string{
-				"-http-addr=" + fakeAddr, // point to the fake
+				"-http-addr=" + srv.Listener.Addr().String(), // point to the fake
 				file,
 			}
 

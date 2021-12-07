@@ -23,6 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
@@ -4085,6 +4086,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								Service:               "carrot",
 								ServiceSubset:         "kale",
 								Namespace:             "leek",
+								Partition:             acl.DefaultPartitionName,
 								PrefixRewrite:         "/alternate",
 								RequestTimeout:        99 * time.Second,
 								NumRetries:            12345,
@@ -5339,12 +5341,12 @@ func TestLoad_FullConfig(t *testing.T) {
 		// user configurable values
 
 		ACLTokens: token.Config{
-			EnablePersistence:   true,
-			DataDir:             dataDir,
-			ACLDefaultToken:     "418fdff1",
-			ACLAgentToken:       "bed2377c",
-			ACLAgentMasterToken: "64fd0e08",
-			ACLReplicationToken: "5795983a",
+			EnablePersistence:     true,
+			DataDir:               dataDir,
+			ACLDefaultToken:       "418fdff1",
+			ACLAgentToken:         "bed2377c",
+			ACLAgentRecoveryToken: "1dba6aba",
+			ACLReplicationToken:   "5795983a",
 		},
 
 		ACLsEnabled:       true,
@@ -5361,7 +5363,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			ACLRoleTTL:       9876 * time.Second,
 		},
 		ACLEnableKeyListPolicy:           true,
-		ACLMasterToken:                   "8a19ac27",
+		ACLInitialManagementToken:        "3820e09a",
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
 		AdvertiseAddrWAN:                 ipAddr("78.63.37.19"),
@@ -6015,15 +6017,18 @@ func TestLoad_FullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
+		RaftBoltDBConfig: consul.RaftBoltDBConfig{NoFreelistSync: true},
 	}
 	entFullRuntimeConfig(expected)
 
 	expectedWarns := []string{
 		deprecationWarning("acl_datacenter", "primary_datacenter"),
-		deprecationWarning("acl_agent_master_token", "acl.tokens.agent_master"),
+		deprecationWarning("acl_agent_master_token", "acl.tokens.agent_recovery"),
+		deprecationWarning("acl.tokens.agent_master", "acl.tokens.agent_recovery"),
 		deprecationWarning("acl_agent_token", "acl.tokens.agent"),
 		deprecationWarning("acl_token", "acl.tokens.default"),
-		deprecationWarning("acl_master_token", "acl.tokens.master"),
+		deprecationWarning("acl_master_token", "acl.tokens.initial_management"),
+		deprecationWarning("acl.tokens.master", "acl.tokens.initial_management"),
 		deprecationWarning("acl_replication_token", "acl.tokens.replication"),
 		deprecationWarning("enable_acl_replication", "acl.enable_token_replication"),
 		deprecationWarning("acl_default_policy", "acl.default_policy"),

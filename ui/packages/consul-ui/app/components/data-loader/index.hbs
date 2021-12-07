@@ -7,6 +7,7 @@
 {{#let (hash
   data=data
   error=error
+  invalidate=(action "invalidate")
   dispatchError=(queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR"))
 ) as |api|}}
 
@@ -16,7 +17,7 @@
       {{! if we didn't specify any data}}
       {{#if (not items)}}
         {{! try and load the data if we aren't in an error state}}
-        <State @notMatches={{array "error" "disconnected"}}>
+        <State @notMatches={{array "error" "disconnected" "invalidating"}}>
           {{! but only if we only asked for a single load and we are in loading state}}
           {{#if (and src (or (not once) (state-matches state "loading")))}}
             <DataSource
@@ -46,19 +47,29 @@
     {{/yield-slot}}
   </State>
 
-  <State @matches={{array "idle" "disconnected"}}>
+  <State @matches={{array "idle" "disconnected" "invalidating"}}>
 
     <State @matches="disconnected">
-        {{#yield-slot name="disconnected" params=(block-params (component 'notification' after=(action dispatch "RESET")))}}
+        {{#yield-slot name="disconnected" params=(block-params (action dispatch "RESET"))}}
           {{yield api}}
         {{else}}
         {{#if (not eq error.status '401')}}
-          <Notification @sticky={{true}}>
-            <p data-notification role="alert" class="warning notification-update">
+          <Notice
+            {{notification
+              sticky=true
+            }}
+            class="notification-update"
+            @type="warning"
+          as |notice|>
+            <notice.Header>
               <strong>Warning!</strong>
-              An error was returned whilst loading this data, refresh to try again.
-            </p>
-          </Notification>
+            </notice.Header>
+            <notice.Body>
+              <p>
+                An error was returned whilst loading this data, refresh to try again.
+              </p>
+            </notice.Body>
+          </Notice>
         {{/if}}
         {{/yield-slot}}
     </State>

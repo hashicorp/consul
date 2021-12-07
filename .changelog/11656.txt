@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Don't offer a 'Valid Datacenters' option when editing policies for non-default partitions
+```

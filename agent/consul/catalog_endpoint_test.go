@@ -184,7 +184,7 @@ func TestCatalog_Register_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -263,10 +263,10 @@ node "foo" {
 
 func createToken(t *testing.T, cc rpc.ClientCodec, policyRules string) string {
 	t.Helper()
-	return createTokenWithPolicyName(t, "the-policy", cc, policyRules)
+	return createTokenWithPolicyName(t, cc, "the-policy", policyRules, "root")
 }
 
-func createTokenWithPolicyName(t *testing.T, policyName string, cc rpc.ClientCodec, policyRules string) string {
+func createTokenWithPolicyName(t *testing.T, cc rpc.ClientCodec, policyName string, policyRules string, token string) string {
 	t.Helper()
 
 	reqPolicy := structs.ACLPolicySetRequest{
@@ -275,25 +275,25 @@ func createTokenWithPolicyName(t *testing.T, policyName string, cc rpc.ClientCod
 			Name:  policyName,
 			Rules: policyRules,
 		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
+		WriteRequest: structs.WriteRequest{Token: token},
 	}
 	err := msgpackrpc.CallWithCodec(cc, "ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
 	require.NoError(t, err)
 
-	token, err := uuid.GenerateUUID()
+	secretId, err := uuid.GenerateUUID()
 	require.NoError(t, err)
 
 	reqToken := structs.ACLTokenSetRequest{
 		Datacenter: "dc1",
 		ACLToken: structs.ACLToken{
-			SecretID: token,
+			SecretID: secretId,
 			Policies: []structs.ACLTokenPolicyLink{{Name: policyName}},
 		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
+		WriteRequest: structs.WriteRequest{Token: token},
 	}
 	err = msgpackrpc.CallWithCodec(cc, "ACL.TokenSet", &reqToken, &structs.ACLToken{})
 	require.NoError(t, err)
-	return token
+	return secretId
 }
 
 func TestCatalog_Register_ForwardLeader(t *testing.T) {
@@ -452,7 +452,7 @@ func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -570,7 +570,7 @@ func TestCatalog_Deregister_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1297,7 +1297,7 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1307,42 +1307,48 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// We scope the reply in each of these since msgpack won't clear out an
-	// existing slice if the incoming one is nil, so it's best to start
-	// clean each time.
+	token := func(policy string) string {
+		rules := fmt.Sprintf(
+			`node "%s" { policy = "%s" }`,
+			s1.config.NodeName,
+			policy,
+		)
+		return createTokenWithPolicyName(t, codec, policy, rules, "root")
+	}
 
-	// The node policy should not be ignored.
 	args := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
-	{
-		reply := structs.IndexedNodes{}
+
+	t.Run("deny", func(t *testing.T) {
+		args.Token = token("deny")
+
+		var reply structs.IndexedNodes
 		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 0 {
 			t.Fatalf("bad: %v", reply.Nodes)
 		}
-	}
+		if !reply.QueryMeta.ResultsFilteredByACLs {
+			t.Fatal("ResultsFilteredByACLs should be true")
+		}
+	})
 
-	rules := fmt.Sprintf(`
-node "%s" {
-	policy = "read"
-}
-`, s1.config.NodeName)
-	id := createToken(t, codec, rules)
+	t.Run("allow", func(t *testing.T) {
+		args.Token = token("read")
 
-	// Now try with the token and it will go through.
-	args.Token = id
-	{
-		reply := structs.IndexedNodes{}
+		var reply structs.IndexedNodes
 		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 1 {
 			t.Fatalf("bad: %v", reply.Nodes)
 		}
-	}
+		if reply.QueryMeta.ResultsFilteredByACLs {
+			t.Fatal("ResultsFilteredByACLs should not true")
+		}
+	})
 }
 
 func Benchmark_Catalog_ListNodes(t *testing.B) {
@@ -1422,6 +1428,7 @@ func TestCatalog_ListServices(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 	require.False(t, out.QueryMeta.NotModified)
+	require.False(t, out.QueryMeta.ResultsFilteredByACLs)
 
 	t.Run("with option AllowNotModifiedResponse", func(t *testing.T) {
 		args.QueryOptions = structs.QueryOptions{
@@ -2402,7 +2409,7 @@ func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -2474,6 +2481,7 @@ node "foo" {
 	require.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	require.Equal(t, "foo-proxy", v.ServiceName)
+	require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 }
 
 func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
@@ -2691,7 +2699,7 @@ func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rp
 	dir, srv = testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 
@@ -2742,6 +2750,7 @@ node_prefix "" {
 			CheckID:   "service:bar",
 			Name:      "service:bar",
 			ServiceID: "bar",
+			Status:    api.HealthPassing,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -2776,6 +2785,9 @@ func TestCatalog_ListServices_FilterACL(t *testing.T) {
 	}
 	if _, ok := reply.Services["bar"]; ok {
 		t.Fatalf("bad: %#v", reply.Services)
+	}
+	if !reply.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should be true")
 	}
 }
 
@@ -2825,6 +2837,7 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 			t.Fatalf("bad: %#v", reply.ServiceNodes)
 		}
 	}
+	require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	// We've already proven that we call the ACL filtering function so we
 	// test node filtering down in acl.go for node cases. This also proves
@@ -2833,7 +2846,7 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 	// for now until we change the sense of the version 8 ACL flag).
 }
 
-func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
+func TestCatalog_NodeServices_ACL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2842,7 +2855,7 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -2852,43 +2865,46 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// The node policy should not be ignored.
+	token := func(policy string) string {
+		rules := fmt.Sprintf(`
+				node "%s" { policy = "%s" }
+				service "consul" { policy = "%s" }
+			`,
+			s1.config.NodeName,
+			policy,
+			policy,
+		)
+		return createTokenWithPolicyName(t, codec, policy, rules, "root")
+	}
+
 	args := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
 		Node:       s1.config.NodeName,
 	}
-	reply := structs.IndexedNodeServices{}
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply.NodeServices != nil {
-		t.Fatalf("should not nil")
-	}
 
-	rules := fmt.Sprintf(`
-node "%s" {
-	policy = "read"
-}
-`, s1.config.NodeName)
-	id := createToken(t, codec, rules)
+	t.Run("deny", func(t *testing.T) {
+		require := require.New(t)
 
-	// Now try with the token and it will go through.
-	args.Token = id
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply.NodeServices == nil {
-		t.Fatalf("should not be nil")
-	}
+		args.Token = token("deny")
 
-	// Make sure an unknown node doesn't cause trouble.
-	args.Node = "nope"
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply.NodeServices != nil {
-		t.Fatalf("should not nil")
-	}
+		var reply structs.IndexedNodeServices
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
+		require.NoError(err)
+		require.Nil(reply.NodeServices)
+		require.True(reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("allow", func(t *testing.T) {
+		require := require.New(t)
+
+		args.Token = token("read")
+
+		var reply structs.IndexedNodeServices
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
+		require.NoError(err)
+		require.NotNil(reply.NodeServices)
+		require.False(reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
 }
 
 func TestCatalog_NodeServices_FilterACL(t *testing.T) {
@@ -3242,7 +3258,7 @@ func TestCatalog_GatewayServices_ACLFiltering(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -3379,6 +3395,7 @@ service "gateway" {
 		var resp structs.IndexedGatewayServices
 		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
 		assert.Len(r, resp.Services, 0)
+		assert.True(r, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	rules = `
@@ -3402,6 +3419,7 @@ service "gateway" {
 		var resp structs.IndexedGatewayServices
 		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
 		assert.Len(r, resp.Services, 2)
+		assert.True(r, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 		expect := structs.GatewayServices{
 			{
@@ -3904,4 +3922,101 @@ node "node" {
 			}
 		})
 	}
+}
+
+func TestCatalog_VirtualIPForService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.11.0"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	err := s1.fsm.State().EnsureRegistration(1, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	args := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "api",
+	}
+	var out string
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.VirtualIPForService", &args, &out))
+	require.Equal(t, "240.0.0.1", out)
+}
+
+func TestCatalog_VirtualIPForService_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+		c.Build = "1.11.0"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	err := s1.fsm.State().EnsureRegistration(1, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// Call the endpoint with no token and expect permission denied.
+	args := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "api",
+	}
+	var out string
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.VirtualIPForService", &args, &out)
+	require.Contains(t, err.Error(), acl.ErrPermissionDenied.Error())
+	require.Equal(t, "", out)
+
+	id := createToken(t, codec, `
+	service "api" {
+		policy = "read"
+	}`)
+
+	// Now try with the token and it will go through.
+	args.Token = id
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.VirtualIPForService", &args, &out))
+	require.Equal(t, "240.0.0.1", out)
+
+	// Make sure we still get permission denied for an unknown service.
+	args.ServiceName = "nope"
+	var out2 string
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.VirtualIPForService", &args, &out2)
+	require.Contains(t, err.Error(), acl.ErrPermissionDenied.Error())
+	require.Equal(t, "", out2)
 }

@@ -1082,6 +1082,19 @@ func (l *State) updateSyncState() error {
 			ls.Service.Tags = make([]string, len(rs.Tags))
 			copy(ls.Service.Tags, rs.Tags)
 		}
+
+		// Merge any tagged addresses with the consul- prefix (set by the server)
+		// back into the local state.
+		if !reflect.DeepEqual(ls.Service.TaggedAddresses, rs.TaggedAddresses) {
+			if ls.Service.TaggedAddresses == nil {
+				ls.Service.TaggedAddresses = make(map[string]structs.ServiceAddress)
+			}
+			for k, v := range rs.TaggedAddresses {
+				if strings.HasPrefix(k, structs.MetaKeyReservedPrefix) {
+					ls.Service.TaggedAddresses[k] = v
+				}
+			}
+		}
 		ls.InSync = ls.Service.IsSame(rs)
 	}
 
@@ -1175,6 +1188,9 @@ func (l *State) SyncChanges() error {
 	defer l.Unlock()
 
 	// Sync the node level info if we need to.
+	// At the start to guarantee sync even if services or checks fail,
+	// which is more likely because there are more syncs happening for them.
+
 	if l.nodeInfoInSync {
 		l.logger.Debug("Node info in sync")
 	} else {
@@ -1182,10 +1198,6 @@ func (l *State) SyncChanges() error {
 			return err
 		}
 	}
-
-	// We will do node-level info syncing at the end, since it will get
-	// updated by a service or check sync anyway, given how the register
-	// API works.
 
 	// Sync the services
 	// (logging happens in the helper methods)

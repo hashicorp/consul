@@ -1756,6 +1756,24 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 		require.Equal(t, uint32(0), srvRec.Hdr.Ttl)
 		require.Equal(t, "127.0.0.55", cnameRec.A.String())
 	}
+
+	// Look up the virtual IP of the proxy.
+	questions = []string{
+		"db.virtual.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeA)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		require.Nil(t, err)
+		require.Len(t, in.Answer, 1)
+
+		aRec, ok := in.Answer[0].(*dns.A)
+		require.True(t, ok)
+		require.Equal(t, "240.0.0.1", aRec.A.String())
+	}
 }
 
 func TestDNS_IngressServiceLookup(t *testing.T) {
@@ -6206,11 +6224,18 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run("ACLToken == "+tt.token, func(t *testing.T) {
 			a := NewTestAgent(t, `
-				acl_token = "`+tt.token+`"
-				acl_master_token = "root"
-				acl_datacenter = "dc1"
-				acl_down_policy = "deny"
-				acl_default_policy = "deny"
+				primary_datacenter = "dc1"
+
+				acl {
+					enabled = true
+					default_policy = "deny"
+					down_policy = "deny"
+
+					tokens {
+						initial_management = "root"
+						default = "`+tt.token+`"
+					}
+				}
 			`)
 			defer a.Shutdown()
 			testrpc.WaitForLeader(t, a.RPC, "dc1")

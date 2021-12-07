@@ -3,6 +3,8 @@
   background-position: center;
 }
 %with-mask {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
   mask-repeat: no-repeat;
   mask-position: center;
   background-color: currentColor;

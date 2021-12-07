@@ -36,6 +36,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -369,6 +370,39 @@ func TestRPC_blockingQuery(t *testing.T) {
 			t.Fatalf("bad: %d", calls)
 		}
 	}
+
+	t.Run("ResultsFilteredByACLs is reset for unauthenticated calls", func(t *testing.T) {
+		opts := structs.QueryOptions{
+			Token: "",
+		}
+		var meta structs.QueryMeta
+		fn := func(_ memdb.WatchSet, _ *state.Store) error {
+			meta.ResultsFilteredByACLs = true
+			return nil
+		}
+
+		err := s.blockingQuery(&opts, &meta, fn)
+		require.NoError(err)
+		require.False(meta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be reset for unauthenticated calls")
+	})
+
+	t.Run("ResultsFilteredByACLs is honored for authenticated calls", func(t *testing.T) {
+		token, err := lib.GenerateUUID(nil)
+		require.NoError(err)
+
+		opts := structs.QueryOptions{
+			Token: token,
+		}
+		var meta structs.QueryMeta
+		fn := func(_ memdb.WatchSet, _ *state.Store) error {
+			meta.ResultsFilteredByACLs = true
+			return nil
+		}
+
+		err = s.blockingQuery(&opts, &meta, fn)
+		require.NoError(err)
+		require.True(meta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be honored for authenticated calls")
+	})
 }
 
 func TestRPC_ReadyForConsistentReads(t *testing.T) {
@@ -848,7 +882,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -976,7 +1010,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.RPCConfig.EnableStreaming = true
 	})
 	s1.tokens.UpdateAgentToken("root", tokenStore.TokenSourceConfig)

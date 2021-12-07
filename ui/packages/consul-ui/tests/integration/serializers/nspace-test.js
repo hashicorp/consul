@@ -24,8 +24,8 @@ module('Integration | Serializer | nspace', function(hooks) {
         Object.assign({}, item, {
           Datacenter: dc,
           Partition: item.Partition || undefinedPartition,
-          Namespace: item.Name,
-          uid: `["${item.Partition}","${item.Name}","${dc}","${item.Name}"]`,
+          Namespace: '*',
+          uid: `["${item.Partition}","*","${dc}","${item.Name}"]`,
         })
       );
       const actual = serializer.respondForQuery(

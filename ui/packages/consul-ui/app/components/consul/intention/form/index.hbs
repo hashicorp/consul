@@ -14,21 +14,45 @@
   @onsubmit={{action this.onsubmit}}
 as |api|>
 
-    <BlockSlot @name="error" as |Notification|>
-      <Notification>
-        <p data-notification role="alert" class="error notification-update">
-  {{#if (string-starts-with api.error.detail 'duplicate intention found:')}}
-          <strong>Intention exists</strong>
-          An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
-  {{else}}
+    <BlockSlot @name="error" as |after|>
+{{#if (string-starts-with api.error.detail 'duplicate intention found:')}}
+      <Notice
+        {{notification
+          after=(action after)
+        }}
+        class="notification-update"
+        @type="error"
+      as |notice|>
+        <notice.Header>
+          <strong>Intention exists!</strong>
+        </notice.Header>
+        <notice.Body>
+          <p>
+            An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
+          </p>
+        </notice.Body>
+      </Notice>
+{{else}}
+      <Notice
+        {{notification
+          after=(action after)
+        }}
+        class="notification-update"
+        @type="error"
+      as |notice|>
+        <notice.Header>
           <strong>Error!</strong>
-          There was an error saving your intention.
-        {{#if (and api.error.status api.error.detail)}}
-          <br />{{api.error.status}}: {{api.error.detail}}
-        {{/if}}
+        </notice.Header>
+        <notice.Body>
+          <p>
+            There was an error saving your intention.
+          {{#if (and api.error.status api.error.detail)}}
+            <br />{{api.error.status}}: {{api.error.detail}}
+          {{/if}}
+          </p>
+        </notice.Body>
+      </Notice>
   {{/if}}
-        </p>
-      </Notification>
     </BlockSlot>
 
     <BlockSlot @name="form">

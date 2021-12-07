@@ -3,7 +3,7 @@ name: build
 on:
   push:
     # Sequence of patterns matched against refs/heads
-    branches: [ crt-release-migration-1.11.x ]
+    branches: [ main ]
 
 env:
   PKG_NAME: consul

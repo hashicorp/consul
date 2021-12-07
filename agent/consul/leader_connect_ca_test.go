@@ -14,18 +14,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/serf/serf"
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 // TODO(kyhavlov): replace with t.Deadline()
@@ -56,16 +56,17 @@ func (m *mockCAServerDelegate) State() *state.Store {
 	return m.store
 }
 
+func (m *mockCAServerDelegate) ProviderState(id string) (*structs.CAConsulProviderState, error) {
+	_, s, err := m.store.CAProviderState(id)
+	return s, err
+}
+
 func (m *mockCAServerDelegate) IsLeader() bool {
 	return true
 }
 
-func (m *mockCAServerDelegate) CheckServers(datacenter string, fn func(*metadata.Server) bool) {
-	ver, _ := version.NewVersion("1.6.0")
-	fn(&metadata.Server{
-		Status: serf.StatusAlive,
-		Build:  *ver,
-	})
+func (m *mockCAServerDelegate) ServersSupportMultiDCConnectCA() error {
+	return nil
 }
 
 func (m *mockCAServerDelegate) ApplyCALeafRequest() (uint64, error) {
@@ -223,7 +224,7 @@ func initTestManager(t *testing.T, manager *CAManager, delegate *mockCAServerDel
 	t.Helper()
 	initCh := make(chan struct{})
 	go func() {
-		require.NoError(t, manager.InitializeCA())
+		require.NoError(t, manager.Initialize())
 		close(initCh)
 	}()
 	for i := 0; i < 5; i++ {
@@ -253,12 +254,12 @@ func TestCAManager_Initialize(t *testing.T) {
 		rootPEM:    delegate.primaryRoot.RootCert,
 	}
 
-	// Call InitializeCA and then confirm the RPCs and provider calls
+	// Call Initialize and then confirm the RPCs and provider calls
 	// happen in the expected order.
 	require.Equal(t, caStateUninitialized, manager.state)
 	errCh := make(chan error)
 	go func() {
-		err := manager.InitializeCA()
+		err := manager.Initialize()
 		assert.NoError(t, err)
 		errCh <- err
 	}()
@@ -271,7 +272,7 @@ func TestCAManager_Initialize(t *testing.T) {
 	waitForCh(t, delegate.callbackCh, "raftApply/ConnectCA")
 	waitForEmptyCh(t, delegate.callbackCh)
 
-	// Make sure the InitializeCA call returned successfully.
+	// Make sure the Initialize call returned successfully.
 	select {
 	case err := <-errCh:
 		require.NoError(t, err)
@@ -463,4 +464,90 @@ func TestCADelegateWithState_GenerateCASignRequest(t *testing.T) {
 	d := &caDelegateWithState{Server: &s}
 	req := d.generateCASignRequest("A")
 	require.Equal(t, "east", req.RequestDatacenter())
+}
+
+func TestCAManager_Initialize_Logging(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, conf1 := testServerConfig(t)
+
+	// Setup dummy logger to catch output
+	var buf bytes.Buffer
+	logger := testutil.LoggerWithOutput(t, &buf)
+
+	deps := newDefaultDeps(t, conf1)
+	deps.Logger = logger
+
+	s1, err := NewServer(conf1, deps)
+	require.NoError(t, err)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Wait til CA root is setup
+	retry.Run(t, func(r *retry.R) {
+		var out structs.IndexedCARoots
+		r.Check(s1.RPC("ConnectCA.Roots", structs.DCSpecificRequest{
+			Datacenter: conf1.Datacenter,
+		}, &out))
+	})
+
+	require.Contains(t, buf.String(), "consul CA provider configured")
+}
+
+func TestCAManager_UpdateConfiguration_Vault_Primary(t *testing.T) {
+	ca.SkipIfVaultNotPresent(t)
+	vault := ca.NewTestVaultServer(t)
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             vault.Addr,
+				"Token":               vault.RootToken,
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-intermediate/",
+			},
+		}
+	})
+	defer func() {
+		s1.Shutdown()
+		s1.leaderRoutineManager.Wait()
+	}()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	_, origRoot, err := s1.fsm.State().CARootActive(nil)
+	require.NoError(t, err)
+	require.Len(t, origRoot.IntermediateCerts, 1)
+
+	cert, err := connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(origRoot))
+	require.NoError(t, err)
+	require.Equal(t, connect.HexString(cert.SubjectKeyId), origRoot.SigningKeyID)
+
+	err = s1.caManager.UpdateConfiguration(&structs.CARequest{
+		Config: &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             vault.Addr,
+				"Token":               vault.RootToken,
+				"RootPKIPath":         "pki-root-2/",
+				"IntermediatePKIPath": "pki-intermediate-2/",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	_, newRoot, err := s1.fsm.State().CARootActive(nil)
+	require.NoError(t, err)
+	require.Len(t, newRoot.IntermediateCerts, 2,
+		"expected one cross-sign cert and one local leaf sign cert")
+	require.NotEqual(t, origRoot.ID, newRoot.ID)
+
+	cert, err = connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(newRoot))
+	require.NoError(t, err)
+	require.Equal(t, connect.HexString(cert.SubjectKeyId), newRoot.SigningKeyID)
 }

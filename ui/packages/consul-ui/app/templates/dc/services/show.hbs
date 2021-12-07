@@ -19,28 +19,58 @@ as |route|>
         />
       </BlockSlot>
 
-      <BlockSlot @name="disconnected" as |Notification|>
+      <BlockSlot @name="disconnected" as |after|>
         {{#if (eq loader.error.status "404")}}
-          <Notification @sticky={{true}}>
-            <p data-notification role="alert" class="warning notification-update">
+          <Notice
+            {{notification
+              sticky=true
+            }}
+            class="notification-update"
+            @type="warning"
+          as |notice|>
+            <notice.Header>
               <strong>Warning!</strong>
-              This service has been deregistered and no longer exists in the catalog.
-            </p>
-          </Notification>
+            </notice.Header>
+            <notice.Body>
+              <p>
+                This service has been deregistered and no longer exists in the catalog.
+              </p>
+            </notice.Body>
+          </Notice>
         {{else if (eq loader.error.status "403")}}
-          <Notification @sticky={{true}}>
-            <p data-notification role="alert" class="error notification-update">
+          <Notice
+            {{notification
+              sticky=true
+            }}
+            class="notification-update"
+            @type="error"
+          as |notice|>
+            <notice.Header>
               <strong>Error!</strong>
-              You no longer have access to this service
-            </p>
-          </Notification>
+            </notice.Header>
+            <notice.Body>
+              <p>
+                You no longer have access to this service
+              </p>
+            </notice.Body>
+          </Notice>
         {{else}}
-          <Notification @sticky={{true}}>
-            <p data-notification role="alert" class="warning notification-update">
+          <Notice
+            {{notification
+              sticky=true
+            }}
+            class="notification-update"
+            @type="warning"
+          as |notice|>
+            <notice.Header>
               <strong>Warning!</strong>
-              An error was returned whilst loading this data, refresh to try again.
-            </p>
-          </Notification>
+            </notice.Header>
+            <notice.Body>
+              <p>
+                An error was returned whilst loading this data, refresh to try again.
+              </p>
+            </notice.Body>
+          </Notice>
         {{/if}}
       </BlockSlot>
 
@@ -112,7 +142,7 @@ as |items item dc|}}
               <h1>
                 <route.Title @title={{item.Service.Service}} />
               </h1>
-              <Consul::ExternalSource @item={{item.Service}} />
+              <Consul::ExternalSource @item={{item.Service}} @withInfo={{true}} />
               <Consul::Kind @item={{item.Service}} @withInfo={{true}} />
           </BlockSlot>
           <BlockSlot @name="nav">
@@ -156,10 +186,17 @@ as |items item dc|}}
               }}
             as |config|>
             {{#if config.data.dashboard_url_templates.service}}
-              <a href={{render-template config.data.dashboard_url_templates.service (hash
-                Datacenter=dc.Name
-                Service=(hash Name=item.Service.Service)
-              )}}
+              <a
+                href={{render-template config.data.dashboard_url_templates.service
+                  (hash
+                    Datacenter=dc.Name
+                    Service=(hash
+                      Name=item.Service.Service
+                      Namespace=(or item.Service.Namespace '')
+                      Partition=(or item.Service.Partition '')
+                    )
+                  )
+                }}
                 target="_blank"
                 rel="noopener noreferrer"
                 data-test-dashboard-anchor

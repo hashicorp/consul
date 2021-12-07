@@ -5,13 +5,14 @@
   @linkable="linkable upstream"
 as |item index|>
   <BlockSlot @name="header">
-  {{#if (gt item.InstanceCount 0)}}
+{{#if (gt item.InstanceCount 0)}}
     <dl class={{item.MeshStatus}}>
       <dt>
         Health
       </dt>
-      <dd>
-        <Tooltip @position="top-start">
+      <dd
+        {{tooltip}}
+      >
           {{#if (eq 'critical' item.MeshStatus)}}
             At least one health check on one instance is failing.
           {{else if (eq 'warning' item.MeshStatus)}}
@@ -21,48 +22,43 @@ as |item index|>
           {{else}}
             There are no health checks.
           {{/if}}
-        </Tooltip>
       </dd>
     </dl>
-{{#if (and (can 'use nspaces') (not-eq item.Namespace @nspace))}}
-      <a
-        data-test-service-name
-        href={{href-to 'dc.services.show' @dc item.Name
-                params=(hash
-                  nspace=item.Namespace
-                )
-              }}
-      >
-        {{item.Name}}
-      </a>
+    <a
+      data-test-service-name
+      href={{href-to "dc.services.show" item.Name
+        params=(if (not-eq item.Partition @partition)
+          (hash
+            partition=item.Partition
+            nspace=item.Namespace
+          )
+          (if (not-eq item.Namespace @nspace)
+            (hash
+              nspace=item.Namespace
+            )
+            (hash)
+          )
+        )
+      }}
+    >
+      {{item.Name}}
+    </a>
 {{else}}
-      <a data-test-service-name href={{href-to 'dc.services.show' item.Name}}>
-        {{item.Name}}
-      </a>
-{{/if}}
-  {{else}}
     <p data-test-service-name>
       {{item.Name}}
     </p>
-  {{/if}}
+{{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
-  {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace @nspace))}}
-    <dl class="nspace">
-      <dt>
-        <Tooltip>
-          Namespace
-        </Tooltip>
-      </dt>
-      <dd>
-        {{item.Namespace}}
-      </dd>
-    </dl>
-  {{/if}}
-  {{#each item.GatewayConfig.Addresses as |address|}}
+    <Consul::Bucket::List
+      @item={{item}}
+      @nspace={{@nspace}}
+      @partition={{@partition}}
+    />
+{{#each item.GatewayConfig.Addresses as |address|}}
     <dl>
       <dt>
-        <span>Address</span>
+        Address
       </dt>
       <dd>
         <CopyButton
@@ -72,6 +68,6 @@ as |item index|>
         {{address}}
       </dd>
     </dl>
-  {{/each}}
+{{/each}}
   </BlockSlot>
 </ListCollection>

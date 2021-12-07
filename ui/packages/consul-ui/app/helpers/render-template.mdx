@@ -1,0 +1,44 @@
+# render-template
+
+`{{render-template 'template string' vars}}` is used to interpolate some dynamic
+variables into a string and produce a string output as a result i.e. a micro,
+regex based, template engine. For example:
+
+```hbs preview-template
+<figure>
+  {{render-template 'http://localhost/?service={{Service.Name}}&datacenter={{Datacenter}}'
+    (hash
+      Datacenter="dc1"
+      Service=(hash
+        Name="Hello-Service"
+      )
+    )
+  }}
+  <figcaption>^ that is the rendered template</figcaption>
+</figure>
+
+```
+
+Additionally the variables passed into the template are automatically URL
+encoded as our primary usecase for this is for creating dynamic links/URLs. If
+we ever need to reuse this without URL encoding, then an option could be added
+as a named argument to disable/turn that off. In which case, encode should be
+default and a knob provided to turn it off (at the time of writing our primary
+usecase is to encode).
+
+Currently supported separators are mustache style `{{VariableName}}`, although
+we would like to add Javascript style `${VariableName}` separators in the future
+and transition to default to those whilst remaining backwards compatible.
+Mustache style are a documentated user 'feature' for some Consul config, so we
+should be mindful of that.
+
+**Please note:** Our `uri` helper (that is used extensively in the UI) also uses
+some of the underlying functionality of `render-template` via our `encoder`
+service.
+
+## Positional Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `template` | `String` |  | A template string for the variables to be interpolated into |
+| `vars` | `Object` |  | An object/hash of variables to URL encode and interpolate into the template string |

@@ -1,0 +1,3 @@
+```release-note:improvement
+types: add TLSVersion and TLSCipherSuite
+```

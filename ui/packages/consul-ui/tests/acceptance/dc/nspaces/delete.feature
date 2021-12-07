@@ -26,17 +26,18 @@ Feature: dc / nspaces / delete: Deleting items with confirmations, success and e
     | Edit     | Listing     | Method | URL                                      | Data                    |
     | nspace    | nspaces    | DELETE | /v1/namespace/a-namespace?dc=datacenter  | {"Name": "a-namespace"} |
     --------------------------------------------------------------------------------------------------------
-  Scenario: Deleting a [Model] from the [Model] detail page
-    When I visit the [Model] page for yaml
+  Scenario: Deleting a nspace from the nspace detail page with success
+    When I visit the nspace page for yaml
     ---
       dc: datacenter
-      [Slug]
+      namespace: a-namespace
     ---
     And I click delete
     And I click confirmDelete
-    Then a [Method] request was made to "[URL]"
+    Then a DELETE request was made to "/v1/namespace/a-namespace?dc=datacenter"
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class
+  Scenario: Deleting a [Model] from the [Model] detail page with error
     When I visit the [Model] page for yaml
     ---
       dc: datacenter
@@ -45,7 +46,7 @@ Feature: dc / nspaces / delete: Deleting items with confirmations, success and e
     Given the url "[URL]" responds with a 500 status
     And I click delete
     And I click confirmDelete
-    And "[data-notification]" has the "notification-delete" class
+    And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "error" class
   Where:
     -------------------------------------------------------------------------------------------

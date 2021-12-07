@@ -3,7 +3,7 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "foo:1.2.3.4:8080",
+      "name": "db:1.2.3.4:8080",
       "address": {
         "socketAddress": {
           "address": "1.2.3.4",
@@ -17,8 +17,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.foo.default.default.dc1",
-                "cluster": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "statPrefix": "upstream.db.default.default.dc1",
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ],

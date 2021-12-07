@@ -2,7 +2,6 @@ package xds
 
 import (
 	"fmt"
-
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
@@ -54,19 +53,47 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			id := u.Identifier()
 
 			chain := cfgSnap.IngressGateway.DiscoveryChain[id]
+			if chain == nil {
+				// Wait until a chain is present in the snapshot.
+				continue
+			}
 
-			var upstreamListener proto.Message
-			upstreamListener, err := s.makeUpstreamListenerForDiscoveryChain(
-				&u,
-				address,
-				chain,
-				cfgSnap,
-				tlsContext,
-			)
+			cfg := s.getAndModifyUpstreamConfigForListener(id, &u, chain)
+
+			// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
+			// TODO(freddy): Why can the protocol of the listener be overridden here?
+			useRDS := cfg.Protocol != "tcp" && !chain.IsDefault()
+
+			var clusterName string
+			if !useRDS {
+				// When not using RDS we must generate a cluster name to attach to the filter chain.
+				// With RDS, cluster names get attached to the dynamic routes instead.
+				target, err := simpleChainTarget(chain)
+				if err != nil {
+					return nil, err
+				}
+				clusterName = CustomizeClusterName(target.Name, chain)
+			}
+
+			filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
+
+			l := makePortListenerWithDefault(id, address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+				routeName:   id,
+				useRDS:      useRDS,
+				clusterName: clusterName,
+				filterName:  filterName,
+				protocol:    cfg.Protocol,
+				tlsContext:  tlsContext,
+			})
 			if err != nil {
 				return nil, err
 			}
-			resources = append(resources, upstreamListener)
+			l.FilterChains = []*envoy_listener_v3.FilterChain{
+				filterChain,
+			}
+			resources = append(resources, l)
+
 		} else {
 			// If multiple upstreams share this port, make a special listener for the protocol.
 			listener := makePortListener(listenerKey.Protocol, address, listenerKey.Port, envoy_core_v3.TrafficDirection_OUTBOUND)

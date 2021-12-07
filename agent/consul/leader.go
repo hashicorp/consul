@@ -55,6 +55,8 @@ var (
 	// minCentralizedConfigVersion is the minimum Consul version in which centralized
 	// config is supported
 	minCentralizedConfigVersion = version.Must(version.NewVersion("1.5.0"))
+
+	minVirtualIPVersion = version.Must(version.NewVersion("1.11.0"))
 )
 
 // monitorLeadership is used to monitor if we acquire or lose our role
@@ -134,13 +136,8 @@ func (s *Server) leaderLoop(stopCh chan struct{}) {
 
 	// Fire a user event indicating a new leader
 	payload := []byte(s.config.NodeName)
-	for name, segment := range s.LANSegments() {
-		if err := segment.UserEvent(newLeaderEvent, payload, false); err != nil {
-			s.logger.Warn("failed to broadcast new leader event on segment",
-				"segment", name,
-				"error", err,
-			)
-		}
+	if err := s.LANSendUserEvent(newLeaderEvent, payload, false); err != nil {
+		s.logger.Warn("failed to broadcast new leader event", "error", err)
 	}
 
 	// Reconcile channel is only used once initial reconcile
@@ -191,6 +188,10 @@ RECONCILE:
 		s.logger.Error("failed to reconcile", "error", err)
 		goto WAIT
 	}
+	if err := s.setVirtualIPFlag(); err != nil {
+		s.logger.Error("failed to set virtual IP flag", "error", err)
+		goto WAIT
+	}
 
 	// Initial reconcile worked, now we can process the channel
 	// updates
@@ -218,6 +219,7 @@ WAIT:
 			goto RECONCILE
 		case member := <-reconcileCh:
 			s.reconcileMember(member)
+			s.setVirtualIPFlag()
 		case index := <-s.tombstoneGC.ExpireCh():
 			go s.reapTombstones(index)
 		case errCh := <-s.reassertLeaderCh:
@@ -317,6 +319,10 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 	// Connect leader tasks so we hopefully have transitioned to supporting
 	// service-intentions.
 	if err := s.bootstrapConfigEntries(s.config.ConfigEntryBootstrap); err != nil {
+		return err
+	}
+
+	if err := s.setVirtualIPFlag(); err != nil {
 		return err
 	}
 
@@ -425,28 +431,28 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 			s.logger.Info("Created ACL 'global-management' policy")
 		}
 
-		// Check for configured master token.
-		if master := s.config.ACLMasterToken; len(master) > 0 {
+		// Check for configured initial management token.
+		if initialManagement := s.config.ACLInitialManagementToken; len(initialManagement) > 0 {
 			state := s.fsm.State()
-			if _, err := uuid.ParseUUID(master); err != nil {
-				s.logger.Warn("Configuring a non-UUID master token is deprecated")
+			if _, err := uuid.ParseUUID(initialManagement); err != nil {
+				s.logger.Warn("Configuring a non-UUID initial management token is deprecated")
 			}
 
-			_, token, err := state.ACLTokenGetBySecret(nil, master, nil)
+			_, token, err := state.ACLTokenGetBySecret(nil, initialManagement, nil)
 			if err != nil {
-				return fmt.Errorf("failed to get master token: %v", err)
+				return fmt.Errorf("failed to get initial management token: %v", err)
 			}
 			// Ignoring expiration times to avoid an insertion collision.
 			if token == nil {
 				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
 				if err != nil {
-					return fmt.Errorf("failed to generate the accessor ID for the master token: %v", err)
+					return fmt.Errorf("failed to generate the accessor ID for the initial management token: %v", err)
 				}
 
 				token := structs.ACLToken{
 					AccessorID:  accessor,
-					SecretID:    master,
-					Description: "Master Token",
+					SecretID:    initialManagement,
+					Description: "Initial Management Token",
 					Policies: []structs.ACLTokenPolicyLink{
 						{
 							ID: structs.ACLPolicyGlobalManagementID,
@@ -466,12 +472,12 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 						ResetIndex: 0,
 					}
 					if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
-						s.logger.Info("Bootstrapped ACL master token from configuration")
+						s.logger.Info("Bootstrapped ACL initial management token from configuration")
 						done = true
 					} else {
 						if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() &&
 							err.Error() != structs.ACLBootstrapInvalidResetIndexErr.Error() {
-							return fmt.Errorf("failed to bootstrap master token: %v", err)
+							return fmt.Errorf("failed to bootstrap initial management token: %v", err)
 						}
 					}
 				}
@@ -483,10 +489,10 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 						CAS:    false,
 					}
 					if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
-						return fmt.Errorf("failed to create master token: %v", err)
+						return fmt.Errorf("failed to create initial management token: %v", err)
 					}
 
-					s.logger.Info("Created ACL master token from configuration")
+					s.logger.Info("Created ACL initial management token from configuration")
 				}
 			}
 		}
@@ -886,6 +892,25 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 	return nil
 }
 
+func (s *Server) setVirtualIPFlag() error {
+	// Return early if the flag is already set.
+	val, err := s.getSystemMetadata(structs.SystemMetadataVirtualIPsEnabled)
+	if err != nil {
+		return err
+	}
+	if val != "" {
+		return nil
+	}
+
+	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minVirtualIPVersion); !ok {
+		s.logger.Warn(fmt.Sprintf("can't allocate Virtual IPs until all servers >= %s",
+			minVirtualIPVersion.String()))
+		return nil
+	}
+
+	return s.setSystemMetadataKey(structs.SystemMetadataVirtualIPsEnabled, "true")
+}
+
 // reconcileReaped is used to reconcile nodes that have failed and been reaped
 // from Serf but remain in the catalog. This is done by looking for unknown nodes with serfHealth checks registered.
 // We generate a "reap" event to cause the node to be cleaned up.
@@ -1001,6 +1026,7 @@ func (s *Server) reconcileMember(member serf.Member) error {
 			return nil
 		}
 	}
+
 	return nil
 }
 

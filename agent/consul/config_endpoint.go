@@ -54,6 +54,11 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		return err
 	}
 
+	err := gateWriteToSecondary(args.Datacenter, c.srv.config.Datacenter, c.srv.config.PrimaryDatacenter, args.Entry.GetKind())
+	if err != nil {
+		return err
+	}
+
 	// Ensure that all config entry writes go to the primary datacenter. These will then
 	// be replicated to all the other datacenters.
 	args.Datacenter = c.srv.config.PrimaryDatacenter
@@ -181,6 +186,7 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
 				if !entry.CanRead(authz) {
+					reply.QueryMeta.ResultsFilteredByACLs = true
 					continue
 				}
 				filteredEntries = append(filteredEntries, entry)
@@ -241,6 +247,7 @@ func (c *ConfigEntry) ListAll(args *structs.ConfigEntryListAllRequest, reply *st
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
 				if !entry.CanRead(authz) {
+					reply.QueryMeta.ResultsFilteredByACLs = true
 					continue
 				}
 				// Doing this filter outside of memdb isn't terribly
@@ -584,6 +591,33 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			*reply = thisReply
 			return nil
 		})
+}
+
+func gateWriteToSecondary(targetDC, localDC, primaryDC, kind string) error {
+	// ExportedServices entries are gated from interactions from secondary DCs
+	// because non-default partitions cannot be created in secondaries
+	// and services cannot be exported to another datacenter.
+	if kind != structs.ExportedServices {
+		return nil
+	}
+	if localDC == "" {
+		// This should not happen because the datacenter is defaulted in DefaultConfig.
+		return fmt.Errorf("unknown local datacenter")
+	}
+
+	if primaryDC == "" {
+		primaryDC = localDC
+	}
+
+	switch {
+	case targetDC == "" && localDC != primaryDC:
+		return fmt.Errorf("exported-services writes in secondary datacenters must target the primary datacenter explicitly.")
+
+	case targetDC != "" && targetDC != primaryDC:
+		return fmt.Errorf("exported-services writes must not target secondary datacenters.")
+
+	}
+	return nil
 }
 
 // preflightCheck is meant to have kind-specific system validation outside of

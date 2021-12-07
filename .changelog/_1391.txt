@@ -1,0 +1,3 @@
+```release-note:feature
+partitions: **(Enterprise only)** Ensure partitions and serf-based WAN federation are mutually exclusive.
+```

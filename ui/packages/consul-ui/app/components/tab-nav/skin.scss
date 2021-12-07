@@ -1,12 +1,12 @@
 %tab-nav ul {
   list-style-type: none;
 }
-%tab-nav label {
-  cursor: pointer;
-}
 %tab-button {
   white-space: nowrap;
   text-decoration: none;
+}
+%tab-button:not(:disabled) {
+  cursor: pointer;
 }
 %tab-nav {
   /* %frame-transparent-something */

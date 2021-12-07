@@ -1,29 +1,26 @@
----
-class: ember
----
 # Consul::LockSession::List
 
+A presentational component for rendering Node Lock Sessions
+
 ```hbs preview-template
-<DataSource @src="/partition/default/dc-1/sessions/for-node/my-node" as |source|>
+<DataSource
+  @src={{uri "/partition/default/dc-1/sessions/for-node/my-node"}} as |source|>
   <Consul::LockSession::List
     @items={{source.data}}
-    @onInvalidate={{action (noop)}}
+    @ondelete={{action (noop)}}
   />
 </DataSource>
 ```
 
-A presentational component for rendering Node Lock Sessions
-
-### Arguments
+## Arguments
 
 | Argument/Attribute | Type | Default | Description |
 | --- | --- | --- | --- |
 | `items` | `array` |  | An array of Node Lock Sessions  |
-| `onInvalidate` | `function` |  | An action to confirm when the `Invalidate` action is clicked and confirmed |
+| `ondelete` | `function` |  | An action to confirm when the `delete` (or Invalidate) action is clicked and confirmed |
 
-### See
+## See
 
-- [Component Source Code](./index.js)
 - [Template Source Code](./index.hbs)
 
 ---

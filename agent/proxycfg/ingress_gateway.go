@@ -155,7 +155,7 @@ func makeUpstream(g *structs.GatewayService) structs.Upstream {
 	upstream := structs.Upstream{
 		DestinationName:      g.Service.Name,
 		DestinationNamespace: g.Service.NamespaceOrDefault(),
-		DestinationPartition: g.Gateway.PartitionOrDefault(),
+		DestinationPartition: g.Service.PartitionOrDefault(),
 		LocalBindPort:        g.Port,
 		IngressHosts:         g.Hosts,
 		// Pass the protocol that was configured on the ingress listener in order
@@ -232,6 +232,7 @@ func (s *handlerIngressGateway) generateIngressDNSSANs(snap *ConfigSnapshot) []s
 		}
 	}
 
+	// TODO(partitions): How should these be updated for partitions?
 	for ns := range namespaces {
 		// The default namespace is special cased in DNS resolution, so special
 		// case it here.
