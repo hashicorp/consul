@@ -1005,7 +1005,7 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 	}
 	notFoundReason := fmt.Sprintf("ServiceId %s not found", sid.String())
 	if returnTextPlain(req) {
-		return notFoundReason, CodeWithPayloadError{StatusCode: http.StatusNotFound, Reason: notFoundReason, ContentType: "application/json"}
+		return notFoundReason, CodeWithPayloadError{StatusCode: http.StatusNotFound, Reason: notFoundReason, ContentType: "text/plain"}
 	}
 	return &api.AgentServiceChecksInfo{
 		AggregatedStatus: api.HealthCritical,
