@@ -1,6 +1,6 @@
 {
     "ACLEnableKeyListPolicy": false,
-    "ACLMasterToken": "hidden",
+    "ACLInitialManagementToken": "hidden",
     "ACLResolverSettings": {
         "ACLDefaultPolicy": "",
         "ACLDownPolicy": "",

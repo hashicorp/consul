@@ -44,7 +44,7 @@ func testACLTokenReap_Primary(t *testing.T, local, global bool) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
 		c.ACLTokenMaxExpirationTTL = 8 * time.Second
 	})

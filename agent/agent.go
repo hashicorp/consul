@@ -1153,8 +1153,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.RaftTrailingLogs != 0 {
 		cfg.RaftConfig.TrailingLogs = uint64(runtimeCfg.RaftTrailingLogs)
 	}
-	if runtimeCfg.ACLMasterToken != "" {
-		cfg.ACLMasterToken = runtimeCfg.ACLMasterToken
+	if runtimeCfg.ACLInitialManagementToken != "" {
+		cfg.ACLInitialManagementToken = runtimeCfg.ACLInitialManagementToken
 	}
 	cfg.ACLTokenReplication = runtimeCfg.ACLTokenReplication
 	cfg.ACLsEnabled = runtimeCfg.ACLsEnabled
