@@ -4020,7 +4020,7 @@ func TestACLResolver_AgentMaster(t *testing.T) {
 		cfg.DisableDuration = 0
 	})
 
-	tokens.UpdateAgentMasterToken("9a184a11-5599-459e-b71a-550e5f9a5a23", token.TokenSourceConfig)
+	tokens.UpdateAgentRecoveryToken("9a184a11-5599-459e-b71a-550e5f9a5a23", token.TokenSourceConfig)
 
 	ident, authz, err := r.ResolveTokenToIdentityAndAuthorizer("9a184a11-5599-459e-b71a-550e5f9a5a23")
 	require.NoError(t, err)

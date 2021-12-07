@@ -5396,7 +5396,7 @@ func TestAgent_Token(t *testing.T) {
 	resetTokens := func(init tokens) {
 		a.tokens.UpdateUserToken(init.user, init.userSource)
 		a.tokens.UpdateAgentToken(init.agent, init.agentSource)
-		a.tokens.UpdateAgentMasterToken(init.master, init.masterSource)
+		a.tokens.UpdateAgentRecoveryToken(init.master, init.masterSource)
 		a.tokens.UpdateReplicationToken(init.repl, init.replSource)
 	}
 
@@ -5614,7 +5614,7 @@ func TestAgent_Token(t *testing.T) {
 			}
 			require.Equal(t, tt.effective.user, a.tokens.UserToken())
 			require.Equal(t, tt.effective.agent, a.tokens.AgentToken())
-			require.Equal(t, tt.effective.master, a.tokens.AgentMasterToken())
+			require.Equal(t, tt.effective.master, a.tokens.AgentRecoveryToken())
 			require.Equal(t, tt.effective.repl, a.tokens.ReplicationToken())
 
 			tok, src := a.tokens.UserTokenAndSource()
@@ -5625,7 +5625,7 @@ func TestAgent_Token(t *testing.T) {
 			require.Equal(t, tt.raw.agent, tok)
 			require.Equal(t, tt.raw.agentSource, src)
 
-			tok, src = a.tokens.AgentMasterTokenAndSource()
+			tok, src = a.tokens.AgentRecoveryTokenAndSource()
 			require.Equal(t, tt.raw.master, tok)
 			require.Equal(t, tt.raw.masterSource, src)
 
