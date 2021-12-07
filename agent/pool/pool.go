@@ -30,7 +30,7 @@ type muxSession interface {
 
 // streamClient is used to wrap a stream with an RPC client
 type StreamClient struct {
-	stream net.Conn
+	stream *TimeoutConn
 	codec  rpc.ClientCodec
 }
 
@@ -53,6 +53,47 @@ type Conn struct {
 
 	clients    *list.List
 	clientLock sync.Mutex
+}
+
+// TimeoutConn wraps net.Conn with a default timeout.
+// readTimeout and writeTimeout apply to the subsequent operation.
+type TimeoutConn struct {
+	net.Conn
+	DefaultTimeout time.Duration
+	ReadTimeout    time.Duration
+	WriteTimeout   time.Duration
+}
+
+func (c *TimeoutConn) Read(b []byte) (int, error) {
+	timeout := c.ReadTimeout
+	c.ReadTimeout = 0
+	if timeout == 0 {
+		timeout = c.DefaultTimeout
+	}
+	deadline := time.Time{}
+	if timeout > 0 {
+		deadline = time.Now().Add(timeout)
+	}
+	if err := c.Conn.SetReadDeadline(deadline); err != nil {
+		return 0, err
+	}
+	return c.Conn.Read(b)
+}
+
+func (c *TimeoutConn) Write(b []byte) (int, error) {
+	timeout := c.WriteTimeout
+	c.WriteTimeout = 0
+	if timeout == 0 {
+		timeout = c.DefaultTimeout
+	}
+	deadline := time.Time{}
+	if timeout > 0 {
+		deadline = time.Now().Add(timeout)
+	}
+	if err := c.Conn.SetWriteDeadline(deadline); err != nil {
+		return 0, err
+	}
+	return c.Conn.Write(b)
 }
 
 func (c *Conn) Close() error {
@@ -78,12 +119,14 @@ func (c *Conn) getClient() (*StreamClient, error) {
 		return nil, err
 	}
 
+	timeoutStream := &TimeoutConn{stream, c.pool.Timeout, 0, 0}
+
 	// Create the RPC client
-	codec := msgpackrpc.NewCodecFromHandle(true, true, stream, structs.MsgpackHandle)
+	codec := msgpackrpc.NewCodecFromHandle(true, true, timeoutStream, structs.MsgpackHandle)
 
 	// Return a new stream client
 	sc := &StreamClient{
-		stream: stream,
+		stream: timeoutStream,
 		codec:  codec,
 	}
 	return sc, nil
@@ -100,7 +143,7 @@ func (c *Conn) returnClient(client *StreamClient) {
 
 		// If this is a Yamux stream, shrink the internal buffers so that
 		// we can GC the idle memory
-		if ys, ok := client.stream.(*yamux.Stream); ok {
+		if ys, ok := client.stream.Conn.(*yamux.Stream); ok {
 			ys.Shrink()
 		}
 	}
@@ -131,6 +174,9 @@ type ConnPool struct {
 	// Logger passed to yamux
 	// TODO: consider refactoring to accept a full yamux.Config instead of a logger
 	Logger *log.Logger
+
+	// The default timeout for stream reads/writes
+	Timeout time.Duration
 
 	// The maximum time to keep a connection open
 	MaxTime time.Duration
@@ -324,7 +370,7 @@ func (p *ConnPool) dial(
 	tlsRPCType RPCType,
 ) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
-	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: DefaultDialTimeout}
+	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: p.Timeout}
 	conn, err := d.Dial("tcp", addr.String())
 	if err != nil {
 		return nil, nil, err
@@ -538,7 +584,7 @@ func (p *ConnPool) RPC(
 	method string,
 	args interface{},
 	reply interface{},
-	deadline time.Time,
+	timeout time.Duration,
 ) error {
 	if nodeName == "" {
 		return fmt.Errorf("pool: ConnPool.RPC requires a node name")
@@ -551,7 +597,7 @@ func (p *ConnPool) RPC(
 	if method == "AutoEncrypt.Sign" || method == "AutoConfig.InitialConfiguration" {
 		return p.rpcInsecure(dc, addr, method, args, reply)
 	} else {
-		return p.rpc(dc, nodeName, addr, method, args, reply, deadline)
+		return p.rpc(dc, nodeName, addr, method, args, reply, timeout)
 	}
 }
 
@@ -581,7 +627,7 @@ func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args int
 	return nil
 }
 
-func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string, args interface{}, reply interface{}, deadline time.Time) error {
+func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string, args interface{}, reply interface{}, timeout time.Duration) error {
 	p.once.Do(p.init)
 
 	// Get a usable client
@@ -590,10 +636,8 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 		return fmt.Errorf("rpc error getting client: %w", err)
 	}
 
-	if !deadline.IsZero() {
-		if err = sc.stream.SetDeadline(deadline); err != nil {
-			return fmt.Errorf("rpc error setting client deadline: %w", err)
-		}
+	if timeout > 0 {
+		sc.stream.ReadTimeout = timeout
 	}
 
 	// Make the RPC call
@@ -612,11 +656,7 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 		p.releaseConn(conn)
 		return fmt.Errorf("rpc error making call: %w", err)
 	}
-	if !deadline.IsZero() {
-		if err = sc.stream.SetDeadline(time.Time{}); err != nil {
-			return fmt.Errorf("rpc error resetting client deadline: %w", err)
-		}
-	}
+
 	// Done with the connection
 	conn.returnClient(sc)
 	p.releaseConn(conn)
@@ -627,7 +667,7 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 // returns true if healthy, false if an error occurred
 func (p *ConnPool) Ping(dc string, nodeName string, addr net.Addr) (bool, error) {
 	var out struct{}
-	err := p.RPC(dc, nodeName, addr, "Status.Ping", struct{}{}, &out, time.Time{})
+	err := p.RPC(dc, nodeName, addr, "Status.Ping", struct{}{}, &out, 0)
 	return err == nil, err
 }
 

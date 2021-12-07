@@ -270,15 +270,13 @@ TRY:
 	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
 	info, _ := args.(structs.RPCInfo)
 
-	var deadline time.Time
+	timeout := time.Duration(0)
 	if info != nil {
-		deadline = time.Now().Add(info.Timeout(c.config.RPCHoldTimeout, c.config.MaxQueryTime, c.config.DefaultQueryTime))
-	} else {
-		deadline = time.Time{}
+		timeout = info.Timeout(c.config.RPCHoldTimeout, c.config.MaxQueryTime, c.config.DefaultQueryTime)
 	}
 
 	// Make the request.
-	rpcErr := c.connPool.RPC(c.config.Datacenter, server.ShortName, server.Addr, method, args, reply, deadline)
+	rpcErr := c.connPool.RPC(c.config.Datacenter, server.ShortName, server.Addr, method, args, reply, timeout)
 	if rpcErr == nil {
 		return nil
 	}

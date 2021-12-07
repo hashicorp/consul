@@ -531,6 +531,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		MaxStreams:      4,
 		TLSConfigurator: tls,
 		Datacenter:      c.Datacenter,
+		Timeout:         c.RPCHoldTimeout,
 	}
 
 	return Deps{

@@ -265,7 +265,7 @@ func TestInitialConfiguration_cancelled(t *testing.T) {
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		mock.Anything,
-		time.Time{}).Return(fmt.Errorf("injected error")).Times(0).Maybe()
+		time.Duration(0)).Return(fmt.Errorf("injected error")).Times(0).Maybe()
 	mcfg.serverProvider.On("FindLANServer").Return(nil).Times(0).Maybe()
 
 	ac, err := New(mcfg.Config)
@@ -395,7 +395,7 @@ func TestInitialConfiguration_success(t *testing.T) {
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		&pbautoconf.AutoConfigResponse{},
-		time.Time{}).Return(nil).Run(populateResponse)
+		time.Duration(0)).Return(nil).Run(populateResponse)
 
 	ac, err := New(mcfg.Config)
 	require.NoError(t, err)
@@ -481,7 +481,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		&pbautoconf.AutoConfigResponse{},
-		time.Time{}).Return(fmt.Errorf("injected failure")).Times(0)
+		time.Duration(0)).Return(fmt.Errorf("injected failure")).Times(0)
 	mcfg.directRPC.On(
 		"RPC",
 		"dc1",
@@ -490,7 +490,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		&pbautoconf.AutoConfigResponse{},
-		time.Time{}).Return(fmt.Errorf("injected failure")).Times(0)
+		time.Duration(0)).Return(fmt.Errorf("injected failure")).Times(0)
 	mcfg.directRPC.On(
 		"RPC",
 		"dc1",
@@ -499,7 +499,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		&pbautoconf.AutoConfigResponse{},
-		time.Time{}).Return(fmt.Errorf("injected failure")).Times(0)
+		time.Duration(0)).Return(fmt.Errorf("injected failure")).Times(0)
 	mcfg.directRPC.On(
 		"RPC",
 		"dc1",
@@ -508,7 +508,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		&pbautoconf.AutoConfigResponse{},
-		time.Time{}).Return(fmt.Errorf("injected failure")).Once()
+		time.Duration(0)).Return(fmt.Errorf("injected failure")).Once()
 	mcfg.directRPC.On(
 		"RPC",
 		"dc1",
@@ -517,7 +517,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		&pbautoconf.AutoConfigResponse{},
-		time.Time{}).Return(nil).Run(populateResponse).Once()
+		time.Duration(0)).Return(nil).Run(populateResponse).Once()
 
 	ac, err := New(mcfg.Config)
 	require.NoError(t, err)
@@ -804,7 +804,7 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 			"AutoConfig.InitialConfiguration",
 			&expectedRequest,
 			&pbautoconf.AutoConfigResponse{},
-			time.Time{}).Return(nil).Run(populateResponse).Once()
+			time.Duration(0)).Return(nil).Run(populateResponse).Once()
 	} else {
 		expectedRequest := structs.CASignRequest{
 			WriteRequest: structs.WriteRequest{Token: originalToken},
@@ -825,7 +825,7 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 			"AutoEncrypt.Sign",
 			&expectedRequest,
 			&structs.SignedResponse{},
-			time.Time{}).Return(nil).Run(populateResponse)
+			time.Duration(0)).Return(nil).Run(populateResponse)
 	}
 
 	ac, err := New(mcfg.Config)
@@ -1100,7 +1100,7 @@ func TestFallback(t *testing.T) {
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		&pbautoconf.AutoConfigResponse{},
-		time.Time{}).Return(nil).Run(populateResponse).Once()
+		time.Duration(0)).Return(nil).Run(populateResponse).Once()
 
 	// this gets called when InitialConfiguration is invoked to record the token from the
 	// auto-config response which is how the Fallback for auto-config works

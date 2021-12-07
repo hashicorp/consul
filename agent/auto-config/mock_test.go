@@ -30,22 +30,22 @@ func newMockDirectRPC(t *testing.T) *mockDirectRPC {
 	return &m
 }
 
-func (m *mockDirectRPC) RPC(dc string, node string, addr net.Addr, method string, args interface{}, reply interface{}, deadline time.Time) error {
+func (m *mockDirectRPC) RPC(dc string, node string, addr net.Addr, method string, args interface{}, reply interface{}, timeout time.Duration) error {
 	var retValues mock.Arguments
 	if method == "AutoConfig.InitialConfiguration" {
 		req := args.(*pbautoconf.AutoConfigRequest)
 		csr := req.CSR
 		req.CSR = ""
-		retValues = m.Called(dc, node, addr, method, args, reply, deadline)
+		retValues = m.Called(dc, node, addr, method, args, reply, timeout)
 		req.CSR = csr
 	} else if method == "AutoEncrypt.Sign" {
 		req := args.(*structs.CASignRequest)
 		csr := req.CSR
 		req.CSR = ""
-		retValues = m.Called(dc, node, addr, method, args, reply, deadline)
+		retValues = m.Called(dc, node, addr, method, args, reply, timeout)
 		req.CSR = csr
 	} else {
-		retValues = m.Called(dc, node, addr, method, args, reply, deadline)
+		retValues = m.Called(dc, node, addr, method, args, reply, timeout)
 	}
 
 	return retValues.Error(0)

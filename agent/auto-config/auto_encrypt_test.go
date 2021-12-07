@@ -203,7 +203,7 @@ func TestAutoEncrypt_InitialCerts(t *testing.T) {
 		"AutoEncrypt.Sign",
 		&request,
 		&structs.SignedResponse{},
-		time.Time{},
+		time.Duration(0),
 	).Once().Return(fmt.Errorf("injected error"))
 	// second failure
 	mcfg.directRPC.On("RPC",
@@ -213,7 +213,7 @@ func TestAutoEncrypt_InitialCerts(t *testing.T) {
 		"AutoEncrypt.Sign",
 		&request,
 		&structs.SignedResponse{},
-		time.Time{},
+		time.Duration(0),
 	).Once().Return(fmt.Errorf("injected error"))
 	// third times is successfuly (second attempt to first server)
 	mcfg.directRPC.On("RPC",
@@ -223,7 +223,7 @@ func TestAutoEncrypt_InitialCerts(t *testing.T) {
 		"AutoEncrypt.Sign",
 		&request,
 		&structs.SignedResponse{},
-		time.Time{},
+		time.Duration(0),
 	).Once().Return(nil).Run(func(args mock.Arguments) {
 		resp, ok := args.Get(5).(*structs.SignedResponse)
 		require.True(t, ok)
@@ -312,7 +312,7 @@ func TestAutoEncrypt_InitialConfiguration(t *testing.T) {
 		"AutoEncrypt.Sign",
 		&expectedRequest,
 		&structs.SignedResponse{},
-		time.Time{}).Return(nil).Run(populateResponse)
+		time.Duration(0)).Return(nil).Run(populateResponse)
 
 	ac, err := New(mcfg.Config)
 	require.NoError(t, err)
@@ -522,7 +522,7 @@ func TestAutoEncrypt_Fallback(t *testing.T) {
 		"AutoEncrypt.Sign",
 		&expectedRequest,
 		&structs.SignedResponse{},
-		time.Time{}).Return(nil).Run(populateResponse).Once()
+		time.Duration(0)).Return(nil).Run(populateResponse).Once()
 
 	testAC.mcfg.expectInitialTLS(t, "autoconf", "dc1", testAC.originalToken, secondCA, &secondRoots, thirdCert, testAC.extraCerts)
 

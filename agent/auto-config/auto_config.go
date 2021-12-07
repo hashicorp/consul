@@ -298,7 +298,7 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context, csr strin
 			}
 
 			ac.logger.Debug("making AutoConfig.InitialConfiguration RPC", "addr", addr.String())
-			if err = ac.acConfig.DirectRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "AutoConfig.InitialConfiguration", &request, &resp, time.Time{}); err != nil {
+			if err = ac.acConfig.DirectRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "AutoConfig.InitialConfiguration", &request, &resp, 0); err != nil {
 				ac.logger.Error("AutoConfig.InitialConfiguration RPC failed", "addr", addr.String(), "error", err)
 				continue
 			}
