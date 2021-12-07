@@ -19,11 +19,23 @@
       <dd>
         {{@item.Namespace}}
       </dd>
+
+{{#if (and @service @item.Service)}}
+      <dt
+        class="service"
+      >
+        Service
+      </dt>
+      <dd>
+        {{@item.Service}}
+      </dd>
+{{/if}}
+
     </dl>
   {{/if}}
 {{else if (and @nspace (can 'use nspace'))}}
   {{#if (not-eq @item.Namespace @nspace)}}
-    <dl>
+    <dl class="consul-bucket-list">
       <dt
         class="nspace"
         {{tooltip}}
@@ -33,7 +45,16 @@
       <dd>
         {{@item.Namespace}}
       </dd>
+{{#if (and @service @item.Service)}}
+      <dt
+        class="service"
+      >
+        Service
+      </dt>
+      <dd>
+        {{@item.Service}}
+      </dd>
+{{/if}}
     </dl>
   {{/if}}
 {{/if}}
-

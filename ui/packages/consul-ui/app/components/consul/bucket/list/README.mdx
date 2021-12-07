@@ -11,22 +11,41 @@ the namespace will be displayed, whereas if the partition is different it will
 show both the partition and namespace (as a namespace called 'team-1' in
 `partition-1` is different to a namespace called 'team-1' in `partition-2`)
 
-If you don't need the nspace only support for the view you are building then
-omit the `@nspace` argument.
+Showing the service name is a tiny bit awkward (different boolean type,
+doesn't care about difference) and could be improved but we only use it for
+the read only view of intentions.
 
 At the time of writing, this is not currently used across the entire UI
 (specifically in intentions and maybe other areas) but eventually should be.
 
 
 ```hbs preview-template
-<DataSource
-  @src={{uri "/partition/default/dc-1/gateways/for-service/service-name"}} as |source|>
+  <figure>
+    <figcaption>Show everything</figcaption>
     <Consul::Bucket::List
-      @item={{object-at 0 source.data}}
+      @item={{hash
+        Namespace="different-nspace"
+        Partition="different-partition"
+        Service="service-name"
+      }}
+      @nspace={{'nspace'}}
+      @partition={{'partition'}}
+      @service={{true}}
+    />
+  </figure>
+
+  <figure>
+    <figcaption>Show just the top-level buckets</figcaption>
+    <Consul::Bucket::List
+      @item={{hash
+        Namespace="different-nspace"
+        Partition="different-partition"
+      }}
       @nspace={{'nspace'}}
       @partition={{'partition'}}
     />
-</DataSource>
+  </figure>
+
 ```
 
 ## Arguments
@@ -36,6 +55,7 @@ At the time of writing, this is not currently used across the entire UI
 | `item` | `array` |  | A Consul object that could have both a `Partition` and a `Namespace` property |
 | `nspace` | `string` | | The name of the current namespace |
 | `partition` | `string` | | The name of the current partition |
+| `service` | `boolean` | | Whether to show the service name on the end or not. Please note you must also pass a item.Service for it to show. We flag this incase an API request has a Service property but you don't want to show it |
 
 ## See
 
