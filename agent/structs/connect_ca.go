@@ -55,6 +55,15 @@ type IndexedCARoots struct {
 	QueryMeta `json:"-"`
 }
 
+func (r IndexedCARoots) Active() *CARoot {
+	for _, root := range r.Roots {
+		if root.ID == r.ActiveRootID {
+			return root
+		}
+	}
+	return nil
+}
+
 // CARoot represents a root CA certificate that is trusted.
 type CARoot struct {
 	// ID is a globally unique ID (UUID) representing this CA root.

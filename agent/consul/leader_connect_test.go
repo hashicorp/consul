@@ -420,8 +420,13 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 		intermediatePEM = newIntermediatePEM
 	})
 
-	_, activeRoot, err = store.CARootActive(nil)
+	codec := rpcClient(t, s1)
+	roots := structs.IndexedCARoots{}
+	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
 	require.NoError(err)
+	require.Len(roots.Roots, 1)
+
+	activeRoot = roots.Active()
 	require.Equal(intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
 	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
@@ -431,36 +436,18 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 
 	// Have the new intermediate sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
-		Host:       "node1",
+		Host:       roots.TrustDomain,
 		Namespace:  "default",
 		Datacenter: "dc1",
 		Service:    "foo",
 	}
-	raw, _ := connect.TestCSR(t, spiffeService)
+	csr, _ := connect.TestCSR(t, spiffeService)
 
-	leafCsr, err := connect.ParseCSR(raw)
+	req := structs.CASignRequest{CSR: csr}
+	cert := structs.IssuedCert{}
+	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
 	require.NoError(err)
-
-	leafPEM, err := provider.Sign(leafCsr)
-	require.NoError(err)
-
-	cert, err := connect.ParseCert(leafPEM)
-	require.NoError(err)
-
-	// Check that the leaf signed by the new intermediate can be verified using the
-	// returned cert chain (signed intermediate + remote root).
-	intermediatePool := x509.NewCertPool()
-	// TODO: do not explicitly add the intermediatePEM, we should have it available
-	// from leafPEM. Use connect.ParseLeafCerts to do the right thing.
-	intermediatePool.AppendCertsFromPEM([]byte(intermediatePEM))
-	rootPool := x509.NewCertPool()
-	rootPool.AppendCertsFromPEM([]byte(caRoot.RootCert))
-
-	_, err = cert.Verify(x509.VerifyOptions{
-		Intermediates: intermediatePool,
-		Roots:         rootPool,
-	})
-	require.NoError(err)
+	verifyLeafCert(t, caRoot, cert.CertPEM)
 }
 
 func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
@@ -570,47 +557,31 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 		intermediateCert = cert
 	})
 
+	codec := rpcClient(t, s2)
+	roots := structs.IndexedCARoots{}
+	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+	require.NoError(err)
+	require.Len(roots.Roots, 1)
+
 	_, activeRoot, err = store.CARootActive(nil)
 	require.NoError(err)
 	require.Equal(intermediatePEM, s2.caManager.getLeafSigningCertFromRoot(activeRoot))
 	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
-	// Get the root from dc1 and validate a chain of:
-	// dc2 leaf -> dc2 intermediate -> dc1 root
-	_, caRoot := getCAProviderWithLock(s1)
-
 	// Have dc2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
-		Host:       "node1",
+		Host:       roots.TrustDomain,
 		Namespace:  "default",
-		Datacenter: "dc1",
+		Datacenter: "dc2",
 		Service:    "foo",
 	}
-	raw, _ := connect.TestCSR(t, spiffeService)
+	csr, _ := connect.TestCSR(t, spiffeService)
 
-	leafCsr, err := connect.ParseCSR(raw)
+	req := structs.CASignRequest{CSR: csr}
+	cert := structs.IssuedCert{}
+	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
 	require.NoError(err)
-
-	leafPEM, err := secondaryProvider.Sign(leafCsr)
-	require.NoError(err)
-
-	intermediateCert, err = connect.ParseCert(leafPEM)
-	require.NoError(err)
-
-	// Check that the leaf signed by the new intermediate can be verified using the
-	// returned cert chain (signed intermediate + remote root).
-	intermediatePool := x509.NewCertPool()
-	// TODO: do not explicitly add the intermediatePEM, we should have it available
-	// from leafPEM. Use connect.ParseLeafCerts to do the right thing.
-	intermediatePool.AppendCertsFromPEM([]byte(intermediatePEM))
-	rootPool := x509.NewCertPool()
-	rootPool.AppendCertsFromPEM([]byte(caRoot.RootCert))
-
-	_, err = intermediateCert.Verify(x509.VerifyOptions{
-		Intermediates: intermediatePool,
-		Roots:         rootPool,
-	})
-	require.NoError(err)
+	verifyLeafCert(t, activeRoot, cert.CertPEM)
 }
 
 func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
