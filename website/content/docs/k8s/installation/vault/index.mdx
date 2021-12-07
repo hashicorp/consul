@@ -20,20 +20,15 @@ At a high level, there are two points of integration with Vault:
 
 ## Requirements
 
-TODO
 1. Vault 1.19+ and Vault-k8s 0.13+ is required.
 1. Vault must be installed and accessible to the Consul on Kubernetes installation.
-
 1. `global.tls.enableAutoencrypt=true` is required if TLS is enabled with Vault.
 
 A minimal valid installation of Vault must include the Agent Injector:
 ```yaml
 injector:
   enabled: "true"
-
 ```
-
-values.yaml is provided below:
 
 
 ## Known Limitations
@@ -41,6 +36,8 @@ values.yaml is provided below:
 1. TLS
   * `global.tls.serverAdditionalDNSSans` is not currently configurable and must be manually added to the server certificate in Vault.
   * `global.tls.serverAdditionalIPSans` is not currently configurable and must be manually added to the server certificate in Vault.
+  * Mesh gateway is not currently supported.
+1. Multi-DC Federation is not currently supported.
 
 ## Next Steps
 
