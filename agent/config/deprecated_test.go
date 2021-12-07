@@ -110,13 +110,8 @@ func TestLoad_DeprecatedConfig_ACLMasterTokens(t *testing.T) {
 		require.ElementsMatch(expectWarns, result.Warnings)
 
 		rt := result.RuntimeConfig
-<<<<<<< HEAD
-		require.Equal("token1", rt.ACLMasterToken)
-		require.Equal("token2", rt.ACLTokens.ACLAgentRecoveryToken)
-=======
 		require.Equal("token1", rt.ACLInitialManagementToken)
-		require.Equal("token2", rt.ACLTokens.ACLAgentMasterToken)
->>>>>>> 81a680309 (Rename `ACLMasterToken` => `ACLInitialManagementToken`)
+		require.Equal("token2", rt.ACLTokens.ACLAgentRecoveryToken)
 	})
 
 	t.Run("embedded in tokens struct", func(t *testing.T) {
