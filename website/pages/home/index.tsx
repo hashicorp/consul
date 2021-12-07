@@ -73,6 +73,7 @@ export default function Homepage({ data }): React.ReactElement {
       />
 
       <IoHomeIntro
+        brand="consul"
         heading={introHeading}
         description={introDescription}
         offerings={{
