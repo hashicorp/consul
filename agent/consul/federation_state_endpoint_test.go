@@ -116,7 +116,7 @@ func TestFederationState_Apply_Upsert_ACLDeny(t *testing.T) {
 		c.DisableFederationStateAntiEntropy = true
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -237,7 +237,7 @@ func TestFederationState_Get_ACLDeny(t *testing.T) {
 		c.DisableFederationStateAntiEntropy = true
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -409,7 +409,7 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -425,7 +425,7 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir2)
@@ -695,7 +695,7 @@ func TestFederationState_Apply_Delete_ACLDeny(t *testing.T) {
 		c.DisableFederationStateAntiEntropy = true
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)

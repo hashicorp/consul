@@ -882,7 +882,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1010,7 +1010,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.RPCConfig.EnableStreaming = true
 	})
 	s1.tokens.UpdateAgentToken("root", tokenStore.TokenSourceConfig)

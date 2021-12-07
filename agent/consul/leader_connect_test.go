@@ -204,7 +204,7 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 				c.PrimaryDatacenter = "primary"
 				c.Build = "1.6.0"
 				c.ACLsEnabled = true
-				c.ACLMasterToken = masterToken
+				c.ACLInitialManagementToken = masterToken
 				c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 				c.CAConfig.Config["PrivateKeyType"] = tc.keyType
 				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
