@@ -51,6 +51,7 @@ export default function Homepage({ data }): React.ReactElement {
     preFooterCtas,
   } = data
   const _introVideo = introVideo[0]
+  const _introOfferingsCta = introOfferingsCta[0]
 
   return (
     <>
@@ -108,11 +109,11 @@ export default function Homepage({ data }): React.ReactElement {
                 )
               })}
             </ul>
-            {introOfferingsCta.title && introOfferingsCta.link ? (
+            {_introOfferingsCta ? (
               <div className={s.offeringsCta}>
                 <Button
-                  title={introOfferingsCta.title}
-                  url={introOfferingsCta.link}
+                  title={_introOfferingsCta.title}
+                  url={_introOfferingsCta.link}
                   theme={{
                     brand: 'neutral',
                   }}
