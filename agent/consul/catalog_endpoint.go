@@ -71,76 +71,8 @@ type Catalog struct {
 	logger hclog.Logger
 }
 
-// nodePreApply does the verification of a node before it is applied to Raft.
-func nodePreApply(nodeName, nodeID string) error {
-	if nodeName == "" {
-		return fmt.Errorf("Must provide node")
-	}
-	if nodeID != "" {
-		if _, err := uuid.ParseUUID(nodeID); err != nil {
-			return fmt.Errorf("Bad node ID: %v", err)
-		}
-	}
-
-	return nil
-}
-
-func servicePreApply(service *structs.NodeService, authz acl.Authorizer, authzCtxFill func(*acl.AuthorizerContext)) error {
-	// Validate the service. This is in addition to the below since
-	// the above just hasn't been moved over yet. We should move it over
-	// in time.
-	if err := service.Validate(); err != nil {
-		return err
-	}
-
-	// If no service id, but service name, use default
-	if service.ID == "" && service.Service != "" {
-		service.ID = service.Service
-	}
-
-	// Verify ServiceName provided if ID.
-	if service.ID != "" && service.Service == "" {
-		return fmt.Errorf("Must provide service name with ID")
-	}
-
-	// Check the service address here and in the agent endpoint
-	// since service registration isn't synchronous.
-	if ipaddr.IsAny(service.Address) {
-		return fmt.Errorf("Invalid service address")
-	}
-
-	var authzContext acl.AuthorizerContext
-	authzCtxFill(&authzContext)
-
-	// Apply the ACL policy if any. The 'consul' service is excluded
-	// since it is managed automatically internally (that behavior
-	// is going away after version 0.8). We check this same policy
-	// later if version 0.8 is enabled, so we can eventually just
-	// delete this and do all the ACL checks down there.
-	if service.Service != structs.ConsulServiceName {
-		if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
-		}
-	}
-
-	// Proxies must have write permission on their destination
-	if service.Kind == structs.ServiceKindConnectProxy {
-		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
-		}
-	}
-
-	return nil
-}
-
-// checkPreApply does the verification of a check before it is applied to Raft.
-func checkPreApply(check *structs.HealthCheck) {
-	if check.CheckID == "" && check.Name != "" {
-		check.CheckID = types.CheckID(check.Name)
-	}
-}
-
-// Register is used register that a node is providing a given service.
+// Register a service and/or check(s) in a node, creating the node if it doesn't exist.
+// It is valid to pass no service or checks to simply create the node itself.
 func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error {
 	if done, err := c.srv.ForwardRPC("Catalog.Register", args, reply); done {
 		return err
@@ -210,6 +142,75 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 	_, err = c.srv.raftApply(structs.RegisterRequestType, args)
 	return err
+}
+
+// nodePreApply does the verification of a node before it is applied to Raft.
+func nodePreApply(nodeName, nodeID string) error {
+	if nodeName == "" {
+		return fmt.Errorf("Must provide node")
+	}
+	if nodeID != "" {
+		if _, err := uuid.ParseUUID(nodeID); err != nil {
+			return fmt.Errorf("Bad node ID: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func servicePreApply(service *structs.NodeService, authz acl.Authorizer, authzCtxFill func(*acl.AuthorizerContext)) error {
+	// Validate the service. This is in addition to the below since
+	// the above just hasn't been moved over yet. We should move it over
+	// in time.
+	if err := service.Validate(); err != nil {
+		return err
+	}
+
+	// If no service id, but service name, use default
+	if service.ID == "" && service.Service != "" {
+		service.ID = service.Service
+	}
+
+	// Verify ServiceName provided if ID.
+	if service.ID != "" && service.Service == "" {
+		return fmt.Errorf("Must provide service name with ID")
+	}
+
+	// Check the service address here and in the agent endpoint
+	// since service registration isn't synchronous.
+	if ipaddr.IsAny(service.Address) {
+		return fmt.Errorf("Invalid service address")
+	}
+
+	var authzContext acl.AuthorizerContext
+	authzCtxFill(&authzContext)
+
+	// Apply the ACL policy if any. The 'consul' service is excluded
+	// since it is managed automatically internally (that behavior
+	// is going away after version 0.8). We check this same policy
+	// later if version 0.8 is enabled, so we can eventually just
+	// delete this and do all the ACL checks down there.
+	if service.Service != structs.ConsulServiceName {
+		if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+	}
+
+	// Proxies must have write permission on their destination
+	if service.Kind == structs.ServiceKindConnectProxy {
+		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+	}
+
+	return nil
+}
+
+// checkPreApply does the verification of a check before it is applied to Raft.
+func checkPreApply(check *structs.HealthCheck) {
+	if check.CheckID == "" && check.Name != "" {
+		check.CheckID = types.CheckID(check.Name)
+	}
 }
 
 // vetRegisterWithACL applies the given ACL's policy to the catalog update and
@@ -330,7 +331,13 @@ func vetRegisterWithACL(
 	return nil
 }
 
-// Deregister is used to remove a service registration for a given node.
+// Deregister a service or check in a node, or the entire node itself.
+//
+// If a ServiceID is provided in the request, any associated Checks
+// with that service are also deregistered.
+//
+// If a ServiceID or CheckID is not provided in the request, the entire
+// node is deregistered.
 func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) error {
 	if done, err := c.srv.ForwardRPC("Catalog.Deregister", args, reply); done {
 		return err
@@ -458,7 +465,7 @@ func (c *Catalog) ListDatacenters(args *structs.DatacentersRequest, reply *[]str
 	return nil
 }
 
-// ListNodes is used to query the nodes in a DC
+// ListNodes is used to query the nodes in a DC.
 func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.IndexedNodes) error {
 	if done, err := c.srv.ForwardRPC("Catalog.ListNodes", args, reply); done {
 		return err
@@ -509,7 +516,8 @@ func isUnmodified(opts structs.QueryOptions, index uint64) bool {
 	return opts.AllowNotModifiedResponse && opts.MinQueryIndex > 0 && opts.MinQueryIndex == index
 }
 
-// ListServices is used to query the services in a DC
+// ListServices is used to query the services in a DC.
+// Returns services as a map of service names to available tags.
 func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.IndexedServices) error {
 	if done, err := c.srv.ForwardRPC("Catalog.ListServices", args, reply); done {
 		return err
@@ -552,6 +560,8 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		})
 }
 
+// ServiceList is used to query the services in a DC.
+// Returns services as a list of ServiceNames.
 func (c *Catalog) ServiceList(args *structs.DCSpecificRequest, reply *structs.IndexedServiceList) error {
 	if done, err := c.srv.ForwardRPC("Catalog.ServiceList", args, reply); done {
 		return err
@@ -581,7 +591,7 @@ func (c *Catalog) ServiceList(args *structs.DCSpecificRequest, reply *structs.In
 		})
 }
 
-// ServiceNodes returns all the nodes registered as part of a service
+// ServiceNodes returns all the nodes registered as part of a service.
 func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceNodes) error {
 	if done, err := c.srv.ForwardRPC("Catalog.ServiceNodes", args, reply); done {
 		return err
@@ -721,7 +731,8 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	return err
 }
 
-// NodeServices returns all the services registered as part of a node
+// NodeServices returns all the services registered as part of a node.
+// Returns NodeServices as a map of service IDs to services.
 func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs.IndexedNodeServices) error {
 	if done, err := c.srv.ForwardRPC("Catalog.NodeServices", args, reply); done {
 		return err
@@ -776,6 +787,8 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 		})
 }
 
+// NodeServiceList returns all the services registered as part of a node.
+// Returns NodeServices as a list of services.
 func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *structs.IndexedNodeServiceList) error {
 	if done, err := c.srv.ForwardRPC("Catalog.NodeServiceList", args, reply); done {
 		return err
