@@ -17,194 +17,6 @@ import s from './style.module.css'
 export default function Homepage({ data }): React.ReactElement {
   const {
     seo,
-    hero,
-    intro,
-    inPractice,
-    useCases,
-    caseStudies,
-    tutorials,
-    callToAction,
-    preFooter,
-  } = data
-
-  return (
-    <>
-      <Head>{renderMetaTags(seo)}</Head>
-
-      <IoHomeHero
-        pattern="/img/home-hero-pattern.svg"
-        brand="consul"
-        {...hero}
-      />
-
-      <section className={s.intro}>
-        <header className={s.introHeader}>
-          <div className={s.container}>
-            <div className={s.introHeaderInner}>
-              <h2 className={s.introHeading}>{intro.heading}</h2>
-              <p className={s.introDescription}>{intro.description}</p>
-            </div>
-          </div>
-        </header>
-
-        <div className={s.offerings}>
-          {intro.offerings.image ? (
-            <div className={s.offeringsMedia}>
-              <Image
-                src={intro.offerings.image.url}
-                width={intro.offerings.image.width}
-                height={intro.offerings.image.height}
-                alt={intro.offerings.image.alt}
-              />
-            </div>
-          ) : null}
-          <div className={s.offeringsContent}>
-            <ul className={s.offeringsList}>
-              {intro.offerings.list.map((offering, index) => {
-                return (
-                  // Index is stable
-                  // eslint-disable-next-line react/no-array-index-key
-                  <li key={index}>
-                    <h3 className={s.offeringsListHeading}>
-                      {offering.heading}
-                    </h3>
-                    <p className={s.offeringsListDescription}>
-                      {offering.description}
-                    </p>
-                  </li>
-                )
-              })}
-            </ul>
-            {intro.offerings.cta ? (
-              <div className={s.offeringsCta}>
-                <Button
-                  title={intro.offerings.cta.title}
-                  url={intro.offerings.cta.link}
-                  theme={{
-                    brand: 'neutral',
-                  }}
-                />
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        {intro.video ? (
-          <div className={s.container}>
-            <IoVideoCallout
-              youtubeId={intro.video.youtubeId}
-              thumbnail={intro.video.thumbnail.url}
-              heading={intro.video.heading}
-              description={intro.video.description}
-              person={{
-                name: intro.video.personName,
-                description: intro.video.personDescription,
-                avatar: intro.video.personAvatar?.url,
-              }}
-            />
-          </div>
-        ) : null}
-      </section>
-
-      <IoHomeInPractice
-        brand="consul"
-        pattern="/img/practice-pattern.svg"
-        heading={inPractice.heading}
-        description={inPractice.description}
-        cards={inPractice.cards.map((card) => {
-          return {
-            eyebrow: card.eyebrow,
-            link: {
-              url: card.link,
-              type: 'inbound',
-            },
-            heading: card.heading,
-            description: card.description,
-            products: card.products,
-          }
-        })}
-        cta={{
-          heading: inPractice.cta.heading,
-          description: inPractice.cta.description,
-          link: inPractice.cta.link,
-          image: inPractice.cta.image,
-        }}
-      />
-
-      <section className={s.useCases}>
-        <div className={s.container}>
-          <IoCardContainer
-            heading={useCases.heading}
-            description={useCases.description}
-            cardsPerRow={4}
-            cards={useCases.cards.map((card) => {
-              return {
-                eyebrow: card.eyebrow,
-                link: {
-                  url: card.link,
-                  type: 'inbound',
-                },
-                heading: card.heading,
-                description: card.description,
-                products: card.products,
-              }
-            })}
-          />
-        </div>
-      </section>
-
-      <section className={s.tutorials}>
-        <div className={s.container}>
-          <IoCardContainer
-            heading={tutorials.heading}
-            cardsPerRow={3}
-            cards={tutorials.cards.map((card) => {
-              return {
-                eyebrow: card.eyebrow,
-                link: {
-                  url: card.link,
-                  type: 'inbound',
-                },
-                heading: card.heading,
-                description: card.description,
-                products: card.products,
-              }
-            })}
-          />
-        </div>
-      </section>
-
-      <IoHomeCaseStudies
-        heading={caseStudies.heading}
-        description={caseStudies.description}
-        primary={caseStudies.features}
-        secondary={caseStudies.links}
-      />
-
-      <IoHomeCallToAction
-        brand="consul"
-        heading={callToAction.heading}
-        content={callToAction.description}
-        links={callToAction.links}
-      />
-
-      <IoHomePreFooter
-        brand="consul"
-        heading={preFooter.heading}
-        description={preFooter.description}
-        ctas={preFooter.ctas}
-      />
-    </>
-  )
-}
-
-export async function getStaticProps() {
-  const { consulHomepage } = await rivetQuery({
-    query: homepageQuery,
-  })
-
-  const {
-    seo,
     heroHeading,
     heroDescription,
     heroCtas,
@@ -237,70 +49,194 @@ export async function getStaticProps() {
     preFooterHeading,
     preFooterDescription,
     preFooterCtas,
-  } = consulHomepage
+  } = data
+  const _introVideo = introVideo[0]
+
+  return (
+    <>
+      <Head>{renderMetaTags(seo)}</Head>
+
+      <IoHomeHero
+        pattern="/img/home-hero-pattern.svg"
+        brand="consul"
+        heading={heroHeading}
+        description={heroDescription}
+        ctas={heroCtas}
+        cards={heroCards.map((card) => {
+          return {
+            ...card,
+            cta: card.cta[0],
+          }
+        })}
+      />
+
+      <section className={s.intro}>
+        <header className={s.introHeader}>
+          <div className={s.container}>
+            <div className={s.introHeaderInner}>
+              <h2 className={s.introHeading}>{introHeading}</h2>
+              <p className={s.introDescription}>{introDescription}</p>
+            </div>
+          </div>
+        </header>
+
+        <div className={s.offerings}>
+          {introOfferingsImage ? (
+            <div className={s.offeringsMedia}>
+              <Image
+                src={introOfferingsImage.url}
+                width={introOfferingsImage.width}
+                height={introOfferingsImage.height}
+                alt={introOfferingsImage.alt}
+              />
+            </div>
+          ) : null}
+          <div className={s.offeringsContent}>
+            <ul className={s.offeringsList}>
+              {introOfferings.map((offering, index) => {
+                return (
+                  // Index is stable
+                  // eslint-disable-next-line react/no-array-index-key
+                  <li key={index}>
+                    <h3 className={s.offeringsListHeading}>
+                      {offering.heading}
+                    </h3>
+                    <p className={s.offeringsListDescription}>
+                      {offering.description}
+                    </p>
+                  </li>
+                )
+              })}
+            </ul>
+            {introOfferingsCta.title && introOfferingsCta.link ? (
+              <div className={s.offeringsCta}>
+                <Button
+                  title={introOfferingsCta.title}
+                  url={introOfferingsCta.link}
+                  theme={{
+                    brand: 'neutral',
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {_introVideo ? (
+          <div className={s.container}>
+            <IoVideoCallout
+              youtubeId={_introVideo.youtubeId}
+              thumbnail={_introVideo.thumbnail.url}
+              heading={_introVideo.heading}
+              description={_introVideo.description}
+              person={{
+                name: _introVideo.personName,
+                description: _introVideo.personDescription,
+                avatar: _introVideo.personAvatar?.url,
+              }}
+            />
+          </div>
+        ) : null}
+      </section>
+
+      <IoHomeInPractice
+        brand="consul"
+        pattern="/img/practice-pattern.svg"
+        heading={inPracticeHeading}
+        description={inPracticeDescription}
+        cards={inPracticeCards.map((card) => {
+          return {
+            eyebrow: card.eyebrow,
+            link: {
+              url: card.link,
+              type: 'inbound',
+            },
+            heading: card.heading,
+            description: card.description,
+            products: card.products,
+          }
+        })}
+        cta={{
+          heading: inPracticeCtaHeading,
+          description: inPracticeCtaDescription,
+          link: inPracticeCtaLink,
+          image: inPracticeCtaImage,
+        }}
+      />
+
+      <section className={s.useCases}>
+        <div className={s.container}>
+          <IoCardContainer
+            heading={useCasesHeading}
+            description={useCasesDescription}
+            cardsPerRow={4}
+            cards={useCasesCards.map((card) => {
+              return {
+                eyebrow: card.eyebrow,
+                link: {
+                  url: card.link,
+                  type: 'inbound',
+                },
+                heading: card.heading,
+                description: card.description,
+                products: card.products,
+              }
+            })}
+          />
+        </div>
+      </section>
+
+      <section className={s.tutorials}>
+        <div className={s.container}>
+          <IoCardContainer
+            heading={tutorialsHeading}
+            cardsPerRow={3}
+            cards={tutorialCards.map((card) => {
+              return {
+                eyebrow: card.eyebrow,
+                link: {
+                  url: card.link,
+                  type: 'inbound',
+                },
+                heading: card.heading,
+                description: card.description,
+                products: card.products,
+              }
+            })}
+          />
+        </div>
+      </section>
+
+      <IoHomeCaseStudies
+        heading={caseStudiesHeading}
+        description={caseStudiesDescription}
+        primary={caseStudiesFeatured}
+        secondary={caseStudiesLinks}
+      />
+
+      <IoHomeCallToAction
+        brand="consul"
+        heading={callToActionHeading}
+        content={callToActionDescription}
+        links={callToActionCtas}
+      />
+
+      <IoHomePreFooter
+        brand="consul"
+        heading={preFooterHeading}
+        description={preFooterDescription}
+        ctas={preFooterCtas}
+      />
+    </>
+  )
+}
+
+export async function getStaticProps() {
+  const { consulHomepage } = await rivetQuery({
+    query: homepageQuery,
+  })
 
   return {
-    props: {
-      data: {
-        seo,
-        hero: {
-          heading: heroHeading,
-          description: heroDescription,
-          ctas: heroCtas,
-          cards: heroCards.map((card) => {
-            return {
-              ...card,
-              cta: card.cta[0],
-            }
-          }),
-        },
-        intro: {
-          heading: introHeading,
-          description: introDescription,
-          offerings: {
-            image: introOfferingsImage,
-            list: introOfferings,
-            cta: introOfferingsCta[0],
-          },
-          video: introVideo[0],
-        },
-        inPractice: {
-          heading: inPracticeHeading,
-          description: inPracticeDescription,
-          cards: inPracticeCards,
-          cta: {
-            heading: inPracticeCtaHeading,
-            description: inPracticeCtaDescription,
-            link: inPracticeCtaLink,
-            image: inPracticeCtaImage,
-          },
-        },
-        useCases: {
-          heading: useCasesHeading,
-          description: useCasesDescription,
-          cards: useCasesCards,
-        },
-        tutorials: {
-          heading: tutorialsHeading,
-          cards: tutorialCards,
-        },
-        caseStudies: {
-          heading: caseStudiesHeading,
-          description: caseStudiesDescription,
-          features: caseStudiesFeatured,
-          links: caseStudiesLinks,
-        },
-        callToAction: {
-          heading: callToActionHeading,
-          description: callToActionDescription,
-          links: callToActionCtas,
-        },
-        preFooter: {
-          heading: preFooterHeading,
-          description: preFooterDescription,
-          ctas: preFooterCtas,
-        },
-      },
-    },
+    props: { data: consulHomepage },
   }
 }
