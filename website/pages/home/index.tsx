@@ -6,6 +6,7 @@ import homepageQuery from './query.graphql'
 import { renderMetaTags } from 'react-datocms'
 import Button from '@hashicorp/react-button'
 import IoHomeHero from 'components/io-home-hero'
+import IoHomeIntro from 'components/io-home-intro'
 import IoHomeInPractice from 'components/io-home-in-practice'
 import IoVideoCallout from 'components/io-video-callout'
 import IoCardContainer from 'components/io-card-container'
@@ -71,74 +72,34 @@ export default function Homepage({ data }): React.ReactElement {
         })}
       />
 
-      <section className={s.intro}>
-        <header className={s.introHeader}>
-          <div className={s.container}>
-            <div className={s.introHeaderInner}>
-              <h2 className={s.introHeading}>{introHeading}</h2>
-              <p className={s.introDescription}>{introDescription}</p>
-            </div>
-          </div>
-        </header>
-
-        <div className={s.offerings}>
-          {introOfferingsImage ? (
-            <div className={s.offeringsMedia}>
-              <Image
-                src={introOfferingsImage.url}
-                width={introOfferingsImage.width}
-                height={introOfferingsImage.height}
-                alt={introOfferingsImage.alt}
-              />
-            </div>
-          ) : null}
-          <div className={s.offeringsContent}>
-            <ul className={s.offeringsList}>
-              {introOfferings.map((offering, index) => {
-                return (
-                  // Index is stable
-                  // eslint-disable-next-line react/no-array-index-key
-                  <li key={index}>
-                    <h3 className={s.offeringsListHeading}>
-                      {offering.heading}
-                    </h3>
-                    <p className={s.offeringsListDescription}>
-                      {offering.description}
-                    </p>
-                  </li>
-                )
-              })}
-            </ul>
-            {_introOfferingsCta ? (
-              <div className={s.offeringsCta}>
-                <Button
-                  title={_introOfferingsCta.title}
-                  url={_introOfferingsCta.link}
-                  theme={{
-                    brand: 'neutral',
-                  }}
-                />
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        {_introVideo ? (
-          <div className={s.container}>
-            <IoVideoCallout
-              youtubeId={_introVideo.youtubeId}
-              thumbnail={_introVideo.thumbnail.url}
-              heading={_introVideo.heading}
-              description={_introVideo.description}
-              person={{
-                name: _introVideo.personName,
-                description: _introVideo.personDescription,
-                avatar: _introVideo.personAvatar?.url,
-              }}
-            />
-          </div>
-        ) : null}
-      </section>
+      <IoHomeIntro
+        heading={introHeading}
+        description={introDescription}
+        offerings={{
+          image: {
+            src: introOfferingsImage.url,
+            width: introOfferingsImage.width,
+            height: introOfferingsImage.height,
+            alt: introOfferingsImage.alt,
+          },
+          list: introOfferings,
+          cta: {
+            title: _introOfferingsCta.title,
+            link: _introOfferingsCta.link,
+          },
+        }}
+        video={{
+          youtubeId: _introVideo.youtubeId,
+          thumbnail: _introVideo.thumbnail.url,
+          heading: _introVideo.heading,
+          description: _introVideo.description,
+          person: {
+            name: _introVideo.personName,
+            description: _introVideo.personDescription,
+            avatar: _introVideo.personAvatar?.url,
+          },
+        }}
+      />
 
       <IoHomeInPractice
         brand="consul"
