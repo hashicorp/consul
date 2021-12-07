@@ -35,7 +35,7 @@ func TestRulesTranslateCommand(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 

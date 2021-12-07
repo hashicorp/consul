@@ -35,7 +35,7 @@ func TestTokenReadCommand_Pretty(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -83,7 +83,7 @@ func TestTokenReadCommand_JSON(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 

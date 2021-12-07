@@ -214,10 +214,14 @@ func TestAgent_TokenStore(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestAgent(t, `
-		acl_token = "user"
-		acl_agent_token = "agent"
-		acl_agent_master_token = "master"`,
-	)
+		acl {
+			tokens {
+				default = "user"
+				agent = "agent"
+				agent_recovery = "recovery"
+			}
+		}
+	`)
 	defer a.Shutdown()
 
 	if got, want := a.tokens.UserToken(), "user"; got != want {
@@ -226,7 +230,7 @@ func TestAgent_TokenStore(t *testing.T) {
 	if got, want := a.tokens.AgentToken(), "agent"; got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
-	if got, want := a.tokens.IsAgentRecoveryToken("master"), true; got != want {
+	if got, want := a.tokens.IsAgentRecoveryToken("recovery"), true; got != want {
 		t.Fatalf("got %v want %v", got, want)
 	}
 }
@@ -5037,7 +5041,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 	srv := StartTestAgent(t, TestAgent{Name: "TestAgent-Server", HCL: hclConfig})
 	defer srv.Shutdown()
 
-	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
 	// sign a JWT token
 	now := time.Now()
@@ -5084,7 +5088,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 	// when this is successful we managed to get the gossip key and serf addresses to bind to
 	// and then connect. Additionally we would have to have certificates or else the
 	// verify_incoming config on the server would not let it work.
-	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
 	// spot check that we now have an ACL token
 	require.NotEmpty(t, client.tokens.AgentToken())
@@ -5098,7 +5102,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 	ca := connect.TestCA(t, nil)
 	req := &structs.CARequest{
 		Datacenter:   "dc1",
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		Config: &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
@@ -5170,7 +5174,7 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 	srv := StartTestAgent(t, TestAgent{Name: "test-server", HCL: hclConfig})
 	defer srv.Shutdown()
 
-	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
 	client := StartTestAgent(t, TestAgent{Name: "test-client", HCL: TestACLConfigWithParams(nil) + `
 	   bootstrap = false
@@ -5193,7 +5197,7 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 
 	// when this is successful we managed to get a TLS certificate and are using it for
 	// encrypted RPC connections.
-	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
 	// now we need to validate that our certificate has the correct CN
 	aeCert := client.tlsConfigurator.Cert()
