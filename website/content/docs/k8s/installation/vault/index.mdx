@@ -14,17 +14,33 @@ to use Consul Helm chart with Vault as the secrets storage backend.
 At a high level, there are two points of integration with Vault:
 - **Gossip encryption** - The encryption key for gossip communication is stored in Vault.
 - **TLS certificates and keys**:
-  - **Consul Server TLS credentials** - TLS certificate and key for the Consul server is stored in Vault
+  - **Consul Server TLS credentials** - TLS certificate and key for the Consul server is stored in Vault and issued from Vault.
   - **Service Mesh and Consul client TLS credentials** - Consul uses Vault as the provider for mTLS certificates and keys for the service mesh services
   and TLS certificates and keys for the Consul clients.
 
 ## Requirements
 
 TODO
+1. Vault 1.19+ and Vault-k8s 0.13+ is required.
+1. Vault must be installed and accessible to the Consul on Kubernetes installation.
+
+1. `global.tls.enableAutoencrypt=true` is required if TLS is enabled with Vault.
+
+A minimal valid installation of Vault must include the Agent Injector:
+```yaml
+injector:
+  enabled: "true"
+
+```
+
+values.yaml is provided below:
+
 
 ## Known Limitations
 
-TODO
+1. TLS
+  * `global.tls.serverAdditionalDNSSans` is not currently configurable and must be manually added to the server certificate in Vault.
+  * `global.tls.serverAdditionalIPSans` is not currently configurable and must be manually added to the server certificate in Vault.
 
 ## Next Steps
 
