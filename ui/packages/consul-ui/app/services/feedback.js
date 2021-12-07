@@ -10,17 +10,17 @@ const notificationDefaults = function() {
   return {
     timeout: 6000,
     extendedTimeout: 300,
-    destroyOnClick: true
+    destroyOnClick: true,
   };
 };
 export default class FeedbackService extends Service {
   @service('flashMessages') notify;
   @service('logger') logger;
 
-  notification(action) {
+  notification(action, modelName) {
     return {
-      success: item => this.success(item, action),
-      error: e => this.error(e, action),
+      success: item => this.success(item, action, undefined, modelName),
+      error: e => this.error(e, action, undefined, modelName),
     };
   }
 
@@ -39,7 +39,7 @@ export default class FeedbackService extends Service {
         // here..
         action: getAction(),
         item: item,
-        model:  model
+        model: model,
       });
     }
   }
@@ -55,7 +55,7 @@ export default class FeedbackService extends Service {
         type: getStatus(TYPE_SUCCESS),
         // and here
         action: getAction(),
-        model:  model
+        model: model,
       });
     } else {
       this.notify.add({
@@ -63,7 +63,7 @@ export default class FeedbackService extends Service {
         type: getStatus(TYPE_ERROR, e),
         action: getAction(),
         error: e,
-        model:  model
+        model: model,
       });
     }
   }
