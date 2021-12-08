@@ -1,3 +1,61 @@
+## 1.11.0-rc (December 08, 2021)
+
+BREAKING CHANGES:
+
+* cli: `consul acl set-agent-token master` has been replaced with `consul acl set-agent-token recovery` [[GH-11669](https://github.com/hashicorp/consul/issues/11669)]
+
+FEATURES:
+
+* partitions: **(Enterprise only)** Ensure partitions and serf-based WAN federation are mutually exclusive.
+* ui: Add documentation link to Partition empty state [[GH-11668](https://github.com/hashicorp/consul/issues/11668)]
+* ui: Adds basic support for showing Services exported from another partition. [[GH-11702](https://github.com/hashicorp/consul/issues/11702)]
+* ui: Adds support for partitions to Service and Node Identity template visuals. [[GH-11696](https://github.com/hashicorp/consul/issues/11696)]
+* ui: Adds support for partitions to the Routing visualization. [[GH-11679](https://github.com/hashicorp/consul/issues/11679)]
+* ui: Don't offer a 'Valid Datacenters' option when editing policies for non-default partitions [[GH-11656](https://github.com/hashicorp/consul/issues/11656)]
+* ui: Include `Service.Partition` into available variables for `dashboard_url_templates` [[GH-11654](https://github.com/hashicorp/consul/issues/11654)]
+* ui: Upgrade Lock Sessions to use partitions [[GH-11666](https://github.com/hashicorp/consul/issues/11666)]
+
+IMPROVEMENTS:
+
+* agent: **(Enterprise only)** purge service/check registration files for incorrect partitions on reload [[GH-11607](https://github.com/hashicorp/consul/issues/11607)]
+* agent: add variation of force-leave that exclusively works on the WAN [[GH-11722](https://github.com/hashicorp/consul/issues/11722)]
+* api: **(Enterprise Only)** rename partition-exports config entry to exported-services. [[GH-11739](https://github.com/hashicorp/consul/issues/11739)]
+* auto-config: ensure the feature works properly with partitions [[GH-11699](https://github.com/hashicorp/consul/issues/11699)]
+* connect: **(Enterprise only)** add support for cross-partition transparent proxying. [[GH-11738](https://github.com/hashicorp/consul/issues/11738)]
+* connect: **(Enterprise only)** add support for targeting partitions in discovery chain routes, splits, and redirects. [[GH-11757](https://github.com/hashicorp/consul/issues/11757)]
+* connect: Consul will now generate a unique virtual IP for each connect-enabled service (this will also differ across namespace/partition in Enterprise). [[GH-11724](https://github.com/hashicorp/consul/issues/11724)]
+* connect: Support Vault auth methods for the Connect CA Vault provider. Currently, we support any non-deprecated auth methods
+the latest version of Vault supports (v1.8.5), which include AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud,
+JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password. [[GH-11573](https://github.com/hashicorp/consul/issues/11573)]
+* dns: Added a `virtual` endpoint for querying the assigned virtual IP for a service. [[GH-11725](https://github.com/hashicorp/consul/issues/11725)]
+* partitions: **(Enterprise only)** rename APIs, commands, and public types to use "partition" rather than "admin partition". [[GH-11737](https://github.com/hashicorp/consul/issues/11737)]
+* raft: Added a configuration to disable boltdb freelist syncing [[GH-11720](https://github.com/hashicorp/consul/issues/11720)]
+* raft: Emit boltdb related performance metrics [[GH-11720](https://github.com/hashicorp/consul/issues/11720)]
+* raft: Use bbolt instead of the legacy boltdb implementation [[GH-11720](https://github.com/hashicorp/consul/issues/11720)]
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+* server: block enterprise-specific partition-exports config entry from being used in OSS Consul. [[GH-11680](https://github.com/hashicorp/consul/issues/11680)]
+* types: add TLSVersion and TLSCipherSuite [[GH-11645](https://github.com/hashicorp/consul/issues/11645)]
+* ui: Add partition support for SSO [[GH-11604](https://github.com/hashicorp/consul/issues/11604)]
+* ui: Update global notification styling [[GH-11577](https://github.com/hashicorp/consul/issues/11577)]
+
+DEPRECATIONS:
+
+* api: `/v1/agent/token/agent_master` is deprecated and will be removed in a future major release - use `/v1/agent/token/agent_recovery` instead [[GH-11669](https://github.com/hashicorp/consul/issues/11669)]
+* config: `acl.tokens.master` has been renamed to `acl.tokens.initial_management`, and `acl.tokens.agent_master` has been renamed to `acl.tokens.agent_recovery` - the old field names are now deprecated and will be removed in a future major release [[GH-11665](https://github.com/hashicorp/consul/issues/11665)]
+
+BUG FIXES:
+
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* areas: **(Enterprise only)** make the gRPC server tracker network area aware [[GH-11748](https://github.com/hashicorp/consul/issues/11748)]
+* ca: fixes a bug that caused non blocking leaf cert queries to return the same cached response regardless of ca rotation or leaf cert expiry [[GH-11693](https://github.com/hashicorp/consul/issues/11693)]
+* ca: fixes a bug that caused the SigningKeyID to be wrong in the primary DC, when the Vault provider is used, after a CA config creates a new root. [[GH-11672](https://github.com/hashicorp/consul/issues/11672)]
+* ca: fixes a bug that caused the intermediate cert used to sign leaf certs to be missing from the /connect/ca/roots API response when the Vault provider was used. [[GH-11671](https://github.com/hashicorp/consul/issues/11671)]
+* ui: Fix inline-code brand styling [[GH-11578](https://github.com/hashicorp/consul/issues/11578)]
+* ui: Fix visual issue with slight table header overflow [[GH-11670](https://github.com/hashicorp/consul/issues/11670)]
+* ui: Fixes an issue where under some circumstances after logging we present the
+data loaded previous to you logging in. [[GH-11681](https://github.com/hashicorp/consul/issues/11681)]
+* ui: Include `Service.Namespace` into available variables for `dashboard_url_templates` [[GH-11640](https://github.com/hashicorp/consul/issues/11640)]
+
 ## 1.11.0-beta3 (November 17, 2021)
 
 SECURITY:
