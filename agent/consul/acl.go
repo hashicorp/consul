@@ -266,36 +266,32 @@ type ACLResolver struct {
 	agentMasterAuthz acl.Authorizer
 }
 
-func agentMasterAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta) (acl.Authorizer, error) {
-	// TODO(partitions,acls): this function likely needs split so that the generated policy can be partitioned appropriately
-
-	// TODO(partitions,acls): after this all works, write a test for this function when partitioned
+func agentMasterAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta, aclConf *acl.Config) (acl.Authorizer, error) {
+	var conf acl.Config
+	if aclConf != nil {
+		conf = *aclConf
+	}
+	setEnterpriseConf(entMeta, &conf)
 
 	// Build a policy for the agent master token.
+	//
 	// The builtin agent master policy allows reading any node information
 	// and allows writes to the agent with the node name of the running agent
 	// only. This used to allow a prefix match on agent names but that seems
 	// entirely unnecessary so it is now using an exact match.
-	policy := &acl.Policy{
-		PolicyRules: acl.PolicyRules{
-			Agents: []*acl.AgentRule{
-				{
-					Node:   nodeName,
-					Policy: acl.PolicyWrite,
-				},
-			},
-			NodePrefixes: []*acl.NodeRule{
-				{
-					Name:   "",
-					Policy: acl.PolicyRead,
-				},
-			},
-		},
+	policy, err := acl.NewPolicyFromSource(fmt.Sprintf(`
+	agent "%s" {
+		policy = "write"
+	}
+	node_prefix "" {
+		policy = "read"
+	}
+	`, nodeName), acl.SyntaxCurrent, &conf, entMeta.ToEnterprisePolicyMeta())
+	if err != nil {
+		return nil, err
 	}
 
-	cfg := acl.Config{}
-	setEnterpriseConf(entMeta, &cfg)
-	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, &cfg)
+	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, &conf)
 }
 
 func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
@@ -327,7 +323,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 		return nil, fmt.Errorf("invalid ACL down policy %q", config.Config.ACLDownPolicy)
 	}
 
-	authz, err := agentMasterAuthorizer(config.Config.NodeName, &config.Config.EnterpriseMeta)
+	authz, err := agentMasterAuthorizer(config.Config.NodeName, &config.Config.EnterpriseMeta, config.ACLConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize the agent master authorizer")
 	}
