@@ -47,6 +47,10 @@ func (m *EnterpriseMeta) WithWildcardNamespace() *EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
 
+func (m *EnterpriseMeta) UnsetPartition() {
+	// do nothing
+}
+
 // TODO(partition): stop using this
 func NewEnterpriseMetaInDefaultPartition(_ string) EnterpriseMeta {
 	return emptyEnterpriseMeta
