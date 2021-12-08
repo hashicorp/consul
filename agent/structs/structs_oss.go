@@ -15,6 +15,10 @@ var emptyEnterpriseMeta = EnterpriseMeta{}
 // EnterpriseMeta stub
 type EnterpriseMeta struct{}
 
+func (m *EnterpriseMeta) ToEnterprisePolicyMeta() *acl.EnterprisePolicyMeta {
+	return nil
+}
+
 func (m *EnterpriseMeta) estimateSize() int {
 	return 0
 }
