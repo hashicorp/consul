@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -56,15 +57,28 @@ func (m *mockCAServerDelegate) ServersSupportMultiDCConnectCA() error {
 	return nil
 }
 
-func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
-	return ca.ApplyCARequestToStore(m.store, req)
-}
-
 func (m *mockCAServerDelegate) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
 	return &mockCAProvider{
 		callbackCh: m.callbackCh,
 		rootPEM:    m.primaryRoot.RootCert,
 	}, nil
+}
+
+// ApplyCARequest mirrors FSM.applyConnectCAOperation because that functionality
+// is not exported.
+func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
+	idx, _, err := m.store.CAConfig(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	m.callbackCh <- fmt.Sprintf("raftApply/ConnectCA")
+
+	result := fsm.ApplyConnectCAOperationFromRequest(m.store, req, idx+1)
+	if err, ok := result.(error); ok && err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (m *mockCAServerDelegate) forwardDC(method, dc string, args interface{}, reply interface{}) error {

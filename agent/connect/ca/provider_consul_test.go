@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -22,7 +23,16 @@ func (c *consulCAMockDelegate) State() *state.Store {
 }
 
 func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
-	return ApplyCARequestToStore(c.state, req)
+	idx, _, err := c.state.CAConfig(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	result := fsm.ApplyConnectCAOperationFromRequest(c.state, req, idx+1)
+	if err, ok := result.(error); ok && err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func newMockDelegate(t *testing.T, conf *structs.CAConfiguration) *consulCAMockDelegate {
@@ -154,7 +164,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 				require.NoError(err)
 				require.Equal(spiffeService.URI(), parsed.URIs[0])
 				require.Equal(connect.ServiceCN("foo", "default", connect.TestClusterID), parsed.Subject.CommonName)
-				require.Equal(uint64(2), parsed.SerialNumber.Uint64())
+				require.Equal(uint64(3), parsed.SerialNumber.Uint64())
 				subjectKeyID, err := connect.KeyId(csr.PublicKey)
 				require.NoError(err)
 				require.Equal(subjectKeyID, parsed.SubjectKeyId)
@@ -183,7 +193,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 				require.NoError(err)
 				require.Equal(spiffeService.URI(), parsed.URIs[0])
 				require.Equal(connect.ServiceCN("bar", "default", connect.TestClusterID), parsed.Subject.CommonName)
-				require.Equal(parsed.SerialNumber.Uint64(), uint64(2))
+				require.Equal(uint64(4), parsed.SerialNumber.Uint64())
 				requireNotEncoded(t, parsed.SubjectKeyId)
 				requireNotEncoded(t, parsed.AuthorityKeyId)
 
@@ -211,7 +221,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 				require.NoError(err)
 				require.Equal(spiffeAgent.URI(), parsed.URIs[0])
 				require.Equal(connect.AgentCN("uuid", connect.TestClusterID), parsed.Subject.CommonName)
-				require.Equal(uint64(2), parsed.SerialNumber.Uint64())
+				require.Equal(uint64(5), parsed.SerialNumber.Uint64())
 				requireNotEncoded(t, parsed.SubjectKeyId)
 				requireNotEncoded(t, parsed.AuthorityKeyId)
 
