@@ -338,19 +338,7 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 
 	// no parallel execution because we change globals
-	origInterval := structs.IntermediateCertRenewInterval
-	origMinTTL := structs.MinLeafCertTTL
-	origDriftBuffer := ca.CertificateTimeDriftBuffer
-	defer func() {
-		structs.IntermediateCertRenewInterval = origInterval
-		structs.MinLeafCertTTL = origMinTTL
-		ca.CertificateTimeDriftBuffer = origDriftBuffer
-	}()
-
-	// Vault backdates certs by 30s by default.
-	ca.CertificateTimeDriftBuffer = 30 * time.Second
-	structs.IntermediateCertRenewInterval = time.Millisecond
-	structs.MinLeafCertTTL = time.Second
+	patchIntermediateCertRenewInterval(t)
 	require := require.New(t)
 
 	testVault := ca.NewTestVaultServer(t)
@@ -380,7 +368,7 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 		s1.leaderRoutineManager.Wait()
 	}()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, s1.RPC, "dc1", nil)
 
 	// Capture the current root.
 	var originalRoot *structs.CARoot
@@ -390,6 +378,7 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 		require.Len(rootList.Roots, 1)
 		originalRoot = activeRoot
 	}
+	t.Log("original SigningKeyID", originalRoot.SigningKeyID)
 
 	// Get the original intermediate.
 	waitForActiveCARoot(t, s1, originalRoot)
@@ -403,15 +392,16 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 	store := s1.caManager.delegate.State()
 	_, activeRoot, err := store.CARootActive(nil)
 	require.NoError(err)
-	require.Equal(intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
 	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
+	require.Equal(intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
 
 	// Wait for dc1's intermediate to be refreshed.
-	// It is possible that test fails when the blocking query doesn't return.
 	retry.Run(t, func(r *retry.R) {
-		provider, _ = getCAProviderWithLock(s1)
-		newIntermediatePEM, err := provider.ActiveIntermediate()
+		store := s1.caManager.delegate.State()
+		_, storedRoot, err := store.CARootActive(nil)
 		r.Check(err)
+
+		newIntermediatePEM := s1.caManager.getLeafSigningCertFromRoot(storedRoot)
 		if newIntermediatePEM == intermediatePEM {
 			r.Fatal("not a renewed intermediate")
 		}
@@ -427,8 +417,8 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 	require.Len(roots.Roots, 1)
 
 	activeRoot = roots.Active()
-	require.Equal(intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
 	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
+	require.Equal(intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
 
 	// Get the root from dc1 and validate a chain of:
 	// dc1 leaf -> dc1 intermediate -> dc1 root
@@ -450,21 +440,26 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 	verifyLeafCert(t, caRoot, cert.CertPEM)
 }
 
+func patchIntermediateCertRenewInterval(t *testing.T) {
+	origInterval := structs.IntermediateCertRenewInterval
+	origMinTTL := structs.MinLeafCertTTL
+
+	structs.IntermediateCertRenewInterval = 200 * time.Millisecond
+	structs.MinLeafCertTTL = time.Second
+
+	t.Cleanup(func() {
+		structs.IntermediateCertRenewInterval = origInterval
+		structs.MinLeafCertTTL = origMinTTL
+	})
+}
+
 func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	// no parallel execution because we change globals
-	origInterval := structs.IntermediateCertRenewInterval
-	origMinTTL := structs.MinLeafCertTTL
-	defer func() {
-		structs.IntermediateCertRenewInterval = origInterval
-		structs.MinLeafCertTTL = origMinTTL
-	}()
-
-	structs.IntermediateCertRenewInterval = time.Millisecond
-	structs.MinLeafCertTTL = time.Second
+	patchIntermediateCertRenewInterval(t)
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -517,8 +512,6 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	require.NoError(err)
 	intermediateCert, err := connect.ParseCert(intermediatePEM)
 	require.NoError(err)
-	currentCertSerialNumber := intermediateCert.SerialNumber
-	currentCertAuthorityKeyId := intermediateCert.AuthorityKeyId
 
 	// Capture the current root
 	var originalRoot *structs.CARoot
@@ -528,6 +521,7 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 		require.Len(rootList.Roots, 1)
 		originalRoot = activeRoot
 	}
+	t.Log("original SigningKeyID", originalRoot.SigningKeyID)
 
 	waitForActiveCARoot(t, s1, originalRoot)
 	waitForActiveCARoot(t, s2, originalRoot)
@@ -539,22 +533,18 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
 	// Wait for dc2's intermediate to be refreshed.
-	// It is possible that test fails when the blocking query doesn't return.
-	// When https://github.com/hashicorp/consul/pull/3777 is merged
-	// however, defaultQueryTime will be configurable and we con lower it
-	// so that it returns for sure.
 	retry.Run(t, func(r *retry.R) {
-		secondaryProvider, _ = getCAProviderWithLock(s2)
-		intermediatePEM, err = secondaryProvider.ActiveIntermediate()
+		store := s2.caManager.delegate.State()
+		_, storedRoot, err := store.CARootActive(nil)
 		r.Check(err)
-		cert, err := connect.ParseCert(intermediatePEM)
-		r.Check(err)
-		if cert.SerialNumber.Cmp(currentCertSerialNumber) == 0 || !reflect.DeepEqual(cert.AuthorityKeyId, currentCertAuthorityKeyId) {
-			currentCertSerialNumber = cert.SerialNumber
-			currentCertAuthorityKeyId = cert.AuthorityKeyId
+
+		newIntermediatePEM := s2.caManager.getLeafSigningCertFromRoot(storedRoot)
+		if newIntermediatePEM == intermediatePEM {
 			r.Fatal("not a renewed intermediate")
 		}
-		intermediateCert = cert
+		intermediateCert, err = connect.ParseCert(newIntermediatePEM)
+		r.Check(err)
+		intermediatePEM = newIntermediatePEM
 	})
 
 	codec := rpcClient(t, s2)
@@ -565,8 +555,8 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 
 	_, activeRoot, err = store.CARootActive(nil)
 	require.NoError(err)
-	require.Equal(intermediatePEM, s2.caManager.getLeafSigningCertFromRoot(activeRoot))
 	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
+	require.Equal(intermediatePEM, s2.caManager.getLeafSigningCertFromRoot(activeRoot))
 
 	// Have dc2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{

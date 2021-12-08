@@ -349,15 +349,7 @@ func TestCAManager_Initialize(t *testing.T) {
 func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 
 	// No parallel execution because we change globals
-	// Set the interval and drift buffer low for renewing the cert.
-	origInterval := structs.IntermediateCertRenewInterval
-	origDriftBuffer := ca.CertificateTimeDriftBuffer
-	defer func() {
-		structs.IntermediateCertRenewInterval = origInterval
-		ca.CertificateTimeDriftBuffer = origDriftBuffer
-	}()
-	structs.IntermediateCertRenewInterval = time.Millisecond
-	ca.CertificateTimeDriftBuffer = 0
+	patchIntermediateCertRenewInterval(t)
 
 	conf := DefaultConfig()
 	conf.ConnectEnabled = true
