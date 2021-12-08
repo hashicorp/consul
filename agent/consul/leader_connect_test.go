@@ -330,10 +330,8 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 	require := require.New(t)
 
 	testVault := ca.NewTestVaultServer(t)
-	defer testVault.Stop()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.6.0"
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "vault",
@@ -342,15 +340,11 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 				"Token":               testVault.RootToken,
 				"RootPKIPath":         "pki-root/",
 				"IntermediatePKIPath": "pki-intermediate/",
-				"LeafCertTTL":         "1s",
-				// The retry loop only retries for 7sec max and
-				// the ttl needs to be below so that it
-				// triggers definitely.
-				"IntermediateCertTTL": "5s",
+				"LeafCertTTL":         "2s",
+				"IntermediateCertTTL": "7s",
 			},
 		}
 	})
-	defer os.RemoveAll(dir1)
 	defer func() {
 		s1.Shutdown()
 		s1.leaderRoutineManager.Wait()
@@ -358,27 +352,15 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 
 	testrpc.WaitForActiveCARoot(t, s1.RPC, "dc1", nil)
 
-	// Capture the current root.
-	var originalRoot *structs.CARoot
-	{
-		rootList, activeRoot, err := getTestRoots(s1, "dc1")
-		require.NoError(err)
-		require.Len(rootList.Roots, 1)
-		originalRoot = activeRoot
-	}
-	t.Log("original SigningKeyID", originalRoot.SigningKeyID)
-
-	// Get the original intermediate.
-	provider, _ := getCAProviderWithLock(s1)
-	intermediatePEM, err := provider.ActiveIntermediate()
-	require.NoError(err)
-	intermediateCert, err := connect.ParseCert(intermediatePEM)
-	require.NoError(err)
-
-	// Check that the state store has the correct intermediate
 	store := s1.caManager.delegate.State()
 	_, activeRoot, err := store.CARootActive(nil)
 	require.NoError(err)
+	t.Log("original SigningKeyID", activeRoot.SigningKeyID)
+
+	intermediatePEM := s1.caManager.getLeafSigningCertFromRoot(activeRoot)
+	intermediateCert, err := connect.ParseCert(intermediatePEM)
+	require.NoError(err)
+
 	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 	require.Equal(intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
 
@@ -407,10 +389,6 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 	require.Equal(intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
 
-	// Get the root from dc1 and validate a chain of:
-	// dc1 leaf -> dc1 intermediate -> dc1 root
-	provider, caRoot := getCAProviderWithLock(s1)
-
 	// Have the new intermediate sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
 		Host:       roots.TrustDomain,
@@ -424,7 +402,7 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 	cert := structs.IssuedCert{}
 	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
 	require.NoError(err)
-	verifyLeafCert(t, caRoot, cert.CertPEM)
+	verifyLeafCert(t, activeRoot, cert.CertPEM)
 }
 
 func patchIntermediateCertRenewInterval(t *testing.T) {
@@ -449,7 +427,7 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	patchIntermediateCertRenewInterval(t)
 	require := require.New(t)
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "consul",
@@ -468,7 +446,6 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 			},
 		}
 	})
-	defer os.RemoveAll(dir1)
 	defer func() {
 		s1.Shutdown()
 		s1.leaderRoutineManager.Wait()
@@ -477,12 +454,10 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// dc2 as a secondary DC
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	_, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
-		c.Build = "1.6.0"
 	})
-	defer os.RemoveAll(dir2)
 	defer func() {
 		s2.Shutdown()
 		s2.leaderRoutineManager.Wait()
@@ -490,32 +465,17 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 
 	// Create the WAN link
 	joinWAN(t, s2, s1)
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
-
-	// Get the original intermediate
-	// TODO: Wait for intermediate instead of wait for leader
-	secondaryProvider, _ := getCAProviderWithLock(s2)
-	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
-	require.NoError(err)
-	intermediateCert, err := connect.ParseCert(intermediatePEM)
-	require.NoError(err)
-
-	// Capture the current root
-	var originalRoot *structs.CARoot
-	{
-		rootList, activeRoot, err := getTestRoots(s1, "dc1")
-		require.NoError(err)
-		require.Len(rootList.Roots, 1)
-		originalRoot = activeRoot
-	}
-	t.Log("original SigningKeyID", originalRoot.SigningKeyID)
-
-	testrpc.WaitForActiveCARoot(t, s1.RPC, "dc1", originalRoot)
-	testrpc.WaitForActiveCARoot(t, s2.RPC, "dc2", originalRoot)
+	testrpc.WaitForActiveCARoot(t, s2.RPC, "dc2", nil)
 
 	store := s2.fsm.State()
 	_, activeRoot, err := store.CARootActive(nil)
 	require.NoError(err)
+	t.Log("original SigningKeyID", activeRoot.SigningKeyID)
+
+	intermediatePEM := s2.caManager.getLeafSigningCertFromRoot(activeRoot)
+	intermediateCert, err := connect.ParseCert(intermediatePEM)
+	require.NoError(err)
+
 	require.Equal(intermediatePEM, s2.caManager.getLeafSigningCertFromRoot(activeRoot))
 	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
@@ -1136,14 +1096,7 @@ func getTestRoots(s *Server, datacenter string) (*structs.IndexedCARoots, *struc
 		return nil, nil, err
 	}
 
-	var active *structs.CARoot
-	for _, root := range rootList.Roots {
-		if root.Active {
-			active = root
-			break
-		}
-	}
-
+	active := rootList.Active()
 	return &rootList, active, nil
 }
 
