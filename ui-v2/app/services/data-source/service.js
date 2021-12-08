@@ -99,7 +99,7 @@ export default Service.extend({
           const event = source.getCurrentEvent();
           const cursor = source.configuration.cursor;
           // only cache data if we have any
-          if (typeof event !== 'undefined' && typeof cursor !== 'undefined') {
+          if (typeof event !== 'undefined' && typeof cursor !== 'undefined' && e.errors && e.errors[0].status !== '401') {
             cache.set(uri, {
               currentEvent: event,
               cursor: cursor,
