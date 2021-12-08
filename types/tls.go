@@ -1,32 +1,26 @@
 package types
 
-import (
-	"encoding/json"
-	"fmt"
-)
-
-// TLSVersion is a strongly-typed int used for relative comparison
-// (minimum, maximum, greater than, less than) of TLS versions
-type TLSVersion int
+// TLSVersion is a strongly-typed string for TLS versions
+type TLSVersion string
 
 const (
 	// Error value, excluded from lookup maps
-	TLSVersionInvalid TLSVersion = iota - 1
+	TLSVersionInvalid TLSVersion = "TLS_INVALID"
 
 	// Explicit unspecified zero-value to avoid overwriting parent defaults
-	TLSVersionUnspecified
+	TLSVersionUnspecified TLSVersion = ""
 
 	// Explictly allow implementation to select TLS version
 	// May be useful to supercede defaults specified at a higher layer
-	TLSVersionAuto
+	TLSVersionAuto TLSVersion = "TLS_AUTO"
 
 	_ // Placeholder for SSLv3, hopefully we won't have to add this
 
 	// TLS versions
-	TLSv1_0
-	TLSv1_1
-	TLSv1_2
-	TLSv1_3
+	TLSv1_0 TLSVersion = "TLSv1_0"
+	TLSv1_1 TLSVersion = "TLSv1_1"
+	TLSv1_2 TLSVersion = "TLSv1_2"
+	TLSv1_3 TLSVersion = "TLSv1_3"
 )
 
 var (
@@ -53,17 +47,10 @@ var (
 		TLSv1_2:        "TLS 1.2",
 		TLSv1_3:        "TLS 1.3",
 	}
-	ConsulConfigTLSVersionStrings = func() map[TLSVersion]string {
-		inverted := make(map[TLSVersion]string, len(TLSVersions))
-		for k, v := range TLSVersions {
-			inverted[v] = k
-		}
-		return inverted
-	}()
 	// NOTE: these currently map to the deprecated config strings to support the
 	// deployment pattern of upgrading servers first. This map should eventually
-	// be removed and any lookups updated to use ConsulConfigTLSVersionStrings
-	// with newer config strings instead in a future release.
+	// be removed and any lookups updated to instead use the TLSVersion string
+	// values directly in a future release.
 	ConsulAutoConfigTLSVersionStrings = map[TLSVersion]string{
 		TLSVersionAuto: "",
 		TLSv1_0:        "tls10",
@@ -73,31 +60,7 @@ var (
 	}
 )
 
-func (v TLSVersion) String() string {
-	return ConsulConfigTLSVersionStrings[v]
-}
-
-func (v TLSVersion) MarshalJSON() ([]byte, error) {
-	return json.Marshal(v.String())
-}
-
-func (v *TLSVersion) UnmarshalJSON(bytes []byte) error {
-	versionStr := string(bytes)
-
-	if n := len(versionStr); n > 1 && versionStr[0] == '"' && versionStr[n-1] == '"' {
-		versionStr = versionStr[1 : n-1] // trim surrounding quotes
-	}
-
-	if version, ok := TLSVersions[versionStr]; ok {
-		*v = version
-		return nil
-	}
-
-	*v = TLSVersionInvalid
-	return fmt.Errorf("no matching TLS Version found for %s", versionStr)
-}
-
-// IANA cipher suite constants and values as defined at
+// IANA cipher suite string constants as defined at
 // https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml
 // This is the total list of TLS 1.2-style cipher suites
 // which are currently supported by either Envoy 1.21 or the Consul agent

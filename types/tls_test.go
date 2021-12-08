@@ -7,14 +7,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTLSVersion_PartialEq(t *testing.T) {
-	require.Greater(t, TLSv1_3, TLSv1_2)
-	require.Greater(t, TLSv1_2, TLSv1_1)
-	require.Greater(t, TLSv1_1, TLSv1_0)
-
-	require.Less(t, TLSv1_2, TLSv1_3)
-	require.Less(t, TLSv1_1, TLSv1_2)
-	require.Less(t, TLSv1_0, TLSv1_1)
+func TestTLSVersion_Equality(t *testing.T) {
+	require.Equal(t, TLSVersionAuto, TLSVersions["TLS_AUTO"])
+	require.Equal(t, TLSv1_0, TLSVersions["TLSv1_0"])
+	require.Equal(t, TLSv1_1, TLSVersions["TLSv1_1"])
+	require.Equal(t, TLSv1_2, TLSVersions["TLSv1_2"])
+	require.Equal(t, TLSv1_3, TLSVersions["TLSv1_3"])
 }
 
 func TestTLSVersion_Invalid(t *testing.T) {
@@ -33,7 +31,7 @@ func TestTLSVersion_Zero(t *testing.T) {
 
 func TestTLSVersion_ToJSON(t *testing.T) {
 	var tlsVersion TLSVersion
-	err := tlsVersion.UnmarshalJSON([]byte(`"foo"`))
+	err := json.Unmarshal([]byte(`"foo"`), &tlsVersion)
 	require.Error(t, err)
 	require.Equal(t, tlsVersion, TLSVersionInvalid)
 
@@ -42,7 +40,7 @@ func TestTLSVersion_ToJSON(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, versionJSON, []byte(`"`+str+`"`))
 
-		err = tlsVersion.UnmarshalJSON([]byte(`"` + str + `"`))
+		err = json.Unmarshal([]byte(`"`+str+`"`), &tlsVersion)
 		require.NoError(t, err)
 		require.Equal(t, tlsVersion, version)
 	}
