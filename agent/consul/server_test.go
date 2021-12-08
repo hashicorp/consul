@@ -285,6 +285,7 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { srv.Shutdown() })
 
 	// wait until after listen
 	<-up
