@@ -314,18 +314,6 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 	}
 }
 
-func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
-	retry.Run(t, func(r *retry.R) {
-		_, root := getCAProviderWithLock(srv)
-		if root == nil {
-			r.Fatal("no root")
-		}
-		if root.ID != expect.ID {
-			r.Fatalf("current active root is %s; waiting for %s", root.ID, expect.ID)
-		}
-	})
-}
-
 func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
 	return s.caManager.getCAProvider()
 }
@@ -381,7 +369,6 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 	t.Log("original SigningKeyID", originalRoot.SigningKeyID)
 
 	// Get the original intermediate.
-	waitForActiveCARoot(t, s1, originalRoot)
 	provider, _ := getCAProviderWithLock(s1)
 	intermediatePEM, err := provider.ActiveIntermediate()
 	require.NoError(err)
@@ -523,8 +510,8 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	}
 	t.Log("original SigningKeyID", originalRoot.SigningKeyID)
 
-	waitForActiveCARoot(t, s1, originalRoot)
-	waitForActiveCARoot(t, s2, originalRoot)
+	testrpc.WaitForActiveCARoot(t, s1.RPC, "dc1", originalRoot)
+	testrpc.WaitForActiveCARoot(t, s2.RPC, "dc2", originalRoot)
 
 	store := s2.fsm.State()
 	_, activeRoot, err := store.CARootActive(nil)

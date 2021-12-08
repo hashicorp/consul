@@ -697,8 +697,8 @@ func TestConnectCAConfig_UpdateSecondary(t *testing.T) {
 	require.Len(rootList.Roots, 1)
 	rootCert := activeRoot
 
-	waitForActiveCARoot(t, s1, rootCert)
-	waitForActiveCARoot(t, s2, rootCert)
+	testrpc.WaitForActiveCARoot(t, s1.RPC, "primary", rootCert)
+	testrpc.WaitForActiveCARoot(t, s2.RPC, "secondary", rootCert)
 
 	// Capture the current intermediate
 	rootList, activeRoot, err = getTestRoots(s2, "secondary")
