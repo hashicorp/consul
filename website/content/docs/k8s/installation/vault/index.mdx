@@ -38,6 +38,9 @@ injector:
   * `global.tls.serverAdditionalIPSans` is not currently configurable and must be manually added to the server certificate in Vault.
   * Mesh gateway is not currently supported.
 1. Multi-DC Federation is not currently supported.
+1. Certificate rotation is not currently supported, ensure the TTL for your certificates is sufficiently long. Should your certificates
+expire it will be necessary to issue a `consul reload` on each server.
+1. CA rotation is not currently supported.
 
 ## Next Steps
 
