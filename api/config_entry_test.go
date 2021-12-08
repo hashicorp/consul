@@ -955,7 +955,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir": "zim"
 				},
 				"Tls": {
-					"Enabled": true
+					"Enabled": true,
+                    "TLSMinVersion": "TLSv1_2"
 				},
 				"Listeners": [
 					{
@@ -992,7 +993,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir": "zim",
 				},
 				TLS: GatewayTLSConfig{
-					Enabled: true,
+					Enabled:       true,
+					TLSMinVersion: "TLSv1_2",
 				},
 				Listeners: []IngressListener{
 					{

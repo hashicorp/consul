@@ -43,6 +43,13 @@ type GatewayTLSConfig struct {
 
 	// SDS allows configuring TLS certificate from an SDS service.
 	SDS *GatewayTLSSDSConfig `json:",omitempty"`
+
+	TLSMinVersion string `json:",omitempty" alias:"tls_min_version"`
+	TLSMaxVersion string `json:",omitempty" alias:"tls_max_version"`
+
+	// Define a subset of cipher suites to restrict
+	// Only applicable to connections negotiated via TLS 1.2 or earlier
+	CipherSuites []string `json:",omitempty" alias:"cipher_suites"`
 }
 
 type GatewayServiceTLSConfig struct {
