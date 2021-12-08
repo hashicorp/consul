@@ -1005,7 +1005,7 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 	}
 	notFoundReason := fmt.Sprintf("ServiceId %s not found", sid.String())
 	if returnTextPlain(req) {
-		return notFoundReason, CodeWithPayloadError{StatusCode: http.StatusNotFound, Reason: notFoundReason, ContentType: "application/json"}
+		return notFoundReason, CodeWithPayloadError{StatusCode: http.StatusNotFound, Reason: notFoundReason, ContentType: "text/plain"}
 	}
 	return &api.AgentServiceChecksInfo{
 		AggregatedStatus: api.HealthCritical,
@@ -1510,7 +1510,7 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 			}
 
 		case "acl_agent_master_token", "agent_master", "agent_recovery":
-			s.agent.tokens.UpdateAgentMasterToken(args.Token, token_store.TokenSourceAPI)
+			s.agent.tokens.UpdateAgentRecoveryToken(args.Token, token_store.TokenSourceAPI)
 
 		case "acl_replication_token", "replication":
 			s.agent.tokens.UpdateReplicationToken(args.Token, token_store.TokenSourceAPI)

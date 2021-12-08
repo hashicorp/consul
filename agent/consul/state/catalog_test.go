@@ -7656,6 +7656,143 @@ func TestProtocolForIngressGateway(t *testing.T) {
 	}
 }
 
+func TestStateStore_EnsureService_ServiceNames(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create the service registration.
+	entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+
+	services := []structs.NodeService{
+		{
+			Kind:           structs.ServiceKindIngressGateway,
+			ID:             "ingress-gateway",
+			Service:        "ingress-gateway",
+			Address:        "2.2.2.2",
+			Port:           2222,
+			EnterpriseMeta: *entMeta,
+		},
+		{
+			Kind:           structs.ServiceKindMeshGateway,
+			ID:             "mesh-gateway",
+			Service:        "mesh-gateway",
+			Address:        "4.4.4.4",
+			Port:           4444,
+			EnterpriseMeta: *entMeta,
+		},
+		{
+			Kind:           structs.ServiceKindConnectProxy,
+			ID:             "connect-proxy",
+			Service:        "connect-proxy",
+			Address:        "1.1.1.1",
+			Port:           1111,
+			Proxy:          structs.ConnectProxyConfig{DestinationServiceName: "foo"},
+			EnterpriseMeta: *entMeta,
+		},
+		{
+			Kind:           structs.ServiceKindTerminatingGateway,
+			ID:             "terminating-gateway",
+			Service:        "terminating-gateway",
+			Address:        "3.3.3.3",
+			Port:           3333,
+			EnterpriseMeta: *entMeta,
+		},
+		{
+			Kind:           structs.ServiceKindTypical,
+			ID:             "web",
+			Service:        "web",
+			Address:        "5.5.5.5",
+			Port:           5555,
+			EnterpriseMeta: *entMeta,
+		},
+	}
+
+	var idx uint64
+	testRegisterNode(t, s, idx, "node1")
+
+	for _, svc := range services {
+		idx++
+		require.NoError(t, s.EnsureService(idx, "node1", &svc))
+
+		// Ensure the service name was stored for all of them under the appropriate kind
+		gotIdx, gotNames, err := s.ServiceNamesOfKind(nil, svc.Kind)
+		require.NoError(t, err)
+		require.Equal(t, idx, gotIdx)
+		require.Len(t, gotNames, 1)
+		require.Equal(t, svc.CompoundServiceName(), gotNames[0].Service)
+		require.Equal(t, svc.Kind, gotNames[0].Kind)
+	}
+
+	// Register another ingress gateway and there should be two names under the kind index
+	newIngress := structs.NodeService{
+		Kind:           structs.ServiceKindIngressGateway,
+		ID:             "new-ingress-gateway",
+		Service:        "new-ingress-gateway",
+		Address:        "6.6.6.6",
+		Port:           6666,
+		EnterpriseMeta: *entMeta,
+	}
+	idx++
+	require.NoError(t, s.EnsureService(idx, "node1", &newIngress))
+
+	gotIdx, got, err := s.ServiceNamesOfKind(nil, structs.ServiceKindIngressGateway)
+	require.NoError(t, err)
+	require.Equal(t, idx, gotIdx)
+
+	expect := []*KindServiceName{
+		{
+			Kind:    structs.ServiceKindIngressGateway,
+			Service: structs.NewServiceName("ingress-gateway", nil),
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 1,
+				ModifyIndex: 1,
+			},
+		},
+		{
+			Kind:    structs.ServiceKindIngressGateway,
+			Service: structs.NewServiceName("new-ingress-gateway", nil),
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: idx,
+				ModifyIndex: idx,
+			},
+		},
+	}
+	require.Equal(t, expect, got)
+
+	// Deregister an ingress gateway and the index should not slide back
+	idx++
+	require.NoError(t, s.DeleteService(idx, "node1", "new-ingress-gateway", entMeta))
+
+	gotIdx, got, err = s.ServiceNamesOfKind(nil, structs.ServiceKindIngressGateway)
+	require.NoError(t, err)
+	require.Equal(t, idx, gotIdx)
+	require.Equal(t, expect[:1], got)
+
+	// Registering another instance of a known service should not bump the kind index
+	newMGW := structs.NodeService{
+		Kind:           structs.ServiceKindMeshGateway,
+		ID:             "mesh-gateway-1",
+		Service:        "mesh-gateway",
+		Address:        "7.7.7.7",
+		Port:           7777,
+		EnterpriseMeta: *entMeta,
+	}
+	idx++
+	require.NoError(t, s.EnsureService(idx, "node1", &newMGW))
+
+	gotIdx, _, err = s.ServiceNamesOfKind(nil, structs.ServiceKindMeshGateway)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), gotIdx)
+
+	// Deregister the single typical service and the service name should also be dropped
+	idx++
+	require.NoError(t, s.DeleteService(idx, "node1", "web", entMeta))
+
+	gotIdx, got, err = s.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
+	require.NoError(t, err)
+	require.Equal(t, idx, gotIdx)
+	require.Empty(t, got)
+}
+
 func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 	t.Helper()
 	if !t.Run(name, fn) {

@@ -1,4 +1,27 @@
-{{#if (env "CONSUL_NSPACES_ENABLED")}}
+{{#if (can "use partitions")~}}
+partition "{{or @partition 'default'}}" {
+  {{#if (can "use nspaces")}}
+  namespace "default" {
+    node "{{@name}}" {
+	    policy = "write"
+    }
+  }
+  namespace_prefix "" {
+    service_prefix "" {
+	    policy = "read"
+    }
+  }
+  {{else}}
+  node "{{@name}}" {
+	  policy = "write"
+  }
+  service_prefix "" {
+	  policy = "read"
+  }
+  {{/if}}
+}
+{{~else~}}
+{{~#if (can "use nspaces")~}}
 namespace "default" {
   node "{{@name}}" {
 	  policy = "write"
@@ -16,4 +39,5 @@ node "{{@name}}" {
 service_prefix "" {
 	policy = "read"
 }
-{{/if}}
+{{~/if~}}
+{{~/if~}}

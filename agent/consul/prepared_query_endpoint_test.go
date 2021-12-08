@@ -200,7 +200,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -629,7 +629,7 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -831,7 +831,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1072,7 +1072,7 @@ func TestPreparedQuery_List(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1164,6 +1164,31 @@ func TestPreparedQuery_List(t *testing.T) {
 
 		if len(resp.Queries) != 0 {
 			t.Fatalf("bad: %v", resp)
+		}
+	}
+
+	// Same for a token without access to the query.
+	{
+		token := createTokenWithPolicyName(t, codec, "deny-queries", `
+			query_prefix "" {
+				policy = "deny"
+			}
+		`, "root")
+
+		req := &structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.List", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 0 {
+			t.Fatalf("bad: %v", resp)
+		}
+		if !resp.QueryMeta.ResultsFilteredByACLs {
+			t.Fatal("ResultsFilteredByACLs should be true")
 		}
 	}
 
@@ -1268,7 +1293,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1392,7 +1417,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -2124,6 +2149,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 0)
+		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("normal operation again with exec token", func(t *testing.T) {
@@ -2244,6 +2270,20 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectFailoverNodes(t, &query, &reply, 0)
+	})
+
+	t.Run("nodes in response from dc2 are filtered by ACL token", func(t *testing.T) {
+		req := structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions:  structs.QueryOptions{Token: execNoNodesToken},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
+
+		expectFailoverNodes(t, &query, &reply, 0)
+		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	// Bake the exec token into the query.
@@ -2659,7 +2699,7 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -2669,7 +2709,7 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir2)

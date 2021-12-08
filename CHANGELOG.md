@@ -1,4 +1,118 @@
-## UNRELEASED
+## 1.11.0-rc (December 08, 2021)
+
+BREAKING CHANGES:
+
+* cli: `consul acl set-agent-token master` has been replaced with `consul acl set-agent-token recovery` [[GH-11669](https://github.com/hashicorp/consul/issues/11669)]
+
+FEATURES:
+
+* partitions: **(Enterprise only)** Ensure partitions and serf-based WAN federation are mutually exclusive.
+* ui: Add documentation link to Partition empty state [[GH-11668](https://github.com/hashicorp/consul/issues/11668)]
+* ui: Adds basic support for showing Services exported from another partition. [[GH-11702](https://github.com/hashicorp/consul/issues/11702)]
+* ui: Adds support for partitions to Service and Node Identity template visuals. [[GH-11696](https://github.com/hashicorp/consul/issues/11696)]
+* ui: Adds support for partitions to the Routing visualization. [[GH-11679](https://github.com/hashicorp/consul/issues/11679)]
+* ui: Don't offer a 'Valid Datacenters' option when editing policies for non-default partitions [[GH-11656](https://github.com/hashicorp/consul/issues/11656)]
+* ui: Include `Service.Partition` into available variables for `dashboard_url_templates` [[GH-11654](https://github.com/hashicorp/consul/issues/11654)]
+* ui: Upgrade Lock Sessions to use partitions [[GH-11666](https://github.com/hashicorp/consul/issues/11666)]
+
+IMPROVEMENTS:
+
+* agent: **(Enterprise only)** purge service/check registration files for incorrect partitions on reload [[GH-11607](https://github.com/hashicorp/consul/issues/11607)]
+* agent: add variation of force-leave that exclusively works on the WAN [[GH-11722](https://github.com/hashicorp/consul/issues/11722)]
+* api: **(Enterprise Only)** rename partition-exports config entry to exported-services. [[GH-11739](https://github.com/hashicorp/consul/issues/11739)]
+* auto-config: ensure the feature works properly with partitions [[GH-11699](https://github.com/hashicorp/consul/issues/11699)]
+* connect: **(Enterprise only)** add support for cross-partition transparent proxying. [[GH-11738](https://github.com/hashicorp/consul/issues/11738)]
+* connect: **(Enterprise only)** add support for targeting partitions in discovery chain routes, splits, and redirects. [[GH-11757](https://github.com/hashicorp/consul/issues/11757)]
+* connect: Consul will now generate a unique virtual IP for each connect-enabled service (this will also differ across namespace/partition in Enterprise). [[GH-11724](https://github.com/hashicorp/consul/issues/11724)]
+* connect: Support Vault auth methods for the Connect CA Vault provider. Currently, we support any non-deprecated auth methods
+the latest version of Vault supports (v1.8.5), which include AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud,
+JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password. [[GH-11573](https://github.com/hashicorp/consul/issues/11573)]
+* dns: Added a `virtual` endpoint for querying the assigned virtual IP for a service. [[GH-11725](https://github.com/hashicorp/consul/issues/11725)]
+* partitions: **(Enterprise only)** rename APIs, commands, and public types to use "partition" rather than "admin partition". [[GH-11737](https://github.com/hashicorp/consul/issues/11737)]
+* raft: Added a configuration to disable boltdb freelist syncing [[GH-11720](https://github.com/hashicorp/consul/issues/11720)]
+* raft: Emit boltdb related performance metrics [[GH-11720](https://github.com/hashicorp/consul/issues/11720)]
+* raft: Use bbolt instead of the legacy boltdb implementation [[GH-11720](https://github.com/hashicorp/consul/issues/11720)]
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+* server: block enterprise-specific partition-exports config entry from being used in OSS Consul. [[GH-11680](https://github.com/hashicorp/consul/issues/11680)]
+* types: add TLSVersion and TLSCipherSuite [[GH-11645](https://github.com/hashicorp/consul/issues/11645)]
+* ui: Add partition support for SSO [[GH-11604](https://github.com/hashicorp/consul/issues/11604)]
+* ui: Update global notification styling [[GH-11577](https://github.com/hashicorp/consul/issues/11577)]
+
+DEPRECATIONS:
+
+* api: `/v1/agent/token/agent_master` is deprecated and will be removed in a future major release - use `/v1/agent/token/agent_recovery` instead [[GH-11669](https://github.com/hashicorp/consul/issues/11669)]
+* config: `acl.tokens.master` has been renamed to `acl.tokens.initial_management`, and `acl.tokens.agent_master` has been renamed to `acl.tokens.agent_recovery` - the old field names are now deprecated and will be removed in a future major release [[GH-11665](https://github.com/hashicorp/consul/issues/11665)]
+
+BUG FIXES:
+
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* areas: **(Enterprise only)** make the gRPC server tracker network area aware [[GH-11748](https://github.com/hashicorp/consul/issues/11748)]
+* ca: fixes a bug that caused non blocking leaf cert queries to return the same cached response regardless of ca rotation or leaf cert expiry [[GH-11693](https://github.com/hashicorp/consul/issues/11693)]
+* ca: fixes a bug that caused the SigningKeyID to be wrong in the primary DC, when the Vault provider is used, after a CA config creates a new root. [[GH-11672](https://github.com/hashicorp/consul/issues/11672)]
+* ca: fixes a bug that caused the intermediate cert used to sign leaf certs to be missing from the /connect/ca/roots API response when the Vault provider was used. [[GH-11671](https://github.com/hashicorp/consul/issues/11671)]
+* ui: Fix inline-code brand styling [[GH-11578](https://github.com/hashicorp/consul/issues/11578)]
+* ui: Fix visual issue with slight table header overflow [[GH-11670](https://github.com/hashicorp/consul/issues/11670)]
+* ui: Fixes an issue where under some circumstances after logging we present the
+data loaded previous to you logging in. [[GH-11681](https://github.com/hashicorp/consul/issues/11681)]
+* ui: Include `Service.Namespace` into available variables for `dashboard_url_templates` [[GH-11640](https://github.com/hashicorp/consul/issues/11640)]
+
+## 1.11.0-beta3 (November 17, 2021)
+
+SECURITY:
+
+* agent: Use SHA256 instead of MD5 to generate persistence file names. [[GH-11491](https://github.com/hashicorp/consul/issues/11491)]
+* namespaces: **(Enterprise only)** Creating or editing namespaces that include default ACL policies or ACL roles now requires `acl:write` permission in the default namespace. This change fixes CVE-2021-41805.
+
+FEATURES:
+
+* ca: Add a configurable TTL for Connect CA root certificates. The configuration is supported by the Vault and Consul providers. [[GH-11428](https://github.com/hashicorp/consul/issues/11428)]
+* ca: Add a configurable TTL to the AWS ACM Private CA provider root certificate. [[GH-11449](https://github.com/hashicorp/consul/issues/11449)]
+* health-checks: add support for h2c in http2 ping health checks [[GH-10690](https://github.com/hashicorp/consul/issues/10690)]
+* partitions: **(Enterprise only)** segment serf LAN gossip between nodes in different partitions
+* ui: Adding support of Consul API Gateway as an external source. [[GH-11371](https://github.com/hashicorp/consul/issues/11371)]
+* ui: Topology - New views for scenarios where no dependencies exist or ACLs are disabled [[GH-11280](https://github.com/hashicorp/consul/issues/11280)]
+
+IMPROVEMENTS:
+
+* ci: Artifact builds will now only run on merges to the release branches or to `main` [[GH-11417](https://github.com/hashicorp/consul/issues/11417)]
+* ci: The Linux packages are now available for all supported Linux architectures including arm, arm64, 386, and amd64 [[GH-11417](https://github.com/hashicorp/consul/issues/11417)]
+* ci: The Linux packaging service configs and pre/post install scripts are now available under  [.release/linux] [[GH-11417](https://github.com/hashicorp/consul/issues/11417)]
+* config: warn the user if client_addr is empty because client services won't be listening [[GH-11461](https://github.com/hashicorp/consul/issues/11461)]
+* connect/ca: Return an error when querying roots from uninitialized CA. [[GH-11514](https://github.com/hashicorp/consul/issues/11514)]
+* connect: **(Enterprise only)** Allow ingress gateways to target services in another partition [[GH-11566](https://github.com/hashicorp/consul/issues/11566)]
+* connect: add Namespace configuration setting for Vault CA provider [[GH-11477](https://github.com/hashicorp/consul/issues/11477)]
+* namespaces: **(Enterprise only)** policy and role defaults can reference policies in any namespace in the same partition by ID
+* partitions: Prevent writing partition-exports entries to secondary DCs. [[GH-11541](https://github.com/hashicorp/consul/issues/11541)]
+* sdk: Add support for iptable rules that allow DNS lookup redirection to Consul DNS. [[GH-11480](https://github.com/hashicorp/consul/issues/11480)]
+* segments: **(Enterprise only)** ensure that the serf_lan_allowed_cidrs applies to network segments [[GH-11495](https://github.com/hashicorp/consul/issues/11495)]
+* ui: Add upstream icons for upstreams and upstream instances [[GH-11556](https://github.com/hashicorp/consul/issues/11556)]
+* ui: Update UI browser support to 'roughly ~2 years back' [[GH-11505](https://github.com/hashicorp/consul/issues/11505)]
+* ui: When switching partitions reset the namespace back to the tokens default namespace or default [[GH-11479](https://github.com/hashicorp/consul/issues/11479)]
+* ui: added copy to clipboard button in code editor toolbars [[GH-11474](https://github.com/hashicorp/consul/issues/11474)]
+
+BUG FIXES:
+
+* acl: **(Enterprise only)** fix namespace and namespace_prefix policy evaluation when both govern an authz request
+* api: ensure new partition fields are omit empty for compatibility with older versions of consul [[GH-11585](https://github.com/hashicorp/consul/issues/11585)]
+* connect/ca: Allow secondary initialization to resume after being deferred due to unreachable or incompatible primary DC servers. [[GH-11514](https://github.com/hashicorp/consul/issues/11514)]
+* connect: fix issue with attempting to generate an invalid upstream cluster from UpstreamConfig.Defaults. [[GH-11245](https://github.com/hashicorp/consul/issues/11245)]
+* macos: fixes building with a non-Apple LLVM (such as installed via Homebrew) [[GH-11586](https://github.com/hashicorp/consul/issues/11586)]
+* namespaces: **(Enterprise only)** ensure the namespace replicator doesn't replicate deleted namespaces
+* partitions: **(Enterprise only)** fix panic when forwarding delete operations to the leader
+* snapshot: **(Enterprise only)** fixed a bug where the snapshot agent would ignore the `license_path` setting in config files
+* snapshot: **(Enterprise only)** snapshot agent no longer attempts to refresh its license from the server when a local license is provided (i.e. via config or an environment variable)
+* state: **(Enterprise Only)** ensure partition delete triggers namespace deletes
+* ui: **(Enterprise only)** When no namespace is selected, make sure to default to the tokens default namespace when requesting permissions [[GH-11472](https://github.com/hashicorp/consul/issues/11472)]
+* ui: Ensure the UI stores the default partition for the users token [[GH-11591](https://github.com/hashicorp/consul/issues/11591)]
+* ui: Ensure we check intention permissions for specific services when deciding
+whether to show action buttons for per service intention actions [[GH-11409](https://github.com/hashicorp/consul/issues/11409)]
+* ui: Filter the global intentions list by the currently selected parition rather
+than a wildcard [[GH-11475](https://github.com/hashicorp/consul/issues/11475)]
+* ui: Revert to depending on the backend, 'post-user-action', to report
+permissions errors rather than using UI capabilities 'pre-user-action' [[GH-11520](https://github.com/hashicorp/consul/issues/11520)]
+* ui: code editor styling (layout consistency + wide screen support) [[GH-11474](https://github.com/hashicorp/consul/issues/11474)]
+* windows: fixes arm and arm64 builds [[GH-11586](https://github.com/hashicorp/consul/issues/11586)]
+* xds: fixes a bug where replacing a mesh gateway node used for WAN federation (with another that has a different IP) could leave gateways in the other DC unable to re-establish the connection [[GH-11522](https://github.com/hashicorp/consul/issues/11522)]
 
 ## 1.11.0-beta2 (November 02, 2021)
 

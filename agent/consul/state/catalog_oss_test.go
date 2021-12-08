@@ -412,3 +412,40 @@ func testIndexerTableServiceVirtualIPs() map[string]indexerTestCase {
 		},
 	}
 }
+
+func testIndexerTableKindServiceNames() map[string]indexerTestCase {
+	obj := &KindServiceName{
+		Service: structs.ServiceName{
+			Name: "web-sidecar-proxy",
+		},
+		Kind: structs.ServiceKindConnectProxy,
+	}
+
+	return map[string]indexerTestCase{
+		indexID: {
+			read: indexValue{
+				source: &KindServiceName{
+					Service: structs.ServiceName{
+						Name: "web-sidecar-proxy",
+					},
+					Kind: structs.ServiceKindConnectProxy,
+				},
+				expected: []byte("connect-proxy\x00web-sidecar-proxy\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("connect-proxy\x00web-sidecar-proxy\x00"),
+			},
+		},
+		indexKind: {
+			read: indexValue{
+				source:   structs.ServiceKindConnectProxy,
+				expected: []byte("connect-proxy\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("connect-proxy\x00"),
+			},
+		},
+	}
+}

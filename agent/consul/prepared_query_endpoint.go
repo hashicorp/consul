@@ -373,7 +373,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	if query.Token != "" {
 		token = query.Token
 	}
-	if err := p.srv.filterACL(token, &reply.Nodes); err != nil {
+	if err := p.srv.filterACL(token, reply); err != nil {
 		return err
 	}
 
@@ -500,7 +500,7 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 	if args.Query.Token != "" {
 		token = args.Query.Token
 	}
-	if err := p.srv.filterACL(token, &reply.Nodes); err != nil {
+	if err := p.srv.filterACL(token, reply); err != nil {
 		return err
 	}
 

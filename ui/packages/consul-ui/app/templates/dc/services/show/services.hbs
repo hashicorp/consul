@@ -69,7 +69,8 @@ as |route|>
       as |collection|>
         <collection.Collection>
           <Consul::Service::List
-            @nspace={{nspace}}
+            @nspace={{or route.params.nspace route.model.user.token.Namespace 'default'}}
+            @partition={{or route.params.partition route.model.user.token.Partition 'default'}}
             @items={{collection.items}}
           >
           </Consul::Service::List>

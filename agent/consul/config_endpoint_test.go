@@ -155,7 +155,7 @@ func TestConfigEntry_Apply_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -271,7 +271,7 @@ func TestConfigEntry_Get_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -471,7 +471,7 @@ func TestConfigEntry_List_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -545,7 +545,7 @@ func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -750,7 +750,7 @@ func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1959,7 +1959,7 @@ func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -2093,7 +2093,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "",
 				localDC:   "dc1",
 				primaryDC: "",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 		},
 		{
@@ -2102,7 +2102,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "",
 				localDC:   "dc1",
 				primaryDC: "dc1",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 		},
 		{
@@ -2111,7 +2111,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "dc1",
 				localDC:   "dc1",
 				primaryDC: "dc1",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 		},
 		{
@@ -2120,7 +2120,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "dc2",
 				localDC:   "dc1",
 				primaryDC: "",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 			wantErr: "writes must not target secondary datacenters",
 		},
@@ -2130,7 +2130,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "dc2",
 				localDC:   "dc1",
 				primaryDC: "dc1",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 			wantErr: "writes must not target secondary datacenters",
 		},
@@ -2140,7 +2140,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "dc2",
 				localDC:   "dc2",
 				primaryDC: "dc1",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 			wantErr: "writes must not target secondary datacenters",
 		},
@@ -2150,7 +2150,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 				targetDC:  "",
 				localDC:   "dc2",
 				primaryDC: "dc1",
-				kind:      structs.PartitionExports,
+				kind:      structs.ExportedServices,
 			},
 			wantErr: "must target the primary datacenter explicitly",
 		},
@@ -2158,7 +2158,7 @@ func Test_gateWriteToSecondary(t *testing.T) {
 			name: "empty local DC",
 			args: args{
 				localDC: "",
-				kind:    structs.PartitionExports,
+				kind:    structs.ExportedServices,
 			},
 			wantErr: "unknown local datacenter",
 		},
@@ -2179,7 +2179,7 @@ func Test_gateWriteToSecondary_AllowedKinds(t *testing.T) {
 	}
 
 	for _, kind := range structs.AllConfigEntryKinds {
-		if kind == structs.PartitionExports {
+		if kind == structs.ExportedServices {
 			continue
 		}
 

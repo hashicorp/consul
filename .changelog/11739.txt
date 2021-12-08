@@ -1,0 +1,3 @@
+```release-note:improvement
+api: **(Enterprise Only)** rename partition-exports config entry to exported-services.
+```

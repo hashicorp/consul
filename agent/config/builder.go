@@ -860,18 +860,18 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			ACLDefaultPolicy: stringVal(c.ACL.DefaultPolicy),
 		},
 
-		ACLEnableKeyListPolicy: boolVal(c.ACL.EnableKeyListPolicy),
-		ACLMasterToken:         stringVal(c.ACL.Tokens.InitialManagement),
+		ACLEnableKeyListPolicy:    boolVal(c.ACL.EnableKeyListPolicy),
+		ACLInitialManagementToken: stringVal(c.ACL.Tokens.InitialManagement),
 
 		ACLTokenReplication: boolVal(c.ACL.TokenReplication),
 
 		ACLTokens: token.Config{
-			DataDir:             dataDir,
-			EnablePersistence:   boolValWithDefault(c.ACL.EnableTokenPersistence, false),
-			ACLDefaultToken:     stringVal(c.ACL.Tokens.Default),
-			ACLAgentToken:       stringVal(c.ACL.Tokens.Agent),
-			ACLAgentMasterToken: stringVal(c.ACL.Tokens.AgentRecovery),
-			ACLReplicationToken: stringVal(c.ACL.Tokens.Replication),
+			DataDir:               dataDir,
+			EnablePersistence:     boolValWithDefault(c.ACL.EnableTokenPersistence, false),
+			ACLDefaultToken:       stringVal(c.ACL.Tokens.Default),
+			ACLAgentToken:         stringVal(c.ACL.Tokens.Agent),
+			ACLAgentRecoveryToken: stringVal(c.ACL.Tokens.AgentRecovery),
+			ACLReplicationToken:   stringVal(c.ACL.Tokens.Replication),
 		},
 
 		// Autopilot
@@ -1093,6 +1093,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 
 	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
+
+	if c.RaftBoltDBConfig != nil {
+		rt.RaftBoltDBConfig = *c.RaftBoltDBConfig
+	}
 
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)

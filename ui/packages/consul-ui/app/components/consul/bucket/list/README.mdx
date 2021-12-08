@@ -1,0 +1,44 @@
+# Consul::Bucket::List
+
+A presentational component for rendering a list of Consul 'buckets'
+(a single partition and/or a single namepace).
+
+Please note this is not your usual "scrollable list component" more a list of
+'buckets' that make up a partition / namespace combination.
+
+If only a the namespace is different to the currently selected namespace, then
+the namespace will be displayed, whereas if the partition is different it will
+show both the partition and namespace (as a namespace called 'team-1' in
+`partition-1` is different to a namespace called 'team-1' in `partition-2`)
+
+If you don't need the nspace only support for the view you are building then
+omit the `@nspace` argument.
+
+At the time of writing, this is not currently used across the entire UI
+(specifically in intentions and maybe other areas) but eventually should be.
+
+
+```hbs preview-template
+<DataSource
+  @src={{uri "/partition/default/dc-1/gateways/for-service/service-name"}} as |source|>
+    <Consul::Bucket::List
+      @item={{object-at 0 source.data}}
+      @nspace={{'nspace'}}
+      @partition={{'partition'}}
+    />
+</DataSource>
+```
+
+## Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `item` | `array` |  | A Consul object that could have both a `Partition` and a `Namespace` property |
+| `nspace` | `string` | | The name of the current namespace |
+| `partition` | `string` | | The name of the current partition |
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

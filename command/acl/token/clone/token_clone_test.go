@@ -70,7 +70,7 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
    acl {
       enabled = true
       tokens {
-         master = "root"
+         initial_management = "root"
       }
    }`)
 
@@ -178,7 +178,7 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
    acl {
       enabled = true
       tokens {
-         master = "root"
+         initial_management = "root"
       }
    }`)
 

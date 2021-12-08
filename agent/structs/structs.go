@@ -72,6 +72,7 @@ const (
 	SystemMetadataRequestType                   = 31
 	ServiceVirtualIPRequestType                 = 32
 	FreeVirtualIPRequestType                    = 33
+	KindServiceNamesType                        = 34
 )
 
 // if a new request type is added above it must be
@@ -114,6 +115,7 @@ var requestTypeStrings = map[MessageType]string{
 	SystemMetadataRequestType:       "SystemMetadata",
 	ServiceVirtualIPRequestType:     "ServiceVirtualIP",
 	FreeVirtualIPRequestType:        "FreeVirtualIP",
+	KindServiceNamesType:            "KindServiceName",
 }
 
 const (
@@ -461,9 +463,11 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 	return false
 }
 
-// DeregisterRequest is used for the Catalog.Deregister endpoint
-// to deregister a node as providing a service. If no service is
-// provided the entire node is deregistered.
+// DeregisterRequest is used for the Catalog.Deregister endpoint to
+// deregister a service, check, or node (only one should be provided).
+// If ServiceID or CheckID are not provided, the entire node is deregistered.
+// If a ServiceID is provided, any associated Checks with that service
+// are also deregistered.
 type DeregisterRequest struct {
 	Datacenter string
 	Node       string
@@ -1029,6 +1033,13 @@ type ServiceNodes []*ServiceNode
 // ServiceKind is the kind of service being registered.
 type ServiceKind string
 
+func (k ServiceKind) Normalized() string {
+	if k == ServiceKindTypical {
+		return "typical"
+	}
+	return string(k)
+}
+
 const (
 	// ServiceKindTypical is a typical, classic Consul service. This is
 	// represented by the absence of a value. This was chosen for ease of
@@ -1479,11 +1490,15 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 	}
 }
 
+// NodeServices represents services provided by Node.
+// Services is a map of service IDs to services.
 type NodeServices struct {
 	Node     *Node
 	Services map[string]*NodeService
 }
 
+// NodeServiceList represents services provided by Node.
+// Services is a list of services.
 type NodeServiceList struct {
 	Node     *Node
 	Services []*NodeService

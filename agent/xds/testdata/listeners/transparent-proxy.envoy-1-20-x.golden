@@ -42,6 +42,10 @@
               {
                 "addressPrefix": "10.0.0.1",
                 "prefixLen": 32
+              },
+              {
+                "addressPrefix": "240.0.0.1",
+                "prefixLen": 32
               }
             ]
           },

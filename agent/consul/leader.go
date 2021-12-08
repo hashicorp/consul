@@ -431,28 +431,28 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 			s.logger.Info("Created ACL 'global-management' policy")
 		}
 
-		// Check for configured master token.
-		if master := s.config.ACLMasterToken; len(master) > 0 {
+		// Check for configured initial management token.
+		if initialManagement := s.config.ACLInitialManagementToken; len(initialManagement) > 0 {
 			state := s.fsm.State()
-			if _, err := uuid.ParseUUID(master); err != nil {
-				s.logger.Warn("Configuring a non-UUID master token is deprecated")
+			if _, err := uuid.ParseUUID(initialManagement); err != nil {
+				s.logger.Warn("Configuring a non-UUID initial management token is deprecated")
 			}
 
-			_, token, err := state.ACLTokenGetBySecret(nil, master, nil)
+			_, token, err := state.ACLTokenGetBySecret(nil, initialManagement, nil)
 			if err != nil {
-				return fmt.Errorf("failed to get master token: %v", err)
+				return fmt.Errorf("failed to get initial management token: %v", err)
 			}
 			// Ignoring expiration times to avoid an insertion collision.
 			if token == nil {
 				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
 				if err != nil {
-					return fmt.Errorf("failed to generate the accessor ID for the master token: %v", err)
+					return fmt.Errorf("failed to generate the accessor ID for the initial management token: %v", err)
 				}
 
 				token := structs.ACLToken{
 					AccessorID:  accessor,
-					SecretID:    master,
-					Description: "Master Token",
+					SecretID:    initialManagement,
+					Description: "Initial Management Token",
 					Policies: []structs.ACLTokenPolicyLink{
 						{
 							ID: structs.ACLPolicyGlobalManagementID,
@@ -472,12 +472,12 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 						ResetIndex: 0,
 					}
 					if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
-						s.logger.Info("Bootstrapped ACL master token from configuration")
+						s.logger.Info("Bootstrapped ACL initial management token from configuration")
 						done = true
 					} else {
 						if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() &&
 							err.Error() != structs.ACLBootstrapInvalidResetIndexErr.Error() {
-							return fmt.Errorf("failed to bootstrap master token: %v", err)
+							return fmt.Errorf("failed to bootstrap initial management token: %v", err)
 						}
 					}
 				}
@@ -489,10 +489,10 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 						CAS:    false,
 					}
 					if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
-						return fmt.Errorf("failed to create master token: %v", err)
+						return fmt.Errorf("failed to create initial management token: %v", err)
 					}
 
-					s.logger.Info("Created ACL master token from configuration")
+					s.logger.Info("Created ACL initial management token from configuration")
 				}
 			}
 		}

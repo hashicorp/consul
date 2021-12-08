@@ -1,0 +1,27 @@
+# Consul::Node::Identity::Template
+
+The component is a text-only template that represents what a NodeIdentity
+policy looks like. The policy generated here is **not** what is sent back to
+the backend, instead its just a visual representation of what happens in the
+backend when you save a NodeIdentity.
+
+```hbs preview-template
+<pre><code><Consul::NodeIdentity::Template
+  @partition={{'default-ier'}}
+  @name={{"Policy-Name"}}
+/></code></pre>
+```
+
+## Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `partition` | `string` | `default` | The name of the current partition  |
+| `name` | `string` |  | The name of the policy the will be used to
+interpolate the various policy names  |
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

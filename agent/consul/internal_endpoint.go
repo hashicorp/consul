@@ -72,18 +72,21 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 			if err != nil {
 				return err
 			}
-
 			reply.Index, reply.Dump = index, dump
-			if err := m.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			raw, err := filter.Execute(reply.Dump)
 			if err != nil {
 				return err
 			}
-
 			reply.Dump = raw.(structs.NodeDump)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			return nil
 		})
 }
@@ -113,10 +116,6 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 				return err
 			}
 			reply.Nodes = nodes
-
-			if err := m.srv.filterACL(args.Token, &reply.Nodes); err != nil {
-				return err
-			}
 
 			// Get, store, and filter gateway services
 			idx, gatewayServices, err := state.DumpGatewayServices(ws)

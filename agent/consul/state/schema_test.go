@@ -50,6 +50,7 @@ func TestNewDBSchema_Indexers(t *testing.T) {
 		tableMeshTopology:      testIndexerTableMeshTopology,
 		tableGatewayServices:   testIndexerTableGatewayServices,
 		tableServiceVirtualIPs: testIndexerTableServiceVirtualIPs,
+		tableKindServiceNames:  testIndexerTableKindServiceNames,
 		// KV
 		tableKVs:        testIndexerTableKVs,
 		tableTombstones: testIndexerTableTombstones,
