@@ -7,7 +7,7 @@ export default class InstancesRoute extends Route {
     source: 'source',
     searchproperty: {
       as: 'searchproperty',
-      empty: [['Name', 'Tags', 'ID', 'Address', 'Port', 'Service.Meta', 'Node.Meta']],
+      empty: [['Name', 'Node', 'Tags', 'ID', 'Address', 'Port', 'Service.Meta', 'Node.Meta']],
     },
     search: {
       as: 'filter',
