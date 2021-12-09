@@ -369,14 +369,6 @@ var envoyTLSVersions = map[types.TLSVersion]envoy_tls_v3.TlsParameters_TlsProtoc
 	types.TLSv1_3:        envoy_tls_v3.TlsParameters_TLSv1_3,
 }
 
-func envoyTLSCipherSuites(cipherSuites []types.TLSCipherSuite) []string {
-	cipherSuiteStrings := []string{}
-	for _, c := range cipherSuites {
-		cipherSuiteStrings = append(cipherSuiteStrings, types.envoyTLSCipherSuiteStrings[c])
-	}
-	return cipherSuiteStrings
-}
-
 func makeTLSParametersFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.TlsParameters {
 	tlsParams := envoy_tls_v3.TlsParameters{}
 
@@ -387,7 +379,7 @@ func makeTLSParametersFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *env
 		tlsParams.TlsMaximumProtocolVersion = envoyTLSVersions[tlsCfg.TLSMaxVersion]
 	}
 	if len(tlsCfg.CipherSuites) != 0 {
-		tlsParams.CipherSuites = envoyTLSCipherSuites(tlsCfg.CipherSuites)
+		tlsParams.CipherSuites = types.MarshalEnvoyTLSCipherSuiteStrings(tlsCfg.CipherSuites)
 	}
 
 	return &tlsParams
