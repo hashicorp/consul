@@ -11,9 +11,11 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net/rpc"
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -30,6 +32,103 @@ import (
 
 // TODO(kyhavlov): replace with t.Deadline()
 const CATestTimeout = 7 * time.Second
+
+func TestCAManager_Initialize_Vault_Secondary_SharedVault(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	ca.SkipIfVaultNotPresent(t)
+
+	vault := ca.NewTestVaultServer(t)
+
+	_, serverDC1 := testServerWithConfig(t, func(c *Config) {
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             vault.Addr,
+				"Token":               vault.RootToken,
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-primary/",
+			},
+		}
+	})
+
+	runStep(t, "check primary DC", func(t *testing.T) {
+		testrpc.WaitForTestAgent(t, serverDC1.RPC, "dc1")
+
+		codec := rpcClient(t, serverDC1)
+		roots := structs.IndexedCARoots{}
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(t, err)
+		require.Len(t, roots.Roots, 1)
+
+		leafPEM := getLeafCert(t, codec, roots.TrustDomain, "dc1")
+		verifyLeafCert(t, roots.Roots[0], leafPEM)
+	})
+
+	runStep(t, "start secondary DC", func(t *testing.T) {
+		_, serverDC2 := testServerWithConfig(t, func(c *Config) {
+			c.Datacenter = "dc2"
+			c.PrimaryDatacenter = "dc1"
+			c.CAConfig = &structs.CAConfiguration{
+				Provider: "vault",
+				Config: map[string]interface{}{
+					"Address":             vault.Addr,
+					"Token":               vault.RootToken,
+					"RootPKIPath":         "pki-root/",
+					"IntermediatePKIPath": "pki-secondary/",
+				},
+			}
+		})
+		defer serverDC2.Shutdown()
+		joinWAN(t, serverDC2, serverDC1)
+		testrpc.WaitForActiveCARoot(t, serverDC2.RPC, "dc2", nil)
+
+		codec := rpcClient(t, serverDC2)
+		roots := structs.IndexedCARoots{}
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(t, err)
+		require.Len(t, roots.Roots, 1)
+
+		leafPEM := getLeafCert(t, codec, roots.TrustDomain, "dc2")
+		verifyLeafCert(t, roots.Roots[0], leafPEM)
+	})
+}
+
+func verifyLeafCert(t *testing.T, root *structs.CARoot, leafCertPEM string) {
+	t.Helper()
+	leaf, intermediates, err := connect.ParseLeafCerts(leafCertPEM)
+	require.NoError(t, err)
+
+	pool := x509.NewCertPool()
+	ok := pool.AppendCertsFromPEM([]byte(root.RootCert))
+	if !ok {
+		t.Fatalf("Failed to add root CA PEM to cert pool")
+	}
+
+	// verify with intermediates from leaf CertPEM
+	_, err = leaf.Verify(x509.VerifyOptions{
+		Roots:         pool,
+		Intermediates: intermediates,
+		KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err, "failed to verify using intermediates from leaf cert PEM")
+
+	// verify with intermediates from the CARoot
+	intermediates = x509.NewCertPool()
+	for _, intermediate := range root.IntermediateCerts {
+		c, err := connect.ParseCert(intermediate)
+		require.NoError(t, err)
+		intermediates.AddCert(c)
+	}
+
+	_, err = leaf.Verify(x509.VerifyOptions{
+		Roots:         pool,
+		Intermediates: intermediates,
+		KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err, "failed to verify using intermediates from CARoot list")
+}
 
 type mockCAServerDelegate struct {
 	t           *testing.T
@@ -250,15 +349,7 @@ func TestCAManager_Initialize(t *testing.T) {
 func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 
 	// No parallel execution because we change globals
-	// Set the interval and drift buffer low for renewing the cert.
-	origInterval := structs.IntermediateCertRenewInterval
-	origDriftBuffer := ca.CertificateTimeDriftBuffer
-	defer func() {
-		structs.IntermediateCertRenewInterval = origInterval
-		ca.CertificateTimeDriftBuffer = origDriftBuffer
-	}()
-	structs.IntermediateCertRenewInterval = time.Millisecond
-	ca.CertificateTimeDriftBuffer = 0
+	patchIntermediateCertRenewInterval(t)
 
 	conf := DefaultConfig()
 	conf.ConnectEnabled = true
@@ -514,4 +605,23 @@ func TestCAManager_UpdateConfiguration_Vault_Primary(t *testing.T) {
 	cert, err = connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(newRoot))
 	require.NoError(t, err)
 	require.Equal(t, connect.HexString(cert.SubjectKeyId), newRoot.SigningKeyID)
+}
+
+func getLeafCert(t *testing.T, codec rpc.ClientCodec, trustDomain string, dc string) string {
+	pk, _, err := connect.GeneratePrivateKey()
+	require.NoError(t, err)
+	spiffeID := &connect.SpiffeIDService{
+		Host:       trustDomain,
+		Service:    "srv1",
+		Datacenter: dc,
+	}
+	csr, err := connect.CreateCSR(spiffeID, pk, nil, nil)
+	require.NoError(t, err)
+
+	req := structs.CASignRequest{CSR: csr}
+	cert := structs.IssuedCert{}
+	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
+	require.NoError(t, err)
+
+	return cert.CertPEM
 }

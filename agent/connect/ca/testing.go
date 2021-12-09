@@ -1,6 +1,7 @@
 package ca
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -160,7 +161,7 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 	}
 	t.Cleanup(func() {
 		if err := testVault.Stop(); err != nil {
-			t.Log("failed to stop vault server: %w", err)
+			t.Logf("failed to stop vault server: %v", err)
 		}
 	})
 
@@ -207,7 +208,7 @@ func (v *TestVaultServer) Stop() error {
 	}
 
 	if v.cmd.Process != nil {
-		if err := v.cmd.Process.Signal(os.Interrupt); err != nil {
+		if err := v.cmd.Process.Signal(os.Interrupt); err != nil && !errors.Is(err, os.ErrProcessDone) {
 			return fmt.Errorf("failed to kill vault server: %v", err)
 		}
 	}

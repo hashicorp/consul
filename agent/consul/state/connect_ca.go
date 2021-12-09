@@ -252,18 +252,8 @@ func caRootsTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, structs.CARoots, error) 
 func (s *Store) CARootActive(ws memdb.WatchSet) (uint64, *structs.CARoot, error) {
 	// Get all the roots since there should never be that many and just
 	// do the filtering in this method.
-	var result *structs.CARoot
 	idx, roots, err := s.CARoots(ws)
-	if err == nil {
-		for _, r := range roots {
-			if r.Active {
-				result = r
-				break
-			}
-		}
-	}
-
-	return idx, result, err
+	return idx, roots.Active(), err
 }
 
 // CARootSetCAS sets the current CA root state using a check-and-set operation.
