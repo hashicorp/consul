@@ -16,6 +16,16 @@ const MODES = [
     alias: ['jruby', 'macruby', 'rake', 'rb', 'rbx'],
   },
   { name: 'YAML', mime: 'text/x-yaml', mode: 'yaml', ext: ['yaml', 'yml'], alias: ['yml'] },
+  {
+    name: 'XML',
+    mime: 'application/xml',
+    mode: 'xml',
+    htmlMode: false,
+    matchClosing: true,
+    alignCDATA: false,
+    ext: ['xml'],
+    alias: ['xml'],
+  },
 ];
 
 export default class LinterService extends Service {

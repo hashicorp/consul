@@ -38,7 +38,8 @@ ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.oper
     "css.escape/css.escape.js": "${rootURL}assets/css.escape.js",
     "codemirror/mode/javascript/javascript.js": "${rootURL}assets/codemirror/mode/javascript/javascript.js",
     "codemirror/mode/ruby/ruby.js": "${rootURL}assets/codemirror/mode/ruby/ruby.js",
-    "codemirror/mode/yaml/yaml.js": "${rootURL}assets/codemirror/mode/yaml/yaml.js"
+    "codemirror/mode/yaml/yaml.js": "${rootURL}assets/codemirror/mode/yaml/yaml.js",
+    "codemirror/mode/xml/xml.js": "${rootURL}assets/codemirror/mode/xml/xml.js"
   }
   </script>
   <script data-app-name="${appName}" data-${appName}-services src="${rootURL}assets/consul-ui/services.js"></script>

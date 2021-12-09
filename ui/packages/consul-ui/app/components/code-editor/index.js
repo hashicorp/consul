@@ -35,6 +35,9 @@ export default Component.extend({
       ...DEFAULTS,
       mode: mode.mime,
       readOnly: this.readonly,
+      htmlMode: mode.htmlMode,
+      matchClosing: mode.matchClosing,
+      alignCDATA: mode.alignCDATA,
     });
     const editor = this.editor;
     editor.setOption('mode', mode.mime);
