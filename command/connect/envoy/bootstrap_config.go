@@ -377,7 +377,7 @@ func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
 				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.partition",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(%s)\.%s\.%s\.%s\.consul\.)`,
+			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:(%s)\.)?%s\.%s\.%s\.consul\.)`,
 				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.datacenter",
