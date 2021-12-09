@@ -1,18 +1,20 @@
 package ca
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"sync"
 
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/sdk/freeport"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/go-testing-interface"
+
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 // KeyTestCases is a list of the important CA key types that we should test
@@ -169,7 +171,9 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 		returnPortsFn: returnPortsFn,
 	}
 	t.Cleanup(func() {
-		testVault.Stop()
+		if err := testVault.Stop(); err != nil {
+			t.Logf("failed to stop vault server: %v", err)
+		}
 	})
 	return testVault, nil
 }
@@ -217,7 +221,7 @@ func (v *TestVaultServer) Stop() error {
 	}
 
 	if v.cmd.Process != nil {
-		if err := v.cmd.Process.Signal(os.Interrupt); err != nil {
+		if err := v.cmd.Process.Signal(os.Interrupt); err != nil && !errors.Is(err, os.ErrProcessDone) {
 			return fmt.Errorf("failed to kill vault server: %v", err)
 		}
 	}
