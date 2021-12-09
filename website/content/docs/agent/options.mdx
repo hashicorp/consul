@@ -1770,6 +1770,16 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 - `protocol` ((#protocol)) Equivalent to the [`-protocol` command-line
   flag](#_protocol).
 
+- `raft_boltdb` ((#raft_boltdb)) This is a nested object that allows configuring 
+  options for Raft's BoltDB based log store.
+
+  - `NoFreelistSync` ((#NoFreelistSync)) Setting this to `true` will disable 
+    syncing the BoltDB freelist to disk within the raft.db file. Not syncing
+    the freelist to disk will reduce disk IO required for write operations
+    at the expense of potentially increasing start up time due to needing
+    to scan the db to discover where the free space resides within the file.
+    
+
 - `raft_protocol` ((#raft_protocol)) Equivalent to the [`-raft-protocol`
   command-line flag](#_raft_protocol).
 
