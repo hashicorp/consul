@@ -28,14 +28,14 @@ const (
 )
 
 var (
-	TLSVersions = map[string]TLSVersion{
+	tlsVersions = map[string]TLSVersion{
 		"TLS_AUTO": TLSVersionAuto,
 		"TLSv1_0":  TLSv1_0,
 		"TLSv1_1":  TLSv1_1,
 		"TLSv1_2":  TLSv1_2,
 		"TLSv1_3":  TLSv1_3,
 	}
-	// NOTE: This interface is deprecated in favor of TLSVersions
+	// NOTE: This interface is deprecated in favor of tlsVersions
 	// and should be eventually removed in a future release.
 	DeprecatedConsulAgentTLSVersions = map[string]TLSVersion{
 		"":      TLSVersionAuto,
@@ -56,6 +56,18 @@ var (
 		TLSv1_3:        "tls13",
 	}
 )
+
+func (v *TLSVersion) String() string {
+	return fmt.Sprintf("%s", *v)
+}
+
+func ValidateTLSVersion(v TLSVersion) error {
+	if _, ok := tlsVersions[v.String()]; !ok {
+		return fmt.Errorf("no matching TLS version found for %s", v.String())
+	}
+
+	return nil
+}
 
 // IANA cipher suite string constants as defined at
 // https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml
@@ -119,7 +131,7 @@ var (
 		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256": TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
 		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256":   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
 	}
-	EnvoyTLSCipherSuites = map[string]TLSCipherSuite{
+	envoyTLSCipherSuites = map[string]TLSCipherSuite{
 		"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256": TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
 		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":          TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
 		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256":       TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
@@ -137,7 +149,7 @@ var (
 		"TLS_RSA_WITH_AES_256_GCM_SHA384": TLS_RSA_WITH_AES_256_GCM_SHA384,
 		"TLS_RSA_WITH_AES_256_CBC_SHA":    TLS_RSA_WITH_AES_256_CBC_SHA,
 	}
-	EnvoyTLSCipherSuiteStrings = map[TLSCipherSuite]string{
+	envoyTLSCipherSuiteStrings = map[TLSCipherSuite]string{
 		TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:       "ECDHE-ECDSA-AES128-GCM-SHA256",
 		TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256: "ECDHE-ECDSA-CHACHA20-POLY1305",
 		TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:         "ECDHE-RSA-AES128-GCM-SHA256",
@@ -154,3 +166,26 @@ var (
 		TLS_RSA_WITH_AES_256_CBC_SHA:                  "AES256-SHA",
 	}
 )
+
+func (c *TLSCipherSuite) String() string {
+	return fmt.Sprintf("%s", *c)
+}
+
+// TODO: Should this return an errgroup instead of only the first error?
+func ValidateEnvoyCipherSuites(cipherSuites []TLSCipherSuite) error {
+	for _, c := range cipherSuites {
+		if _, ok := envoyTLSCipherSuiteStrings[c]; !ok {
+			return fmt.Errorf("no matching Envoy TLS cipher suite found for %s", c.String())
+		}
+	}
+
+	return nil
+}
+
+func MarshalEnvoyTLSCipherSuiteStrings(cipherSuites []TLSCipherSuite) []string {
+	cipherSuiteStrings := []string{}
+	for _, c := range cipherSuites {
+		cipherSuiteStrings = append(cipherSuiteStrings, envoyTLSCipherSuiteStrings[c])
+	}
+	return cipherSuiteStrings
+}

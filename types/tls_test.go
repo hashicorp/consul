@@ -8,11 +8,11 @@ import (
 )
 
 func TestTLSVersion_Equality(t *testing.T) {
-	require.Equal(t, TLSVersionAuto, TLSVersions["TLS_AUTO"])
-	require.Equal(t, TLSv1_0, TLSVersions["TLSv1_0"])
-	require.Equal(t, TLSv1_1, TLSVersions["TLSv1_1"])
-	require.Equal(t, TLSv1_2, TLSVersions["TLSv1_2"])
-	require.Equal(t, TLSv1_3, TLSVersions["TLSv1_3"])
+	require.Equal(t, TLSVersionAuto, tlsVersions["TLS_AUTO"])
+	require.Equal(t, TLSv1_0, tlsVersions["TLSv1_0"])
+	require.Equal(t, TLSv1_1, tlsVersions["TLSv1_1"])
+	require.Equal(t, TLSv1_2, tlsVersions["TLSv1_2"])
+	require.Equal(t, TLSv1_3, tlsVersions["TLSv1_3"])
 }
 
 func TestTLSVersion_Invalid(t *testing.T) {
@@ -31,11 +31,13 @@ func TestTLSVersion_Zero(t *testing.T) {
 
 func TestTLSVersion_ToJSON(t *testing.T) {
 	var tlsVersion TLSVersion
-	err := json.Unmarshal([]byte(`"foo"`), &tlsVersion)
-	require.Error(t, err)
-	require.Equal(t, tlsVersion, TLSVersionInvalid)
 
-	for str, version := range TLSVersions {
+	// Unmarshalling won't catch invalid version strings,
+	// must be checked in config or config entry validation
+	err := json.Unmarshal([]byte(`"foo"`), &tlsVersion)
+	require.NoError(t, err)
+
+	for str, version := range tlsVersions {
 		versionJSON, err := json.Marshal(version)
 		require.NoError(t, err)
 		require.Equal(t, versionJSON, []byte(`"`+str+`"`))
