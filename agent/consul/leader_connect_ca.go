@@ -347,7 +347,7 @@ func (c *CAManager) startPostInitializeRoutines(ctx context.Context) {
 		c.leaderRoutineManager.Start(ctx, secondaryCARootWatchRoutineName, c.secondaryCARootWatch)
 	}
 
-	c.leaderRoutineManager.Start(ctx, intermediateCertRenewWatchRoutineName, c.intermediateCertRenewalWatch)
+	c.leaderRoutineManager.Start(ctx, intermediateCertRenewWatchRoutineName, c.runRenewIntermediate)
 }
 
 func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
@@ -1111,8 +1111,8 @@ func setLeafSigningCert(caRoot *structs.CARoot, pem string) error {
 	return nil
 }
 
-// intermediateCertRenewalWatch periodically attempts to renew the intermediate cert.
-func (c *CAManager) intermediateCertRenewalWatch(ctx context.Context) error {
+// runRenewIntermediate periodically attempts to renew the intermediate cert.
+func (c *CAManager) runRenewIntermediate(ctx context.Context) error {
 	isPrimary := c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter
 
 	for {
@@ -1180,8 +1180,7 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 		return fmt.Errorf("error parsing active intermediate cert: %v", err)
 	}
 
-	if lessThanHalfTimePassed(c.timeNow(), intermediateCert.NotBefore.Add(ca.CertificateTimeDriftBuffer),
-		intermediateCert.NotAfter) {
+	if lessThanHalfTimePassed(c.timeNow(), intermediateCert.NotBefore, intermediateCert.NotAfter) {
 		return nil
 	}
 

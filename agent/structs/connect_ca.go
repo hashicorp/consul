@@ -55,6 +55,15 @@ type IndexedCARoots struct {
 	QueryMeta `json:"-"`
 }
 
+func (r IndexedCARoots) Active() *CARoot {
+	for _, root := range r.Roots {
+		if root.ID == r.ActiveRootID {
+			return root
+		}
+	}
+	return nil
+}
+
 // CARoot represents a root CA certificate that is trusted.
 type CARoot struct {
 	// ID is a globally unique ID (UUID) representing this CA root.
@@ -144,6 +153,20 @@ func (c *CARoot) Clone() *CARoot {
 
 // CARoots is a list of CARoot structures.
 type CARoots []*CARoot
+
+// Active returns the single CARoot that is marked as active, or nil if there
+// is no active root (ex: when they are no roots).
+func (c CARoots) Active() *CARoot {
+	if c == nil {
+		return nil
+	}
+	for _, r := range c {
+		if r.Active {
+			return r
+		}
+	}
+	return nil
+}
 
 // CASignRequest is the request for signing a service certificate.
 type CASignRequest struct {
