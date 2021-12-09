@@ -14,18 +14,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testrpc"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 // TODO(kyhavlov): replace with t.Deadline()
@@ -83,47 +83,11 @@ func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface
 
 	m.callbackCh <- fmt.Sprintf("raftApply/ConnectCA")
 
-	switch req.Op {
-	case structs.CAOpSetConfig:
-		if req.Config.ModifyIndex != 0 {
-			act, err := m.store.CACheckAndSetConfig(idx+1, req.Config.ModifyIndex, req.Config)
-			if err != nil {
-				return nil, err
-			}
-
-			return act, nil
-		}
-
-		return nil, m.store.CASetConfig(idx+1, req.Config)
-	case structs.CAOpSetRootsAndConfig:
-		act, err := m.store.CARootSetCAS(idx, req.Index, req.Roots)
-		if err != nil || !act {
-			return act, err
-		}
-
-		act, err = m.store.CACheckAndSetConfig(idx+1, req.Config.ModifyIndex, req.Config)
-		if err != nil {
-			return nil, err
-		}
-		return act, nil
-	case structs.CAOpSetProviderState:
-		_, err := m.store.CASetProviderState(idx+1, req.ProviderState)
-		if err != nil {
-			return nil, err
-		}
-
-		return true, nil
-	case structs.CAOpDeleteProviderState:
-		if err := m.store.CADeleteProviderState(idx+1, req.ProviderState.ID); err != nil {
-			return nil, err
-		}
-
-		return true, nil
-	case structs.CAOpIncrementProviderSerialNumber:
-		return uint64(2), nil
-	default:
-		return nil, fmt.Errorf("Invalid CA operation '%s'", req.Op)
+	result := fsm.ApplyConnectCAOperationFromRequest(m.store, req, idx+1)
+	if err, ok := result.(error); ok && err != nil {
+		return nil, err
 	}
+	return result, nil
 }
 
 func (m *mockCAServerDelegate) forwardDC(method, dc string, args interface{}, reply interface{}) error {

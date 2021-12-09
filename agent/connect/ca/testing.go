@@ -12,8 +12,6 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -222,32 +220,6 @@ func (v *TestVaultServer) Stop() error {
 	return nil
 }
 
-func ApplyCARequestToStore(store *state.Store, req *structs.CARequest) (interface{}, error) {
-	idx, _, err := store.CAConfig(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	switch req.Op {
-	case structs.CAOpSetProviderState:
-		_, err := store.CASetProviderState(idx+1, req.ProviderState)
-		if err != nil {
-			return nil, err
-		}
-
-		return true, nil
-	case structs.CAOpDeleteProviderState:
-		if err := store.CADeleteProviderState(idx+1, req.ProviderState.ID); err != nil {
-			return nil, err
-		}
-
-		return true, nil
-	case structs.CAOpIncrementProviderSerialNumber:
-		return uint64(2), nil
-	default:
-		return nil, fmt.Errorf("Invalid CA operation '%s'", req.Op)
-	}
-}
 func requireTrailingNewline(t testing.T, leafPEM string) {
 	t.Helper()
 	if len(leafPEM) == 0 {
