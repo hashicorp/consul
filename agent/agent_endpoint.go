@@ -1323,6 +1323,10 @@ func (s *HTTPHandlers) AgentServiceMaintenance(resp http.ResponseWriter, req *ht
 
 	sid.Normalize()
 
+	if !s.validateRequestPartition(resp, &sid.EnterpriseMeta) {
+		return nil, nil
+	}
+
 	if err := s.agent.vetServiceUpdateWithAuthorizer(authz, sid); err != nil {
 		return nil, err
 	}
