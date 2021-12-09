@@ -7,18 +7,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func parseCloneOutput(t *testing.T, output string) *api.ACLToken {
 	// This will only work for non-legacy tokens
 	re := regexp.MustCompile("AccessorID:       ([a-zA-Z0-9\\-]{36})\n" +
 		"SecretID:         ([a-zA-Z0-9\\-]{36})\n" +
+		"(?:Partition:        default\n)?" +
 		"(?:Namespace:        default\n)?" +
 		"Description:      ([^\n]*)\n" +
 		"Local:            (true|false)\n" +
