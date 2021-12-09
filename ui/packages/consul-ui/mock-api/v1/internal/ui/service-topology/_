@@ -7,10 +7,12 @@ ${
       fake.seed(num);
       return range(num).map(i => {
         const nspace = i === 0 ? `default` : `${fake.hacker.noun()}-ns-${i}`;
+        const partition = i === 0 ? `default` : `${fake.hacker.noun()}-partition`;
         return {
           Name: `service-${fake.random.number({min:0, max:99})}`,
           Datacenter: `${dc}`,
-          Namespace: `${nspace}`
+          Namespace: `${nspace}`,
+          Partition: `${partition}`
         }
       })
     };
@@ -72,6 +74,7 @@ ${(Math.random(1) > 0.3) ? `
       "Name": "${item.Name}",
       "Datacenter": "${item.Datacenter}",
       "Namespace": "${item.Namespace}",
+      "Partition": "${item.Partition}",
       "ChecksPassing":${fake.random.number({min: 1, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
@@ -101,6 +104,7 @@ ${(Math.random(1) > 0.3) ? `
       "Name": "${item.Name}",
       "Datacenter": "${item.Datacenter}",
       "Namespace": "${item.Namespace}",
+      "Partition": "${item.Partition}",
       "ChecksPassing":${fake.random.number({min: 1, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
