@@ -1,0 +1,3 @@
+```release-note:bug
+namespaces: **(Enterprise only)** ensure namespace deletion is partition-safe
+```
