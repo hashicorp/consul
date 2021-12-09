@@ -1,0 +1,4 @@
+```release-note:feature
+ui: Add basic partition tooltips to failovers and redirects in the routing
+visualization
+```

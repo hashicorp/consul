@@ -1,1 +1,151 @@
-{"Chain":{"ServiceName":"virtual-admin-4","Namespace":"default","Datacenter":"dc1","Protocol":"http","StartNode":"router:virtual-admin-4","Nodes":{"resolver:admin.default.dc1":{"Type":"resolver","Name":"admin.default.dc1","Resolver":{"ConnectTimeout":"5s","Default":true,"Target":"admin.default.dc1"}},"resolver:admin.default.dc2":{"Type":"resolver","Name":"admin.default.dc2","Resolver":{"ConnectTimeout":"5s","Default":true,"Target":"admin.default.dc2"}},"resolver:login.default.dc1":{"Type":"resolver","Name":"login.default.dc1","Resolver":{"ConnectTimeout":"5s","Default":true,"Target":"login.default.dc1"}},"resolver:virtual-admin-4.default.dc1":{"Type":"resolver","Name":"virtual-admin-4.default.dc1","Resolver":{"ConnectTimeout":"5s","Default":true,"Target":"virtual-admin-4.default.dc1"}},"router:virtual-admin-4":{"Type":"router","Name":"virtual-admin-4","Routes":[{"Definition":{"Match":{"HTTP":{"PathPrefix":"/login"}},"Destination":{"Service":"login","PrefixRewrite":"/"}},"NextNode":"resolver:login.default.dc1"},{"Definition":{"Destination":{"Service":"global-admin"}},"NextNode":"splitter:global-admin.default"},{"Definition":{"Match":{"HTTP":{"PathPrefix":"/"}},"Destination":{"Service":"virtual-admin-4"}},"NextNode":"resolver:virtual-admin-4.default.dc1"}]},"splitter:global-admin.default":{"Type":"splitter","Name":"global-admin.default","Splits":[{"Weight":50,"NextNode":"resolver:admin.default.dc1"},{"Weight":50,"NextNode":"resolver:admin.default.dc2"}]}},"Targets":{"admin.default.dc1":{"ID":"admin.default.dc1","Service":"admin","Namespace":"default","Datacenter":"dc1","MeshGateway":{},"Subset":{},"SNI":"admin.default.dc1.internal.6818c189-1048-8114-7d9f-ae248864b349.consul","Name":"admin.default.dc1.internal.6818c189-1048-8114-7d9f-ae248864b349.consul"},"admin.default.dc2":{"ID":"admin.default.dc2","Service":"admin","Namespace":"default","Datacenter":"dc2","MeshGateway":{"Mode":"local"},"Subset":{},"SNI":"admin.default.dc2.internal.6818c189-1048-8114-7d9f-ae248864b349.consul","Name":"admin.default.dc2.internal.6818c189-1048-8114-7d9f-ae248864b349.consul"},"login.default.dc1":{"ID":"login.default.dc1","Service":"login","Namespace":"default","Datacenter":"dc1","MeshGateway":{},"Subset":{},"SNI":"login.default.dc1.internal.6818c189-1048-8114-7d9f-ae248864b349.consul","Name":"login.default.dc1.internal.6818c189-1048-8114-7d9f-ae248864b349.consul"},"virtual-admin-4.default.dc1":{"ID":"virtual-admin-4.default.dc1","Service":"virtual-admin-4","Namespace":"default","Datacenter":"dc1","MeshGateway":{},"Subset":{},"SNI":"virtual-admin-4.default.dc1.internal.6818c189-1048-8114-7d9f-ae248864b349.consul","Name":"virtual-admin-4.default.dc1.internal.6818c189-1048-8114-7d9f-ae248864b349.consul"}}}}
+{
+    "Chain": {
+      "ServiceName": "virtual-admin-4",
+      "Partition": "default",
+      "Namespace": "default",
+      "Datacenter": "dc1",
+      "Protocol": "http",
+      "StartNode": "router:virtual-admin-4",
+      "Nodes": {
+        "resolver:admin.default.default.dc1": {
+          "Type": "resolver",
+          "Name": "admin.default.default.dc1",
+          "Resolver": {
+            "ConnectTimeout": "5s",
+            "Default": true,
+            "Target": "admin.default.default.dc1"
+          }
+        },
+        "resolver:admin.default.default.dc2": {
+          "Type": "resolver",
+          "Name": "admin.default.default.dc2",
+          "Resolver": {
+            "ConnectTimeout": "5s",
+            "Default": true,
+            "Target": "admin.default.default.dc2"
+          }
+        },
+        "resolver:login.default.default.dc1": {
+          "Type": "resolver",
+          "Name": "login.default.default.dc1",
+          "Resolver": {
+            "ConnectTimeout": "5s",
+            "Default": true,
+            "Target": "login.default.default.dc1"
+          }
+        },
+        "resolver:virtual-admin-4.default.default.dc1": {
+          "Type": "resolver",
+          "Name": "virtual-admin-4.default.default.dc1",
+          "Resolver": {
+            "ConnectTimeout": "5s",
+            "Default": true,
+            "Target": "virtual-admin-4.default.default.dc1"
+          }
+        },
+        "router:virtual-admin-4": {
+          "Type": "router",
+          "Name": "virtual-admin-4",
+          "Routes": [
+            {
+              "Definition": {
+                "Match": {
+                  "HTTP": {
+                    "PathPrefix": "/login"
+                  }
+                },
+                "Destination": {
+                  "Service": "login",
+                  "PrefixRewrite": "/"
+                }
+              },
+              "NextNode": "resolver:login.default.default.dc1"
+            },
+            {
+              "Definition": {
+                "Destination": {
+                  "Service": "global-admin"
+                }
+              },
+              "NextNode": "splitter:global-admin.default.default"
+            },
+            {
+              "Definition": {
+                "Match": {
+                  "HTTP": {
+                    "PathPrefix": "/"
+                  }
+                },
+                "Destination": {
+                  "Service": "virtual-admin-4"
+                }
+              },
+              "NextNode": "resolver:virtual-admin-4.default.default.dc1"
+            }
+          ]
+        },
+        "splitter:global-admin.default.default": {
+          "Type": "splitter",
+          "Name": "global-admin.default.default",
+          "Splits": [
+            {
+              "Weight": 50,
+              "NextNode": "resolver:admin.default.default.dc1"
+            },
+            {
+              "Weight": 50,
+              "NextNode": "resolver:admin.default.default.dc2"
+            }
+          ]
+        }
+      },
+      "Targets": {
+        "admin.default.default.dc1": {
+          "ID": "admin.default.default.dc1",
+          "Service": "admin",
+          "Partition": "default",
+          "Namespace": "default",
+          "Datacenter": "dc1",
+          "MeshGateway": {},
+          "Subset": {},
+          "SNI": "admin.default.default.dc1.internal.6818c189-1048-8114-7d9f-ae248864b349.consul",
+          "Name": "admin.default.default.dc1.internal.6818c189-1048-8114-7d9f-ae248864b349.consul"
+        },
+        "admin.default.default.dc2": {
+          "ID": "admin.default.default.dc2",
+          "Service": "admin",
+          "Partition": "default",
+          "Namespace": "default",
+          "Datacenter": "dc2",
+          "MeshGateway": {
+            "Mode": "local"
+          },
+          "Subset": {},
+          "SNI": "admin.default.default.dc2.internal.6818c189-1048-8114-7d9f-ae248864b349.consul",
+          "Name": "admin.default.default.dc2.internal.6818c189-1048-8114-7d9f-ae248864b349.consul"
+        },
+        "login.default.default.dc1": {
+          "ID": "login.default.default.dc1",
+          "Service": "login",
+          "Partition": "default",
+          "Namespace": "default",
+          "Datacenter": "dc1",
+          "MeshGateway": {},
+          "Subset": {},
+          "SNI": "login.default.default.dc1.internal.6818c189-1048-8114-7d9f-ae248864b349.consul",
+          "Name": "login.default.default.dc1.internal.6818c189-1048-8114-7d9f-ae248864b349.consul"
+        },
+        "virtual-admin-4.default.default.dc1": {
+          "ID": "virtual-admin-4.default.default.dc1",
+          "Service": "virtual-admin-4",
+          "Partition": "default",
+          "Namespace": "default",
+          "Datacenter": "dc1",
+          "MeshGateway": {},
+          "Subset": {},
+          "SNI": "virtual-admin-4.default.default.dc1.internal.6818c189-1048-8114-7d9f-ae248864b349.consul",
+          "Name": "virtual-admin-4.default.default.dc1.internal.6818c189-1048-8114-7d9f-ae248864b349.consul"
+        }
+      }
+    }
+  }
