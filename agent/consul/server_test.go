@@ -164,8 +164,6 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.ServerHealthInterval = 50 * time.Millisecond
 	config.AutopilotInterval = 100 * time.Millisecond
 
-	config.Build = "1.7.2"
-
 	config.CoordinateUpdatePeriod = 100 * time.Millisecond
 	config.LeaveDrainTime = 1 * time.Millisecond
 
