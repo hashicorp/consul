@@ -1,7 +1,6 @@
 package version
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -29,9 +28,10 @@ func GetHumanVersion() string {
 	release := VersionPrerelease
 
 	if release != "" {
-		if !strings.HasSuffix(version, "-"+release) {
+		suffix := "-" + release
+		if !strings.HasSuffix(version, suffix) {
 			// if we tagged a prerelease version then the release is in the version already
-			version += fmt.Sprintf("-%s", release)
+			version += suffix
 		}
 	}
 
