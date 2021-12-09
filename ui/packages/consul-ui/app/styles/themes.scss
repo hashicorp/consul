@@ -9,6 +9,11 @@
 %main-nav-horizontal {
   @extend %theme-dark;
 }
+%main-nav-horizontal .dangerous button:hover,
+%main-nav-horizontal .dangerous button:focus {
+  color: rgb(var(--white)) !important;
+}
+
 %main-nav-vertical .menu-panel a:hover,
 %main-nav-vertical .menu-panel a:focus {
   background-color: rgb(var(--tone-blue-500));
