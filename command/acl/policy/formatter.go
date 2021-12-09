@@ -52,6 +52,9 @@ func (f *prettyFormatter) FormatPolicy(policy *api.ACLPolicy) (string, error) {
 
 	buffer.WriteString(fmt.Sprintf("ID:           %s\n", policy.ID))
 	buffer.WriteString(fmt.Sprintf("Name:         %s\n", policy.Name))
+	if policy.Partition != "" {
+		buffer.WriteString(fmt.Sprintf("Partition:    %s\n", policy.Partition))
+	}
 	if policy.Namespace != "" {
 		buffer.WriteString(fmt.Sprintf("Namespace:    %s\n", policy.Namespace))
 	}
@@ -83,6 +86,9 @@ func (f *prettyFormatter) formatPolicyListEntry(policy *api.ACLPolicyListEntry) 
 
 	buffer.WriteString(fmt.Sprintf("%s:\n", policy.Name))
 	buffer.WriteString(fmt.Sprintf("   ID:           %s\n", policy.ID))
+	if policy.Partition != "" {
+		buffer.WriteString(fmt.Sprintf("   Partition:    %s\n", policy.Partition))
+	}
 	if policy.Namespace != "" {
 		buffer.WriteString(fmt.Sprintf("   Namespace:    %s\n", policy.Namespace))
 	}

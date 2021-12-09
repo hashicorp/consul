@@ -52,6 +52,9 @@ func (f *prettyFormatter) FormatToken(token *api.ACLToken) (string, error) {
 
 	buffer.WriteString(fmt.Sprintf("AccessorID:       %s\n", token.AccessorID))
 	buffer.WriteString(fmt.Sprintf("SecretID:         %s\n", token.SecretID))
+	if token.Partition != "" {
+		buffer.WriteString(fmt.Sprintf("Partition:        %s\n", token.Partition))
+	}
 	if token.Namespace != "" {
 		buffer.WriteString(fmt.Sprintf("Namespace:        %s\n", token.Namespace))
 	}
@@ -126,6 +129,9 @@ func (f *prettyFormatter) formatTokenListEntry(token *api.ACLTokenListEntry) str
 
 	buffer.WriteString(fmt.Sprintf("AccessorID:       %s\n", token.AccessorID))
 	buffer.WriteString(fmt.Sprintf("SecretID:         %s\n", token.SecretID))
+	if token.Partition != "" {
+		buffer.WriteString(fmt.Sprintf("Partition:        %s\n", token.Partition))
+	}
 	if token.Namespace != "" {
 		buffer.WriteString(fmt.Sprintf("Namespace:        %s\n", token.Namespace))
 	}
