@@ -4416,6 +4416,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
+			rt.SegmentLimit = 64
 		},
 	})
 
@@ -5308,7 +5309,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		AEInterval:                 time.Minute,
 		CheckDeregisterIntervalMin: time.Minute,
 		CheckReapInterval:          30 * time.Second,
-		SegmentLimit:               64,
 		SegmentNameLimit:           64,
 		SyncCoordinateIntervalMin:  15 * time.Second,
 		SyncCoordinateRateTarget:   64,
@@ -5631,6 +5631,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		RetryJoinMaxAttemptsWAN: 23160,
 		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER"},
 		RPCConfig:               consul.RPCConfig{EnableStreaming: true},
+		SegmentLimit:            123,
 		SerfPortLAN:             8301,
 		SerfPortWAN:             8302,
 		ServerMode:              true,
