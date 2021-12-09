@@ -39,8 +39,15 @@
               There was an error, please check your SecretID/Token
             {{/if}}
           {{else}}
-            {{#if (eq flash.model 'token')}}
+            {{#if (or (eq type 'use') (eq flash.model 'token'))}}
               <Consul::Token::Notifications
+                @type={{type}}
+                @status={{status}}
+                @item={{flash.item}}
+                @error={{flash.error}}
+              />
+            {{else if (eq flash.model 'intention')}}
+              <Consul::Intention::Notifications
                 @type={{type}}
                 @status={{status}}
                 @item={{flash.item}}
