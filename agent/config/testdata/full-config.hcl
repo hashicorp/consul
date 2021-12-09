@@ -345,6 +345,7 @@ retry_max_wan = 23160
 rpc {
     enable_streaming = true
 }
+segment_limit = 123
 serf_lan = "99.43.63.15"
 serf_wan = "67.88.33.19"
 server = true
