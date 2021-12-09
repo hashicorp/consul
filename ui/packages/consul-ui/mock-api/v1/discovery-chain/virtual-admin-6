@@ -1,19 +1,19 @@
 {
   "Chain": {
-    "ServiceName": "virtual-admin-1",
+    "ServiceName": "virtual-admin-6",
     "Partition": "default",
     "Namespace": "default",
     "Datacenter": "dc-gcp",
     "Protocol": "http",
-    "StartNode": "router:virtual-admin-1",
+    "StartNode": "router:virtual-admin-6",
     "Nodes": {
-      "resolver:virtual-admin-1.default.default.dc-gcp": {
+      "resolver:virtual-admin-6.default.default.dc-gcp": {
         "Type": "resolver",
-        "Name": "virtual-admin-1.default.default.dc-gcp",
+        "Name": "virtual-admin-6.default.default.dc-gcp",
         "Resolver": {
           "ConnectTimeout": "5s",
           "Default": true,
-          "Target": "virtual-admin-1.default.default.dc-gcp"
+          "Target": "virtual-admin-6.default.default.dc-gcp"
         }
       },
       "resolver:web.default.default.dc-aws": {
@@ -25,6 +25,19 @@
           "Failover": {
             "Targets": [
               "web.default.default.dc-gcp"
+            ]
+          }
+        }
+      },
+      "resolver:db.default.partition.dc-gcp": {
+        "Type": "resolver",
+        "Name": "db.default.partition.dc-gcp",
+        "Resolver": {
+          "ConnectTimeout": "15s",
+          "Target": "db.default.partition.dc-gcp",
+          "Failover": {
+            "Targets": [
+              "db.default.default.dc-gcp"
             ]
           }
         }
@@ -42,9 +55,9 @@
           }
         }
       },
-      "router:virtual-admin-1": {
+      "router:virtual-admin-6": {
         "Type": "router",
-        "Name": "virtual-admin-1",
+        "Name": "virtual-admin-6",
         "Routes": [
           {
             "Definition": {
@@ -76,10 +89,10 @@
                 }
               },
               "Destination": {
-                "Service": "virtual-admin-1"
+                "Service": "virtual-admin-6"
               }
             },
-            "NextNode": "resolver:virtual-admin-1.default.default.dc-gcp"
+            "NextNode": "resolver:virtual-admin-6.default.default.dc-gcp"
           }
         ]
       },
@@ -92,8 +105,12 @@
             "NextNode": "resolver:web.default.default.dc-aws"
           },
           {
-            "Weight": 50,
+            "Weight": 25,
             "NextNode": "resolver:web.default.default.dc-gcp"
+          },
+          {
+            "Weight": 25,
+            "NextNode": "resolver:db.default.default.dc-gcp"
           }
         ]
       },
@@ -106,23 +123,27 @@
             "NextNode": "resolver:web.default.default.dc-gcp"
           },
           {
-            "Weight": 50,
+            "Weight": 25,
             "NextNode": "resolver:web.default.default.dc-aws"
+          },
+          {
+            "Weight": 25,
+            "NextNode": "resolver:db.default.partition.dc-gcp"
           }
         ]
       }
     },
     "Targets": {
-      "virtual-admin-1.default.default.dc-gcp": {
-        "ID": "virtual-admin-1.default.default.dc-gcp",
-        "Service": "virtual-admin-1",
+      "virtual-admin-6.default.default.dc-gcp": {
+        "ID": "virtual-admin-6.default.default.dc-gcp",
+        "Service": "virtual-admin-6",
         "Partition": "default",
         "Namespace": "default",
         "Datacenter": "dc-gcp",
         "MeshGateway": {},
         "Subset": {},
-        "SNI": "virtual-admin-1.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul",
-        "Name": "virtual-admin-1.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"
+        "SNI": "virtual-admin-6.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul",
+        "Name": "virtual-admin-6.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"
       },
       "web.default.default.dc-aws": {
         "ID": "web.default.default.dc-aws",
@@ -147,6 +168,28 @@
         "Subset": {},
         "SNI": "web.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul",
         "Name": "web.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"
+      },
+      "db.default.partition.dc-gcp": {
+        "ID": "db.default.partition.dc-gcp",
+        "Service": "db",
+        "Partition": "partition",
+        "Namespace": "default",
+        "Datacenter": "dc-gcp",
+        "MeshGateway": {},
+        "Subset": {},
+        "SNI": "db.default.partition.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul",
+        "Name": "db.default.partition.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"
+      },
+      "db.default.default.dc-gcp": {
+        "ID": "db.default.default.dc-gcp",
+        "Service": "db",
+        "Partition": "default",
+        "Namespace": "default",
+        "Datacenter": "dc-gcp",
+        "MeshGateway": {},
+        "Subset": {},
+        "SNI": "db.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul",
+        "Name": "db.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"
       }
     }
   }

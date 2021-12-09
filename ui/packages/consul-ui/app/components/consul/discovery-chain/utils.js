@@ -43,6 +43,7 @@ export const getSplitters = function(nodes) {
     const temp = item.Name.split('.');
     temp.reverse();
     temp.shift();
+    temp.shift();
     temp.reverse();
     return {
       ...item,
@@ -75,17 +76,17 @@ export const getResolvers = function(
     .forEach(function(item) {
       const parts = item.Name.split('.');
       let subset;
-      // this will leave behind the service.name.nspace.dc even if the service name contains a dot
+      // this will leave behind the service.name.nspace.partition.dc even if the service name contains a dot
       if (parts.length > 4) {
         subset = parts.shift();
       }
       parts.reverse();
-      // slice off from dc.nspace onwards leaving the potentially dot containing service name
+      // slice off from dc.partition.nspace onwards leaving the potentially dot containing service name
       // const nodeDc =
       parts.shift();
-      // const nodeNspace =
-      parts.shift();
       // const nodePartition =
+      parts.shift();
+      // const nodeNspace =
       parts.shift();
       // if it does contain a dot put it back to the correct order
       parts.reverse();
@@ -124,7 +125,7 @@ export const getResolvers = function(
         const resolver = findResolver(resolvers, target.Service, nspace, partition, dc);
         // and add the redirect as a child, redirects are always children
         const child = {
-          Redirect: true,
+          Redirect: alternate.Type,
           ID: target.ID,
           Name: target[alternate.Type],
         };

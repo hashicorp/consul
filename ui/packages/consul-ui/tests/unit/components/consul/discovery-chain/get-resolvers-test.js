@@ -44,7 +44,7 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function() {
       const childId = Object.keys(Chain.Targets)[1];
       const target = Chain.Targets[`${childId}`];
       const firstChild = actual[0].Children[0];
-      assert.equal(firstChild.Redirect, true);
+      assert.equal(firstChild.Redirect, 'Datacenter');
       assert.equal(firstChild.ID, target.ID);
     });
   });
@@ -228,7 +228,7 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function() {
           },
         },
         Targets: {
-          'dc-failover.default.redirect-dc-1': {
+          'dc-failover.default.default.redirect-dc-1': {
             ID: 'dc-failover.default.default.redirect-dc-1',
             Service: 'dc-failover',
             Namespace: 'default',
@@ -257,7 +257,7 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function() {
             },
             ID: 'dc-failover.default.default.redirect-dc-1',
             Name: 'redirect-dc-1',
-            Redirect: true,
+            Redirect: 'Datacenter',
           },
         ],
       };
