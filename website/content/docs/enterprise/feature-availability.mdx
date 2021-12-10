@@ -1,0 +1,47 @@
+---
+layout: docs
+page_title: Consul Enterprise Feature Availability
+description: >-
+  Consul Enterprise is offered in several forms that provide a different mix
+  of enterprise features. Choose the form that best suits the needs of your
+  organization.
+---
+
+# Consul Enterprise Feature Availability
+
+Consul Enterprise is offered in several forms that provide a different mix of enterprise features.
+Choose the form that best suits the needs of your organization.
+
+Available enterprise features per Consul form and license include:
+
+| Feature                                                                                         | [HashiCorp Cloud Platform (HCP) Consul]                 | [Consul Enterprise] | Legacy Consul Enterprise (module-based)           |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------- | ------------------------------------------------- |
+| Consul servers as a managed service                                                             | Yes                                                     | No (self-managed)   | No (self-managed)                                 |
+| [Admin Partitions](/docs/enterprise/admin-partitions)                                           | Standard tier and above                                 | Yes                 | With Governance and Policy module                 |
+| [Namespaces](/docs/enterprise/namespaces)                                                       | Standard tier and above                                 | Yes                 | With Governance and Policy module                 |
+| [Enhanced Read Scalability](/docs/enterprise/read-scale)                                        |                                                         | Yes                 | With Global Visibility, Routing, and Scale module |
+| [Redundancy Zones](/docs/enterprise/redundancy)                                                 |                                                         | Yes                 | With Global Visibility, Routing, and Scale module |
+| [Automated Backups](/docs/enterprise/backups)                                                   | All tiers                                               | Yes                 | Yes                                               |
+| [Automated Upgrades](/docs/enterprise/upgrades)                                                 | All tiers                                               | Yes                 | Yes                                               |
+| [Network Infrastructure Automation with Consul-Terraform-Sync Enterprise](/docs/nia/enterprise) |                                                         | Yes                 | Yes                                               |
+| [Advanced Federation for Complex Network Topologies](/docs/enterprise/federation)               |                                                         | Yes                 | With Global Visibility, Routing, and Scale module |
+| [Network Segments](/docs/enterprise/network-segments)                                           |                                                         | Yes                 | With Global Visibility, Routing, and Scale module |
+| [OIDC Auth Method](/docs/acl/auth-methods/oidc)                                                 |                                                         | Yes                 | Yes                                               |
+| [Audit Logging](/docs/enterprise/audit-logging)                                                 | Standard tier and above                                 | Yes                 | With Governance and Policy module                 |
+| [Sentinel](/docs/enterprise/sentinel)                                                           | All tiers                                               | Yes                 | With Governance and Policy module                 |
+
+[HashiCorp Cloud Platform (HCP) Consul]: https://cloud.hashicorp.com/products/consul
+[Consul Enterprise]: https://www.hashicorp.com/products/consul/
+
+## Gain Access to Enterprise Features
+
+### Self-Managed Consul
+
+To gain access to Consul Enterprise features in a self-managed installation,
+[apply a purchased license](/docs/enterprise/license/overview)
+to the Consul Enterprise binary that grants access to the desired features.
+
+### HCP Consul
+
+No action is required to gain access to Consul Enterprise features in a
+HashiCorp Cloud Platform installation.
