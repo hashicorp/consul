@@ -2126,7 +2126,9 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	orig := virtualIPVersionCheckInterval
 	virtualIPVersionCheckInterval = 50 * time.Millisecond
+	t.Cleanup(func() { virtualIPVersionCheckInterval = orig })
 
 	conf := func(c *Config) {
 		c.Bootstrap = false

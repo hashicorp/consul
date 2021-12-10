@@ -125,9 +125,13 @@ func (s *Server) pruneCARoots() error {
 
 func (s *Server) runVirtualIPVersionCheck(ctx context.Context) error {
 	// Return early if the flag is already set.
-	_, err := s.setVirtualIPVersionFlag()
+	done, err := s.setVirtualIPVersionFlag()
 	if err != nil {
 		s.loggers.Named(logging.Connect).Warn("error enabling virtual IPs", "error", err)
+	}
+	if done {
+		s.leaderRoutineManager.Stop(virtualIPCheckRoutineName)
+		return nil
 	}
 
 	ticker := time.NewTicker(virtualIPVersionCheckInterval)
@@ -138,12 +142,12 @@ func (s *Server) runVirtualIPVersionCheck(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			ok, err := s.setVirtualIPVersionFlag()
+			done, err := s.setVirtualIPVersionFlag()
 			if err != nil {
 				s.loggers.Named(logging.Connect).Warn("error enabling virtual IPs", "error", err)
 				continue
 			}
-			if ok {
+			if done {
 				return nil
 			}
 		}
