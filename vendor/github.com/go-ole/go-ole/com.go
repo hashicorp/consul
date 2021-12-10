@@ -3,39 +3,38 @@
 package ole
 
 import (
-	"errors"
 	"syscall"
-	"time"
 	"unicode/utf16"
 	"unsafe"
 )
 
 var (
-	procCoInitialize, _            = modole32.FindProc("CoInitialize")
-	procCoInitializeEx, _          = modole32.FindProc("CoInitializeEx")
-	procCoUninitialize, _          = modole32.FindProc("CoUninitialize")
-	procCoCreateInstance, _        = modole32.FindProc("CoCreateInstance")
-	procCoTaskMemFree, _           = modole32.FindProc("CoTaskMemFree")
-	procCLSIDFromProgID, _         = modole32.FindProc("CLSIDFromProgID")
-	procCLSIDFromString, _         = modole32.FindProc("CLSIDFromString")
-	procStringFromCLSID, _         = modole32.FindProc("StringFromCLSID")
-	procStringFromIID, _           = modole32.FindProc("StringFromIID")
-	procIIDFromString, _           = modole32.FindProc("IIDFromString")
-	procGetUserDefaultLCID, _      = modkernel32.FindProc("GetUserDefaultLCID")
-	procCopyMemory, _              = modkernel32.FindProc("RtlMoveMemory")
-	procVariantInit, _             = modoleaut32.FindProc("VariantInit")
-	procVariantClear, _            = modoleaut32.FindProc("VariantClear")
-	procVariantTimeToSystemTime, _ = modoleaut32.FindProc("VariantTimeToSystemTime")
-	procSysAllocString, _          = modoleaut32.FindProc("SysAllocString")
-	procSysAllocStringLen, _       = modoleaut32.FindProc("SysAllocStringLen")
-	procSysFreeString, _           = modoleaut32.FindProc("SysFreeString")
-	procSysStringLen, _            = modoleaut32.FindProc("SysStringLen")
-	procCreateDispTypeInfo, _      = modoleaut32.FindProc("CreateDispTypeInfo")
-	procCreateStdDispatch, _       = modoleaut32.FindProc("CreateStdDispatch")
-	procGetActiveObject, _         = modoleaut32.FindProc("GetActiveObject")
+	procCoInitialize            = modole32.NewProc("CoInitialize")
+	procCoInitializeEx          = modole32.NewProc("CoInitializeEx")
+	procCoUninitialize          = modole32.NewProc("CoUninitialize")
+	procCoCreateInstance        = modole32.NewProc("CoCreateInstance")
+	procCoTaskMemFree           = modole32.NewProc("CoTaskMemFree")
+	procCLSIDFromProgID         = modole32.NewProc("CLSIDFromProgID")
+	procCLSIDFromString         = modole32.NewProc("CLSIDFromString")
+	procStringFromCLSID         = modole32.NewProc("StringFromCLSID")
+	procStringFromIID           = modole32.NewProc("StringFromIID")
+	procIIDFromString           = modole32.NewProc("IIDFromString")
+	procCoGetObject             = modole32.NewProc("CoGetObject")
+	procGetUserDefaultLCID      = modkernel32.NewProc("GetUserDefaultLCID")
+	procCopyMemory              = modkernel32.NewProc("RtlMoveMemory")
+	procVariantInit             = modoleaut32.NewProc("VariantInit")
+	procVariantClear            = modoleaut32.NewProc("VariantClear")
+	procVariantTimeToSystemTime = modoleaut32.NewProc("VariantTimeToSystemTime")
+	procSysAllocString          = modoleaut32.NewProc("SysAllocString")
+	procSysAllocStringLen       = modoleaut32.NewProc("SysAllocStringLen")
+	procSysFreeString           = modoleaut32.NewProc("SysFreeString")
+	procSysStringLen            = modoleaut32.NewProc("SysStringLen")
+	procCreateDispTypeInfo      = modoleaut32.NewProc("CreateDispTypeInfo")
+	procCreateStdDispatch       = modoleaut32.NewProc("CreateStdDispatch")
+	procGetActiveObject         = modoleaut32.NewProc("GetActiveObject")
 
-	procGetMessageW, _      = moduser32.FindProc("GetMessageW")
-	procDispatchMessageW, _ = moduser32.FindProc("DispatchMessageW")
+	procGetMessageW      = moduser32.NewProc("GetMessageW")
+	procDispatchMessageW = moduser32.NewProc("DispatchMessageW")
 )
 
 // coInitialize initializes COM library on current thread.
@@ -209,6 +208,32 @@ func GetActiveObject(clsid *GUID, iid *GUID) (unk *IUnknown, err error) {
 	return
 }
 
+type BindOpts struct {
+	CbStruct          uint32
+	GrfFlags          uint32
+	GrfMode           uint32
+	TickCountDeadline uint32
+}
+
+// GetObject retrieves pointer to active object.
+func GetObject(programID string, bindOpts *BindOpts, iid *GUID) (unk *IUnknown, err error) {
+	if bindOpts != nil {
+		bindOpts.CbStruct = uint32(unsafe.Sizeof(BindOpts{}))
+	}
+	if iid == nil {
+		iid = IID_IUnknown
+	}
+	hr, _, _ := procCoGetObject.Call(
+		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(programID))),
+		uintptr(unsafe.Pointer(bindOpts)),
+		uintptr(unsafe.Pointer(iid)),
+		uintptr(unsafe.Pointer(&unk)))
+	if hr != 0 {
+		err = NewError(hr)
+	}
+	return
+}
+
 // VariantInit initializes variant.
 func VariantInit(v *VARIANT) (err error) {
 	hr, _, _ := procVariantInit.Call(uintptr(unsafe.Pointer(v)))
@@ -316,14 +341,4 @@ func DispatchMessage(msg *Msg) (ret int32) {
 	r0, _, _ := procDispatchMessageW.Call(uintptr(unsafe.Pointer(msg)))
 	ret = int32(r0)
 	return
-}
-
-// GetVariantDate converts COM Variant Time value to Go time.Time.
-func GetVariantDate(value float64) (time.Time, error) {
-	var st syscall.Systemtime
-	r, _, _ := procVariantTimeToSystemTime.Call(uintptr(value), uintptr(unsafe.Pointer(&st)))
-	if r != 0 {
-		return time.Date(int(st.Year), time.Month(st.Month), int(st.Day), int(st.Hour), int(st.Minute), int(st.Second), int(st.Milliseconds/1000), time.UTC), nil
-	}
-	return time.Now(), errors.New("Could not convert to time, passing current time.")
 }

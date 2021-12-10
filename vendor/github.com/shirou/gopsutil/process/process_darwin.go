@@ -3,20 +3,18 @@
 package process
 
 import (
-	"bytes"
 	"context"
-	"encoding/binary"
 	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
-	"unsafe"
 
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/internal/common"
 	"github.com/shirou/gopsutil/net"
+	"github.com/tklauser/go-sysconf"
 	"golang.org/x/sys/unix"
 )
 
@@ -30,25 +28,24 @@ const (
 	KernProcPathname = 12 // path to executable
 )
 
-const (
-	ClockTicks = 100 // C.sysconf(C._SC_CLK_TCK)
-)
+var ClockTicks = 100 // default value
+
+func init() {
+	clkTck, err := sysconf.Sysconf(sysconf.SC_CLK_TCK)
+	// ignore errors
+	if err == nil {
+		ClockTicks = int(clkTck)
+	}
+}
 
 type _Ctype_struct___0 struct {
 	Pad uint64
 }
 
-// MemoryInfoExStat is different between OSes
-type MemoryInfoExStat struct {
-}
-
-type MemoryMapsStat struct {
-}
-
 func pidsWithContext(ctx context.Context) ([]int32, error) {
 	var ret []int32
 
-	pids, err := callPsWithContext(ctx, "pid", 0, false)
+	pids, err := callPsWithContext(ctx, "pid", 0, false, false)
 	if err != nil {
 		return ret, err
 	}
@@ -64,12 +61,8 @@ func pidsWithContext(ctx context.Context) ([]int32, error) {
 	return ret, nil
 }
 
-func (p *Process) Ppid() (int32, error) {
-	return p.PpidWithContext(context.Background())
-}
-
 func (p *Process) PpidWithContext(ctx context.Context) (int32, error) {
-	r, err := callPsWithContext(ctx, "ppid", p.Pid, false)
+	r, err := callPsWithContext(ctx, "ppid", p.Pid, false, false)
 	if err != nil {
 		return 0, err
 	}
@@ -81,9 +74,6 @@ func (p *Process) PpidWithContext(ctx context.Context) (int32, error) {
 
 	return int32(v), err
 }
-func (p *Process) Name() (string, error) {
-	return p.NameWithContext(context.Background())
-}
 
 func (p *Process) NameWithContext(ctx context.Context) (string, error) {
 	k, err := p.getKProc()
@@ -93,54 +83,47 @@ func (p *Process) NameWithContext(ctx context.Context) (string, error) {
 	name := common.IntToString(k.Proc.P_comm[:])
 
 	if len(name) >= 15 {
-		cmdlineSlice, err := p.CmdlineSliceWithContext(ctx)
+		cmdName, err := p.cmdNameWithContext(ctx)
 		if err != nil {
 			return "", err
 		}
-		if len(cmdlineSlice) > 0 {
-			extendedName := filepath.Base(cmdlineSlice[0])
+		if len(cmdName) > 0 {
+			extendedName := filepath.Base(cmdName[0])
 			if strings.HasPrefix(extendedName, p.name) {
 				name = extendedName
 			} else {
-				name = cmdlineSlice[0]
+				name = cmdName[0]
 			}
 		}
 	}
 
 	return name, nil
 }
-func (p *Process) Tgid() (int32, error) {
-	return 0, common.ErrNotImplementedError
-}
-func (p *Process) Exe() (string, error) {
-	return p.ExeWithContext(context.Background())
-}
-
-// Cmdline returns the command line arguments of the process as a string with
-// each argument separated by 0x20 ascii character.
-func (p *Process) Cmdline() (string, error) {
-	return p.CmdlineWithContext(context.Background())
-}
 
 func (p *Process) CmdlineWithContext(ctx context.Context) (string, error) {
-	r, err := callPsWithContext(ctx, "command", p.Pid, false)
+	r, err := callPsWithContext(ctx, "command", p.Pid, false, false)
 	if err != nil {
 		return "", err
 	}
 	return strings.Join(r[0], " "), err
 }
 
-// CmdlineSlice returns the command line arguments of the process as a slice with each
+// cmdNameWithContext returns the command name (including spaces) without any arguments
+func (p *Process) cmdNameWithContext(ctx context.Context) ([]string, error) {
+	r, err := callPsWithContext(ctx, "command", p.Pid, false, true)
+	if err != nil {
+		return nil, err
+	}
+	return r[0], err
+}
+
+// CmdlineSliceWithContext returns the command line arguments of the process as a slice with each
 // element being an argument. Because of current deficiencies in the way that the command
 // line arguments are found, single arguments that have spaces in the will actually be
 // reported as two separate items. In order to do something better CGO would be needed
 // to use the native darwin functions.
-func (p *Process) CmdlineSlice() ([]string, error) {
-	return p.CmdlineSliceWithContext(context.Background())
-}
-
 func (p *Process) CmdlineSliceWithContext(ctx context.Context) ([]string, error) {
-	r, err := callPsWithContext(ctx, "command", p.Pid, false)
+	r, err := callPsWithContext(ctx, "command", p.Pid, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +131,7 @@ func (p *Process) CmdlineSliceWithContext(ctx context.Context) ([]string, error)
 }
 
 func (p *Process) createTimeWithContext(ctx context.Context) (int64, error) {
-	r, err := callPsWithContext(ctx, "etime", p.Pid, false)
+	r, err := callPsWithContext(ctx, "etime", p.Pid, false, false)
 	if err != nil {
 		return 0, err
 	}
@@ -177,50 +160,31 @@ func (p *Process) createTimeWithContext(ctx context.Context) (int64, error) {
 	start := time.Now().Add(-elapsed)
 	return start.Unix() * 1000, nil
 }
-func (p *Process) Cwd() (string, error) {
-	return p.CwdWithContext(context.Background())
-}
-
-func (p *Process) CwdWithContext(ctx context.Context) (string, error) {
-	return "", common.ErrNotImplementedError
-}
-func (p *Process) Parent() (*Process, error) {
-	return p.ParentWithContext(context.Background())
-}
 
 func (p *Process) ParentWithContext(ctx context.Context) (*Process, error) {
-	rr, err := common.CallLsofWithContext(ctx, invoke, p.Pid, "-FR")
+	out, err := common.CallLsofWithContext(ctx, invoke, p.Pid, "-FR")
 	if err != nil {
 		return nil, err
 	}
-	for _, r := range rr {
-		if strings.HasPrefix(r, "p") { // skip if process
-			continue
+	for _, line := range out {
+		if len(line) >= 1 && line[0] == 'R' {
+			v, err := strconv.Atoi(line[1:])
+			if err != nil {
+				return nil, err
+			}
+			return NewProcessWithContext(ctx, int32(v))
 		}
-		l := string(r)
-		v, err := strconv.Atoi(strings.Replace(l, "R", "", 1))
-		if err != nil {
-			return nil, err
-		}
-		return NewProcess(int32(v))
 	}
 	return nil, fmt.Errorf("could not find parent line")
 }
-func (p *Process) Status() (string, error) {
-	return p.StatusWithContext(context.Background())
-}
 
 func (p *Process) StatusWithContext(ctx context.Context) (string, error) {
-	r, err := callPsWithContext(ctx, "state", p.Pid, false)
+	r, err := callPsWithContext(ctx, "state", p.Pid, false, false)
 	if err != nil {
 		return "", err
 	}
 
 	return r[0][0][0:1], err
-}
-
-func (p *Process) Foreground() (bool, error) {
-	return p.ForegroundWithContext(context.Background())
 }
 
 func (p *Process) ForegroundWithContext(ctx context.Context) (bool, error) {
@@ -237,10 +201,6 @@ func (p *Process) ForegroundWithContext(ctx context.Context) (bool, error) {
 	return strings.IndexByte(string(out), '+') != -1, nil
 }
 
-func (p *Process) Uids() ([]int32, error) {
-	return p.UidsWithContext(context.Background())
-}
-
 func (p *Process) UidsWithContext(ctx context.Context) ([]int32, error) {
 	k, err := p.getKProc()
 	if err != nil {
@@ -251,9 +211,6 @@ func (p *Process) UidsWithContext(ctx context.Context) ([]int32, error) {
 	userEffectiveUID := int32(k.Eproc.Ucred.UID)
 
 	return []int32{userEffectiveUID}, nil
-}
-func (p *Process) Gids() ([]int32, error) {
-	return p.GidsWithContext(context.Background())
 }
 
 func (p *Process) GidsWithContext(ctx context.Context) ([]int32, error) {
@@ -269,20 +226,18 @@ func (p *Process) GidsWithContext(ctx context.Context) ([]int32, error) {
 }
 
 func (p *Process) GroupsWithContext(ctx context.Context) ([]int32, error) {
-	k, err := p.getKProc()
-	if err != nil {
-		return nil, err
-	}
+	return nil, common.ErrNotImplementedError
+	// k, err := p.getKProc()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	groups := make([]int32, k.Eproc.Ucred.Ngroups)
-	for i := int16(0); i < k.Eproc.Ucred.Ngroups; i++ {
-		groups[i] = int32(k.Eproc.Ucred.Groups[i])
-	}
+	// groups := make([]int32, k.Eproc.Ucred.Ngroups)
+	// for i := int16(0); i < k.Eproc.Ucred.Ngroups; i++ {
+	// 	groups[i] = int32(k.Eproc.Ucred.Groups[i])
+	// }
 
-	return groups, nil
-}
-func (p *Process) Terminal() (string, error) {
-	return p.TerminalWithContext(context.Background())
+	// return groups, nil
 }
 
 func (p *Process) TerminalWithContext(ctx context.Context) (string, error) {
@@ -302,9 +257,6 @@ func (p *Process) TerminalWithContext(ctx context.Context) (string, error) {
 		return termmap[ttyNr], nil
 	*/
 }
-func (p *Process) Nice() (int32, error) {
-	return p.NiceWithContext(context.Background())
-}
 
 func (p *Process) NiceWithContext(ctx context.Context) (int32, error) {
 	k, err := p.getKProc()
@@ -313,68 +265,17 @@ func (p *Process) NiceWithContext(ctx context.Context) (int32, error) {
 	}
 	return int32(k.Proc.P_nice), nil
 }
-func (p *Process) IOnice() (int32, error) {
-	return p.IOniceWithContext(context.Background())
-}
-
-func (p *Process) IOniceWithContext(ctx context.Context) (int32, error) {
-	return 0, common.ErrNotImplementedError
-}
-func (p *Process) Rlimit() ([]RlimitStat, error) {
-	return p.RlimitWithContext(context.Background())
-}
-
-func (p *Process) RlimitWithContext(ctx context.Context) ([]RlimitStat, error) {
-	var rlimit []RlimitStat
-	return rlimit, common.ErrNotImplementedError
-}
-func (p *Process) RlimitUsage(gatherUsed bool) ([]RlimitStat, error) {
-	return p.RlimitUsageWithContext(context.Background(), gatherUsed)
-}
-
-func (p *Process) RlimitUsageWithContext(ctx context.Context, gatherUsed bool) ([]RlimitStat, error) {
-	var rlimit []RlimitStat
-	return rlimit, common.ErrNotImplementedError
-}
-func (p *Process) IOCounters() (*IOCountersStat, error) {
-	return p.IOCountersWithContext(context.Background())
-}
 
 func (p *Process) IOCountersWithContext(ctx context.Context) (*IOCountersStat, error) {
 	return nil, common.ErrNotImplementedError
 }
-func (p *Process) NumCtxSwitches() (*NumCtxSwitchesStat, error) {
-	return p.NumCtxSwitchesWithContext(context.Background())
-}
-
-func (p *Process) NumCtxSwitchesWithContext(ctx context.Context) (*NumCtxSwitchesStat, error) {
-	return nil, common.ErrNotImplementedError
-}
-func (p *Process) NumFDs() (int32, error) {
-	return p.NumFDsWithContext(context.Background())
-}
-
-func (p *Process) NumFDsWithContext(ctx context.Context) (int32, error) {
-	return 0, common.ErrNotImplementedError
-}
-func (p *Process) NumThreads() (int32, error) {
-	return p.NumThreadsWithContext(context.Background())
-}
 
 func (p *Process) NumThreadsWithContext(ctx context.Context) (int32, error) {
-	r, err := callPsWithContext(ctx, "utime,stime", p.Pid, true)
+	r, err := callPsWithContext(ctx, "utime,stime", p.Pid, true, false)
 	if err != nil {
 		return 0, err
 	}
 	return int32(len(r)), nil
-}
-func (p *Process) Threads() (map[int32]*cpu.TimesStat, error) {
-	return p.ThreadsWithContext(context.Background())
-}
-
-func (p *Process) ThreadsWithContext(ctx context.Context) (map[int32]*cpu.TimesStat, error) {
-	ret := make(map[int32]*cpu.TimesStat)
-	return ret, common.ErrNotImplementedError
 }
 
 func convertCPUTimes(s string) (ret float64, err error) {
@@ -420,14 +321,11 @@ func convertCPUTimes(s string) (ret float64, err error) {
 	t += h * ClockTicks
 	h, err = strconv.Atoi(_t[1])
 	t += h
-	return float64(t) / ClockTicks, nil
-}
-func (p *Process) Times() (*cpu.TimesStat, error) {
-	return p.TimesWithContext(context.Background())
+	return float64(t) / float64(ClockTicks), nil
 }
 
 func (p *Process) TimesWithContext(ctx context.Context) (*cpu.TimesStat, error) {
-	r, err := callPsWithContext(ctx, "utime,stime", p.Pid, false)
+	r, err := callPsWithContext(ctx, "utime,stime", p.Pid, false, false)
 
 	if err != nil {
 		return nil, err
@@ -449,19 +347,9 @@ func (p *Process) TimesWithContext(ctx context.Context) (*cpu.TimesStat, error) 
 	}
 	return ret, nil
 }
-func (p *Process) CPUAffinity() ([]int32, error) {
-	return p.CPUAffinityWithContext(context.Background())
-}
-
-func (p *Process) CPUAffinityWithContext(ctx context.Context) ([]int32, error) {
-	return nil, common.ErrNotImplementedError
-}
-func (p *Process) MemoryInfo() (*MemoryInfoStat, error) {
-	return p.MemoryInfoWithContext(context.Background())
-}
 
 func (p *Process) MemoryInfoWithContext(ctx context.Context) (*MemoryInfoStat, error) {
-	r, err := callPsWithContext(ctx, "rss,vsize,pagein", p.Pid, false)
+	r, err := callPsWithContext(ctx, "rss,vsize,pagein", p.Pid, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -486,25 +374,6 @@ func (p *Process) MemoryInfoWithContext(ctx context.Context) (*MemoryInfoStat, e
 
 	return ret, nil
 }
-func (p *Process) MemoryInfoEx() (*MemoryInfoExStat, error) {
-	return p.MemoryInfoExWithContext(context.Background())
-}
-
-func (p *Process) MemoryInfoExWithContext(ctx context.Context) (*MemoryInfoExStat, error) {
-	return nil, common.ErrNotImplementedError
-}
-
-func (p *Process) PageFaults() (*PageFaultsStat, error) {
-	return p.PageFaultsWithContext(context.Background())
-}
-
-func (p *Process) PageFaultsWithContext(ctx context.Context) (*PageFaultsStat, error) {
-	return nil, common.ErrNotImplementedError
-}
-
-func (p *Process) Children() ([]*Process, error) {
-	return p.ChildrenWithContext(context.Background())
-}
 
 func (p *Process) ChildrenWithContext(ctx context.Context) ([]*Process, error) {
 	pids, err := common.CallPgrepWithContext(ctx, invoke, p.Pid)
@@ -513,7 +382,7 @@ func (p *Process) ChildrenWithContext(ctx context.Context) ([]*Process, error) {
 	}
 	ret := make([]*Process, 0, len(pids))
 	for _, pid := range pids {
-		np, err := NewProcess(pid)
+		np, err := NewProcessWithContext(ctx, pid)
 		if err != nil {
 			return nil, err
 		}
@@ -522,50 +391,12 @@ func (p *Process) ChildrenWithContext(ctx context.Context) ([]*Process, error) {
 	return ret, nil
 }
 
-func (p *Process) OpenFiles() ([]OpenFilesStat, error) {
-	return p.OpenFilesWithContext(context.Background())
-}
-
-func (p *Process) OpenFilesWithContext(ctx context.Context) ([]OpenFilesStat, error) {
-	return nil, common.ErrNotImplementedError
-}
-
-func (p *Process) Connections() ([]net.ConnectionStat, error) {
-	return p.ConnectionsWithContext(context.Background())
-}
-
 func (p *Process) ConnectionsWithContext(ctx context.Context) ([]net.ConnectionStat, error) {
-	return net.ConnectionsPid("all", p.Pid)
-}
-
-// Connections returns a slice of net.ConnectionStat used by the process at most `max`
-func (p *Process) ConnectionsMax(max int) ([]net.ConnectionStat, error) {
-	return p.ConnectionsMaxWithContext(context.Background(), max)
+	return net.ConnectionsPidWithContext(ctx, "all", p.Pid)
 }
 
 func (p *Process) ConnectionsMaxWithContext(ctx context.Context, max int) ([]net.ConnectionStat, error) {
-	return net.ConnectionsPidMax("all", p.Pid, max)
-}
-
-func (p *Process) NetIOCounters(pernic bool) ([]net.IOCountersStat, error) {
-	return p.NetIOCountersWithContext(context.Background(), pernic)
-}
-
-func (p *Process) NetIOCountersWithContext(ctx context.Context, pernic bool) ([]net.IOCountersStat, error) {
-	return nil, common.ErrNotImplementedError
-}
-
-func (p *Process) MemoryMaps(grouped bool) (*[]MemoryMapsStat, error) {
-	return p.MemoryMapsWithContext(context.Background(), grouped)
-}
-
-func (p *Process) MemoryMapsWithContext(ctx context.Context, grouped bool) (*[]MemoryMapsStat, error) {
-	var ret []MemoryMapsStat
-	return &ret, common.ErrNotImplementedError
-}
-
-func Processes() ([]*Process, error) {
-	return ProcessesWithContext(context.Background())
+	return net.ConnectionsPidMaxWithContext(ctx, "all", p.Pid, max)
 }
 
 func ProcessesWithContext(ctx context.Context) ([]*Process, error) {
@@ -577,7 +408,7 @@ func ProcessesWithContext(ctx context.Context) ([]*Process, error) {
 	}
 
 	for _, pid := range pids {
-		p, err := NewProcess(pid)
+		p, err := NewProcessWithContext(ctx, pid)
 		if err != nil {
 			continue
 		}
@@ -587,39 +418,12 @@ func ProcessesWithContext(ctx context.Context) ([]*Process, error) {
 	return out, nil
 }
 
-func parseKinfoProc(buf []byte) (KinfoProc, error) {
-	var k KinfoProc
-	br := bytes.NewReader(buf)
-
-	err := common.Read(br, binary.LittleEndian, &k)
-	if err != nil {
-		return k, err
-	}
-
-	return k, nil
-}
-
 // Returns a proc as defined here:
 // http://unix.superglobalmegacorp.com/Net2/newsrc/sys/kinfo_proc.h.html
 func (p *Process) getKProc() (*KinfoProc, error) {
-	return p.getKProcWithContext(context.Background())
-}
-
-func (p *Process) getKProcWithContext(ctx context.Context) (*KinfoProc, error) {
-	mib := []int32{CTLKern, KernProc, KernProcPID, p.Pid}
-	procK := KinfoProc{}
-	length := uint64(unsafe.Sizeof(procK))
-	buf := make([]byte, length)
-	_, _, syserr := unix.Syscall6(
-		202, // unix.SYS___SYSCTL https://github.com/golang/sys/blob/76b94024e4b621e672466e8db3d7f084e7ddcad2/unix/zsysnum_darwin_amd64.go#L146
-		uintptr(unsafe.Pointer(&mib[0])),
-		uintptr(len(mib)),
-		uintptr(unsafe.Pointer(&buf[0])),
-		uintptr(unsafe.Pointer(&length)),
-		0,
-		0)
-	if syserr != 0 {
-		return nil, syserr
+	buf, err := unix.SysctlRaw("kern.proc.pid", int(p.Pid))
+	if err != nil {
+		return nil, err
 	}
 	k, err := parseKinfoProc(buf)
 	if err != nil {
@@ -631,9 +435,9 @@ func (p *Process) getKProcWithContext(ctx context.Context) (*KinfoProc, error) {
 
 // call ps command.
 // Return value deletes Header line(you must not input wrong arg).
-// And splited by Space. Caller have responsibility to manage.
+// And split by space. Caller have responsibility to manage.
 // If passed arg pid is 0, get information from all process.
-func callPsWithContext(ctx context.Context, arg string, pid int32, threadOption bool) ([][]string, error) {
+func callPsWithContext(ctx context.Context, arg string, pid int32, threadOption bool, nameOption bool) ([][]string, error) {
 	bin, err := exec.LookPath("ps")
 	if err != nil {
 		return [][]string{}, err
@@ -647,6 +451,10 @@ func callPsWithContext(ctx context.Context, arg string, pid int32, threadOption 
 	} else {
 		cmd = []string{"-x", "-o", arg, "-p", strconv.Itoa(int(pid))}
 	}
+
+	if nameOption {
+		cmd = append(cmd, "-c")
+	}
 	out, err := invoke.CommandWithContext(ctx, bin, cmd...)
 	if err != nil {
 		return [][]string{}, err
@@ -655,13 +463,19 @@ func callPsWithContext(ctx context.Context, arg string, pid int32, threadOption 
 
 	var ret [][]string
 	for _, l := range lines[1:] {
+
 		var lr []string
-		for _, r := range strings.Split(l, " ") {
-			if r == "" {
-				continue
+		if nameOption {
+			lr = append(lr, l)
+		} else {
+			for _, r := range strings.Split(l, " ") {
+				if r == "" {
+					continue
+				}
+				lr = append(lr, strings.TrimSpace(r))
 			}
-			lr = append(lr, strings.TrimSpace(r))
 		}
+
 		if len(lr) != 0 {
 			ret = append(ret, lr)
 		}

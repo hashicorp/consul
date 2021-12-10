@@ -65,6 +65,11 @@ type Call struct {
 	// reference. It's useful when mocking methods such as unmarshalers or
 	// decoders.
 	RunFn func(Arguments)
+
+	// PanicMsg holds msg to be used to mock panic on the function call
+	//  if the PanicMsg is set to a non nil string the function call will panic
+	// irrespective of other settings
+	PanicMsg *string
 }
 
 func newCall(parent *Mock, methodName string, callerInfo []string, methodArguments ...interface{}) *Call {
@@ -77,6 +82,7 @@ func newCall(parent *Mock, methodName string, callerInfo []string, methodArgumen
 		Repeatability:   0,
 		WaitFor:         nil,
 		RunFn:           nil,
+		PanicMsg:        nil,
 	}
 }
 
@@ -96,6 +102,18 @@ func (c *Call) Return(returnArguments ...interface{}) *Call {
 	defer c.unlock()
 
 	c.ReturnArguments = returnArguments
+
+	return c
+}
+
+// Panic specifies if the functon call should fail and the panic message
+//
+//    Mock.On("DoSomething").Panic("test panic")
+func (c *Call) Panic(msg string) *Call {
+	c.lock()
+	defer c.unlock()
+
+	c.PanicMsg = &msg
 
 	return c
 }
@@ -150,7 +168,7 @@ func (c *Call) After(d time.Duration) *Call {
 // mocking a method (such as an unmarshaler) that takes a pointer to a struct and
 // sets properties in such struct
 //
-//    Mock.On("Unmarshal", AnythingOfType("*map[string]interface{}").Return().Run(func(args Arguments) {
+//    Mock.On("Unmarshal", AnythingOfType("*map[string]interface{}")).Return().Run(func(args Arguments) {
 //    	arg := args.Get(0).(*map[string]interface{})
 //    	arg["foo"] = "bar"
 //    })
@@ -279,25 +297,52 @@ func (m *Mock) findExpectedCall(method string, arguments ...interface{}) (int, *
 	return -1, expectedCall
 }
 
+type matchCandidate struct {
+	call      *Call
+	mismatch  string
+	diffCount int
+}
+
+func (c matchCandidate) isBetterMatchThan(other matchCandidate) bool {
+	if c.call == nil {
+		return false
+	}
+	if other.call == nil {
+		return true
+	}
+
+	if c.diffCount > other.diffCount {
+		return false
+	}
+	if c.diffCount < other.diffCount {
+		return true
+	}
+
+	if c.call.Repeatability > 0 && other.call.Repeatability <= 0 {
+		return true
+	}
+	return false
+}
+
 func (m *Mock) findClosestCall(method string, arguments ...interface{}) (*Call, string) {
-	var diffCount int
-	var closestCall *Call
-	var err string
+	var bestMatch matchCandidate
 
 	for _, call := range m.expectedCalls() {
 		if call.Method == method {
 
 			errInfo, tempDiffCount := call.Arguments.Diff(arguments)
-			if tempDiffCount < diffCount || diffCount == 0 {
-				diffCount = tempDiffCount
-				closestCall = call
-				err = errInfo
+			tempCandidate := matchCandidate{
+				call:      call,
+				mismatch:  errInfo,
+				diffCount: tempDiffCount,
 			}
-
+			if tempCandidate.isBetterMatchThan(bestMatch) {
+				bestMatch = tempCandidate
+			}
 		}
 	}
 
-	return closestCall, err
+	return bestMatch.call, bestMatch.mismatch
 }
 
 func callString(method string, arguments Arguments, includeArgumentValues bool) string {
@@ -390,6 +435,13 @@ func (m *Mock) MethodCalled(methodName string, arguments ...interface{}) Argumen
 		<-call.WaitFor
 	} else {
 		time.Sleep(call.waitTime)
+	}
+
+	m.mutex.Lock()
+	panicMsg := call.PanicMsg
+	m.mutex.Unlock()
+	if panicMsg != nil {
+		panic(*panicMsg)
 	}
 
 	m.mutex.Lock()
@@ -523,6 +575,45 @@ func (m *Mock) AssertNotCalled(t TestingT, methodName string, arguments ...inter
 	if m.methodWasCalled(methodName, arguments) {
 		return assert.Fail(t, "Should not have called with given arguments",
 			fmt.Sprintf("Expected %q to not have been called with:\n%v\nbut actually it was.", methodName, arguments))
+	}
+	return true
+}
+
+// IsMethodCallable checking that the method can be called
+// If the method was called more than `Repeatability` return false
+func (m *Mock) IsMethodCallable(t TestingT, methodName string, arguments ...interface{}) bool {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	for _, v := range m.ExpectedCalls {
+		if v.Method != methodName {
+			continue
+		}
+		if len(arguments) != len(v.Arguments) {
+			continue
+		}
+		if v.Repeatability < v.totalCalls {
+			continue
+		}
+		if isArgsEqual(v.Arguments, arguments) {
+			return true
+		}
+	}
+	return false
+}
+
+// isArgsEqual compares arguments
+func isArgsEqual(expected Arguments, args []interface{}) bool {
+	if len(expected) != len(args) {
+		return false
+	}
+	for i, v := range args {
+		if !reflect.DeepEqual(expected[i], v) {
+			return false
+		}
 	}
 	return true
 }
@@ -791,7 +882,7 @@ func (args Arguments) String(indexOrNil ...int) string {
 		// normal String() method - return a string representation of the args
 		var argsStr []string
 		for _, arg := range args {
-			argsStr = append(argsStr, fmt.Sprintf("%s", reflect.TypeOf(arg)))
+			argsStr = append(argsStr, fmt.Sprintf("%T", arg)) // handles nil nicely
 		}
 		return strings.Join(argsStr, ",")
 	} else if len(indexOrNil) == 1 {

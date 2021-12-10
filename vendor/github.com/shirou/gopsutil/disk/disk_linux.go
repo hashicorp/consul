@@ -218,25 +218,18 @@ var fsTypeMap = map[int64]string{
 	ZFS_SUPER_MAGIC:             "zfs",                 /* 0x2FC12FC1 local */
 }
 
-// Partitions returns disk partitions. If all is false, returns
-// physical devices only (e.g. hard disks, cd-rom drives, USB keys)
-// and ignore all others (e.g. memory partitions such as /dev/shm)
-func Partitions(all bool) ([]PartitionStat, error) {
-	return PartitionsWithContext(context.Background(), all)
-}
-
 func PartitionsWithContext(ctx context.Context, all bool) ([]PartitionStat, error) {
 	useMounts := false
 
-	filename := common.HostProc("self/mountinfo")
+	filename := common.HostProc("1/mountinfo")
 	lines, err := common.ReadLines(filename)
 	if err != nil {
 		if err != err.(*os.PathError) {
 			return nil, err
 		}
-		// if kernel does not support self/mountinfo, fallback to self/mounts (<2.6.26)
+		// if kernel does not support 1/mountinfo, fallback to 1/mounts (<2.6.26)
 		useMounts = true
-		filename = common.HostProc("self/mounts")
+		filename = common.HostProc("1/mounts")
 		lines, err = common.ReadLines(filename)
 		if err != nil {
 			return nil, err
@@ -268,7 +261,7 @@ func PartitionsWithContext(ctx context.Context, all bool) ([]PartitionStat, erro
 				}
 			}
 		} else {
-			// a line of self/mountinfo has the following structure:
+			// a line of 1/mountinfo has the following structure:
 			// 36  35  98:0 /mnt1 /mnt2 rw,noatime master:1 - ext3 /dev/root rw,errors=continue
 			// (1) (2) (3)   (4)   (5)      (6)      (7)   (8) (9)   (10)         (11)
 
@@ -282,6 +275,14 @@ func PartitionsWithContext(ctx context.Context, all bool) ([]PartitionStat, erro
 			blockDeviceID := fields[2]
 			mountPoint := fields[4]
 			mountOpts := fields[5]
+
+			if rootDir := fields[3]; rootDir != "" && rootDir != "/" {
+				if len(mountOpts) == 0 {
+					mountOpts = "bind"
+				} else {
+					mountOpts = "bind," + mountOpts
+				}
+			}
 
 			fields = strings.Fields(parts[1])
 			fstype := fields[0]
@@ -344,10 +345,6 @@ func getFileSystems() ([]string, error) {
 	}
 
 	return ret, nil
-}
-
-func IOCounters(names ...string) (map[string]IOCountersStat, error) {
-	return IOCountersWithContext(context.Background(), names...)
 }
 
 func IOCountersWithContext(ctx context.Context, names ...string) (map[string]IOCountersStat, error) {

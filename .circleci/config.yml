@@ -3,7 +3,7 @@ version: 2.1
 
 references:
   images:
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.14.13
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.16.12
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:12-browsers
 
   paths:
@@ -11,7 +11,6 @@ references:
 
   cache:
     yarn: &YARN_CACHE_KEY consul-ui-v2-{{ checksum "ui-v2/yarn.lock" }}
-    rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
 
   environment: &ENVIRONMENT
     TEST_RESULTS_DIR: *TEST_RESULTS_DIR
@@ -115,7 +114,7 @@ jobs:
           name: Install golangci-lint
           command: |
             download=https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
-            wget -O- -q $download | sh -x -s -- -d -b /go/bin/ v1.23.6
+            wget -O- -q $download | sh -x -s -- -d -b /home/circleci/go/bin v1.23.6
       - run: go mod download
       - run:
           name: lint
@@ -193,10 +192,9 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: /go/bin
+          at: /home/circleci/go/bin
       - run: sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y rsyslog
       - run: sudo service rsyslog start
-      - run: *install-gotestsum
       - run: go mod download
       - run:
           name: go test
@@ -226,8 +224,7 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: /go/bin
-      - run: *install-gotestsum
+          at: /home/circleci/go/bin
       - run:
           working_directory: api
           command: go mod download
@@ -257,8 +254,7 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: /go/bin
-      - run: *install-gotestsum
+          at: /home/circleci/go/bin
       - run:
           working_directory: sdk
           command: go mod download
@@ -297,7 +293,7 @@ jobs:
     <<: *build-distros
     environment:
       <<: *build-env
-      XC_OS: "darwin freebsd linux windows"
+      XC_OS: "freebsd linux windows"
       XC_ARCH: "386"
 
   # build all amd64 architecture supported OS binaries
@@ -354,7 +350,7 @@ jobs:
 
       # save dev build to pass to downstream jobs
       - persist_to_workspace:
-          root: /go/bin
+          root: /home/circleci/go/bin
           paths:
             - consul
 
@@ -403,7 +399,7 @@ jobs:
       - setup_remote_docker
       - run: make ci.dev-docker
 
-  # Nomad 0.8 builds on go0.10
+  # Nomad 0.8 builds on go1.10
   # Run integration tests on nomad/v0.8.7
   nomad-integration-0_8:
     docker:
@@ -446,7 +442,7 @@ jobs:
   # run integration tests on nomad/master
   nomad-integration-main:
     docker:
-      - image: *GOLANG_IMAGE
+      - image: docker.mirror.hashicorp.services/circleci/golang:1.16 #TODO: replace with cimg/go (requires steps update)
     environment:
       <<: *ENVIRONMENT
       NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad

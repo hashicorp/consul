@@ -3,8 +3,11 @@
 package mem
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"math"
 	"os"
 	"strconv"
@@ -73,86 +76,226 @@ func fillFromMeminfoWithContext(ctx context.Context) (*VirtualMemoryStat, *Virtu
 		value := strings.TrimSpace(fields[1])
 		value = strings.Replace(value, " kB", "", -1)
 
-		t, err := strconv.ParseUint(value, 10, 64)
-		if err != nil {
-			return ret, retEx,err
-		}
 		switch key {
 		case "MemTotal":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.Total = t * 1024
 		case "MemFree":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.Free = t * 1024
 		case "MemAvailable":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			memavail = true
 			ret.Available = t * 1024
 		case "Buffers":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.Buffers = t * 1024
 		case "Cached":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.Cached = t * 1024
 		case "Active":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.Active = t * 1024
 		case "Inactive":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.Inactive = t * 1024
 		case "Active(anon)":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			retEx.ActiveAnon = t * 1024
 		case "Inactive(anon)":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			retEx.InactiveAnon = t * 1024
 		case "Active(file)":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			activeFile = true
 			retEx.ActiveFile = t * 1024
 		case "Inactive(file)":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			inactiveFile = true
 			retEx.InactiveFile = t * 1024
 		case "Unevictable":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			retEx.Unevictable = t * 1024
 		case "Writeback":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.Writeback = t * 1024
 		case "WritebackTmp":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.WritebackTmp = t * 1024
 		case "Dirty":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.Dirty = t * 1024
 		case "Shmem":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.Shared = t * 1024
 		case "Slab":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.Slab = t * 1024
 		case "SReclaimable":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			sReclaimable = true
 			ret.SReclaimable = t * 1024
 		case "SUnreclaim":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.SUnreclaim = t * 1024
 		case "PageTables":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.PageTables = t * 1024
 		case "SwapCached":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.SwapCached = t * 1024
 		case "CommitLimit":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.CommitLimit = t * 1024
 		case "Committed_AS":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.CommittedAS = t * 1024
 		case "HighTotal":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.HighTotal = t * 1024
 		case "HighFree":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.HighFree = t * 1024
 		case "LowTotal":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.LowTotal = t * 1024
 		case "LowFree":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.LowFree = t * 1024
 		case "SwapTotal":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.SwapTotal = t * 1024
 		case "SwapFree":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.SwapFree = t * 1024
 		case "Mapped":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.Mapped = t * 1024
 		case "VmallocTotal":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.VMallocTotal = t * 1024
 		case "VmallocUsed":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.VMallocUsed = t * 1024
 		case "VmallocChunk":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.VMallocChunk = t * 1024
 		case "HugePages_Total":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.HugePagesTotal = t
 		case "HugePages_Free":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.HugePagesFree = t
 		case "Hugepagesize":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
 			ret.HugePageSize = t * 1024
 		}
 	}
@@ -285,4 +428,87 @@ func calcuateAvailVmem(ret *VirtualMemoryStat, retEx *VirtualMemoryExStat) uint6
 	}
 
 	return availMemory
+}
+
+const swapsFilename = "swaps"
+
+// swaps file column indexes
+const (
+	nameCol = 0
+	// typeCol     = 1
+	totalCol = 2
+	usedCol  = 3
+	// priorityCol = 4
+)
+
+func SwapDevices() ([]*SwapDevice, error) {
+	return SwapDevicesWithContext(context.Background())
+}
+
+func SwapDevicesWithContext(ctx context.Context) ([]*SwapDevice, error) {
+	swapsFilePath := common.HostProc(swapsFilename)
+	f, err := os.Open(swapsFilePath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return parseSwapsFile(f)
+}
+
+func parseSwapsFile(r io.Reader) ([]*SwapDevice, error) {
+	swapsFilePath := common.HostProc(swapsFilename)
+	scanner := bufio.NewScanner(r)
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return nil, fmt.Errorf("couldn't read file %q: %w", swapsFilePath, err)
+		}
+		return nil, fmt.Errorf("unexpected end-of-file in %q", swapsFilePath)
+
+	}
+
+	// Check header headerFields are as expected
+	headerFields := strings.Fields(scanner.Text())
+	if len(headerFields) < usedCol {
+		return nil, fmt.Errorf("couldn't parse %q: too few fields in header", swapsFilePath)
+	}
+	if headerFields[nameCol] != "Filename" {
+		return nil, fmt.Errorf("couldn't parse %q: expected %q to be %q", swapsFilePath, headerFields[nameCol], "Filename")
+	}
+	if headerFields[totalCol] != "Size" {
+		return nil, fmt.Errorf("couldn't parse %q: expected %q to be %q", swapsFilePath, headerFields[totalCol], "Size")
+	}
+	if headerFields[usedCol] != "Used" {
+		return nil, fmt.Errorf("couldn't parse %q: expected %q to be %q", swapsFilePath, headerFields[usedCol], "Used")
+	}
+
+	var swapDevices []*SwapDevice
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < usedCol {
+			return nil, fmt.Errorf("couldn't parse %q: too few fields", swapsFilePath)
+		}
+
+		totalKiB, err := strconv.ParseUint(fields[totalCol], 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't parse 'Size' column in %q: %w", swapsFilePath, err)
+		}
+
+		usedKiB, err := strconv.ParseUint(fields[usedCol], 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't parse 'Used' column in %q: %w", swapsFilePath, err)
+		}
+
+		swapDevices = append(swapDevices, &SwapDevice{
+			Name:      fields[nameCol],
+			UsedBytes: usedKiB * 1024,
+			FreeBytes: (totalKiB - usedKiB) * 1024,
+		})
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("couldn't read file %q: %w", swapsFilePath, err)
+	}
+
+	return swapDevices, nil
 }

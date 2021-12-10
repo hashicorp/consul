@@ -94,7 +94,7 @@ func (i FakeInvoke) CommandWithContext(ctx context.Context, name string, arg ...
 
 var ErrNotImplementedError = errors.New("not implemented yet")
 
-// ReadFile reads contents from a file
+// ReadFile reads contents from a file.
 func ReadFile(filename string) (string, error) {
 	content, err := ioutil.ReadFile(filename)
 
@@ -111,7 +111,7 @@ func ReadLines(filename string) ([]string, error) {
 	return ReadLinesOffsetN(filename, 0, -1)
 }
 
-// ReadLines reads contents from file and splits them by new line.
+// ReadLinesOffsetN reads contents from file and splits them by new line.
 // The offset tells at which line number to start.
 // The count determines the number of lines to read (starting from offset):
 //   n >= 0: at most n lines
@@ -165,7 +165,7 @@ func UintToString(orig []uint8) string {
 			size = i
 			break
 		}
-		ret[i] = byte(o)
+		ret[i] = o
 	}
 	if size == -1 {
 		size = len(orig)
@@ -224,31 +224,31 @@ func ReadInts(filename string) ([]int64, error) {
 	return ret, nil
 }
 
-// Parse Hex to uint32 without error
+// HexToUint32 parses Hex to uint32 without error.
 func HexToUint32(hex string) uint32 {
 	vv, _ := strconv.ParseUint(hex, 16, 32)
 	return uint32(vv)
 }
 
-// Parse to int32 without error
+// mustParseInt32 parses to int32 without error.
 func mustParseInt32(val string) int32 {
 	vv, _ := strconv.ParseInt(val, 10, 32)
 	return int32(vv)
 }
 
-// Parse to uint64 without error
+// mustParseUint64 parses to uint64 without error.
 func mustParseUint64(val string) uint64 {
 	vv, _ := strconv.ParseInt(val, 10, 64)
 	return uint64(vv)
 }
 
-// Parse to Float64 without error
+// mustParseFloat64 parses to Float64 without error.
 func mustParseFloat64(val string) float64 {
 	vv, _ := strconv.ParseFloat(val, 64)
 	return vv
 }
 
-// StringsHas checks the target string slice contains src or not
+// StringsHas checks the target string slice contains src or not.
 func StringsHas(target []string, src string) bool {
 	for _, t := range target {
 		if strings.TrimSpace(t) == src {
@@ -258,7 +258,7 @@ func StringsHas(target []string, src string) bool {
 	return false
 }
 
-// StringsContains checks the src in any string of the target string slice
+// StringsContains checks the src in any string of the target string slice.
 func StringsContains(target []string, src string) bool {
 	for _, t := range target {
 		if strings.Contains(t, src) {
@@ -308,7 +308,7 @@ func PathExists(filename string) bool {
 	return false
 }
 
-//GetEnv retrieves the environment variable key. If it does not exist it returns the default.
+// GetEnv retrieves the environment variable key. If it does not exist it returns the default.
 func GetEnv(key string, dfault string, combineWith ...string) string {
 	value := os.Getenv(key)
 	if value == "" {
@@ -326,7 +326,6 @@ func GetEnv(key string, dfault string, combineWith ...string) string {
 		copy(all[1:], combineWith)
 		return filepath.Join(all...)
 	}
-	panic("invalid switch case")
 }
 
 func HostProc(combineWith ...string) string {
@@ -351,6 +350,16 @@ func HostRun(combineWith ...string) string {
 
 func HostDev(combineWith ...string) string {
 	return GetEnv("HOST_DEV", "/dev", combineWith...)
+}
+
+// MockEnv set environment variable and return revert function.
+// MockEnv should be used testing only.
+func MockEnv(key string, value string) func() {
+	original := os.Getenv(key)
+	os.Setenv(key, value)
+	return func() {
+		os.Setenv(key, original)
+	}
 }
 
 // getSysctrlEnv sets LC_ALL=C in a list of env vars for use when running
