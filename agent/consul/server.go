@@ -116,6 +116,7 @@ const (
 	secondaryCARootWatchRoutineName       = "secondary CA roots watch"
 	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
 	backgroundCAInitializationRoutineName = "CA initialization"
+	virtualIPCheckRoutineName             = "virtual IP version check"
 )
 
 var (
