@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/testrpc"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 func TestSession_Apply(t *testing.T) {
@@ -544,7 +545,7 @@ func TestSession_ApplyTimers(t *testing.T) {
 
 func TestSession_Renew(t *testing.T) {
 	// This method is timing sensitive, disable Parallel
-	//t.Parallel()
+	// t.Parallel()
 	ttl := 1 * time.Second
 	TTL := ttl.String()
 
@@ -782,7 +783,7 @@ session "foo" {
 
 func TestSession_Renew_Compat(t *testing.T) {
 	// This method is timing sensitive, disable Parallel
-	//t.Parallel()
+	// t.Parallel()
 	ttl := 5 * time.Second
 	TTL := ttl.String()
 
@@ -925,7 +926,7 @@ func TestSession_Apply_BadTTL(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if err.Error() != "Session TTL '10z' invalid: time: unknown unit z in duration 10z" {
+	if err.Error() != `Session TTL '10z' invalid: time: unknown unit "z" in duration "10z"` {
 		t.Fatalf("incorrect error message: %s", err.Error())
 	}
 
