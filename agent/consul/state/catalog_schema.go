@@ -618,6 +618,13 @@ type FreeVirtualIP struct {
 	IsCounter bool
 }
 
+func counterIndex(obj interface{}) (bool, error) {
+	if vip, ok := obj.(FreeVirtualIP); ok {
+		return vip.IsCounter, nil
+	}
+	return false, fmt.Errorf("object is not a virtual IP entry")
+}
+
 func serviceVirtualIPTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: tableServiceVirtualIPs,
@@ -642,8 +649,15 @@ func freeVirtualIPTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field: "IP",
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field: "IP",
+						},
+						&memdb.ConditionalIndex{
+							Conditional: counterIndex,
+						},
+					},
 				},
 			},
 			indexCounterOnly: {
@@ -651,12 +665,7 @@ func freeVirtualIPTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: &memdb.ConditionalIndex{
-					Conditional: func(obj interface{}) (bool, error) {
-						if vip, ok := obj.(FreeVirtualIP); ok {
-							return vip.IsCounter, nil
-						}
-						return false, fmt.Errorf("object is not a virtual IP entry")
-					},
+					Conditional: counterIndex,
 				},
 			},
 		},
