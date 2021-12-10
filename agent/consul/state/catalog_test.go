@@ -1548,7 +1548,7 @@ func TestStateStore_EnsureService_connectProxy(t *testing.T) {
 	assert.Equal(&expect1, out.Services["connect-proxy"])
 }
 
-func TestStateStore_EnsureService_virtualIps(t *testing.T) {
+func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	assert := assert.New(t)
 	s := testStateStore(t)
 	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
@@ -1680,6 +1680,143 @@ func TestStateStore_EnsureService_virtualIps(t *testing.T) {
 	_, out, err = s.NodeServices(nil, "node1", nil)
 	require.NoError(t, err)
 	taggedAddress = out.Services["web-proxy"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns4.Port, taggedAddress.Port)
+}
+
+func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
+	assert := assert.New(t)
+	s := testStateStore(t)
+	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataVirtualIPsEnabled,
+		Value: "true",
+	}))
+
+	// Create the service registration.
+	entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+	ns1 := &structs.NodeService{
+		ID:      "foo",
+		Service: "foo",
+		Address: "1.1.1.1",
+		Port:    1111,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Connect:        structs.ServiceConnect{Native: true},
+		EnterpriseMeta: *entMeta,
+	}
+
+	// Service successfully registers into the state store.
+	testRegisterNode(t, s, 0, "node1")
+	require.NoError(t, s.EnsureService(10, "node1", ns1))
+
+	// Make sure there's a virtual IP for the foo service.
+	vip, err := s.VirtualIPForService(structs.ServiceName{Name: "foo"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.1", vip)
+
+	// Retrieve and verify
+	_, out, err := s.NodeServices(nil, "node1", nil)
+	require.NoError(t, err)
+	assert.NotNil(out)
+
+	taggedAddress := out.Services["foo"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns1.Port, taggedAddress.Port)
+
+	// Create the service registration.
+	ns2 := &structs.NodeService{
+		Kind:    structs.ServiceKindTypical,
+		ID:      "redis",
+		Service: "redis",
+		Address: "2.2.2.2",
+		Port:    2222,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Connect:        structs.ServiceConnect{Native: true},
+		EnterpriseMeta: *entMeta,
+	}
+	require.NoError(t, s.EnsureService(11, "node1", ns2))
+
+	// Make sure the virtual IP has been incremented for the redis service.
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.2", vip)
+
+	// Retrieve and verify
+	_, out, err = s.NodeServices(nil, "node1", nil)
+	assert.Nil(err)
+	assert.NotNil(out)
+
+	taggedAddress = out.Services["redis"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns2.Port, taggedAddress.Port)
+
+	// Delete the last  service and make sure it no longer has a virtual IP assigned.
+	require.NoError(t, s.DeleteService(12, "node1", "redis", entMeta))
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	require.NoError(t, err)
+	assert.Equal("", vip)
+
+	// Register a new service, should end up with the freed 240.0.0.2 address.
+	ns3 := &structs.NodeService{
+		Kind:    structs.ServiceKindTypical,
+		ID:      "backend",
+		Service: "backend",
+		Address: "2.2.2.2",
+		Port:    2222,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Connect:        structs.ServiceConnect{Native: true},
+		EnterpriseMeta: *entMeta,
+	}
+	require.NoError(t, s.EnsureService(13, "node1", ns3))
+
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "backend"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.2", vip)
+
+	// Retrieve and verify
+	_, out, err = s.NodeServices(nil, "node1", nil)
+	assert.Nil(err)
+	assert.NotNil(out)
+
+	taggedAddress = out.Services["backend"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns3.Port, taggedAddress.Port)
+
+	// Create a new service, no more freed VIPs so it should go back to using the counter.
+	ns4 := &structs.NodeService{
+		Kind:    structs.ServiceKindTypical,
+		ID:      "frontend",
+		Service: "frontend",
+		Address: "2.2.2.2",
+		Port:    2222,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Connect:        structs.ServiceConnect{Native: true},
+		EnterpriseMeta: *entMeta,
+	}
+	require.NoError(t, s.EnsureService(14, "node1", ns4))
+
+	// Make sure the virtual IP has been incremented for the frontend service.
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "frontend"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.3", vip)
+
+	// Retrieve and verify
+	_, out, err = s.NodeServices(nil, "node1", nil)
+	assert.Nil(err)
+	assert.NotNil(out)
+
+	taggedAddress = out.Services["frontend"].TaggedAddresses[structs.TaggedAddressVirtualIP]
 	assert.Equal(vip, taggedAddress.Address)
 	assert.Equal(ns4.Port, taggedAddress.Port)
 }
