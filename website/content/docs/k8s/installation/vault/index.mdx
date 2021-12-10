@@ -8,7 +8,7 @@ description: >-
 # Vault as Secrets Backend Overview
 
 By default, Consul Helm chart will expect that any credentials it needs are stored as Kubernetes secrets.
-As of Consul 1.11 and Consul Helm chart v0.?.?, we integrate more natively with Vault making it easier
+As of Consul 1.11 and Consul Helm chart v0.38.0, we integrate more natively with Vault making it easier
 to use Consul Helm chart with Vault as the secrets storage backend.
 
 At a high level, there are two points of integration with Vault:
@@ -20,9 +20,9 @@ At a high level, there are two points of integration with Vault:
 
 ## Requirements
 
-1. Vault 1.19+ and Vault-k8s 0.13+ is required.
+1. Vault 1.9+ and Vault-k8s 0.14+ is required.
 1. Vault must be installed and accessible to the Consul on Kubernetes installation.
-1. `global.tls.enableAutoencrypt=true` is required if TLS is enabled with Vault.
+1. `global.tls.enableAutoencrypt=true` is required if TLS is enabled for the Consul installation when using the Vault secrets backend.
 
 A minimal valid installation of Vault must include the Agent Injector:
 ```yaml
@@ -33,15 +33,45 @@ injector:
 
 ## Known Limitations
 
-1. TLS
-  * `global.tls.serverAdditionalDNSSans` is not currently configurable and must be manually added to the server certificate in Vault.
-  * `global.tls.serverAdditionalIPSans` is not currently configurable and must be manually added to the server certificate in Vault.
-  * Mesh gateway is not currently supported.
-1. Multi-DC Federation is not currently supported.
-1. Certificate rotation is not currently supported, ensure the TTL for your certificates is sufficiently long. Should your certificates
+- TLS
+  - `global.tls.serverAdditionalDNSSans` is not currently configurable and must be manually added to the server certificate in Vault.
+  - `global.tls.serverAdditionalIPSans` is not currently configurable and must be manually added to the server certificate in Vault.
+  - Mesh gateway is not currently supported.
+- Multi-DC Federation is not currently supported.
+- Certificate rotation is not currently supported, ensure the TTL for your certificates is sufficiently long. Should your certificates
 expire it will be necessary to issue a `consul reload` on each server.
-1. CA rotation is not currently supported.
+- CA rotation is not currently supported.
 
 ## Next Steps
 
-TODO
+To utilize Vault as a secrets backend with Consul it is necessary to add several configuration fields to the Vault installation
+which bootstrap Vault Auth roles and Policies for Consul to use. For the supported Vault secrets please see the individual secret
+guides and ensure to, when combining the secrets, append the Vault Policies to your Vault Kube Auth Roles via a CSV.
+Ex:
+```shell-session
+vault write auth/kubernetes/role/consul-server \
+    bound_service_account_names=<Consul server service account> \
+    bound_service_account_namespaces=<Consul installation namespace> \
+    policies=gossip-policy,consul-ca,consul-server \
+    ttl=1h
+```
+
+
+## Troubleshooting
+
+The Vault integration with Consul on Kubernetes makes use of the Vault Agent Injectors. Kubernetes annotations are added to the
+deployments of the Consul components which cause the Vault Agent Injector to be added as an init-container that will then attach
+Vault secrets to Consul's pods at startup. Additionally the Vault Agent sidecar is added to the Consul component pods which
+is responsible for synchronizing and reissuing secrets at runtime.
+As a result of these additional sidecar containers the typical location for logging is expanded in the Consul components.
+
+As a general rule the best way to troubleshoot startup issues for your Consul installation when using the Vault integration
+is to establish if the `vault-agent-init` container has completed or not via `kubectl logs -f <your-consul-component> -c vault-agent-int`
+and checking to see if the secrets have completed rendering.
+* If the secrets are not properly rendered the underlying problem will be logged in `vault-agent-init` init-container
+  and generally is related to the Vault Kube Auth Role not having the correct policies for the specific secret
+  e.g. `global.secretsBackend.vault.consulServerRole` not having the correct policies for TLS.
+* If the secrets are rendered and the `vault-agent-init` container has completed AND the Consul component has not become `Ready`,
+  this generally points to an issue with Consul being unable to utilize the Vault secret. This can occur if, for example, the Vault Role
+  created for the PKI engine does not have the correct `alt_names` or otherwise is not properly configured. The best logs for this
+  circumstance are the Consul container logs: `kubectl logs -f <your-consul-component> -c consul`.
