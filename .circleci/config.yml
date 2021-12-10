@@ -15,7 +15,7 @@ references:
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.17.2
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.17.5
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
 
   paths:
@@ -23,7 +23,6 @@ references:
 
   cache:
     yarn: &YARN_CACHE_KEY consul-ui-v6-{{ checksum "ui/yarn.lock" }}
-    rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
 
   environment: &ENVIRONMENT
     TEST_RESULTS_DIR: *TEST_RESULTS_DIR
@@ -134,7 +133,7 @@ jobs:
           name: Install golangci-lint
           command: |
             download=https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
-            wget -O- -q $download | sh -x -s -- -d -b /go/bin/ v1.40.1
+            wget -O- -q $download | sh -x -s -- -d -b /home/circleci/go/bin v1.40.1
       - run: go mod download
       - run:
           name: lint
@@ -211,10 +210,9 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: /go/bin
+          at: /home/circleci/go/bin
       - run: sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y rsyslog
       - run: sudo service rsyslog start
-      - run: *install-gotestsum
       - run: go mod download
       - run:
           name: go test
@@ -261,7 +259,6 @@ jobs:
       # but we can run a little over that limit.
     steps:
       - checkout
-      - run: *install-gotestsum
       - run: go mod download
       - run:
           name: go test -race
@@ -298,7 +295,6 @@ jobs:
       GOTAGS: "" # No tags for OSS but there are for enterprise
     steps:
       - checkout
-      - run: *install-gotestsum
       - run: go mod download
       - run:
           name: go test 32-bit
@@ -332,15 +328,14 @@ jobs:
       path:
         type: string
     docker:
-      - image: "docker.mirror.hashicorp.services/circleci/golang:<<parameters.go-version>>"
+      - image: "docker.mirror.hashicorp.services/cimg/go:<<parameters.go-version>>"
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
     steps:
       - checkout
       - attach_workspace:
-          at: /go/bin
-      - run: *install-gotestsum
+          at: /home/circleci/go/bin
       - run:
           working_directory: <<parameters.path>>
           command: go mod download
@@ -442,7 +437,7 @@ jobs:
 
       # save dev build to pass to downstream jobs
       - persist_to_workspace:
-          root: /go/bin
+          root: /home/circleci/go/bin
           paths:
             - consul
       - run: *notify-slack-failure
@@ -494,7 +489,7 @@ jobs:
       - run: make ci.dev-docker
       - run: *notify-slack-failure
 
-  # Nomad 0.8 builds on go0.10
+  # Nomad 0.8 builds on go1.10
   # Run integration tests on nomad/v0.8.7
   nomad-integration-0_8:
     docker:
@@ -538,7 +533,7 @@ jobs:
   # run integration tests on nomad/main
   nomad-integration-main:
     docker:
-      - image: *GOLANG_IMAGE
+      - image: docker.mirror.hashicorp.services/circleci/golang:1.17 # TODO: replace with cimg/go (requires steps update)
     environment:
       <<: *ENVIRONMENT
       NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
