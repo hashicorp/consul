@@ -2275,6 +2275,6 @@ func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {
 
 		// Existing token should not have been purged during ACL initialization
 		require.Len(r, anon.Policies, 1)
-		require.Equal(t, structs.ACLPolicyGlobalManagementID, anon.Policies[0].ID)
+		require.Equal(r, structs.ACLPolicyGlobalManagementID, anon.Policies[0].ID)
 	})
 }
