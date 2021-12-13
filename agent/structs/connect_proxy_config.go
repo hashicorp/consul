@@ -547,6 +547,25 @@ func (u *Upstream) String() string {
 	return u.Identifier()
 }
 
+// Identifier returns a string representation that uniquely identifies the
+// upstream in a canonical but human readable way.
+func (us *Upstream) Identifier() string {
+	name := us.enterpriseIdentifierPrefix() + us.DestinationName
+	typ := us.DestinationType
+
+	if us.Datacenter != "" {
+		name += "?dc=" + us.Datacenter
+	}
+
+	// Service is default type so never prefix it. This is more readable and long
+	// term it is the only type that matters so we can drop the prefix and have
+	// nicer naming in metrics etc.
+	if typ == "" || typ == UpstreamDestTypeService {
+		return name
+	}
+	return typ + ":" + name
+}
+
 // UpstreamFromAPI is a helper for converting api.Upstream to Upstream.
 func UpstreamFromAPI(u api.Upstream) Upstream {
 	return Upstream{

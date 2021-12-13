@@ -113,13 +113,17 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 	// we can safely modify these since we just copied them
 	for idx := range proxyCfg.Upstreams {
 		us := &proxyCfg.Upstreams[idx]
-		if us.DestinationType != structs.UpstreamDestTypePreparedQuery && us.DestinationNamespace == "" {
+		if us.DestinationType != structs.UpstreamDestTypePreparedQuery {
 			// default the upstreams target namespace and partition to those of the proxy
 			// doing this here prevents needing much more complex logic a bunch of other
 			// places and makes tracking these upstreams simpler as we can dedup them
 			// with the maps tracking upstream ids being watched.
-			proxyCfg.Upstreams[idx].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrDefault()
-			proxyCfg.Upstreams[idx].DestinationPartition = ns.EnterpriseMeta.PartitionOrDefault()
+			if us.DestinationPartition == "" {
+				proxyCfg.Upstreams[idx].DestinationPartition = ns.EnterpriseMeta.PartitionOrDefault()
+			}
+			if us.DestinationNamespace == "" {
+				proxyCfg.Upstreams[idx].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrDefault()
+			}
 		}
 	}
 

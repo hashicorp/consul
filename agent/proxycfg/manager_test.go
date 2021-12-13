@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -103,6 +104,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	upstreams := structs.TestUpstreams(t)
 	for i := range upstreams {
 		upstreams[i].DestinationNamespace = structs.IntentionDefaultNamespace
+		upstreams[i].DestinationPartition = api.PartitionDefaultName
 	}
 	webProxy := &structs.NodeService{
 		Kind:    structs.ServiceKindConnectProxy,

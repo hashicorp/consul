@@ -128,16 +128,31 @@ func (s *Store) EnsureRegistration(idx uint64, req *structs.RegisterRequest) err
 	return tx.Commit()
 }
 
-func (s *Store) ensureCheckIfNodeMatches(tx WriteTxn, idx uint64, preserveIndexes bool, node string, check *structs.HealthCheck) error {
-	// TODO(partitions): do we have to check partition here? probably not
-	if check.Node != node {
+func (s *Store) ensureCheckIfNodeMatches(
+	tx WriteTxn,
+	idx uint64,
+	preserveIndexes bool,
+	node string,
+	nodePartition string,
+	check *structs.HealthCheck,
+) error {
+	if check.Node != node || !structs.EqualPartitions(nodePartition, check.PartitionOrDefault()) {
 		return fmt.Errorf("check node %q does not match node %q",
-			check.Node, node)
+			printNodeName(check.Node, check.PartitionOrDefault()),
+			printNodeName(node, nodePartition),
+		)
 	}
 	if err := s.ensureCheckTxn(tx, idx, preserveIndexes, check); err != nil {
-		return fmt.Errorf("failed inserting check: %s on node %q", err, check.Node)
+		return fmt.Errorf("failed inserting check on node %q: %v", printNodeName(check.Node, check.PartitionOrDefault()), err)
 	}
 	return nil
+}
+
+func printNodeName(nodeName, partition string) string {
+	if structs.IsDefaultPartition(partition) {
+		return nodeName
+	}
+	return partition + "/" + nodeName
 }
 
 // ensureRegistrationTxn is used to make sure a node, service, and check
@@ -205,12 +220,12 @@ func (s *Store) ensureRegistrationTxn(tx WriteTxn, idx uint64, preserveIndexes b
 
 	// Add the checks, if any.
 	if req.Check != nil {
-		if err := s.ensureCheckIfNodeMatches(tx, idx, preserveIndexes, req.Node, req.Check); err != nil {
+		if err := s.ensureCheckIfNodeMatches(tx, idx, preserveIndexes, req.Node, req.PartitionOrDefault(), req.Check); err != nil {
 			return err
 		}
 	}
 	for _, check := range req.Checks {
-		if err := s.ensureCheckIfNodeMatches(tx, idx, preserveIndexes, req.Node, check); err != nil {
+		if err := s.ensureCheckIfNodeMatches(tx, idx, preserveIndexes, req.Node, req.PartitionOrDefault(), check); err != nil {
 			return err
 		}
 	}
@@ -525,9 +540,6 @@ func (s *Store) NodesByMeta(ws memdb.WatchSet, filters map[string]string, entMet
 func (s *Store) DeleteNode(idx uint64, nodeName string, entMeta *structs.EnterpriseMeta) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
-
-	// TODO(partition): double check all freshly modified state store functions
-	// that take an ent meta do this trick
 
 	// TODO: accept non-pointer value
 	if entMeta == nil {

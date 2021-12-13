@@ -43,19 +43,20 @@ func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) e
 
 func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *structs.NodeService) error {
 	var authzContext acl.AuthorizerContext
-	service.FillAuthzContext(&authzContext)
+
 	// Vet the service itself.
+	service.FillAuthzContext(&authzContext)
 	if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
-		serviceName := service.CompoundServiceName()
-		return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
+		return acl.PermissionDenied("Missing service:write on %s",
+			structs.ServiceIDString(service.Service, &service.EnterpriseMeta))
 	}
 
 	// Vet any service that might be getting overwritten.
 	if existing := a.State.Service(service.CompoundServiceID()); existing != nil {
 		existing.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			serviceName := service.CompoundServiceName()
-			return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
+			return acl.PermissionDenied("Missing service:write on %s",
+				structs.ServiceIDString(service.Service, &service.EnterpriseMeta))
 		}
 	}
 
@@ -64,8 +65,8 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	if service.Kind == structs.ServiceKindConnectProxy {
 		service.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-			// TODO(partitions) fix this to include namespace and partition
-			return acl.PermissionDenied("Missing service:write on %s", service.Proxy.DestinationServiceName)
+			return acl.PermissionDenied("Missing service:write on %s",
+				structs.ServiceIDString(service.Proxy.DestinationServiceName, &service.EnterpriseMeta))
 		}
 	}
 
@@ -79,8 +80,8 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 	if existing := a.State.Service(serviceID); existing != nil {
 		existing.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			serviceName := existing.CompoundServiceName()
-			return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
+			return acl.PermissionDenied("Missing service:write on %s",
+				structs.ServiceIDString(existing.Service, &existing.EnterpriseMeta))
 		}
 	} else {
 		return NotFoundError{Reason: fmt.Sprintf("Unknown service %q", serviceID)}
@@ -90,18 +91,19 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 }
 
 func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *structs.HealthCheck) error {
-	// TODO(partitions)
-
 	var authzContext acl.AuthorizerContext
 	check.FillAuthzContext(&authzContext)
+
 	// Vet the check itself.
 	if len(check.ServiceName) > 0 {
 		if authz.ServiceWrite(check.ServiceName, &authzContext) != acl.Allow {
-			return acl.PermissionDenied("Missing service:write on %v", structs.ServiceIDString(check.ServiceName, &check.EnterpriseMeta))
+			return acl.PermissionDenied("Missing service:write on %s",
+				structs.ServiceIDString(check.ServiceName, &check.EnterpriseMeta))
 		}
 	} else {
 		if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-			return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
+			return acl.PermissionDenied("Missing node:write on %s",
+				structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
 		}
 	}
 
@@ -109,11 +111,13 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 	if existing := a.State.Check(check.CompoundCheckID()); existing != nil {
 		if len(existing.ServiceName) > 0 {
 			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing service:write on %s", structs.ServiceIDString(existing.ServiceName, &existing.EnterpriseMeta))
+				return acl.PermissionDenied("Missing service:write on %s",
+					structs.ServiceIDString(existing.ServiceName, &existing.EnterpriseMeta))
 			}
 		} else {
 			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
+				return acl.PermissionDenied("Missing node:write on %s",
+					structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
 			}
 		}
 	}
@@ -129,11 +133,13 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 	if existing := a.State.Check(checkID); existing != nil {
 		if len(existing.ServiceName) > 0 {
 			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing service:write on %s", structs.ServiceIDString(existing.ServiceName, &existing.EnterpriseMeta))
+				return acl.PermissionDenied("Missing service:write on %s",
+					structs.ServiceIDString(existing.ServiceName, &existing.EnterpriseMeta))
 			}
 		} else {
 			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
+				return acl.PermissionDenied("Missing node:write on %s",
+					structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
 			}
 		}
 	} else {
