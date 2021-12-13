@@ -4,11 +4,29 @@
       <dl>
         <dt>Destination</dt>
         <dd>
-          {{item.DestinationName}}{{#if (can "use partitions")}} / {{item.DestinationPartition}}{{/if}}{{#if (can "use nspaces")}} / {{item.DestinationNS}}{{/if}}
+          <Consul::Bucket::List
+            @item={{hash
+              Namespace=item.DestinationNS
+              Partition=item.DestinationPartition
+              Service=item.DestinationName
+            }}
+            @nspace="-"
+            @partition="-"
+            @service={{true}}
+          />
         </dd>
         <dt>Source</dt>
         <dd>
-        {{item.SourceName}}{{#if (can "use partitions")}} / {{item.SourcePartition}}{{/if}}{{#if (can "use nspaces")}} / {{item.SourceNS}}{{/if}}
+          <Consul::Bucket::List
+            @item={{hash
+              Namespace=item.SourceNS
+              Partition=item.SourcePartition
+              Service=item.SourceName
+            }}
+            @nspace="-"
+            @partition="-"
+            @service={{true}}
+          />
         </dd>
 {{#if item.Action}}
         <dt>Action</dt>
