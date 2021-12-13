@@ -108,8 +108,10 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 					}
 				}
 
-				// TODO(partitions) Update to account for upstream in remote partition once tproxy supports it
-				addr, _ := node.BestAddress(false)
+				// Make sure to use an external address when crossing partitions.
+				isRemote := !structs.EqualPartitions(svc.PartitionOrDefault(), s.proxyID.PartitionOrDefault())
+				addr, _ := node.BestAddress(isRemote)
+
 				upstreamsSnapshot.PassthroughUpstreams[svc.String()].Addrs[addr] = struct{}{}
 			}
 		}
