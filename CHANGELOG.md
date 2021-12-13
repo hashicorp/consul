@@ -1,3 +1,9 @@
+## 1.9.12 (December 13, 2021)
+
+SECURITY:
+
+* ci: Upgrade to Go 1.16.12 to address [CVE-2021-44716](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716) [[GH-11807](https://github.com/hashicorp/consul/issues/11807)]
+
 ## 1.9.11 (November 11, 2021)
 
 SECURITY:
