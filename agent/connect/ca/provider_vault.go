@@ -529,12 +529,7 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("certificate was not a string")
 	}
-	ca, ok := response.Data["issuing_ca"].(string)
-	if !ok {
-		return "", fmt.Errorf("issuing_ca was not a string")
-	}
-
-	return EnsureTrailingNewline(cert) + EnsureTrailingNewline(ca), nil
+	return EnsureTrailingNewline(cert), nil
 }
 
 // SignIntermediate returns a signed CA certificate with a path length constraint
