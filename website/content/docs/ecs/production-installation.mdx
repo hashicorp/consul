@@ -68,7 +68,7 @@ deploying this controller.
 ## Deploy Services
 
 Once the ACL controller is up and running, you will be able to deploy services on the mesh using the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task).
-Start with the basic configuration for the [Task Module](/docs/ecs/get-started/install#task-module) and specify additional settings to make the configuration production-ready.
+Start with the basic configuration for the [Task Module](/docs/ecs/install#task-module) and specify additional settings to make the configuration production-ready.
 
 First, you will need to create an AWS Secrets Manager secret for the gossip encryption key that the Consul clients
 should use.
@@ -104,5 +104,5 @@ module "my_task" {
 }
 ```
 
-Now you can deploy your services! Follow the rest of the steps in the [Installation instructions](/docs/ecs/get-started/install#task-module)
+Now you can deploy your services! Follow the rest of the steps in the [Installation instructions](/docs/ecs/install#task-module)
 to deploy and connect your services.
