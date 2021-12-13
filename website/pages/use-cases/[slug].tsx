@@ -115,7 +115,7 @@ export default function UseCasePage({ data }) {
           description={cardsDescription}
           label="Tutorials"
           cta={{
-            url: 'https://learn.hashicorp.com/vault',
+            url: 'https://learn.hashicorp.com/consul',
             text: 'Explore all',
           }}
           cardsPerRow={3}
