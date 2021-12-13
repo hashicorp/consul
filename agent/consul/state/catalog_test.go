@@ -558,7 +558,7 @@ func deprecatedEnsureNodeWithoutIDCanRegister(t *testing.T, s *Store, nodeName s
 		Node:    nodeName,
 		Address: "1.1.1.9",
 		Meta: map[string]string{
-			"version": string(txIdx),
+			"version": fmt.Sprint(txIdx),
 		},
 	}
 	if err := s.EnsureNode(txIdx, in); err != nil {

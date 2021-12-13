@@ -13,9 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/logging"
 )
 
 // ALPNWrapper is a function that is used to wrap a non-TLS connection and
@@ -927,11 +928,6 @@ func (c *Configurator) wrapALPNTLSClient(dc, nodeName, alpnProto string, conn ne
 	if err := tlsConn.Handshake(); err != nil {
 		tlsConn.Close()
 		return nil, err
-	}
-
-	if cs := tlsConn.ConnectionState(); !cs.NegotiatedProtocolIsMutual {
-		tlsConn.Close()
-		return nil, fmt.Errorf("could not negotiate ALPN protocol %q with %q", alpnProto, config.ServerName)
 	}
 
 	return tlsConn, nil

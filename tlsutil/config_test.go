@@ -226,7 +226,6 @@ func TestConfigurator_outgoingWrapperALPN_OK(t *testing.T) {
 	tlsConn := tlsClient.(*tls.Conn)
 	cs := tlsConn.ConnectionState()
 	require.Equal(t, "foo", cs.NegotiatedProtocol)
-	require.True(t, cs.NegotiatedProtocolIsMutual)
 
 	err = <-errc
 	require.NoError(t, err)

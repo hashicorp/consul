@@ -5,9 +5,10 @@ package cpu
 import (
 	"context"
 	"fmt"
+	"strings"
 	"unsafe"
 
-	"github.com/StackExchange/wmi"
+	"github.com/yusufpapurcu/wmi"
 	"github.com/shirou/gopsutil/internal/common"
 	"golang.org/x/sys/windows"
 )
@@ -18,7 +19,14 @@ var (
 )
 
 type Win32_Processor struct {
-	LoadPercentage            *uint16
+	Win32_ProcessorWithoutLoadPct
+	LoadPercentage *uint16
+}
+
+// LoadPercentage takes a linearly more time as the number of sockets increases.
+// For vSphere by default corespersocket = 1, meaning for a 40 vCPU VM Get Processor Info
+// could take more than half a minute.
+type Win32_ProcessorWithoutLoadPct struct {
 	Family                    uint16
 	Manufacturer              string
 	Name                      string
@@ -104,8 +112,9 @@ func Info() ([]InfoStat, error) {
 
 func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 	var ret []InfoStat
-	var dst []Win32_Processor
+	var dst []Win32_ProcessorWithoutLoadPct
 	q := wmi.CreateQuery(&dst, "")
+	q = strings.ReplaceAll(q, "Win32_ProcessorWithoutLoadPct", "Win32_Processor")
 	if err := common.WMIQueryWithContext(ctx, q, &dst); err != nil {
 		return ret, err
 	}
@@ -242,8 +251,9 @@ func CountsWithContext(ctx context.Context, logical bool) (int, error) {
 	}
 	// physical cores https://github.com/giampaolo/psutil/blob/d01a9eaa35a8aadf6c519839e987a49d8be2d891/psutil/_psutil_windows.c#L499
 	// for the time being, try with unreliable and slow WMI call…
-	var dst []Win32_Processor
+	var dst []Win32_ProcessorWithoutLoadPct
 	q := wmi.CreateQuery(&dst, "")
+	q = strings.ReplaceAll(q, "Win32_ProcessorWithoutLoadPct", "Win32_Processor")
 	if err := common.WMIQueryWithContext(ctx, q, &dst); err != nil {
 		return 0, err
 	}

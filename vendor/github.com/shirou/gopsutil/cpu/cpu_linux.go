@@ -6,28 +6,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/shirou/gopsutil/internal/common"
+	"github.com/tklauser/go-sysconf"
 )
 
 var ClocksPerSec = float64(100)
 
 func init() {
-	getconf, err := exec.LookPath("getconf")
-	if err != nil {
-		return
-	}
-	out, err := invoke.CommandWithContext(context.Background(), getconf, "CLK_TCK")
+	clkTck, err := sysconf.Sysconf(sysconf.SC_CLK_TCK)
 	// ignore errors
 	if err == nil {
-		i, err := strconv.ParseFloat(strings.TrimSpace(string(out)), 64)
-		if err == nil {
-			ClocksPerSec = i
-		}
+		ClocksPerSec = float64(clkTck)
 	}
 }
 
@@ -148,9 +141,44 @@ func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 			c.CPU = int32(t)
 		case "vendorId", "vendor_id":
 			c.VendorID = value
+		case "CPU implementer":
+			if v, err := strconv.ParseUint(value, 0, 8); err == nil {
+				switch v {
+				case 0x41:
+					c.VendorID = "ARM"
+				case 0x42:
+					c.VendorID = "Broadcom"
+				case 0x43:
+					c.VendorID = "Cavium"
+				case 0x44:
+					c.VendorID = "DEC"
+				case 0x46:
+					c.VendorID = "Fujitsu"
+				case 0x48:
+					c.VendorID = "HiSilicon"
+				case 0x49:
+					c.VendorID = "Infineon"
+				case 0x4d:
+					c.VendorID = "Motorola/Freescale"
+				case 0x4e:
+					c.VendorID = "NVIDIA"
+				case 0x50:
+					c.VendorID = "APM"
+				case 0x51:
+					c.VendorID = "Qualcomm"
+				case 0x56:
+					c.VendorID = "Marvell"
+				case 0x61:
+					c.VendorID = "Apple"
+				case 0x69:
+					c.VendorID = "Intel"
+				case 0xc0:
+					c.VendorID = "Ampere"
+				}
+			}
 		case "cpu family":
 			c.Family = value
-		case "model":
+		case "model", "CPU part":
 			c.Model = value
 		case "model name", "cpu":
 			c.ModelName = value
@@ -160,7 +188,7 @@ func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 				c.Family = "POWER"
 				c.VendorID = "IBM"
 			}
-		case "stepping", "revision":
+		case "stepping", "revision", "CPU revision":
 			val := value
 
 			if key == "revision" {
@@ -293,8 +321,11 @@ func CountsWithContext(ctx context.Context, logical bool) (int, error) {
 		if err == nil {
 			for _, line := range lines {
 				line = strings.ToLower(line)
-				if strings.HasPrefix(line, "processor") {
-					ret++
+				if strings.HasPrefix(line, "processor")  {
+					_, err = strconv.Atoi(strings.TrimSpace(line[strings.IndexByte(line, ':')+1:]))
+					if err == nil {
+						ret++
+					}
 				}
 			}
 		}
@@ -313,19 +344,25 @@ func CountsWithContext(ctx context.Context, logical bool) (int, error) {
 		return ret, nil
 	}
 	// physical cores
-	// https://github.com/giampaolo/psutil/blob/122174a10b75c9beebe15f6c07dcf3afbe3b120d/psutil/_pslinux.py#L621-L629
+	// https://github.com/giampaolo/psutil/blob/8415355c8badc9c94418b19bdf26e622f06f0cce/psutil/_pslinux.py#L615-L628
 	var threadSiblingsLists = make(map[string]bool)
-	if files, err := filepath.Glob(common.HostSys("devices/system/cpu/cpu[0-9]*/topology/thread_siblings_list")); err == nil {
-		for _, file := range files {
-			lines, err := common.ReadLines(file)
-			if err != nil || len(lines) != 1 {
-				continue
+	// These 2 files are the same but */core_cpus_list is newer while */thread_siblings_list is deprecated and may disappear in the future.
+	// https://www.kernel.org/doc/Documentation/admin-guide/cputopology.rst
+	// https://github.com/giampaolo/psutil/pull/1727#issuecomment-707624964
+	// https://lkml.org/lkml/2019/2/26/41
+	for _, glob := range []string{"devices/system/cpu/cpu[0-9]*/topology/core_cpus_list", "devices/system/cpu/cpu[0-9]*/topology/thread_siblings_list"} {
+		if files, err := filepath.Glob(common.HostSys(glob)); err == nil {
+			for _, file := range files {
+				lines, err := common.ReadLines(file)
+				if err != nil || len(lines) != 1 {
+					continue
+				}
+				threadSiblingsLists[lines[0]] = true
 			}
-			threadSiblingsLists[lines[0]] = true
-		}
-		ret := len(threadSiblingsLists)
-		if ret != 0 {
-			return ret, nil
+			ret := len(threadSiblingsLists)
+			if ret != 0 {
+				return ret, nil
+			}
 		}
 	}
 	// https://github.com/giampaolo/psutil/blob/122174a10b75c9beebe15f6c07dcf3afbe3b120d/psutil/_pslinux.py#L631-L652

@@ -69,15 +69,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - {go: "1.14", goos: "linux", goarch: "386"}
-          - {go: "1.14", goos: "linux", goarch: "amd64"}
-          - {go: "1.14", goos: "linux", goarch: "arm"}
-          - {go: "1.14", goos: "linux", goarch: "arm64"}
-          - {go: "1.14", goos: "freebsd", goarch: "386"}
-          - {go: "1.14", goos: "freebsd", goarch: "amd64"}
-          - {go: "1.14", goos: "windows", goarch: "386"}
-          - {go: "1.14", goos: "windows", goarch: "amd64"}
-          - {go: "1.14", goos: "solaris", goarch: "amd64"}
+          - {go: "1.16.12", goos: "linux", goarch: "386"}
+          - {go: "1.16.12", goos: "linux", goarch: "amd64"}
+          - {go: "1.16.12", goos: "linux", goarch: "arm"}
+          - {go: "1.16.12", goos: "linux", goarch: "arm64"}
+          - {go: "1.16.12", goos: "freebsd", goarch: "386"}
+          - {go: "1.16.12", goos: "freebsd", goarch: "amd64"}
+          - {go: "1.16.12", goos: "windows", goarch: "386"}
+          - {go: "1.16.12", goos: "windows", goarch: "amd64"}
+          - {go: "1.16.12", goos: "solaris", goarch: "amd64"}
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -177,7 +177,7 @@ jobs:
       matrix:
         goos: [ darwin ]
         goarch: [ "amd64" ]
-        go: [ "1.14" ]
+        go: [ "1.16.12" ]
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build

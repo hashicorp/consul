@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -21,11 +22,27 @@ import (
 const USER_PROCESS = 7
 
 func HostIDWithContext(ctx context.Context) (string, error) {
-	uuid, err := unix.Sysctl("kern.uuid")
+	ioreg, err := exec.LookPath("ioreg")
 	if err != nil {
 		return "", err
 	}
-	return strings.ToLower(uuid), err
+
+	out, err := invoke.CommandWithContext(ctx, ioreg, "-rd1", "-c", "IOPlatformExpertDevice")
+	if err != nil {
+		return "", err
+	}
+
+	for _, line := range strings.Split(string(out), "\n") {
+		if strings.Contains(line, "IOPlatformUUID") {
+			parts := strings.SplitAfter(line, `" = "`)
+			if len(parts) == 2 {
+				uuid := strings.TrimRight(parts[1], `"`)
+				return strings.ToLower(uuid), nil
+			}
+		}
+	}
+
+	return "", errors.New("cannot find host id")
 }
 
 func numProcs(ctx context.Context) (uint64, error) {

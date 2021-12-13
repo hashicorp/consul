@@ -11,7 +11,6 @@ replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20140225173054
 require (
 	github.com/Microsoft/go-winio v0.4.3 // indirect
 	github.com/NYTimes/gziphandler v1.0.1
-	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.3.4
 	github.com/armon/go-radix v1.0.0
@@ -23,9 +22,9 @@ require (
 	github.com/elazarl/go-bindata-assetfs v0.0.0-20160803192304-e1a2a7ec64b0
 	github.com/envoyproxy/go-control-plane v0.9.5
 	github.com/frankban/quicktest v1.11.1 // indirect
-	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.3.2
+	github.com/google/go-cmp v0.5.6
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/gofuzz v1.0.0
 	github.com/google/pprof v0.0.0-20210601050228-01bbb1931b22
@@ -68,7 +67,7 @@ require (
 	github.com/mitchellh/copystructure v1.0.0
 	github.com/mitchellh/go-testing-interface v1.14.0
 	github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452
-	github.com/mitchellh/mapstructure v1.3.3
+	github.com/mitchellh/mapstructure v1.4.1-0.20210112042008-8ebf2d61a8b4
 	github.com/mitchellh/pointerstructure v1.0.0
 	github.com/mitchellh/reflectwalk v1.0.1
 	github.com/pascaldekloe/goe v0.1.0
@@ -79,15 +78,17 @@ require (
 	github.com/prometheus/client_golang v1.4.0
 	github.com/rboyer/safeio v0.2.1
 	github.com/ryanuber/columnize v2.1.0+incompatible
-	github.com/shirou/gopsutil v2.20.9+incompatible
-	github.com/stretchr/testify v1.5.1
+	github.com/shirou/gopsutil v3.21.11+incompatible
+	github.com/stretchr/testify v1.7.0
+	github.com/tklauser/go-sysconf v0.3.9 // indirect
+	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.opencensus.io v0.22.0 // indirect
 	go.uber.org/goleak v1.0.0
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
-	golang.org/x/sys v0.0.0-20201007082116-8445cc04cbdf
+	golang.org/x/sys v0.0.0-20211013075003-97ac67df715c
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	google.golang.org/api v0.9.0 // indirect
 	google.golang.org/appengine v1.6.0 // indirect
