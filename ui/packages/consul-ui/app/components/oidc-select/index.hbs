@@ -34,7 +34,7 @@ as |chart|}}
         {{on 'click' (queue (set this 'partition' '') (fn dispatch "RESET"))}}
         class="reset"
       >
-        Choose different Admin Partition
+        Choose different Partition
       </Action>
     </State>
 
@@ -53,7 +53,7 @@ as |chart|}}
           )
         )
       }}
-      @placeholder="Enter name of Admin Partition to log in to"
+      @placeholder="Enter your Partition"
       @oninput={{action (mut this.partition) value="target.value"}}
       @chart={{hash
         state=state
