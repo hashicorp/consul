@@ -63,11 +63,7 @@
               @showCreateWhen={{action "isUnique" partitions}}
               @onCreate={{action onchange "SourcePartition"}}
               @onChange={{action onchange "SourcePartition"}} as |partition|>
-                {{#if (eq partition.Name '*') }}
-                  * (All Partitions)
-                {{else}}
-                  {{partition.Name}}
-                {{/if}}
+                {{partition.Name}}
           </PowerSelectWithCreate>
         {{#if create}}
           <em>Search for an existing partition, or enter any Partition name.</em>
@@ -136,11 +132,7 @@
               @showCreateWhen={{action "isUnique" partitions}}
               @onCreate={{action onchange "DestinationPartition"}}
               @onChange={{action onchange "DestinationPartition"}} as |partition|>
-                  {{#if (eq partition.Name '*') }}
-                    * (All Partitions)
-                  {{else}}
-                    {{partition.Name}}
-                  {{/if}}
+                {{partition.Name}}
           </PowerSelectWithCreate>
         {{#if create}}
           <em>For the destination, you may choose any partition for which you have access.</em>

@@ -122,10 +122,9 @@ export default class ConsulIntentionForm extends Component {
   @action
   createPartitions(item, e) {
     // Partitions in the menus should:
-    // 1. Include an 'All Partitions' option
+    // 1. NOT include an 'All Partitions' option
     // 2. Include the current SourcePartition and DestinationPartition incase they don't exist yet
     let items = e.data.toArray().sort((a, b) => a.Name.localeCompare(b.Name));
-    items = [{ Name: '*' }].concat(items);
     let source = items.findBy('Name', item.SourcePartition);
     if (!source) {
       source = { Name: item.SourcePartition };
