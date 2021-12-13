@@ -17,6 +17,7 @@ import (
 // A shared data structure that contains information about discovered upstreams
 type ConfigSnapshotUpstreams struct {
 	Leaf *structs.IssuedCert
+
 	// DiscoveryChain is a map of upstream.Identifier() ->
 	// CompiledDiscoveryChain's, and is used to determine what services could be
 	// targeted by this upstream. We then instantiate watches for those targets.
@@ -53,6 +54,11 @@ type ConfigSnapshotUpstreams struct {
 
 	// PassthroughEndpoints is a map of: ServiceName -> ServicePassthroughAddrs.
 	PassthroughUpstreams map[string]ServicePassthroughAddrs
+
+	// IntentionUpstreams is a set of upstreams inferred from intentions.
+	// The keys are created with structs.ServiceName.String().
+	// This list only applies to proxies registered in 'transparent' mode.
+	IntentionUpstreams map[string]struct{}
 }
 
 type GatewayKey struct {
@@ -129,6 +135,7 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 		len(c.PreparedQueryEndpoints) == 0 &&
 		len(c.UpstreamConfig) == 0 &&
 		len(c.PassthroughUpstreams) == 0 &&
+		len(c.IntentionUpstreams) == 0 &&
 		!c.MeshConfigSet
 }
 

@@ -271,6 +271,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				return fmt.Errorf("failed to watch discovery chain for %s: %v", svc.String(), err)
 			}
 		}
+		snap.ConnectProxy.IntentionUpstreams = seenServices
 
 		// Clean up data from services that were not in the update
 		for sn, targets := range snap.ConnectProxy.WatchedUpstreams {

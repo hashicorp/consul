@@ -1833,6 +1833,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "should still be valid")
 
+						require.Equal(t, map[string]struct{}{db.String(): {}}, snap.ConnectProxy.IntentionUpstreams)
+
 						// Should start watch for db's chain
 						require.Contains(t, snap.ConnectProxy.WatchedDiscoveryChains, db.String())
 
@@ -2062,6 +2064,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Empty(t, snap.ConnectProxy.WatchedGateways)
 						require.Empty(t, snap.ConnectProxy.WatchedGatewayEndpoints)
 						require.Empty(t, snap.ConnectProxy.DiscoveryChain)
+						require.Empty(t, snap.ConnectProxy.IntentionUpstreams)
 					},
 				},
 			},
@@ -2225,6 +2228,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "should still be valid")
+						require.Empty(t, snap.ConnectProxy.IntentionUpstreams)
 
 						// Explicit upstream discovery chain watches don't get stored in these maps because they don't
 						// get canceled unless the proxy registration is modified.
