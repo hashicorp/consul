@@ -1,8 +1,19 @@
 {{#if (can "use nspaces")}}
-    {{#if (can "choose nspaces")}}
-{{#let
-  (or @nspace 'default')
-as |nspace|}}
+  {{#let
+    (or @nspace 'default')
+  as |nspace|}}
+    <DataSource
+      @src={{uri
+        '/${partition}/*/${dc}/namespaces/once'
+        (hash
+          partition=@partition
+          dc=@dc.Name
+        )
+      }}
+      @onchange={{fn (optional @onchange)}}
+    />
+    {{#if (can 'see nspaces' items=@nspaces)}}
+{{#if (can "choose nspaces")}}
           <li
             class="nspaces"
             data-test-nspace-menu
@@ -16,10 +27,9 @@ as |nspace|}}
                 </BlockSlot>
                 <BlockSlot @name="menu">
                   {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-                  {{#if (gt @nspaces.length 0)}}
                     <DataSource
                       @src={{uri
-                      '/${partition}/*/${dc}/namespaces'
+                      '/${partition}/*/${dc}/namespaces/once'
                         (hash
                           partition=@partition
                           dc=@dc.Name
@@ -28,18 +38,6 @@ as |nspace|}}
                       @onchange={{fn (optional @onchange)}}
                       @loading="lazy"
                     />
-                  {{else}}
-                    <DataSource
-                      @src={{uri
-                      '/${partition}/*/${dc}/namespaces'
-                        (hash
-                          partition=@partition
-                          dc=@dc.Name
-                        )
-                      }}
-                      @onchange={{fn (optional @onchange)}}
-                    />
-                  {{/if}}
                   {{#each (reject-by 'DeletedAt' @nspaces) as |item|}}
                     <MenuItem
                       class={{if (eq nspace item.Name) 'is-active'}}
@@ -68,7 +66,8 @@ as |nspace|}}
                 </BlockSlot>
               </PopoverMenu>
           </li>
-{{/let}}
+{{/if}}
     {{/if}}
-  {{/if}}
+  {{/let}}
+{{/if}}
 

@@ -48,6 +48,7 @@ export default class NspaceService extends RepositoryService {
   }
 
   @dataSource('/:partition/:ns/:dc/namespaces')
+  @dataSource('/:partition/:ns/:dc/namespaces/:once')
   async findAll() {
     if (!this.permissions.can('use nspaces')) {
       return [];

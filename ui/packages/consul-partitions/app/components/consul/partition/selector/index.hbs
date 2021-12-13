@@ -2,6 +2,16 @@
 {{#let
   (or @partition 'default')
 as |partition|}}
+  <DataSource
+    @src={{uri
+      '/*/*/${dc}/partitions'
+      (hash
+        dc=@dc.Name
+      )
+    }}
+    @onchange={{fn (optional @onchange)}}
+  />
+{{#if (can 'see partitions' items=@partitions)}}
   {{#if (can "choose partitions" dc=@dc)}}
       <li
         class="partitions"
@@ -16,15 +26,6 @@ as |partition|}}
             </BlockSlot>
             <BlockSlot @name="menu">
               {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-                <DataSource
-                  @src={{uri
-                    '/*/*/${dc}/partitions'
-                    (hash
-                      dc=@dc.Name
-                    )
-                  }}
-                  @onchange={{fn (optional @onchange)}}
-                />
               {{#each (reject-by 'DeletedAt' @partitions) as |item|}}
                 <MenuItem
                   class={{if (eq partition item.Name) 'is-active'}}
@@ -60,7 +61,9 @@ as |partition|}}
     >
       {{'default'}}
     </li>
-  {{/if}}
-{{/let}}
+{{/if}}
+
+    {{/if}}
+  {{/let}}
 {{/if}}
 

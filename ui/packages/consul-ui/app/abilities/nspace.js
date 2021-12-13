@@ -23,6 +23,13 @@ export default class NspaceAbility extends BaseAbility {
     return this.canUse;
   }
 
+  get canSee() {
+    if (typeof this.items !== 'undefined' && this.items.length > 0) {
+      return true;
+    }
+    return false;
+  }
+
   get canUse() {
     return this.env.var('CONSUL_NSPACES_ENABLED');
   }

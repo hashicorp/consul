@@ -20,10 +20,17 @@ export default class PartitionAbility extends BaseAbility {
   }
 
   get canChoose() {
-    if(typeof this.dc === 'undefined') {
+    if (typeof this.dc === 'undefined') {
       return false;
     }
     return this.canUse && this.dc.Primary;
+  }
+
+  get canSee() {
+    if (typeof this.items !== 'undefined' && this.items.length > 0) {
+      return true;
+    }
+    return false;
   }
 
   get canUse() {

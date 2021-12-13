@@ -3,8 +3,8 @@ import { SLUG_KEY } from 'consul-ui/models/nspace';
 
 // namespaces aren't categorized by datacenter, therefore no dc
 export default class NspaceAdapter extends Adapter {
-  requestForQuery(request, { dc, partition, index, uri }) {
-    return request`
+  async requestForQuery(request, { dc, partition, index, uri, once }) {
+    const respond = await request`
       GET /v1/namespaces?${{ dc }}
       X-Request-ID: ${uri}
 
@@ -13,6 +13,10 @@ export default class NspaceAdapter extends Adapter {
         index,
       }}
     `;
+    if (once === 'once') {
+      await respond((headers, body) => delete headers['x-consul-index']);
+    }
+    return respond;
   }
 
   requestForQueryRecord(request, { dc, partition, index, id }) {
