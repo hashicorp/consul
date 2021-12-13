@@ -4,6 +4,9 @@
 .app .notifications {
   @extend %app-notifications;
 }
+.app footer {
+  @extend %footer;
+}
 %app-notifications {
   display: flex;
   flex-direction: column;
@@ -58,14 +61,36 @@
 %main-nav-vertical-hoisted.is-active > label > * {
   @extend %main-nav-horizontal-action-active;
 }
+%footer,
 %main-nav-sidebar,
 %main-notifications,
 main {
   @extend %transition-pushover;
 }
+%footer {
+  position: absolute;
+  z-index: 50;
+
+  color: rgb(var(--tone-gray-400));
+  font-size: var(--typo-size-800);
+
+  width: 250px;
+  padding-left: 25px;
+}
+.app footer {
+  top: calc(100vh - 42px);
+  top: calc(max(100vh, 460px) - 42px);
+}
+html.has-partitions.has-nspaces .app footer {
+  top: calc(100vh - 42px);
+  top: calc(max(100vh, 640px) - 42px);
+}
+%main-nav-sidebar {
+  z-index: 10;
+}
+%footer,
 %main-nav-sidebar {
   transition-property: left;
-  z-index: 10;
 }
 %app-notifications,
 main {
@@ -83,20 +108,20 @@ main {
   %main-nav-horizontal-toggle:checked ~ main .notifications {
     width: 100%;
   }
+  %main-nav-horizontal-toggle ~ footer,
   %main-nav-horizontal-toggle + header > div > nav:first-of-type {
     left: 0;
   }
+  %main-nav-horizontal-toggle:checked ~ footer,
   %main-nav-horizontal-toggle:checked + header > div > nav:first-of-type {
     left: calc(var(--chrome-width, 300px) * -1);
   }
   %main-nav-horizontal-toggle ~ main .notifications,
-  %main-nav-horizontal-toggle ~ main,
-  %main-nav-horizontal-toggle ~ footer {
+  %main-nav-horizontal-toggle ~ main {
     margin-left: var(--chrome-width, 300px);
   }
   %main-nav-horizontal-toggle:checked ~ main .notifications,
-  %main-nav-horizontal-toggle:checked ~ main,
-  %main-nav-horizontal-toggle:checked ~ footer {
+  %main-nav-horizontal-toggle:checked ~ main {
     margin-left: 0;
   }
 }
@@ -104,15 +129,16 @@ main {
   %main-nav-horizontal-toggle ~ main .notifications {
     width: 100%;
   }
+  %main-nav-horizontal-toggle:checked ~ footer,
   %main-nav-horizontal-toggle:checked + header > div > nav:first-of-type {
     left: 0;
   }
+  %main-nav-horizontal-toggle ~ footer,
   %main-nav-horizontal-toggle + header > div > nav:first-of-type {
     left: calc(var(--chrome-width, 300px) * -1);
   }
   %main-nav-horizontal-toggle ~ main .notifications,
-  %main-nav-horizontal-toggle ~ main,
-  %main-nav-horizontal-toggle ~ footer {
+  %main-nav-horizontal-toggle ~ main {
     margin-left: 0;
   }
 }
