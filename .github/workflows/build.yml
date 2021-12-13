@@ -6,6 +6,7 @@ on:
     branches:
     # Provide the release branch
       - release/1.8.x
+      - release/1.8.18
 
 env:
   PKG_NAME: consul
