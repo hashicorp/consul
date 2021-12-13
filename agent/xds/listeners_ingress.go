@@ -217,9 +217,8 @@ func resolveListenerTLSConfig(gatewayTLSCfg *structs.GatewayTLSConfig, listenerC
 	// Validate. Configuring cipher suites is only applicable to connections negotiated
 	// via TLS 1.2 or earlier. Other cases shouldn't be possible as we validate them at
 	// input but be resilient to bugs later.
-	switch {
-	case mergedCfg.TLSMinVersion >= types.TLSv1_3 && len(mergedCfg.CipherSuites) != 0:
-		return nil, fmt.Errorf("configuring CipherSuites is only applicable to conncetions negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s", mergedCfg.TLSMinVersion)
+	if len(mergedCfg.CipherSuites) != 0 && mergedCfg.TLSMinVersion == types.TLSv1_3 {
+		return nil, fmt.Errorf("configuring CipherSuites is only applicable to conncetions negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s in listener or gateway config", mergedCfg.TLSMinVersion)
 	}
 
 	return &mergedCfg, nil
