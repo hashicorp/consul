@@ -78,9 +78,6 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		return snap, err
 	}
 
-	// default the namespace to the namespace of this proxy service
-	currentNamespace := s.proxyID.NamespaceOrDefault()
-
 	if s.proxyCfg.Mode == structs.ProxyModeTransparent {
 		// When in transparent proxy we will infer upstreams from intentions with this source
 		err := s.cache.Notify(ctx, cachetype.IntentionUpstreamsName, &structs.ServiceSpecificRequest{
@@ -131,14 +128,14 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			continue
 		}
 
-		ns := currentNamespace
-		if u.DestinationNamespace != "" {
-			ns = u.DestinationNamespace
-		}
-
+		// Default the partition and namespace to the namespace of this proxy service.
 		partition := s.proxyID.PartitionOrDefault()
 		if u.DestinationPartition != "" {
 			partition = u.DestinationPartition
+		}
+		ns := s.proxyID.NamespaceOrDefault()
+		if u.DestinationNamespace != "" {
+			ns = u.DestinationNamespace
 		}
 
 		cfg, err := parseReducedUpstreamConfig(u.Config)
