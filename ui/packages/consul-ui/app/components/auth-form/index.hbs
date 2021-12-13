@@ -84,7 +84,7 @@ as |TabState IgnoredGuard IgnoredAction tabDispatch tabState|>
                   The token entered does not exist. Please enter a valid token to log in.
                 {{else if (eq this.error.status '404')}}
                   <strong>No providers</strong><br />
-                  No SSO providers are configured for that Admin Partition.
+                  No SSO providers are configured for that Partition.
                 {{else}}
                   <strong>Error</strong><br />
                   {{this.error.detail}}
