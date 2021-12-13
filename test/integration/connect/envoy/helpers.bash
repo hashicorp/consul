@@ -48,7 +48,7 @@ function retry_default {
 }
 
 function retry_long {
-  retry 30 1 "$@"
+  retry 30 2 "$@"
 }
 
 function echored {
