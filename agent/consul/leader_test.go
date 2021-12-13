@@ -2265,7 +2265,7 @@ func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {
 		c.ACLsEnabled = true
 	})
 	defer os.RemoveAll(dir2)
-	defer s1.Shutdown()
+	defer newS1.Shutdown()
 	testrpc.WaitForTestAgent(t, newS1.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {
