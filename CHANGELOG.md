@@ -1,3 +1,13 @@
+## 1.10.5 (December 13, 2021)
+
+SECURITY:
+
+* ci: Upgrade to Go 1.16.12 to address [CVE-2021-44716](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716) [[GH-11808](https://github.com/hashicorp/consul/issues/11808)]
+
+BUG FIXES:
+
+* agent: **(Enterprise only)** fix bug where 1.10.x agents would deregister serf checks from 1.11.x servers [[GH-11700](https://github.com/hashicorp/consul/issues/11700)]
+
 ## 1.10.4 (November 11, 2021)
 
 SECURITY:
