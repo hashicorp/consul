@@ -56,7 +56,10 @@ as |api|>
     </BlockSlot>
 
     <BlockSlot @name="form">
-{{#let api.data as |item|}}
+{{#let
+  api.data
+  (not (can 'write intention' item=api.data))
+as |item readonly|}}
 {{#if (not readonly)}}
 
   {{#let (changeset-get item 'Action') as |newAction|}}
@@ -193,6 +196,7 @@ as |api|>
         </div>
       </form>
   {{else}}
+
     {{#if item.IsManagedByCRD}}
       <Notice
         class="crd"
@@ -215,8 +219,10 @@ as |api|>
         </notice.Footer>
       </Notice>
     {{/if}}
+
     <Consul::Intention::View
       @item={{item}}
+      data-test-readonly
     />
   {{/if}}
 {{/let}}
