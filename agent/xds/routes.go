@@ -28,7 +28,7 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		return s.routesForConnectProxy(cfgSnap.ConnectProxy.DiscoveryChain)
+		return s.routesForConnectProxy(cfgSnap)
 	case structs.ServiceKindIngressGateway:
 		return s.routesForIngressGateway(
 			cfgSnap.IngressGateway.Listeners,
@@ -46,10 +46,16 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 
 // routesFromSnapshotConnectProxy returns the xDS API representation of the
 // "routes" in the snapshot.
-func (s *ResourceGenerator) routesForConnectProxy(chains map[string]*structs.CompiledDiscoveryChain) ([]proto.Message, error) {
+func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
-	for id, chain := range chains {
+	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		if chain.IsDefault() {
+			continue
+		}
+
+		explicit := cfgSnap.ConnectProxy.UpstreamConfig[id].HasLocalPortOrSocket()
+		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[id]; !implicit && !explicit {
+			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
 
