@@ -371,6 +371,9 @@ type configSnapshotIngressGateway struct {
 	// the GatewayServices RPC to retrieve them.
 	Upstreams map[IngressListenerKey]structs.Upstreams
 
+	// UpstreamsSet is the unique set of upstream.Identifier() the gateway routes to.
+	UpstreamsSet map[string]struct{}
+
 	// Listeners is the original listener config from the ingress-gateway config
 	// entry to save us trying to pass fields through Upstreams
 	Listeners map[IngressListenerKey]structs.IngressListener
@@ -381,6 +384,7 @@ func (c *configSnapshotIngressGateway) IsEmpty() bool {
 		return true
 	}
 	return len(c.Upstreams) == 0 &&
+		len(c.UpstreamsSet) == 0 &&
 		len(c.DiscoveryChain) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0

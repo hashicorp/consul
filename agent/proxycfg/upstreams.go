@@ -44,11 +44,25 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 		}
 		svc := strings.TrimPrefix(u.CorrelationID, "discovery-chain:")
 
-		explicit := snap.ConnectProxy.UpstreamConfig[svc].HasLocalPortOrSocket()
-		if _, implicit := snap.ConnectProxy.IntentionUpstreams[svc]; !implicit && !explicit {
-			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
-			// The associated watch was likely cancelled.
-			return nil
+		switch snap.Kind {
+		case structs.ServiceKindIngressGateway:
+			if _, ok := snap.IngressGateway.UpstreamsSet[svc]; !ok {
+				// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
+				// The associated watch was likely cancelled.
+				s.logger.Trace("discovery-chain watch fired for unknown upstream", "upstream", svc)
+				return nil
+			}
+
+		case structs.ServiceKindConnectProxy:
+			explicit := snap.ConnectProxy.UpstreamConfig[svc].HasLocalPortOrSocket()
+			if _, implicit := snap.ConnectProxy.IntentionUpstreams[svc]; !implicit && !explicit {
+				// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
+				// The associated watch was likely cancelled.
+				s.logger.Trace("discovery-chain watch fired for unknown upstream", "upstream", svc)
+				return nil
+			}
+		default:
+			return fmt.Errorf("discovery-chain watch fired for unsupported kind: %s", snap.Kind)
 		}
 
 		upstreamsSnapshot.DiscoveryChain[svc] = resp.Chain
