@@ -273,11 +273,14 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 		}
 
 		// Clean up data from services that were not in the update
-		for sn := range snap.ConnectProxy.WatchedUpstreams {
+		for sn, targets := range snap.ConnectProxy.WatchedUpstreams {
 			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
 			if _, ok := seenServices[sn]; !ok {
+				for _, cancelFn := range targets {
+					cancelFn()
+				}
 				delete(snap.ConnectProxy.WatchedUpstreams, sn)
 			}
 		}
@@ -289,11 +292,14 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				delete(snap.ConnectProxy.WatchedUpstreamEndpoints, sn)
 			}
 		}
-		for sn := range snap.ConnectProxy.WatchedGateways {
+		for sn, cancelMap := range snap.ConnectProxy.WatchedGateways {
 			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
 			if _, ok := seenServices[sn]; !ok {
+				for _, cancelFn := range cancelMap {
+					cancelFn()
+				}
 				delete(snap.ConnectProxy.WatchedGateways, sn)
 			}
 		}
