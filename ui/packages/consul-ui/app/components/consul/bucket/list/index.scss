@@ -8,15 +8,22 @@
   .nspace::before {
     @extend %with-folder-outline-mask, %as-pseudo;
   }
+  .service {
+    @extend %visually-hidden;
+  }
+  .service + dd {
+    font-weight: var(--typo-weight-semibold);
+  }
   /* potential for some sort of %composite-kv thing here */
-  .partition + dd::after {
+  dd:not(:last-child)::after {
     display: inline-block;
     content: '/';
     margin: 0 3px;
     /*TODO: In isolation this is not needed */
     margin-right: 6px;
   }
-  .partition + dd + .nspace {
+  .service + dd,
+  dd + dt {
     margin-left: 0 !important;
   }
   /**/

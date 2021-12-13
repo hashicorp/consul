@@ -6,6 +6,10 @@
 %definition-table > dl {
   margin-bottom: 1.4em;
 }
-%definition-table dd > * {
+/* TODO: We currently have one instance of nested dls */
+/* and that is for nesting a bucket list */
+/* we should probably think about changing this to possibly inline flex */
+/* or individually styling the contents */
+%definition-table > dl > dd > *:not(dl) {
   display: inline-block;
 }
