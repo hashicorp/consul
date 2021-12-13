@@ -422,7 +422,6 @@ type RegisterRequest struct {
 	// node portion of this update will not apply.
 	SkipNodeUpdate bool
 
-	// TODO(partitions): ensure the partition part is used for node reg
 	// EnterpriseMeta is the embedded enterprise metadata
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
@@ -467,11 +466,10 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 // to deregister a node as providing a service. If no service is
 // provided the entire node is deregistered.
 type DeregisterRequest struct {
-	Datacenter string
-	Node       string
-	ServiceID  string
-	CheckID    types.CheckID
-	// TODO(partitions): ensure the partition part is used for node reg
+	Datacenter     string
+	Node           string
+	ServiceID      string
+	CheckID        types.CheckID
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	WriteRequest
 }
@@ -914,7 +912,6 @@ type ServiceNode struct {
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
 
-	// TODO(partitions): ensure that Node+Service are both in the same Partition
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
@@ -1123,7 +1120,6 @@ type NodeService struct {
 	// somewhere this is used in API output.
 	LocallyRegisteredAsSidecar bool `json:"-" bexpr:"-"`
 
-	// TODO(partitions): ensure that Node+Service are both in the same Partition
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
