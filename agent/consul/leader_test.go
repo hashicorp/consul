@@ -2207,3 +2207,74 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "240.0.0.1", vip)
 }
+
+func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = true
+		c.Datacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken, nil)
+		require.NoError(r, err)
+		require.NotNil(r, anon)
+		require.Len(r, anon.Policies, 0)
+	})
+
+	reqToken := structs.ACLTokenSetRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			AccessorID:  structs.ACLTokenAnonymousID,
+			SecretID:    anonymousToken,
+			Description: "Anonymous Token",
+			CreateTime:  time.Now(),
+			Policies: []structs.ACLTokenPolicyLink{
+				{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var respToken structs.ACLToken
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &reqToken, &respToken))
+
+	// Restart the server to re-initialize ACLs when establishing leadership
+	require.NoError(t, s1.Shutdown())
+	dir2, newS1 := testServerWithConfig(t, func(c *Config) {
+		// Keep existing data dir and node info since it's a restart
+		c.DataDir = s1.config.DataDir
+		c.NodeName = s1.config.NodeName
+		c.NodeID = s1.config.NodeID
+		c.Bootstrap = true
+		c.Datacenter = "dc1"
+		c.ACLsEnabled = true
+	})
+	defer os.RemoveAll(dir2)
+	defer newS1.Shutdown()
+	testrpc.WaitForTestAgent(t, newS1.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		_, anon, err := newS1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken, nil)
+		require.NoError(r, err)
+		require.NotNil(r, anon)
+
+		// Existing token should not have been purged during ACL initialization
+		require.Len(r, anon.Policies, 1)
+		require.Equal(r, structs.ACLPolicyGlobalManagementID, anon.Policies[0].ID)
+	})
+}

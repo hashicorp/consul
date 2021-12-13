@@ -485,7 +485,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 		}
 
 		state := s.fsm.State()
-		_, token, err := state.ACLTokenGetBySecret(nil, structs.ACLTokenAnonymousID, nil)
+		_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
 		if err != nil {
 			return fmt.Errorf("failed to get anonymous token: %v", err)
 		}
