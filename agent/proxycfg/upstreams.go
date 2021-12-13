@@ -43,6 +43,14 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		svc := strings.TrimPrefix(u.CorrelationID, "discovery-chain:")
+
+		explicit := snap.ConnectProxy.UpstreamConfig[svc].HasLocalPortOrSocket()
+		if _, implicit := snap.ConnectProxy.IntentionUpstreams[svc]; !implicit && !explicit {
+			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
+			// The associated watch was likely cancelled.
+			return nil
+		}
+
 		upstreamsSnapshot.DiscoveryChain[svc] = resp.Chain
 
 		if err := s.resetWatchesFromChain(ctx, svc, resp.Chain, upstreamsSnapshot); err != nil {
