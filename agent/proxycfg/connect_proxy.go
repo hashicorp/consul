@@ -319,6 +319,17 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 			if _, ok := seenServices[sn]; !ok {
 				cancelFn()
 				delete(snap.ConnectProxy.WatchedDiscoveryChains, sn)
+			}
+		}
+		// These entries are intentionally handled separately from the WatchedDiscoveryChains above.
+		// There have been situations where a discovery watch was cancelled, then fired.
+		// That update event then re-populated the DiscoveryChain map entry, which wouldn't get cleaned up
+		// since there was no known watch for it.
+		for sn := range snap.ConnectProxy.DiscoveryChain {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+				continue
+			}
+			if _, ok := seenServices[sn]; !ok {
 				delete(snap.ConnectProxy.DiscoveryChain, sn)
 			}
 		}
