@@ -97,6 +97,9 @@ Prior to creating the Kubernetes auth roles required for Consul to securely acce
 
 ```shell-session
 vault auth enable kubernetes
+```
+
+Finally, two Kubernetes auth roles need to be created, one for the Consul servers and one for the Consul components:
 
 ```shell-session
 vault write auth/kubernetes/role/consul-server \
