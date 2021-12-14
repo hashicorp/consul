@@ -21,13 +21,15 @@ jobs:
       - name: get product version
         id: get-product-version
         run: |
-          IFS="-"; OUTPUT=$(build-support/scripts/version.sh -r);
-          read -a V <<< "$OUTPUT"; unset IFS;
-
-          VERSION=${V[0]}
-          PREREL_VERSION=${V[1]}
-
-          echo "::set-output name=product-version::${VERSION}-${PREREL_VERSION}"
+          CONSUL_VERSION=$(build-support/scripts/version.sh -r)
+          ## TODO: This assumes `make version` outputs 1.1.1+ent-prerel
+          IFS="+" read VERSION _other <<< "$CONSUL_VERSION"
+          IFS="-" read _other PREREL_VERSION <<< "$CONSUL_VERSION"
+          ## TODO: this assumes `version.sh` outputs in the expected ordering of
+          ##       [version]+ent{-prerelease}  If we need to transition to
+          ##       [version]{-prerelease}+ent before then, we'll need to add
+          ##       logic to handle presense/absence of the prerelease
+          echo "::set-output name=product-version::${CONSUL_VERSION}"
           echo "::set-output name=pre-version::${PREREL_VERSION}"
           echo "::set-output name=pkg-version::${VERSION}"
 
