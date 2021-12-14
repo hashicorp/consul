@@ -23,13 +23,13 @@ At a high level, there are two points of integration with Vault:
 1. Vault 1.9+ and Vault-k8s 0.14+ is required.
 1. Vault must be installed and accessible to the Consul on Kubernetes installation.
 1. `global.tls.enableAutoencrypt=true` is required if TLS is enabled for the Consul installation when using the Vault secrets backend.
+1. The Vault installation must have been initialized, unsealed and the KV2 and PKI secrets engines enabled and the Kubernetes Auth Method enabled.
 
 A minimal valid installation of Vault must include the Agent Injector:
 ```yaml
 injector:
   enabled: "true"
 ```
-
 
 ## Known Limitations
 

@@ -39,6 +39,7 @@ global:
       enabled: true
       consulServerRole: consul-server
       consulClientRole: consul-client
+      consulCARole: consul-ca
       connectCA:
         address: <the address of the Vault server>
         rootPKIPath: <the path to root PKI>
@@ -48,9 +49,9 @@ global:
 The `address` you provide to the `connectCA` configuration can be a Kubernetes DNS
 address if the Vault cluster is running the same Kubernetes cluster.
 The `rootPKIPath` and `intermediatePKIPath` should be the same as the ones
-defined in your Connect CA policy. Behind the scenes, Consul will authenticate to Vault using a Kubernetes 
-service account using the [Kubernetes auth method](https://www.vaultproject.io/docs/auth/kubernetes) and will use the Vault token for any API calls to Vault. If the Vault token can not be renewed, Consul will re-authenticate to 
-generate a new Vault token. 
+defined in your Connect CA policy. Behind the scenes, Consul will authenticate to Vault using a Kubernetes
+service account using the [Kubernetes auth method](https://www.vaultproject.io/docs/auth/kubernetes) and will use the Vault token for any API calls to Vault. If the Vault token can not be renewed, Consul will re-authenticate to
+generate a new Vault token.
 
 
 ### Secondary Datacenters
