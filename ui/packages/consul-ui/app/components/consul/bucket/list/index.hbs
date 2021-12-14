@@ -1,0 +1,39 @@
+{{#if (and @partition (can 'use partitions'))}}
+  {{#if (not-eq @item.Partition @partition)}}
+    <dl class="consul-bucket-list">
+      <dt
+        class="partition"
+        {{tooltip}}
+      >
+        Admin Partition
+      </dt>
+      <dd>
+        {{@item.Partition}}
+      </dd>
+      <dt
+        class="nspace"
+        {{tooltip}}
+      >
+        Namespace
+      </dt>
+      <dd>
+        {{@item.Namespace}}
+      </dd>
+    </dl>
+  {{/if}}
+{{else if (and @nspace (can 'use nspace'))}}
+  {{#if (not-eq @item.Namespace @nspace)}}
+    <dl>
+      <dt
+        class="nspace"
+        {{tooltip}}
+      >
+        Namespace
+      </dt>
+      <dd>
+        {{@item.Namespace}}
+      </dd>
+    </dl>
+  {{/if}}
+{{/if}}
+

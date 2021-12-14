@@ -24,27 +24,21 @@ as |item index|>
           {{/if}}
       </dd>
     </dl>
-{{#if (and (can 'use partitions') (not-eq item.Partition @partition))}}
-    <dl class="partition">
-      <dt
-        {{tooltip}}
-      >
-        Admin Partition
-      </dt>
-      <dd>
-        {{item.Partition}}
-      </dd>
-    </dl>
-{{/if}}
     <a
       data-test-service-name
-      href={{if (and (can 'use nspaces') (not-eq item.Namespace @nspace))
-        (href-to 'dc.services.show' @dc item.Name
-          params=(hash
+      href={{href-to "dc.services.show" item.Name
+        params=(if (not-eq item.Partition @partition)
+          (hash
+            partition=item.Partition
             nspace=item.Namespace
           )
+          (if (not-eq item.Namespace @nspace)
+            (hash
+              nspace=item.Namespace
+            )
+            (hash)
+          )
         )
-        (href-to 'dc.services.show' item.Name)
       }}
     >
       {{item.Name}}
@@ -56,18 +50,11 @@ as |item index|>
 {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
-{{#if (and (can 'use nspaces') (not-eq item.Namespace @nspace))}}
-    <dl class="nspace">
-      <dt
-        {{tooltip}}
-      >
-        Namespace
-      </dt>
-      <dd>
-        {{item.Namespace}}
-      </dd>
-    </dl>
-{{/if}}
+    <Consul::Bucket::List
+      @item={{item}}
+      @nspace={{@nspace}}
+      @partition={{@partition}}
+    />
 {{#each item.GatewayConfig.Addresses as |address|}}
     <dl>
       <dt>

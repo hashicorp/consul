@@ -125,6 +125,7 @@
               <:content>
                 <Consul::ServiceIdentity::Template
                   @nspace={{nspace}}
+                  @partition={{partition}}
                   @name={{item.Name}}
                 />
               </:content>
@@ -140,6 +141,7 @@
               <:content>
                 <Consul::NodeIdentity::Template
                   @name={{item.Name}}
+                  @partition={{partition}}
                 />
               </:content>
             </CodeEditor>

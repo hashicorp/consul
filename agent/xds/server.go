@@ -7,6 +7,8 @@ import (
 	"time"
 
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
@@ -18,6 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	agentgrpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/tlsutil"
@@ -219,8 +222,18 @@ func tokenFromContext(ctx context.Context) string {
 // NewGRPCServer creates a grpc.Server, registers the Server, and then returns
 // the grpc.Server.
 func NewGRPCServer(s *Server, tlsConfigurator *tlsutil.Configurator) *grpc.Server {
+	recoveryOpts := agentgrpc.PanicHandlerMiddlewareOpts(s.Logger)
+
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
+		middleware.WithUnaryServerChain(
+			// Add middlware interceptors to recover in case of panics.
+			recovery.UnaryServerInterceptor(recoveryOpts...),
+		),
+		middleware.WithStreamServerChain(
+			// Add middlware interceptors to recover in case of panics.
+			recovery.StreamServerInterceptor(recoveryOpts...),
+		),
 	}
 	if tlsConfigurator != nil {
 		if tlsConfigurator.Cert() != nil {

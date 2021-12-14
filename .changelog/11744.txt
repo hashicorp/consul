@@ -1,0 +1,3 @@
+```release-note:note
+Renamed the `agent_master` field to `agent_recovery` in the `acl-tokens.json` file in which tokens are persisted on-disk (when `acl.enable_token_persistence` is enabled)
+```

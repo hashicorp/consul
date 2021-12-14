@@ -464,6 +464,14 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, vip, "240.0.0.2")
 
+	_, serviceNames, err := fsm.state.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
+	require.NoError(t, err)
+
+	expect := []string{"backend", "db", "frontend", "web"}
+	for i, sn := range serviceNames {
+		require.Equal(t, expect[i], sn.Service.Name)
+	}
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	require.NoError(t, err)
@@ -690,10 +698,10 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Len(t, roots, 2)
 
 	// Verify provider state is restored.
-	_, state, err := fsm2.state.CAProviderState("asdf")
+	_, provider, err := fsm2.state.CAProviderState("asdf")
 	require.NoError(t, err)
-	require.Equal(t, "foo", state.PrivateKey)
-	require.Equal(t, "bar", state.RootCert)
+	require.Equal(t, "foo", provider.PrivateKey)
+	require.Equal(t, "bar", provider.RootCert)
 
 	// Verify CA configuration is restored.
 	_, caConf, err := fsm2.state.CAConfig(nil)
@@ -750,6 +758,14 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	_, meshConfigEntry, err := fsm2.state.ConfigEntry(nil, structs.MeshConfig, structs.MeshConfigMesh, structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Equal(t, meshConfig, meshConfigEntry)
+
+	_, restoredServiceNames, err := fsm2.state.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
+	require.NoError(t, err)
+
+	expect = []string{"backend", "db", "frontend", "web"}
+	for i, sn := range restoredServiceNames {
+		require.Equal(t, expect[i], sn.Service.Name)
+	}
 
 	// Snapshot
 	snap, err = fsm2.Snapshot()

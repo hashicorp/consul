@@ -15,11 +15,17 @@ export const Collection = class Collection {
   }
 
   get ExternalSources() {
-    const sources = this.items.reduce(function(prev, item) {
+    const items = this.items.reduce(function(prev, item) {
       return prev.concat(item.ExternalSources || []);
     }, []);
     // unique, non-empty values, alpha sort
-    return [...new Set(sources)].filter(Boolean).sort();
+    return [...new Set(items)].filter(Boolean).sort();
+  }
+  // TODO: Think about when this/collections is worthwhile using and explain
+  // when and when not somewhere in the docs
+  get Partitions() {
+    // unique, non-empty values, alpha sort
+    return [...new Set(this.items.map(item => item.Partition))].sort();
   }
 };
 export default class Service extends Model {

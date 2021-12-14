@@ -17,12 +17,12 @@ type Logger interface {
 
 // Config used by Store.Load, which includes tokens and settings for persistence.
 type Config struct {
-	EnablePersistence   bool
-	DataDir             string
-	ACLDefaultToken     string
-	ACLAgentToken       string
-	ACLAgentMasterToken string
-	ACLReplicationToken string
+	EnablePersistence     bool
+	DataDir               string
+	ACLDefaultToken       string
+	ACLAgentToken         string
+	ACLAgentRecoveryToken string
+	ACLReplicationToken   string
 
 	EnterpriseConfig
 }
@@ -69,10 +69,10 @@ func (t *Store) WithPersistenceLock(f func() error) error {
 }
 
 type persistedTokens struct {
-	Replication string `json:"replication,omitempty"`
-	AgentMaster string `json:"agent_master,omitempty"`
-	Default     string `json:"default,omitempty"`
-	Agent       string `json:"agent,omitempty"`
+	Replication   string `json:"replication,omitempty"`
+	AgentRecovery string `json:"agent_recovery,omitempty"`
+	Default       string `json:"default,omitempty"`
+	Agent         string `json:"agent,omitempty"`
 }
 
 type fileStore struct {
@@ -110,14 +110,14 @@ func loadTokens(s *Store, cfg Config, tokens persistedTokens, logger Logger) {
 		s.UpdateAgentToken(cfg.ACLAgentToken, TokenSourceConfig)
 	}
 
-	if tokens.AgentMaster != "" {
-		s.UpdateAgentMasterToken(tokens.AgentMaster, TokenSourceAPI)
+	if tokens.AgentRecovery != "" {
+		s.UpdateAgentRecoveryToken(tokens.AgentRecovery, TokenSourceAPI)
 
-		if cfg.ACLAgentMasterToken != "" {
-			logger.Warn("\"agent_master\" token present in both the configuration and persisted token store, using the persisted token")
+		if cfg.ACLAgentRecoveryToken != "" {
+			logger.Warn("\"agent_recovery\" token present in both the configuration and persisted token store, using the persisted token")
 		}
 	} else {
-		s.UpdateAgentMasterToken(cfg.ACLAgentMasterToken, TokenSourceConfig)
+		s.UpdateAgentRecoveryToken(cfg.ACLAgentRecoveryToken, TokenSourceConfig)
 	}
 
 	if tokens.Replication != "" {
@@ -134,22 +134,32 @@ func loadTokens(s *Store, cfg Config, tokens persistedTokens, logger Logger) {
 }
 
 func readPersistedFromFile(filename string) (persistedTokens, error) {
-	tokens := persistedTokens{}
+	var tokens struct {
+		persistedTokens
+
+		// Support reading tokens persisted by versions <1.11, where agent_master was
+		// renamed to agent_recovery.
+		LegacyAgentMaster string `json:"agent_master"`
+	}
 
 	buf, err := ioutil.ReadFile(filename)
 	switch {
 	case os.IsNotExist(err):
 		// non-existence is not an error we care about
-		return tokens, nil
+		return tokens.persistedTokens, nil
 	case err != nil:
-		return tokens, fmt.Errorf("failed reading tokens file %q: %w", filename, err)
+		return tokens.persistedTokens, fmt.Errorf("failed reading tokens file %q: %w", filename, err)
 	}
 
 	if err := json.Unmarshal(buf, &tokens); err != nil {
-		return tokens, fmt.Errorf("failed to decode tokens file %q: %w", filename, err)
+		return tokens.persistedTokens, fmt.Errorf("failed to decode tokens file %q: %w", filename, err)
 	}
 
-	return tokens, nil
+	if tokens.AgentRecovery == "" {
+		tokens.AgentRecovery = tokens.LegacyAgentMaster
+	}
+
+	return tokens.persistedTokens, nil
 }
 
 func (p *fileStore) withPersistenceLock(s *Store, f func() error) error {
@@ -170,8 +180,8 @@ func (p *fileStore) saveToFile(s *Store) error {
 		tokens.Agent = tok
 	}
 
-	if tok, source := s.AgentMasterTokenAndSource(); tok != "" && source == TokenSourceAPI {
-		tokens.AgentMaster = tok
+	if tok, source := s.AgentRecoveryTokenAndSource(); tok != "" && source == TokenSourceAPI {
+		tokens.AgentRecovery = tok
 	}
 
 	if tok, source := s.ReplicationTokenAndSource(); tok != "" && source == TokenSourceAPI {

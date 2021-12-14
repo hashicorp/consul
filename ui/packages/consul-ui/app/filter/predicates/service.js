@@ -20,6 +20,9 @@ export default {
     'not-registered': (item, value) => item.InstanceCount === 0,
   },
   source: (item, values) => {
-    return setHelpers.intersectionSize(values, new Set(item.ExternalSources || [])) !== 0;
+    return (
+      setHelpers.intersectionSize(values, new Set(item.ExternalSources || [])) !== 0 ||
+      values.includes(item.Partition)
+    );
   },
 };

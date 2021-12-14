@@ -352,7 +352,7 @@ function run_tests {
     start_consul secondary
   fi
   if is_set $REQUIRE_PARTITIONS; then
-    docker_consul "primary" admin-partition create -name ap1 > /dev/null
+    docker_consul "primary" consul partition create -name ap1 > /dev/null
     start_partitioned_client ap1
   fi
 
@@ -513,6 +513,14 @@ function run_container_s2-secondary {
   common_run_container_service s2-secondary secondary 8181 8179
 }
 
+function run_container_s2-ap1 {
+  common_run_container_service s2 ap1 8480 8479
+}
+
+function run_container_s3-ap1 {
+  common_run_container_service s3 ap1 8580 8579
+}
+
 function common_run_container_sidecar_proxy {
   local service="$1"
   local CLUSTER="$2"
@@ -579,6 +587,14 @@ function run_container_s1-sidecar-proxy-secondary {
 }
 function run_container_s2-sidecar-proxy-secondary {
   common_run_container_sidecar_proxy s2 secondary
+}
+
+function run_container_s2-ap1-sidecar-proxy {
+  common_run_container_sidecar_proxy s2 ap1
+}
+
+function run_container_s3-ap1-sidecar-proxy {
+  common_run_container_sidecar_proxy s3 ap1
 }
 
 function common_run_container_gateway {

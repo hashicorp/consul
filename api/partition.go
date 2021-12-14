@@ -6,13 +6,13 @@ import (
 	"time"
 )
 
-// AdminPartition is the configuration of a single admin partition. Admin Partitions are a Consul Enterprise feature.
-type AdminPartition struct {
+// Partition is the configuration of a single admin partition. Admin Partitions are a Consul Enterprise feature.
+type Partition struct {
 	// Name is the name of the Partition.
 	Name string `json:"Name"`
 
 	// Description is where the user puts any information they want
-	// about the partition. It is not used internally.
+	// about the admin partition. It is not used internally.
 	Description string `json:"Description,omitempty"`
 
 	// DeletedAt is the time when the Partition was marked for deletion
@@ -29,11 +29,7 @@ type AdminPartition struct {
 // PartitionDefaultName is the default partition value.
 const PartitionDefaultName = "default"
 
-type AdminPartitions struct {
-	Partitions []*AdminPartition
-}
-
-// Partitions can be used to manage Partitions in Consul Enterprise..
+// Partitions can be used to manage Partitions in Consul Enterprise.
 type Partitions struct {
 	c *Client
 }
@@ -43,7 +39,7 @@ func (c *Client) Partitions() *Partitions {
 	return &Partitions{c}
 }
 
-func (p *Partitions) Create(ctx context.Context, partition *AdminPartition, q *WriteOptions) (*AdminPartition, *WriteMeta, error) {
+func (p *Partitions) Create(ctx context.Context, partition *Partition, q *WriteOptions) (*Partition, *WriteMeta, error) {
 	if partition.Name == "" {
 		return nil, nil, fmt.Errorf("Must specify a Name for Partition creation")
 	}
@@ -62,7 +58,7 @@ func (p *Partitions) Create(ctx context.Context, partition *AdminPartition, q *W
 	}
 
 	wm := &WriteMeta{RequestTime: rtt}
-	var out AdminPartition
+	var out Partition
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}
@@ -70,7 +66,7 @@ func (p *Partitions) Create(ctx context.Context, partition *AdminPartition, q *W
 	return &out, wm, nil
 }
 
-func (p *Partitions) Update(ctx context.Context, partition *AdminPartition, q *WriteOptions) (*AdminPartition, *WriteMeta, error) {
+func (p *Partitions) Update(ctx context.Context, partition *Partition, q *WriteOptions) (*Partition, *WriteMeta, error) {
 	if partition.Name == "" {
 		return nil, nil, fmt.Errorf("Must specify a Name for Partition updating")
 	}
@@ -89,7 +85,7 @@ func (p *Partitions) Update(ctx context.Context, partition *AdminPartition, q *W
 	}
 
 	wm := &WriteMeta{RequestTime: rtt}
-	var out AdminPartition
+	var out Partition
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}
@@ -97,8 +93,8 @@ func (p *Partitions) Update(ctx context.Context, partition *AdminPartition, q *W
 	return &out, wm, nil
 }
 
-func (p *Partitions) Read(ctx context.Context, name string, q *QueryOptions) (*AdminPartition, *QueryMeta, error) {
-	var out AdminPartition
+func (p *Partitions) Read(ctx context.Context, name string, q *QueryOptions) (*Partition, *QueryMeta, error) {
+	var out Partition
 	r := p.c.newRequest("GET", "/v1/partition/"+name)
 	r.setQueryOptions(q)
 	r.ctx = ctx
@@ -143,8 +139,8 @@ func (p *Partitions) Delete(ctx context.Context, name string, q *WriteOptions) (
 	return wm, nil
 }
 
-func (p *Partitions) List(ctx context.Context, q *QueryOptions) (*AdminPartitions, *QueryMeta, error) {
-	var out *AdminPartitions
+func (p *Partitions) List(ctx context.Context, q *QueryOptions) ([]*Partition, *QueryMeta, error) {
+	var out []*Partition
 	r := p.c.newRequest("GET", "/v1/partitions")
 	r.setQueryOptions(q)
 	r.ctx = ctx

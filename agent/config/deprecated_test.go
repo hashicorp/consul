@@ -110,8 +110,8 @@ func TestLoad_DeprecatedConfig_ACLMasterTokens(t *testing.T) {
 		require.ElementsMatch(expectWarns, result.Warnings)
 
 		rt := result.RuntimeConfig
-		require.Equal("token1", rt.ACLMasterToken)
-		require.Equal("token2", rt.ACLTokens.ACLAgentMasterToken)
+		require.Equal("token1", rt.ACLInitialManagementToken)
+		require.Equal("token2", rt.ACLTokens.ACLAgentRecoveryToken)
 	})
 
 	t.Run("embedded in tokens struct", func(t *testing.T) {
@@ -141,8 +141,8 @@ func TestLoad_DeprecatedConfig_ACLMasterTokens(t *testing.T) {
 		require.ElementsMatch(expectWarns, result.Warnings)
 
 		rt := result.RuntimeConfig
-		require.Equal("token1", rt.ACLMasterToken)
-		require.Equal("token2", rt.ACLTokens.ACLAgentMasterToken)
+		require.Equal("token1", rt.ACLInitialManagementToken)
+		require.Equal("token2", rt.ACLTokens.ACLAgentRecoveryToken)
 	})
 
 	t.Run("both", func(t *testing.T) {
@@ -169,7 +169,7 @@ func TestLoad_DeprecatedConfig_ACLMasterTokens(t *testing.T) {
 		require.NoError(err)
 
 		rt := result.RuntimeConfig
-		require.Equal("token3", rt.ACLMasterToken)
-		require.Equal("token4", rt.ACLTokens.ACLAgentMasterToken)
+		require.Equal("token3", rt.ACLInitialManagementToken)
+		require.Equal("token4", rt.ACLTokens.ACLAgentRecoveryToken)
 	})
 }

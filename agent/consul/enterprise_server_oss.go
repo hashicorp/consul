@@ -88,7 +88,7 @@ func (s *Server) validateEnterpriseIntentionNamespace(ns string, _ bool) error {
 func (s *Server) setupSerfLAN(config *Config) error {
 	var err error
 	// Initialize the LAN Serf for the default network segment.
-	s.serfLAN, err = s.setupSerf(setupSerfOptions{
+	s.serfLAN, _, err = s.setupSerf(setupSerfOptions{
 		Config:       config.SerfLANConfig,
 		EventCh:      s.eventChLAN,
 		SnapshotPath: serfLANSnapshot,

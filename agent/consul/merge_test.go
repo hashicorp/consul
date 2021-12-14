@@ -138,10 +138,16 @@ func TestMerge_WAN(t *testing.T) {
 	type testcase struct {
 		members []*serf.Member
 		expect  string
+		setupFn func(t *testing.T, delegate *wanMergeDelegate)
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		delegate := &wanMergeDelegate{}
+		delegate := &wanMergeDelegate{
+			localDatacenter: "dc1",
+		}
+		if tc.setupFn != nil {
+			tc.setupFn(t, delegate)
+		}
 		err := delegate.NotifyMerge(tc.members)
 		if tc.expect == "" {
 			require.NoError(t, err)
@@ -177,7 +183,33 @@ func TestMerge_WAN(t *testing.T) {
 					build:  "0.7.5",
 				}),
 			},
-			expect: "",
+		},
+		"federation disabled and local join allowed": {
+			setupFn: func(t *testing.T, delegate *wanMergeDelegate) {
+				delegate.SetWANFederationDisabled(true)
+			},
+			members: []*serf.Member{
+				makeTestNode(t, testMember{
+					dc:     "dc1",
+					name:   "node1",
+					server: true,
+					build:  "0.7.5",
+				}),
+			},
+		},
+		"federation disabled and remote join blocked": {
+			setupFn: func(t *testing.T, delegate *wanMergeDelegate) {
+				delegate.SetWANFederationDisabled(true)
+			},
+			members: []*serf.Member{
+				makeTestNode(t, testMember{
+					dc:     "dc2",
+					name:   "node1",
+					server: true,
+					build:  "0.7.5",
+				}),
+			},
+			expect: `WAN federation is disabled`,
 		},
 	}
 

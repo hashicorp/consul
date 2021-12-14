@@ -37,7 +37,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -478,7 +478,7 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 

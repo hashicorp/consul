@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
@@ -86,13 +87,40 @@ func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 // ring. We check that the peers are server nodes and abort the merge
 // otherwise.
 type wanMergeDelegate struct {
+	localDatacenter string
+
+	federationDisabledLock sync.Mutex
+	federationDisabled     bool
+}
+
+// SetWANFederationDisabled selectively disables the wan pool from accepting
+// non-local members. If the toggle changed the current value it returns true.
+func (md *wanMergeDelegate) SetWANFederationDisabled(disabled bool) bool {
+	md.federationDisabledLock.Lock()
+	prior := md.federationDisabled
+	md.federationDisabled = disabled
+	md.federationDisabledLock.Unlock()
+
+	return prior != disabled
 }
 
 func (md *wanMergeDelegate) NotifyMerge(members []*serf.Member) error {
+	// Deliberately hold this lock during the entire merge so calls to
+	// SetWANFederationDisabled returning immediately imply that the flag takes
+	// effect for all future merges.
+	md.federationDisabledLock.Lock()
+	defer md.federationDisabledLock.Unlock()
+
 	for _, m := range members {
-		ok, _ := metadata.IsConsulServer(*m)
+		ok, srv := metadata.IsConsulServer(*m)
 		if !ok {
 			return fmt.Errorf("Member '%s' is not a server", m.Name)
+		}
+
+		if md.federationDisabled {
+			if srv.Datacenter != md.localDatacenter {
+				return fmt.Errorf("Member '%s' part of wrong datacenter '%s'; WAN federation is disabled", m.Name, srv.Datacenter)
+			}
 		}
 	}
 	return nil

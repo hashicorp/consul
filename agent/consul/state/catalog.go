@@ -741,6 +741,9 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 	if err = checkGatewayWildcardsAndUpdate(tx, idx, svc); err != nil {
 		return fmt.Errorf("failed updating gateway mapping: %s", err)
 	}
+	if err := upsertKindServiceName(tx, idx, svc.Kind, svc.CompoundServiceName()); err != nil {
+		return fmt.Errorf("failed to persist service name: %v", err)
+	}
 
 	// Update upstream/downstream mappings if it's a connect service
 	if svc.Kind == structs.ServiceKindConnectProxy || svc.Connect.Native {
@@ -965,16 +968,14 @@ func (s *Store) Services(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (ui
 	return idx, results, nil
 }
 
-func (s *Store) ServiceList(ws memdb.WatchSet,
-	include func(svc *structs.ServiceNode) bool, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
+func (s *Store) ServiceList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return serviceListTxn(tx, ws, include, entMeta)
+	return serviceListTxn(tx, ws, entMeta)
 }
 
-func serviceListTxn(tx ReadTxn, ws memdb.WatchSet,
-	include func(svc *structs.ServiceNode) bool, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
+func serviceListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
 	idx := catalogServicesMaxIndex(tx, entMeta)
 
 	services, err := tx.Get(tableServices, indexID+"_prefix", entMeta)
@@ -986,11 +987,7 @@ func serviceListTxn(tx ReadTxn, ws memdb.WatchSet,
 	unique := make(map[structs.ServiceName]struct{})
 	for service := services.Next(); service != nil; service = services.Next() {
 		svc := service.(*structs.ServiceNode)
-		// TODO (freddy) This is a hack to exclude certain kinds.
-		//				 Need a new index to query by kind and namespace, have to coordinate with consul foundations first
-		if include == nil || include(svc) {
-			unique[svc.CompoundServiceName()] = struct{}{}
-		}
+		unique[svc.CompoundServiceName()] = struct{}{}
 	}
 
 	results := make(structs.ServiceList, 0, len(unique))
@@ -1690,6 +1687,9 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 			}
 			if err := freeServiceVirtualIP(tx, svc.ServiceName, entMeta); err != nil {
 				return fmt.Errorf("failed to clean up virtual IP for %q: %v", name.String(), err)
+			}
+			if err := cleanupKindServiceName(tx, idx, svc.CompoundServiceName(), svc.ServiceKind); err != nil {
+				return fmt.Errorf("failed to persist service name: %v", err)
 			}
 		}
 	} else {
@@ -2524,6 +2524,30 @@ func (s *Store) VirtualIPForService(sn structs.ServiceName) (string, error) {
 		return "", err
 	}
 	return result.String(), nil
+}
+
+func (s *Store) ServiceNamesOfKind(ws memdb.WatchSet, kind structs.ServiceKind) (uint64, []*KindServiceName, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	return serviceNamesOfKindTxn(tx, ws, kind)
+}
+
+func serviceNamesOfKindTxn(tx ReadTxn, ws memdb.WatchSet, kind structs.ServiceKind) (uint64, []*KindServiceName, error) {
+	var names []*KindServiceName
+	iter, err := tx.Get(tableKindServiceNames, indexKindOnly, kind)
+	if err != nil {
+		return 0, nil, err
+	}
+	ws.Add(iter.WatchCh())
+
+	idx := kindServiceNamesMaxIndex(tx, ws, kind)
+	for name := iter.Next(); name != nil; name = iter.Next() {
+		ksn := name.(*KindServiceName)
+		names = append(names, ksn)
+	}
+
+	return idx, names, nil
 }
 
 // parseCheckServiceNodes is used to parse through a given set of services,
@@ -3860,5 +3884,46 @@ func truncateGatewayServiceTopologyMappings(tx WriteTxn, idx uint64, gateway str
 		return fmt.Errorf("failed updating %s index: %v", tableMeshTopology, err)
 	}
 
+	return nil
+}
+
+func upsertKindServiceName(tx WriteTxn, idx uint64, kind structs.ServiceKind, name structs.ServiceName) error {
+	q := KindServiceNameQuery{Name: name.Name, Kind: kind, EnterpriseMeta: name.EnterpriseMeta}
+	existing, err := tx.First(tableKindServiceNames, indexID, q)
+	if err != nil {
+		return err
+	}
+
+	// Service name is already known. Nothing to do.
+	if existing != nil {
+		return nil
+	}
+
+	ksn := KindServiceName{
+		Kind:    kind,
+		Service: name,
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: idx,
+			ModifyIndex: idx,
+		},
+	}
+	if err := tx.Insert(tableKindServiceNames, &ksn); err != nil {
+		return fmt.Errorf("failed inserting %s/%s into %s: %s", kind, name.String(), tableKindServiceNames, err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, kindServiceNameIndexName(kind)); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", tableKindServiceNames, err)
+	}
+	return nil
+}
+
+func cleanupKindServiceName(tx WriteTxn, idx uint64, name structs.ServiceName, kind structs.ServiceKind) error {
+	q := KindServiceNameQuery{Name: name.Name, Kind: kind, EnterpriseMeta: name.EnterpriseMeta}
+	if _, err := tx.DeleteAll(tableKindServiceNames, indexID, q); err != nil {
+		return fmt.Errorf("failed to delete %s from %s: %s", name, tableKindServiceNames, err)
+	}
+
+	if err := indexUpdateMaxTxn(tx, idx, kindServiceNameIndexName(kind)); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", tableKindServiceNames, err)
+	}
 	return nil
 }

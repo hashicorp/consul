@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/hashicorp/consul/agent/consul"
+
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 
@@ -255,6 +257,8 @@ type Config struct {
 	Watches              []map[string]interface{} `mapstructure:"watches"`
 
 	RPC RPC `mapstructure:"rpc"`
+
+	RaftBoltDBConfig *consul.RaftBoltDBConfig `mapstructure:"raft_boltdb"`
 
 	// UseStreamingBackend instead of blocking queries for service health and
 	// any other endpoints which support streaming.

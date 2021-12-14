@@ -461,7 +461,7 @@ func TestInternal_NodeInfo_FilterACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedNodeDump{}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &opt, &reply); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Internal.NodeInfo", &opt, &reply); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	for _, info := range reply.Dump {
@@ -490,6 +490,10 @@ func TestInternal_NodeInfo_FilterACL(t *testing.T) {
 		if !found {
 			t.Fatalf("bad: %#v", info.Services)
 		}
+	}
+
+	if !reply.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should be true")
 	}
 
 	// We've already proven that we call the ACL filtering function so we
@@ -515,7 +519,7 @@ func TestInternal_NodeDump_FilterACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedNodeDump{}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &opt, &reply); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &opt, &reply); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	for _, info := range reply.Dump {
@@ -546,6 +550,10 @@ func TestInternal_NodeDump_FilterACL(t *testing.T) {
 		}
 	}
 
+	if !reply.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should be true")
+	}
+
 	// We've already proven that we call the ACL filtering function so we
 	// test node filtering down in acl.go for node cases. This also proves
 	// that we respect the version 8 ACL flag, since the test server sets
@@ -562,7 +570,7 @@ func TestInternal_EventFire_Token(t *testing.T) {
 	dir, srv := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDownPolicy = "deny"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
@@ -747,6 +755,217 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 		require.Len(t, nodes, 1)
 		require.Equal(t, "web-proxy", nodes[0].Service.Service)
 		require.Equal(t, "web-proxy", nodes[0].Service.ID)
+	})
+}
+
+func TestInternal_ServiceDump_ACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir, s := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir)
+	defer s.Shutdown()
+	codec := rpcClient(t, s)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s.RPC, "dc1")
+
+	registrations := []*structs.RegisterRequest{
+		// Service `redis` on `node1`
+		{
+			Datacenter: "dc1",
+			Node:       "node1",
+			ID:         types.NodeID("e0155642-135d-4739-9853-a1ee6c9f945b"),
+			Address:    "192.18.1.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "redis",
+				Service: "redis",
+				Port:    5678,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "redis check",
+				Status:    api.HealthPassing,
+				ServiceID: "redis",
+			},
+		},
+		// Ingress gateway `igw` on `node2`
+		{
+			Datacenter: "dc1",
+			Node:       "node2",
+			ID:         types.NodeID("3a9d7530-20d4-443a-98d3-c10fe78f09f4"),
+			Address:    "192.18.1.2",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindIngressGateway,
+				ID:      "igw",
+				Service: "igw",
+			},
+			Check: &structs.HealthCheck{
+				Name:      "igw check",
+				Status:    api.HealthPassing,
+				ServiceID: "igw",
+			},
+		},
+	}
+	for _, reg := range registrations {
+		reg.Token = "root"
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", reg, nil)
+		require.NoError(t, err)
+	}
+
+	{
+		req := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry: &structs.IngressGatewayConfigEntry{
+				Kind: structs.IngressGateway,
+				Name: "igw",
+				Listeners: []structs.IngressListener{
+					{
+						Port:     8765,
+						Protocol: "tcp",
+						Services: []structs.IngressService{
+							{Name: "redis"},
+						},
+					},
+				},
+			},
+		}
+		req.Token = "root"
+
+		var out bool
+		err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out)
+		require.NoError(t, err)
+	}
+
+	tokenWithRules := func(t *testing.T, rules string) string {
+		t.Helper()
+		tok, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", rules)
+		require.NoError(t, err)
+		return tok.SecretID
+	}
+
+	t.Run("can read all", func(t *testing.T) {
+		require := require.New(t)
+
+		token := tokenWithRules(t, `
+			node_prefix "" {
+				policy = "read"
+			}
+			service_prefix "" {
+				policy = "read"
+			}
+		`)
+
+		args := structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var out structs.IndexedNodesWithGateways
+		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
+		require.NoError(err)
+		require.NotEmpty(out.Nodes)
+		require.NotEmpty(out.Gateways)
+		require.False(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
+
+	t.Run("cannot read service node", func(t *testing.T) {
+		require := require.New(t)
+
+		token := tokenWithRules(t, `
+			node "node1" {
+				policy = "deny"
+			}
+			service "redis" {
+				policy = "read"
+			}
+		`)
+
+		args := structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var out structs.IndexedNodesWithGateways
+		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
+		require.NoError(err)
+		require.Empty(out.Nodes)
+		require.True(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("cannot read service", func(t *testing.T) {
+		require := require.New(t)
+
+		token := tokenWithRules(t, `
+			node "node1" {
+				policy = "read"
+			}
+			service "redis" {
+				policy = "deny"
+			}
+		`)
+
+		args := structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var out structs.IndexedNodesWithGateways
+		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
+		require.NoError(err)
+		require.Empty(out.Nodes)
+		require.True(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("cannot read gateway node", func(t *testing.T) {
+		require := require.New(t)
+
+		token := tokenWithRules(t, `
+			node "node2" {
+				policy = "deny"
+			}
+			service "mgw" {
+				policy = "read"
+			}
+		`)
+
+		args := structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var out structs.IndexedNodesWithGateways
+		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
+		require.NoError(err)
+		require.Empty(out.Gateways)
+		require.True(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("cannot read gateway", func(t *testing.T) {
+		require := require.New(t)
+
+		token := tokenWithRules(t, `
+			node "node2" {
+				policy = "read"
+			}
+			service "mgw" {
+				policy = "deny"
+			}
+		`)
+
+		args := structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var out structs.IndexedNodesWithGateways
+		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
+		require.NoError(err)
+		require.Empty(out.Gateways)
+		require.True(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -963,7 +1182,7 @@ func TestInternal_GatewayServiceDump_Terminating_ACL(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1082,6 +1301,7 @@ func TestInternal_GatewayServiceDump_Terminating_ACL(t *testing.T) {
 	require.Equal(t, nodes[0].Node.Node, "bar")
 	require.Equal(t, nodes[0].Service.Service, "db")
 	require.Equal(t, nodes[0].Checks[0].Status, api.HealthWarning)
+	require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 }
 
 func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
@@ -1308,7 +1528,7 @@ func TestInternal_GatewayServiceDump_Ingress_ACL(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1972,7 +2192,7 @@ func TestInternal_ServiceTopology_ACL(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = TestDefaultMasterToken
+		c.ACLInitialManagementToken = TestDefaultMasterToken
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -2111,7 +2331,7 @@ func TestInternal_IntentionUpstreams_ACL(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = TestDefaultMasterToken
+		c.ACLInitialManagementToken = TestDefaultMasterToken
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)

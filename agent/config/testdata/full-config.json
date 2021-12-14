@@ -326,6 +326,9 @@
   "raft_snapshot_threshold": 16384,
   "raft_snapshot_interval": "30s",
   "raft_trailing_logs": 83749,
+  "raft_boltdb": {
+    "NoFreelistSync": true
+  },
   "read_replica": true,
   "reconnect_timeout": "23739s",
   "reconnect_timeout_wan": "26694s",
