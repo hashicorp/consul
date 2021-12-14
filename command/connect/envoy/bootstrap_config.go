@@ -403,22 +403,26 @@ func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
 		// Upstream listener metrics are prefixed by consul.upstream
 		//
 		// Listener metric name format:
-		// <tcp|http>.upstream.<service>.<namespace>.<datacenter>
+		// <tcp|http>.upstream.<service>.<namespace>.<partition>.<datacenter>
 		//
 		// Examples:
 		// - tcp.upstream.db.dc1.downstream_cx_total: 0
-		// - http.upstream.web.default.dc1.downstream_cx_total: 0
+		// - http.upstream.web.frontend.west.dc1.downstream_cx_total: 0
 		{"consul.upstream.service",
-			fmt.Sprintf(`^(?:tcp|http)\.upstream\.((%s)(?:\.%s)?\.%s\.)`,
-				reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^(?:tcp|http)\.upstream\.((%s)(?:\.%s)?(?:\.%s)?\.%s\.)`,
+				reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.upstream.datacenter",
-			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.%s)?\.(%s)\.)`,
-				reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.%s)?(?:\.%s)?\.(%s)\.)`,
+				reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.upstream.namespace",
-			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.(%s))?\.%s\.)`,
-				reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.(%s))?(?:\.%s)?\.%s\.)`,
+				reSegment, reSegment, reSegment, reSegment)},
+
+		{"consul.upstream.partition",
+			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.%s)?(?:\.(%s))?\.%s\.)`,
+				reSegment, reSegment, reSegment, reSegment)},
 	}
 
 	// These tags were deprecated in Consul 1.9.0
