@@ -99,31 +99,6 @@ export default function Homepage({ data }): React.ReactElement {
         }}
       />
 
-      <IoHomeInPractice
-        brand="consul"
-        pattern="/img/practice-pattern.svg"
-        heading={inPracticeHeading}
-        description={inPracticeDescription}
-        cards={inPracticeCards.map((card) => {
-          return {
-            eyebrow: card.eyebrow,
-            link: {
-              url: card.link,
-              type: 'inbound',
-            },
-            heading: card.heading,
-            description: card.description,
-            products: card.products,
-          }
-        })}
-        cta={{
-          heading: inPracticeCtaHeading,
-          description: inPracticeCtaDescription,
-          link: inPracticeCtaLink,
-          image: inPracticeCtaImage,
-        }}
-      />
-
       <section className={s.useCases}>
         <div className={s.container}>
           <IoCardContainer
@@ -166,6 +141,31 @@ export default function Homepage({ data }): React.ReactElement {
           />
         </div>
       </section>
+
+      <IoHomeInPractice
+        brand="consul"
+        pattern="/img/practice-pattern.svg"
+        heading={inPracticeHeading}
+        description={inPracticeDescription}
+        cards={inPracticeCards.map((card) => {
+          return {
+            eyebrow: card.eyebrow,
+            link: {
+              url: card.link,
+              type: 'inbound',
+            },
+            heading: card.heading,
+            description: card.description,
+            products: card.products,
+          }
+        })}
+        cta={{
+          heading: inPracticeCtaHeading,
+          description: inPracticeCtaDescription,
+          link: inPracticeCtaLink,
+          image: inPracticeCtaImage,
+        }}
+      />
 
       <IoHomeCaseStudies
         heading={caseStudiesHeading}
