@@ -78,13 +78,21 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	}
 
 	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[id]
+
+		explicit := upstreamCfg.HasLocalPortOrSocket()
+		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[id]; !implicit && !explicit {
+			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
+			continue
+		}
+
 		chainEndpoints, ok := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id]
 		if !ok {
 			// this should not happen
 			return nil, fmt.Errorf("no endpoint map for upstream %q", id)
 		}
 
-		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(id, cfgSnap.ConnectProxy.UpstreamConfig[id], chain, chainEndpoints, cfgSnap)
+		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(id, upstreamCfg, chain, chainEndpoints, cfgSnap)
 		if err != nil {
 			return nil, err
 		}

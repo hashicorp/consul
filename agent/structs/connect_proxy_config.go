@@ -503,15 +503,24 @@ func (u *Upstream) ToKey() UpstreamKey {
 	}
 }
 
-func (u Upstream) HasLocalPortOrSocket() bool {
+func (u *Upstream) HasLocalPortOrSocket() bool {
+	if u == nil {
+		return false
+	}
 	return (u.LocalBindPort != 0 || u.LocalBindSocketPath != "")
 }
 
-func (u Upstream) UpstreamIsUnixSocket() bool {
+func (u *Upstream) UpstreamIsUnixSocket() bool {
+	if u == nil {
+		return false
+	}
 	return (u.LocalBindPort == 0 && u.LocalBindAddress == "" && u.LocalBindSocketPath != "")
 }
 
-func (u Upstream) UpstreamAddressToString() string {
+func (u *Upstream) UpstreamAddressToString() string {
+	if u == nil {
+		return ""
+	}
 	if u.UpstreamIsUnixSocket() {
 		return u.LocalBindSocketPath
 	}

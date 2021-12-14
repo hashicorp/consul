@@ -327,6 +327,8 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 					})
 				snap.ConnectProxy.UpstreamConfig = map[string]*structs.Upstream{
 					"db": {
+						// The local bind port is overridden by the escape hatch, but is required for explicit upstreams.
+						LocalBindPort: 9191,
 						Config: map[string]interface{}{
 							"envoy_cluster_json": customAppClusterJSON(t, customClusterJSONOptions{
 								Name: "myservice",

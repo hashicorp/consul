@@ -128,6 +128,7 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 		}
 
 		snap.IngressGateway.Upstreams = upstreamsMap
+		snap.IngressGateway.UpstreamsSet = watchedSvcs
 		snap.IngressGateway.Hosts = hosts
 		snap.IngressGateway.HostsSet = true
 
