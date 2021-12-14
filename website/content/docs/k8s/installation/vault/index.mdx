@@ -46,7 +46,7 @@ expire it will be necessary to issue a `consul reload` on each server.
 
 To utilize Vault as a secrets backend with Consul it is necessary to add several configuration fields to the Vault installation
 which bootstrap Vault Auth roles and Policies for Consul to use. For the supported Vault secrets please see the individual secret
-guides and ensure to, when combining the secrets, append the Vault Policies to your Vault Kube Auth Roles via a CSV.
+guides and ensure to, when combining the secrets, append the Vault Policies to your Vault Kube Auth Roles via a comma separated value (i.e. `policies=gossip-policy,consul-ca,consul-server,custom-policy`).
 Ex:
 ```shell-session
 vault write auth/kubernetes/role/consul-server \
