@@ -18,13 +18,17 @@ upgrade flow.
 
 ### Deprecated Agent Config Options
 
+Consul 1.11.0 is compiled with Go 1.17 and now the ordering of
+`tls_cipher_suites` will no longer be honored. Additionally
+`tls_prefer_server_cipher_suites` is now ignored.
+
 The `master` and `agent_master` ACL tokens in the `acl.tokens` config block
 have been renamed to `initial_management` and `agent_recovery` respectively.
 The old names have been deprecated and will be removed at a future date.
 
-Consul 1.11.0 is compiled with Go 1.17 and now the ordering of
-`tls_cipher_suites` will no longer be honored. Additionally
-`tls_prefer_server_cipher_suites` is now ignored.
+Due to this rename the following endpoint is also deprecated:
+
+- [`PUT /v1/agent/token/agent_master`](/api-docs/agent#update-acl-tokens)
 
 ### Deprecated Agent Config Options <EnterpriseAlert inline />
 
