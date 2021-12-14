@@ -81,9 +81,9 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                          |
 | ---------------- | ----------------- | ------------- | ------------------------------------- |
-| `NO`             | `consistent`      | `none`        | `operator:read` or `none`<sup>1</sup> |
+| `NO`             | `all`             | `none`        | `operator:read` or `none`<sup>1</sup> |
 
-<sup>1</sup> A non-anonymous token in a non-default partition can read its own partition.
+<sup>1</sup> A non-anonymous token can read its own partition.
 
 ### Parameters
 
@@ -229,7 +229,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
-| `NO`             | `consistent`      | `none`        | `operator:read` |
+| `NO`             | `all`             | `none`        | `operator:read` |
 
 ### Sample Request
 
