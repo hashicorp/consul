@@ -67,7 +67,7 @@ path "pki/cert/ca" {
 ```
 
 ```shell-session
-vault policy write ca-policy @ca-policy.hcl
+vault policy write ca-policy ca-policy.hcl
 ```
 -> **Note:** The PKI secret path referenced by the above Policy will be your `global.tls.caCert.secretName` Helm value.
 
@@ -93,7 +93,10 @@ ns = <Consul installation namespace>
 Sprintf("%s.consul,%s-server,%s-server.%s,%s-server.%s.svc", global.datacenter, $name, $name, $ns, $name, $ns)
 ```
 
-Finally, two Kubernetes auth roles need to be created, one for the Consul servers and one for the Consul components:
+Prior to creating the Kubernetes auth roles required for Consul to securely access Vault, ensure that the Vault Kubernetes Auth method is enabled:
+
+```shell-session
+vault auth enable kubernetes
 
 ```shell-session
 vault write auth/kubernetes/role/consul-server \
