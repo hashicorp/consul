@@ -255,6 +255,21 @@ and doesn't support tags. This DNS interface will be expanded over time.
 If you need more complex behavior, please use the
 [catalog API](/api/catalog).
 
+### Service Virtual IP Lookups
+
+To find the unique virtual IP allocated for a service:
+
+```text
+<service>.virtual.<domain>
+```
+
+This will return the unique virtual IP for any [Connect-capable](/docs/connect)
+service. Each Connect service has a virtual IP assigned to it by Consul - this is used
+by sidecar proxies for the [Transparent Proxy](/docs/connect/transparent-proxy) feature.
+
+The virtual IP is also added to the service's [Tagged Addresses](/docs/discovery/services#tagged-addresses)
+under the `consul-virtual` tag.
+
 ### Ingress Service Lookups
 
 To find ingress-enabled services:
@@ -371,11 +386,11 @@ Consul will either accept or deny the request depending on whether the token
 has the appropriate authorization. The following table describes the available
 DNS lookups and required policies when ACLs are enabled:
 
-| Lookup                                                     | Type                                               | Description                                                                                                                                                                       | ACLs Required                                                                                                                                                                           |
-| ---------------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `*.node.consul`                                            | [Node](#node-lookups)                              | Allow resolving DNS requests for the target node (i.e., `<target>.node.consul`)                                                                                                   | [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                                                                                  |
-| `*.service.consul`, `*.connect.consul`, `*.ingress.consul` | [Service: standard](#service-lookups)              | Allow resolving DNS requests for target service (e.g., `<target>.service.consul`) instances running on ACL-authorized nodes                                                       | [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                    |
-| `*.query.consul`                                           | [Service: prepared query](#prepared-query-lookups) | Allow resolving DNS requests for [service instances specified](/api/query#service-1) by the target prepared query (i.e., `<target>.query.consul`) running on ACL-authorized nodes | [`query:read`](/docs/security/acl/acl-rules#prepared-query-rules), [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules) |
+| Lookup                                                                         | Type                                               | Description                                                                                                                                                                       | ACLs Required                                                                                                                                                                           |
+| ------------------------------------------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `*.node.consul`                                                                | [Node](#node-lookups)                              | Allow resolving DNS requests for the target node (i.e., `<target>.node.consul`)                                                                                                   | [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                                                                                  |
+| `*.service.consul`, `*.connect.consul`, `*.ingress.consul`, `*.virtual.consul` | [Service: standard](#service-lookups)              | Allow resolving DNS requests for target service (e.g., `<target>.service.consul`) instances running on ACL-authorized nodes                                                       | [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                    |
+| `*.query.consul`                                                               | [Service: prepared query](#prepared-query-lookups) | Allow resolving DNS requests for [service instances specified](/api/query#service-1) by the target prepared query (i.e., `<target>.query.consul`) running on ACL-authorized nodes | [`query:read`](/docs/security/acl/acl-rules#prepared-query-rules), [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules) |
 
 For guidance on how to configure an appropriate token for DNS, refer to the
 securing Consul with ACLs guides for:
