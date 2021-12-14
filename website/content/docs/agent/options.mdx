@@ -1457,7 +1457,8 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     equivalent to "no max age". To get a fresh value from the cache use a very small value
     of `1ns` instead of 0.
 
-  - `prefer_namespace` ((#dns_prefer_namespace)) <EnterpriseAlert inline /> -
+  - `prefer_namespace` ((#dns_prefer_namespace)) <EnterpriseAlert inline /> **Deprecated in 
+    Consul 1.11. Use the [canonical DNS format](/docs/discovery/dns#namespaced-partitioned-services) instead.** -
     When set to true, in a DNS query for a service, the label between the domain
     and the `service` label will be treated as a namespace name instead of a datacenter.
     When set to false, the default, the behavior will be the same as non-Enterprise
