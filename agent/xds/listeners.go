@@ -95,6 +95,13 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[id]
+
+		explicit := upstreamCfg.HasLocalPortOrSocket()
+		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[id]; !implicit && !explicit {
+			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
+			continue
+		}
+
 		cfg := s.getAndModifyUpstreamConfigForListener(id, upstreamCfg, chain)
 
 		// If escape hatch is present, create a listener from it and move on to the next
