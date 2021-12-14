@@ -566,7 +566,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Err:           nil,
 				},
 				{
-					CorrelationID: "discovery-chain:api",
+					CorrelationID: fmt.Sprintf("discovery-chain:%s", api.String()),
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
@@ -576,7 +576,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Err: nil,
 				},
 				{
-					CorrelationID: "discovery-chain:api-failover-remote?dc=dc2",
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-remote?dc=dc2", api.String()),
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-remote", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
@@ -586,7 +586,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Err: nil,
 				},
 				{
-					CorrelationID: "discovery-chain:api-failover-local?dc=dc2",
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-local?dc=dc2", api.String()),
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-local", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
@@ -596,7 +596,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Err: nil,
 				},
 				{
-					CorrelationID: "discovery-chain:api-failover-direct?dc=dc2",
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-direct?dc=dc2", api.String()),
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-direct", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
@@ -606,7 +606,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Err: nil,
 				},
 				{
-					CorrelationID: "discovery-chain:api-dc2",
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-dc2", api.String()),
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "default", "dc1", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
@@ -645,12 +645,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 		stage1 := verificationStage{
 			requiredWatches: map[string]verifyWatchRequest{
-				"upstream-target:api.default.default.dc1:api":                                        genVerifyServiceWatch("api", "", "dc1", true),
-				"upstream-target:api-failover-remote.default.default.dc2:api-failover-remote?dc=dc2": genVerifyServiceWatch("api-failover-remote", "", "dc2", true),
-				"upstream-target:api-failover-local.default.default.dc2:api-failover-local?dc=dc2":   genVerifyServiceWatch("api-failover-local", "", "dc2", true),
-				"upstream-target:api-failover-direct.default.default.dc2:api-failover-direct?dc=dc2": genVerifyServiceWatch("api-failover-direct", "", "dc2", true),
-				"mesh-gateway:dc2:api-failover-remote?dc=dc2":                                        genVerifyGatewayWatch("dc2"),
-				"mesh-gateway:dc1:api-failover-local?dc=dc2":                                         genVerifyGatewayWatch("dc1"),
+				fmt.Sprintf("upstream-target:api.default.default.dc1:%s", api.String()):                                        genVerifyServiceWatch("api", "", "dc1", true),
+				fmt.Sprintf("upstream-target:api-failover-remote.default.default.dc2:%s-failover-remote?dc=dc2", api.String()): genVerifyServiceWatch("api-failover-remote", "", "dc2", true),
+				fmt.Sprintf("upstream-target:api-failover-local.default.default.dc2:%s-failover-local?dc=dc2", api.String()):   genVerifyServiceWatch("api-failover-local", "", "dc2", true),
+				fmt.Sprintf("upstream-target:api-failover-direct.default.default.dc2:%s-failover-direct?dc=dc2", api.String()): genVerifyServiceWatch("api-failover-direct", "", "dc2", true),
+				fmt.Sprintf("mesh-gateway:dc2:%s-failover-remote?dc=dc2", api.String()):                                        genVerifyGatewayWatch("dc2"),
+				fmt.Sprintf("mesh-gateway:dc1:%s-failover-local?dc=dc2", api.String()):                                         genVerifyGatewayWatch("dc1"),
 			},
 			verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 				require.True(t, snap.Valid())
@@ -673,7 +673,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		}
 
 		if meshGatewayProxyConfigValue == structs.MeshGatewayModeLocal {
-			stage1.requiredWatches["mesh-gateway:dc1:api-dc2"] = genVerifyGatewayWatch("dc1")
+			stage1.requiredWatches[fmt.Sprintf("mesh-gateway:dc1:%s-dc2", api.String())] = genVerifyGatewayWatch("dc1")
 		}
 
 		return testCase{
@@ -2093,6 +2093,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							DestinationName:      db.Name,
 							DestinationNamespace: db.NamespaceOrDefault(),
 							Datacenter:           "dc2",
+							LocalBindPort:        8080,
 							MeshGateway:          structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal},
 						},
 					},
