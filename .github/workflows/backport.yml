@@ -33,7 +33,7 @@ jobs:
           echo "Latest backport label: $latest_backport_label"
           # set BACKPORT_TARGET_TEMPLATE for backport-assistant
           # trims backport/ from the beginning with parameter substitution
-          export BACKPORT_TARGET_TEMPLATE="release-${latest_backport_label#backport/}"
+          export BACKPORT_TARGET_TEMPLATE="release/${latest_backport_label#backport/}"
           backport-assistant backport -automerge
         env:
           BACKPORT_LABEL_REGEXP: "backport/(?P<target>website)"
@@ -43,5 +43,5 @@ jobs:
           backport-assistant backport -automerge
         env:
           BACKPORT_LABEL_REGEXP: "backport/(?P<target>\\d+\\.\\d+\\.\\d+)"
-          BACKPORT_TARGET_TEMPLATE: "release-{{.target}}"
+          BACKPORT_TARGET_TEMPLATE: "release/{{.target}}"
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
