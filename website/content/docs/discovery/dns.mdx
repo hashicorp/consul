@@ -358,14 +358,15 @@ resolve services within the `default` namespace and partition. However, for reso
 services from other namespaces or partitions the following form can be used:
 
 ```text
-[tag.]<service>.service[.<namespace>.ns][.<partition>.ap][.<datacenter>.dc].<domain>
+[tag.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
 ```
 
 This is the canonical name of a Consul Enterprise service. Currently all parts must be
 present - in a future version (once the
 [`prefer_namespace` configuration](/docs/agent/options#dns_prefer_namespace) has been
-deprecated), these may be individually omitted to default to the `default`
-namespace, local partition or local datacenter respectively.
+deprecated), the namespace, partition and datacenter components will become optional
+and may be individually omitted to default to the `default` namespace, local partition
+or local datacenter respectively.
 
 ## DNS with ACLs
 
