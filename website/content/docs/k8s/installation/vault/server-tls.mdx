@@ -50,7 +50,7 @@ path "pki/issue/consul-server" {
 ```
 
 ```shell-session
-vault policy write consul-server @consul-server-policy.hcl
+vault policy write consul-server consul-server-policy.hcl
 ```
 -> **Note:** The PKI secret path referenced by the above Policy will be your `server.serverCert.secretName` Helm value.
 
