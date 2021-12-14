@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Ensure the UI stores the default partition for the users token
-```

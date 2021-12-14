@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: update SNI label extraction to support new taxonomy for partitions
-```
