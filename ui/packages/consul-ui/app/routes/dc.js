@@ -26,20 +26,19 @@ export default class DcRoute extends Route {
   @service('repository/dc') repo;
   @service('repository/nspace/disabled') nspacesRepo;
   @service('settings') settingsRepo;
+  @service('store') store;
 
   async model(params) {
-    const app = this.modelFor('application');
-
     let [token, nspace, dc] = await Promise.all([
       this.settingsRepo.findBySlug('token'),
       this.nspacesRepo.getActive(),
-      this.repo.findBySlug(params.dc, app.dcs),
+      this.repo.findBySlug(params.dc, this.store.peekAll('dc')),
     ]);
     // if there is only 1 namespace then use that
     // otherwise find the namespace object that corresponds
     // to the active one
-    nspace =
-      app.nspaces.length > 1 ? findActiveNspace(app.nspaces, nspace) : app.nspaces.firstObject;
+    const nspaces = this.store.peekAll('nspace');
+    nspace = findActiveNspace(nspaces, nspace);
 
     let permissions;
     if (get(token, 'SecretID')) {
