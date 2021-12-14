@@ -163,3 +163,86 @@ func TestCAProviderConfig_Validate(t *testing.T) {
 		})
 	}
 }
+
+func TestCARoot_EncodeDecode_RemoveSigningKey(t *testing.T) {
+	type CARootWithSigningCertAndKey struct {
+		ID                  string
+		Name                string
+		SerialNumber        uint64
+		SigningKeyID        string
+		ExternalTrustDomain string
+		NotBefore           time.Time
+		NotAfter            time.Time
+		RootCert            string
+		IntermediateCerts   []string
+		SigningCert         string `json:",omitempty"`
+		SigningKey          string `json:",omitempty"`
+		Active              bool
+		RotatedOutAt        time.Time `json:"-"`
+		PrivateKeyType      string
+		PrivateKeyBits      int
+		RaftIndex
+	}
+
+	oldValue := CARootWithSigningCertAndKey{
+		ID:                  "the-id",
+		Name:                "the-name",
+		SerialNumber:        12345,
+		SigningKeyID:        "signing-key-id",
+		ExternalTrustDomain: "trust-domain",
+		NotBefore:           time.Date(2021, 10, 9, 8, 7, 6, 5, time.UTC),
+		NotAfter:            time.Date(2100, 10, 9, 8, 7, 6, 5, time.UTC),
+		RootCert:            "the-root-cert",
+		IntermediateCerts:   []string{"intermediate-cert-1"},
+		SigningCert:         "signing-cert",
+		SigningKey:          "signing-key",
+		Active:              true,
+		RotatedOutAt:        time.Date(2022, 10, 9, 8, 7, 6, 5, time.UTC),
+		PrivateKeyType:      "rsa",
+		PrivateKeyBits:      4096,
+		RaftIndex:           RaftIndex{CreateIndex: 123, ModifyIndex: 4444},
+	}
+
+	newValue := CARoot{
+		ID:                  "the-id",
+		Name:                "the-name",
+		SerialNumber:        12345,
+		SigningKeyID:        "signing-key-id",
+		ExternalTrustDomain: "trust-domain",
+		NotBefore:           time.Date(2021, 10, 9, 8, 7, 6, 5, time.UTC),
+		NotAfter:            time.Date(2100, 10, 9, 8, 7, 6, 5, time.UTC),
+		RootCert:            "the-root-cert",
+		IntermediateCerts:   []string{"intermediate-cert-1"},
+		SigningCert:         "signing-cert",
+		Active:              true,
+		RotatedOutAt:        time.Date(2022, 10, 9, 8, 7, 6, 5, time.UTC),
+		PrivateKeyType:      "rsa",
+		PrivateKeyBits:      4096,
+		RaftIndex:           RaftIndex{CreateIndex: 123, ModifyIndex: 4444},
+	}
+
+	t.Run("decode new struct from old value", func(t *testing.T) {
+		raw, err := Encode(ConnectCARequestType, oldValue)
+		require.NoError(t, err)
+
+		var target CARoot
+		err = Decode(raw[1:], &target)
+		require.NoError(t, err)
+
+		require.Equal(t, newValue, target)
+	})
+
+	t.Run("decode old struct from new value", func(t *testing.T) {
+		raw, err := Encode(ConnectCARequestType, newValue)
+		require.NoError(t, err)
+
+		var target CARootWithSigningCertAndKey
+		err = Decode(raw[1:], &target)
+		require.NoError(t, err)
+
+		expected := oldValue
+		expected.SigningKey = ""
+		require.Equal(t, expected, target)
+	})
+
+}

@@ -111,11 +111,12 @@ type CARoot struct {
 	// list.
 	IntermediateCerts []string
 
-	// SigningCert is the PEM-encoded signing certificate and SigningKey
-	// is the PEM-encoded private key for the signing certificate. These
-	// may actually be empty if the CA plugin in use manages these for us.
+	// SigningCert is the PEM-encoded CA certificate that is used to sign
+	// leaf certificates in the local datacenter.
+	//
+	// It is only used for internal storage, not part of the RPC or API response.
+	// TODO: actually set this value
 	SigningCert string `json:",omitempty"`
-	SigningKey  string `json:",omitempty"`
 
 	// Active is true if this is the current active CA. This must only
 	// be true for exactly one CA. For any method that modifies roots in the
