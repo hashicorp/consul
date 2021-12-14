@@ -1790,7 +1790,7 @@ func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
 	// Register terminating gateway and config entry linking it to postgres + redis
 	{
@@ -1809,7 +1809,7 @@ func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
 				Status:    api.HealthPassing,
 				ServiceID: "terminating-gateway",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		var regOutput struct{}
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &regOutput))
@@ -1834,7 +1834,7 @@ func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
 			Op:           structs.ConfigEntryUpsert,
 			Datacenter:   "dc1",
 			Entry:        args,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		var configOutput bool
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &configOutput))
@@ -1848,7 +1848,7 @@ func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
 				Datacenter:   "dc1",
 				Op:           structs.IntentionOpCreate,
 				Intention:    structs.TestIntention(t),
-				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 			}
 			req.Intention.SourceName = "api"
 			req.Intention.DestinationName = v
@@ -1860,7 +1860,7 @@ func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
 				Datacenter:   "dc1",
 				Op:           structs.IntentionOpCreate,
 				Intention:    structs.TestIntention(t),
-				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 			}
 			req.Intention.SourceName = v
 			req.Intention.DestinationName = "api"
@@ -1868,7 +1868,7 @@ func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
 		}
 	}
 
-	userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `
+	userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultInitialManagementToken, "dc1", `
 service_prefix "redis" { policy = "read" }
 service_prefix "terminating-gateway" { policy = "read" }
 `)
@@ -2192,7 +2192,7 @@ func TestInternal_ServiceTopology_ACL(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLInitialManagementToken = TestDefaultMasterToken
+		c.ACLInitialManagementToken = TestDefaultInitialManagementToken
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -2215,10 +2215,10 @@ func TestInternal_ServiceTopology_ACL(t *testing.T) {
 	// web -> redis exact intention
 
 	// redis and redis-proxy on node zip
-	registerTestTopologyEntries(t, codec, TestDefaultMasterToken)
+	registerTestTopologyEntries(t, codec, TestDefaultInitialManagementToken)
 
 	// Token grants read to: foo/api, foo/api-proxy, bar/web, baz/web
-	userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `
+	userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultInitialManagementToken, "dc1", `
 node_prefix "" { policy = "read" }
 service_prefix "api" { policy = "read" }
 service "web" { policy = "read" }
@@ -2331,7 +2331,7 @@ func TestInternal_IntentionUpstreams_ACL(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLInitialManagementToken = TestDefaultMasterToken
+		c.ACLInitialManagementToken = TestDefaultInitialManagementToken
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -2349,11 +2349,11 @@ func TestInternal_IntentionUpstreams_ACL(t *testing.T) {
 	// Intentions
 	// * -> * (deny) intention
 	// web -> api (allow)
-	registerIntentionUpstreamEntries(t, codec, TestDefaultMasterToken)
+	registerIntentionUpstreamEntries(t, codec, TestDefaultInitialManagementToken)
 
 	t.Run("valid token", func(t *testing.T) {
 		// Token grants read to read api service
-		userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `
+		userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultInitialManagementToken, "dc1", `
 service_prefix "api" { policy = "read" }
 `)
 		require.NoError(t, err)
@@ -2379,7 +2379,7 @@ service_prefix "api" { policy = "read" }
 
 	t.Run("invalid token filters results", func(t *testing.T) {
 		// Token grants read to read an unrelated service, mongo
-		userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `
+		userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultInitialManagementToken, "dc1", `
 service_prefix "mongo" { policy = "read" }
 `)
 		require.NoError(t, err)

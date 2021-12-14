@@ -20,7 +20,7 @@ ${
     },
     {
         "ID":"secret",
-        "Name":"Master Token",
+        "Name":"Initial Management Token",
         "Type":"management",
         "Rules":"",
         "CreateIndex":5,
