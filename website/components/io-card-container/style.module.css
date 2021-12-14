@@ -60,10 +60,12 @@
   grid-template-columns: repeat(var(--columns), minmax(var(--minCol), 1fr));
   gap: 32px;
   overflow-x: auto;
-  margin: -4px;
-  padding: 4px;
+  margin: 0 -24px;
+  padding: 6px 24px;
 
   @media (--medium-up) {
+    margin: 0;
+    padding: 0;
     overflow-x: unset;
   }
 
