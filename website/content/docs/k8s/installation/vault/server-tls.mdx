@@ -116,6 +116,12 @@ vault write auth/kubernetes/role/consul-server \
     ttl=1h
 ```
 
+To find out the service account name of the Consul server,
+you can run:
+```shell-session
+ helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul
+```
+
 -> **Note:** Should you enable other supported features such as gossip-encryption be sure to append additional policies to
 the Kube auth role in a comma separated value e.g.  `policies=consul-server,consul-gossip`
 
@@ -125,12 +131,6 @@ vault write auth/kubernetes/role/consul-ca \
     bound_service_account_namespaces=<Consul installation namespace> \
     policies=consul-ca \
     ttl=1h
-```
-
-To find out the service account names of the Consul server,
-you can run
-```shell-session
- helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul
 ```
 
 The above Vault Roles will now be your Helm values for `global.secretsBackend.vault.consulServerRole` and
