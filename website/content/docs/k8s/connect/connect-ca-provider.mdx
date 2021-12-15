@@ -6,7 +6,7 @@ description: Configuring a Connect CA Provider
 
 # Configuring a Connect CA Provider
 
-~> NOTE: Instructions below should only be used for initially bootstrapping a cluster.
+~> **NOTE:** The instructions below should only be used for initially bootstrapping a cluster with **Consul K8s 0.38.0+.**
 To update the Connect CA provider on an existing cluster or to update any properties, such as tokens, of the CA provider,
 please use the [Update CA Configuration Endpoint](/api/connect/ca#update-ca-configuration).
 
@@ -14,17 +14,22 @@ Consul has support for different certificate authority (CA) providers to be used
 Please see [Connect Certificate Management](/docs/connect/ca) for the information on the providers
 we currently support.
 
-Generally, to configure a provider via the Consul Helm chart, you need to follow three steps:
+To configure a provider via the Consul Helm chart, you need to follow three steps:
 
 1. Create a configuration file containing your provider information.
 1. Create a Kubernetes secret containing the configuration file.
 1. Reference the Kubernetes secret in the [`server.extraVolumes`](/docs/k8s/helm#v-server-extravolumes) value in the Helm chart.
 
-Below we will go over this process for configuring Vault as the Connect CA.
+To configure the Vault Connect Provider please see [Vault as the Service Mesh Certificate Provider on Kubernetes](/docs/k8s/installation/vault/connect-ca).
+
+
+~> **NOTE:** The following instructions are only valid for Consul-k8s 0.37.0 and prior.
+
+Below we will go over the process for configuring Vault as the Connect CA.
 However, other providers can be configured similarly by providing the appropriate `ca_config`
 and `ca_provider` values for the provider you're using.
 
-## Configuring Vault as a Connect CA
+## Configuring Vault as a Connect CA (Consul K8s 0.37.0 and earlier)
 
 -> **NOTE:** If using Vault as your Connect CA, it's highly recommended to run a Consul version >= 1.8.5 that supports
 token auto-renewal. With this feature, if the Vault token is [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
@@ -89,27 +94,23 @@ $ kubectl create secret generic vault-config --from-file=config=vault-config.jso
 We will provide this secret and the Vault CA secret, to the Consul server via the
 `server.extraVolumes` Helm value.
 
-<CodeBlockConfig filename="config.yaml" highlight="4-13">
-
-```yaml
-global:
-  name: consul
-server:
-  extraVolumes:
-    - type: secret
-      name: vault-config
-      load: true
-      items:
-        - key: config
-          path: vault-config.json
-    - type: secret
-      name: vault-ca
-      load: false
-connectInject:
-  enabled: true
-```
-
-</CodeBlockConfig>
+  ```yaml
+  global:
+    name: consul
+  server:
+    extraVolumes:
+      - type: secret
+        name: vault-config
+        load: true
+        items:
+          - key: config
+            path: vault-config.json
+      - type: secret
+        name: vault-ca
+        load: false
+  connectInject:
+    enabled: true
+  ```
 
 Finally, [install](/docs/k8s/installation/install#installing-consul) the Helm chart using the above config file:
 
