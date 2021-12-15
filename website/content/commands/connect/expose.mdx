@@ -2,7 +2,7 @@
 layout: commands
 page_title: 'Commands: Connect Expose'
 description: >
-  The connect expose subcommand is used to expose a Connect-enabled service 
+  The connect expose subcommand is used to expose a Connect-enabled service
   through an Ingress gateway by modifying the gateway's configuration and adding
   an intention to allow traffic from the gateway to the service.
 ---
@@ -33,15 +33,17 @@ Usage: consul connect expose [options]
 #### Expose Options
 
 - `-ingress-gateway` - (Required) The name of the ingress gateway service to use.
-  A namespace can optionally be specified as a prefix via the
-  'namespace/service' format
+  A partition and namespace can optionally be specified as a prefix via the
+  '[[partition/]namespace]/service' format. If a partition is not specified 'default' is assumed.
+  If a partition is specified a namespace must be specified. Partitions and namespaces are Enterprise features.
 
 - `-port` - (Required) The listener port to use for the service on the Ingress
   gateway.
 
 - `-service` - (Required) The name of destination service to expose. A namespace
-  can optionally be specified as a prefix via the 'namespace/service'
-  format.
+  can optionally be specified as a prefix via the '[[partition/]namespace]/service'
+  format.  If a partition is not specified 'default' is assumed.
+  If a partition is specified a namespace must be specified. Partitions and namespaces are Enterprise features.
 
 - `-protocol` - The protocol for the service. Defaults to 'tcp'.
 
