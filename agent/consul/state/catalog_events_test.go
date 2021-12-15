@@ -1033,8 +1033,8 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			testServiceHealthEvent(t, "web", evSidecar, evNodeUnchanged),
 			testServiceHealthEvent(t, "web", evConnectTopic, evSidecar, evNodeUnchanged),
 
-			testServiceHealthEvent(t, "api", evNode2, evConnectNative, evNodeUnchanged),
-			testServiceHealthEvent(t, "api", evNode2, evConnectTopic, evConnectNative, evNodeUnchanged),
+			testServiceHealthEvent(t, "api", evNode2, evConnectNative, evNodeUnchanged, evVirtualIPChanged("240.0.0.2")),
+			testServiceHealthEvent(t, "api", evNode2, evConnectTopic, evConnectNative, evNodeUnchanged, evVirtualIPChanged("240.0.0.2")),
 		},
 	})
 	run(t, eventsTestCase{
@@ -2112,6 +2112,19 @@ func evTerminatingGatewayRenamed(newName string) func(e *stream.Event) error {
 		csn := getPayloadCheckServiceNode(e.Payload)
 		csn.Service.Service = newName
 		csn.Checks[1].ServiceName = newName
+		return nil
+	}
+}
+
+func evVirtualIPChanged(newIP string) func(e *stream.Event) error {
+	return func(e *stream.Event) error {
+		csn := getPayloadCheckServiceNode(e.Payload)
+		csn.Service.TaggedAddresses = map[string]structs.ServiceAddress{
+			structs.TaggedAddressVirtualIP: {
+				Address: newIP,
+				Port:    csn.Service.Port,
+			},
+		}
 		return nil
 	}
 }
