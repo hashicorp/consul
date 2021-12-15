@@ -4,9 +4,7 @@ on:
   push:
     # Sequence of patterns matched against refs/heads
     branches: [ 
-      "main", 
-      # Remove before merging
-      "support-darwin-arm64" 
+      "main"
     ]
 
 env:
