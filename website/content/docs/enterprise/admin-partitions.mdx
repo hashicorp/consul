@@ -59,7 +59,7 @@ Your Consul configuration must meet the following requirements to use admin part
 
 ### Versions
 
-* Consul 1.11.0 and newer
+* Consul 1.11.1 and newer
 
 ### Security Configurations
 
@@ -84,8 +84,8 @@ One of the primary use cases for admin partitions is for enabling a service mesh
 
 * Two or more Kubernetes clusters. Consul servers must be deployed to a single cluster. The other clusters should run Consul clients. 
 * A Consul Enterprise license must be installed on each Kubernetes cluster.
-* The helm chart for consul-k8s v0.38.0 or greater.
-* Consul 1.11.0-ent or greater.
+* The helm chart for consul-k8s v0.39.0 or greater.
+* Consul 1.11.1-ent or greater.
 * All Consul clients must be able to communicate with the Consul servers in the `default` partition, and all servers must be able to communicate with the clients. 
 
 ## Usage
@@ -118,7 +118,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     enableConsulNamespaces: true
     tls:
       enabled: true
-    image: hashicorp/consul-enterprise:1.11.0-ent-rc
+    image: hashicorp/consul-enterprise:1.11.1-ent
     adminPartitions:
       enabled: true
     acls:
@@ -194,7 +194,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   global:
     enabled: false
     enableConsulNamespaces: true
-    image: hashicorp/consul-enterprise:1.11.0-ent-rc
+    image: hashicorp/consul-enterprise:1.11.1-ent
     adminPartitions:
       enabled: true
       name: clients
