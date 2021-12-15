@@ -1,3 +1,9 @@
+## 1.10.6 (December 15, 2021)
+
+SECURITY:
+
+* ci: Upgrade golang.org/x/net to address [CVE-2021-44716](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716) [[GH-11856](https://github.com/hashicorp/consul/issues/11856)]
+
 ## 1.10.5 (December 13, 2021)
 
 SECURITY:
