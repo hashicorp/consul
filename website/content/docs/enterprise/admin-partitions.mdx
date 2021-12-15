@@ -22,9 +22,9 @@ Admin partitions exist a level above namespaces in the identity hierarchy. They 
 
 ### Default Admin Partition
 
-Each Consul cluster will have a default admin partition named `default`. The `default` admin partition is special because it can contain namespaces and other resources that are replicated between datacenters. The `default` partition must also contain the Consul servers.  
+Each Consul cluster will have a default admin partition named `default`. The `default` partition must contain the Consul servers. The `default` admin partition is different from other partitions that may be created because the namespaces and resources in this partition are replicated between datacenters when they are federated.  
 
-Any resource created without specifying an admin partition will inherit the partition of the ACL token.
+Any resource created without specifying an admin partition will inherit the partition of the ACL token used to create the resource.
 
 -> **Preexisting resources and the `default` partition**: Admin partitions were introduced in Consul 1.11. After upgrading to Consul 1.11 or later, the `default` partition will contain all resources created in previous versions.
 
