@@ -277,24 +277,28 @@
             "path": "connect/gateways"
           },
           {
-            "title": "Connect Datacenters - Mesh Gateways",
+            "title": "Mesh Gateways",
             "routes": [
-              {
-                "title": "Overview",
-                "path": "connect/gateways/mesh-gateway"
-              },
               {
                 "title": "WAN Federation",
                 "path": "connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways"
+              },
+              {
+                "title": "Enabling Service-to-service Traffic Across Datacenters",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-datacenters"
+              },
+              {
+                "title": "Enabling Service-to-service Traffic Across Admin Partitions",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-partitions"
               }
             ]
           },
           {
-            "title": "External <> Internal Services -  Ingress Gateways",
+            "title": "Ingress Gateways",
             "path": "connect/gateways/ingress-gateway"
           },
           {
-            "title": "Internal <> External Services - Terminating Gateways",
+            "title": "Terminating Gateways",
             "path": "connect/gateways/terminating-gateway"
           }
         ]
