@@ -3,7 +3,7 @@ name: build
 on:
   push:
     # Sequence of patterns matched against refs/heads
-    branches: [ main ]
+    branches: [ main release/1.11.1 ] 
 
 env:
   PKG_NAME: consul
