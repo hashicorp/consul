@@ -4,9 +4,7 @@ on:
   push:
     # Sequence of patterns matched against refs/heads
     branches:
-      - release/1.11.0
-
-
+      - main
 env:
   PKG_NAME: consul
 
