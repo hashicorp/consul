@@ -1,7 +1,7 @@
 .app .skip-links {
   @extend %skip-links;
 }
-.app footer {
+[role='contentinfo'] {
   @extend %footer;
 }
 [role='banner'] {
@@ -40,7 +40,7 @@ main {
   @extend %transition-pushover;
 }
 %footer {
-  position: absolute;
+  position: fixed;
   z-index: 50;
 
   color: var(--gray-400);
@@ -49,11 +49,11 @@ main {
   width: 250px;
   padding-left: 25px;
 }
-.app footer {
+%footer {
   top: calc(100vh - 42px);
   top: calc(max(100vh, 460px) - 42px);
 }
-html.has-nspaces .app footer {
+html.has-nspaces .app [role='contentinfo'] {
   top: calc(100vh - 42px);
   top: calc(max(100vh, 550px) - 42px);
 }
