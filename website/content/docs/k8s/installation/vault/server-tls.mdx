@@ -117,7 +117,7 @@ vault write auth/kubernetes/role/consul-server \
 ```
 
 -> **Note:** Should you enable other supported features such as gossip-encryption be sure to append additional policies to
-the Kube auth role in a CSV e.g.  `policies=consul-server,consul-gossip`
+the Kube auth role in a comma separated value e.g.  `policies=consul-server,consul-gossip`
 
 ```shell-session
 vault write auth/kubernetes/role/consul-ca \
@@ -127,7 +127,7 @@ vault write auth/kubernetes/role/consul-ca \
     ttl=1h
 ```
 
--> **Note:** To find out the service account names of the Consul server and client,
+-> **Note:** To find out the service account names of the Consul server,
 you can run
 `helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul`
 
