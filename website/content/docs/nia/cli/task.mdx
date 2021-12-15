@@ -79,3 +79,34 @@ $ consul-terraform-sync task disable task_b
 
 ==> 'task_b' disable complete!
 ```
+
+## task delete
+
+`task delete` command deletes an existing task. The command will ask the user for approval before deleting the task. A task that is currently running cannot be deleted, and the delete must be retried after the task has completed.
+
+### Usage
+`consul-terraform-sync task delete [options] <task_name>`
+
+**Arguments:**
+
+| Name | Type	 | Required | Description  |
+| -----| ----- | -------- | ------------ |
+|`task_name` | string | true | The name of the task to delete.
+
+**Options:** Currently only supporting [general options](/docs/nia/cli/cli-overview#general-options)
+
+
+### Example
+
+```shell-session
+$ consul-terraform-sync task delete task_a
+==> Do you want to delete 'task_a'?
+     - This action cannot be undone.
+    Only 'yes' will be accepted to approve.
+
+Enter a value: yes
+
+==> Deleting task 'task_a'...
+
+==> Deleted task 'task_a'
+```
