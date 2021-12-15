@@ -26,9 +26,12 @@ vault write auth/kubernetes/role/consul-server \
     ttl=1h
 ```
 
--> **Note:** To find out the service account names of the Consul server,
-you can run
-`helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul`
+To find out the service account name of the Consul server,
+you can run: 
+
+```shell-session
+helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul
+```
 
 Now we can configure the Consul Helm chart to use Vault as the Connect CA provider:
 
