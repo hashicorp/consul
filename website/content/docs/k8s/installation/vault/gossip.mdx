@@ -59,7 +59,7 @@ vault write auth/kubernetes/role/consul-client \
 ```
 
 To find out the service account names of the Consul server and client,
-you can run
+you can run the following `helm template` commands with your Consul on Kubernetes values file:
 
 ```
 # Generate Consul server service account name
