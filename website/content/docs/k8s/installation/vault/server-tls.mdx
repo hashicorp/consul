@@ -129,7 +129,9 @@ vault write auth/kubernetes/role/consul-ca \
 
 -> **Note:** To find out the service account names of the Consul server,
 you can run
-`helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul`
+```shell-session
+ helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul
+```
 
 The above Vault Roles will now be your Helm values for `global.secretsBackend.vault.consulServerRole` and
 `global.secretsBAckend.vault.consulCARole` respectively.
