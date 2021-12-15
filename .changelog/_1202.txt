@@ -1,3 +1,0 @@
-```release-note:feature
-partitions: **(Enterprise only)** segment serf LAN gossip between nodes in different partitions
-```

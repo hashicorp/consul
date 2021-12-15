@@ -1,3 +1,0 @@
-```release-note:feature
-ui: Added initial support for admin partition CRUD
-```

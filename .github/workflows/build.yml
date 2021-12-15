@@ -4,7 +4,6 @@ on:
   push:
     # Sequence of patterns matched against refs/heads
     branches: 
-      - main 
       - release/1.11.1 
 
 env:
@@ -171,7 +170,7 @@ jobs:
     strategy:
       matrix:
         goos: [ darwin ]
-        goarch: [ "amd64" ]
+        goarch: [ "amd64", "arm64" ]
         go: [ "1.17.5" ]
       fail-fast: true
 

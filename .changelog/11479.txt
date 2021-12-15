@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: When switching partitions reset the namespace back to the tokens default namespace or default
-```
