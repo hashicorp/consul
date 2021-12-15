@@ -22,28 +22,24 @@ Admin partitions exist a level above namespaces in the identity hierarchy. They 
 
 ### Default Admin Partition
 
-Each Consul cluster will have at least one default admin partition (named `default`). Any resource created without specifying an admin partition will inherit the partition of the ACL token.
+Each Consul cluster will have a default admin partition named `default`. The `default` partition must contain the Consul servers. The `default` admin partition is different from other partitions that may be created because the namespaces and resources in this partition are replicated between datacenters when they are federated.  
 
-The `default` admin partition is special in that it may contain namespaces and other entities that are replicated between datacenters. The `default` partition must also contain the Consul servers.  
+Any resource created without specifying an admin partition will inherit the partition of the ACL token used to create the resource.
 
 -> **Preexisting resources and the `default` partition**: Admin partitions were introduced in Consul 1.11. After upgrading to Consul 1.11 or later, the `default` partition will contain all resources created in previous versions.
 
 ### Naming Admin Partitions
 
 Only characters that are valid in DNS names can be used to name admin partitions.
-Names must also start with a letter.
+Names must also begin with a lowercase letter.
 
 ### Namespaces
 
-When an admin partition is created, it will include a `default` namespace. You can create additional namespaces within the partition.
-
-All namespaces must exist within an admin partition. By extension, the partition will also contain all namespaced resources.
-
-Within a single datacenter, a namespace in one admin partition is logically separate from any other namespace with the same name in other admin partitions.
+When an admin partition is created, it will include the `default` namespace. You can create additional namespaces within the partition. Resources created within a namespace are not shared across partitions.
 
 ### Cross-datacenter Replication
 
-Only resources in the default admin partition will be replicated to secondary datacenters. Non-default partitions are currently not supported in secondary datacenters.
+Only resources in the `default` admin partition will be replicated to secondary datacenters (also see [Known Limitations](#known-limitations)). 
 
 ### DNS Queries
 
@@ -51,13 +47,11 @@ Client agents will be configured to operate within a specific admin partition. T
 
 ### Service Mesh Configurations
 
-Values specified for [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) configurations are scoped to a specific partition. Services registered in the partition will use the partition's `proxy-defaults` values.
+The partition in which [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) and [`mesh`](/docs/connect/config-entries/mesh) configurations are created define the scope of the configurations. Services registered in a partition will use the `proxy-defaults` and `mesh` configurations that have been created in the partition.
 
 ### Cross-partition Networking
 
-You can configure services to be discoverable and accessible by downstream services in any partition within the datacenter. Specify the upstream services that you want to be available for discovery by configuring the `exported-services` configuration entry in the partition where the services are registered. Refer to the [`exported-services` documentation](/docs/connect/config-entries/exported-services) for details.
-
-Additionally, the `upstreams` configuration for proxies in the source partition must specify the name of the destination partition so that listeners can be created. Refer to the [Upstream Configuration Reference](/docs/connect/registration/service-registration#upstream-configuration-reference) for additional information.
+You can configure services to be discoverable by downstream services in any partition within the datacenter. Specify the upstream services that you want to be available for discovery by configuring the `exported-services` configuration entry in the partition where the services are registered. Refer to the [`exported-services` documentation](/docs/connect/config-entries/exported-services) for details. Additionally, the `upstreams` configuration for proxies in the source partition must specify the name of the destination partition so that listeners can be created. Refer to the [Upstream Configuration Reference](/docs/connect/registration/service-registration#upstream-configuration-reference) for additional information.
 
 ## Requirements
 
@@ -69,15 +63,15 @@ Your Consul configuration must meet the following requirements to use admin part
 
 ### Security Configurations
 
-* The agent token used by the client agent will need to allow `node:write` in the admin partition.
+* The agent token used by the client agent must allow `node:write` in the admin partition.
 * The `write` permission for `proxy-defaults` requires `mesh:write`. See [Admin Partition Rules](/docs/security/acl/acl-rules#admin-partition-rules) for additional information.
 * The `write` permissions for ingress and terminating gateways require `mesh:write` privileges.
-* Wildcards (`*`) are not supported when creating intentions for admin partitions, but you can use a wildcard to specify services within a partition.
+* Wildcards (`*`) are not supported for the partition field when creating intentions for admin partitions. The partition name must be explicitly specified.
 * With the exception of the `default` admin partition, ACL rules configured for admin partitions are isolated, so policies defined in partitions outside of the `default` partition can only reference their local partition.
 
 ### Agent Configurations
 
-* In client agent configurations, the admin partition name should be specified in the agent configuration:
+* The admin partition name should be specified in client agent configurations:
 
   ```hcl
   partition = "<NAME>"
@@ -86,36 +80,35 @@ Your Consul configuration must meet the following requirements to use admin part
 
 ### Kubernetes Requirements
 
-One of the primary use cases for admin partitions is for enabling a service mesh on Kubernetes clusters. The following requirements must be met to create admin partitions on Kubernetes:
+One of the primary use cases for admin partitions is for enabling a service mesh across multiple Kubernetes clusters. The following requirements must be met to create admin partitions on Kubernetes:
 
-* Two or more Kubernetes clusters. Consul servers must be deployed on one of the clusters. The other clusters should run Consul clients.
-* A Consul Enterprise license must be installed on each instance of Consul.
-* The helm chart for consul-k8s v0.34.1 or greater.
-* Consul 1.11.0-ent-alpha or greater.
-* All Consul clients in the VPC must be able to communicate with the Consul servers. 
-* VPC firewall rules should be implemented that enable clients to communicate with the Consul servers in the `default` partition. The server nodes should be deployed to a single cluster.
+* Two or more Kubernetes clusters. Consul servers must be deployed to a single cluster. The other clusters should run Consul clients. 
+* A Consul Enterprise license must be installed on each Kubernetes cluster.
+* The helm chart for consul-k8s v0.38.0 or greater.
+* Consul 1.11.0-ent or greater.
+* All Consul clients must be able to communicate with the Consul servers in the `default` partition, and all servers must be able to communicate with the clients. 
 
 ## Usage
 
-This section describes how to deploy Consul admin partitions to Kubernetes clusters, as well as directs you to the CLI reference for interacting with the admin partitions API on the command line.
+This section describes how to deploy Consul admin partitions to Kubernetes clusters. Refer to the [admin partition CLI documentation](/commands/admin-partition) for information about command line usage.
 
 ### Deploying Consul with Admin Partitions on Kubernetes
 
-The expected use case is to create admin partitions on Kubernetes clusters. This is because many organizations prefer to use cloud-managed Kubernetes offerings to provision separate Kubernetes clusters for individual teams, business units, or environments. This is opposed to deploying a single, large Kubernetes cluster. When these organizations attempt to use a service mesh to enable cross-cluster activities, such as administration tasks and communication between nodes, they encounter problems.
+The expected use case is to create admin partitions on Kubernetes clusters. This is because many organizations prefer to use cloud-managed Kubernetes offerings to provision separate Kubernetes clusters for individual teams, business units, or environments. This is opposed to deploying a single, large Kubernetes cluster. Organizations encounter problems, however, when they attempt to use a service mesh to enable multi-cluster use cases, such as administration tasks and communication between nodes.
 
-The following procedure will result in a different admin partition in each Kubernetes cluster. The Consul clients running in the cluster with servers will be in the `default` partition. Another partition called `clients` will also be created. 
+The following procedure will result in an admin partition in each Kubernetes cluster. The Consul clients running in the cluster with servers will be in the `default` partition. Another partition called `clients` will also be created. 
 
 Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernetes-requirements) before proceeding.
 
-1. Update the firewall rules so that pods containing Consul clients and pods containing Consul servers can send and receive traffic. Refer to your virtual cloud provider's documentation for instructions on how to configure firewall rules. 
+1. Verify that your VPC is configured to enable connectivity between the pods running Consul clients and servers. Refer to your virtual cloud provider's documentation for instructions on configuring network connectivity. 
 1. Create the license secret in each cluster, e.g.:
 
   ```shell-session
   kubectl create secret generic license --from-file=key=[license file path i.e. ./license.hclic]
   ```
-  This step must also be completed for each workload cluster.
+  This step must also be completed for every cluster.
 
-1. Create a server configuration file to override the default Consul Helm chart settings:
+1. Create a server configuration values file to override the default Consul Helm chart settings:
 
   <CodeTabs heading="server.yaml">
   <CodeBlockConfig lineNumbers>
@@ -125,33 +118,39 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     enableConsulNamespaces: true
     tls:
       enabled: true
-    image: hashicorp/consul-enterprise:1.11.0-ent-beta3
+    image: hashicorp/consul-enterprise:1.11.0-ent-rc
     adminPartitions:
       enabled: true
+    acls:
+      managedSystemACLs: true
     enterpriseLicense:
-      secretName: consul-ent-license
+      secretName: license
       secretKey: key
   server:
     exposeGossipAndRPCPorts: true
   connectInject:
     enabled: true
-    transparentProxy:
-      defaultEnabled: false
-  consulNamespaces:
+    consulNamespaces:
       mirroringK8S: true
   controller:
     enabled: true
+  meshGateway:
+    enabled: true
+    replicas: 1
+  dns:
+    enabled: true
+    enableRedirection: true
   ```
   </CodeBlockConfig>
-  </CodeTabs>
-  
-  Note that the `transparentProxy` configuration is disabled. This is to enable multi-cluster networking.
+  </CodeTabs> 
 
-1. Start the Consul server(s) using the custom configuration file:
+  Refer to the [Helm Chart Configuration reference](/docs/k8s/helm) for details about the parameters you can specify in the file.  
+  
+1. Install the Consul server(s) using the values file created in the previous step:
   ```shell-session
     helm install server hashicorp/consul -f server.yaml
   ```
-1. After the server starts, get the external IP address for partition service so that it can be added to the client configuration. The partition service is a `LoadBalancer` type. The IP address is where clients that across your partitions will communicate with servers in this cluster.
+1. After the server starts, get the external IP address for partition service so that it can be added to the client configuration. The partition service is a `LoadBalancer` type. The IP address is used to bootstrap connectivity between servers and clients. <a name="get-external-ip-address"/>
 
   ```shell-session
   kubectl get service
@@ -171,51 +170,6 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   ```
   Use the IP address printed to the console to configure the `k8sAuthMethodHost` parameter in the workload configuration file for your client nodes. 
 
-1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition. In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied:
-
-  <CodeTabs heading="clients.yaml">
-  <CodeBlockConfig lineNumbers>
-
-  ```yaml
-  global:
-  enabled: false
-  enableConsulNamespaces: true
-  image: hashicorp/consul-enterprise:1.11.0-ent-beta3
-  adminPartitions:
-    enabled: true
-    name: "clients"
-  tls:
-    enabled: true
-    caCert:
-      secretName: consul-consul-ca-cert
-      secretKey: tls.crt
-    caKey:
-      secretName: consul-consul-ca-key
-      secretKey: tls.key
-  enterpriseLicense:
-    secretName: license
-    secretKey: key
-  externalServers:
-    enabled: true
-    hosts: [ "34.135.103.67" ]
-    tlsServerName: server.dc1.consul
-    k8sAuthMethodHost: "104.154.156.146"
-  client:
-    enabled: true
-    exposeGossipPorts: true
-    join: [ "34.135.103.67" ]
-  connectInject:
-    enabled: true
-    consulNamespaces:
-      mirroringK8S: true
-  controller:
-    enabled: true
-  meshGateway:
-    enabled: true
-  ```
-  </CodeBlockConfig>
-  </CodeTabs>
-
 1. Copy the server certificate to the workload cluster.
 
   ```shell-session
@@ -227,18 +181,89 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   ```shell-session
   kubectl get secret server-consul-ca-key --context <server-context> -o yaml | kubectl apply --context <client-context> -f -
   ```
-1. Start the workload client clusters:
+1. If ACLs were enabled in the server configuration values file, copy the token to the workload cluster.
+  ```shell-session
+  kubectl get secret server-consul-partitions-acl-token --context <server-context> -o yaml | kubectl apply --context <client-context> -f -
+  ```
+1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition. In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied:
+
+  <CodeTabs heading="clients.yaml">
+  <CodeBlockConfig lineNumbers>
+
+  ```yaml
+  global:
+    enabled: false
+    enableConsulNamespaces: true
+    image: hashicorp/consul-enterprise:1.11.0-ent-rc
+    adminPartitions:
+      enabled: true
+      name: clients
+    tls:
+      enabled: true
+      caCert:
+        secretName: server-consul-ca-cert
+        secretKey: tls.crt
+      caKey:
+        secretName: server-consul-ca-key
+        secretKey: tls.key
+    acls:
+      manageSystemACLs: true
+      bootstrapToken:
+        secretName: server-consul-partitions-acl-token
+        secretKey: token
+    enterpriseLicense:
+      secretName: license
+      secretKey: key
+  externalServers:
+    enabled: true
+    hosts: [ 34.135.103.67 ]
+    tlsServerName: server.dc1.consul
+    k8sAuthMethodHost: https://104.154.156.146
+  client:
+    enabled: true
+    exposeGossipPorts: true
+    join: [ 34.135.103.67 ]
+  connectInject:
+    enabled: true
+    consulNamespaces:
+      mirroringK8S: true
+  controller:
+    enabled: true
+  meshGateway:
+    enabled: true
+    replicas: 1
+  dns:
+    enabled: true
+    enableRedirection: true
+  ```
+  </CodeBlockConfig>
+  </CodeTabs>
+
+1. Install the workload client clusters:
 
   ```shell-session
-    helm install client hashicorp/consul -f client.yaml
+    helm install clients hashicorp/consul -f client.yaml
   ```
 
-### CLI Usage
+### Verifying the Deployment
 
-You can use create and manage admin partitions through the CLI. Refer to the [admin partition CLI documentation](/commands/admin-partition) for details.
+You can log into the Consul UI to verify that the partitions appear as expected.
 
+1. If ACLs are enabled, you will need the partitions ACL token, which can be read from the Kubernetes secret. The token is an encoded string that must be decoded in base64, e.g.:
+
+  ```shell-session
+  kubectl get secret server-consul-bootstrap-acl-token -o json | jq -r .data.token | base64 -d -
+  ```
+
+  The example command gets the token using the secret name configured in the values file (`bootstrap.secretName`), decodes the secret, and prints the usable token to the console in JSON format.
+
+1. Open the Consul UI in a browser using the external IP address and port number described in a previous step (see [step 5](#get-external-ip-address)).  
+1. Click **Log in** and enter the decoded token when prompted.
+
+You will see the `default` and `clients` partitions available in the **Admin Partition** drop-down menu.
+
+![Partitions will appear in the Admin Partitions drop-down menu within the Consul UI.](/img/admin-partitions/consul-admin-partitions-verify-in-ui.png)
+ 
 ## Known Limitations
 
-* Gossip between nodes in different admin partitions must be constrained. You can accomplish this with through the use of [network segments](network-segments).
-* Cross-partition communication is not currently supported.
-* Partitions can only be created in the primary datacenter.
+* Only the `default` admin partition is supported when federating multiple Consul datacenters in a WAN. 
