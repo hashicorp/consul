@@ -103,7 +103,7 @@ The following table describes the parameters associated with the `exported-servi
 | `Services` | List of objects that specify which services to export. See [`Services`](#services) for details. | Required | None| 
 | `Meta` | Object that defines a map of the max 64 key/value pairs. | Optional | None |
 
-#### `Services`
+### Services
 
 The `Services` parameter contains one or more lists of parameters that specify which services to export, which namespaces the services reside, and the destination partition for the exported services. Each list in the `Services` block must contain the following parameters:
 
@@ -152,7 +152,7 @@ Services = [
 <CodeBlockConfig>
 
 ```yaml
-Kind: exported-services
+Kind: ExportServices
 Partition: finance
 Name: finance
 Services:
