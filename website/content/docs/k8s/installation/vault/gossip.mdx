@@ -58,11 +58,15 @@ vault write auth/kubernetes/role/consul-client \
     ttl=1h
 ```
 
--> **Note:** To find out the service account names of the Consul server and client,
+To find out the service account names of the Consul server and client,
 you can run
-`helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul`
-and
-`helm template --release-name <your release name> -s templates/client-serviceaccount.yaml hashicorp/consul`.
+
+```
+# Generate Consul server service account name
+helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul
+# Generate Consul client service account name
+helm template --release-name <your release name> -s templates/client-serviceaccount.yaml hashicorp/consul
+```
 
 ## Deploying the Consul Helm chart
 
