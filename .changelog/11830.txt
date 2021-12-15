@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Fixes an issue where under some circumstances the namespace selector could
+become 'stuck' on the default namespace
+```
