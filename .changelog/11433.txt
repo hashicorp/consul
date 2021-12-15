@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: **(Enterprise only)** updates ServiceRead and NodeRead to account for the partition-exports config entry.
-```

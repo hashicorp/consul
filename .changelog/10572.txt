@@ -1,3 +1,0 @@
-```release-note:feature
-config: add agent config flag for enterprise clients to indicate they wish to join a particular partition
-```
