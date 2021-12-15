@@ -568,7 +568,7 @@ jobs:
 
   algolia-index:
     docker:
-      - image: docker.mirror.hashicorp.services/node:12
+      - image: docker.mirror.hashicorp.services/node:14
     steps:
       - checkout
       - run:
@@ -579,6 +579,7 @@ jobs:
               exit 0
             fi
             cd website/
+            npm install -g npm@latest
             npm install
             node scripts/index_search_content.js
       - run: *notify-slack-failure
@@ -1104,7 +1105,6 @@ workflows:
               only:
                 - main
       - algolia-index:
-          context: consul-docs
           filters:
             branches:
               only:
