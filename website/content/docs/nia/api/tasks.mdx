@@ -88,3 +88,37 @@ Response if changes present:
   }
 }
 ```
+
+## Delete Task
+
+This endpoint allows for deletion of existing tasks. It does not allow deletion of a task that is currently running.
+
+| Method | Path                | Produces           |
+| ------ | ------------------- | ------------------ |
+| `DELETE`  | `/tasks/:task_name` | `application/json` |
+
+#### Response Statuses
+
+| Status | Reason           |
+| ------ | ------------------ |
+| 200  | Successfully deleted the task |
+| 404  | Task with the given name not found |
+| 409  | Task is currently running |
+
+#### Response Fields
+| Name	| Type	 | Description        |
+| --------- | ------ | ------------------ |
+|`request_id` | string | The ID of the request. Used for auditing and debugging purposes.
+
+#### Sample Request
+```shell-session
+$ curl --request DELETE \
+  localhost:8558/v1/tasks/task_a
+```
+
+#### Sample Response
+```json
+{
+  "request_id": "9b23eea7-a435-2797-c71e-10c15766cd73"
+}
+```
