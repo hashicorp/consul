@@ -1,0 +1,92 @@
+---
+layout: docs
+page_title: Storing Gossip Encryption Key in Vault
+description: >-
+  Configuring the Consul Helm chart to use gossip encryption key stored in Vault.
+---
+
+# Storing Gossip Encryption Key in Vault
+
+To use a gossip encryption key stored in Vault we need the following:
+
+1. Generate and store an encryption key in Vault.
+1. Create policies that will allow Consul client and server to access that key.
+1. Create a Kubernetes auth roles that link policies from step 2 to Kubernetes service accounts of the Consul servers and clients.
+
+## Configuring Vault
+
+First, generate and store the gossip key in Vault:
+
+```shell-session
+vault kv put secret/consul/gossip key="$(consul keygen)"
+```
+
+Next, we will need to create a policy that allows read access to this secret:
+
+```shell-session
+# gossip-policy.hcl
+path "secret/data/consul/gossip" {
+  capabilities = ["read"]
+}
+```
+
+```shell-session
+vault policy write gossip-policy gossip-policy.hcl
+```
+
+Prior to creating auth roles for the Consul server and client, ensure that the Vault Kubernetes auth method is enabled:
+
+```shell-session
+vault auth enable kubernetes
+```
+
+Next, we will create Kubernetes auth roles for the Consul server and client:
+
+```shell-session
+vault write auth/kubernetes/role/consul-server \
+    bound_service_account_names=<Consul server service account> \
+    bound_service_account_namespaces=<Consul installation namespace> \
+    policies=gossip-policy \
+    ttl=1h
+```
+
+```shell-session
+vault write auth/kubernetes/role/consul-client \
+    bound_service_account_names=<Consul client service account> \
+    bound_service_account_namespaces=<Consul installation namespace> \
+    policies=gossip-policy \
+    ttl=1h
+```
+
+To find out the service account names of the Consul server and client,
+you can run the following `helm template` commands with your Consul on Kubernetes values file:
+
+```
+# Generate Consul server service account name
+helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul
+# Generate Consul client service account name
+helm template --release-name <your release name> -s templates/client-serviceaccount.yaml hashicorp/consul
+```
+
+## Deploying the Consul Helm chart
+
+Now that we've configured Vault, you can configure the Consul Helm chart to
+use the gossip key in Vault:
+
+```yaml
+global:
+  secretsBackend:
+    vault:
+      enabled: true
+      consulServerRole: consul-server
+      consulClientRole: consul-client
+    gossipEncryption:
+      secretName: secret/data/consul/gossip
+      secretKey: key
+```
+
+Note that `global.gossipEncryption.secretName` is the path of the secret in Vault.
+This should be the same path as the one you'd include in your Vault policy.
+`global.gossipEncryption.secretKey` is the key inside the secret data. This should be the same
+as the key we passed when we created the gossip secret in Vault.
+

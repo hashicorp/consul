@@ -436,6 +436,27 @@
                 "path": "k8s/installation/multi-cluster/vms-and-kubernetes"
               }
             ]
+          },
+          {
+            "title": "Vault as Secrets Backend",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "k8s/installation/vault"
+              },
+              {
+                "title": "Gossip Encryption Key",
+                "path": "k8s/installation/vault/gossip"
+              },
+              {
+                "title": "Server TLS",
+                "path": "k8s/installation/vault/server-tls"
+              },
+              {
+                "title": "Service Mesh Certificates",
+                "path": "k8s/installation/vault/connect-ca"
+              }
+            ]
           }
         ]
       },
