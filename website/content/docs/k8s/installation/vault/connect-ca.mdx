@@ -26,7 +26,7 @@ vault write auth/kubernetes/role/consul-server \
     ttl=1h
 ```
 
--> **Note:** To find out the service account names of the Consul server and client,
+-> **Note:** To find out the service account names of the Consul server,
 you can run
 `helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul`
 
