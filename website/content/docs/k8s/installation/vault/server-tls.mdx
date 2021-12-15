@@ -85,7 +85,7 @@ vault write pki/roles/consul-server \
   max_ttl="720h"
 ```
 
--> **Note:** To generate the `<Allowed-domains-string>` use the following script as a template
+To generate the `<Allowed-domains-string>` use the following script as a template
 
 ```shell-session
 #!/bin/sh
@@ -127,7 +127,7 @@ vault write auth/kubernetes/role/consul-ca \
     ttl=1h
 ```
 
--> **Note:** To find out the service account names of the Consul server,
+To find out the service account names of the Consul server,
 you can run
 ```shell-session
  helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul
