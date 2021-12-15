@@ -15,7 +15,7 @@ metrics_in_pr_title=$(echo "${PR_TITLE-""}" | grep -i "metric")
 if [ "$metrics_modified" ] || [ "$metrics_in_pr_body" ] || [ "$metrics_in_pr_title" ]; then
   # need to check if there are modifications to metrics_test
   test_files_regex="*_test.go"
-  modified_metrics_test_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/main")" -- "$test_files_regex" | grep -i "metric")
+  modified_metrics_test_files=$(git --no-pager diff HEAD "$(git merge-base HEAD "origin/main")" -- "$test_files_regex" | grep -i "metric")
   if [ "$modified_metrics_test_files" ]; then
     # 1 happy path: metrics_test has been modified bc we modified metrics behavior
     echo "PR seems to modify metrics behavior. It seems it may have added tests to the metrics as well."
