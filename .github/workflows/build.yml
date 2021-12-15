@@ -3,7 +3,9 @@ name: build
 on:
   push:
     # Sequence of patterns matched against refs/heads
-    branches: [ main ]
+    branches: [ 
+      "main"
+    ]
 
 env:
   PKG_NAME: consul
@@ -169,7 +171,7 @@ jobs:
     strategy:
       matrix:
         goos: [ darwin ]
-        goarch: [ "amd64" ]
+        goarch: [ "amd64", "arm64" ]
         go: [ "1.17.5" ]
       fail-fast: true
 
