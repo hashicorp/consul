@@ -77,7 +77,7 @@ Next, a Vault role for the PKI engine will set the default certificate issuance 
 
 ```shell-session
 vault write pki/roles/consul-server \
-  allowed_domains=<Allowed-domains-string>" \
+  allowed_domains="<Allowed-domains-string>" \
   allow_subdomains=true \
   allow_bare_domains=true \
   allow_localhost=true \
@@ -85,12 +85,19 @@ vault write pki/roles/consul-server \
   max_ttl="720h"
 ```
 
--> **Note:** To generate the `<Allowed-domains-string>` use the following template
+-> **Note:** To generate the `<Allowed-domains-string>` use the following script as a template
 
 ```shell-session
-name = global.name if set, or <Your-release-name>-consul
-ns = <Consul installation namespace>
-Sprintf("%s.consul,%s-server,%s-server.%s,%s-server.%s.svc", global.datacenter, $name, $name, $ns, $name, $ns)
+#!/bin/sh
+
+# NAME is set to either the value from `global.name` from your Consul K8s value file, or your $HELM_RELEASE_NAME-consul
+export NAME=consulk8s
+# NAMESPACE is where the Consul on Kubernetes is installed
+export NAMESPACE=consul
+# DATACENTER is the value of `global.datacenter` from your Helm values config file
+export DATACENTER=dc1
+
+echo allowed_domains=\"$DATACENTER.consul, $NAME-server, $NAME-server.$NAMESPACE, $NAME-server.$NAMESPACE.svc\"
 ```
 
 Prior to creating the Kubernetes auth roles required for Consul to securely access Vault, ensure that the Vault Kubernetes Auth method is enabled:
