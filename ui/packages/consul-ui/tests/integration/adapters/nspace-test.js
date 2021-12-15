@@ -6,14 +6,17 @@ module('Integration | Adapter | nspace', function(hooks) {
   setupTest(hooks);
   const id = 'slug';
   const dc = 'dc-1';
-  test('requestForQuery returns the correct url/method', function(assert) {
+  test('requestForQuery returns the correct url/method', async function(assert) {
     const adapter = this.owner.lookup('adapter:nspace');
     const client = this.owner.lookup('service:client/http');
-    const request = client.requestParams.bind(client);
+    const request = function() {
+      return () => client.requestParams.bind(client)(...arguments);
+    };
     const expected = `GET /v1/namespaces?dc=${dc}`;
-    const actual = adapter.requestForQuery(request, {
+    let actual = await adapter.requestForQuery(request, {
       dc: dc,
     });
+    actual = actual();
     assert.equal(`${actual.method} ${actual.url}`, expected);
   });
   test('requestForQueryRecord returns the correct url/method', function(assert) {
