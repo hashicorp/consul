@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: **(Enterprise only)** add support for dialing upstreams in remote partitions through mesh gateways.
-```

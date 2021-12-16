@@ -637,7 +637,6 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 
 	policies = append(policies, syntheticPolicies...)
 	filtered := r.filterPoliciesByScope(policies)
-	// TODO(partitions,acls): filter these by the partition/namespace of the token trying to use them?
 	return filtered, nil
 }
 

@@ -174,10 +174,6 @@
     ]
   },
   {
-    "title": "admin-partition",
-    "path": "admin-partition"
-  },
-  {
     "title": "agent",
     "path": "agent"
   },
@@ -436,6 +432,10 @@
         "path": "operator/raft"
       }
     ]
+  },
+  {
+    "title": "partition",
+    "path": "partition"
   },
   {
     "title": "reload",

@@ -85,10 +85,13 @@ $ consul intention match db
 Intention commands commonly take positional arguments referred to as `SRC` and
 `DST` in the command documentation. These can take several forms:
 
-| Format                  | Meaning                                                              |
-| ----------------------- | -------------------------------------------------------------------- |
-| `<service>`             | the named service in the current namespace                           |
-| `*`                     | any service in the current namespace                                 |
-| `<namespace>/<service>` | <EnterpriseAlert inline /> the named service in a specific namespace |
-| `<namespace>/*`         | <EnterpriseAlert inline /> any service in the specified namespace    |
-| `*/*`                   | <EnterpriseAlert inline /> any service in any namespace              |
+| Format                              | Meaning                                                                                       |
+| ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| `<service>`                         | the named service in the current namespace                                                    |
+| `*`                                 | any service in the current namespace                                                          |
+| `<namespace>/<service>`             | <EnterpriseAlert inline /> the named service in a specific namespace in the default partition |
+| `<namespace>/*`                     | <EnterpriseAlert inline /> any service in the specified namespace in the default partition    |
+| `*/*`                               | <EnterpriseAlert inline /> any service in any namespace in the default partition              |
+| `<partition>/<namespace>/<service>` | <EnterpriseAlert inline /> the named service in a specific namespace                          |
+| `<partition>/<namespace>/*`         | <EnterpriseAlert inline /> any service in the specified namespace in a specific partition     |
+| `<partition>/*/*`                   | <EnterpriseAlert inline /> any service in any namespace in the  a specific  partition         |

@@ -587,6 +587,12 @@ func (s *HTTPHandlers) Index(resp http.ResponseWriter, req *http.Request) {
 	// Check if this is a non-index path
 	if req.URL.Path != "/" {
 		resp.WriteHeader(http.StatusNotFound)
+
+		if strings.Contains(req.URL.Path, "/v1/") {
+			fmt.Fprintln(resp, "Invalid URL path: not a recognized HTTP API endpoint")
+		} else {
+			fmt.Fprintln(resp, "Invalid URL path: if attempting to use the HTTP API, ensure the path starts with '/v1/'")
+		}
 		return
 	}
 

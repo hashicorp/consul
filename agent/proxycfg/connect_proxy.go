@@ -78,9 +78,6 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		return snap, err
 	}
 
-	// default the namespace to the namespace of this proxy service
-	currentNamespace := s.proxyID.NamespaceOrDefault()
-
 	if s.proxyCfg.Mode == structs.ProxyModeTransparent {
 		// When in transparent proxy we will infer upstreams from intentions with this source
 		err := s.cache.Notify(ctx, cachetype.IntentionUpstreamsName, &structs.ServiceSpecificRequest{
@@ -131,14 +128,14 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			continue
 		}
 
-		ns := currentNamespace
-		if u.DestinationNamespace != "" {
-			ns = u.DestinationNamespace
-		}
-
+		// Default the partition and namespace to the namespace of this proxy service.
 		partition := s.proxyID.PartitionOrDefault()
 		if u.DestinationPartition != "" {
 			partition = u.DestinationPartition
+		}
+		ns := s.proxyID.NamespaceOrDefault()
+		if u.DestinationNamespace != "" {
+			ns = u.DestinationNamespace
 		}
 
 		cfg, err := parseReducedUpstreamConfig(u.Config)
@@ -274,13 +271,17 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				return fmt.Errorf("failed to watch discovery chain for %s: %v", svc.String(), err)
 			}
 		}
+		snap.ConnectProxy.IntentionUpstreams = seenServices
 
 		// Clean up data from services that were not in the update
-		for sn := range snap.ConnectProxy.WatchedUpstreams {
+		for sn, targets := range snap.ConnectProxy.WatchedUpstreams {
 			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
 			if _, ok := seenServices[sn]; !ok {
+				for _, cancelFn := range targets {
+					cancelFn()
+				}
 				delete(snap.ConnectProxy.WatchedUpstreams, sn)
 			}
 		}
@@ -292,11 +293,14 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				delete(snap.ConnectProxy.WatchedUpstreamEndpoints, sn)
 			}
 		}
-		for sn := range snap.ConnectProxy.WatchedGateways {
+		for sn, cancelMap := range snap.ConnectProxy.WatchedGateways {
 			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
 			if _, ok := seenServices[sn]; !ok {
+				for _, cancelFn := range cancelMap {
+					cancelFn()
+				}
 				delete(snap.ConnectProxy.WatchedGateways, sn)
 			}
 		}
@@ -315,6 +319,17 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 			if _, ok := seenServices[sn]; !ok {
 				cancelFn()
 				delete(snap.ConnectProxy.WatchedDiscoveryChains, sn)
+			}
+		}
+		// These entries are intentionally handled separately from the WatchedDiscoveryChains above.
+		// There have been situations where a discovery watch was cancelled, then fired.
+		// That update event then re-populated the DiscoveryChain map entry, which wouldn't get cleaned up
+		// since there was no known watch for it.
+		for sn := range snap.ConnectProxy.DiscoveryChain {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+				continue
+			}
+			if _, ok := seenServices[sn]; !ok {
 				delete(snap.ConnectProxy.DiscoveryChain, sn)
 			}
 		}

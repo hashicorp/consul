@@ -1,3 +1,0 @@
-```release-note:feature
-ui: Upgrade Lock Sessions to use partitions
-```

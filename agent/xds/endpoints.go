@@ -48,11 +48,19 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		len(cfgSnap.ConnectProxy.PreparedQueryEndpoints)+len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
 
 	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[id]
+
+		explicit := upstreamCfg.HasLocalPortOrSocket()
+		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[id]; !implicit && !explicit {
+			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
+			continue
+		}
+
 		es := s.endpointsFromDiscoveryChain(
 			id,
 			chain,
 			cfgSnap.Locality,
-			cfgSnap.ConnectProxy.UpstreamConfig[id],
+			upstreamCfg,
 			cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id],
 			cfgSnap.ConnectProxy.WatchedGatewayEndpoints[id],
 		)

@@ -1,3 +1,0 @@
-```release-note:bug
-partitions: **(Enterprise only)** fix panic when forwarding delete operations to the leader
-```

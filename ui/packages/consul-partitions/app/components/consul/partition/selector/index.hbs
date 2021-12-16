@@ -1,8 +1,8 @@
 {{#if (can "use partitions")}}
-  {{#if (can "choose partitions" dc=@dc)}}
 {{#let
   (or @partition 'default')
 as |partition|}}
+  {{#if (can "choose partitions" dc=@dc)}}
       <li
         class="partitions"
         data-test-partition-menu
@@ -45,7 +45,7 @@ as |partition|}}
                   @href={{href-to 'dc.partitions.index' @dc.Name}}
                 >
                   <BlockSlot @name="label">
-                    Manage Admin Partitions
+                    Manage Partitions
                   </BlockSlot>
                 </MenuItem>
       {{/if}}
@@ -58,9 +58,9 @@ as |partition|}}
       class="partition"
       aria-label="Admin Partition"
     >
-      {{partition}}
+      {{'default'}}
     </li>
-{{/let}}
   {{/if}}
+{{/let}}
 {{/if}}
 

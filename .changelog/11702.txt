@@ -1,3 +1,0 @@
-```release-note:feature
-ui: Adds basic support for showing Services exported from another partition.
-```
