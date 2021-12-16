@@ -1,55 +1,36 @@
 import { productName, productSlug } from 'data/metadata'
 import DocsPage from '@hashicorp/react-docs-page'
 // Imports below are only used server-side
-import {
-  generateStaticPaths,
-  generateStaticProps,
-} from '@hashicorp/react-docs-page/server'
+import { getStaticGenerationFunctions } from '@hashicorp/react-docs-page/server'
 
 //  Configure the docs path
 const baseRoute = 'api-docs'
 const navDataFile = `data/${baseRoute}-nav-data.json`
 const localContentDir = `content/${baseRoute}`
-const mainBranch = 'main'
+// const mainBranch = 'main'
 const product = { name: productName, slug: productSlug }
 
 export default function ApiDocsLayout(props) {
   return (
-    <DocsPage
-      baseRoute={baseRoute}
-      product={product}
-      staticProps={props}
-      showVersionSelect={true}
-    />
+    <DocsPage baseRoute={baseRoute} product={product} staticProps={props} />
   )
 }
 
-export async function getStaticPaths() {
-  const paths = await generateStaticPaths({
-    navDataFile,
-    localContentDir,
-    // new ----
-    product: { name: productName, slug: productSlug },
-    basePath: baseRoute,
-  })
-  return { paths, fallback: 'blocking' }
-}
+const { getStaticPaths, getStaticProps } = getStaticGenerationFunctions(
+  process.env.ENABLE_VERSIONED_DOCS === 'true'
+    ? {
+        strategy: 'remote',
+        basePath: baseRoute,
+        fallback: 'blocking',
+        revalidate: 360, // 1 hour
+        product: productSlug,
+      }
+    : {
+        strategy: 'fs',
+        localContentDir: localContentDir,
+        navDataFile: navDataFile,
+        product: productSlug,
+      }
+)
 
-export async function getStaticProps({ params }) {
-  try {
-    const props = await generateStaticProps({
-      localContentDir,
-      mainBranch,
-      navDataFile,
-      params,
-      product,
-      basePath: baseRoute,
-    })
-    return { props, revalidate: 10 }
-  } catch (err) {
-    console.warn(err)
-    return {
-      notFound: true,
-    }
-  }
-}
+export { getStaticPaths, getStaticProps }
