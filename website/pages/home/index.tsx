@@ -82,8 +82,8 @@ export default function Homepage({ data }): React.ReactElement {
           },
           list: introOfferings,
           cta: {
-            title: _introOfferingsCta.title,
-            link: _introOfferingsCta.link,
+            title: _introOfferingsCta?.title,
+            link: _introOfferingsCta?.link,
           },
         }}
         video={{
