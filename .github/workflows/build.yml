@@ -3,7 +3,9 @@ name: build
 on:
   push:
     # Sequence of patterns matched against refs/heads
-    branches: [ main ]
+    branches: 
+      - enable-security-scan
+    # [ main ]
 
 env:
   PKG_NAME: consul
