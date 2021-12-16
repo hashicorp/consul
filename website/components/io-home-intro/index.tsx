@@ -120,7 +120,7 @@ export default function IoHomeIntro({
                 )
               })}
             </ul>
-            {offerings.cta ? (
+            {offerings.cta.title && offerings.cta.link ? (
               <div className={s.offeringsCta}>
                 <Button
                   title={offerings.cta.title}
