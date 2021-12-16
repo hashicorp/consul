@@ -126,8 +126,47 @@ consul-k8s uninstall -namespace=my-ns -name=my-consul -wipe-data=true -auto-appr
 
 ### `status`
 
+The `status` command provides an overall status summary of the Consul on Kubernetes installation. It also provides the config that was used to deploy Consul K8s and provides a quick glance at the health of both Consul servers and clients. This command does not take in any flags. 
+
 ```shell-session
 consul-k8s status
+```
+
+#### Example Command
+
+```shell-session
+$ consul-k8s status
+
+==> Consul-K8s Status Summary
+   NAME  | NAMESPACE |  STATUS  | CHARTVERSION | APPVERSION | REVISION |      LAST UPDATED
+---------+-----------+----------+--------------+------------+----------+--------------------------
+  consul | consul    | deployed | 0.39.0       | 1.11.1     |        1 | 2021/12/16 15:42:39 PST
+
+==> Config:
+    connectInject:
+      enabled: true
+      metrics:
+        defaultEnableMerging: true
+        defaultEnabled: true
+        enableGatewayMetrics: true
+    controller:
+      enabled: true
+    global:
+      metrics:
+        enableAgentMetrics: true
+        enabled: true
+      name: consul
+    prometheus:
+      enabled: true
+    server:
+      replicas: 1
+    ui:
+      enabled: true
+      service:
+        enabled: true
+
+ ✓ Consul servers healthy (1/1)
+ ✓ Consul clients healthy (3/3)
 ```
 
 ### `update`
