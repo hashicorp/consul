@@ -45,6 +45,7 @@
 
 .eyebrow {
   display: flex;
+  align-items: center;
 }
 
 .eyebrowLogo {
