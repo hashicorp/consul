@@ -293,6 +293,23 @@ func (s *Store) PreparedQueryGet(ws memdb.WatchSet, queryID string) (uint64, *st
 	return idx, toPreparedQuery(wrapped), nil
 }
 
+// PreparedQueryGetByExactName returns the given prepared query by Name.
+func (s *Store) PreparedQueryGetByExactName(ws memdb.WatchSet, queryName string) (uint64, *structs.PreparedQuery, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "prepared-queries")
+
+	// Look up the query by its Name.
+	watchCh, wrapped, err := tx.FirstWatch("prepared-queries", "name", queryName)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
+	}
+	ws.Add(watchCh)
+	return idx, toPreparedQuery(wrapped), nil
+}
+
 // PreparedQueryResolve returns the given prepared query by looking up an ID or
 // Name. If the query was looked up by name and it's a template, then the
 // template will be rendered before it is returned.

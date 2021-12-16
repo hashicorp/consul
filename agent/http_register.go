@@ -106,6 +106,7 @@ func init() {
 	// specific prepared query endpoints have more complex rules for allowed methods, so
 	// the prefix is registered with no methods.
 	registerEndpoint("/v1/query/", []string{}, (*HTTPHandlers).PreparedQuerySpecific)
+	registerEndpoint("/v1/query/exact-name/", []string{}, (*HTTPHandlers).PreparedQueryExactName)
 	registerEndpoint("/v1/session/create", []string{"PUT"}, (*HTTPHandlers).SessionCreate)
 	registerEndpoint("/v1/session/destroy/", []string{"PUT"}, (*HTTPHandlers).SessionDestroy)
 	registerEndpoint("/v1/session/renew/", []string{"PUT"}, (*HTTPHandlers).SessionRenew)

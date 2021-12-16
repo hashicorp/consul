@@ -246,6 +246,37 @@ RETRY_ONCE:
 	return reply.Queries, nil
 }
 
+// preparedQueryGetByExactName returns a single prepared query given its exact Name.
+func (s *HTTPHandlers) preparedQueryGetByExactName(name string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	args := structs.PreparedQuerySpecificRequest{
+		QueryName: name,
+	}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var reply structs.IndexedPreparedQueries
+	defer setMeta(resp, &reply.QueryMeta)
+RETRY_ONCE:
+	if err := s.agent.RPC("PreparedQuery.GetByExactName", &args, &reply); err != nil {
+		// We have to check the string since the RPC sheds
+		// the specific error type.
+		if structs.IsErrQueryNotFound(err) {
+			resp.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(resp, err.Error())
+			return nil, nil
+		}
+		return nil, err
+	}
+	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+		args.AllowStale = false
+		args.MaxStaleDuration = 0
+		goto RETRY_ONCE
+	}
+	reply.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	return reply.Queries, nil
+}
+
 // preparedQueryUpdate updates a prepared query.
 func (s *HTTPHandlers) preparedQueryUpdate(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.PreparedQueryRequest{
@@ -350,5 +381,25 @@ func (s *HTTPHandlers) PreparedQuerySpecific(resp http.ResponseWriter, req *http
 		default:
 			return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 		}
+	}
+}
+
+// PreparedQueryExactName handles all the prepared query requests specific to a
+// particular query given its exact name.
+func (s *HTTPHandlers) PreparedQueryExactName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method == "OPTIONS" {
+		resp.Header().Add("Allow", strings.Join([]string{"OPTIONS", "GET"}, ","))
+		return resp, nil
+	}
+
+	path := req.URL.Path
+	name := strings.TrimPrefix(path, "/v1/query/exact-name/")
+
+	switch req.Method {
+	case "GET":
+		return s.preparedQueryGetByExactName(name, resp, req)
+
+	default:
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
 	}
 }

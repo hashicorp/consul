@@ -976,3 +976,56 @@ func TestStateStore_PreparedQuery_Snapshot_Restore(t *testing.T) {
 		}
 	}()
 }
+
+func TestStateStore_PreparedQueryGetByExactName(t *testing.T) {
+	s := testStateStore(t)
+
+	// Querying with no results returns nil.
+	ws := memdb.NewWatchSet()
+	idx, res, err := s.PreparedQueryGetByExactName(ws, "non-existent-query")
+	if idx != 0 || res != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
+	}
+
+	// Now register the service
+	testRegisterNode(t, s, 1, "foo")
+	testRegisterService(t, s, 2, "foo", "redis")
+
+	// Build a legit-looking query with the most basic options.
+	query := &structs.PreparedQuery{
+		ID:      testUUID(),
+		Name:    "test-query",
+		Session: "",
+		Service: structs.ServiceQuery{
+			Service: "redis",
+		},
+	}
+
+	if err := s.PreparedQuerySet(1, query); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Read it back out and verify it.
+	expected := &structs.PreparedQuery{
+		ID:   query.ID,
+		Name: query.Name,
+		Service: structs.ServiceQuery{
+			Service: "redis",
+		},
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 1,
+		},
+	}
+	ws = memdb.NewWatchSet()
+	idx, actual, err := s.PreparedQueryGetByExactName(ws, query.Name)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 1 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %v", actual)
+	}
+}

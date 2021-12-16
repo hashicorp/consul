@@ -267,6 +267,43 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 		})
 }
 
+// GetByExactName returns a single prepared query by Name.
+func (p *PreparedQuery) GetByExactName(args *structs.PreparedQuerySpecificRequest,
+	reply *structs.IndexedPreparedQueries) error {
+	if done, err := p.srv.ForwardRPC("PreparedQuery.GetByExactName", args, reply); done {
+		return err
+	}
+
+	return p.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, query, err := state.PreparedQueryGetByExactName(ws, args.QueryName)
+			if err != nil {
+				return err
+			}
+			if query == nil {
+				return structs.ErrQueryNotFound
+			}
+
+			reply.Index = index
+			reply.Queries = structs.PreparedQueries{query}
+			if err := p.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
+			// Since this is a GET of a specific query, if ACLs have
+			// prevented us from returning something that exists,
+			// then alert the user with a permission denied error.
+			if len(reply.Queries) == 0 {
+				p.logger.Warn("Request to get prepared query denied due to ACLs", "query", args.QueryName)
+				return acl.ErrPermissionDenied
+			}
+
+			return nil
+		})
+}
+
 // List returns all the prepared queries.
 func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.IndexedPreparedQueries) error {
 	if done, err := p.srv.ForwardRPC("PreparedQuery.List", args, reply); done {

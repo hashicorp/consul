@@ -26,11 +26,12 @@ import (
 // go. We will do a single set of end-to-end tests in here to make sure that the
 // server is wired up to the right endpoint when not "injected".
 type MockPreparedQuery struct {
-	applyFn   func(*structs.PreparedQueryRequest, *string) error
-	getFn     func(*structs.PreparedQuerySpecificRequest, *structs.IndexedPreparedQueries) error
-	listFn    func(*structs.DCSpecificRequest, *structs.IndexedPreparedQueries) error
-	executeFn func(*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse) error
-	explainFn func(*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExplainResponse) error
+	applyFn          func(*structs.PreparedQueryRequest, *string) error
+	getFn            func(*structs.PreparedQuerySpecificRequest, *structs.IndexedPreparedQueries) error
+	getByExactNameFn func(*structs.PreparedQuerySpecificRequest, *structs.IndexedPreparedQueries) error
+	listFn           func(*structs.DCSpecificRequest, *structs.IndexedPreparedQueries) error
+	executeFn        func(*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse) error
+	explainFn        func(*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExplainResponse) error
 }
 
 func (m *MockPreparedQuery) Apply(args *structs.PreparedQueryRequest,
@@ -47,6 +48,14 @@ func (m *MockPreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 		return m.getFn(args, reply)
 	}
 	return fmt.Errorf("should not have called Get")
+}
+
+func (m *MockPreparedQuery) GetByExactName(args *structs.PreparedQuerySpecificRequest,
+	reply *structs.IndexedPreparedQueries) error {
+	if m.getByExactNameFn != nil {
+		return m.getByExactNameFn(args, reply)
+	}
+	return fmt.Errorf("should not have called GetByExactName")
 }
 
 func (m *MockPreparedQuery) List(args *structs.DCSpecificRequest,
@@ -851,6 +860,76 @@ func TestPreparedQuery_Get(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/query/f004177f-2c28-83b7-4229-eacc25fe55d1", body)
 		resp := httptest.NewRecorder()
 		if _, err := a.srv.PreparedQuerySpecific(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 404 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+	})
+}
+
+func TestPreparedQuery_GetByExactName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	t.Run("", func(t *testing.T) {
+		a := NewTestAgent(t, "")
+		defer a.Shutdown()
+
+		m := MockPreparedQuery{
+			getByExactNameFn: func(args *structs.PreparedQuerySpecificRequest, reply *structs.IndexedPreparedQueries) error {
+				expected := &structs.PreparedQuerySpecificRequest{
+					Datacenter: "dc1",
+					QueryName:  "my-name",
+					QueryOptions: structs.QueryOptions{
+						Token:             "my-token",
+						RequireConsistent: true,
+					},
+				}
+				if !reflect.DeepEqual(args, expected) {
+					t.Fatalf("bad: %v", args)
+				}
+
+				query := &structs.PreparedQuery{
+					Name: "my-name",
+				}
+				reply.Queries = append(reply.Queries, query)
+				return nil
+			},
+		}
+		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		body := bytes.NewBuffer(nil)
+		req, _ := http.NewRequest("GET", "/v1/query/exact-name/my-name?token=my-token&consistent=true", body)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.PreparedQueryExactName(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 200 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+		r, ok := obj.(structs.PreparedQueries)
+		if !ok {
+			t.Fatalf("unexpected: %T", obj)
+		}
+		if len(r) != 1 || r[0].Name != "my-name" {
+			t.Fatalf("bad: %v", r)
+		}
+	})
+
+	t.Run("", func(t *testing.T) {
+		a := NewTestAgent(t, "")
+		defer a.Shutdown()
+
+		body := bytes.NewBuffer(nil)
+		req, _ := http.NewRequest("GET", "/v1/query/exact-name/dummy-query", body)
+		resp := httptest.NewRecorder()
+		if _, err := a.srv.PreparedQueryExactName(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if resp.Code != 404 {

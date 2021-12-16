@@ -195,6 +195,9 @@ type PreparedQuerySpecificRequest struct {
 	// QueryID is the ID of a query.
 	QueryID string
 
+	// QueryName is the Name of a query.
+	QueryName string
+
 	// QueryOptions (unfortunately named here) controls the consistency
 	// settings for the query lookup itself, as well as the service lookups.
 	QueryOptions
