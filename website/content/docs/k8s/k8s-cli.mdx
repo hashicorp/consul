@@ -124,7 +124,19 @@ The following example command immediately uninstalls Consul from the `my-ns` nam
 consul-k8s uninstall -namespace=my-ns -name=my-consul -wipe-data=true -auto-approve=true
 ```
 
-## `version`
+### `status`
+
+```shell-session
+consul-k8s status
+```
+
+### `update`
+
+```shell-session
+consul-k8s update
+```
+
+### `version`
 
 The `version` command prints the Consul version.
 
