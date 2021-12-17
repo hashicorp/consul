@@ -170,7 +170,7 @@ $ consul-k8s status
       metrics:
         defaultEnableMerging: true
         defaultEnabled: true
-        enableGatewayMetrics: true
+        enableGatewayMetrics: trueU
     controller:
       enabled: true
     global:
@@ -195,7 +195,7 @@ $ consul-k8s status
 
 -> **`consul-k8s upgrade` subcommand is currently in beta**: This subcommand is not recommended for production environments. 
 
-The `upgrade` command upgrades the Consul on Kubernetes installation to the current version of the `consul-k8s` cli. Prior to running `consul-k8s upgrade`, a `brew upgrade consul-k8s` should be issued to upgrade the `consul-k8s` CLI prior to upgrading the Consul on Kubernetes components. 
+The `upgrade` command upgrades the Consul on Kubernetes components to the current version of the `consul-k8s` cli. Prior to running `consul-k8s upgrade`, the `consul-k8s` CLI should first be upgraded first to the latest version as described [Upgrade the Consul K8s CLI](#upgrade-the-consul-k8s-cli)
 
 ```shell-session
 consul-k8s upgrade
