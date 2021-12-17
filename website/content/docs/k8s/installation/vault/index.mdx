@@ -38,9 +38,8 @@ injector:
   - `global.tls.serverAdditionalIPSans` is not currently configurable and must be manually added to the server certificate in Vault.
   - Mesh gateway is not currently supported.
 - Multi-DC Federation is not currently supported.
-- Certificate rotation is not currently supported, ensure the TTL for your certificates is sufficiently long. Should your certificates
-expire it will be necessary to issue a `consul reload` on each server.
-- CA rotation is not currently supported.
+- Certificate rotation for Server TLS certs is not currently supported through the Helm chart. Ensure the TTL for your Server TLS certificates are sufficiently long. Should your certificates expire it will be necessary to issue a `consul reload` on each server after issuing new Server TLS certs from Vault. 
+- CA rotation is not currently supported through the Helm chart and must be manually rotated. 
 
 ## Next Steps
 
