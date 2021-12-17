@@ -6,7 +6,9 @@ description: >-
   Settings in this configuration entry can apply to services in any namespace of the specified partition. Write access to the mesh resource is required.
 ---
 
-# Exported Services <EnterpriseAlert inline />
+# Exported Services
+
+<EnterpriseAlert />
 
 This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other admin partitions from a single file. This enables your services to be networked across admin partitions. See [Admin Partitions](/docs/enterprise/admin-partitions) for additional information.     
 
@@ -61,13 +63,14 @@ Services = [
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 Kind: ExportedServices
-Partition: <partition containing services to export>
-Name: <partition containing services to export>
-Services:
-- Consumers:
-  - Partition: <name of the partition that will dial the exported service>
-  Name: <name of service to export>
-  Namespace: <namespace in the partition containing the service to export>
+metadata:
+  name: <partition containing services to export>
+spec: 
+  services:
+  - name: <name of service to export>
+    namespace: <namespace in the partition containing the service to export> 
+    consumers: 
+    - partition:  <name of the partition that will dial the exported service>
 ```
 </CodeBlockConfig>
 <CodeBlockConfig>
@@ -152,19 +155,21 @@ Services = [
 <CodeBlockConfig>
 
 ```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
 Kind: ExportedServices
-Partition: finance
-Name: finance
-Services:
-- Consumers:
-  - Partition: frontend
-  - Partition: backend
-  Name: billing
-  Namespace: default
-- Consumers:
-  - Partition: monitoring
-  Name: '*'
-  Namespace: '*'
+metadata: 
+  name: finance
+spec:
+  services:
+  - name: mesh-gateway
+    namespace: default
+    consumers:
+    - partition: default
+  - name: billing
+    namespace: default 
+    consumers: 
+      - partition: frontend
+      - partition: backend
 ```
 
 </CodeBlockConfig>
