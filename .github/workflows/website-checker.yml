@@ -21,8 +21,10 @@ on:
 jobs:
   # checks that a 'type/docs-cherrypick' label is attached to PRs with website/ changes
   website-check:
-    # If there's a `type/docs-cherrypick` label we ignore this check
-    if: "!contains(github.event.pull_request.labels.*.name, 'type/docs-cherrypick')"
+    # If there's a `type/docs-cherrypick` label or an explicit `pr/no-docs-cherrypick` label, we ignore this check 
+    if: >-
+      !contains(github.event.pull_request.labels.*.name, 'type/docs-cherrypick') ||
+      !contains(github.event.pull_request.labels.*.name, 'pr/no-docs-cherrypick')
     runs-on: ubuntu-latest
 
     steps:
