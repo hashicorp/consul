@@ -3,15 +3,6 @@ import { action } from '@ember/object';
 import isFolder from 'consul-ui/utils/isFolder';
 
 export default class IndexRoute extends Route {
-  queryParams = {
-    sortBy: 'sort',
-    kind: 'kind',
-    search: {
-      as: 'filter',
-      replace: true,
-    },
-  };
-
   beforeModel() {
     // we are index or folder, so if the key doesn't have a trailing slash
     // add one to force a fake findBySlug
