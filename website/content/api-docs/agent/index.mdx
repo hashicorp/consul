@@ -710,6 +710,14 @@ The table below shows this endpoint's support for
 
 - `node` `(string: <required>)` - Specifies the name of the node to be forced into `left` state. This is specified as part of the URL.
 
+- `prune` `(bool: false)` - Specifies whether to forcibly remove the node from
+  the LAN and WAN gossip pools. This is specified as part of the URL as
+  a query parameter. Added in Consul 1.6.2.
+
+- `wan` `(bool: false)` - Specifies the node should only be removed from the WAN
+  gossip pool. This is specified as part of the URL as a query parameter. Added
+  in Consul 1.11.0.
+
 ### Sample Request
 
 ```shell-session
