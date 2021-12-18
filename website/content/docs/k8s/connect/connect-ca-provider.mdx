@@ -26,8 +26,8 @@ To configure the Vault Connect Provider please see [Vault as the Service Mesh Ce
 ~> **NOTE:** The following instructions are only valid for Consul-k8s 0.37.0 and prior.
 
 Below we will go over the process for configuring Vault as the Connect CA.
-However, other providers can be configured similarly by providing the appropriate `ca_config`
-and `ca_provider` values for the provider you're using.
+However, other providers can similarly be configured during initial bootstrap of the cluster
+by providing the appropriate [`ca_config`] and [`ca_provider`] values for the provider you're using.
 
 ## Configuring Vault as a Connect CA (Consul K8s 0.37.0 and earlier)
 
@@ -55,8 +55,9 @@ kubectl create secret generic vault-ca --from-file vault.ca=/path/to/your/vault/
 
 And then reference it like this in the provider configuration:
 
-```shell-session
-$ cat vault-config.json
+<CodeBlockConfig filename="vault-config.json" highlight="10">
+
+```json
 {
   "connect": [
     {
@@ -74,6 +75,8 @@ $ cat vault-config.json
   ]
 }
 ```
+
+</CodeBlockConfig>
 
 This example configuration file is pointing to a Vault instance running in the same Kubernetes cluster,
 which has been deployed with TLS enabled. Note that the `ca_file` is pointing to the file location
@@ -94,6 +97,8 @@ $ kubectl create secret generic vault-config --from-file=config=vault-config.jso
 We will provide this secret and the Vault CA secret, to the Consul server via the
 `server.extraVolumes` Helm value.
 
+<CodeBlockConfig filename="config.yaml" highlight="4-13">
+
   ```yaml
   global:
     name: consul
@@ -112,6 +117,8 @@ We will provide this secret and the Vault CA secret, to the Consul server via th
     enabled: true
   ```
 
+</CodeBlockConfig>
+
 Finally, [install](/docs/k8s/installation/install#installing-consul) the Helm chart using the above config file:
 
 ```shell-session
@@ -121,7 +128,7 @@ $ helm install consul -f config.yaml hashicorp/consul
 Verify that the CA provider is set correctly:
 
 ```shell-session
-$ kubectl exec consul-server-0 -- curl -s http://localhost:8500/v1/connect/ca/configuration | jq .
+$ kubectl exec consul-server-0 -- curl -s http://localhost:8500/v1/connect/ca/configuration\?pretty
 {
   "Provider": "vault",
   "Config": {
@@ -149,6 +156,8 @@ for which this configuration is intended.
 You will similarly need to create a Vault token and a Kubernetes secret with
 Vault's CA in each secondary Kubernetes cluster.
 
+<CodeBlockConfig highlight="7">
+
 ```json
 {
   "connect": [
@@ -168,6 +177,8 @@ Vault's CA in each secondary Kubernetes cluster.
 }
 ```
 
+</CodeBlockConfig>
+
 Note that all secondary datacenters need to have access to the same Vault instance as the primary.
 
 ### Manually Rotating Vault Tokens
@@ -177,11 +188,16 @@ then you will need to manually renew or rotate the Vault token before it expires
 
 #### Rotating Vault Token
 
-Once the cluster is running, subsequent changes to the `ca_provider` config are **ignored**–even if `consul reload` is run or the servers are restarted.
+The [`ca_config`] and [`ca_provider`] options defined in the Consul agent
+configuration are only used when initially bootstrapping the cluster. Once the
+cluster is running, subsequent changes to the [`ca_provider`] config are **ignored**–even if `consul reload` is run or the servers are restarted.
 
-To update any settings under this key, you must use Consul's [Update CA Configuration](/api/connect/ca#update-ca-configuration) API or the [`consul connect ca set-config`](/commands/connect/ca#set-config) command.
+To update any settings under these keys, you must use Consul's [Update CA Configuration](/api/connect/ca#update-ca-configuration) API or the [`consul connect ca set-config`](/commands/connect/ca#set-config) command.
 
 #### Renewing Vault Token
 
 To renew the Vault token, use the [`vault token renew`](https://www.vaultproject.io/docs/commands/token/renew) CLI command
 or API.
+
+[`ca_config`]: /docs/agent/options#connect_ca_config
+[`ca_provider`]: /docs/agent/options#connect_ca_provider
