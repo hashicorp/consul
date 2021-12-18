@@ -187,7 +187,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   ```
 1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition. In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied:
 
-  <CodeTabs heading="clients.yaml">
+  <CodeTabs heading="client.yaml">
   <CodeBlockConfig lineNumbers>
 
   ```yaml
@@ -252,7 +252,7 @@ You can log into the Consul UI to verify that the partitions appear as expected.
 1. If ACLs are enabled, you will need the partitions ACL token, which can be read from the Kubernetes secret. The token is an encoded string that must be decoded in base64, e.g.:
 
   ```shell-session
-  kubectl get secret server-consul-bootstrap-acl-token -o json | jq -r .data.token | base64 -d -
+  kubectl get secret server-consul-bootstrap-acl-token --template "{{ .data.token | base64decode }}"
   ```
 
   The example command gets the token using the secret name configured in the values file (`bootstrap.secretName`), decodes the secret, and prints the usable token to the console in JSON format.
