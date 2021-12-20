@@ -13,14 +13,15 @@ export default function StandardLayout(props: Props): React.ReactElement {
           { text: 'Overview', url: '/' },
           {
             text: 'Use Cases',
-            submenu: useCaseNavItems
-              .sort((a, b) => a.text.localeCompare(b.text))
-              .map((item) => {
+            submenu: [
+              { text: 'Consul on Kubernetes', url: '/consul-on-kubernetes' },
+              ...useCaseNavItems.map((item) => {
                 return {
                   text: item.text,
                   url: `/use-cases/${item.url}`,
                 }
               }),
+            ].sort((a, b) => a.text.localeCompare(b.text)),
           },
           {
             text: 'Enterprise',
