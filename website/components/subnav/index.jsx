@@ -1,14 +1,15 @@
 import Subnav from '@hashicorp/react-subnav'
-import subnavItems from '../../data/subnav'
 import { useRouter } from 'next/router'
+import s from './style.module.css'
 
-export default function ConsulSubnav() {
+export default function ConsulSubnav({ menuItems }) {
   const router = useRouter()
   return (
     <Subnav
+      className={s.subnav}
       hideGithubStars={true}
       titleLink={{
-        text: 'consul',
+        text: 'HashiCorp Consul',
         url: '/',
       }}
       ctaLinks={[
@@ -22,11 +23,14 @@ export default function ConsulSubnav() {
           text: 'Try HCP Consul',
           url:
             'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=top_nav_consul',
+          theme: {
+            brand: 'consul',
+          },
         },
       ]}
       currentPath={router.asPath}
       menuItemsAlign="right"
-      menuItems={subnavItems}
+      menuItems={menuItems}
       constrainWidth
       matchOnBasePath
     />

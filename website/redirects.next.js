@@ -6,6 +6,11 @@
 
 module.exports = [
   {
+    source: '/home',
+    destination: '/',
+    permanent: true,
+  },
+  {
     source: '/trial',
     destination: 'https://www.hashicorp.com/products/consul/trial',
     permanent: true,
@@ -23,6 +28,11 @@ module.exports = [
   {
     source: '/segmentation',
     destination: '/use-cases/multi-platform-service-mesh',
+    permanent: true,
+  },
+  {
+    source: '/use-cases/service-discovery-and-health-checking',
+    destination: '/',
     permanent: true,
   },
   {
