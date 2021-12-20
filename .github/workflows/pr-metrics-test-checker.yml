@@ -1,0 +1,25 @@
+name: "Check for metrics tests"
+on:
+  pull_request:
+    types: [ opened, synchronize, labeled ]
+    # Runs on PRs to main
+    branches:
+      - main
+
+jobs:
+  metrics_test_check:
+    if: "!contains(github.event.pull_request.labels.*.name, 'pr/no-metrics-test')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        name: "checkout repo"
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # by default the checkout action doesn't checkout all branches
+      - name: "Check for metrics modifications"
+        run: ./.github/scripts/metrics_checker.sh
+        # as of now, cannot use github vars in "external" scripts; ref: https://github.community/t/using-github-action-environment-variables-in-shell-script/18330
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        shell: bash
