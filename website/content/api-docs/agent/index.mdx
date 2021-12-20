@@ -679,8 +679,8 @@ $ curl \
 
 ## Force Leave and Shutdown
 
-This endpoint instructs the agent to force a node into the `left` state. If a
-node fails unexpectedly, then it will be in a `failed` state. Once in the
+This endpoint instructs the agent to force a node into the `left` state in the
+LAN and WAN gossip pools. If a node fails unexpectedly, then it will be in a `failed` state. Once in the
 `failed` state, Consul will attempt to reconnect, and the services and checks
 belonging to that node will not be cleaned up. Forcing a node into the `left`
 state allows its old entries to be removed.
@@ -709,6 +709,14 @@ The table below shows this endpoint's support for
 ### Parameters
 
 - `node` `(string: <required>)` - Specifies the name of the node to be forced into `left` state. This is specified as part of the URL.
+
+- `prune` `(bool: false)` - Specifies whether to forcibly remove the node from the list of members.
+  Pruning a node in the `left` or `failed` state removes it from the list altogether. 
+  This is specified as part of the URL as a query parameter. Added in Consul 1.6.2.
+
+- `wan` `(bool: false)` - Specifies the node should only be removed from the WAN
+  gossip pool. This is specified as part of the URL as a query parameter. Added
+  in Consul 1.11.0.
 
 ### Sample Request
 
