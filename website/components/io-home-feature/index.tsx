@@ -23,7 +23,7 @@ export default function IoHomeFeature({
   description,
 }: IoHomeFeatureProps): React.ReactElement {
   return (
-    <IoHomeFeatureWrap href={link}>
+    <IoHomeFeatureWrap isInternalLink={isInternalLink} href={link}>
       <div className={s.featureMedia}>
         <Image
           src={image.url}
@@ -49,7 +49,17 @@ export default function IoHomeFeature({
   )
 }
 
-function IoHomeFeatureWrap({ href, children }) {
+interface IoHomeFeatureWrapProps {
+  isInternalLink: (link: string) => boolean
+  href: string
+  children: React.ReactNode
+}
+
+function IoHomeFeatureWrap({
+  isInternalLink,
+  href,
+  children,
+}: IoHomeFeatureWrapProps) {
   if (!href) {
     return <div className={s.feature}>{children}</div>
   }
