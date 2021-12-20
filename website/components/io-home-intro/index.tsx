@@ -10,6 +10,7 @@ import IoHomeFeature, { IoHomeFeatureProps } from 'components/io-home-feature'
 import s from './style.module.css'
 
 interface IoHomeIntroProps {
+  isInternalLink: (link: string) => boolean
   brand: Products
   heading: string
   description: string
@@ -34,6 +35,7 @@ interface IoHomeIntroProps {
 }
 
 export default function IoHomeIntro({
+  isInternalLink,
   brand,
   heading,
   description,
@@ -73,6 +75,7 @@ export default function IoHomeIntro({
               <li key={index}>
                 <div className={s.container}>
                   <IoHomeFeature
+                    isInternalLink={isInternalLink}
                     image={{
                       url: feature.image.url,
                       alt: feature.image.alt,

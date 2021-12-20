@@ -77,8 +77,10 @@
   }
 
   &:nth-of-type(1) {
-    @nest .consul & {
-      color: var(--white);
+    color: var(--white);
+
+    @nest .vault & {
+      color: var(--black);
     }
   }
 
@@ -99,6 +101,7 @@
 .cardDescription {
   margin: 8px 0 0;
   padding-bottom: 48px;
+  color: inherit;
   composes: g-type-display-6 from global;
 }
 

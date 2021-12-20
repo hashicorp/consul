@@ -71,6 +71,7 @@ export default function Homepage({ data }): React.ReactElement {
       />
 
       <IoHomeIntro
+        isInternalLink={isInternalLink}
         brand="consul"
         heading={introHeading}
         description={introDescription}
