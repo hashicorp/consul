@@ -1,11 +1,11 @@
 import * as React from 'react'
 import Image from 'next/image'
-import { isInternalLink } from 'lib/utils'
 import { IconExternalLink16 } from '@hashicorp/flight-icons/svg-react/external-link-16'
 import { IconArrowRight16 } from '@hashicorp/flight-icons/svg-react/arrow-right-16'
 import s from './style.module.css'
 
 interface IoHomeCaseStudiesProps {
+  isInternalLink: (link: string) => boolean
   heading: string
   description: string
   primary: Array<{
@@ -23,6 +23,7 @@ interface IoHomeCaseStudiesProps {
 }
 
 export default function IoHomeCaseStudies({
+  isInternalLink,
   heading,
   description,
   primary,

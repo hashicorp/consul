@@ -2,6 +2,7 @@ import * as React from 'react'
 import Head from 'next/head'
 import rivetQuery from '@hashicorp/nextjs-scripts/dato/client'
 import homepageQuery from './query.graphql'
+import { isInternalLink } from 'lib/utils'
 import { renderMetaTags } from 'react-datocms'
 import IoHomeHero from 'components/io-home-hero'
 import IoHomeIntro from 'components/io-home-intro'
@@ -165,6 +166,7 @@ export default function Homepage({ data }): React.ReactElement {
       />
 
       <IoHomeCaseStudies
+        isInternalLink={isInternalLink}
         heading={caseStudiesHeading}
         description={caseStudiesDescription}
         primary={caseStudiesFeatured}

@@ -1,11 +1,11 @@
 import * as React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { isInternalLink } from 'lib/utils'
 import { IconArrowRight16 } from '@hashicorp/flight-icons/svg-react/arrow-right-16'
 import s from './style.module.css'
 
 export interface IoHomeFeatureProps {
+  isInternalLink: (link: string) => boolean
   link?: string
   image: {
     url: string
@@ -16,6 +16,7 @@ export interface IoHomeFeatureProps {
 }
 
 export default function IoHomeFeature({
+  isInternalLink,
   link,
   image,
   heading,
