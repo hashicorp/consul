@@ -31,6 +31,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/use-cases/service-discovery-and-health-checking',
+    destination: '/',
+    permanent: true,
+  },
+  {
     source: '/docs/agent/acl-rules',
     destination: '/docs/security/acl/acl-rules',
     permanent: true,
