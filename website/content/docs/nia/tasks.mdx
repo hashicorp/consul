@@ -42,7 +42,7 @@ Below are details on the types of execution conditions that Consul-Terraform-Syn
 
 ### Services Condition
 
-The services condition is the default condition to execute a task. Tasks with the services condition monitor and execute on either changes to a list of configured services or changes to any services that match a given regex.
+Tasks with the services condition monitor and execute on either changes to a list of configured services or changes to any services that match a given regex.
 
 There are two ways to configure a task with a services condition. Only one of the two options below can be configured for a single task:
 1. Configure a task's [`services`](/docs/nia/configuration#services) field to specify the list of services to trigger the task
@@ -67,29 +67,7 @@ The services condition operates by monitoring the [Health List Nodes For Service
 | `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent                                           |
 | `node_meta`             | List of user-defined metadata key/value pairs for the node                                        |
 
-The services condition is the default behavior if no `condition` block is configured for a task. The two tasks below have equivalent behavior, which is to execute when any of the listed services have changes to the previously stated attributes.
-
-```hcl
-task {
-  name        = "services_condition_task_1"
-  description = "execute on changes to api, db, and web services"
-  providers   = ["my-provider"]
-  source      = "path/to/services-condition-module"
-  services    = ["api", "db", "web"]
-}
-
-task {
-  name        = "services_condition_task_2"
-  description = "execute on changes to api, db, and web services"
-  providers   = ["my-provider"]
-  source      = "path/to/services-condition-module"
-  services    = ["api", "db", "web"]
-
-  condition "services" {}
-}
-```
-
-Below is an example configuration for a task that will execute when a service with a name that matches the regular expression has a change. Note that because `regexp` is set, `task.services` is omitted.
+Below is an example configuration for a task that will execute when a service with a name that matches the regular expression has a change.
 
 ```hcl
 task {

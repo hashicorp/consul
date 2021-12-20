@@ -195,7 +195,7 @@ A `task` block can be optionally configured with a `condition` block to set the 
 
 #### Services Condition
 
-This is the default type of condition when no `condition` block is configured for a task. This condition will trigger the task on either changes in services configured in [`task.services`](#services) or changes in services that match the regular expression configured in `regexp`. The default behavior is to trigger on changes to [`task.services`](#services). The [`task.services`](#services) option is required if `regexp` is not configured.
+This condition will trigger the task on services that match the regular expression configured in `regexp` or services listed by name in `names`. Either `regexp` or `names` must be configured, but not both.
 
 See [Task Execution: Services Condition](/docs/nia/tasks#services-condition) for more details on how tasks are triggered with a services condition.
 
