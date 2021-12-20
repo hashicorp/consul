@@ -51,27 +51,6 @@ export default class BaseRoute extends Route {
   }
 
   /**
-   * Inspects a custom `abilities` array on the router for this route. Every
-   * abililty needs to 'pass' for the route not to throw a 403 error. Anything
-   * more complex then this (say ORs) should use a single ability and perform
-   * the OR logic in the test for the ability. Note, this ability check happens
-   * before any calls to the backend for this model/route.
-   */
-  async beforeModel() {
-    // remove any references to index as it is the same as the root routeName
-    const routeName = this.routeName
-      .split('.')
-      .filter(item => item !== 'index')
-      .join('.');
-    const abilities = get(routes, `${routeName}._options.abilities`) || [];
-    if (abilities.length > 0) {
-      if (!abilities.every(ability => this.permissions.can(ability))) {
-        throw new HTTPError('403');
-      }
-    }
-  }
-
-  /**
    * By default any empty string query parameters should remove the query
    * parameter from the URL. This is the most common behavior if you don't
    * require this behavior overwrite this method in the specific Route for the
