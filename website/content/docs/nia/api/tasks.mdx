@@ -20,7 +20,7 @@ This endpoint allows patch updates to specifically supported fields for existing
 
 | Name | Type	 | Required | Description  |
 | -----| ----- | -------- | ------------ |
-|`run` | string | false   | Values can be only be `"inspect"` and `"now"`.<br/><ul><li>`"inspect"`: Does not update the task but returns information on if/how resources would be changed for the proposed task update.</li><li> `"now"`: Updates the task accordingly and immediately runs the task, rather than allowing the task to run at the natural daemon cadence</li></ul>
+|`run` | string | false   | Values can only be `"inspect"` and `"now"`.<br/><ul><li>`"inspect"`: Does not update the task but returns information on if/how resources would be changed for the proposed task update.</li><li> `"now"`: Updates the task accordingly and immediately runs the task, rather than allowing the task to run at the natural daemon cadence</li></ul>
 
 #### Request Body
 
