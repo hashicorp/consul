@@ -1,7 +1,6 @@
 import Route from '@ember/routing/route';
 import { get, setProperties } from '@ember/object';
 import { inject as service } from '@ember/service';
-import HTTPError from 'consul-ui/utils/http/error';
 
 // paramsFor
 import { routes } from 'consul-ui/router';
@@ -14,27 +13,6 @@ export default class BaseRoute extends Route {
   @service('env') env;
   @service('repository/permission') permissions;
   @service('router') router;
-
-  /**
-   * Inspects a custom `abilities` array on the router for this route. Every
-   * abililty needs to 'pass' for the route not to throw a 403 error. Anything
-   * more complex then this (say ORs) should use a single ability and perform
-   * the OR logic in the test for the ability. Note, this ability check happens
-   * before any calls to the backend for this model/route.
-   */
-  async beforeModel() {
-    // remove any references to index as it is the same as the root routeName
-    const routeName = this.routeName
-      .split('.')
-      .filter(item => item !== 'index')
-      .join('.');
-    const abilities = get(routes, `${routeName}._options.abilities`) || [];
-    if (abilities.length > 0) {
-      if (!abilities.every(ability => this.permissions.can(ability))) {
-        throw new HTTPError('403');
-      }
-    }
-  }
 
   /**
    * By default any empty string query parameters should remove the query
