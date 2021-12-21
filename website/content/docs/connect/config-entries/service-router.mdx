@@ -302,7 +302,14 @@ spec:
       name: 'Namespace',
       type: `string: "default"`,
       enterprise: true,
-      description: 'Specifies the namespace the config entry will apply to.',
+      description: 'Specifies the namespace to which the configuration entry will apply.',
+      yaml: false,
+    },
+    {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description: 'Specifies the admin partition to which the configuration will apply.',
       yaml: false,
     },
     {
@@ -538,7 +545,14 @@ spec:
       name: 'Namespace',
       type: 'string: ""',
       description:
-        'The Consul namespace to resolve the service from instead of the current namespace. If empty the current namespace is assumed.',
+        'The Consul namespace to resolve the service from instead of the current namespace. If empty, the current namespace is used.',
+      enterprise: true,
+    },
+    {
+      name: 'Partition',
+      type: 'string: ""',
+      description:
+        'The Consul admin partition to resolve the service from instead of the current partition. If empty, the current partition is used.',
       enterprise: true,
     },
     {

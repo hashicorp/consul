@@ -34,9 +34,11 @@ or globally via [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) 
 
 ## Sample Config Entries
 
+The following examples demonstrate potential use-cases for the `service-intentions` configuration entry.
+
 ### REST Access
 
-Grant some clients more REST access than others:
+In the following example, the `admin-dashboard` and `report-generator` services have different levels of access when making REST calls:
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -134,9 +136,8 @@ spec:
 
 ### gRPC
 
-Selectively deny some gRPC service methods. Since gRPC method calls [are
-HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can
-use an HTTP path match rule to control traffic:
+In the following use-case, access to the `IssueRefund` gRPC service method is set to `deny`. Because gRPC method calls [are
+HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), an HTTP path-matching rule can be used to control traffic:
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -368,6 +369,14 @@ spec:
       yaml: false,
     },
     {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        "Specifies the admin partition on which the configuration entry will apply. Wildcard characters (`*`) are not supported. Admin partitions must specified explicitly.",
+      yaml: false,
+    },
+    {
       name: 'Meta',
       type: 'map<string|string>: nil',
       description: 'Specifies arbitrary KV metadata pairs.',
@@ -438,6 +447,7 @@ spec:
     },
     {
       name: 'Namespace',
+      enterprise: true,
       type: 'string',
       description: {
         hcl:
@@ -445,8 +455,18 @@ spec:
         yaml:
           'The namespace of the source service. Defaults to the namespace of the destination service (i.e. `spec.destination.namespace`)',
       },
-      enterprise: true,
     },
+    {
+      name: 'Partition',
+      enterprise: true,
+      type: 'string',
+      description: {
+        hcl:
+          "Specifies the admin partition of the source service. Defaults to the destination service's partition, i.e., the configuration entry's partition",
+        yaml:
+          "Specifies the admin partiation of the source service. Defaults to the destination service's partition, i.e. `spec.destination.namespace`",
+      },
+    },    
     {
       name: 'Action',
       type: 'string: ""',

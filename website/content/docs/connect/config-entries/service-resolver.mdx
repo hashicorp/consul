@@ -246,7 +246,14 @@ spec:
       name: 'Namespace',
       type: `string: "default"`,
       enterprise: true,
-      description: 'Specifies the namespace the config entry will apply to.',
+      description: 'Specifies the namespace in which the configuration entry will apply.',
+      yaml: false,
+    },
+    {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description: 'Specifies the admin partition in which the configuration entry will apply.',
       yaml: false,
     },
     {
@@ -348,13 +355,20 @@ spec:
           enterprise: true,
           type: 'string: ""',
           description:
-            'The namespace to resolve the service from instead of the current one.',
+            'Specifies the source namespace to resolve the service from.',
+        },
+        {
+          name: 'Partition',
+          enterprise: true,
+          type: 'string: ""',
+          description:
+            'Specifies the source admin partition to resolve the service from.',
         },
         {
           name: 'Datacenter',
           type: 'string: ""',
           description:
-            'The datacenter to resolve the service from instead of the current one.',
+            'Specifies the source datacenter to resolve the service from.',
         },
       ],
     },
