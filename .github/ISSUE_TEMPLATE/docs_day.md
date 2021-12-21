@@ -1,7 +1,7 @@
 ---
 name: Consul docs day task
 about: This is a HashiCorp internal documentation task for the purpose of the Consul docs day event.
-labels: ['consul', 'placeholder']
+labels: ['type/docs', 'placeholder']
 assignees: 
     - karl-cardenas-coding
     - jkirschner-hashicorp
@@ -37,15 +37,15 @@ body:
     attributes:
       label: Description
       description: Please provide details about the task?
-      placeholder: Tell us what you see!
+      placeholder: What I'll change and why this is important
     validations:
       required: true
 
   - type: textarea
     id: link
     attributes:
-      label: Documentation page link
-      description: Please provide a link to the documentation page (if applicable)
+      label: Documentation page link(s)
+      description: Please provide link(s) to the documentation page(s) to be modified, if applicable
       placeholder: ex: https://www.consul.io/docs/connect/gateways#gateways
     validations:
       required: true
