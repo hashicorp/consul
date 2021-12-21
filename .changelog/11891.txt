@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Fixes an issue where once a 403 page is displayed in some circumstances its
+diffcult to click back to where you where before receiving a 403
+```
