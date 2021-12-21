@@ -49,10 +49,3 @@ body:
       placeholder: ex: https://www.consul.io/docs/connect/gateways#gateways
     validations:
       required: true
-
-  - type: textarea
-    id: logs
-    attributes:
-      label: Relevant log output
-      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
-      render: shell
