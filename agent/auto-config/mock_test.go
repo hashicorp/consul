@@ -271,7 +271,7 @@ func newMockedConfig(t *testing.T) *mockedConfig {
 	}
 }
 
-func (m *mockedConfig) expectInitialTLS(t *testing.T, agentName, datacenter, token string, ca *structs.CARoot, indexedRoots *structs.IndexedCARoots, cert *structs.IssuedCert, extraCerts []string) {
+func (m *mockedConfig) expectInitialTLS(agentName, datacenter, token, signingKeyID string, indexedRoots *structs.IndexedCARoots, cert *structs.IssuedCert, extraCerts []string) {
 	var pems []string
 	for _, root := range indexedRoots.Roots {
 		pems = append(pems, root.RootCert)
@@ -317,7 +317,7 @@ func (m *mockedConfig) expectInitialTLS(t *testing.T, agentName, datacenter, tok
 	leafRes := cache.FetchResult{
 		Value: &copy,
 		Index: copy.RaftIndex.ModifyIndex,
-		State: cachetype.ConnectCALeafSuccess(ca.SigningKeyID),
+		State: cachetype.ConnectCALeafSuccess(signingKeyID),
 	}
 
 	// we should prepopulate the cache with the agents cert
@@ -334,12 +334,12 @@ func (m *mockedConfig) expectInitialTLS(t *testing.T, agentName, datacenter, tok
 	m.tokens.On("AgentToken").Return(token).Once()
 }
 
-func (m *mockedConfig) setupInitialTLS(t *testing.T, agentName, datacenter, token string) (*structs.IndexedCARoots, *structs.IssuedCert, []string) {
+func (m *mockedConfig) setupInitialTLS(t *testing.T, agentName, datacenter, token string) (connect.TestCAResult, *structs.IndexedCARoots, *structs.IssuedCert, []string) {
 	ca, indexedRoots, cert := testCerts(t, agentName, datacenter)
 
 	ca2 := connect.TestCA(t, nil)
 	extraCerts := []string{ca2.RootCert}
 
-	m.expectInitialTLS(t, agentName, datacenter, token, ca, indexedRoots, cert, extraCerts)
-	return indexedRoots, cert, extraCerts
+	m.expectInitialTLS(agentName, datacenter, token, ca.SigningKeyID, indexedRoots, cert, extraCerts)
+	return ca, indexedRoots, cert, extraCerts
 }

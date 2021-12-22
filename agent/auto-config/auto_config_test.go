@@ -287,7 +287,7 @@ func TestInitialConfiguration_restored(t *testing.T) {
 
 	mcfg.Config.Loader = loader.Load
 
-	indexedRoots, cert, extraCACerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", "secret")
+	_, indexedRoots, cert, extraCACerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", "secret")
 
 	// persist an auto config response to the data dir where it is expected
 	persistedFile := filepath.Join(*loader.opts.FlagValues.DataDir, autoConfigFileName)
@@ -341,7 +341,7 @@ func TestInitialConfiguration_success(t *testing.T) {
 	`)
 	mcfg.Config.Loader = loader.Load
 
-	indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", "secret")
+	_, indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", "secret")
 
 	// this gets called when InitialConfiguration is invoked to record the token from the
 	// auto-config response
@@ -423,7 +423,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 	// reduce the retry wait times to make this test run faster
 	mcfg.Config.Waiter = &retry.Waiter{MinFailures: 2, MaxWait: time.Millisecond}
 
-	indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", "secret")
+	_, indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", "secret")
 
 	// this gets called when InitialConfiguration is invoked to record the token from the
 	// auto-config response
@@ -649,6 +649,7 @@ type testAutoConfig struct {
 	initialRoots *structs.IndexedCARoots
 	initialCert  *structs.IssuedCert
 	extraCerts   []string
+	testCA       connect.TestCAResult
 }
 
 func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
@@ -735,7 +736,7 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 		Addr: &net.TCPAddr{IP: net.IPv4(198, 18, 0, 1), Port: 8300},
 	})
 
-	indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", originalToken)
+	testCA, indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", originalToken)
 
 	mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{
 		NotAfter: cert.ValidBefore,
@@ -849,6 +850,7 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 		initialCert:   cert,
 		extraCerts:    extraCerts,
 		stop:          cancel,
+		testCA:        testCA,
 	}
 }
 
@@ -900,12 +902,13 @@ func TestTokenUpdate(t *testing.T) {
 func TestRootsUpdate(t *testing.T) {
 	testAC := startedAutoConfig(t, false)
 
-	secondCA := connect.TestCA(t, testAC.initialRoots.Roots[0])
+	pair := testAC.testCA.KeyPair()
+	secondCA := connect.TestCA(t, &pair)
 	secondRoots := structs.IndexedCARoots{
 		ActiveRootID: secondCA.ID,
 		TrustDomain:  connect.TestClusterID,
 		Roots: []*structs.CARoot{
-			secondCA,
+			secondCA.ToCARoot(),
 			testAC.initialRoots.Roots[0],
 		},
 		QueryMeta: structs.QueryMeta{
@@ -953,7 +956,7 @@ func TestRootsUpdate(t *testing.T) {
 
 func TestCertUpdate(t *testing.T) {
 	testAC := startedAutoConfig(t, false)
-	secondCert := newLeaf(t, "autoconf", "dc1", testAC.initialRoots.Roots[0], 99, 10*time.Minute)
+	secondCert := newLeaf(t, "autoconf", "dc1", testAC.testCA.KeyPair(), 99, 10*time.Minute)
 
 	updatedCtx, cancel := context.WithCancel(context.Background())
 	testAC.mcfg.tlsCfg.On("UpdateAutoTLS",
@@ -1006,20 +1009,21 @@ func TestFallback(t *testing.T) {
 	// at this point everything is operating normally and we are just
 	// waiting for events. We are going to send a new cert that is basically
 	// already expired and then allow the fallback routine to kick in.
-	secondCert := newLeaf(t, "autoconf", "dc1", testAC.initialRoots.Roots[0], 100, time.Nanosecond)
-	secondCA := connect.TestCA(t, testAC.initialRoots.Roots[0])
+	pair := testAC.testCA.KeyPair()
+	secondCert := newLeaf(t, "autoconf", "dc1", pair, 100, time.Nanosecond)
+	secondCA := connect.TestCA(t, &pair)
 	secondRoots := structs.IndexedCARoots{
 		ActiveRootID: secondCA.ID,
 		TrustDomain:  connect.TestClusterID,
 		Roots: []*structs.CARoot{
-			secondCA,
+			secondCA.ToCARoot(),
 			testAC.initialRoots.Roots[0],
 		},
 		QueryMeta: structs.QueryMeta{
 			Index: 101,
 		},
 	}
-	thirdCert := newLeaf(t, "autoconf", "dc1", secondCA, 102, 10*time.Minute)
+	thirdCert := newLeaf(t, "autoconf", "dc1", secondCA.KeyPair(), 102, 10*time.Minute)
 
 	// setup the expectation for when the certs got updated initially
 	updatedCtx, updateCancel := context.WithCancel(context.Background())
@@ -1089,7 +1093,7 @@ func TestFallback(t *testing.T) {
 	// auto-config response which is how the Fallback for auto-config works
 	testAC.mcfg.tokens.On("UpdateAgentToken", testAC.originalToken, token.TokenSourceConfig).Return(true).Once()
 
-	testAC.mcfg.expectInitialTLS(t, "autoconf", "dc1", testAC.originalToken, secondCA, &secondRoots, thirdCert, testAC.extraCerts)
+	testAC.mcfg.expectInitialTLS("autoconf", "dc1", testAC.originalToken, secondCA.SigningKeyID, &secondRoots, thirdCert, testAC.extraCerts)
 
 	// after the second RPC we now will use the new certs validity period in the next run loop iteration
 	testAC.mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{

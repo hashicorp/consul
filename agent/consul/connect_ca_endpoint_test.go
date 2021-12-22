@@ -48,8 +48,8 @@ func TestConnectCARoots(t *testing.T) {
 
 	// Insert some CAs
 	state := s1.fsm.State()
-	ca1 := connect.TestCA(t, nil)
-	ca2 := connect.TestCA(t, nil)
+	ca1 := connect.TestCA(t, nil).ToCARoot()
+	ca2 := connect.TestCA(t, nil).ToCARoot()
 	ca2.Active = false
 	idx, _, err := state.CARoots(nil)
 	require.NoError(t, err)

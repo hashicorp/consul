@@ -4,15 +4,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/require"
 )
 
-func newLeaf(t *testing.T, agentName, datacenter string, ca *structs.CARoot, idx uint64, expiration time.Duration) *structs.IssuedCert {
+func newLeaf(t *testing.T, agentName, datacenter string, root connect.CertKeyPair, idx uint64, expiration time.Duration) *structs.IssuedCert {
 	t.Helper()
 
-	pub, priv, err := connect.TestAgentLeaf(t, agentName, datacenter, ca, expiration)
+	pub, priv, err := connect.TestAgentLeaf(t, agentName, datacenter, root, expiration)
 	require.NoError(t, err)
 	cert, err := connect.ParseCert(pub)
 	require.NoError(t, err)
@@ -39,17 +40,19 @@ func newLeaf(t *testing.T, agentName, datacenter string, ca *structs.CARoot, idx
 	}
 }
 
-func testCerts(t *testing.T, agentName, datacenter string) (*structs.CARoot, *structs.IndexedCARoots, *structs.IssuedCert) {
+func testCerts(t *testing.T, agentName, datacenter string) (connect.TestCAResult, *structs.IndexedCARoots, *structs.IssuedCert) {
 	ca := connect.TestCA(t, nil)
-	ca.IntermediateCerts = make([]string, 0)
-	cert := newLeaf(t, agentName, datacenter, ca, 1, 10*time.Minute)
+	cert := newLeaf(t, agentName, datacenter, ca.KeyPair(), 1, 10*time.Minute)
+
+	root := ca.ToCARoot()
+	// The mock expects a call with a non-nil slice
+	root.IntermediateCerts = make([]string, 0)
+
 	indexedRoots := structs.IndexedCARoots{
 		ActiveRootID: ca.ID,
 		TrustDomain:  connect.TestClusterID,
-		Roots: []*structs.CARoot{
-			ca,
-		},
-		QueryMeta: structs.QueryMeta{Index: 1},
+		Roots:        []*structs.CARoot{root},
+		QueryMeta:    structs.QueryMeta{Index: 1},
 	}
 
 	return ca, &indexedRoots, cert

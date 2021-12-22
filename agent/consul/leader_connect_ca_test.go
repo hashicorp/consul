@@ -145,7 +145,7 @@ func NewMockCAServerDelegate(t *testing.T, config *Config) *mockCAServerDelegate
 		t:           t,
 		config:      config,
 		store:       state.NewStateStore(nil),
-		primaryRoot: connect.NewTestCA(t, connect.TestCAOptions{TTL: 1 * time.Second}),
+		primaryRoot: connect.NewTestCA(t, connect.TestCAOptions{TTL: 1 * time.Second}).ToCARoot(),
 		callbackCh:  make(chan string, 0),
 	}
 	delegate.store.CASetConfig(1, testCAConfig())

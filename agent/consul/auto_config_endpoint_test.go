@@ -557,15 +557,13 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 	later := now.Add(time.Hour)
 
 	// Generate a Test CA
-	ca := connect.TestCA(t, nil)
+	ca := connect.TestCA(t, nil).ToCARoot()
 
 	// roots will be returned by the mock backend
 	roots := structs.IndexedCARoots{
 		ActiveRootID: ca.ID,
 		TrustDomain:  connect.TestClusterID + ".consul",
-		Roots: []*structs.CARoot{
-			ca,
-		},
+		Roots:        []*structs.CARoot{ca},
 	}
 
 	// this CSR is what gets put into the opts for the

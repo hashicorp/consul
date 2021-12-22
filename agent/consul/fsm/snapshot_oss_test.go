@@ -195,8 +195,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 
 	// CA Roots
 	roots := []*structs.CARoot{
-		connect.TestCA(t, nil),
-		connect.TestCA(t, nil),
+		connect.TestCA(t, nil).ToCARoot(),
+		connect.TestCA(t, nil).ToCARoot(),
 	}
 	for _, r := range roots[1:] {
 		r.Active = false
