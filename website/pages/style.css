@@ -15,9 +15,6 @@
 @import '../components/mini-cta/style.css';
 @import '../components/use-cases-layout/style.css';
 
-/* Local Pages */
-@import './home/style.css';
-
 /* Print Styles */
 @import './print.css';
 

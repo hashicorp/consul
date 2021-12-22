@@ -4,9 +4,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/require"
 )
 
 func TestLeader_SystemMetadata_CRUD(t *testing.T) {
@@ -32,10 +33,10 @@ func TestLeader_SystemMetadata_CRUD(t *testing.T) {
 
 	state := srv.fsm.State()
 
-	// Initially has no entries
+	// Initially has one entry for virtual-ips feature flag
 	_, entries, err := state.SystemMetadataList(nil)
 	require.NoError(t, err)
-	require.Len(t, entries, 0)
+	require.Len(t, entries, 1)
 
 	// Create 3
 	require.NoError(t, srv.setSystemMetadataKey("key1", "val1"))
@@ -52,12 +53,13 @@ func TestLeader_SystemMetadata_CRUD(t *testing.T) {
 
 	_, entries, err = state.SystemMetadataList(nil)
 	require.NoError(t, err)
-	require.Len(t, entries, 3)
+	require.Len(t, entries, 4)
 
 	require.Equal(t, map[string]string{
-		"key1": "val1",
-		"key2": "val2",
-		"key3": "",
+		structs.SystemMetadataVirtualIPsEnabled: "true",
+		"key1":                                  "val1",
+		"key2":                                  "val2",
+		"key3":                                  "",
 	}, mapify(entries))
 
 	// Update one and delete one.
@@ -66,10 +68,11 @@ func TestLeader_SystemMetadata_CRUD(t *testing.T) {
 
 	_, entries, err = state.SystemMetadataList(nil)
 	require.NoError(t, err)
-	require.Len(t, entries, 2)
+	require.Len(t, entries, 3)
 
 	require.Equal(t, map[string]string{
-		"key2": "val2",
-		"key3": "val3",
+		structs.SystemMetadataVirtualIPsEnabled: "true",
+		"key2":                                  "val2",
+		"key3":                                  "val3",
 	}, mapify(entries))
 }

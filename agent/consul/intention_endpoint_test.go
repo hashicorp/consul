@@ -1599,7 +1599,7 @@ func TestIntentionList_acl(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, testServerACLConfig(nil))
+	dir1, s1 := testServerWithConfig(t, testServerACLConfig)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
