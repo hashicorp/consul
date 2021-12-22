@@ -1,0 +1,20 @@
+on:
+  push:
+    branches:
+      - stable-website
+
+jobs:
+  stable_website_preview_cherry_pick:
+    runs-on: ubuntu-latest
+    name: Cherry pick stable-website to stable-website-preview branch
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: stable-website-preview
+      - run: |
+          git fetch --no-tags --prune origin stable-website
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git cherry-pick ${{ github.sha }}
+          git push origin stable-website-preview
