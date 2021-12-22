@@ -66,21 +66,12 @@ func testTLSCertificates(serverName string) (cert string, key string, cacert str
 	return cert, privateKey, ca, nil
 }
 
-// testServerACLConfig wraps another arbitrary Config altering callback
-// to setup some common ACL configurations. A new callback func will
-// be returned that has the original callback invoked after setting
-// up all of the ACL configurations (so they can still be overridden)
-func testServerACLConfig(cb func(*Config)) func(*Config) {
-	return func(c *Config) {
-		c.ACLDatacenter = "dc1"
-		c.ACLsEnabled = true
-		c.ACLMasterToken = TestDefaultMasterToken
-		c.ACLDefaultPolicy = "deny"
-
-		if cb != nil {
-			cb(c)
-		}
-	}
+// testServerACLConfig setup some common ACL configurations.
+func testServerACLConfig(c *Config) {
+	c.PrimaryDatacenter = "dc1"
+	c.ACLsEnabled = true
+	c.ACLMasterToken = TestDefaultMasterToken
+	c.ACLDefaultPolicy = "deny"
 }
 
 func configureTLS(config *Config) {
@@ -167,8 +158,6 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.ServerHealthInterval = 50 * time.Millisecond
 	config.AutopilotInterval = 100 * time.Millisecond
 
-	config.Build = "1.7.2"
-
 	config.CoordinateUpdatePeriod = 100 * time.Millisecond
 	config.LeaveDrainTime = 1 * time.Millisecond
 
@@ -191,13 +180,12 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	return dir, config
 }
 
+// Deprecated: use testServerWithConfig instead. It does the same thing and more.
 func testServer(t *testing.T) (string, *Server) {
-	return testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc1"
-		c.Bootstrap = true
-	})
+	return testServerWithConfig(t)
 }
 
+// Deprecated: use testServerWithConfig
 func testServerDC(t *testing.T, dc string) (string, *Server) {
 	return testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = dc
@@ -205,6 +193,7 @@ func testServerDC(t *testing.T, dc string) (string, *Server) {
 	})
 }
 
+// Deprecated: use testServerWithConfig
 func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Server) {
 	return testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = dc
@@ -212,6 +201,7 @@ func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Se
 	})
 }
 
+// Deprecated: use testServerWithConfig
 func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
 	return testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = dc
@@ -220,16 +210,7 @@ func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
 	})
 }
 
-func testServerDCExpectNonVoter(t *testing.T, dc string, expect int) (string, *Server) {
-	return testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = dc
-		c.Bootstrap = false
-		c.BootstrapExpect = expect
-		c.ReadReplica = true
-	})
-}
-
-func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
+func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *Server) {
 	var dir string
 	var srv *Server
 
@@ -237,8 +218,8 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		var config *Config
 		dir, config = testServerConfig(t)
-		if cb != nil {
-			cb(config)
+		for _, fn := range configOpts {
+			fn(config)
 		}
 
 		var err error
@@ -252,8 +233,11 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 
 // cb is a function that can alter the test servers configuration prior to the server starting.
 func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToken bool) (string, *Server, rpc.ClientCodec) {
-	dir, srv := testServerWithConfig(t, testServerACLConfig(cb))
-	t.Cleanup(func() { srv.Shutdown() })
+	opts := []func(*Config){testServerACLConfig}
+	if cb != nil {
+		opts = append(opts, cb)
+	}
+	dir, srv := testServerWithConfig(t, opts...)
 
 	if initReplicationToken {
 		// setup some tokens here so we get less warnings in the logs
@@ -261,7 +245,6 @@ func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToke
 	}
 
 	codec := rpcClient(t, srv)
-	t.Cleanup(func() { codec.Close() })
 	return dir, srv, codec
 }
 
@@ -1160,7 +1143,11 @@ func TestServer_AvoidReBootstrap(t *testing.T) {
 
 func TestServer_Expect_NonVoters(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServerDCExpectNonVoter(t, "dc1", 2)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.BootstrapExpect = 2
+		c.ReadReplica = true
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 

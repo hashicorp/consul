@@ -6,6 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -13,9 +17,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestInternal_NodeInfo(t *testing.T) {
@@ -1490,7 +1491,11 @@ func TestInternal_GatewayIntentions(t *testing.T) {
 }
 
 func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
-	dir1, s1 := testServerWithConfig(t, testServerACLConfig(nil))
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	dir1, s1 := testServerWithConfig(t, testServerACLConfig)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
