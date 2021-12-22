@@ -1,23 +1,6 @@
 const withHashicorp = require('@hashicorp/platform-nextjs-plugin')
 const redirects = require('./redirects.next')
 
-// add a X-Robots-Tag noindex HTTP header
-// prevent indexing for preview.consul.io
-let customHeaders = []
-const robotsHeader = { key: 'X-Robots-Tag', value: 'noindex' }
-if (process.env.VERCEL_GIT_COMMIT_REF == 'stable-website-preview') {
-  customHeaders.push(
-    {
-      source: '/',
-      headers: [robotsHeader],
-    },
-    {
-      source: '/:all*',
-      headers: [robotsHeader],
-    }
-  )
-}
-
 module.exports = withHashicorp({
   dato: {
     // This token is safe to be in this public repository, it only has access to content that is publicly viewable on the website
