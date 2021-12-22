@@ -82,6 +82,18 @@
     @nest .vault & {
       color: var(--black);
     }
+
+    @nest .nomad & {
+      color: var(--black);
+    }
+
+    @nest .packer & {
+      color: var(--black);
+    }
+
+    @nest .waypoint & {
+      color: var(--black);
+    }
   }
 
   &:nth-of-type(2) {
