@@ -67,23 +67,31 @@ func TestCacheWithTypes(t testing.T, types *TestCacheTypes) *cache.Cache {
 	return c
 }
 
-// TestCerts generates a CA and Leaf suitable for returning as mock CA
+// newTestCerts generates a CA and Leaf suitable for returning as mock CA
 // root/leaf cache requests.
-func TestCerts(t testing.T) (*structs.IndexedCARoots, *structs.IssuedCert) {
+func newTestCerts(t testing.T) (*structs.IndexedCARoots, *structs.IssuedCert) {
 	t.Helper()
 
 	ca := connect.TestCA(t, nil)
+	// Note: not all fields are filled
+	root := &structs.CARoot{
+		ID:           ca.ID,
+		SerialNumber: ca.SerialNumber,
+		SigningKeyID: ca.SigningKeyID,
+		RootCert:     ca.RootCert,
+		Active:       true,
+	}
 	roots := &structs.IndexedCARoots{
 		ActiveRootID: ca.ID,
 		TrustDomain:  fmt.Sprintf("%s.consul", connect.TestClusterID),
-		Roots:        []*structs.CARoot{ca},
+		Roots:        []*structs.CARoot{root},
 	}
-	return roots, TestLeafForCA(t, ca)
+	return roots, newTestLeafForCA(t, ca)
 }
 
-// TestLeafForCA generates new Leaf suitable for returning as mock CA
+// newTestLeafForCA generates new Leaf suitable for returning as mock CA
 // leaf cache response, signed by an existing CA.
-func TestLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCert {
+func newTestLeafForCA(t testing.T, ca connect.TestCAResult) *structs.IssuedCert {
 	leafPEM, pkPEM := connect.TestLeaf(t, "web", ca)
 
 	leafCert, err := connect.ParseCert(leafPEM)
@@ -668,7 +676,7 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 
 // TestConfigSnapshot returns a fully populated snapshot
 func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
-	roots, leaf := TestCerts(t)
+	roots, leaf := newTestCerts(t)
 
 	// no entries implies we'll get a default chain
 	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
@@ -798,7 +806,7 @@ func TestConfigSnapshotDiscoveryChainWithLB(t testing.T) *ConfigSnapshot {
 }
 
 func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
-	roots, leaf := TestCerts(t)
+	roots, leaf := newTestCerts(t)
 
 	snap := &ConfigSnapshot{
 		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
@@ -1564,7 +1572,7 @@ func TestConfigSnapshotMeshGatewayNoServices(t testing.T) *ConfigSnapshot {
 }
 
 func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFederationStates bool) *ConfigSnapshot {
-	roots, _ := TestCerts(t)
+	roots, _ := newTestCerts(t)
 	snap := &ConfigSnapshot{
 		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
 		Kind:     structs.ServiceKindMeshGateway,
@@ -1775,7 +1783,7 @@ func testConfigSnapshotIngressGateway(
 	t testing.T, populateServices bool, protocol, variation string,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
-	roots, leaf := TestCerts(t)
+	roots, leaf := newTestCerts(t)
 
 	snap := &ConfigSnapshot{
 		Locality:   GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
@@ -1857,7 +1865,7 @@ func TestConfigSnapshotTerminatingGatewayNoServices(t testing.T) *ConfigSnapshot
 }
 
 func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *ConfigSnapshot {
-	roots, _ := TestCerts(t)
+	roots, _ := newTestCerts(t)
 
 	snap := &ConfigSnapshot{
 		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},

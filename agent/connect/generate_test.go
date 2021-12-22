@@ -136,10 +136,8 @@ func TestSignatureMismatches(t *testing.T) {
 				continue
 			}
 			t.Run(fmt.Sprintf("TestMismatches-%s%d-%s%d", p1.keyType, p1.keyBits, p2.keyType, p2.keyBits), func(t *testing.T) {
-				ca := TestCAWithKeyType(t, nil, p1.keyType, p1.keyBits)
-				require.Equal(t, p1.keyType, ca.PrivateKeyType)
-				require.Equal(t, p1.keyBits, ca.PrivateKeyBits)
-				certPEM, keyPEM, err := testLeaf(t, "foobar.service.consul", "default", ca, p2.keyType, p2.keyBits)
+				ca := NewTestCA(t, TestCAOptions{KeyType: p1.keyType, KeyBits: p1.keyBits})
+				certPEM, keyPEM, err := testLeaf(t, "foobar.service.consul", "default", ca.KeyPair(), p2.keyType, p2.keyBits)
 				require.NoError(t, err)
 				_, err = ParseCert(certPEM)
 				require.NoError(t, err)

@@ -57,13 +57,57 @@ func ValidateLeaf(caPEM string, leafPEM string, intermediatePEMs []string) error
 	return err
 }
 
-func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int, ttl time.Duration) *structs.CARoot {
-	var result structs.CARoot
-	result.Active = true
+type TestCAOptions struct {
+	// KeyType for the private key, defaults to DefaultPrivateKeyType
+	KeyType string
+	// KeyBits for the private key, defaults to DefaultPrivateKeyBits
+	KeyBits int
+	// TTL for the root certificate, defaults to 10 years.
+	TTL time.Duration
+	// PreviousCARoot if not nil, will be used to cross-sign a certificate.
+	PreviousCARoot CertKeyPair
+}
+
+type TestCAResult struct {
+	Name         string
+	SigningKey   string
+	SigningKeyID string
+	RootCert     string
+	ID           string
+	SerialNumber uint64
+
+	CrossSigningCert string
+}
+
+func (r TestCAResult) KeyPair() CertKeyPair {
+	return CertKeyPair{Cert: r.RootCert, PrivateKey: r.SigningKey}
+}
+
+func (r TestCAResult) ToCARoot() *structs.CARoot {
+	// Note: not all fields are filled.
+	return &structs.CARoot{
+		ID:           r.ID,
+		SerialNumber: r.SerialNumber,
+		SigningKeyID: r.SigningKeyID,
+		RootCert:     r.RootCert,
+		Active:       true,
+	}
+}
+
+// NewTestCA creates a private key and CA certificate for testing.
+func NewTestCA(t testing.T, opts TestCAOptions) TestCAResult {
+	if opts.KeyType == "" {
+		opts.KeyType = DefaultPrivateKeyType
+	}
+	if opts.KeyBits == 0 {
+		opts.KeyBits = DefaultPrivateKeyBits
+	}
+
+	var result TestCAResult
 	result.Name = fmt.Sprintf("Test CA %d", atomic.AddUint64(&testCACounter, 1))
 
 	// Create the private key we'll use for this CA cert.
-	signer, keyPEM := testPrivateKey(t, keyType, keyBits)
+	signer, keyPEM := testPrivateKey(t, opts.KeyType, opts.KeyBits)
 	result.SigningKey = keyPEM
 	result.SigningKeyID = EncodeSigningKeyID(testKeyID(t, signer.Public()))
 
@@ -80,8 +124,8 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int, ttl ti
 	now := time.Now()
 	before := now
 	after := now
-	if ttl != 0 {
-		after = after.Add(ttl)
+	if opts.TTL != 0 {
+		after = after.Add(opts.TTL)
 	} else {
 		after = after.AddDate(10, 0, 0)
 	}
@@ -117,19 +161,15 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int, ttl ti
 		t.Fatalf("error generating CA ID fingerprint: %s", err)
 	}
 	result.SerialNumber = uint64(sn.Int64())
-	result.NotBefore = template.NotBefore.UTC()
-	result.NotAfter = template.NotAfter.UTC()
-	result.PrivateKeyType = keyType
-	result.PrivateKeyBits = keyBits
 
 	// If there is a prior CA to cross-sign with, then we need to create that
 	// and set it as the signing cert.
-	if xc != nil {
-		xccert, err := ParseCert(xc.RootCert)
+	if opts.PreviousCARoot.Cert != "" {
+		xccert, err := ParseCert(opts.PreviousCARoot.Cert)
 		if err != nil {
 			t.Fatalf("error parsing CA cert: %s", err)
 		}
-		xcsigner, err := ParseSigner(xc.SigningKey)
+		xcsigner, err := ParseSigner(opts.PreviousCARoot.PrivateKey)
 		if err != nil {
 			t.Fatalf("error parsing signing key: %s", err)
 		}
@@ -155,10 +195,10 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int, ttl ti
 		if err != nil {
 			t.Fatalf("error encoding private key: %s", err)
 		}
-		result.SigningCert = buf.String()
+		result.CrossSigningCert = buf.String()
 	}
 
-	return &result
+	return result
 }
 
 // TestCA creates a test CA certificate and signing key and returns it
@@ -167,38 +207,30 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int, ttl ti
 // If xc is non-nil, then the returned certificate will have a signing cert
 // that is cross-signed with the previous cert, and this will be set as
 // SigningCert.
-func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
-	return testCA(t, xc, DefaultPrivateKeyType, DefaultPrivateKeyBits, 0)
+// Deprecated: use NewTestCA
+func TestCA(t testing.T, xc *CertKeyPair) TestCAResult {
+	if xc == nil {
+		xc = &CertKeyPair{}
+	}
+	return NewTestCA(t, TestCAOptions{PreviousCARoot: *xc})
 }
 
-// TestCAWithTTL is similar to TestCA, except that it
-// takes a custom duration for the lifetime of the certificate.
-func TestCAWithTTL(t testing.T, xc *structs.CARoot, ttl time.Duration) *structs.CARoot {
-	return testCA(t, xc, DefaultPrivateKeyType, DefaultPrivateKeyBits, ttl)
+type CertKeyPair struct {
+	Cert       string
+	PrivateKey string
 }
 
-// TestCAWithKeyType is similar to TestCA, except that it
-// takes two additional arguments to override the default private key type and size.
-func TestCAWithKeyType(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *structs.CARoot {
-	return testCA(t, xc, keyType, keyBits, 0)
-}
-
-func testLeafWithID(t testing.T, spiffeId CertURI, root *structs.CARoot, keyType string, keyBits int, expiration time.Duration) (string, string, error) {
-
+func testLeafWithID(t testing.T, spiffeId CertURI, root CertKeyPair, keyType string, keyBits int, expiration time.Duration) (string, string, error) {
 	if expiration == 0 {
 		// this is 10 years
 		expiration = 10 * 365 * 24 * time.Hour
 	}
 	// Parse the CA cert and signing key from the root
-	cert := root.SigningCert
-	if cert == "" {
-		cert = root.RootCert
-	}
-	caCert, err := ParseCert(cert)
+	caCert, err := ParseCert(root.Cert)
 	if err != nil {
 		return "", "", fmt.Errorf("error parsing CA cert: %s", err)
 	}
-	caSigner, err := ParseSigner(root.SigningKey)
+	caSigner, err := ParseSigner(root.PrivateKey)
 	if err != nil {
 		return "", "", fmt.Errorf("error parsing signing key: %s", err)
 	}
@@ -255,7 +287,7 @@ func testLeafWithID(t testing.T, spiffeId CertURI, root *structs.CARoot, keyType
 	return buf.String(), pkPEM, nil
 }
 
-func TestAgentLeaf(t testing.T, node string, datacenter string, root *structs.CARoot, expiration time.Duration) (string, string, error) {
+func TestAgentLeaf(t testing.T, node string, datacenter string, root CertKeyPair, expiration time.Duration) (string, string, error) {
 	// Build the SPIFFE ID
 	spiffeId := &SpiffeIDAgent{
 		Host:       fmt.Sprintf("%s.consul", TestClusterID),
@@ -266,7 +298,7 @@ func TestAgentLeaf(t testing.T, node string, datacenter string, root *structs.CA
 	return testLeafWithID(t, spiffeId, root, DefaultPrivateKeyType, DefaultPrivateKeyBits, expiration)
 }
 
-func testLeaf(t testing.T, service string, namespace string, root *structs.CARoot, keyType string, keyBits int) (string, string, error) {
+func testLeaf(t testing.T, service string, namespace string, root CertKeyPair, keyType string, keyBits int) (string, string, error) {
 	// Build the SPIFFE ID
 	spiffeId := &SpiffeIDService{
 		Host:       fmt.Sprintf("%s.consul", TestClusterID),
@@ -280,17 +312,13 @@ func testLeaf(t testing.T, service string, namespace string, root *structs.CARoo
 
 // TestLeaf returns a valid leaf certificate and it's private key for the named
 // service with the given CA Root.
-func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string) {
-	return TestLeafWithNamespace(t, service, "default", root)
-}
-
-func TestLeafWithNamespace(t testing.T, service, namespace string, root *structs.CARoot) (string, string) {
+func TestLeaf(t testing.T, service string, root TestCAResult) (string, string) {
 	// Currently we only support EC leaf keys and certs even if the CA is using
 	// RSA. We might allow Leafs to follow the signing CA key type later if we
 	// need to for compatibility sake but this is allowed by TLS 1.2 and works with
 	// both openssl verify (which we use as a sanity check in our tests of this
 	// package) and Go's TLS verification.
-	certPEM, keyPEM, err := testLeaf(t, service, namespace, root, DefaultPrivateKeyType, DefaultPrivateKeyBits)
+	certPEM, keyPEM, err := testLeaf(t, service, "default", root.KeyPair(), DefaultPrivateKeyType, DefaultPrivateKeyBits)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -386,13 +414,10 @@ type TestAgentRPC interface {
 	RPC(method string, args interface{}, reply interface{}) error
 }
 
-func testCAConfigSet(t testing.T, a TestAgentRPC,
-	ca *structs.CARoot, keyType string, keyBits int) *structs.CARoot {
+func testCAConfigSet(t testing.T, a TestAgentRPC, keyType string, keyBits int) TestCAResult {
 	t.Helper()
 
-	if ca == nil {
-		ca = TestCAWithKeyType(t, nil, keyType, keyBits)
-	}
+	ca := NewTestCA(t, TestCAOptions{KeyType: keyType, KeyBits: keyBits})
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
@@ -423,14 +448,6 @@ func testCAConfigSet(t testing.T, a TestAgentRPC,
 // Note that we have to use an interface for the TestAgent.RPC method since we
 // can't introduce an import cycle by importing `agent.TestAgent` here directly.
 // It also means this will work in a few other places we mock that method.
-func TestCAConfigSet(t testing.T, a TestAgentRPC,
-	ca *structs.CARoot) *structs.CARoot {
-	return testCAConfigSet(t, a, ca, DefaultPrivateKeyType, DefaultPrivateKeyBits)
-}
-
-// TestCAConfigSetWithKeyType is similar to TestCAConfigSet, except that it
-// takes two additional arguments to override the default private key type and size.
-func TestCAConfigSetWithKeyType(t testing.T, a TestAgentRPC,
-	ca *structs.CARoot, keyType string, keyBits int) *structs.CARoot {
-	return testCAConfigSet(t, a, ca, keyType, keyBits)
+func TestCAConfigSet(t testing.T, a TestAgentRPC) TestCAResult {
+	return testCAConfigSet(t, a, DefaultPrivateKeyType, DefaultPrivateKeyBits)
 }

@@ -35,9 +35,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/go-testing-interface"
+
+	"github.com/hashicorp/consul/agent/connect"
 )
 
 func main() {
@@ -61,15 +61,19 @@ func main() {
 	}
 
 	// Create CA certs
-	var prevCA *structs.CARoot
+	var prevCA connect.TestCAResult
 	for i := 1; i <= numCAs; i++ {
-		ca := connect.TestCAWithKeyType(&testing.RuntimeT{}, prevCA, keyType, keyBits)
+		ca := connect.NewTestCA(&testing.RuntimeT{}, connect.TestCAOptions{
+			PreviousCARoot: prevCA.KeyPair(),
+			KeyType:        keyType,
+			KeyBits:        keyBits,
+		})
 		prefix := fmt.Sprintf("%s/ca%d-ca", outDir, i)
 		writeFile(prefix+".cert.pem", ca.RootCert)
 		writeFile(prefix+".key.pem", ca.SigningKey)
-		if prevCA != nil {
+		if prevCA.RootCert != "" {
 			fname := fmt.Sprintf("%s/ca%d-xc-by-ca%d.cert.pem", outDir, i, i-1)
-			writeFile(fname, ca.SigningCert)
+			writeFile(fname, ca.CrossSigningCert)
 		}
 		prevCA = ca
 

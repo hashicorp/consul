@@ -184,7 +184,7 @@ func TestService_ServerTLSConfig(t *testing.T) {
 	// Now test that rotating the root updates
 	{
 		// Setup a new generated CA
-		connect.TestCAConfigSet(t, a, nil)
+		connect.TestCAConfigSet(t, a)
 	}
 
 	// After some time, both root and leaves should be different but both should

@@ -30,7 +30,7 @@ func testCAAndLeaf(t *testing.T, keyType string, keyBits int) {
 	skipIfMissingOpenSSL(t)
 
 	// Create the certs
-	ca := TestCAWithKeyType(t, nil, keyType, keyBits)
+	ca := NewTestCA(t, TestCAOptions{KeyType: keyType, KeyBits: keyBits})
 	leaf, _ := TestLeaf(t, "web", ca)
 
 	// Create a temporary directory for storing the certs
@@ -60,8 +60,8 @@ func testCAAndLeaf_xc(t *testing.T, keyType string, keyBits int) {
 	skipIfMissingOpenSSL(t)
 
 	// Create the certs
-	ca1 := TestCAWithKeyType(t, nil, keyType, keyBits)
-	ca2 := TestCAWithKeyType(t, ca1, keyType, keyBits)
+	ca1 := NewTestCA(t, TestCAOptions{KeyType: keyType, KeyBits: keyBits})
+	ca2 := NewTestCA(t, TestCAOptions{PreviousCARoot: ca1.KeyPair(), KeyType: keyType, KeyBits: keyBits})
 	leaf1, _ := TestLeaf(t, "web", ca1)
 	leaf2, _ := TestLeaf(t, "web", ca2)
 
@@ -73,7 +73,7 @@ func testCAAndLeaf_xc(t *testing.T, keyType string, keyBits int) {
 	// Write the cert
 	xcbundle := []byte(ca1.RootCert)
 	xcbundle = append(xcbundle, '\n')
-	xcbundle = append(xcbundle, []byte(ca2.SigningCert)...)
+	xcbundle = append(xcbundle, []byte(ca2.CrossSigningCert)...)
 	assert.Nil(t, ioutil.WriteFile(filepath.Join(td, "ca.pem"), xcbundle, 0644))
 	assert.Nil(t, ioutil.WriteFile(filepath.Join(td, "leaf1.pem"), []byte(leaf1), 0644))
 	assert.Nil(t, ioutil.WriteFile(filepath.Join(td, "leaf2.pem"), []byte(leaf2), 0644))

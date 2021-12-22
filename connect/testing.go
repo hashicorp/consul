@@ -14,12 +14,11 @@ import (
 	testing "github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/freeport"
 )
 
 // TestService returns a Service instance based on a static TLS Config.
-func TestService(t testing.T, service string, ca *structs.CARoot) *Service {
+func TestService(t testing.T, service string, ca connect.TestCAResult) *Service {
 	t.Helper()
 
 	// Don't need to talk to client since we are setting TLSConfig locally
@@ -33,7 +32,7 @@ func TestService(t testing.T, service string, ca *structs.CARoot) *Service {
 }
 
 // TestTLSConfig returns a *tls.Config suitable for use during tests.
-func TestTLSConfig(t testing.T, service string, ca *structs.CARoot) *tls.Config {
+func TestTLSConfig(t testing.T, service string, ca connect.TestCAResult) *tls.Config {
 	t.Helper()
 
 	cfg := defaultTLSConfig()
@@ -44,7 +43,7 @@ func TestTLSConfig(t testing.T, service string, ca *structs.CARoot) *tls.Config 
 }
 
 // TestCAPool returns an *x509.CertPool containing the passed CA's root(s)
-func TestCAPool(t testing.T, cas ...*structs.CARoot) *x509.CertPool {
+func TestCAPool(t testing.T, cas ...connect.TestCAResult) *x509.CertPool {
 	t.Helper()
 	pool := x509.NewCertPool()
 	for _, ca := range cas {
@@ -55,7 +54,7 @@ func TestCAPool(t testing.T, cas ...*structs.CARoot) *x509.CertPool {
 
 // TestSvcKeyPair returns an tls.Certificate containing both cert and private
 // key for a given service under a given CA from the testdata dir.
-func TestSvcKeyPair(t testing.T, service string, ca *structs.CARoot) tls.Certificate {
+func TestSvcKeyPair(t testing.T, service string, ca connect.TestCAResult) tls.Certificate {
 	t.Helper()
 	certPEM, keyPEM := connect.TestLeaf(t, service, ca)
 	cert, err := tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
@@ -67,7 +66,7 @@ func TestSvcKeyPair(t testing.T, service string, ca *structs.CARoot) tls.Certifi
 
 // TestPeerCertificates returns a []*x509.Certificate as you'd get from
 // tls.Conn.ConnectionState().PeerCertificates including the named certificate.
-func TestPeerCertificates(t testing.T, service string, ca *structs.CARoot) []*x509.Certificate {
+func TestPeerCertificates(t testing.T, service string, ca connect.TestCAResult) []*x509.Certificate {
 	t.Helper()
 	certPEM, _ := connect.TestLeaf(t, service, ca)
 	cert, err := connect.ParseCert(certPEM)
@@ -82,8 +81,6 @@ func TestPeerCertificates(t testing.T, service string, ca *structs.CARoot) []*x5
 type TestServer struct {
 	// The service name to serve.
 	Service string
-	// The (test) CA to use for generating certs.
-	CA *structs.CARoot
 	// TimeoutHandshake controls whether the listening server will complete a TLS
 	// handshake quickly enough.
 	TimeoutHandshake bool
@@ -103,10 +100,9 @@ type TestServer struct {
 
 // NewTestServer returns a TestServer. It should be closed when test is
 // complete.
-func NewTestServer(t testing.T, service string, ca *structs.CARoot) *TestServer {
+func NewTestServer(t testing.T, service string, ca connect.TestCAResult) *TestServer {
 	return &TestServer{
 		Service:   service,
-		CA:        ca,
 		stopChan:  make(chan struct{}),
 		TLSCfg:    TestTLSConfig(t, service, ca),
 		Addr:      fmt.Sprintf("127.0.0.1:%d", freeport.GetOne(t)),

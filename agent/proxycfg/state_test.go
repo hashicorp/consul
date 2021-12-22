@@ -403,7 +403,7 @@ func upstreamIDForDC2(uid UpstreamID) UpstreamID {
 func TestState_WatchesAndUpdates(t *testing.T) {
 	t.Parallel()
 
-	indexedRoots, issuedCert := TestCerts(t)
+	indexedRoots, issuedCert := newTestCerts(t)
 
 	// Used to account for differences in OSS/ent implementations of ServiceID.String()
 	var (

@@ -57,7 +57,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	}
 
 	// Create a bunch of common data for the various test cases.
-	roots, leaf := TestCerts(t)
+	roots, leaf := newTestCerts(t)
 
 	dbDefaultChain := func() *structs.CompiledDiscoveryChain {
 		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", func(req *discoverychain.CompileRequest) {
@@ -418,7 +418,7 @@ func testManager_BasicLifecycle(
 	// mock type will have been blocked on those for a while.
 	assertLastReqArgs(t, types, "other-token", source)
 	// Update roots
-	newRoots, newLeaf := TestCerts(t)
+	newRoots, newLeaf := newTestCerts(t)
 	newRoots.Roots = append(newRoots.Roots, roots.Roots...)
 	types.roots.Set(rootsCacheKey, newRoots)
 
@@ -659,7 +659,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	notifyCH := m.proxies[srv.CompoundServiceID()].ch
 
 	// update the leaf certs
-	roots, issuedCert := TestCerts(t)
+	roots, issuedCert := newTestCerts(t)
 	notifyCH <- cache.UpdateEvent{
 		CorrelationID: leafWatchID,
 		Result:        issuedCert,
