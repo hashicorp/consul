@@ -50,10 +50,10 @@
   <State @matches={{array "idle" "disconnected" "invalidating"}}>
 
     <State @matches="disconnected">
+      {{#if (not (eq error.status '401'))}}
         {{#yield-slot name="disconnected" params=(block-params (action dispatch "RESET"))}}
-          {{yield api}}
+            {{yield api}}
         {{else}}
-        {{#if (not eq error.status '401')}}
           <Notice
             {{notification
               sticky=true
@@ -70,8 +70,8 @@
               </p>
             </notice.Body>
           </Notice>
-        {{/if}}
         {{/yield-slot}}
+      {{/if}}
     </State>
     {{#if (eq error.status "403")}}
       {{#yield-slot name="error"}}
