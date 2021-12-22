@@ -94,6 +94,7 @@ as |item|}}
               name=route.params.name
             )
           }}
+          @onchange={{action (mut meta) value="data"}}
         as |meta|>
           {{! We only really need meta to get the correct ServiceID }}
           {{! but we may as well use the NodeName and ServiceName }}
@@ -136,8 +137,8 @@ as |item|}}
             <Consul::ExternalSource @item={{item}} @withInfo={{true}} />
             <Consul::Kind @item={{item}} @withInfo={{true}} />
             {{! TODO: Looks like we can get this straight from item.Proxy.Mode }}
-            {{! the less we need `proxy` the better }}
-            {{#if (eq proxy.ServiceProxy.Mode 'transparent')}}
+            {{! the less we need `proxy` and `meta` the better }}
+            {{#if (eq meta.ServiceProxy.Mode 'transparent')}}
               <Consul::TransparentProxy />
             {{/if}}
           </BlockSlot>
@@ -172,6 +173,7 @@ as |item|}}
               @name={{routeName}}
               @model={{assign (hash
                 proxy=proxy
+                meta=meta
                 item=item
               ) route.model}}
             as |o|>
