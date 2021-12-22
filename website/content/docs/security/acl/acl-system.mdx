@@ -69,7 +69,7 @@ If the ACL system becomes inoperable, you can follow the
 
 ### ACL Policies
 
-An ACL policy (not to be confused with [policy dispositions](/docs/security/acl/acl-rules#policy-dispositions)) is a named set of rules and several attributes that define the policy domain. The ID is generated when policy is created, but you can specify the attributes when creating the policy. Refer to the [ACL policy command line](https://www.consul.io/commands/acl/policy) documentation or [ACL policy API](/api-docs/acl/policies) documentation for additional information on how to create policies.
+An ACL policy (not to be confused with [policy dispositions](/docs/security/acl/acl-rules#policy-dispositions)) is a named set of rules and several attributes that define the policy domain. The ID is generated when the policy is created, but you can specify the attributes when creating the policy. Refer to the [ACL policy command line](https://www.consul.io/commands/acl/policy) documentation or [ACL policy API](/api-docs/acl/policies) documentation for additional information on how to create policies.
 
 ACL policies can have the following attributes:
 
@@ -215,11 +215,11 @@ of the following elements:
 - **Service Identity Set** - The list of service identities that are applicable for the role.
 - **Namespace** <EnterpriseAlert inline /> - The namespace this policy resides within. (Added in Consul Enterprise 1.7.0)
 
--> **Linking Roles to Policies in Consul Enterprise** - Roles can only be linked to policies that are defined in the same namespace or admin partition. 
+-> **Linking Roles to Policies in Consul Enterprise** - Roles can only be linked to policies that are defined in the same namespace and admin partition. 
 
 ### ACL Tokens
 
-Consul uses ACL tokens to determine if the caller is authorized to perform an action. An ACL token is composed of several attributes that you can specify when creating the token. Refer to the [ACL token command line](https://www.consul.io/commands/acl/token) documentation or [ACL token API](/api-docs/acl/tokens) documentation for additional information on how to create policies.:
+Consul uses ACL tokens to determine if the caller is authorized to perform an action. An ACL token is composed of several attributes that you can specify when creating the token. Refer to the [ACL token command line](https://www.consul.io/commands/acl/token) documentation or [ACL token API](/api-docs/acl/tokens) documentation for additional information on how to create tokens.:
 
 - **Accessor ID** - The token's public identifier.
 - **Secret ID** -The bearer token used when making requests to Consul.
@@ -229,10 +229,10 @@ Consul uses ACL tokens to determine if the caller is authorized to perform an ac
 - **Local** - Indicates whether the token is local to the datacenter in which it was created. The attribute also can specify if the token was created in the primary datacenter and globally replicated.
 - **CreateTime** - Timestamp indicating when the token was created. 
 - **Expiration Time** - The time at which this token is revoked. This attribute is option when creating a token. Added in Consul 1.5.0.
-- **Namespace** <EnterpriseAlert inline /> - The namespace in which the policy resides. Added in Consul Enterprise 1.7.0.
-- **Partition** <EnterpriseAlert inline /> - The partition in which the policy resides. Added in Consul Enterprise 1.11.0.
+- **Namespace** <EnterpriseAlert inline /> - The namespace in which the token resides. Added in Consul Enterprise 1.7.0.
+- **Partition** <EnterpriseAlert inline /> - The partition in which the token resides. Added in Consul Enterprise 1.11.0.
 
--> **Linking Tokens to Policies in Consul Enterprise** - Tokens can only be linked to policies that are defined in the same namespace or admin partition. 
+-> **Linking Tokens to Policies in Consul Enterprise** - Tokens can only be linked to policies that are defined in the same namespace and admin partition. 
 
 You can view the current ACL tokens on the command line or through the API. The following example demonstrates the command line usage:
 
