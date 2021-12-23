@@ -1,0 +1,79 @@
+<li 
+  class="acls-separator"
+  role="separator"
+>
+  Access Controls
+{{#if (not (can "use acls"))}}
+  <span
+    {{tooltip "ACLs are not currently enabled in this cluster"}}
+  ></span>
+{{/if}}
+</li>
+<li 
+  data-test-main-nav-tokens
+  class={{if (is-href 'dc.acls.tokens' @dc.Name) 'is-active'}}
+>
+    <a 
+      href={{href-to 'dc.acls.tokens' @dc.Name}}
+    >
+      Tokens
+    </a>
+</li>
+{{#if (can "read acls")}}
+<li 
+  data-test-main-nav-policies
+  class={{if (is-href 'dc.acls.policies' @dc.Name) 'is-active'}}
+>
+    <a 
+      href={{href-to 'dc.acls.policies' @dc.Name}}
+    >
+      Policies
+    </a>
+</li>
+<li
+  data-test-main-nav-roles
+  class={{if (is-href 'dc.acls.roles' @dc.Name) 'is-active'}}
+>
+    <a
+      href={{href-to 'dc.acls.roles' @dc.Name}}
+    >
+      Roles
+    </a>
+</li>
+<li 
+  data-test-main-nav-auth-methods
+  class={{if (is-href 'dc.acls.auth-methods' @dc.Name) 'is-active'}}
+>
+    <a 
+      href={{href-to 'dc.acls.auth-methods' @dc.Name}}
+    >
+      Auth Methods
+    </a>
+</li>
+{{else if (not (can "use acls"))}}
+<li 
+  data-test-main-nav-policies
+  class={{if (is-href 'dc.acls.policies' @dc.Name) 'is-active'}}
+>
+    <span>
+      Policies
+    </span>
+</li>
+<li 
+  data-test-main-nav-roles
+  class={{if (is-href 'dc.acls.roles' @dc.Name) 'is-active'}}
+>
+    <span>
+      Roles
+    </span>
+</li>
+<li
+  data-test-main-nav-auth-methods
+  class={{if (is-href 'dc.acls.auth-methods' @dc.Name) 'is-active'}}
+>
+    <span>
+      Auth Methods
+    </span>
+</li>
+{{/if}}
+
