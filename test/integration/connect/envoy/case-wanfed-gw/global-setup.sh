@@ -25,7 +25,7 @@ for f in \
     primary-server-consul-0-key.pem \
     primary-server-consul-0.pem \
     ; do
-    docker cp "${container}:/out/$f" workdir/primary/tls
+    docker cp -a "${container}:/out/$f" workdir/primary/tls
 done
 
 # secondary
@@ -34,7 +34,7 @@ for f in \
     secondary-server-consul-0-key.pem \
     secondary-server-consul-0.pem \
     ; do
-    docker cp "${container}:/out/$f" workdir/secondary/tls
+    docker cp -a "${container}:/out/$f" workdir/secondary/tls
 done
 
 docker rm -f "$container" >/dev/null || true
