@@ -45,7 +45,6 @@ export default class BaseRoute extends Route {
           return prev;
         }, this.routeName.split('.'))
         .join('.');
-      console.log(to);
       // TODO: Does this need to return?
       // Almost remember things getting strange if you returned from here
       // which is why I didn't do it originally so be sure to look properly if
