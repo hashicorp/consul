@@ -25,7 +25,7 @@ for f in \
     primary-server-consul-0-key.pem \
     primary-server-consul-0.pem \
     ; do
-    docker cp -a "${container}:/out/$f" workdir/primary/tls
+    docker cp "${container}:/out/$f" workdir/primary/tls
 done
 
 # secondary
@@ -34,7 +34,11 @@ for f in \
     secondary-server-consul-0-key.pem \
     secondary-server-consul-0.pem \
     ; do
-    docker cp -a "${container}:/out/$f" workdir/secondary/tls
+    docker cp "${container}:/out/$f" workdir/secondary/tls
 done
+
+# Private keys have 600 perms but tests are run as another user
+chmod 666 workdir/primary/tls/primary-server-consul-0-key.pem #
+chmod 666 workdir/secondary/tls/secondary-server-consul-0-key.pem
 
 docker rm -f "$container" >/dev/null || true
