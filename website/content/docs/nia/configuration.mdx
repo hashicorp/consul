@@ -195,13 +195,13 @@ A `task` block can be optionally configured with a `condition` block to set the 
 
 #### Services Condition
 
-This is the default type of condition when no `condition` block is configured for a task. This condition will trigger the task on either changes in services configured in [`task.services`](#services) or changes in services that match the regular expression configured in `regexp`. The default behavior is to trigger on changes to [`task.services`](#services). The [`task.services`](#services) option is required if `regexp` is not configured.
+This condition will trigger the task on services that match the regular expression configured in `regexp` or services listed by name in `names`. Either `regexp` or `names` must be configured, but not both.
 
 See [Task Execution: Services Condition](/docs/nia/tasks#services-condition) for more details on how tasks are triggered with a services condition.
 
 ```hcl
 task {
-  name        = "services_condition_task"
+  name        = "services_condition_regexp_task"
   description = "execute on changes to services with names starting with web"
   providers   = ["my-provider"]
   source      = "path/to/services-condition-module"
@@ -217,10 +217,29 @@ task {
   }
 }
 ```
+```hcl
+task {
+  name        = "services_condition_names_task"
+  description = "execute on changes to services with names api or web"
+  source      = "path/to/services-condition-module"
+
+  condition "services" {
+    names = ["api", "web"]
+    datacenter = "dc1"
+    namespace  = "default"
+    filter     = "Service.Tags not contains \"prod\""
+    cts_user_defined_meta {
+      key = "value"
+    }
+  }
+}
+
+```
 
 | Parameter |  Required |Description | Default |
 | --------- | --------- | ---------- | ------- |
-| `regexp` |  Optional | String value matching the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) list must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
+| `regexp` |  Required if `names` is not configured | String value matching the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) list must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
+| `names` |  Required if `regexp` is not configured | List of string values specifying the names of Consul services to monitor. Only services that have their name listed in `names` are used by the task. | none |
 | `datacenter` |  Optional | String value specifying the name of a datacenter to query for the task. | Datacenter of the agent that Consul-Terraform-Sync queries. |
 | `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the Consul-Terraform-Sync ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | String value specifying an expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
@@ -327,7 +346,8 @@ This `services` source input object defines services registered to Consul whose 
 
 | Parameter |  Required |Description | Default |
 | --------- | --------- | ---------- | ------- |
-| `regexp` |  Optional | String value matching the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) list must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
+| `regexp` |  Required if `names` is not configured | String value matching the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) list must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
+| `names` |  Required if `regexp` is not configured | List of string values specifying the names of Consul services to monitor. Only services that have their name listed in `names` are used by the task. | none |
 | `datacenter` |  Optional | String value specifying the name of a datacenter to query for the task. | Datacenter of the agent that Consul-Terraform-Sync queries. |
 | `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the Consul-Terraform-Sync ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | String value specifying an expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
