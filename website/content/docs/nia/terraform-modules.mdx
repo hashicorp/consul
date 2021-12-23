@@ -92,8 +92,8 @@ services = {
 In order to configure a task with the services source input, the list of services that will be used for the input must be configured in one of the following ways:
 
 - the task's [`services`](/docs/nia/configuration#services)
-- a [`condition "services"` block](/docs/nia/configuration#services-condition) configured with `regexp` and `source_includes_var` set to true
-- a [`source_input "services"` block](/docs/nia/configuration#services-source-input) configured with `regexp`
+- a [`condition "services"` block](/docs/nia/configuration#services-condition) configured with `source_includes_var` set to true
+- a [`source_input "services"` block](/docs/nia/configuration#services-source-input)
 
 The services source input operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) and provides the latest service information to the input variables. A complete list of service information that would be provided to the module is expanded below:
 
@@ -114,7 +114,7 @@ The services source input operates by monitoring the [Health List Nodes For Serv
 | `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent                                           |
 | `node_meta`             | List of user-defined metadata key/value pairs for the node                                        |
 
-Below is an example configuration for a task that will execute on a schedule and provide information about the services matching the `regexp` parameter to the task’s module. Note that because `regexp` is set, `task.services` is omitted, and since a schedule is being used to trigger task execution, a `condition "services"` block cannot be used.
+Below is an example configuration for a task that will execute on a schedule and provide information about the services matching the `regexp` parameter to the task’s module.
 
 ```hcl
 task {
