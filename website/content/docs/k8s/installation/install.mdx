@@ -191,7 +191,7 @@ use `kubectl port-forward` to visit the UI.
 If running with TLS disabled, the Consul UI will be accessible via http on port 8500:
 
 ```shell-session
-$ kubectl port-forward service/consul-server 8500:8500
+$ kubectl port-forward service/consul-server -n consul 8500:8500
 ...
 ```
 
@@ -202,7 +202,7 @@ Once the port is forwarded navigate to [http://localhost:8500](http://localhost:
 If running with TLS enabled, the Consul UI will be accessible via https on port 8501:
 
 ```shell-session
-$ kubectl port-forward service/consul-server 8501:8501
+$ kubectl port-forward service/consul-server -n consul 8501:8501
 ...
 ```
 
