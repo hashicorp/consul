@@ -599,7 +599,7 @@ func (s *HTTPHandlers) Index(resp http.ResponseWriter, req *http.Request) {
 	// Give them something helpful if there's no UI so they at least know
 	// what this server is.
 	if !s.IsUIEnabled() {
-		fmt.Fprint(resp, "Consul Agent")
+		fmt.Fprint(resp, "Consul Agent: UI disabled. To enable, set ui_config.enabled=true in the agent configuration and restart.")
 		return
 	}
 
