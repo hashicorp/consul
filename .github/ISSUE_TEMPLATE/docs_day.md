@@ -11,20 +11,18 @@ assignees:
 *Thanks for taking the time to fill out this Consul docs event task request!*
 
 ## Category
-What category is this task for?
-options:
-    - Add/Improve Examples
-    - Structural Improvements and Cleanup
-    - Visual Aids
-    - Other
+What category is this task for? Available Options:
+- Add/Improve Examples
+- Structural Improvements and Cleanup
+- Visual Aids
+- Other
 
 ## Short Name
-Please provide a short name for this task. **Use the short name for the title** 
-
+Please provide a short name for this task. 
+**IMPORTANT**: Use the short name for the title
 
 ## Description
 Please provide details about the task.
-
 
 ## Links
 Please provide link(s) to the documentation page(s) to be modified, if applicable
