@@ -54,9 +54,8 @@ vault write auth/kubernetes/config \
 
 In order to utlize Vault as a secrets backend, we must enable thne [Vault KV secrets engine - Version 2](https://www.vaultproject.io/docs/secrets/kv/kv-v2).
 
-```
-vault secrets enable -path=consul kv-v2
-```
+```shell-session
+$ vault secrets enable -path=consul kv-v2
 
 ### Vault PKI Engine
 
