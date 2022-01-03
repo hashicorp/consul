@@ -1,7 +1,7 @@
 ---
 name: Consul docs day task
 about: This is a HashiCorp internal documentation task for the purpose of the Consul docs day event.
-labels: ['type/docs', 'placeholder']
+labels: ['type/docs', 'event/consul-docs-day', `meta/maintainer-preferred`]
 assignees: 
     - karl-cardenas-coding
     - jkirschner-hashicorp
@@ -22,6 +22,7 @@ body:
         - Add/Improve Examples
         - Structural Improvements and Cleanup
         - Visual Aids
+        - Other
     validations:
       required: true
   - type: input
@@ -36,7 +37,7 @@ body:
     id: Description
     attributes:
       label: Description
-      description: Please provide details about the task?
+      description: Please provide details about the task.
       placeholder: What I'll change and why this is important
     validations:
       required: true
