@@ -25,10 +25,45 @@ At a high level, there are two points of integration with Vault:
 1. `global.tls.enableAutoencrypt=true` is required if TLS is enabled for the Consul installation when using the Vault secrets backend.
 1. The Vault installation must have been initialized, unsealed and the KV2 and PKI secrets engines enabled and the Kubernetes Auth Method enabled.
 
+### Vault Helm Config
+
 A minimal valid installation of Vault must include the Agent Injector:
 ```yaml
 injector:
   enabled: "true"
+```
+
+### Vault Kubernetes Auth Method
+
+Prior to creating Vault auth roles for the Consul servers and clients, ensure that the Vault Kubernetes auth method is enabled:
+
+```shell-session
+$ vault auth enable kubernetes
+```
+
+After enabling the Kubernetes auth method, in Vault, ensure that you have configured the Kubernetes Auth method properly as described in [Kubernetes Auth Method Configuration](https://www.vaultproject.io/docs/auth/kubernetes#configuration). The command should look simliar to the following with a custom `kubernetes_host` config provided from the information provided via `kubectl cluster-info`. 
+
+```shell-session
+$ vault write auth/kubernetes/config \
+    token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
+    kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443" \
+    kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+```
+
+### Vault KV Secrets Engine - Version 2
+
+In order to utlize Vault as a secrets backend, we must enable thne [Vault KV secrets engine - Version 2](https://www.vaultproject.io/docs/secrets/kv/kv-v2).
+
+```shell-session
+$ vault secrets enable -path=consul kv-v2
+```
+
+### Vault PKI Engine
+
+The Vault PKI Engine must be enabled in order to leverage Vault for issuiing Consul Server TLS certificates. More details for configuring the PKI Engine is found in [Bootstrapping the PKI Engine](https://www.consul.io/docs/k8s/installation/vault/server-tls#bootstrapping-the-pki-engine) under the Server TLS section. 
+
+```shell-session
+$ vault secrets enable pki
 ```
 
 ## Known Limitations

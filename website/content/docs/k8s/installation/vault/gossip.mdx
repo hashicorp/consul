@@ -34,11 +34,7 @@ path "secret/data/consul/gossip" {
 vault policy write gossip-policy gossip-policy.hcl
 ```
 
-Prior to creating auth roles for the Consul server and client, ensure that the Vault Kubernetes auth method is enabled:
-
-```shell-session
-vault auth enable kubernetes
-```
+Prior to creating Vault auth roles for the Consul servers and clients, ensure that the Vault Kubernetes auth method is enabled as described in [Vault Kubernetes Auth Method](/docs/k8s/installation/vault#vault-kubernetes-auth-method).
 
 Next, we will create Kubernetes auth roles for the Consul server and client:
 
