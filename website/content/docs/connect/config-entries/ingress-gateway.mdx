@@ -157,11 +157,11 @@ spec:
 </Tab>
 </Tabs> 
 
-Refer to the [Available Fields](#available-fields) section for complete information about all ingress gateway configuraiton entry options and to the [Example Configurations](#example-configurations) section for example use-cases. 
+Refer to the [Available Fields](#available-fields) section for complete information about all ingress gateway configuration entry options and to the [Example Configurations](#example-configurations) section for example use-cases. 
 
 ### Scope
 
-[Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies across all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different sets of services within their datacenter then the ingress gateways **must** be registered with different names. See [Ingress Gateway](/docs/connect/ingress-gateway) for more information.
+[Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies across the default partition of all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different sets of services within their datacenter then the ingress gateways **must** be registered with different names or partitions. See [Ingress Gateway](/docs/connect/ingress-gateway) for more information.
 
 ### Wildcard Service Specification
 
@@ -327,7 +327,7 @@ spec:
 
 In the following example, two listeners are configured on an ingress gateway named `us-east-ingress`:
 
-* The first listener is configred to listen on port `8080` and uses a wildcard (`*`) to proxy traffic to all services in the datacenter. 
+* The first listener is configured to listen on port `8080` and uses a wildcard (`*`) to proxy traffic to all services in the datacenter. 
 * The second listener exposes the `api` and `web` services on port `4567` at user-provided hosts.
 * TLS is enabled on every listener.
 
@@ -947,7 +947,7 @@ You can specify the following parameters to configure ingress gateway configurat
       enterprise: true,
       description: 
         'Specifies the admin partition in which the configuration will apply. The value must match the partition in which the gateway is registered.' +  
-        ' If omitted, the partition will be inhereited from the request (refer to the [`config` API endpoint documentation](/api/config)).' +
+        ' If omitted, the partition will be inherited from the request (refer to the [`config` API endpoint documentation](/api/config)).' +
         ' See [Admin Partitions](/docs/enterprise/admin-partitions) for additional information.',
       yaml: false,  
     },
