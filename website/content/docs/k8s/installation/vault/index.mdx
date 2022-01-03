@@ -44,7 +44,7 @@ $ vault auth enable kubernetes
 After enabling the Kubernetes auth method, in Vault, ensure that you have configured the Kubernetes Auth method properly as described in [Kubernetes Auth Method Configuration](https://www.vaultproject.io/docs/auth/kubernetes#configuration). The command should look simliar to the following with a custom `kubernetes_host` config provided from the information provided via `kubectl cluster-info`. 
 
 ```shell-session
-vault write auth/kubernetes/config \
+$ vault write auth/kubernetes/config \
     token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
     kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443" \
     kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
