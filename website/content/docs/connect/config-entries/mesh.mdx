@@ -77,7 +77,6 @@ kind: Mesh
 metadata:
   name: mesh
   namespace: default
-  partition: default
 spec:
   transparentProxy:
     meshDestinationsOnly: true
@@ -98,6 +97,8 @@ spec:
 
 </Tab>
 </Tabs>
+
+Note that the Kuberetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/docs/k8s/crds), which can only reference their own partition.
 
 ## Available Fields
 
@@ -149,13 +150,7 @@ spec:
           name: 'namespace',
           enterprise: true,
           description:
-            'Must be set tot `default`. If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for additional information.',
-        },
-        {
-          name: 'partition',
-          enterprise: true,
-          description:
-            'Specifies the admin partition in which the configuration will apply. The current partition is used if unspecified. Refer to the [Admin Partitions documentation](/docs/enterprise/admin-partitions) for details. The partitions parameter is not supported in Consul OSS.',
+            'Must be set to `default`. If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for additional information.',
         },
       ],
       hcl: false,
