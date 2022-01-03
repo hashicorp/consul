@@ -11,6 +11,8 @@ description: >-
 Consul allows using Kubernetes auth methods to configure Connect CA.
 This allows for automatic token rotation once the renewal is no longer possible.
 
+In order to create Vault auth roles for the Consul servers for this feature, ensure that the Vault Kubernetes auth method is enabled as described in [Vault Kubernetes Auth Method](/docs/k8s/installation/vault#vault-kubernetes-auth-method).
+
 To configure [Vault as the provider](/docs/connect/ca/vault) for the Consul service certificates,
 you will first need to decide on the type of policy that is suitable for you.
 To see the permissions that Consul would need in Vault, please see [Vault ACL policies](/docs/connect/ca/vault#vault-acl-policies)

@@ -100,11 +100,7 @@ export DATACENTER=dc1
 echo allowed_domains=\"$DATACENTER.consul, $NAME-server, $NAME-server.$NAMESPACE, $NAME-server.$NAMESPACE.svc\"
 ```
 
-Prior to creating the Kubernetes auth roles required for Consul to securely access Vault, ensure that the Vault Kubernetes Auth method is enabled:
-
-```shell-session
-vault auth enable kubernetes
-```
+Prior to creating Vault auth roles for the Consul server and the Consul components, ensure that the Vault Kubernetes auth method is enabled as described in [Vault Kubernetes Auth Method](/docs/k8s/installation/vault#vault-kubernetes-auth-method).
 
 Finally, two Kubernetes auth roles need to be created, one for the Consul servers and one for the Consul components:
 
