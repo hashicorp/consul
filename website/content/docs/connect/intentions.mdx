@@ -94,11 +94,11 @@ accepted.
 
 ### Wildcard Intentions
 
-You can use the `*` wildcard when defining an intention source or destination. The wildcard matches _any_ value and can serve as a "catch-all" entry for intentions that should have a wide scope.     
+You can use the `*` wildcard to match service names when defining an intention source or destination. The wildcard matches _any_ value, which enables you to set a wide initial scope when configuring intentions.
 
-You can use a wildcard to match service names. If you are using Consul Enterprise, you can also use a wildcard to match a namespace.
+The wildcard is supported in Consul Enterprise `namespace` fields (see [Namespaces](/docs/enterprise/namespaces) for additional information), but it _is not supported_ in `partition` fields (see [Admin Partitions](/docs/enterprise/admin-partitions) for additional information).
 
-This example says that the "web" service cannot connect to _any_ service:
+In the following example, the `web` service cannot connect to _any_ service:
 
 ```hcl
 Kind = "service-intentions"
@@ -111,7 +111,7 @@ Sources = [
 ]
 ```
 
-And this example says that _no_ service can connect to the "db" service:
+The `db` service is configured to deny all connection in the following example:
 
 ```hcl
 Kind = "service-intentions"
@@ -124,8 +124,8 @@ Sources = [
 ]
 ```
 
-<EnterpriseAlert inline /> This example grants Prometheus
-access to any service in any namespace.
+<EnterpriseAlert inline /> This example grants Prometheus access to any service in
+any namespace.
 
 ```hcl
 Kind = "service-intentions"
