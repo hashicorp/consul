@@ -123,6 +123,9 @@ $syntax-yellow: $yellow-500;
   span.cm-tag {
     color: $syntax-packer;
   }
+  span.cm-error {
+    color: $syntax-red;
+  }
 
   span.cm-attribute {
     color: #9fca56;
