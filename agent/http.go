@@ -69,7 +69,7 @@ func (e NotFoundError) Error() string {
 	return e.Reason
 }
 
-// UnauthorizedError should be returned by a handler when the request lacks valid authentication.
+// UnauthorizedError should be returned by a handler when the request lacks valid authorization.
 type UnauthorizedError struct {
 	Reason string
 }
