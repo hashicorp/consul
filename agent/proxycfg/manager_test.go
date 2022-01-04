@@ -660,7 +660,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	services := m.State.AllServices()
 	var notifyCH chan cache.UpdateEvent
 
-	for sid, _ := range services {
+	for sid := range services {
 		notifyCH = m.proxies[sid].ch
 	}
 
