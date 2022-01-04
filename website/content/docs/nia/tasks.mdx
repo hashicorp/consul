@@ -114,8 +114,6 @@ The module selected for a task will likely determine whether the task should be 
 
 In addition to `source_includes_var`, a task's catalog-services condition has other configuration fields that can be used to specify which services' registration changes should execute the task. For example, registration changes can be filtered for services in a specific datacenter or namespace. See the [Catalog-Services Condition](/docs/nia/configuration#catalog-services-condition) configuration section for more details.
 
-One particular condition configuration, [`regexp`](/docs/nia/configuration#regexp), filters service registration changes by services that have a name which matches the configured regular expression. When unconfigured, the `regexp` value will default to match on any service that has a name which matches the services listed in [`task.services`](/docs/nia/configuration#services). As such, either `regexp` or `task.services` must be configured. When both are configured, see example above, the task will monitor and execute on registration changes to services matching the `regexp`, and the task will additionally monitor but not execute on service instances listed in `task.services` to optionally provide additional service information to the module.
-
 ### Consul KV Condition
 
 Tasks with a consul-kv condition monitor and execute on Consul KV changes for KV pairs that satisfy the condition configuration. The consul-kv condition operates by monitoring the [Consul KV API](/api-docs/kv#read-key) and executing the task when a configured KV entry is created, deleted, or updated.
