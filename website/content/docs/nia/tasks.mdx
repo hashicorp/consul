@@ -32,13 +32,9 @@ A task can be either enabled or disabled using the [task cli](/docs/nia/cli/task
 
 An enabled task can be configured to monitor and execute on different types of conditions, such as changes to services ([services condition](/docs/nia/tasks#services-condition)) or service registration and deregistration ([catalog-services condition](/docs/nia/tasks#catalog-services-condition)).
 
-A task can also monitor, but not execute on, other variables that provide additional information to the task's module. For example, a task with a catalog-services condition may execute on registration changes, and monitor service instances for IP information.
+A task can also monitor, but not execute on, other variables that provide additional information to the task's module. For example, a task with a catalog-services condition may execute on registration changes and additionally monitor service instances for IP information.
 
-A source input can be specified that implicitly includes variables to be provided to the task’s module. For example, a task can specify a Consul KV source input. The specified KV keys or key paths would be monitored for changes. Any changes detected would be included as input information for the modules. The module determines the details of what values are monitored and what values can execute the task.
-
-~> **The source input block is currently only supported when using a schedule condition.** Adding a source input block alongside any other type of condition will result in an error. To accomplish a similar behaviour with other condition blocks, use the `source_includes_var` field.
-
-Below are details on the types of execution conditions that Consul-Terraform-Sync supports.
+All configured monitored information, regardless if it's used for execution or not, can be passed to the task's module as module input. Below are details on the types of execution conditions that Consul-Terraform-Sync supports and their module inputs.
 
 ### Services Condition
 
@@ -77,10 +73,15 @@ task {
   source      = "path/to/services-condition-module"
 
   condition "services" {
-    regexp = "^web.*"
+    regexp              = "^web.*"
+    source_includes_var = false
   }
 }
 ```
+
+The services condition can provide input for the [`services` input variable](/docs/nia/terraform-modules#services-variable) that is required for each Consul-Terraform-Sync module. This can be provided depending on how the services condition is configured:
+1. task's `services` field: services object is automatically passed as module input
+1. task's `condition "services"` block: users can configure the `source_includes_var` field to optionally use the condition's services object as module input
 
 ### Catalog-Services Condition
 
@@ -110,9 +111,9 @@ service {
 }
 ```
 
-The module selected for a task will likely determine whether the task should be configured with a catalog-services condition. Module authors have the option to include and use the [`catalog_services` input variable](/docs/nia/terraform-modules#catalog-services-variable) in addition to the required `services` variable. When this variable is included in the module, the user of this module will need to configure the task condition's [`source_includes_var`](/docs/nia/configuration#source_includes_var) value to be true. Catalog-Services condition modules should have the condition type and `source_includes_var` configuration value documented for users to reference when configuring a task.
+Using the condition block's `source_includes_var` field, users can configure Consul-Terraform-Sync to use the condition's object as module input for the [`catalog_services` input variable](/docs/nia/terraform-modules#catalog-services-variable). Users can refer to the configured module's documentation on how to set `source_includes_var`.
 
-In addition to `source_includes_var`, a task's catalog-services condition has other configuration fields that can be used to specify which services' registration changes should execute the task. For example, registration changes can be filtered for services in a specific datacenter or namespace. See the [Catalog-Services Condition](/docs/nia/configuration#catalog-services-condition) configuration section for more details.
+See the [Catalog-Services Condition](/docs/nia/configuration#catalog-services-condition) configuration section for further details and additional configuration options.
 
 ### Consul KV Condition
 
@@ -138,7 +139,9 @@ task {
 }
 ```
 
-If the task condition's [`source_includes_var`](/docs/nia/configuration#source_includes_var-1) field is set to `true`, then the value of the Consul KV pair(s) will be available in the [`consul_kv` input variable](/docs/nia/terraform-modules#consul-kv-variable). To use the variable, add `consul_kv` as an input variable to the module, in addition to the required `services` variable. The condition type and `source_includes_var` configuration value should be documented in the module so that users can reference them when configuring a task.
+Using the condition block's `source_includes_var` field, users can configure Consul-Terraform-Sync to use the condition's object as module input for the [`consul_kv` input variable](/docs/nia/terraform-modules#consul-kv-variable). Users can refer to the configured module's documentation on how to set `source_includes_var`.
+
+See the [Consul-KV Condition](/docs/nia/configuration#consul-kv-condition) configuration section for more details and additional configuration options.
 
 ### Schedule Condition
 
