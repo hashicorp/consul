@@ -117,9 +117,6 @@ func TestACL_Bootstrap(t *testing.T) {
 			if tt.token && err != nil {
 				t.Fatalf("err: %v", err)
 			}
-			if got, want := resp.Code, tt.code; got != want {
-				t.Fatalf("got %d want %d", got, want)
-			}
 			if tt.token {
 				wrap, ok := out.(*aclBootstrapResponse)
 				if !ok {

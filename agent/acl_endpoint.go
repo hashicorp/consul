@@ -41,9 +41,7 @@ func (s *HTTPHandlers) ACLBootstrap(resp http.ResponseWriter, req *http.Request)
 	err := s.agent.RPC("ACL.BootstrapTokens", &args, &out)
 	if err != nil {
 		if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
-			resp.WriteHeader(http.StatusForbidden)
-			fmt.Fprint(resp, acl.PermissionDeniedError{Cause: err.Error()}.Error())
-			return nil, nil
+			return nil, acl.PermissionDeniedError{Cause: err.Error()}
 		} else {
 			return nil, err
 		}

@@ -156,8 +156,8 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 	if enablePrometheusOutput(req) {
 		if s.agent.config.Telemetry.PrometheusOpts.Expiration < 1 {
 			return nil, CodeWithPayloadError{
-				StatusCode: http.StatusUnsupportedMediaType,
-				Reason: "Prometheus is not enabled since its retention time is not positive",
+				StatusCode:  http.StatusUnsupportedMediaType,
+				Reason:      "Prometheus is not enabled since its retention time is not positive",
 				ContentType: "text/plain",
 			}
 		}
@@ -1464,7 +1464,7 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 }
 
 func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, UnauthorizedError{Reason: "ACL support disabled"}
 	}
 
