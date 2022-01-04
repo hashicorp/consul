@@ -424,7 +424,9 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 			svcState := s.agent.State.ServiceState(sid)
 			if svcState == nil {
 				resp.WriteHeader(http.StatusNotFound)
-				fmt.Fprintf(resp, "unknown service ID: %s", sid.String())
+				fmt.Fprintf(resp,
+					"Unknown service ID %q. Ensure that the service ID is passed, not the service name.",
+					sid.String())
 				return "", nil, nil
 			}
 
