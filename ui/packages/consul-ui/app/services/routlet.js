@@ -1,6 +1,11 @@
 import Service, { inject as service } from '@ember/service';
 import { schedule } from '@ember/runloop';
 
+import wildcard from 'consul-ui/utils/routing/wildcard';
+import { routes } from 'consul-ui/router';
+
+const isWildcard = wildcard(routes);
+
 class Outlets {
   constructor() {
     this.map = new Map();
@@ -87,6 +92,24 @@ export default class RoutletService extends Service {
     return {};
   }
 
+  /**
+   * Adds urldecoding to any wildcard route `params`
+   */
+  normalizeParamsFor(name, params = {}) {
+    if (isWildcard(name)) {
+      return Object.keys(params).reduce(function(prev, item) {
+        if (typeof params[item] !== 'undefined') {
+          prev[item] = decodeURIComponent(params[item]);
+        } else {
+          prev[item] = params[item];
+        }
+        return prev;
+      }, {});
+    } else {
+      return params;
+    }
+  }
+
   paramsFor(name) {
     let outletParams = {};
     const outlet = outlets.get(name);
@@ -102,16 +125,14 @@ export default class RoutletService extends Service {
     // of the specified params with the values specified
     let current = route;
     let parent;
-    let routeParams = {
-      ...current.params,
-    };
+    let routeParams = this.normalizeParamsFor(name, current.params);
     // TODO: Not entirely sure whether we are ok exposing queryParams here
     // seeing as accessing them from here means you can get them but not set
     // them as yet
     // let queryParams = {};
     while ((parent = current.parent)) {
       routeParams = {
-        ...parent.params,
+        ...this.normalizeParamsFor(parent.name, parent.params),
         ...routeParams,
       };
       // queryParams = {
