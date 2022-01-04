@@ -20,18 +20,17 @@ var aclDisabled = UnauthorizedError{Reason: "ACL support disabled"}
 
 // checkACLDisabled will return a standard response if ACLs are disabled. This
 // returns true if they are disabled and we should not continue.
-func (s *HTTPHandlers) checkACLDisabled(resp http.ResponseWriter, _req *http.Request) bool {
+func (s *HTTPHandlers) checkACLDisabled() bool {
 	if s.agent.config.ACLsEnabled {
 		return false
 	}
-
 	return true
 }
 
 // ACLBootstrap is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.
 func (s *HTTPHandlers) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -53,7 +52,7 @@ func (s *HTTPHandlers) ACLBootstrap(resp http.ResponseWriter, req *http.Request)
 }
 
 func (s *HTTPHandlers) ACLReplicationStatus(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -74,7 +73,7 @@ func (s *HTTPHandlers) ACLReplicationStatus(resp http.ResponseWriter, req *http.
 }
 
 func (s *HTTPHandlers) ACLPolicyList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -105,7 +104,7 @@ func (s *HTTPHandlers) ACLPolicyList(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPHandlers) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -166,7 +165,7 @@ func (s *HTTPHandlers) ACLPolicyRead(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPHandlers) ACLPolicyReadByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -183,7 +182,7 @@ func (s *HTTPHandlers) ACLPolicyReadByID(resp http.ResponseWriter, req *http.Req
 }
 
 func (s *HTTPHandlers) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -248,7 +247,7 @@ func (s *HTTPHandlers) ACLPolicyDelete(resp http.ResponseWriter, req *http.Reque
 }
 
 func (s *HTTPHandlers) ACLTokenList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -285,7 +284,7 @@ func (s *HTTPHandlers) ACLTokenList(resp http.ResponseWriter, req *http.Request)
 }
 
 func (s *HTTPHandlers) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -318,7 +317,7 @@ func (s *HTTPHandlers) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request)
 }
 
 func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -351,7 +350,7 @@ func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request)
 }
 
 func (s *HTTPHandlers) ACLTokenCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -442,7 +441,7 @@ func (s *HTTPHandlers) ACLTokenDelete(resp http.ResponseWriter, req *http.Reques
 }
 
 func (s *HTTPHandlers) ACLTokenClone(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -471,7 +470,7 @@ func (s *HTTPHandlers) ACLTokenClone(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPHandlers) ACLRoleList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -504,7 +503,7 @@ func (s *HTTPHandlers) ACLRoleList(resp http.ResponseWriter, req *http.Request) 
 }
 
 func (s *HTTPHandlers) ACLRoleCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -533,7 +532,7 @@ func (s *HTTPHandlers) ACLRoleCRUD(resp http.ResponseWriter, req *http.Request) 
 }
 
 func (s *HTTPHandlers) ACLRoleReadByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -581,7 +580,7 @@ func (s *HTTPHandlers) ACLRoleRead(resp http.ResponseWriter, req *http.Request, 
 }
 
 func (s *HTTPHandlers) ACLRoleCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -634,7 +633,7 @@ func (s *HTTPHandlers) ACLRoleDelete(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPHandlers) ACLBindingRuleList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -668,7 +667,7 @@ func (s *HTTPHandlers) ACLBindingRuleList(resp http.ResponseWriter, req *http.Re
 }
 
 func (s *HTTPHandlers) ACLBindingRuleCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -728,7 +727,7 @@ func (s *HTTPHandlers) ACLBindingRuleRead(resp http.ResponseWriter, req *http.Re
 }
 
 func (s *HTTPHandlers) ACLBindingRuleCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -781,7 +780,7 @@ func (s *HTTPHandlers) ACLBindingRuleDelete(resp http.ResponseWriter, req *http.
 }
 
 func (s *HTTPHandlers) ACLAuthMethodList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -812,7 +811,7 @@ func (s *HTTPHandlers) ACLAuthMethodList(resp http.ResponseWriter, req *http.Req
 }
 
 func (s *HTTPHandlers) ACLAuthMethodCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -872,7 +871,7 @@ func (s *HTTPHandlers) ACLAuthMethodRead(resp http.ResponseWriter, req *http.Req
 }
 
 func (s *HTTPHandlers) ACLAuthMethodCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -928,7 +927,7 @@ func (s *HTTPHandlers) ACLAuthMethodDelete(resp http.ResponseWriter, req *http.R
 }
 
 func (s *HTTPHandlers) ACLLogin(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -954,7 +953,7 @@ func (s *HTTPHandlers) ACLLogin(resp http.ResponseWriter, req *http.Request) (in
 }
 
 func (s *HTTPHandlers) ACLLogout(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
@@ -1014,7 +1013,7 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 	//    policy.
 	const maxRequests = 64
 
-	if s.checkACLDisabled(resp, req) {
+	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
 
