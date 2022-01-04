@@ -31,12 +31,12 @@ Currently no request parameters are offered for the overall status API.
 
 | Name	| Type	 | Description        |
 | ----- | ------ | ------------------ |
-|`status` | object |  Summary count of how many tasks have each health status value.
+|`status` | object |  The summary count of how many tasks have a given health status value
 |`status.successful` | integer | The number of tasks that have a `successful` health status.
 |`status.errored` | integer | The number of tasks that have an `errored` health status.
 |`status.critical` | integer | The number of tasks that have a `critical` health status.
 |`status.unknown` | integer | The number of tasks that have an `unknown` health status.
-|`enabled` | object |  Summary count of how many tasks are enabled or disabled.
+|`enabled` | object |  The summary count of how many tasks are enabled or disabled.
 |`enabled.true` | integer | The number of tasks that are enabled.
 |`enabled.false` | integer | The number of tasks that are disabled.
 
@@ -100,7 +100,7 @@ The response is a JSON map of task name to a status information structure with t
 
 | Name	      | Type	  | Description       |
 | ----------- | ------ | ------------------ |
-|`task_name`  | string | Name that task is configured with in Consul-Terraform-Sync.
+|`task_name`  | string | Name of the task as configured in Consul-Terraform-Sync.
 |`status`     | string | Values are `"successful"`, `"errored"`, `"critical"`, or `"unknown"`. This is determined by the success or failure of all stored events on the network infrastructure update process for the task, as described earlier.
 |`enabled`    | boolean | Whether the task is enabled or not.
 |`services`   | list[string] | List of the services configured for the task.
