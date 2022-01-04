@@ -16,13 +16,13 @@ interface IoHomeIntroProps {
   description: string
   features?: Array<IoHomeFeatureProps>
   offerings?: {
-    image: {
+    image?: {
       src: string
       width: number
       height: number
       alt: string
     }
-    list: Array<{
+    list?: Array<{
       heading: string
       description: string
     }>
@@ -135,18 +135,14 @@ export default function IoHomeIntro({
         </div>
       ) : null}
 
-      {video ? (
+      {video.youtubeId && video.thumbnail ? (
         <div className={s.video}>
           <IoVideoCallout
             youtubeId={video.youtubeId}
             thumbnail={video.thumbnail}
             heading={video.heading}
             description={video.description}
-            person={{
-              name: video.person.name,
-              description: video.person.description,
-              avatar: video.person.avatar,
-            }}
+            person={video.person}
           />
         </div>
       ) : null}
