@@ -244,6 +244,7 @@ task {
 | `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the Consul-Terraform-Sync ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | String value specifying an expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
 | `cts_user_defined_meta` | Optional | User-defined metadata specified as a map of strings that will be appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. By default, no metadata is appended. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
+| `source_includes_var` | Optional | Boolean value indicating whether or not to use this `condition` block's services object as input for the module's [`services` variable](/docs/nia/terraform-modules#services-variable) | true |
 
 #### Catalog-Services Condition
 
