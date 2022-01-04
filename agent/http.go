@@ -251,6 +251,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			// If enableDebug is not set, and ACLs are disabled, write
 			// an unauthorized response
 			if !enableDebug && s.checkACLDisabled() {
+				resp.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 

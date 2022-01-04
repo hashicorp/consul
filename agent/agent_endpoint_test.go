@@ -660,8 +660,8 @@ func TestAgent_Service(t *testing.T) {
 			wantResp: &updatedResponse,
 		},
 		{
-			name:     "err: non-existent proxy",
-			url:      "/v1/agent/service/nope",
+			name:    "err: non-existent proxy",
+			url:     "/v1/agent/service/nope",
 			wantErr: "unknown service ID: nope",
 		},
 		{
