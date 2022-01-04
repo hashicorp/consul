@@ -83,7 +83,7 @@ as |parts|}}
     </BlockSlot>
 
     <BlockSlot @name="header">
-        <h1>
+        <h1 data-test-kv-key={{item.Key}}>
 {{#if (and item.Key (not-eq item.Key parentKey))}}
           <route.Title @title="Edit Key / Value" @render={{false}} />
           {{left-trim item.Key parentKey}}
