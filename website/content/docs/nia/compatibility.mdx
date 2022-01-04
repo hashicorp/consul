@@ -7,28 +7,19 @@ description: >-
 
 # Compatibility
 
-## Consul
+## Consul-Terraform-Sync
 
-Below are the supported Consul versions with compatible Consul-Terraform-Sync versions. The latest Consul-Terraform-Sync binary targets supporting the latest patch version of the three most recent Consul minor versions.
+Below are the supported Consul, Terraform, and Vault versions with compatible Consul-Terraform-Sync versions.
 
-| Consul Version               | Compatible Consul-Terraform-Sync Version |
-| ---------------------------- | ---------------------------------------- |
-| 1.8+                         | 0.1+                                     |
-
-## Terraform
-
-Consul-Terraform-Sync is compatible with the following Terraform OSS versions:
-
-| Consul-Terraform-Sync | Compatible Terraform Version |
-| --------------------- | ---------------------------- |
-| 0.2+                  | 0.13 - 1.0                   |
-| 0.1                   | 0.13 - 0.14                  |
-
-## Terraform Cloud
-
-Consul-Terraform-Sync integration with Terraform Cloud is supported for the following:
-
-| Consul-Terraform-Sync Enterprise | Terraform Cloud            | Version            |
-| -------------------------------- | -------------------------- | ------------------ |
-| 0.4+                             | Terraform Cloud            | Latest             |
-| 0.3+                             | Terraform Enterprise       | v202010-2 - Latest |
+|                                                                |               **CTS OSS**                |            **CTS Enterprise**            |
+| :------------------------------------------------------------: | :--------------------------------------: | :--------------------------------------: |
+|             **Consul OSS** <br/><sub>`v1.8+`<sub>              | <span style="color:green"> &check;<span> | <span style="color:green"> &check;<span> |
+|          **Consul Enterprise** <br/><sub>`v1.8+`<sub>          | <span style="color:green"> &check;<span> | <span style="color:green"> &check;<span> |
+|             **HCP Consul** <br/><sub>`v1.8+`<sub>              | <span style="color:green"> &check;<span> | <span style="color:green"> &check;<span> |
+|        **Terraform OSS** <br/><sub>`v0.13 - 1.0+`<sub>         | <span style="color:green"> &check;<span> | <span style="color:green"> &check;<span> |
+| **Terraform Enterprise** <br/><sub>`v2020 10-2 - Latest`<sub>  |  <span style="color:red"> &cross;<span>  | <span style="color:green"> &check;<span> |
+|    **Terraform Cloud** <br/><sub>`Continuous Updates`<sub>     |  <span style="color:red"> &cross;<span>  | <span style="color:green"> &check;<span> |
+| <sub><sub>CTS integrates with Vault to query secrets<sub><sub> |
+|              **Vault OSS** <br/><sub>`v0.7+`<sub>              | <span style="color:green"> &check;<span> | <span style="color:green"> &check;<span> |
+|          **Vault Enterprise** <br/><sub>`v0.7+`<sub>           | <span style="color:green"> &check;<span> | <span style="color:green"> &check;<span> |
+|              **HCP Vault** <br/><sub>`v0.7+`<sub>              | <span style="color:green"> &check;<span> | <span style="color:green"> &check;<span> |
