@@ -253,28 +253,24 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 	return config, nil
 }
 
-// parseCARoot returns a filled-in structs.CARoot from a raw PEM value.
-func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
-	id, err := connect.CalculateCertFingerprint(pemValue)
+// newCARoot returns a filled-in structs.CARoot from a raw PEM value.
+func newCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
+	primaryCert, err := connect.ParseCert(pemValue)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing root fingerprint: %v", err)
+		return nil, err
 	}
-	rootCert, err := connect.ParseCert(pemValue)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing root cert: %v", err)
-	}
-	keyType, keyBits, err := connect.KeyInfoFromCert(rootCert)
+	keyType, keyBits, err := connect.KeyInfoFromCert(primaryCert)
 	if err != nil {
 		return nil, fmt.Errorf("error extracting root key info: %v", err)
 	}
 	return &structs.CARoot{
-		ID:                  id,
-		Name:                fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
-		SerialNumber:        rootCert.SerialNumber.Uint64(),
-		SigningKeyID:        connect.EncodeSigningKeyID(rootCert.SubjectKeyId),
+		ID:                  connect.CalculateCertFingerprint(primaryCert.Raw),
+		Name:                fmt.Sprintf("%s CA Primary Cert", strings.Title(provider)),
+		SerialNumber:        primaryCert.SerialNumber.Uint64(),
+		SigningKeyID:        connect.EncodeSigningKeyID(primaryCert.SubjectKeyId),
 		ExternalTrustDomain: clusterID,
-		NotBefore:           rootCert.NotBefore,
-		NotAfter:            rootCert.NotAfter,
+		NotBefore:           primaryCert.NotBefore,
+		NotAfter:            primaryCert.NotAfter,
 		RootCert:            pemValue,
 		PrivateKeyType:      keyType,
 		PrivateKeyBits:      keyBits,
@@ -435,7 +431,7 @@ func (c *CAManager) secondaryInitialize(provider ca.Provider, conf *structs.CACo
 	}
 	var roots structs.IndexedCARoots
 	if err := c.delegate.forwardDC("ConnectCA.Roots", c.serverConf.PrimaryDatacenter, &args, &roots); err != nil {
-		return err
+		return fmt.Errorf("failed to get CA roots from primary DC: %w", err)
 	}
 	c.secondarySetPrimaryRoots(roots)
 
@@ -487,12 +483,12 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
 
-	rootCA, err := parseCARoot(root.PEM, conf.Provider, conf.ClusterID)
+	rootCA, err := newCARoot(root.PEM, conf.Provider, conf.ClusterID)
 	if err != nil {
 		return err
 	}
 
-	// Also create the intermediate CA, which is the one that actually signs leaf certs
+	// TODO: delete this
 	interPEM, err := provider.GenerateIntermediate()
 	if err != nil {
 		return fmt.Errorf("error generating intermediate cert: %v", err)
@@ -887,7 +883,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 	}
 
 	newRootPEM := providerRoot.PEM
-	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
+	newActiveRoot, err := newCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
 	if err != nil {
 		return err
 	}
@@ -940,7 +936,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 		// get a cross-signed certificate.
 		// 3. Take the active root for the new provider and append the intermediate from step 2
 		// to its list of intermediates.
-		// TODO: this cert is already parsed once in parseCARoot, could we remove the second parse?
+		// TODO: this cert is already parsed once in newCARoot, could we remove the second parse?
 		newRoot, err := connect.ParseCert(newRootPEM)
 		if err != nil {
 			return err
@@ -980,6 +976,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 		}
 	}
 
+	// TODO: delete this
 	intermediate, err := newProvider.GenerateIntermediate()
 	if err != nil {
 		return err

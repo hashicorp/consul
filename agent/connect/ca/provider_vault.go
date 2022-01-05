@@ -279,7 +279,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 		if err != nil {
 			return RootResult{}, err
 		}
-		_, err = v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
+		resp, err := v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
 			"uri_sans":    v.spiffeID.URI().String(),
 			"key_type":    v.config.PrivateKeyType,
@@ -288,12 +288,10 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 		if err != nil {
 			return RootResult{}, err
 		}
-
-		// retrieve the newly generated cert so that we can return it
-		// TODO: is this already available from the Local().Write() above?
-		rootPEM, err = v.getCA(v.config.RootPKIPath)
-		if err != nil {
-			return RootResult{}, err
+		var ok bool
+		rootPEM, ok = resp.Data["certificate"].(string)
+		if !ok {
+			return RootResult{}, fmt.Errorf("unexpected response from Vault: %v", resp.Data["certificate"])
 		}
 
 	default:
@@ -302,7 +300,18 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 		}
 	}
 
-	return RootResult{PEM: rootPEM}, nil
+	rootChain, err := v.getCAChain(v.config.RootPKIPath)
+	if err != nil {
+		return RootResult{}, err
+	}
+
+	// Workaround for a bug in the Vault PKI API.
+	// See https://github.com/hashicorp/vault/issues/13489
+	if rootChain == "" {
+		rootChain = rootPEM
+	}
+
+	return RootResult{PEM: rootChain}, nil
 }
 
 // GenerateIntermediateCSR creates a private key and generates a CSR
@@ -467,6 +476,29 @@ func (v *VaultProvider) getCA(path string) (string, error) {
 	return root, nil
 }
 
+// TODO: refactor to remove duplication with getCA
+func (v *VaultProvider) getCAChain(path string) (string, error) {
+	req := v.client.NewRequest("GET", "/v1/"+path+"/ca_chain")
+	resp, err := v.client.RawRequest(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		return "", ErrBackendNotMounted
+	}
+	if err != nil {
+		return "", err
+	}
+
+	raw, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	root := EnsureTrailingNewline(string(raw))
+	return root, nil
+}
+
 // GenerateIntermediate mounts the configured intermediate PKI backend if
 // necessary, then generates and signs a new CA CSR using the root PKI backend
 // and updates the intermediate backend to use that new certificate.
@@ -571,6 +603,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
 // back to our active root.
 func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
+	// TODO: is this necessary? Doesn't vault check this for us?
 	rootPEM, err := v.getCA(v.config.RootPKIPath)
 	if err != nil {
 		return "", err

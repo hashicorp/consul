@@ -618,7 +618,7 @@ func TestCAManager_Initialize_Vault_WithIntermediateAsPrimaryCA(t *testing.T) {
 	generateExternalRootCA(t, vclient)
 
 	meshRootPath := "pki-root"
-	primaryCert := setupPrimaryCA(t, vclient, meshRootPath)
+	primaryCert := setupPrimaryCA(t, vclient, meshRootPath, "")
 
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.CAConfig = &structs.CAConfiguration{
@@ -635,7 +635,6 @@ func TestCAManager_Initialize_Vault_WithIntermediateAsPrimaryCA(t *testing.T) {
 			},
 		}
 	})
-	defer s1.Shutdown()
 
 	runStep(t, "check primary DC", func(t *testing.T) {
 		testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
@@ -704,8 +703,88 @@ func getLeafCert(t *testing.T, codec rpc.ClientCodec, trustDomain string, dc str
 	cert := structs.IssuedCert{}
 	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
 	require.NoError(t, err)
-
 	return cert.CertPEM
+}
+
+func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	ca.SkipIfVaultNotPresent(t)
+
+	vault := ca.NewTestVaultServer(t)
+	vclient := vault.Client()
+	rootPEM := generateExternalRootCA(t, vclient)
+
+	primaryCAPath := "pki-primary"
+	primaryCert := setupPrimaryCA(t, vclient, primaryCAPath, rootPEM)
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             vault.Addr,
+				"Token":               vault.RootToken,
+				"RootPKIPath":         primaryCAPath,
+				"IntermediatePKIPath": "pki-intermediate/",
+				// TODO: there are failures to init the CA system if these are not set
+				// to the values of the already initialized CA.
+				"PrivateKeyType": "ec",
+				"PrivateKeyBits": 256,
+			},
+		}
+	})
+
+	runStep(t, "check primary DC", func(t *testing.T) {
+		testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+		codec := rpcClient(t, s1)
+		roots := structs.IndexedCARoots{}
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(t, err)
+		require.Len(t, roots.Roots, 1)
+		require.Equal(t, primaryCert, roots.Roots[0].RootCert)
+
+		leafCertPEM := getLeafCert(t, codec, roots.TrustDomain, "dc1")
+		verifyLeafCert(t, roots.Roots[0], leafCertPEM)
+	})
+
+	// TODO: renew primary leaf signing cert
+	// TODO: rotate root
+
+	runStep(t, "run secondary DC", func(t *testing.T) {
+		_, sDC2 := testServerWithConfig(t, func(c *Config) {
+			c.Datacenter = "dc2"
+			c.PrimaryDatacenter = "dc1"
+			c.CAConfig = &structs.CAConfiguration{
+				Provider: "vault",
+				Config: map[string]interface{}{
+					"Address":             vault.Addr,
+					"Token":               vault.RootToken,
+					"RootPKIPath":         primaryCAPath,
+					"IntermediatePKIPath": "pki-secondary/",
+					// TODO: there are failures to init the CA system if these are not set
+					// to the values of the already initialized CA.
+					"PrivateKeyType": "ec",
+					"PrivateKeyBits": 256,
+				},
+			}
+		})
+		defer sDC2.Shutdown()
+		joinWAN(t, sDC2, s1)
+		testrpc.WaitForActiveCARoot(t, sDC2.RPC, "dc2", nil)
+
+		codec := rpcClient(t, sDC2)
+		roots := structs.IndexedCARoots{}
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(t, err)
+		require.Len(t, roots.Roots, 1)
+
+		leafCertPEM := getLeafCert(t, codec, roots.TrustDomain, "dc2")
+		verifyLeafCert(t, roots.Roots[0], leafCertPEM)
+
+		// TODO: renew secondary leaf signing cert
+	})
 }
 
 func generateExternalRootCA(t *testing.T, client *vaultapi.Client) string {
@@ -725,10 +804,10 @@ func generateExternalRootCA(t *testing.T, client *vaultapi.Client) string {
 		"ttl":         "2400h",
 	})
 	require.NoError(t, err, "failed to generate root")
-	return resp.Data["certificate"].(string)
+	return ca.EnsureTrailingNewline(resp.Data["certificate"].(string))
 }
 
-func setupPrimaryCA(t *testing.T, client *vaultapi.Client, path string) string {
+func setupPrimaryCA(t *testing.T, client *vaultapi.Client, path string, rootPEM string) string {
 	t.Helper()
 	err := client.Sys().Mount(path, &vaultapi.MountInput{
 		Type:        "pki",

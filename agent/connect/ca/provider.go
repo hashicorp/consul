@@ -135,6 +135,7 @@ type PrimaryProvider interface {
 	// the active intermediate. If multiple intermediates are needed to complete
 	// the chain from the signing certificate back to the active root, they should
 	// all by bundled here.
+	// TODO: replace with GenerateLeafSigningCert
 	GenerateIntermediate() (string, error)
 
 	// SignIntermediate will validate the CSR to ensure the trust domain in the
@@ -193,7 +194,12 @@ type SecondaryProvider interface {
 //
 // TODO: rename this struct
 type RootResult struct {
-	// PEM encoded certificate that will be used as the primary CA.
+	// PEM encoded bundle of CA certificates. The first certificate must be the
+	// primary CA used to sign intermediates for secondary datacenters, and the
+	// last certificate must be the trusted CA.
+	//
+	// If there is only a single certificate in the bundle then it will be used
+	// as both the primary CA and the trusted CA.
 	PEM string
 }
 
