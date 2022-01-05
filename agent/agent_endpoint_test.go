@@ -662,7 +662,7 @@ func TestAgent_Service(t *testing.T) {
 		{
 			name:    "err: non-existent proxy",
 			url:     "/v1/agent/service/nope",
-			wantErr: "unknown service ID: nope",
+			wantErr: fmt.Sprintf("unknown service ID: %s", structs.NewServiceID("nope", nil)),
 		},
 		{
 			name: "err: bad ACL for service",
@@ -4748,7 +4748,8 @@ func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, 404, resp.Code)
-		require.Contains(t, resp.Body.String(), `Unknown service ID "_nope_"`)
+		sid := structs.NewServiceID("_nope_", nil)
+		require.Contains(t, resp.Body.String(), fmt.Sprintf(`Unknown service ID %q`, sid))
 	})
 }
 
