@@ -319,11 +319,9 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 				s.logger.Trace("Failed to deliver new snapshot to proxy config watchers")
 
 				// Reset the timer to retry later. This is to ensure we attempt to redeliver the updated snapshot shortly.
-				if coalesceTimer == nil {
-					coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
-						sendCh <- struct{}{}
-					})
-				}
+				coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
+					sendCh <- struct{}{}
+				})
 
 				// Do not reset coalesceTimer since we just queued a timer-based refresh
 				continue
