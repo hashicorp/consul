@@ -16,7 +16,6 @@
     "lint": "FORCE_COLOR=1 npm-run-all --aggregate-output --continue-on-error --parallel lint:*",
     "lint:hbs": "ember-template-lint .",
     "lint:js": "eslint .",
-    "_lint:dev:js": "eslint -c .dev.eslintrc.js --fix ./*.js ./.*.js app config lib server tests",
     "format": "npm-run-all format:*",
     "format:js": "prettier --write \"{app,config,lib,server,vendor,tests}/**/*.js\" ./*.js ./.*.js",
     "format:sass": "prettier --write \"app/**/*.scss\"",
