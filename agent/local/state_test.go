@@ -2149,12 +2149,14 @@ func TestState_RemoveServiceErrorMessages(t *testing.T) {
 	require.NoError(err)
 
 	// Attempt to remove service that doesn't exist
-	err = state.RemoveService(structs.NewServiceID("db", nil))
-	require.Contains(err.Error(), `Unknown service ID "db"`)
+	sid := structs.NewServiceID("db", nil)
+	err = state.RemoveService(sid)
+	require.Contains(err.Error(), fmt.Sprintf(`Unknown service ID %q`, sid))
 
 	// Attempt to remove service by name (which isn't valid)
-	err = state.RemoveService(structs.NewServiceID("web-name", nil))
-	require.Contains(err.Error(), `Unknown service ID "web-name"`)
+	sid2 := structs.NewServiceID("web-name", nil)
+	err = state.RemoveService(sid2)
+	require.Contains(err.Error(), fmt.Sprintf(`Unknown service ID %q`, sid2))
 
 	// Attempt to remove service by id (valid)
 	err = state.RemoveService(structs.NewServiceID("web-id", nil))
