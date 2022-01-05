@@ -39,10 +39,10 @@
       margin-top: 2px;
     }
     .partition dt::before {
-      @extend %with-users-24-mask, %as-pseudo;
+      @extend %with-user-team-mask, %as-pseudo;
     }
     .nspace dt::before {
-      @extend %with-folder-24-mask, %as-pseudo;
+      @extend %with-folder-outline-mask, %as-pseudo;
     }
     .health dt::before {
       @extend %with-help-circle-outline-mask, %as-pseudo;
