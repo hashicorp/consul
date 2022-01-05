@@ -51,6 +51,7 @@
   <State @matches={{array "idle" "disconnected"}}>
 
     <State @matches="disconnected">
+      {{#if (not (eq error.status '401'))}}
         {{#yield-slot name="disconnected" params=(block-params (component 'notification' after=(action dispatch "RESET")))}}
           {{yield api}}
         {{else}}
@@ -61,6 +62,7 @@
             </p>
           </Notification>
         {{/yield-slot}}
+      {{/if}}
     </State>
 
     <YieldSlot @name="loaded">
