@@ -429,9 +429,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 					sid.String())
 				return "", nil, nil
 			}
-			s.agent.State.Lock()
-			svc := *svcState.Service
-			s.agent.State.Unlock()
+			svc := svcState.Service
 
 			// Setup watch on the service
 			ws.Add(svcState.WatchCh)
@@ -448,7 +446,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 			}
 
 			// Calculate the content hash over the response, minus the hash field
-			aSvc := buildAgentService(&svc, dc)
+			aSvc := buildAgentService(svc, dc)
 
 			reply := &aSvc
 
