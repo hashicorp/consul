@@ -660,9 +660,9 @@ func TestAgent_Service(t *testing.T) {
 			wantResp: &updatedResponse,
 		},
 		{
-			name:     "err: non-existent proxy",
-			url:      "/v1/agent/service/nope",
-			wantCode: 404,
+			name:    "err: non-existent proxy",
+			url:     "/v1/agent/service/nope",
+			wantErr: "unknown service ID: nope",
 		},
 		{
 			name: "err: bad ACL for service",
@@ -3783,9 +3783,6 @@ func testAgent_RegisterService_InvalidAddress(t *testing.T, extraHCL string) {
 			a.srv.h.ServeHTTP(resp, req)
 			if got, want := resp.Code, 400; got != want {
 				t.Fatalf("got code %d want %d", got, want)
-			}
-			if got, want := resp.Body.String(), "Invalid service address"; got != want {
-				t.Fatalf("got body %q want %q", got, want)
 			}
 		})
 	}

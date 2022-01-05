@@ -155,9 +155,11 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 	}
 	if enablePrometheusOutput(req) {
 		if s.agent.config.Telemetry.PrometheusOpts.Expiration < 1 {
-			resp.WriteHeader(http.StatusUnsupportedMediaType)
-			fmt.Fprint(resp, "Prometheus is not enabled since its retention time is not positive")
-			return nil, nil
+			return nil, CodeWithPayloadError{
+				StatusCode:  http.StatusUnsupportedMediaType,
+				Reason:      "Prometheus is not enabled since its retention time is not positive",
+				ContentType: "text/plain",
+			}
 		}
 		handlerOptions := promhttp.HandlerOpts{
 			ErrorLog: s.agent.logger.StandardLogger(&hclog.StandardLoggerOptions{
@@ -423,11 +425,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 
 			svcState := s.agent.State.ServiceState(sid)
 			if svcState == nil {
-				resp.WriteHeader(http.StatusNotFound)
-				fmt.Fprintf(resp,
-					"Unknown service ID %q. Ensure that the service ID is passed, not the service name.",
-					sid.String())
-				return "", nil, nil
+				return "", nil, NotFoundError{Reason: fmt.Sprintf("unknown service ID: %s", sid.String())}
 			}
 
 			svc := svcState.Service
@@ -557,9 +555,7 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 			// key are ok, otherwise the argument doesn't apply to
 			// the WAN.
 		default:
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(resp, "Cannot provide a segment with wan=true")
-			return nil, nil
+			return nil, BadRequestError{Reason: "Cannot provide a segment with wan=true"}
 		}
 	}
 
@@ -735,16 +731,16 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	}
 
 	if err := decodeBody(req.Body, &args); err != nil {
-		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Verify the check has a name.
 	if args.Name == "" {
-		return nil, BadRequestError{"Missing check name"}
+		return nil, BadRequestError{Reason: "Missing check name"}
 	}
 
 	if args.Status != "" && !structs.ValidStatus(args.Status) {
-		return nil, BadRequestError{"Bad check status"}
+		return nil, BadRequestError{Reason: "Bad check status"}
 	}
 
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
@@ -763,15 +759,15 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	chkType := args.CheckType()
 	err = chkType.Validate()
 	if err != nil {
-		return nil, BadRequestError{fmt.Sprintf("Invalid check: %v", err)}
+		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid check: %v", err)}
 	}
 
 	// Store the type of check based on the definition
 	health.Type = chkType.Type()
 
 	if health.ServiceID != "" {
-		cid := health.CompoundServiceID()
 		// fixup the service name so that vetCheckRegister requires the right ACLs
+		cid := health.CompoundServiceID()
 		service := s.agent.State.Service(cid)
 		if service != nil {
 			health.ServiceName = service.Service
@@ -881,9 +877,7 @@ type checkUpdate struct {
 func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var update checkUpdate
 	if err := decodeBody(req.Body, &update); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	switch update.Status {
@@ -891,9 +885,7 @@ func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Requ
 	case api.HealthWarning:
 	case api.HealthCritical:
 	default:
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Invalid check status: '%s'", update.Status)
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid check status: '%s'", update.Status)}
 	}
 
 	ID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/agent/check/update/")
@@ -1121,24 +1113,18 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	}
 
 	if err := decodeBody(req.Body, &args); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Verify the service has a name.
 	if args.Name == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing service name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing service name"}
 	}
 
 	// Check the service address here and in the catalog RPC endpoint
 	// since service registration isn't synchronous.
 	if ipaddr.IsAny(args.Address) {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Invalid service address")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Invalid service address"}
 	}
 
 	var token string
@@ -1157,37 +1143,27 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	ns := args.NodeService()
 	if ns.Weights != nil {
 		if err := structs.ValidateWeights(ns.Weights); err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(resp, fmt.Errorf("Invalid Weights: %v", err))
-			return nil, nil
+			return nil, BadRequestError{Reason: fmt.Sprintf("Invalid Weights: %v", err)}
 		}
 	}
 	if err := structs.ValidateServiceMetadata(ns.Kind, ns.Meta, false); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, fmt.Errorf("Invalid Service Meta: %v", err))
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid Service Meta: %v", err)}
 	}
 
 	// Run validation. This is the same validation that would happen on
 	// the catalog endpoint so it helps ensure the sync will work properly.
 	if err := ns.Validate(); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, err.Error())
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Validation failed: %v", err.Error())}
 	}
 
 	// Verify the check type.
 	chkTypes, err := args.CheckTypes()
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, fmt.Errorf("Invalid check: %v", err))
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid check: %v", err)}
 	}
 	for _, check := range chkTypes {
 		if check.Status != "" && !structs.ValidStatus(check.Status) {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(resp, "Status for checks must 'passing', 'warning', 'critical'")
-			return nil, nil
+			return nil, BadRequestError{Reason: "Status for checks must 'passing', 'warning', 'critical'"}
 		}
 	}
 
@@ -1221,9 +1197,7 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	}
 	if sidecar != nil {
 		if err := sidecar.Validate(); err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(resp, err.Error())
-			return nil, nil
+			return nil, BadRequestError{Reason: fmt.Sprintf("Failed Validation: %v", err.Error())}
 		}
 		// Make sure we are allowed to register the sidecar using the token
 		// specified (might be specific to sidecar or the same one as the overall
@@ -1324,25 +1298,19 @@ func (s *HTTPHandlers) AgentServiceMaintenance(resp http.ResponseWriter, req *ht
 	sid := structs.NewServiceID(serviceID, nil)
 
 	if sid.ID == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing service ID")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing service ID"}
 	}
 
 	// Ensure we have some action
 	params := req.URL.Query()
 	if _, ok := params["enable"]; !ok {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing value for enable")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing value for enable"}
 	}
 
 	raw := params.Get("enable")
 	enable, err := strconv.ParseBool(raw)
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Invalid value for enable: %q", raw)
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid value for enable: %q", raw)}
 	}
 
 	// Get the provided token, if any, and vet against any ACL policies.
@@ -1371,15 +1339,11 @@ func (s *HTTPHandlers) AgentServiceMaintenance(resp http.ResponseWriter, req *ht
 	if enable {
 		reason := params.Get("reason")
 		if err = s.agent.EnableServiceMaintenance(sid, reason, token); err != nil {
-			resp.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(resp, err.Error())
-			return nil, nil
+			return nil, NotFoundError{Reason: err.Error()}
 		}
 	} else {
 		if err = s.agent.DisableServiceMaintenance(sid); err != nil {
-			resp.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(resp, err.Error())
-			return nil, nil
+			return nil, NotFoundError{Reason: err.Error()}
 		}
 	}
 	s.syncChanges()
@@ -1390,17 +1354,13 @@ func (s *HTTPHandlers) AgentNodeMaintenance(resp http.ResponseWriter, req *http.
 	// Ensure we have some action
 	params := req.URL.Query()
 	if _, ok := params["enable"]; !ok {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing value for enable")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing value for enable"}
 	}
 
 	raw := params.Get("enable")
 	enable, err := strconv.ParseBool(raw)
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Invalid value for enable: %q", raw)
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid value for enable: %q", raw)}
 	}
 
 	// Get the provided token, if any, and vet against any ACL policies.
@@ -1507,8 +1467,8 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 }
 
 func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, UnauthorizedError{Reason: "ACL support disabled"}
 	}
 
 	// Fetch the ACL token, if any, and enforce agent policy.
