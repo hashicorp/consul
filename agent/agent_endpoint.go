@@ -429,6 +429,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 					sid.String())
 				return "", nil, nil
 			}
+
 			svc := svcState.Service
 
 			// Setup watch on the service
@@ -447,7 +448,6 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 
 			// Calculate the content hash over the response, minus the hash field
 			aSvc := buildAgentService(svc, dc)
-
 			reply := &aSvc
 
 			// TODO(partitions): do we need to do anything here?
