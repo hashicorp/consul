@@ -182,3 +182,37 @@ func patchBuilderShims(b *Builder) {
 		return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
 	}
 }
+
+func TestBuilder_DurationVal_InvalidDuration(t *testing.T) {
+	b := Builder{}
+	badDuration1 := "not-a-duration"
+	badDuration2 := "also-not"
+	b.durationVal("field1", &badDuration1)
+	b.durationVal("field1", &badDuration2)
+
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "2 errors")
+	require.Contains(t, b.err.Error(), badDuration1)
+	require.Contains(t, b.err.Error(), badDuration2)
+}
+
+func TestBuilder_ServiceVal_MultiError(t *testing.T) {
+	b := Builder{}
+	b.serviceVal(&ServiceDefinition{
+		Meta: map[string]string{"": "empty-key"},
+		Port: intPtr(12345),
+		Checks: []CheckDefinition{
+			{Interval: strPtr("bad-interval")},
+		},
+		Weights: &ServiceWeights{Passing: intPtr(-1)},
+	})
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "3 errors")
+	require.Contains(t, b.err.Error(), "bad-interval")
+	require.Contains(t, b.err.Error(), "Key cannot be blank")
+	require.Contains(t, b.err.Error(), "Invalid weight")
+}
+
+func intPtr(v int) *int {
+	return &v
+}
