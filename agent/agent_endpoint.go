@@ -811,12 +811,12 @@ func (s *HTTPHandlers) AgentDeregisterCheck(resp http.ResponseWriter, req *http.
 
 	checkID.Normalize()
 
-	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, checkID); err != nil {
-		return nil, err
-	}
-
 	if !s.validateRequestPartition(resp, &checkID.EnterpriseMeta) {
 		return nil, nil
+	}
+
+	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, checkID); err != nil {
+		return nil, err
 	}
 
 	if err := s.agent.RemoveCheck(checkID, true); err != nil {
