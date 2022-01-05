@@ -4,11 +4,9 @@ page_title: Compatibility Matrix
 description: Compatibility Matrix for Consul Kubernetes
 ---
 
-# Compatibility Matrix for Consul Kubernetes and Consul
+# Compatibility Matrix for Consul on Kubernetes 
 
-For every release of Consul Kubernetes, a new version of the Consul Kubernetes
-Helm chart and Consul Kubernetes binary is released through the HashiCorp Helm repository. The recommended best practice is to upgrade
-the Helm chart which will ensure a compatible version of the Consul Kubernetes binary is used.
+For every release of Consul on Kubernetes, a Helm chart, `consul-k8s-control-plane` binary and a `consul-k8s` CLI binary is built and distributed through a single version. When deploying via Helm, the recommended best path for upgrading Consul on Kubernetes, is to upgrade using the same `consul-k8s-control-plane` version as the Helm Chart, as the Helm Chart and Control Plane binary are tightly coupled. 
 
 ## Supported Consul versions
 
