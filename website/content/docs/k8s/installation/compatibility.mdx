@@ -1,7 +1,7 @@
 ---
 layout: docs
 page_title: Compatibility Matrix
-description: Compatibility Matrix for Consul Kubernetes and Consul
+description: Compatibility Matrix for Consul Kubernetes
 ---
 
 # Compatibility Matrix for Consul Kubernetes and Consul
@@ -24,3 +24,9 @@ the Helm chart which will ensure a compatible version of the Consul Kubernetes b
 ## Supported Envoy versions
 
 Supported versions of Envoy for Consul versions are also found in [Envoy - Supported Versions](https://www.consul.io/docs/connect/proxies/envoy#supported-versions). The recommended best practice is to use the default version of Envoy that is provided in the Helm values.yml file, as that is the version that has been tested with the default Consul and Consul Kubernetes binaries for a given Helm chart.
+
+## Supported Vault versions when using Vault as a Secrets Backend 
+
+| Consul Version | Compatible Vault Versions | Compatible Vault K8s Versions | 
+| -------------- | ------------------------- | ------------------------------|
+| 1.11.x         | 1.9.0 - latest            | 0.14.0 - latest               |
