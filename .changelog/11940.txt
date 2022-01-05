@@ -1,0 +1,3 @@
+```release-note:bug
+ clone `NodeService` under lock so it can safely be accessed from 2 separate routines.
+```
