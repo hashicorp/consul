@@ -657,12 +657,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	})
 
 	// Get the relevant notification Channel, should only have 1
-	services := m.State.AllServices()
-	var notifyCH chan cache.UpdateEvent
-
-	for sid := range services {
-		notifyCH = m.proxies[sid].ch
-	}
+	notifyCH := m.proxies[srv.CompoundServiceID()].ch
 
 	// update the leaf certs
 	roots, issuedCert := TestCerts(t)
@@ -696,9 +691,10 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 
 	}
 
-	//prepare to read a snapshot update as the next update should make the snapshot valid
+	// prepare to read a snapshot update as the next update should make the snapshot valid
 	readEvent <- true
-	// update the intensions
+
+	// update the intentions
 	notifyCH <- cache.UpdateEvent{
 		CorrelationID: intentionsWatchID,
 		Result:        &structs.IndexedIntentionMatches{},
