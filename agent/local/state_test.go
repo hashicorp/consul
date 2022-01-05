@@ -415,6 +415,12 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	// All the services should match
 	for id, serv := range services.NodeServices.Services {
 		serv.CreateIndex, serv.ModifyIndex = 0, 0
+		if serv.TaggedAddresses != nil {
+			serviceVIP := serv.TaggedAddresses[structs.TaggedAddressVirtualIP].Address
+			assert.NotEmpty(serviceVIP)
+			vips[serviceVIP] = struct{}{}
+		}
+		serv.TaggedAddresses = nil
 		switch id {
 		case "mysql-proxy":
 			assert.Equal(srv1, serv)
