@@ -19,33 +19,123 @@ export const routes = merge.all(
       // Our parent datacenter resource sets the namespace
       // for the entire application
       dc: {
-        _options: { path: '/:dc' },
+        _options: {
+          path: '/:dc',
+        },
+        index: {
+          _options: {
+            path: '/',
+            redirect: '../services',
+          },
+        },
         // Services represent a consul service
         services: {
           _options: { path: '/services' },
+          index: {
+            _options: {
+              path: '/',
+              queryParams: {
+                sortBy: 'sort',
+                status: 'status',
+                source: 'source',
+                kind: 'kind',
+                searchproperty: {
+                  as: 'searchproperty',
+                  empty: [['Name', 'Tags']],
+                },
+                search: {
+                  as: 'filter',
+                  replace: true,
+                },
+              },
+            },
+          },
           // Show an individual service
           show: {
             _options: { path: '/:name' },
             instances: {
-              _options: { path: '/instances' },
+              _options: {
+                path: '/instances',
+                queryParams: {
+                  sortBy: 'sort',
+                  status: 'status',
+                  source: 'source',
+                  searchproperty: {
+                    as: 'searchproperty',
+                    empty: [['Name', 'Node', 'Tags', 'ID', 'Address', 'Port', 'Service.Meta', 'Node.Meta']],
+                  },
+                  search: {
+                    as: 'filter',
+                    replace: true,
+                  },
+                },
+              },
             },
             intentions: {
               _options: { path: '/intentions' },
+              index: {
+                _options: {
+                  path: '',
+                  queryParams: {
+                    sortBy: 'sort',
+                    access: 'access',
+                    searchproperty: {
+                      as: 'searchproperty',
+                      empty: [['SourceName', 'DestinationName']],
+                    },
+                    search: {
+                      as: 'filter',
+                      replace: true,
+                    },
+                  },
+                },
+              },
               edit: {
                 _options: { path: '/:intention_id' },
               },
               create: {
-                _options: { path: '/create' },
+                _options: {
+                  template: 'dc/services/show/intentions/edit',
+                  path: '/create',
+                },
               },
             },
             topology: {
               _options: { path: '/topology' },
             },
             services: {
-              _options: { path: '/services' },
+              _options: {
+                path: '/services',
+                queryParams: {
+                  sortBy: 'sort',
+                  instance: 'instance',
+                  searchproperty: {
+                    as: 'searchproperty',
+                    empty: [['Name', 'Tags']],
+                  },
+                  search: {
+                    as: 'filter',
+                    replace: true,
+                  },
+                },
+              },
             },
             upstreams: {
-              _options: { path: '/upstreams' },
+              _options: {
+                path: '/upstreams',
+                queryParams: {
+                  sortBy: 'sort',
+                  instance: 'instance',
+                  searchproperty: {
+                    as: 'searchproperty',
+                    empty: [['Name', 'Tags']],
+                  },
+                  search: {
+                    as: 'filter',
+                    replace: true,
+                  },
+                },
+              },
             },
             routing: {
               _options: { path: '/routing' },
@@ -55,12 +145,43 @@ export const routes = merge.all(
             },
           },
           instance: {
-            _options: { path: '/:name/instances/:node/:id' },
+            _options: {
+              path: '/:name/instances/:node/:id',
+              redirect: './healthchecks',
+            },
             healthchecks: {
-              _options: { path: '/health-checks' },
+              _options: {
+                path: '/health-checks',
+                queryParams: {
+                  sortBy: 'sort',
+                  status: 'status',
+                  check: 'check',
+                  searchproperty: {
+                    as: 'searchproperty',
+                    empty: [['Name', 'Node', 'CheckID', 'Notes', 'Output', 'ServiceTags']],
+                  },
+                  search: {
+                    as: 'filter',
+                    replace: true,
+                  },
+                },
+              },
             },
             upstreams: {
-              _options: { path: '/upstreams' },
+              _options: {
+                path: '/upstreams',
+                queryParams: {
+                  sortBy: 'sort',
+                  search: {
+                    as: 'filter',
+                    replace: true,
+                  },
+                  searchproperty: {
+                    as: 'searchproperty',
+                    empty: [['DestinationName', 'LocalBindAddress', 'LocalBindPort']],
+                  },
+                },
+              },
             },
             exposedpaths: {
               _options: { path: '/exposed-paths' },
@@ -79,14 +200,62 @@ export const routes = merge.all(
         // Nodes represent a consul node
         nodes: {
           _options: { path: '/nodes' },
+          index: {
+            _options: {
+              path: '',
+              queryParams: {
+                sortBy: 'sort',
+                status: 'status',
+                searchproperty: {
+                  as: 'searchproperty',
+                  empty: [['Node', 'Address', 'Meta']],
+                },
+                search: {
+                  as: 'filter',
+                  replace: true,
+                },
+              },
+            },
+          },
           // Show an individual node
           show: {
             _options: { path: '/:name' },
             healthchecks: {
-              _options: { path: '/health-checks' },
+              _options: {
+                path: '/health-checks',
+                queryParams: {
+                  sortBy: 'sort',
+                  status: 'status',
+                  kind: 'kind',
+                  check: 'check',
+                  searchproperty: {
+                    as: 'searchproperty',
+                    empty: [['Name', 'Service', 'CheckID', 'Notes', 'Output', 'ServiceTags']],
+                  },
+                  search: {
+                    as: 'filter',
+                    replace: true,
+                  },
+                },
+              },
             },
             services: {
-              _options: { path: '/service-instances' },
+              _options: {
+                path: '/service-instances',
+                queryParams: {
+                  sortBy: 'sort',
+                  status: 'status',
+                  source: 'source',
+                  searchproperty: {
+                    as: 'searchproperty',
+                    empty: [['Name', 'Tags', 'ID', 'Address', 'Port', 'Service.Meta']],
+                  },
+                  search: {
+                    as: 'filter',
+                    replace: true,
+                  },
+                },
+              },
             },
             rtt: {
               _options: { path: '/round-trip-time' },
@@ -102,6 +271,23 @@ export const routes = merge.all(
         // Intentions represent a consul intention
         intentions: {
           _options: { path: '/intentions' },
+          index: {
+            _options: {
+              path: '/',
+              queryParams: {
+                sortBy: 'sort',
+                access: 'access',
+                searchproperty: {
+                  as: 'searchproperty',
+                  empty: [['SourceName', 'DestinationName']],
+                },
+                search: {
+                  as: 'filter',
+                  replace: true,
+                },
+              },
+            },
+          },
           edit: {
             _options: {
               path: '/:intention_id',
@@ -110,6 +296,7 @@ export const routes = merge.all(
           },
           create: {
             _options: {
+              template: 'dc/intentions/edit',
               path: '/create',
               abilities: ['create intentions'],
             },
@@ -118,20 +305,38 @@ export const routes = merge.all(
         // Key/Value
         kv: {
           _options: { path: '/kv' },
+          index: {
+            _options: {
+              path: '/',
+              queryParams: {
+                sortBy: 'sort',
+                kind: 'kind',
+                search: {
+                  as: 'filter',
+                  replace: true,
+                },
+              },
+            },
+          },
           folder: {
-            _options: { path: '/*key' },
+            _options: {
+              template: 'dc/kv/index',
+              path: '/*key',
+            },
           },
           edit: {
             _options: { path: '/*key/edit' },
           },
           create: {
             _options: {
+              template: 'dc/kv/edit',
               path: '/*key/create',
               abilities: ['create kvs'],
             },
           },
           'root-create': {
             _options: {
+              template: 'dc/kv/edit',
               path: '/create',
               abilities: ['create kvs'],
             },
