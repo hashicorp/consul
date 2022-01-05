@@ -3,6 +3,7 @@ import { inject as service } from '@ember/service';
 
 export default class PartitionAbility extends BaseAbility {
   @service('env') env;
+  @service('repository/dc') dcs;
 
   resource = 'operator';
   segmented = false;
@@ -12,7 +13,16 @@ export default class PartitionAbility extends BaseAbility {
   }
 
   get canManage() {
-    return this.canCreate;
+    // management currently means "can I write", not necessarily just create
+    return this.canWrite;
+  }
+
+  get canCreate() {
+    // we can only currently create a partition if you have only one datacenter
+    if (this.dcs.peekAll().length > 1) {
+      return false;
+    }
+    return super.canCreate;
   }
 
   get canDelete() {
@@ -20,7 +30,7 @@ export default class PartitionAbility extends BaseAbility {
   }
 
   get canChoose() {
-    if(typeof this.dc === 'undefined') {
+    if (typeof this.dc === 'undefined') {
       return false;
     }
     return this.canUse && this.dc.Primary;
