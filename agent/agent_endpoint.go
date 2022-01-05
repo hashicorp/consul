@@ -767,9 +767,12 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 
 	if health.ServiceID != "" {
 		// fixup the service name so that vetCheckRegister requires the right ACLs
-		service := s.agent.State.Service(health.CompoundServiceID())
+		cid := health.CompoundServiceID()
+		service := s.agent.State.Service(cid)
 		if service != nil {
 			health.ServiceName = service.Service
+		} else {
+			return nil, NotFoundError{fmt.Sprintf("ServiceID %q does not exist", cid.String())}
 		}
 	}
 
@@ -1269,12 +1272,12 @@ func (s *HTTPHandlers) AgentDeregisterService(resp http.ResponseWriter, req *htt
 
 	sid.Normalize()
 
-	if err := s.agent.vetServiceUpdateWithAuthorizer(authz, sid); err != nil {
-		return nil, err
-	}
-
 	if !s.validateRequestPartition(resp, &sid.EnterpriseMeta) {
 		return nil, nil
+	}
+
+	if err := s.agent.vetServiceUpdateWithAuthorizer(authz, sid); err != nil {
+		return nil, err
 	}
 
 	if err := s.agent.RemoveService(sid); err != nil {
