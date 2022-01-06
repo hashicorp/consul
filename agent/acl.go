@@ -143,7 +143,9 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 			}
 		}
 	} else {
-		return fmt.Errorf("Unknown check %q", checkID.String())
+		return NotFoundError{Reason: fmt.Sprintf(
+			"Unknown check ID %q. Ensure that the check ID is passed, not the check name.",
+			checkID.String())}
 	}
 
 	return nil
