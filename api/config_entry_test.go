@@ -945,6 +945,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			// TODO(rb): test SDS stuff here in both places (global/service)
 			name: "ingress-gateway",
 			body: `
 			{
@@ -956,7 +957,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				"Tls": {
 					"Enabled": true,
-                    "TLSMinVersion": "TLSv1_2"
+					"TLSMinVersion": "TLSv1_1",
+					"TLSMaxVersion": "TLSv1_2",
+					"CipherSuites": [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
 				},
 				"Listeners": [
 					{
@@ -994,7 +1000,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				TLS: GatewayTLSConfig{
 					Enabled:       true,
-					TLSMinVersion: "TLSv1_2",
+					TLSMinVersion: "TLSv1_1",
+					TLSMaxVersion: "TLSv1_2",
+					CipherSuites: []string{
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+					},
 				},
 				Listeners: []IngressListener{
 					{
