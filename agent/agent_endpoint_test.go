@@ -2850,14 +2850,19 @@ func TestAgent_DeregisterCheck(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/test", nil)
-	obj, err := a.srv.AgentDeregisterCheck(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("bad: %v", obj)
-	}
+	t.Run("remove registered check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/test", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
+	})
+
+	t.Run("remove non-existent check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/test", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusNotFound, resp.Code)
+	})
 
 	// Ensure we have a check mapping
 	requireCheckMissing(t, a, "test")
@@ -2890,6 +2895,20 @@ func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
 		if _, err := a.srv.AgentDeregisterCheck(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
+	})
+
+	t.Run("non-existent check without token", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/_nope_", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusNotFound, resp.Code)
+	})
+
+	t.Run("non-existent check with token", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/_nope_?token=root", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusNotFound, resp.Code)
 	})
 }
 
