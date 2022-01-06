@@ -51,8 +51,9 @@ type noErrorWriter struct {
 }
 
 func (w noErrorWriter) Write(p []byte) (n int, err error) {
-	n, _ = w.w.Write(p)
-	return n, nil
+	_, _ = w.w.Write(p)
+	// We purposely return n == len(p) as if write was successful
+	return len(p), nil
 }
 
 // Setup logging from Config, and return an hclog Logger.
