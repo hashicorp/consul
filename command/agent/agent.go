@@ -162,10 +162,7 @@ func (c *cmd) run(args []string) int {
 
 	// FIXME: logs should always go to stderr, but previously they were sent to
 	// stdout, so continue to use Stdout for now, and fix this in a future release.
-	// UiWriter is being used here so that writes to Stdout do not error (e.g.
-	// Windows Services are non-interactive and do not have Stdout) and inadvertently
-	// stop writes to other logging outputs like syslogs or log files.
-	logGate := &logging.GatedWriter{Writer: &mcli.UiWriter{Ui: c.ui}}
+	logGate := &logging.GatedWriter{Writer: c.ui.Stdout()}
 	loader := func(source config.Source) (config.LoadResult, error) {
 		c.configLoadOpts.DefaultConfig = source
 		return config.Load(c.configLoadOpts)
