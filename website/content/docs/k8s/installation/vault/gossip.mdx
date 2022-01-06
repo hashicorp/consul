@@ -76,9 +76,9 @@ global:
       enabled: true
       consulServerRole: consul-server
       consulClientRole: consul-client
-    gossipEncryption:
-      secretName: secret/data/consul/gossip
-      secretKey: key
+  gossipEncryption:
+    secretName: secret/data/consul/gossip
+    secretKey: key
 ```
 
 Note that `global.gossipEncryption.secretName` is the path of the secret in Vault.
