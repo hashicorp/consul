@@ -62,7 +62,18 @@ export const routes = merge.all(
                   source: 'source',
                   searchproperty: {
                     as: 'searchproperty',
-                    empty: [['Name', 'Node', 'Tags', 'ID', 'Address', 'Port', 'Service.Meta', 'Node.Meta']],
+                    empty: [
+                      [
+                        'Name',
+                        'Node',
+                        'Tags',
+                        'ID',
+                        'Address',
+                        'Port',
+                        'Service.Meta',
+                        'Node.Meta',
+                      ],
+                    ],
                   },
                   search: {
                     as: 'filter',
@@ -95,7 +106,7 @@ export const routes = merge.all(
               },
               create: {
                 _options: {
-                  template: 'dc/services/show/intentions/edit',
+                  template: '../edit',
                   path: '/create',
                 },
               },
@@ -296,7 +307,7 @@ export const routes = merge.all(
           },
           create: {
             _options: {
-              template: 'dc/intentions/edit',
+              template: '../edit',
               path: '/create',
               abilities: ['create intentions'],
             },
@@ -320,7 +331,7 @@ export const routes = merge.all(
           },
           folder: {
             _options: {
-              template: 'dc/kv/index',
+              template: '../index',
               path: '/*key',
             },
           },
@@ -329,14 +340,14 @@ export const routes = merge.all(
           },
           create: {
             _options: {
-              template: 'dc/kv/edit',
+              template: '../edit',
               path: '/*key/create',
               abilities: ['create kvs'],
             },
           },
           'root-create': {
             _options: {
-              template: 'dc/kv/edit',
+              template: '../edit',
               path: '/create',
               abilities: ['create kvs'],
             },
