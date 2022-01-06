@@ -136,7 +136,7 @@ func TestAutoEncrypt_hosts(t *testing.T) {
 			hosts: []string{
 				"192.168.1.1",
 				"start.local",
-				"[::ffff:172.16.5.4]",
+				"::ffff:172.16.5.4",
 				"main.dev",
 				"198.18.0.1",
 				"foo.com",

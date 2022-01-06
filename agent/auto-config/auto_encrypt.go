@@ -3,10 +3,8 @@ package autoconf
 import (
 	"context"
 	"fmt"
-	"net"
-	"strings"
-
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/ipaddr"
 )
 
 func (ac *AutoConfig) autoEncryptInitialCerts(ctx context.Context) (*structs.SignedResponse, error) {
@@ -77,26 +75,23 @@ func (ac *AutoConfig) joinHosts() ([]string, error) {
 		}
 	}
 
+	// Note: Go discover isn't totally consistent about how it returns addresses; mostly they are addresses
+	// (as claimed in  go-discover/discover.go) but the k8 driver can return a host:port combination.
 	hosts, err := ac.discoverServers(ac.config.RetryJoinLAN)
 	if err != nil {
 		return nil, err
 	}
 
 	var addrs []string
-
 	// The addresses we use for auto-encrypt are the retry join and start join
 	// addresses. These are for joining serf and therefore we cannot rely on the
 	// ports for these. This loop strips any port that may have been specified and
 	// will let subsequent resolveAddr calls add on the default RPC port.
 	for _, addr := range append(ac.config.StartJoinAddrsLAN, hosts...) {
-		host, _, err := net.SplitHostPort(addr)
+		host, _, err := ipaddr.SplitHostPort(addr)
 		if err != nil {
-			if strings.Contains(err.Error(), "missing port in address") {
-				host = addr
-			} else {
-				ac.logger.Warn("error splitting host address into IP and port", "address", addr, "error", err)
-				continue
-			}
+			ac.logger.Warn("error splitting host address into IP and port", "address", addr, "error", err)
+			continue
 		}
 		addrs = append(addrs, host)
 	}
