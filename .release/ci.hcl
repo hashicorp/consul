@@ -4,13 +4,17 @@ project "consul" {
   team = "consul core"
   slack {
     # feed-consul-ci
-    notification_channel = "C01A3A54G0L"
+    notification_channel = "C9KPKPKRN"
   }
   github {
     organization = "hashicorp"
     repository = "consul"
     release_branches = [
-        "enable-security-scan"
+      "main",
+      "release/1.8.x",
+      "release/1.9.x",
+      "release/1.10.x",
+      "release/1.11.x"
     ]
   }
 }
