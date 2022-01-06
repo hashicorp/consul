@@ -2,8 +2,8 @@ package autoconf
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/ipaddr"
 	"net"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/lib"
@@ -13,6 +13,9 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
+// Returns ip addresses (without port) of discovered servers. These may be IPv6 addresses.
+// This is assumed from the contract of (*Discover) Addrs. It would be nice to validate this somehow
+// but not sure how to do this without false positives from IPv6 addresses.
 func (ac *AutoConfig) discoverServers(servers []string) ([]string, error) {
 	providers := make(map[string]discover.Provider)
 	for k, v := range discover.Providers {
@@ -78,20 +81,13 @@ func (ac *AutoConfig) autoConfigHosts() ([]string, error) {
 // This will process any port in the input as well as looking up the hostname using
 // normal DNS resolution.
 func (ac *AutoConfig) resolveHost(hostPort string) []net.TCPAddr {
-	port := ac.config.ServerPort
-	host, portStr, err := net.SplitHostPort(hostPort)
+	host, port, err := ipaddr.SplitHostPort(hostPort)
 	if err != nil {
-		if strings.Contains(err.Error(), "missing port in address") {
-			host = hostPort
-		} else {
-			ac.logger.Warn("error splitting host address into IP and port", "address", hostPort, "error", err)
-			return nil
-		}
+		ac.logger.Warn("error splitting host address into IP and port", "address", hostPort, "error", err)
+		return nil
 	} else {
-		port, err = strconv.Atoi(portStr)
-		if err != nil {
-			ac.logger.Warn("Parsed port is not an integer", "port", portStr, "error", err)
-			return nil
+		if port == -1 {
+			port = ac.config.ServerPort
 		}
 	}
 
