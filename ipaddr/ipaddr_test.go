@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -50,6 +51,53 @@ func TestIsIPv6(t *testing.T) {
 				if fmt.Sprintf("%s:%d", tt.ip, port) != formated {
 					t.Fatalf("Wrong format %s for %s", formated, tt.ip)
 				}
+			}
+		})
+	}
+}
+
+func TestSplitHostPort(t *testing.T) {
+	tests := []struct {
+		address  string
+		host     string
+		port     int
+		hasError bool
+	}{
+		{"example.org", "example.org", -1, false},
+		{"example.org:10", "example.org", 10, false},
+		{"example.org:10:10", "", -1, true},
+
+		// IPv4 addresses
+		{"10.0.0.1", "10.0.0.1", -1, false},
+		{"10.0.0.1:10", "10.0.0.1", 10, false},
+		{"10.0.0.1:10:4", "", -1, true},
+
+		// IPv6 addresses w/o port
+		{"::1", "::1", -1, false},
+		{"fe80::1", "fe80::1", -1, false},
+		{"2001:db8::1", "2001:db8::1", -1, false},
+		{"2001:db8:1:2:3:4:5:6:7:8", "", -1, true},
+		{"2a05:d014:d9e:c303:e4d3:d281:a61d:8ebd", "2a05:d014:d9e:c303:e4d3:d281:a61d:8ebd", -1, false},
+
+		{"[::ffff:172.16.5.4]", "::ffff:172.16.5.4", -1, false},
+
+		// IPv6 addresses with port
+		{"[::1]:10", "::1", 10, false},
+		{"[fe80::1]:10", "fe80::1", 10, false},
+		{"[2001:db8::1]:10", "2001:db8::1", 10, false},
+		// Wierd IPv6 address with port
+		{"2001:db8:1:2:3:4:5:6:7", "2001:db8:1:2:3:4:5:6", 7, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.address, func(t *testing.T) {
+			host, port, err := SplitHostPort(tt.address)
+			if tt.hasError {
+				assert.NotNil(t, err)
+			} else {
+
+				assert.Equal(t, tt.host, host)
+				assert.Equal(t, tt.port, port)
+				assert.Nil(t, err)
 			}
 		})
 	}
