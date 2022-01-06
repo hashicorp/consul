@@ -973,14 +973,21 @@ func (l *State) updateSyncState() error {
 			continue
 		}
 
+		// to avoid a data race with the service struct,
+		// We copy the Service struct, mutate it and replace the pointer
+		svc := *ls.Service
+
 		// If our definition is different, we need to update it. Make a
 		// copy so that we don't retain a pointer to any actual state
 		// store info for in-memory RPCs.
-		if ls.Service.EnableTagOverride {
-			ls.Service.Tags = make([]string, len(rs.Tags))
-			copy(ls.Service.Tags, rs.Tags)
+		if svc.EnableTagOverride {
+			svc.Tags = make([]string, len(rs.Tags))
+			copy(svc.Tags, rs.Tags)
 		}
-		ls.InSync = ls.Service.IsSame(rs)
+		ls.InSync = svc.IsSame(rs)
+
+		// replace the service pointer to the new mutated struct
+		ls.Service = &svc
 	}
 
 	// Check which checks need syncing
