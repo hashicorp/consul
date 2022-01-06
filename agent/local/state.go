@@ -1082,7 +1082,10 @@ func (l *State) updateSyncState() error {
 			continue
 		}
 
+		// to avoid a data race with the service struct,
+		// We copy the Service struct, mutate it and replace the pointer
 		svc := *ls.Service
+
 		// If our definition is different, we need to update it. Make a
 		// copy so that we don't retain a pointer to any actual state
 		// store info for in-memory RPCs.
@@ -1104,6 +1107,8 @@ func (l *State) updateSyncState() error {
 			}
 		}
 		ls.InSync = svc.IsSame(rs)
+
+		// replace the service pointer to the new mutated struct
 		ls.Service = &svc
 	}
 
