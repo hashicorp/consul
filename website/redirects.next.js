@@ -114,7 +114,14 @@ module.exports = [
   { source: '/configuration', destination: '/', permanent: true },
   {
     source: '/docs/connect/mesh(_|-)gateway',
-    destination: '/docs/connect/gateways/mesh-gateway',
+    destination:
+      '/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
+    permanent: true,
+  },
+  {
+    source: '/docs/connect/gateways/mesh-gateway',
+    destination:
+      '/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
     permanent: true,
   },
   {
