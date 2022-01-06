@@ -1,0 +1,3 @@
+```release-note:bug
+Fix a bug where a read replica node can trigger a raft election and become a leader..
+```
