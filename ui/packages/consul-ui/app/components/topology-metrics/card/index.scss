@@ -9,7 +9,10 @@
   overflow: hidden;
   background-color: rgb(var(--tone-gray-000));
   border-radius: var(--decor-radius-100);
-  border: 1px solid rgb(var(--tone-gray-200));
+  border: 1px solid;
+  /* TODO: If this color is combined with the above */
+  /* border property then the compressor removes the color */
+  border-color: rgb(var(--tone-gray-200));
   p {
     padding: 12px 12px 0 12px;
     font-size: var(--typo-size-500);
