@@ -186,7 +186,6 @@ type SecondaryProvider interface {
 	//
 	// The provider should save the certificates and use them to
 	// Provider.Sign leaf certificates.
-	// TODO: document exactly how the chain is passed. probably in intermediatePEM
 	SetIntermediate(intermediatePEM, rootPEM string) error
 }
 
