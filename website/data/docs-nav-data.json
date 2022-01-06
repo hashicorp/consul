@@ -476,6 +476,10 @@
             "href": "/docs/connect/transparent-proxy"
           },
           {
+            "title": "Consul API Gateway",
+            "path": "k8s/connect/api-gateway"
+          },
+          {
             "title": "Ingress Gateways",
             "path": "k8s/connect/ingress-gateways"
           },

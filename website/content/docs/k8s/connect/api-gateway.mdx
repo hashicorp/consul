@@ -1,0 +1,171 @@
+---
+layout: docs
+page_title: API Gateway
+description: Using Consul API gateway functionality
+---
+
+# Consul API Gateway
+
+This topic describes how to use the Consul API Gateway module, which enables applications and services running in a datacenter to be accessed by network clients outside the datacenter. This type of network traffic is commonly referred to as "north-south" network traffic.
+
+## Introduction
+
+Consul API Gateway is an implementation of the Kubernetes Gateway API Specification (https://gateway-api.sigs.k8s.io/). The specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes.
+
+## Requirements
+
+Your datacenter must meet the following requirements prior to configuring the Consul API Gateway:
+
+- A Kubernetes cluster must be running
+- Consul 1.11.0+
+
+## Installation
+
+1. Create a values file for your Consul server agents that contains the following parameters:
+
+   ```yaml
+   global:
+     name: consul
+     image: 'hashicorp/consul:1.11.0'
+     tls:
+       enabled: true
+   connectInject:
+     enabled: true
+   controller:
+     enabled: true
+   ```
+
+1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file.
+
+```shell-session
+helm install consul hashicorp/consul --version 0.37.0 -f values.yaml
+```
+
+The following components will be installed:
+
+    - Gateway controller
+    - CRDs required by the Kubernetes Gateway API specification
+    - `kustomize` manifests for completing the installation
+
+1. After `helm` installs Consul API Gateway packages, issue the following commands to apply the API gateway to your Kubernetes cluster.
+
+```shell-session
+kubectl apply -k "github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.1.0-techpreview"
+kubectl apply -k "github.com/hashicorp/consul-api-gateway/config?ref=v0.1.0-techpreview"
+```
+
+## Usage
+
+1. Verify that the [requirements](#requirements) have been met.
+1. Verify that the Consul API Gateway software has been installed and applied (see [Installation](#installation)).
+1. Configure the gateway, listener(s), and route(s) as described in [Configuration](#configuration)
+1. Issue the `kubectl apply` command to implement the configurations, e.g.:
+
+```shell-session
+kubectl apply -f gateway-configuration.yaml
+```
+
+### Using the Consul API Gateway Binary
+
+You can manually start the Consul API Gateway control plane server using the binary located in the home directory to issue the `server` command:
+
+```shell-session
+./consul-api-gateway server <options>
+```
+
+The following options are supported:
+
+| Option                                                                                                     | Description                                                                                                                                                                           | Required                                        | Default                                                   |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------- | ------ |
+| `-ca-file`                                                                                                 | String value that specifies the path to the CA for the Consul server.                                                                                                                 | Required                                        | none                                                      |
+| `-ca-secret`                                                                                               | String value that specifies the CA secret for the Consul server.                                                                                                                      | Required                                        | none                                                      |
+| `-ca-secret-namespace` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | String value that specifies the CA secret namespace for the Consul server.                                                                                                            | Required                                        | none                                                      |
+| `-k8-context`                                                                                              | String value that specifies the Kubernetes context to use when starting the Consul server.                                                                                            | Optional                                        | current context                                           |
+| `-k8-namespace`                                                                                            | String value that specifies the Kubernetes namespace to use when starting the Consul server.                                                                                          | Optional                                        | `default`                                                 |
+| `-log-json`                                                                                                | Boolean value that enables or disables JSON format for the log output.                                                                                                                | Required                                        | `false`                                                   |
+| `-log-level`                                                                                               | String value that specifies the logging level. The following values are supported: <br/>- `trace` (highest level of detail) <br/>- `debug` <br/>- `info` <br/>- `warn` <br/>- `error` | context to use when starting the Consul server. | Required                                                  | `info` |
+| `-metrics-port`                                                                                            | Integer value that specifies the port number for collecting metrics.                                                                                                                  | Optional                                        | none                                                      |
+| `-pprof`                                                                                                   | Integer value that specifies the Go pprof port number for collecting metrics.                                                                                                         | Optional                                        | none                                                      |
+| `-sds-server-host`                                                                                         | String value that specifies the host server for the secret discovery service (SDS).                                                                                                   | Optional                                        | `consul-api-gateway-controller.default.svc.cluster.local` |
+| `-sds-server-host`                                                                                         | Integer value that specifies the port number for the secret discovery service (SDS).                                                                                                  | Optional                                        | `9090`                                                    |
+
+You can also issue the `version` command to print the Consul API Gateway version to the console:
+
+```shell-session
+./consul-api-gateway version
+consul-api-gateway 0.1.0-dev
+```
+
+## Configuration
+
+Create the following artifacts to configure the API Gateway:
+
+- [Gateway](#gateway): Defines the gateway properties, including listeners.
+- [Listeners](#listeners): Defines listener properties, such as protocol, port, and namespace.
+- [Routes](#routes): Specifies the path from the client to the listener.
+
+### Gateway
+
+The gateway object contains gateway listeners.
+Add the `kind: Gateway` option to the configuration file to declare a gateway.
+The following example creates a gateway called `example-gateway` that includes a listener called `https` (see Listeners for details about the `listener` configuration).
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: Gateway
+metadata:
+  name: example-gateway
+  annotations:
+    'external-dns.alpha.kubernetes.io/hostname': DNS_HOSTNAME
+spec:
+  gatewayClassName: default-consul-gateway-class
+  listeners:
+    - protocol: HTTPS
+      hostname: DNS_HOSTNAME
+      port: 443
+      name: https
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        certificateRefs:
+          - name: gateway-production-certificate
+```
+
+Refer to the Kubernetes Gateway API documentation for details about configuring gateways:
+https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Gateway
+
+### Listener
+
+Listeners are the logical endpoints bound to the gateway's addresses.
+Add the `listener` object to the `gateway` configuration and specify the following properties to define a listener:
+
+- `hostname`: Hostname specifies the virtual hostname to match for protocol types.
+- `port`: Specifies the network port.
+- `protocol`: Specifies the network protocol expected by the listener.
+
+Refer to the Kubernetes Gateway API documentation for details about configuring listeners:
+https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Listener
+
+In the example included the [Gateway](#gateway) description, a listener named `https` that listens over `HTTPS` is configured to listen on port `443`
+
+### Route
+
+Routes are independent configuration objects that are associated with a specific listener.
+Use the `kind: HTTPRoute` option to declare a route and use the `spec` option to specify the route details.
+The following example creates a route named `example-route` associated with a listener defined in `example-gateway`.
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HTTPRoute
+metadata:
+  name: example-route
+spec:
+  parentRefs:
+    - name: example-gateway
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: echo
+          port: 8080
+```
