@@ -2,7 +2,7 @@ import RepositoryService from 'consul-ui/services/repository';
 import isFolder from 'consul-ui/utils/isFolder';
 import { get } from '@ember/object';
 import { PRIMARY_KEY } from 'consul-ui/models/kv';
-import { ACCESS_LIST, ACCESS_READ } from 'consul-ui/abilities/base';
+// import { ACCESS_LIST } from 'consul-ui/abilities/base';
 import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'kv';
