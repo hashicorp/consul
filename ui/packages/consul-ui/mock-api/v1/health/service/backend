@@ -1,0 +1,122 @@
+[
+  {
+    "Node": {
+      "ID": "237b9eeb-bba1-e6e3-3c99-c527d6d76cc0",
+      "Node": "node",
+      "Address": "172.17.0.2",
+      "Datacenter": "dc1",
+      "TaggedAddresses": {
+        "lan": "172.17.0.2",
+        "lan_ipv4": "172.17.0.2",
+        "wan": "172.17.0.2",
+        "wan_ipv4": "172.17.0.2"
+      },
+      "Meta": {
+        "consul-network-segment": ""
+      },
+      "CreateIndex": 14,
+      "ModifyIndex": 17
+    },
+    "Service": {
+      "ID": "backend",
+      "Service": "backend",
+      "Tags": [],
+      "Address": "",
+      "Meta": null,
+      "Port": 7000,
+      "Weights": {
+        "Passing": 1,
+        "Warning": 1
+      },
+      "EnableTagOverride": false,
+      "Proxy": {
+        "Mode": "",
+        "MeshGateway": {},
+        "Expose": {}
+      },
+      "Connect": {},
+      "CreateIndex": 18,
+      "ModifyIndex": 18
+    },
+    "Checks": [
+      {
+        "Node": "node",
+        "CheckID": "serfHealth",
+        "Name": "Serf Health Status",
+        "Status": "passing",
+        "Notes": "",
+        "Output": "Agent alive and reachable",
+        "ServiceID": "",
+        "ServiceName": "",
+        "ServiceTags": [],
+        "Type": "",
+        "Interval": "",
+        "Timeout": "",
+        "ExposedPort": 0,
+        "Definition": {},
+        "CreateIndex": 14,
+        "ModifyIndex": 14
+      }
+    ]
+  },
+  {
+    "Node": {
+      "ID": "237b9eeb-bba1-e6e3-3c99-c527d6d76cc0",
+      "Node": "node",
+      "Address": "172.17.0.2",
+      "Datacenter": "dc1",
+      "TaggedAddresses": {
+        "lan": "172.17.0.2",
+        "lan_ipv4": "172.17.0.2",
+        "wan": "172.17.0.2",
+        "wan_ipv4": "172.17.0.2"
+      },
+      "Meta": {
+        "consul-network-segment": ""
+      },
+      "CreateIndex": 14,
+      "ModifyIndex": 17
+    },
+    "Service": {
+      "ID": "backend-v2",
+      "Service": "backend",
+      "Tags": [],
+      "Address": "",
+      "Meta": null,
+      "Port": 7001,
+      "Weights": {
+        "Passing": 1,
+        "Warning": 1
+      },
+      "EnableTagOverride": false,
+      "Proxy": {
+        "Mode": "",
+        "MeshGateway": {},
+        "Expose": {}
+      },
+      "Connect": {},
+      "CreateIndex": 20,
+      "ModifyIndex": 20
+    },
+    "Checks": [
+      {
+        "Node": "node",
+        "CheckID": "serfHealth",
+        "Name": "Serf Health Status",
+        "Status": "passing",
+        "Notes": "",
+        "Output": "Agent alive and reachable",
+        "ServiceID": "",
+        "ServiceName": "",
+        "ServiceTags": [],
+        "Type": "",
+        "Interval": "",
+        "Timeout": "",
+        "ExposedPort": 0,
+        "Definition": {},
+        "CreateIndex": 14,
+        "ModifyIndex": 14
+      }
+    ]
+  }
+]

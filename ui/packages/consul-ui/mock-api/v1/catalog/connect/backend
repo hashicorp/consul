@@ -1,0 +1,82 @@
+[
+  {
+    "ID": "237b9eeb-bba1-e6e3-3c99-c527d6d76cc0",
+    "Node": "node",
+    "Address": "172.17.0.2",
+    "Datacenter": "dc1",
+    "TaggedAddresses": {
+      "lan": "172.17.0.2",
+      "lan_ipv4": "172.17.0.2",
+      "wan": "172.17.0.2",
+      "wan_ipv4": "172.17.0.2"
+    },
+    "NodeMeta": {
+      "consul-network-segment": ""
+    },
+    "ServiceKind": "connect-proxy",
+    "ServiceID": "backend-sidecar-proxy",
+    "ServiceName": "backend-sidecar-proxy",
+    "ServiceTags": [],
+    "ServiceAddress": "",
+    "ServiceWeights": {
+      "Passing": 1,
+      "Warning": 1
+    },
+    "ServiceMeta": {},
+    "ServicePort": 21000,
+    "ServiceSocketPath": "",
+    "ServiceEnableTagOverride": false,
+    "ServiceProxy": {
+      "DestinationServiceName": "backend",
+      "DestinationServiceID": "backend",
+      "LocalServiceAddress": "127.0.0.1",
+      "LocalServicePort": 7000,
+      "Mode": "",
+      "MeshGateway": {},
+      "Expose": {}
+    },
+    "ServiceConnect": {},
+    "CreateIndex": 19,
+    "ModifyIndex": 19
+  },
+  {
+    "ID": "237b9eeb-bba1-e6e3-3c99-c527d6d76cc0",
+    "Node": "node",
+    "Address": "172.17.0.2",
+    "Datacenter": "dc1",
+    "TaggedAddresses": {
+      "lan": "172.17.0.2",
+      "lan_ipv4": "172.17.0.2",
+      "wan": "172.17.0.2",
+      "wan_ipv4": "172.17.0.2"
+    },
+    "NodeMeta": {
+      "consul-network-segment": ""
+    },
+    "ServiceKind": "connect-proxy",
+    "ServiceID": "backend-v2-sidecar-proxy",
+    "ServiceName": "backend-sidecar-proxy",
+    "ServiceTags": [],
+    "ServiceAddress": "",
+    "ServiceWeights": {
+      "Passing": 1,
+      "Warning": 1
+    },
+    "ServiceMeta": {},
+    "ServicePort": 21001,
+    "ServiceSocketPath": "",
+    "ServiceEnableTagOverride": false,
+    "ServiceProxy": {
+      "DestinationServiceName": "backend",
+      "DestinationServiceID": "backend-v2",
+      "LocalServiceAddress": "127.0.0.1",
+      "LocalServicePort": 7001,
+      "Mode": "",
+      "MeshGateway": {},
+      "Expose": {}
+    },
+    "ServiceConnect": {},
+    "CreateIndex": 21,
+    "ModifyIndex": 21
+  }
+]
