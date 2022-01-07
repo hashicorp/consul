@@ -9,6 +9,7 @@ description: >-
   detailed reference of available features.
 ---
 
+<!--
 # What is a Service Mesh?
 
 Blah Blah Blah Blah ..Go Consul
@@ -43,4 +44,70 @@ AWS + GCP + Azure + Consul = Easy Peasy
 
 ## Next
 
-Go learn [learn.hashicorp.com](https://learn.hashicorp.com/consul)
+Go learn [learn.hashicorp.com](https://learn.hashicorp.com/consul) -->
+
+# https://react-components-hashicorp.vercel.app
+
+```shell-session hideClipboard
+$ echo 'Hello world'
+```
+
+<CodeBlockConfig hideClipboard lineNumbers highlight="1-3,5" filename="hello-world.js">
+
+```javascript
+const foo = 'bar'
+function hello() {
+  return Math.random() > 0.5 ? 'Hello' : 'Bonjour'
+}
+console.log('hello world')
+```
+
+</CodeBlockConfig>
+
+<CodeTabs heading="Set your primary datacenter">
+
+<CodeBlockConfig filename="consul-acl.hcl" lineNumbers highlight="3,6-8">
+
+```hcl
+primary_datacenter = "dc1"
+acl {
+  enabled        = true
+  default_policy = "deny"
+  down_policy    = "extend-cache"
+  tokens {
+    "agent" = "da666809-98ca-0e94-a99c-893c4bf5f9eb"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="consul-acl.json" lineNumbers highlight="4,7-9">
+
+```json
+{
+  "primary_datacenter": "dc1",
+  "acl": {
+    "enabled": true,
+    "default_policy": "deny",
+    "down_policy": "extend-cache",
+    "tokens": {
+      "agent": "da666809-98ca-0e94-a99c-893c4bf5f9eb"
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+-> **Note**: Did you know
+
+~> **Warning**: Be aware of
+
+!> **Danger**: DO NOT EXPOSE YOUR BOOTSTRAP ACL TOKEN
+
+<EnterpriseAlert product="consul" inline />
+
+!["A swimlane for auth methods"](/img/auth-methods.svg)
