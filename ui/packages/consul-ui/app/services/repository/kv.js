@@ -2,7 +2,7 @@ import RepositoryService from 'consul-ui/services/repository';
 import isFolder from 'consul-ui/utils/isFolder';
 import { get } from '@ember/object';
 import { PRIMARY_KEY } from 'consul-ui/models/kv';
-import { ACCESS_LIST } from 'consul-ui/abilities/base';
+// import { ACCESS_LIST } from 'consul-ui/abilities/base';
 import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'kv';
@@ -45,36 +45,43 @@ export default class KvService extends RepositoryService {
 
   // this one only gives you keys
   // https://www.consul.io/api/kv.html
-  findAllBySlug(params, configuration = {}) {
+  async findAllBySlug(params, configuration = {}) {
     if (params.id === '/') {
       params.id = '';
     }
-    return this.authorizeBySlug(
-      async () => {
-        params.separator = '/';
-        if (typeof configuration.cursor !== 'undefined') {
-          params.index = configuration.cursor;
+    /**/
+    // Temporarily revert to pre-1.10 UI functionality by not pre-checking backend
+    // permissions.
+    // This temporary measure should be removed again once https://github.com/hashicorp/consul/issues/11098
+    // has been resolved
+
+    // return this.authorizeBySlug(
+    //   async () => {
+    params.separator = '/';
+    if (typeof configuration.cursor !== 'undefined') {
+      params.index = configuration.cursor;
+    }
+    let items;
+    try {
+      items = await this.store.query(this.getModelName(), params);
+    } catch (e) {
+      if (get(e, 'errors.firstObject.status') === '404') {
+        // TODO: This very much shouldn't be here,
+        // needs to eventually use ember-datas generateId thing
+        // in the meantime at least our fingerprinter
+        const uid = JSON.stringify([params.ns, params.dc, params.id]);
+        const record = this.store.peekRecord(this.getModelName(), uid);
+        if (record) {
+          record.unloadRecord();
         }
-        let items;
-        try {
-          items = await this.store.query(this.getModelName(), params);
-        } catch (e) {
-          if (get(e, 'errors.firstObject.status') === '404') {
-            // TODO: This very much shouldn't be here,
-            // needs to eventually use ember-datas generateId thing
-            // in the meantime at least our fingerprinter
-            const uid = JSON.stringify([params.ns, params.dc, params.id]);
-            const record = this.store.peekRecord(this.getModelName(), uid);
-            if (record) {
-              record.unloadRecord();
-            }
-          }
-          throw e;
-        }
-        return items.filter(item => params.id !== get(item, 'Key'));
-      },
-      ACCESS_LIST,
-      params
-    );
+      }
+      throw e;
+    }
+    return items.filter(item => params.id !== get(item, 'Key'));
+    // },
+    // ACCESS_LIST,
+    // params
+    // );
+    /**/
   }
 }
