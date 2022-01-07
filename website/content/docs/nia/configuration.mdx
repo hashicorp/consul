@@ -244,6 +244,7 @@ task {
 | `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the Consul-Terraform-Sync ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | String value specifying an expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
 | `cts_user_defined_meta` | Optional | User-defined metadata specified as a map of strings that will be appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. By default, no metadata is appended. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
+| `source_includes_var` | Optional | Boolean value indicating whether or not to use this `condition` block's services object as input for the module's [`services` variable](/docs/nia/terraform-modules#services-variable) | true |
 
 #### Catalog-Services Condition
 
@@ -266,7 +267,7 @@ task {
     datacenter          = "dc1"
     namespace           = "default"
     regexp              = "web.*"
-    source_includes_var = false
+    source_includes_var = true
     node_meta {
       key = "value"
     }
@@ -280,7 +281,7 @@ task {
 | `datacenter` |  Optional | String value specifying the name of a datacenter to query for the task. | Datacenter of the agent that Consul-Terraform-Sync queries. |
 | `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the Consul-Terraform-Sync ACL token <br/> 2. The `default` namespace. |
 | `node_meta`  | Optional | Map of string to string specifying the node metadata key/value pairs to use to filter services. Only services registered at a node with the specified key/value pairs are used by the task.  | none |
-| `source_includes_var` | Optional | Boolean value indicating whether or not the module configured at [`task.source`](#source) includes the [`catalog_services` variable](/docs/nia/terraform-modules#catalog-services-variable) <br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, Consul-Terraform-Sync will error and exit. | false |
+| `source_includes_var` | Optional | Boolean value indicating whether or not the module configured at [`task.source`](#source) includes the [`catalog_services` variable](/docs/nia/terraform-modules#catalog-services-variable) <br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, Consul-Terraform-Sync will error and exit. | true |
 
 #### Consul KV Condition
 
@@ -301,16 +302,18 @@ task {
     recurse             = false
     datacenter          = "dc1"
     namespace           = "default"
-    source_includes_var = false
+    source_includes_var = true
   }
 }
 ```
 
-- `path` - (string: required) The path of the key that is used by the task.
-- `recurse` - (bool: false) Setting to `true` instructs Consul-Terraform-Sync to treat the path as a prefix instead of a literal match.
-- `datacenter` - (string) The datacenter of the services to query for the task. If not provided, the datacenter will default to the datacenter of the agent that Consul-Terraform-Sync queries.
-- `namespace` <EnterpriseAlert inline /> - (string) The namespace of the services to query for the task. If not provided, the namespace will be inferred from the Consul-Terraform-Sync ACL token or default to the `default` namespace.
-- `source_includes_var` - (bool: false) If set to `true`, then Consul-Terraform-Sync will include the [`consul_kv` variable](/docs/nia/terraform-modules#consul-kv-variable) as an input to the module specified in `task.source`. Refer to the documentation of the selected module for guidance on how to configure this field. If configured inconsistently with the module, Consul-Terraform-Sync will error and exit.
+| Parameter |  Required |Description | Default |
+| --------- | --------- | ---------- | ------- |
+| `path` |  Required | String value that specifies the path of the key used by the task. The path can point to a single Consul KV entry or several entries within the path. | none |
+| `recurse` |  Optional | Boolean value that enables Consul-Terraform-Sync to treat the path as a prefix. If set to `false`, the path will be treated as a literal match. | `false` |
+| `datacenter` |  Optional | String value specifying the name of a datacenter to query for the task. | Datacenter of the agent that Consul-Terraform-Sync queries. |
+| `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the Consul-Terraform-Sync ACL token <br/> 2. The `default` namespace. |
+| `source_includes_var` | Optional | Boolean value indicating whether or not the module configured at [`task.source`](#source) includes the [`consul_kv` variable](/docs/nia/terraform-modules#consul-kv-variable) <br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, Consul-Terraform-Sync will error and exit. | true |
 
 #### Schedule Condition
 
