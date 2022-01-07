@@ -9,6 +9,7 @@ Below is a list of the most commonly used functions as bookmarklets followed by 
 | [Print Routing DSL](javascript:Routes()) | Print out Ember's Route DSL for the application |
 | [Save Current Scenario](javascript:Scenario()) | Opens a tab with links to allow you to create a bookmarklet or share a URL of your current scenario (your Consul UI relarted development/debug cookies) |
 | [Enable ACLs](javascript:Scenario('CONSUL_ACLS_ENABLE=1')) | Enable ACLs |
+| [Enable TProxy](javascript:Scenario('CONSUL_TPROXY_ENABLE=1')) | Enable TProxy |
 | [Enable Nspaces](javascript:Scenario('CONSUL_NSPACES_ENABLE=1')) | Enable Namespace Support |
 | [Enable Partitions](javascript:Scenario('CONSUL_PARTITIONS_ENABLE=1')) | Enable Admin Partition Support |
 | [Enable SSO](javascript:Scenario('CONSUL_SSO_ENABLE=1')) | Enable SSO Support |
@@ -37,6 +38,7 @@ token/secret.
 | -------- | ------------- | ----------- |
 | `CONSUL_ACLS_ENABLE` | false | Enable/disable ACLs support. |
 | `CONSUL_ACLS_LEGACY` | false | Enable/disable legacy ACLs support. |
+| `CONSUL_TPROXY_ENABLE` | false | Enable/disable TProxy support globally (if not a service may have this applied randomly). |
 | `CONSUL_NSPACES_ENABLE` | false | Enable/disable Namespace support. |
 | `CONSUL_SSO_ENABLE` | false | Enable/disable SSO support. |
 | `CONSUL_OIDC_PROVIDER_URL` | undefined | Provide a OIDC provider URL for SSO. |
