@@ -3,38 +3,33 @@ import require from 'require';
 import merge from 'deepmerge';
 
 const doc = document;
-const appName = 'consul-ui';
-const appNameJS = appName
-  .split('-')
-  .map((item, i) => (i ? `${item.substr(0, 1).toUpperCase()}${item.substr(1)}` : item))
-  .join('');
 
 export const services = merge.all(
-  [].concat(
-    ...[...doc.querySelectorAll(`script[data-${appName}-services]`)].map($item =>
-      JSON.parse($item.dataset[`${appNameJS}Services`])
-    )
+  [...doc.querySelectorAll(`script[data-services]`)].map($item =>
+    JSON.parse($item.dataset[`services`])
   )
 );
 
 const inject = function(container, obj) {
   // inject all the things
   Object.entries(obj).forEach(([key, value]) => {
-    switch(true) {
-      case (typeof value.class === 'string'):
-        if(require.has(value.class)) {
-          container.register(key.replace('auth-provider:', 'torii-provider:'), require(value.class).default);
+    switch (true) {
+      case typeof value.class === 'string':
+        if (require.has(value.class)) {
+          container.register(
+            key.replace('auth-provider:', 'torii-provider:'),
+            require(value.class).default
+          );
         } else {
           throw new Error(`Unable to locate '${value.class}'`);
         }
-      break;
+        break;
     }
   });
-}
+};
 export default {
   name: 'container',
   initialize(application) {
-
     inject(application, services);
 
     const container = application.lookup('service:container');
