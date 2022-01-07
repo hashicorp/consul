@@ -28,7 +28,7 @@ func New(ui cli.Ui) *cmd {
 	return c
 }
 
-const DefaultAdminAccessLogPath = "/dev/null"
+const DefaultAccessLogPath = "/dev/null"
 
 type cmd struct {
 	UI     cli.Ui
@@ -63,6 +63,8 @@ type cmd struct {
 
 	gatewaySvcName string
 	gatewayKind    api.ServiceKind
+
+	listenerAccessLogPath string
 }
 
 const meshGatewayVal = "mesh"
@@ -98,10 +100,10 @@ func (c *cmd) init() {
 		"The full path to the envoy binary to run. By default will just search "+
 			"$PATH. Ignored if -bootstrap is used.")
 
-	c.flags.StringVar(&c.adminAccessLogPath, "admin-access-log-path", DefaultAdminAccessLogPath,
+	c.flags.StringVar(&c.adminAccessLogPath, "admin-access-log-path", DefaultAccessLogPath,
 		fmt.Sprintf("The path to write the access log for the administration server. If no access "+
 			"log is desired specify %q. By default it will use %q.",
-			DefaultAdminAccessLogPath, DefaultAdminAccessLogPath))
+			DefaultAccessLogPath, DefaultAccessLogPath))
 
 	c.flags.StringVar(&c.adminBind, "admin-bind", "localhost:19000",
 		"The address:port to start envoy's admin server on. Envoy requires this "+
@@ -156,6 +158,10 @@ func (c *cmd) init() {
 		"In Consul 1.9.0 the format of metric tags for Envoy clusters was updated from consul.[service|dc|...] to "+
 			"consul.destination.[service|dc|...]. The old tags were preserved for backward compatibility,"+
 			"but can be disabled with this flag.")
+
+	c.flags.StringVar(&c.listenerAccessLogPath, "listeners-access-log-path", DefaultAccessLogPath,
+		fmt.Sprintf("The path to write the access log for the listeners, if any. Defaults to %q.",
+		DefaultAccessLogPath))
 
 	c.flags.StringVar(&c.prometheusBackendPort, "prometheus-backend-port", "",
 		"Sets the backend port for the 'prometheus_backend' cluster that envoy_prometheus_bind_addr will point to. "+
@@ -464,7 +470,12 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 
 	adminAccessLogPath := c.adminAccessLogPath
 	if adminAccessLogPath == "" {
-		adminAccessLogPath = DefaultAdminAccessLogPath
+		adminAccessLogPath = DefaultAccessLogPath
+	}
+
+	listenerAccessLogPath := c.listenerAccessLogPath
+	if listenerAccessLogPath == "" {
+		listenerAccessLogPath = DefaultAccessLogPath
 	}
 
 	var caPEM string
@@ -484,6 +495,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		AdminBindAddress:      adminBindIP.String(),
 		AdminBindPort:         adminPort,
 		Token:                 httpCfg.Token,
+		ListenerAccessLogPath: listenerAccessLogPath,
 		LocalAgentClusterName: xds.LocalAgentClusterName,
 		Namespace:             httpCfg.Namespace,
 		Partition:             httpCfg.Partition,

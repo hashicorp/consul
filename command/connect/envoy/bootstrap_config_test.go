@@ -137,6 +137,7 @@ const (
 				  }
 				]
 			  },
+              "access_log": {"path": ""},
 			  "http_filters": [
 				{
 				  "name": "envoy.filters.http.router"
@@ -195,6 +196,7 @@ const (
 				  }
 				]
 			  },
+              "access_log": {"path": ""},
 			  "http_filters": [
 				{
 				  "name": "envoy.filters.http.router"
@@ -253,6 +255,7 @@ const (
 				  }
 				]
 			  },
+              "access_log": {"path": ""},
 			  "http_filters": [
 				{
 				  "name": "envoy.filters.http.router"
@@ -311,6 +314,7 @@ const (
                 }
               ]
             },
+			"access_log": {"path": ""},
             "http_filters": [
               {
                 "name": "envoy.filters.http.router"
@@ -369,6 +373,7 @@ const (
                 }
               ]
             },
+			"access_log": {"path": ""},
             "http_filters": [
               {
                 "name": "envoy.filters.http.router"

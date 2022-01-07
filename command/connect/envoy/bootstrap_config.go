@@ -611,6 +611,8 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 		clusterName = "prometheus_backend"
 	}
 
+	listenerAccessLogPath := args.ListenerAccessLogPath
+
 	clusterJSON := `{
 		"name": "` + clusterName + `",
 		"ignore_health_on_host_removal": false,
@@ -683,6 +685,9 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 										]
 									}
 								]
+							},
+							"access_log": {
+								"path": "` + listenerAccessLogPath + `"
 							},
 							"http_filters": [
 								{

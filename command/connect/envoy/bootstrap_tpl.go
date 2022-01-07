@@ -25,8 +25,8 @@ type BootstrapTplArgs struct {
 	AgentCAPEM string
 
 	// AdminAccessLogPath The path to write the access log for the
-	// administration server. If no access log is desired specify
-	// "/dev/null". By default it will use "/dev/null".
+	// administration server. If no admin access log is desired specify
+	// "/dev/null". By default, it will use "/dev/null".
 	AdminAccessLogPath string
 
 	// AdminBindAddress is the address the Envoy admin server should bind to.
@@ -34,6 +34,10 @@ type BootstrapTplArgs struct {
 
 	// AdminBindPort is the port the Envoy admin server should bind to.
 	AdminBindPort string
+
+	// ListenerAccessLogPath The path to write the access log for the
+	// listeners, if provided. By default, it will use "/dev/null".
+	ListenerAccessLogPath string
 
 	// LocalAgentClusterName is the name reserved for the local Consul agent gRPC
 	// service and is expected to be used for that purpose.

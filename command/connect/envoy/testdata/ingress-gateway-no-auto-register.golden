@@ -119,6 +119,9 @@
                       }
                     ]
                   },
+                  "access_log": {
+                    "path": "/dev/null"
+                  },
                   "http_filters": [
                     {
                       "name": "envoy.filters.http.router"
