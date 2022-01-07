@@ -5,8 +5,10 @@ export default function(type) {
       requests = ['/v1/catalog/datacenters'];
       break;
     case 'service':
-    case 'instance':
       requests = ['/v1/internal/ui/services', '/v1/health/service/'];
+      break;
+    case 'instance':
+      requests = ['/v1/health/service/'];
       break;
     case 'proxy':
       requests = ['/v1/catalog/connect'];
