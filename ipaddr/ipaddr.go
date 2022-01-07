@@ -104,7 +104,8 @@ func SplitHostPort(address string) (host string, port int, err error) {
 				portString = ""
 				err = nil
 			} else {
-
+				host = ""
+				portString = ""
 			}
 		case 9: // special case for ill formed, but unambigous full ipv6+port
 			host = strings.Join(byColon[:segments-1], ":")
@@ -136,4 +137,29 @@ func SplitHostPort(address string) (host string, port int, err error) {
 func StripOptionalPort(address string) (host string, err error) {
 	host, _, err = SplitHostPort(address)
 	return
+}
+
+func Canonicalize(address string) string {
+	host, port, err := SplitHostPort(address)
+	if err != nil {
+		return ""
+	}
+	if port > 0 {
+		return net.JoinHostPort(host, strconv.Itoa(port))
+	} else {
+		// We may want to put IPv6 in [] even without ports, because not all users
+		// handle IPv6 addresses correctly when looking for optional ports
+		return host
+	}
+}
+
+func CanonicalizeAddresslist(addresses []string) []string {
+	out := make([]string, 0, len(addresses))
+	for _, addr := range addresses {
+		canon := Canonicalize(addr)
+		if canon != "" {
+			out = append(out, canon)
+		}
+	}
+	return out
 }

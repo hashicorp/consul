@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/ipaddr"
 	"strings"
 	"time"
 
@@ -140,7 +141,19 @@ func retryJoinAddrs(disco *discover.Discover, variant, cluster string, retryJoin
 					)
 				}
 			} else {
-				addrs = append(addrs, servers...)
+				// Canonicalize addresses (providers can be inconsistent)
+				for _, addr := range servers {
+					canon := ipaddr.Canonicalize(addr)
+					if canon == "" {
+						if logger != nil {
+							logger.Error("Discovery returned unintelligible address ", addr)
+						}
+						continue
+					}
+					addrs = append(addrs, canon)
+				}
+
+				//	addrs = append(addrs, servers...)
 				if logger != nil {
 					if variant == retryJoinMeshGatewayVariant {
 						logger.Info("Discovered mesh gateways",
@@ -157,7 +170,14 @@ func retryJoinAddrs(disco *discover.Discover, variant, cluster string, retryJoin
 			}
 
 		default:
-			addrs = append(addrs, addr)
+			canon := ipaddr.Canonicalize(addr)
+			if canon == "" {
+				if logger != nil {
+					logger.Error("Discovery returned unintelligible address ", addr)
+				}
+				continue
+			}
+			addrs = append(addrs, canon)
 		}
 	}
 

@@ -31,23 +31,33 @@ func TestAgentRetryJoinAddrs(t *testing.T) {
 		name     string
 		input    []string
 		expected []string
+		special  string
 	}{
-		{"handles nil", nil, []string{}},
-		{"handles empty input", []string{}, []string{}},
+		{"handles nil", nil, []string{}, ""},
+		{"handles empty input", []string{}, []string{}, ""},
 		{"handles one element",
 			[]string{"192.168.0.12"},
 			[]string{"192.168.0.12"},
+			"",
 		},
 		{"handles two elements",
 			[]string{"192.168.0.12", "192.168.0.13"},
 			[]string{"192.168.0.12", "192.168.0.13"},
+			"",
+		},
+		{"handles ports and ipv6",
+			[]string{"192.168.0.12", "::1", "[::ffff:172.16.5.4]", "[::ffff:172.16.5.4]:5000", "a.com:10:12"},
+
+			[]string{"192.168.0.12", "::1", "::ffff:172.16.5.4", "[::ffff:172.16.5.4]:5000"},
+			"",
 		},
 		{"tries to resolve aws things, which fails but that is fine",
 			[]string{"192.168.0.12", "provider=aws region=eu-west-1 tag_key=consul tag_value=tag access_key_id=a secret_access_key=a"},
 			[]string{"192.168.0.12"},
+			`Using provider "aws"`,
 		},
 	}
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			logger := testutil.LoggerWithOutput(t, &buf)
@@ -55,8 +65,8 @@ func TestAgentRetryJoinAddrs(t *testing.T) {
 			output := retryJoinAddrs(d, retryJoinSerfVariant, "LAN", test.input, logger)
 			bufout := buf.String()
 			require.Equal(t, test.expected, output, bufout)
-			if i == 4 {
-				require.Contains(t, bufout, `Using provider "aws"`)
+			if test.special != "" {
+				require.Contains(t, bufout, test.special)
 			}
 		})
 	}
