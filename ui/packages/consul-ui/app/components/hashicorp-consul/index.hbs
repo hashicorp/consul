@@ -1,397 +1,263 @@
-{{#let (unique-id) as |guid|}}
-  <App
-    class="hashicorp-consul"
-    ...attributes
+<App
+  class="hashicorp-consul"
+  ...attributes
+>
+
+  <:notifications as |app|>
+{{#each flashMessages.queue as |flash|}}
+  <app.Notification
+    @delay={{sub flash.timeout flash.extendedTimeout}}
+    @sticky={{flash.sticky}}
   >
-    <:notifications as |app|>
-  {{#each flashMessages.queue as |flash|}}
-    <app.Notification
-      @delay={{sub flash.timeout flash.extendedTimeout}}
-      @sticky={{flash.sticky}}
-    >
-    {{#if flash.dom}}
-        {{{flash.dom}}}
-    {{else}}
+  {{#if flash.dom}}
+      {{{flash.dom}}}
+  {{else}}
 {{#let (lowercase flash.type) (lowercase flash.action) as |status type|}}
-    <Notice
-      role="alert"
-      class={{concat status ' notification-' type}}
-      data-notification
-      @type={{status}}
-    as |notice|>
-      <notice.Header>
-        <strong>
-          {{capitalize status}}!
-        </strong>
-      </notice.Header>
-      <notice.Body>
-        <p>
-          {{#if (eq type 'logout')}}
-            {{#if (eq status 'success') }}
-              You are now logged out.
-            {{else}}
-              There was an error logging out.
-            {{/if}}
-          {{else if (eq type 'authorize')}}
-            {{#if (eq status 'success') }}
-              You are now logged in.
-            {{else}}
-              There was an error, please check your SecretID/Token
-            {{/if}}
+  <Notice
+    role="alert"
+    class={{concat status ' notification-' type}}
+    data-notification
+    @type={{status}}
+  as |notice|>
+    <notice.Header>
+      <strong>
+        {{capitalize status}}!
+      </strong>
+    </notice.Header>
+    <notice.Body>
+      <p>
+        {{#if (eq type 'logout')}}
+          {{#if (eq status 'success') }}
+            You are now logged out.
           {{else}}
-            {{#if (or (eq type 'use') (eq flash.model 'token'))}}
-              <Consul::Token::Notifications
-                @type={{type}}
-                @status={{status}}
-                @item={{flash.item}}
-                @error={{flash.error}}
-              />
-            {{else if (eq flash.model 'intention')}}
-              <Consul::Intention::Notifications
-                @type={{type}}
-                @status={{status}}
-                @item={{flash.item}}
-                @error={{flash.error}}
-              />
-            {{else if (eq flash.model 'role')}}
-              <Consul::Role::Notifications
-                @type={{type}}
-                @status={{status}}
-                @item={{flash.item}}
-                @error={{flash.error}}
-              />
-            {{else if (eq flash.model 'policy')}}
-              <Consul::Policy::Notifications
-                @type={{type}}
-                @status={{status}}
-                @item={{flash.item}}
-                @error={{flash.error}}
-              />
-            {{/if}}
+            There was an error logging out.
           {{/if}}
-        </p>
-      </notice.Body>
-    </Notice>
+        {{else if (eq type 'authorize')}}
+          {{#if (eq status 'success') }}
+            You are now logged in.
+          {{else}}
+            There was an error, please check your SecretID/Token
+          {{/if}}
+        {{else}}
+          {{#if (or (eq type 'use') (eq flash.model 'token'))}}
+            <Consul::Token::Notifications
+              @type={{type}}
+              @status={{status}}
+              @item={{flash.item}}
+              @error={{flash.error}}
+            />
+          {{else if (eq flash.model 'intention')}}
+            <Consul::Intention::Notifications
+              @type={{type}}
+              @status={{status}}
+              @item={{flash.item}}
+              @error={{flash.error}}
+            />
+          {{else if (eq flash.model 'role')}}
+            <Consul::Role::Notifications
+              @type={{type}}
+              @status={{status}}
+              @item={{flash.item}}
+              @error={{flash.error}}
+            />
+          {{else if (eq flash.model 'policy')}}
+            <Consul::Policy::Notifications
+              @type={{type}}
+              @status={{status}}
+              @item={{flash.item}}
+              @error={{flash.error}}
+            />
+          {{/if}}
+        {{/if}}
+      </p>
+    </notice.Body>
+  </Notice>
 {{/let}}
-    {{/if}}
-    </app.Notification>
-  {{/each}}
+  {{/if}}
+  </app.Notification>
+{{/each}}
 
-    </:notifications>
-    <:home-nav>
-      <a
-        href={{href-to 'index'}}
-      ><Consul::Logo /></a>
-    </:home-nav>
+  </:notifications>
 
-    <:main-nav>
-      <ul>
+  <:home-nav>
+    <a
+      href={{href-to 'index'}}
+    ><Consul::Logo /></a>
+  </:home-nav>
+
+  <:main-nav>
+    <ul>
+      <li
+        class="dcs"
+        data-test-datacenter-menu
+      >
+        <PopoverMenu
+          aria-label="Datacenter"
+          @position="left"
+        as |components|>
+          <BlockSlot @name="trigger">
+            {{@dc.Name}}
+          </BlockSlot>
+          <BlockSlot @name="menu">
+{{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
+            <DataSource
+              @src={{uri '/*/*/*/datacenters'}}
+              @onchange={{action (mut @dcs) value="data"}}
+              @loading="lazy"
+            />
+{{#each (sort-by 'Name' @dcs) as |item|}}
+              <MenuItem
+                data-test-datacenter-picker
+                class={{concat
+                  (if (eq @dc.Name item.Name) 'is-active')
+                  (if item.Local ' is-local')
+                  (if item.Primary ' is-primary')
+                }}
+                @href={{href-to '.' params=(hash
+                  dc=item.Name
+                  partition=undefined
+                  nspace=(if (gt @nspace.length 0) @nspace undefined)
+                )}}
+              >
+                <BlockSlot @name="label">
+                  {{item.Name}}
+                {{#if item.Primary}}
+                  <span>Primary</span>
+                {{/if}}
+                {{#if item.Local}}
+                  <span>Local</span>
+                {{/if}}
+                </BlockSlot>
+              </MenuItem>
+{{/each}}
+{{/let}}
+          </BlockSlot>
+        </PopoverMenu>
+      </li>
+      <Consul::Partition::Selector
+        @dc={{@dc}}
+        @partition={{@partition}}
+        @nspace={{@nspace}}
+        @partitions={{this.partitions}}
+        @onchange={{action (mut this.partitions) value="data"}}
+      />
+      <Consul::Nspace::Selector
+        @dc={{@dc}}
+        @partition={{@partition}}
+        @nspace={{@nspace}}
+        @nspaces={{this.nspaces}}
+        @onchange={{action (mut this.nspaces) value="data"}}
+      />
+{{#if (can "read services")}}
+        <li data-test-main-nav-services class={{if (is-href 'dc.services' @dc.Name) 'is-active'}}>
+            <a href={{href-to 'dc.services' @dc.Name}}>Services</a>
+        </li>
+{{/if}}
+{{#if (can "read nodes")}}
+        <li data-test-main-nav-nodes class={{if (is-href 'dc.nodes' @dc.Name) 'is-active'}}>
+            <a href={{href-to 'dc.nodes' @dc.Name}}>Nodes</a>
+        </li>
+{{/if}}
+{{#if (can "read kv")}}
+        <li data-test-main-nav-kvs class={{if (is-href 'dc.kv' @dc.Name) 'is-active'}}>
+            <a href={{href-to 'dc.kv' @dc.Name}}>Key/Value</a>
+        </li>
+{{/if}}
+{{#if (can "read intentions")}}
+        <li data-test-main-nav-intentions class={{if (is-href 'dc.intentions' @dc.Name) 'is-active'}}>
+            <a href={{href-to 'dc.intentions' @dc.Name}}>Intentions</a>
+        </li>
+{{/if}}
+        <Consul::Acl::Selector
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+        />
+    </ul>
+  </:main-nav>
+
+  <:complementary-nav>
+    <ul>
+        <Debug::Navigation />
         <li
-          class="dcs"
-          data-test-datacenter-menu
+          data-test-main-nav-help
         >
-          <PopoverMenu
-            aria-label="Datacenter"
-            @position="left"
-          as |components|>
+          <PopoverMenu @position="right" as |components|>
             <BlockSlot @name="trigger">
-              {{@dc.Name}}
+              Help
             </BlockSlot>
             <BlockSlot @name="menu">
-{{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-              <DataSource
-                @src={{uri '/*/*/*/datacenters'}}
-                @onchange={{action (mut @dcs) value="data"}}
-                @loading="lazy"
-              />
-  {{#each (sort-by 'Name' @dcs) as |item|}}
+              {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
+                <MenuSeparator>
+                  <BlockSlot @name="label">
+                    Consul v{{env 'CONSUL_VERSION'}}
+                  </BlockSlot>
+                </MenuSeparator>
                 <MenuItem
-                  data-test-datacenter-picker
-                  class={{concat
-                    (if (eq @dc.Name item.Name) 'is-active')
-                    (if item.Local ' is-local')
-                    (if item.Primary ' is-primary')
-                  }}
-                  @href={{href-to '.' params=(hash
-                    dc=item.Name
-                    partition=undefined
-                    nspace=(if (gt @nspace.length 0) @nspace undefined)
-                  )}}
+                  class="docs-link"
+                  @href={{env 'CONSUL_DOCS_URL'}}
                 >
                   <BlockSlot @name="label">
-                    {{item.Name}}
-                  {{#if item.Primary}}
-                    <span>Primary</span>
-                  {{/if}}
-                  {{#if item.Local}}
-                    <span>Local</span>
-                  {{/if}}
+                    Documentation
                   </BlockSlot>
                 </MenuItem>
-  {{/each}}
-{{/let}}
+                <MenuItem
+                  class="learn-link"
+                  @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
+                >
+                  <BlockSlot @name="label">
+                    HashiCorp Learn
+                  </BlockSlot>
+                </MenuItem>
+                <MenuSeparator />
+                <MenuItem
+                  class="learn-link"
+                  @href={{env 'CONSUL_REPO_ISSUES_URL'}}
+                >
+                  <BlockSlot @name="label">
+                    Provide Feedback
+                  </BlockSlot>
+                </MenuItem>
+              {{/let}}
             </BlockSlot>
           </PopoverMenu>
         </li>
-        <Consul::Partition::Selector
-          @dc={{@dc}}
-          @partition={{@partition}}
-          @nspace={{@nspace}}
-          @partitions={{this.partitions}}
-          @onchange={{action (mut this.partitions) value="data"}}
-        />
-        <Consul::Nspace::Selector
-          @dc={{@dc}}
-          @partition={{@partition}}
-          @nspace={{@nspace}}
-          @nspaces={{this.nspaces}}
-          @onchange={{action (mut this.nspaces) value="data"}}
-        />
-{{#if (can "read services")}}
-          <li data-test-main-nav-services class={{if (is-href 'dc.services' @dc.Name) 'is-active'}}>
-              <a href={{href-to 'dc.services' @dc.Name}}>Services</a>
-          </li>
-{{/if}}
-{{#if (can "read nodes")}}
-          <li data-test-main-nav-nodes class={{if (is-href 'dc.nodes' @dc.Name) 'is-active'}}>
-              <a href={{href-to 'dc.nodes' @dc.Name}}>Nodes</a>
-          </li>
-{{/if}}
-{{#if (can "read kv")}}
-          <li data-test-main-nav-kvs class={{if (is-href 'dc.kv' @dc.Name) 'is-active'}}>
-              <a href={{href-to 'dc.kv' @dc.Name}}>Key/Value</a>
-          </li>
-{{/if}}
-{{#if (can "read intentions")}}
-          <li data-test-main-nav-intentions class={{if (is-href 'dc.intentions' @dc.Name) 'is-active'}}>
-              <a href={{href-to 'dc.intentions' @dc.Name}}>Intentions</a>
-          </li>
-{{/if}}
-          <li class="acls-separator" role="separator">
-            Access Controls
-{{#if (not (can "use acls"))}}
-            <span
-              {{tooltip "ACLs are not currently enabled in this cluster"}}
-            ></span>
-{{/if}}
-          </li>
-          <li data-test-main-nav-tokens class={{if (is-href 'dc.acls.tokens' @dc.Name) 'is-active'}}>
-              <a href={{href-to 'dc.acls.tokens' @dc.Name}}>Tokens</a>
-          </li>
-{{#if (can "read acls")}}
-          <li data-test-main-nav-policies class={{if (is-href 'dc.acls.policies' @dc.Name) 'is-active'}}>
-              <a href={{href-to 'dc.acls.policies' @dc.Name}}>Policies</a>
-          </li>
-          <li data-test-main-nav-roles class={{if (is-href 'dc.acls.roles' @dc.Name) 'is-active'}}>
-              <a href={{href-to 'dc.acls.roles' @dc.Name}}>Roles</a>
-          </li>
-          <li data-test-main-nav-auth-methods class={{if (is-href 'dc.acls.auth-methods' @dc.Name) 'is-active'}}>
-              <a href={{href-to 'dc.acls.auth-methods' @dc.Name}}>Auth Methods</a>
-          </li>
-{{else if (not (can "use acls"))}}
-          <li data-test-main-nav-policies class={{if (is-href 'dc.acls.policies' @dc.Name) 'is-active'}}>
-              <span>Policies</span>
-          </li>
-          <li data-test-main-nav-roles class={{if (is-href 'dc.acls.roles' @dc.Name) 'is-active'}}>
-              <span>Roles</span>
-          </li>
-          <li data-test-main-nav-auth-methods class={{if (is-href 'dc.acls.auth-methods' @dc.Name) 'is-active'}}>
-              <span>Auth Methods</span>
-          </li>
-{{/if}}
-      </ul>
-    </:main-nav>
-
-    <:complementary-nav>
-      <ul>
-          <Debug::Navigation />
-          <li data-test-main-nav-help>
-            <PopoverMenu @position="right" as |components|>
-              <BlockSlot @name="trigger">
-                Help
-              </BlockSlot>
-              <BlockSlot @name="menu">
-                {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-                  <MenuSeparator>
-                    <BlockSlot @name="label">
-                      Consul v{{env 'CONSUL_VERSION'}}
-                    </BlockSlot>
-                  </MenuSeparator>
-                  <MenuItem
-                    class="docs-link"
-                    @href={{env 'CONSUL_DOCS_URL'}}
-                  >
-                    <BlockSlot @name="label">
-                      Documentation
-                    </BlockSlot>
-                  </MenuItem>
-                  <MenuItem
-                    class="learn-link"
-                    @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
-                  >
-                    <BlockSlot @name="label">
-                      HashiCorp Learn
-                    </BlockSlot>
-                  </MenuItem>
-                  <MenuSeparator />
-                  <MenuItem
-                    class="learn-link"
-                    @href={{env 'CONSUL_REPO_ISSUES_URL'}}
-                  >
-                    <BlockSlot @name="label">
-                      Provide Feedback
-                    </BlockSlot>
-                  </MenuItem>
-                {{/let}}
-              </BlockSlot>
-            </PopoverMenu>
-          </li>
-          <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
-              <a href={{href-to 'settings' params=(hash
+        <li
+          data-test-main-nav-settings
+          class={{if (is-href 'settings') 'is-active'}}
+        >
+            <a
+              href={{href-to 'settings' params=(hash
                 nspace=undefined
                 partition=undefined
-              )}}>Settings</a>
-          </li>
-  {{#if (can 'authenticate')}}
-          <li data-test-main-nav-auth>
-            <AuthDialog
-              @dc={{@dc.Name}}
-              @nspace={{@nspace}}
-              @partition={{@partition}}
-              @onchange={{this.reauthorize}} as |authDialog components|
+              )}}
             >
-              {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
-                <BlockSlot @name="unauthorized">
-                  <Portal @target="app-before-skip-links">
-                    <button
-                      type="button"
-                      {{on "click" (optional this.modal.open)}}
-                    >
-                      Login
-                    </button>
-                  </Portal>
-                  <button
-                    type="button"
-                    {{on "click" (optional this.modal.open)}}
-                  >
-                    Log in
-                  </button>
-                  <ModalDialog
-                    @name="login-toggle"
-                    @onclose={{this.close}}
-                    @onopen={{this.open}}
-                    @aria={{hash
-                      label="Log in to Consul"
-                    }}
-                  as |modal|>
-                    <Ref @target={{this}} @name="modal" @value={{modal}} />
-                    <BlockSlot @name="header">
-                      <h2>Log in to Consul</h2>
-                    </BlockSlot>
-                    <BlockSlot @name="body">
-                      <AuthForm as |authForm|>
-                        <Ref
-                          @target={{this}}
-                          @name="authForm"
-                          @value={{authForm}}
-                        />
-                        {{#if (can "use SSO")}}
-                          <authForm.Method @matches="sso">
-                            <OidcSelect
-                              @dc={{@dc.Name}}
-                              @nspace={{@nspace}}
-                              @disabled={{authForm.disabled}}
-                              @onchange={{authForm.submit}}
-                              @onerror={{authForm.error}}
-                            />
-                          </authForm.Method>
-                        {{/if}}
-                      </AuthForm>
-                    </BlockSlot>
-                    <BlockSlot @name="actions">
-                      <button type="button"
-                        {{on "click" modal.close}}
-                      >
-                        Continue without logging in
-                      </button>
-                    </BlockSlot>
-                  </ModalDialog>
-                </BlockSlot>
-                <BlockSlot @name="authorized">
-                  <ModalDialog
-                    @name="login-toggle"
-                    @onclose={{this.close}}
-                    @onopen={{this.open}}
-                    @aria={{hash
-                      label="Log in with a different token"
-                    }}
-                  as |modal|>
-                    <Ref @target={{this}} @name="modal" @value={{modal}} />
-                    <BlockSlot @name="header">
-                      <h2>Log in with a different token</h2>
-                    </BlockSlot>
-                    <BlockSlot @name="body">
-                      <AuthForm as |authForm|>
-                        <Ref @target={{this}} @name="authForm" @value={{authForm}} />
-                      </AuthForm>
-                    </BlockSlot>
-                    <BlockSlot @name="actions">
-                      <button type="button" onclick={{action modal.close}}>
-                        Continue without logging in
-                      </button>
-                    </BlockSlot>
-                  </ModalDialog>
-                  <Portal @target="app-before-skip-links">
-                    <button
-                      type="button"
-                      {{on "click" (optional authDialog.logout)}}
-                    >
-                      Logout
-                    </button>
-                  </Portal>
-                  <PopoverMenu @position="right" as |components api|>
-                    <BlockSlot @name="trigger">
-                      Logout
-                    </BlockSlot>
-                    <BlockSlot @name="menu">
-                      {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-  {{!TODO: It might be nice to use one of our recursive components here}}
-  {{#if authDialog.token.AccessorID}}
-                          <li role="none">
-                            <AuthProfile />
-                          </li>
-                          <MenuSeparator />
-  {{/if}}
-                          <MenuItem
-                            class="dangerous"
-                            @onclick={{action authDialog.logout}}
-                          >
-                            <BlockSlot @name="label">
-                              Logout
-                            </BlockSlot>
-                          </MenuItem>
-                        {{/let}}
-                    </BlockSlot>
-                  </PopoverMenu>
-                </BlockSlot>
-              {{/let}}
-            </AuthDialog>
-          </li>
-  {{/if}}
-      </ul>
-    </:complementary-nav>
+              Settings
+            </a>
+        </li>
+        <Consul::Token::Selector
+          @token={{@user.token}}
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+          @onchange={{@onchange}}
+        as |modal|>
+          {{did-insert (set this 'modal')}}
+        </Consul::Token::Selector>
+    </ul>
+  </:complementary-nav>
 
-    <:main>
-      {{yield (hash
-        login=(if (env 'CONSUL_ACLS_ENABLED') this.modal (hash open=undefined))
-      )}}
-    </:main>
+  <:main>
+    {{yield (hash
+      login=(if this.modal this.modal (hash open=undefined))
+    )}}
+  </:main>
 
-    <:content-info>
-      <p>
-        Consul v{{env 'CONSUL_VERSION'}}
-      </p>
-      {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
-    </:content-info>
-  </App>
-{{/let}}
+  <:content-info>
+    <p>
+      Consul v{{env 'CONSUL_VERSION'}}
+    </p>
+    {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
+  </:content-info>
+
+</App>

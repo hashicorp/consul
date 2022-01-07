@@ -6,10 +6,6 @@
 %menu-panel > ul > li {
   list-style-type: none;
 }
-%menu-panel dt {
-  font-weight: var(--typo-weight-bold);
-}
-%menu-panel dl,
 %menu-panel-header {
   @extend %p2;
 }
@@ -17,9 +13,6 @@
   @extend %p3;
   text-transform: uppercase;
   font-weight: var(--typo-weight-medium);
-}
-%menu-panel dt span {
-  font-weight: var(--typo-weight-normal);
 }
 %menu-panel-header + ul,
 %menu-panel-separator:not(:first-child) {
@@ -31,13 +24,6 @@
 %menu-panel {
   border-color: rgb(var(--tone-gray-300));
   background-color: rgb(var(--tone-gray-000));
-}
-%menu-panel dt,
-%menu-panel dd {
-  color: rgb(var(--tone-gray-800));
-}
-%menu-panel dt span {
-  color: rgb(var(--tone-gray-600));
 }
 %menu-panel-separator {
   color: rgb(var(--tone-gray-600));
