@@ -4032,6 +4032,9 @@ func grpcInjectAddr(existing string, ip string, port int) string {
 	portRepl := fmt.Sprintf("${1}:%d${3}", port)
 	out := grpcAddrRE.ReplaceAllString(existing, portRepl)
 
+	// TODO Is this necessary?
+	// Ensure that ipv6 addr is enclosed in brackets (RFC 3986)
+	ip = fixIPv6(ip)
 	addrRepl := fmt.Sprintf("%s${2}${3}", ip)
 	out = grpcAddrRE.ReplaceAllString(out, addrRepl)
 

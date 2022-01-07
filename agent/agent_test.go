@@ -4167,21 +4167,21 @@ func TestAgent_grpcInjectAddr(t *testing.T) {
 			grpc: "2001:db8:1f70::999:de8:7648:6e8:5000",
 			ip:   "::FFFF:C0A8:1",
 			port: 9090,
-			want: "::FFFF:C0A8:1:9090",
+			want: "[::FFFF:C0A8:1]:9090",
 		},
 		{
 			name: "ipv6 injected into ipv6 url with svc",
 			grpc: "2001:db8:1f70::999:de8:7648:6e8:5000/web",
 			ip:   "::FFFF:C0A8:1",
 			port: 9090,
-			want: "::FFFF:C0A8:1:9090/web",
+			want: "[::FFFF:C0A8:1]:9090/web",
 		},
 		{
 			name: "ipv6 injected into ipv6 url with special",
 			grpc: "2001:db8:1f70::999:de8:7648:6e8:5000/service-$name:with@special:Chars",
 			ip:   "::FFFF:C0A8:1",
 			port: 9090,
-			want: "::FFFF:C0A8:1:9090/service-$name:with@special:Chars",
+			want: "[::FFFF:C0A8:1]:9090/service-$name:with@special:Chars",
 		},
 	}
 	for _, tt := range tt {
