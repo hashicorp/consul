@@ -1,3 +1,15 @@
+## 1.11.1 (December 15, 2021)
+
+SECURITY:
+
+* ci: Upgrade golang.org/x/net to address [CVE-2021-44716](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716) [[GH-11854](https://github.com/hashicorp/consul/issues/11854)]
+
+FEATURES:
+
+* Admin Partitions (Consul Enterprise only) This version adds admin partitions, a new entity defining administrative and networking boundaries within a Consul deployment. For more information refer to the
+ [Admin Partition](https://www.consul.io/docs/enterprise/admin-partitions) documentation. [[GH-11855](https://github.com/hashicorp/consul/issues/11855)]
+* networking: **(Enterprise Only)** Make `segment_limit` configurable, cap at 256.
+
 ## 1.11.0 (December 14, 2021)
 
 BREAKING CHANGES:
@@ -120,6 +132,22 @@ permissions errors rather than using UI capabilities 'pre-user-action' [[GH-1152
 NOTES:
 
 * Renamed the `agent_master` field to `agent_recovery` in the `acl-tokens.json` file in which tokens are persisted on-disk (when `acl.enable_token_persistence` is enabled) [[GH-11744](https://github.com/hashicorp/consul/issues/11744)]
+
+## 1.10.6 (December 15, 2021)
+
+SECURITY:
+
+* ci: Upgrade golang.org/x/net to address [CVE-2021-44716](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716) [[GH-11856](https://github.com/hashicorp/consul/issues/11856)]
+
+## 1.10.5 (December 13, 2021)
+
+SECURITY:
+
+* ci: Upgrade to Go 1.16.12 to address [CVE-2021-44716](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716) [[GH-11808](https://github.com/hashicorp/consul/issues/11808)]
+
+BUG FIXES:
+
+* agent: **(Enterprise only)** fix bug where 1.10.x agents would deregister serf checks from 1.11.x servers [[GH-11700](https://github.com/hashicorp/consul/issues/11700)]
 
 ## 1.10.4 (November 11, 2021)
 
@@ -388,6 +416,18 @@ being expired. [[GH-10161](https://github.com/hashicorp/consul/issues/10161)]
 NOTES:
 
 * legal: **(Enterprise only)** Enterprise binary downloads will now include a copy of the EULA and Terms of Evaluation in the zip archive
+
+## 1.9.13 (December 15, 2021)
+
+SECURITY:
+
+* ci: Upgrade golang.org/x/net to address [CVE-2021-44716](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716) [[GH-11858](https://github.com/hashicorp/consul/issues/11858)]
+
+## 1.9.12 (December 13, 2021)
+
+SECURITY:
+
+* ci: Upgrade to Go 1.16.12 to address [CVE-2021-44716](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716) [[GH-11807](https://github.com/hashicorp/consul/issues/11807)]
 
 ## 1.9.11 (November 11, 2021)
 
@@ -768,6 +808,26 @@ BUG FIXES:
 * server: skip deleted and deleting namespaces when migrating intentions to config entries [[GH-9186](https://github.com/hashicorp/consul/issues/9186)]
 * telemetry: fixed a bug that caused logs to be flooded with `[WARN] agent.router: Non-server in server-only area` [[GH-8685](https://github.com/hashicorp/consul/issues/8685)]
 * ui: show correct datacenter for gateways [[GH-8704](https://github.com/hashicorp/consul/issues/8704)]
+
+## 1.8.19 (December 15, 2021)
+
+SECURITY:
+
+* ci: Upgrade golang.org/x/net to address [CVE-2021-44716](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716) [[GH-11857](https://github.com/hashicorp/consul/issues/11857)]
+
+## 1.8.18 (December 13, 2021)
+
+SECURITY:
+
+* ci: Upgrade to Go 1.16.12 to address [CVE-2021-44716](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716) [[GH-11806](https://github.com/hashicorp/consul/issues/11806)]
+* namespaces: **(Enterprise only)** Creating or editing namespaces that include default ACL policies or ACL roles now requires `acl:write` permission in the default namespace. This change fixes CVE-2021-41805.
+
+BUG FIXES:
+
+* snapshot: **(Enterprise only)** fixed a bug where the snapshot agent would ignore the `license_path` setting in config files
+* ui: Fixes an issue where under some circumstances after logging we present the
+data loaded previous to you logging in. [[GH-11681](https://github.com/hashicorp/consul/issues/11681)]
+* ui: Include `Service.Namespace` into available variables for `dashboard_url_templates` [[GH-11640](https://github.com/hashicorp/consul/issues/11640)]
 
 ## 1.8.17 (November 11, 2021)
 
