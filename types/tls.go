@@ -206,8 +206,12 @@ func ValidateEnvoyCipherSuites(cipherSuites []TLSCipherSuite) error {
 
 func MarshalEnvoyTLSCipherSuiteStrings(cipherSuites []TLSCipherSuite) []string {
 	cipherSuiteStrings := []string{}
+
 	for _, c := range cipherSuites {
-		cipherSuiteStrings = append(cipherSuiteStrings, envoyTLSCipherSuiteStrings[c])
+		if s, ok := envoyTLSCipherSuiteStrings[c]; ok {
+			cipherSuiteStrings = append(cipherSuiteStrings, s)
+		}
 	}
+
 	return cipherSuiteStrings
 }
