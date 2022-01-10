@@ -152,14 +152,108 @@ spec:
 -> **NOTE:** The `proxy-defaults` config entry can only be created in the `default`
 namespace and it will configure proxies in **all** namespaces.
 
+<CodeTabs heading="Proxy defaults configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<CodeBlockConfig>
+
 ```hcl
 Kind      = "proxy-defaults"
 Name      = "global"
 Namespace = "default" # Can only be set to "default".
+Meta {
+  <arbitrary string key> = "<arbitrary string value>"
+}
 Config {
-  protocol = "http"
+  <arbitrary string key> = <arbitrary value>
+}
+Mode = "<name of proxy mode>"
+TransparentProxy {
+  OutboundListenerPort = <port the proxy should listen on for outbound traffic>
+  DialedDirectly       = <true if proxy instances should be dialed directly>
+}
+MeshGateway {
+  Mode = "<name of mesh gatweay configuration for all proxies>"
+}
+Expose {
+  Checks = <true to expose all HTTP and gRPC checks through Envoy>
+
+  Paths = [
+    {
+      Path          = "<the HTTP path to expose>"
+      LocalPathPort = <port where the local service is listening for connections to the path>
+      ListenerPort  = <port where the proxy will listen for connections>
+      Protocol      = "<protocol of the listener>"
+    }
+  ]
 }
 ```
+
+</CodeBlockConfig>
+<CodeBlockConfig>
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+  namespace: default
+spec:
+  meta:
+    <arbitrary string key>: <arbitrary string value>
+  config:
+    <arbitrary string key>: <arbitrary value>
+  mode: <name of proxy mode>
+  transparentProxy:
+    outboundListenerPort: <port the proxy should listen on for outbound traffic>
+    dialedDirectly: <true if proxy instances should be dialed directly>
+  meshGateway:
+    mode: <name of mesh gatweay configuration for all proxies>
+  expose:
+    checks: <true to expose all HTTP and gRPC checks through Envoy>
+    paths:
+      - path: <the HTTP path to expose>
+        localPathPort: <port where the local service is listening for connections to the path>
+        listenerPort: <port where the proxy will listen for connections>
+        protocol:= <protocol of the listener>
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig>
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "Namespace": "default",
+  "Meta": {
+    "<arbitrary string key>": "<arbitrary string value>"
+  },
+  "Config": {
+    "<arbitrary string key>": <arbitrary value>
+  },
+  "Mode": "<name of proxy mode>",
+  "TransparentProxy": {
+    "OutboundListenerPort": <port the proxy should listen on for outbound traffic>,
+    "DialedDirectly": <true if proxy instances should be dialed directly>
+  },
+  "MeshGateway": {
+    "Mode": = "<name of mesh gatweay configuration for all proxies>"
+  },
+  "Expose": {
+    "Checks": <true to expose all HTTP and gRPC checks through Envoy>,
+    "Paths": [
+      {
+        "Path": "<the HTTP path to expose>",
+        "LocalPathPort": <port where the local service is listening for connections to the path>,
+        "ListenerPort": <port where the proxy will listen for connections>,
+        "Protocol": "<protocol of the listener>"
+      }
+    ]
+  }
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
 
 </Tab>
 </Tabs>
