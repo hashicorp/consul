@@ -9,6 +9,11 @@ Command: `consul kv put`
 
 The `kv put` command writes the data to the given path in the KV store.
 
+-> When writing multiple entries at once, consider using
+[`kv import`](/commands/kv/import) instead. Alternatively, the
+[transaction API](/api-docs/txn) provides support for performing up to
+64 KV operations atomically.
+
 ## Usage
 
 Usage: `consul kv put [options] KEY [DATA]`
