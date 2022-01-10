@@ -1,0 +1,309 @@
+---
+layout: docs
+page_title: Policies
+description: >-
+---
+
+# Policies
+
+An ACL policy (not to be confused with [policy dispositions](/docs/security/acl/acl-rules#policy-dispositions)) is a named set of rules and several attributes that define the policy domain. The ID is generated when the policy is created, but you can specify the attributes when creating the policy. Refer to the [ACL policy command line](https://www.consul.io/commands/acl/policy) documentation or [ACL policy API](/api-docs/acl/policies) documentation for additional information on how to create policies.
+
+ACL policies can have the following attributes:
+
+| Attribute | Description | Required | Default |
+| ---       | ---         | ---      | ---     |
+| `ID` | The policy's auto-generated public identifier. | N/A | N/A |
+| `name` | Unique name for the policy. | Required | none |
+| `description` | Human readable description of the policy. | Optional | none |
+| `rules` | Set of rules granting or denying permissions. See the [Rule Specification](/docs/acl/acl-rules#rule-specification) documentation for more details. | Optional | none |
+| `datacenter` | Datacenter in which the policy is valid. More than one datacenter can be specified. | Optional | none | 
+| `namespace` | <EnterpriseAlert inline /> Namespace in which the policy is valid. Added in Consul Enterprise 1.7.0. | Optional | `default` |
+| `partition` | <EnterpriseAlert inline /> Admin partition in which the policy is valid. Added in Consul Enterprise 1.11.0 | Optional | `default` |
+
+-> **Non-default Namespaces and Partitions** - Rules defined in a policy tied to an namespace or admin partition other than `default` can only grant a subset of privileges that affect the namespace or partition. See [Namespace Rules](/docs/acl/acl-rules#namespace-rules) and [Admin Partition Rules](/docs/acl/acl-rules#admin-partition-rules) for additional information.
+
+You can view the current ACL policies on the command line or through the API. The following example demonstrates the command line usage:
+
+```shell-session
+$ consul acl policy list -format json -token <token_id>
+[
+    {
+        "ID": "56595ec1-52e4-d6de-e566-3b78696d5459",
+        "Name": "b-policy",
+        "Description": "",
+        "Datacenters": null,
+        "Hash": "ULwaXlI6Ecqb9YSPegXWgVL1LlwctY9TeeAOhp5HGBA=",
+        "CreateIndex": 126,
+        "ModifyIndex": 126,
+        "Namespace": "default",
+        "Partition": "default"
+    },
+    {
+        "ID": "00000000-0000-0000-0000-000000000001",
+        "Name": "global-management",
+        "Description": "Builtin Policy that grants unlimited access",
+        "Datacenters": null,
+        "Hash": "W1bQuDAlAlxEb4ZWwnVHplnt3I5oPKOZJQITh79Xlog=",
+        "CreateIndex": 70,
+        "ModifyIndex": 70,
+        "Namespace": "default",
+        "Partition": "default"
+    }
+]
+```
+
+Note that the `Hash`, `CreateIndex`, and `ModifyIndex` attributes are also printed. These attributes are printed for all responses and are not specific to ACL policies. 
+
+
+### Builtin Policies
+
+- **Global Management** - Grants unrestricted privileges to any token that uses it. When created it will be named `global-management`
+  and will be assigned the reserved ID of `00000000-0000-0000-0000-000000000001`. This policy can be renamed but modification
+  of anything else including the rule set and datacenter scoping will be prevented by Consul.
+
+- **Namespace Management** - <EnterpriseAlert inline /> - Every namespace created will have a policy injected with the name `namespace-management`. This policy gets injected with a randomized UUID and may be managed like any other user-defined policy
+  within the Namespace. (Added in Consul Enterprise 1.7.0)
+
+## Service Identities
+
+-> Added in Consul 1.5.0
+
+An ACL service identity is an [ACL policy](/docs/acl/acl-system#policies) template for expressing a link to a policy
+suitable for use in [Consul Connect](/docs/connect). They are usable
+on both tokens and roles and are composed of the following elements:
+
+- **Service Name** - The name of the service.
+- **Datacenters** - A list of datacenters the effective policy is valid within. (Optional)
+
+Services participating in the service mesh will need privileges to both _be
+discovered_ and to _discover other healthy service instances_. Suitable
+policies tend to all look nearly identical so a service identity is a policy
+template to aid in avoiding boilerplate policy creation.
+
+During the authorization process, the configured service identity is automatically
+applied as a policy with the following preconfigured [ACL
+rules](/docs/acl/acl-system#acl-rules-and-scope):
+
+```hcl
+# Allow the service and its sidecar proxy to register into the catalog.
+service "<Service Name>" {
+	policy = "write"
+}
+service "<Service Name>-sidecar-proxy" {
+	policy = "write"
+}
+
+# Allow for any potential upstreams to be resolved.
+service_prefix "" {
+	policy = "read"
+}
+node_prefix "" {
+	policy = "read"
+}
+```
+
+The [API documentation for roles](/api/acl/roles#sample-payload) has some
+examples of using a service identity.
+
+-> **Service Scope for Namespace and Admin Partition** - Service identity rules in Consul Enterprise are scoped to the namespace or admin partition within which the corresponding ACL token or role resides.
+
+## Node Identities
+
+-> Added in Consul 1.8.1
+
+An ACL node identity is an [ACL policy](/docs/acl/acl-system#policies) template for expressing a link to a policy
+suitable for use as an [Consul `agent` token](/docs/agent/options#acl_tokens_agent). They are usable
+on both tokens and roles and are composed of the following elements:
+
+- **Node Name** - The name of the node to grant access to.
+- **Datacenter** - The datacenter that the node resides within.
+
+During the authorization process, the configured node identity is automatically
+applied as a policy with the following preconfigured [ACL
+rules](/docs/acl/acl-system#acl-rules-and-scope):
+
+```hcl
+# Allow the agent to register its own node in the Catalog and update its network coordinates
+node "<Node Name>" {
+  policy = "write"
+}
+
+# Allows the agent to detect and diff services registered to itself. This is used during
+# anti-entropy to reconcile difference between the agents knowledge of registered
+# services and checks in comparison with what is known in the Catalog.
+service_prefix "" {
+  policy = "read"
+}
+```
+
+-> **Consul Enterprise Namespacing** - Node Identities can only be applied to tokens and roles in the `default` namespace.
+The synthetic policy rules allow for `service:read` permissions on all services in all namespaces.
+
+## Roles
+
+-> Added in Consul 1.5.0
+
+An ACL role is a named set of policies and service identities and is composed
+of the following elements:
+
+- **ID** - The role's auto-generated public identifier.
+- **Name** - A unique meaningful name for the role.
+- **Description** - A human readable description of the role. (Optional)
+- **Policy Set** - The list of policies that are applicable for the role.
+- **Service Identity Set** - The list of service identities that are applicable for the role.
+- **Namespace** <EnterpriseAlert inline /> - The namespace this policy resides within. (Added in Consul Enterprise 1.7.0)
+
+-> **Linking Roles to Policies in Consul Enterprise** - Roles can only be linked to policies that are defined in the same namespace and admin partition. 
+
+#### ACL Rules and Scope
+
+The rules from all policies, roles, and service identities linked with a token are combined to form that token's
+effective rule set. Policy rules can be defined in either an allowlist or denylist
+mode depending on the configuration of [`acl_default_policy`](/docs/agent/options#acl_default_policy).
+If the default policy is to "deny" access to all resources, then policy rules can be set to
+allowlist access to specific resources. Conversely, if the default policy is “allow” then policy rules can
+be used to explicitly deny access to resources.
+
+TODO: link to rules reference
+
+
+Since Consul snapshots actually contain ACL tokens, the [Snapshot API](/api/snapshot)
+requires a token with "write" privileges for the ACL system.
+
+The following resources are not covered by ACL policies:
+
+1. The [Status API](/api/status) is used by servers when bootstrapping and exposes
+   basic IP and port information about the servers, and does not allow modification
+   of any state.
+
+2. The datacenter listing operation of the
+   [Catalog API](/api/catalog#list-datacenters) similarly exposes the names of known
+   Consul datacenters, and does not allow modification of any state.
+
+3. The [connect CA roots endpoint](/api/connect/ca#list-ca-root-certificates) exposes just the public TLS certificate which other systems can use to verify the TLS connection with Consul.
+
+Constructing rules from these policies is covered in detail on the
+[ACL Rules](/docs/acl/acl-rules) page.
+
+### Formatting
+
+Define policies using the
+[HashiCorp Configuration Language (HCL)](https://github.com/hashicorp/hcl/).
+HCL is human readable and interoperable with JSON, making it easy to automate rule generation.
+The following examples show the same rules formatted in HCL and JSON:
+
+<CodeTabs heading="Example rules">
+<CodeBlockConfig lineNumbers>
+
+```hcl
+# These control access to the key/value store.
+key_prefix "" {
+  policy = "read"
+}
+key_prefix "foo/" {
+  policy = "write"
+}
+key_prefix "foo/private/" {
+  policy = "deny"
+}
+# Or for exact key matches
+key "foo/bar/secret" {
+  policy = "deny"
+}
+
+# This controls access to cluster-wide Consul operator information.
+operator = "read"
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig lineNumbers>
+
+```json
+{
+  "key": [
+    {
+      "foo/bar/secret": [
+        {
+          "policy": "deny"
+        }
+      ]
+    }
+  ],
+  "key_prefix": [
+    {
+      "": [
+        {
+          "policy": "read"
+        }
+      ]
+    },
+    {
+      "foo/": [
+        {
+          "policy": "write"
+        }
+      ]
+    },
+    {
+      "foo/private/": [
+        {
+          "policy": "deny"
+        }
+      ]
+    }
+  ],
+  "operator": "read"
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+## Defining Rules with the ACL API
+
+TODO: replace this section with a link to the appropriate API and CLI docs. Move these
+examples if none exist in those docs.
+
+You can configure ACLs remotely by calling the ACL HTTP API endpoint and including rules in the payload. The endpoint takes data formatted in HCL or JSON. Refer to the [ACL HTTP API endpoint documentation](/api/acl/acl) for details about the API.
+
+The following example adds a set of rules that apply to the `key` resource (Consul K/V) within the `my-app-policy` policy. The rules are formatted in HCL, but they are wrapped in JSON so that the data can be sent using cURL:
+
+```shell-session
+$ curl \
+    --request PUT \
+    --data \
+'{
+  "Name": "my-app-policy",
+  "Rules": "key \"\" { policy = \"read\" } key \"foo/\" { policy = \"write\" } key \"foo/private/\" { policy = \"deny\" } operator = \"read\""
+}' http://127.0.0.1:8500/v1/acl/policy?token=<token with ACL "write">
+```
+
+The following call performs the same operation as the previous example using JSON:
+
+```shell-session
+$ curl \
+    --request PUT \
+    --data \
+'{
+  "Name": "my-app-policy",
+  "Rules": "{\"key\":{\"\":{\"policy\":\"read\"},\"foo/\":{\"policy\":\"write\"},\"foo/private\":{\"policy\":\"deny\"}},\"operator\":\"read\"}"
+}' http://127.0.0.1:8500/v1/acl/policy?token=<management token>
+```
+
+The policy configuration is returned when the call is succesfully performaed:
+
+```json
+{
+  "CreateIndex": 7,
+  "Hash": "UMG6QEbV40Gs7Cgi6l/ZjYWUwRS0pIxxusFKyKOt8qI=",
+  "ID": "5f423562-aca1-53c3-e121-cb0eb2ea1cd3",
+  "ModifyIndex": 7,
+  "Name": "my-app-policy",
+  "Rules": "key \"\" { policy = \"read\" } key \"foo/\" { policy = \"write\" } key \"foo/private/\" { policy = \"deny\" } operator = \"read\""
+}
+```
+
+The policy can now be specified either by name or by ID when
+[creating a token](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production#create-the-agent-token).
+This will grant the rules provided to the [bearer of that token](/api#authentication).
+

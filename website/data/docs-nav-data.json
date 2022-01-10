@@ -803,20 +803,16 @@
             "path": "security/acl"
           },
           {
-            "title": "ACL System",
-            "path": "security/acl/acl-system"
+            "title": "Tokens",
+            "path": "security/acl/tokens"
+          },
+          {
+            "title": "Policies",
+            "path": "security/acl/policies"
           },
           {
             "title": "ACL Rules",
             "path": "security/acl/acl-rules"
-          },
-          {
-            "title": "Legacy Mode",
-            "path": "security/acl/acl-legacy"
-          },
-          {
-            "title": "Token Migration",
-            "path": "security/acl/acl-migrate-tokens"
           },
           {
             "title": "Auth Methods",
@@ -838,6 +834,14 @@
                 "path": "security/acl/auth-methods/oidc"
               }
             ]
+          },
+          {
+            "title": "Legacy Mode",
+            "path": "security/acl/acl-legacy"
+          },
+          {
+            "title": "Token Migration",
+            "path": "security/acl/acl-migrate-tokens"
           }
         ]
       },

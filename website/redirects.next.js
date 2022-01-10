@@ -82,6 +82,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/security/acl/acl-system',
+    destination: '/docs/security/acl',
+    permanent: true,
+  },
+  {
     source: '/docs/guides/bootstrapping',
     destination: '/docs/install/bootstrapping',
     permanent: true,

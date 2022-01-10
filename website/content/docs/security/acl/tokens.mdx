@@ -1,0 +1,112 @@
+---
+layout: docs
+page_title: Tokens
+description: >-
+---
+
+# Tokens
+
+Tokens are the core method of authentication in Consul. The `SecretID` of the token
+(often referred to as the ACL token) is an opaque string that is included in requests to
+identify the person or system making the request. The ACL system will look up the ACL
+token and grant or deny access based on the permissions associated with the token.
+Permissions are granted to a token by linking it to [policies](#policies), [roles](#roles),
+[service identities](#service-identities), and [node identities](#node-identities).
+
+A Token also has an Accessor ID which is used in [Audit Logging](/docs/enterprise/audit-logging)
+and API responses to identify the token without revealing the secret ID.
+
+Tokens can be created directly from the [CLI](/commands/acl/token) or [API](/api-docs/acl/tokens).
+[Auth Methods](/docs/security/acl/auth-methods) can be used to dynamically create tokens
+from a trusted external system.
+
+Consul HTTP API requests accept a token from an [HTTP Header](/api-docs/index#authentication),
+and CLI requests accept a token from
+[`-token` command line flag](/commands#authentication) or
+[`CONSUL_HTTP_TOKEN_FILE` environment variable](/commands#consul_http_token_file).
+
+## Token locality
+
+- **Local** - Indicates whether the token is local to the datacenter in which it was created. The attribute also can specify if the token was created in the primary datacenter and globally replicated.
+
+## Tokens in namespaces and partitions
+
+-> **Consul Enterprise Namespacing** - In addition to directly linked policies, roles and service identities, Consul Enterprise
+will include the ACL policies and roles defined in the [Namespaces definition](/docs/enterprise/namespaces#namespace-definition). (Added in Consul Enterprise 1.7.0)
+
+-> **Linking Tokens to Policies in Consul Enterprise** - Tokens can only be linked to policies that are defined in the same namespace and admin partition. 
+
+## Special and builtin Tokens
+
+A number of special tokens can also be configured which allow for bootstrapping the ACL
+system, or accessing Consul in special situations:
+
+| Special Token                                                                        | Servers    | Clients    | Purpose                                                                                                                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------ | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery)         | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent) when remote bearer token resolution fails; used for setting up the cluster such as doing initial join operations, see the [ACL Agent Recovery Token](#acl-agent-recovery-token) section for more details |
+| [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent)                           | `OPTIONAL` | `OPTIONAL` | Special token that is used for an agent's internal operations, see the [ACL Agent Token](#acl-agent-token) section for more details                                                                                                                                       |
+| [`acl.tokens.initial_management`](/docs/agent/options#acl_tokens_initial_management) | `OPTIONAL` | `N/A`      | Special token used to bootstrap the ACL system, check the [Bootstrapping ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production) tutorial for more details                                                                                    |
+| [`acl.tokens.default`](/docs/agent/options#acl_tokens_default)                       | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents                                                                                                 |
+
+All of these tokens except the `initial_management` token can all be introduced or updated via the [/v1/agent/token API](/api-docs/agent#update-acl-tokens).
+
+In Consul 1.4 - 1.10, the following special tokens were known by different names:
+
+| New Name (1.11+)                                                                     | Old Name (1.4 - 1.10)                                                    |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery)         | [`acl.tokens.agent_master`](/docs/agent/options#acl_tokens_agent_master) |
+| [`acl.tokens.initial_management`](/docs/agent/options#acl_tokens_initial_management) | [`acl.tokens.master`](/docs/agent/options#acl_tokens_master)             |
+
+
+#### Builtin Tokens
+
+During cluster bootstrapping when ACLs are enabled both the special `anonymous` and the `initial_management` token will be
+injected.
+
+- **Anonymous Token** - The anonymous token is used when a request is made to Consul without specifying a bearer token.
+  The anonymous token's description and policies may be updated but Consul will prevent this token's deletion. When created,
+  it will be assigned `00000000-0000-0000-0000-000000000002` for its Accessor ID and `anonymous` for its Secret ID.
+
+- **Initial Management Token** - When an initial management token is present within the Consul configuration, it is created
+  and will be linked with the builtin Global Management policy giving it unrestricted privileges. The initial management
+  token is created with the Secret ID set to the value of the configuration entry.
+  In Consul 1.4 - 1.10, this was called the `master` token. It was renamed to `initial_management` token in Consul 1.11.
+
+#### ACL Agent Recovery Token
+
+Since the [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it
+
+In Consul 1.4 - 1.10, this was called the `agent_master` token. It was renamed to `agent_recovery` token in Consul 1.11.
+
+```hcl
+agent "<node name of agent>" {
+  policy = "write"
+}
+node_prefix "" {
+  policy = "read"
+}
+```
+
+#### ACL Agent Token
+
+The [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent) is a special token that is used for an agent's internal operations. It isn't used directly for any user-initiated operations like the [`acl.tokens.default`](/docs/agent/options#acl_tokens_default), though if the `acl.tokens.agent` isn't configured the `acl.tokens.default` will be used. The ACL agent token is used for the following operations by the agent:
+
+1. Updating the agent's node entry using the [Catalog API](/api/catalog), including updating its node metadata, tagged addresses, and network coordinates
+2. Performing [anti-entropy](/docs/internals/anti-entropy) syncing, in particular reading the node metadata and services registered with the catalog
+3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/commands/exec) commands
+
+Here's an example policy sufficient to accomplish the above for a node called `mynode`:
+
+```hcl
+node "mynode" {
+  policy = "write"
+}
+service_prefix "" {
+  policy = "read"
+}
+key_prefix "_rexec" {
+  policy = "write"
+}
+```
+
+The `service_prefix` policy needs read access for any services that can be registered on the agent. If [remote exec is disabled](/docs/agent/options#disable_remote_exec), the default, then the `key_prefix` policy can be omitted.

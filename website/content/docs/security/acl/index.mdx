@@ -1,36 +1,57 @@
 ---
 layout: docs
-page_title: ACL Guides
+page_title: ACL System
 description: >-
-  Consul provides an optional Access Control List (ACL) system which can be used
-  to control access to data and APIs. Select the following guide for your use
-  case.
+  The Consul Access Control List (ACL) system authenticates requests and authorizes
+  access to resources. It is used by the UI, API, CLI, service-to-service
+  communication, and agent-to-agent communication.
 ---
 
-# ACL Documentation and Guides
+# ACL System
 
-Consul uses Access Control Lists (ACLs) to secure the UI, API, CLI, service
-communications, and agent communications. At the core, ACLs operate by grouping
-rules into policies, then associating one or more policies with a token.
+The Consul Access Control List (ACL) system authenticates requests and authorizes
+access to resources. It is used by the UI, API, CLI, service-to-service
+communication, and agent-to-agent communication.
 
-The following documentation and guides will help you understand and implement
-ACLs.
+This page will introduce you to all of the core concepts of the ACL system. For a more
+step-to-step guide see [Bootstrap and Explore ACLs] for getting started with ACLs and
+[Secure Consul with ACLs] for configuring ACLs in a production environment.
 
-## ACL Documentation
+[Bootstrap and Explore ACLs]: https://learn.hashicorp.com/tutorials/consul/access-control-setup?utm_source=consul.io&utm_medium=docs
+[Secure Consul with ACLs]: https://learn.hashicorp.com/tutorials/consul/access-control-setup-production?utm_source=consul.io&utm_medium=docs
 
-### ACL System
+See also the [ACL API reference](/api-docs/acl), [ACL CLI reference](/commands/acl), and
+[Troubleshoot the ACL System](https://learn.hashicorp.com/tutorials/consul/access-control-troubleshoot).
+The ACL system can be enabled and configured using the [acl stanza](/docs/agent/options#acl)
+in the agent configuration file.
 
-Consul provides an optional Access Control List (ACL) system which can be used
-to control access to data and APIs. The ACL system is a Capability-based system
-that relies on tokens which can have fine grained rules applied to them. The
-[ACL System documentation](/docs/acl/acl-system) details the functionality
-of Consul ACLs.
 
-### ACL Rules
+## Overview
 
-A core part of the ACL system is the rule language, which is used to describe
-the policy that must be enforced. Read the ACL rules
-[documentation](/docs/acl/acl-rules) to learn about rule specifications.
+The diagram below shows the relationships between the core components of the ACL system:
+
+![ACL system component relationships](/img/acl-token-policy-rule-relationship.png)
+
+## Tokens
+
+Tokens are the core method of authentication in Consul. The `SecretID` of the token
+(often referred to as the ACL token) is an opaque string that is included in requests to
+identify the person or system making the request. The ACL system will look up the ACL
+token and grant or deny access based on the permissions associated with the token.
+Permissions are granted to a token by linking it to [policies](#policies), [roles](#roles),
+[service identities](#service-identities), and [node identities](#node-identities).
+
+A Token also has an Accessor ID which is used in [Audit Logging](/docs/enterprise/audit-logging)
+and API responses to identify the token without revealing the secret ID.
+
+Tokens can be created directly from the [CLI](/commands/acl/token) or [API](/api-docs/acl/tokens).
+[Auth Methods](/docs/security/acl/auth-methods) can be used to dynamically create tokens
+from a trusted external system.
+
+Consul HTTP API requests accept a token from an [HTTP Header](/api-docs/index#authentication),
+and CLI requests accept a token from
+[`-token` command line flag](/commands#authentication) or
+[`CONSUL_HTTP_TOKEN_FILE` environment variable](/commands#consul_http_token_file).
 
 ### ACL Auth Methods
 
@@ -55,16 +76,3 @@ options, finally giving some specific examples of migration strategies. The new
 ACL system has improvements for the security and management of ACL tokens and
 policies.
 
-## Learn ACL Guide
-
-~> Note: the following guide is located on HashiCorp Learn. By selecting it,
-you will be directed to a new site.
-
-### Securing Consul with ACLs
-
-In this guide, you will learn how to secure the UI, API, CLI, service
-communications, and agent communications with ACLs. When securing your cluster
-you should configure the ACLs first. The ACL documentation introduces basic
-concepts and syntax for the ACL system, and we recommend that you read it
-before you begin [this
-tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
