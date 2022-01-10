@@ -366,6 +366,63 @@ service {
 </Tab>
 </Tabs>
 
+## Client Node with Multiple Interfaces or IP addresses
+
+The following example shows how to configure Consul to listen on multiple interfaces or IP addresses using a [go-sockaddr] template.
+
+The `bind_addr` is used for internal RPC and Serf communication (see the Agent Configuration for [bind_addr](/docs/agent/options#bind_addr) for more information).
+
+The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS and GRPC servers. (see the Agent Configuration for [client_addr](/docs/agent/options#client_addr) for more information).
+
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+node_name = "consul-server"
+server    = true
+bootstrap = true
+ui_config {
+  enabled = true
+}
+datacenter = "dc1"
+data_dir   = "consul/data"
+log_level  = "INFO"
+
+# used for internal RPC and Serf
+bind_addr = "0.0.0.0"
+
+# Used for HTTP, HTTPS, DNS, and GRPC addresses.
+# loopback is not included in GetPrivateInterfaces. More information can be found in the go-sockaddr documentation 
+client_addr = "{{ GetPrivateInterfaces | exclude \"type\" \"ipv6\" | join \"address\" \" \" }} {{ GetAllInterfaces | include \"flags\" \"loopback\" | join \"address\" \" \" }}"
+
+# advertises gossip and RPC interface to other nodes
+advertise_addr = "{{ GetInterfaceIP \"en0\" }}"
+```
+
+</Tab>
+
+<Tab heading="JSON">
+
+```json
+{
+  "node_name": "consul-server",
+  "server": true,
+  "bootstrap": true,
+  "ui_config": {
+    "enabled": true
+  },
+  "datacenter": "dc1",
+  "data_dir": "consul/data",
+  "log_level": "INFO",
+  "bind_addr": "{{ GetPrivateIP }}",
+  "client_addr": "{{ GetPrivateInterfaces | exclude \"type\" \"ipv6\" | join \"address\" \" \" }} {{ GetAllInterfaces | include \"flags\" \"loopback\" | join \"address\" \" \" }}",
+  "advertise_addr": "{{ GetInterfaceIP \"en0\"}}"
+}
+```
+
+</Tab>
+</Tabs>
+
 ## Stopping an Agent
 
 An agent can be stopped in two ways: gracefully or forcefully. Servers and
@@ -402,3 +459,7 @@ from the load balancer pool.
 The [`skip_leave_on_interrupt`](/docs/agent/options#skip_leave_on_interrupt) and
 [`leave_on_terminate`](/docs/agent/options#leave_on_terminate) configuration
 options allow you to adjust this behavior.
+
+<!-- list of reference-style links -->
+
+[go-sockaddr]: https://godoc.org/github.com/hashicorp/go-sockaddr/template
