@@ -54,6 +54,8 @@ information.
 
 ## Command-line Options ((#commandline_options))
 
+-> **Note:** Some CLI arguments may be different from HCL keys. See [Configuration Key Reference](#config_key_reference) for equivalent HCL Keys.
+
 The options below are all specified on the command-line.
 
 - `-advertise` ((#\_advertise)) - The advertise address is used to change
@@ -566,7 +568,7 @@ definitions support being updated during a reload.
 }
 ```
 
-#### Configuration Key Reference
+#### Configuration Key Reference ((#config_key_reference))
 
 -> **Note:** All the TTL values described below are parsed by Go's `time` package, and have the following
 [formatting specification](https://golang.org/pkg/time/#ParseDuration): "A
