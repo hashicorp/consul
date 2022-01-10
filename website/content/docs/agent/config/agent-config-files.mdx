@@ -80,7 +80,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `https` - The HTTPS API. Defaults to `client_addr`
   - `grpc` - The gRPC API. Defaults to `client_addr`
 
-- `alt_domain` Equivalent to the [`-alt-domain` command-line flag](#_alt_domain)
+- `alt_domain` Equivalent to the [`-alt-domain` command-line flag](/docs/agent/config/agent-config-cli#_alt_domain)
 
 - `audit` <EnterpriseAlert inline /> - Added in Consul 1.8, the audit object allow users to enable auditing
   and configure a sink and filters for their audit logs. For more information, review the [audit log tutorial](https://learn.hashicorp.com/tutorials/consul/audit-logging).
@@ -207,7 +207,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   - `server_addresses` (Defaults to `[]`) This specifies the addresses of servers in
     the local datacenter to use for the initial RPC. These addresses support
-    [Cloud Auto-Joining](#cloud-auto-joining) and can optionally include a port to
+    [Cloud Auto-Joining](/docs/agent/config/agent-config-cli#cloud-auto-joining) and can optionally include a port to
     use when making the outbound connection. If not port is provided the `server_port`
     will be used.
 
@@ -310,7 +310,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
         - `partition` <EnterpriseAlert inline /> - The admin partition name the client is requesting.
 
-- `bind_addr` Equivalent to the [`-bind` command-line flag](#_bind).
+- `bind_addr` Equivalent to the [`-bind` command-line flag](/docs/agent/config/agent-config-cli#_bind).
 
   This parameter can be set to a go-sockaddr template that resolves to a single
   address. Special characters such as backslashes `\` or double quotes `"`
@@ -358,7 +358,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   changes state, the new state and associated output is synchronized immediately.
   To disable this behavior, set the value to "0s".
 
-- `client_addr` Equivalent to the [`-client` command-line flag](#_client).
+- `client_addr` Equivalent to the [`-client` command-line flag](/docs/agent/config/agent-config-cli#_client).
 
 - `config_entries` This object allows setting options for centralized config entries.
 
@@ -372,9 +372,9 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     See the [configuration entry docs](/docs/agent/config-entries) for more
     details about the contents of each entry.
 
-- `datacenter` Equivalent to the [`-datacenter` command-line flag](#_datacenter).
+- `datacenter` Equivalent to the [`-datacenter` command-line flag](/docs/agent/config/agent-config-cli#_datacenter).
 
-- `data_dir` Equivalent to the [`-data-dir` command-line flag](#_data_dir).
+- `data_dir` Equivalent to the [`-data-dir` command-line flag](/docs/agent/config/agent-config-cli#_data_dir).
 
 - `disable_anonymous_signature` Disables providing an anonymous
   signature for de-duplication with the update check. See [`disable_update_check`](#disable_update_check).
@@ -404,17 +404,17 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 - `enable_debug` When set, enables some additional debugging features. Currently, this is only used to
   access runtime profiling HTTP endpoints, which are available with an `operator:read` ACL regardless of the value of `enable_debug`.
 
-- `enable_script_checks` Equivalent to the [`-enable-script-checks` command-line flag](#_enable_script_checks).
+- `enable_script_checks` Equivalent to the [`-enable-script-checks` command-line flag](/docs/agent/config/agent-config-cli#_enable_script_checks).
 
   ACLs must be enabled for agents and the `enable_script_checks` option must be set to `true` to enable script checks in Consul 0.9.0 and later. See [Registering and Querying Node Information](/docs/security/acl/acl-rules#registering-and-querying-node-information) for related information.
 
   ~> **Security Warning:** Enabling script checks in some configurations may introduce a known remote execution vulnerability targeted by malware. We strongly recommend `enable_local_script_checks` instead. Refer to the following article for additional guidance: [_Protecting Consul from RCE Risk in Specific Configurations_](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
   for more details.
 
-- `enable_local_script_checks` Equivalent to the [`-enable-local-script-checks` command-line flag](#_enable_local_script_checks).
+- `enable_local_script_checks` Equivalent to the [`-enable-local-script-checks` command-line flag](/docs/agent/config/agent-config-cli#_enable_local_script_checks).
 
 - `disable_keyring_file` - Equivalent to the
-  [`-disable-keyring-file` command-line flag](#_disable_keyring_file).
+  [`-disable-keyring-file` command-line flag](/docs/agent/config/agent-config-cli#_disable_keyring_file).
 
 - `disable_coordinates` - Disables sending of [network coordinates](/docs/architecture/coordinates).
   When network coordinates are disabled the `near` query param will not work to sort the nodes,
@@ -474,9 +474,9 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   - `kv_max_value_size` - **(Advanced)** Configures the maximum number of bytes for a kv request body to the [`/v1/kv`](/api/kv) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration. This option affects the txn endpoint too, but Consul 1.7.2 introduced `txn_max_req_len` which is the preferred way to set the limit for the txn endpoint. If both limits are set, the higher one takes precedence.
   - `txn_max_req_len` - **(Advanced)** Configures the maximum number of bytes for a transaction request body to the [`/v1/txn`](/api/txn) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration.
 
-- `default_query_time` Equivalent to the [`-default-query-time` command-line flag](#_default_query_time).
+- `default_query_time` Equivalent to the [`-default-query-time` command-line flag](/docs/agent/config/agent-config-cli#_default_query_time).
 
-- `max_query_time` Equivalent to the [`-max-query-time` command-line flag](#_max_query_time).
+- `max_query_time` Equivalent to the [`-max-query-time` command-line flag](/docs/agent/config/agent-config-cli#_max_query_time).
 
 - `partition` <EnterpriseAlert inline /> - This flag is used to set
   the name of the admin partition the agent belongs to. An agent can only join
@@ -557,7 +557,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   enforcement of ACLs.
 
 - `primary_gateways` Equivalent to the [`-primary-gateway`
-  command-line flag](#_primary_gateway). Takes a list of addresses to use as the
+  command-line flag](/docs/agent/config/agent-config-cli#_primary_gateway). Takes a list of addresses to use as the
   mesh gateways for the primary datacenter when authoritative replicated catalog
   data is not present. Discovery happens every [`primary_gateways_interval`](#primary_gateways_interval)
   until at least one primary mesh gateway is discovered. This was added in Consul
@@ -568,7 +568,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   30s. This was added in Consul 1.8.0.
 
 - `protocol` ((#protocol)) Equivalent to the [`-protocol` command-line
-  flag](#_protocol).
+  flag](/docs/agent/config/agent-config-cli#_protocol).
 
 - `reap` This controls Consul's automatic reaping of child processes,
   which is useful if Consul is running as PID 1 in a Docker container. If this isn't
@@ -610,7 +610,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     servers in all federated datacenters must have this enabled before any client can use
     [`use_streaming_backend`](#use_streaming_backend).
 
-- `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](#_segment).
+- `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](/docs/agent/config/agent-config-cli#_segment).
 
   ~> **Warning:** The `segment` option cannot be used with the [`partition`](#partition-1) option.
 
@@ -633,11 +633,11 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     port. Only valid if the segment's bind address differs from the [`-bind`](#_bind)
     address. Defaults to false.
 
-- `server` Equivalent to the [`-server` command-line flag](#_server).
+- `server` Equivalent to the [`-server` command-line flag](/docs/agent/config/agent-config-cli#_server).
 
 - `non_voting_server` - **This field is deprecated in Consul 1.9.1. See the [`read_replica`](#read_replica) field instead.**
 
-- `read_replica` - Equivalent to the [`-read-replica` command-line flag](#_read_replica).
+- `read_replica` - Equivalent to the [`-read-replica` command-line flag](/docs/agent/config/agent-config-cli#_read_replica).
 
 - `session_ttl_min` The minimum allowed session TTL. This ensures sessions are not created with TTL's
   shorter than the specified limit. It is recommended to keep this limit at or above
@@ -935,13 +935,13 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 ## Advertise Address Parameters
 
-- `advertise_addr` Equivalent to the [`-advertise` command-line flag](#_advertise).
+- `advertise_addr` Equivalent to the [`-advertise` command-line flag](/docs/agent/config/agent-config-cli#_advertise).
 
 - `advertise_addr_ipv4` This was added together with [`advertise_addr_ipv6`](#advertise_addr_ipv6) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
 
 - `advertise_addr_ipv6` This was added together with [`advertise_addr_ipv4`](#advertise_addr_ipv4) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
 
-- `advertise_addr_wan` Equivalent to the [`-advertise-wan` command-line flag](#_advertise-wan).
+- `advertise_addr_wan` Equivalent to the [`-advertise-wan` command-line flag](/docs/agent/config/agent-config-cli#_advertise-wan).
 
 - `advertise_addr_wan_ipv4` This was added together with [`advertise_addr_wan_ipv6`](#advertise_addr_wan_ipv6) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
 
@@ -954,9 +954,9 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 ## Bootstrap Parameters
 
-- `bootstrap` Equivalent to the [`-bootstrap` command-line flag](#_bootstrap).
+- `bootstrap` Equivalent to the [`-bootstrap` command-line flag](/docs/agent/config/agent-config-cli#_bootstrap).
 
-- `bootstrap_expect` Equivalent to the [`-bootstrap-expect` command-line flag](#_bootstrap_expect).
+- `bootstrap_expect` Equivalent to the [`-bootstrap-expect` command-line flag](/docs/agent/config/agent-config-cli#_bootstrap_expect).
 
 ## Connect Parameters
 
@@ -1228,7 +1228,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     versions and will assume the label is the datacenter. See: [this section](/docs/discovery/dns#namespaced-services)
     for more details.
 
-- `domain` Equivalent to the [`-domain` command-line flag](#_domain).
+- `domain` Equivalent to the [`-domain` command-line flag](/docs/agent/config/agent-config-cli#_domain).
 
 ## Encryption Parameters
 
@@ -1271,7 +1271,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     the certificates requested by `auto_encrypt` from the server have these `ip_san`
     set as IP SAN.
 
-- `encrypt` Equivalent to the [`-encrypt` command-line flag](#_encrypt).
+- `encrypt` Equivalent to the [`-encrypt` command-line flag](/docs/agent/config/agent-config-cli#_encrypt).
 
 - `encrypt_verify_incoming` - This is an optional
   parameter that can be used to disable enforcing encryption for incoming gossip
@@ -1373,15 +1373,15 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 ## Join Parameters
 
-- `rejoin_after_leave` Equivalent to the [`-rejoin` command-line flag](#_rejoin).
+- `rejoin_after_leave` Equivalent to the [`-rejoin` command-line flag](/docs/agent/config/agent-config-cli#_rejoin).
 
-- `retry_join` - Equivalent to the [`-retry-join`](#retry-join) command-line flag.
+- `retry_join` - Equivalent to the [`-retry-join`](/docs/agent/config/agent-config-cli#retry-join) command-line flag.
 
-- `retry_interval` Equivalent to the [`-retry-interval` command-line flag](#_retry_interval).
+- `retry_interval` Equivalent to the [`-retry-interval` command-line flag](/docs/agent/config/agent-config-cli#_retry_interval).
 
-- `retry_join_wan` Equivalent to the [`-retry-join-wan` command-line flag](#_retry_join_wan). Takes a list of addresses to attempt joining to WAN every [`retry_interval_wan`](#_retry_interval_wan) until at least one join works.
+- `retry_join_wan` Equivalent to the [`-retry-join-wan` command-line flag](/docs/agent/config/agent-config-cli#_retry_join_wan). Takes a list of addresses to attempt joining to WAN every [`retry_interval_wan`](#_retry_interval_wan) until at least one join works.
 
-- `retry_interval_wan` Equivalent to the [`-retry-interval-wan` command-line flag](#_retry_interval_wan).
+- `retry_interval_wan` Equivalent to the [`-retry-interval-wan` command-line flag](/docs/agent/config/agent-config-cli#_retry_interval_wan).
 
 - `start_join` An array of strings specifying addresses
   of nodes to [`-join`](#_join) upon startup. Note that using
@@ -1393,19 +1393,19 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 ## Log Parameters
 
-- `log_file` Equivalent to the [`-log-file` command-line flag](#_log_file).
+- `log_file` Equivalent to the [`-log-file` command-line flag](/docs/agent/config/agent-config-cli#_log_file).
 
-- `log_rotate_duration` Equivalent to the [`-log-rotate-duration` command-line flag](#_log_rotate_duration).
+- `log_rotate_duration` Equivalent to the [`-log-rotate-duration` command-line flag](/docs/agent/config/agent-config-cli#_log_rotate_duration).
 
-- `log_rotate_bytes` Equivalent to the [`-log-rotate-bytes` command-line flag](#_log_rotate_bytes).
+- `log_rotate_bytes` Equivalent to the [`-log-rotate-bytes` command-line flag](/docs/agent/config/agent-config-cli#_log_rotate_bytes).
 
-- `log_rotate_max_files` Equivalent to the [`-log-rotate-max-files` command-line flag](#_log_rotate_max_files).
+- `log_rotate_max_files` Equivalent to the [`-log-rotate-max-files` command-line flag](/docs/agent/config/agent-config-cli#_log_rotate_max_files).
 
-- `log_level` Equivalent to the [`-log-level` command-line flag](#_log_level).
+- `log_level` Equivalent to the [`-log-level` command-line flag](/docs/agent/config/agent-config-cli#_log_level).
 
-- `log_json` Equivalent to the [`-log-json` command-line flag](#_log_json).
+- `log_json` Equivalent to the [`-log-json` command-line flag](/docs/agent/config/agent-config-cli#_log_json).
 
-- `enable_syslog` Equivalent to the [`-syslog` command-line flag](#_syslog).
+- `enable_syslog` Equivalent to the [`-syslog` command-line flag](/docs/agent/config/agent-config-cli#_syslog).
 
 - `syslog_facility` When [`enable_syslog`](#enable_syslog)
   is provided, this controls to which facility messages are sent. By default, `LOCAL0`
@@ -1413,11 +1413,11 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 ## Node Parameters
 
-- `node_id` Equivalent to the [`-node-id` command-line flag](#_node_id).
+- `node_id` Equivalent to the [`-node-id` command-line flag](/docs/agent/config/agent-config-cli#_node_id).
 
-- `node_name` Equivalent to the [`-node` command-line flag](#_node).
+- `node_name` Equivalent to the [`-node` command-line flag](/docs/agent/config/agent-config-cli#_node).
 
-- `node_meta` Available in Consul 0.7.3 and later, This object allows associating arbitrary metadata key/value pairs with the local node, which can then be used for filtering results from certain catalog endpoints. See the [`-node-meta` command-line flag](#_node_meta) for more information.
+- `node_meta` Available in Consul 0.7.3 and later, This object allows associating arbitrary metadata key/value pairs with the local node, which can then be used for filtering results from certain catalog endpoints. See the [`-node-meta` command-line flag](/docs/agent/config/agent-config-cli#_node_meta) for more information.
 
   ```json
   {
@@ -1427,7 +1427,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   }
   ```
 
-- `disable_host_node_id` Equivalent to the [`-disable-host-node-id` command-line flag](#_disable_host_node_id).
+- `disable_host_node_id` Equivalent to the [`-disable-host-node-id` command-line flag](/docs/agent/config/agent-config-cli#_disable_host_node_id).
 
 ## Raft Parameters
 
@@ -1442,7 +1442,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     
 
 - `raft_protocol` ((#raft_protocol)) Equivalent to the [`-raft-protocol`
-  command-line flag](#_raft_protocol).
+  command-line flag](/docs/agent/config/agent-config-cli#_raft_protocol).
 
 - `raft_snapshot_threshold` ((#\_raft_snapshot_threshold)) This controls the
   minimum number of raft commit entries between snapshots that are saved to
@@ -1491,14 +1491,14 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 ## Serf Parameters
 
-- `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
+- `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](/docs/agent/config/agent-config-cli#_serf_lan_bind).
   This is an IP address, not to be confused with [`ports.serf_lan`](#serf_lan_port).
 
-- `serf_lan_allowed_cidrs` ((#serf_lan_allowed_cidrs)) Equivalent to the [`-serf-lan-allowed-cidrs` command-line flag](#_serf_lan_allowed_cidrs).
+- `serf_lan_allowed_cidrs` ((#serf_lan_allowed_cidrs)) Equivalent to the [`-serf-lan-allowed-cidrs` command-line flag](/docs/agent/config/agent-config-cli#_serf_lan_allowed_cidrs).
 
-- `serf_wan` ((#serf_wan_bind)) Equivalent to the [`-serf-wan-bind` command-line flag](#_serf_wan_bind).
+- `serf_wan` ((#serf_wan_bind)) Equivalent to the [`-serf-wan-bind` command-line flag](/docs/agent/config/agent-config-cli#_serf_wan_bind).
 
-- `serf_wan_allowed_cidrs` ((#serf_wan_allowed_cidrs)) Equivalent to the [`-serf-wan-allowed-cidrs` command-line flag](#_serf_wan_allowed_cidrs).
+- `serf_wan_allowed_cidrs` ((#serf_wan_allowed_cidrs)) Equivalent to the [`-serf-wan-allowed-cidrs` command-line flag](/docs/agent/config/agent-config-cli#_serf_wan_allowed_cidrs).
 
 ## Telemetry Paramters
 
@@ -1637,7 +1637,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 ## UI Parameters
 
 - `ui` - **This field is deprecated in Consul 1.9.0. See the [`ui_config.enabled`](#ui_config_enabled) field instead.**
-  Equivalent to the [`-ui`](#_ui) command-line flag.
+  Equivalent to the [`-ui`](/docs/agent/config/agent-config-cli#_ui) command-line flag.
 
 - `ui_config` - This object allows a number of sub-keys to be set which controls
   the display or features available in the UI. Configuring the UI with this
@@ -1648,12 +1648,12 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   - `enabled` ((#ui_config_enabled)) - This enables the service of the web UI
     from this agent. Boolean value, defaults to false. In `-dev` mode this
     defaults to true. Replaces `ui` from before 1.9.0. Equivalent to the
-    [`-ui`](#_ui) command-line flag.
+    [`-ui`](/docs/agent/config/agent-config-cli#_ui) command-line flag.
 
   - `dir` ((#ui_config_dir)) - This specifies that the web UI should be served
     from an external dir rather than the build in one. This allows for
     customization or development. Replaces `ui_dir` from before 1.9.0.
-    Equivalent to the [`-ui-dir`](#_ui_dir) command-line flag.
+    Equivalent to the [`-ui-dir`](/docs/agent/config/agent-config-cli#_ui_dir) command-line flag.
 
   - `content_path` ((#ui_config_content_path)) - This specifies the HTTP path
     that the web UI should be served from. Defaults to `/ui/`. Equivalent to the
@@ -1762,7 +1762,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
       - `{{Datacenter}}` - Replaced with the current service's datacenter.
 
 - `ui_dir` - **This field is deprecated in Consul 1.9.0. See the [`ui_config.dir`](#ui_config_dir) field instead.**
-  Equivalent to the [`-ui-dir`](#_ui_dir) command-line
+  Equivalent to the [`-ui-dir`](/docs/agent/config/agent-config-cli#_ui_dir) command-line
   flag. This configuration key is not required as of Consul version 0.7.0 and later.
   Specifying this configuration key will enable the web UI. There is no need to specify
   both ui-dir and ui. Specifying both will result in an error.
