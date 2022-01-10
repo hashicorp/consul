@@ -168,6 +168,57 @@ spec:
 
 </CodeTabs>
 
+<EnterpriseAlert product="consul">
+  {' '}
+  Failover to another datacenter and namespace
+</EnterpriseAlert>
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind           = "service-resolver"
+Name           = "product-api"
+Namespace      = "primary"
+ConnectTimeout = "0s"
+Failover = {
+  "*" = {
+    Datacenters = ["dc2"]
+    Namespace = "secodary"
+  }
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceResolver
+metadata:
+  name: product-api
+  namespace: primary
+spec:
+  connectTimeout: 0
+  failover:
+    namespace: 'secondary'
+    '*':
+      datacenters: ['dc2']
+```
+
+```json
+{
+  "Kind": "service-resolver",
+  "Name": "product-api",
+  "Namespace": "primary"
+  "ConnectTimeout": "0s",
+  "Failover": {
+    "*": {
+      "Datacenters": ["dc2"]
+      "Namespace": "secondary"
+    }
+  }
+}
+```
+
+</CodeTabs>
+
 ### Consistent load balancing
 
 Apply consistent load balancing for requests based on `x-user-id` header:
