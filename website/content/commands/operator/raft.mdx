@@ -33,6 +33,14 @@ Corresponding HTTP API Endpoint: [\[GET\] /v1/status/peers](https://www.consul.i
 
 This command displays the current Raft peer configuration.
 
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `none`       |
+
 Usage: `consul operator raft list-peers -stale=[true|false]`
 
 - `-stale` - Optional and defaults to "false" which means the leader provides
@@ -76,6 +84,14 @@ Raft quorum. If the server still shows in the output of the
 clean up by simply running
 [`consul force-leave`](/commands/force-leave)
 instead of this command.
+
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
 
 Usage: `consul operator raft remove-peer -address="IP:port"`
 

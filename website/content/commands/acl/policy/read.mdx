@@ -11,6 +11,14 @@ Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/policy/:id](https://www.consul
 
 The `acl policy read` command reads and displays a policies details.
 
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `acl:read`   |
+
 ## Usage
 
 Usage: `consul acl policy read [options] [args]`

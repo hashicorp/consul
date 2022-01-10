@@ -11,6 +11,14 @@ Corresponding HTTP API Endpoint: [\[PUT\] /v1/kv/:key](https://www.consul.io/api
 
 The `kv put` command writes the data to the given path in the KV store.
 
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `key:write`  |
+
 ## Usage
 
 Usage: `consul kv put [options] KEY [DATA]`

@@ -11,6 +11,14 @@ Corresponding HTTP API Endpoints: [\[GET\] /v1/acl/role/:id](https://www.consul.
 
 The `acl role read` command reads and displays a roles details.
 
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `acl:read`   |
+
 ## Usage
 
 Usage: `consul acl role read [options] [args]`

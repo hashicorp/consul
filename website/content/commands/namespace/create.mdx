@@ -14,6 +14,14 @@ Corresponding HTTP API Endpoint: [\[PUT\] /v1/namespace](https://www.consul.io/a
 This `namespace create` command creates a namespaces using the CLI parameters provided.
 This was added in Consul Enterprise 1.7.2.
 
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
+
 ## Usage
 
 Usage: `consul namespace create -name <namespace name> [options]`

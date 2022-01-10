@@ -128,6 +128,14 @@ Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/license](https://www.cons
 
 This command sets the Consul Enterprise license.
 
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
+
 Usage: `consul license put [options] LICENSE`
 
 #### API Options
@@ -159,6 +167,14 @@ Licensed Features:
 Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/license](https://www.consul.io/api-docs/operator/license#getting-the-consul-license)
 
 This command gets the Consul Enterprise license.
+
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `none`       |
 
 Usage: `consul license get [options]`
 
@@ -196,6 +212,14 @@ Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/license](https://www.c
 
 Resets license for the datacenter to the one builtin in Consul binary, if it is still valid.
 If the builtin license is invalid, the current one stays active.
+
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
 
 Usage: `consul license reset [options]`
 

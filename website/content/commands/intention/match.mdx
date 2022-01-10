@@ -16,6 +16,14 @@ order: the first intention that matches a request would be evaluated.
 The [check](/commands/intention/check) command can be used to
 check whether an L4 connection would be authorized between any two services.
 
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required      |
+| ----------------- |
+| `intentions:read` |
+
 ## Usage
 
 Usage: `consul intention match [options] SRC_OR_DST`

@@ -17,6 +17,14 @@ requested auth method for a newly minted Consul ACL token. The companion
 command `consul logout` should be used to destroy any tokens created this way
 to avoid a resource leak.
 
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `none`       |
+
 ## Usage
 
 Usage: `consul login [options]`
