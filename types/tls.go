@@ -170,7 +170,7 @@ var (
 )
 
 func (c *TLSCipherSuite) String() string {
-	return fmt.Sprintf("%s", *c)
+	return string(*c)
 }
 
 func ValidateConsulAgentCipherSuites(cipherSuites []TLSCipherSuite) error {
