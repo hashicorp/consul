@@ -29,6 +29,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
+-> The corresponding CLI command is [`consul namespace create`](https://www.consul.io/commands/namespace/create)
+
 ### Parameters
 
 - `Name` `(string: <required>)` - The namespaces name. This must be a valid
@@ -161,6 +163,8 @@ The table below shows this endpoint's support for
 <sup>1</sup> Access can be granted to list the Namespace if the token used when making
 the request has been granted any access in the namespace (read, list or write).
 
+-> The corresponding CLI command is [`consul namespace read`](https://www.consul.io/commands/namespace/read)
+
 ### Parameters
 
 - `name` `(string: <required>)` - Specifies the namespace to read. This
@@ -226,6 +230,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
+
+-> The corresponding CLI command is [`consul namespace update`](https://www.consul.io/commands/namespace/update) or [`consul namespace write`](https://www.consul.io/commands/namespace/write)
 
 ### Parameters
 
@@ -364,6 +370,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
+-> The corresponding CLI command is [`consul namespace delete`](https://www.consul.io/commands/namespace/delete)
+
 ### Parameters
 
 - `name` `(string: <required>)` - Specifies the namespace to delete. This
@@ -435,6 +443,8 @@ The table below shows this endpoint's support for
 
 <sup>1</sup> Access can be granted to list the Namespace if the token used when making
 the request has been granted any access in the namespace (read, list or write).
+
+-> The corresponding CLI command is [`consul namespace list`](https://www.consul.io/commands/namespace/list)
 
 ### Sample Request
 
