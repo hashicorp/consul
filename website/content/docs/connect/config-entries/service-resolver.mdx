@@ -169,7 +169,7 @@ spec:
 </CodeTabs>
 
 <EnterpriseAlert product="consul">
-  Failover to another datacenter and namespace
+  Failover to another datacenter and namespace for all service subsets.
 </EnterpriseAlert>
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
@@ -182,7 +182,7 @@ ConnectTimeout = "0s"
 Failover = {
   "*" = {
     Datacenters = ["dc2"]
-    Namespace = "secodary"
+    Namespace = "secondary"
   }
 }
 ```
