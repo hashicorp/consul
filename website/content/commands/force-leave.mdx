@@ -11,6 +11,8 @@ description: >-
 
 Command: `consul force-leave`
 
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/force-leave/:node](https://www.consul.io/api-docs/agent#force-leave-and-shutdown)
+
 The `force-leave` command forces a member of a Consul cluster to enter the
 "left" state. The purpose of this method is to force-remove a node that has failed or
 was shutdown without a [graceful leave](/commands/leave).

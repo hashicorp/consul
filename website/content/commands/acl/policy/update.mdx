@@ -7,6 +7,8 @@ page_title: 'Commands: ACL Policy Update'
 
 Command: `consul acl policy update`
 
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/policy/:id](https://www.consul.io/api-docs/acl/policies#update-a-policy)
+
 The `acl policy update` command is used to update a policy. The default operations is to merge the current policy
 with those values provided to the command invocation. Therefore to update just one field, only
 the `-id` or `-name` options and the option to modify must be provided. Note that renaming

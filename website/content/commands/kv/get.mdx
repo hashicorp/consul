@@ -7,6 +7,8 @@ page_title: 'Commands: KV Get'
 
 Command: `consul kv get`
 
+Corresponding HTTP API Endpoint: [\[GET\] /v1/kv/:key](https://www.consul.io/api-docs/kv#read-key)
+
 The `kv get` command is used to retrieve the value from Consul's KV
 store at the given key name. If no key exists with that name, an error is
 returned. If a key exists with that name but has no data, nothing is returned.

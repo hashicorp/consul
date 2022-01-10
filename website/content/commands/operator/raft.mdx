@@ -29,6 +29,8 @@ Subcommands:
 
 ## list-peers
 
+Corresponding HTTP API Endpoint: [\[GET\] /v1/status/peers](https://www.consul.io/api-docs/status#list-raft-peers)
+
 This command displays the current Raft peer configuration.
 
 Usage: `consul operator raft list-peers -stale=[true|false]`
@@ -61,6 +63,8 @@ Raft configuration.
 configuration.
 
 ## remove-peer
+
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/raft/peer](https://www.consul.io/api-docs/operator/raft#delete-raft-peer)
 
 This command removes the Consul server with given address from the Raft configuration.
 

@@ -7,6 +7,8 @@ page_title: 'Commands: ACL Bootstrap'
 
 Command: `consul acl bootstrap`
 
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/bootstrap](https://www.consul.io/api-docs/acl#bootstrap-acls)
+
 The `acl bootstrap` command will request Consul to generate a new token with unlimited privileges to use
 for management purposes and output its details. This can only be done once and afterwards bootstrapping
 will be disabled. If all tokens are lost and you need to bootstrap again you can follow the bootstrap

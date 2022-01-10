@@ -14,7 +14,7 @@ Command: `consul license`
 
 The `license` command provides a datacenter-level view of the Consul Enterprise license. This was added
 in Consul 1.1.0 but Consul 1.10.0 removed the ability to set and reset the license using the CLI.
-See the [licensing documentation](/docs/enterprise/license/overview) for more information about 
+See the [licensing documentation](/docs/enterprise/license/overview) for more information about
 Consul Enterprise license management.
 
 If ACLs are enabled then a token with operator privileges may be required in
@@ -44,9 +44,9 @@ Usage: consul license <subcommand> [options] [args]
   Retrieve the current license:
 
       $ consul license get
-      
+
   Inspect a license:
-  
+
       $ consul license inspect "<path to license file>"
 
   Reset the current license:
@@ -66,7 +66,7 @@ Subcommands:
 ## inspect
 
 This command inspects and validates a license. Just like a Consul agent it
-can load the license from a file on disk or from the `CONSUL_LICENSE` and 
+can load the license from a file on disk or from the `CONSUL_LICENSE` and
 `CONSUL_LICENSE_PATH` environment variables.
 
 Usage: `consul license inspect [<options>] [<license file>]`
@@ -117,11 +117,14 @@ Features:
 License is valid
 
 ```
+
 ## put
 
 -> **Deprecated** The ability to manage the cluster's license via the CLI
 was removed in Consul 1.10. While the CLI command still exists it will
 always return an error. This command will be fully removed in a future release.
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/license](https://www.consul.io/api-docs/operator/license#updating-the-consul-license)
 
 This command sets the Consul Enterprise license.
 
@@ -152,6 +155,8 @@ Licensed Features:
 ```
 
 ## get
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/license](https://www.consul.io/api-docs/operator/license#getting-the-consul-license)
 
 This command gets the Consul Enterprise license.
 
@@ -186,6 +191,8 @@ Licensed Features:
 -> **Deprecated** The ability to manage the cluster's license via the CLI
 was removed in Consul 1.10. While the CLI command still exists it will
 always return an error. This command will be fully removed in a future release.
+
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/license](https://www.consul.io/api-docs/operator/license#resetting-the-consul-license)
 
 Resets license for the datacenter to the one builtin in Consul binary, if it is still valid.
 If the builtin license is invalid, the current one stays active.

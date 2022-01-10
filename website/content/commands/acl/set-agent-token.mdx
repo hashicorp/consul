@@ -7,6 +7,8 @@ page_title: 'Commands: ACL Set Agent Token'
 
 Command: `consul acl set-agent-token`
 
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/token/:type](https://www.consul.io/api-docs/agent#update-acl-tokens)
+
 This command updates the ACL tokens currently in use by the agent. It can be used to introduce
 ACL tokens to the agent for the first time, or to update tokens that were initially loaded from
 the agent's configuration. Tokens are not persisted unless
