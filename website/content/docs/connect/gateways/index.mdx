@@ -13,21 +13,23 @@ This topic provides an overview of the gateway features shipped with Consul. Gat
 - [Ingress gateways](#ingress-gateways) enable services to accept traffic from outside the Consul service mesh.
 - [Terminating gateways](#terminating-gateways) enable you to route traffic from services in the Consul service mesh to external services.
 
+![Gateway Architecture](/img/consul-connect/svgs/consul_gateway_overview.svg)
+
 ## Mesh Gateways
 
 -> **1.6.0+:** This feature is available in Consul versions 1.6.0 and newer.
 
 Mesh gateways enable service mesh traffic to be routed between different Consul datacenters and admin partitions. The datacenters or partitions can reside
 in different clouds or runtime environments where general interconnectivity between all services in all datacenters
-isn't feasible. 
+isn't feasible.
 
 They operate by sniffing and extracting the server name indication (SNI) header from the service mesh session and routing the connection to the appropriate destination based on the server name requested. The gateway does not decrypt the data within the mTLS session.
 
-Mesh gateways enable the following scenarios: 
+Mesh gateways enable the following scenarios:
 
-* **Federate multiple datacenters across a WAN**. Since Consul 1.8.0, mesh gateways can forward gossip and RPC traffic between Consul servers. See [WAN federation via mesh gateways](/docs/connect/gateways/wan-federation-via-mesh-gateways) for additional information. 
-* **Service-to-service communication across datacenters**. Refer to [Enabling Service-to-service Traffic Accross Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters) for additional information. 
-* **Service-to-service communication across admin partitions**. Since Consul 1.11.0, you can create administrative boundaries for single Consul deployements called "admin partitions". You can use mesh gateways to facilitate cross-partition communication. Refer to [Enabling Service-to-service Traffic Accross Admin Partitions](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions) for additional information.
+- **Federate multiple datacenters across a WAN**. Since Consul 1.8.0, mesh gateways can forward gossip and RPC traffic between Consul servers. See [WAN federation via mesh gateways](/docs/connect/gateways/wan-federation-via-mesh-gateways) for additional information.
+- **Service-to-service communication across datacenters**. Refer to [Enabling Service-to-service Traffic Accross Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters) for additional information.
+- **Service-to-service communication across admin partitions**. Since Consul 1.11.0, you can create administrative boundaries for single Consul deployements called "admin partitions". You can use mesh gateways to facilitate cross-partition communication. Refer to [Enabling Service-to-service Traffic Accross Admin Partitions](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions) for additional information.
 
 -> **Mesh gateway tutorial**: Follow the [mesh gateway tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways) to learn concepts associated with mesh gateways.
 
