@@ -36,9 +36,9 @@ service mesh with minimal operator intervention.
 
 | Types                                             | Consul Version                    |
 | ------------------------------------------------- | --------------------------------- |
-| [`kubernetes`](/docs/acl/auth-methods/kubernetes) | 1.5.0+                            |
-| [`jwt`](/docs/acl/auth-methods/jwt)               | 1.8.0+                            |
-| [`oidc`](/docs/acl/auth-methods/oidc)             | 1.8.0+ <EnterpriseAlert inline /> |
+| [`kubernetes`](/docs/security/acl/auth-methods/kubernetes) | 1.5.0+                            |
+| [`jwt`](/docs/security/acl/auth-methods/jwt)               | 1.8.0+                            |
+| [`oidc`](/docs/security/acl/auth-methods/oidc)             | 1.8.0+ <EnterpriseAlert inline /> |
 
 ## Operator Configuration
 
@@ -68,8 +68,8 @@ token replication enabled.
 ## Binding Rules
 
 Binding rules allow an operator to express a systematic way of automatically
-linking [roles](/docs/acl/acl-system#acl-roles) and [service
-identities](/docs/acl/acl-system#acl-service-identities) to newly created
+linking [roles](/docs/security/acl/acl-system#acl-roles) and [service
+identities](/docs/security/acl/acl-system#acl-service-identities) to newly created
 tokens without operator intervention.
 
 Successful authentication with an auth method returns a set of trusted
@@ -87,8 +87,8 @@ Each binding rule is composed of two portions:
   `"serviceaccount.namespace==default and serviceaccount.name!=vault"`
 
 - **Bind Type and Name** - A binding rule can bind a token to a
-  [role](/docs/acl/acl-system#acl-roles) or to a [service
-  identity](/docs/acl/acl-system#acl-service-identities) by name. The name
+  [role](/docs/security/acl/acl-system#acl-roles) or to a [service
+  identity](/docs/security/acl/acl-system#acl-service-identities) by name. The name
   can be specified with a plain string or the bind name can be lightly
   templated using [HIL syntax](https://github.com/hashicorp/hil) to interpolate
   the same values that are usable by the `Selector` syntax. For example:
@@ -105,7 +105,7 @@ bearer token for a Consul ACL token by using the login process:
 ![diagram of auth method login](/img/auth-methods.svg)
 
 1. Applications use the `consul login` subcommand or the [login API
-   endpoint](/api/acl/acl#login-to-auth-method) to authenticate to a
+   endpoint](/api-docs/acl#login-to-auth-method) to authenticate to a
    specific auth method using their local Consul client. Applications provide
    both the name of the auth method and a secret bearer token during login.
 
@@ -131,7 +131,7 @@ bearer token for a Consul ACL token by using the login process:
 8. The Consul client returns the token details back to the application.
 
 9. (later) Applications SHOULD use the `consul logout` subcommand or the
-   [logout API endpoint](/api/acl/acl#logout-from-auth-method) to destroy
+   [logout API endpoint](/api-docs/acl#logout-from-auth-method) to destroy
    their token when it is no longer required.
 
 For more details about specific auth methods and how to configure them, click

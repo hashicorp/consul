@@ -51,7 +51,7 @@ Looking through these changes prior to upgrading is highly recommended.
 Two very notable items are:
 
 - 1.6.2 introduced more strict JSON decoding. Invalid JSON that was previously ignored might result in errors now (e.g., `Connect: null` in service definitions). See [[GH#6680](https://github.com/hashicorp/consul/pull/6680)].
-- 1.6.3 introduced the [http_max_conns_per_client](https://www.consul.io/docs/agent/options.html#http_max_conns_per_client) limit. This defaults to 200. Prior to this, connections per client were unbounded. [[GH#7159](https://github.com/hashicorp/consul/issues/7159)]
+- 1.6.3 introduced the [http_max_conns_per_client](https://www.consul.io/docs/agent/options#http_max_conns_per_client) limit. This defaults to 200. Prior to this, connections per client were unbounded. [[GH#7159](https://github.com/hashicorp/consul/issues/7159)]
 
 ## Procedure
 

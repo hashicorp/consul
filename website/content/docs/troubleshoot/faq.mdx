@@ -78,9 +78,9 @@ Consul has two important subsystems, the service catalog and the gossip
 protocol.
 The service catalog stores all the nodes, service instances, health check data,
 ACLs, and KV information. It is strongly consistent, and replicated
-using the [consensus protocol](/docs/internals/consensus).
+using the [consensus protocol](/docs/architecture/consensus).
 
-The [gossip protocol](/docs/internals/gossip) is used to track which
+The [gossip protocol](/docs/architecture/gossip) is used to track which
 nodes are part of the cluster and to detect a node or agent failure. This
 information is eventually consistent by nature. When the servers detects a
 change in membership, or receive a health update, they update the service
@@ -174,7 +174,7 @@ We recommend taking any precautions or remediation steps that you would
 normally do for individual processes, based on your operating system.
 
 Please see our
-[Security Model](/docs/internals/security) for more information.
+[Security Model](/docs/security) for more information.
 
 ### Q: Are the Consul Docker Images OCI Compliant?
 
