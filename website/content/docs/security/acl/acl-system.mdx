@@ -20,8 +20,10 @@ step-to-step guide see [Bootstrap and Explore ACLs] for getting started with ACL
 [Bootstrap and Explore ACLs]: https://learn.hashicorp.com/tutorials/consul/access-control-setup?utm_source=consul.io&utm_medium=docs
 [Secure Consul with ACLs]: https://learn.hashicorp.com/tutorials/consul/access-control-setup-production?utm_source=consul.io&utm_medium=docs
 
-See allso the [ACL API reference](/api-docs/acl), [ACL CLI reference](/commands/acl), and
+See also the [ACL API reference](/api-docs/acl), [ACL CLI reference](/commands/acl), and
 [Troubleshoot the ACL System](https://learn.hashicorp.com/tutorials/consul/access-control-troubleshoot).
+The ACL system can be enabled and configured using the [acl stanza](/docs/agent/options#acl)
+in the agent configuration file.
 
 
 ## Overview
@@ -243,20 +245,6 @@ Constructing rules from these policies is covered in detail on the
 -> **Consul Enterprise Namespacing** - In addition to directly linked policies, roles and service identities, Consul Enterprise
 will include the ACL policies and roles defined in the [Namespaces definition](/docs/enterprise/namespaces#namespace-definition). (Added in Consul Enterprise 1.7.0)
 
-## Configuring ACLs
-
-ACLs are configured using several different configuration options. These are marked
-as to whether they are set on servers, clients, or both.
-
-| Configuration Option                                           | Servers    | Clients    | Purpose                                                                |
-| -------------------------------------------------------------- | ---------- | ---------- | ---------------------------------------------------------------------- |
-| [`acl.enabled`](/docs/agent/options#acl_enabled)               | `REQUIRED` | `REQUIRED` | Controls whether ACLs are enabled                                      |
-| [`acl.default_policy`](/docs/agent/options#acl_default_policy) | `OPTIONAL` | `N/A`      | Determines allowlist or denylist mode                                  |
-| [`acl.down_policy`](/docs/agent/options#acl_down_policy)       | `OPTIONAL` | `OPTIONAL` | Determines what to do when the remote token or policy resolution fails |
-| [`acl.role_ttl`](/docs/agent/options#acl_role_ttl)             | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Roles                           |
-| [`acl.policy_ttl`](/docs/agent/options#acl_policy_ttl)         | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Policies                        |
-| [`acl.token_ttl`](/docs/agent/options#acl_token_ttl)           | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Tokens                          |
-
 ## Special and builtin Tokens
 
 A number of special tokens can also be configured which allow for bootstrapping the ACL
@@ -269,7 +257,7 @@ system, or accessing Consul in special situations:
 | [`acl.tokens.initial_management`](/docs/agent/options#acl_tokens_initial_management) | `OPTIONAL` | `N/A`      | Special token used to bootstrap the ACL system, check the [Bootstrapping ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production) tutorial for more details                                                                                    |
 | [`acl.tokens.default`](/docs/agent/options#acl_tokens_default)                       | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents                                                                                                 |
 
-All of these tokens except the `initial_management` token can all be introduced or updated via the [/v1/agent/token API](/api/agent#update-acl-tokens).
+All of these tokens except the `initial_management` token can all be introduced or updated via the [/v1/agent/token API](/api-docs/agent#update-acl-tokens).
 
 In Consul 1.4 - 1.10, the following special tokens were known by different names:
 

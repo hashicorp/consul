@@ -545,7 +545,7 @@ They are documented separately under [check configuration](/docs/agent/checks) a
 [service configuration](/docs/agent/services) respectively. The service and check
 definitions support being updated during a reload.
 
-#### Example Configuration File
+### Example Configuration File
 
 ```json
 {
@@ -566,7 +566,7 @@ definitions support being updated during a reload.
 }
 ```
 
-#### Configuration Key Reference
+## Configuration Reference
 
 -> **Note:** All the TTL values described below are parsed by Go's `time` package, and have the following
 [formatting specification](https://golang.org/pkg/time/#ParseDuration): "A
@@ -574,13 +574,11 @@ duration string is a possibly signed sequence of decimal numbers, each with
 optional fraction and a unit suffix, such as '300ms', '-1.5h' or '2h45m'.
 Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
-- `acl` ((#acl)) - This object allows a number of sub-keys to be set which
-  controls the ACL system. Configuring the ACL system within the ACL stanza was added
-  in Consul 1.4.0
+- `acl` ((#acl)) - the `acl` stanza contains all of the configuration for the ACL system.
 
-  The following sub-keys are available:
-
-  - `enabled` ((#acl_enabled)) - Enables ACLs.
+  - `enabled` ((#acl_enabled)) - Enable the ACL system. When enabled all requests made to
+    Consul must be authorized by an ACL token. To fully secure Consul this setting must be
+    enabled on both client agents and server agents.
 
   - `policy_ttl` ((#acl_policy_ttl)) - Used to control Time-To-Live caching
     of ACL policies. By default, this is 30 seconds. This setting has a major performance
