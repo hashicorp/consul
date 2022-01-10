@@ -16,6 +16,12 @@ upgrade flow.
 
 ## Consul 1.11.0
 
+### 1.10.x Agent Upgrade Notice
+
+Client agents must be Consul 1.10.5 or higher before attempting to upgrade
+servers to 1.11.x. There is a bug in Consul 1.10.0-1.10.4 which caused issues
+when communicating with 1.11.x servers.
+
 ### Deprecated Agent Config Options
 
 Consul 1.11.0 is compiled with Go 1.17 and now the ordering of
