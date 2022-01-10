@@ -55,10 +55,40 @@ var (
 		TLSv1_2:        "tls12",
 		TLSv1_3:        "tls13",
 	}
+	TLSVersionsWithConfigurableCipherSuites = map[TLSVersion]struct{}{
+		// NOTE: these two are implementation-dependent, but it is not expected that
+		// either Go or Envoy would default to TLS 1.3 as a minimum version in the
+		// near future
+		TLSVersionUnspecified: {},
+		TLSVersionAuto:        {},
+
+		TLSv1_0: {},
+		TLSv1_1: {},
+		TLSv1_2: {},
+	}
 )
 
 func (v *TLSVersion) String() string {
 	return fmt.Sprintf("%s", *v)
+}
+
+var tlsVersionComparison = map[TLSVersion]uint{
+	TLSv1_0: 1,
+	TLSv1_1: 2,
+	TLSv1_2: 3,
+	TLSv1_3: 4,
+}
+
+// Will only return true for concrete versions and won't catch
+// implementation-dependent conflicts with TLSVersionAuto or unspecified values
+func (a TLSVersion) LessThan(b TLSVersion) (error, bool) {
+	for _, v := range []TLSVersion{a, b} {
+		if _, ok := tlsVersionComparison[v]; !ok {
+			return fmt.Errorf("can't compare implementation-dependent values"), false
+		}
+	}
+
+	return nil, tlsVersionComparison[a] < tlsVersionComparison[b]
 }
 
 func ValidateTLSVersion(v TLSVersion) error {

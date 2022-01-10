@@ -250,15 +250,16 @@ func validateGatewayTLSConfig(tlsCfg GatewayTLSConfig) error {
 		if err := types.ValidateTLSVersion(tlsCfg.TLSMaxVersion); err != nil {
 			return err
 		}
+
+		if tlsCfg.TLSMinVersion != types.TLSVersionUnspecified {
+			if err, maxLessThanMin := tlsCfg.TLSMaxVersion.LessThan(tlsCfg.TLSMinVersion); err == nil && maxLessThanMin {
+				return fmt.Errorf("configuring max version %s less than the configured min version %s is invalid", tlsCfg.TLSMaxVersion, tlsCfg.TLSMinVersion)
+			}
+		}
 	}
 
-	// TODO: Is there any reasonable way to validate that TLSMaxVersion is
-	// greater than or equal to TLSMinVersion as string types?
-
 	if len(tlsCfg.CipherSuites) != 0 {
-		// TODO: is there any contextual way to determine Envoy's default TLS min and max versions if either
-		// TLSMinVersion or TLSMaxVersion are undefined or set to TLS_AUTO?
-		if tlsCfg.TLSMinVersion == types.TLSv1_3 {
+		if _, ok := types.TLSVersionsWithConfigurableCipherSuites[tlsCfg.TLSMinVersion]; !ok {
 			return fmt.Errorf("configuring CipherSuites is only applicable to conncetions negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s", tlsCfg.TLSMinVersion)
 		}
 
