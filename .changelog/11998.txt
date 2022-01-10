@@ -1,3 +1,0 @@
-```release-note:improvement
-Add examples for using go-sockaddr with multiple interfaces
-```

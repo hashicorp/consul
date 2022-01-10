@@ -68,7 +68,7 @@ The options below are all specified on the command-line.
 
   ```shell
   # Using a static network interface name
-  $ consul agent -bind '{{ GetInterfaceIP "eth0" }}'
+  $ consul agent -advertise '{{ GetInterfaceIP "eth0" }}'
   ```
 
   </CodeBlockConfig>
@@ -146,7 +146,7 @@ The options below are all specified on the command-line.
   capture, it is possible to use [`discard_check_output`](#discard_check_output).
 
 - `-client` ((#\_client)) - The address to which Consul will bind client
-  interfaces, including the HTTP, HTTPS, GRPC and DNS servers. By default, this is "127.0.0.1",
+  interfaces, including the HTTP, HTTPS, gRPC and DNS servers. By default, this is "127.0.0.1",
   allowing only loopback connections. In Consul 1.0 and later this can be set to
   a space-separated list of addresses to bind to, or a [go-sockaddr]
   template that can potentially resolve to multiple addresses.
