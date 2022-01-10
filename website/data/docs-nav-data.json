@@ -771,7 +771,20 @@
       },
       {
         "title": "Configuration",
-        "path": "agent/options"
+        "routes": [
+          {
+            "title": "General",
+            "path": "agent/config"
+          },
+          {
+            "title": "CLI Reference",
+            "path": "agent/config/agent-config-cli"
+          },
+          {
+            "title": "Configuration Reference",
+            "path": "agent/config/agent-config-files"
+          }
+        ]
       },
       {
         "title": "Configuration Entries",
