@@ -113,15 +113,15 @@ service {
 }
 ```
 
-| Parameter |  Required |Description | Default |
-| --------- | --------- | ---------- | ------- |
-| `name` |  required | String value specifying the Consul logical name of the service. | none |
-| `id` |  Optional | String value specifying the service for CTS. This is used to explicitly identify the service config for a task to use. If no ID is provided, the service is identified by the service name within a [task definition](#task). | none |
-| `description` |  Optional | String value specifying the human readable text to describe the service | none |
-| `datacenter` |  Optional | String value specifying the name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
-| `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
-| `filter` |  Optional | String value specifying an expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
-| `cts_user_defined_meta` | Optional | User-defined metadata specified as a map of strings that will be appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. By default, no metadata is appended. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. <br/><br/> If multiple tasks depend on the same service but require different metadata, you can declare different sets of metadata for the same service. Define multiple service blocks for the service with unique IDs (and identical names) for those blocks. The metadata can then be separated per task based on the service IDs. | none|
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `name` |  Required | string | Consul logical name of the service. | none |
+| `id` |  Optional | string | Service ID for CTS. This is used to explicitly identify the service config for a task to use. If no ID is provided, the service is identified by the service name within a [task definition](#task). | none |
+| `description` |  Optional | string | Human-readable text to describe the service | none |
+| `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
+| `namespace`  | Optional | string |<EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
+| `filter` |  Optional | string | Expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
+| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. <br/><br/> If multiple tasks depend on the same service but require different metadata, you can declare different sets of metadata for the same service. Define multiple service blocks for the service with unique IDs (and identical names) for those blocks. The metadata can then be separated per task based on the service IDs. | none|
 
 ## Task
 
@@ -236,15 +236,15 @@ task {
 
 ```
 
-| Parameter |  Required |Description | Default |
-| --------- | --------- | ---------- | ------- |
-| `regexp` |  Required if `names` is not configured | String value matching the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) list must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
-| `names` |  Required if `regexp` is not configured | List of string values specifying the names of Consul services to monitor. Only services that have their name listed in `names` are used by the task. | none |
-| `datacenter` |  Optional | String value specifying the name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
-| `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
-| `filter` |  Optional | String value specifying an expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
-| `cts_user_defined_meta` | Optional | User-defined metadata specified as a map of strings that will be appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. By default, no metadata is appended. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
-| `source_includes_var` | Optional | Boolean value indicating whether or not to use this `condition` block's services object as input for the module's [`services` variable](/docs/nia/terraform-modules#services-variable) | true |
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `regexp` |  Required if `names` is not configured | string | Regular expression used to match the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) list must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
+| `names` |  Required if `regexp` is not configured | list[string] | Names of Consul services to monitor. Only services that have their name listed in `names` are used by the task. | none |
+| `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
+| `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
+| `filter` |  Optional | string | Expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
+| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
+| `source_includes_var` | Optional | boolean | Whether or not to use this `condition` block's services object as input for the module's [`services` variable](/docs/nia/terraform-modules#services-variable) | true |
 
 #### Catalog-Services Condition
 
@@ -275,13 +275,13 @@ task {
 }
 ```
 
-| Parameter |  Required |Description | Default |
-| --------- | --------- | ---------- | ------- |
-| `regexp` |  Required | String value matching the names of Consul service to monitor for registration and deregistration. Only services that have a name matching the regular expression are used by the task. <br/><br/> Refer to [regular expression syntax documentation](https://github.com/google/re2/wiki/Syntax) and [try out regular expression string matching](https://golang.org/pkg/regexp/#Regexp.MatchString) for additional information. | none |
-| `datacenter` |  Optional | String value specifying the name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
-| `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
-| `node_meta`  | Optional | Map of string to string specifying the node metadata key/value pairs to use to filter services. Only services registered at a node with the specified key/value pairs are used by the task.  | none |
-| `source_includes_var` | Optional | Boolean value indicating whether or not the module configured at [`task.source`](#source) includes the [`catalog_services` variable](/docs/nia/terraform-modules#catalog-services-variable) <br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `regexp` |  Required | string | Regular expression used to match the names of Consul service to monitor for registration and deregistration. Only services that have a name matching the regular expression are used by the task. <br/><br/> Refer to [regular expression syntax documentation](https://github.com/google/re2/wiki/Syntax) and [try out regular expression string matching](https://golang.org/pkg/regexp/#Regexp.MatchString) for additional information. | none |
+| `datacenter` | Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
+| `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
+| `node_meta`  | Optional | map[string] | Node metadata key/value pairs to use to filter services. Only services registered at a node with the specified key/value pairs are used by the task.  | none |
+| `source_includes_var` | Optional | boolean | Whether or not the module configured at [`task.source`](#source) includes the [`catalog_services` variable](/docs/nia/terraform-modules#catalog-services-variable) <br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
 
 #### Consul KV Condition
 
@@ -307,13 +307,13 @@ task {
 }
 ```
 
-| Parameter |  Required |Description | Default |
-| --------- | --------- | ---------- | ------- |
-| `path` |  Required | String value that specifies the path of the key used by the task. The path can point to a single Consul KV entry or several entries within the path. | none |
-| `recurse` |  Optional | Boolean value that enables CTS to treat the path as a prefix. If set to `false`, the path will be treated as a literal match. | `false` |
-| `datacenter` |  Optional | String value specifying the name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
-| `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
-| `source_includes_var` | Optional | Boolean value indicating whether or not the module configured at [`task.source`](#source) includes the [`consul_kv` variable](/docs/nia/terraform-modules#consul-kv-variable) <br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `path` |  Required | string | Path of the key used by the task. The path can point to a single Consul KV entry or several entries within the path. | none |
+| `recurse` |  Optional | boolean | Enables CTS to treat the path as a prefix. If set to `false`, the path will be treated as a literal match. | `false` |
+| `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
+| `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
+| `source_includes_var` | Optional | boolean | Whether or not the module configured at [`task.source`](#source) includes the [`consul_kv` variable](/docs/nia/terraform-modules#consul-kv-variable) <br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
 
 #### Schedule Condition
 
@@ -351,14 +351,14 @@ You can add an optional `source_input` block to the `task` block. The `source_in
 
 This `services` source input object defines services registered to Consul whose metadata will be used as [services source input to the Terraform Module](/docs/nia/terraform-modules/#services-source-input). The following parameters are supported:
 
-| Parameter |  Required |Description | Default |
-| --------- | --------- | ---------- | ------- |
-| `regexp` |  Required if `names` is not configured | String value matching the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) list must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
-| `names` |  Required if `regexp` is not configured | List of string values specifying the names of Consul services to monitor. Only services that have their name listed in `names` are used by the task. | none |
-| `datacenter` |  Optional | String value specifying the name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
-| `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
-| `filter` |  Optional | String value specifying an expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
-| `cts_user_defined_meta` | Optional |  User-defined metadata specified as a map of strings that will be appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. By default, no metadata is appended. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `regexp` |  Required if `names` is not configured | string | Regular expression used to match the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) list must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
+| `names` |  Required if `regexp` is not configured | list[string] | Names of Consul services to monitor. Only services that have their name listed in `names` are used by the task. | none |
+| `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
+| `namespace` | Optional | string |<EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
+| `filter` |  Optional | string | Expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
+| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
 
 In the following example, the scheduled task queries all Consul services with `web` as the suffix. The metadata of matching services are provided to the Terraform module.
 
@@ -388,12 +388,12 @@ task {
 
 A Consul KV source input block defines changes to Consul KV that will be monitored. These changes will then be provided as [Consul KV source input to the Terraform Module](/docs/nia/terraform-modules/#consul-kv-source-input). The source input can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path. The following parameters are supported:
 
-| Parameter | Required | Description | Default |
-| --------- | -------- | ----------- | ------- |
-| `path` | Required | String value that specifies the path of the key used by the task. The path can point to a single Consul KV entry or several entries within the path. | none |
-| `recurse` | Optional | Boolean value that enables CTS to treat the path as a prefix. If set to `false`, the path will be treated as a literal match. | `false` |
-| `datacenter` | Optional | String value specifying the name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
-| `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `path` |  Required | string | Path of the key used by the task. The path can point to a single Consul KV entry or several entries within the path. | none |
+| `recurse` |  Optional | boolean | Enables CTS to treat the path as a prefix. If set to `false`, the path will be treated as a literal match. | `false` |
+| `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
+| `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 
 In the following example, the scheduled task queries datacenter `dc1` in the `default` namespace for changes to the value held by the key `my-key`.
 
