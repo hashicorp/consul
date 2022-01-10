@@ -14,9 +14,9 @@ Refer to the [introduction](https://learn.hashicorp.com/tutorials/consul/consul-
 <Tabs>
 <Tab heading="Pre-compiled binary">
 
-To install Consul-Terraform-Sync, find the [appropriate package](https://releases.hashicorp.com/consul-terraform-sync/) for your system and download it as a zip archive. Unzip the package to extract the binary named `consul-terraform-sync`. Move the `consul-terraform-sync` binary to a location available on your `PATH`.
+To install Consul-Terraform-Sync, find the [appropriate package](https://releases.hashicorp.com/consul-terraform-sync/) for your system and download it as a zip archive. For the CTS Enterprise binary, download a zip archive with the `+ent` metadata. [CTS Enterprise requires a Consul Enterpise license](/docs/nia/enterprise/license) to run.
 
-For the CTS Enterprise binary, download a zip archive with the `+ent` metadata. [CTS Enterprise requires a Consul Enterpise license](/docs/nia/enterprise/license) to run.
+Unzip the package to extract the binary named `consul-terraform-sync`. Move the `consul-terraform-sync` binary to a location available on your `PATH`.
 
 Example:
 ```shell-session
@@ -58,7 +58,7 @@ $ brew tap hashicorp/tap
 $ brew install hashicorp/tap/consul-terraform-sync
 ```
 
-To update to the latest, run
+Run the following command to update to the latest version:
 
 ```shell-session
 $ brew upgrade hashicorp/tap/consul-terraform-sync
