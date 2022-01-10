@@ -811,8 +811,8 @@
             "path": "security/acl/policies"
           },
           {
-            "title": "ACL Rules",
-            "path": "security/acl/acl-rules"
+            "title": "Rules",
+            "path": "security/acl/rules"
           },
           {
             "title": "Auth Methods",
@@ -840,7 +840,7 @@
             "path": "security/acl/acl-legacy"
           },
           {
-            "title": "Token Migration",
+            "title": "Legacy Token Migration",
             "path": "security/acl/acl-migrate-tokens"
           }
         ]

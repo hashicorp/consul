@@ -55,6 +55,11 @@ module.exports = [
     destination: '/docs/security/acl/acl-system',
     permanent: true,
   },
+  {
+    source: '/docs/security/acl/acl-rules',
+    destination: '/docs/security/acl/rules',
+    permanent: true,
+  },
   { source: '/docs/agent/http', destination: '/api-docs', permanent: true },
   {
     source: '/docs/guides/acl-legacy',
