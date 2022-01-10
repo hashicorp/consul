@@ -740,7 +740,7 @@ func injectHTTPFilterOnFilterChains(
 func (s *ResourceGenerator) injectConnectTLSOnFilterChains(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
 	for idx := range listener.FilterChains {
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf(), &envoy_tls_v3.TlsParameters{}),
+			CommonTlsContext:         makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf()),
 			RequireClientCertificate: &wrappers.BoolValue{Value: true},
 		}
 		transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -1062,7 +1062,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 	protocol string,
 ) (*envoy_listener_v3.FilterChain, error) {
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-		CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service], &envoy_tls_v3.TlsParameters{}),
+		CommonTlsContext:         makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
 		RequireClientCertificate: &wrappers.BoolValue{Value: true},
 	}
 	transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -1536,6 +1536,10 @@ func makeEnvoyHTTPFilter(name string, cfg proto.Message) (*envoy_http_v3.HttpFil
 	}, nil
 }
 
+func makeCommonTLSContextFromLeafWithoutParams(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoy_tls_v3.CommonTlsContext {
+	return makeCommonTLSContextFromLeaf(cfgSnap, leaf, nil)
+}
+
 func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert, tlsParams *envoy_tls_v3.TlsParameters) *envoy_tls_v3.CommonTlsContext {
 	// Concatenate all the root PEMs into one.
 	if cfgSnap.Roots == nil {
@@ -1545,6 +1549,10 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 	rootPEMS := ""
 	for _, root := range cfgSnap.Roots.Roots {
 		rootPEMS += ca.EnsureTrailingNewline(root.RootCert)
+	}
+
+	if tlsParams == nil {
+		tlsParams = &envoy_tls_v3.TlsParameters{}
 	}
 
 	return &envoy_tls_v3.CommonTlsContext{
