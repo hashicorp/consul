@@ -98,23 +98,86 @@ spec:
 
 ### Configuration Parameters
 
-The following table describes the parameters associated with the `exported-services` configuration entry.
+The following list describes the parameters associated with the `exported-services` configuration entry.
 
-| Parameter   | Description                                                                                                                                   | Required | Default |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
-| `Kind`      | String value that enables the configuration entry. The value should always be `exported-services` (HCL and JSON) or `ExportedServices` (YAML) | Required | None    |
-| `Partition` | String value that specifies the name of the partition that contains the services you want to export.                                          | Required | None    |
-| `Name`      | String value that specifies the name of the partition that contains the services you want to export.                                          | Required | None    |
-| `Services`  | List of objects that specify which services to export. See [`Services`](#services) for details.                                               | Required | None    |
-| `Meta`      | Object that defines a map of the max 64 key/value pairs.                                                                                      | Optional | None    |
-
-### Services
-
-The `Services` parameter contains one or more lists of parameters that specify which services to export, which namespaces the services reside, and the destination partition for the exported services. Each list in the `Services` block must contain the following parameters:
-
-- `Name`: Specifies the name of the service to export. You can use a asterisk wildcard (`*`) to include all services in the namespace.
-- `Namespace`: Specifies the namespace containing the services to export. You can use a asterisk wildcard (`*`) to include all namespaces in the partition.
-- `Consumers`: Specifies one ore more objects that identify a destination partition for the exported services.
+<ConfigEntryReference
+  keys={[
+    {
+      name: 'apiVersion',
+      description: 'Must be set to `consul.hashicorp.com/v1alpha1`',
+      hcl: false,
+    },
+    {
+      name: 'Kind',
+      description: {
+        hcl: 'Must be set to `exported-services`',
+        yaml: 'Must be set to `ExportedServices`',
+      },
+    },
+    {
+      name: 'Name',
+      description: 'Specifies the name of the partition that contains the services you want to export.',
+      yaml: false,
+    },
+    {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description: 'Specifies the name of the partition that contains the services you want to export.',
+      yaml: false,
+    },
+    {
+      name: 'Meta',
+      type: 'map<string|string>: nil',
+      description: 'Object that defines a map of the max 64 key/value pairs.',
+      yaml: false,
+    },
+    {
+      name: 'metadata',
+      children: [
+        {
+          name: 'name',
+          description: 'Specifies the name of the partition that contains the services you want to export.',
+        },
+        {
+          name: 'namespace',
+          description:
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+        },
+      ],
+      hcl: false,
+    },
+    {
+      name: 'Services',
+      type: 'array<Service>: <required>',
+      description: 'List of objects that specify which services to export.',
+      children: [
+        {
+          name: 'Name',
+          type: 'string: <required>',
+          description: 'Specifies the name of the service to export. You can use a asterisk wildcard (`*`) to include all services in the namespace.',
+        },
+        {
+          name: 'Namespace',
+          type: 'string: "default"',
+          description: 'Specifies the namespace containing the services to export. You can use a asterisk wildcard (`*`) to include all namespaces in the partition.',
+        },
+        {
+          name: 'Consumers',
+          type: 'array<string>: <required>',
+          description: 'Specifies one or more objects that identify a destination partition for the exported services.',
+          children: [
+            {
+              name: 'Partition',
+              type: 'string: <required>',
+              description: 'Specifies the destination partition for the exported services.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
 
 ## Example
 
