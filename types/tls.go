@@ -28,12 +28,12 @@ const (
 )
 
 var (
-	tlsVersions = map[string]TLSVersion{
-		"TLS_AUTO": TLSVersionAuto,
-		"TLSv1_0":  TLSv1_0,
-		"TLSv1_1":  TLSv1_1,
-		"TLSv1_2":  TLSv1_2,
-		"TLSv1_3":  TLSv1_3,
+	tlsVersions = map[TLSVersion]struct{}{
+		TLSVersionAuto: {},
+		TLSv1_0:        {},
+		TLSv1_1:        {},
+		TLSv1_2:        {},
+		TLSv1_3:        {},
 	}
 	// NOTE: This interface is deprecated in favor of tlsVersions
 	// and should be eventually removed in a future release.
@@ -92,7 +92,7 @@ func (a TLSVersion) LessThan(b TLSVersion) (error, bool) {
 }
 
 func ValidateTLSVersion(v TLSVersion) error {
-	if _, ok := tlsVersions[v.String()]; !ok {
+	if _, ok := tlsVersions[v]; !ok {
 		return fmt.Errorf("no matching TLS version found for %s", v.String())
 	}
 
