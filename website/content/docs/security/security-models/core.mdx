@@ -235,7 +235,7 @@ environment and adapt these configurations accordingly.
 
 - **Customize HTTP Response Headers** - Additional security headers, such as
   [`X-XSS-Protection`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection), can be
-  [configured](https://www.consul.io/docs/agent/options#response_headers) for HTTP API responses.
+  [configured](/docs/agent/options#response_headers) for HTTP API responses.
 
   ```hcl
   http_config {
@@ -411,6 +411,6 @@ The following are not part of the threat model for client agents:
 - **Gateways** - Consul supports a variety of [gateways](/docs/connect/gateways) to allow traffic in-and-out of the
   service mesh to support a variety of workloads. When using an internet-exposed gateway, you should be sure to harden
   your Consul agent and host configurations. In most configurations, ACLS, gossip encryption, and mTLS should be
-  enforced. If an [escape hatch override](https://www.consul.io/docs/connect/proxies/envoy#escape-hatch-overrides) is
+  enforced. If an [escape hatch override](/docs/connect/proxies/envoy#escape-hatch-overrides) is
   required, the proxy configuration should be audited to ensure security configurations remain intact, and do not
   violate Consul’s security model.

@@ -63,7 +63,7 @@ The following sections detail how to export this data.
    ==> Saved vm-dc-server-consul-0-key.pem
    ```
 
-   -> Note the `-node` option in the above command. This should be same as the node name of the [Consul Agent](https://www.consul.io/docs/agent#running-an-agent). This is a [requirement](https://www.consul.io/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways#tls) for Consul Federation to work. Alternatively, if you plan to use the same certificate and key pair on all your Consul server nodes, or you don't know the nodename in advance, use `-node "*"` instead.
+   -> Note the `-node` option in the above command. This should be same as the node name of the [Consul Agent](/docs/agent#running-an-agent). This is a [requirement](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways#tls) for Consul Federation to work. Alternatively, if you plan to use the same certificate and key pair on all your Consul server nodes, or you don't know the nodename in advance, use `-node "*"` instead.
    Not satisfying this requirement would result in the following error in the Consul Server logs:
    `[ERROR] agent.server.rpc: TLS handshake failed: conn=from= error="remote error: tls: bad certificate"`
 
