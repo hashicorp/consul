@@ -370,9 +370,9 @@ service {
 
 The following example shows how to configure Consul to listen on multiple interfaces or IP addresses using a [go-sockaddr template].
 
-The `bind_addr` is used for internal RPC and Serf communication (see the Agent Configuration for [bind_addr](/docs/agent/options#bind_addr) for more information).
+The `bind_addr` is used for internal RPC and Serf communication (see the [Agent Configuration for bind_addr](/docs/agent/options#bind_addr) for more information).
 
-The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS and GRPC servers. (see the Agent Configuration for [client_addr](/docs/agent/options#client_addr) for more information).
+The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS and gRPC servers. (see the [Agent Configuration for client_addr](/docs/agent/options#client_addr) for more information).
 
 <Tabs>
 <Tab heading="HCL">
@@ -391,7 +391,7 @@ log_level  = "INFO"
 # used for internal RPC and Serf
 bind_addr = "0.0.0.0"
 
-# Used for HTTP, HTTPS, DNS, and GRPC addresses.
+# Used for HTTP, HTTPS, DNS, and gRPC addresses.
 # loopback is not included in GetPrivateInterfaces because it is not routable. 
 client_addr = "{{ GetPrivateInterfaces | exclude \"type\" \"ipv6\" | join \"address\" \" \" }} {{ GetAllInterfaces | include \"flags\" \"loopback\" | join \"address\" \" \" }}"
 
