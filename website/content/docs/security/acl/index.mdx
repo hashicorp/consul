@@ -32,47 +32,22 @@ The diagram below shows the relationships between the core components of the ACL
 
 ![ACL system component relationships](/img/acl-token-policy-rule-relationship.png)
 
-## Tokens
-
-Tokens are the core method of authentication in Consul. The `SecretID` of the token
-(often referred to as the ACL token) is an opaque string that is included in requests to
-identify the person or system making the request. The ACL system will look up the ACL
-token and grant or deny access based on the permissions associated with the token.
-Permissions are granted to a token by linking it to [policies](#policies), [roles](#roles),
-[service identities](#service-identities), and [node identities](#node-identities).
-
-A Token also has an Accessor ID which is used in [Audit Logging](/docs/enterprise/audit-logging)
-and API responses to identify the token without revealing the secret ID.
+[Tokens](/docs/security/acl/tokens) are the core method of authentication in Consul.
+Permissions are granted to a token by linking it to
+[policies](/docs/security/acl/policies), and
+[roles](/docs/security/acl/policies#roles). Policies are constructed from a set of
+[rules](/docs/security/acl/rules).
 
 Tokens can be created directly from the [CLI](/commands/acl/token) or [API](/api-docs/acl/tokens).
 [Auth Methods](/docs/security/acl/auth-methods) can be used to dynamically create tokens
 from a trusted external system.
 
-Consul HTTP API requests accept a token from an [HTTP Header](/api-docs/index#authentication),
-and CLI requests accept a token from
-[`-token` command line flag](/commands#authentication) or
-[`CONSUL_HTTP_TOKEN_FILE` environment variable](/commands#consul_http_token_file).
-
-### ACL Auth Methods
-
-An auth method is a component in Consul that performs authentication against a
-trusted external party to authorize the creation of an ACL tokens usable within
-the local datacenter. Read the ACL auth method
-[documentation](/docs/acl/auth-methods) to learn more about how they
-work and why you may want to use them.
-
-### ACL Legacy System
+### Legacy ACL System
 
 The ACL system in Consul 1.3.1 and older is now called legacy. For information
 on bootstrapping the legacy system, ACL rules, and a general ACL system
-overview, read the legacy [documentation](/docs/acl/acl-legacy).
+overview, read the legacy [documentation](/docs/security/acl/acl-legacy). The
+legacy ACL system was removed in Consul 1.11.
 
-### ACL Migration
-
-[The migration documentation](/docs/acl/acl-migrate-tokens) details how to
-upgrade existing legacy tokens after upgrading to 1.4.0. It will briefly
-describe what changed, and then walk through the high-level migration process
-options, finally giving some specific examples of migration strategies. The new
-ACL system has improvements for the security and management of ACL tokens and
-policies.
-
+Legacy ACL tokens can be migrated to the new system by following the
+[legacy token migration documentation](/docs/acl/acl-migrate-tokens).
