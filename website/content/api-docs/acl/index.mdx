@@ -38,6 +38,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `none`       |
 
+-> The corresponding CLI command is [`consul acl bootstrap`](https://www.consul.io/commands/acl/bootstrap)
+
 ### Sample Request
 
 ```shell-session
@@ -202,6 +204,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:read`   |
 
+-> The corresponding CLI command is [`consul acl translate-rules`](https://www.consul.io/commands/acl/translate-rules)
+
 ### Sample Payload
 
 ```hcl
@@ -249,6 +253,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:read`   |
 
+-> The corresponding CLI command is [`consul acl translate-rules`](https://www.consul.io/commands/acl/translate-rules)
+
 ### Sample Request
 
 ```shell-session
@@ -289,6 +295,8 @@ replication](/docs/agent/options#acl_enable_token_replication) must be
 enabled. Login requires the ability to create local tokens which is restricted
 to the primary datacenter and any secondary datacenters with ACL token
 replication enabled.
+
+-> The corresponding CLI command is [`consul login`](https://www.consul.io/commands/login)
 
 ### Parameters
 
@@ -375,6 +383,8 @@ The table below shows this endpoint's support for
 
 -> **Note** - This endpoint requires no specific privileges as it is just
 deleting a token for which you already must possess its secret.
+
+-> The corresponding CLI command is [`consul logout`](https://www.consul.io/commands/logout)
 
 ### Sample Request
 

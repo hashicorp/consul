@@ -34,6 +34,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
+-> The corresponding CLI command is [`consul acl binding-rule create`](https://www.consul.io/commands/acl/binding-rule/create)
+
 ### Parameters
 
 - `Description` `(string: "")` - Free form human readable description of the binding rule.
@@ -158,6 +160,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
+-> The corresponding CLI command is [`consul acl binding-rule read`](https://www.consul.io/commands/acl/binding-rule/read)
+
 ### Parameters
 
 - `id` `(string: <required>)` - Specifies the UUID of the ACL binding rule
@@ -207,6 +211,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
+
+-> The corresponding CLI command is [`consul acl binding-rule update`](https://www.consul.io/commands/acl/binding-rule/update)
 
 ### Parameters
 
@@ -338,6 +344,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
+-> The corresponding CLI command is [`consul acl binding-rule delete`](https://www.consul.io/commands/acl/binding-rule/delete)
+
 ### Parameters
 
 - `id` `(string: <required>)` - Specifies the UUID of the ACL binding rule to
@@ -379,6 +387,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
+
+-> The corresponding CLI command is [`consul acl binding-rule list`](https://www.consul.io/commands/acl/binding-rule/list)
 
 ## Parameters
 

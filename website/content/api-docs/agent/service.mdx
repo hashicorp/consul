@@ -593,6 +593,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `service:write` |
 
+-> The corresponding CLI command is [`consul services register`](https://www.consul.io/commands/services/register)
+
 ### Query string parameters
 
 - `replace-existing-checks` - Missing health checks from the request will be deleted from the agent. Using this parameter allows to idempotently register a service and its checks without having to manually deregister checks.
@@ -765,6 +767,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `service:write` |
+
+-> The corresponding CLI command is [`consul services deregister`](https://www.consul.io/commands/services/deregister)
 
 ### Parameters
 
