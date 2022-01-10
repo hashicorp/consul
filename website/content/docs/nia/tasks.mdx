@@ -7,7 +7,7 @@ description: >-
 
 # Tasks
 
-A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream. Consul-Terraform-Sync carries out automation for executing tasks using network drivers. For a Terraform driver, the scope of a task is a Terraform module.
+A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream. Consul-Terraform-Sync (CTS) carries out automation for executing tasks using network drivers. For a Terraform driver, the scope of a task is a Terraform module.
 
 Below is an example task configuration:
 
@@ -22,7 +22,7 @@ task {
 }
 ```
 
-In the example task above, the "fake-firewall" and "null" providers, listed in the `providers` field, are used. These providers themselves should be configured in their own separate [`terraform_provider` blocks](/docs/nia/configuration#terraform-provider). These providers are used in the Terraform module "example/firewall-policy/module", configured in the `source` field, to create, update, and destroy resources. This module may do something like use the providers to create and destroy firewall policy objects based on IP addresses. The IP addresses come from the "web" and "image" service instances configured in the `services` field. This service-level information is retrieved by Consul-Terraform-Sync which watches Consul catalog for changes.
+In the example task above, the "fake-firewall" and "null" providers, listed in the `providers` field, are used. These providers themselves should be configured in their own separate [`terraform_provider` blocks](/docs/nia/configuration#terraform-provider). These providers are used in the Terraform module "example/firewall-policy/module", configured in the `source` field, to create, update, and destroy resources. This module may do something like use the providers to create and destroy firewall policy objects based on IP addresses. The IP addresses come from the "web" and "image" service instances configured in the `services` field. This service-level information is retrieved by CTS which watches Consul catalog for changes.
 
 See [task configuration](/docs/nia/configuration#task) for more details on how to configure a task.
 
@@ -34,7 +34,7 @@ An enabled task can be configured to monitor and execute on different types of c
 
 A task can also monitor, but not execute on, other variables that provide additional information to the task's module. For example, a task with a catalog-services condition may execute on registration changes and additionally monitor service instances for IP information.
 
-All configured monitored information, regardless if it's used for execution or not, can be passed to the task's module as module input. Below are details on the types of execution conditions that Consul-Terraform-Sync supports and their module inputs.
+All configured monitored information, regardless if it's used for execution or not, can be passed to the task's module as module input. Below are details on the types of execution conditions that CTS supports and their module inputs.
 
 ### Services Condition
 
@@ -79,7 +79,7 @@ task {
 }
 ```
 
-The services condition can provide input for the [`services` input variable](/docs/nia/terraform-modules#services-variable) that is required for each Consul-Terraform-Sync module. This can be provided depending on how the services condition is configured:
+The services condition can provide input for the [`services` input variable](/docs/nia/terraform-modules#services-variable) that is required for each CTS module. This can be provided depending on how the services condition is configured:
 1. task's `services` field: services object is automatically passed as module input
 1. task's `condition "services"` block: users can configure the `source_includes_var` field to optionally use the condition's services object as module input
 
@@ -111,7 +111,7 @@ service {
 }
 ```
 
-Using the condition block's `source_includes_var` field, users can configure Consul-Terraform-Sync to use the condition's object as module input for the [`catalog_services` input variable](/docs/nia/terraform-modules#catalog-services-variable). Users can refer to the configured module's documentation on how to set `source_includes_var`.
+Using the condition block's `source_includes_var` field, users can configure CTS to use the condition's object as module input for the [`catalog_services` input variable](/docs/nia/terraform-modules#catalog-services-variable). Users can refer to the configured module's documentation on how to set `source_includes_var`.
 
 See the [Catalog-Services Condition](/docs/nia/configuration#catalog-services-condition) configuration section for further details and additional configuration options.
 
@@ -139,7 +139,7 @@ task {
 }
 ```
 
-Using the condition block's `source_includes_var` field, users can configure Consul-Terraform-Sync to use the condition's object as module input for the [`consul_kv` input variable](/docs/nia/terraform-modules#consul-kv-variable). Users can refer to the configured module's documentation on how to set `source_includes_var`.
+Using the condition block's `source_includes_var` field, users can configure CTS to use the condition's object as module input for the [`consul_kv` input variable](/docs/nia/terraform-modules#consul-kv-variable). Users can refer to the configured module's documentation on how to set `source_includes_var`.
 
 See the [Consul-KV Condition](/docs/nia/configuration#consul-kv-condition) configuration section for more details and additional configuration options.
 
@@ -169,9 +169,9 @@ Below are the available options for source input types and how to configure them
 
 #### Running Behavior
 
-Scheduled tasks generally run on schedule, but they can be triggered on demand when running Consul-Terraform-Sync in the following ways:
+Scheduled tasks generally run on schedule, but they can be triggered on demand when running CTS in the following ways:
 
-- [Long-running mode](/docs/nia/cli#long-running-mode): At the beginning of the long-running mode, Consul-Terraform-Sync first passes through a once-mode phase in which all tasks are executed once. Scheduled tasks will trigger once during this once-mode phase. This behavior also applies to tasks that are not scheduled. After once-mode has completed, scheduled tasks subsequently trigger on schedule.
+- [Long-running mode](/docs/nia/cli#long-running-mode): At the beginning of the long-running mode, CTS first passes through a once-mode phase in which all tasks are executed once. Scheduled tasks will trigger once during this once-mode phase. This behavior also applies to tasks that are not scheduled. After once-mode has completed, scheduled tasks subsequently trigger on schedule.
 
 - [Inspect mode](/docs/nia/cli#inspect-mode): When running in inspect mode, the terminal will output a plan of proposed updates that would be made if the tasks were to trigger at that moment and then exit. No changes are applied in this mode. The outputted plan for a scheduled task is also the proposed updates that would be made if the task was triggered at that moment, even if off-schedule.
 
@@ -189,7 +189,7 @@ Because scheduled tasks trigger on a configured cadence, buffer periods are disa
 
 ## Task Automation
 
-Consul-Terraform-Sync will attempt to execute each enabled task once upon startup to synchronize infrastructure with the current state of Consul. The daemon will stop and exit if any error occurs while preparing the automation environment or executing a task for the first time. This helps ensure tasks have proper configuration and are executable before the daemon transitions into running tasks in full automation as service changes are discovered over time. As a result, it is not recommended to configure a task as disabled from the start. After all tasks have successfully executed once, task failures during automation will be logged and retried or attempted again after a subsequent change.
+CTS will attempt to execute each enabled task once upon startup to synchronize infrastructure with the current state of Consul. The daemon will stop and exit if any error occurs while preparing the automation environment or executing a task for the first time. This helps ensure tasks have proper configuration and are executable before the daemon transitions into running tasks in full automation as service changes are discovered over time. As a result, it is not recommended to configure a task as disabled from the start. After all tasks have successfully executed once, task failures during automation will be logged and retried or attempted again after a subsequent change.
 
 Tasks are executed near-real time when service changes are detected. For services or environments that are prone to flapping, it may be useful to configure a [buffer period](/docs/nia/configuration#buffer_period-1) for a task to accumulate changes before it is executed. The buffer period would reduce the number of consecutive network calls to infrastructure by batching changes for a task over a short duration of time.
 
@@ -205,7 +205,7 @@ These three levels form a hierarchy where each level of data informs the one hig
 
 ### Event
 
-When a task is triggered, Consul-Terraform-Sync takes a series of steps in order to update the network infrastructure. These steps consist of fetching the latest data from Consul for the task's source inputs and then updating the network infrastructure accordingly. An event captures information across this process. It stores information to help understand if the update to network infrastructure was successful or not and any errors that may have occurred.
+When a task is triggered, CTS takes a series of steps in order to update the network infrastructure. These steps consist of fetching the latest data from Consul for the task's source inputs and then updating the network infrastructure accordingly. An event captures information across this process. It stores information to help understand if the update to network infrastructure was successful or not and any errors that may have occurred.
 
 A dynamic task will store an event when it is triggered by a change in Consul. A scheduled task will store an event when it is triggered on schedule, regardless if there is a change in Consul. A disabled task does not update network infrastructures, so it will not store events until until re-enabled.
 

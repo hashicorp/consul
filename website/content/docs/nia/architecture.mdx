@@ -7,8 +7,8 @@ description: >-
 
 # Consul-Terraform-Sync Architecture
 
-Consul-Terraform-Sync is a service-oriented tool for managing
-network infrastructure near real-time. Consul-Terraform-Sync runs as a daemon
+Consul-Terraform-Sync (CTS) is a service-oriented tool for managing
+network infrastructure near real-time. CTS runs as a daemon
 and integrates the network topology maintained by your Consul cluster with your
 network infrastructure to dynamically secure and connect services.
 
@@ -16,7 +16,7 @@ network infrastructure to dynamically secure and connect services.
 
 [![Consul-Terraform-Sync Architecture](/img/nia-highlevel-diagram.svg)](/img/nia-highlevel-diagram.svg)
 
-The diagram shows Consul-Terraform-Sync monitoring the Consul service catalog
+The diagram shows CTS monitoring the Consul service catalog
 for updates and utilizing Terraform to update the state of the infrastructure.
 
 There are two principal aspects of Sync to know about corresponding to the
@@ -27,7 +27,7 @@ update the infrastructure.
 
 ## Watcher and Views
 
-Consul-Terraform-Sync monitors Consul for updates utilizing Consul's [Blocking
+CTS monitors Consul for updates utilizing Consul's [Blocking
 Queries](/api-docs/features/blocking) whenever supported, falling back on
 polling when not. The watcher maintains a separate thread (known internally as
 a view) for each value monitored, running any tasks that depend on that watched
@@ -57,4 +57,4 @@ Each driver includes a set of providers that [enables support](/docs/nia/terrafo
 
 The [Secure Consul-Terraform-Sync for Production](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-secure?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
 tutorial contains a checklist of best practices to secure your
-Consul-Terraform-Sync installation for a production environment.
+CTS installation for a production environment.
