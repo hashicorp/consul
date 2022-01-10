@@ -8,7 +8,7 @@ description: >-
 
 The `/status` endpoints share status-related information for tasks. This information is available for understanding the status of individual tasks and across tasks.
 
-The health status value is determined by aggregating the success or failure of the event of a task detecting changes in Consul services and then updating network infrastructure. Currently, only the 5 most recent events are stored in Consul-Terraform-Sync. For more information on the hierarchy of status information and how it is collected, see [Status Information](/docs/nia/tasks#status-information).
+The health status value is determined by aggregating the success or failure of the event of a task detecting changes in Consul services and then updating network infrastructure. Currently, only the 5 most recent events are stored in Consul-Terraform-Sync (CTS). For more information on the hierarchy of status information and how it is collected, see [Status Information](/docs/nia/tasks#status-information).
 
 ## Overall Status
 
@@ -100,7 +100,7 @@ The response is a JSON map of task name to a status information structure with t
 
 | Name	      | Type	  | Description       |
 | ----------- | ------ | ------------------ |
-|`task_name`  | string | Name of the task as configured in Consul-Terraform-Sync.
+|`task_name`  | string | Name of the task as configured in CTS.
 |`status`     | string | Values are `"successful"`, `"errored"`, `"critical"`, or `"unknown"`. This is determined by the success or failure of all stored events on the network infrastructure update process for the task, as described earlier.
 |`enabled`    | boolean | Whether the task is enabled or not.
 |`services`   | list[string] | List of the services configured for the task.
@@ -118,7 +118,7 @@ Event represents the process of updating network infrastructure of a task. The d
 |`success`    | boolean | Indication of whether the event was successful or not.
 |`start_time` | time | Time when the event started.
 |`end_time`   | time | Time when the event ended.
-|`task_name`  | string | Name that task is configured with in Consul-Terraform-Sync.
+|`task_name`  | string | Name that task is configured with in CTS.
 |`error`         | object | Information when the event fails. Null when successful.
 |`error.message` | string | Error message that is returned on failure.
 |`config`           | object | Configuration values for the task when it was run.
