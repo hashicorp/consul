@@ -69,15 +69,15 @@ $ consul kv put redis/config/connections
 Success! Data written to: redis/config/connections
 ```
 
+!> **Be careful when overwriting data!** The above operation would overwrite
+the value at the key to the empty value.
+
 If the `-base64` flag is set, the data will be decoded before writing:
 
 ```shell-session
 $ consul kv put -base64 foo/encoded aGVsbG8gd29ybGQK
 Success! Data written to: foo/encoded
 ```
-
-!> **Be careful when overwriting data!** The above operation would overwrite
-the value at the key to the empty value.
 
 For longer or sensitive values, it is possible to read from a file by prefixing
 with the `@` symbol:
