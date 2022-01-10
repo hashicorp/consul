@@ -183,10 +183,6 @@ func makeCommonTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.ConfigSnap
 	return tlsContext, nil
 }
 
-// func resolveGatewayServiceTLSConfig(mergedListenerTLSConfig *structs.GatewayTLSConfig, gatewayServiceCfg structs.GatewayServiceTLSConfig) (*structs.GatewayServiceTLSConfig, error) {
-// 	return nil, nil
-// }
-
 func resolveListenerTLSConfig(gatewayTLSCfg *structs.GatewayTLSConfig, listenerCfg structs.IngressListener) (*structs.GatewayTLSConfig, error) {
 	var mergedCfg structs.GatewayTLSConfig
 
@@ -338,13 +334,6 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 			return nil, err
 		}
 
-		// TODO: Merge with the TLS config from the listener
-		// Is this necessary?
-		// tlsCfg, err := resolveGatewayServiceTLSConfig(listenerCfg.TLS, *svc.TLS)
-		// if err != nil {
-		// 	return nil, err
-		// }
-
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 			CommonTlsContext:         makeCommonTLSContextFromGatewayServiceTLSConfig(*svc.TLS),
 			RequireClientCertificate: &wrappers.BoolValue{Value: false},
@@ -403,7 +392,6 @@ func makeCommonTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *
 
 func makeCommonTLSContextFromGatewayServiceTLSConfig(tlsCfg structs.GatewayServiceTLSConfig) *envoy_tls_v3.CommonTlsContext {
 	return &envoy_tls_v3.CommonTlsContext{
-		// TODO: does this need to merge with TLS params from GatewayTLSConfig?
 		TlsParams:                      &envoy_tls_v3.TlsParameters{},
 		TlsCertificateSdsSecretConfigs: makeTLSCertificateSdsSecretConfigsFromSDS(*tlsCfg.SDS),
 	}
