@@ -35,7 +35,7 @@ Every Consul Enterprise server maintains a reconciliation routine where every 30
 
 Joining a network area pool involves:
 1. Setting memberlist and Serf configuration. 
-   * Prior to Consul `v1.8.11` and `v1.9.5`, network areas were configured with memberlist's [DefaultWANConfig](https://github.com/hashicorp/memberlist/blob/838073fef1a4e1f6cb702a57a8075304098b1c31/config.go#L315). This was then updated to instead use the server's [gossip_wan](https://www.consul.io/docs/agent/options#gossip_wan) configuration, which falls back to the DefaultWANConfig if it was not specified. 
+   * Prior to Consul `v1.8.11` and `v1.9.5`, network areas were configured with memberlist's [DefaultWANConfig](https://github.com/hashicorp/memberlist/blob/838073fef1a4e1f6cb702a57a8075304098b1c31/config.go#L315). This was then updated to instead use the server's [gossip_wan](https://www.consul.io/docs/agent/config/agent-config-files#gossip_wan) configuration, which falls back to the DefaultWANConfig if it was not specified. 
    * As of Consul `v1.8.11`/`v1.9.5` it is not possible to tune gossip communication on a per-area basis.
 
 2. Update the server's gossip network, which keeps track of network areas that the server is a part of. This gossip network is also used to dispatch incoming **gossip** connections to handlers for the appropriate area.

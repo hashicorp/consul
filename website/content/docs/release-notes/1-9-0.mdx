@@ -21,7 +21,7 @@ page_title: 1.9.0
 - **Active Health Checks for Consul on Kubernetes:** Consul service mesh now integrates with Kubernetes Readiness probes. This provides the ability to natively detect health status from Kubernetes via Readiness probe, and is then used for directing service mesh traffic.
 
 - **Streaming:** This feature introduces a major architectural enhancement in how update notifications for blocking queries are delivered within the cluster. Streaming results in very significant reduction of CPU and network bandwidth usage on Consul servers in large-scale deployments. Streaming is particularly helpful in scaling blocking queries in Consul clusters that have rapid changes in service state.
-  - Streaming is now available for the service health HTTP endpoint, and can be enabled through the [`use_streaming_backend`](https://www.consul.io/docs/agent/options#use_streaming_backend) client configuration option, and [`rpc.enable_streaming`](https://www.consul.io/docs/agent/options#rpc_enable_streaming) option on the servers. We will continue to enable streaming in more endpoints in subsequent releases.
+  - Streaming is now available for the service health HTTP endpoint, and can be enabled through the [`use_streaming_backend`](https://www.consul.io/docs/agent/config/agent-config-files#use_streaming_backend) client configuration option, and [`rpc.enable_streaming`](https://www.consul.io/docs/agent/config/agent-config-files#rpc_enable_streaming) option on the servers. We will continue to enable streaming in more endpoints in subsequent releases.
 
 ## What's Changed
 

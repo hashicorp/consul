@@ -79,7 +79,7 @@ $ curl \
 
 Consul 0.7 added the ability to translate addresses in HTTP response based on
 the configuration setting for
-[`translate_wan_addrs`](/docs/agent/options#translate_wan_addrs). In order
+[`translate_wan_addrs`](/docs/agent/config/agent-config-files#translate_wan_addrs). In order
 to allow clients to know if address translation is in effect, the
 `X-Consul-Translate-Addresses` header will be added if translation is enabled,
 and will have a value of `true`. If translation is not enabled then this header
@@ -90,7 +90,7 @@ will not be present.
 All API responses for Consul versions after 1.9 will include an HTTP response
 header `X-Consul-Default-ACL-Policy` set to either "allow" or "deny" which
 mirrors the current value of the agent's
-[`acl.default_policy`](/docs/agent/options#acl_default_policy) option.
+[`acl.default_policy`](/docs/agent/config/agent-config-files#acl_default_policy) option.
 
 This is also the default [intention](/docs/connect/intentions) enforcement
 action if no intention matches.

@@ -21,18 +21,18 @@ are located in the `us-east-1` datacenter, and have no failing health checks.
 It's that simple!
 
 There are a number of configuration options that are important for the DNS interface,
-specifically [`client_addr`](/docs/agent/options#client_addr),[`ports.dns`](/docs/agent/options#dns_port),
-[`recursors`](/docs/agent/options#recursors),[`domain`](/docs/agent/options#domain),
-[`alt_domain`](/docs/agent/options#alt_domain), and [`dns_config`](/docs/agent/options#dns_config).
+specifically [`client_addr`](/docs/agent/config/agent-config-files#client_addr),[`ports.dns`](/docs/agent/config/agent-config-files#dns_port),
+[`recursors`](/docs/agent/config/agent-config-files#recursors),[`domain`](/docs/agent/config/agent-config-files#domain),
+[`alt_domain`](/docs/agent/config/agent-config-files#alt_domain), and [`dns_config`](/docs/agent/config/agent-config-files#dns_config).
 By default, Consul will listen on 127.0.0.1:8600 for DNS queries in the `consul.`
 domain, without support for further DNS recursion. Please consult the
-[documentation on configuration options](/docs/agent/options),
+[documentation on configuration options](/docs/agent/config),
 specifically the configuration items linked above, for more details.
 
 There are a few ways to use the DNS interface. One option is to use a custom
 DNS resolver library and point it at Consul. Another option is to set Consul
 as the DNS server for a node and provide a
-[`recursors`](/docs/agent/options#recursors) configuration so that non-Consul queries
+[`recursors`](/docs/agent/config/agent-config-files#recursors) configuration so that non-Consul queries
 can also be resolved. The last method is to forward all queries for the "consul."
 domain to a Consul agent from the existing DNS server. Review the
 [DNS Forwarding tutorial](https://learn.hashicorp.com/tutorials/consul/dns-forwarding?utm_source=consul.io&utm_medium=docs) for examples.
@@ -296,15 +296,15 @@ are not truncated.
 ## Alternative Domain
 
 By default, Consul responds to DNS queries in the `consul` domain,
-but you can set a specific domain for responding to DNS queries by configuring the [`domain`](/docs/agent/options#domain) parameter.
+but you can set a specific domain for responding to DNS queries by configuring the [`domain`](/docs/agent/config/agent-config-files#domain) parameter.
 
 In some instances, Consul may need to respond to queries in more than one domain,
 such as during a DNS migration or to distinguish between internal and external queries.
 
 Consul versions 1.5.2+ can be configured to respond to DNS queries on an alternative domain
-through the [`alt_domain`](/docs/agent/options#alt_domain) agent configuration
+through the [`alt_domain`](/docs/agent/config/agent-config-files#alt_domain) agent configuration
 option. As of Consul versions 1.11.0+, Consul's DNS response will use the same domain as was used in the query;
-in prior versions, the response may use the primary [`domain`](/docs/agent/options#domain) no matter which
+in prior versions, the response may use the primary [`domain`](/docs/agent/config/agent-config-files#domain) no matter which
 domain was used in the query.
 
 In the following example, the `alt_domain` parameter is set to `test-domain`:
@@ -331,7 +331,7 @@ machine.node.dc1.test-domain. 0	IN	TXT	"consul-network-segment="
 ```
 
 -> **PTR queries:**  Responses to PTR queries (`<ip>.in-addr.arpa.`) will always use the
-[primary domain](/docs/agent/options#domain) (not the alternative domain),
+[primary domain](/docs/agent/config/agent-config-files#domain) (not the alternative domain),
 as there is no way for the query to specify a domain.
 
 ## Caching
@@ -346,8 +346,8 @@ for [DNS caching](https://learn.hashicorp.com/tutorials/consul/dns-caching).
 By default, Consul DNS queries will return a node's local address, even when
 being queried from a remote datacenter. If you need to use a different address
 to reach a node from outside its datacenter, you can configure this behavior
-using the [`advertise-wan`](/docs/agent/options#_advertise-wan) and
-[`translate_wan_addrs`](/docs/agent/options#translate_wan_addrs) configuration
+using the [`advertise-wan`](/docs/agent/config/agent-config-cli#_advertise-wan) and
+[`translate_wan_addrs`](/docs/agent/config/agent-config-files#translate_wan_addrs) configuration
 options.
 
 ## Namespaced/Partitioned Services <EnterpriseAlert inline />
@@ -363,7 +363,7 @@ services from other namespaces or partitions the following form can be used:
 
 This is the canonical name of a Consul Enterprise service. Currently all parts must be
 present - in a future version (once the
-[`prefer_namespace` configuration](/docs/agent/options#dns_prefer_namespace) has been
+[`prefer_namespace` configuration](/docs/agent/config/agent-config-files#dns_prefer_namespace) has been
 deprecated), the namespace, partition and datacenter components will become optional
 and may be individually omitted to default to the `default` namespace, local partition
 or local datacenter respectively.
@@ -377,7 +377,7 @@ are enabled, you must first create ACL tokens with the necessary policies.
 Consul agents resolve DNS requests using one of the preconfigured tokens below,
 listed in order of precedence:
 
-1. The agent's [`default` token](/docs/agent/options#acl_tokens_default).
+1. The agent's [`default` token](/docs/agent/config/agent-config-files#acl_tokens_default).
 2. The built-in [`anonymous` token](/docs/security/acl/acl-system#builtin-tokens).
    Because the anonymous token is used when any request is made to Consul without
    explicitly specifying a token, production deployments should not apply policies
