@@ -14,10 +14,12 @@ The Vault CA provider uses the
 [Vault PKI secrets engine](https://www.vaultproject.io/docs/secrets/pki)
 to generate and sign certificates.
 
--> This page documents the specifics of the Vault CA provider.
+This page documents the specifics of the Vault CA provider.
 Please read the [certificate management overview](/docs/connect/ca)
 page first to understand how Consul manages certificates with configurable
 CA providers.
+
+-> **NOTE**: A Learn [tutorial](https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-connect-ca?in=consul/vault-secure) is available to help you configure Vault as the Consul Connect service mesh Certification Authority.
 
 ## Requirements
 
@@ -30,46 +32,109 @@ must be met:
 
 ## Configuration
 
-The Vault CA is enabled by setting the `ca_provider` to `"vault"` and
-setting the required configuration values. An example configuration
-is shown below:
+The Vault CA is enabled by setting the CA provider to `"vault"` and
+setting the required configuration values.
+
+The configuration may either be provided in the agent's configuration file using
+the [`ca_provider`] and [`ca_config`] options, or configured using the
+[`/connect/ca/configuration`] API endpoint.
+
+Example configurations are shown below:
+
+<CodeTabs heading="Connect CA configuration" tabs={["Agent configuration", "API"]}>
+
+<CodeBlockConfig filename="/etc/consul.d/config.hcl" highlight="4,6-9">
 
 ```hcl
+# ...
 connect {
-    enabled = true
-    ca_provider = "vault"
-    ca_config {
-        address = "http://localhost:8200"
-        token = "..."
-        root_pki_path = "connect-root"
-        intermediate_pki_path = "connect-intermediate"
-    }
+  enabled = true
+  ca_provider = "vault"
+  ca_config {
+    address = "http://localhost:8200"
+    token = "..."
+    root_pki_path = "connect-root"
+    intermediate_pki_path = "connect-intermediate"
+  }
 }
 ```
 
-The configuration options are listed below. Note, the
-first key is the value used in API calls and the second key (after the `/`)
-is used if you're adding configuring to the agent's configuration file.
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="2,4-7">
+
+```json
+{
+  "Provider": "vault",
+  "Config": {
+    "Address": "http://localhost:8200",
+    "Token": "<token>",
+    "RootPKIPath": "connect-root",
+    "IntermediatePKIPath": "connect-intermediate"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+The configuration options are listed below.
+
+-> **NOTE**: The first key is the value used in API calls, and the second key
+   (after the `/`) is used if you are adding the configuration to the agent's
+   configuration file.
 
 - `Address` / `address` (`string: <required>`) - The address of the Vault
   server.
 
-- `Token` / `token` (`string: <required>`) - A token for accessing Vault.
+- `Token` / `token` (`string: ""`) - A token for accessing Vault.
   This is write-only and will not be exposed when reading the CA configuration.
-  This token must have proper privileges for the PKI paths configured. In Consul
-  1.8.5 and later, if the token has the [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
+  This token must have [proper privileges](#vault-acl-policies) for the PKI
+  paths configured. In Consul 1.8.5 and later, if the token has the [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
   flag set, Consul will attempt to renew its lease periodically after half the
   duration has expired.
 
+  !> **Warning:** You must either provide a token or configure an auth method below.
+
+- `AuthMethod` / `auth_method` (`map: nil`) - Vault auth method to use for logging in to Vault.
+  Please see [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for more information
+  on how to configure individual auth methods. If auth method is provided, Consul will obtain a
+  a new token from Vault when the token can no longer be renewed.
+
+   - `Type`/ `type` (`string: ""`) - The type of Vault auth method.
+
+   - `MountPath`/ `mount_path` (`string: <AuthMethod.Type>`) - The mount path of the auth method.
+      If not provided the auth method type will be used as the mount path.
+
+   - `Params`/`params` (`map: nil`) - The parameters to configure the auth method. Please see
+    [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for information on how to configure the
+    auth method you wish to use. If using the Kubernetes auth method,
+    Consul will read the service account token from the
+    default mount path `/var/run/secrets/kubernetes.io/serviceaccount/token` if the `jwt` parameter
+    is not provided.
+
+
 - `RootPKIPath` / `root_pki_path` (`string: <required>`) - The path to
-  a PKI secrets engine for the root certificate. If the path doesn't
-  exist, Consul will attempt to mount and configure this automatically.
+  a PKI secrets engine for the root certificate. If the path does not
+  exist, Consul will mount a new PKI secrets engine at the specified path with the
+  `RootCertTTL` value as the root certificate's TTL. If the `RootCertTTL` is not set,
+  a [`max_lease_ttl`](https://www.vaultproject.io/api/system/mounts#max_lease_ttl)
+  of 87600 hours, or 10 years is applied by default as of Consul 1.11 and later. Prior to Consul 1.11, 
+  the root certificate TTL was set to 8760 hour, or 1 year, and was not configurable. 
+  The root certificate will expire at the end of the specified period. 
+  
+  When WAN Federation is enabled, each secondary datacenter must use the same Vault cluster and share the same `root_pki_path`
+  with the primary datacenter. 
 
 - `IntermediatePKIPath` / `intermediate_pki_path` (`string: <required>`) -
   The path to a PKI secrets engine for the generated intermediate certificate.
   This certificate will be signed by the configured root PKI path. If this
-  path doesn't exist, Consul will attempt to mount and configure this
-  automatically.
+  path does not exist, Consul will attempt to mount and configure this
+  automatically. 
+
+  When WAN Federation is enabled, every secondary 
+  datacenter must specify a unique `intermediate_pki_path`. 
 
 - `CAFile` / `ca_file` (`string: ""`) - Specifies an optional path to the CA
   certificate used for Vault communication. If unspecified, this will fallback
@@ -81,18 +146,24 @@ is used if you're adding configuring to the agent's configuration file.
   varies by OS and version.
 
 - `CertFile` / `cert_file` (`string: ""`) - Specifies the path to the
-  certificate used for Vault communication. If this is set then you need to
-  also set tls_key_file.
+  certificate used for Vault communication. If this is set, then you also need to
+  set `key_file`.
 
 - `KeyFile` / `key_file` (`string: ""`) - Specifies the path to the private
-  key used for Vault communication. If this is set then you need to also set
-  cert_file.
+  key used for Vault communication. If this is set, then you also need to set
+  `cert_file`.
 
 - `TLSServerName` / `tls_server_name` (`string: ""`) - Specifies an optional
   string used to set the SNI host when connecting to Vault via TLS.
 
 - `TLSSkipVerify` / `tls_skip_verify` (`bool: false`) - Specifies if SSL peer
   validation should be enforced.
+
+- `Namespace` / `namespace` (`string: <optional>`) - The Vault Namespace that
+  the `Token` and PKI Certificates are a part of. Vault Namespaces are a Vault
+  Enterprise feature. Added in Consul 1.11.0
+
+@include 'http_api_connect_ca_common_options.mdx'
 
 ## Root and Intermediate PKI Paths
 
@@ -124,6 +195,8 @@ granted full control of the Intermediate or Leaf CA for Connect clients.
 In this example the `RootPKIPath` is `connect_root` and the `IntermediatePKIPath`
 is `connect_inter`. These values should be updated for your environment.
 
+<CodeBlockConfig filename="vault-managed-pki-policy.hcl">
+
 ```hcl
 # Existing PKI Mounts
 path "/sys/mounts" {
@@ -153,11 +226,13 @@ path "/connect_inter/*" {
 path "auth/token/renew-self" {
 	capabilities = [ "update" ]
 }
-	
+
 path "auth/token/lookup-self" {
 	capabilities = [ "read" ]
 }
 ```
+
+</CodeBlockConfig>
 
 ### Consul Managed PKI Paths
 
@@ -167,6 +242,8 @@ control of the Root and Intermediate or Leaf CA for Connect clients.
 
 In this example the `RootPKIPath` is `connect_root` and the `IntermediatePKIPath`
 is `connect_inter`. These values should be updated for your environment.
+
+<CodeBlockConfig filename="consul-managed-pki-policy.hcl">
 
 ```hcl
 # Consul Managed PKI Mounts
@@ -190,3 +267,10 @@ path "/connect_inter/*" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 ```
+
+</CodeBlockConfig>
+
+<!-- Reference style links -->
+[`ca_config`]: /docs/agent/options#connect_ca_config
+[`ca_provider`]: /docs/agent/options#connect_ca_provider
+[`/connect/ca/configuration`]: /api-docs/connect/ca#update-ca-configuration

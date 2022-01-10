@@ -15,10 +15,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestAPI_AgentSelf(t *testing.T) {
@@ -626,6 +627,46 @@ func TestAPI_AgentServiceAddress(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 }
+func TestAPI_AgentServiceSocket(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg1 := &AgentServiceRegistration{
+		Name:    "foo1",
+		Port:    8000,
+		Address: "192.168.0.42",
+	}
+	reg2 := &AgentServiceRegistration{
+		Name:       "foo2",
+		SocketPath: "/tmp/foo2.sock",
+	}
+
+	if err := agent.ServiceRegister(reg1); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := agent.ServiceRegister(reg2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	require.Contains(t, services, "foo1", "missing service foo1")
+	require.Contains(t, services, "foo2", "missing service foo2")
+
+	require.Equal(t, "192.168.0.42", services["foo1"].Address,
+		"missing Address field in service foo1: %v", services["foo1"])
+
+	require.Equal(t, "", services["foo2"].Address,
+		"unexpected Address field in service foo1: %v", services["foo2"])
+	require.Equal(t, "/tmp/foo2.sock", services["foo2"].SocketPath,
+		"missing SocketPath field in service foo1: %v", services["foo2"])
+}
 
 func TestAPI_AgentEnableTagOverride(t *testing.T) {
 	t.Parallel()
@@ -753,6 +794,7 @@ func TestAPI_AgentService(t *testing.T) {
 		},
 		Meta:       map[string]string{},
 		Namespace:  defaultNamespace,
+		Partition:  defaultPartition,
 		Datacenter: "dc1",
 	}
 	require.Equal(expect, got)
@@ -1476,6 +1518,10 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
+		if _, err := agent.UpdateAgentRecoveryACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
 		if _, err := agent.UpdateReplicationACLToken("root", nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1526,6 +1572,9 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = agent.UpdateAgentMasterACLToken("root", nil)
+		require.NoError(t, err)
+
+		_, err = agent.UpdateAgentRecoveryACLToken("root", nil)
 		require.NoError(t, err)
 
 		_, err = agent.UpdateReplicationACLToken("root", nil)

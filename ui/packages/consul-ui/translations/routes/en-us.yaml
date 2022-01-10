@@ -42,3 +42,5 @@ dc:
           header: Transparent proxy mode
           body: The upstreams listed on this page have been defined in a proxy registration. There may be more upstreams, though, as "transparent" mode is enabled on this proxy.
           footer: Read the documentation
+  routing-config:
+    source: Routing Configuration

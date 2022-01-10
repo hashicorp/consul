@@ -24,8 +24,16 @@ as |item index|>
             {{else}}
               {{item.SourceName}}
             {{/if}}
+            {{#if (or (can 'use nspaces') (can 'use partitions'))}}
             {{! TODO: slugify }}
-            <em class={{concat 'nspace-' (or item.SourceNS 'default')}}>{{or item.SourceNS 'default'}}</em>
+            <em>
+              <span
+                class={{concat 'partition-' (or item.SourcePartition 'default')}}
+              >{{or item.SourcePartition 'default'}}</span> / <span
+                class={{concat 'nspace-' (or item.SourceNS 'default')}}
+              >{{or item.SourceNS 'default'}}</span>
+            </em>
+            {{/if}}
           </a>
         </td>
         <td class="intent intent-{{slugify item.Action}}" data-test-intention-action={{item.Action}}>
@@ -38,8 +46,16 @@ as |item index|>
             {{else}}
               {{item.DestinationName}}
             {{/if}}
+            {{#if (or (can 'use nspaces') (can 'use partitions'))}}
             {{! TODO: slugify }}
-            <em class={{concat 'nspace-' (or item.DestinationNS 'default')}}>{{or item.DestinationNS 'default'}}</em>
+            <em>
+              <span
+                class={{concat 'partition-' (or item.DestinationPartition 'default')}}
+              >{{or item.DestinationPartition 'default'}}</span> / <span
+                class={{concat 'nspace-' (or item.DestinationNS 'default')}}
+              >{{or item.DestinationNS 'default'}}</span>
+            </em>
+            {{/if}}
           </span>
         </td>
         <td class="permissions">
@@ -53,6 +69,7 @@ as |item index|>
         {{/if}}
         </td>
     </BlockSlot>
+{{#if (and (or (can "write intention" item=item) (can "view CRD intention" item=item)) (not-eq item.Meta.external-source 'consul-api-gateway'))}}
     <BlockSlot @name="actions" as |index change checked|>
       <PopoverMenu
         @expanded={{if (eq checked index) true false}}
@@ -101,7 +118,7 @@ as |item index|>
                 </InformedAction>
               </div>
             </li>
-          {{else}}
+          {{else if (can "view CRD intention" item=item)}}
             <li role="none">
               <div role="menu">
                 <InformedAction
@@ -140,4 +157,5 @@ as |item index|>
         </BlockSlot>
       </PopoverMenu>
     </BlockSlot>
+{{/if}}
 </TabularCollection>

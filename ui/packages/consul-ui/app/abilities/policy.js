@@ -16,7 +16,7 @@ export default class PolicyAbility extends BaseAbility {
     return (
       this.env.var('CONSUL_ACLS_ENABLED') &&
       (typeof this.item === 'undefined' || typeOf([this.item]) !== 'policy-management') &&
-      super.canRead
+      super.canWrite
     );
   }
 

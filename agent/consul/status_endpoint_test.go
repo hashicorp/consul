@@ -7,12 +7,13 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/require"
 )
 
 func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
@@ -24,7 +25,9 @@ func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
 
 	// Write the Consul RPC byte to set the mode
 	conn.Write([]byte{byte(pool.RPCConsul)})
-	return msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
+	codec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
+	t.Cleanup(func() { codec.Close() })
+	return codec
 }
 
 func insecureRPCClient(s *Server, c tlsutil.Config) (rpc.ClientCodec, error) {

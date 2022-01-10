@@ -1,0 +1,158 @@
+{{#if (can 'use acls')}}
+  <li data-test-main-nav-auth>
+
+    <AuthDialog
+      @src={{uri 'settings://consul:token'}}
+      @sink={{uri 'settings://consul:token'}}
+      @onchange={{this.reauthorize}}
+    >
+      <:unauthorized as |authDialog|>
+        <Portal @target="app-before-skip-links">
+          <Action
+            {{on "click" (optional this.modal.open)}}
+          >
+            Login
+          </Action>
+        </Portal>
+        <Action
+          {{on "click" (optional this.modal.open)}}
+        >
+          Log in
+        </Action>
+        <ModalDialog
+          @name="login-toggle"
+          @onclose={{this.close}}
+          @onopen={{this.open}}
+          @aria={{hash
+            label="Log in to Consul"
+          }}
+        as |modal|>
+          <Ref 
+            @target={{this}}
+            @name="modal"
+            @value={{modal}}
+          />
+          <BlockSlot @name="header">
+            <h2>
+              Log in to Consul
+            </h2>
+          </BlockSlot>
+          <BlockSlot @name="body">
+            <AuthForm
+              @dc={{@dc.Name}}
+              @partition={{@partition}}
+              @nspace={{@nspace}}
+              @onsubmit={{action authDialog.login value="data"}}
+            as |authForm|>
+              <Ref
+                @target={{this}}
+                @name="authForm"
+                @value={{authForm}}
+              />
+              {{#if (can "use SSO")}}
+                <authForm.Method @matches="sso">
+                  <OidcSelect
+                    @dc={{@dc.Name}}
+                    @nspace={{@nspace}}
+                    @disabled={{authForm.disabled}}
+                    @onchange={{authForm.submit}}
+                    @onerror={{authForm.error}}
+                  />
+                </authForm.Method>
+              {{/if}}
+            </AuthForm>
+          </BlockSlot>
+          <BlockSlot @name="actions">
+            <Action
+              {{on "click" modal.close}}
+            >
+              Continue without logging in
+            </Action>
+          </BlockSlot>
+        </ModalDialog>
+      </:unauthorized>
+      <:authorized as |authDialog|>
+        <ModalDialog
+          @name="login-toggle"
+          @onclose={{this.close}}
+          @onopen={{this.open}}
+          @aria={{hash
+            label="Log in with a different token"
+          }}
+        as |modal|>
+          <Ref
+            @target={{this}}
+            @name="modal"
+            @value={{modal}}
+          />
+          <BlockSlot @name="header">
+            <h2>
+              Log in with a different token
+            </h2>
+          </BlockSlot>
+          <BlockSlot @name="body">
+            <AuthForm
+              @dc={{@dc.Name}}
+              @nspace={{@nspace}}
+              @partition={{@partition}}
+              @onsubmit={{action authDialog.login value="data"}}
+            as |authForm|>
+              <Ref 
+                @target={{this}}
+                @name="authForm"
+                @value={{authForm}}
+              />
+            </AuthForm>
+          </BlockSlot>
+          <BlockSlot @name="actions">
+            <Action
+              {{on 'click' modal.close}}
+            >
+              Continue without logging in
+            </Action>
+          </BlockSlot>
+        </ModalDialog>
+        <Portal @target="app-before-skip-links">
+          <Action
+            {{on "click" (optional authDialog.logout)}}
+          >
+            Logout
+          </Action>
+        </Portal>
+        <PopoverMenu @position="right" as |components api|>
+          <BlockSlot @name="trigger">
+            Logout
+          </BlockSlot>
+          <BlockSlot @name="menu">
+            {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
+{{!TODO: It might be nice to use one of our recursive components here}}
+{{#if @token.AccessorID}}
+                <li role="none">
+                  <AuthProfile
+                    @item={{@token}}
+                  />
+                </li>
+                <MenuSeparator />
+{{/if}}
+                <MenuItem
+                  class="dangerous"
+                  @onclick={{action authDialog.logout}}
+                >
+                  <BlockSlot @name="label">
+                    Logout
+                  </BlockSlot>
+                </MenuItem>
+              {{/let}}
+          </BlockSlot>
+        </PopoverMenu>
+      </:authorized>
+    </AuthDialog>
+
+  </li>
+{{yield
+  (hash
+    modal=this.modal
+  )
+}}
+{{/if}}
+

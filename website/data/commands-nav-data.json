@@ -434,6 +434,10 @@
     ]
   },
   {
+    "title": "partition",
+    "path": "partition"
+  },
+  {
     "title": "reload",
     "path": "reload"
   },

@@ -1,9 +1,11 @@
+//go:build !consulent
 // +build !consulent
 
 package state
 
 import (
 	"fmt"
+	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
 
@@ -17,13 +19,16 @@ func serviceIndexName(name string, _ *structs.EnterpriseMeta) string {
 }
 
 func serviceKindIndexName(kind structs.ServiceKind, _ *structs.EnterpriseMeta) string {
-	switch kind {
-	case structs.ServiceKindTypical:
-		// needs a special case here
-		return "service_kind.typical"
-	default:
-		return "service_kind." + string(kind)
+	return "service_kind." + kind.Normalized()
+}
+
+func catalogUpdateNodesIndexes(tx WriteTxn, idx uint64, entMeta *structs.EnterpriseMeta) error {
+	// overall nodes index
+	if err := indexUpdateMaxTxn(tx, idx, tableNodes); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
 	}
+
+	return nil
 }
 
 func catalogUpdateServicesIndexes(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {
@@ -60,6 +65,29 @@ func catalogUpdateServiceExtinctionIndex(tx WriteTxn, idx uint64, _ *structs.Ent
 	return nil
 }
 
+func catalogInsertNode(tx WriteTxn, node *structs.Node) error {
+	// ensure that the Partition is always clear within the state store in OSS
+	node.Partition = ""
+
+	// Insert the node and update the index.
+	if err := tx.Insert(tableNodes, node); err != nil {
+		return fmt.Errorf("failed inserting node: %s", err)
+	}
+
+	if err := catalogUpdateNodesIndexes(tx, node.ModifyIndex, node.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
+	// Update the node's service indexes as the node information is included
+	// in health queries and we would otherwise miss node updates in some cases
+	// for those queries.
+	if err := updateAllServiceIndexesOfNode(tx, node.ModifyIndex, node.Node, node.GetEnterpriseMeta()); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	return nil
+}
+
 func catalogInsertService(tx WriteTxn, svc *structs.ServiceNode) error {
 	// Insert the service and update the index
 	if err := tx.Insert(tableServices, svc); err != nil {
@@ -79,6 +107,10 @@ func catalogInsertService(tx WriteTxn, svc *structs.ServiceNode) error {
 	}
 
 	return nil
+}
+
+func catalogNodesMaxIndex(tx ReadTxn, entMeta *structs.EnterpriseMeta) uint64 {
+	return maxIndexTxn(tx, tableNodes)
 }
 
 func catalogServicesMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta) uint64 {
@@ -107,16 +139,16 @@ func catalogServiceLastExtinctionIndex(tx ReadTxn, _ *structs.EnterpriseMeta) (i
 
 func catalogMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta, checks bool) uint64 {
 	if checks {
-		return maxIndexTxn(tx, "nodes", tableServices, tableChecks)
+		return maxIndexTxn(tx, tableNodes, tableServices, tableChecks)
 	}
-	return maxIndexTxn(tx, "nodes", tableServices)
+	return maxIndexTxn(tx, tableNodes, tableServices)
 }
 
 func catalogMaxIndexWatch(tx ReadTxn, ws memdb.WatchSet, _ *structs.EnterpriseMeta, checks bool) uint64 {
 	if checks {
-		return maxIndexWatchTxn(tx, ws, "nodes", tableServices, tableChecks)
+		return maxIndexWatchTxn(tx, ws, tableNodes, tableServices, tableChecks)
 	}
-	return maxIndexWatchTxn(tx, ws, "nodes", tableServices)
+	return maxIndexWatchTxn(tx, ws, tableNodes, tableServices)
 }
 
 func catalogUpdateCheckIndexes(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {
@@ -154,4 +186,23 @@ func validateRegisterRequestTxn(_ ReadTxn, _ *structs.RegisterRequest, _ bool) (
 
 func (s *Store) ValidateRegisterRequest(_ *structs.RegisterRequest) (*structs.EnterpriseMeta, error) {
 	return nil, nil
+}
+
+func indexFromKindServiceName(arg interface{}) ([]byte, error) {
+	var b indexBuilder
+
+	switch n := arg.(type) {
+	case KindServiceNameQuery:
+		b.String(strings.ToLower(string(n.Kind)))
+		b.String(strings.ToLower(n.Name))
+		return b.Bytes(), nil
+
+	case *KindServiceName:
+		b.String(strings.ToLower(string(n.Kind)))
+		b.String(strings.ToLower(n.Service.Name))
+		return b.Bytes(), nil
+
+	default:
+		return nil, fmt.Errorf("type must be KindServiceNameQuery or *KindServiceName: %T", arg)
+	}
 }

@@ -3,12 +3,13 @@ GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
 	github.com/hashicorp/go-bindata/go-bindata@master \
-	golang.org/x/tools/cmd/cover \
-	golang.org/x/tools/cmd/stringer \
+	golang.org/x/tools/cmd/cover@master \
+	golang.org/x/tools/cmd/stringer@master \
 	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
-	github.com/hashicorp/protoc-gen-go-binary \
-	github.com/vektra/mockery/cmd/mockery \
-	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1
+	github.com/hashicorp/protoc-gen-go-binary@master \
+	github.com/vektra/mockery/cmd/mockery@master \
+	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1 \
+	github.com/hashicorp/lint-consul-retry@master
 
 GOTAGS ?=
 GOOS?=$(shell go env GOOS)
@@ -231,9 +232,6 @@ test-internal:
 test-race:
 	$(MAKE) GOTEST_FLAGS=-race
 
-test-flake: other-consul lint
-	@$(SHELL) $(CURDIR)/build-support/scripts/test-flake.sh --pkg "$(FLAKE_PKG)" --test "$(FLAKE_TEST)" --cpus "$(FLAKE_CPUS)" --n "$(FLAKE_N)"
-
 test-docker: linux go-build-image
 	@# -ti run in the foreground showing stdout
 	@# --rm removes the container once its finished running
@@ -286,12 +284,10 @@ static-assets:
 ui: ui-docker static-assets-docker
 
 tools:
-	@mkdir -p .gotools
-	@cd .gotools && for TOOL in $(GOTOOLS); do \
+	@if [[ -d .gotools ]]; then rm -rf .gotools ; fi
+	@for TOOL in $(GOTOOLS); do \
 		echo "=== TOOL: $$TOOL" ; \
-		rm -f go.mod go.sum ; \
-		go mod init consul-tools ; \
-		go get -v $$TOOL ; \
+		go install -v $$TOOL ; \
 	done
 
 version:
@@ -372,6 +368,6 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
-.PHONY: all bin dev dist cov test test-flake test-internal cover lint ui static-assets tools
+.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
 .PHONY: version proto test-envoy-integ

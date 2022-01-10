@@ -1,7 +1,6 @@
 package version
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -14,7 +13,7 @@ var (
 	//
 	// Version must conform to the format expected by github.com/hashicorp/go-version
 	// for tests to work.
-	Version = "1.10.0"
+	Version = "1.11.0"
 
 	// A pre-release marker for the version. If this is "" (empty string)
 	// then it means that it is a final release. Otherwise, this is a pre-release
@@ -29,9 +28,10 @@ func GetHumanVersion() string {
 	release := VersionPrerelease
 
 	if release != "" {
-		if !strings.HasSuffix(version, "-"+release) {
+		suffix := "-" + release
+		if !strings.HasSuffix(version, suffix) {
 			// if we tagged a prerelease version then the release is in the version already
-			version += fmt.Sprintf("-%s", release)
+			version += suffix
 		}
 	}
 

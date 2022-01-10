@@ -35,15 +35,13 @@ The following sections detail how to export this data.
 1. Retrieve the certificate authority cert:
 
    ```sh
-   kubectl get secrets/consul-ca-cert --template='{{index .data "tls.crt" }}' |
-     base64 --decode > consul-agent-ca.pem
+   kubectl get secrets/consul-ca-cert --template='{{index .data "tls.crt" | base64decode }}' > consul-agent-ca.pem
    ```
 
 1. And the certificate authority signing key:
 
    ```sh
-   kubectl get secrets/consul-ca-key --template='{{index .data "tls.key" }}' |
-      base64 --decode > consul-agent-ca-key.pem
+   kubectl get secrets/consul-ca-key --template='{{index .data "tls.key" | base64decode }}' > consul-agent-ca-key.pem
    ```
 
 1. With the `consul-agent-ca.pem` and `consul-agent-ca-key.pem` files you can
@@ -74,12 +72,15 @@ The following sections detail how to export this data.
 
 1. These certificates can be used in your server config file:
 
+   <CodeBlockConfig filename="server.hcl">
+
    ```hcl
-   # server.hcl
    cert_file = "vm-dc-server-consul-0.pem"
    key_file = "vm-dc-server-consul-0-key.pem"
    ca_file = "consul-agent-ca.pem"
    ```
+
+   </CodeBlockConfig>
 
 1. For clients, you can generate TLS certs with:
 
@@ -231,7 +232,6 @@ You'll need:
    If you're running Consul Enterprise you'll need the rules:
 
    ```hcl
-   acl = "write"
    operator = "write"
    agent_prefix "" {
      policy = "read"
@@ -240,6 +240,7 @@ You'll need:
      policy = "write"
    }
    namespace_prefix "" {
+     acl = "write"
      service_prefix "" {
        policy = "read"
        intentions = "read"

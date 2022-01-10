@@ -18,20 +18,15 @@ func DefaultSource() Source {
 	serfLAN := cfg.SerfLANConfig.MemberlistConfig
 	serfWAN := cfg.SerfWANConfig.MemberlistConfig
 
-	// DEPRECATED (ACL-Legacy-Compat) - when legacy ACL support is removed these defaults
-	//   the acl_* config entries here should be transitioned to their counterparts in the
-	//   acl stanza for now we need to be able to detect the new entries not being set (not
-	//   just set to the defaults here) so that we can use the old entries. So the true
-	//   default still needs to reside in the original config values
 	return FileSource{
 		Name:   "default",
 		Format: "hcl",
 		Data: `
-		acl_default_policy = "allow"
-		acl_down_policy = "extend-cache"
-		acl_ttl = "30s"
 		acl = {
+			token_ttl = "30s"
 			policy_ttl = "30s"
+			default_policy = "allow"
+			down_policy = "extend-cache"
 		}
 		bind_addr = "0.0.0.0"
 		bootstrap = false
@@ -54,6 +49,10 @@ func DefaultSource() Source {
 		protocol = ` + strconv.Itoa(consul.DefaultRPCProtocol) + `
 		retry_interval = "30s"
 		retry_interval_wan = "30s"
+
+		# segment_limit is the maximum number of network segments that may be declared. Default 64 is highly encouraged
+		segment_limit = 64
+
 		server = false
 		syslog_facility = "LOCAL0"
 		tls_min_version = "tls12"
@@ -184,17 +183,11 @@ func NonUserSource() Source {
 		Name:   "non-user",
 		Format: "hcl",
 		Data: `
-		acl = {
-			disabled_ttl = "120s"
-		}
 		check_deregister_interval_min = "1m"
 		check_reap_interval = "30s"
 		ae_interval = "1m"
 		sync_coordinate_rate_target = 64
 		sync_coordinate_interval_min = "15s"
-
-		# segment_limit is the maximum number of network segments that may be declared.
-		segment_limit = 64
 
 		# SegmentNameLimit is the maximum segment name length.
 		segment_name_limit = 64

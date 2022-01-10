@@ -55,15 +55,19 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 				return err
 			}
 			reply.Index, reply.HealthChecks = index, checks
-			if err := h.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			raw, err := filter.Execute(reply.HealthChecks)
 			if err != nil {
 				return err
 			}
 			reply.HealthChecks = raw.(structs.HealthChecks)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := h.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 
 			return h.srv.sortNodesByDistanceFrom(args.Source, reply.HealthChecks)
 		})
@@ -99,15 +103,20 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 				return err
 			}
 			reply.Index, reply.HealthChecks = index, checks
-			if err := h.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			raw, err := filter.Execute(reply.HealthChecks)
 			if err != nil {
 				return err
 			}
 			reply.HealthChecks = raw.(structs.HealthChecks)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := h.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			return nil
 		})
 }
@@ -156,15 +165,19 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 				return err
 			}
 			reply.Index, reply.HealthChecks = index, checks
-			if err := h.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			raw, err := filter.Execute(reply.HealthChecks)
 			if err != nil {
 				return err
 			}
 			reply.HealthChecks = raw.(structs.HealthChecks)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := h.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 
 			return h.srv.sortNodesByDistanceFrom(args.Source, reply.HealthChecks)
 		})
@@ -232,15 +245,18 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 				reply.Nodes = nodeMetaFilter(args.NodeMetaFilters, reply.Nodes)
 			}
 
-			if err := h.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
-
 			raw, err := filter.Execute(reply.Nodes)
 			if err != nil {
 				return err
 			}
 			reply.Nodes = raw.(structs.CheckServiceNodes)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := h.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 
 			return h.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
 		})

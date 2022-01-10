@@ -1,0 +1,3 @@
+```release-note:bug
+connect: fix race causing xDS generation to lock up when discovery chains are tracked for services that are no longer upstreams.
+```

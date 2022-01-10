@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"net"
 	"reflect"
 	"strings"
 
@@ -11,22 +12,29 @@ import (
 )
 
 const (
-	tableNodes           = "nodes"
-	tableServices        = "services"
-	tableChecks          = "checks"
-	tableGatewayServices = "gateway-services"
-	tableMeshTopology    = "mesh-topology"
+	tableNodes             = "nodes"
+	tableServices          = "services"
+	tableChecks            = "checks"
+	tableGatewayServices   = "gateway-services"
+	tableMeshTopology      = "mesh-topology"
+	tableServiceVirtualIPs = "service-virtual-ips"
+	tableFreeVirtualIPs    = "free-virtual-ips"
+	tableKindServiceNames  = "kind-service-names"
 
 	indexID          = "id"
 	indexService     = "service"
 	indexConnect     = "connect"
 	indexKind        = "kind"
+	indexKindOnly    = "kind-only"
 	indexStatus      = "status"
 	indexNodeService = "node_service"
 	indexNode        = "node"
 	indexUpstream    = "upstream"
 	indexDownstream  = "downstream"
 	indexGateway     = "gateway"
+	indexUUID        = "uuid"
+	indexMeta        = "meta"
+	indexCounterOnly = "counter"
 )
 
 // nodesTableSchema returns a new table schema used for storing struct.Node.
@@ -38,24 +46,29 @@ func nodesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexFromNode,
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   indexFromQuery,
+					writeIndex:  indexFromNode,
+					prefixIndex: prefixIndexFromQueryNoNamespace,
 				},
 			},
-			"uuid": {
-				Name:         "uuid",
+			indexUUID: {
+				Name:         indexUUID,
 				AllowMissing: true,
 				Unique:       true,
-				Indexer:      &memdb.UUIDFieldIndex{Field: "ID"},
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   indexFromUUIDQuery,
+					writeIndex:  indexIDFromNode,
+					prefixIndex: prefixIndexFromUUIDQuery,
+				},
 			},
-			"meta": {
-				Name:         "meta",
+			indexMeta: {
+				Name:         indexMeta,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.StringMapFieldIndex{
-					Field:     "Meta",
-					Lowercase: false,
+				Indexer: indexerMulti{
+					readIndex:       indexFromKeyValueQuery,
+					writeIndexMulti: indexMetaFromNode,
 				},
 			},
 		},
@@ -75,6 +88,50 @@ func indexFromNode(raw interface{}) ([]byte, error) {
 	var b indexBuilder
 	b.String(strings.ToLower(n.Node))
 	return b.Bytes(), nil
+}
+
+func indexIDFromNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.Node)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.Node index", raw)
+	}
+
+	if n.ID == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	v, err := uuidStringToBytes(string(n.ID))
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+func indexMetaFromNode(raw interface{}) ([][]byte, error) {
+	n, ok := raw.(*structs.Node)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.Node index", raw)
+	}
+
+	// NOTE: this is case-sensitive!
+
+	vals := make([][]byte, 0, len(n.Meta))
+	for key, val := range n.Meta {
+		if key == "" {
+			continue
+		}
+
+		var b indexBuilder
+		b.String(key)
+		b.String(val)
+		vals = append(vals, b.Bytes())
+	}
+	if len(vals) == 0 {
+		return nil, errMissingValueForIndex
+	}
+
+	return vals, nil
 }
 
 // servicesTableSchema returns a new table schema used to store information
@@ -545,4 +602,149 @@ func (q NodeCheckQuery) NamespaceOrDefault() string {
 // receiver for this method. Remove once that is fixed.
 func (q NodeCheckQuery) PartitionOrDefault() string {
 	return q.EnterpriseMeta.PartitionOrDefault()
+}
+
+// ServiceVirtualIP is used to store a virtual IP associated with a service.
+// It is also used to store assigned virtual IPs when a snapshot is created.
+type ServiceVirtualIP struct {
+	Service structs.ServiceName
+	IP      net.IP
+}
+
+// FreeVirtualIP is used to store a virtual IP freed up by a service deregistration.
+// It is also used to store free virtual IPs when a snapshot is created.
+type FreeVirtualIP struct {
+	IP        net.IP
+	IsCounter bool
+}
+
+func counterIndex(obj interface{}) (bool, error) {
+	if vip, ok := obj.(FreeVirtualIP); ok {
+		return vip.IsCounter, nil
+	}
+	return false, fmt.Errorf("object is not a virtual IP entry")
+}
+
+func serviceVirtualIPTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: tableServiceVirtualIPs,
+		Indexes: map[string]*memdb.IndexSchema{
+			indexID: {
+				Name:         indexID,
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &ServiceNameIndex{
+					Field: "Service",
+				},
+			},
+		},
+	}
+}
+
+func freeVirtualIPTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: tableFreeVirtualIPs,
+		Indexes: map[string]*memdb.IndexSchema{
+			indexID: {
+				Name:         indexID,
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field: "IP",
+						},
+						&memdb.ConditionalIndex{
+							Conditional: counterIndex,
+						},
+					},
+				},
+			},
+			indexCounterOnly: {
+				Name:         indexCounterOnly,
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &memdb.ConditionalIndex{
+					Conditional: counterIndex,
+				},
+			},
+		},
+	}
+}
+
+type KindServiceName struct {
+	Kind    structs.ServiceKind
+	Service structs.ServiceName
+
+	structs.RaftIndex
+}
+
+func kindServiceNameTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: tableKindServiceNames,
+		Indexes: map[string]*memdb.IndexSchema{
+			indexID: {
+				Name:         indexID,
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromKindServiceName,
+					writeIndex: indexFromKindServiceName,
+				},
+			},
+			indexKindOnly: {
+				Name:         indexKindOnly,
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: indexerSingle{
+					readIndex:  indexFromKindServiceNameKindOnly,
+					writeIndex: indexFromKindServiceNameKindOnly,
+				},
+			},
+		},
+	}
+}
+
+// KindServiceNameQuery is used to lookup service names by kind or enterprise meta.
+type KindServiceNameQuery struct {
+	Kind structs.ServiceKind
+	Name string
+	structs.EnterpriseMeta
+}
+
+// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q KindServiceNameQuery) NamespaceOrDefault() string {
+	return q.EnterpriseMeta.NamespaceOrDefault()
+}
+
+// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q KindServiceNameQuery) PartitionOrDefault() string {
+	return q.EnterpriseMeta.PartitionOrDefault()
+}
+
+func indexFromKindServiceNameKindOnly(raw interface{}) ([]byte, error) {
+	switch x := raw.(type) {
+	case *KindServiceName:
+		var b indexBuilder
+		b.String(strings.ToLower(string(x.Kind)))
+		return b.Bytes(), nil
+
+	case structs.ServiceKind:
+		var b indexBuilder
+		b.String(strings.ToLower(string(x)))
+		return b.Bytes(), nil
+
+	default:
+		return nil, fmt.Errorf("type must be *KindServiceName or structs.ServiceKind: %T", raw)
+	}
+}
+
+func kindServiceNamesMaxIndex(tx ReadTxn, ws memdb.WatchSet, kind structs.ServiceKind) uint64 {
+	return maxIndexWatchTxn(tx, ws, kindServiceNameIndexName(kind))
+}
+
+func kindServiceNameIndexName(kind structs.ServiceKind) string {
+	return "kind_service_names." + kind.Normalized()
 }

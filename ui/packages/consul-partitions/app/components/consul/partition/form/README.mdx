@@ -1,0 +1,24 @@
+# Consul::Partition::Form
+
+```hbs preview-template
+<DataLoader @src={{
+  uri '/${partition}/${nspace}/${dc}/partition/${id}'
+    (hash
+      partition='partition'
+      nspace='nspace'
+      dc='dc'
+      id=''
+    )
+  }}
+as |loader|>
+  <BlockSlot @name="loaded">
+    <Consul::Partition::Form
+      @item={{loader.data}}
+      @dc={{'dc-1'}}
+      @nspace={{'nspace'}}
+      @partition={{'partition'}}
+      @onsubmit={{noop}}
+    />
+  </BlockSlot>
+</DataLoader>
+```

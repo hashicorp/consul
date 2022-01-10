@@ -57,7 +57,7 @@ export default function(
         // close after the dispatch so we can tell if it was an error whilst closed or not
         // but make sure its before the promise tick
         this.readyState = 2; // CLOSE
-        this.dispatchEvent({ type: 'close' });
+        this.dispatchEvent({ type: 'close', error: e });
       })
       .then(() => {
         // This only gets called when the promise chain completely finishes

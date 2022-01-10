@@ -2,6 +2,9 @@ export default {
   id: 'data-loader',
   initial: 'load',
   on: {
+    OPEN: {
+      target: 'load',
+    },
     ERROR: {
       target: 'disconnected',
     },
@@ -14,9 +17,15 @@ export default {
         target: 'loading',
       },
     ],
+    INVALIDATE: [
+      {
+        target: 'invalidating',
+      },
+    ],
   },
   states: {
     load: {},
+    invalidating: {},
     loading: {
       on: {
         SUCCESS: {

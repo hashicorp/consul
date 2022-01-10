@@ -3,6 +3,7 @@ package proxycfg
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"reflect"
 	"time"
@@ -112,12 +113,17 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 	// we can safely modify these since we just copied them
 	for idx := range proxyCfg.Upstreams {
 		us := &proxyCfg.Upstreams[idx]
-		if us.DestinationType != structs.UpstreamDestTypePreparedQuery && us.DestinationNamespace == "" {
-			// default the upstreams target namespace to the namespace of the proxy
+		if us.DestinationType != structs.UpstreamDestTypePreparedQuery {
+			// default the upstreams target namespace and partition to those of the proxy
 			// doing this here prevents needing much more complex logic a bunch of other
 			// places and makes tracking these upstreams simpler as we can dedup them
 			// with the maps tracking upstream ids being watched.
-			proxyCfg.Upstreams[idx].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrDefault()
+			if us.DestinationPartition == "" {
+				proxyCfg.Upstreams[idx].DestinationPartition = ns.EnterpriseMeta.PartitionOrDefault()
+			}
+			if us.DestinationNamespace == "" {
+				proxyCfg.Upstreams[idx].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrDefault()
+			}
 		}
 	}
 
@@ -253,6 +259,7 @@ func newConfigSnapshotFromServiceInstance(s serviceInstance, config stateConfig)
 		TaggedAddresses:       s.taggedAddresses,
 		Proxy:                 s.proxyCfg,
 		Datacenter:            config.source.Datacenter,
+		Locality:              GatewayKey{Datacenter: config.source.Datacenter, Partition: s.proxyID.PartitionOrDefault()},
 		ServerSNIFn:           config.serverSNIFn,
 		IntentionDefaultAllow: config.intentionDefaultAllow,
 	}
@@ -287,6 +294,8 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 			}
 
 		case <-sendCh:
+			// Allow the next change to trigger a send
+			coalesceTimer = nil
 			// Make a deep copy of snap so we don't mutate any of the embedded structs
 			// etc on future updates.
 			snapCopy, err := snap.Clone()
@@ -300,9 +309,6 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 			case s.snapCh <- *snapCopy:
 				s.logger.Trace("Delivered new snapshot to proxy config watchers")
 
-				// Allow the next change to trigger a send
-				coalesceTimer = nil
-
 				// Skip rest of loop - there is nothing to send since nothing changed on
 				// this iteration
 				continue
@@ -313,11 +319,9 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 				s.logger.Trace("Failed to deliver new snapshot to proxy config watchers")
 
 				// Reset the timer to retry later. This is to ensure we attempt to redeliver the updated snapshot shortly.
-				if coalesceTimer == nil {
-					coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
-						sendCh <- struct{}{}
-					})
-				}
+				coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
+					sendCh <- struct{}{}
+				})
 
 				// Do not reset coalesceTimer since we just queued a timer-based refresh
 				continue
@@ -400,7 +404,7 @@ func (s *state) Changed(ns *structs.NodeService, token string) bool {
 // Envoy cannot resolve hostnames provided through EDS, so we exclusively use CDS for these clusters.
 // If there is a mix of hostnames and addresses we exclusively use the hostnames, since clusters cannot discover
 // services with both EDS and DNS.
-func hostnameEndpoints(logger hclog.Logger, localDC string, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+func hostnameEndpoints(logger hclog.Logger, localKey GatewayKey, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
 	var (
 		hasIP       bool
 		hasHostname bool
@@ -408,7 +412,7 @@ func hostnameEndpoints(logger hclog.Logger, localDC string, nodes structs.CheckS
 	)
 
 	for _, n := range nodes {
-		addr, _ := n.BestAddress(localDC != n.Node.Datacenter)
+		addr, _ := n.BestAddress(!localKey.Matches(n.Node.Datacenter, n.Node.PartitionOrDefault()))
 		if net.ParseIP(addr) != nil {
 			hasIP = true
 			continue
@@ -425,4 +429,24 @@ func hostnameEndpoints(logger hclog.Logger, localDC string, nodes structs.CheckS
 			"dc", dc, "service", sn.String())
 	}
 	return resp
+}
+
+type gatewayWatchOpts struct {
+	notifier   CacheNotifier
+	notifyCh   chan cache.UpdateEvent
+	source     structs.QuerySource
+	token      string
+	key        GatewayKey
+	upstreamID string
+}
+
+func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
+	return opts.notifier.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
+		Datacenter:     opts.key.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: opts.token},
+		ServiceKind:    structs.ServiceKindMeshGateway,
+		UseServiceKind: true,
+		Source:         opts.source,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(opts.key.Partition),
+	}, fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID), opts.notifyCh)
 }

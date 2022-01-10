@@ -59,6 +59,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			Entries: []structs.IntentionMatchEntry{
 				{
 					Namespace: s.proxyID.NamespaceOrDefault(),
+					Partition: s.proxyID.PartitionOrDefault(),
 					Name:      s.proxyCfg.DestinationServiceName,
 				},
 			},
@@ -77,16 +78,13 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		return snap, err
 	}
 
-	// default the namespace to the namespace of this proxy service
-	currentNamespace := s.proxyID.NamespaceOrDefault()
-
 	if s.proxyCfg.Mode == structs.ProxyModeTransparent {
 		// When in transparent proxy we will infer upstreams from intentions with this source
 		err := s.cache.Notify(ctx, cachetype.IntentionUpstreamsName, &structs.ServiceSpecificRequest{
 			Datacenter:     s.source.Datacenter,
 			QueryOptions:   structs.QueryOptions{Token: s.token},
 			ServiceName:    s.proxyCfg.DestinationServiceName,
-			EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(s.proxyID.NamespaceOrEmpty()),
+			EnterpriseMeta: s.proxyID.EnterpriseMeta,
 		}, intentionUpstreamsID, s.ch)
 		if err != nil {
 			return snap, err
@@ -97,7 +95,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			Name:           structs.MeshConfigMesh,
 			Datacenter:     s.source.Datacenter,
 			QueryOptions:   structs.QueryOptions{Token: s.token},
-			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
 		}, meshConfigEntryID, s.ch)
 		if err != nil {
 			return snap, err
@@ -130,7 +128,12 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			continue
 		}
 
-		ns := currentNamespace
+		// Default the partition and namespace to the namespace of this proxy service.
+		partition := s.proxyID.PartitionOrDefault()
+		if u.DestinationPartition != "" {
+			partition = u.DestinationPartition
+		}
+		ns := s.proxyID.NamespaceOrDefault()
 		if u.DestinationNamespace != "" {
 			ns = u.DestinationNamespace
 		}
@@ -162,13 +165,14 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		case structs.UpstreamDestTypeService:
 			fallthrough
 
-		case "": // Treat unset as the default Service type
+		case "":
 			err = s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
 				Datacenter:             s.source.Datacenter,
 				QueryOptions:           structs.QueryOptions{Token: s.token},
 				Name:                   u.DestinationName,
 				EvaluateInDatacenter:   dc,
 				EvaluateInNamespace:    ns,
+				EvaluateInPartition:    partition,
 				OverrideMeshGateway:    s.proxyCfg.MeshGateway.OverlayWith(u.MeshGateway),
 				OverrideProtocol:       cfg.Protocol,
 				OverrideConnectTimeout: cfg.ConnectTimeout(),
@@ -228,7 +232,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				// Use the centralized upstream defaults if they exist and there isn't specific configuration for this upstream
 				// This is only relevant to upstreams from intentions because for explicit upstreams the defaulting is handled
 				// by the ResolveServiceConfig endpoint.
-				wildcardSID := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMetaInDefaultPartition())
+				wildcardSID := structs.NewServiceID(structs.WildcardSpecifier, s.proxyID.WithWildcardNamespace())
 				defaults, ok := snap.ConnectProxy.UpstreamConfig[wildcardSID.String()]
 				if ok {
 					u = defaults
@@ -256,6 +260,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				id:          svc.String(),
 				name:        svc.Name,
 				namespace:   svc.NamespaceOrDefault(),
+				partition:   svc.PartitionOrDefault(),
 				datacenter:  s.source.Datacenter,
 				cfg:         cfg,
 				meshGateway: meshGateway,
@@ -266,13 +271,17 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				return fmt.Errorf("failed to watch discovery chain for %s: %v", svc.String(), err)
 			}
 		}
+		snap.ConnectProxy.IntentionUpstreams = seenServices
 
 		// Clean up data from services that were not in the update
-		for sn := range snap.ConnectProxy.WatchedUpstreams {
+		for sn, targets := range snap.ConnectProxy.WatchedUpstreams {
 			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
 			if _, ok := seenServices[sn]; !ok {
+				for _, cancelFn := range targets {
+					cancelFn()
+				}
 				delete(snap.ConnectProxy.WatchedUpstreams, sn)
 			}
 		}
@@ -284,11 +293,14 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				delete(snap.ConnectProxy.WatchedUpstreamEndpoints, sn)
 			}
 		}
-		for sn := range snap.ConnectProxy.WatchedGateways {
+		for sn, cancelMap := range snap.ConnectProxy.WatchedGateways {
 			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
 			if _, ok := seenServices[sn]; !ok {
+				for _, cancelFn := range cancelMap {
+					cancelFn()
+				}
 				delete(snap.ConnectProxy.WatchedGateways, sn)
 			}
 		}
@@ -307,6 +319,17 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 			if _, ok := seenServices[sn]; !ok {
 				cancelFn()
 				delete(snap.ConnectProxy.WatchedDiscoveryChains, sn)
+			}
+		}
+		// These entries are intentionally handled separately from the WatchedDiscoveryChains above.
+		// There have been situations where a discovery watch was cancelled, then fired.
+		// That update event then re-populated the DiscoveryChain map entry, which wouldn't get cleaned up
+		// since there was no known watch for it.
+		for sn := range snap.ConnectProxy.DiscoveryChain {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+				continue
+			}
+			if _, ok := seenServices[sn]; !ok {
 				delete(snap.ConnectProxy.DiscoveryChain, sn)
 			}
 		}

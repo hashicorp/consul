@@ -55,6 +55,8 @@ or lost, services registered with this command will need to be reregistered.
 
 @include 'http_api_namespace_options.mdx'
 
+@include 'http_api_partition_options.mdx'
+
 #### Service Registration Flags
 
 The flags below should only be set if _no arguments_ are given. If no
@@ -73,6 +75,8 @@ Please refer to that documentation for full details.
   it will default to the address registered with the local agent.
 
 - `-port` - The port of the service.
+
+- `-socket` - The Unix Domain socket of the service. Conflicts with address and port flags.
 
 - `-meta key=value` - Specify arbitrary KV metadata to associate with the
   service instance. This can be specified multiple times.

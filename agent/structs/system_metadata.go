@@ -28,6 +28,7 @@ const (
 	SystemMetadataIntentionFormatKey         = "intention-format"
 	SystemMetadataIntentionFormatConfigValue = "config-entry"
 	SystemMetadataIntentionFormatLegacyValue = "legacy"
+	SystemMetadataVirtualIPsEnabled          = "virtual-ips"
 )
 
 type SystemMetadataEntry struct {

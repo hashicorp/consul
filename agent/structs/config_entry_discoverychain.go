@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-bexpr"
+	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/acl"
@@ -116,6 +118,9 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 
 		if route.Destination != nil && route.Destination.Namespace == "" {
 			route.Destination.Namespace = e.EnterpriseMeta.NamespaceOrEmpty()
+		}
+		if route.Destination != nil && route.Destination.Partition == "" {
+			route.Destination.Partition = e.EnterpriseMeta.PartitionOrEmpty()
 		}
 	}
 
@@ -246,12 +251,12 @@ func isValidHTTPMethod(method string) bool {
 	}
 }
 
-func (e *ServiceRouterConfigEntry) CanRead(rule acl.Authorizer) bool {
-	return canReadDiscoveryChain(e, rule)
+func (e *ServiceRouterConfigEntry) CanRead(authz acl.Authorizer) bool {
+	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceRouterConfigEntry) CanWrite(rule acl.Authorizer) bool {
-	return canWriteDiscoveryChain(e, rule)
+func (e *ServiceRouterConfigEntry) CanWrite(authz acl.Authorizer) bool {
+	return canWriteDiscoveryChain(e, authz)
 }
 
 func (e *ServiceRouterConfigEntry) GetRaftIndex() *RaftIndex {
@@ -379,7 +384,12 @@ type ServiceRouteDestination struct {
 	// splitting.
 	Namespace string `json:",omitempty"`
 
-	// NOTE: Partition is not represented here by design. Do not add it.
+	// Partition is the partition to resolve the service from instead of the
+	// current partition. If empty the current partition is assumed.
+	//
+	// If this field is specified then this route is ineligible for further
+	// splitting.
+	Partition string `json:",omitempty"`
 
 	// PrefixRewrite allows for the proxied request to have its matching path
 	// prefix modified before being sent to the destination. Described more
@@ -402,6 +412,10 @@ type ServiceRouteDestination struct {
 	// RetryOnStatusCodes is a flat list of http response status codes that are
 	// eligible for retry. This again should be feasible in any reasonable proxy.
 	RetryOnStatusCodes []uint32 `json:",omitempty" alias:"retry_on_status_codes"`
+
+	// Allow HTTP header manipulation to be configured.
+	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
+	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
 }
 
 func (e *ServiceRouteDestination) MarshalJSON() ([]byte, error) {
@@ -553,8 +567,8 @@ func (e *ServiceSplitterConfigEntry) Validate() error {
 		}
 		if _, ok := found[splitKey]; ok {
 			return fmt.Errorf(
-				"split destination occurs more than once: service=%q, subset=%q, namespace=%q",
-				splitKey.Service, splitKey.ServiceSubset, splitKey.Namespace,
+				"split destination occurs more than once: service=%q, subset=%q, namespace=%q, partition=%q",
+				splitKey.Service, splitKey.ServiceSubset, splitKey.Namespace, splitKey.Partition,
 			)
 		}
 		found[splitKey] = struct{}{}
@@ -580,12 +594,12 @@ func scaleWeight(v float32) int {
 	return int(math.Round(float64(v * 100.0)))
 }
 
-func (e *ServiceSplitterConfigEntry) CanRead(rule acl.Authorizer) bool {
-	return canReadDiscoveryChain(e, rule)
+func (e *ServiceSplitterConfigEntry) CanRead(authz acl.Authorizer) bool {
+	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceSplitterConfigEntry) CanWrite(rule acl.Authorizer) bool {
-	return canWriteDiscoveryChain(e, rule)
+func (e *ServiceSplitterConfigEntry) CanWrite(authz acl.Authorizer) bool {
+	return canWriteDiscoveryChain(e, authz)
 }
 
 func (e *ServiceSplitterConfigEntry) GetRaftIndex() *RaftIndex {
@@ -661,7 +675,87 @@ type ServiceSplit struct {
 	// splitting.
 	Namespace string `json:",omitempty"`
 
-	// NOTE: Partition is not represented here by design. Do not add it.
+	// Partition is the partition to resolve the service from instead of the
+	// current partition. If empty the current partition is assumed (optional).
+	//
+	// If this field is specified then this route is ineligible for further
+	// splitting.
+	Partition string `json:",omitempty"`
+
+	// NOTE: Any configuration added to Splits that needs to be passed to the
+	// proxy needs special handling MergeParent below.
+
+	// Allow HTTP header manipulation to be configured.
+	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
+	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
+}
+
+// MergeParent is called by the discovery chain compiler when a split directs to
+// another splitter. We refer to the first ServiceSplit as the parent and the
+// ServiceSplits of the second splitter as its children. The parent ends up
+// "flattened" by the compiler, i.e. replaced with its children recursively with
+// the weights modified as necessary.
+//
+// Since the parent is never included in the output, any request processing
+// config attached to it (e.g. header manipulation) would be lost and not take
+// affect when splitters direct to other splitters. To avoid that, we define a
+// MergeParent operation which is called by the compiler on each child split
+// during flattening. It must merge any request processing configuration from
+// the passed parent into the child such that the end result is equivalent to a
+// request first passing through the parent and then the child. Response
+// handling must occur as if the request first passed through the through the
+// child to the parent.
+//
+// MergeDefaults leaves both s and parent unchanged and returns a deep copy to
+// avoid confusing issues where config changes after being compiled.
+func (s *ServiceSplit) MergeParent(parent *ServiceSplit) (*ServiceSplit, error) {
+	if s == nil && parent == nil {
+		return nil, nil
+	}
+
+	var err error
+	var copy ServiceSplit
+
+	if s == nil {
+		copy = *parent
+		copy.RequestHeaders, err = parent.RequestHeaders.Clone()
+		if err != nil {
+			return nil, err
+		}
+		copy.ResponseHeaders, err = parent.ResponseHeaders.Clone()
+		if err != nil {
+			return nil, err
+		}
+		return &copy, nil
+	} else {
+		copy = *s
+	}
+
+	var parentReq *HTTPHeaderModifiers
+	if parent != nil {
+		parentReq = parent.RequestHeaders
+	}
+
+	// Merge any request handling from parent _unless_ it's overridden by us.
+	copy.RequestHeaders, err = MergeHTTPHeaderModifiers(parentReq, s.RequestHeaders)
+	if err != nil {
+		return nil, err
+	}
+
+	var parentResp *HTTPHeaderModifiers
+	if parent != nil {
+		parentResp = parent.ResponseHeaders
+	}
+
+	// Merge any response handling. Note that we allow parent to override this
+	// time since responses flow the other way so the unflattened behavior would
+	// be that the parent processing happens _after_ ours potentially overriding
+	// it.
+	copy.ResponseHeaders, err = MergeHTTPHeaderModifiers(s.ResponseHeaders, parentResp)
+	if err != nil {
+		return nil, err
+	}
+	return &copy, nil
 }
 
 // ServiceResolverConfigEntry defines which instances of a service should
@@ -823,12 +917,17 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	}
 
 	if len(e.Subsets) > 0 {
-		for name := range e.Subsets {
+		for name, subset := range e.Subsets {
 			if name == "" {
 				return fmt.Errorf("Subset defined with empty name")
 			}
 			if err := validateServiceSubset(name); err != nil {
 				return fmt.Errorf("Subset %q is invalid: %v", name, err)
+			}
+			if subset.Filter != "" {
+				if _, err := bexpr.CreateEvaluator(subset.Filter, nil); err != nil {
+					return fmt.Errorf("Filter for subset %q is not a valid expression: %v", name, err)
+				}
 			}
 		}
 	}
@@ -846,6 +945,13 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	}
 
 	if e.Redirect != nil {
+		if !e.InDefaultPartition() && e.Redirect.Datacenter != "" {
+			return fmt.Errorf("Cross-datacenter redirect is only supported in the default partition")
+		}
+		if PartitionOrDefault(e.Redirect.Partition) != e.PartitionOrDefault() && e.Redirect.Datacenter != "" {
+			return fmt.Errorf("Cross-datacenter and cross-partition redirect is not supported")
+		}
+
 		r := e.Redirect
 
 		if len(e.Failover) > 0 {
@@ -854,7 +960,7 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 
 		// TODO(rb): prevent subsets and default subsets from being defined?
 
-		if r.Service == "" && r.ServiceSubset == "" && r.Namespace == "" && r.Datacenter == "" {
+		if r.Service == "" && r.ServiceSubset == "" && r.Namespace == "" && r.Partition == "" && r.Datacenter == "" {
 			return fmt.Errorf("Redirect is empty")
 		}
 
@@ -865,6 +971,9 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			if r.Namespace != "" {
 				return fmt.Errorf("Redirect.Namespace defined without Redirect.Service")
 			}
+			if r.Partition != "" {
+				return fmt.Errorf("Redirect.Partition defined without Redirect.Service")
+			}
 		} else if r.Service == e.Name {
 			if r.ServiceSubset != "" && !isSubset(r.ServiceSubset) {
 				return fmt.Errorf("Redirect.ServiceSubset %q is not a valid subset of %q", r.ServiceSubset, r.Service)
@@ -873,7 +982,12 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	}
 
 	if len(e.Failover) > 0 {
+
 		for subset, f := range e.Failover {
+			if !e.InDefaultPartition() && len(f.Datacenters) != 0 {
+				return fmt.Errorf("Cross-datacenter failover is only supported in the default partition")
+			}
+
 			if subset != "*" && !isSubset(subset) {
 				return fmt.Errorf("Bad Failover[%q]: not a valid subset", subset)
 			}
@@ -955,12 +1069,12 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	return nil
 }
 
-func (e *ServiceResolverConfigEntry) CanRead(rule acl.Authorizer) bool {
-	return canReadDiscoveryChain(e, rule)
+func (e *ServiceResolverConfigEntry) CanRead(authz acl.Authorizer) bool {
+	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceResolverConfigEntry) CanWrite(rule acl.Authorizer) bool {
-	return canWriteDiscoveryChain(e, rule)
+func (e *ServiceResolverConfigEntry) CanWrite(authz acl.Authorizer) bool {
+	return canWriteDiscoveryChain(e, authz)
 }
 
 func (e *ServiceResolverConfigEntry) GetRaftIndex() *RaftIndex {
@@ -988,6 +1102,7 @@ func (e *ServiceResolverConfigEntry) ListRelatedServices() []ServiceID {
 		if redirectID != svcID {
 			found[redirectID] = struct{}{}
 		}
+
 	}
 
 	if len(e.Failover) > 0 {
@@ -1049,11 +1164,13 @@ type ServiceResolverRedirect struct {
 	// current one (optional).
 	Namespace string `json:",omitempty"`
 
+	// Partition is the partition to resolve the service from instead of the
+	// current one (optional).
+	Partition string `json:",omitempty"`
+
 	// Datacenter is the datacenter to resolve the service from instead of the
 	// current one (optional).
 	Datacenter string `json:",omitempty"`
-
-	// NOTE: Partition is not represented here by design. Do not add it.
 }
 
 // There are some restrictions on what is allowed in here:
@@ -1088,8 +1205,6 @@ type ServiceResolverFailover struct {
 	//
 	// This is a DESTINATION during failover.
 	Datacenters []string `json:",omitempty"`
-
-	// NOTE: Partition is not represented here by design. Do not add it.
 }
 
 // LoadBalancer determines the load balancing policy and configuration for services
@@ -1191,7 +1306,7 @@ func canReadDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer
 	return authz.ServiceRead(entry.GetName(), &authzContext) == acl.Allow
 }
 
-func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer) bool {
+func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) bool {
 	entryID := NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())
 
 	var authzContext acl.AuthorizerContext
@@ -1199,7 +1314,7 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer
 
 	name := entry.GetName()
 
-	if rule.ServiceWrite(name, &authzContext) != acl.Allow {
+	if authz.ServiceWrite(name, &authzContext) != acl.Allow {
 		return false
 	}
 
@@ -1211,7 +1326,7 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer
 		svc.FillAuthzContext(&authzContext)
 		// You only need read on related services to redirect traffic flow for
 		// your own service.
-		if rule.ServiceRead(svc.ID, &authzContext) != acl.Allow {
+		if authz.ServiceRead(svc.ID, &authzContext) != acl.Allow {
 			return false
 		}
 	}
@@ -1221,19 +1336,20 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer
 // DiscoveryChainConfigEntries wraps just the raw cross-referenced config
 // entries. None of these are defaulted.
 type DiscoveryChainConfigEntries struct {
-	Routers     map[ServiceID]*ServiceRouterConfigEntry
-	Splitters   map[ServiceID]*ServiceSplitterConfigEntry
-	Resolvers   map[ServiceID]*ServiceResolverConfigEntry
-	Services    map[ServiceID]*ServiceConfigEntry
-	GlobalProxy *ProxyConfigEntry
+	Routers       map[ServiceID]*ServiceRouterConfigEntry
+	Splitters     map[ServiceID]*ServiceSplitterConfigEntry
+	Resolvers     map[ServiceID]*ServiceResolverConfigEntry
+	Services      map[ServiceID]*ServiceConfigEntry
+	ProxyDefaults map[string]*ProxyConfigEntry
 }
 
 func NewDiscoveryChainConfigEntries() *DiscoveryChainConfigEntries {
 	return &DiscoveryChainConfigEntries{
-		Routers:   make(map[ServiceID]*ServiceRouterConfigEntry),
-		Splitters: make(map[ServiceID]*ServiceSplitterConfigEntry),
-		Resolvers: make(map[ServiceID]*ServiceResolverConfigEntry),
-		Services:  make(map[ServiceID]*ServiceConfigEntry),
+		Routers:       make(map[ServiceID]*ServiceRouterConfigEntry),
+		Splitters:     make(map[ServiceID]*ServiceSplitterConfigEntry),
+		Resolvers:     make(map[ServiceID]*ServiceResolverConfigEntry),
+		Services:      make(map[ServiceID]*ServiceConfigEntry),
+		ProxyDefaults: make(map[string]*ProxyConfigEntry),
 	}
 }
 
@@ -1261,6 +1377,13 @@ func (e *DiscoveryChainConfigEntries) GetResolver(sid ServiceID) *ServiceResolve
 func (e *DiscoveryChainConfigEntries) GetService(sid ServiceID) *ServiceConfigEntry {
 	if e.Services != nil {
 		return e.Services[sid]
+	}
+	return nil
+}
+
+func (e *DiscoveryChainConfigEntries) GetProxyDefaults(partition string) *ProxyConfigEntry {
+	if e.ProxyDefaults != nil {
+		return e.ProxyDefaults[partition]
 	}
 	return nil
 }
@@ -1305,6 +1428,16 @@ func (e *DiscoveryChainConfigEntries) AddServices(entries ...*ServiceConfigEntry
 	}
 }
 
+// AddProxyDefaults adds proxy-defaults configs. Convenience function for testing.
+func (e *DiscoveryChainConfigEntries) AddProxyDefaults(entries ...*ProxyConfigEntry) {
+	if e.ProxyDefaults == nil {
+		e.ProxyDefaults = make(map[string]*ProxyConfigEntry)
+	}
+	for _, entry := range entries {
+		e.ProxyDefaults[entry.PartitionOrDefault()] = entry
+	}
+}
+
 // AddEntries adds generic configs. Convenience function for testing. Panics on
 // operator error.
 func (e *DiscoveryChainConfigEntries) AddEntries(entries ...ConfigEntry) {
@@ -1322,7 +1455,7 @@ func (e *DiscoveryChainConfigEntries) AddEntries(entries ...ConfigEntry) {
 			if entry.GetName() != ProxyConfigGlobal {
 				panic("the only supported proxy-defaults name is '" + ProxyConfigGlobal + "'")
 			}
-			e.GlobalProxy = entry.(*ProxyConfigEntry)
+			e.AddProxyDefaults(entry.(*ProxyConfigEntry))
 		default:
 			panic("unhandled config entry kind: " + entry.GetKind())
 		}
@@ -1330,7 +1463,7 @@ func (e *DiscoveryChainConfigEntries) AddEntries(entries ...ConfigEntry) {
 }
 
 func (e *DiscoveryChainConfigEntries) IsEmpty() bool {
-	return e.IsChainEmpty() && len(e.Services) == 0 && e.GlobalProxy == nil
+	return e.IsChainEmpty() && len(e.Services) == 0 && len(e.ProxyDefaults) == 0
 }
 
 func (e *DiscoveryChainConfigEntries) IsChainEmpty() bool {
@@ -1343,8 +1476,7 @@ type DiscoveryChainRequest struct {
 	Name                 string
 	EvaluateInDatacenter string
 	EvaluateInNamespace  string
-
-	// NOTE: Partition is not represented here by design. Do not add it.
+	EvaluateInPartition  string
 
 	// OverrideMeshGateway allows for the mesh gateway setting to be overridden
 	// for any resolver in the compiled chain.
@@ -1386,6 +1518,7 @@ func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
 		Name                   string
 		EvaluateInDatacenter   string
 		EvaluateInNamespace    string
+		EvaluateInPartition    string
 		OverrideMeshGateway    MeshGatewayConfig
 		OverrideProtocol       string
 		OverrideConnectTimeout time.Duration
@@ -1394,6 +1527,7 @@ func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
 		Name:                   r.Name,
 		EvaluateInDatacenter:   r.EvaluateInDatacenter,
 		EvaluateInNamespace:    r.EvaluateInNamespace,
+		EvaluateInPartition:    r.EvaluateInPartition,
 		OverrideMeshGateway:    r.OverrideMeshGateway,
 		OverrideProtocol:       r.OverrideProtocol,
 		OverrideConnectTimeout: r.OverrideConnectTimeout,
@@ -1459,4 +1593,95 @@ func IsProtocolHTTPLike(protocol string) bool {
 	default:
 		return false
 	}
+}
+
+// HTTPHeaderModifiers is a set of rules for HTTP header modification that
+// should be performed by proxies as the request passes through them. It can
+// operate on either request or response headers depending on the context in
+// which it is used.
+type HTTPHeaderModifiers struct {
+	// Add is a set of name -> value pairs that should be appended to the request
+	// or response (i.e. allowing duplicates if the same header already exists).
+	Add map[string]string `json:",omitempty"`
+
+	// Set is a set of name -> value pairs that should be added to the request or
+	// response, overwriting any existing header values of the same name.
+	Set map[string]string `json:",omitempty"`
+
+	// Remove is the set of header names that should be stripped from the request
+	// or response.
+	Remove []string `json:",omitempty"`
+}
+
+func (m *HTTPHeaderModifiers) IsZero() bool {
+	if m == nil {
+		return true
+	}
+	return len(m.Add) == 0 && len(m.Set) == 0 && len(m.Remove) == 0
+}
+
+func (m *HTTPHeaderModifiers) Validate(protocol string) error {
+	if m.IsZero() {
+		return nil
+	}
+	if !IsProtocolHTTPLike(protocol) {
+		// Non nil but context is not an httpish protocol
+		return fmt.Errorf("only valid for http, http2 and grpc protocols")
+	}
+	return nil
+}
+
+// Clone returns a deep-copy of m unless m is nil
+func (m *HTTPHeaderModifiers) Clone() (*HTTPHeaderModifiers, error) {
+	if m == nil {
+		return nil, nil
+	}
+
+	cpy, err := copystructure.Copy(m)
+	if err != nil {
+		return nil, err
+	}
+	m = cpy.(*HTTPHeaderModifiers)
+	return m, nil
+}
+
+// MergeHTTPHeaderModifiers takes a base HTTPHeaderModifiers and merges in field
+// defined in overrides. Precedence is given to the overrides field if there is
+// a collision. The resulting object is returned leaving both base and overrides
+// unchanged. The `Add` field in override also replaces same-named keys of base
+// since we have no way to express multiple adds to the same key. We could
+// change that, but it makes the config syntax more complex for a huge edgecase.
+func MergeHTTPHeaderModifiers(base, overrides *HTTPHeaderModifiers) (*HTTPHeaderModifiers, error) {
+	if base.IsZero() {
+		return overrides.Clone()
+	}
+
+	merged, err := base.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	if overrides.IsZero() {
+		return merged, nil
+	}
+
+	for k, v := range overrides.Add {
+		merged.Add[k] = v
+	}
+	for k, v := range overrides.Set {
+		merged.Set[k] = v
+	}
+
+	// Deduplicate removes.
+	removed := make(map[string]struct{})
+	for _, k := range merged.Remove {
+		removed[k] = struct{}{}
+	}
+	for _, k := range overrides.Remove {
+		if _, ok := removed[k]; !ok {
+			merged.Remove = append(merged.Remove, k)
+		}
+	}
+
+	return merged, nil
 }

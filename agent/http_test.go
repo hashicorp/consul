@@ -264,6 +264,22 @@ func TestSetKnownLeader(t *testing.T) {
 	}
 }
 
+func TestSetFilteredByACLs(t *testing.T) {
+	t.Parallel()
+	resp := httptest.NewRecorder()
+	setResultsFilteredByACLs(resp, true)
+	header := resp.Header().Get("X-Consul-Results-Filtered-By-ACLs")
+	if header != "true" {
+		t.Fatalf("Bad: %v", header)
+	}
+	resp = httptest.NewRecorder()
+	setResultsFilteredByACLs(resp, false)
+	header = resp.Header().Get("X-Consul-Results-Filtered-By-ACLs")
+	if header != "" {
+		t.Fatalf("Bad: %v", header)
+	}
+}
+
 func TestSetLastContact(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -291,23 +307,24 @@ func TestSetLastContact(t *testing.T) {
 func TestSetMeta(t *testing.T) {
 	t.Parallel()
 	meta := structs.QueryMeta{
-		Index:       1000,
-		KnownLeader: true,
-		LastContact: 123456 * time.Microsecond,
+		Index:                 1000,
+		KnownLeader:           true,
+		LastContact:           123456 * time.Microsecond,
+		ResultsFilteredByACLs: true,
 	}
 	resp := httptest.NewRecorder()
 	setMeta(resp, &meta)
-	header := resp.Header().Get("X-Consul-Index")
-	if header != "1000" {
-		t.Fatalf("Bad: %v", header)
+
+	testCases := map[string]string{
+		"X-Consul-Index":                    "1000",
+		"X-Consul-KnownLeader":              "true",
+		"X-Consul-LastContact":              "123",
+		"X-Consul-Results-Filtered-By-ACLs": "true",
 	}
-	header = resp.Header().Get("X-Consul-KnownLeader")
-	if header != "true" {
-		t.Fatalf("Bad: %v", header)
-	}
-	header = resp.Header().Get("X-Consul-LastContact")
-	if header != "123" {
-		t.Fatalf("Bad: %v", header)
+	for header, expectedValue := range testCases {
+		if v := resp.Header().Get(header); v != expectedValue {
+			t.Fatalf("expected %q for header %s got %q", expectedValue, header, v)
+		}
 	}
 }
 
@@ -977,13 +994,21 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 	dc1 := "dc1"
 
 	a := NewTestAgent(t, `
-	acl_datacenter = "`+dc1+`"
-	acl_default_policy = "deny"
-	acl_master_token = "master"
-	acl_agent_token = "agent"
-	acl_agent_master_token = "towel"
-	enable_debug = false
-`)
+		primary_datacenter = "`+dc1+`"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+				agent = "agent"
+				agent_recovery = "towel"
+			}
+		}
+
+		enable_debug = false
+	`)
 
 	cases := []struct {
 		code        int
@@ -993,7 +1018,7 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 	}{
 		{
 			code:        http.StatusOK,
-			token:       "master",
+			token:       "root",
 			endpoint:    "/debug/pprof/heap",
 			nilResponse: false,
 		},
@@ -1017,7 +1042,7 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 		},
 		{
 			code:        http.StatusOK,
-			token:       "master",
+			token:       "root",
 			endpoint:    "/debug/pprof/heap",
 			nilResponse: false,
 		},
@@ -1652,6 +1677,45 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 			defer conn4.Close()
 
 			assertConn(conn4, true)
+		})
+	}
+}
+
+func TestGetPathSuffixUnescaped(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name         string
+		pathInput    string
+		pathPrefix   string
+		suffixResult string
+		errString    string
+	}{
+		// No decoding required (resource name must be unaffected by the decode)
+		{"Normal Valid", "/foo/bar/resource-1", "/foo/bar/", "resource-1", ""},
+		// This function is not responsible for enforcing a valid URL, just for decoding escaped values.
+		// If there's an invalid URL segment in the path, it will be returned as is.
+		{"Unencoded Invalid", "/foo/bar/resource 1", "/foo/bar/", "resource 1", ""},
+		// Decode the encoded value properly
+		{"Encoded Valid", "/foo/bar/re%2Fsource%201", "/foo/bar/", "re/source 1", ""},
+		// Fail to decode an invalidly encoded input
+		{"Encoded Invalid", "/foo/bar/re%Fsource%201", "/foo/bar/", "re%Fsource%201", "failure in unescaping path param"},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+
+			suffixResult, err := getPathSuffixUnescaped(tc.pathInput, tc.pathPrefix)
+
+			require.Equal(t, suffixResult, tc.suffixResult)
+
+			if tc.errString == "" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.errString)
+			}
 		})
 	}
 }

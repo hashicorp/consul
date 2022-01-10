@@ -61,9 +61,8 @@
     ]
   },
   {
-    "title": "ACL (Legacy)",
-    "path": "acl-legacy",
-    "hidden": true
+    "title": "Admin Partitions",
+    "path": "admin-partitions"
   },
   {
     "title": "Agent",

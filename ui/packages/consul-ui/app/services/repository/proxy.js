@@ -13,7 +13,7 @@ export default class ProxyService extends RepositoryService {
     return PRIMARY_KEY;
   }
 
-  @dataSource('/:ns/:dc/proxies/for-service/:id')
+  @dataSource('/:partition/:ns/:dc/proxies/for-service/:id')
   findAllBySlug(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
@@ -35,25 +35,25 @@ export default class ProxyService extends RepositoryService {
     });
   }
 
-  @dataSource('/:ns/:dc/proxy-instance/:serviceId/:node/:id')
-  findInstanceBySlug(params, configuration) {
-    return this.findAllBySlug(params, configuration).then(function(items) {
-      let res = {};
-      if (get(items, 'length') > 0) {
-        let instance = items
-          .filterBy('ServiceProxy.DestinationServiceID', params.serviceId)
-          .findBy('NodeName', params.node);
+  @dataSource('/:partition/:ns/:dc/proxy-instance/:serviceId/:node/:id')
+  async findInstanceBySlug(params, configuration) {
+    const items = await this.findAllBySlug(params, configuration);
+
+    let res = {};
+    if (get(items, 'length') > 0) {
+      let instance = items
+        .filterBy('ServiceProxy.DestinationServiceID', params.serviceId)
+        .findBy('NodeName', params.node);
+      if (instance) {
+        res = instance;
+      } else {
+        instance = items.findBy('ServiceProxy.DestinationServiceName', params.id);
         if (instance) {
           res = instance;
-        } else {
-          instance = items.findBy('ServiceProxy.DestinationServiceName', params.id);
-          if (instance) {
-            res = instance;
-          }
         }
       }
-      set(res, 'meta', get(items, 'meta'));
-      return res;
-    });
+    }
+    set(res, 'meta', get(items, 'meta'));
+    return res;
   }
 }

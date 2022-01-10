@@ -25,6 +25,7 @@ type CheckDefinition struct {
 	ScriptArgs                     []string
 	HTTP                           string
 	H2PING                         string
+	H2PingUseTLS                   bool
 	Header                         map[string][]string
 	Method                         string
 	Body                           string
@@ -41,6 +42,7 @@ type CheckDefinition struct {
 	Timeout                        time.Duration
 	TTL                            time.Duration
 	SuccessBeforePassing           int
+	FailuresBeforeWarning          int
 	FailuresBeforeCritical         int
 	DeregisterCriticalServiceAfter time.Duration
 	OutputMaxSize                  int
@@ -68,11 +70,23 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
 		GRPCUseTLSSnake                     bool        `json:"grpc_use_tls"`
 		ServiceIDSnake                      string      `json:"service_id"`
+		H2PingUseTLSSnake                   bool        `json:"h2ping_use_tls"`
 
 		*Alias
 	}{
 		Alias: (*Alias)(t),
 	}
+
+	// Preevaluate struct values to determine where to set defaults
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	// Set defaults
+	if aux.H2PING != "" {
+		aux.H2PingUseTLS = true
+		aux.H2PingUseTLSSnake = true
+	}
+
 	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
@@ -101,6 +115,10 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	}
 	if t.ServiceID == "" {
 		t.ServiceID = aux.ServiceIDSnake
+	}
+
+	if (aux.H2PING != "" && !aux.H2PingUseTLSSnake) || (aux.H2PING == "" && aux.H2PingUseTLSSnake) {
+		t.H2PingUseTLS = aux.H2PingUseTLSSnake
 	}
 
 	// Parse special values
@@ -181,6 +199,7 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		AliasService:                   c.AliasService,
 		HTTP:                           c.HTTP,
 		H2PING:                         c.H2PING,
+		H2PingUseTLS:                   c.H2PingUseTLS,
 		GRPC:                           c.GRPC,
 		GRPCUseTLS:                     c.GRPCUseTLS,
 		Header:                         c.Header,
@@ -196,6 +215,7 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		Timeout:                        c.Timeout,
 		TTL:                            c.TTL,
 		SuccessBeforePassing:           c.SuccessBeforePassing,
+		FailuresBeforeWarning:          c.FailuresBeforeWarning,
 		FailuresBeforeCritical:         c.FailuresBeforeCritical,
 		DeregisterCriticalServiceAfter: c.DeregisterCriticalServiceAfter,
 	}

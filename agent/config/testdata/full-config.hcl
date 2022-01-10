@@ -21,7 +21,9 @@ acl = {
     msp_disable_bootstrap = true
     tokens = {
         master = "8a19ac27",
+        initial_management = "3820e09a",
         agent_master = "64fd0e08",
+        agent_recovery = "1dba6aba",
         replication = "5795983a",
         agent = "bed2377c",
         default = "418fdff1",
@@ -110,6 +112,7 @@ check = {
     body = "5PBQd2OT"
     tcp = "JY6fTTcw"
     h2ping = "rQ8eyCSF"
+    h2ping_use_tls = false
     interval = "18714s"
     output_max_size = 4096
     docker_container_id = "qF66POS9"
@@ -117,7 +120,6 @@ check = {
     tls_server_name = "7BdnzBYk"
     tls_skip_verify = true
     timeout = "5954s"
-    ttl = "30044s"
     deregister_critical_service_after = "13209s"
 },
 checks = [
@@ -138,6 +140,7 @@ checks = [
         body = "wSjTy7dg"
         tcp = "RJQND605"
         h2ping = "9N1cSb5B"
+        h2ping_use_tls = false
         interval = "22164s"
         output_max_size = 4096
         docker_container_id = "ipgdFtjd"
@@ -145,7 +148,6 @@ checks = [
         tls_server_name = "bdeb5f6a"
         tls_skip_verify = true
         timeout = "1813s"
-        ttl = "21743s"
         deregister_critical_service_after = "14232s"
     },
     {
@@ -165,6 +167,7 @@ checks = [
         body = "0jkKgGUC"
         tcp = "4jG5casb"
         h2ping = "HCHU7gEb"
+        h2ping_use_tls = false
         interval = "28767s"
         output_max_size = 4096
         docker_container_id = "THW6u7rL"
@@ -172,7 +175,6 @@ checks = [
         tls_server_name = "6adc3bfb"
         tls_skip_verify = true
         timeout = "18506s"
-        ttl = "31006s"
         deregister_critical_service_after = "2366s"
     }
 ]
@@ -200,6 +202,7 @@ connect {
     ca_config {
         intermediate_cert_ttl = "8760h"
         leaf_cert_ttl = "1h"
+        root_cert_ttl = "96360h"
         # hack float since json parses numbers as float and we have to
         # assert against the same thing
         csr_max_per_second = 100.0
@@ -325,6 +328,9 @@ raft_protocol = 3
 raft_snapshot_threshold = 16384
 raft_snapshot_interval = "30s"
 raft_trailing_logs = 83749
+raft_boltdb {
+    NoFreelistSync = true
+}
 read_replica = true
 reconnect_timeout = "23739s"
 reconnect_timeout_wan = "26694s"
@@ -339,6 +345,7 @@ retry_max_wan = 23160
 rpc {
     enable_streaming = true
 }
+segment_limit = 123
 serf_lan = "99.43.63.15"
 serf_wan = "67.88.33.19"
 server = true
@@ -383,13 +390,13 @@ service = {
         body = "wVVL2V6f"
         tcp = "fjiLFqVd"
         h2ping = "5NbNWhan"
+        h2ping_use_tls = false
         interval = "23926s"
         docker_container_id = "dO5TtRHk"
         shell = "e6q2ttES"
         tls_server_name = "ECSHk8WF"
         tls_skip_verify = true
         timeout = "38483s"
-        ttl = "10943s"
         deregister_critical_service_after = "68787s"
     }
     checks = [
@@ -408,6 +415,7 @@ service = {
             body = "OwGjTFQi"
             tcp = "bNnNfx2A"
             h2ping = "qC1pidiW"
+            h2ping_use_tls = false
             interval = "22224s"
             output_max_size = 4096
             docker_container_id = "ipgdFtjd"
@@ -415,7 +423,6 @@ service = {
             tls_server_name = "axw5QPL5"
             tls_skip_verify = true
             timeout = "18913s"
-            ttl = "44743s"
             deregister_critical_service_after = "8482s"
         },
         {
@@ -433,6 +440,7 @@ service = {
             body = "lUVLGYU7"
             tcp = "FfvCwlqH"
             h2ping = "spI3muI3"
+            h2ping_use_tls = false
             interval = "12356s"
             output_max_size = 4096
             docker_container_id = "HBndBU6R"
@@ -440,7 +448,6 @@ service = {
             tls_server_name = "7uwWOnUS"
             tls_skip_verify = true
             timeout = "38282s"
-            ttl = "1181s"
             deregister_critical_service_after = "4992s"
         }
     ]
@@ -472,6 +479,7 @@ services = [
             body = "WeikigLh"
             tcp = "ICbxkpSF"
             h2ping = "7s7BbMyb"
+            h2ping_use_tls = false
             interval = "24392s"
             output_max_size = 4096
             docker_container_id = "ZKXr68Yb"
@@ -479,7 +487,6 @@ services = [
             tls_server_name = "4f191d4F"
             tls_skip_verify = true
             timeout = "38333s"
-            ttl = "57201s"
             deregister_critical_service_after = "44214s"
         }
         connect {
@@ -514,6 +521,7 @@ services = [
                 body = "7CRjCJyz"
                 tcp = "MN3oA9D2"
                 h2ping = "OV6Q2XEg"
+                h2ping_use_tls = false
                 interval = "32718s"
                 output_max_size = 4096
                 docker_container_id = "cU15LMet"
@@ -521,7 +529,6 @@ services = [
                 tls_server_name = "f43ouY7a"
                 tls_skip_verify = true
                 timeout = "34738s"
-                ttl = "22773s"
                 deregister_critical_service_after = "84282s"
             },
             {
@@ -529,22 +536,7 @@ services = [
                 name = "PQSaPWlT"
                 notes = "jKChDOdl"
                 status = "5qFz6OZn"
-                args = ["NMtYWlT9", "vj74JXsm"]
-                http = "1LBDJhw4"
-                header = {
-                    "cXPmnv1M" = [ "imDqfaBx", "NFxZ1bQe" ],
-                    "vr7wY7CS" = [ "EtCoNPPL", "9vAarJ5s" ]
-                }
-                method = "wzByP903"
-                body = "4I8ucZgZ"
-                tcp = "2exjZIGE"
-                h2ping = "jTDuR1DC"
-                interval = "5656s"
                 output_max_size = 4096
-                docker_container_id = "5tDBWpfA"
-                shell = "rlTpLM8s"
-                tls_server_name = "sOv5WTtp"
-                tls_skip_verify = true
                 timeout = "4868s"
                 ttl = "11222s"
                 deregister_critical_service_after = "68482s"
@@ -576,6 +568,7 @@ services = [
                 {
                     destination_type = "prepared_query"
                     destination_namespace = "9nakw0td"
+                    destination_partition = "part-9nakw0td"
                     destination_name = "KSd8HsRl"
                     local_bind_port = 11884
                     local_bind_address = "127.24.88.0"
@@ -583,6 +576,7 @@ services = [
                 {
                     destination_type = "prepared_query"
                     destination_namespace = "9nakw0td"
+                    destination_partition = "part-9nakw0td"
                     destination_name = "placeholder"
                     local_bind_socket_path = "/foo/bar/upstream"
                     local_bind_socket_mode = "0600"

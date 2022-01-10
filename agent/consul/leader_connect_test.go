@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
-func TestLeader_Builtin_PrimaryCA_ChangeKeyConfig(t *testing.T) {
+func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -55,6 +55,7 @@ func TestLeader_Builtin_PrimaryCA_ChangeKeyConfig(t *testing.T) {
 				// Initialize primary as the primary DC
 				dir1, srv := testServerWithConfig(t, func(c *Config) {
 					c.Datacenter = "dc1"
+					c.PrimaryDatacenter = "dc1"
 					c.Build = "1.6.0"
 					c.CAConfig.Config["PrivateKeyType"] = src.keyType
 					c.CAConfig.Config["PrivateKeyBits"] = src.keyBits
@@ -174,7 +175,7 @@ func TestLeader_Builtin_PrimaryCA_ChangeKeyConfig(t *testing.T) {
 
 }
 
-func TestLeader_SecondaryCA_Initialize(t *testing.T) {
+func TestCAManager_Initialize_Secondary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -200,11 +201,11 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 			// Initialize primary as the primary DC
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
 				c.Datacenter = "primary"
-				c.ACLDatacenter = "primary"
+				c.PrimaryDatacenter = "primary"
 				c.Build = "1.6.0"
 				c.ACLsEnabled = true
-				c.ACLMasterToken = masterToken
-				c.ACLDefaultPolicy = "deny"
+				c.ACLInitialManagementToken = masterToken
+				c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 				c.CAConfig.Config["PrivateKeyType"] = tc.keyType
 				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
 				c.CAConfig.Config["test_state"] = dc1State
@@ -219,10 +220,10 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 			// secondary as a secondary DC
 			dir2, s2 := testServerWithConfig(t, func(c *Config) {
 				c.Datacenter = "secondary"
-				c.ACLDatacenter = "primary"
+				c.PrimaryDatacenter = "primary"
 				c.Build = "1.6.0"
 				c.ACLsEnabled = true
-				c.ACLDefaultPolicy = "deny"
+				c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 				c.ACLTokenReplication = true
 				c.CAConfig.Config["PrivateKeyType"] = tc.keyType
 				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
@@ -238,9 +239,6 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 			joinWAN(t, s2, s1)
 
 			testrpc.WaitForLeader(t, s2.RPC, "secondary")
-
-			waitForNewACLs(t, s1)
-			waitForNewACLs(t, s2)
 
 			// Ensure s2 is authoritative.
 			waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
@@ -316,23 +314,11 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 	}
 }
 
-func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
-	retry.Run(t, func(r *retry.R) {
-		_, root := getCAProviderWithLock(srv)
-		if root == nil {
-			r.Fatal("no root")
-		}
-		if root.ID != expect.ID {
-			r.Fatalf("current active root is %s; waiting for %s", root.ID, expect.ID)
-		}
-	})
-}
-
 func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
 	return s.caManager.getCAProvider()
 }
 
-func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
+func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -340,26 +326,12 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 
 	// no parallel execution because we change globals
-	origInterval := structs.IntermediateCertRenewInterval
-	origMinTTL := structs.MinLeafCertTTL
-	origDriftBuffer := ca.CertificateTimeDriftBuffer
-	defer func() {
-		structs.IntermediateCertRenewInterval = origInterval
-		structs.MinLeafCertTTL = origMinTTL
-		ca.CertificateTimeDriftBuffer = origDriftBuffer
-	}()
-
-	// Vault backdates certs by 30s by default.
-	ca.CertificateTimeDriftBuffer = 30 * time.Second
-	structs.IntermediateCertRenewInterval = time.Millisecond
-	structs.MinLeafCertTTL = time.Second
+	patchIntermediateCertRenewInterval(t)
 	require := require.New(t)
 
 	testVault := ca.NewTestVaultServer(t)
-	defer testVault.Stop()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.6.0"
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "vault",
@@ -368,108 +340,94 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 				"Token":               testVault.RootToken,
 				"RootPKIPath":         "pki-root/",
 				"IntermediatePKIPath": "pki-intermediate/",
-				"LeafCertTTL":         "1s",
-				// The retry loop only retries for 7sec max and
-				// the ttl needs to be below so that it
-				// triggers definitely.
-				"IntermediateCertTTL": "5s",
+				"LeafCertTTL":         "2s",
+				"IntermediateCertTTL": "7s",
 			},
 		}
 	})
-	defer os.RemoveAll(dir1)
 	defer func() {
 		s1.Shutdown()
 		s1.leaderRoutineManager.Wait()
 	}()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, s1.RPC, "dc1", nil)
 
-	// Capture the current root.
-	var originalRoot *structs.CARoot
-	{
-		rootList, activeRoot, err := getTestRoots(s1, "dc1")
-		require.NoError(err)
-		require.Len(rootList.Roots, 1)
-		originalRoot = activeRoot
-	}
+	store := s1.caManager.delegate.State()
+	_, activeRoot, err := store.CARootActive(nil)
+	require.NoError(err)
+	t.Log("original SigningKeyID", activeRoot.SigningKeyID)
 
-	// Get the original intermediate.
-	waitForActiveCARoot(t, s1, originalRoot)
-	provider, _ := getCAProviderWithLock(s1)
-	intermediatePEM, err := provider.ActiveIntermediate()
+	intermediatePEM := s1.caManager.getLeafSigningCertFromRoot(activeRoot)
+	intermediateCert, err := connect.ParseCert(intermediatePEM)
 	require.NoError(err)
-	_, err = connect.ParseCert(intermediatePEM)
-	require.NoError(err)
+
+	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
+	require.Equal(intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
 
 	// Wait for dc1's intermediate to be refreshed.
-	// It is possible that test fails when the blocking query doesn't return.
 	retry.Run(t, func(r *retry.R) {
-		provider, _ = getCAProviderWithLock(s1)
-		newIntermediatePEM, err := provider.ActiveIntermediate()
+		store := s1.caManager.delegate.State()
+		_, storedRoot, err := store.CARootActive(nil)
 		r.Check(err)
-		_, err = connect.ParseCert(intermediatePEM)
-		r.Check(err)
+
+		newIntermediatePEM := s1.caManager.getLeafSigningCertFromRoot(storedRoot)
 		if newIntermediatePEM == intermediatePEM {
 			r.Fatal("not a renewed intermediate")
 		}
+		intermediateCert, err = connect.ParseCert(newIntermediatePEM)
+		r.Check(err)
 		intermediatePEM = newIntermediatePEM
 	})
-	require.NoError(err)
 
-	// Get the root from dc1 and validate a chain of:
-	// dc1 leaf -> dc1 intermediate -> dc1 root
-	provider, caRoot := getCAProviderWithLock(s1)
+	codec := rpcClient(t, s1)
+	roots := structs.IndexedCARoots{}
+	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+	require.NoError(err)
+	require.Len(roots.Roots, 1)
+
+	activeRoot = roots.Active()
+	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
+	require.Equal(intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
 
 	// Have the new intermediate sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
-		Host:       "node1",
+		Host:       roots.TrustDomain,
 		Namespace:  "default",
 		Datacenter: "dc1",
 		Service:    "foo",
 	}
-	raw, _ := connect.TestCSR(t, spiffeService)
+	csr, _ := connect.TestCSR(t, spiffeService)
 
-	leafCsr, err := connect.ParseCSR(raw)
+	req := structs.CASignRequest{CSR: csr}
+	cert := structs.IssuedCert{}
+	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
 	require.NoError(err)
-
-	leafPEM, err := provider.Sign(leafCsr)
-	require.NoError(err)
-
-	cert, err := connect.ParseCert(leafPEM)
-	require.NoError(err)
-
-	// Check that the leaf signed by the new intermediate can be verified using the
-	// returned cert chain (signed intermediate + remote root).
-	intermediatePool := x509.NewCertPool()
-	intermediatePool.AppendCertsFromPEM([]byte(intermediatePEM))
-	rootPool := x509.NewCertPool()
-	rootPool.AppendCertsFromPEM([]byte(caRoot.RootCert))
-
-	_, err = cert.Verify(x509.VerifyOptions{
-		Intermediates: intermediatePool,
-		Roots:         rootPool,
-	})
-	require.NoError(err)
+	verifyLeafCert(t, activeRoot, cert.CertPEM)
 }
 
-func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
+func patchIntermediateCertRenewInterval(t *testing.T) {
+	origInterval := structs.IntermediateCertRenewInterval
+	origMinTTL := structs.MinLeafCertTTL
+
+	structs.IntermediateCertRenewInterval = 200 * time.Millisecond
+	structs.MinLeafCertTTL = time.Second
+
+	t.Cleanup(func() {
+		structs.IntermediateCertRenewInterval = origInterval
+		structs.MinLeafCertTTL = origMinTTL
+	})
+}
+
+func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	// no parallel execution because we change globals
-	origInterval := structs.IntermediateCertRenewInterval
-	origMinTTL := structs.MinLeafCertTTL
-	defer func() {
-		structs.IntermediateCertRenewInterval = origInterval
-		structs.MinLeafCertTTL = origMinTTL
-	}()
-
-	structs.IntermediateCertRenewInterval = time.Millisecond
-	structs.MinLeafCertTTL = time.Second
+	patchIntermediateCertRenewInterval(t)
 	require := require.New(t)
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "consul",
@@ -488,7 +446,6 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 			},
 		}
 	})
-	defer os.RemoveAll(dir1)
 	defer func() {
 		s1.Shutdown()
 		s1.leaderRoutineManager.Wait()
@@ -497,12 +454,10 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// dc2 as a secondary DC
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	_, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
-		c.Build = "1.6.0"
 	})
-	defer os.RemoveAll(dir2)
 	defer func() {
 		s2.Shutdown()
 		s2.leaderRoutineManager.Wait()
@@ -510,86 +465,63 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 
 	// Create the WAN link
 	joinWAN(t, s2, s1)
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	testrpc.WaitForActiveCARoot(t, s2.RPC, "dc2", nil)
 
-	// Get the original intermediate
-	// TODO: Wait for intermediate instead of wait for leader
-	secondaryProvider, _ := getCAProviderWithLock(s2)
-	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
+	store := s2.fsm.State()
+	_, activeRoot, err := store.CARootActive(nil)
 	require.NoError(err)
-	cert, err := connect.ParseCert(intermediatePEM)
+	t.Log("original SigningKeyID", activeRoot.SigningKeyID)
+
+	intermediatePEM := s2.caManager.getLeafSigningCertFromRoot(activeRoot)
+	intermediateCert, err := connect.ParseCert(intermediatePEM)
 	require.NoError(err)
-	currentCertSerialNumber := cert.SerialNumber
-	currentCertAuthorityKeyId := cert.AuthorityKeyId
 
-	// Capture the current root
-	var originalRoot *structs.CARoot
-	{
-		rootList, activeRoot, err := getTestRoots(s1, "dc1")
-		require.NoError(err)
-		require.Len(rootList.Roots, 1)
-		originalRoot = activeRoot
-	}
-
-	waitForActiveCARoot(t, s1, originalRoot)
-	waitForActiveCARoot(t, s2, originalRoot)
+	require.Equal(intermediatePEM, s2.caManager.getLeafSigningCertFromRoot(activeRoot))
+	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
 	// Wait for dc2's intermediate to be refreshed.
-	// It is possible that test fails when the blocking query doesn't return.
-	// When https://github.com/hashicorp/consul/pull/3777 is merged
-	// however, defaultQueryTime will be configurable and we con lower it
-	// so that it returns for sure.
 	retry.Run(t, func(r *retry.R) {
-		secondaryProvider, _ = getCAProviderWithLock(s2)
-		intermediatePEM, err = secondaryProvider.ActiveIntermediate()
+		store := s2.caManager.delegate.State()
+		_, storedRoot, err := store.CARootActive(nil)
 		r.Check(err)
-		cert, err := connect.ParseCert(intermediatePEM)
-		r.Check(err)
-		if cert.SerialNumber.Cmp(currentCertSerialNumber) == 0 || !reflect.DeepEqual(cert.AuthorityKeyId, currentCertAuthorityKeyId) {
-			currentCertSerialNumber = cert.SerialNumber
-			currentCertAuthorityKeyId = cert.AuthorityKeyId
+
+		newIntermediatePEM := s2.caManager.getLeafSigningCertFromRoot(storedRoot)
+		if newIntermediatePEM == intermediatePEM {
 			r.Fatal("not a renewed intermediate")
 		}
+		intermediateCert, err = connect.ParseCert(newIntermediatePEM)
+		r.Check(err)
+		intermediatePEM = newIntermediatePEM
 	})
-	require.NoError(err)
 
-	// Get the root from dc1 and validate a chain of:
-	// dc2 leaf -> dc2 intermediate -> dc1 root
-	_, caRoot := getCAProviderWithLock(s1)
+	codec := rpcClient(t, s2)
+	roots := structs.IndexedCARoots{}
+	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+	require.NoError(err)
+	require.Len(roots.Roots, 1)
+
+	_, activeRoot, err = store.CARootActive(nil)
+	require.NoError(err)
+	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
+	require.Equal(intermediatePEM, s2.caManager.getLeafSigningCertFromRoot(activeRoot))
 
 	// Have dc2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
-		Host:       "node1",
+		Host:       roots.TrustDomain,
 		Namespace:  "default",
-		Datacenter: "dc1",
+		Datacenter: "dc2",
 		Service:    "foo",
 	}
-	raw, _ := connect.TestCSR(t, spiffeService)
+	csr, _ := connect.TestCSR(t, spiffeService)
 
-	leafCsr, err := connect.ParseCSR(raw)
+	req := structs.CASignRequest{CSR: csr}
+	cert := structs.IssuedCert{}
+	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
 	require.NoError(err)
-
-	leafPEM, err := secondaryProvider.Sign(leafCsr)
-	require.NoError(err)
-
-	cert, err = connect.ParseCert(leafPEM)
-	require.NoError(err)
-
-	// Check that the leaf signed by the new intermediate can be verified using the
-	// returned cert chain (signed intermediate + remote root).
-	intermediatePool := x509.NewCertPool()
-	intermediatePool.AppendCertsFromPEM([]byte(intermediatePEM))
-	rootPool := x509.NewCertPool()
-	rootPool.AppendCertsFromPEM([]byte(caRoot.RootCert))
-
-	_, err = cert.Verify(x509.VerifyOptions{
-		Intermediates: intermediatePool,
-		Roots:         rootPool,
-	})
-	require.NoError(err)
+	verifyLeafCert(t, activeRoot, cert.CertPEM)
 }
 
-func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
+func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -600,6 +532,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -739,7 +672,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	require.NoError(err)
 }
 
-func TestLeader_Vault_PrimaryCA_FixSigningKeyID_OnRestart(t *testing.T) {
+func TestCAManager_Initialize_Vault_FixesSigningKeyID_Primary(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 
 	if testing.Short() {
@@ -841,7 +774,7 @@ func TestLeader_Vault_PrimaryCA_FixSigningKeyID_OnRestart(t *testing.T) {
 	})
 }
 
-func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T) {
+func TestCAManager_Initialize_FixesSigningKeyID_Secondary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -850,6 +783,7 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -941,7 +875,7 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 	})
 }
 
-func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
+func TestCAManager_Initialize_TransitionFromPrimaryToSecondary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1033,7 +967,7 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 	})
 }
 
-func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
+func TestCAManager_Initialize_SecondaryBeforePrimary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1094,7 +1028,6 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 
 	// Wait for the secondary transition to happen and then verify the secondary DC
 	// has both roots present.
-	secondaryProvider, _ := getCAProviderWithLock(s2)
 	retry.Run(t, func(r *retry.R) {
 		state1 := s1.fsm.State()
 		_, roots1, err := state1.CARoots(nil)
@@ -1110,14 +1043,17 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 		require.Equal(r, roots1[0].ID, roots2[0].ID)
 		require.Equal(r, roots1[0].RootCert, roots2[0].RootCert)
 
+		secondaryProvider, _ := getCAProviderWithLock(s2)
 		inter, err := secondaryProvider.ActiveIntermediate()
 		require.NoError(r, err)
 		require.NotEmpty(r, inter, "should have valid intermediate")
 	})
 
-	_, caRoot := getCAProviderWithLock(s1)
+	secondaryProvider, _ := getCAProviderWithLock(s2)
 	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(t, err)
+
+	_, caRoot := getCAProviderWithLock(s1)
 
 	// Have dc2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
@@ -1160,14 +1096,7 @@ func getTestRoots(s *Server, datacenter string) (*structs.IndexedCARoots, *struc
 		return nil, nil, err
 	}
 
-	var active *structs.CARoot
-	for _, root := range rootList.Roots {
-		if root.Active {
-			active = root
-			break
-		}
-	}
-
+	active := rootList.Active()
 	return &rootList, active, nil
 }
 
@@ -1240,7 +1169,7 @@ func TestLeader_CARootPruning(t *testing.T) {
 	require.NotEqual(roots[0].ID, oldRoot.ID)
 }
 
-func TestLeader_PersistIntermediateCAs(t *testing.T) {
+func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1323,7 +1252,7 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 	})
 }
 
-func TestLeader_ParseCARoot(t *testing.T) {
+func TestParseCARoot(t *testing.T) {
 	type test struct {
 		name             string
 		pem              string
@@ -1406,7 +1335,7 @@ func readTestData(t *testing.T, name string) string {
 	return string(bs)
 }
 
-func TestLeader_lessThanHalfTimePassed(t *testing.T) {
+func TestLessThanHalfTimePassed(t *testing.T) {
 	now := time.Now()
 	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(-5*time.Second)))
 	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now))
@@ -1416,7 +1345,7 @@ func TestLeader_lessThanHalfTimePassed(t *testing.T) {
 	require.True(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(20*time.Second)))
 }
 
-func TestLeader_retryLoopBackoffHandleSuccess(t *testing.T) {
+func TestRetryLoopBackoffHandleSuccess(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1460,7 +1389,7 @@ func TestLeader_retryLoopBackoffHandleSuccess(t *testing.T) {
 	}
 }
 
-func TestLeader_Vault_BadCAConfigShouldntPreventLeaderEstablishment(t *testing.T) {
+func TestCAManager_Initialize_Vault_BadCAConfigDoesNotPreventLeaderEstablishment(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 
 	testVault := ca.NewTestVaultServer(t)
@@ -1517,7 +1446,7 @@ func TestLeader_Vault_BadCAConfigShouldntPreventLeaderEstablishment(t *testing.T
 	require.NotNil(t, activeRoot)
 }
 
-func TestLeader_Consul_BadCAConfigShouldntPreventLeaderEstablishment(t *testing.T) {
+func TestCAManager_Initialize_BadCAConfigDoesNotPreventLeaderEstablishment(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 
 	_, s1 := testServerWithConfig(t, func(c *Config) {
@@ -1561,7 +1490,7 @@ func TestLeader_Consul_BadCAConfigShouldntPreventLeaderEstablishment(t *testing.
 	require.NotNil(t, activeRoot)
 }
 
-func TestLeader_Consul_ForceWithoutCrossSigning(t *testing.T) {
+func TestConnectCA_ConfigurationSet_ForceWithoutCrossSigning(t *testing.T) {
 	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1617,7 +1546,7 @@ func TestLeader_Consul_ForceWithoutCrossSigning(t *testing.T) {
 	}
 }
 
-func TestLeader_Vault_ForceWithoutCrossSigning(t *testing.T) {
+func TestConnectCA_ConfigurationSet_Vault_ForceWithoutCrossSigning(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 
 	require := require.New(t)

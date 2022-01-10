@@ -153,6 +153,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 				CreateIndex: ret.Results[0].KV.CreateIndex,
 				ModifyIndex: ret.Results[0].KV.ModifyIndex,
 				Namespace:   ret.Results[0].KV.Namespace,
+				Partition:   defaultPartition,
 			},
 		},
 		&TxnResult{
@@ -164,12 +165,14 @@ func TestAPI_ClientTxn(t *testing.T) {
 				CreateIndex: ret.Results[1].KV.CreateIndex,
 				ModifyIndex: ret.Results[1].KV.ModifyIndex,
 				Namespace:   ret.Results[0].KV.Namespace,
+				Partition:   defaultPartition,
 			},
 		},
 		&TxnResult{
 			Node: &Node{
 				ID:          nodeID,
 				Node:        "foo",
+				Partition:   defaultPartition,
 				Address:     "2.2.2.2",
 				Datacenter:  "dc1",
 				CreateIndex: ret.Results[2].Node.CreateIndex,
@@ -181,6 +184,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 				ID:          "foo1",
 				CreateIndex: ret.Results[3].Service.CreateIndex,
 				ModifyIndex: ret.Results[3].Service.CreateIndex,
+				Partition:   defaultPartition,
 				Namespace:   defaultNamespace,
 			},
 		},
@@ -199,6 +203,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 					DeregisterCriticalServiceAfterDuration: 20 * time.Second,
 				},
 				Type:        "tcp",
+				Partition:   defaultPartition,
 				Namespace:   defaultNamespace,
 				CreateIndex: ret.Results[4].Check.CreateIndex,
 				ModifyIndex: ret.Results[4].Check.CreateIndex,
@@ -219,13 +224,14 @@ func TestAPI_ClientTxn(t *testing.T) {
 					DeregisterCriticalServiceAfterDuration: 160 * time.Second,
 				},
 				Type:        "tcp",
+				Partition:   defaultPartition,
 				Namespace:   defaultNamespace,
 				CreateIndex: ret.Results[4].Check.CreateIndex,
 				ModifyIndex: ret.Results[4].Check.CreateIndex,
 			},
 		},
 	}
-	require.Equal(t, ret.Results, expected)
+	require.Equal(t, expected, ret.Results)
 
 	retry.Run(t, func(r *retry.R) {
 		// Run a read-only transaction.
@@ -260,12 +266,14 @@ func TestAPI_ClientTxn(t *testing.T) {
 					CreateIndex: ret.Results[0].KV.CreateIndex,
 					ModifyIndex: ret.Results[0].KV.ModifyIndex,
 					Namespace:   ret.Results[0].KV.Namespace,
+					Partition:   defaultPartition,
 				},
 			},
 			&TxnResult{
 				Node: &Node{
 					ID:         s.Config.NodeID,
 					Node:       s.Config.NodeName,
+					Partition:  defaultPartition,
 					Address:    "127.0.0.1",
 					Datacenter: "dc1",
 					TaggedAddresses: map[string]string{
@@ -280,7 +288,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 				},
 			},
 		}
-		require.Equal(r, ret.Results, expected)
+		require.Equal(r, expected, ret.Results)
 	})
 
 	// Sanity check using the regular GET API.

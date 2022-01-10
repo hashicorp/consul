@@ -1,5 +1,26 @@
+%consul-intention-list td.permissions {
+  color: rgb(var(--tone-blue-500));
+}
+%consul-intention-list em {
+  --word-spacing: 0.25rem;
+}
+%consul-intention-list em span::before,
+%consul-intention-list em span:first-child {
+  margin-right: var(--word-spacing);
+}
+%consul-intention-list em span:last-child {
+  margin-left: var(--word-spacing);
+}
+%consul-intention-list em span::before {
+  @extend %as-pseudo;
+}
+%consul-intention-list span[class|='nspace']::before {
+  @extend %with-folder-outline-mask;
+}
+%consul-intention-list span[class|='partition']::before {
+  @extend %with-user-team-mask;
+}
+
 .consul-intention-list {
-  td.permissions {
-    color: $blue-500;
-  }
+  @extend %consul-intention-list;
 }

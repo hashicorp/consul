@@ -1,0 +1,3 @@
+```release-note:bug
+xds: fixes a bug where replacing a mesh gateway node used for WAN federation (with another that has a different IP) could leave gateways in the other DC unable to re-establish the connection
+```

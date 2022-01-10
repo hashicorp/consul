@@ -54,6 +54,7 @@ type CertOpts struct {
 	DNSNames    []string
 	IPAddresses []net.IP
 	ExtKeyUsage []x509.ExtKeyUsage
+	IsCA        bool
 }
 
 // GenerateCA generates a new CA for agent TLS (not to be confused with Connect TLS)
@@ -142,17 +143,17 @@ func GenerateCA(opts CAOpts) (string, string, error) {
 func GenerateCert(opts CertOpts) (string, string, error) {
 	parent, err := parseCert(opts.CA)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to parse CA: %w", err)
 	}
 
 	signee, pk, err := GeneratePrivateKey()
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to generate private key: %w", err)
 	}
 
 	id, err := keyID(signee.Public())
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to get keyID from public key: %w", err)
 	}
 
 	sn := opts.Serial
@@ -177,10 +178,14 @@ func GenerateCert(opts CertOpts) (string, string, error) {
 		DNSNames:              opts.DNSNames,
 		IPAddresses:           opts.IPAddresses,
 	}
+	if opts.IsCA {
+		template.IsCA = true
+		template.KeyUsage = x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature
+	}
 
 	bs, err := x509.CreateCertificate(rand.Reader, &template, parent, signee.Public(), opts.Signer)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to create certificate: %w", err)
 	}
 
 	var buf bytes.Buffer

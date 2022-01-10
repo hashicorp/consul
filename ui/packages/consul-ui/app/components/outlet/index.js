@@ -22,16 +22,18 @@ export default class Outlet extends Component {
   @tracked previousState;
   @tracked endTransition;
 
+  @tracked route;
+
   get model() {
     return this.args.model || {};
   }
 
+  get name() {
+    return this.args.name;
+  }
+
   setAppRoute(name) {
-    const nspace = 'nspace.';
-    if (name.startsWith(nspace)) {
-      name = name.substr(nspace.length);
-    }
-    if (name !== 'loading') {
+    if (name !== 'loading' || name === 'oidc-provider-debug') {
       const doc = this.element.ownerDocument.documentElement;
       if (doc.classList.contains('ember-loading')) {
         doc.classList.remove('ember-loading');
@@ -54,6 +56,11 @@ export default class Outlet extends Component {
         if (this.args.name === 'application') {
           this.setAppState('loading');
           this.setAppRoute(this.router.currentRouteName);
+        }
+        break;
+      case 'model':
+        if(typeof this.route !== 'undefined') {
+          this.route._model = value;
         }
         break;
     }

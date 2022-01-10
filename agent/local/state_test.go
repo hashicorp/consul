@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -373,8 +374,17 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	assert.Len(services.NodeServices.Services, 5)
 
 	// All the services should match
+	vips := make(map[string]struct{})
+	srv1.TaggedAddresses = nil
+	srv2.TaggedAddresses = nil
 	for id, serv := range services.NodeServices.Services {
 		serv.CreateIndex, serv.ModifyIndex = 0, 0
+		if serv.TaggedAddresses != nil {
+			serviceVIP := serv.TaggedAddresses[structs.TaggedAddressVirtualIP].Address
+			assert.NotEmpty(serviceVIP)
+			vips[serviceVIP] = struct{}{}
+		}
+		serv.TaggedAddresses = nil
 		switch id {
 		case "mysql-proxy":
 			assert.Equal(srv1, serv)
@@ -391,6 +401,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		}
 	}
 
+	assert.Len(vips, 4)
 	assert.Nil(servicesInSync(a.State, 4, structs.DefaultEnterpriseMetaInDefaultPartition()))
 
 	// Remove one of the services
@@ -404,6 +415,12 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	// All the services should match
 	for id, serv := range services.NodeServices.Services {
 		serv.CreateIndex, serv.ModifyIndex = 0, 0
+		if serv.TaggedAddresses != nil {
+			serviceVIP := serv.TaggedAddresses[structs.TaggedAddressVirtualIP].Address
+			assert.NotEmpty(serviceVIP)
+			vips[serviceVIP] = struct{}{}
+		}
+		serv.TaggedAddresses = nil
 		switch id {
 		case "mysql-proxy":
 			assert.Equal(srv1, serv)
@@ -785,29 +802,21 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
-		acl_datacenter = "dc1"
-		acl_master_token = "root"
-		acl_default_policy = "deny" `)
+		primary_datacenter = "dc1"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+			}
+		}
+	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Create the ACL
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testRegisterRules,
-		},
-		WriteRequest: structs.WriteRequest{
-			Token: "root",
-		},
-	}
-	var token string
-	if err := a.RPC("ACL.Apply", &arg, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	token := createToken(t, a, testRegisterRules)
 
 	// Create service (disallowed)
 	srv1 := &structs.NodeService{
@@ -927,6 +936,40 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	if token := a.State.ServiceToken(structs.NewServiceID("api", nil)); token != "" {
 		t.Fatalf("bad: %s", token)
 	}
+}
+
+type RPC interface {
+	RPC(method string, args interface{}, reply interface{}) error
+}
+
+func createToken(t *testing.T, rpc RPC, policyRules string) string {
+	t.Helper()
+
+	reqPolicy := structs.ACLPolicySetRequest{
+		Datacenter: "dc1",
+		Policy: structs.ACLPolicy{
+			Name:  "the-policy",
+			Rules: policyRules,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	err := rpc.RPC("ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
+	require.NoError(t, err)
+
+	token, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	reqToken := structs.ACLTokenSetRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			SecretID: token,
+			Policies: []structs.ACLTokenPolicyLink{{Name: "the-policy"}},
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	err = rpc.RPC("ACL.TokenSet", &reqToken, &structs.ACLToken{})
+	require.NoError(t, err)
+	return token
 }
 
 func TestAgentAntiEntropy_Checks(t *testing.T) {
@@ -1212,9 +1255,17 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dc := "dc1"
 	a := &agent.TestAgent{HCL: `
-		acl_datacenter = "` + dc + `"
-		acl_master_token = "root"
-		acl_default_policy = "deny" `}
+		primary_datacenter = "` + dc + `"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+			}
+		}
+	`}
 	if err := a.Start(t); err != nil {
 		t.Fatal(err)
 	}
@@ -1222,23 +1273,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForLeader(t, a.RPC, dc)
 
-	// Create the ACL
-	arg := structs.ACLRequest{
-		Datacenter: dc,
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testRegisterRules,
-		},
-		WriteRequest: structs.WriteRequest{
-			Token: "root",
-		},
-	}
-	var token string
-	if err := a.RPC("ACL.Apply", &arg, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	token := createToken(t, a, testRegisterRules)
 
 	// Create services using the root token
 	srv1 := &structs.NodeService{
@@ -1923,7 +1958,7 @@ func TestAgent_AddCheckFailure(t *testing.T) {
 		ServiceID: "redis",
 		Status:    api.HealthPassing,
 	}
-	wantErr := errors.New(`Check "redis:1" refers to non-existent service "redis"`)
+	wantErr := errors.New(`Check ID "redis:1" refers to non-existent service ID "redis"`)
 
 	got := l.AddCheck(chk, "")
 	require.Equal(t, wantErr, got)
@@ -2039,6 +2074,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	}
 
 	t.Parallel()
+
 	a := agent.StartTestAgent(t, agent.TestAgent{Overrides: `
 		sync_coordinate_interval_min = "1ms"
 		sync_coordinate_rate_target = 10.0
@@ -2084,7 +2120,7 @@ func servicesInSync(state *local.State, wantServices int, entMeta *structs.Enter
 	}
 	for id, s := range services {
 		if !s.InSync {
-			return fmt.Errorf("service %q should be in sync %+v", id.String(), s)
+			return fmt.Errorf("service ID %q should be in sync %+v", id.String(), s)
 		}
 	}
 	return nil
@@ -2101,6 +2137,36 @@ func checksInSync(state *local.State, wantChecks int, entMeta *structs.Enterpris
 		}
 	}
 	return nil
+}
+
+func TestState_RemoveServiceErrorMessages(t *testing.T) {
+	state := local.NewState(local.Config{}, hclog.New(nil), &token.Store{})
+
+	// Stub state syncing
+	state.TriggerSyncChanges = func() {}
+
+	require := require.New(t)
+
+	// Add 1 service
+	err := state.AddService(&structs.NodeService{
+		ID:      "web-id",
+		Service: "web-name",
+	}, "")
+	require.NoError(err)
+
+	// Attempt to remove service that doesn't exist
+	sid := structs.NewServiceID("db", nil)
+	err = state.RemoveService(sid)
+	require.Contains(err.Error(), fmt.Sprintf(`Unknown service ID %q`, sid))
+
+	// Attempt to remove service by name (which isn't valid)
+	sid2 := structs.NewServiceID("web-name", nil)
+	err = state.RemoveService(sid2)
+	require.Contains(err.Error(), fmt.Sprintf(`Unknown service ID %q`, sid2))
+
+	// Attempt to remove service by id (valid)
+	err = state.RemoveService(structs.NewServiceID("web-id", nil))
+	require.NoError(err)
 }
 
 func TestState_Notify(t *testing.T) {

@@ -1,6 +1,6 @@
 %empty-state {
-  color: $gray-500;
-  background-color: $gray-010;
+  color: rgb(var(--tone-gray-500));
+  background-color: rgb(var(--tone-gray-010));
 }
 %empty-state-header {
   border-bottom: none;

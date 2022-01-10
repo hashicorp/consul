@@ -6,12 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestAutopilot_IdempotentShutdown(t *testing.T) {
@@ -19,7 +20,7 @@ func TestAutopilot_IdempotentShutdown(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	dir1, s1 := testServerWithConfig(t, nil)
+	dir1, s1 := testServerWithConfig(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	retry.Run(t, func(r *retry.R) { r.Check(waitForLeader(s1)) })
@@ -101,7 +102,7 @@ func TestAutopilot_CleanupDeadServer(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		alive := 0
-		for _, m := range servers[leaderIndex].LANMembers() {
+		for _, m := range servers[leaderIndex].LANMembersInAgentPartition() {
 			if m.Status == serf.StatusAlive {
 				alive++
 			}
@@ -498,7 +499,7 @@ func TestAutopilot_MinQuorum(t *testing.T) {
 		if leader == nil {
 			r.Fatalf("no members set")
 		}
-		for _, m := range leader.LANMembers() {
+		for _, m := range leader.LANMembersInAgentPartition() {
 			if m.Name == dead.config.NodeName && m.Status != serf.StatusLeft {
 				r.Fatalf("%v should be left, got %v", m.Name, m.Status.String())
 			}
@@ -515,7 +516,7 @@ func TestAutopilot_MinQuorum(t *testing.T) {
 		if leader == nil {
 			r.Fatalf("no members set")
 		}
-		for _, m := range leader.LANMembers() {
+		for _, m := range leader.LANMembersInAgentPartition() {
 			if m.Name == dead.config.NodeName && m.Status != serf.StatusFailed {
 				r.Fatalf("%v should be failed, got %v", m.Name, m.Status.String())
 			}

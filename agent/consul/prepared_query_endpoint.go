@@ -77,7 +77,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	*reply = args.Query.ID
 
 	// Get the ACL token for the request for the checks below.
-	rule, err := p.srv.ResolveToken(args.Token)
+	authz, err := p.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	// need to make sure they have write access for whatever they are
 	// proposing.
 	if prefix, ok := args.Query.GetACLPrefix(); ok {
-		if rule.PreparedQueryWrite(prefix, nil) != acl.Allow {
+		if authz.PreparedQueryWrite(prefix, nil) != acl.Allow {
 			p.logger.Warn("Operation on prepared query denied due to ACLs", "query", args.Query.ID)
 			return acl.ErrPermissionDenied
 		}
@@ -106,7 +106,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 		}
 
 		if prefix, ok := query.GetACLPrefix(); ok {
-			if rule.PreparedQueryWrite(prefix, nil) != acl.Allow {
+			if authz.PreparedQueryWrite(prefix, nil) != acl.Allow {
 				p.logger.Warn("Operation on prepared query denied due to ACLs", "query", args.Query.ID)
 				return acl.ErrPermissionDenied
 			}
@@ -299,7 +299,7 @@ func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 	defer metrics.MeasureSince([]string{"prepared-query", "explain"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
-	p.srv.setQueryMeta(&reply.QueryMeta)
+	p.srv.setQueryMeta(&reply.QueryMeta, args.Token)
 	if args.RequireConsistent {
 		if err := p.srv.consistentRead(); err != nil {
 			return err
@@ -346,7 +346,6 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	defer metrics.MeasureSince([]string{"prepared-query", "execute"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
-	p.srv.setQueryMeta(&reply.QueryMeta)
 	if args.RequireConsistent {
 		if err := p.srv.consistentRead(); err != nil {
 			return err
@@ -374,7 +373,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	if query.Token != "" {
 		token = query.Token
 	}
-	if err := p.srv.filterACL(token, &reply.Nodes); err != nil {
+	if err := p.srv.filterACL(token, reply); err != nil {
 		return err
 	}
 
@@ -382,6 +381,9 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// fail over if we filtered everything due to ACLs. This seems like it
 	// might not be worth the code complexity and behavior differences,
 	// though, since this is essentially a misconfiguration.
+
+	// We have to do this ourselves since we are not doing a blocking RPC.
+	p.srv.setQueryMeta(&reply.QueryMeta, token)
 
 	// Shuffle the results in case coordinates are not available if they
 	// requested an RTT sort.
@@ -402,8 +404,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		qs.Node = args.Agent.Node
 	} else if qs.Node == "_ip" {
 		if args.Source.Ip != "" {
-			// TODO(partitions)
-			_, nodes, err := state.Nodes(nil, nil)
+			_, nodes, err := state.Nodes(nil, structs.NodeEnterpriseMetaInDefaultPartition())
 			if err != nil {
 				return err
 			}
@@ -482,7 +483,6 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 	defer metrics.MeasureSince([]string{"prepared-query", "execute_remote"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
-	p.srv.setQueryMeta(&reply.QueryMeta)
 	if args.RequireConsistent {
 		if err := p.srv.consistentRead(); err != nil {
 			return err
@@ -500,9 +500,12 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 	if args.Query.Token != "" {
 		token = args.Query.Token
 	}
-	if err := p.srv.filterACL(token, &reply.Nodes); err != nil {
+	if err := p.srv.filterACL(token, reply); err != nil {
 		return err
 	}
+
+	// We have to do this ourselves since we are not doing a blocking RPC.
+	p.srv.setQueryMeta(&reply.QueryMeta, token)
 
 	// We don't bother trying to do an RTT sort here since we are by
 	// definition in another DC. We just shuffle to make sure that we

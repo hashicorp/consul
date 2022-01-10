@@ -43,6 +43,30 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		svc := strings.TrimPrefix(u.CorrelationID, "discovery-chain:")
+
+		switch snap.Kind {
+		case structs.ServiceKindIngressGateway:
+			if _, ok := snap.IngressGateway.UpstreamsSet[svc]; !ok {
+				// Discovery chain is not associated with a known explicit or implicit upstream so it is purged/skipped.
+				// The associated watch was likely cancelled.
+				delete(upstreamsSnapshot.DiscoveryChain, svc)
+				s.logger.Trace("discovery-chain watch fired for unknown upstream", "upstream", svc)
+				return nil
+			}
+
+		case structs.ServiceKindConnectProxy:
+			explicit := snap.ConnectProxy.UpstreamConfig[svc].HasLocalPortOrSocket()
+			if _, implicit := snap.ConnectProxy.IntentionUpstreams[svc]; !implicit && !explicit {
+				// Discovery chain is not associated with a known explicit or implicit upstream so it is purged/skipped.
+				// The associated watch was likely cancelled.
+				delete(upstreamsSnapshot.DiscoveryChain, svc)
+				s.logger.Trace("discovery-chain watch fired for unknown upstream", "upstream", svc)
+				return nil
+			}
+		default:
+			return fmt.Errorf("discovery-chain watch fired for unsupported kind: %s", snap.Kind)
+		}
+
 		upstreamsSnapshot.DiscoveryChain[svc] = resp.Chain
 
 		if err := s.resetWatchesFromChain(ctx, svc, resp.Chain, upstreamsSnapshot); err != nil {
@@ -87,12 +111,7 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 					svc.Name = dst
 				}
 
-				sni := connect.ServiceSNI(
-					svc.Name,
-					"",
-					svc.NamespaceOrDefault(),
-					snap.Datacenter,
-					snap.Roots.TrustDomain)
+				sni := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), snap.Datacenter, snap.Roots.TrustDomain)
 
 				spiffeID := connect.SpiffeIDService{
 					Host:       snap.Roots.TrustDomain,
@@ -112,7 +131,11 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 						Addrs: make(map[string]struct{}),
 					}
 				}
-				addr, _ := node.BestAddress(false)
+
+				// Make sure to use an external address when crossing partitions.
+				isRemote := !structs.EqualPartitions(svc.PartitionOrDefault(), s.proxyID.PartitionOrDefault())
+				addr, _ := node.BestAddress(isRemote)
+
 				upstreamsSnapshot.PassthroughUpstreams[svc.String()].Addrs[addr] = struct{}{}
 			}
 		}
@@ -123,14 +146,15 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		correlationID := strings.TrimPrefix(u.CorrelationID, "mesh-gateway:")
-		dc, svc, ok := removeColonPrefix(correlationID)
+		key, svc, ok := removeColonPrefix(correlationID)
 		if !ok {
 			return fmt.Errorf("invalid correlation id %q", u.CorrelationID)
 		}
 		if _, ok = upstreamsSnapshot.WatchedGatewayEndpoints[svc]; !ok {
 			upstreamsSnapshot.WatchedGatewayEndpoints[svc] = make(map[string]structs.CheckServiceNodes)
 		}
-		upstreamsSnapshot.WatchedGatewayEndpoints[svc][dc] = resp.Nodes
+		upstreamsSnapshot.WatchedGatewayEndpoints[svc][key] = resp.Nodes
+
 	default:
 		return fmt.Errorf("unknown correlation ID: %s", u.CorrelationID)
 	}
@@ -212,11 +236,22 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 
 		// We'll get endpoints from the gateway query, but the health still has
 		// to come from the backing service query.
+		var gk GatewayKey
+
 		switch target.MeshGateway.Mode {
 		case structs.MeshGatewayModeRemote:
-			needGateways[target.Datacenter] = struct{}{}
+			gk = GatewayKey{
+				Partition:  target.Partition,
+				Datacenter: target.Datacenter,
+			}
 		case structs.MeshGatewayModeLocal:
-			needGateways[s.source.Datacenter] = struct{}{}
+			gk = GatewayKey{
+				Partition:  s.source.NodePartitionOrDefault(),
+				Datacenter: s.source.Datacenter,
+			}
+		}
+		if s.source.Datacenter != target.Datacenter || s.proxyID.PartitionOrDefault() != target.Partition {
+			needGateways[gk.String()] = struct{}{}
 		}
 	}
 
@@ -229,7 +264,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 	// Outside of transparent mode we only watch the chain target, B,
 	// since A is a virtual service and traffic will not be sent to it.
 	if !watchedChainEndpoints && s.proxyCfg.Mode == structs.ProxyModeTransparent {
-		chainEntMeta := structs.NewEnterpriseMetaInDefaultPartition(chain.Namespace)
+		chainEntMeta := structs.NewEnterpriseMetaWithPartition(chain.Partition, chain.Namespace)
 
 		opts := targetWatchOpts{
 			upstreamID: id,
@@ -245,38 +280,51 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 		}
 	}
 
-	for dc := range needGateways {
-		if _, ok := snap.WatchedGateways[id][dc]; ok {
+	for key := range needGateways {
+		if _, ok := snap.WatchedGateways[id][key]; ok {
 			continue
 		}
+		gwKey := gatewayKeyFromString(key)
 
-		s.logger.Trace("initializing watch of mesh gateway in datacenter",
+		s.logger.Trace("initializing watch of mesh gateway",
 			"upstream", id,
 			"chain", chain.ServiceName,
-			"datacenter", dc,
+			"datacenter", gwKey.Datacenter,
+			"partition", gwKey.Partition,
 		)
 
 		ctx, cancel := context.WithCancel(ctx)
-		err := s.watchMeshGateway(ctx, dc, id)
+		opts := gatewayWatchOpts{
+			notifier:   s.cache,
+			notifyCh:   s.ch,
+			source:     *s.source,
+			token:      s.token,
+			key:        gwKey,
+			upstreamID: id,
+		}
+		err := watchMeshGateway(ctx, opts)
 		if err != nil {
 			cancel()
 			return err
 		}
 
-		snap.WatchedGateways[id][dc] = cancel
+		snap.WatchedGateways[id][key] = cancel
 	}
 
-	for dc, cancelFn := range snap.WatchedGateways[id] {
-		if _, ok := needGateways[dc]; ok {
+	for key, cancelFn := range snap.WatchedGateways[id] {
+		if _, ok := needGateways[key]; ok {
 			continue
 		}
-		s.logger.Trace("stopping watch of mesh gateway in datacenter",
+		gwKey := gatewayKeyFromString(key)
+
+		s.logger.Trace("stopping watch of mesh gateway",
 			"upstream", id,
 			"chain", chain.ServiceName,
-			"datacenter", dc,
+			"datacenter", gwKey.Datacenter,
+			"partition", gwKey.Partition,
 		)
-		delete(snap.WatchedGateways[id], dc)
-		delete(snap.WatchedGatewayEndpoints[id], dc)
+		delete(snap.WatchedGateways[id], key)
+		delete(snap.WatchedGatewayEndpoints[id], key)
 		cancelFn()
 	}
 
@@ -290,17 +338,6 @@ type targetWatchOpts struct {
 	filter     string
 	datacenter string
 	entMeta    *structs.EnterpriseMeta
-}
-
-func (s *handlerUpstreams) watchMeshGateway(ctx context.Context, dc string, upstreamID string) error {
-	return s.cache.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
-		Datacenter:     dc,
-		QueryOptions:   structs.QueryOptions{Token: s.token},
-		ServiceKind:    structs.ServiceKindMeshGateway,
-		UseServiceKind: true,
-		Source:         *s.source,
-		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-	}, "mesh-gateway:"+dc+":"+upstreamID, s.ch)
 }
 
 func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *ConfigSnapshotUpstreams, opts targetWatchOpts) error {
@@ -344,6 +381,7 @@ type discoveryChainWatchOpts struct {
 	id          string
 	name        string
 	namespace   string
+	partition   string
 	datacenter  string
 	cfg         reducedUpstreamConfig
 	meshGateway structs.MeshGatewayConfig
@@ -361,6 +399,7 @@ func (s *handlerUpstreams) watchDiscoveryChain(ctx context.Context, snap *Config
 		Name:                   opts.name,
 		EvaluateInDatacenter:   opts.datacenter,
 		EvaluateInNamespace:    opts.namespace,
+		EvaluateInPartition:    opts.partition,
 		OverrideProtocol:       opts.cfg.Protocol,
 		OverrideConnectTimeout: opts.cfg.ConnectTimeout(),
 		OverrideMeshGateway:    opts.meshGateway,

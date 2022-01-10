@@ -6,6 +6,11 @@
 
 module.exports = [
   {
+    source: '/home',
+    destination: '/',
+    permanent: true,
+  },
+  {
     source: '/trial',
     destination: 'https://www.hashicorp.com/products/consul/trial',
     permanent: true,
@@ -23,6 +28,11 @@ module.exports = [
   {
     source: '/segmentation',
     destination: '/use-cases/multi-platform-service-mesh',
+    permanent: true,
+  },
+  {
+    source: '/use-cases/service-discovery-and-health-checking',
+    destination: '/',
     permanent: true,
   },
   {
@@ -57,6 +67,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/api-docs/acl-legacy',
+    destination: '/api-docs/acl/legacy',
+    permanent: true,
+  },
+  {
     source: '/docs/guides/acl-migrate-tokens',
     destination: '/docs/security/acl/acl-migrate-tokens',
     permanent: true,
@@ -82,6 +97,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/connect/config-entries/partition-exports',
+    destination: '/docs/connect/config-entries/exported-services',
+    permanent: true,
+  },
+  {
     source: '/docs/enterprise/license',
     destination: '/docs/enterprise/license/overview',
     permanent: true,
@@ -94,7 +114,14 @@ module.exports = [
   { source: '/configuration', destination: '/', permanent: true },
   {
     source: '/docs/connect/mesh(_|-)gateway',
-    destination: '/docs/connect/gateways/mesh-gateway',
+    destination:
+      '/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
+    permanent: true,
+  },
+  {
+    source: '/docs/connect/gateways/mesh-gateway',
+    destination:
+      '/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
     permanent: true,
   },
   {
@@ -1081,6 +1108,11 @@ module.exports = [
   {
     source: '/docs/compatibility',
     destination: '/docs/upgrading/compatibility',
+    permanent: true,
+  },
+  {
+    source: '/docs/commands/acl/role',
+    destination: '/commands/acl/role',
     permanent: true,
   },
   {

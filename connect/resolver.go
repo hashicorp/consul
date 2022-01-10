@@ -66,6 +66,9 @@ type ConsulResolver struct {
 	// Namespace of the query target.
 	Namespace string
 
+	// Partition of the query target.
+	Partition string
+
 	// Name of the query target.
 	Name string
 

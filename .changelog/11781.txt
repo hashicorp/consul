@@ -1,0 +1,3 @@
+```release-note:bug
+cli: when creating a private key, save the file with mode 0600 so that only the user has read permission.
+```

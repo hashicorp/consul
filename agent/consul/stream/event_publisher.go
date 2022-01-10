@@ -291,5 +291,5 @@ func (e *EventPublisher) setCachedSnapshotLocked(req *SubscribeRequest, snap *ev
 }
 
 func snapCacheKey(req *SubscribeRequest) string {
-	return fmt.Sprintf(req.Namespace + "/" + req.Key)
+	return req.Partition + "/" + req.Namespace + "/" + req.Key
 }

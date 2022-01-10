@@ -34,6 +34,8 @@ support federation, see [Upgrading An Existing Cluster](#upgrading-an-existing-c
 You will need to use the following `config.yaml` file for your primary cluster,
 with the possible modifications listed below.
 
+<CodeBlockConfig filename="config.yaml">
+
 ```yaml
 global:
   name: consul
@@ -77,11 +79,15 @@ meshGateway:
   enabled: true
 ```
 
+</CodeBlockConfig>
+
 Modifications:
 
 1. The Consul datacenter name is `dc1`. The datacenter name in each federated
    cluster **must be unique**.
 1. ACLs are enabled in the above config file. They can be disabled by setting:
+
+
    ```yaml
    global:
      acls:
@@ -125,6 +131,8 @@ to install Consul on your primary cluster.
 If you have an existing cluster, you will need to upgrade it to ensure it has
 the following config:
 
+<CodeBlockConfig filename="config.yaml">
+
 ```yaml
 global:
   tls:
@@ -138,6 +146,8 @@ global:
 meshGateway:
   enabled: true
 ```
+
+</CodeBlockConfig>
 
 1. `global.tls.enabled` must be `true`. See [Configuring TLS on an Existing Cluster](/docs/k8s/operations/tls-on-existing-cluster)
    for more information on safely upgrading a cluster to use TLS.
@@ -200,11 +210,15 @@ The federation secret is a Kubernetes secret containing information needed
 for secondary datacenters/clusters to federate with the primary. This secret is created
 automatically by setting:
 
+<CodeBlockConfig highlight="2-3">
+
 ```yaml
 global:
   federation:
     createFederationSecret: true
 ```
+
+</CodeBlockConfig>
 
 After the installation into your primary cluster you will need to export
 this secret:
@@ -291,6 +305,8 @@ with the possible modifications listed below.
 -> **NOTE: ** You must use a separate Helm config file for each cluster (primary and secondaries) since their
 settings are different.
 
+<CodeBlockConfig filename="config-cluster2.yaml">
+
 ```yaml
 global:
   name: consul
@@ -339,6 +355,8 @@ server:
           path: config.json
       load: true
 ```
+
+</CodeBlockConfig>
 
 Modifications:
 

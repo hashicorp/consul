@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	http2 "golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 func uniqueID() string {
@@ -49,7 +50,7 @@ func TestCheckMonitor_Script(t *testing.T) {
 		t.Run(tt.status, func(t *testing.T) {
 			notif := mock.NewNotify()
 			logger := testutil.Logger(t)
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 
 			cid := structs.NewCheckID("foo", nil)
 			check := &CheckMonitor{
@@ -94,7 +95,7 @@ func TestCheckMonitor_Args(t *testing.T) {
 		t.Run(tt.status, func(t *testing.T) {
 			notif := mock.NewNotify()
 			logger := testutil.Logger(t)
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 			cid := structs.NewCheckID("foo", nil)
 
 			check := &CheckMonitor{
@@ -128,7 +129,7 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 
 	cid := structs.NewCheckID("foo", nil)
 	check := &CheckMonitor{
@@ -163,7 +164,7 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 
 	cid := structs.NewCheckID("foo", nil)
 
@@ -195,7 +196,7 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 	t.Parallel()
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
 
 	check := &CheckMonitor{
@@ -354,7 +355,7 @@ func TestCheckHTTP(t *testing.T) {
 
 			notif := mock.NewNotify()
 			logger := testutil.Logger(t)
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 
 			cid := structs.NewCheckID("foo", nil)
 
@@ -397,7 +398,7 @@ func TestCheckHTTP_Proxied(t *testing.T) {
 	notif := mock.NewNotify()
 
 	logger := testutil.Logger(t)
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
 
 	check := &CheckHTTP{
@@ -433,7 +434,7 @@ func TestCheckHTTP_NotProxied(t *testing.T) {
 
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
 
 	check := &CheckHTTP{
@@ -558,7 +559,7 @@ func TestCheckMaxOutputSize(t *testing.T) {
 		Interval:      2 * time.Millisecond,
 		Logger:        logger,
 		OutputMaxSize: maxOutputSize,
-		StatusHandler: NewStatusHandler(notif, logger, 0, 0),
+		StatusHandler: NewStatusHandler(notif, logger, 0, 0, 0),
 	}
 
 	check.Start()
@@ -586,7 +587,7 @@ func TestCheckHTTPTimeout(t *testing.T) {
 
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 
 	cid := structs.NewCheckID("bar", nil)
 
@@ -659,7 +660,7 @@ func TestCheckHTTPBody(t *testing.T) {
 				Timeout:       timeout,
 				Interval:      2 * time.Millisecond,
 				Logger:        logger,
-				StatusHandler: NewStatusHandler(notif, logger, 0, 0),
+				StatusHandler: NewStatusHandler(notif, logger, 0, 0, 0),
 			}
 			check.Start()
 			defer check.Stop()
@@ -690,7 +691,7 @@ func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 		HTTP:          "http://foo.bar/baz",
 		Interval:      10 * time.Second,
 		Logger:        logger,
-		StatusHandler: NewStatusHandler(notif, logger, 0, 0),
+		StatusHandler: NewStatusHandler(notif, logger, 0, 0, 0),
 	}
 
 	check.Start()
@@ -725,7 +726,7 @@ func TestCheckHTTP_TLS_SkipVerify(t *testing.T) {
 
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 
 	cid := structs.NewCheckID("skipverify_true", nil)
 	check := &CheckHTTP{
@@ -767,7 +768,7 @@ func TestCheckHTTP_TLS_BadVerify(t *testing.T) {
 
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 	cid := structs.NewCheckID("skipverify_false", nil)
 
 	check := &CheckHTTP{
@@ -819,7 +820,7 @@ func mockTCPServer(network string) net.Listener {
 func expectTCPStatus(t *testing.T, tcp string, status string) {
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
 
 	check := &CheckTCP{
@@ -846,13 +847,12 @@ func TestStatusHandlerUpdateStatusAfterConsecutiveChecksThresholdIsReached(t *te
 	cid := structs.NewCheckID("foo", nil)
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
-	statusHandler := NewStatusHandler(notif, logger, 2, 3)
+	statusHandler := NewStatusHandler(notif, logger, 2, 2, 3)
 
 	// Set the initial status to passing after a single success
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 
-	// Status should become critical after 3 failed checks only
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	// Status should still be passing after 1 failed check only
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
 
 	retry.Run(t, func(r *retry.R) {
@@ -860,10 +860,19 @@ func TestStatusHandlerUpdateStatusAfterConsecutiveChecksThresholdIsReached(t *te
 		require.Equal(r, api.HealthPassing, notif.State(cid))
 	})
 
+	// Status should become warning after 2 failed checks only
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 2, notif.Updates(cid))
+		require.Equal(r, api.HealthWarning, notif.State(cid))
+	})
+
+	// Status should become critical after 4 failed checks only
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 3, notif.Updates(cid))
 		require.Equal(r, api.HealthCritical, notif.State(cid))
 	})
 
@@ -871,14 +880,14 @@ func TestStatusHandlerUpdateStatusAfterConsecutiveChecksThresholdIsReached(t *te
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 
 	retry.Run(t, func(r *retry.R) {
-		require.Equal(r, 2, notif.Updates(cid))
+		require.Equal(r, 3, notif.Updates(cid))
 		require.Equal(r, api.HealthCritical, notif.State(cid))
 	})
 
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 
 	retry.Run(t, func(r *retry.R) {
-		require.Equal(r, 3, notif.Updates(cid))
+		require.Equal(r, 4, notif.Updates(cid))
 		require.Equal(r, api.HealthPassing, notif.State(cid))
 	})
 }
@@ -888,17 +897,18 @@ func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T
 	cid := structs.NewCheckID("foo", nil)
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
-	statusHandler := NewStatusHandler(notif, logger, 2, 3)
+	statusHandler := NewStatusHandler(notif, logger, 2, 2, 3)
 
 	// Set the initial status to passing after a single success
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 
-	// Status should remain passing after FAIL PASS FAIL FAIL sequence
+	// Status should remain passing after FAIL PASS FAIL PASS FAIL sequence
 	// Although we have 3 FAILS, they are not consecutive
 
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
 
 	retry.Run(t, func(r *retry.R) {
@@ -906,11 +916,19 @@ func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T
 		require.Equal(r, api.HealthPassing, notif.State(cid))
 	})
 
-	// Critical after a 3rd consecutive FAIL
+	// Warning after a 2rd consecutive FAIL
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 2, notif.Updates(cid))
+		require.Equal(r, api.HealthWarning, notif.State(cid))
+	})
+
+	// Critical after a 3rd consecutive FAIL
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 3, notif.Updates(cid))
 		require.Equal(r, api.HealthCritical, notif.State(cid))
 	})
 
@@ -920,7 +938,7 @@ func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 
 	retry.Run(t, func(r *retry.R) {
-		require.Equal(r, 2, notif.Updates(cid))
+		require.Equal(r, 3, notif.Updates(cid))
 		require.Equal(r, api.HealthCritical, notif.State(cid))
 	})
 
@@ -928,8 +946,126 @@ func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 
 	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 4, notif.Updates(cid))
+		require.Equal(r, api.HealthPassing, notif.State(cid))
+	})
+}
+
+func TestStatusHandlerWarningAndCriticalThresholdsTheSameSetsCritical(t *testing.T) {
+	t.Parallel()
+	cid := structs.NewCheckID("foo", nil)
+	notif := mock.NewNotify()
+	logger := testutil.Logger(t)
+	statusHandler := NewStatusHandler(notif, logger, 2, 3, 3)
+
+	// Set the initial status to passing after a single success
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+
+	// Status should remain passing after FAIL FAIL sequence
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 1, notif.Updates(cid))
+		require.Equal(r, api.HealthPassing, notif.State(cid))
+	})
+
+	// Critical and not Warning after a 3rd consecutive FAIL
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 2, notif.Updates(cid))
+		require.Equal(r, api.HealthCritical, notif.State(cid))
+	})
+
+	// Passing after consecutive PASS PASS sequence
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+
+	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 3, notif.Updates(cid))
 		require.Equal(r, api.HealthPassing, notif.State(cid))
+	})
+}
+
+func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
+	t.Parallel()
+	cid := structs.NewCheckID("foo", nil)
+	notif := mock.NewNotify()
+	logger := testutil.Logger(t)
+	statusHandler := NewStatusHandler(notif, logger, 3, 3, 5)
+
+	// Set the initial status to passing after a single success.
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+
+	// Status should remain passing after a FAIL FAIL sequence.
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 1, notif.Updates(cid))
+		require.Equal(r, api.HealthPassing, notif.State(cid))
+	})
+
+	// Warning after a 3rd consecutive FAIL.
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 2, notif.Updates(cid))
+		require.Equal(r, api.HealthWarning, notif.State(cid))
+	})
+
+	// Status should remain passing after PASS FAIL FAIL FAIL PASS FAIL FAIL FAIL PASS sequence.
+	// Although we have 6 FAILS, they are not consecutive.
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+
+	// The status gets updated due to failuresCounter being reset
+	// but the status itself remains as Warning.
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 3, notif.Updates(cid))
+		require.Equal(r, api.HealthWarning, notif.State(cid))
+	})
+
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+
+	// Status doesn'tn change, but the state update is triggered.
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 4, notif.Updates(cid))
+		require.Equal(r, api.HealthWarning, notif.State(cid))
+	})
+
+	// Status should change only after 5 consecutive FAIL updates.
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+
+	// The status doesn't change, but a status update is triggered.
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 5, notif.Updates(cid))
+		require.Equal(r, api.HealthWarning, notif.State(cid))
+	})
+
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+
+	// The status doesn't change, but a status update is triggered.
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 6, notif.Updates(cid))
+		require.Equal(r, api.HealthWarning, notif.State(cid))
+	})
+
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+
+	// The FailuresBeforeCritical threshold is finally breached.
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 7, notif.Updates(cid))
+		require.Equal(r, api.HealthCritical, notif.State(cid))
 	})
 }
 
@@ -992,7 +1128,7 @@ func TestCheckH2PING(t *testing.T) {
 
 			notif := mock.NewNotify()
 			logger := testutil.Logger(t)
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 			cid := structs.NewCheckID("foo", nil)
 			tlsCfg := &api.TLSConfig{
 				InsecureSkipVerify: true,
@@ -1044,7 +1180,7 @@ func TestCheckH2PING_TLS_BadVerify(t *testing.T) {
 
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
 	tlsCfg := &api.TLSConfig{}
 	tlsClientCfg, err := api.SetupTLSConfig(tlsCfg)
@@ -1085,7 +1221,7 @@ func TestCheckH2PINGInvalidListener(t *testing.T) {
 
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
 	tlsCfg := &api.TLSConfig{
 		InsecureSkipVerify: true,
@@ -1119,6 +1255,64 @@ func TestCheckH2PINGInvalidListener(t *testing.T) {
 		}
 
 	})
+}
+
+func TestCheckH2CPING(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		desc        string
+		passing     bool
+		timeout     time.Duration
+		connTimeout time.Duration
+	}{
+		{desc: "passing", passing: true, timeout: 1 * time.Second, connTimeout: 1 * time.Second},
+		{desc: "failing because of time out", passing: false, timeout: 1 * time.Nanosecond, connTimeout: 1 * time.Second},
+		{desc: "failing because of closed connection", passing: false, timeout: 1 * time.Nanosecond, connTimeout: 1 * time.Millisecond},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+			h2chandler := h2c.NewHandler(handler, &http2.Server{})
+			server := httptest.NewUnstartedServer(h2chandler)
+			server.Config.ReadTimeout = tt.connTimeout
+			server.Start()
+			defer server.Close()
+			serverAddress := server.Listener.Addr()
+			target := serverAddress.String()
+
+			notif := mock.NewNotify()
+			logger := testutil.Logger(t)
+			statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
+			cid := structs.NewCheckID("foo", nil)
+			check := &CheckH2PING{
+				CheckID:         cid,
+				H2PING:          target,
+				Interval:        5 * time.Second,
+				Timeout:         tt.timeout,
+				Logger:          logger,
+				TLSClientConfig: nil,
+				StatusHandler:   statusHandler,
+			}
+
+			check.Start()
+			defer check.Stop()
+			if tt.passing {
+				retry.Run(t, func(r *retry.R) {
+					if got, want := notif.State(cid), api.HealthPassing; got != want {
+						r.Fatalf("got state %q want %q", got, want)
+					}
+				})
+			} else {
+				retry.Run(t, func(r *retry.R) {
+					if got, want := notif.State(cid), api.HealthCritical; got != want {
+						r.Fatalf("got state %q want %q", got, want)
+					}
+				})
+			}
+		})
+	}
 }
 
 func TestCheck_Docker(t *testing.T) {
@@ -1388,7 +1582,7 @@ func TestCheck_Docker(t *testing.T) {
 
 			notif, upd := mock.NewNotifyChan()
 			logger := testutil.Logger(t)
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 			id := structs.NewCheckID("chk", nil)
 
 			check := &CheckDocker{

@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/require"
 )
 
 // Test basic creation
@@ -73,6 +74,8 @@ func TestIntentionApply_new(t *testing.T) {
 		actual.Hash = ixn.Intention.Hash
 		//nolint:staticcheck
 		ixn.Intention.UpdatePrecedence()
+		// Partition fields will be normalized on Intention.Get
+		ixn.Intention.FillPartitionAndNamespace(nil, true)
 		require.Equal(t, ixn.Intention, actual)
 	}
 
@@ -96,7 +99,7 @@ func TestIntentionApply_new(t *testing.T) {
 
 		var reply string
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn2, &reply)
-		testutil.RequireErrorContains(t, err, "Cannot modify DestinationNS or DestinationName for an intention once it exists.")
+		testutil.RequireErrorContains(t, err, "Cannot modify Destination partition/namespace/name for an intention once it exists.")
 	})
 }
 
@@ -172,8 +175,9 @@ func TestIntentionApply_createWithID(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.IntentionOpCreate,
 		Intention: &structs.Intention{
-			ID:         generateUUID(),
-			SourceName: "test",
+			ID:              generateUUID(),
+			SourceName:      "test",
+			DestinationName: "test2",
 		},
 	}
 	var reply string
@@ -264,6 +268,8 @@ func TestIntentionApply_updateGood(t *testing.T) {
 		actual.Hash = ixn.Intention.Hash
 		//nolint:staticcheck
 		ixn.Intention.UpdatePrecedence()
+		// Partition fields will be normalized on Intention.Get
+		ixn.Intention.FillPartitionAndNamespace(nil, true)
 		require.Equal(t, ixn.Intention, actual)
 	}
 }
@@ -859,10 +865,10 @@ func TestIntentionApply_aclDeny(t *testing.T) {
 
 	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -871,27 +877,12 @@ func TestIntentionApply_aclDeny(t *testing.T) {
 
 	waitForLeaderEstablishment(t, s1)
 
-	// Create an ACL with write permissions
-	var token string
-	{
-		var rules = `
-service "foo" {
+	rules := `
+service "foobar" {
 	policy = "deny"
 	intentions = "write"
 }`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	token := createToken(t, codec, rules)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -1264,10 +1255,10 @@ func TestIntentionApply_aclDelete(t *testing.T) {
 
 	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1276,27 +1267,12 @@ func TestIntentionApply_aclDelete(t *testing.T) {
 
 	waitForLeaderEstablishment(t, s1)
 
-	// Create an ACL with write permissions
-	var token string
-	{
-		var rules = `
-service "foo" {
+	rules := `
+service "foobar" {
 	policy = "deny"
 	intentions = "write"
 }`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	token := createToken(t, codec, rules)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -1345,10 +1321,10 @@ func TestIntentionApply_aclUpdate(t *testing.T) {
 
 	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1357,27 +1333,12 @@ func TestIntentionApply_aclUpdate(t *testing.T) {
 
 	waitForLeaderEstablishment(t, s1)
 
-	// Create an ACL with write permissions
-	var token string
-	{
-		var rules = `
-service "foo" {
+	rules := `
+service "foobar" {
 	policy = "deny"
 	intentions = "write"
 }`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	token := createToken(t, codec, rules)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -1414,10 +1375,10 @@ func TestIntentionApply_aclManagement(t *testing.T) {
 
 	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1459,10 +1420,10 @@ func TestIntentionApply_aclUpdateChange(t *testing.T) {
 
 	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1471,27 +1432,12 @@ func TestIntentionApply_aclUpdateChange(t *testing.T) {
 
 	waitForLeaderEstablishment(t, s1)
 
-	// Create an ACL with write permissions
-	var token string
-	{
-		var rules = `
-service "foo" {
+	rules := `
+service "foobar" {
 	policy = "deny"
 	intentions = "write"
 }`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	token := createToken(t, codec, rules)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -1524,10 +1470,10 @@ func TestIntentionGet_acl(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1653,14 +1599,13 @@ func TestIntentionList_acl(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, testServerACLConfig(nil))
+	dir1, s1 := testServerWithConfig(t, testServerACLConfig)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
 	waitForLeaderEstablishment(t, s1)
-	waitForNewACLs(t, s1)
 
 	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service_prefix "foo" { policy = "write" }`)
 	require.NoError(t, err)
@@ -1690,6 +1635,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 0)
+		require.False(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	// Test with management token
@@ -1701,6 +1647,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 3)
+		require.False(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	// Test with user token
@@ -1712,6 +1659,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 1)
+		require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("filtered", func(t *testing.T) {
@@ -1726,6 +1674,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 1)
+		require.False(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 }
 
@@ -1928,10 +1877,10 @@ func TestIntentionCheck_defaultACLDeny(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1964,10 +1913,10 @@ func TestIntentionCheck_defaultACLAllow(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "allow"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2000,10 +1949,10 @@ func TestIntentionCheck_aclDeny(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2012,26 +1961,11 @@ func TestIntentionCheck_aclDeny(t *testing.T) {
 
 	waitForLeaderEstablishment(t, s1)
 
-	// Create an ACL with service read permissions. This will grant permission.
-	var token string
-	{
-		var rules = `
+	rules := `
 service "bar" {
 	policy = "read"
 }`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	token := createToken(t, codec, rules)
 
 	// Check
 	req := &structs.IntentionQueryRequest{

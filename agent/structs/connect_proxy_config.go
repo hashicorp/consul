@@ -39,17 +39,21 @@ const (
 const (
 	// TODO (freddy) Should we have a TopologySourceMixed when there is a mix of proxy reg and tproxy?
 	//				 Currently we label as proxy-registration if ANY instance has the explicit upstream definition.
-	// TopologySourceRegistration is used to label upstreams or downstreams from explicit upstream definitions
+	// TopologySourceRegistration is used to label upstreams or downstreams from explicit upstream definitions.
 	TopologySourceRegistration = "proxy-registration"
 
-	// TopologySourceSpecificIntention is used to label upstreams or downstreams from specific intentions
+	// TopologySourceSpecificIntention is used to label upstreams or downstreams from specific intentions.
 	TopologySourceSpecificIntention = "specific-intention"
 
-	// TopologySourceWildcardIntention is used to label upstreams or downstreams from wildcard intentions
+	// TopologySourceWildcardIntention is used to label upstreams or downstreams from wildcard intentions.
 	TopologySourceWildcardIntention = "wildcard-intention"
 
-	// TopologySourceDefaultAllow is used to label upstreams or downstreams from default allow ACL policy
+	// TopologySourceDefaultAllow is used to label upstreams or downstreams from default allow ACL policy.
 	TopologySourceDefaultAllow = "default-allow"
+
+	// TopologySourceRoutingConfig is used to label upstreams that are not backed by a service instance
+	// and are simply used for routing configurations.
+	TopologySourceRoutingConfig = "routing-config"
 )
 
 // MeshGatewayConfig controls how Mesh Gateways are configured and used
@@ -246,7 +250,6 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 	}
 
 	return nil
-
 }
 
 func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
@@ -343,6 +346,7 @@ type Upstream struct {
 	// on service definitions in various places.
 	DestinationType      string `alias:"destination_type"`
 	DestinationNamespace string `json:",omitempty" alias:"destination_namespace"`
+	DestinationPartition string `json:",omitempty" alias:"destination_partition"`
 	DestinationName      string `alias:"destination_name"`
 
 	// Datacenter that the service discovery request should be run against. Note
@@ -371,9 +375,11 @@ type Upstream struct {
 	// MeshGateway is the configuration for mesh gateway usage of this upstream
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
 
-	// IngressHosts are a list of hosts that should route to this upstream from
-	// an ingress gateway. This cannot and should not be set by a user, it is
-	// used internally to store the association of hosts to an upstream service.
+	// IngressHosts are a list of hosts that should route to this upstream from an
+	// ingress gateway. This cannot and should not be set by a user, it is used
+	// internally to store the association of hosts to an upstream service.
+	// TODO(banks): we shouldn't need this any more now we pass through full
+	// listener config in the ingress snapshot.
 	IngressHosts []string `json:"-" bexpr:"-"`
 
 	// CentrallyConfigured indicates whether the upstream was defined in a proxy
@@ -385,6 +391,7 @@ func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
 	type Alias Upstream
 	aux := &struct {
 		DestinationTypeSnake      string `json:"destination_type"`
+		DestinationPartitionSnake string `json:"destination_partition"`
 		DestinationNamespaceSnake string `json:"destination_namespace"`
 		DestinationNameSnake      string `json:"destination_name"`
 
@@ -408,6 +415,9 @@ func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
 	}
 	if t.DestinationNamespace == "" {
 		t.DestinationNamespace = aux.DestinationNamespaceSnake
+	}
+	if t.DestinationPartition == "" {
+		t.DestinationPartition = aux.DestinationPartitionSnake
 	}
 	if t.DestinationName == "" {
 		t.DestinationName = aux.DestinationNameSnake
@@ -465,6 +475,7 @@ func (u *Upstream) ToAPI() api.Upstream {
 	return api.Upstream{
 		DestinationType:      api.UpstreamDestType(u.DestinationType),
 		DestinationNamespace: u.DestinationNamespace,
+		DestinationPartition: u.DestinationPartition,
 		DestinationName:      u.DestinationName,
 		Datacenter:           u.Datacenter,
 		LocalBindAddress:     u.LocalBindAddress,
@@ -485,21 +496,31 @@ func (u *Upstream) ToAPI() api.Upstream {
 func (u *Upstream) ToKey() UpstreamKey {
 	return UpstreamKey{
 		DestinationType:      u.DestinationType,
+		DestinationPartition: u.DestinationPartition,
 		DestinationNamespace: u.DestinationNamespace,
 		DestinationName:      u.DestinationName,
 		Datacenter:           u.Datacenter,
 	}
 }
 
-func (u Upstream) HasLocalPortOrSocket() bool {
+func (u *Upstream) HasLocalPortOrSocket() bool {
+	if u == nil {
+		return false
+	}
 	return (u.LocalBindPort != 0 || u.LocalBindSocketPath != "")
 }
 
-func (u Upstream) UpstreamIsUnixSocket() bool {
+func (u *Upstream) UpstreamIsUnixSocket() bool {
+	if u == nil {
+		return false
+	}
 	return (u.LocalBindPort == 0 && u.LocalBindAddress == "" && u.LocalBindSocketPath != "")
 }
 
-func (u Upstream) UpstreamAddressToString() string {
+func (u *Upstream) UpstreamAddressToString() string {
+	if u == nil {
+		return ""
+	}
 	if u.UpstreamIsUnixSocket() {
 		return u.LocalBindSocketPath
 	}
@@ -514,15 +535,17 @@ func (u Upstream) UpstreamAddressToString() string {
 type UpstreamKey struct {
 	DestinationType      string
 	DestinationName      string
+	DestinationPartition string
 	DestinationNamespace string
 	Datacenter           string
 }
 
 func (k UpstreamKey) String() string {
 	return fmt.Sprintf(
-		"[type=%q, name=%q, namespace=%q, datacenter=%q]",
+		"[type=%q, name=%q, partition=%q, namespace=%q, datacenter=%q]",
 		k.DestinationType,
 		k.DestinationName,
+		k.DestinationPartition,
 		k.DestinationNamespace,
 		k.Datacenter,
 	)
@@ -533,10 +556,30 @@ func (u *Upstream) String() string {
 	return u.Identifier()
 }
 
+// Identifier returns a string representation that uniquely identifies the
+// upstream in a canonical but human readable way.
+func (us *Upstream) Identifier() string {
+	name := us.enterpriseIdentifierPrefix() + us.DestinationName
+	typ := us.DestinationType
+
+	if us.Datacenter != "" {
+		name += "?dc=" + us.Datacenter
+	}
+
+	// Service is default type so never prefix it. This is more readable and long
+	// term it is the only type that matters so we can drop the prefix and have
+	// nicer naming in metrics etc.
+	if typ == "" || typ == UpstreamDestTypeService {
+		return name
+	}
+	return typ + ":" + name
+}
+
 // UpstreamFromAPI is a helper for converting api.Upstream to Upstream.
 func UpstreamFromAPI(u api.Upstream) Upstream {
 	return Upstream{
 		DestinationType:      string(u.DestinationType),
+		DestinationPartition: u.DestinationPartition,
 		DestinationNamespace: u.DestinationNamespace,
 		DestinationName:      u.DestinationName,
 		Datacenter:           u.Datacenter,

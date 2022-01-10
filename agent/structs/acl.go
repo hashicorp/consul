@@ -11,41 +11,26 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/blake2b"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
-	"golang.org/x/crypto/blake2b"
 )
 
 type ACLMode string
 
 const (
-	// ACLs are disabled by configuration
+	// ACLModeDisabled indicates the ACL system is disabled
 	ACLModeDisabled ACLMode = "0"
-	// ACLs are enabled
+	// ACLModeEnabled indicates the ACL system is enabled
 	ACLModeEnabled ACLMode = "1"
-	// DEPRECATED (ACL-Legacy-Compat) - only needed while legacy ACLs are supported
-	// ACLs are enabled and using legacy ACLs
-	ACLModeLegacy ACLMode = "2"
-	// DEPRECATED (ACL-Legacy-Compat) - only needed while legacy ACLs are supported
-	// ACLs are assumed enabled but not being advertised
-	ACLModeUnknown ACLMode = "3"
 )
-
-// ACLOp is used in RPCs to encode ACL operations.
-type ACLOp string
 
 type ACLTokenIDType string
 
 const (
 	ACLTokenSecret   ACLTokenIDType = "secret"
 	ACLTokenAccessor ACLTokenIDType = "accessor"
-)
-
-type ACLPolicyIDType string
-
-const (
-	ACLPolicyName ACLPolicyIDType = "name"
-	ACLPolicyID   ACLPolicyIDType = "id"
 )
 
 const (
@@ -72,6 +57,7 @@ node_prefix "" {
 	policy = "write"
 }
 operator = "write"
+mesh = "write"
 query_prefix "" {
 	policy = "write"
 }
@@ -94,14 +80,6 @@ func ACLIDReserved(id string) bool {
 	return strings.HasPrefix(id, ACLReservedPrefix)
 }
 
-const (
-	// ACLSet creates or updates a token.
-	ACLSet ACLOp = "set"
-
-	// ACLDelete deletes a token.
-	ACLDelete ACLOp = "delete"
-)
-
 // ACLBootstrapNotAllowedErr is returned once we know that a bootstrap can no
 // longer be done since the cluster was bootstrapped
 var ACLBootstrapNotAllowedErr = errors.New("ACL bootstrap no longer allowed")
@@ -117,7 +95,6 @@ type ACLIdentity interface {
 	SecretToken() string
 	PolicyIDs() []string
 	RoleIDs() []string
-	EmbeddedPolicy() *ACLPolicy
 	ServiceIdentityList() []*ACLServiceIdentity
 	NodeIdentityList() []*ACLNodeIdentity
 	IsExpired(asOf time.Time) bool
@@ -214,10 +191,10 @@ func (s *ACLNodeIdentity) EstimateSize() int {
 	return len(s.NodeName) + len(s.Datacenter)
 }
 
-func (s *ACLNodeIdentity) SyntheticPolicy() *ACLPolicy {
+func (s *ACLNodeIdentity) SyntheticPolicy(entMeta *EnterpriseMeta) *ACLPolicy {
 	// Given that we validate this string name before persisting, we do not
 	// have to escape it before doing the following interpolation.
-	rules := fmt.Sprintf(aclPolicyTemplateNodeIdentity, s.NodeName)
+	rules := aclNodeIdentityRules(s.NodeName, entMeta)
 
 	hasher := fnv.New128a()
 	hashID := fmt.Sprintf("%x", hasher.Sum([]byte(rules)))
@@ -229,7 +206,7 @@ func (s *ACLNodeIdentity) SyntheticPolicy() *ACLPolicy {
 	policy.Rules = rules
 	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = []string{s.Datacenter}
-	policy.EnterpriseMeta = *DefaultEnterpriseMetaInDefaultPartition()
+	policy.EnterpriseMeta.Merge(entMeta)
 	policy.SetHash(true)
 	return policy
 }
@@ -433,47 +410,6 @@ func (t *ACLToken) IsLocal() bool {
 
 func (t *ACLToken) HasExpirationTime() bool {
 	return t.ExpirationTime != nil && !t.ExpirationTime.IsZero()
-}
-
-func (t *ACLToken) UsesNonLegacyFields() bool {
-	return len(t.Policies) > 0 ||
-		len(t.ServiceIdentities) > 0 ||
-		len(t.NodeIdentities) > 0 ||
-		len(t.Roles) > 0 ||
-		t.Type == "" ||
-		t.HasExpirationTime() ||
-		t.ExpirationTTL != 0 ||
-		t.AuthMethod != ""
-}
-
-func (t *ACLToken) EmbeddedPolicy() *ACLPolicy {
-	// DEPRECATED (ACL-Legacy-Compat)
-	//
-	// For legacy tokens with embedded rules this provides a way to map those
-	// rules to an ACLPolicy. This function can just return nil once legacy
-	// acl compatibility is no longer needed.
-	//
-	// Additionally for management tokens we must embed the policy rules
-	// as well
-	policy := &ACLPolicy{}
-	if t.Type == ACLTokenTypeManagement {
-		hasher := fnv.New128a()
-		policy.ID = fmt.Sprintf("%x", hasher.Sum([]byte(ACLPolicyGlobalManagement)))
-		policy.Name = "legacy-management"
-		policy.Rules = ACLPolicyGlobalManagement
-		policy.Syntax = acl.SyntaxCurrent
-	} else if t.Rules != "" || t.Type == ACLTokenTypeClient {
-		hasher := fnv.New128a()
-		policy.ID = fmt.Sprintf("%x", hasher.Sum([]byte(t.Rules)))
-		policy.Name = fmt.Sprintf("legacy-policy-%s", policy.ID)
-		policy.Rules = t.Rules
-		policy.Syntax = acl.SyntaxLegacy
-	} else {
-		return nil
-	}
-
-	policy.SetHash(true)
-	return policy
 }
 
 func (t *ACLToken) EnterpriseMetadata() *EnterpriseMeta {
@@ -789,7 +725,7 @@ func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.Conf
 			continue
 		}
 
-		p, err := acl.NewPolicyFromSource(policy.ID, policy.ModifyIndex, policy.Rules, policy.Syntax, entConf, policy.EnterprisePolicyMeta())
+		p, err := acl.NewPolicyFromSource(policy.Rules, policy.Syntax, entConf, policy.EnterprisePolicyMeta())
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse %q: %v", policy.Name, err)
 		}
@@ -824,15 +760,6 @@ func (policies ACLPolicies) Compile(cache *ACLCaches, entConf *acl.Config) (acl.
 	// Update the cache
 	cache.PutAuthorizer(cacheKey, authorizer)
 	return authorizer, nil
-}
-
-func (policies ACLPolicies) Merge(cache *ACLCaches, entConf *acl.Config) (*acl.Policy, error) {
-	parsed, err := policies.resolveWithCache(cache, entConf)
-	if err != nil {
-		return nil, err
-	}
-
-	return acl.MergePolicies(parsed), nil
 }
 
 type ACLRoles []*ACLRole
@@ -1240,7 +1167,6 @@ func (m *ACLAuthMethod) UnmarshalJSON(data []byte) (err error) {
 type ACLReplicationType string
 
 const (
-	ACLReplicateLegacy   ACLReplicationType = "legacy"
 	ACLReplicatePolicies ACLReplicationType = "policies"
 	ACLReplicateRoles    ACLReplicationType = "roles"
 	ACLReplicateTokens   ACLReplicationType = "tokens"
@@ -1248,8 +1174,6 @@ const (
 
 func (t ACLReplicationType) SingularNoun() string {
 	switch t {
-	case ACLReplicateLegacy:
-		return "legacy"
 	case ACLReplicatePolicies:
 		return "policy"
 	case ACLReplicateRoles:
@@ -1273,6 +1197,7 @@ type ACLReplicationStatus struct {
 	ReplicatedTokenIndex uint64
 	LastSuccess          time.Time
 	LastError            time.Time
+	LastErrorMessage     string
 }
 
 // ACLTokenSetRequest is used for token creation and update operations
@@ -1828,10 +1753,6 @@ func (id *AgentMasterTokenIdentity) PolicyIDs() []string {
 }
 
 func (id *AgentMasterTokenIdentity) RoleIDs() []string {
-	return nil
-}
-
-func (id *AgentMasterTokenIdentity) EmbeddedPolicy() *ACLPolicy {
 	return nil
 }
 

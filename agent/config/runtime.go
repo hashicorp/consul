@@ -55,13 +55,6 @@ type RuntimeConfig struct {
 	ConsulRaftLeaderLeaseTimeout     time.Duration
 	ConsulServerHealthInterval       time.Duration
 
-	// ACLDisabledTTL is used by agents to determine how long they will
-	// wait to check again with the servers if they discover ACLs are not
-	// enabled. (not user configurable)
-	//
-	// hcl: acl.disabled_ttl = "duration"
-	ACLDisabledTTL time.Duration
-
 	// ACLsEnabled is used to determine whether ACLs should be enabled
 	//
 	// hcl: acl.enabled = boolean
@@ -69,35 +62,7 @@ type RuntimeConfig struct {
 
 	ACLTokens token.Config
 
-	// ACLDatacenter is the central datacenter that holds authoritative
-	// ACL records. This must be the same for the entire cluster.
-	// If this is not set, ACLs are not enabled. Off by default.
-	//
-	// hcl: acl_datacenter = string
-	ACLDatacenter string
-
-	// ACLDefaultPolicy is used to control the ACL interaction when
-	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to deny-list, or "deny" which means ACLs are
-	// allow-lists.
-	//
-	// hcl: acl.default_policy = ("allow"|"deny")
-	ACLDefaultPolicy string
-
-	// ACLDownPolicy is used to control the ACL interaction when we cannot
-	// reach the ACLDatacenter and the token is not in the cache.
-	// There are the following modes:
-	//   * allow - Allow all requests
-	//   * deny - Deny all requests
-	//   * extend-cache - Ignore the cache expiration, and allow cached
-	//                    ACL's to be used to service requests. This
-	//                    is the default. If the ACL is not in the cache,
-	//                    this acts like deny.
-	//   * async-cache - Same behavior as extend-cache, but perform ACL
-	//                   Lookups asynchronously when cache TTL is expired.
-	//
-	// hcl: acl.down_policy = ("allow"|"deny"|"extend-cache"|"async-cache")
-	ACLDownPolicy string
+	ACLResolverSettings consul.ACLResolverSettings
 
 	// ACLEnableKeyListPolicy is used to opt-in to the "list" policy added to
 	// KV ACLs in Consul 1.0.
@@ -108,36 +73,18 @@ type RuntimeConfig struct {
 	// hcl: acl.enable_key_list_policy = (true|false)
 	ACLEnableKeyListPolicy bool
 
-	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
-	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
-	// that the Master token is available. This provides the initial token.
+	// ACLInitialManagementToken is used to bootstrap the ACL system. It should be specified
+	// on the servers in the PrimaryDatacenter. When the leader comes online, it ensures
+	// that the initial management token is available. This provides the initial token.
 	//
-	// hcl: acl.tokens.master = string
-	ACLMasterToken string
+	// hcl: acl.tokens.initial_management = string
+	ACLInitialManagementToken string
 
 	// ACLtokenReplication is used to indicate that both tokens and policies
 	// should be replicated instead of just policies
 	//
 	// hcl: acl.token_replication = boolean
 	ACLTokenReplication bool
-
-	// ACLTokenTTL is used to control the time-to-live of cached ACL tokens. This has
-	// a major impact on performance. By default, it is set to 30 seconds.
-	//
-	// hcl: acl.policy_ttl = "duration"
-	ACLTokenTTL time.Duration
-
-	// ACLPolicyTTL is used to control the time-to-live of cached ACL policies. This has
-	// a major impact on performance. By default, it is set to 30 seconds.
-	//
-	// hcl: acl.token_ttl = "duration"
-	ACLPolicyTTL time.Duration
-
-	// ACLRoleTTL is used to control the time-to-live of cached ACL roles. This has
-	// a major impact on performance. By default, it is set to 30 seconds.
-	//
-	// hcl: acl.role_ttl = "duration"
-	ACLRoleTTL time.Duration
 
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.
@@ -487,6 +434,9 @@ type RuntimeConfig struct {
 	//     tls_skip_verify = (true|false)
 	//     timeout = "duration"
 	//     ttl = "duration"
+	//     success_before_passing = int
+	//     failures_before_warning = int
+	//     failures_before_critical = int
 	//     deregister_critical_service_after = "duration"
 	//   },
 	//   ...
@@ -725,27 +675,27 @@ type RuntimeConfig struct {
 	// hcl: encrypt_verify_outgoing = (true|false)
 	EncryptVerifyOutgoing bool
 
-	// XDSPort is the port the xDS gRPC server listens on. This port only
+	// GRPCPort is the port the gRPC server listens on. Currently this only
 	// exposes the xDS and ext_authz APIs for Envoy and it is disabled by default.
 	//
-	// hcl: ports { xds = int }
-	// flags: -xds-port int
-	XDSPort int
+	// hcl: ports { grpc = int }
+	// flags: -grpc-port int
+	GRPCPort int
 
-	// XDSAddrs contains the list of TCP addresses and UNIX sockets the xDS gRPC
-	// server will bind to. If the xDS endpoint is disabled (ports.xds <= 0)
+	// GRPCAddrs contains the list of TCP addresses and UNIX sockets the gRPC
+	// server will bind to. If the gRPC endpoint is disabled (ports.grpc <= 0)
 	// the list is empty.
 	//
-	// The addresses are taken from 'addresses.xds' which should contain a
+	// The addresses are taken from 'addresses.grpc' which should contain a
 	// space separated list of ip addresses, UNIX socket paths and/or
 	// go-sockaddr templates. UNIX socket paths must be written as
-	// 'unix://<full path>', e.g. 'unix:///var/run/consul-xds.sock'.
+	// 'unix://<full path>', e.g. 'unix:///var/run/consul-grpc.sock'.
 	//
-	// If 'addresses.xds' was not provided the 'client_addr' addresses are
+	// If 'addresses.grpc' was not provided the 'client_addr' addresses are
 	// used.
 	//
-	// hcl: client_addr = string addresses { xds = string } ports { xds = int }
-	XDSAddrs []net.Addr
+	// hcl: client_addr = string addresses { grpc = string } ports { grpc = int }
+	GRPCAddrs []net.Addr
 
 	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP
 	// server will bind to. If the HTTP endpoint is disabled (ports.http <= 0)
@@ -992,6 +942,8 @@ type RuntimeConfig struct {
 	//
 	// hcl: raft_trailing_logs = int
 	RaftTrailingLogs int
+
+	RaftBoltDBConfig consul.RaftBoltDBConfig
 
 	// ReconnectTimeoutLAN specifies the amount of time to wait to reconnect with
 	// another agent before deciding it's permanently gone. This can be used to
@@ -1673,6 +1625,7 @@ func (c *RuntimeConfig) ConnectCAConfiguration() (*structs.CAConfiguration, erro
 		Config: map[string]interface{}{
 			"LeafCertTTL":         structs.DefaultLeafCertTTL,
 			"IntermediateCertTTL": structs.DefaultIntermediateCertTTL,
+			"RootCertTTL":         structs.DefaultRootCertTTL,
 		},
 	}
 

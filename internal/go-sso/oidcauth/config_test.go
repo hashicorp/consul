@@ -371,6 +371,14 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectErr: "must not be set for type",
 		},
+		"incompatible with OIDCACRValues": {
+			config: Config{
+				Type:                 TypeJWT,
+				JWTValidationPubKeys: []string{testJWTPubKey},
+				OIDCACRValues:        []string{"acr1"},
+			},
+			expectErr: "must not be set for type",
+		},
 		"incompatible with AllowedRedirectURIs": {
 			config: Config{
 				Type:                 TypeJWT,

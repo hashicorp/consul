@@ -38,8 +38,8 @@ func (m *mockAutoConfigBackend) CreateACLToken(template *structs.ACLToken) (*str
 	return token, ret.Error(1)
 }
 
-func (m *mockAutoConfigBackend) DatacenterJoinAddresses(segment string) ([]string, error) {
-	ret := m.Called(segment)
+func (m *mockAutoConfigBackend) DatacenterJoinAddresses(partition, segment string) ([]string, error) {
+	ret := m.Called(partition, segment)
 	// this handles converting an untyped nil to a typed nil
 	addrs, _ := ret.Get(0).([]string)
 	return addrs, ret.Error(1)
@@ -215,6 +215,8 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		err           string
 	}
 
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+
 	cases := map[string]testCase{
 		"wrong-datacenter": {
 			request: pbautoconf.AutoConfigRequest{
@@ -263,7 +265,6 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 						PolicyTTL:     "30s",
 						TokenTTL:      "30s",
 						RoleTTL:       "30s",
-						DisabledTTL:   "0s",
 						DownPolicy:    "extend-cache",
 						DefaultPolicy: "deny",
 						Tokens: &pbconfig.ACLTokens{
@@ -305,6 +306,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 				expectedID := connect.SpiffeIDAgent{
 					Host:       roots.TrustDomain,
 					Agent:      "test-node",
+					Partition:  defaultEntMeta.PartitionOrDefault(),
 					Datacenter: "dc1",
 				}
 
@@ -716,15 +718,16 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 	cases := map[string]testCase{
 		"enabled": {
 			config: Config{
-				Datacenter:             testDC,
-				PrimaryDatacenter:      testDC,
-				ACLsEnabled:            true,
-				ACLPolicyTTL:           7 * time.Second,
-				ACLRoleTTL:             10 * time.Second,
-				ACLTokenTTL:            12 * time.Second,
-				ACLDisabledTTL:         31 * time.Second,
-				ACLDefaultPolicy:       "allow",
-				ACLDownPolicy:          "deny",
+				Datacenter:        testDC,
+				PrimaryDatacenter: testDC,
+				ACLsEnabled:       true,
+				ACLResolverSettings: ACLResolverSettings{
+					ACLPolicyTTL:     7 * time.Second,
+					ACLRoleTTL:       10 * time.Second,
+					ACLTokenTTL:      12 * time.Second,
+					ACLDefaultPolicy: "allow",
+					ACLDownPolicy:    "deny",
+				},
 				ACLEnableKeyListPolicy: true,
 			},
 			expectACLToken: true,
@@ -735,7 +738,6 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 						PolicyTTL:           "7s",
 						RoleTTL:             "10s",
 						TokenTTL:            "12s",
-						DisabledTTL:         "31s",
 						DownPolicy:          "deny",
 						DefaultPolicy:       "allow",
 						EnableKeyListPolicy: true,
@@ -748,15 +750,16 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 		},
 		"disabled": {
 			config: Config{
-				Datacenter:             testDC,
-				PrimaryDatacenter:      testDC,
-				ACLsEnabled:            false,
-				ACLPolicyTTL:           7 * time.Second,
-				ACLRoleTTL:             10 * time.Second,
-				ACLTokenTTL:            12 * time.Second,
-				ACLDisabledTTL:         31 * time.Second,
-				ACLDefaultPolicy:       "allow",
-				ACLDownPolicy:          "deny",
+				Datacenter:        testDC,
+				PrimaryDatacenter: testDC,
+				ACLsEnabled:       false,
+				ACLResolverSettings: ACLResolverSettings{
+					ACLPolicyTTL:     7 * time.Second,
+					ACLRoleTTL:       10 * time.Second,
+					ACLTokenTTL:      12 * time.Second,
+					ACLDefaultPolicy: "allow",
+					ACLDownPolicy:    "deny",
+				},
 				ACLEnableKeyListPolicy: true,
 			},
 			expectACLToken: false,
@@ -767,7 +770,6 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 						PolicyTTL:           "7s",
 						RoleTTL:             "10s",
 						TokenTTL:            "12s",
-						DisabledTTL:         "31s",
 						DownPolicy:          "deny",
 						DefaultPolicy:       "allow",
 						EnableKeyListPolicy: true,
@@ -837,7 +839,7 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 func TestAutoConfig_updateJoinAddressesInConfig(t *testing.T) {
 	addrs := []string{"198.18.0.7:8300", "198.18.0.1:8300"}
 	backend := &mockAutoConfigBackend{}
-	backend.On("DatacenterJoinAddresses", "").Return(addrs, nil).Once()
+	backend.On("DatacenterJoinAddresses", "", "").Return(addrs, nil).Once()
 
 	ac := AutoConfig{backend: backend}
 

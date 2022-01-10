@@ -11,6 +11,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
@@ -18,11 +24,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPreparedQuery_Apply(t *testing.T) {
@@ -197,10 +198,10 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -209,29 +210,12 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create an ACL with write permissions for redis queries.
-	var token string
-	{
-		var rules = `
-                    query "redis" {
-                        policy = "write"
-                    }
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
+	rules := `
+		query_prefix "redis" {
+			policy = "write"
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	`
+	token := createToken(t, codec, rules)
 
 	// Set up a bare bones query.
 	query := structs.PreparedQueryRequest{
@@ -643,10 +627,10 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -655,29 +639,12 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create an ACL with write permissions for any prefix.
-	var token string
-	{
-		var rules = `
-                    query "" {
-                        policy = "write"
-                    }
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
+	rules := `
+		query "" {
+			policy = "write"
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	`
+	token := createToken(t, codec, rules)
 
 	// Set up a catch-all template.
 	query := structs.PreparedQueryRequest{
@@ -862,10 +829,10 @@ func TestPreparedQuery_Get(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -874,29 +841,12 @@ func TestPreparedQuery_Get(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create an ACL with write permissions for redis queries.
-	var token string
-	{
-		var rules = `
-                    query "redis" {
-                        policy = "write"
-                    }
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
+	rules := `
+		query_prefix "redis" {
+			policy = "write"
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	`
+	token := createToken(t, codec, rules)
 
 	// Set up a bare bones query.
 	query := structs.PreparedQueryRequest{
@@ -1120,10 +1070,10 @@ func TestPreparedQuery_List(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1132,29 +1082,12 @@ func TestPreparedQuery_List(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create an ACL with write permissions for redis queries.
-	var token string
-	{
-		var rules = `
-                    query "redis" {
-                        policy = "write"
-                    }
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
+	rules := `
+		query_prefix "redis" {
+			policy = "write"
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	`
+	token := createToken(t, codec, rules)
 
 	// Query with a legit token but no queries.
 	{
@@ -1231,6 +1164,31 @@ func TestPreparedQuery_List(t *testing.T) {
 
 		if len(resp.Queries) != 0 {
 			t.Fatalf("bad: %v", resp)
+		}
+	}
+
+	// Same for a token without access to the query.
+	{
+		token := createTokenWithPolicyName(t, codec, "deny-queries", `
+			query_prefix "" {
+				policy = "deny"
+			}
+		`, "root")
+
+		req := &structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.List", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 0 {
+			t.Fatalf("bad: %v", resp)
+		}
+		if !resp.QueryMeta.ResultsFilteredByACLs {
+			t.Fatal("ResultsFilteredByACLs should be true")
 		}
 	}
 
@@ -1333,10 +1291,10 @@ func TestPreparedQuery_Explain(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1345,29 +1303,12 @@ func TestPreparedQuery_Explain(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create an ACL with write permissions for prod- queries.
-	var token string
-	{
-		var rules = `
-                    query "prod-" {
-                        policy = "write"
-                    }
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
+	rules := `
+		query_prefix "prod-" {
+			policy = "write"
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	`
+	token := createToken(t, codec, rules)
 
 	// Set up a template.
 	query := structs.PreparedQueryRequest{
@@ -1474,10 +1415,10 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1487,9 +1428,9 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -1514,52 +1455,13 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	testrpc.WaitForLeader(t, s1.RPC, "dc2", testrpc.WithToken("root"))
 
-	// Create ACL tokens with read permission to the service and to the service
-	// and all nodes.
-	var execNoNodesToken string
-	{
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: `service "foo" { policy = "read" }`,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "ACL.Apply", &req, &execNoNodesToken))
-	}
-	var execToken string
-	{
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name: "User token",
-				Type: structs.ACLTokenTypeClient,
-				Rules: `service "foo" { policy = "read" }
-					    node "" { policy = "read" }`,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "ACL.Apply", &req, &execToken))
-	}
-	// Make a new exec token that can't read the service.
-	var denyToken string
-	{
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: `service "foo" { policy = "deny" }`,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "ACL.Apply", &req, &denyToken))
-	}
+	execNoNodesToken := createTokenWithPolicyName(t, codec1, "no-nodes", `service_prefix "foo" { policy = "read" }`, "root")
+	rules := `
+		service_prefix "foo" { policy = "read" }
+		node_prefix "" { policy = "read" }
+	`
+	execToken := createTokenWithPolicyName(t, codec1, "with-read", rules, "root")
+	denyToken := createTokenWithPolicyName(t, codec1, "with-deny", `service_prefix "foo" { policy = "deny" }`, "root")
 
 	newSessionDC1 := func(t *testing.T) string {
 		t.Helper()
@@ -2247,6 +2149,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 0)
+		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("normal operation again with exec token", func(t *testing.T) {
@@ -2367,6 +2270,20 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectFailoverNodes(t, &query, &reply, 0)
+	})
+
+	t.Run("nodes in response from dc2 are filtered by ACL token", func(t *testing.T) {
+		req := structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions:  structs.QueryOptions{Token: execNoNodesToken},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
+
+		expectFailoverNodes(t, &query, &reply, 0)
+		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	// Bake the exec token into the query.
@@ -2780,20 +2697,20 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()

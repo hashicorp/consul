@@ -7,7 +7,20 @@ export default class SessionSerializer extends Serializer {
 
   respondForQueryRecord(respond, query) {
     return super.respondForQueryRecord(
-      cb => respond((headers, body) => cb(headers, body[0])),
+      cb =>
+        respond((headers, body) => {
+          if (body.length === 0) {
+            const e = new Error();
+            e.errors = [
+              {
+                status: '404',
+                title: 'Not found',
+              },
+            ];
+            throw e;
+          }
+          return cb(headers, body[0]);
+        }),
       query
     );
   }

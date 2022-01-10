@@ -1,146 +1,11 @@
 package api
 
 import (
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-
 	"github.com/stretchr/testify/require"
 )
-
-func TestAPI_ACLBootstrap(t *testing.T) {
-	// TODO (slackpad) We currently can't inject the version, and the
-	// version in the binary depends on Git tags, so we can't reliably
-	// test this until we are just running an agent in-process here and
-	// have full control over the config.
-}
-
-func TestAPI_ACLCreateDestroy(t *testing.T) {
-	t.Parallel()
-	c, s := makeACLClient(t)
-	defer s.Stop()
-	s.WaitForSerfCheck(t)
-
-	acl := c.ACL()
-
-	ae := ACLEntry{
-		Name:  "API test",
-		Type:  ACLClientType,
-		Rules: `key "" { policy = "deny" }`,
-	}
-
-	id, wm, err := acl.Create(&ae, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if wm.RequestTime == 0 {
-		t.Fatalf("bad: %v", wm)
-	}
-
-	if id == "" {
-		t.Fatalf("invalid: %v", id)
-	}
-
-	ae2, _, err := acl.Info(id, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if ae2.Name != ae.Name || ae2.Type != ae.Type || ae2.Rules != ae.Rules {
-		t.Fatalf("Bad: %#v", ae2)
-	}
-
-	wm, err = acl.Destroy(id, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if wm.RequestTime == 0 {
-		t.Fatalf("bad: %v", wm)
-	}
-}
-
-func TestAPI_ACLCloneDestroy(t *testing.T) {
-	t.Parallel()
-	c, s := makeACLClient(t)
-	defer s.Stop()
-
-	acl := c.ACL()
-
-	id, wm, err := acl.Clone(c.config.Token, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if wm.RequestTime == 0 {
-		t.Fatalf("bad: %v", wm)
-	}
-
-	if id == "" {
-		t.Fatalf("invalid: %v", id)
-	}
-
-	wm, err = acl.Destroy(id, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if wm.RequestTime == 0 {
-		t.Fatalf("bad: %v", wm)
-	}
-}
-
-func TestAPI_ACLInfo(t *testing.T) {
-	t.Parallel()
-	c, s := makeACLClient(t)
-	defer s.Stop()
-
-	acl := c.ACL()
-
-	ae, qm, err := acl.Info(c.config.Token, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if qm.LastIndex == 0 {
-		t.Fatalf("bad: %v", qm)
-	}
-	if !qm.KnownLeader {
-		t.Fatalf("bad: %v", qm)
-	}
-
-	if ae == nil || ae.ID != c.config.Token || ae.Type != ACLManagementType {
-		t.Fatalf("bad: %#v", ae)
-	}
-}
-
-func TestAPI_ACLList(t *testing.T) {
-	t.Parallel()
-	c, s := makeACLClient(t)
-	defer s.Stop()
-
-	acl := c.ACL()
-
-	acls, qm, err := acl.List(nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// anon token is a new token
-	if len(acls) < 1 {
-		t.Fatalf("bad: %v", acls)
-	}
-
-	if qm.LastIndex == 0 {
-		t.Fatalf("bad: %v", qm)
-	}
-	if !qm.KnownLeader {
-		t.Fatalf("bad: %v", qm)
-	}
-}
 
 func TestAPI_ACLReplication(t *testing.T) {
 	t.Parallel()
@@ -368,12 +233,20 @@ func TestAPI_ACLPolicy_List(t *testing.T) {
 }
 
 func prepTokenPolicies(t *testing.T, acl *ACL) (policies []*ACLPolicy) {
+	return prepTokenPoliciesInPartition(t, acl, "")
+}
+
+func prepTokenPoliciesInPartition(t *testing.T, acl *ACL, partition string) (policies []*ACLPolicy) {
+	var wqPart *WriteOptions
+	if partition != "" {
+		wqPart = &WriteOptions{Partition: partition}
+	}
 	policy, _, err := acl.PolicyCreate(&ACLPolicy{
 		Name:        "one",
 		Description: "one description",
 		Rules:       `acl = "read"`,
 		Datacenters: []string{"dc1", "dc2"},
-	}, nil)
+	}, wqPart)
 
 	require.NoError(t, err)
 	require.NotNil(t, policy)
@@ -384,7 +257,7 @@ func prepTokenPolicies(t *testing.T, acl *ACL) (policies []*ACLPolicy) {
 		Description: "two description",
 		Rules:       `node_prefix "" { policy = "read" }`,
 		Datacenters: []string{"dc1", "dc2"},
-	}, nil)
+	}, wqPart)
 
 	require.NoError(t, err)
 	require.NotNil(t, policy)
@@ -394,7 +267,7 @@ func prepTokenPolicies(t *testing.T, acl *ACL) (policies []*ACLPolicy) {
 		Name:        "three",
 		Description: "three description",
 		Rules:       `service_prefix "" { policy = "read" }`,
-	}, nil)
+	}, wqPart)
 
 	require.NoError(t, err)
 	require.NotNil(t, policy)
@@ -404,7 +277,7 @@ func prepTokenPolicies(t *testing.T, acl *ACL) (policies []*ACLPolicy) {
 		Name:        "four",
 		Description: "four description",
 		Rules:       `agent "foo" { policy = "write" }`,
-	}, nil)
+	}, wqPart)
 
 	require.NoError(t, err)
 	require.NotNil(t, policy)
@@ -754,108 +627,4 @@ SxTJANJHqf4BiFtVjN7LZXi3HUIRAsceEbd0TfW5be9SQ0tbDyyGYt/bXtBLGTIh
 		"ServiceAccountJWT": `eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImp0aSI6ImQxYTZiYzE5LWZiODItNDI5ZC05NmUxLTg1YTFjYjEyNGQ3MCIsImlhdCI6MTYxMTcxNTQ5NiwiZXhwIjoxNjExNzE5MDk2fQ.rrVS5h1Yw20eI41RsTl2YAqzKKikKNg3qMkDmspTPQs`,
 	}
 	return
-}
-
-func TestAPI_RulesTranslate_FromToken(t *testing.T) {
-	t.Parallel()
-	c, s := makeACLClient(t)
-	defer s.Stop()
-
-	acl := c.ACL()
-
-	ae := ACLEntry{
-		Name:  "API test",
-		Type:  ACLClientType,
-		Rules: `key "" { policy = "deny" }`,
-	}
-
-	id, _, err := acl.Create(&ae, nil)
-	require.NoError(t, err)
-
-	var accessor string
-	acl.c.config.Token = id
-
-	// This relies on the token upgrade loop running in the background
-	// to assign an accessor
-	retry.Run(t, func(r *retry.R) {
-		token, _, err := acl.TokenReadSelf(nil)
-		require.NoError(r, err)
-		require.NotEqual(r, "", token.AccessorID)
-		accessor = token.AccessorID
-	})
-	acl.c.config.Token = "root"
-
-	rules, err := acl.RulesTranslateToken(accessor)
-	require.NoError(t, err)
-	require.Equal(t, "key_prefix \"\" {\n  policy = \"deny\"\n}", rules)
-}
-
-func TestAPI_RulesTranslate_Raw(t *testing.T) {
-	t.Parallel()
-	c, s := makeACLClient(t)
-	defer s.Stop()
-
-	acl := c.ACL()
-
-	input := `#start of policy
-agent "" {
-   policy = "read"
-}
-
-node "" {
-   policy = "read"
-}
-
-service "" {
-   policy = "read"
-}
-
-key "" {
-   policy = "read"
-}
-
-session "" {
-   policy = "read"
-}
-
-event "" {
-   policy = "read"
-}
-
-query "" {
-   policy = "read"
-}`
-
-	expected := `#start of policy
-agent_prefix "" {
-  policy = "read"
-}
-
-node_prefix "" {
-  policy = "read"
-}
-
-service_prefix "" {
-  policy = "read"
-}
-
-key_prefix "" {
-  policy = "read"
-}
-
-session_prefix "" {
-  policy = "read"
-}
-
-event_prefix "" {
-  policy = "read"
-}
-
-query_prefix "" {
-  policy = "read"
-}`
-
-	rules, err := acl.RulesTranslate(strings.NewReader(input))
-	require.NoError(t, err)
-	require.Equal(t, expected, rules)
 }

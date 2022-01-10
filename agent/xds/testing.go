@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_core_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
@@ -75,57 +73,6 @@ func (s *TestADSDeltaStream) Recv() (*envoy_discovery_v3.DeltaDiscoveryRequest, 
 	return r, nil
 }
 
-// TestADSStream mocks
-// discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer to allow
-// testing ADS handler.
-type TestADSStream struct {
-	stubGrpcServerStream
-	sendCh chan *envoy_api_v2.DiscoveryResponse
-	recvCh chan *envoy_api_v2.DiscoveryRequest
-
-	mu      sync.Mutex
-	sendErr error
-}
-
-// NewTestADSStream makes a new TestADSStream
-func NewTestADSStream(t testing.T, ctx context.Context) *TestADSStream {
-	s := &TestADSStream{
-		sendCh: make(chan *envoy_api_v2.DiscoveryResponse, 1),
-		recvCh: make(chan *envoy_api_v2.DiscoveryRequest, 1),
-	}
-	s.stubGrpcServerStream.ctx = ctx
-	return s
-}
-
-// Send implements ADSStream
-func (s *TestADSStream) Send(r *envoy_api_v2.DiscoveryResponse) error {
-	s.mu.Lock()
-	err := s.sendErr
-	s.mu.Unlock()
-
-	if err != nil {
-		return err
-	}
-
-	s.sendCh <- r
-	return nil
-}
-
-func (s *TestADSStream) SetSendErr(err error) {
-	s.mu.Lock()
-	s.sendErr = err
-	s.mu.Unlock()
-}
-
-// Recv implements ADSStream
-func (s *TestADSStream) Recv() (*envoy_api_v2.DiscoveryRequest, error) {
-	r := <-s.recvCh
-	if r == nil {
-		return nil, io.EOF
-	}
-	return r, nil
-}
-
 // TestEnvoy is a helper to simulate Envoy ADS requests.
 type TestEnvoy struct {
 	mu sync.Mutex
@@ -136,7 +83,6 @@ type TestEnvoy struct {
 	proxyID string
 	token   string
 
-	stream      *TestADSStream      // SoTW v2
 	deltaStream *TestADSDeltaStream // Incremental v3
 }
 
@@ -156,7 +102,6 @@ func NewTestEnvoy(t testing.T, proxyID, token string) *TestEnvoy {
 		proxyID: proxyID,
 		token:   token,
 
-		stream:      NewTestADSStream(t, ctx),
 		deltaStream: NewTestADSDeltaStream(t, ctx),
 	}
 }
@@ -194,45 +139,7 @@ func stringToEnvoyVersion(vs string) (*envoy_type_v3.SemanticVersion, bool) {
 	}, true
 }
 
-// SendReq sends a request from the test server.
-func (e *TestEnvoy) SendReq(t testing.T, typeURL string, version, nonce uint64) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	ev, valid := stringToEnvoyVersion(proxysupport.EnvoyVersions[0])
-	if !valid {
-		t.Fatal("envoy version is not valid: %s", proxysupport.EnvoyVersions[0])
-	}
-
-	evV2, err := convertSemanticVersionToV2(ev)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	req := &envoy_api_v2.DiscoveryRequest{
-		VersionInfo: hexString(version),
-		Node: &envoy_core_v2.Node{
-			Id:            e.proxyID,
-			Cluster:       e.proxyID,
-			UserAgentName: "envoy",
-			UserAgentVersionType: &envoy_core_v2.Node_UserAgentBuildVersion{
-				UserAgentBuildVersion: &envoy_core_v2.BuildVersion{
-					Version: evV2,
-				},
-			},
-		},
-		ResponseNonce: hexString(nonce),
-		TypeUrl:       typeURL,
-	}
-	select {
-	case e.stream.recvCh <- req:
-	case <-time.After(50 * time.Millisecond):
-		t.Fatalf("send to stream blocked for too long")
-	}
-}
-
 func (e *TestEnvoy) SetSendErr(err error) {
-	e.stream.SetSendErr(err)
 	e.deltaStream.SetSendErr(err)
 }
 
@@ -312,10 +219,6 @@ func (e *TestEnvoy) Close() error {
 	defer e.mu.Unlock()
 
 	// unblock the recv chans to simulate recv errors when client disconnects
-	if e.stream != nil && e.stream.recvCh != nil {
-		close(e.stream.recvCh)
-		e.stream = nil
-	}
 	if e.deltaStream != nil && e.deltaStream.recvCh != nil {
 		close(e.deltaStream.recvCh)
 		e.deltaStream = nil

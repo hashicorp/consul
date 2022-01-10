@@ -4,8 +4,9 @@
 >
 <DataForm
   @type="intention"
-  @dc={{@dc}}
+  @dc={{@dc.Name}}
   @nspace={{@nspace}}
+  @partition={{@partition}}
   @autofill={{@autofill}}
   @item={{@item}}
   @src={{@src}}
@@ -13,26 +14,53 @@
   @onsubmit={{action this.onsubmit}}
 as |api|>
 
-    <BlockSlot @name="error" as |Notification|>
-      <Notification>
-        <p data-notification role="alert" class="error notification-update">
-  {{#if (string-starts-with api.error.detail 'duplicate intention found:')}}
-          <strong>Intention exists</strong>
-          An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
-  {{else}}
+    <BlockSlot @name="error" as |after|>
+{{#if (string-starts-with api.error.detail 'duplicate intention found:')}}
+      <Notice
+        {{notification
+          after=(action after)
+        }}
+        class="notification-update"
+        @type="error"
+      as |notice|>
+        <notice.Header>
+          <strong>Intention exists!</strong>
+        </notice.Header>
+        <notice.Body>
+          <p>
+            An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
+          </p>
+        </notice.Body>
+      </Notice>
+{{else}}
+      <Notice
+        {{notification
+          after=(action after)
+        }}
+        class="notification-update"
+        @type="error"
+      as |notice|>
+        <notice.Header>
           <strong>Error!</strong>
-          There was an error saving your intention.
-        {{#if (and api.error.status api.error.detail)}}
-          <br />{{api.error.status}}: {{api.error.detail}}
-        {{/if}}
+        </notice.Header>
+        <notice.Body>
+          <p>
+            There was an error saving your intention.
+          {{#if (and api.error.status api.error.detail)}}
+            <br />{{api.error.status}}: {{api.error.detail}}
+          {{/if}}
+          </p>
+        </notice.Body>
+      </Notice>
   {{/if}}
-        </p>
-      </Notification>
     </BlockSlot>
 
     <BlockSlot @name="form">
-{{#let api.data as |item|}}
-{{#if (can 'write intention' item=item)}}
+{{#let
+  api.data
+  (not (can 'write intention' item=api.data))
+as |item readonly|}}
+{{#if (not readonly)}}
 
   {{#let (changeset-get item 'Action') as |newAction|}}
       <ModalDialog
@@ -73,15 +101,38 @@ as |api|>
   {{/let}}
 
       <DataSource
-        @src={{concat '/*/' @dc '/services'}}
+        @src={{uri '/${partition}/*/${dc}/services'
+          (hash
+            partition=@partition
+            dc=@dc.Name
+          )
+        }}
         @onchange={{action this.createServices item}}
       />
-    {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+
+    {{#if (can 'use nspaces')}}
         <DataSource
-          @src="/*/*/namespaces"
+          @src={{uri '/${partition}/*/${dc}/namespaces'
+            (hash
+              partition=@partition
+              dc=@dc.Name
+            )
+          }}
           @onchange={{action this.createNspaces item}}
         />
     {{/if}}
+
+    {{#if (can 'use partitions')}}
+        <DataSource
+          @src={{uri '/*/*/${dc}/partitions'
+            (hash
+              dc=@dc.Name
+            )
+          }}
+          @onchange={{action this.createPartitions item}}
+        />
+    {{/if}}
+
     {{#if (and api.isCreate this.isManagedByCRDs)}}
         <Consul::Intention::Notice::CustomResource @type="warning" />
     {{/if}}
@@ -90,11 +141,15 @@ as |api|>
       >
         <Consul::Intention::Form::Fieldsets
           @nspaces={{this.nspaces}}
+          @dc={{@dc}}
+          @partitions={{this.partitions}}
           @services={{this.services}}
           @SourceName={{this.SourceName}}
           @SourceNS={{this.SourceNS}}
+          @SourcePartition={{this.SourcePartition}}
           @DestinationName={{this.DestinationName}}
           @DestinationNS={{this.DestinationNS}}
+          @DestinationPartition={{this.DestinationPartition}}
           @item={{item}}
           @disabled={{api.disabled}}
           @create={{api.isCreate}}
@@ -141,6 +196,7 @@ as |api|>
         </div>
       </form>
   {{else}}
+
     {{#if item.IsManagedByCRD}}
       <Notice
         class="crd"
@@ -163,8 +219,10 @@ as |api|>
         </notice.Footer>
       </Notice>
     {{/if}}
+
     <Consul::Intention::View
       @item={{item}}
+      data-test-readonly
     />
   {{/if}}
 {{/let}}

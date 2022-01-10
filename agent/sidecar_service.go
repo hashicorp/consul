@@ -126,7 +126,7 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		// it doesn't seem to be necessary - even with thousands of services this is
 		// not expensive to compute.
 		usedPorts := make(map[int]struct{})
-		for _, otherNS := range a.State.Services(structs.WildcardEnterpriseMetaInDefaultPartition()) {
+		for _, otherNS := range a.State.AllServices() {
 			// Check if other port is in auto-assign range
 			if otherNS.Port >= a.config.ConnectSidecarMinPort &&
 				otherNS.Port <= a.config.ConnectSidecarMaxPort {

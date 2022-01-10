@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -213,10 +214,14 @@ func TestAgent_TokenStore(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestAgent(t, `
-		acl_token = "user"
-		acl_agent_token = "agent"
-		acl_agent_master_token = "master"`,
-	)
+		acl {
+			tokens {
+				default = "user"
+				agent = "agent"
+				agent_recovery = "recovery"
+			}
+		}
+	`)
 	defer a.Shutdown()
 
 	if got, want := a.tokens.UserToken(), "user"; got != want {
@@ -225,7 +230,7 @@ func TestAgent_TokenStore(t *testing.T) {
 	if got, want := a.tokens.AgentToken(), "agent"; got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
-	if got, want := a.tokens.IsAgentMasterToken("master"), true; got != want {
+	if got, want := a.tokens.IsAgentRecoveryToken("recovery"), true; got != want {
 		t.Fatalf("got %v want %v", got, want)
 	}
 }
@@ -294,10 +299,6 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ports, err := freeport.Take(1)
-			require.NoError(t, err)
-			t.Cleanup(func() { freeport.Return(ports) })
-
 			caConfig := tlsutil.Config{}
 			tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
 			require.NoError(t, err)
@@ -311,7 +312,7 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 				},
 				RuntimeConfig: &config.RuntimeConfig{
 					HTTPAddrs: []net.Addr{
-						&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+						&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: freeport.GetOne(t)},
 					},
 					HTTPMaxHeaderBytes: tt.maxHeaderBytes,
 				},
@@ -369,6 +370,9 @@ func (f fakeGRPCConnPool) ClientConn(_ string) (*grpc.ClientConn, error) {
 
 func (f fakeGRPCConnPool) ClientConnLeader() (*grpc.ClientConn, error) {
 	return nil, nil
+}
+
+func (f fakeGRPCConnPool) SetGatewayResolver(_ func(string) string) {
 }
 
 func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
@@ -850,6 +854,32 @@ func TestAgent_AddServiceWithH2PINGCheck(t *testing.T) {
 		t.Fatalf("Error registering service: %v", err)
 	}
 	requireCheckExists(t, a, "test-h2ping-check")
+}
+
+func TestAgent_AddServiceWithH2CPINGCheck(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	check := []*structs.CheckType{
+		{
+			CheckID:       "test-h2cping-check",
+			Name:          "test-h2cping-check",
+			H2PING:        "localhost:12345",
+			TLSSkipVerify: true,
+			Interval:      10 * time.Second,
+			H2PingUseTLS:  false,
+		},
+	}
+
+	nodeService := &structs.NodeService{
+		ID:      "test-h2cping-check-service",
+		Service: "test-h2cping-check-service",
+	}
+	err := a.addServiceFromSource(nodeService, check, false, "", ConfigSourceLocal)
+	if err != nil {
+		t.Fatalf("Error registering service: %v", err)
+	}
+	requireCheckExists(t, a, "test-h2cping-check")
 }
 
 func TestAgent_AddServiceNoExec(t *testing.T) {
@@ -1708,14 +1738,12 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
-	testCtx, testCancel := context.WithCancel(context.Background())
-	defer testCancel()
-
-	testHTTPServer, returnPort := launchHTTPCheckServer(t, testCtx)
-	defer func() {
-		testHTTPServer.Close()
-		returnPort()
-	}()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK\n"))
+	})
+	testHTTPServer := httptest.NewServer(handler)
+	t.Cleanup(testHTTPServer.Close)
 
 	registerServicesAndChecks := func(t *testing.T, a *TestAgent) {
 		// add one persistent service with a simple check
@@ -1818,29 +1846,6 @@ node_name = "` + a.Config.NodeName + `"
 		})
 		require.True(t, ok, name+" failed")
 	}
-}
-
-func launchHTTPCheckServer(t *testing.T, ctx context.Context) (srv *httptest.Server, returnPortsFn func()) {
-	ports := freeport.MustTake(1)
-	port := ports[0]
-
-	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
-
-	var lc net.ListenConfig
-	listener, err := lc.Listen(ctx, "tcp", addr)
-	require.NoError(t, err)
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("OK\n"))
-	})
-
-	srv = &httptest.Server{
-		Listener: listener,
-		Config:   &http.Server{Handler: handler},
-	}
-	srv.Start()
-	return srv, func() { freeport.Return(ports) }
 }
 
 func TestAgent_AddCheck_Alias(t *testing.T) {
@@ -2225,7 +2230,7 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 		Port:    8000,
 	}
 
-	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
+	file := filepath.Join(a.Config.DataDir, servicesDir, structs.NewServiceID(svc.ID, nil).StringHashSHA256())
 
 	// Check is not persisted unless requested
 	if err := a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal); err != nil {
@@ -2336,7 +2341,7 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 	}
 
 	// Write the content to the file
-	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
+	file := filepath.Join(a.Config.DataDir, servicesDir, structs.NewServiceID(svc.ID, nil).StringHashSHA256())
 	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2352,6 +2357,85 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 	// Ensure the service was restored
 	result := requireServiceExists(t, a, "redis")
 	require.Equal(t, svc, result)
+}
+
+func TestAgent_persistedService_compat_hash(t *testing.T) {
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_persistedService_compat_hash(t, "enable_central_service_config = false")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_persistedService_compat_hash(t, "enable_central_service_config = true")
+	})
+
+}
+
+func testAgent_persistedService_compat_hash(t *testing.T, extraHCL string) {
+	t.Helper()
+
+	// Tests backwards compatibility of persisted services from pre-0.5.1
+	a := NewTestAgent(t, extraHCL)
+	defer a.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:              "redis",
+		Service:         "redis",
+		Tags:            []string{"foo"},
+		Port:            8000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
+		Weights:         &structs.Weights{Passing: 1, Warning: 1},
+		EnterpriseMeta:  *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	}
+
+	// Encode the NodeService directly. This is what previous versions
+	// would serialize to the file (without the wrapper)
+	encoded, err := json.Marshal(svc)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Write the content to the file using the old md5 based path
+	file := filepath.Join(a.Config.DataDir, servicesDir, stringHashMD5(svc.ID))
+	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := ioutil.WriteFile(file, encoded, 0600); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	wrapped := persistedServiceConfig{
+		ServiceID:      "redis",
+		Defaults:       &structs.ServiceConfigResponse{},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	}
+
+	encodedConfig, err := json.Marshal(wrapped)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, stringHashMD5(svc.ID))
+	if err := os.MkdirAll(filepath.Dir(configFile), 0700); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := ioutil.WriteFile(configFile, encodedConfig, 0600); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Load the services
+	if err := a.loadServices(a.Config, nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the service was restored
+	result := requireServiceExists(t, a, "redis")
+	require.Equal(t, svc, result)
+}
+
+// Exists for backwards compatibility testing
+func stringHashMD5(s string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(s)))
 }
 
 func TestAgent_PurgeService(t *testing.T) {
@@ -2382,7 +2466,7 @@ func testAgent_PurgeService(t *testing.T, extraHCL string) {
 		Port:    8000,
 	}
 
-	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
+	file := filepath.Join(a.Config.DataDir, servicesDir, structs.NewServiceID(svc.ID, nil).StringHashSHA256())
 	if err := a.addServiceFromSource(svc, nil, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2462,7 +2546,7 @@ func testAgent_PurgeServiceOnDuplicate(t *testing.T, extraHCL string) {
 	defer a2.Shutdown()
 
 	sid := svc1.CompoundServiceID()
-	file := filepath.Join(a.Config.DataDir, servicesDir, sid.StringHash())
+	file := filepath.Join(a.Config.DataDir, servicesDir, sid.StringHashSHA256())
 	_, err := os.Stat(file)
 	require.Error(t, err, "should have removed persisted service")
 	result := requireServiceExists(t, a, "redis")
@@ -2496,7 +2580,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	}
 
 	cid := check.CompoundCheckID()
-	file := filepath.Join(a.Config.DataDir, checksDir, cid.StringHash())
+	file := filepath.Join(a.Config.DataDir, checksDir, cid.StringHashSHA256())
 
 	// Not persisted if not requested
 	require.NoError(t, a.AddCheck(check, chkType, false, "", ConfigSourceLocal))
@@ -2642,7 +2726,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	defer a2.Shutdown()
 
 	cid := check1.CompoundCheckID()
-	file := filepath.Join(a.DataDir, checksDir, cid.StringHash())
+	file := filepath.Join(a.DataDir, checksDir, cid.StringHashSHA256())
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted check")
 	}
@@ -3423,6 +3507,69 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 	}
 }
 
+func TestAgent_checkStateSnapshot_backcompat(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// First register a service
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+	if err := a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a check
+	check1 := &structs.HealthCheck{
+		Node:        a.Config.NodeName,
+		CheckID:     "service:redis",
+		Name:        "redischeck",
+		Status:      api.HealthPassing,
+		ServiceID:   "redis",
+		ServiceName: "redis",
+	}
+	if err := a.AddCheck(check1, nil, true, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Snapshot the state
+	snap := a.snapshotCheckState()
+
+	// Unload all of the checks
+	if err := a.unloadChecks(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Mutate the path to look like the old md5 checksum
+	dir := filepath.Join(a.config.DataDir, checksDir)
+	new_path := filepath.Join(dir, check1.CompoundCheckID().StringHashSHA256())
+	old_path := filepath.Join(dir, check1.CompoundCheckID().StringHashMD5())
+	if err := os.Rename(new_path, old_path); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Reload the checks and restore the snapshot.
+	if err := a.loadChecks(a.Config, snap); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Search for the check
+	out := requireCheckExists(t, a, check1.CheckID)
+
+	// Make sure state was restored
+	if out.Status != api.HealthPassing {
+		t.Fatalf("should have restored check state")
+	}
+}
+
 func TestAgent_loadChecks_checkFails(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -3485,7 +3632,7 @@ func TestAgent_persistCheckState(t *testing.T) {
 	}
 
 	// Check the persisted file exists and has the content
-	file := filepath.Join(a.Config.DataDir, checkStateDir, cid.StringHash())
+	file := filepath.Join(a.Config.DataDir, checkStateDir, cid.StringHashSHA256())
 	buf, err := ioutil.ReadFile(file)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -3553,7 +3700,7 @@ func TestAgent_loadCheckState(t *testing.T) {
 	}
 
 	// Should have purged the state
-	file := filepath.Join(a.Config.DataDir, checksDir, stringHash("check1"))
+	file := filepath.Join(a.Config.DataDir, checksDir, structs.NewCheckID("check1", nil).StringHashSHA256())
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
 		t.Fatalf("should have purged state")
 	}
@@ -3610,7 +3757,7 @@ func TestAgent_purgeCheckState(t *testing.T) {
 	}
 
 	// Removed the file
-	file := filepath.Join(a.Config.DataDir, checkStateDir, cid.StringHash())
+	file := filepath.Join(a.Config.DataDir, checkStateDir, cid.StringHashSHA256())
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
 		t.Fatalf("should have removed file")
 	}
@@ -4497,7 +4644,7 @@ services {
 	// Now connect to server
 	_, err := a1.JoinLAN([]string{
 		fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN),
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	t.Logf("joined client to server")
@@ -4524,21 +4671,24 @@ LOOP:
 }
 
 // This is a mirror of a similar test in agent/consul/server_test.go
+//
+// TODO(rb): implement something similar to this as a full containerized test suite with proper
+// isolation so requests can't "cheat" and bypass the mesh gateways
 func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
 
-	gwPort := freeport.MustTake(1)
-	defer freeport.Return(gwPort)
-	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", gwPort[0])
+	port := freeport.GetOne(t)
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", port)
 
 	// Due to some ordering, we'll have to manually configure these ports in
 	// advance.
-	secondaryRPCPorts := freeport.MustTake(2)
-	defer freeport.Return(secondaryRPCPorts)
+	secondaryRPCPorts := freeport.GetN(t, 2)
 
 	a1 := StartTestAgent(t, TestAgent{Name: "bob", HCL: `
 		domain = "consul"
@@ -4592,7 +4742,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			ID:   "mesh-gateway",
 			Name: "mesh-gateway",
 			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
-			Port: gwPort[0],
+			Port: port,
 		}
 		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		require.NoError(t, err)
@@ -4706,7 +4856,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			ID:   "mesh-gateway",
 			Name: "mesh-gateway",
 			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
-			Port: gwPort[0],
+			Port: port,
 		}
 		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		require.NoError(t, err)
@@ -4721,7 +4871,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			ID:   "mesh-gateway",
 			Name: "mesh-gateway",
 			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
-			Port: gwPort[0],
+			Port: port,
 		}
 		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		require.NoError(t, err)
@@ -4771,6 +4921,9 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 	})
 
 	// Ensure we can do some trivial RPC in all directions.
+	//
+	// NOTE: we explicitly make streaming and non-streaming assertions here to
+	// verify both rpc and grpc codepaths.
 	agents := map[string]*TestAgent{"dc1": a1, "dc2": a2, "dc3": a3}
 	names := map[string]string{"dc1": "bob", "dc2": "betty", "dc3": "bonnie"}
 	for _, srcDC := range []string{"dc1", "dc2", "dc3"} {
@@ -4780,20 +4933,39 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 				continue
 			}
 			t.Run(srcDC+" to "+dstDC, func(t *testing.T) {
-				req, err := http.NewRequest("GET", "/v1/catalog/nodes?dc="+dstDC, nil)
-				require.NoError(t, err)
+				t.Run("normal-rpc", func(t *testing.T) {
+					req, err := http.NewRequest("GET", "/v1/catalog/nodes?dc="+dstDC, nil)
+					require.NoError(t, err)
 
-				resp := httptest.NewRecorder()
-				obj, err := a.srv.CatalogNodes(resp, req)
-				require.NoError(t, err)
-				require.NotNil(t, obj)
+					resp := httptest.NewRecorder()
+					obj, err := a.srv.CatalogNodes(resp, req)
+					require.NoError(t, err)
+					require.NotNil(t, obj)
 
-				nodes, ok := obj.(structs.Nodes)
-				require.True(t, ok)
-				require.Len(t, nodes, 1)
-				node := nodes[0]
-				require.Equal(t, dstDC, node.Datacenter)
-				require.Equal(t, names[dstDC], node.Node)
+					nodes, ok := obj.(structs.Nodes)
+					require.True(t, ok)
+					require.Len(t, nodes, 1)
+					node := nodes[0]
+					require.Equal(t, dstDC, node.Datacenter)
+					require.Equal(t, names[dstDC], node.Node)
+				})
+				t.Run("streaming-grpc", func(t *testing.T) {
+					req, err := http.NewRequest("GET", "/v1/health/service/consul?cached&dc="+dstDC, nil)
+					require.NoError(t, err)
+
+					resp := httptest.NewRecorder()
+					obj, err := a.srv.HealthServiceNodes(resp, req)
+					require.NoError(t, err)
+					require.NotNil(t, obj)
+
+					csns, ok := obj.(structs.CheckServiceNodes)
+					require.True(t, ok)
+					require.Len(t, csns, 1)
+
+					csn := csns[0]
+					require.Equal(t, dstDC, csn.Node.Datacenter)
+					require.Equal(t, names[dstDC], csn.Node.Node)
+				})
 			})
 		}
 	}
@@ -4869,7 +5041,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 	srv := StartTestAgent(t, TestAgent{Name: "TestAgent-Server", HCL: hclConfig})
 	defer srv.Shutdown()
 
-	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
 	// sign a JWT token
 	now := time.Now()
@@ -4916,7 +5088,10 @@ func TestAutoConfig_Integration(t *testing.T) {
 	// when this is successful we managed to get the gossip key and serf addresses to bind to
 	// and then connect. Additionally we would have to have certificates or else the
 	// verify_incoming config on the server would not let it work.
-	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
+
+	// spot check that we now have an ACL token
+	require.NotEmpty(t, client.tokens.AgentToken())
 
 	// grab the existing cert
 	cert1 := client.Agent.tlsConfigurator.Cert()
@@ -4927,7 +5102,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 	ca := connect.TestCA(t, nil)
 	req := &structs.CARequest{
 		Datacenter:   "dc1",
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		Config: &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
@@ -4960,9 +5135,6 @@ func TestAutoConfig_Integration(t *testing.T) {
 		require.NoError(r, err)
 		require.Equal(r, client.Agent.tlsConfigurator.Cert(), &actual)
 	})
-
-	// spot check that we now have an ACL token
-	require.NotEmpty(t, client.tokens.AgentToken())
 }
 
 func TestAgent_AutoEncrypt(t *testing.T) {
@@ -5002,7 +5174,7 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 	srv := StartTestAgent(t, TestAgent{Name: "test-server", HCL: hclConfig})
 	defer srv.Shutdown()
 
-	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
 	client := StartTestAgent(t, TestAgent{Name: "test-client", HCL: TestACLConfigWithParams(nil) + `
 	   bootstrap = false
@@ -5025,7 +5197,7 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 
 	// when this is successful we managed to get a TLS certificate and are using it for
 	// encrypted RPC connections.
-	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
 	// now we need to validate that our certificate has the correct CN
 	aeCert := client.tlsConfigurator.Cert()
@@ -5082,10 +5254,7 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	ports, err := freeport.Take(2)
-	require.NoError(t, err)
-	t.Cleanup(func() { freeport.Return(ports) })
-
+	ports := freeport.GetN(t, 2)
 	caConfig := tlsutil.Config{}
 	tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
 	require.NoError(t, err)
@@ -5151,4 +5320,11 @@ func uniqueAddrs(srvs []apiServer) map[string]struct{} {
 		result[s.Addr.String()] = struct{}{}
 	}
 	return result
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
 }

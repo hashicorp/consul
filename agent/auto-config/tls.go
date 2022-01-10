@@ -192,11 +192,12 @@ func (ac *AutoConfig) caRootsRequest() structs.DCSpecificRequest {
 
 func (ac *AutoConfig) leafCertRequest() cachetype.ConnectCALeafRequest {
 	return cachetype.ConnectCALeafRequest{
-		Datacenter: ac.config.Datacenter,
-		Agent:      ac.config.NodeName,
-		DNSSAN:     ac.getDNSSANs(),
-		IPSAN:      ac.getIPSANs(),
-		Token:      ac.acConfig.Tokens.AgentToken(),
+		Datacenter:     ac.config.Datacenter,
+		Agent:          ac.config.NodeName,
+		DNSSAN:         ac.getDNSSANs(),
+		IPSAN:          ac.getIPSANs(),
+		Token:          ac.acConfig.Tokens.AgentToken(),
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(ac.config.PartitionOrEmpty()),
 	}
 }
 
@@ -216,7 +217,7 @@ func (ac *AutoConfig) generateCSR() (csr string, key string, err error) {
 		Host:       unknownTrustDomain,
 		Datacenter: ac.config.Datacenter,
 		Agent:      ac.config.NodeName,
-		// TODO(rb)(partitions): populate the partition field from the agent config
+		Partition:  ac.config.PartitionOrDefault(),
 	}
 
 	caConfig, err := ac.config.ConnectCAConfiguration()

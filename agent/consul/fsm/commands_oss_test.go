@@ -53,9 +53,10 @@ func TestFSM_RegisterNode(t *testing.T) {
 	}
 
 	req := structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
+		Datacenter:     "dc1",
+		Node:           "foo",
+		Address:        "127.0.0.1",
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInDefaultPartition(),
 	}
 	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
@@ -114,6 +115,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: "db",
 		},
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInDefaultPartition(),
 	}
 	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
@@ -712,12 +714,14 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	// Write a batch of two coordinates.
 	updates := structs.Coordinates{
 		&structs.Coordinate{
-			Node:  "node1",
-			Coord: generateRandomCoordinate(),
+			Node:      "node1",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			Coord:     generateRandomCoordinate(),
 		},
 		&structs.Coordinate{
-			Node:  "node2",
-			Coord: generateRandomCoordinate(),
+			Node:      "node2",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			Coord:     generateRandomCoordinate(),
 		},
 	}
 	buf, err := structs.Encode(structs.CoordinateBatchUpdateType, updates)
@@ -734,9 +738,7 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if !reflect.DeepEqual(coords, updates) {
-		t.Fatalf("bad: %#v", coords)
-	}
+	require.Equal(t, updates, coords)
 }
 
 func TestFSM_SessionCreate_Destroy(t *testing.T) {
@@ -825,125 +827,6 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 	if session != nil {
 		t.Fatalf("should be destroyed")
 	}
-}
-
-func TestFSM_ACL_CRUD(t *testing.T) {
-	t.Parallel()
-	logger := testutil.Logger(t)
-	fsm, err := New(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Create a new ACL.
-	req := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			ID:   generateUUID(),
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-		},
-	}
-	buf, err := structs.Encode(structs.ACLRequestType, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	resp := fsm.Apply(makeLog(buf))
-	if err, ok := resp.(error); ok {
-		t.Fatalf("resp: %v", err)
-	}
-
-	// Get the ACL.
-	id := resp.(string)
-	_, acl, err := fsm.state.ACLTokenGetBySecret(nil, id, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if acl == nil {
-		t.Fatalf("missing")
-	}
-
-	// Verify the ACL.
-	if acl.SecretID != id {
-		t.Fatalf("bad: %v", *acl)
-	}
-	if acl.Description != "User token" {
-		t.Fatalf("bad: %v", *acl)
-	}
-	if acl.Type != structs.ACLTokenTypeClient {
-		t.Fatalf("bad: %v", *acl)
-	}
-
-	// Try to destroy.
-	destroy := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLDelete,
-		ACL: structs.ACL{
-			ID: id,
-		},
-	}
-	buf, err = structs.Encode(structs.ACLRequestType, destroy)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	resp = fsm.Apply(makeLog(buf))
-	if resp != nil {
-		t.Fatalf("resp: %v", resp)
-	}
-
-	_, acl, err = fsm.state.ACLTokenGetBySecret(nil, id, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if acl != nil {
-		t.Fatalf("should be destroyed")
-	}
-
-	// Initialize bootstrap (should work since we haven't made a management
-	// token).
-	init := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLBootstrapInit,
-	}
-	buf, err = structs.Encode(structs.ACLRequestType, init)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	resp = fsm.Apply(makeLog(buf))
-	if enabled, ok := resp.(bool); !ok || !enabled {
-		t.Fatalf("resp: %v", resp)
-	}
-	canBootstrap, _, err := fsm.state.CanBootstrapACLToken()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if !canBootstrap {
-		t.Fatalf("bad: shouldn't be able to bootstrap")
-	}
-
-	// Do a bootstrap.
-	bootstrap := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLBootstrapNow,
-		ACL: structs.ACL{
-			ID:   generateUUID(),
-			Name: "Bootstrap Token",
-			Type: structs.ACLTokenTypeManagement,
-		},
-	}
-	buf, err = structs.Encode(structs.ACLRequestType, bootstrap)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	resp = fsm.Apply(makeLog(buf))
-	respACL, ok := resp.(*structs.ACL)
-	if !ok {
-		t.Fatalf("resp: %v", resp)
-	}
-	bootstrap.ACL.CreateIndex = respACL.CreateIndex
-	bootstrap.ACL.ModifyIndex = respACL.ModifyIndex
-	require.Equal(t, &bootstrap.ACL, respACL)
 }
 
 func TestFSM_PreparedQuery_CRUD(t *testing.T) {
@@ -1467,6 +1350,57 @@ func TestFSM_ConfigEntry(t *testing.T) {
 		entry.RaftIndex.ModifyIndex = 1
 		require.Equal(entry, config)
 	}
+}
+
+func TestFSM_ConfigEntry_DeleteCAS(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
+	require.NoError(err)
+
+	// Create a simple config entry and write it to the state store.
+	entry := &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "global",
+	}
+	require.NoError(fsm.state.EnsureConfigEntry(1, entry))
+
+	// Raft index is populated by EnsureConfigEntry, hold on to it so that we can
+	// restore it later.
+	raftIndex := entry.RaftIndex
+	require.NotZero(raftIndex.ModifyIndex)
+
+	// Attempt a CAS delete with an invalid index.
+	entry = entry.Clone()
+	entry.RaftIndex = structs.RaftIndex{
+		ModifyIndex: 99,
+	}
+	req := &structs.ConfigEntryRequest{
+		Op:    structs.ConfigEntryDeleteCAS,
+		Entry: entry,
+	}
+	buf, err := structs.Encode(structs.ConfigEntryRequestType, req)
+	require.NoError(err)
+
+	// Expect to get boolean false back.
+	rsp := fsm.Apply(makeLog(buf))
+	didDelete, isBool := rsp.(bool)
+	require.True(isBool)
+	require.False(didDelete)
+
+	// Attempt a CAS delete with a valid index.
+	entry.RaftIndex = raftIndex
+	buf, err = structs.Encode(structs.ConfigEntryRequestType, req)
+	require.NoError(err)
+
+	// Expect to get boolean true back.
+	rsp = fsm.Apply(makeLog(buf))
+	didDelete, isBool = rsp.(bool)
+	require.True(isBool)
+	require.True(didDelete)
 }
 
 // This adapts another test by chunking the encoded data and then performing

@@ -21,4 +21,4 @@ export default class <%= classifiedModuleName %>Adapter extends Adapter {
     `;
   }
 
-};
+}

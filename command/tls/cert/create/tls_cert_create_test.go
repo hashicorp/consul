@@ -3,6 +3,7 @@ package create
 import (
 	"crypto"
 	"crypto/x509"
+	"io/fs"
 	"io/ioutil"
 	"net"
 	"os"
@@ -241,6 +242,14 @@ func expectFiles(t *testing.T, certPath, keyPath string) (*x509.Certificate, cry
 
 	require.FileExists(t, certPath)
 	require.FileExists(t, keyPath)
+
+	fi, err := os.Stat(keyPath)
+	if err != nil {
+		t.Fatal("should not happen", err)
+	}
+	if want, have := fs.FileMode(0600), fi.Mode().Perm(); want != have {
+		t.Fatalf("private key file %s: permissions: want: %o; have: %o", keyPath, want, have)
+	}
 
 	certData, err := ioutil.ReadFile(certPath)
 	require.NoError(t, err)

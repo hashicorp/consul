@@ -7,17 +7,17 @@ export default class NodeService extends RepositoryService {
     return modelName;
   }
 
-  @dataSource('/:ns/:dc/nodes')
+  @dataSource('/:partition/:ns/:dc/nodes')
   async findAllByDatacenter() {
     return super.findAllByDatacenter(...arguments);
   }
 
-  @dataSource('/:ns/:dc/node/:id')
+  @dataSource('/:partition/:ns/:dc/node/:id')
   async findBySlug() {
     return super.findBySlug(...arguments);
   }
 
-  @dataSource('/:ns/:dc/leader')
+  @dataSource('/:partition/:ns/:dc/leader')
   findLeader(params, configuration = {}) {
     if (typeof configuration.refresh !== 'undefined') {
       params.uri = configuration.uri;

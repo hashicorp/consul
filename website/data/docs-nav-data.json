@@ -151,6 +151,10 @@
             "path": "connect/config-entries/mesh"
           },
           {
+            "title": "Exported Services",
+            "path": "connect/config-entries/exported-services"
+          },
+          {
             "title": "Proxy Defaults",
             "path": "connect/config-entries/proxy-defaults"
           },
@@ -273,24 +277,28 @@
             "path": "connect/gateways"
           },
           {
-            "title": "Connect Datacenters - Mesh Gateways",
+            "title": "Mesh Gateways",
             "routes": [
-              {
-                "title": "Overview",
-                "path": "connect/gateways/mesh-gateway"
-              },
               {
                 "title": "WAN Federation",
                 "path": "connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways"
+              },
+              {
+                "title": "Enabling Service-to-service Traffic Across Datacenters",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-datacenters"
+              },
+              {
+                "title": "Enabling Service-to-service Traffic Across Admin Partitions",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-partitions"
               }
             ]
           },
           {
-            "title": "External <> Internal Services -  Ingress Gateways",
+            "title": "Ingress Gateways",
             "path": "connect/gateways/ingress-gateway"
           },
           {
-            "title": "Internal <> External Services - Terminating Gateways",
+            "title": "Terminating Gateways",
             "path": "connect/gateways/terminating-gateway"
           }
         ]
@@ -359,7 +367,7 @@
         "title": "Get Started",
         "routes": [
           {
-            "title": "Install with Helm Chart",
+            "title": "Installing Consul on Kubernetes",
             "path": "k8s/installation/install"
           },
           {
@@ -432,6 +440,27 @@
                 "path": "k8s/installation/multi-cluster/vms-and-kubernetes"
               }
             ]
+          },
+          {
+            "title": "Vault as Secrets Backend",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "k8s/installation/vault"
+              },
+              {
+                "title": "Gossip Encryption Key",
+                "path": "k8s/installation/vault/gossip"
+              },
+              {
+                "title": "Server TLS",
+                "path": "k8s/installation/vault/server-tls"
+              },
+              {
+                "title": "Service Mesh Certificates",
+                "path": "k8s/installation/vault/connect-ca"
+              }
+            ]
           }
         ]
       },
@@ -463,8 +492,8 @@
             "path": "k8s/connect/connect-ca-provider"
           },
           {
-            "title": "Ambassador Integration",
-            "path": "k8s/connect/ambassador"
+            "title": "Ambassador Edge Stack Integration",
+            "href": "https://learn.hashicorp.com/tutorials/consul/load-balancing-ambassador"
           },
           {
             "title": "Health Checks",
@@ -552,11 +581,15 @@
       {
         "title": "Helm Chart Configuration",
         "path": "k8s/helm"
+      },
+      {
+        "title": "Consul K8s CLI Reference",
+        "path": "k8s/k8s-cli"
       }
     ]
   },
   {
-    "title": "AWS ECS <sup>Tech Preview</sup>",
+    "title": "AWS ECS",
     "routes": [
       {
         "title": "Overview",
@@ -566,22 +599,30 @@
         "title": "Get Started",
         "routes": [
           {
-            "title": "Example Installation",
-            "href": "https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-fargate"
-          },
-          {
             "title": "Requirements",
             "path": "ecs/get-started/requirements"
           },
           {
-            "title": "Install",
+            "title": "Installation",
             "path": "ecs/get-started/install"
+          },
+          {
+            "title": "Production Installation",
+            "path": "ecs/get-started/production-installation"
+          },
+          {
+            "title": "Migrate Existing Tasks",
+            "path": "ecs/get-started/migrate-existing-tasks"
           }
         ]
       },
       {
         "title": "Architecture",
         "path": "ecs/architecture"
+      },
+      {
+        "title": "Consul Enterprise",
+        "path": "ecs/enterprise"
       }
     ]
   },
@@ -660,8 +701,39 @@
         "path": "nia/terraform-modules"
       },
       {
+        "title": "Enterprise",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "nia/enterprise"
+          },
+
+          {
+            "title": "License",
+            "path": "nia/enterprise/license"
+          },
+          {
+            "title": "Terraform Cloud Driver",
+            "href": "/docs/nia/network-drivers/terraform-cloud"
+          }
+        ]
+      },
+      {
         "title": "Network Drivers",
-        "path": "nia/network-drivers"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "nia/network-drivers"
+          },
+          {
+            "title": "Terraform",
+            "path": "nia/network-drivers/terraform"
+          },
+          {
+            "title": "Terraform Cloud",
+            "path": "nia/network-drivers/terraform-cloud"
+          }
+        ]
       },
       {
         "title": "Compatibility",
@@ -800,6 +872,10 @@
         "path": "enterprise"
       },
       {
+        "title": "Admin Partitions",
+        "path": "enterprise/admin-partitions"
+      },
+      {
         "title": "Audit Logging",
         "path": "enterprise/audit-logging"
       },
@@ -828,12 +904,16 @@
         "path": "enterprise/federation"
       },
       {
+        "title": "Network Segments",
+        "path": "enterprise/network-segments"
+      },
+      {
         "title": "Namespaces",
         "path": "enterprise/namespaces"
       },
       {
-        "title": "Network Segments",
-        "path": "enterprise/network-segments"
+        "title": "NIA with TFE",
+        "href": "/docs/nia/enterprise"
       },
       {
         "title": "Sentinel",
@@ -897,10 +977,6 @@
       {
         "title": "Vault Integration",
         "href": "/docs/connect/ca/vault"
-      },
-      {
-        "title": "Ambassador Integration",
-        "href": "/docs/k8s/connect/ambassador"
       },
       {
         "title": "Proxy Integration",

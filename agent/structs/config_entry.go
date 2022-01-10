@@ -27,6 +27,7 @@ const (
 	TerminatingGateway string = "terminating-gateway"
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
+	ExportedServices   string = "exported-services"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -44,6 +45,7 @@ var AllConfigEntryKinds = []string{
 	TerminatingGateway,
 	ServiceIntentions,
 	MeshConfig,
+	ExportedServices,
 }
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
@@ -167,10 +169,6 @@ func (e *ServiceConfigEntry) Validate() error {
 		for _, override := range e.UpstreamConfig.Overrides {
 			err := override.ValidateWithName()
 			if err != nil {
-				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.ServiceName(), err))
-			}
-
-			if err := validateInnerEnterpriseMeta(&override.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
 				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.ServiceName(), err))
 			}
 		}
@@ -315,7 +313,7 @@ func (e *ProxyConfigEntry) CanRead(authz acl.Authorizer) bool {
 func (e *ProxyConfigEntry) CanWrite(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.OperatorWrite(&authzContext) == acl.Allow
+	return authz.MeshWrite(&authzContext) == acl.Allow
 }
 
 func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
@@ -447,6 +445,7 @@ const (
 	ConfigEntryUpsert    ConfigEntryOp = "upsert"
 	ConfigEntryUpsertCAS ConfigEntryOp = "upsert-cas"
 	ConfigEntryDelete    ConfigEntryOp = "delete"
+	ConfigEntryDeleteCAS ConfigEntryOp = "delete-cas"
 )
 
 // ConfigEntryRequest is used when creating/updating/deleting a ConfigEntry.
@@ -534,6 +533,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ServiceIntentionsConfigEntry{Name: name}, nil
 	case MeshConfig:
 		return &MeshConfigEntry{}, nil
+	case ExportedServices:
+		return &ExportedServicesConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -1120,4 +1121,8 @@ func validateConfigEntryMeta(meta map[string]string) error {
 		}
 	}
 	return err
+}
+
+type ConfigEntryDeleteResponse struct {
+	Deleted bool
 }

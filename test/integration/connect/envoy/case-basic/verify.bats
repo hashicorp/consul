@@ -39,7 +39,7 @@ load helpers
 @test "s1 proxy should have been configured with one rbac listener filter at L4" {
   LISTEN_FILTERS=$(get_envoy_listener_filters localhost:19000)
   PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
-  UPS=$(echo "$LISTEN_FILTERS" | grep -E "^(\/default\/)?s2:" | cut -f 2 -d ' ' )
+  UPS=$(echo "$LISTEN_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ' )
 
   echo "LISTEN_FILTERS = $LISTEN_FILTERS"
   echo "PUB = $PUB"

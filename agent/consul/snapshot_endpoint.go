@@ -60,9 +60,9 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 	// Verify token is allowed to operate on snapshots. There's only a
 	// single ACL sense here (not read and write) since reading gets you
 	// all the ACLs and you could escalate from there.
-	if rule, err := s.ResolveToken(args.Token); err != nil {
+	if authz, err := s.ResolveToken(args.Token); err != nil {
 		return nil, err
-	} else if rule.Snapshot(nil) != acl.Allow {
+	} else if authz.Snapshot(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -77,7 +77,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 
 		// Set the metadata here before we do anything; this should always be
 		// pessimistic if we get more data while the snapshot is being taken.
-		s.setQueryMeta(&reply.QueryMeta)
+		s.setQueryMeta(&reply.QueryMeta, args.Token)
 
 		// Take the snapshot and capture the index.
 		snap, err := snapshot.New(s.logger, s.raft)

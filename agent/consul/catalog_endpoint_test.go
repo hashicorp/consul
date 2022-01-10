@@ -8,6 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
+
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -16,9 +22,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCatalog_Register(t *testing.T) {
@@ -179,10 +182,10 @@ func TestCatalog_Register_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -190,28 +193,15 @@ func TestCatalog_Register_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "write"
 }
 node "foo" {
 	policy = "write"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	argR := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -269,6 +259,41 @@ node "foo" {
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func createToken(t *testing.T, cc rpc.ClientCodec, policyRules string) string {
+	t.Helper()
+	return createTokenWithPolicyName(t, cc, "the-policy", policyRules, "root")
+}
+
+func createTokenWithPolicyName(t *testing.T, cc rpc.ClientCodec, policyName string, policyRules string, token string) string {
+	t.Helper()
+
+	reqPolicy := structs.ACLPolicySetRequest{
+		Datacenter: "dc1",
+		Policy: structs.ACLPolicy{
+			Name:  policyName,
+			Rules: policyRules,
+		},
+		WriteRequest: structs.WriteRequest{Token: token},
+	}
+	err := msgpackrpc.CallWithCodec(cc, "ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
+	require.NoError(t, err)
+
+	secretId, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	reqToken := structs.ACLTokenSetRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			SecretID: secretId,
+			Policies: []structs.ACLTokenPolicyLink{{Name: policyName}},
+		},
+		WriteRequest: structs.WriteRequest{Token: token},
+	}
+	err = msgpackrpc.CallWithCodec(cc, "ACL.TokenSet", &reqToken, &structs.ACLToken{})
+	require.NoError(t, err)
+	return secretId
 }
 
 func TestCatalog_Register_ForwardLeader(t *testing.T) {
@@ -425,10 +450,10 @@ func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
 
 	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -437,26 +462,15 @@ func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "write"
 }
 node "foo" {
 	policy = "write"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var token string
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token))
+`
+	token := createToken(t, codec, rules)
 
 	// Register should fail because we don't have permission on the destination
 	args := structs.TestRegisterRequestProxy(t)
@@ -554,10 +568,10 @@ func TestCatalog_Deregister_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -566,14 +580,7 @@ func TestCatalog_Deregister_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 node "node" {
 	policy = "write"
 }
@@ -581,14 +588,8 @@ node "node" {
 service "service" {
 	policy = "write"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// Register a node, node check, service, and service check.
 	argR := structs.RegisterRequest{
@@ -1294,10 +1295,10 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1306,55 +1307,48 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// We scope the reply in each of these since msgpack won't clear out an
-	// existing slice if the incoming one is nil, so it's best to start
-	// clean each time.
+	token := func(policy string) string {
+		rules := fmt.Sprintf(
+			`node "%s" { policy = "%s" }`,
+			s1.config.NodeName,
+			policy,
+		)
+		return createTokenWithPolicyName(t, codec, policy, rules, "root")
+	}
 
-	// The node policy should not be ignored.
 	args := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
-	{
-		reply := structs.IndexedNodes{}
+
+	t.Run("deny", func(t *testing.T) {
+		args.Token = token("deny")
+
+		var reply structs.IndexedNodes
 		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 0 {
 			t.Fatalf("bad: %v", reply.Nodes)
 		}
-	}
+		if !reply.QueryMeta.ResultsFilteredByACLs {
+			t.Fatal("ResultsFilteredByACLs should be true")
+		}
+	})
 
-	// Create an ACL that can read the node.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: fmt.Sprintf(`
-node "%s" {
-	policy = "read"
-}
-`, s1.config.NodeName),
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	t.Run("allow", func(t *testing.T) {
+		args.Token = token("read")
 
-	// Now try with the token and it will go through.
-	args.Token = id
-	{
-		reply := structs.IndexedNodes{}
+		var reply structs.IndexedNodes
 		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 1 {
 			t.Fatalf("bad: %v", reply.Nodes)
 		}
-	}
+		if reply.QueryMeta.ResultsFilteredByACLs {
+			t.Fatal("ResultsFilteredByACLs should not true")
+		}
+	})
 }
 
 func Benchmark_Catalog_ListNodes(t *testing.B) {
@@ -1434,6 +1428,7 @@ func TestCatalog_ListServices(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 	require.False(t, out.QueryMeta.NotModified)
+	require.False(t, out.QueryMeta.ResultsFilteredByACLs)
 
 	t.Run("with option AllowNotModifiedResponse", func(t *testing.T) {
 		args.QueryOptions = structs.QueryOptions{
@@ -1635,7 +1630,7 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 	})
 	defer os.RemoveAll(dir1)
@@ -1643,7 +1638,7 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1" // Enable ACLs!
+		c.PrimaryDatacenter = "dc1" // Enable ACLs!
 		c.ACLsEnabled = true
 		c.Bootstrap = false // Disable bootstrap
 	})
@@ -2412,10 +2407,10 @@ func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2424,24 +2419,18 @@ func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
+service "foo-proxy" {
+	policy = "write"
+}
 service "foo" {
 	policy = "write"
 }
-node "" { policy = "read" }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var token string
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token))
+node "foo" {
+	policy = "read"
+}
+`
+	token := createToken(t, codec, rules)
 
 	{
 		// Register a proxy
@@ -2492,6 +2481,7 @@ node "" { policy = "read" }
 	require.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	require.Equal(t, "foo-proxy", v.ServiceName)
+	require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 }
 
 func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
@@ -2707,36 +2697,24 @@ func TestCatalog_Register_FailedCase1(t *testing.T) {
 
 func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rpc.ClientCodec) {
 	dir, srv = testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 
 	codec = rpcClient(t, srv)
 	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create a new token
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "write"
 }
-node "" {
+node_prefix "" {
 	policy = "read"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	token = createToken(t, codec, rules)
 
 	// Register a service
 	regArg := structs.RegisterRequest{
@@ -2772,6 +2750,7 @@ node "" {
 			CheckID:   "service:bar",
 			Name:      "service:bar",
 			ServiceID: "bar",
+			Status:    api.HealthPassing,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -2806,6 +2785,9 @@ func TestCatalog_ListServices_FilterACL(t *testing.T) {
 	}
 	if _, ok := reply.Services["bar"]; ok {
 		t.Fatalf("bad: %#v", reply.Services)
+	}
+	if !reply.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should be true")
 	}
 }
 
@@ -2855,6 +2837,7 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 			t.Fatalf("bad: %#v", reply.ServiceNodes)
 		}
 	}
+	require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	// We've already proven that we call the ACL filtering function so we
 	// test node filtering down in acl.go for node cases. This also proves
@@ -2863,17 +2846,17 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 	// for now until we change the sense of the version 8 ACL flag).
 }
 
-func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
+func TestCatalog_NodeServices_ACL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2882,56 +2865,46 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// The node policy should not be ignored.
+	token := func(policy string) string {
+		rules := fmt.Sprintf(`
+				node "%s" { policy = "%s" }
+				service "consul" { policy = "%s" }
+			`,
+			s1.config.NodeName,
+			policy,
+			policy,
+		)
+		return createTokenWithPolicyName(t, codec, policy, rules, "root")
+	}
+
 	args := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
 		Node:       s1.config.NodeName,
 	}
-	reply := structs.IndexedNodeServices{}
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply.NodeServices != nil {
-		t.Fatalf("should not nil")
-	}
 
-	// Create an ACL that can read the node.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: fmt.Sprintf(`
-node "%s" {
-	policy = "read"
-}
-`, s1.config.NodeName),
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	t.Run("deny", func(t *testing.T) {
+		require := require.New(t)
 
-	// Now try with the token and it will go through.
-	args.Token = id
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply.NodeServices == nil {
-		t.Fatalf("should not be nil")
-	}
+		args.Token = token("deny")
 
-	// Make sure an unknown node doesn't cause trouble.
-	args.Node = "nope"
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply.NodeServices != nil {
-		t.Fatalf("should not nil")
-	}
+		var reply structs.IndexedNodeServices
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
+		require.NoError(err)
+		require.Nil(reply.NodeServices)
+		require.True(reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("allow", func(t *testing.T) {
+		require := require.New(t)
+
+		args.Token = token("read")
+
+		var reply structs.IndexedNodeServices
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
+		require.NoError(err)
+		require.NotNil(reply.NodeServices)
+		require.False(reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
 }
 
 func TestCatalog_NodeServices_FilterACL(t *testing.T) {
@@ -3283,10 +3256,10 @@ func TestCatalog_GatewayServices_ACLFiltering(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -3422,6 +3395,7 @@ service "gateway" {
 		var resp structs.IndexedGatewayServices
 		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
 		assert.Len(r, resp.Services, 0)
+		assert.True(r, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	rules = `
@@ -3445,6 +3419,7 @@ service "gateway" {
 		var resp structs.IndexedGatewayServices
 		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
 		assert.Len(r, resp.Services, 2)
+		assert.True(r, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 		expect := structs.GatewayServices{
 			{
@@ -3465,4 +3440,583 @@ service "gateway" {
 		}
 		assert.Equal(r, expect, resp.Services)
 	})
+}
+
+func TestVetRegisterWithACL(t *testing.T) {
+	t.Parallel()
+	args := &structs.RegisterRequest{
+		Node:    "nope",
+		Address: "127.0.0.1",
+	}
+
+	// With an "allow all" authorizer the update should be allowed.
+	if err := vetRegisterWithACL(acl.ManageAll(), args, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create a basic node policy.
+	policy, err := acl.NewPolicyFromSource(`
+node "node" {
+  policy = "write"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// With that policy, the update should now be blocked for node reasons.
+	err = vetRegisterWithACL(perms, args, nil)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Now use a permitted node name.
+	args.Node = "node"
+	if err := vetRegisterWithACL(perms, args, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Build some node info that matches what we have now.
+	ns := &structs.NodeServices{
+		Node: &structs.Node{
+			Node:    "node",
+			Address: "127.0.0.1",
+		},
+		Services: make(map[string]*structs.NodeService),
+	}
+
+	// Try to register a service, which should be blocked.
+	args.Service = &structs.NodeService{
+		Service: "service",
+		ID:      "my-id",
+	}
+	err = vetRegisterWithACL(perms, args, ns)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Chain on a basic service policy.
+	policy, err = acl.NewPolicyFromSource(`
+service "service" {
+  policy = "write"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// With the service ACL, the update should go through.
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Add an existing service that they are clobbering and aren't allowed
+	// to write to.
+	ns.Services["my-id"] = &structs.NodeService{
+		Service: "other",
+		ID:      "my-id",
+	}
+	err = vetRegisterWithACL(perms, args, ns)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Chain on a policy that allows them to write to the other service.
+	policy, err = acl.NewPolicyFromSource(`
+service "other" {
+  policy = "write"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now it should go through.
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try creating the node and the service at once by having no existing
+	// node record. This should be ok since we have node and service
+	// permissions.
+	if err := vetRegisterWithACL(perms, args, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Add a node-level check to the member, which should be rejected.
+	args.Check = &structs.HealthCheck{
+		Node: "node",
+	}
+	err = vetRegisterWithACL(perms, args, ns)
+	if err == nil || !strings.Contains(err.Error(), "check member must be nil") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Move the check into the slice, but give a bad node name.
+	args.Check.Node = "nope"
+	args.Checks = append(args.Checks, args.Check)
+	args.Check = nil
+	err = vetRegisterWithACL(perms, args, ns)
+	if err == nil || !strings.Contains(err.Error(), "doesn't match register request node") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Fix the node name, which should now go through.
+	args.Checks[0].Node = "node"
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Add a service-level check.
+	args.Checks = append(args.Checks, &structs.HealthCheck{
+		Node:      "node",
+		ServiceID: "my-id",
+	})
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try creating everything at once. This should be ok since we have all
+	// the permissions we need. It also makes sure that we can register a
+	// new node, service, and associated checks.
+	if err := vetRegisterWithACL(perms, args, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nil out the service registration, which'll skip the special case
+	// and force us to look at the ns data (it will look like we are
+	// writing to the "other" service which also has "my-id").
+	args.Service = nil
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Chain on a policy that forbids them to write to the other service.
+	policy, err = acl.NewPolicyFromSource(`
+service "other" {
+  policy = "deny"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// This should get rejected.
+	err = vetRegisterWithACL(perms, args, ns)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Change the existing service data to point to a service name they
+	// car write to. This should go through.
+	ns.Services["my-id"] = &structs.NodeService{
+		Service: "service",
+		ID:      "my-id",
+	}
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Chain on a policy that forbids them to write to the node.
+	policy, err = acl.NewPolicyFromSource(`
+node "node" {
+  policy = "deny"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// This should get rejected because there's a node-level check in here.
+	err = vetRegisterWithACL(perms, args, ns)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Change the node-level check into a service check, and then it should
+	// go through.
+	args.Checks[0].ServiceID = "my-id"
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Finally, attempt to update the node part of the data and make sure
+	// that gets rejected since they no longer have permissions.
+	args.Address = "127.0.0.2"
+	err = vetRegisterWithACL(perms, args, ns)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("bad: %v", err)
+	}
+}
+
+func TestVetDeregisterWithACL(t *testing.T) {
+	t.Parallel()
+	args := &structs.DeregisterRequest{
+		Node: "nope",
+	}
+
+	// With an "allow all" authorizer the update should be allowed.
+	if err := vetDeregisterWithACL(acl.ManageAll(), args, nil, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create a basic node policy.
+	policy, err := acl.NewPolicyFromSource(`
+node "node" {
+  policy = "write"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	nodePerms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	policy, err = acl.NewPolicyFromSource(`
+	service "my-service" {
+	  policy = "write"
+	}
+	`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	servicePerms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	for _, args := range []struct {
+		DeregisterRequest structs.DeregisterRequest
+		Service           *structs.NodeService
+		Check             *structs.HealthCheck
+		Perms             acl.Authorizer
+		Expected          bool
+		Name              string
+	}{
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node: "nope",
+			},
+			Perms:    nodePerms,
+			Expected: false,
+			Name:     "no right on node",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node: "nope",
+			},
+			Perms:    servicePerms,
+			Expected: false,
+			Name:     "right on service but node dergister request",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "nope",
+				ServiceID: "my-service-id",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Perms:    nodePerms,
+			Expected: false,
+			Name:     "no rights on node nor service",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "nope",
+				ServiceID: "my-service-id",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Perms:    servicePerms,
+			Expected: true,
+			Name:     "no rights on node but rights on service",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "nope",
+				ServiceID: "my-service-id",
+				CheckID:   "my-check",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    nodePerms,
+			Expected: false,
+			Name:     "no right on node nor service for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "nope",
+				ServiceID: "my-service-id",
+				CheckID:   "my-check",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    servicePerms,
+			Expected: true,
+			Name:     "no rights on node but rights on service for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:    "nope",
+				CheckID: "my-check",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    nodePerms,
+			Expected: false,
+			Name:     "no right on node for node check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:    "nope",
+				CheckID: "my-check",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    servicePerms,
+			Expected: false,
+			Name:     "rights on service but no right on node for node check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node: "node",
+			},
+			Perms:    nodePerms,
+			Expected: true,
+			Name:     "rights on node for node",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node: "node",
+			},
+			Perms:    servicePerms,
+			Expected: false,
+			Name:     "rights on service but not on node for node",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "node",
+				ServiceID: "my-service-id",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Perms:    nodePerms,
+			Expected: true,
+			Name:     "rights on node for service",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "node",
+				ServiceID: "my-service-id",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Perms:    servicePerms,
+			Expected: true,
+			Name:     "rights on service for service",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "node",
+				ServiceID: "my-service-id",
+				CheckID:   "my-check",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    nodePerms,
+			Expected: true,
+			Name:     "right on node for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "node",
+				ServiceID: "my-service-id",
+				CheckID:   "my-check",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    servicePerms,
+			Expected: true,
+			Name:     "rights on service for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:    "node",
+				CheckID: "my-check",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    nodePerms,
+			Expected: true,
+			Name:     "rights on node for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:    "node",
+				CheckID: "my-check",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    servicePerms,
+			Expected: false,
+			Name:     "rights on service for node check",
+		},
+	} {
+		t.Run(args.Name, func(t *testing.T) {
+			err = vetDeregisterWithACL(args.Perms, &args.DeregisterRequest, args.Service, args.Check)
+			if !args.Expected {
+				if err == nil {
+					t.Errorf("expected error with %+v", args.DeregisterRequest)
+				}
+				if !acl.IsErrPermissionDenied(err) {
+					t.Errorf("expected permission denied error with %+v, instead got %+v", args.DeregisterRequest, err)
+				}
+			} else if err != nil {
+				t.Errorf("expected no error with %+v", args.DeregisterRequest)
+			}
+		})
+	}
+}
+
+func TestCatalog_VirtualIPForService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.11.0"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	err := s1.fsm.State().EnsureRegistration(1, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	args := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "api",
+	}
+	var out string
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.VirtualIPForService", &args, &out))
+	require.Equal(t, "240.0.0.1", out)
+}
+
+func TestCatalog_VirtualIPForService_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+		c.Build = "1.11.0"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	err := s1.fsm.State().EnsureRegistration(1, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// Call the endpoint with no token and expect permission denied.
+	args := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "api",
+	}
+	var out string
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.VirtualIPForService", &args, &out)
+	require.Contains(t, err.Error(), acl.ErrPermissionDenied.Error())
+	require.Equal(t, "", out)
+
+	id := createToken(t, codec, `
+	service "api" {
+		policy = "read"
+	}`)
+
+	// Now try with the token and it will go through.
+	args.Token = id
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.VirtualIPForService", &args, &out))
+	require.Equal(t, "240.0.0.1", out)
+
+	// Make sure we still get permission denied for an unknown service.
+	args.ServiceName = "nope"
+	var out2 string
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.VirtualIPForService", &args, &out2)
+	require.Contains(t, err.Error(), acl.ErrPermissionDenied.Error())
+	require.Equal(t, "", out2)
 }

@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package structs
@@ -33,4 +34,8 @@ func validateUnusedKeys(unused []string) error {
 
 func validateInnerEnterpriseMeta(_, _ *EnterpriseMeta) error {
 	return nil
+}
+
+func requireEnterprise(kind string) error {
+	return fmt.Errorf("Config entry kind %q requires Consul Enterprise", kind)
 }

@@ -9,16 +9,16 @@
 %pill-deny,
 %pill-l7 {
   display: inline-block;
-  font-weight: $typo-weight-normal;
-  font-size: $typo-size-600;
+  font-weight: var(--typo-weight-normal);
+  font-size: var(--typo-size-600);
 }
 %pill-allow {
-  color: $green-800;
-  background-color: $green-100;
+  color: rgb(var(--tone-green-800));
+  background-color: rgb(var(--tone-green-100));
 }
 %pill-deny {
-  color: $red-800;
-  background-color: $red-100;
+  color: rgb(var(--tone-red-800));
+  background-color: rgb(var(--tone-red-100));
 }
 %pill-l7 {
   @extend %frame-gray-900;

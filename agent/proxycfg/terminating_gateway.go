@@ -121,6 +121,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 						Entries: []structs.IntentionMatchEntry{
 							{
 								Namespace: svc.Service.NamespaceOrDefault(),
+								Partition: svc.Service.PartitionOrDefault(),
 								Name:      svc.Service.Name,
 							},
 						},
@@ -284,7 +285,10 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 		if len(resp.Nodes) > 0 {
 			snap.TerminatingGateway.ServiceGroups[sn] = resp.Nodes
 			snap.TerminatingGateway.HostnameServices[sn] = hostnameEndpoints(
-				s.logger, snap.Datacenter, resp.Nodes)
+				s.logger,
+				snap.Locality,
+				resp.Nodes,
+			)
 		}
 
 	// Store leaf cert for watched service

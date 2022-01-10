@@ -346,10 +346,12 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		for _, err := range validateEnterpriseConfigKeys(&c2) {
 			b.warn("%s", err)
 		}
+		b.Warnings = append(b.Warnings, md.Warnings...)
 
 		// if we have a single 'check' or 'service' we need to add them to the
 		// list of checks and services first since we cannot merge them
 		// generically and later values would clobber earlier ones.
+		// TODO: move to applyDeprecatedConfig
 		if c2.Check != nil {
 			c2.Checks = append(c2.Checks, *c2.Check)
 			c2.Check = nil
@@ -366,7 +368,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	// process/merge some complex values
 	//
 
-	var dnsServiceTTL = map[string]time.Duration{}
+	dnsServiceTTL := map[string]time.Duration{}
 	for k, v := range c.DNS.ServiceTTL {
 		dnsServiceTTL[k] = b.durationVal(fmt.Sprintf("dns_config.service_ttl[%q]", k), &v)
 	}
@@ -426,10 +428,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	httpPort := b.portVal("ports.http", c.Ports.HTTP)
 	httpsPort := b.portVal("ports.https", c.Ports.HTTPS)
 	serverPort := b.portVal("ports.server", c.Ports.Server)
-	if c.Ports.XDS == nil {
-		c.Ports.XDS = c.Ports.GRPC
-	}
-	xdsPort := b.portVal("ports.xds", c.Ports.XDS)
+	grpcPort := b.portVal("ports.grpc", c.Ports.GRPC)
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
@@ -553,13 +552,13 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	// determine client addresses
 	clientAddrs := b.expandIPs("client_addr", c.ClientAddr)
+	if len(clientAddrs) == 0 {
+		b.warn("client_addr is empty, client services (DNS, HTTP, HTTPS, GRPC) will not be listening for connections")
+	}
 	dnsAddrs := b.makeAddrs(b.expandAddrs("addresses.dns", c.Addresses.DNS), clientAddrs, dnsPort)
 	httpAddrs := b.makeAddrs(b.expandAddrs("addresses.http", c.Addresses.HTTP), clientAddrs, httpPort)
 	httpsAddrs := b.makeAddrs(b.expandAddrs("addresses.https", c.Addresses.HTTPS), clientAddrs, httpsPort)
-	if c.Addresses.XDS == nil {
-		c.Addresses.XDS = c.Addresses.GRPC
-	}
-	xdsAddrs := b.makeAddrs(b.expandAddrs("addresses.xds", c.Addresses.XDS), clientAddrs, xdsPort)
+	grpcAddrs := b.makeAddrs(b.expandAddrs("addresses.grpc", c.Addresses.GRPC), clientAddrs, grpcPort)
 
 	for _, a := range dnsAddrs {
 		if x, ok := a.(*net.TCPAddr); ok {
@@ -688,7 +687,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	}
 	autoEncryptAllowTLS := boolVal(c.AutoEncrypt.AllowTLS)
-	autoConfig := b.autoConfigVal(c.AutoConfig)
+	autoConfig := b.autoConfigVal(c.AutoConfig, stringVal(c.Partition))
 	if autoEncryptAllowTLS || autoConfig.Enabled {
 		connectEnabled = true
 	}
@@ -728,21 +727,12 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			"csr_max_concurrent": "CSRMaxConcurrent",
 			"private_key_type":   "PrivateKeyType",
 			"private_key_bits":   "PrivateKeyBits",
+			"root_cert_ttl":      "RootCertTTL",
 		})
 	}
 
 	aclsEnabled := false
 	primaryDatacenter := strings.ToLower(stringVal(c.PrimaryDatacenter))
-	if c.ACLDatacenter != nil {
-		b.warn("The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.")
-
-		if primaryDatacenter == "" {
-			primaryDatacenter = strings.ToLower(stringVal(c.ACLDatacenter))
-		}
-
-		// when the acl_datacenter config is used it implicitly enables acls
-		aclsEnabled = true
-	}
 
 	if c.ACL.Enabled != nil {
 		aclsEnabled = boolVal(c.ACL.Enabled)
@@ -752,13 +742,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	if primaryDatacenter == "" {
 		primaryDatacenter = datacenter
 	}
-
-	enableTokenReplication := false
-	if c.ACLReplicationToken != nil {
-		enableTokenReplication = true
-	}
-
-	boolValWithDefault(c.ACL.TokenReplication, boolValWithDefault(c.EnableACLReplication, enableTokenReplication))
 
 	enableRemoteScriptChecks := boolVal(c.EnableScriptChecks)
 	enableLocalScriptChecks := boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
@@ -787,7 +770,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
 			}
 			if err := entry.Validate(); err != nil {
-				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
+				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %w", i, err)
 			}
 			configEntries = append(configEntries, entry)
 		}
@@ -830,12 +813,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	dataDir := stringVal(c.DataDir)
 	rt = RuntimeConfig{
 		// non-user configurable values
-		ACLDisabledTTL:             b.durationVal("acl.disabled_ttl", c.ACL.DisabledTTL),
 		AEInterval:                 b.durationVal("ae_interval", c.AEInterval),
 		CheckDeregisterIntervalMin: b.durationVal("check_deregister_interval_min", c.CheckDeregisterIntervalMin),
 		CheckReapInterval:          b.durationVal("check_reap_interval", c.CheckReapInterval),
 		Revision:                   stringVal(c.Revision),
-		SegmentLimit:               intVal(c.SegmentLimit),
 		SegmentNameLimit:           intVal(c.SegmentNameLimit),
 		SyncCoordinateIntervalMin:  b.durationVal("sync_coordinate_interval_min", c.SyncCoordinateIntervalMin),
 		SyncCoordinateRateTarget:   float64Val(c.SyncCoordinateRateTarget),
@@ -866,24 +847,30 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		GossipWANRetransmitMult: intVal(c.GossipWAN.RetransmitMult),
 
 		// ACL
-		ACLsEnabled:            aclsEnabled,
-		ACLDatacenter:          primaryDatacenter,
-		ACLDefaultPolicy:       stringValWithDefault(c.ACL.DefaultPolicy, stringVal(c.ACLDefaultPolicy)),
-		ACLDownPolicy:          stringValWithDefault(c.ACL.DownPolicy, stringVal(c.ACLDownPolicy)),
-		ACLEnableKeyListPolicy: boolValWithDefault(c.ACL.EnableKeyListPolicy, boolVal(c.ACLEnableKeyListPolicy)),
-		ACLMasterToken:         stringValWithDefault(c.ACL.Tokens.Master, stringVal(c.ACLMasterToken)),
-		ACLTokenTTL:            b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
-		ACLPolicyTTL:           b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
-		ACLRoleTTL:             b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
-		ACLTokenReplication:    boolValWithDefault(c.ACL.TokenReplication, boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
+		ACLsEnabled: aclsEnabled,
+		ACLResolverSettings: consul.ACLResolverSettings{
+			ACLsEnabled:      aclsEnabled,
+			Datacenter:       datacenter,
+			NodeName:         b.nodeName(c.NodeName),
+			ACLPolicyTTL:     b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
+			ACLTokenTTL:      b.durationVal("acl.token_ttl", c.ACL.TokenTTL),
+			ACLRoleTTL:       b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
+			ACLDownPolicy:    stringVal(c.ACL.DownPolicy),
+			ACLDefaultPolicy: stringVal(c.ACL.DefaultPolicy),
+		},
+
+		ACLEnableKeyListPolicy:    boolVal(c.ACL.EnableKeyListPolicy),
+		ACLInitialManagementToken: stringVal(c.ACL.Tokens.InitialManagement),
+
+		ACLTokenReplication: boolVal(c.ACL.TokenReplication),
 
 		ACLTokens: token.Config{
-			DataDir:             dataDir,
-			EnablePersistence:   boolValWithDefault(c.ACL.EnableTokenPersistence, false),
-			ACLDefaultToken:     stringValWithDefault(c.ACL.Tokens.Default, stringVal(c.ACLToken)),
-			ACLAgentToken:       stringValWithDefault(c.ACL.Tokens.Agent, stringVal(c.ACLAgentToken)),
-			ACLAgentMasterToken: stringValWithDefault(c.ACL.Tokens.AgentMaster, stringVal(c.ACLAgentMasterToken)),
-			ACLReplicationToken: stringValWithDefault(c.ACL.Tokens.Replication, stringVal(c.ACLReplicationToken)),
+			DataDir:               dataDir,
+			EnablePersistence:     boolValWithDefault(c.ACL.EnableTokenPersistence, false),
+			ACLDefaultToken:       stringVal(c.ACL.Tokens.Default),
+			ACLAgentToken:         stringVal(c.ACL.Tokens.Agent),
+			ACLAgentRecoveryToken: stringVal(c.ACL.Tokens.AgentRecovery),
+			ACLReplicationToken:   stringVal(c.ACL.Tokens.Replication),
 		},
 
 		// Autopilot
@@ -956,6 +943,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			StatsiteAddr:                       stringVal(c.Telemetry.StatsiteAddr),
 			PrometheusOpts: prometheus.PrometheusOpts{
 				Expiration: b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
+				Name:       stringVal(c.Telemetry.MetricsPrefix),
 			},
 		},
 
@@ -1018,8 +1006,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		EncryptKey:                 stringVal(c.EncryptKey),
 		EncryptVerifyIncoming:      boolVal(c.EncryptVerifyIncoming),
 		EncryptVerifyOutgoing:      boolVal(c.EncryptVerifyOutgoing),
-		XDSPort:                    xdsPort,
-		XDSAddrs:                   xdsAddrs,
+		GRPCPort:                   grpcPort,
+		GRPCAddrs:                  grpcAddrs,
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
 		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
 		KeyFile:                    stringVal(c.KeyFile),
@@ -1069,6 +1057,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RetryJoinWAN:                b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
 		SegmentName:                 stringVal(c.SegmentName),
 		Segments:                    segments,
+		SegmentLimit:                intVal(c.SegmentLimit),
 		SerfAdvertiseAddrLAN:        serfAdvertiseAddrLAN,
 		SerfAdvertiseAddrWAN:        serfAdvertiseAddrWAN,
 		SerfAllowedCIDRsLAN:         serfAllowedCIDRSLAN,
@@ -1104,6 +1093,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 
 	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
+
+	if c.RaftBoltDBConfig != nil {
+		rt.RaftBoltDBConfig = *c.RaftBoltDBConfig
+	}
 
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
@@ -1176,10 +1169,9 @@ func validateBasicName(field, value string, allowEmpty bool) error {
 
 // validate performs semantic validation of the runtime configuration.
 func (b *builder) validate(rt RuntimeConfig) error {
-
 	// validContentPath defines a regexp for a valid content path name.
-	var validContentPath = regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
-	var hasVersion = regexp.MustCompile(`^/v\d+/$`)
+	validContentPath := regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
+	hasVersion := regexp.MustCompile(`^/v\d+/$`)
 	// ----------------------------------------------------------------
 	// check required params we cannot recover from first
 	//
@@ -1311,7 +1303,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	if rt.AutopilotMaxTrailingLogs < 0 {
 		return fmt.Errorf("autopilot.max_trailing_logs cannot be %d. Must be greater than or equal to zero", rt.AutopilotMaxTrailingLogs)
 	}
-	if err := validateBasicName("acl_datacenter", rt.ACLDatacenter, true); err != nil {
+	if err := validateBasicName("primary_datacenter", rt.PrimaryDatacenter, true); err != nil {
 		return err
 	}
 	// In DevMode, UI is enabled by default, so to enable rt.UIDir, don't perform this check
@@ -1409,6 +1401,12 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	for _, s := range rt.Services {
 		if err := s.Validate(); err != nil {
 			return fmt.Errorf("service %q: %s", s.Name, err)
+		}
+	}
+	// Check for errors in the node check definitions
+	for _, c := range rt.Checks {
+		if err := c.CheckType().Validate(); err != nil {
+			return fmt.Errorf("check %q: %w", c.Name, err)
 		}
 	}
 
@@ -1552,6 +1550,13 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		return nil
 	}
 
+	var H2PingUseTLSVal bool
+	if stringVal(v.H2PING) != "" {
+		H2PingUseTLSVal = boolValWithDefault(v.H2PingUseTLS, true)
+	} else {
+		H2PingUseTLSVal = boolVal(v.H2PingUseTLS)
+	}
+
 	id := types.CheckID(stringVal(v.ID))
 
 	return &structs.CheckDefinition{
@@ -1580,7 +1585,9 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		TTL:                            b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
 		SuccessBeforePassing:           intVal(v.SuccessBeforePassing),
 		FailuresBeforeCritical:         intVal(v.FailuresBeforeCritical),
+		FailuresBeforeWarning:          intValWithDefault(v.FailuresBeforeWarning, intVal(v.FailuresBeforeCritical)),
 		H2PING:                         stringVal(v.H2PING),
+		H2PingUseTLS:                   H2PingUseTLSVal,
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),
@@ -1624,7 +1631,7 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 
 	meta := make(map[string]string)
 	if err := structs.ValidateServiceMetadata(kind, v.Meta, false); err != nil {
-		b.err = multierror.Append(fmt.Errorf("invalid meta for service %s: %v", stringVal(v.Name), err))
+		b.err = multierror.Append(b.err, fmt.Errorf("invalid meta for service %s: %v", stringVal(v.Name), err))
 	} else {
 		meta = v.Meta
 	}
@@ -1639,14 +1646,13 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	}
 
 	if err := structs.ValidateWeights(serviceWeights); err != nil {
-		b.err = multierror.Append(fmt.Errorf("Invalid weight definition for service %s: %s", stringVal(v.Name), err))
+		b.err = multierror.Append(b.err, fmt.Errorf("Invalid weight definition for service %s: %s", stringVal(v.Name), err))
 	}
 
 	if (v.Port != nil || v.Address != nil) && (v.SocketPath != nil) {
-		b.err = multierror.Append(
+		b.err = multierror.Append(b.err,
 			fmt.Errorf("service %s cannot have both socket path %s and address/port",
-				stringVal(v.Name), stringVal(v.SocketPath)), b.err)
-
+				stringVal(v.Name), stringVal(v.SocketPath)))
 	}
 
 	return &structs.ServiceDefinition{
@@ -1713,6 +1719,7 @@ func (b *builder) upstreamsVal(v []Upstream) structs.Upstreams {
 		ups[i] = structs.Upstream{
 			DestinationType:      stringVal(u.DestinationType),
 			DestinationNamespace: stringVal(u.DestinationNamespace),
+			DestinationPartition: stringVal(u.DestinationPartition),
 			DestinationName:      stringVal(u.DestinationName),
 			Datacenter:           stringVal(u.Datacenter),
 			LocalBindAddress:     stringVal(u.LocalBindAddress),
@@ -1883,7 +1890,7 @@ func (b *builder) durationValWithDefault(name string, v *string, defaultVal time
 	}
 	d, err := time.ParseDuration(*v)
 	if err != nil {
-		b.err = multierror.Append(fmt.Errorf("%s: invalid duration: %q: %s", name, *v, err))
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid duration: %q: %s", name, *v, err))
 	}
 	return d
 }
@@ -2226,7 +2233,7 @@ func (b *builder) makeAddrs(pri []net.Addr, sec []*net.IPAddr, port int) []net.A
 	return x
 }
 
-func (b *builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
+func (b *builder) autoConfigVal(raw AutoConfigRaw, agentPartition string) AutoConfig {
 	var val AutoConfig
 
 	val.Enabled = boolValWithDefault(raw.Enabled, false)
@@ -2254,12 +2261,12 @@ func (b *builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
 		val.IPSANs = append(val.IPSANs, ip)
 	}
 
-	val.Authorizer = b.autoConfigAuthorizerVal(raw.Authorization)
+	val.Authorizer = b.autoConfigAuthorizerVal(raw.Authorization, agentPartition)
 
 	return val
 }
 
-func (b *builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw) AutoConfigAuthorizer {
+func (b *builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw, agentPartition string) AutoConfigAuthorizer {
 	// Our config file syntax wraps the static authorizer configuration in a "static" stanza. However
 	// internally we do not support multiple configured authorization types so the RuntimeConfig just
 	// inlines the static one. While we can and probably should extend the authorization types in the
@@ -2267,13 +2274,16 @@ func (b *builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw) AutoCo
 	// needed right now so the configuration types will remain simplistic until they need to be otherwise.
 	var val AutoConfigAuthorizer
 
+	entMeta := structs.DefaultEnterpriseMetaInPartition(agentPartition)
+	entMeta.Normalize()
+
 	val.Enabled = boolValWithDefault(raw.Enabled, false)
 	val.ClaimAssertions = raw.Static.ClaimAssertions
 	val.AllowReuse = boolValWithDefault(raw.Static.AllowReuse, false)
 	val.AuthMethod = structs.ACLAuthMethod{
 		Name:           "Auto Config Authorizer",
 		Type:           "jwt",
-		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		EnterpriseMeta: *entMeta,
 		Config: map[string]interface{}{
 			"JWTSupportedAlgs":     raw.Static.JWTSupportedAlgs,
 			"BoundAudiences":       raw.Static.BoundAudiences,
@@ -2361,7 +2371,6 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	// build out the validator to ensure that the given configuration was valid
 	null := hclog.NewNullLogger()
 	validator, err := ssoauth.NewValidator(null, &authz.AuthMethod)
-
 	if err != nil {
 		return fmt.Errorf("auto_config.authorization.static has invalid configuration: %v", err)
 	}
@@ -2369,8 +2378,9 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	// create a blank identity for use to validate the claim assertions.
 	blankID := validator.NewIdentity()
 	varMap := map[string]string{
-		"node":    "fake",
-		"segment": "fake",
+		"node":      "fake",
+		"segment":   "fake",
+		"partition": "fake",
 	}
 
 	// validate all the claim assertions

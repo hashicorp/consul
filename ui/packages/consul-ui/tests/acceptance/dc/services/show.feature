@@ -117,8 +117,8 @@ Feature: dc / services / show: Show Service
       dc: dc1
       service: service-0
     ---
-    # The Metrics dashboard should use the Service.Name not the ID
-    And I see href on the metricsAnchor like "https://something.com?service-0&dc1"
+    # The external dashboard link should use the Service.Name not the ID
+    And I see href on the dashboardAnchor like "https://something.com?service-0&dc1"
   Scenario: With no access to service
     Given 1 datacenter model with the value "dc1"
     And permissions from yaml

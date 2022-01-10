@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	pbconfig "github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/proto/pbconnect"
-	"github.com/stretchr/testify/require"
 )
 
 func stringPointer(s string) *string {
@@ -65,15 +66,14 @@ func TestTranslateConfig(t *testing.T) {
 			DownPolicy:             "deny",
 			DefaultPolicy:          "deny",
 			EnableKeyListPolicy:    true,
-			DisabledTTL:            "4s",
 			EnableTokenPersistence: true,
 			MSPDisableBootstrap:    false,
 			Tokens: &pbconfig.ACLTokens{
-				Master:      "99e7e490-6baf-43fc-9010-78b6aa9a6813",
-				Replication: "51308d40-465c-4ac6-a636-7c0747edec89",
-				AgentMaster: "e012e1ea-78a2-41cc-bc8b-231a44196f39",
-				Default:     "8781a3f5-de46-4b45-83e1-c92f4cfd0332",
-				Agent:       "ddb8f1b0-8a99-4032-b601-87926bce244e",
+				InitialManagement: "99e7e490-6baf-43fc-9010-78b6aa9a6813",
+				Replication:       "51308d40-465c-4ac6-a636-7c0747edec89",
+				AgentRecovery:     "e012e1ea-78a2-41cc-bc8b-231a44196f39",
+				Default:           "8781a3f5-de46-4b45-83e1-c92f4cfd0332",
+				Agent:             "ddb8f1b0-8a99-4032-b601-87926bce244e",
 				ManagedServiceProvider: []*pbconfig.ACLServiceProviderToken{
 					{
 						AccessorID: "23f37987-7b9e-4e5b-acae-dbc9bc137bae",
@@ -127,14 +127,13 @@ func TestTranslateConfig(t *testing.T) {
 			DownPolicy:             stringPointer("deny"),
 			DefaultPolicy:          stringPointer("deny"),
 			EnableKeyListPolicy:    boolPointer(true),
-			DisabledTTL:            stringPointer("4s"),
 			EnableTokenPersistence: boolPointer(true),
 			Tokens: config.Tokens{
-				Master:      stringPointer("99e7e490-6baf-43fc-9010-78b6aa9a6813"),
-				Replication: stringPointer("51308d40-465c-4ac6-a636-7c0747edec89"),
-				AgentMaster: stringPointer("e012e1ea-78a2-41cc-bc8b-231a44196f39"),
-				Default:     stringPointer("8781a3f5-de46-4b45-83e1-c92f4cfd0332"),
-				Agent:       stringPointer("ddb8f1b0-8a99-4032-b601-87926bce244e"),
+				InitialManagement: stringPointer("99e7e490-6baf-43fc-9010-78b6aa9a6813"),
+				AgentRecovery:     stringPointer("e012e1ea-78a2-41cc-bc8b-231a44196f39"),
+				Replication:       stringPointer("51308d40-465c-4ac6-a636-7c0747edec89"),
+				Default:           stringPointer("8781a3f5-de46-4b45-83e1-c92f4cfd0332"),
+				Agent:             stringPointer("ddb8f1b0-8a99-4032-b601-87926bce244e"),
 				ManagedServiceProvider: []config.ServiceProviderToken{
 					{
 						AccessorID: stringPointer("23f37987-7b9e-4e5b-acae-dbc9bc137bae"),

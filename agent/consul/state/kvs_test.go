@@ -500,7 +500,8 @@ func TestStateStore_KVSDelete(t *testing.T) {
 	// The entry was removed from the state store
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	e, err := firstWithTxn(tx, "kvs", "id", "foo", nil)
+
+	e, err := tx.First(tableKVs, indexID, Query{Value: "foo"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -509,7 +510,7 @@ func TestStateStore_KVSDelete(t *testing.T) {
 	}
 
 	// Try fetching the other keys to ensure they still exist
-	e, err = firstWithTxn(tx, "kvs", "id", "foo/bar", nil)
+	e, err = tx.First(tableKVs, indexID, Query{Value: "foo/bar"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -518,7 +519,7 @@ func TestStateStore_KVSDelete(t *testing.T) {
 	}
 
 	// Check that the index table was updated
-	if idx := s.maxIndex("kvs"); idx != 3 {
+	if idx := s.maxIndex(partitionedIndexEntryName(tableKVs, "default")); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -550,7 +551,7 @@ func TestStateStore_KVSDelete(t *testing.T) {
 	if err := s.KVSDelete(5, "foo", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex("kvs"); idx != 3 {
+	if idx := s.maxIndex(partitionedIndexEntryName(tableKVs, "default")); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -633,7 +634,7 @@ func TestStateStore_KVSDeleteCAS(t *testing.T) {
 	if !ok || err != nil {
 		t.Fatalf("expected (true, nil), got: (%v, %#v)", ok, err)
 	}
-	if idx := s.maxIndex("kvs"); idx != 5 {
+	if idx := s.maxIndex(partitionedIndexEntryName(tableKVs, "default")); idx != 5 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -658,7 +659,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 
 	// Check that nothing was actually stored
 	tx := s.db.Txn(false)
-	if e, err := firstWithTxn(tx, "kvs", "id", "foo", nil); e != nil || err != nil {
+	if e, err := tx.First(tableKVs, indexID, Query{Value: "foo"}); e != nil || err != nil {
 		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", e, err)
 	}
 	tx.Abort()
@@ -852,7 +853,7 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 	if err := s.KVSDeleteTree(9, "bar", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex("kvs"); idx != 4 {
+	if idx := s.maxIndex(partitionedIndexEntryName(tableKVs, "default")); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -865,7 +866,7 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	entries, err := tx.Get("kvs", "id")
+	entries, err := tx.Get(tableKVs, indexID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -883,7 +884,7 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 	}
 
 	// Index should be updated if modifications are made
-	if idx := s.maxIndex("kvs"); idx != 5 {
+	if idx := s.maxIndex(partitionedIndexEntryName(tableKVs, "default")); idx != 5 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -1358,7 +1359,7 @@ func TestStateStore_KVS_Snapshot_Restore(t *testing.T) {
 		}
 
 		// Check that the index was updated.
-		if idx := s.maxIndex("kvs"); idx != 7 {
+		if idx := s.maxIndex(partitionedIndexEntryName(tableKVs, "default")); idx != 7 {
 			t.Fatalf("bad index: %d", idx)
 		}
 	}()

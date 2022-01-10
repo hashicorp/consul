@@ -1,0 +1,3 @@
+```release-note:bug
+xds: fix a deadlock when the snapshot channel already have a snapshot to be consumed.
+```

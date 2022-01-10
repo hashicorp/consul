@@ -7,8 +7,11 @@ for more details.
 Using this component for all of our errors means we can show a consistent
 error page for generic errors.
 
-This component show slighltly different visuals and copy depending on the
-`status` of the error (the status is generally a HTTP error code)
+This component show slightly different visuals and copy depending on the
+`status` of the error (the status is generally a HTTP error code).
+
+Please note: The examples below use a `hash` for demonstration purposes, you'll
+probably just be using an `error` object in real-life.
 
 ## Arguments
 
@@ -17,9 +20,23 @@ This component show slighltly different visuals and copy depending on the
 | `login` | `Function` | `undefined` | A login action to call when the login button is pressed (if not provided no login button will be shown  |
 | `error` | `Object` | `undefined` | 'Consul UI error shaped' JSON `{status: String, message: String, detail: String}` |
 
+Specifically 403 errors **always** use the same header/body copy, this is hardcoded in and not currently overridable.
+
 ```hbs preview-template
 <ErrorState
   @error={{hash status='403'}}
+/>
+```
+
+Other StatusCodes have a global default text but these *are* overridable by using the message/detail properties of the Consul UI shaped errors.
+
+```hbs preview-template
+<ErrorState
+  @error={{hash
+    status='404'
+    message="`message` is what is shown in the header"
+    detail="`detail` is what shown in the body"
+  }}
 />
 ```
 

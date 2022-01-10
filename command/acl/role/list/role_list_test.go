@@ -35,7 +35,7 @@ func TestRoleListCommand(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -93,7 +93,7 @@ func TestRoleListCommand_JSON(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 

@@ -405,6 +405,8 @@ func TestAPI_DefaultConfig_env(t *testing.T) {
 	// (environment) which has non-deterministic effects on the other tests
 	// which derive their default configuration from the environment
 
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	addr := "1.2.3.4:5678"
 	token := "abcd1234"
 	auth := "username:password"
@@ -486,6 +488,8 @@ func TestAPI_DefaultConfig_env(t *testing.T) {
 }
 
 func TestAPI_SetupTLSConfig(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	t.Parallel()
 	// A default config should result in a clean default client config.
 	tlsConfig := &TLSConfig{}
@@ -928,6 +932,7 @@ func TestAPI_ParseQueryMeta(t *testing.T) {
 	resp.Header.Set("X-Consul-KnownLeader", "true")
 	resp.Header.Set("X-Consul-Translate-Addresses", "true")
 	resp.Header.Set("X-Consul-Default-ACL-Policy", "deny")
+	resp.Header.Set("X-Consul-Results-Filtered-By-ACLs", "true")
 
 	qm := &QueryMeta{}
 	if err := parseQueryMeta(resp, qm); err != nil {
@@ -947,6 +952,9 @@ func TestAPI_ParseQueryMeta(t *testing.T) {
 		t.Fatalf("Bad: %v", qm)
 	}
 	if qm.DefaultACLPolicy != "deny" {
+		t.Fatalf("Bad: %v", qm)
+	}
+	if !qm.ResultsFilteredByACLs {
 		t.Fatalf("Bad: %v", qm)
 	}
 }

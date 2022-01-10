@@ -100,15 +100,18 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 	}
 
 	// Get the ACL token for the request for the checks below.
-	var entMeta structs.EnterpriseMeta
-	ident, authz, err := s.srv.ResolveTokenIdentityAndDefaultMeta(args.Token, &entMeta, nil)
+	identity, authz, err := s.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
 
 	var accessorID string
-	if ident != nil {
-		accessorID = ident.ID()
+	var entMeta structs.EnterpriseMeta
+	if identity != nil {
+		entMeta.Merge(identity.EnterpriseMetadata())
+		accessorID = identity.ID()
+	} else {
+		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
 	}
 
 	var (
@@ -170,7 +173,7 @@ func (s *Intention) computeApplyChangesLegacyCreate(
 ) (*structs.IntentionMutation, error) {
 	// This variant is just for legacy UUID-based intentions.
 
-	args.Intention.DefaultNamespaces(entMeta)
+	args.Intention.FillPartitionAndNamespace(entMeta, true)
 
 	if !args.Intention.CanWrite(authz) {
 		sn := args.Intention.SourceServiceName()
@@ -254,12 +257,12 @@ func (s *Intention) computeApplyChangesLegacyUpdate(
 		return nil, acl.ErrPermissionDenied
 	}
 
-	args.Intention.DefaultNamespaces(entMeta)
+	args.Intention.FillPartitionAndNamespace(entMeta, true)
 
 	// Prior to v1.9.0 renames of the destination side of an intention were
 	// allowed, but that behavior doesn't work anymore.
 	if ixn.DestinationServiceName() != args.Intention.DestinationServiceName() {
-		return nil, fmt.Errorf("Cannot modify DestinationNS or DestinationName for an intention once it exists.")
+		return nil, fmt.Errorf("Cannot modify Destination partition/namespace/name for an intention once it exists.")
 	}
 
 	// Default source type
@@ -305,7 +308,7 @@ func (s *Intention) computeApplyChangesUpsert(
 		return nil, fmt.Errorf("ID must not be specified")
 	}
 
-	args.Intention.DefaultNamespaces(entMeta)
+	args.Intention.FillPartitionAndNamespace(entMeta, true)
 
 	if !args.Intention.CanWrite(authz) {
 		sn := args.Intention.SourceServiceName()
@@ -386,7 +389,7 @@ func (s *Intention) computeApplyChangesDelete(
 	entMeta *structs.EnterpriseMeta,
 	args *structs.IntentionRequest,
 ) (*structs.IntentionMutation, error) {
-	args.Intention.DefaultNamespaces(entMeta)
+	args.Intention.FillPartitionAndNamespace(entMeta, true)
 
 	if !args.Intention.CanWrite(authz) {
 		sn := args.Intention.SourceServiceName()
@@ -547,16 +550,18 @@ func (s *Intention) List(args *structs.IntentionListRequest, reply *structs.Inde
 			} else {
 				reply.DataOrigin = structs.IntentionDataOriginLegacy
 			}
-
-			if err := s.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
-
 			raw, err := filter.Execute(reply.Intentions)
 			if err != nil {
 				return err
 			}
 			reply.Intentions = raw.(structs.Intentions)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := s.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 
 			return nil
 		},
@@ -582,7 +587,7 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 		return err
 	}
 
-	// Finish defaulting the namespace fields.
+	// Finish defaulting the namespace and partition fields.
 	for i := range args.Match.Entries {
 		if args.Match.Entries[i].Namespace == "" {
 			args.Match.Entries[i].Namespace = entMeta.NamespaceOrDefault()
@@ -591,13 +596,21 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 			return fmt.Errorf("Invalid match entry namespace %q: %v",
 				args.Match.Entries[i].Namespace, err)
 		}
+
+		if args.Match.Entries[i].Partition == "" {
+			args.Match.Entries[i].Partition = entMeta.PartitionOrDefault()
+		}
+		if err := s.srv.validateEnterpriseIntentionPartition(args.Match.Entries[i].Partition); err != nil {
+			return fmt.Errorf("Invalid match entry partition %q: %v",
+				args.Match.Entries[i].Partition, err)
+		}
 	}
 
 	var authzContext acl.AuthorizerContext
-	// Go through each entry to ensure we have intention:read for the resource.
+	// Go through each entry to ensure we have intentions:read for the resource.
 
 	// TODO - should we do this instead of filtering the result set? This will only allow
-	// queries for which the token has intention:read permissions on the requested side
+	// queries for which the token has intentions:read permissions on the requested side
 	// of the service. Should it instead return all matches that it would be able to list.
 	// if so we should remove this and call filterACL instead. Based on how this is used
 	// its probably fine. If you have intention read on the source just do a source type
@@ -667,6 +680,12 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 	if query.DestinationNS == "" {
 		query.DestinationNS = entMeta.NamespaceOrDefault()
 	}
+	if query.SourcePartition == "" {
+		query.SourcePartition = entMeta.PartitionOrDefault()
+	}
+	if query.DestinationPartition == "" {
+		query.DestinationPartition = entMeta.PartitionOrDefault()
+	}
 
 	if err := s.srv.validateEnterpriseIntentionNamespace(query.SourceNS, false); err != nil {
 		return fmt.Errorf("Invalid source namespace %q: %v", query.SourceNS, err)
@@ -710,18 +729,28 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 	// which is much more important.
 	defaultDecision := authz.IntentionDefaultAllow(nil)
 
-	state := s.srv.fsm.State()
+	store := s.srv.fsm.State()
 
 	entry := structs.IntentionMatchEntry{
 		Namespace: query.SourceNS,
+		Partition: query.SourcePartition,
 		Name:      query.SourceName,
 	}
-	_, intentions, err := state.IntentionMatchOne(nil, entry, structs.IntentionMatchSource)
+	_, intentions, err := store.IntentionMatchOne(nil, entry, structs.IntentionMatchSource)
 	if err != nil {
 		return fmt.Errorf("failed to query intentions for %s/%s", query.SourceNS, query.SourceName)
 	}
 
-	decision, err := state.IntentionDecision(query.DestinationName, query.DestinationNS, intentions, structs.IntentionMatchDestination, defaultDecision, false)
+	opts := state.IntentionDecisionOpts{
+		Target:           query.DestinationName,
+		Namespace:        query.DestinationNS,
+		Partition:        query.DestinationPartition,
+		Intentions:       intentions,
+		MatchType:        structs.IntentionMatchDestination,
+		DefaultDecision:  defaultDecision,
+		AllowPermissions: false,
+	}
+	decision, err := store.IntentionDecision(opts)
 	if err != nil {
 		return fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
 			query.SourceNS, query.SourceName, query.DestinationNS, query.DestinationName, err)
@@ -750,8 +779,14 @@ func (s *Intention) aclAccessorID(secretID string) string {
 }
 
 func (s *Intention) validateEnterpriseIntention(ixn *structs.Intention) error {
+	if err := s.srv.validateEnterpriseIntentionPartition(ixn.SourcePartition); err != nil {
+		return fmt.Errorf("Invalid source partition %q: %v", ixn.SourcePartition, err)
+	}
 	if err := s.srv.validateEnterpriseIntentionNamespace(ixn.SourceNS, true); err != nil {
 		return fmt.Errorf("Invalid source namespace %q: %v", ixn.SourceNS, err)
+	}
+	if err := s.srv.validateEnterpriseIntentionPartition(ixn.DestinationPartition); err != nil {
+		return fmt.Errorf("Invalid destination partition %q: %v", ixn.DestinationPartition, err)
 	}
 	if err := s.srv.validateEnterpriseIntentionNamespace(ixn.DestinationNS, true); err != nil {
 		return fmt.Errorf("Invalid destination namespace %q: %v", ixn.DestinationNS, err)

@@ -2,8 +2,8 @@ package api
 
 import (
 	"bufio"
-	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -84,7 +84,7 @@ type AgentService struct {
 	Meta              map[string]string
 	Port              int
 	Address           string
-	SocketPath        string
+	SocketPath        string                    `json:",omitempty"`
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Weights           AgentWeights
 	EnableTagOverride bool
@@ -144,10 +144,22 @@ const (
 	// that the member represents a Consul server.
 	MemberTagValueRoleServer = "consul"
 
+	// MemberTagValueRoleClient is the value of the MemberTagKeyRole used to indicate
+	// that the member represents a Consul client.
+	MemberTagValueRoleClient = "node"
+
+	// MemberTagKeyDatacenter is the key used to indicate which datacenter this member is in.
+	MemberTagKeyDatacenter = "dc"
+
 	// MemberTagKeySegment is the key name of the tag used to indicate which network
 	// segment this member is in.
 	// Network Segments are a Consul Enterprise feature.
 	MemberTagKeySegment = "segment"
+
+	// MemberTagKeyPartition is the key name of the tag used to indicate which partition
+	// this member is in.
+	// Partitions are a Consul Enterprise feature.
+	MemberTagKeyPartition = "ap"
 
 	// MemberTagKeyBootstrap is the key name of the tag used to indicate whether this
 	// agent was started with the "bootstrap" configuration enabled
@@ -263,6 +275,7 @@ type AgentServiceRegistration struct {
 	Tags              []string                  `json:",omitempty"`
 	Port              int                       `json:",omitempty"`
 	Address           string                    `json:",omitempty"`
+	SocketPath        string                    `json:",omitempty"`
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	EnableTagOverride bool                      `json:",omitempty"`
 	Meta              map[string]string         `json:",omitempty"`
@@ -277,9 +290,9 @@ type AgentServiceRegistration struct {
 
 // ServiceRegisterOpts is used to pass extra options to the service register.
 type ServiceRegisterOpts struct {
-	//Missing healthchecks will be deleted from the agent.
-	//Using this parameter allows to idempotently register a service and its checks without
-	//having to manually deregister checks.
+	// Missing healthchecks will be deleted from the agent.
+	// Using this parameter allows to idempotently register a service and its checks without
+	// having to manually deregister checks.
 	ReplaceExistingChecks bool
 
 	// ctx is an optional context pass through to the underlying HTTP
@@ -326,9 +339,12 @@ type AgentServiceCheck struct {
 	TLSSkipVerify          bool                `json:",omitempty"`
 	GRPC                   string              `json:",omitempty"`
 	GRPCUseTLS             bool                `json:",omitempty"`
+	H2PING                 string              `json:",omitempty"`
+	H2PingUseTLS           bool                `json:",omitempty"`
 	AliasNode              string              `json:",omitempty"`
 	AliasService           string              `json:",omitempty"`
 	SuccessBeforePassing   int                 `json:",omitempty"`
+	FailuresBeforeWarning  int                 `json:",omitempty"`
 	FailuresBeforeCritical int                 `json:",omitempty"`
 
 	// In Consul 0.7 and later, checks that are associated with a service
@@ -408,9 +424,9 @@ type ConnectProxyConfig struct {
 
 // Upstream is the response structure for a proxy upstream configuration.
 type Upstream struct {
-	DestinationType UpstreamDestType `json:",omitempty"`
-	// DestinationPartition string `json:",omitempty"` // TODO(partitions)?
-	DestinationNamespace string `json:",omitempty"`
+	DestinationType      UpstreamDestType `json:",omitempty"`
+	DestinationPartition string           `json:",omitempty"`
+	DestinationNamespace string           `json:",omitempty"`
 	DestinationName      string
 	Datacenter           string                 `json:",omitempty"`
 	LocalBindAddress     string                 `json:",omitempty"`
@@ -439,11 +455,14 @@ func (c *Client) Agent() *Agent {
 // information about itself
 func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 	r := a.c.newRequest("GET", "/v1/agent/self")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	var out map[string]map[string]interface{}
 	if err := decodeBody(resp, &out); err != nil {
@@ -457,12 +476,14 @@ func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 // a operator:read ACL token.
 func (a *Agent) Host() (map[string]interface{}, error) {
 	r := a.c.newRequest("GET", "/v1/agent/host")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out map[string]interface{}
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -474,12 +495,14 @@ func (a *Agent) Host() (map[string]interface{}, error) {
 // its current internal metric data
 func (a *Agent) Metrics() (*MetricsInfo, error) {
 	r := a.c.newRequest("GET", "/v1/agent/metrics")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out *MetricsInfo
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -493,8 +516,11 @@ func (a *Agent) Metrics() (*MetricsInfo, error) {
 func (a *Agent) MetricsStream(ctx context.Context) (io.ReadCloser, error) {
 	r := a.c.newRequest("GET", "/v1/agent/metrics/stream")
 	r.ctx = ctx
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	return resp.Body, nil
@@ -503,11 +529,14 @@ func (a *Agent) MetricsStream(ctx context.Context) (io.ReadCloser, error) {
 // Reload triggers a configuration reload for the agent we are connected to.
 func (a *Agent) Reload() error {
 	r := a.c.newRequest("PUT", "/v1/agent/reload")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -542,12 +571,14 @@ func (a *Agent) ChecksWithFilterOpts(filter string, q *QueryOptions) (map[string
 	r := a.c.newRequest("GET", "/v1/agent/checks")
 	r.setQueryOptions(q)
 	r.filterQuery(filter)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out map[string]*AgentCheck
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -572,12 +603,14 @@ func (a *Agent) ServicesWithFilterOpts(filter string, q *QueryOptions) (map[stri
 	r := a.c.newRequest("GET", "/v1/agent/services")
 	r.setQueryOptions(q)
 	r.filterQuery(filter)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out map[string]*AgentService
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -600,6 +633,8 @@ func (a *Agent) AgentHealthServiceByIDOpts(serviceID string, q *QueryOptions) (s
 	r.setQueryOptions(q)
 	r.params.Add("format", "json")
 	r.header.Set("Accept", "application/json")
+	// not a lot of value in wrapping the doRequest call in a requireHttpCodes call
+	// we manipulate the resp body  and the require calls "swallow" the content on err
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return "", nil, err
@@ -639,6 +674,8 @@ func (a *Agent) AgentHealthServiceByNameOpts(service string, q *QueryOptions) (s
 	r.setQueryOptions(q)
 	r.params.Add("format", "json")
 	r.header.Set("Accept", "application/json")
+	// not a lot of value in wrapping the doRequest call in a requireHttpCodes call
+	// we manipulate the resp body  and the require calls "swallow" the content on err
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return "", nil, err
@@ -670,14 +707,16 @@ func (a *Agent) AgentHealthServiceByNameOpts(service string, q *QueryOptions) (s
 // agent-local state. That means there is no persistent raft index so we block
 // based on object hash instead.
 func (a *Agent) Service(serviceID string, q *QueryOptions) (*AgentService, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/agent/service/"+serviceID)
+	r := a.c.newRequest("GET", "/v1/agent/service/"+url.PathEscape(serviceID))
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -697,12 +736,14 @@ func (a *Agent) Members(wan bool) ([]*AgentMember, error) {
 	if wan {
 		r.params.Set("wan", "1")
 	}
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out []*AgentMember
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -719,12 +760,14 @@ func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
 		r.params.Set("wan", "1")
 	}
 
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out []*AgentMember
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -755,36 +798,45 @@ func (a *Agent) serviceRegister(service *AgentServiceRegistration, opts ServiceR
 	if opts.ReplaceExistingChecks {
 		r.params.Set("replace-existing-checks", "true")
 	}
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
 // ServiceDeregister is used to deregister a service with
 // the local agent
 func (a *Agent) ServiceDeregister(serviceID string) error {
-	r := a.c.newRequest("PUT", "/v1/agent/service/deregister/"+serviceID)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	r := a.c.newRequest("PUT", "/v1/agent/service/deregister/"+url.PathEscape(serviceID))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
 // ServiceDeregisterOpts is used to deregister a service with
 // the local agent with QueryOptions.
 func (a *Agent) ServiceDeregisterOpts(serviceID string, q *QueryOptions) error {
-	r := a.c.newRequest("PUT", "/v1/agent/service/deregister/"+serviceID)
+	r := a.c.newRequest("PUT", "/v1/agent/service/deregister/"+url.PathEscape(serviceID))
 	r.setQueryOptions(q)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -832,14 +884,17 @@ func (a *Agent) updateTTL(checkID, note, status string) error {
 	default:
 		return fmt.Errorf("Invalid status: %s", status)
 	}
-	endpoint := fmt.Sprintf("/v1/agent/check/%s/%s", status, checkID)
+	endpoint := fmt.Sprintf("/v1/agent/check/%s/%s", url.PathEscape(status), url.PathEscape(checkID))
 	r := a.c.newRequest("PUT", endpoint)
 	r.params.Set("note", note)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -877,7 +932,7 @@ func (a *Agent) UpdateTTLOpts(checkID, output, status string, q *QueryOptions) e
 		return fmt.Errorf("Invalid status: %s", status)
 	}
 
-	endpoint := fmt.Sprintf("/v1/agent/check/update/%s", checkID)
+	endpoint := fmt.Sprintf("/v1/agent/check/update/%s", url.PathEscape(checkID))
 	r := a.c.newRequest("PUT", endpoint)
 	r.setQueryOptions(q)
 	r.obj = &checkUpdate{
@@ -885,11 +940,14 @@ func (a *Agent) UpdateTTLOpts(checkID, output, status string, q *QueryOptions) e
 		Output: output,
 	}
 
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -898,11 +956,14 @@ func (a *Agent) UpdateTTLOpts(checkID, output, status string, q *QueryOptions) e
 func (a *Agent) CheckRegister(check *AgentCheckRegistration) error {
 	r := a.c.newRequest("PUT", "/v1/agent/check/register")
 	r.obj = check
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -915,63 +976,89 @@ func (a *Agent) CheckDeregister(checkID string) error {
 // CheckDeregisterOpts is used to deregister a check with
 // the local agent using query options
 func (a *Agent) CheckDeregisterOpts(checkID string, q *QueryOptions) error {
-	r := a.c.newRequest("PUT", "/v1/agent/check/deregister/"+checkID)
+	r := a.c.newRequest("PUT", "/v1/agent/check/deregister/"+url.PathEscape(checkID))
 	r.setQueryOptions(q)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
 // Join is used to instruct the agent to attempt a join to
 // another cluster member
 func (a *Agent) Join(addr string, wan bool) error {
-	r := a.c.newRequest("PUT", "/v1/agent/join/"+addr)
+	r := a.c.newRequest("PUT", "/v1/agent/join/"+url.PathEscape(addr))
 	if wan {
 		r.params.Set("wan", "1")
 	}
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
 // Leave is used to have the agent gracefully leave the cluster and shutdown
 func (a *Agent) Leave() error {
 	r := a.c.newRequest("PUT", "/v1/agent/leave")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
+}
+
+type ForceLeaveOpts struct {
+	// Prune indicates if we should remove a failed agent from the list of
+	// members in addition to ejecting it.
+	Prune bool
+
+	// WAN indicates that the request should exclusively target the WAN pool.
+	WAN bool
 }
 
 // ForceLeave is used to have the agent eject a failed node
 func (a *Agent) ForceLeave(node string) error {
-	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
-	_, resp, err := requireOK(a.c.doRequest(r))
-	if err != nil {
-		return err
-	}
-	closeResponseBody(resp)
-	return nil
+	return a.ForceLeaveOpts(node, ForceLeaveOpts{})
 }
 
-//ForceLeavePrune is used to have an a failed agent removed
-//from the list of members
+// ForceLeavePrune is used to have an a failed agent removed
+// from the list of members
 func (a *Agent) ForceLeavePrune(node string) error {
-	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
-	r.params.Set("prune", "1")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	return a.ForceLeaveOpts(node, ForceLeaveOpts{Prune: true})
+}
+
+// ForceLeaveOpts is used to have the agent eject a failed node or remove it
+// completely from the list of members.
+func (a *Agent) ForceLeaveOpts(node string, opts ForceLeaveOpts) error {
+	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+url.PathEscape(node))
+	if opts.Prune {
+		r.params.Set("prune", "1")
+	}
+	if opts.WAN {
+		r.params.Set("wan", "1")
+	}
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -980,12 +1067,14 @@ func (a *Agent) ForceLeavePrune(node string) error {
 func (a *Agent) ConnectAuthorize(auth *AgentAuthorizeParams) (*AgentAuthorize, error) {
 	r := a.c.newRequest("POST", "/v1/agent/connect/authorize")
 	r.obj = auth
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out AgentAuthorize
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -997,11 +1086,14 @@ func (a *Agent) ConnectAuthorize(auth *AgentAuthorizeParams) (*AgentAuthorize, e
 func (a *Agent) ConnectCARoots(q *QueryOptions) (*CARootList, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/agent/connect/ca/roots")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -1016,14 +1108,16 @@ func (a *Agent) ConnectCARoots(q *QueryOptions) (*CARootList, *QueryMeta, error)
 
 // ConnectCALeaf gets the leaf certificate for the given service ID.
 func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*LeafCert, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/agent/connect/ca/leaf/"+serviceID)
+	r := a.c.newRequest("GET", "/v1/agent/connect/ca/leaf/"+url.PathEscape(serviceID))
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -1042,15 +1136,18 @@ func (a *Agent) EnableServiceMaintenance(serviceID, reason string) error {
 }
 
 func (a *Agent) EnableServiceMaintenanceOpts(serviceID, reason string, q *QueryOptions) error {
-	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+serviceID)
+	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+url.PathEscape(serviceID))
 	r.setQueryOptions(q)
 	r.params.Set("enable", "true")
 	r.params.Set("reason", reason)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1061,14 +1158,17 @@ func (a *Agent) DisableServiceMaintenance(serviceID string) error {
 }
 
 func (a *Agent) DisableServiceMaintenanceOpts(serviceID string, q *QueryOptions) error {
-	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+serviceID)
+	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+url.PathEscape(serviceID))
 	r.setQueryOptions(q)
 	r.params.Set("enable", "false")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1078,11 +1178,14 @@ func (a *Agent) EnableNodeMaintenance(reason string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/maintenance")
 	r.params.Set("enable", "true")
 	r.params.Set("reason", reason)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1091,11 +1194,14 @@ func (a *Agent) EnableNodeMaintenance(reason string) error {
 func (a *Agent) DisableNodeMaintenance() error {
 	r := a.c.newRequest("PUT", "/v1/agent/maintenance")
 	r.params.Set("enable", "false")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1111,6 +1217,7 @@ func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions
 func (a *Agent) MonitorJSON(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
 	return a.monitor(loglevel, true, stopCh, q)
 }
+
 func (a *Agent) monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
 	r := a.c.newRequest("GET", "/v1/agent/monitor")
 	r.setQueryOptions(q)
@@ -1120,8 +1227,11 @@ func (a *Agent) monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q
 	if logJSON {
 		r.params.Set("logjson", "true")
 	}
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	logCh := make(chan string, 64)
@@ -1188,25 +1298,33 @@ func (a *Agent) UpdateACLReplicationToken(token string, q *WriteOptions) (*Write
 // UpdateDefaultACLToken updates the agent's "default" token. See updateToken
 // for more details
 func (a *Agent) UpdateDefaultACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateTokenFallback("default", "acl_token", token, q)
+	return a.updateTokenFallback(token, q, "default", "acl_token")
 }
 
 // UpdateAgentACLToken updates the agent's "agent" token. See updateToken
 // for more details
 func (a *Agent) UpdateAgentACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateTokenFallback("agent", "acl_agent_token", token, q)
+	return a.updateTokenFallback(token, q, "agent", "acl_agent_token")
+}
+
+// UpdateAgentRecoveryACLToken updates the agent's "agent_recovery" token. See updateToken
+// for more details.
+func (a *Agent) UpdateAgentRecoveryACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return a.updateTokenFallback(token, q, "agent_recovery", "agent_master", "acl_agent_master_token")
 }
 
 // UpdateAgentMasterACLToken updates the agent's "agent_master" token. See updateToken
-// for more details
+// for more details.
+//
+// DEPRECATED - Prefer UpdateAgentRecoveryACLToken for v1.11 and above.
 func (a *Agent) UpdateAgentMasterACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateTokenFallback("agent_master", "acl_agent_master_token", token, q)
+	return a.updateTokenFallback(token, q, "agent_master", "acl_agent_master_token")
 }
 
 // UpdateReplicationACLToken updates the agent's "replication" token. See updateToken
 // for more details
 func (a *Agent) UpdateReplicationACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateTokenFallback("replication", "acl_replication_token", token, q)
+	return a.updateTokenFallback(token, q, "replication", "acl_replication_token")
 }
 
 // updateToken can be used to update one of an agent's ACL tokens after the agent has
@@ -1217,32 +1335,42 @@ func (a *Agent) updateToken(target, token string, q *WriteOptions) (*WriteMeta, 
 	return meta, err
 }
 
-func (a *Agent) updateTokenFallback(target, fallback, token string, q *WriteOptions) (*WriteMeta, error) {
-	meta, status, err := a.updateTokenOnce(target, token, q)
-	if err != nil && status == 404 {
-		meta, _, err = a.updateTokenOnce(fallback, token, q)
+func (a *Agent) updateTokenFallback(token string, q *WriteOptions, targets ...string) (*WriteMeta, error) {
+	if len(targets) == 0 {
+		panic("targets must not be empty")
+	}
+
+	var (
+		meta *WriteMeta
+		err  error
+	)
+	for _, target := range targets {
+		var status int
+		meta, status, err = a.updateTokenOnce(target, token, q)
+		if err == nil && status != http.StatusNotFound {
+			return meta, err
+		}
 	}
 	return meta, err
 }
 
 func (a *Agent) updateTokenOnce(target, token string, q *WriteOptions) (*WriteMeta, int, error) {
-	r := a.c.newRequest("PUT", fmt.Sprintf("/v1/agent/token/%s", target))
+	r := a.c.newRequest("PUT", fmt.Sprintf("/v1/agent/token/%s", url.PathEscape(target)))
 	r.setWriteOptions(q)
 	r.obj = &AgentToken{Token: token}
 
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
-		return nil, 0, err
+		return nil, 500, err
 	}
 	defer closeResponseBody(resp)
-
 	wm := &WriteMeta{RequestTime: rtt}
-
-	if resp.StatusCode != 200 {
-		var buf bytes.Buffer
-		io.Copy(&buf, resp.Body)
-		return wm, resp.StatusCode, fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.Bytes())
+	if err := requireOK(resp); err != nil {
+		var statusE StatusError
+		if errors.As(err, &statusE) {
+			return wm, statusE.Code, statusE
+		}
+		return nil, 0, err
 	}
-
 	return wm, resp.StatusCode, nil
 }

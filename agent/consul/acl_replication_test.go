@@ -7,13 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/require"
 )
 
 func TestACLReplication_diffACLPolicies(t *testing.T) {
@@ -298,9 +299,9 @@ func TestACLReplication_Tokens(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -310,7 +311,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLTokenReplication = true
 		c.ACLReplicationRate = 100
@@ -326,11 +327,6 @@ func TestACLReplication_Tokens(t *testing.T) {
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-
-	// Wait for legacy acls to be disabled so we are clear that
-	// legacy replication isn't meddling.
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	// Create a bunch of new tokens and policies
@@ -515,9 +511,9 @@ func TestACLReplication_Policies(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -527,7 +523,7 @@ func TestACLReplication_Policies(t *testing.T) {
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLTokenReplication = false
 		c.ACLReplicationRate = 100
@@ -542,12 +538,7 @@ func TestACLReplication_Policies(t *testing.T) {
 	// Try to join.
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-
-	// Wait for legacy acls to be disabled so we are clear that
-	// legacy replication isn't meddling.
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
+	testrpc.WaitForLeader(t, s1.RPC, "dc2", testrpc.WithToken("root"))
 	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies, 1, 0, 0)
 
 	// Create a bunch of new policies
@@ -640,9 +631,9 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -683,7 +674,7 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLTokenReplication = true
 		c.ACLReplicationRate = 100
@@ -699,7 +690,6 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
-	waitForNewACLs(t, s2)
 
 	// ensures replication is working ok
 	retry.Run(t, func(r *retry.R) {
@@ -780,6 +770,7 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 		require.True(r, status.ReplicatedTokenIndex < token2.CreateIndex, "ReplicatedTokenIndex is not less than the token2s create index")
 		// ensures that token replication is erroring
 		require.True(r, status.LastError.After(minErrorTime), "Replication LastError not after the minErrorTime")
+		require.Equal(r, status.LastErrorMessage, "failed to retrieve unredacted tokens - replication token in use does not grant acl:write")
 	})
 }
 
@@ -790,9 +781,9 @@ func TestACLReplication_AllTypes(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -802,7 +793,7 @@ func TestACLReplication_AllTypes(t *testing.T) {
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLTokenReplication = true
 		c.ACLReplicationRate = 100
@@ -818,11 +809,6 @@ func TestACLReplication_AllTypes(t *testing.T) {
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-
-	// Wait for legacy acls to be disabled so we are clear that
-	// legacy replication isn't meddling.
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	const (

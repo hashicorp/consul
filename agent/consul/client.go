@@ -10,6 +10,10 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/serf"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -17,9 +21,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/serf"
-	"golang.org/x/time/rate"
 )
 
 var ClientCounters = []prometheus.CounterDefinition{
@@ -56,10 +57,6 @@ type Client struct {
 
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver
-
-	// DEPRECATED (ACL-Legacy-Compat) - Only needed while we support both
-	// useNewACLs is a flag to indicate whether we are using the new ACL system
-	useNewACLs int32
 
 	// Connection pool to consul servers
 	connPool *pool.ConnPool
@@ -120,15 +117,14 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 		return nil, err
 	}
 
-	c.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
-		Config:      config,
-		Delegate:    c,
-		Logger:      c.logger,
-		AutoDisable: true,
-		CacheConfig: clientACLCacheConfig,
-		ACLConfig:   newACLConfig(c.logger),
-		Tokens:      deps.Tokens,
+		Config:          config.ACLResolverSettings,
+		Delegate:        c,
+		Logger:          c.logger,
+		DisableDuration: aclClientDisabledTTL,
+		CacheConfig:     clientACLCacheConfig,
+		ACLConfig:       newACLConfig(&partitionInfoNoop{}, c.logger),
+		Tokens:          deps.Tokens,
 	}
 	var err error
 	if c.acls, err = NewACLResolver(&aclConfig); err != nil {
@@ -152,12 +148,6 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.
 	go c.lanEventHandler()
-
-	// This needs to happen after initializing c.router to prevent a race
-	// condition where the router manager is used when the pointer is nil
-	if c.acls.ACLsEnabled() {
-		go c.monitorACLMode()
-	}
 
 	return c, nil
 }
@@ -187,7 +177,7 @@ func (c *Client) Shutdown() error {
 	return nil
 }
 
-// Leave is used to prepare for a graceful shutdown
+// Leave is used to prepare for a graceful shutdown.
 func (c *Client) Leave() error {
 	c.logger.Info("client starting leave")
 
@@ -200,40 +190,65 @@ func (c *Client) Leave() error {
 	return nil
 }
 
-// JoinLAN is used to have Consul client join the inner-DC pool
-// The target address should be another node inside the DC
-// listening on the Serf LAN address
-func (c *Client) JoinLAN(addrs []string) (int, error) {
+// JoinLAN is used to have Consul join the inner-DC pool The target address
+// should be another node inside the DC listening on the Serf LAN address
+func (c *Client) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, error) {
+	// Partitions definitely have to match.
+	if c.config.AgentEnterpriseMeta().PartitionOrDefault() != entMeta.PartitionOrDefault() {
+		return 0, fmt.Errorf("target partition %q must match client agent partition %q",
+			entMeta.PartitionOrDefault(),
+			c.config.AgentEnterpriseMeta().PartitionOrDefault(),
+		)
+	}
 	return c.serf.Join(addrs, true)
 }
 
-// LocalMember is used to return the local node
-func (c *Client) LocalMember() serf.Member {
+// AgentLocalMember is used to retrieve the LAN member for the local node.
+func (c *Client) AgentLocalMember() serf.Member {
 	return c.serf.LocalMember()
 }
 
-// LANMembers is used to return the members of the LAN cluster
-func (c *Client) LANMembers() []serf.Member {
+// LANMembersInAgentPartition returns the LAN members for this agent's
+// canonical serf pool. For clients this is the only pool that exists. For
+// servers it's the pool in the default segment and the default partition.
+func (c *Client) LANMembersInAgentPartition() []serf.Member {
 	return c.serf.Members()
 }
 
-// LANMembersAllSegments returns members from all segments.
-func (c *Client) LANMembersAllSegments() ([]serf.Member, error) {
+// LANMembers returns the LAN members for one of:
+//
+// - the requested partition
+// - the requested segment
+// - all segments
+//
+// This is limited to segments and partitions that the node is a member of.
+func (c *Client) LANMembers(filter LANMemberFilter) ([]serf.Member, error) {
+	if err := filter.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Partitions definitely have to match.
+	if c.config.AgentEnterpriseMeta().PartitionOrDefault() != filter.PartitionOrDefault() {
+		return nil, fmt.Errorf("partition %q not found", filter.PartitionOrDefault())
+	}
+
+	if !filter.AllSegments && filter.Segment != c.config.Segment {
+		return nil, fmt.Errorf("segment %q not found", filter.Segment)
+	}
+
 	return c.serf.Members(), nil
 }
 
-// LANSegmentMembers only returns our own segment's members, because clients
-// can't be in multiple segments.
-func (c *Client) LANSegmentMembers(segment string) ([]serf.Member, error) {
-	if segment == c.config.Segment {
-		return c.LANMembers(), nil
+// RemoveFailedNode is used to remove a failed node from the cluster.
+func (c *Client) RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+	// Partitions definitely have to match.
+	if c.config.AgentEnterpriseMeta().PartitionOrDefault() != entMeta.PartitionOrDefault() {
+		return fmt.Errorf("client agent in partition %q cannot remove node in different partition %q",
+			c.config.AgentEnterpriseMeta().PartitionOrDefault(), entMeta.PartitionOrDefault())
 	}
-
-	return nil, fmt.Errorf("segment %q not found", segment)
-}
-
-// RemoveFailedNode is used to remove a failed node from the cluster
-func (c *Client) RemoveFailedNode(node string, prune bool) error {
+	if !isSerfMember(c.serf, node) {
+		return fmt.Errorf("agent: No node found with name '%s'", node)
+	}
 	if prune {
 		return c.serf.RemoveFailedNodePrune(node)
 	}
@@ -332,7 +347,7 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	// Let the caller peek at the reply.
 	if replyFn != nil {
 		if err := replyFn(&reply); err != nil {
-			return nil
+			return err
 		}
 	}
 
@@ -364,11 +379,7 @@ func (c *Client) Stats() map[string]map[string]string {
 	}
 
 	if c.config.ACLsEnabled {
-		if c.UseLegacyACLs() {
-			stats["consul"]["acl"] = "legacy"
-		} else {
-			stats["consul"]["acl"] = "enabled"
-		}
+		stats["consul"]["acl"] = "enabled"
 	} else {
 		stats["consul"]["acl"] = "disabled"
 	}
@@ -376,8 +387,20 @@ func (c *Client) Stats() map[string]map[string]string {
 	return stats
 }
 
-// GetLANCoordinate returns the network coordinate of the current node, as
-// maintained by Serf.
+// GetLANCoordinate returns the coordinate of the node in the LAN gossip
+// pool.
+//
+// - Clients return a single coordinate for the single gossip pool they are
+//   in (default, segment, or partition).
+//
+// - Servers return one coordinate for their canonical gossip pool (i.e.
+//   default partition/segment) and one per segment they are also ancillary
+//   members of.
+//
+// NOTE: servers do not emit coordinates for partitioned gossip pools they
+// are ancillary members of.
+//
+// NOTE: This assumes coordinates are enabled, so check that before calling.
 func (c *Client) GetLANCoordinate() (lib.CoordinateSet, error) {
 	lan, err := c.serf.GetCoordinate()
 	if err != nil {
@@ -393,4 +416,12 @@ func (c *Client) GetLANCoordinate() (lib.CoordinateSet, error) {
 func (c *Client) ReloadConfig(config ReloadableConfig) error {
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 	return nil
+}
+
+func (c *Client) AgentEnterpriseMeta() *structs.EnterpriseMeta {
+	return c.config.AgentEnterpriseMeta()
+}
+
+func (c *Client) agentSegmentName() string {
+	return c.config.Segment
 }

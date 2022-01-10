@@ -1,4 +1,4 @@
-/* eslint no-console: "off" */
+/*eslint no-console: "off", ember/no-jquery: "off", ember/no-global-jquery: "off"*/
 
 const elementNotFound = 'Element not found';
 // this error comes from our pageObject `find `function

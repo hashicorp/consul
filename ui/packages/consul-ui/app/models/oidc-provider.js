@@ -9,6 +9,7 @@ export default class OidcProvider extends Model {
 
   @attr('string') Datacenter;
   @attr('string') Namespace;
+  @attr('string') Partition;
   @attr('string') Kind;
   @attr('string') AuthURL;
   @attr('string') DisplayName;

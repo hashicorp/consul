@@ -1,0 +1,39 @@
+# Consul::UpstreamInstance::List
+
+```hbs
+<DataSource
+  @src={{uri '/partition/default/dc-1/proxies/for-service/origin-service-slug'}}
+as |source|>
+  <Consul::UpstreamInstance::List
+    @items={{source.data}}
+    @dc={{'dc-1'}}
+    @nspace={{'nspace'}}
+    @partition={{'partition'}}
+  />
+</DataSource>
+```
+
+A presentational component for rendering Consul Upstream Instances. Upstreams
+instances are a Consul Service Instance that specifically has a relationship
+with an origin Service Instance.
+
+Currently you have to pass in the current dc, nspace and partition so that we
+can figure out whether to show things that aren't in same 'bucket' that you are
+currently in in the UI.
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `items` | `array` |  | An array of Upstreams |
+| `dc` | `string` |  | The slug of the current dc |
+| `nspace` | `string` |  | The slug of the current nspace |
+| `partition` | `string` |  | The slug of the current partition |
+
+## See
+
+- [Possible
+  Occurances](/hashicorp/consul/search?q=%22Consul%3A%3AUpstreamInstance%3A%3AList%22)
+- [Template Source Code](./index.hbs)
+
+---

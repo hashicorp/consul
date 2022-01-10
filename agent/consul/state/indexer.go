@@ -2,8 +2,13 @@ package state
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // indexerSingle implements both memdb.Indexer and memdb.SingleIndexer. It may
@@ -113,6 +118,15 @@ func (b *indexBuilder) String(v string) {
 	(*bytes.Buffer)(b).WriteString(null)
 }
 
+func (b *indexBuilder) Int64(v int64) {
+	const size = binary.MaxVarintLen64
+
+	// Get the value and encode it
+	buf := make([]byte, size)
+	binary.PutVarint(buf, v)
+	b.Raw(buf)
+}
+
 // Raw appends the bytes without a null terminator to the buffer. Raw should
 // only be used when v has a fixed length, or when building the last segment of
 // a prefix index.
@@ -122,4 +136,84 @@ func (b *indexBuilder) Raw(v []byte) {
 
 func (b *indexBuilder) Bytes() []byte {
 	return (*bytes.Buffer)(b).Bytes()
+}
+
+// singleValueID is an interface that may be implemented by any type that should
+// be indexed by a single ID and a structs.EnterpriseMeta to scope the ID.
+type singleValueID interface {
+	IDValue() string
+	PartitionOrDefault() string
+	NamespaceOrDefault() string
+}
+
+type multiValueID interface {
+	IDValue() []string
+	PartitionOrDefault() string
+	NamespaceOrDefault() string
+}
+
+var _ singleValueID = (*structs.DirEntry)(nil)
+var _ singleValueID = (*Tombstone)(nil)
+var _ singleValueID = (*Query)(nil)
+var _ singleValueID = (*structs.Session)(nil)
+
+// indexFromIDValue creates an index key from any struct that implements singleValueID
+func indexFromIDValueLowerCase(raw interface{}) ([]byte, error) {
+	e, ok := raw.(singleValueID)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T, does not implement singleValueID", raw)
+	}
+
+	v := strings.ToLower(e.IDValue())
+	if v == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(v)
+	return b.Bytes(), nil
+}
+
+// indexFromIDValue creates an index key from any struct that implements singleValueID
+func indexFromMultiValueID(raw interface{}) ([]byte, error) {
+	e, ok := raw.(multiValueID)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T, does not implement multiValueID", raw)
+	}
+	var b indexBuilder
+	for _, v := range e.IDValue() {
+		if v == "" {
+			return nil, errMissingValueForIndex
+		}
+		b.String(strings.ToLower(v))
+	}
+	return b.Bytes(), nil
+}
+
+func (b *indexBuilder) Bool(v bool) {
+	b.Raw([]byte{intFromBool(v)})
+}
+
+type TimeQuery struct {
+	Value time.Time
+	structs.EnterpriseMeta
+}
+
+// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q TimeQuery) NamespaceOrDefault() string {
+	return q.EnterpriseMeta.NamespaceOrDefault()
+}
+
+// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q TimeQuery) PartitionOrDefault() string {
+	return q.EnterpriseMeta.PartitionOrDefault()
+}
+
+func (b *indexBuilder) Time(t time.Time) {
+	val := t.Unix()
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, uint64(val))
+	(*bytes.Buffer)(b).Write(buf)
 }

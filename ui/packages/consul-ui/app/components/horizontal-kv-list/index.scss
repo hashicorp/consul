@@ -10,10 +10,6 @@
 %horizontal-kv-list:not([class]) dt:not([class]) {
   @extend %horizontal-kv-list-hidden-title;
 }
-%horizontal-kv-list[class] dt,
-%horizontal-kv-list dt[class] {
-  @extend %horizontal-kv-list-visible-title;
-}
 %horizontal-kv-list-hidden-title {
   @extend %visually-hidden;
 }

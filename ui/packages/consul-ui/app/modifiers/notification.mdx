@@ -1,0 +1,34 @@
+# notification
+
+Consul UIs notification modifier is used to 'hoist' DOM elements into the
+global notification area for the UI. The most common usage will be something
+like the below:
+
+```hbs preview-template
+<figure>
+  <figcaption>Attach a Warning notice to the top of the app ^^^</figcaption>
+
+  <Notice
+    class="notification-update"
+    @type="warning"
+    {{notification
+      sticky=true
+    }}
+  as |notice|>
+    <notice.Header>
+      <strong>Warning!</strong>
+    </notice.Header>
+    <notice.Body>
+      <p>
+        This service has been deregistered and no longer exists in the catalog.
+      </p>
+    </notice.Body>
+  </Notice>
+
+</figure>
+```
+
+Currently this is backed by `ember-cli-flash` and the named options are
+currently options that can be accepted by `ember-cli-flash`. Be aware that this
+is likely to change in the future.
+

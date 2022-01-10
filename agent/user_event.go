@@ -187,6 +187,7 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 		}
 
 		// Scan for a match
+		// NOTE: this only works in the default partition and default namespace
 		services := a.State.Services(structs.DefaultEnterpriseMetaInDefaultPartition())
 		found := false
 	OUTER:

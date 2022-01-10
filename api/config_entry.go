@@ -22,6 +22,7 @@ const (
 	TerminatingGateway string = "terminating-gateway"
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
+	ExportedServices   string = "exported-services"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -30,6 +31,7 @@ const (
 type ConfigEntry interface {
 	GetKind() string
 	GetName() string
+	GetPartition() string
 	GetNamespace() string
 	GetMeta() map[string]string
 	GetCreateIndex() uint64
@@ -133,6 +135,10 @@ type UpstreamConfiguration struct {
 type UpstreamConfig struct {
 	// Name is only accepted within a service-defaults config entry.
 	Name string `json:",omitempty"`
+
+	// Partition is only accepted within a service-defaults config entry.
+	Partition string `json:",omitempty"`
+
 	// Namespace is only accepted within a service-defaults config entry.
 	Namespace string `json:",omitempty"`
 
@@ -205,6 +211,7 @@ type UpstreamLimits struct {
 type ServiceConfigEntry struct {
 	Kind             string
 	Name             string
+	Partition        string                  `json:",omitempty"`
 	Namespace        string                  `json:",omitempty"`
 	Protocol         string                  `json:",omitempty"`
 	Mode             ProxyMode               `json:",omitempty"`
@@ -219,33 +226,18 @@ type ServiceConfigEntry struct {
 	ModifyIndex uint64
 }
 
-func (s *ServiceConfigEntry) GetKind() string {
-	return s.Kind
-}
-
-func (s *ServiceConfigEntry) GetName() string {
-	return s.Name
-}
-
-func (s *ServiceConfigEntry) GetNamespace() string {
-	return s.Namespace
-}
-
-func (s *ServiceConfigEntry) GetMeta() map[string]string {
-	return s.Meta
-}
-
-func (s *ServiceConfigEntry) GetCreateIndex() uint64 {
-	return s.CreateIndex
-}
-
-func (s *ServiceConfigEntry) GetModifyIndex() uint64 {
-	return s.ModifyIndex
-}
+func (s *ServiceConfigEntry) GetKind() string            { return s.Kind }
+func (s *ServiceConfigEntry) GetName() string            { return s.Name }
+func (s *ServiceConfigEntry) GetPartition() string       { return s.Partition }
+func (s *ServiceConfigEntry) GetNamespace() string       { return s.Namespace }
+func (s *ServiceConfigEntry) GetMeta() map[string]string { return s.Meta }
+func (s *ServiceConfigEntry) GetCreateIndex() uint64     { return s.CreateIndex }
+func (s *ServiceConfigEntry) GetModifyIndex() uint64     { return s.ModifyIndex }
 
 type ProxyConfigEntry struct {
 	Kind             string
 	Name             string
+	Partition        string                  `json:",omitempty"`
 	Namespace        string                  `json:",omitempty"`
 	Mode             ProxyMode               `json:",omitempty"`
 	TransparentProxy *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
@@ -257,29 +249,13 @@ type ProxyConfigEntry struct {
 	ModifyIndex      uint64
 }
 
-func (p *ProxyConfigEntry) GetKind() string {
-	return p.Kind
-}
-
-func (p *ProxyConfigEntry) GetName() string {
-	return p.Name
-}
-
-func (p *ProxyConfigEntry) GetNamespace() string {
-	return p.Namespace
-}
-
-func (p *ProxyConfigEntry) GetMeta() map[string]string {
-	return p.Meta
-}
-
-func (p *ProxyConfigEntry) GetCreateIndex() uint64 {
-	return p.CreateIndex
-}
-
-func (p *ProxyConfigEntry) GetModifyIndex() uint64 {
-	return p.ModifyIndex
-}
+func (p *ProxyConfigEntry) GetKind() string            { return p.Kind }
+func (p *ProxyConfigEntry) GetName() string            { return p.Name }
+func (p *ProxyConfigEntry) GetPartition() string       { return p.Partition }
+func (p *ProxyConfigEntry) GetNamespace() string       { return p.Namespace }
+func (p *ProxyConfigEntry) GetMeta() map[string]string { return p.Meta }
+func (p *ProxyConfigEntry) GetCreateIndex() uint64     { return p.CreateIndex }
+func (p *ProxyConfigEntry) GetModifyIndex() uint64     { return p.ModifyIndex }
 
 func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 	switch kind {
@@ -301,6 +277,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ServiceIntentionsConfigEntry{Kind: kind, Name: name}, nil
 	case MeshConfig:
 		return &MeshConfigEntry{}, nil
+	case ExportedServices:
+		return &ExportedServicesConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -402,12 +380,14 @@ func (conf *ConfigEntries) Get(kind string, name string, q *QueryOptions) (Confi
 
 	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s/%s", kind, name))
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(conf.c.doRequest(r))
+	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -427,12 +407,14 @@ func (conf *ConfigEntries) List(kind string, q *QueryOptions) ([]ConfigEntry, *Q
 
 	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s", kind))
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(conf.c.doRequest(r))
+	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -466,11 +448,14 @@ func (conf *ConfigEntries) set(entry ConfigEntry, params map[string]string, w *W
 		r.params.Set(param, value)
 	}
 	r.obj = entry
-	rtt, resp, err := requireOK(conf.c.doRequest(r))
+	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
 		return false, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return false, nil, err
+	}
 
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, resp.Body); err != nil {
@@ -483,17 +468,45 @@ func (conf *ConfigEntries) set(entry ConfigEntry, params map[string]string, w *W
 }
 
 func (conf *ConfigEntries) Delete(kind string, name string, w *WriteOptions) (*WriteMeta, error) {
+	_, wm, err := conf.delete(kind, name, nil, w)
+	return wm, err
+}
+
+// DeleteCAS performs a Check-And-Set deletion of the given config entry, and
+// returns true if it was successful. If the provided index no longer matches
+// the entry's ModifyIndex (i.e. it was modified by another process) then the
+// operation will fail and return false.
+func (conf *ConfigEntries) DeleteCAS(kind, name string, index uint64, w *WriteOptions) (bool, *WriteMeta, error) {
+	return conf.delete(kind, name, map[string]string{"cas": strconv.FormatUint(index, 10)}, w)
+}
+
+func (conf *ConfigEntries) delete(kind, name string, params map[string]string, w *WriteOptions) (bool, *WriteMeta, error) {
 	if kind == "" || name == "" {
-		return nil, fmt.Errorf("Both kind and name parameters must not be empty")
+		return false, nil, fmt.Errorf("Both kind and name parameters must not be empty")
 	}
 
 	r := conf.c.newRequest("DELETE", fmt.Sprintf("/v1/config/%s/%s", kind, name))
 	r.setWriteOptions(w)
-	rtt, resp, err := requireOK(conf.c.doRequest(r))
-	if err != nil {
-		return nil, err
+	for param, value := range params {
+		r.params.Set(param, value)
 	}
-	closeResponseBody(resp)
+
+	rtt, resp, err := conf.c.doRequest(r)
+	if err != nil {
+		return false, nil, err
+	}
+	defer closeResponseBody(resp)
+
+	if err := requireOK(resp); err != nil {
+		return false, nil, err
+	}
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, resp.Body); err != nil {
+		return false, nil, fmt.Errorf("Failed to read response: %v", err)
+	}
+
+	res := strings.Contains(buf.String(), "true")
 	wm := &WriteMeta{RequestTime: rtt}
-	return wm, nil
+	return res, wm, nil
 }

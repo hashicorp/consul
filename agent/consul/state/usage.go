@@ -9,17 +9,30 @@ import (
 )
 
 const (
-	serviceNamesUsageTable = "service-names"
+	serviceNamesUsageTable      = "service-names"
+	kvUsageTable                = "kv-entries"
+	connectNativeInstancesTable = "connect-native"
+	connectPrefix               = "connect-mesh"
+
+	tableUsage = "usage"
 )
+
+var allConnectKind = []string{
+	string(structs.ServiceKindConnectProxy),
+	string(structs.ServiceKindIngressGateway),
+	string(structs.ServiceKindMeshGateway),
+	string(structs.ServiceKindTerminatingGateway),
+	connectNativeInstancesTable,
+}
 
 // usageTableSchema returns a new table schema used for tracking various indexes
 // for the Raft log.
 func usageTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: "usage",
+		Name: tableUsage,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
@@ -41,9 +54,26 @@ type UsageEntry struct {
 
 // ServiceUsage contains all of the usage data related to services
 type ServiceUsage struct {
-	Services         int
-	ServiceInstances int
+	Services                int
+	ServiceInstances        int
+	ConnectServiceInstances map[string]int
 	EnterpriseServiceUsage
+}
+
+// NodeUsage contains all of the usage data related to nodes
+type NodeUsage struct {
+	Nodes int
+	EnterpriseNodeUsage
+}
+
+type KVUsage struct {
+	KVCount int
+	EnterpriseKVUsage
+}
+
+type ConfigEntryUsage struct {
+	ConfigByKind map[string]int
+	EnterpriseConfigEntryUsage
 }
 
 type uniqueServiceState int
@@ -68,13 +98,16 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 		}
 
 		switch change.Table {
-		case "nodes":
+		case tableNodes:
 			usageDeltas[change.Table] += delta
+			addEnterpriseNodeUsage(usageDeltas, change)
+
 		case tableServices:
 			svc := changeObject(change).(*structs.ServiceNode)
 			usageDeltas[change.Table] += delta
 			addEnterpriseServiceInstanceUsage(usageDeltas, change)
 
+			connectDeltas(change, usageDeltas, delta)
 			// Construct a mapping of all of the various service names that were
 			// changed, in order to compare it with the finished memdb state.
 			// Make sure to account for the fact that services can change their names.
@@ -85,6 +118,14 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 			} else {
 				serviceNameChanges[svc.CompoundServiceName()] += delta
 			}
+
+		case "kvs":
+			usageDeltas[change.Table] += delta
+			addEnterpriseKVUsage(usageDeltas, change)
+		case tableConfigEntries:
+			entry := changeObject(change).(structs.ConfigEntry)
+			usageDeltas[configEntryUsageTableName(entry.GetKind())] += delta
+			addEnterpriseConfigEntryUsage(usageDeltas, change)
 		}
 	}
 
@@ -98,7 +139,8 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 	// This will happen when restoring from a snapshot, just take the max index
 	// of the tables we are tracking.
 	if idx == 0 {
-		idx = maxIndexTxn(tx, "nodes", tableServices)
+		// TODO(partitions? namespaces?)
+		idx = maxIndexTxn(tx, tableNodes, tableServices, "kvs")
 	}
 
 	return writeUsageDeltas(tx, idx, usageDeltas)
@@ -107,7 +149,10 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 func updateServiceNameUsage(tx WriteTxn, usageDeltas map[string]int, serviceNameChanges map[structs.ServiceName]int) (map[structs.ServiceName]uniqueServiceState, error) {
 	serviceStates := make(map[structs.ServiceName]uniqueServiceState, len(serviceNameChanges))
 	for svc, delta := range serviceNameChanges {
-		q := Query{Value: svc.Name, EnterpriseMeta: svc.EnterpriseMeta}
+		q := Query{
+			Value:          svc.Name,
+			EnterpriseMeta: svc.EnterpriseMeta,
+		}
 		serviceIter, err := tx.Get(tableServices, indexService, q)
 		if err != nil {
 			return nil, err
@@ -118,19 +163,19 @@ func updateServiceNameUsage(tx WriteTxn, usageDeltas map[string]int, serviceName
 		// added/removed during the transaction. This allows us to handle a single
 		// transaction committing multiple changes related to a single service
 		// name.
-		var svcCount int
+		var count int
 		for service := serviceIter.Next(); service != nil; service = serviceIter.Next() {
-			svcCount += 1
+			count += 1
 		}
 
 		var serviceState uniqueServiceState
 		switch {
-		case svcCount == 0:
+		case count == 0:
 			// If no services exist, we know we deleted the last service
 			// instance.
 			serviceState = Deleted
 			usageDeltas[serviceNamesUsageTable] -= 1
-		case svcCount == delta:
+		case count == delta:
 			// If the current number of service instances equals the number added,
 			// than we know we created a new service name.
 			serviceState = Created
@@ -157,12 +202,61 @@ func serviceNameChanged(change memdb.Change) bool {
 	return false
 }
 
+// connectUsageTableEntry is a convenience function to make prefix addition in 1 place
+func connectUsageTableName(kind string) string {
+	return fmt.Sprintf("%s-%s", connectPrefix, kind)
+}
+
+// configEntryUsageTableName is a convenience function to easily get the prefix + config entry kind in 1 place
+func configEntryUsageTableName(kind string) string {
+	return fmt.Sprintf("%s-%s", tableConfigEntries, kind)
+}
+
+func connectDeltas(change memdb.Change, usageDeltas map[string]int, delta int) {
+	// Connect metrics for updated services are more complicated. Check for:
+	// 1. Did ServiceKind change?
+	// 2. Is before ServiceKind typical? don't remove from old service kind
+	// 3. Is After ServiceKind typical? don't add to new service kind
+	// 4. Add and remove to both ServiceKind's
+	if change.Updated() {
+		before := change.Before.(*structs.ServiceNode)
+		after := change.After.(*structs.ServiceNode)
+		if before.ServiceKind != structs.ServiceKindTypical {
+			usageDeltas[connectUsageTableName(string(before.ServiceKind))] -= 1
+			addEnterpriseConnectServiceInstanceUsage(usageDeltas, before, -1)
+		}
+		if after.ServiceKind != structs.ServiceKindTypical {
+			usageDeltas[connectUsageTableName(string(after.ServiceKind))] += 1
+			addEnterpriseConnectServiceInstanceUsage(usageDeltas, after, 1)
+		}
+
+		if before.ServiceConnect.Native != after.ServiceConnect.Native {
+			if before.ServiceConnect.Native {
+				usageDeltas[connectUsageTableName(string(connectNativeInstancesTable))] -= 1
+				addEnterpriseConnectServiceInstanceUsage(usageDeltas, before, -1)
+			} else {
+				usageDeltas[connectUsageTableName(connectNativeInstancesTable)] += 1
+				addEnterpriseConnectServiceInstanceUsage(usageDeltas, after, 1)
+			}
+		}
+	} else {
+		svc := changeObject(change).(*structs.ServiceNode)
+		if svc.ServiceKind != structs.ServiceKindTypical {
+			usageDeltas[connectUsageTableName(string(svc.ServiceKind))] += delta
+		}
+		if svc.ServiceConnect.Native {
+			usageDeltas[connectUsageTableName(connectNativeInstancesTable)] += delta
+		}
+		addEnterpriseConnectServiceInstanceUsage(usageDeltas, svc, delta)
+	}
+}
+
 // writeUsageDeltas will take in a map of IDs to deltas and update each
 // entry accordingly, checking for integer underflow. The index that is
 // passed in will be recorded on the entry as well.
 func writeUsageDeltas(tx WriteTxn, idx uint64, usageDeltas map[string]int) error {
 	for id, delta := range usageDeltas {
-		u, err := tx.First("usage", "id", id)
+		u, err := tx.First(tableUsage, indexID, id)
 		if err != nil {
 			return fmt.Errorf("failed to retrieve existing usage entry: %s", err)
 		}
@@ -175,7 +269,7 @@ func writeUsageDeltas(tx WriteTxn, idx uint64, usageDeltas map[string]int) error
 				// large numbers.
 				delta = 0
 			}
-			err := tx.Insert("usage", &UsageEntry{
+			err := tx.Insert(tableUsage, &UsageEntry{
 				ID:    id,
 				Count: delta,
 				Index: idx,
@@ -192,7 +286,7 @@ func writeUsageDeltas(tx WriteTxn, idx uint64, usageDeltas map[string]int) error
 				// large numbers.
 				updated = 0
 			}
-			err := tx.Insert("usage", &UsageEntry{
+			err := tx.Insert(tableUsage, &UsageEntry{
 				ID:    id,
 				Count: updated,
 				Index: idx,
@@ -205,17 +299,26 @@ func writeUsageDeltas(tx WriteTxn, idx uint64, usageDeltas map[string]int) error
 	return nil
 }
 
-// NodeCount returns the latest seen Raft index, a count of the number of nodes
-// registered, and any errors.
-func (s *Store) NodeCount() (uint64, int, error) {
+// NodeUsage returns the latest seen Raft index, a compiled set of node usage
+// data, and any errors.
+func (s *Store) NodeUsage() (uint64, NodeUsage, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	nodeUsage, err := firstUsageEntry(tx, "nodes")
+	nodes, err := firstUsageEntry(tx, tableNodes)
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed nodes lookup: %s", err)
+		return 0, NodeUsage{}, fmt.Errorf("failed nodes lookup: %s", err)
 	}
-	return nodeUsage.Index, nodeUsage.Count, nil
+
+	usage := NodeUsage{
+		Nodes: nodes.Count,
+	}
+	results, err := compileEnterpriseNodeUsage(tx, usage)
+	if err != nil {
+		return 0, NodeUsage{}, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+
+	return nodes.Index, results, nil
 }
 
 // ServiceUsage returns the latest seen Raft index, a compiled set of service
@@ -234,11 +337,21 @@ func (s *Store) ServiceUsage() (uint64, ServiceUsage, error) {
 		return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
 	}
 
-	usage := ServiceUsage{
-		ServiceInstances: serviceInstances.Count,
-		Services:         services.Count,
+	serviceKindInstances := make(map[string]int)
+	for _, kind := range allConnectKind {
+		usage, err := firstUsageEntry(tx, connectUsageTableName(kind))
+		if err != nil {
+			return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
+		}
+		serviceKindInstances[kind] = usage.Count
 	}
-	results, err := compileEnterpriseUsage(tx, usage)
+
+	usage := ServiceUsage{
+		ServiceInstances:        serviceInstances.Count,
+		Services:                services.Count,
+		ConnectServiceInstances: serviceKindInstances,
+	}
+	results, err := compileEnterpriseServiceUsage(tx, usage)
 	if err != nil {
 		return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
 	}
@@ -246,8 +359,55 @@ func (s *Store) ServiceUsage() (uint64, ServiceUsage, error) {
 	return serviceInstances.Index, results, nil
 }
 
+func (s *Store) KVUsage() (uint64, KVUsage, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	kvs, err := firstUsageEntry(tx, "kvs")
+	if err != nil {
+		return 0, KVUsage{}, fmt.Errorf("failed kvs lookup: %s", err)
+	}
+
+	usage := KVUsage{
+		KVCount: kvs.Count,
+	}
+	results, err := compileEnterpriseKVUsage(tx, usage)
+	if err != nil {
+		return 0, KVUsage{}, fmt.Errorf("failed kvs lookup: %s", err)
+	}
+
+	return kvs.Index, results, nil
+}
+
+func (s *Store) ConfigEntryUsage() (uint64, ConfigEntryUsage, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	configEntries := make(map[string]int)
+	var maxIdx uint64
+	for _, kind := range structs.AllConfigEntryKinds {
+		configEntry, err := firstUsageEntry(tx, configEntryUsageTableName(kind))
+		if configEntry.Index > maxIdx {
+			maxIdx = configEntry.Index
+		}
+		if err != nil {
+			return 0, ConfigEntryUsage{}, fmt.Errorf("failed config entry usage lookup: %s", err)
+		}
+		configEntries[kind] = configEntry.Count
+	}
+	usage := ConfigEntryUsage{
+		ConfigByKind: configEntries,
+	}
+	results, err := compileEnterpriseConfigEntryUsage(tx, usage)
+	if err != nil {
+		return 0, ConfigEntryUsage{}, fmt.Errorf("failed config entry usage lookup: %s", err)
+	}
+
+	return maxIdx, results, nil
+}
+
 func firstUsageEntry(tx ReadTxn, id string) (*UsageEntry, error) {
-	usage, err := tx.First("usage", "id", id)
+	usage, err := tx.First(tableUsage, indexID, id)
 	if err != nil {
 		return nil, err
 	}

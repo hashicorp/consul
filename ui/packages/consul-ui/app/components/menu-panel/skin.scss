@@ -1,48 +1,34 @@
 %menu-panel {
-  border: $decor-border-100;
-  border-radius: $decor-radius-200;
-  box-shadow: $decor-elevation-600;
+  border: var(--decor-border-100);
+  border-radius: var(--decor-radius-200);
+  box-shadow: var(--decor-elevation-600);
 }
 %menu-panel > ul > li {
   list-style-type: none;
 }
-%menu-panel dt {
-  font-weight: $typo-weight-bold;
-}
-%menu-panel dl,
 %menu-panel-header {
   @extend %p2;
 }
 %menu-panel-separator {
   @extend %p3;
   text-transform: uppercase;
-  font-weight: $typo-weight-medium;
-}
-%menu-panel dt span {
-  font-weight: $typo-weight-normal;
+  font-weight: var(--typo-weight-medium);
 }
 %menu-panel-header + ul,
 %menu-panel-separator:not(:first-child) {
-  border-top: $decor-border-100;
+  border-top: var(--decor-border-100);
 }
 %menu-panel .is-active > *::after {
   @extend %with-check-plain-mask, %as-pseudo;
 }
 %menu-panel {
-  border-color: var(--gray-300);
-  background-color: var(--gray-000);
-}
-%menu-panel dt,
-%menu-panel dd {
-  color: var(--gray-800);
-}
-%menu-panel dt span {
-  color: var(--gray-600);
+  border-color: rgb(var(--tone-gray-300));
+  background-color: rgb(var(--tone-gray-000));
 }
 %menu-panel-separator {
-  color: var(--gray-600);
+  color: rgb(var(--tone-gray-600));
 }
 %menu-panel-header + ul,
 %menu-panel-separator:not(:first-child) {
-  border-color: var(--gray-300);
+  border-color: rgb(var(--tone-gray-300));
 }

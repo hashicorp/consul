@@ -343,6 +343,21 @@ RPC:
 		}
 		upstreamResp = append(upstreamResp, &sum)
 	}
+	for k, v := range out.ServiceTopology.UpstreamSources {
+		if v == structs.TopologySourceRoutingConfig {
+			sn := structs.ServiceNameFromString(k)
+			sum := ServiceTopologySummary{
+				ServiceSummary: ServiceSummary{
+					Datacenter:     args.Datacenter,
+					Name:           sn.Name,
+					EnterpriseMeta: sn.EnterpriseMeta,
+				},
+				Intention: out.ServiceTopology.UpstreamDecisions[sn.String()],
+				Source:    out.ServiceTopology.UpstreamSources[sn.String()],
+			}
+			upstreamResp = append(upstreamResp, &sum)
+		}
+	}
 
 	sortedDownstreams := prepSummaryOutput(downstreams, true)
 	for _, svc := range sortedDownstreams {
@@ -562,6 +577,7 @@ func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.R
 		Entries: []structs.IntentionMatchEntry{
 			{
 				Namespace: entMeta.NamespaceOrEmpty(),
+				Partition: entMeta.PartitionOrDefault(),
 				Name:      name,
 			},
 		},
@@ -603,6 +619,9 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	s.clearTokenFromHeaders(req)
 
 	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {
+		return nil, err
+	}
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, nil)
 	if err != nil {
 		return nil, err
@@ -611,9 +630,11 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// This endpoint requires wildcard read on all services and all nodes.
 	//
 	// In enterprise it requires this _in all namespaces_ too.
-	wildMeta := structs.WildcardEnterpriseMetaInDefaultPartition()
+	//
+	// In enterprise it requires this _in all namespaces and partitions_ too.
 	var authzContext acl.AuthorizerContext
-	wildMeta.FillAuthzContext(&authzContext)
+	wildcardEntMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
+	wildcardEntMeta.FillAuthzContext(&authzContext)
 
 	if authz.NodeReadAll(&authzContext) != acl.Allow || authz.ServiceReadAll(&authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied

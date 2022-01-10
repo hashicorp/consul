@@ -1,9 +1,24 @@
 <Route
   @name={{routeName}}
-  @title="Services"
 as |route|>
 
-<EventSource @src={{items}} />
+  <DataLoader @src={{
+      uri '/${partition}/${nspace}/${dc}/services'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+      )
+  }} as |api|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{api.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
 
 {{#let
 
@@ -33,23 +48,30 @@ as |route|>
       change=(action (mut searchproperty) value="target.selectedItems")
       default=searchProperties
     )
+
   )
 
-  (reject-by 'Kind' 'connect-proxy' items)
+  (reject-by 'Kind' 'connect-proxy' api.data)
 
-as |sort filters items|}}
+  (or route.params.partition route.model.user.token.Partition 'default')
+  (or route.params.nspace route.model.user.token.Namespace 'default')
+
+as |sort filters items partition nspace|}}
 
   <AppView>
     <BlockSlot @name="header">
         <h1>
-          Services <em>{{format-number items.length}} total</em>
+          <route.Title @title="Services" /> <em>{{format-number items.length}} total</em>
         </h1>
         <label for="toolbar-toggle"></label>
     </BlockSlot>
     <BlockSlot @name="toolbar">
-      {{#if (gt items.length 0) }}
+{{#if (gt items.length 0) }}
+  {{#let (collection items) as |items|}}
         <Consul::Service::SearchBar
-          @sources={{get (collection items) 'ExternalSources'}}
+          @sources={{get items 'ExternalSources'}}
+          @partitions={{get items 'Partitions'}}
+          @partition={{partition}}
 
           @search={{search}}
           @onsearch={{action (mut search) value="target.value"}}
@@ -59,7 +81,8 @@ as |sort filters items|}}
           @filter={{filters}}
 
         />
-      {{/if}}
+  {{/let}}
+{{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
       <DataCollection
@@ -72,6 +95,7 @@ as |sort filters items|}}
         <collection.Collection>
           <Consul::Service::List
             @items={{collection.items}}
+            @partition={{partition}}
           >
           </Consul::Service::List>
         </collection.Collection>
@@ -81,7 +105,7 @@ as |sort filters items|}}
             >
               <BlockSlot @name="header">
                 <h2>
-                  {{#if (gt services.length 0)}}
+                  {{#if (gt items.length 0)}}
                     No services found
                   {{else}}
                     Welcome to Services
@@ -90,7 +114,7 @@ as |sort filters items|}}
               </BlockSlot>
               <BlockSlot @name="body">
                 <p>
-                  {{#if (gt services.length 0)}}
+                  {{#if (gt items.length 0)}}
                     No services where found matching that search, or you may not have access to view the services you are searching for.
                   {{else}}
                     There don't seem to be any registered services, or you may not have access to view services yet.
@@ -99,10 +123,20 @@ as |sort filters items|}}
               </BlockSlot>
               <BlockSlot @name="actions">
                 <li class="docs-link">
-                  <a href="{{env 'CONSUL_DOCS_URL'}}/commands/services" rel="noopener noreferrer" target="_blank">Documentation on services</a>
+                  <Action
+                    @href="{{env 'CONSUL_DOCS_URL'}}/commands/services"
+                    @external={{true}}
+                  >
+                    Documentation on services
+                  </Action>
                 </li>
                 <li class="learn-link">
-                  <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/services" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                  <Action
+                    @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/services"
+                    @external={{true}}
+                  >
+                    Read the guide
+                  </Action>
                 </li>
               </BlockSlot>
             </EmptyState>
@@ -113,4 +147,7 @@ as |sort filters items|}}
   </AppView>
 
 {{/let}}
+
+    </BlockSlot>
+  </DataLoader>
 </Route>

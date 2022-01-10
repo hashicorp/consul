@@ -6,12 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"go.uber.org/goleak"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/goleak"
 )
 
 func testTLSCertificates(serverName string) (cert string, key string, cacert string, err error) {
@@ -54,7 +55,7 @@ func setupPrimaryServer(t *testing.T) *agent.TestAgent {
 	require.NoError(t, ioutil.WriteFile(keyPath, []byte(keyPEM), 0600))
 	require.NoError(t, ioutil.WriteFile(caPath, []byte(caPEM), 0600))
 
-	aclParams := agent.DefaulTestACLConfigParams()
+	aclParams := agent.DefaultTestACLConfigParams()
 	aclParams.PrimaryDatacenter = "primary"
 	aclParams.EnableTokenReplication = true
 
@@ -75,7 +76,7 @@ func setupPrimaryServer(t *testing.T) *agent.TestAgent {
 	a := agent.NewTestAgent(t, config)
 	t.Cleanup(func() { a.Shutdown() })
 
-	testrpc.WaitForTestAgent(t, a.RPC, "primary", testrpc.WithToken(agent.TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, a.RPC, "primary", testrpc.WithToken(agent.TestDefaultInitialManagementToken))
 
 	return a
 }

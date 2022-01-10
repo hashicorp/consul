@@ -27,10 +27,10 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.Build = "1.6.0"
 		c.OverrideInitialSerfTags = func(tags map[string]string) {
 			tags["ft_si"] = "0"
@@ -62,9 +62,9 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 	// dc2 as a secondary DC
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.ACLTokenReplication = false
 		c.Build = "1.6.0"
 		c.OverrideInitialSerfTags = func(tags map[string]string) {

@@ -1,33 +1,60 @@
-<StateChart @src={{chart}} @initial={{if (eq type 'oidc') 'provider' 'secret'}} as |State Guard Action dispatch state|>
-  <Guard @name="isSecret" @cond={{action 'isSecret'}} />
-  {{!-- This `or` can be completely removed post 1.10 as 1.10 has optional params with default values --}}
-  {{#let (concat '/' (or nspace '') '/' dc) as |path|}}
+<StateChart
+  @src={{this.chart}}
+  @initial={{if (eq @type 'oidc') 'provider' 'secret'}}
+as |State Guard Action dispatch state|>
+  <Guard
+    @name="isSecret"
+    @cond={{this.isSecret}}
+  />
+  {{#let
+    (uri '/${partition}/{$nspace}/${dc}'
+      (hash
+        partition=@partition
+        nspace=@nspace
+        dc=@dc
+      )
+    )
+  as |path|}}
     <State @matches="secret">
       <DataSource
-        @src={{concat path '/token/self/' value}}
-        @onchange={{action 'change'}}
-        @onerror={{action onerror}}
+        @src={{uri (concat path '/token/self/${value}')
+          (hash
+            value=@value
+          )
+        }}
+        @onchange={{this.change}}
+        @onerror={{@onerror}}
       />
     </State>
     <State @matches="provider">
       <DataSource
-        @src={{concat path '/oidc/provider/' value}}
-        @onchange={{queue (action (mut provider) value="data") (action dispatch "SUCCESS")}}
-        @onerror={{action onerror}}
+        @src={{uri (concat path '/oidc/provider/${value}')
+          (hash
+            value=@value
+          )
+        }}
+        @onchange={{queue (action (mut this.provider) value="data") (action dispatch "SUCCESS")}}
+        @onerror={{@onerror}}
       />
     </State>
     <State @matches="jwt">
       <JwtSource
-        @src={{provider.AuthURL}}
-        @onchange={{queue (action (mut jwt) value="data") (action dispatch "SUCCESS")}}
-        @onerror={{action onerror}}
+        @src={{this.provider.AuthURL}}
+        @onchange={{queue (action (mut this.jwt) value="data") (action dispatch "SUCCESS")}}
+        @onerror={{@onerror}}
       />
     </State>
     <State @matches="token">
       <DataSource
-        @src={{concat path '/oidc/authorize/' provider.Name '/' jwt.authorizationCode '/' jwt.authorizationState}}
-        @onchange={{action 'change'}}
-        @onerror={{action onerror}}
+        @src={{uri (concat path '/oidc/authorize/${provider}/${code}/${state}')
+            (hash
+              provider=this.provider.Name
+              code=this.jwt.authorizationCode
+              state=(or this.jwt.authorizationState '')
+            )
+        }}
+        @onchange={{this.change}}
+        @onerror={{@onerror}}
       />
     </State>
   {{/let}}

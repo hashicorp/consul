@@ -5,11 +5,13 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/testrpc"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 func TestSession_Apply(t *testing.T) {
@@ -153,10 +155,10 @@ func TestSession_Apply_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -166,26 +168,12 @@ func TestSession_Apply_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create the ACL.
-	req := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 session "foo" {
 	policy = "write"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-
-	var token string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	token := createToken(t, codec, rules)
 
 	// Just add a node.
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
@@ -390,11 +378,12 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 	}
 
 	t.Parallel()
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -404,26 +393,17 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create the ACL.
-	req := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
-session "foo" {
-	policy = "read"
-}
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
+	deniedToken := createTokenWithPolicyName(t, codec, "denied", `
+		session "foo" {
+			policy = "deny"
+		}
+	`, "root")
 
-	var token string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	allowedToken := createTokenWithPolicyName(t, codec, "allowed", `
+		session "foo" {
+			policy = "read"
+		}
+	`, "root")
 
 	// Create a node and a session.
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
@@ -436,95 +416,94 @@ session "foo" {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var out string
-	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &out)
+	require.NoError(t, err)
 
-	// Perform all the read operations, and make sure everything is empty.
-	getR := structs.SessionSpecificRequest{
-		Datacenter: "dc1",
-		SessionID:  out,
-	}
-	{
-		var sessions structs.IndexedSessions
-		if err := msgpackrpc.CallWithCodec(codec, "Session.Get", &getR, &sessions); err != nil {
-			t.Fatalf("err: %v", err)
+	t.Run("Get", func(t *testing.T) {
+		require := require.New(t)
+
+		req := &structs.SessionSpecificRequest{
+			Datacenter: "dc1",
+			SessionID:  out,
 		}
-		if len(sessions.Sessions) != 0 {
-			t.Fatalf("bad: %v", sessions.Sessions)
-		}
-	}
-	listR := structs.DCSpecificRequest{
-		Datacenter: "dc1",
-	}
-	{
+		req.Token = deniedToken
+
+		// ACL-restricted results filtered out.
 		var sessions structs.IndexedSessions
 
-		if err := msgpackrpc.CallWithCodec(codec, "Session.List", &listR, &sessions); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(sessions.Sessions) != 0 {
-			t.Fatalf("bad: %v", sessions.Sessions)
-		}
-	}
-	nodeR := structs.NodeSpecificRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-	}
-	{
-		var sessions structs.IndexedSessions
-		if err := msgpackrpc.CallWithCodec(codec, "Session.NodeSessions", &nodeR, &sessions); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(sessions.Sessions) != 0 {
-			t.Fatalf("bad: %v", sessions.Sessions)
-		}
-	}
+		err := msgpackrpc.CallWithCodec(codec, "Session.Get", req, &sessions)
+		require.NoError(err)
+		require.Empty(sessions.Sessions)
+		require.True(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
-	// Finally, supply the token and make sure the reads are allowed.
-	getR.Token = token
-	{
-		var sessions structs.IndexedSessions
-		if err := msgpackrpc.CallWithCodec(codec, "Session.Get", &getR, &sessions); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(sessions.Sessions) != 1 {
-			t.Fatalf("bad: %v", sessions.Sessions)
-		}
-	}
-	listR.Token = token
-	{
-		var sessions structs.IndexedSessions
-		if err := msgpackrpc.CallWithCodec(codec, "Session.List", &listR, &sessions); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(sessions.Sessions) != 1 {
-			t.Fatalf("bad: %v", sessions.Sessions)
-		}
-	}
-	nodeR.Token = token
-	{
-		var sessions structs.IndexedSessions
-		if err := msgpackrpc.CallWithCodec(codec, "Session.NodeSessions", &nodeR, &sessions); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(sessions.Sessions) != 1 {
-			t.Fatalf("bad: %v", sessions.Sessions)
-		}
-	}
+		// ACL-restricted results included.
+		req.Token = allowedToken
 
-	// Try to get a session that doesn't exist to make sure that's handled
-	// correctly by the filter (it will get passed a nil slice).
-	getR.SessionID = "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
-	{
+		err = msgpackrpc.CallWithCodec(codec, "Session.Get", req, &sessions)
+		require.NoError(err)
+		require.Len(sessions.Sessions, 1)
+		require.False(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+
+		// Try to get a session that doesn't exist to make sure that's handled
+		// correctly by the filter (it will get passed a nil slice).
+		req.SessionID = "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+
+		err = msgpackrpc.CallWithCodec(codec, "Session.Get", req, &sessions)
+		require.NoError(err)
+		require.Empty(sessions.Sessions)
+		require.False(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
+
+	t.Run("List", func(t *testing.T) {
+		require := require.New(t)
+
+		req := &structs.DCSpecificRequest{
+			Datacenter: "dc1",
+		}
+		req.Token = deniedToken
+
+		// ACL-restricted results filtered out.
 		var sessions structs.IndexedSessions
-		if err := msgpackrpc.CallWithCodec(codec, "Session.Get", &getR, &sessions); err != nil {
-			t.Fatalf("err: %v", err)
+
+		err := msgpackrpc.CallWithCodec(codec, "Session.List", req, &sessions)
+		require.NoError(err)
+		require.Empty(sessions.Sessions)
+		require.True(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+
+		// ACL-restricted results included.
+		req.Token = allowedToken
+
+		err = msgpackrpc.CallWithCodec(codec, "Session.List", req, &sessions)
+		require.NoError(err)
+		require.Len(sessions.Sessions, 1)
+		require.False(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
+
+	t.Run("NodeSessions", func(t *testing.T) {
+		require := require.New(t)
+
+		req := &structs.NodeSpecificRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
 		}
-		if len(sessions.Sessions) != 0 {
-			t.Fatalf("bad: %v", sessions.Sessions)
-		}
-	}
+		req.Token = deniedToken
+
+		// ACL-restricted results filtered out.
+		var sessions structs.IndexedSessions
+
+		err := msgpackrpc.CallWithCodec(codec, "Session.NodeSessions", req, &sessions)
+		require.NoError(err)
+		require.Empty(sessions.Sessions)
+		require.True(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+
+		// ACL-restricted results included.
+		req.Token = allowedToken
+
+		err = msgpackrpc.CallWithCodec(codec, "Session.NodeSessions", req, &sessions)
+		require.NoError(err)
+		require.Len(sessions.Sessions, 1)
+		require.False(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
 }
 
 func TestSession_ApplyTimers(t *testing.T) {
@@ -750,10 +729,10 @@ func TestSession_Renew_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -763,26 +742,12 @@ func TestSession_Renew_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create the ACL.
-	req := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 session "foo" {
 	policy = "write"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-
-	var token string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	token := createToken(t, codec, rules)
 
 	// Just add a node.
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})

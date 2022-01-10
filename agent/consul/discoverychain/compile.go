@@ -15,9 +15,9 @@ import (
 type CompileRequest struct {
 	ServiceName           string
 	EvaluateInNamespace   string
+	EvaluateInPartition   string
 	EvaluateInDatacenter  string
 	EvaluateInTrustDomain string
-	UseInDatacenter       string // where the results will be used from
 
 	// OverrideMeshGateway allows for the setting to be overridden for any
 	// resolver in the compiled chain.
@@ -58,9 +58,9 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 	var (
 		serviceName           = req.ServiceName
 		evaluateInNamespace   = req.EvaluateInNamespace
+		evaluateInPartition   = req.EvaluateInPartition
 		evaluateInDatacenter  = req.EvaluateInDatacenter
 		evaluateInTrustDomain = req.EvaluateInTrustDomain
-		useInDatacenter       = req.UseInDatacenter
 		entries               = req.Entries
 	)
 	if serviceName == "" {
@@ -69,14 +69,14 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 	if evaluateInNamespace == "" {
 		return nil, fmt.Errorf("evaluateInNamespace is required")
 	}
+	if evaluateInPartition == "" {
+		return nil, fmt.Errorf("evaluateInPartition is required")
+	}
 	if evaluateInDatacenter == "" {
 		return nil, fmt.Errorf("evaluateInDatacenter is required")
 	}
 	if evaluateInTrustDomain == "" {
 		return nil, fmt.Errorf("evaluateInTrustDomain is required")
-	}
-	if useInDatacenter == "" {
-		return nil, fmt.Errorf("useInDatacenter is required")
 	}
 	if entries == nil {
 		return nil, fmt.Errorf("entries is required")
@@ -84,10 +84,10 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 
 	c := &compiler{
 		serviceName:            serviceName,
+		evaluateInPartition:    evaluateInPartition,
 		evaluateInNamespace:    evaluateInNamespace,
 		evaluateInDatacenter:   evaluateInDatacenter,
 		evaluateInTrustDomain:  evaluateInTrustDomain,
-		useInDatacenter:        useInDatacenter,
 		overrideMeshGateway:    req.OverrideMeshGateway,
 		overrideProtocol:       req.OverrideProtocol,
 		overrideConnectTimeout: req.OverrideConnectTimeout,
@@ -121,9 +121,9 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 type compiler struct {
 	serviceName            string
 	evaluateInNamespace    string
+	evaluateInPartition    string
 	evaluateInDatacenter   string
 	evaluateInTrustDomain  string
-	useInDatacenter        string
 	overrideMeshGateway    structs.MeshGatewayConfig
 	overrideProtocol       string
 	overrideConnectTimeout time.Duration
@@ -185,7 +185,7 @@ type customizationMarkers struct {
 // the String() method on the type itself. It is this way to be more
 // consistent with other string ids within the discovery chain.
 func serviceIDString(sid structs.ServiceID) string {
-	return fmt.Sprintf("%s.%s", sid.ID, sid.NamespaceOrDefault())
+	return fmt.Sprintf("%s.%s.%s", sid.ID, sid.NamespaceOrDefault(), sid.PartitionOrDefault())
 }
 
 func (m *customizationMarkers) IsZero() bool {
@@ -213,10 +213,10 @@ func (c *compiler) recordServiceProtocol(sid structs.ServiceID) error {
 	if serviceDefault := c.entries.GetService(sid); serviceDefault != nil {
 		return c.recordProtocol(sid, serviceDefault.Protocol)
 	}
-	if c.entries.GlobalProxy != nil {
+	if proxyDefault := c.entries.GetProxyDefaults(sid.PartitionOrDefault()); proxyDefault != nil {
 		var cfg proxyConfig
 		// Ignore errors and fallback on defaults if it does happen.
-		_ = mapstructure.WeakDecode(c.entries.GlobalProxy.Config, &cfg)
+		_ = mapstructure.WeakDecode(proxyDefault.Config, &cfg)
 		if cfg.Protocol != "" {
 			return c.recordProtocol(sid, cfg.Protocol)
 		}
@@ -267,7 +267,9 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		return nil, err
 	}
 
-	c.flattenAdjacentSplitterNodes()
+	if err := c.flattenAdjacentSplitterNodes(); err != nil {
+		return nil, err
+	}
 
 	if err := c.removeUnusedNodes(); err != nil {
 		return nil, err
@@ -322,6 +324,7 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 	return &structs.CompiledDiscoveryChain{
 		ServiceName:       c.serviceName,
 		Namespace:         c.evaluateInNamespace,
+		Partition:         c.evaluateInPartition,
 		Datacenter:        c.evaluateInDatacenter,
 		CustomizationHash: customizationHash,
 		Protocol:          c.protocol,
@@ -386,7 +389,7 @@ func (c *compiler) detectCircularReferences() error {
 	return nil
 }
 
-func (c *compiler) flattenAdjacentSplitterNodes() {
+func (c *compiler) flattenAdjacentSplitterNodes() error {
 	for {
 		anyChanged := false
 		for _, node := range c.nodes {
@@ -408,9 +411,16 @@ func (c *compiler) flattenAdjacentSplitterNodes() {
 				for _, innerSplit := range nextNode.Splits {
 					effectiveWeight := split.Weight * innerSplit.Weight / 100
 
+					// Copy the definition from the inner node but merge in the parent
+					// to preserve any config it needs to pass through.
+					newDef, err := innerSplit.Definition.MergeParent(split.Definition)
+					if err != nil {
+						return err
+					}
 					newDiscoverySplit := &structs.DiscoverySplit{
-						Weight:   structs.NormalizeServiceSplitWeight(effectiveWeight),
-						NextNode: innerSplit.NextNode,
+						Definition: newDef,
+						Weight:     structs.NormalizeServiceSplitWeight(effectiveWeight),
+						NextNode:   innerSplit.NextNode,
 					}
 
 					fixedSplits = append(fixedSplits, newDiscoverySplit)
@@ -424,7 +434,7 @@ func (c *compiler) flattenAdjacentSplitterNodes() {
 		}
 
 		if !anyChanged {
-			return
+			return nil
 		}
 	}
 }
@@ -521,7 +531,7 @@ func (c *compiler) assembleChain() error {
 	if router == nil {
 		// If no router is configured, move on down the line to the next hop of
 		// the chain.
-		node, err := c.getSplitterOrResolverNode(c.newTarget(c.serviceName, "", "", ""))
+		node, err := c.getSplitterOrResolverNode(c.newTarget(c.serviceName, "", "", "", ""))
 		if err != nil {
 			return err
 		}
@@ -557,10 +567,12 @@ func (c *compiler) assembleChain() error {
 			dest = &structs.ServiceRouteDestination{
 				Service:   c.serviceName,
 				Namespace: router.NamespaceOrDefault(),
+				Partition: router.PartitionOrDefault(),
 			}
 		}
 		svc := defaultIfEmpty(dest.Service, c.serviceName)
 		destNamespace := defaultIfEmpty(dest.Namespace, router.NamespaceOrDefault())
+		destPartition := defaultIfEmpty(dest.Partition, router.PartitionOrDefault())
 
 		// Check to see if the destination is eligible for splitting.
 		var (
@@ -569,11 +581,11 @@ func (c *compiler) assembleChain() error {
 		)
 		if dest.ServiceSubset == "" {
 			node, err = c.getSplitterOrResolverNode(
-				c.newTarget(svc, "", destNamespace, ""),
+				c.newTarget(svc, "", destNamespace, destPartition, ""),
 			)
 		} else {
 			node, err = c.getResolverNode(
-				c.newTarget(svc, dest.ServiceSubset, destNamespace, ""),
+				c.newTarget(svc, dest.ServiceSubset, destNamespace, destPartition, ""),
 				false,
 			)
 		}
@@ -585,13 +597,13 @@ func (c *compiler) assembleChain() error {
 
 	// If we have a router, we'll add a catch-all route at the end to send
 	// unmatched traffic to the next hop in the chain.
-	defaultDestinationNode, err := c.getSplitterOrResolverNode(c.newTarget(router.Name, "", router.NamespaceOrDefault(), ""))
+	defaultDestinationNode, err := c.getSplitterOrResolverNode(c.newTarget(router.Name, "", router.NamespaceOrDefault(), router.PartitionOrDefault(), ""))
 	if err != nil {
 		return err
 	}
 
 	defaultRoute := &structs.DiscoveryRoute{
-		Definition: newDefaultServiceRoute(router.Name, router.NamespaceOrDefault()),
+		Definition: newDefaultServiceRoute(router.Name, router.NamespaceOrDefault(), router.PartitionOrDefault()),
 		NextNode:   defaultDestinationNode.MapKey(),
 	}
 	routeNode.Routes = append(routeNode.Routes, defaultRoute)
@@ -602,7 +614,7 @@ func (c *compiler) assembleChain() error {
 	return nil
 }
 
-func newDefaultServiceRoute(serviceName string, namespace string) *structs.ServiceRoute {
+func newDefaultServiceRoute(serviceName, namespace, partition string) *structs.ServiceRoute {
 	return &structs.ServiceRoute{
 		Match: &structs.ServiceRouteMatch{
 			HTTP: &structs.ServiceRouteHTTPMatch{
@@ -612,11 +624,12 @@ func newDefaultServiceRoute(serviceName string, namespace string) *structs.Servi
 		Destination: &structs.ServiceRouteDestination{
 			Service:   serviceName,
 			Namespace: namespace,
+			Partition: partition,
 		},
 	}
 }
 
-func (c *compiler) newTarget(service, serviceSubset, namespace, datacenter string) *structs.DiscoveryTarget {
+func (c *compiler) newTarget(service, serviceSubset, namespace, partition, datacenter string) *structs.DiscoveryTarget {
 	if service == "" {
 		panic("newTarget called with empty service which makes no sense")
 	}
@@ -625,6 +638,7 @@ func (c *compiler) newTarget(service, serviceSubset, namespace, datacenter strin
 		service,
 		serviceSubset,
 		defaultIfEmpty(namespace, c.evaluateInNamespace),
+		defaultIfEmpty(partition, c.evaluateInPartition),
 		defaultIfEmpty(datacenter, c.evaluateInDatacenter),
 	)
 
@@ -644,10 +658,11 @@ func (c *compiler) newTarget(service, serviceSubset, namespace, datacenter strin
 	return t
 }
 
-func (c *compiler) rewriteTarget(t *structs.DiscoveryTarget, service, serviceSubset, namespace, datacenter string) *structs.DiscoveryTarget {
+func (c *compiler) rewriteTarget(t *structs.DiscoveryTarget, service, serviceSubset, partition, namespace, datacenter string) *structs.DiscoveryTarget {
 	var (
 		service2       = t.Service
 		serviceSubset2 = t.ServiceSubset
+		partition2     = t.Partition
 		namespace2     = t.Namespace
 		datacenter2    = t.Datacenter
 	)
@@ -660,6 +675,9 @@ func (c *compiler) rewriteTarget(t *structs.DiscoveryTarget, service, serviceSub
 	if serviceSubset != "" {
 		serviceSubset2 = serviceSubset
 	}
+	if partition != "" {
+		partition2 = partition
+	}
 	if namespace != "" {
 		namespace2 = namespace
 	}
@@ -667,7 +685,7 @@ func (c *compiler) rewriteTarget(t *structs.DiscoveryTarget, service, serviceSub
 		datacenter2 = datacenter
 	}
 
-	return c.newTarget(service2, serviceSubset2, namespace2, datacenter2)
+	return c.newTarget(service2, serviceSubset2, namespace2, partition2, datacenter2)
 }
 
 func (c *compiler) getSplitterOrResolverNode(target *structs.DiscoveryTarget) (*structs.DiscoveryGraphNode, error) {
@@ -709,9 +727,16 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 	c.recordNode(splitNode)
 
 	var hasLB bool
-	for _, split := range splitter.Splits {
+	for i := range splitter.Splits {
+		// We don't use range variables here because we'll take the address of
+		// this split and store that in a DiscoveryGraphNode and the range
+		// variables share memory addresses between iterations which is exactly
+		// wrong for us here.
+		split := splitter.Splits[i]
+
 		compiledSplit := &structs.DiscoverySplit{
-			Weight: split.Weight,
+			Definition: &split,
+			Weight:     split.Weight,
 		}
 		splitNode.Splits = append(splitNode.Splits, compiledSplit)
 
@@ -734,7 +759,7 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 		}
 
 		node, err := c.getResolverNode(
-			c.newTarget(splitID.ID, split.ServiceSubset, splitID.NamespaceOrDefault(), ""),
+			c.newTarget(splitID.ID, split.ServiceSubset, splitID.NamespaceOrDefault(), splitID.PartitionOrDefault(), ""),
 			false,
 		)
 		if err != nil {
@@ -805,6 +830,7 @@ RESOLVE_AGAIN:
 	// Handle redirects right up front.
 	//
 	// TODO(rb): What about a redirected subset reference? (web/v2, but web redirects to alt/"")
+
 	if resolver.Redirect != nil {
 		redirect := resolver.Redirect
 
@@ -812,6 +838,7 @@ RESOLVE_AGAIN:
 			target,
 			redirect.Service,
 			redirect.ServiceSubset,
+			redirect.Partition,
 			redirect.Namespace,
 			redirect.Datacenter,
 		)
@@ -827,6 +854,7 @@ RESOLVE_AGAIN:
 			target,
 			"",
 			resolver.DefaultSubset,
+			"",
 			"",
 			"",
 		)
@@ -903,22 +931,20 @@ RESOLVE_AGAIN:
 		}
 	}
 
-	// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
-	if target.Datacenter == c.useInDatacenter {
-		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
-
-	} else if target.External {
+	// TODO(partitions): Document this change in behavior. Discovery chain targets will now return a mesh gateway
+	// 					 mode as long as they are not external. Regardless of the datacenter/partition where
+	// 					 the chain will be used.
+	if target.External {
 		// Bypass mesh gateways if it is an external service.
 		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
-
 	} else {
 		// Default mesh gateway settings
 		if serviceDefault := c.entries.GetService(targetID); serviceDefault != nil {
 			target.MeshGateway = serviceDefault.MeshGateway
 		}
-
-		if c.entries.GlobalProxy != nil && target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
-			target.MeshGateway.Mode = c.entries.GlobalProxy.MeshGateway.Mode
+		proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
+		if proxyDefault != nil && target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+			target.MeshGateway.Mode = proxyDefault.MeshGateway.Mode
 		}
 
 		if c.overrideMeshGateway.Mode != structs.MeshGatewayModeDefault {
@@ -963,6 +989,7 @@ RESOLVE_AGAIN:
 						target,
 						failover.Service,
 						failover.ServiceSubset,
+						target.Partition,
 						failover.Namespace,
 						dc,
 					)
@@ -976,6 +1003,7 @@ RESOLVE_AGAIN:
 					target,
 					failover.Service,
 					failover.ServiceSubset,
+					target.Partition,
 					failover.Namespace,
 					"",
 				)

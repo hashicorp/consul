@@ -1,0 +1,3 @@
+```release-note:bug
+telemetry: fixes a bug with Prometheus consul_autopilot_healthy metric where 0 is reported instead of NaN on servers.
+```

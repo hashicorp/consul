@@ -54,6 +54,7 @@ func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot,
 	snap.IngressGateway.WatchedUpstreamEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
 	snap.IngressGateway.WatchedGateways = make(map[string]map[string]context.CancelFunc)
 	snap.IngressGateway.WatchedGatewayEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
+	snap.IngressGateway.Listeners = make(map[IngressListenerKey]structs.IngressListener)
 	return snap, nil
 }
 
@@ -79,8 +80,15 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 			return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 		}
 
-		snap.IngressGateway.TLSEnabled = gatewayConf.TLS.Enabled
-		snap.IngressGateway.TLSSet = true
+		snap.IngressGateway.GatewayConfigLoaded = true
+		snap.IngressGateway.TLSConfig = gatewayConf.TLS
+
+		// Load each listener's config from the config entry so we don't have to
+		// pass listener config through "upstreams" types as that grows.
+		for _, l := range gatewayConf.Listeners {
+			key := IngressListenerKeyFromListener(l)
+			snap.IngressGateway.Listeners[key] = l
+		}
 
 		if err := s.watchIngressLeafCert(ctx, snap); err != nil {
 			return err
@@ -103,6 +111,7 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 				id:         u.Identifier(),
 				name:       u.DestinationName,
 				namespace:  u.DestinationNamespace,
+				partition:  u.DestinationPartition,
 				datacenter: s.source.Datacenter,
 			}
 			up := &handlerUpstreams{handlerState: s.handlerState}
@@ -114,11 +123,12 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 
 			hosts = append(hosts, service.Hosts...)
 
-			id := IngressListenerKey{Protocol: service.Protocol, Port: service.Port}
+			id := IngressListenerKeyFromGWService(*service)
 			upstreamsMap[id] = append(upstreamsMap[id], u)
 		}
 
 		snap.IngressGateway.Upstreams = upstreamsMap
+		snap.IngressGateway.UpstreamsSet = watchedSvcs
 		snap.IngressGateway.Hosts = hosts
 		snap.IngressGateway.HostsSet = true
 
@@ -146,6 +156,7 @@ func makeUpstream(g *structs.GatewayService) structs.Upstream {
 	upstream := structs.Upstream{
 		DestinationName:      g.Service.Name,
 		DestinationNamespace: g.Service.NamespaceOrDefault(),
+		DestinationPartition: g.Service.PartitionOrDefault(),
 		LocalBindPort:        g.Port,
 		IngressHosts:         g.Hosts,
 		// Pass the protocol that was configured on the ingress listener in order
@@ -159,7 +170,9 @@ func makeUpstream(g *structs.GatewayService) structs.Upstream {
 }
 
 func (s *handlerIngressGateway) watchIngressLeafCert(ctx context.Context, snap *ConfigSnapshot) error {
-	if !snap.IngressGateway.TLSSet || !snap.IngressGateway.HostsSet {
+	// Note that we DON'T test for TLS.Enabled because we need a leaf cert for the
+	// gateway even without TLS to use as a client cert.
+	if !snap.IngressGateway.GatewayConfigLoaded || !snap.IngressGateway.HostsSet {
 		return nil
 	}
 
@@ -184,10 +197,31 @@ func (s *handlerIngressGateway) watchIngressLeafCert(ctx context.Context, snap *
 	return nil
 }
 
+// connectTLSServingEnabled returns true if Connect TLS is enabled at either
+// gateway level or for at least one of the specific listeners.
+func connectTLSServingEnabled(snap *ConfigSnapshot) bool {
+	if snap.IngressGateway.TLSConfig.Enabled {
+		return true
+	}
+
+	for _, l := range snap.IngressGateway.Listeners {
+		if l.TLS != nil && l.TLS.Enabled {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *handlerIngressGateway) generateIngressDNSSANs(snap *ConfigSnapshot) []string {
-	// Update our leaf cert watch with wildcard entries for our DNS domains as well as any
-	// configured custom hostnames from the service.
-	if !snap.IngressGateway.TLSEnabled {
+	// Update our leaf cert watch with wildcard entries for our DNS domains as
+	// well as any configured custom hostnames from the service. Note that in the
+	// case that only a subset of listeners are TLS-enabled, we still load DNS
+	// SANs for all upstreams. We could limit it to only those that are reachable
+	// from the enabled listeners but that adds a lot of complication and they are
+	// already wildcards anyway. It's simpler to have one certificate for the
+	// whole proxy that works for any possible upstream we might need than try to
+	// be more selective when we are already using wildcard DNS names!
+	if !connectTLSServingEnabled(snap) {
 		return nil
 	}
 
@@ -199,6 +233,7 @@ func (s *handlerIngressGateway) generateIngressDNSSANs(snap *ConfigSnapshot) []s
 		}
 	}
 
+	// TODO(partitions): How should these be updated for partitions?
 	for ns := range namespaces {
 		// The default namespace is special cased in DNS resolution, so special
 		// case it here.

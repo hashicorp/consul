@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Topology - New views for scenarios where no dependencies exist or ACLs are disabled
+```

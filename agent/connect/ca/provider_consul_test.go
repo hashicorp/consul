@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -17,12 +18,22 @@ type consulCAMockDelegate struct {
 	state *state.Store
 }
 
-func (c *consulCAMockDelegate) State() *state.Store {
-	return c.state
+func (c *consulCAMockDelegate) ProviderState(id string) (*structs.CAConsulProviderState, error) {
+	_, s, err := c.state.CAProviderState(id)
+	return s, err
 }
 
 func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
-	return ApplyCARequestToStore(c.state, req)
+	idx, _, err := c.state.CAConfig(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	result := fsm.ApplyConnectCAOperationFromRequest(c.state, req, idx+1)
+	if err, ok := result.(error); ok && err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func newMockDelegate(t *testing.T, conf *structs.CAConfiguration) *consulCAMockDelegate {
@@ -43,8 +54,9 @@ func testConsulCAConfig() *structs.CAConfiguration {
 		Provider:  "consul",
 		Config: map[string]interface{}{
 			// Tests duration parsing after msgpack type mangling during raft apply.
-			"LeafCertTTL":         []uint8("72h"),
-			"IntermediateCertTTL": []uint8("288h"),
+			"LeafCertTTL":         []byte("72h"),
+			"IntermediateCertTTL": []byte("288h"),
+			"RootCertTTL":         []byte("87600h"),
 		},
 	}
 }
@@ -88,6 +100,14 @@ func TestConsulCAProvider_Bootstrap(t *testing.T) {
 	require.Equal(parsed.URIs[0].String(), fmt.Sprintf("spiffe://%s.consul", conf.ClusterID))
 	requireNotEncoded(t, parsed.SubjectKeyId)
 	requireNotEncoded(t, parsed.AuthorityKeyId)
+
+	// test that the root cert ttl is the same as the expected value
+	// notice that we allow a margin of "error" of 10 minutes between the
+	// generateCA() creation and this check
+	defaultRootCertTTL, err := time.ParseDuration(structs.DefaultRootCertTTL)
+	require.NoError(err)
+	expectedNotAfter := time.Now().Add(defaultRootCertTTL).UTC()
+	require.WithinDuration(expectedNotAfter, parsed.NotAfter, 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
 }
 
 func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
@@ -95,7 +115,7 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 
 	// Make sure setting a custom private key/root cert works.
 	require := require.New(t)
-	rootCA := connect.TestCA(t, nil)
+	rootCA := connect.TestCAWithTTL(t, nil, 5*time.Hour)
 	conf := testConsulCAConfig()
 	conf.Config = map[string]interface{}{
 		"PrivateKey": rootCA.SigningKey,
@@ -110,6 +130,18 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 	root, err := provider.ActiveRoot()
 	require.NoError(err)
 	require.Equal(root, rootCA.RootCert)
+
+	// Should be a valid cert
+	parsed, err := connect.ParseCert(root)
+	require.NoError(err)
+
+	// test that the default root cert ttl was not applied to the provided cert
+	defaultRootCertTTL, err := time.ParseDuration(structs.DefaultRootCertTTL)
+	require.NoError(err)
+	defaultNotAfter := time.Now().Add(defaultRootCertTTL).UTC()
+	// we can't compare given the "delta" between the time the cert is generated
+	// and when we start the test; so just look at the years for now, given different years
+	require.NotEqualf(defaultNotAfter.Year(), parsed.NotAfter.Year(), "parsed cert ttl expected to be different from default root cert ttl")
 }
 
 func TestConsulCAProvider_SignLeaf(t *testing.T) {
@@ -154,7 +186,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 				require.NoError(err)
 				require.Equal(spiffeService.URI(), parsed.URIs[0])
 				require.Empty(parsed.Subject.CommonName)
-				require.Equal(uint64(2), parsed.SerialNumber.Uint64())
+				require.Equal(uint64(3), parsed.SerialNumber.Uint64())
 				subjectKeyID, err := connect.KeyId(csr.PublicKey)
 				require.NoError(err)
 				require.Equal(subjectKeyID, parsed.SubjectKeyId)
@@ -183,7 +215,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 				require.NoError(err)
 				require.Equal(spiffeService.URI(), parsed.URIs[0])
 				require.Empty(parsed.Subject.CommonName)
-				require.Equal(parsed.SerialNumber.Uint64(), uint64(2))
+				require.Equal(uint64(4), parsed.SerialNumber.Uint64())
 				requireNotEncoded(t, parsed.SubjectKeyId)
 				requireNotEncoded(t, parsed.AuthorityKeyId)
 
@@ -211,7 +243,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 				require.NoError(err)
 				require.Equal(spiffeAgent.URI(), parsed.URIs[0])
 				require.Empty(parsed.Subject.CommonName)
-				require.Equal(uint64(2), parsed.SerialNumber.Uint64())
+				require.Equal(uint64(5), parsed.SerialNumber.Uint64())
 				requireNotEncoded(t, parsed.SubjectKeyId)
 				requireNotEncoded(t, parsed.AuthorityKeyId)
 

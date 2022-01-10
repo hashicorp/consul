@@ -1,0 +1,6 @@
+```release-note:bug
+ui: code editor styling (layout consistency + wide screen support)
+```
+```release-note:improvement
+ui: added copy to clipboard button in code editor toolbars
+```

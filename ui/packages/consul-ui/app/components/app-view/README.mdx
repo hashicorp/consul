@@ -8,9 +8,7 @@ state: needs-love
 the app chrome), every 'top level main section/template' should have one of
 these.
 
-It contains legacy authorization code (that can probably be removed now), and
-our flash messages (that should be moved to the `<App />` or `<HashicorpConsul
-/>` component and potentially be renamed to `Page` or `View` or similar now
+This component will potentially be renamed to `Page` or `View` or similar now
 that we don't need two words.
 
 Other than that it provides the basic layout/slots for our main title, search
@@ -86,20 +84,12 @@ breadcrumbs and back again.
 </figure>
 ```
 
-## Arguments
-
-| Argument | Type | Default | Description |
-| --- | --- | --- | --- |
-| `authorized` | `Boolean` | `true` | Whether the View is authorized or not |
-| `enabled` | `Boolean` | `true` | Whether ACLs are enabled or not |
-
 ## Slots
 
 | Name  | Description |
 | --- | --- |
 | `header` | The main title of the page, you probably want to put a `<h1>` in here |
 | `content` | The main content of the page, and potentially an `<Outlet />` somewhere |
-| `notification` | Old style notifications, also see `<Notification />` |
 | `breadcrumbs` | Any breadcrumbs, you probably want an `ol/li/a` in here |
 | `actions` | Any actions relevant for the entire page, probably using `<Action />` |
 | `nav` | Secondary navigation goes in here, also see `<TabNav />` |

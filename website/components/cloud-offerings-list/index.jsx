@@ -12,7 +12,7 @@ export default function CloudOfferingsList({ offerings }) {
           >
             <img src={offering.image} alt={offering.title} />
             <span className="g-type-label-strong">{offering.eyebrow}</span>
-            <h4>{offering.title}</h4>
+            <h4 className="g-type-display-4">{offering.title}</h4>
             <p>{offering.description}</p>
             <Button
               title={offering.link.text}

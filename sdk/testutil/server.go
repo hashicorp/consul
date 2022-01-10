@@ -29,11 +29,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/freeport"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
 	"github.com/pkg/errors"
+
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 // TestPerformanceConfig configures the performance parameters.
@@ -101,7 +102,9 @@ type TestServerConfig struct {
 	EnableScriptChecks  bool                   `json:"enable_script_checks,omitempty"`
 	Connect             map[string]interface{} `json:"connect,omitempty"`
 	EnableDebug         bool                   `json:"enable_debug,omitempty"`
+	SkipLeaveOnInt      bool                   `json:"skip_leave_on_interrupt"`
 	ReadyTimeout        time.Duration          `json:"-"`
+	StopTimeout         time.Duration          `json:"-"`
 	Stdout              io.Writer              `json:"-"`
 	Stderr              io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
@@ -140,7 +143,11 @@ func defaultServerConfig(t TestingTB) *TestServerConfig {
 		panic(err)
 	}
 
-	ports := freeport.MustTake(6)
+	ports, err := freeport.Take(6)
+	if err != nil {
+		t.Fatalf("failed to take ports: %v", err)
+	}
+
 	logBuffer := NewLogBuffer(t)
 
 	return &TestServerConfig{
@@ -163,7 +170,9 @@ func defaultServerConfig(t TestingTB) *TestServerConfig {
 			SerfWan: ports[4],
 			Server:  ports[5],
 		},
-		ReadyTimeout: 10 * time.Second,
+		ReadyTimeout:   10 * time.Second,
+		StopTimeout:    10 * time.Second,
+		SkipLeaveOnInt: true,
 		Connect: map[string]interface{}{
 			"enabled": true,
 			"ca_config": map[string]interface{}{
@@ -220,6 +229,7 @@ type TestServer struct {
 // callback function to modify the configuration. If there is an error
 // configuring or starting the server, the server will NOT be running when the
 // function returns (thus you do not need to stop it).
+// This function will call the `consul` binary in GOPATH.
 func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, error) {
 	path, err := exec.LookPath("consul")
 	if err != nil || path == "" {
@@ -340,7 +350,7 @@ func (s *TestServer) Stop() error {
 	select {
 	case err := <-waitDone:
 		return err
-	case <-time.After(10 * time.Second):
+	case <-time.After(s.Config.StopTimeout):
 		s.cmd.Process.Signal(syscall.SIGABRT)
 		<-waitDone
 		return fmt.Errorf("timeout waiting for server to stop gracefully")

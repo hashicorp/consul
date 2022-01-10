@@ -36,10 +36,9 @@ or globally via [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) 
 
 ### REST Access
 
-<Tabs>
-<Tab heading="HCL">
-
 Grant some clients more REST access than others:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-intentions"
@@ -74,11 +73,6 @@ Sources = [
 ]
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Grant some clients more REST access than others:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceIntentions
@@ -104,17 +98,47 @@ spec:
     # unmatched connections and requests. Typically this will be DENY.
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "api",
+  "Sources": [
+    {
+      "Name": "admin-dashboard",
+      "Permissions": [
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathPrefix": "/v2",
+            "Methods": ["GET", "PUT", "POST", "DELETE", "HEAD"]
+          }
+        }
+      ]
+    },
+    {
+      "Name": "report-generator",
+      "Permissions": [
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathPrefix": "/v2/widgets",
+            "Methods": ["GET"]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+</CodeTabs>
 
 ### gRPC
-
-<Tabs>
-<Tab heading="HCL">
 
 Selectively deny some gRPC service methods. Since gRPC method calls [are
 HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can
 use an HTTP path match rule to control traffic:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-intentions"
@@ -156,13 +180,6 @@ Sources = [
 ]
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Selectively deny some gRPC service methods. Since gRPC method calls [are
-HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can
-use an HTTP path match rule to control traffic:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceIntentions
@@ -192,15 +209,50 @@ spec:
     # unmatched connections and requests. Typically this will be DENY.
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "billing",
+  "Sources": [
+    {
+      "Name": "frontend-web",
+      "Permissions": [
+        {
+          "Action": "deny",
+          "HTTP": {
+            "PathExact": "/mycompany.BillingService/IssueRefund"
+          }
+        },
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathPrefix": "/mycompany.BillingService/"
+          }
+        }
+      ]
+    },
+    {
+      "Name": "support-portal",
+      "Permissions": [
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathPrefix": "/mycompany.BillingService/"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
 
 ### L4 and L7
 
-<Tabs>
-<Tab heading="HCL">
-
 You can mix and match L4 and L7 intentions per source:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-intentions"
@@ -231,11 +283,6 @@ Sources = [
 ]
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-You can mix and match L4 and L7 intentions per source:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceIntentions
@@ -259,8 +306,35 @@ spec:
     # unmatched connections and requests. Typically this will be DENY.
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "api",
+  "Sources": [
+    {
+      "Name": "hackathon-project",
+      "Action": "deny"
+    },
+    {
+      "Name": "web",
+      "Action": "allow"
+    },
+    {
+      "Name": "nightly-reconciler",
+      "Permissions": [
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathExact": "/v1/reconcile-data",
+            "Methods": ["POST"]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+</CodeTabs>
 
 ## Available Fields
 
@@ -281,7 +355,7 @@ spec:
     {
       name: 'Name',
       description:
-        "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined.",
+        "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined. Wildcard intentions cannot be used when defining L7 [`Permissions`](/docs/connect/config-entries/service-intentions#permissions).",
       type: 'string: <required>',
       yaml: false,
     },
@@ -290,7 +364,7 @@ spec:
       type: `string: "default"`,
       enterprise: true,
       description:
-        "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined.",
+        "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined. Wildcard intentions cannot be used when defining L7 [`Permissions`](/docs/connect/config-entries/service-intentions#permissions).",
       yaml: false,
     },
     {
@@ -324,7 +398,7 @@ spec:
           hcl: false,
           type: 'string: <required>',
           description:
-            "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined.",
+            "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined. Wildcard intentions cannot be used when defining L7 [`Permissions`](/docs/connect/config-entries/service-intentions#permissions).",
         },
         {
           name: 'namespace',
@@ -332,7 +406,7 @@ spec:
           enterprise: true,
           type: 'string: <optional>',
           description:
-            "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined. If not set, the namespace used will depend on the `connectInject.consulNamespaces` configuration. See [ServiceIntentions Special Case (Enterprise)](/docs/k8s/crds#serviceintentions-special-case-enterprise) for more details.",
+            "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined. If not set, the namespace used will depend on the `connectInject.consulNamespaces` configuration. See [ServiceIntentions Special Case (Enterprise)](/docs/k8s/crds#serviceintentions-special-case-enterprise) for more details. Wildcard intentions cannot be used when defining L7 [`Permissions`](/docs/connect/config-entries/service-intentions#permissions).",
         },
       ],
     },
@@ -396,7 +470,9 @@ spec:
                       provided permissions in this intention will be subject to the default
                       intention behavior is defined by the default [ACL policy](/docs/agent/options#acl_default_policy).<br><br>
                       This should be omitted for an L4 intention as it is mutually exclusive with
-                      the \`Action\` field.`,
+                      the \`Action\` field.<br><br>
+                      Setting \`Permissions\` is not valid if a wildcard is used for the \`Name\` or \`Namespace\` because they can only be
+                      applied to services with a compatible protocol.`,
         yaml: `The list of all [additional L7 attributes](#intentionpermission) that extend the intention match criteria.<br><br>
                       Permission precedence is applied top to bottom. For any given request the
                       first permission to match in the list is terminal and stops further
@@ -404,7 +480,9 @@ spec:
                       provided permissions in this intention will be subject to the default
                       intention behavior is defined by the default [ACL policy](/docs/agent/options#acl_default_policy).<br><br>
                       This should be omitted for an L4 intention as it is mutually exclusive with
-                      the \`action\` field.`,
+                      the \`action\` field.<br><br>
+                      Setting \`permissions\` is not valid if a wildcard is used for the \`spec.destination.name\` or \`spec.destination.namespace\` 
+                      because they can only be applied to services with a compatible protocol.`,
       },
     },
     {

@@ -7,7 +7,15 @@ description: >-
 
 # Prerequisites Needed to Run Consul-Terraform-Sync
 
-Consul-Terraform-Sync requires a Terraform Provider, a Terraform Module, and a running Consul cluster outside of the consul-terraform-sync daemon. Practitioners can add support for their network infrastructure through Terraform providers. Once network infrastructure support exists, practitioners can add network integrations in the form of Terraform modules.
+The following components are required to run Consul-Terraform-Sync:
+
+* A Terraform Provider
+* A Terraform Module
+* A Consul cluster running outside of the consul-terraform-sync daemon
+
+Practitioners can add support for their network infrastructure through Terraform providers. Once network infrastructure support exists, practitioners can add network integrations in the form of Terraform modules.
+
+The following guidance is for running Consul-Terraform-Sync using the Terraform driver. The Terraform Cloud driver<EnterpriseAlert inline />has [additional prerequisites](/docs/nia/network-drivers/terraform-cloud#setting-up-terraform-cloud-driver).
 
 ## Run a Consul Cluster
 

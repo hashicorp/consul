@@ -57,25 +57,47 @@ func testStateStore(t *testing.T) *Store {
 }
 
 func testRegisterNode(t *testing.T, s *Store, idx uint64, nodeID string) {
-	testRegisterNodeWithMeta(t, s, idx, nodeID, nil)
+	testRegisterNodeOpts(t, s, idx, nodeID)
 }
 
 // testRegisterNodeWithChange registers a node and ensures it gets different from previous registration
 func testRegisterNodeWithChange(t *testing.T, s *Store, idx uint64, nodeID string) {
-	testRegisterNodeWithMeta(t, s, idx, nodeID, map[string]string{
+	testRegisterNodeOpts(t, s, idx, nodeID, regNodeWithMeta(map[string]string{
 		"version": fmt.Sprint(idx),
-	})
+	}))
 }
 
 func testRegisterNodeWithMeta(t *testing.T, s *Store, idx uint64, nodeID string, meta map[string]string) {
-	node := &structs.Node{Node: nodeID, Meta: meta}
+	testRegisterNodeOpts(t, s, idx, nodeID, regNodeWithMeta(meta))
+}
+
+type regNodeOption func(*structs.Node) error
+
+func regNodeWithMeta(meta map[string]string) func(*structs.Node) error {
+	return func(node *structs.Node) error {
+		node.Meta = meta
+		return nil
+	}
+}
+
+func testRegisterNodeOpts(t *testing.T, s *Store, idx uint64, nodeID string, opts ...regNodeOption) {
+	node := &structs.Node{Node: nodeID}
+	for _, opt := range opts {
+		if err := opt(node); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
 	if err := s.EnsureNode(idx, node); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	n, err := tx.First(tableNodes, indexID, Query{Value: nodeID})
+	n, err := tx.First(tableNodes, indexID, Query{
+		Value:          nodeID,
+		EnterpriseMeta: *node.GetEnterpriseMeta(),
+	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -148,14 +170,20 @@ func testRegisterIngressService(t *testing.T, s *Store, idx uint64, nodeID, serv
 		t.Fatalf("bad service: %#v", result)
 	}
 }
-
 func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 	nodeID string, serviceID string, checkID types.CheckID, state string) {
+	testRegisterCheckWithPartition(t, s, idx,
+		nodeID, serviceID, checkID, state, "")
+}
+
+func testRegisterCheckWithPartition(t *testing.T, s *Store, idx uint64,
+	nodeID string, serviceID string, checkID types.CheckID, state string, partition string) {
 	chk := &structs.HealthCheck{
-		Node:      nodeID,
-		CheckID:   checkID,
-		ServiceID: serviceID,
-		Status:    state,
+		Node:           nodeID,
+		CheckID:        checkID,
+		ServiceID:      serviceID,
+		Status:         state,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(partition),
 	}
 	if err := s.EnsureCheck(idx, chk); err != nil {
 		t.Fatalf("err: %s", err)
@@ -163,7 +191,7 @@ func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	c, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: nodeID, CheckID: string(checkID)})
+	c, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: nodeID, CheckID: string(checkID), EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(partition)})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -216,7 +244,8 @@ func testSetKey(t *testing.T, s *Store, idx uint64, key, value string, entMeta *
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	e, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
+
+	e, err := tx.First(tableKVs, indexID, entry)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -283,7 +312,7 @@ func TestStateStore_maxIndex(t *testing.T) {
 	testRegisterNode(t, s, 1, "bar")
 	testRegisterService(t, s, 2, "foo", "consul")
 
-	if max := s.maxIndex("nodes", tableServices); max != 2 {
+	if max := s.maxIndex(tableNodes, tableServices); max != 2 {
 		t.Fatalf("bad max: %d", max)
 	}
 }
@@ -295,12 +324,12 @@ func TestStateStore_indexUpdateMaxTxn(t *testing.T) {
 	testRegisterNode(t, s, 1, "bar")
 
 	tx := s.db.WriteTxnRestore()
-	if err := indexUpdateMaxTxn(tx, 3, "nodes"); err != nil {
+	if err := indexUpdateMaxTxn(tx, 3, tableNodes); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	require.NoError(t, tx.Commit())
 
-	if max := s.maxIndex("nodes"); max != 3 {
+	if max := s.maxIndex(tableNodes); max != 3 {
 		t.Fatalf("bad max: %d", max)
 	}
 }

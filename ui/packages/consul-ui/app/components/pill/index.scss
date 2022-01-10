@@ -29,7 +29,8 @@ span.policy-service-identity::before {
 %pill.nomad::before {
   @extend %with-logo-nomad-color-icon, %as-pseudo;
 }
-%pill.consul::before {
+%pill.consul::before,
+%pill.consul-api-gateway::before {
   @extend %with-logo-consul-color-icon, %as-pseudo;
 }
 %pill.vault::before {

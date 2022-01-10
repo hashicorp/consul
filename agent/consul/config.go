@@ -175,36 +175,15 @@ type Config struct {
 	// operators track which versions are actively deployed
 	Build string
 
+	ACLResolverSettings ACLResolverSettings
+
 	// ACLEnabled is used to enable ACLs
 	ACLsEnabled bool
 
-	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
-	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
-	// that the Master token is available. This provides the initial token.
-	ACLMasterToken string
-
-	// ACLDatacenter provides the authoritative datacenter for ACL
-	// tokens. If not provided, ACL verification is disabled.
-	ACLDatacenter string
-
-	// ACLTokenTTL controls the time-to-live of cached ACL tokens.
-	// It can be set to zero to disable caching, but this adds
-	// a substantial cost.
-	ACLTokenTTL time.Duration
-
-	// ACLPolicyTTL controls the time-to-live of cached ACL policies.
-	// It can be set to zero to disable caching, but this adds
-	// a substantial cost.
-	ACLPolicyTTL time.Duration
-
-	// ACLRoleTTL controls the time-to-live of cached ACL roles.
-	// It can be set to zero to disable caching, but this adds
-	// a substantial cost.
-	ACLRoleTTL time.Duration
-
-	// ACLDisabledTTL is the time between checking if ACLs should be
-	// enabled. This
-	ACLDisabledTTL time.Duration
+	// ACLInitialManagementToken is used to bootstrap the ACL system. It should be specified
+	// on the servers in the PrimaryDatacenter. When the leader comes online, it ensures
+	// that the initial management token is available. This provides the initial token.
+	ACLInitialManagementToken string
 
 	// ACLTokenReplication is used to enabled token replication.
 	//
@@ -212,20 +191,6 @@ type Config struct {
 	// replication is off and the primary datacenter is not
 	// yet upgraded to the new ACLs no replication will be performed
 	ACLTokenReplication bool
-
-	// ACLDefaultPolicy is used to control the ACL interaction when
-	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to deny-list, or "deny" which means ACLs are
-	// allow-lists.
-	ACLDefaultPolicy string
-
-	// ACLDownPolicy controls the behavior of ACLs if the ACLDatacenter
-	// cannot be contacted. It can be either "deny" to deny all requests,
-	// "extend-cache" or "async-cache" which ignores the ACLCacheInterval and
-	// uses cached policies.
-	// If a policy is not in the cache, it acts like deny.
-	// "allow" can be used to allow all requests. This is not recommended.
-	ACLDownPolicy string
 
 	// ACLReplicationRate is the max number of replication rounds that can
 	// be run per second. Note that either 1 or 2 RPCs are used during each replication
@@ -426,6 +391,8 @@ type Config struct {
 
 	RPCConfig RPCConfig
 
+	RaftBoltDBConfig RaftBoltDBConfig
+
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
 }
@@ -442,19 +409,20 @@ func (c *Config) CheckProtocolVersion() error {
 }
 
 // CheckACL validates the ACL configuration.
+// TODO: move this to ACLResolverSettings
 func (c *Config) CheckACL() error {
-	switch c.ACLDefaultPolicy {
+	switch c.ACLResolverSettings.ACLDefaultPolicy {
 	case "allow":
 	case "deny":
 	default:
-		return fmt.Errorf("Unsupported default ACL policy: %s", c.ACLDefaultPolicy)
+		return fmt.Errorf("Unsupported default ACL policy: %s", c.ACLResolverSettings.ACLDefaultPolicy)
 	}
-	switch c.ACLDownPolicy {
+	switch c.ACLResolverSettings.ACLDownPolicy {
 	case "allow":
 	case "deny":
 	case "async-cache", "extend-cache":
 	default:
-		return fmt.Errorf("Unsupported down ACL policy: %s", c.ACLDownPolicy)
+		return fmt.Errorf("Unsupported down ACL policy: %s", c.ACLResolverSettings.ACLDownPolicy)
 	}
 	return nil
 }
@@ -467,21 +435,26 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Build:                                version.Version,
-		Datacenter:                           DefaultDC,
-		NodeName:                             hostname,
-		RPCAddr:                              DefaultRPCAddr,
-		RaftConfig:                           raft.DefaultConfig(),
-		SerfLANConfig:                        libserf.DefaultConfig(),
-		SerfWANConfig:                        libserf.DefaultConfig(),
-		SerfFloodInterval:                    60 * time.Second,
-		ReconcileInterval:                    60 * time.Second,
-		ProtocolVersion:                      ProtocolVersion2Compatible,
-		ACLRoleTTL:                           30 * time.Second,
-		ACLPolicyTTL:                         30 * time.Second,
-		ACLTokenTTL:                          30 * time.Second,
-		ACLDefaultPolicy:                     "allow",
-		ACLDownPolicy:                        "extend-cache",
+		Build:             version.Version,
+		Datacenter:        DefaultDC,
+		NodeName:          hostname,
+		RPCAddr:           DefaultRPCAddr,
+		RaftConfig:        raft.DefaultConfig(),
+		SerfLANConfig:     libserf.DefaultConfig(),
+		SerfWANConfig:     libserf.DefaultConfig(),
+		SerfFloodInterval: 60 * time.Second,
+		ReconcileInterval: 60 * time.Second,
+		ProtocolVersion:   ProtocolVersion2Compatible,
+		ACLResolverSettings: ACLResolverSettings{
+			ACLsEnabled:      false,
+			Datacenter:       DefaultDC,
+			NodeName:         hostname,
+			ACLPolicyTTL:     30 * time.Second,
+			ACLTokenTTL:      30 * time.Second,
+			ACLRoleTTL:       30 * time.Second,
+			ACLDownPolicy:    "extend-cache",
+			ACLDefaultPolicy: "allow",
+		},
 		ACLReplicationRate:                   1,
 		ACLReplicationBurst:                  5,
 		ACLReplicationApplyLimit:             100, // ops / sec
@@ -523,6 +496,7 @@ func DefaultConfig() *Config {
 			Config: map[string]interface{}{
 				"LeafCertTTL":         structs.DefaultLeafCertTTL,
 				"IntermediateCertTTL": structs.DefaultIntermediateCertTTL,
+				"RootCertTTL":         structs.DefaultRootCertTTL,
 			},
 		},
 
@@ -570,6 +544,49 @@ func DefaultConfig() *Config {
 	return conf
 }
 
+// CloneSerfLANConfig clones an existing serf.Config used on the LAN by
+// reconstructing it from defaults and re-applying changes made in the agent
+// configs.
+//
+// This function is tricky to keep from rotting so we enforce that it MUST work
+// by cloning our own serf LAN configuration on startup and only using the
+// cloned one so any configs we need to change have to be changed here for them
+// to work at all.
+func CloneSerfLANConfig(base *serf.Config) *serf.Config {
+	cfg := DefaultConfig().SerfLANConfig
+
+	// from consul.DefaultConfig()
+	cfg.ReconnectTimeout = base.ReconnectTimeout
+	cfg.MemberlistConfig.BindPort = base.MemberlistConfig.BindPort
+	cfg.MemberlistConfig.DeadNodeReclaimTime = base.MemberlistConfig.DeadNodeReclaimTime
+
+	// from agent.newConsulConfig()
+	cfg.MemberlistConfig.BindAddr = base.MemberlistConfig.BindAddr
+	cfg.MemberlistConfig.BindPort = base.MemberlistConfig.BindPort
+	cfg.MemberlistConfig.CIDRsAllowed = base.MemberlistConfig.CIDRsAllowed
+	cfg.MemberlistConfig.AdvertiseAddr = base.MemberlistConfig.AdvertiseAddr
+	cfg.MemberlistConfig.AdvertisePort = base.MemberlistConfig.AdvertisePort
+	cfg.MemberlistConfig.GossipVerifyIncoming = base.MemberlistConfig.GossipVerifyIncoming
+	cfg.MemberlistConfig.GossipVerifyOutgoing = base.MemberlistConfig.GossipVerifyOutgoing
+	cfg.MemberlistConfig.GossipInterval = base.MemberlistConfig.GossipInterval
+	cfg.MemberlistConfig.GossipNodes = base.MemberlistConfig.GossipNodes
+	cfg.MemberlistConfig.ProbeInterval = base.MemberlistConfig.ProbeInterval
+	cfg.MemberlistConfig.ProbeTimeout = base.MemberlistConfig.ProbeTimeout
+	cfg.MemberlistConfig.SuspicionMult = base.MemberlistConfig.SuspicionMult
+	cfg.MemberlistConfig.RetransmitMult = base.MemberlistConfig.RetransmitMult
+
+	// agent/keyring.go
+	cfg.MemberlistConfig.Keyring = base.MemberlistConfig.Keyring
+
+	// tests
+	cfg.KeyringFile = base.KeyringFile
+	cfg.ReapInterval = base.ReapInterval
+	cfg.TombstoneTimeout = base.TombstoneTimeout
+	cfg.MemberlistConfig.SecretKey = base.MemberlistConfig.SecretKey
+
+	return cfg
+}
+
 // RPCConfig settings for the RPC server
 //
 // TODO: move many settings to this struct.
@@ -587,4 +604,8 @@ type ReloadableConfig struct {
 	RaftSnapshotThreshold int
 	RaftSnapshotInterval  time.Duration
 	RaftTrailingLogs      int
+}
+
+type RaftBoltDBConfig struct {
+	NoFreelistSync bool
 }

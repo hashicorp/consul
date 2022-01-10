@@ -19,8 +19,3 @@ const (
 	ConsulServiceID   = "consul"
 	ConsulServiceName = "consul"
 )
-
-var (
-	ConsulCompoundServiceID = NewServiceID(ConsulServiceID, nil) // TODO(partitions): delete this in favor of IsConsulServiceID(ServiceID)
-	SerfCompoundCheckID     = NewCheckID(SerfCheckID, nil)       // TODO(partitions): delete this in favor of IsSerfCheckID(CheckID)
-)

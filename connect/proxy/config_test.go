@@ -23,12 +23,14 @@ func TestUpstreamResolverFuncFromClient(t *testing.T) {
 			name: "service",
 			cfg: UpstreamConfig{
 				DestinationNamespace: "foo",
+				DestinationPartition: "default",
 				DestinationName:      "web",
 				Datacenter:           "ny1",
 				DestinationType:      "service",
 			},
 			want: &connect.ConsulResolver{
 				Namespace:  "foo",
+				Partition:  "default",
 				Name:       "web",
 				Datacenter: "ny1",
 				Type:       connect.ConsulResolverTypeService,
@@ -38,6 +40,7 @@ func TestUpstreamResolverFuncFromClient(t *testing.T) {
 			name: "prepared_query",
 			cfg: UpstreamConfig{
 				DestinationNamespace: "foo",
+				DestinationPartition: "default",
 				DestinationName:      "web",
 				Datacenter:           "ny1",
 				DestinationType:      "prepared_query",
@@ -45,6 +48,7 @@ func TestUpstreamResolverFuncFromClient(t *testing.T) {
 			want: &connect.ConsulResolver{
 				Namespace:  "foo",
 				Name:       "web",
+				Partition:  "default",
 				Datacenter: "ny1",
 				Type:       connect.ConsulResolverTypePreparedQuery,
 			},
@@ -53,11 +57,13 @@ func TestUpstreamResolverFuncFromClient(t *testing.T) {
 			name: "unknown behaves like service",
 			cfg: UpstreamConfig{
 				DestinationNamespace: "foo",
+				DestinationPartition: "default",
 				DestinationName:      "web",
 				Datacenter:           "ny1",
 				DestinationType:      "junk",
 			},
 			want: &connect.ConsulResolver{
+				Partition:  "default",
 				Namespace:  "foo",
 				Name:       "web",
 				Datacenter: "ny1",
@@ -130,6 +136,7 @@ func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
 			{
 				DestinationName:      "db",
 				DestinationNamespace: "default",
+				DestinationPartition: "default",
 				DestinationType:      "service",
 				LocalBindPort:        9191,
 				LocalBindAddress:     "127.0.0.1",
@@ -159,6 +166,7 @@ func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
 	expectCfg.Upstreams = append(expectCfg.Upstreams, UpstreamConfig{
 		DestinationName:      "cache",
 		DestinationNamespace: "default",
+		DestinationPartition: "default",
 		DestinationType:      "service",
 		LocalBindPort:        9292,
 		LocalBindAddress:     "127.10.10.10",

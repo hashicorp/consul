@@ -73,6 +73,11 @@ func TestServiceHealthSnapshot(t *testing.T) {
 func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 	store := NewStateStore(nil)
 
+	require.NoError(t, store.SystemMetadataSet(0, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataVirtualIPsEnabled,
+		Value: "true",
+	}))
+
 	counter := newIndexCounter()
 	err := store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "db"))
 	require.NoError(t, err)
@@ -284,7 +289,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			return nil
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return s.deleteNodeTxn(tx, tx.Index, "node1")
+			return s.deleteNodeTxn(tx, tx.Index, "node1", nil)
 		},
 		WantEvents: []stream.Event{
 			// Should publish deregistration events for all services
@@ -1028,8 +1033,8 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			testServiceHealthEvent(t, "web", evSidecar, evNodeUnchanged),
 			testServiceHealthEvent(t, "web", evConnectTopic, evSidecar, evNodeUnchanged),
 
-			testServiceHealthEvent(t, "api", evNode2, evConnectNative, evNodeUnchanged),
-			testServiceHealthEvent(t, "api", evNode2, evConnectTopic, evConnectNative, evNodeUnchanged),
+			testServiceHealthEvent(t, "api", evNode2, evConnectNative, evNodeUnchanged, evVirtualIPChanged("240.0.0.2")),
+			testServiceHealthEvent(t, "api", evNode2, evConnectTopic, evConnectNative, evNodeUnchanged, evVirtualIPChanged("240.0.0.2")),
 		},
 	})
 	run(t, eventsTestCase{
@@ -1574,6 +1579,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 
 func (tc eventsTestCase) run(t *testing.T) {
 	s := NewStateStore(nil)
+	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataVirtualIPsEnabled,
+		Value: "true",
+	}))
 
 	setupIndex := uint64(10)
 	mutateIndex := uint64(100)
@@ -1605,9 +1614,9 @@ func (tc eventsTestCase) run(t *testing.T) {
 	assertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents, cmpopts.EquateEmpty())
 }
 
-func runCase(t *testing.T, name string, fn func(t *testing.T)) {
+func runCase(t *testing.T, name string, fn func(t *testing.T)) bool {
 	t.Helper()
-	t.Run(name, func(t *testing.T) {
+	return t.Run(name, func(t *testing.T) {
 		t.Helper()
 		t.Log("case:", name)
 		fn(t)
@@ -1680,7 +1689,11 @@ var cmpPartialOrderEvents = cmp.Options{
 			if payload.overrideNamespace != "" {
 				ns = payload.overrideNamespace
 			}
-			return fmt.Sprintf("%s/%s/%s/%s", e.Topic, csn.Node.Node, ns, name)
+			ap := csn.Service.EnterpriseMeta.PartitionOrDefault()
+			if payload.overridePartition != "" {
+				ap = payload.overridePartition
+			}
+			return fmt.Sprintf("%s/%s/%s/%s/%s", e.Topic, ap, csn.Node.Node, ns, name)
 		}
 		return key(i) < key(j)
 	}),
@@ -1695,10 +1708,11 @@ type regOption func(req *structs.RegisterRequest) error
 
 func testNodeRegistration(t *testing.T, opts ...regOption) *structs.RegisterRequest {
 	r := &structs.RegisterRequest{
-		Datacenter: "dc1",
-		ID:         "11111111-2222-3333-4444-555555555555",
-		Node:       "node1",
-		Address:    "10.10.10.10",
+		Datacenter:     "dc1",
+		ID:             "11111111-2222-3333-4444-555555555555",
+		Node:           "node1",
+		Address:        "10.10.10.10",
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		Checks: structs.HealthChecks{
 			&structs.HealthCheck{
 				CheckID: "serf-health",
@@ -1719,19 +1733,21 @@ func testServiceRegistration(t *testing.T, svc string, opts ...regOption) *struc
 	// note: don't pass opts or they might get applied twice!
 	r := testNodeRegistration(t)
 	r.Service = &structs.NodeService{
-		ID:      svc,
-		Service: svc,
-		Port:    8080,
+		ID:             svc,
+		Service:        svc,
+		Port:           8080,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	r.Checks = append(r.Checks,
 		&structs.HealthCheck{
-			CheckID:     types.CheckID("service:" + svc),
-			Name:        "service:" + svc,
-			Node:        "node1",
-			ServiceID:   svc,
-			ServiceName: svc,
-			Type:        "ttl",
-			Status:      api.HealthPassing,
+			CheckID:        types.CheckID("service:" + svc),
+			Name:           "service:" + svc,
+			Node:           "node1",
+			ServiceID:      svc,
+			ServiceName:    svc,
+			Type:           "ttl",
+			Status:         api.HealthPassing,
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		})
 	for _, opt := range opts {
 		err := opt(r)
@@ -1753,6 +1769,7 @@ func testServiceHealthEvent(t *testing.T, svc string, opts ...eventOption) strea
 	csn := getPayloadCheckServiceNode(e.Payload)
 	csn.Node.ID = "11111111-2222-3333-4444-555555555555"
 	csn.Node.Address = "10.10.10.10"
+	csn.Node.Partition = structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty()
 
 	for _, opt := range opts {
 		if err := opt(&e); err != nil {
@@ -1928,7 +1945,14 @@ func evServiceUnchanged(e *stream.Event) error {
 // evConnectNative option converts the base event to represent a connect-native
 // service instance.
 func evConnectNative(e *stream.Event) error {
-	getPayloadCheckServiceNode(e.Payload).Service.Connect.Native = true
+	csn := getPayloadCheckServiceNode(e.Payload)
+	csn.Service.Connect.Native = true
+	csn.Service.TaggedAddresses = map[string]structs.ServiceAddress{
+		structs.TaggedAddressVirtualIP: {
+			Address: "240.0.0.1",
+			Port:    csn.Service.Port,
+		},
+	}
 	return nil
 }
 
@@ -1961,6 +1985,13 @@ func evSidecar(e *stream.Event) error {
 	csn.Service.Proxy.DestinationServiceName = svc
 	csn.Service.Proxy.DestinationServiceID = svc
 
+	csn.Service.TaggedAddresses = map[string]structs.ServiceAddress{
+		structs.TaggedAddressVirtualIP: {
+			Address: "240.0.0.1",
+			Port:    csn.Service.Port,
+		},
+	}
+
 	// Convert the check to point to the right ID now. This isn't totally
 	// realistic - sidecars should have alias checks etc but this is good enough
 	// to test this code path.
@@ -1982,7 +2013,12 @@ func evSidecar(e *stream.Event) error {
 // amount to simulate a service change. Can be used with evSidecar since it's a
 // relative change (+10).
 func evMutatePort(e *stream.Event) error {
-	getPayloadCheckServiceNode(e.Payload).Service.Port += 10
+	csn := getPayloadCheckServiceNode(e.Payload)
+	csn.Service.Port += 10
+	if addr, ok := csn.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; ok {
+		addr.Port = csn.Service.Port
+		csn.Service.TaggedAddresses[structs.TaggedAddressVirtualIP] = addr
+	}
 	return nil
 }
 
@@ -2059,6 +2095,10 @@ func evRenameService(e *stream.Event) error {
 	// We don't need to update our own details, only the name of the destination
 	csn.Service.Proxy.DestinationServiceName += "_changed"
 
+	taggedAddr := csn.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]
+	taggedAddr.Address = "240.0.0.2"
+	csn.Service.TaggedAddresses[structs.TaggedAddressVirtualIP] = taggedAddr
+
 	if e.Topic == topicServiceHealthConnect {
 		payload := e.Payload.(EventPayloadCheckServiceNode)
 		payload.overrideKey = csn.Service.Proxy.DestinationServiceName
@@ -2072,6 +2112,19 @@ func evTerminatingGatewayRenamed(newName string) func(e *stream.Event) error {
 		csn := getPayloadCheckServiceNode(e.Payload)
 		csn.Service.Service = newName
 		csn.Checks[1].ServiceName = newName
+		return nil
+	}
+}
+
+func evVirtualIPChanged(newIP string) func(e *stream.Event) error {
+	return func(e *stream.Event) error {
+		csn := getPayloadCheckServiceNode(e.Payload)
+		csn.Service.TaggedAddresses = map[string]structs.ServiceAddress{
+			structs.TaggedAddressVirtualIP: {
+				Address: newIP,
+				Port:    csn.Service.Port,
+			},
+		}
 		return nil
 	}
 }
@@ -2168,6 +2221,7 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 					Node:       node,
 					Address:    addr,
 					Datacenter: "dc1",
+					Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: index,
 						ModifyIndex: index,
@@ -2234,7 +2288,8 @@ func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) 
 			Op: pbsubscribe.CatalogOp_Deregister,
 			Value: &structs.CheckServiceNode{
 				Node: &structs.Node{
-					Node: fmt.Sprintf("node%d", nodeNum),
+					Node:      fmt.Sprintf("node%d", nodeNum),
+					Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
 				Service: &structs.NodeService{
 					ID:      svc,
@@ -2266,6 +2321,7 @@ func TestEventPayloadCheckServiceNode_FilterByKey(t *testing.T) {
 		payload   EventPayloadCheckServiceNode
 		key       string
 		namespace string
+		partition string // TODO(partitions): create test cases for this being set
 		expected  bool
 	}
 
@@ -2274,7 +2330,7 @@ func TestEventPayloadCheckServiceNode_FilterByKey(t *testing.T) {
 			t.Skip("cant test namespace matching without namespace support")
 		}
 
-		require.Equal(t, tc.expected, tc.payload.MatchesKey(tc.key, tc.namespace))
+		require.Equal(t, tc.expected, tc.payload.MatchesKey(tc.key, tc.namespace, tc.partition))
 	}
 
 	var testCases = []testCase{

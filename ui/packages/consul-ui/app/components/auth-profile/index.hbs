@@ -1,9 +1,12 @@
-<dl>
+<dl
+  class="auth-profile"
+  ...attributes
+>
     <dt>
       <span>My ACL Token</span><br />
       AccessorID
     </dt>
     <dd>
-      {{substr item.AccessorID -8}}
+      {{string-substring @item.AccessorID (sub @item.AccessorID.length 8)}}
     </dd>
 </dl>

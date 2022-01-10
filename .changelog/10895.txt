@@ -1,0 +1,3 @@
+```release-note:improvement
+grpc, xds: improved reliability of grpc and xds servers by adding recovery-middleware to return and log error in case of panic.
+```

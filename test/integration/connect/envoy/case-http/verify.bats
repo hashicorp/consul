@@ -36,7 +36,7 @@ load helpers
 @test "s1 proxy should have been configured with http connection managers" {
   LISTEN_FILTERS=$(get_envoy_listener_filters localhost:19000)
   PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
-  UPS=$(echo "$LISTEN_FILTERS" | grep -E "^(\/default\/)?s2:" | cut -f 2 -d ' ' )
+  UPS=$(echo "$LISTEN_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ' )
 
   echo "LISTEN_FILTERS = $LISTEN_FILTERS"
   echo "PUB = $PUB"
@@ -59,7 +59,7 @@ load helpers
 @test "s1 proxy should have been configured with http rbac filters" {
   HTTP_FILTERS=$(get_envoy_http_filters localhost:19000)
   PUB=$(echo "$HTTP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
-  UPS=$(echo "$HTTP_FILTERS" | grep -E "^(\/default\/)?s2:" | cut -f 2 -d ' ' )
+  UPS=$(echo "$HTTP_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ' )
 
   echo "HTTP_FILTERS = $HTTP_FILTERS"
   echo "PUB = $PUB"

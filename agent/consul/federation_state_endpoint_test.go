@@ -6,15 +6,16 @@ import (
 	"testing"
 	"time"
 
+	uuid "github.com/hashicorp/go-uuid"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	uuid "github.com/hashicorp/go-uuid"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/require"
 )
 
 func TestFederationState_Apply_Upsert(t *testing.T) {
@@ -26,6 +27,7 @@ func TestFederationState_Apply_Upsert(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -112,10 +114,10 @@ func TestFederationState_Apply_Upsert_ACLDeny(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -189,6 +191,7 @@ func TestFederationState_Get(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -232,10 +235,10 @@ func TestFederationState_Get_ACLDeny(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -305,6 +308,7 @@ func TestFederationState_List(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -403,10 +407,10 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 		c.DisableFederationStateAntiEntropy = true
 		c.Datacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -419,10 +423,10 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 		c.DisableFederationStateAntiEntropy = true
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -498,9 +502,10 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 	type tcase struct {
 		token string
 
-		listDenied  bool
-		listEmpty   bool
-		gwListEmpty bool
+		listDenied       bool
+		listEmpty        bool
+		gwListEmpty      bool
+		gwFilteredByACLs bool
 	}
 
 	cases := map[string]tcase{
@@ -510,27 +515,31 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 			gwListEmpty: true,
 		},
 		"no perms": {
-			token:       nadaToken.SecretID,
-			listDenied:  true,
-			gwListEmpty: true,
+			token:            nadaToken.SecretID,
+			listDenied:       true,
+			gwListEmpty:      true,
+			gwFilteredByACLs: true,
 		},
 		"service:read": {
-			token:       svcReadToken.SecretID,
-			listDenied:  true,
-			gwListEmpty: true,
+			token:            svcReadToken.SecretID,
+			listDenied:       true,
+			gwListEmpty:      true,
+			gwFilteredByACLs: true,
 		},
 		"node:read": {
-			token:       nodeReadToken.SecretID,
-			listDenied:  true,
-			gwListEmpty: true,
+			token:            nodeReadToken.SecretID,
+			listDenied:       true,
+			gwListEmpty:      true,
+			gwFilteredByACLs: true,
 		},
 		"service:read and node:read": {
 			token:      svcAndNodeReadToken.SecretID,
 			listDenied: true,
 		},
 		"operator:read": {
-			token:       opReadToken.SecretID,
-			gwListEmpty: true,
+			token:            opReadToken.SecretID,
+			gwListEmpty:      true,
+			gwFilteredByACLs: true,
 		},
 		"master token": {
 			token: "root",
@@ -581,6 +590,11 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 					require.NoError(t, err)
 					require.Equal(t, expectedMeshGateways.DatacenterNodes, out.DatacenterNodes)
 				}
+				require.Equal(t,
+					tc.gwFilteredByACLs,
+					out.QueryMeta.ResultsFilteredByACLs,
+					"ResultsFilteredByACLs should be %v", tc.gwFilteredByACLs,
+				)
 			})
 		})
 	}
@@ -595,6 +609,7 @@ func TestFederationState_Apply_Delete(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -678,10 +693,10 @@ func TestFederationState_Apply_Delete_ACLDeny(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

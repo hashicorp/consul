@@ -10,7 +10,7 @@ import (
 
 func TestFilter_DirEnt(t *testing.T) {
 	t.Parallel()
-	policy, _ := acl.NewPolicyFromSource("", 0, testFilterRules, acl.SyntaxLegacy, nil, nil)
+	policy, _ := acl.NewPolicyFromSource(testFilterRules, acl.SyntaxLegacy, nil, nil)
 	aclR, _ := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 
 	type tcase struct {
@@ -52,7 +52,7 @@ func TestFilter_DirEnt(t *testing.T) {
 
 func TestFilter_TxnResults(t *testing.T) {
 	t.Parallel()
-	policy, _ := acl.NewPolicyFromSource("", 0, testFilterRules, acl.SyntaxLegacy, nil, nil)
+	policy, _ := acl.NewPolicyFromSource(testFilterRules, acl.SyntaxLegacy, nil, nil)
 	aclR, _ := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 
 	type tcase struct {

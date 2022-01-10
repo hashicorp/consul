@@ -1,0 +1,63 @@
+<Route
+  @name={{routeName}}
+as |route|>
+  <DataLoader @src={{
+    uri '/${partition}/${nspace}/${dc}/partition/${id}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        id=(or route.params.name '')
+      )
+    }}
+  as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+
+  route.params.dc
+  route.params.partition
+  route.params.nspace
+
+  loader.data
+as |dc partition nspace item|}}
+  <AppView>
+    <BlockSlot @name="breadcrumbs">
+      <ol>
+          <li><a data-test-back href={{href-to 'dc.partitions'}}>All Admin Partitions</a></li>
+      </ol>
+    </BlockSlot>
+    <BlockSlot @name="header">
+      <h1>
+        <route.Title
+          @title={{if 
+            (is "new partition" item=item)
+              "New Partition"
+              (concat "Edit " item.Name)
+          }}
+        />
+      </h1>
+    </BlockSlot>
+    <BlockSlot @name="content">
+
+      <Consul::Partition::Form
+        @item={{item}}
+        @dc={{route.params.dc}}
+        @nspace={{route.params.nspace}}
+        @partition={{route.params.partition}}
+        @onsubmit={{transition-to 'dc.partitions.index'}}
+      />
+
+    </BlockSlot>
+  </AppView>
+{{/let}}
+    </BlockSlot>
+  </DataLoader>
+</Route>

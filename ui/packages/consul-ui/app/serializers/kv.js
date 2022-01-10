@@ -1,8 +1,6 @@
 import Serializer from './application';
 import { inject as service } from '@ember/service';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/kv';
-import { NSPACE_KEY } from 'consul-ui/models/nspace';
-import { NSPACE_QUERY_PARAM as API_NSPACE_KEY } from 'consul-ui/adapters/application';
 
 export default class KvSerializer extends Serializer {
   @service('atob') decoder;
@@ -18,7 +16,18 @@ export default class KvSerializer extends Serializer {
 
   respondForQueryRecord(respond, query) {
     return super.respondForQueryRecord(
-      cb => respond((headers, body) => cb(headers, body[0])),
+      cb =>
+        respond((headers, body) => {
+          // If item.Session is not set make sure we overwrite any existing one.
+          // Using @replace, defaultValue or similar model apporaches does not work
+          // as if a property is undefined ember-data just ignores it instead of
+          // deleting the value of the existing property.
+          if (typeof body[0].Session === 'undefined') {
+            body[0].Session = '';
+          }
+          //
+          return cb(headers, body[0]);
+        }),
       query
     );
   }
@@ -32,7 +41,6 @@ export default class KvSerializer extends Serializer {
             body.map(item => {
               return {
                 [this.slugKey]: item,
-                [NSPACE_KEY]: query[API_NSPACE_KEY],
               };
             })
           );

@@ -1,6 +1,7 @@
 package state
 
 import (
+	crand "crypto/rand"
 	"fmt"
 	"reflect"
 	"sort"
@@ -28,23 +29,24 @@ func makeRandomNodeID(t *testing.T) types.NodeID {
 
 func TestStateStore_GetNodeID(t *testing.T) {
 	s := testStateStore(t)
-	_, out, err := s.GetNodeID(types.NodeID("wrongId"))
-	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
-		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err.Error(), out)
+
+	_, out, err := s.GetNodeID(types.NodeID("wrongId"), nil)
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: UUID (without hyphens) must be") {
+		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err.Error(), out)
 	}
-	_, out, err = s.GetNodeID(types.NodeID("0123456789abcdefghijklmnopqrstuvwxyz"))
-	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
-		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err, out)
+	_, out, err = s.GetNodeID(types.NodeID("0123456789abcdefghijklmnopqrstuvwxyz"), nil)
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: invalid UUID") {
+		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err, out)
 	}
 
-	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee50Z"))
-	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
-		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err, out)
+	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee50Z"), nil)
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: invalid UUID") {
+		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err, out)
 	}
 
-	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee506"))
+	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee506"), nil)
 	if err != nil || out != nil {
-		t.Fatalf("do not want any error nor returned value, err:=%q ; out:=%q", err, out)
+		t.Errorf("do not want any error nor returned value, err:=%q ; out:=%q", err, out)
 	}
 
 	nodeID := types.NodeID("00a916bc-a357-4a19-b886-59419fceeaaa")
@@ -53,30 +55,53 @@ func TestStateStore_GetNodeID(t *testing.T) {
 		Node:    "node1",
 		Address: "1.2.3.4",
 	}
-	if err := s.EnsureRegistration(1, req); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.EnsureRegistration(1, req))
 
-	_, out, err = s.GetNodeID(nodeID)
-	if err != nil {
-		t.Fatalf("got err %s want nil", err)
-	}
+	_, out, err = s.GetNodeID(nodeID, nil)
+	require.NoError(t, err)
 	if out == nil || out.ID != nodeID {
 		t.Fatalf("out should not be nil and contain nodeId, but was:=%#v", out)
 	}
+
 	// Case insensitive lookup should work as well
-	_, out, err = s.GetNodeID(types.NodeID("00a916bC-a357-4a19-b886-59419fceeAAA"))
-	if err != nil {
-		t.Fatalf("got err %s want nil", err)
-	}
+	_, out, err = s.GetNodeID(types.NodeID("00a916bC-a357-4a19-b886-59419fceeAAA"), nil)
+	require.NoError(t, err)
 	if out == nil || out.ID != nodeID {
 		t.Fatalf("out should not be nil and contain nodeId, but was:=%#v", out)
 	}
 }
 
+func TestStateStore_GetNode(t *testing.T) {
+	s := testStateStore(t)
+
+	// initially does not exist
+	idx, out, err := s.GetNode("node1", nil)
+	require.NoError(t, err)
+	require.Nil(t, out)
+	require.Equal(t, uint64(0), idx)
+
+	// Create it
+	testRegisterNode(t, s, 1, "node1")
+
+	// now exists
+	idx, out, err = s.GetNode("node1", nil)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, "node1", out.Node)
+
+	// Case insensitive lookup should work as well
+	idx, out, err = s.GetNode("NoDe1", nil)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, "node1", out.Node)
+}
+
 func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 	t.Parallel()
 	s := testStateStore(t)
+
 	nodeID := makeRandomNodeID(t)
 	req := &structs.RegisterRequest{
 		ID:              nodeID,
@@ -90,9 +115,7 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 			Status:  api.HealthPassing,
 		},
 	}
-	if err := s.EnsureRegistration(1, req); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.EnsureRegistration(1, req))
 	req = &structs.RegisterRequest{
 		ID:      types.NodeID(""),
 		Node:    "node2",
@@ -103,31 +126,29 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 			Status:  api.HealthPassing,
 		},
 	}
-	if err := s.EnsureRegistration(2, req); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.EnsureRegistration(2, req))
+
 	tx := s.db.WriteTxnRestore()
 	defer tx.Abort()
+
 	node := &structs.Node{
 		ID:      makeRandomNodeID(t),
 		Node:    "NOdE1", // Name is similar but case is different
 		Address: "2.3.4.5",
 	}
+
 	// Lets conflict with node1 (has an ID)
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
-		t.Fatalf("Should return an error since another name with similar name exists")
-	}
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, true); err == nil {
-		t.Fatalf("Should return an error since another name with similar name exists")
-	}
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, node, false),
+		"Should return an error since another name with similar name exists")
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, node, true),
+		"Should return an error since another name with similar name exists")
+
 	// Lets conflict with node without ID
 	node.Node = "NoDe2"
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
-		t.Fatalf("Should return an error since another name with similar name exists")
-	}
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, true); err != nil {
-		t.Fatalf("Should not clash with another similar node name without ID, err:=%q", err)
-	}
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, node, false),
+		"Should return an error since another name with similar name exists")
+	require.NoError(t, ensureNoNodeWithSimilarNameTxn(tx, node, true),
+		"Should not clash with another similar node name without ID")
 
 	// Set node1's Serf health to failing and replace it.
 	newNode := &structs.Node{
@@ -135,17 +156,15 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		Node:    "node1",
 		Address: "2.3.4.5",
 	}
-	if err := ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err == nil {
-		t.Fatalf("Should return an error since the previous node is still healthy")
-	}
-	s.ensureCheckTxn(tx, 5, false, &structs.HealthCheck{
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, newNode, false),
+		"Should return an error since the previous node is still healthy")
+
+	require.NoError(t, s.ensureCheckTxn(tx, 5, false, &structs.HealthCheck{
 		Node:    "node1",
 		CheckID: structs.SerfCheckID,
 		Status:  api.HealthCritical,
-	})
-	if err := ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err != nil {
-		t.Fatal(err)
-	}
+	}))
+	require.NoError(t, ensureNoNodeWithSimilarNameTxn(tx, newNode, false))
 }
 
 func TestStateStore_EnsureRegistration(t *testing.T) {
@@ -171,6 +190,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			ID:              nodeID,
 			Node:            "node1",
 			Address:         "1.2.3.4",
+			Partition:       structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			TaggedAddresses: map[string]string{"hello": "world"},
 			Meta:            map[string]string{"somekey": "somevalue"},
 			RaftIndex:       structs.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
@@ -182,7 +202,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		}
 		require.Equal(t, node, out)
 
-		_, out2, err := s.GetNodeID(nodeID)
+		_, out2, err := s.GetNodeID(nodeID, nil)
 		if err != nil {
 			t.Fatalf("got err %s want nil", err)
 		}
@@ -397,7 +417,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 		if out == nil {
-			_, out, err = s.GetNodeID(types.NodeID(nodeLookup))
+			_, out, err = s.GetNodeID(types.NodeID(nodeLookup), nil)
 			if err != nil {
 				t.Fatalf("err: %s", err)
 			}
@@ -676,11 +696,11 @@ func TestNodeRenamingNodes(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, node, err := s.GetNodeID(nodeID1); err != nil || node == nil || node.ID != nodeID1 {
+	if _, node, err := s.GetNodeID(nodeID1, nil); err != nil || node == nil || node.ID != nodeID1 {
 		t.Fatalf("err: %s, node:= %q", err, node)
 	}
 
-	if _, node, err := s.GetNodeID(nodeID2); err != nil && node == nil || node.ID != nodeID2 {
+	if _, node, err := s.GetNodeID(nodeID2, nil); err != nil && node == nil || node.ID != nodeID2 {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -731,7 +751,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 	}
 
 	// Retrieve the node again
-	idx2, out2, err := s.GetNodeID(nodeID2)
+	idx2, out2, err := s.GetNodeID(nodeID2, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1118,6 +1138,11 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 		filters map[string]string
 		nodes   []string
 	}{
+		// Empty meta filter
+		{
+			filters: map[string]string{},
+			nodes:   []string{},
+		},
 		// Simple meta filter
 		{
 			filters: map[string]string{"role": "server"},
@@ -1187,9 +1212,7 @@ func TestStateStore_NodeServices(t *testing.T) {
 			Node:    "node1",
 			Address: "1.2.3.4",
 		}
-		if err := s.EnsureRegistration(1, req); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		require.NoError(t, s.EnsureRegistration(1, req))
 	}
 	{
 		req := &structs.RegisterRequest{
@@ -1197,83 +1220,59 @@ func TestStateStore_NodeServices(t *testing.T) {
 			Node:    "node2",
 			Address: "5.6.7.8",
 		}
-		if err := s.EnsureRegistration(2, req); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		require.NoError(t, s.EnsureRegistration(2, req))
 	}
 
 	// Look up by name.
-	{
-		_, ns, err := s.NodeServices(nil, "node1", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
+	t.Run("Look up by name", func(t *testing.T) {
+		{
+			_, ns, err := s.NodeServices(nil, "node1", nil)
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "node1", ns.Node.Node)
 		}
-		if ns == nil || ns.Node.Node != "node1" {
-			t.Fatalf("bad: %#v", *ns)
+		{
+			_, ns, err := s.NodeServices(nil, "node2", nil)
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "node2", ns.Node.Node)
 		}
-	}
-	{
-		_, ns, err := s.NodeServices(nil, "node2", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns == nil || ns.Node.Node != "node2" {
-			t.Fatalf("bad: %#v", *ns)
-		}
-	}
+	})
 
-	// Look up by UUID.
-	{
-		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-aaaaaaaaaaaa", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
+	t.Run("Look up by UUID", func(t *testing.T) {
+		{
+			_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-aaaaaaaaaaaa", nil)
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "node1", ns.Node.Node)
 		}
-		if ns == nil || ns.Node.Node != "node1" {
-			t.Fatalf("bad: %#v", ns)
+		{
+			_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-bbbbbbbbbbbb", nil)
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "node2", ns.Node.Node)
 		}
-	}
-	{
-		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-bbbbbbbbbbbb", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns == nil || ns.Node.Node != "node2" {
-			t.Fatalf("bad: %#v", ns)
-		}
-	}
+	})
 
-	// Ambiguous prefix.
-	{
+	t.Run("Ambiguous prefix", func(t *testing.T) {
 		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns != nil {
-			t.Fatalf("bad: %#v", ns)
-		}
-	}
+		require.NoError(t, err)
+		require.Nil(t, ns)
+	})
 
-	// Bad node, and not a UUID (should not get a UUID error).
-	{
+	t.Run("Bad node", func(t *testing.T) {
+		// Bad node, and not a UUID (should not get a UUID error).
 		_, ns, err := s.NodeServices(nil, "nope", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns != nil {
-			t.Fatalf("bad: %#v", ns)
-		}
-	}
+		require.NoError(t, err)
+		require.Nil(t, ns)
+	})
 
-	// Specific prefix.
-	{
+	t.Run("Specific prefix", func(t *testing.T) {
 		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-bb", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns == nil || ns.Node.Node != "node2" {
-			t.Fatalf("bad: %#v", ns)
-		}
-	}
+		require.NoError(t, err)
+		require.NotNil(t, ns)
+		require.Equal(t, "node2", ns.Node.Node)
+	})
 }
 
 func TestStateStore_DeleteNode(t *testing.T) {
@@ -1316,7 +1315,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	}
 
 	// Indexes were updated.
-	for _, tbl := range []string{"nodes", tableServices, tableChecks} {
+	for _, tbl := range []string{tableNodes, tableServices, tableChecks} {
 		if idx := s.maxIndex(tbl); idx != 3 {
 			t.Fatalf("bad index: %d (%s)", idx, tbl)
 		}
@@ -1327,7 +1326,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	if err := s.DeleteNode(4, "node1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex("nodes"); idx != 3 {
+	if idx := s.maxIndex(tableNodes); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -1547,6 +1546,279 @@ func TestStateStore_EnsureService_connectProxy(t *testing.T) {
 	expect1 := *ns1
 	expect1.CreateIndex, expect1.ModifyIndex = 10, 10
 	assert.Equal(&expect1, out.Services["connect-proxy"])
+}
+
+func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
+	assert := assert.New(t)
+	s := testStateStore(t)
+	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataVirtualIPsEnabled,
+		Value: "true",
+	}))
+
+	// Create the service registration.
+	entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+	ns1 := &structs.NodeService{
+		ID:      "foo",
+		Service: "foo",
+		Address: "1.1.1.1",
+		Port:    1111,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Connect:        structs.ServiceConnect{Native: true},
+		EnterpriseMeta: *entMeta,
+	}
+
+	// Service successfully registers into the state store.
+	testRegisterNode(t, s, 0, "node1")
+	require.NoError(t, s.EnsureService(10, "node1", ns1))
+
+	// Make sure there's a virtual IP for the foo service.
+	vip, err := s.VirtualIPForService(structs.ServiceName{Name: "foo"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.1", vip)
+
+	// Retrieve and verify
+	_, out, err := s.NodeServices(nil, "node1", nil)
+	require.NoError(t, err)
+	assert.NotNil(out)
+	assert.Len(out.Services, 1)
+
+	taggedAddress := out.Services["foo"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns1.Port, taggedAddress.Port)
+
+	// Create the service registration.
+	ns2 := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "redis-proxy",
+		Service: "redis-proxy",
+		Address: "2.2.2.2",
+		Port:    2222,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Proxy:          structs.ConnectProxyConfig{DestinationServiceName: "redis"},
+		EnterpriseMeta: *entMeta,
+	}
+	require.NoError(t, s.EnsureService(11, "node1", ns2))
+
+	// Make sure the virtual IP has been incremented for the redis service.
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.2", vip)
+
+	// Retrieve and verify
+	_, out, err = s.NodeServices(nil, "node1", nil)
+	assert.Nil(err)
+	assert.NotNil(out)
+	assert.Len(out.Services, 2)
+
+	taggedAddress = out.Services["redis-proxy"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns2.Port, taggedAddress.Port)
+
+	// Delete the first service and make sure it no longer has a virtual IP assigned.
+	require.NoError(t, s.DeleteService(12, "node1", "foo", entMeta))
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "connect-proxy"})
+	require.NoError(t, err)
+	assert.Equal("", vip)
+
+	// Register another instance of redis-proxy and make sure the virtual IP is unchanged.
+	ns3 := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "redis-proxy2",
+		Service: "redis-proxy",
+		Address: "3.3.3.3",
+		Port:    3333,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Proxy:          structs.ConnectProxyConfig{DestinationServiceName: "redis"},
+		EnterpriseMeta: *entMeta,
+	}
+	require.NoError(t, s.EnsureService(13, "node1", ns3))
+
+	// Make sure the virtual IP is unchanged for the redis service.
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.2", vip)
+
+	// Make sure the new instance has the same virtual IP.
+	_, out, err = s.NodeServices(nil, "node1", nil)
+	require.NoError(t, err)
+	taggedAddress = out.Services["redis-proxy2"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns3.Port, taggedAddress.Port)
+
+	// Register another service to take its virtual IP.
+	ns4 := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "4.4.4.4",
+		Port:    4444,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Proxy:          structs.ConnectProxyConfig{DestinationServiceName: "web"},
+		EnterpriseMeta: *entMeta,
+	}
+	require.NoError(t, s.EnsureService(14, "node1", ns4))
+
+	// Make sure the virtual IP has allocated from the previously freed service.
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "web"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.1", vip)
+
+	// Retrieve and verify
+	_, out, err = s.NodeServices(nil, "node1", nil)
+	require.NoError(t, err)
+	taggedAddress = out.Services["web-proxy"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns4.Port, taggedAddress.Port)
+}
+
+func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
+	assert := assert.New(t)
+	s := testStateStore(t)
+	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataVirtualIPsEnabled,
+		Value: "true",
+	}))
+
+	// Create the service registration.
+	entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+	ns1 := &structs.NodeService{
+		ID:      "foo",
+		Service: "foo",
+		Address: "1.1.1.1",
+		Port:    1111,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Connect:        structs.ServiceConnect{Native: true},
+		EnterpriseMeta: *entMeta,
+	}
+
+	// Service successfully registers into the state store.
+	testRegisterNode(t, s, 0, "node1")
+	require.NoError(t, s.EnsureService(10, "node1", ns1))
+
+	// Make sure there's a virtual IP for the foo service.
+	vip, err := s.VirtualIPForService(structs.ServiceName{Name: "foo"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.1", vip)
+
+	// Retrieve and verify
+	_, out, err := s.NodeServices(nil, "node1", nil)
+	require.NoError(t, err)
+	assert.NotNil(out)
+
+	taggedAddress := out.Services["foo"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns1.Port, taggedAddress.Port)
+
+	// Create the service registration.
+	ns2 := &structs.NodeService{
+		Kind:    structs.ServiceKindTypical,
+		ID:      "redis",
+		Service: "redis",
+		Address: "2.2.2.2",
+		Port:    2222,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Connect:        structs.ServiceConnect{Native: true},
+		EnterpriseMeta: *entMeta,
+	}
+	require.NoError(t, s.EnsureService(11, "node1", ns2))
+
+	// Make sure the virtual IP has been incremented for the redis service.
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.2", vip)
+
+	// Retrieve and verify
+	_, out, err = s.NodeServices(nil, "node1", nil)
+	assert.Nil(err)
+	assert.NotNil(out)
+
+	taggedAddress = out.Services["redis"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns2.Port, taggedAddress.Port)
+
+	// Delete the last  service and make sure it no longer has a virtual IP assigned.
+	require.NoError(t, s.DeleteService(12, "node1", "redis", entMeta))
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	require.NoError(t, err)
+	assert.Equal("", vip)
+
+	// Register a new service, should end up with the freed 240.0.0.2 address.
+	ns3 := &structs.NodeService{
+		Kind:    structs.ServiceKindTypical,
+		ID:      "backend",
+		Service: "backend",
+		Address: "2.2.2.2",
+		Port:    2222,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Connect:        structs.ServiceConnect{Native: true},
+		EnterpriseMeta: *entMeta,
+	}
+	require.NoError(t, s.EnsureService(13, "node1", ns3))
+
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "backend"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.2", vip)
+
+	// Retrieve and verify
+	_, out, err = s.NodeServices(nil, "node1", nil)
+	assert.Nil(err)
+	assert.NotNil(out)
+
+	taggedAddress = out.Services["backend"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns3.Port, taggedAddress.Port)
+
+	// Create a new service, no more freed VIPs so it should go back to using the counter.
+	ns4 := &structs.NodeService{
+		Kind:    structs.ServiceKindTypical,
+		ID:      "frontend",
+		Service: "frontend",
+		Address: "2.2.2.2",
+		Port:    2222,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Connect:        structs.ServiceConnect{Native: true},
+		EnterpriseMeta: *entMeta,
+	}
+	require.NoError(t, s.EnsureService(14, "node1", ns4))
+
+	// Make sure the virtual IP has been incremented for the frontend service.
+	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "frontend"})
+	require.NoError(t, err)
+	assert.Equal("240.0.0.3", vip)
+
+	// Retrieve and verify
+	_, out, err = s.NodeServices(nil, "node1", nil)
+	assert.Nil(err)
+	assert.NotNil(out)
+
+	taggedAddress = out.Services["frontend"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(vip, taggedAddress.Address)
+	assert.Equal(ns4.Port, taggedAddress.Port)
 }
 
 func TestStateStore_Services(t *testing.T) {
@@ -4236,7 +4508,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	// Check that our result matches what we expect.
 	expect := structs.NodeDump{
 		&structs.NodeInfo{
-			Node: "node1",
+			Node:      "node1",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "node1",
@@ -4293,7 +4566,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 			},
 		},
 		&structs.NodeInfo{
-			Node: "node2",
+			Node:      "node2",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "node2",
@@ -7517,4 +7791,198 @@ func TestProtocolForIngressGateway(t *testing.T) {
 			require.Equal(t, tc.expect, protocol)
 		})
 	}
+}
+
+func TestStateStore_EnsureService_ServiceNames(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create the service registration.
+	entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+
+	services := []structs.NodeService{
+		{
+			Kind:           structs.ServiceKindIngressGateway,
+			ID:             "ingress-gateway",
+			Service:        "ingress-gateway",
+			Address:        "2.2.2.2",
+			Port:           2222,
+			EnterpriseMeta: *entMeta,
+		},
+		{
+			Kind:           structs.ServiceKindMeshGateway,
+			ID:             "mesh-gateway",
+			Service:        "mesh-gateway",
+			Address:        "4.4.4.4",
+			Port:           4444,
+			EnterpriseMeta: *entMeta,
+		},
+		{
+			Kind:           structs.ServiceKindConnectProxy,
+			ID:             "connect-proxy",
+			Service:        "connect-proxy",
+			Address:        "1.1.1.1",
+			Port:           1111,
+			Proxy:          structs.ConnectProxyConfig{DestinationServiceName: "foo"},
+			EnterpriseMeta: *entMeta,
+		},
+		{
+			Kind:           structs.ServiceKindTerminatingGateway,
+			ID:             "terminating-gateway",
+			Service:        "terminating-gateway",
+			Address:        "3.3.3.3",
+			Port:           3333,
+			EnterpriseMeta: *entMeta,
+		},
+		{
+			Kind:           structs.ServiceKindTypical,
+			ID:             "web",
+			Service:        "web",
+			Address:        "5.5.5.5",
+			Port:           5555,
+			EnterpriseMeta: *entMeta,
+		},
+	}
+
+	var idx uint64
+	testRegisterNode(t, s, idx, "node1")
+
+	for _, svc := range services {
+		idx++
+		require.NoError(t, s.EnsureService(idx, "node1", &svc))
+
+		// Ensure the service name was stored for all of them under the appropriate kind
+		gotIdx, gotNames, err := s.ServiceNamesOfKind(nil, svc.Kind)
+		require.NoError(t, err)
+		require.Equal(t, idx, gotIdx)
+		require.Len(t, gotNames, 1)
+		require.Equal(t, svc.CompoundServiceName(), gotNames[0].Service)
+		require.Equal(t, svc.Kind, gotNames[0].Kind)
+	}
+
+	// Register another ingress gateway and there should be two names under the kind index
+	newIngress := structs.NodeService{
+		Kind:           structs.ServiceKindIngressGateway,
+		ID:             "new-ingress-gateway",
+		Service:        "new-ingress-gateway",
+		Address:        "6.6.6.6",
+		Port:           6666,
+		EnterpriseMeta: *entMeta,
+	}
+	idx++
+	require.NoError(t, s.EnsureService(idx, "node1", &newIngress))
+
+	gotIdx, got, err := s.ServiceNamesOfKind(nil, structs.ServiceKindIngressGateway)
+	require.NoError(t, err)
+	require.Equal(t, idx, gotIdx)
+
+	expect := []*KindServiceName{
+		{
+			Kind:    structs.ServiceKindIngressGateway,
+			Service: structs.NewServiceName("ingress-gateway", nil),
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 1,
+				ModifyIndex: 1,
+			},
+		},
+		{
+			Kind:    structs.ServiceKindIngressGateway,
+			Service: structs.NewServiceName("new-ingress-gateway", nil),
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: idx,
+				ModifyIndex: idx,
+			},
+		},
+	}
+	require.Equal(t, expect, got)
+
+	// Deregister an ingress gateway and the index should not slide back
+	idx++
+	require.NoError(t, s.DeleteService(idx, "node1", "new-ingress-gateway", entMeta))
+
+	gotIdx, got, err = s.ServiceNamesOfKind(nil, structs.ServiceKindIngressGateway)
+	require.NoError(t, err)
+	require.Equal(t, idx, gotIdx)
+	require.Equal(t, expect[:1], got)
+
+	// Registering another instance of a known service should not bump the kind index
+	newMGW := structs.NodeService{
+		Kind:           structs.ServiceKindMeshGateway,
+		ID:             "mesh-gateway-1",
+		Service:        "mesh-gateway",
+		Address:        "7.7.7.7",
+		Port:           7777,
+		EnterpriseMeta: *entMeta,
+	}
+	idx++
+	require.NoError(t, s.EnsureService(idx, "node1", &newMGW))
+
+	gotIdx, _, err = s.ServiceNamesOfKind(nil, structs.ServiceKindMeshGateway)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), gotIdx)
+
+	// Deregister the single typical service and the service name should also be dropped
+	idx++
+	require.NoError(t, s.DeleteService(idx, "node1", "web", entMeta))
+
+	gotIdx, got, err = s.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
+	require.NoError(t, err)
+	require.Equal(t, idx, gotIdx)
+	require.Empty(t, got)
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
+}
+
+func assertMaxIndexes(t *testing.T, tx ReadTxn, expect map[string]uint64, skip ...string) {
+	t.Helper()
+
+	all := dumpMaxIndexes(t, tx)
+
+	for _, index := range skip {
+		if _, ok := all[index]; ok {
+			delete(all, index)
+		} else {
+			t.Logf("index %q isn't even set; probably test assertion isn't relevant anymore", index)
+		}
+	}
+
+	require.Equal(t, expect, all)
+
+	// TODO
+	// for _, index := range indexes {
+	// 	require.Equal(t, expectIndex, maxIndexTxn(tx, index),
+	// 		"index %s has the wrong value", index)
+	// }
+}
+
+func dumpMaxIndexes(t *testing.T, tx ReadTxn) map[string]uint64 {
+	out := make(map[string]uint64)
+
+	iter, err := tx.Get(tableIndex, "id")
+	require.NoError(t, err)
+
+	for entry := iter.Next(); entry != nil; entry = iter.Next() {
+		if idx, ok := entry.(*IndexEntry); ok {
+			out[idx.Key] = idx.Value
+		}
+	}
+	return out
+}
+
+func generateUUID() ([]byte, string) {
+	buf := make([]byte, 16)
+	if _, err := crand.Read(buf); err != nil {
+		panic(fmt.Errorf("failed to read random bytes: %v", err))
+	}
+	uuid := fmt.Sprintf("%08x-%04x-%04x-%04x-%12x",
+		buf[0:4],
+		buf[4:6],
+		buf[6:8],
+		buf[8:10],
+		buf[10:16])
+	return buf, uuid
 }

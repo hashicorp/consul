@@ -8,8 +8,9 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 const (
@@ -86,7 +87,7 @@ var errContainsRedactedData = errors.New("replication results contain redacted d
 
 func (s *Server) fetchACLRolesBatch(roleIDs []string) (*structs.ACLRoleBatchResponse, error) {
 	req := structs.ACLRoleBatchGetRequest{
-		Datacenter: s.config.ACLDatacenter,
+		Datacenter: s.config.PrimaryDatacenter,
 		RoleIDs:    roleIDs,
 		QueryOptions: structs.QueryOptions{
 			AllowStale: true,
@@ -106,7 +107,7 @@ func (s *Server) fetchACLRoles(lastRemoteIndex uint64) (*structs.ACLRoleListResp
 	defer metrics.MeasureSince([]string{"leader", "replication", "acl", "role", "fetch"}, time.Now())
 
 	req := structs.ACLRoleListRequest{
-		Datacenter: s.config.ACLDatacenter,
+		Datacenter: s.config.PrimaryDatacenter,
 		QueryOptions: structs.QueryOptions{
 			AllowStale:    true,
 			MinQueryIndex: lastRemoteIndex,
@@ -124,7 +125,7 @@ func (s *Server) fetchACLRoles(lastRemoteIndex uint64) (*structs.ACLRoleListResp
 
 func (s *Server) fetchACLPoliciesBatch(policyIDs []string) (*structs.ACLPolicyBatchResponse, error) {
 	req := structs.ACLPolicyBatchGetRequest{
-		Datacenter: s.config.ACLDatacenter,
+		Datacenter: s.config.PrimaryDatacenter,
 		PolicyIDs:  policyIDs,
 		QueryOptions: structs.QueryOptions{
 			AllowStale: true,
@@ -144,7 +145,7 @@ func (s *Server) fetchACLPolicies(lastRemoteIndex uint64) (*structs.ACLPolicyLis
 	defer metrics.MeasureSince([]string{"leader", "replication", "acl", "policy", "fetch"}, time.Now())
 
 	req := structs.ACLPolicyListRequest{
-		Datacenter: s.config.ACLDatacenter,
+		Datacenter: s.config.PrimaryDatacenter,
 		QueryOptions: structs.QueryOptions{
 			AllowStale:    true,
 			MinQueryIndex: lastRemoteIndex,
@@ -314,7 +315,7 @@ func (s *Server) updateLocalACLType(ctx context.Context, logger hclog.Logger, tr
 
 func (s *Server) fetchACLTokensBatch(tokenIDs []string) (*structs.ACLTokenBatchResponse, error) {
 	req := structs.ACLTokenBatchGetRequest{
-		Datacenter:  s.config.ACLDatacenter,
+		Datacenter:  s.config.PrimaryDatacenter,
 		AccessorIDs: tokenIDs,
 		QueryOptions: structs.QueryOptions{
 			AllowStale: true,
@@ -334,7 +335,7 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 	defer metrics.MeasureSince([]string{"leader", "replication", "acl", "token", "fetch"}, time.Now())
 
 	req := structs.ACLTokenListRequest{
-		Datacenter: s.config.ACLDatacenter,
+		Datacenter: s.config.PrimaryDatacenter,
 		QueryOptions: structs.QueryOptions{
 			AllowStale:    true,
 			MinQueryIndex: lastRemoteIndex,
@@ -476,19 +477,12 @@ func (s *Server) replicateACLType(ctx context.Context, logger hclog.Logger, tr a
 	return remoteIndex, false, nil
 }
 
-// IsACLReplicationEnabled returns true if ACL replication is enabled.
-// DEPRECATED (ACL-Legacy-Compat) - with new ACLs at least policy replication is required
-func (s *Server) IsACLReplicationEnabled() bool {
-	authDC := s.config.ACLDatacenter
-	return len(authDC) > 0 && (authDC != s.config.Datacenter) &&
-		s.config.ACLTokenReplication
-}
-
-func (s *Server) updateACLReplicationStatusError() {
+func (s *Server) updateACLReplicationStatusError(errorMsg string) {
 	s.aclReplicationStatusLock.Lock()
 	defer s.aclReplicationStatusLock.Unlock()
 
 	s.aclReplicationStatus.LastError = time.Now().Round(time.Second).UTC()
+	s.aclReplicationStatus.LastErrorMessage = errorMsg
 }
 
 func (s *Server) updateACLReplicationStatusIndex(replicationType structs.ACLReplicationType, index uint64) {
@@ -497,8 +491,6 @@ func (s *Server) updateACLReplicationStatusIndex(replicationType structs.ACLRepl
 
 	s.aclReplicationStatus.LastSuccess = time.Now().Round(time.Second).UTC()
 	switch replicationType {
-	case structs.ACLReplicateLegacy:
-		s.aclReplicationStatus.ReplicatedIndex = index
 	case structs.ACLReplicateTokens:
 		s.aclReplicationStatus.ReplicatedTokenIndex = index
 	case structs.ACLReplicatePolicies:
@@ -516,7 +508,7 @@ func (s *Server) initReplicationStatus() {
 
 	s.aclReplicationStatus.Enabled = true
 	s.aclReplicationStatus.Running = true
-	s.aclReplicationStatus.SourceDatacenter = s.config.ACLDatacenter
+	s.aclReplicationStatus.SourceDatacenter = s.config.PrimaryDatacenter
 }
 
 func (s *Server) updateACLReplicationStatusStopped() {

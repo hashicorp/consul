@@ -5,12 +5,13 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/require"
 )
 
 func TestKVS_Apply(t *testing.T) {
@@ -81,10 +82,10 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -93,22 +94,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create the ACL
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testListRules,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var out string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	id := out
+	id := createToken(t, codec, testListRules)
 
 	// Try a write
 	argR := structs.KVSRequest{
@@ -201,10 +187,10 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -300,6 +286,9 @@ func TestKVSEndpoint_List(t *testing.T) {
 		if d.Value != nil {
 			t.Fatalf("bad: %v", d)
 		}
+	}
+	if dirent.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should not be true")
 	}
 
 	// Try listing a nonexistent prefix
@@ -422,10 +411,10 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -458,21 +447,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 		}
 	}
 
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testListRules,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var out string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	id := out
+	id := createToken(t, codec, testListRules)
 
 	getR := structs.KeyRequest{
 		Datacenter:   "dc1",
@@ -503,6 +478,9 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 			}
 		}
 	}
+	if !dirent.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should be true")
+	}
 }
 
 func TestKVSEndpoint_List_ACLEnableKeyListPolicy(t *testing.T) {
@@ -512,10 +490,10 @@ func TestKVSEndpoint_List_ACLEnableKeyListPolicy(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.ACLEnableKeyListPolicy = true
 	})
 	defer os.RemoveAll(dir1)
@@ -550,32 +528,18 @@ func TestKVSEndpoint_List_ACLEnableKeyListPolicy(t *testing.T) {
 
 	//write acl policy that denies recursive reads on ""
 	var testListRules1 = `
-key "" {
+key_prefix "" {
 	policy = "deny"
 }
-key "bar" {
+key_prefix "bar" {
 	policy = "list"
 }
-key "zip" {
+key_prefix "zip" {
 	policy = "read"
 }
 `
 
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testListRules1,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var out string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	id := out
+	id := createToken(t, codec, testListRules1)
 
 	//recursive read on empty prefix should fail
 	getReq := structs.KeyRequest{
@@ -694,6 +658,9 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	if dirent.Keys[2] != "/test/sub/" {
 		t.Fatalf("Bad: %v", dirent.Keys)
 	}
+	if dirent.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should not be true")
+	}
 
 	// Try listing a nonexistent prefix
 	getR.Prefix = "/nope"
@@ -715,10 +682,10 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -751,21 +718,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 		}
 	}
 
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testListRules,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var out string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	id := out
+	id := createToken(t, codec, testListRules)
 
 	getR := structs.KeyListRequest{
 		Datacenter:   "dc1",
@@ -789,6 +742,9 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	}
 	if dirent.Keys[1] != "test" {
 		t.Fatalf("Bad: %v", dirent.Keys)
+	}
+	if !dirent.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should be true")
 	}
 }
 

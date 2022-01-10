@@ -3,6 +3,7 @@
 @import 'consul-ui/components/anchors';
 @import 'consul-ui/components/auth-form';
 @import 'consul-ui/components/auth-modal';
+@import 'consul-ui/components/auth-profile';
 @import 'consul-ui/components/breadcrumbs';
 @import 'consul-ui/components/buttons';
 @import 'consul-ui/components/card';
@@ -17,7 +18,6 @@
 @import 'consul-ui/components/empty-state';
 @import 'consul-ui/components/expanded-single-select';
 @import 'consul-ui/components/form-elements';
-@import 'consul-ui/components/flash-message';
 @import 'consul-ui/components/icon-definition';
 @import 'consul-ui/components/list-row';
 @import 'consul-ui/components/inline-alert';
@@ -42,6 +42,7 @@
 
 /**/
 
+@import 'consul-ui/components/route/title';
 @import 'consul-ui/components/app-view';
 @import 'consul-ui/components/brand-loader';
 @import 'consul-ui/components/skip-links';
@@ -75,11 +76,14 @@
 @import 'consul-ui/components/consul/loader';
 @import 'consul-ui/components/consul/tomography/graph';
 @import 'consul-ui/components/consul/discovery-chain';
+@import 'consul-ui/components/consul/bucket/list';
+@import 'consul-ui/components/consul/upstream/list';
 @import 'consul-ui/components/consul/upstream-instance/list';
 @import 'consul-ui/components/consul/health-check/list';
 @import 'consul-ui/components/consul/exposed-path/list';
 @import 'consul-ui/components/consul/external-source';
 @import 'consul-ui/components/consul/kind';
+@import 'consul-ui/components/consul/source';
 @import 'consul-ui/components/consul/intention';
 @import 'consul-ui/components/consul/lock-session/list';
 @import 'consul-ui/components/consul/lock-session/form';

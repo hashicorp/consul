@@ -52,6 +52,9 @@ func (f *prettyFormatter) FormatRole(role *api.ACLRole) (string, error) {
 
 	buffer.WriteString(fmt.Sprintf("ID:           %s\n", role.ID))
 	buffer.WriteString(fmt.Sprintf("Name:         %s\n", role.Name))
+	if role.Partition != "" {
+		buffer.WriteString(fmt.Sprintf("Partition:    %s\n", role.Partition))
+	}
 	if role.Namespace != "" {
 		buffer.WriteString(fmt.Sprintf("Namespace:    %s\n", role.Namespace))
 	}
@@ -102,6 +105,9 @@ func (f *prettyFormatter) formatRoleListEntry(role *api.ACLRole) string {
 
 	buffer.WriteString(fmt.Sprintf("%s:\n", role.Name))
 	buffer.WriteString(fmt.Sprintf("   ID:           %s\n", role.ID))
+	if role.Partition != "" {
+		buffer.WriteString(fmt.Sprintf("   Partition:    %s\n", role.Partition))
+	}
 	if role.Namespace != "" {
 		buffer.WriteString(fmt.Sprintf("   Namespace:    %s\n", role.Namespace))
 	}

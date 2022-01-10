@@ -38,51 +38,22 @@ func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsho
 		if err != nil {
 			return nil, err
 		}
-		return s.maybeInjectStubClusterForGateways(res)
+		return res, nil
 	case structs.ServiceKindMeshGateway:
 		res, err := s.clustersFromSnapshotMeshGateway(cfgSnap)
 		if err != nil {
 			return nil, err
 		}
-		return s.maybeInjectStubClusterForGateways(res)
+		return res, nil
 	case structs.ServiceKindIngressGateway:
 		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap)
 		if err != nil {
 			return nil, err
 		}
-		return s.maybeInjectStubClusterForGateways(res)
+		return res, nil
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
-}
-
-func (s *ResourceGenerator) maybeInjectStubClusterForGateways(resources []proto.Message) ([]proto.Message, error) {
-	switch {
-	case !s.IncrementalXDS:
-		return resources, nil
-	case !s.ProxyFeatures.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS:
-		return resources, nil
-	case len(resources) > 0:
-		return resources, nil
-	}
-
-	// For more justification for this hacky fix, check the comments associated
-	// with s.ProxyFeatures.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS
-
-	const stubName = "consul-stub-cluster-working-around-envoy-bug-ignore"
-	return []proto.Message{
-		&envoy_cluster_v3.Cluster{
-			Name:                 stubName,
-			ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
-			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC},
-			LoadAssignment: &envoy_endpoint_v3.ClusterLoadAssignment{
-				ClusterName: stubName,
-				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
-					{LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{}},
-				},
-			},
-		},
-	}, nil
 }
 
 // clustersFromSnapshot returns the xDS API representation of the "clusters"
@@ -107,13 +78,21 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	}
 
 	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[id]
+
+		explicit := upstreamCfg.HasLocalPortOrSocket()
+		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[id]; !implicit && !explicit {
+			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
+			continue
+		}
+
 		chainEndpoints, ok := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id]
 		if !ok {
 			// this should not happen
 			return nil, fmt.Errorf("no endpoint map for upstream %q", id)
 		}
 
-		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(id, cfgSnap.ConnectProxy.UpstreamConfig[id], chain, chainEndpoints, cfgSnap)
+		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(id, upstreamCfg, chain, chainEndpoints, cfgSnap)
 		if err != nil {
 			return nil, err
 		}
@@ -231,40 +210,43 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 // for a mesh gateway. This will include 1 cluster per remote datacenter as well as
 // 1 cluster for each service subset.
 func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	datacenters := cfgSnap.MeshGateway.Datacenters()
+	keys := cfgSnap.MeshGateway.GatewayKeys()
 
-	// 1 cluster per remote dc + 1 cluster per local service (this is a lower bound - all subset specific clusters will be appended)
-	clusters := make([]proto.Message, 0, len(datacenters)+len(cfgSnap.MeshGateway.ServiceGroups))
+	// 1 cluster per remote dc/partition + 1 cluster per local service (this is a lower bound - all subset specific clusters will be appended)
+	clusters := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups))
 
-	// generate the remote dc clusters
-	for _, dc := range datacenters {
-		if dc == cfgSnap.Datacenter {
+	// Generate the remote clusters
+	for _, key := range keys {
+		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrDefault()) {
 			continue // skip local
 		}
 
 		opts := gatewayClusterOpts{
-			name:              connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain),
-			hostnameEndpoints: cfgSnap.MeshGateway.HostnameDatacenters[dc],
-			isRemote:          dc != cfgSnap.Datacenter,
+			name:              connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain),
+			hostnameEndpoints: cfgSnap.MeshGateway.HostnameDatacenters[key.String()],
+			isRemote:          true,
 		}
 		cluster := s.makeGatewayCluster(cfgSnap, opts)
 		clusters = append(clusters, cluster)
 	}
 
-	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
+	if cfgSnap.ProxyID.InDefaultPartition() &&
+		cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
+		cfgSnap.ServerSNIFn != nil {
+
 		// Add all of the remote wildcard datacenter mappings for servers.
-		for _, dc := range datacenters {
-			hostnameEndpoints := cfgSnap.MeshGateway.HostnameDatacenters[dc]
+		for _, key := range keys {
+			hostnameEndpoints := cfgSnap.MeshGateway.HostnameDatacenters[key.String()]
 
 			// If the DC is our current DC then this cluster is for traffic from a remote DC to a local server.
 			// HostnameDatacenters is populated with gateway addresses, so it does not apply here.
-			if dc == cfgSnap.Datacenter {
+			if key.Datacenter == cfgSnap.Datacenter {
 				hostnameEndpoints = nil
 			}
 			opts := gatewayClusterOpts{
-				name:              cfgSnap.ServerSNIFn(dc, ""),
+				name:              cfgSnap.ServerSNIFn(key.Datacenter, ""),
 				hostnameEndpoints: hostnameEndpoints,
-				isRemote:          dc != cfgSnap.Datacenter,
+				isRemote:          !key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrDefault()),
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 			clusters = append(clusters, cluster)
@@ -306,7 +288,7 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 	clusters := make([]proto.Message, 0, len(services))
 
 	for svc := range services {
-		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		resolver, hasResolver := resolvers[svc]
 
 		var loadBalancer *structs.LoadBalancer
@@ -325,10 +307,16 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 			hostnameEndpoints = cfgSnap.TerminatingGateway.HostnameServices[svc]
 		}
 
+		var isRemote bool
+		if len(services[svc]) > 0 {
+			isRemote = !cfgSnap.Locality.Matches(services[svc][0].Node.Datacenter, services[svc][0].Node.PartitionOrDefault())
+		}
+
 		opts := gatewayClusterOpts{
 			name:              clusterName,
 			hostnameEndpoints: hostnameEndpoints,
 			connectTimeout:    resolver.ConnectTimeout,
+			isRemote:          isRemote,
 		}
 		cluster := s.makeGatewayCluster(cfgSnap, opts)
 
@@ -345,10 +333,11 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 			}
 
 			opts := gatewayClusterOpts{
-				name:              connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
+				name:              connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
 				hostnameEndpoints: subsetHostnameEndpoints,
 				onlyPassing:       subset.OnlyPassing,
 				connectTimeout:    resolver.ConnectTimeout,
+				isRemote:          isRemote,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 
@@ -535,18 +524,34 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 		}
 	}
 
-	spiffeID := connect.SpiffeIDService{
-		Host:       cfgSnap.Roots.TrustDomain,
-		Namespace:  upstream.DestinationNamespace,
-		Datacenter: dc,
-		Service:    upstream.DestinationName,
+	endpoints := cfgSnap.ConnectProxy.PreparedQueryEndpoints[upstream.Identifier()]
+	var (
+		spiffeIDs = make([]connect.SpiffeIDService, 0)
+		seen      = make(map[string]struct{})
+	)
+	for _, e := range endpoints {
+		id := fmt.Sprintf("%s/%s", e.Node.Datacenter, e.Service.CompoundServiceName())
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
 
-		// TODO(partitions) Store partition
+		name := e.Service.Proxy.DestinationServiceName
+		if e.Service.Connect.Native {
+			name = e.Service.Service
+		}
+		spiffeIDs = append(spiffeIDs, connect.SpiffeIDService{
+			Host:       cfgSnap.Roots.TrustDomain,
+			Namespace:  e.Service.NamespaceOrDefault(),
+			Partition:  e.Service.PartitionOrDefault(),
+			Datacenter: e.Node.Datacenter,
+			Service:    name,
+		})
 	}
 
 	// Enable TLS upstream with the configured client certificate.
 	commonTLSContext := makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf())
-	err = injectSANMatcher(commonTLSContext, spiffeID)
+	err = injectSANMatcher(commonTLSContext, spiffeIDs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
 	}
@@ -623,10 +628,9 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		targetSpiffeID := connect.SpiffeIDService{
 			Host:       cfgSnap.Roots.TrustDomain,
 			Namespace:  target.Namespace,
+			Partition:  target.Partition,
 			Datacenter: target.Datacenter,
 			Service:    target.Service,
-
-			// TODO(partitions) Store partition
 		}
 
 		if failoverThroughMeshGateway {
@@ -660,10 +664,9 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				id := connect.SpiffeIDService{
 					Host:       cfgSnap.Roots.TrustDomain,
 					Namespace:  target.Namespace,
+					Partition:  target.Partition,
 					Datacenter: target.Datacenter,
 					Service:    target.Service,
-
-					// TODO(partitions) Store partition
 				}
 
 				// Failover targets might be subsets of the same service, so these are deduplicated.

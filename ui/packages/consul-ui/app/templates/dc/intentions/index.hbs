@@ -1,8 +1,15 @@
 <Route
   @name={{routeName}}
-  @title="Intentions"
 as |route|>
-  <DataLoader @src={{concat '/' nspace '/' dc '/intentions'}} as |api|>
+  <DataLoader
+    @src={{
+      uri '/${partition}/${nspace}/${dc}/intentions'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+      )}}
+    as |api|>
 
     <BlockSlot @name="error">
       <AppError
@@ -41,7 +48,7 @@ as |route|>
     <AppView>
       <BlockSlot @name="header">
           <h1>
-              Intentions <em>{{format-number items.length}} total</em>
+            <route.Title @title="Intentions" /> <em>{{format-number items.length}} total</em>
           </h1>
           <label for="toolbar-toggle"></label>
       </BlockSlot>
@@ -66,7 +73,13 @@ as |route|>
       </BlockSlot>
       <BlockSlot @name="content">
         <DataWriter
-          @sink={{concat '/' dc '/' nspace '/intention/'}}
+          @sink={{uri '/${partition}/${dc}/${nspace}/intention/'
+            (hash
+              partition=route.params.partition
+              nspace=route.params.nspace
+              dc=route.params.dc
+            )
+          }}
           @type="intention"
           @ondelete={{refresh-route}}
         as |writer|>

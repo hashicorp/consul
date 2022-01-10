@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/hashicorp/consul/agent/consul"
+
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 
@@ -15,7 +17,7 @@ type Source interface {
 	// Source returns an identifier for the Source that can be used in error message
 	Source() string
 	// Parse a configuration and return the result.
-	Parse() (Config, mapstructure.Metadata, error)
+	Parse() (Config, Metadata, error)
 }
 
 // ErrNoData indicates to Builder.Build that the source contained no data, and
@@ -34,9 +36,10 @@ func (f FileSource) Source() string {
 }
 
 // Parse a config file in either JSON or HCL format.
-func (f FileSource) Parse() (Config, mapstructure.Metadata, error) {
+func (f FileSource) Parse() (Config, Metadata, error) {
+	m := Metadata{}
 	if f.Name == "" || f.Data == "" {
-		return Config{}, mapstructure.Metadata{}, ErrNoData
+		return Config{}, m, ErrNoData
 	}
 
 	var raw map[string]interface{}
@@ -51,10 +54,10 @@ func (f FileSource) Parse() (Config, mapstructure.Metadata, error) {
 		err = fmt.Errorf("invalid format: %s", f.Format)
 	}
 	if err != nil {
-		return Config{}, md, err
+		return Config{}, m, err
 	}
 
-	var c Config
+	var target decodeTarget
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			// decode.HookWeakDecodeFromSlice is only necessary when reading from
@@ -66,16 +69,30 @@ func (f FileSource) Parse() (Config, mapstructure.Metadata, error) {
 			decode.HookTranslateKeys,
 		),
 		Metadata: &md,
-		Result:   &c,
+		Result:   &target,
 	})
 	if err != nil {
-		return Config{}, md, err
+		return Config{}, m, err
 	}
 	if err := d.Decode(raw); err != nil {
-		return Config{}, md, err
+		return Config{}, m, err
 	}
 
-	return c, md, nil
+	c, warns := applyDeprecatedConfig(&target)
+	m.Unused = md.Unused
+	m.Keys = md.Keys
+	m.Warnings = warns
+	return c, m, nil
+}
+
+// Metadata created by Source.Parse
+type Metadata struct {
+	// Keys used in the config file.
+	Keys []string
+	// Unused keys that did not match any struct fields.
+	Unused []string
+	// Warnings caused by deprecated fields
+	Warnings []string
 }
 
 // LiteralSource implements Source and returns an existing Config struct.
@@ -88,8 +105,13 @@ func (l LiteralSource) Source() string {
 	return l.Name
 }
 
-func (l LiteralSource) Parse() (Config, mapstructure.Metadata, error) {
-	return l.Config, mapstructure.Metadata{}, nil
+func (l LiteralSource) Parse() (Config, Metadata, error) {
+	return l.Config, Metadata{}, nil
+}
+
+type decodeTarget struct {
+	DeprecatedConfig `mapstructure:",squash"`
+	Config           `mapstructure:",squash"`
 }
 
 // Cache configuration for the agent/cache.
@@ -110,26 +132,6 @@ type Cache struct {
 // configuration it should be treated as an external API which cannot be
 // changed and refactored at will since this will break existing setups.
 type Config struct {
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLAgentMasterToken *string `mapstructure:"acl_agent_master_token"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLAgentToken *string `mapstructure:"acl_agent_token"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved to "primary_datacenter"
-	ACLDatacenter *string `mapstructure:"acl_datacenter"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLDefaultPolicy *string `mapstructure:"acl_default_policy"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLDownPolicy *string `mapstructure:"acl_down_policy"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLEnableKeyListPolicy *bool `mapstructure:"acl_enable_key_list_policy"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLMasterToken *string `mapstructure:"acl_master_token"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLReplicationToken *string `mapstructure:"acl_replication_token"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLTTL *string `mapstructure:"acl_ttl"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLToken                         *string             `mapstructure:"acl_token"`
 	ACL                              ACL                 `mapstructure:"acl"`
 	Addresses                        Addresses           `mapstructure:"addresses"`
 	AdvertiseAddrLAN                 *string             `mapstructure:"advertise_addr"`
@@ -172,7 +174,6 @@ type Config struct {
 	DisableUpdateCheck               *bool               `mapstructure:"disable_update_check"`
 	DiscardCheckOutput               *bool               `mapstructure:"discard_check_output"`
 	DiscoveryMaxStale                *string             `mapstructure:"discovery_max_stale"`
-	EnableACLReplication             *bool               `mapstructure:"enable_acl_replication"`
 	EnableAgentTLSForChecks          *bool               `mapstructure:"enable_agent_tls_for_checks"`
 	EnableCentralServiceConfig       *bool               `mapstructure:"enable_central_service_config"`
 	EnableDebug                      *bool               `mapstructure:"enable_debug"`
@@ -257,6 +258,8 @@ type Config struct {
 
 	RPC RPC `mapstructure:"rpc"`
 
+	RaftBoltDBConfig *consul.RaftBoltDBConfig `mapstructure:"raft_boltdb"`
+
 	// UseStreamingBackend instead of blocking queries for service health and
 	// any other endpoints which support streaming.
 	UseStreamingBackend *bool `mapstructure:"use_streaming_backend"`
@@ -268,8 +271,6 @@ type Config struct {
 	SnapshotAgent map[string]interface{} `mapstructure:"snapshot_agent"`
 
 	// non-user configurable values
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLDisabledTTL             *string  `mapstructure:"acl_disabled_ttl"`
 	AEInterval                 *string  `mapstructure:"ae_interval"`
 	CheckDeregisterIntervalMin *string  `mapstructure:"check_deregister_interval_min"`
 	CheckReapInterval          *string  `mapstructure:"check_reap_interval"`
@@ -340,10 +341,7 @@ type Addresses struct {
 	DNS   *string `mapstructure:"dns"`
 	HTTP  *string `mapstructure:"http"`
 	HTTPS *string `mapstructure:"https"`
-	XDS   *string `mapstructure:"xds"`
-
-	// Deprecated: replaced by XDS
-	GRPC *string `mapstructure:"grpc"`
+	GRPC  *string `mapstructure:"grpc"`
 }
 
 type AdvertiseAddrsConfig struct {
@@ -425,7 +423,9 @@ type CheckDefinition struct {
 	Timeout                        *string             `mapstructure:"timeout"`
 	TTL                            *string             `mapstructure:"ttl"`
 	H2PING                         *string             `mapstructure:"h2ping"`
+	H2PingUseTLS                   *bool               `mapstructure:"h2ping_use_tls"`
 	SuccessBeforePassing           *int                `mapstructure:"success_before_passing"`
+	FailuresBeforeWarning          *int                `mapstructure:"failures_before_warning"`
 	FailuresBeforeCritical         *int                `mapstructure:"failures_before_critical"`
 	DeregisterCriticalServiceAfter *string             `mapstructure:"deregister_critical_service_after" alias:"deregistercriticalserviceafter"`
 
@@ -513,6 +513,7 @@ type Upstream struct {
 	// on service definitions in various places.
 	DestinationType      *string `mapstructure:"destination_type"`
 	DestinationNamespace *string `mapstructure:"destination_namespace"`
+	DestinationPartition *string `mapstructure:"destination_partition"`
 	DestinationName      *string `mapstructure:"destination_name"`
 
 	// Datacenter that the service discovery request should be run against. Note
@@ -694,16 +695,13 @@ type Ports struct {
 	SerfLAN        *int `mapstructure:"serf_lan"`
 	SerfWAN        *int `mapstructure:"serf_wan"`
 	Server         *int `mapstructure:"server"`
-	XDS            *int `mapstructure:"xds"`
+	GRPC           *int `mapstructure:"grpc"`
 	ProxyMinPort   *int `mapstructure:"proxy_min_port"`
 	ProxyMaxPort   *int `mapstructure:"proxy_max_port"`
 	SidecarMinPort *int `mapstructure:"sidecar_min_port"`
 	SidecarMaxPort *int `mapstructure:"sidecar_max_port"`
 	ExposeMinPort  *int `mapstructure:"expose_min_port"`
 	ExposeMaxPort  *int `mapstructure:"expose_max_port"`
-
-	// Deprecated: replaced by XDS
-	GRPC *int `mapstructure:"grpc"`
 }
 
 type UnixSocket struct {
@@ -741,7 +739,6 @@ type ACL struct {
 	DefaultPolicy          *string `mapstructure:"default_policy"`
 	EnableKeyListPolicy    *bool   `mapstructure:"enable_key_list_policy"`
 	Tokens                 Tokens  `mapstructure:"tokens"`
-	DisabledTTL            *string `mapstructure:"disabled_ttl"`
 	EnableTokenPersistence *bool   `mapstructure:"enable_token_persistence"`
 
 	// Enterprise Only
@@ -749,14 +746,23 @@ type ACL struct {
 }
 
 type Tokens struct {
-	Master      *string `mapstructure:"master"`
-	Replication *string `mapstructure:"replication"`
-	AgentMaster *string `mapstructure:"agent_master"`
-	Default     *string `mapstructure:"default"`
-	Agent       *string `mapstructure:"agent"`
+	InitialManagement *string `mapstructure:"initial_management"`
+	Replication       *string `mapstructure:"replication"`
+	AgentRecovery     *string `mapstructure:"agent_recovery"`
+	Default           *string `mapstructure:"default"`
+	Agent             *string `mapstructure:"agent"`
 
 	// Enterprise Only
 	ManagedServiceProvider []ServiceProviderToken `mapstructure:"managed_service_provider"`
+
+	DeprecatedTokens `mapstructure:",squash"`
+}
+
+type DeprecatedTokens struct {
+	// DEPRECATED (ACL) - renamed to "initial_management"
+	Master *string `mapstructure:"master"`
+	// DEPRECATED (ACL) - renamed to "agent_recovery"
+	AgentMaster *string `mapstructure:"agent_master"`
 }
 
 // ServiceProviderToken groups an accessor and secret for a service provider token. Enterprise Only

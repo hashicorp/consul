@@ -33,6 +33,7 @@ type CheckType struct {
 	ScriptArgs             []string
 	HTTP                   string
 	H2PING                 string
+	H2PingUseTLS           bool
 	Header                 map[string][]string
 	Method                 string
 	Body                   string
@@ -49,6 +50,7 @@ type CheckType struct {
 	Timeout                time.Duration
 	TTL                    time.Duration
 	SuccessBeforePassing   int
+	FailuresBeforeWarning  int
 	FailuresBeforeCritical int
 
 	// Definition fields used when exposing checks through a proxy
@@ -80,6 +82,7 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 		TLSServerNameSnake                  string      `json:"tls_server_name"`
 		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
 		GRPCUseTLSSnake                     bool        `json:"grpc_use_tls"`
+		H2PingUseTLSSnake                   bool        `json:"h2ping_use_tls"`
 
 		// These are going to be ignored but since we are disallowing unknown fields
 		// during parsing we have to be explicit about parsing but not using these.
@@ -90,6 +93,17 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
+
+	// Preevaluate struct values to determine where to set defaults
+	if err = lib.UnmarshalJSON(data, aux); err != nil {
+		return err
+	}
+	// Set defaults
+	if aux.H2PING != "" {
+		aux.H2PingUseTLS = true
+		aux.H2PingUseTLSSnake = true
+	}
+
 	if err = lib.UnmarshalJSON(data, aux); err != nil {
 		return err
 	}
@@ -114,7 +128,6 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 	if aux.GRPCUseTLSSnake {
 		t.GRPCUseTLS = aux.GRPCUseTLSSnake
 	}
-
 	if aux.Interval != nil {
 		switch v := aux.Interval.(type) {
 		case string:
@@ -155,6 +168,9 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 			t.DeregisterCriticalServiceAfter = time.Duration(v)
 		}
 	}
+	if (aux.H2PING != "" && !aux.H2PingUseTLSSnake) || (aux.H2PING == "" && aux.H2PingUseTLSSnake) {
+		t.H2PingUseTLS = aux.H2PingUseTLSSnake
+	}
 
 	return nil
 
@@ -182,6 +198,10 @@ func (c *CheckType) Validate() error {
 	if c.OutputMaxSize < 0 {
 		return fmt.Errorf("MaxOutputMaxSize must be positive")
 	}
+	if c.FailuresBeforeWarning > c.FailuresBeforeCritical {
+		return fmt.Errorf("FailuresBeforeWarning can't be higher than FailuresBeforeCritical")
+	}
+
 	return nil
 }
 

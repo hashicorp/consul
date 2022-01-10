@@ -30,6 +30,8 @@ Usage: `consul acl token list`
 
 @include 'http_api_namespace_options.mdx'
 
+@include 'http_api_partition_options.mdx'
+
 ## Examples
 
 Default listing.
@@ -40,14 +42,6 @@ AccessorID:   4d123dff-f460-73c3-02c4-8dd64d136e01
 Description:  Bootstrap Token (Global Management)
 Local:        false
 Create Time:  2018-10-22 11:27:04.479026 -0400 EDT
-Legacy:       false
-Policies:
-   00000000-0000-0000-0000-000000000001 - global-management
-
-AccessorID:   59f86a9b-d3b6-166c-32a0-be4ab3f94caa
-Description:  Super User
-Local:        false
-Create Time:  2018-10-22 15:35:28.787003 -0400 EDT
 Legacy:       false
 Policies:
    00000000-0000-0000-0000-000000000001 - global-management
@@ -67,4 +61,14 @@ Create Time:  2018-10-22 15:33:39.01789 -0400 EDT
 Legacy:       false
 Policies:
    06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+Service Identities:
+   wonderservice (Datacenters: all)
+
+AccessorID:       def4895d-eeb9-f78a-fbb9-2a15a568af31
+Description:      Node 1 agent token
+Local:            false
+Create Time:      2020-12-22 04:19:30.552528733 +0000 UTC
+Legacy:           false
+Node Identities:
+   node1 (Datacenter: dc1)
 ```

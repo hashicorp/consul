@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package agent
@@ -50,3 +51,9 @@ func (a *Agent) stopLicenseManager() {}
 func (a *Agent) enterpriseStats() map[string]map[string]string {
 	return nil
 }
+
+func (a *Agent) AgentEnterpriseMeta() *structs.EnterpriseMeta {
+	return structs.NodeEnterpriseMetaInDefaultPartition()
+}
+
+func (a *Agent) registerEntCache() {}

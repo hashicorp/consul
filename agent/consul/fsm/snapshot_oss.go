@@ -15,7 +15,7 @@ func init() {
 	registerRestorer(structs.KVSRequestType, restoreKV)
 	registerRestorer(structs.TombstoneRequestType, restoreTombstone)
 	registerRestorer(structs.SessionRequestType, restoreSession)
-	registerRestorer(structs.ACLRequestType, restoreACL)
+	registerRestorer(structs.DeprecatedACLRequestType, restoreACL) // TODO(ACL-Legacy-Compat) - remove in phase 2
 	registerRestorer(structs.ACLBootstrapRequestType, restoreACLBootstrap)
 	registerRestorer(structs.CoordinateBatchUpdateType, restoreCoordinates)
 	registerRestorer(structs.PreparedQueryRequestType, restorePreparedQuery)
@@ -33,9 +33,14 @@ func init() {
 	registerRestorer(structs.ACLAuthMethodSetRequestType, restoreAuthMethod)
 	registerRestorer(structs.FederationStateRequestType, restoreFederationState)
 	registerRestorer(structs.SystemMetadataRequestType, restoreSystemMetadata)
+	registerRestorer(structs.ServiceVirtualIPRequestType, restoreServiceVirtualIP)
+	registerRestorer(structs.FreeVirtualIPRequestType, restoreFreeVirtualIP)
 }
 
 func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	if err := s.persistVirtualIPs(sink, encoder); err != nil {
+		return err
+	}
 	if err := s.persistNodes(sink, encoder); err != nil {
 		return err
 	}
@@ -96,6 +101,8 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 	// Register each node
 	for node := nodes.Next(); node != nil; node = nodes.Next() {
 		n := node.(*structs.Node)
+		nodeEntMeta := n.GetEnterpriseMeta()
+
 		req := structs.RegisterRequest{
 			ID:              n.ID,
 			Node:            n.Node,
@@ -104,6 +111,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 			TaggedAddresses: n.TaggedAddresses,
 			NodeMeta:        n.Meta,
 			RaftIndex:       n.RaftIndex,
+			EnterpriseMeta:  *nodeEntMeta,
 		}
 
 		// Register the node itself
@@ -115,8 +123,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 		}
 
 		// Register each service this node has
-		// TODO(partitions)
-		services, err := s.state.Services(n.Node, nil)
+		services, err := s.state.Services(n.Node, nodeEntMeta)
 		if err != nil {
 			return err
 		}
@@ -132,8 +139,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 
 		// Register each check this node has
 		req.Service = nil
-		// TODO(partitions)
-		checks, err := s.state.Checks(n.Node, nil)
+		checks, err := s.state.Checks(n.Node, nodeEntMeta)
 		if err != nil {
 			return err
 		}
@@ -509,6 +515,38 @@ func (s *snapshot) persistIndex(sink raft.SnapshotSink, encoder *codec.Encoder) 
 	return nil
 }
 
+func (s *snapshot) persistVirtualIPs(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	serviceVIPs, err := s.state.ServiceVirtualIPs()
+	if err != nil {
+		return err
+	}
+
+	for entry := serviceVIPs.Next(); entry != nil; entry = serviceVIPs.Next() {
+		if _, err := sink.Write([]byte{byte(structs.ServiceVirtualIPRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry.(state.ServiceVirtualIP)); err != nil {
+			return err
+		}
+	}
+
+	freeVIPs, err := s.state.FreeVirtualIPs()
+	if err != nil {
+		return err
+	}
+
+	for entry := freeVIPs.Next(); entry != nil; entry = freeVIPs.Next() {
+		if _, err := sink.Write([]byte{byte(structs.FreeVirtualIPRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry.(state.FreeVirtualIP)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func restoreRegistration(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.RegisterRequest
 	if err := decoder.Decode(&req); err != nil {
@@ -561,8 +599,9 @@ func restoreSession(header *SnapshotHeader, restore *state.Restore, decoder *cod
 	return nil
 }
 
-func restoreACL(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
-	var req structs.ACL
+// TODO(ACL-Legacy-Compat) - remove in phase 2
+func restoreACL(_ *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req LegacyACL
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
@@ -573,9 +612,51 @@ func restoreACL(header *SnapshotHeader, restore *state.Restore, decoder *codec.D
 	return nil
 }
 
-// DEPRECATED (ACL-Legacy-Compat) - remove once v1 acl compat is removed
-func restoreACLBootstrap(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
-	var req structs.ACLBootstrap
+// TODO(ACL-Legacy-Compat) - remove in phase 2
+type LegacyACL struct {
+	ID    string
+	Name  string
+	Type  string
+	Rules string
+
+	structs.RaftIndex
+}
+
+// TODO(ACL-Legacy-Compat): remove in phase 2, used by snapshot restore
+func (a LegacyACL) Convert() *structs.ACLToken {
+	correctedRules := structs.SanitizeLegacyACLTokenRules(a.Rules)
+	if correctedRules != "" {
+		a.Rules = correctedRules
+	}
+
+	token := &structs.ACLToken{
+		AccessorID:        "",
+		SecretID:          a.ID,
+		Description:       a.Name,
+		Policies:          nil,
+		ServiceIdentities: nil,
+		NodeIdentities:    nil,
+		Type:              a.Type,
+		Rules:             a.Rules,
+		Local:             false,
+		RaftIndex:         a.RaftIndex,
+	}
+
+	token.SetHash(true)
+	return token
+}
+
+// TODO(ACL-Legacy-Compat) - remove in phase 2
+func restoreACLBootstrap(_ *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	type ACLBootstrap struct {
+		// AllowBootstrap will only be true if no existing management tokens
+		// have been found.
+		AllowBootstrap bool
+
+		structs.RaftIndex
+	}
+
+	var req ACLBootstrap
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
@@ -745,4 +826,26 @@ func restoreSystemMetadata(header *SnapshotHeader, restore *state.Restore, decod
 		return err
 	}
 	return restore.SystemMetadataEntry(&req)
+}
+
+func restoreServiceVirtualIP(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req state.ServiceVirtualIP
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	if err := restore.ServiceVirtualIP(req); err != nil {
+		return err
+	}
+	return nil
+}
+
+func restoreFreeVirtualIP(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req state.FreeVirtualIP
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	if err := restore.FreeVirtualIP(req); err != nil {
+		return err
+	}
+	return nil
 }

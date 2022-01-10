@@ -5,9 +5,16 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/grpc/resolver"
@@ -20,22 +27,13 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-hclog"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/time/rate"
 )
 
 func testClientConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports := freeport.MustTake(2)
-	t.Cleanup(func() {
-		freeport.Return(ports)
-	})
-
+	ports := freeport.GetN(t, 2)
 	config.Datacenter = "dc1"
 	config.DataDir = dir
 	config.NodeName = uniqueNodeName(t.Name())
@@ -70,6 +68,13 @@ func testClientWithConfigWithErr(t *testing.T, cb func(c *Config)) (string, *Cli
 	if cb != nil {
 		cb(config)
 	}
+
+	// Apply config to copied fields because many tests only set the old
+	//values.
+	config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
+	config.ACLResolverSettings.NodeName = config.NodeName
+	config.ACLResolverSettings.Datacenter = config.Datacenter
+	config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
 
 	client, err := NewClient(config, newDefaultDeps(t, config))
 	return dir, client, err
@@ -115,10 +120,10 @@ func TestClient_JoinLAN(t *testing.T) {
 		if got, want := c1.router.GetLANManager().NumServers(), 1; got != want {
 			r.Fatalf("got %d servers want %d", got, want)
 		}
-		if got, want := len(s1.LANMembers()), 2; got != want {
+		if got, want := len(s1.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d server LAN members want %d", got, want)
 		}
-		if got, want := len(c1.LANMembers()), 2; got != want {
+		if got, want := len(c1.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d client LAN members want %d", got, want)
 		}
 	})
@@ -148,8 +153,8 @@ func TestClient_LANReap(t *testing.T) {
 	testrpc.WaitForLeader(t, c1.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {
-		require.Len(r, s1.LANMembers(), 2)
-		require.Len(r, c1.LANMembers(), 2)
+		require.Len(r, s1.LANMembersInAgentPartition(), 2)
+		require.Len(r, c1.LANMembersInAgentPartition(), 2)
 	})
 
 	// Check the router has both
@@ -163,7 +168,7 @@ func TestClient_LANReap(t *testing.T) {
 	s1.Shutdown()
 
 	retry.Run(t, func(r *retry.R) {
-		require.Len(r, c1.LANMembers(), 1)
+		require.Len(r, c1.LANMembersInAgentPartition(), 1)
 		server := c1.router.FindLANServer()
 		require.Nil(t, server)
 	})
@@ -184,15 +189,15 @@ func TestClient_JoinLAN_Invalid(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Try to join
-	if _, err := c1.JoinLAN([]string{joinAddrLAN(s1)}); err == nil {
+	if _, err := c1.JoinLAN([]string{joinAddrLAN(s1)}, nil); err == nil {
 		t.Fatal("should error")
 	}
 
 	time.Sleep(50 * time.Millisecond)
-	if len(s1.LANMembers()) != 1 {
+	if len(s1.LANMembersInAgentPartition()) != 1 {
 		t.Fatalf("should not join")
 	}
-	if len(c1.LANMembers()) != 1 {
+	if len(c1.LANMembersInAgentPartition()) != 1 {
 		t.Fatalf("should not join")
 	}
 }
@@ -208,7 +213,7 @@ func TestClient_JoinWAN_Invalid(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Try to join
-	if _, err := c1.JoinLAN([]string{joinAddrWAN(s1)}); err == nil {
+	if _, err := c1.JoinLAN([]string{joinAddrWAN(s1)}, nil); err == nil {
 		t.Fatal("should error")
 	}
 
@@ -216,7 +221,7 @@ func TestClient_JoinWAN_Invalid(t *testing.T) {
 	if len(s1.WANMembers()) != 1 {
 		t.Fatalf("should not join")
 	}
-	if len(c1.LANMembers()) != 1 {
+	if len(c1.LANMembersInAgentPartition()) != 1 {
 		t.Fatalf("should not join")
 	}
 }
@@ -241,11 +246,11 @@ func TestClient_RPC(t *testing.T) {
 	joinLAN(t, c1, s1)
 
 	// Check the members
-	if len(s1.LANMembers()) != 2 {
+	if len(s1.LANMembersInAgentPartition()) != 2 {
 		t.Fatalf("bad len")
 	}
 
-	if len(c1.LANMembers()) != 2 {
+	if len(c1.LANMembersInAgentPartition()) != 2 {
 		t.Fatalf("bad len")
 	}
 
@@ -345,10 +350,10 @@ func TestClient_RPC_Pool(t *testing.T) {
 
 	// Wait for both agents to finish joining
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(s1.LANMembers()), 2; got != want {
+		if got, want := len(s1.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d server LAN members want %d", got, want)
 		}
-		if got, want := len(c1.LANMembers()), 2; got != want {
+		if got, want := len(c1.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d client LAN members want %d", got, want)
 		}
 	})
@@ -409,12 +414,12 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 	c.router.GetLANManager().ResetRebalanceTimer()
 	time.Sleep(time.Second)
 
-	if len(c.LANMembers()) != numServers+numClients {
-		t.Errorf("bad len: %d", len(c.LANMembers()))
+	if len(c.LANMembersInAgentPartition()) != numServers+numClients {
+		t.Errorf("bad len: %d", len(c.LANMembersInAgentPartition()))
 	}
 	for _, s := range servers {
-		if len(s.LANMembers()) != numServers+numClients {
-			t.Errorf("bad len: %d", len(s.LANMembers()))
+		if len(s.LANMembersInAgentPartition()) != numServers+numClients {
+			t.Errorf("bad len: %d", len(s.LANMembersInAgentPartition()))
 		}
 	}
 
@@ -467,10 +472,10 @@ func TestClient_RPC_TLS(t *testing.T) {
 
 	// Wait for joins to finish/RPC to succeed
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(s1.LANMembers()), 2; got != want {
+		if got, want := len(s1.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d server LAN members want %d", got, want)
 		}
-		if got, want := len(c1.LANMembers()), 2; got != want {
+		if got, want := len(c1.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d client LAN members want %d", got, want)
 		}
 		if err := c1.RPC("Status.Ping", struct{}{}, &out); err != nil {
@@ -490,6 +495,13 @@ func newClient(t *testing.T, config *Config) *Client {
 	return client
 }
 
+func newTestResolverConfig(t *testing.T, suffix string) resolver.Config {
+	n := t.Name()
+	s := strings.Replace(n, "/", "", -1)
+	s = strings.Replace(s, "_", "", -1)
+	return resolver.Config{Authority: strings.ToLower(s) + "-" + suffix}
+}
+
 func newDefaultDeps(t *testing.T, c *Config) Deps {
 	t.Helper()
 
@@ -502,7 +514,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 	tls, err := tlsutil.NewConfigurator(c.TLSConfig, logger)
 	require.NoError(t, err, "failed to create tls configuration")
 
-	builder := resolver.NewServerResolverBuilder(resolver.Config{Authority: c.NodeName})
+	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t, c.NodeName+"-"+c.Datacenter))
 	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter), builder)
 	resolver.Register(builder)
 
@@ -522,7 +534,13 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		Tokens:          new(token.Store),
 		Router:          r,
 		ConnPool:        connPool,
-		GRPCConnPool:    grpc.NewClientConnPool(builder, grpc.TLSWrapper(tls.OutgoingRPCWrapper()), tls.UseTLS),
+		GRPCConnPool: grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
+			Servers:               builder,
+			TLSWrapper:            grpc.TLSWrapper(tls.OutgoingRPCWrapper()),
+			UseTLSForDC:           tls.UseTLS,
+			DialingFromServer:     true,
+			DialingFromDatacenter: c.Datacenter,
+		}),
 		LeaderForwarder: builder,
 		EnterpriseDeps:  newDefaultDepsEnterprise(t, logger, c),
 	}
@@ -662,10 +680,10 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	// Try to join.
 	joinLAN(t, c1, s1)
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(s1.LANMembers()), 2; got != want {
+		if got, want := len(s1.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d server members want %d", got, want)
 		}
-		if got, want := len(c1.LANMembers()), 2; got != want {
+		if got, want := len(c1.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d client members want %d", got, want)
 		}
 
@@ -724,10 +742,10 @@ func TestClientServer_UserEvent(t *testing.T) {
 
 	// Check the members
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(s1.LANMembers()), 2; got != want {
+		if got, want := len(s1.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d server LAN members want %d", got, want)
 		}
-		if got, want := len(c1.LANMembers()), 2; got != want {
+		if got, want := len(c1.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d client LAN members want %d", got, want)
 		}
 	})
@@ -823,8 +841,8 @@ func TestClient_ShortReconnectTimeout(t *testing.T) {
 	// up to 10x the time in the case of slow CI.
 	require.Eventually(t,
 		func() bool {
-			return len(cluster.Servers[0].LANMembers()) == 2 &&
-				len(cluster.Clients[0].LANMembers()) == 2
+			return len(cluster.Servers[0].LANMembersInAgentPartition()) == 2 &&
+				len(cluster.Clients[0].LANMembersInAgentPartition()) == 2
 
 		},
 		time.Second,

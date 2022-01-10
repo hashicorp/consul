@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/require"
 )
 
 func TestReplication_ConfigSort(t *testing.T) {
@@ -237,7 +238,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 			Entry:      entry,
 		}
 
-		var out struct{}
+		var out structs.ConfigEntryDeleteResponse
 		require.NoError(t, s1.RPC("ConfigEntry.Delete", &arg, &out))
 	}
 

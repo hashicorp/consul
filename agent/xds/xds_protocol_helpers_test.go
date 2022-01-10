@@ -1,11 +1,12 @@
 package xds
 
 import (
-	"github.com/hashicorp/consul/agent/connect"
 	"sort"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/agent/connect"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -43,7 +44,7 @@ func newTestSnapshot(
 ) *proxycfg.ConfigSnapshot {
 	snap := proxycfg.TestConfigSnapshotDiscoveryChainDefaultWithEntries(t, additionalEntries...)
 	snap.ConnectProxy.PreparedQueryEndpoints = map[string]structs.CheckServiceNodes{
-		"prepared_query:geo-cache": proxycfg.TestUpstreamNodes(t),
+		"prepared_query:geo-cache": proxycfg.TestPreparedQueryNodes(t, "geo-cache"),
 	}
 	if prevSnap != nil {
 		snap.Roots = prevSnap.Roots
@@ -124,33 +125,12 @@ type testServerScenario struct {
 	errCh  <-chan error
 }
 
-func newTestServerScenario(
-	t *testing.T,
-	resolveToken ACLResolverFunc,
-	proxyID string,
-	token string,
-	authCheckFrequency time.Duration,
-) *testServerScenario {
-	return newTestServerScenarioInner(t, resolveToken, proxyID, token, authCheckFrequency, false)
-}
-
 func newTestServerDeltaScenario(
 	t *testing.T,
 	resolveToken ACLResolverFunc,
 	proxyID string,
 	token string,
 	authCheckFrequency time.Duration,
-) *testServerScenario {
-	return newTestServerScenarioInner(t, resolveToken, proxyID, token, authCheckFrequency, true)
-}
-
-func newTestServerScenarioInner(
-	t *testing.T,
-	resolveToken ACLResolverFunc,
-	proxyID string,
-	token string,
-	authCheckFrequency time.Duration,
-	incremental bool,
 ) *testServerScenario {
 	mgr := newTestManager(t)
 	envoy := NewTestEnvoy(t, proxyID, token)
@@ -176,16 +156,13 @@ func newTestServerScenarioInner(
 		nil, /*checkFetcher HTTPCheckFetcher*/
 		nil, /*cfgFetcher ConfigFetcher*/
 	)
-	s.AuthCheckFrequency = authCheckFrequency
+	if authCheckFrequency > 0 {
+		s.AuthCheckFrequency = authCheckFrequency
+	}
 
 	errCh := make(chan error, 1)
 	go func() {
-		if incremental {
-			errCh <- s.DeltaAggregatedResources(envoy.deltaStream)
-		} else {
-			shim := &adsServerV2Shim{srv: s}
-			errCh <- shim.StreamAggregatedResources(envoy.stream)
-		}
+		errCh <- s.DeltaAggregatedResources(envoy.deltaStream)
 	}()
 
 	return &testServerScenario{
@@ -243,16 +220,16 @@ func xdsNewPublicTransportSocket(
 	t *testing.T,
 	snap *proxycfg.ConfigSnapshot,
 ) *envoy_core_v3.TransportSocket {
-	return xdsNewTransportSocket(t, snap, true, true, "", connect.SpiffeIDService{})
+	return xdsNewTransportSocket(t, snap, true, true, "")
 }
 
 func xdsNewUpstreamTransportSocket(
 	t *testing.T,
 	snap *proxycfg.ConfigSnapshot,
 	sni string,
-	uri connect.SpiffeIDService,
+	uri ...connect.SpiffeIDService,
 ) *envoy_core_v3.TransportSocket {
-	return xdsNewTransportSocket(t, snap, false, false, sni, uri)
+	return xdsNewTransportSocket(t, snap, false, false, sni, uri...)
 }
 
 func xdsNewTransportSocket(
@@ -261,7 +238,7 @@ func xdsNewTransportSocket(
 	downstream bool,
 	requireClientCert bool,
 	sni string,
-	uri connect.SpiffeIDService,
+	uri ...connect.SpiffeIDService,
 ) *envoy_core_v3.TransportSocket {
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
@@ -278,8 +255,8 @@ func xdsNewTransportSocket(
 			},
 		},
 	}
-	if uri.Service != "" {
-		require.NoError(t, injectSANMatcher(commonTLSContext, uri))
+	if len(uri) > 0 {
+		require.NoError(t, injectSANMatcher(commonTLSContext, uri...))
 	}
 
 	var tlsContext proto.Message
@@ -371,12 +348,20 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			Service:    "db",
 		}
 
-		geocacheSNI = "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
-		geocacheURI = connect.SpiffeIDService{
-			Host:       "11111111-2222-3333-4444-555555555555.consul",
-			Namespace:  "default",
-			Datacenter: "dc1",
-			Service:    "geo-cache",
+		geocacheSNI  = "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
+		geocacheURIs = []connect.SpiffeIDService{
+			{
+				Host:       "11111111-2222-3333-4444-555555555555.consul",
+				Namespace:  "default",
+				Datacenter: "dc1",
+				Service:    "geo-cache-target",
+			},
+			{
+				Host:       "11111111-2222-3333-4444-555555555555.consul",
+				Namespace:  "default",
+				Datacenter: "dc2",
+				Service:    "geo-cache-target",
+			},
 		}
 	)
 
@@ -483,7 +468,7 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			CircuitBreakers:  &envoy_cluster_v3.CircuitBreakers{},
 			OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
 			ConnectTimeout:   ptypes.DurationProto(5 * time.Second),
-			TransportSocket:  xdsNewUpstreamTransportSocket(t, snap, geocacheSNI, geocacheURI),
+			TransportSocket:  xdsNewUpstreamTransportSocket(t, snap, geocacheSNI, geocacheURIs...),
 		}
 	default:
 		t.Fatalf("unexpected fixture name: %s", fixtureName)
@@ -535,7 +520,7 @@ func makeTestEndpoints(t *testing.T, _ *proxycfg.ConfigSnapshot, fixtureName str
 				{
 					LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{
 						xdsNewEndpointWithHealth("10.10.1.1", 8080, envoy_core_v3.HealthStatus_HEALTHY, 1),
-						xdsNewEndpointWithHealth("10.10.1.2", 8080, envoy_core_v3.HealthStatus_HEALTHY, 1),
+						xdsNewEndpointWithHealth("10.20.1.2", 8080, envoy_core_v3.HealthStatus_HEALTHY, 1),
 					},
 				},
 			},
@@ -583,7 +568,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 							ClusterSpecifier: &envoy_tcp_proxy_v3.TcpProxy_Cluster{
 								Cluster: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 							},
-							StatPrefix: "upstream.db.default.dc1",
+							StatPrefix: "upstream.db.default.default.dc1",
 						}),
 					},
 				},
@@ -604,7 +589,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 							RouteSpecifier: &envoy_http_v3.HttpConnectionManager_RouteConfig{
 								RouteConfig: makeTestRoute(t, "http2:db:inline"),
 							},
-							StatPrefix: "upstream.db.default.dc1",
+							StatPrefix: "upstream.db.default.default.dc1",
 							Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{
 								RandomSampling: &envoy_type_v3.Percent{Value: 0},
 							},
@@ -632,7 +617,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 									ConfigSource:    xdsNewADSConfig(),
 								},
 							},
-							StatPrefix: "upstream.db.default.dc1",
+							StatPrefix: "upstream.db.default.default.dc1",
 							Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{
 								RandomSampling: &envoy_type_v3.Percent{Value: 0},
 							},
@@ -660,7 +645,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 									ConfigSource:    xdsNewADSConfig(),
 								},
 							},
-							StatPrefix: "upstream.db.default.dc1",
+							StatPrefix: "upstream.db.default.default.dc1",
 							Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{
 								RandomSampling: &envoy_type_v3.Percent{Value: 0},
 							},
@@ -728,7 +713,7 @@ func makeTestRoute(t *testing.T, fixtureName string) *envoy_route_v3.RouteConfig
 			Name: "db",
 			VirtualHosts: []*envoy_route_v3.VirtualHost{
 				{
-					Name:    "db.default.dc1",
+					Name:    "db.default.default.dc1",
 					Domains: []string{"*"},
 					Routes: []*envoy_route_v3.Route{
 						{

@@ -125,6 +125,8 @@ Take note of the `ReplicatedIndex` value.
 Create a new file containing the payload for creating a new token named `test-ui-token.json`
 with the following contents:
 
+<CodeBlockConfig filename="test-ui-token.json">
+
 ```json
 {
   "Name": "UI Token",
@@ -132,6 +134,8 @@ with the following contents:
   "Rules": "key \"\" { policy = \"write\" } node \"\" { policy = \"read\" } service \"\" { policy = \"read\" }"
 }
 ```
+
+</CodeBlockConfig>
 
 From a Consul server in DC1, create a new token using that file:
 

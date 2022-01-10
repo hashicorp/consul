@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/logging"
@@ -32,13 +31,6 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	if c.config.AdvertiseReconnectTimeout != 0 {
 		conf.Tags[libserf.ReconnectTimeoutTag] = c.config.AdvertiseReconnectTimeout.String()
 	}
-	if c.acls.ACLsEnabled() {
-		// we start in legacy mode and then transition to normal
-		// mode once we know the cluster can handle it.
-		conf.Tags["acls"] = string(structs.ACLModeLegacy)
-	} else {
-		conf.Tags["acls"] = string(structs.ACLModeDisabled)
-	}
 
 	// We use the Intercept variant here to ensure that serf and memberlist logs
 	// can be streamed via the monitor endpoint
@@ -57,10 +49,12 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.ProtocolVersion = protocolVersionMap[c.config.ProtocolVersion]
 	conf.RejoinAfterLeave = c.config.RejoinAfterLeave
 	conf.Merge = &lanMergeDelegate{
-		dc:       c.config.Datacenter,
-		nodeID:   c.config.NodeID,
-		nodeName: c.config.NodeName,
-		segment:  c.config.Segment,
+		dc:        c.config.Datacenter,
+		nodeID:    c.config.NodeID,
+		nodeName:  c.config.NodeName,
+		segment:   c.config.Segment,
+		server:    false,
+		partition: c.config.AgentEnterpriseMeta().PartitionOrDefault(),
 	}
 
 	conf.SnapshotPath = filepath.Join(c.config.DataDir, path)
@@ -68,9 +62,11 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 		return nil, err
 	}
 
-	addEnterpriseSerfTags(conf.Tags)
+	addEnterpriseSerfTags(conf.Tags, c.config.AgentEnterpriseMeta())
 
 	conf.ReconnectTimeoutOverride = libserf.NewReconnectOverride(c.logger)
+
+	enterpriseModifyClientSerfConfigLAN(c.config, conf)
 
 	return serf.Create(conf)
 }

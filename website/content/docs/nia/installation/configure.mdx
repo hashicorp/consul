@@ -19,12 +19,12 @@ Review the Terraform module to be used for network automation and identify the T
 
 ```hcl
 task {
-  name = "website-x"
+  name        = "website-x"
   description = "automate services for website-x"
-  source = "namespace/example/module"
-  version = "1.0.0"
-  providers = ["myprovider"]
-  services = ["web", "api"]
+  source      = "namespace/example/module"
+  version     = "1.0.0"
+  providers   = ["myprovider"]
+  services    = ["web", "api"]
 }
 ```
 
@@ -36,7 +36,7 @@ Configuring Terraform providers within Consul-Terraform-Sync requires 2 config c
 driver "terraform" {
   required_providers {
     myprovider = {
-      source = "namespace/myprovider"
+      source  = "namespace/myprovider"
       version = "1.3.0"
     }
   }
@@ -59,6 +59,8 @@ Piecing it all together, the configuration file for Consul-Terraform-Sync will h
 
 An example HCL configuration file is shown below to automate one task to execute a Terraform module on the condition when there are changes to two services.
 
+<CodeBlockConfig filename="cts-example-config.hcl">
+
 ```hcl
 log_level = "info"
 
@@ -71,12 +73,12 @@ consul {
 }
 
 task {
-  name = "website-x"
+  name        = "website-x"
   description = "automate services for website-x"
-  source = "namespace/example/module"
-  version = "1.0.0"
-  providers = ["myprovider"]
-  services = ["web", "api"]
+  source      = "namespace/example/module"
+  version     = "1.0.0"
+  providers   = ["myprovider"]
+  services    = ["web", "api"]
   buffer_period {
     min = "10s"
   }
@@ -87,7 +89,7 @@ driver "terraform" {
 
   required_providers {
     myprovider = {
-      source = "namespace/myprovider"
+      source  = "namespace/myprovider"
       version = "1.3.0"
     }
   }
@@ -97,3 +99,5 @@ terraform_provider "myprovider" {
   address = "myprovider.example.com"
 }
 ```
+
+</CodeBlockConfig>
