@@ -137,18 +137,18 @@ const (
 )
 
 var (
-	ConsulAgentTLSCipherSuites = map[string]TLSCipherSuite{
-		"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256": TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":          TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256":       TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA":          TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384":       TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	consulAgentTLSCipherSuites = map[TLSCipherSuite]struct{}{
+		TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256: {},
+		TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:          {},
+		TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:       {},
+		TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:          {},
+		TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:       {},
 
-		"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256": TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":          TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":       TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA":          TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":       TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256: {},
+		TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:          {},
+		TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:       {},
+		TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:          {},
+		TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:       {},
 	}
 	envoyTLSCipherSuiteStrings = map[TLSCipherSuite]string{
 		TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:       "ECDHE-ECDSA-AES128-GCM-SHA256",
@@ -174,8 +174,8 @@ func (c *TLSCipherSuite) String() string {
 
 func ValidateConsulAgentCipherSuites(cipherSuites []TLSCipherSuite) error {
 	for _, c := range cipherSuites {
-		if _, ok := envoyTLSCipherSuiteStrings[c]; !ok {
-			return fmt.Errorf("no matching Envoy TLS cipher suite found for %s", c.String())
+		if _, ok := consulAgentTLSCipherSuites[c]; !ok {
+			return fmt.Errorf("no matching Consul Agent TLS cipher suite found for %s", c.String())
 		}
 	}
 
