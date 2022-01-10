@@ -371,10 +371,14 @@ func makeTLSParametersFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *env
 	tlsParams := envoy_tls_v3.TlsParameters{}
 
 	if tlsCfg.TLSMinVersion != types.TLSVersionUnspecified {
-		tlsParams.TlsMinimumProtocolVersion = envoyTLSVersions[tlsCfg.TLSMinVersion]
+		if minVersion, ok := envoyTLSVersions[tlsCfg.TLSMinVersion]; ok {
+			tlsParams.TlsMinimumProtocolVersion = minVersion
+		}
 	}
 	if tlsCfg.TLSMaxVersion != types.TLSVersionUnspecified {
-		tlsParams.TlsMaximumProtocolVersion = envoyTLSVersions[tlsCfg.TLSMaxVersion]
+		if maxVersion, ok := envoyTLSVersions[tlsCfg.TLSMaxVersion]; ok {
+			tlsParams.TlsMaximumProtocolVersion = maxVersion
+		}
 	}
 	if len(tlsCfg.CipherSuites) != 0 {
 		tlsParams.CipherSuites = types.MarshalEnvoyTLSCipherSuiteStrings(tlsCfg.CipherSuites)
