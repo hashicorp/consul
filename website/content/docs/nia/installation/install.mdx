@@ -25,7 +25,7 @@ $ echo $PATH
 $ mv ./consul-terraform-sync /usr/local/bin/consul-terraform-sync
 ```
 
-Once installed, verify the installation works by prompting the `-version` or `-help` option.
+Once installed, verify the installation works by prompting the `-version` or `-help` option. The version outputed for the CTS Enterpise binary includes the `+ent` metadata.
 
 ```shell-session
 $ consul-terraform-sync -version
@@ -42,7 +42,7 @@ For the CTS Enterprise, use the Docker image [`hashicorp/consul-terraform-sync-e
 $ docker pull hashicorp/consul-terraform-sync
 ```
 
-Once installed, verify the installation works by prompting the `-version` or `-help` option.
+Once installed, verify the installation works by prompting the `-version` or `-help` option. The version outputed for the CTS Enterpise image includes the `+ent` metadata.
 
 ```shell-session
 $ docker run --rm hashicorp/consul-terraform-sync -version
