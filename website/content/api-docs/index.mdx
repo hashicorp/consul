@@ -18,7 +18,11 @@ requests using the `X-Consul-Token` header or with the
 Bearer scheme in the authorization header.
 This reduces the probability of the
 token accidentally getting logged or exposed. When using authentication,
-clients should communicate via TLS. If you don’t provide a token in the request, then the agent default token will be used.
+clients should communicate via TLS.
+
+If no token is provided for an HTTP request then Consul will use the default ACL token
+if it has been configured. If no default ACL token was configured then the anonymous
+token will be used.
 
 Below is an example using `curl` with `X-Consul-Token`.
 
@@ -28,7 +32,7 @@ $ curl \
     http://127.0.0.1:8500/v1/agent/members
 ```
 
-Below is an example using `curl` with Bearer scheme.
+Below is an example using `curl` with a [RFC6750](https://tools.ietf.org/html/rfc6750) Bearer token.
 
 ```shell-session
 $ curl \

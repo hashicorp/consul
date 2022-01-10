@@ -46,6 +46,11 @@ Tokens can be created directly from the [CLI](/commands/acl/token) or [API](/api
 [Auth Methods](/docs/security/acl/auth-methods) can be used to dynamically create tokens
 from a trusted external system.
 
+Consul HTTP API requests accept a token from an [HTTP Header](/api-docs/index#authentication),
+and CLI requests accept a token from
+[`-token` command line flag](/commands#authentication) or
+[`CONSUL_HTTP_TOKEN_FILE` environment variable](/commands#consul_http_token_file).
+
 
 ## Policies
 
@@ -292,22 +297,6 @@ injected.
   and will be linked with the builtin Global Management policy giving it unrestricted privileges. The initial management
   token is created with the Secret ID set to the value of the configuration entry.
   In Consul 1.4 - 1.10, this was called the `master` token. It was renamed to `initial_management` token in Consul 1.11.
-
-#### Authorization
-
-The token Secret ID is passed along with each RPC request to the servers. Consul's
-[HTTP endpoints](/api) can accept tokens via the `token`
-query string parameter, the `X-Consul-Token` request header, or an
-[RFC6750](https://tools.ietf.org/html/rfc6750) authorization bearer token. Consul's
-[CLI commands](/docs/commands) can accept tokens via the
-`token` argument, or the `CONSUL_HTTP_TOKEN` environment variable. The CLI
-commands can also accept token values stored in files with the `token-file`
-argument, or the `CONSUL_HTTP_TOKEN_FILE` environment variable.
-
-If no token is provided for an HTTP request then Consul will use the default ACL token
-if it has been configured. If no default ACL token was configured then the anonymous
-token will be used.
-
 
 #### ACL Agent Recovery Token
 
