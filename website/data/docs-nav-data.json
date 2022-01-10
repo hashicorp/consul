@@ -835,6 +835,10 @@
             "path": "security/acl/acl-federated-datacenters"
           },
           {
+            "title": "ACL Functions by Controlling Resource",
+            "path": "security/acl/acl-endpoints-by-resource"
+          },
+          {
             "title": "Auth Methods",
             "routes": [
               {
