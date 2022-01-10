@@ -49,26 +49,17 @@ target destination. After verifying the TLS client certificate, the cached
 intentions should be consulted for each incoming connection/request to
 determine if it should be accepted or rejected.
 
-The default intention behavior is defined by the default [ACL
-policy](/docs/agent/options#acl_default_policy). If the default ACL policy is
-"allow all", then all Connect connections are allowed by default. If the
-default ACL policy is "deny all", then all Connect connections or requests are
-denied by default.
+The default intention behavior is defined by the [`default_policy`](/docs/agent/options#acl_default_policy) configuration.
+If the configuration is set `allow`, then all service mesh Connect connections will be allowed by default.
+If is set to `deny`, then all connections or requests will be denied by default.
 
 ## Intention Basics
 
-Intentions are managed primarily via
-[`service-intentions`](/docs/connect/config-entries/service-intentions) config
-entries or the UI. Some simpler tasks can also be achieved with the older
-[API](/api-docs/connect/intentions) or [CLI](/commands/intention). Please see
-the respective documentation for each for full details on options, flags, etc.
+You can define a [`service-intentions`](/docs/connect/config-entries/service-intentions) configuration entry to create and manage intentions, as well as manage intentions through the Consul UI. You can also perform some intention-related tasks using the API and CLI commands. Refer to the [API](/api-docs/connect/intentions) and [CLI](/commands/intention) documentation for details.
 
-Below is an example of a basic
-[`service-intentions`](/docs/connect/config-entries/service-intentions) config
-entry representing two simple intentions. The full data model complete with
-more examples can be found in the
-[`service-intentions`](/docs/connect/config-entries/service-intentions) config
-entry documentation.
+The following example shows a `service-intentions` configuration entry that specifes two intentions. Refer to the [`service-intentions`](/docs/connect/config-entries/service-intentions) documentation for the full data model and additional examples.
+
+<CodeTabs>
 
 ```hcl
 Kind = "service-intentions"
@@ -85,20 +76,41 @@ Sources = [
 ]
 ```
 
-This config entry defines two intentions with a common destination of "db". The
-first intention above is a deny intention with a source of "web". This says
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "db",
+  "Sources": [
+    {
+      "Action": "deny",
+      "Name": "web"
+    },
+    {
+      "Action": "allow",
+      "Name": "api"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+This configuration entry defines two intentions with a common destination of `db`. The
+first intention above is a deny intention with a source of `web`. This says
 that connections from web to db are not allowed and the connection will be
-rejected. The second intention is an allow intention with a source of "api".
+rejected. The second intention is an allow intention with a source of `api`.
 This says that connections from api to db are allowed and connections will be
 accepted.
 
 ### Wildcard Intentions
 
-You can use the `*` wildcard when defining an intention source or destination. The wildcard matches _any_ value and can serve as a "catch-all" entry for intentions that should have a wide scope.     
+You can use the `*` wildcard to match service names when defining an intention source or destination. The wildcard matches _any_ value, which enables you to set a wide initial scope when configuring intentions.
 
-You can use a wildcard to match service names. If you are using Consul Enterprise, you can also use a wildcard to match a namespace.
+The wildcard is supported in Consul Enterprise `namespace` fields (see [Namespaces](/docs/enterprise/namespaces) for additional information), but it _is not supported_ in `partition` fields (see [Admin Partitions](/docs/enterprise/admin-partitions) for additional information).
 
-This example says that the "web" service cannot connect to _any_ service:
+In the following example, the `web` service cannot connect to _any_ service:
+
+<CodeTabs>
 
 ```hcl
 Kind = "service-intentions"
@@ -111,7 +123,24 @@ Sources = [
 ]
 ```
 
-And this example says that _no_ service can connect to the "db" service:
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "*",
+  "Sources": [
+    {
+      "Action": "deny",
+      "Name": "web"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+The `db` service is configured to deny all connection in the following example:
+
+<CodeTabs>
 
 ```hcl
 Kind = "service-intentions"
@@ -124,8 +153,25 @@ Sources = [
 ]
 ```
 
-<EnterpriseAlert inline /> This example grants Prometheus
-access to any service in any namespace.
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "db",
+  "Sources": [
+    {
+      "Action": "deny",
+      "Name": "*"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+<EnterpriseAlert inline /> This example grants Prometheus access to any service in
+any namespace.
+
+<CodeTabs>
 
 ```hcl
 Kind = "service-intentions"
@@ -139,6 +185,23 @@ Sources = [
   }
 ]
 ```
+
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "*",
+  "Namespace": "*",
+  "Sources": [
+    {
+      "Action": "allow",
+      "Name": "prometheus",
+      "Namespace": "monitoring"
+    }
+  ]
+}
+```
+
+</CodeTabs>
 
 ### Enforcement
 
@@ -177,7 +240,7 @@ top to bottom, with larger numbers being evaluated first.
 
 The precedence value can be read from a
 [field](/docs/connect/config-entries/service-intentions#precedence) on the
-`service-intentions` config entry after it is modified. Precedence cannot be
+`service-intentions` configuration entry after it is modified. Precedence cannot be
 manually overridden today.
 
 The numbers in the table above are not stable. Their ordering will remain
@@ -201,11 +264,29 @@ for its own service name in order to know whether or not to authorize
 connections. The following ACL policy will implicitly grant `intentions:read`
 (note _read_) for service `web`.
 
+<CodeTabs>
+
 ```hcl
 service "web" {
   policy = "write"
 }
 ```
+
+```json
+{
+  "service": [
+    {
+      "web": [
+        {
+          "policy": "write"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
 
 It is possible to explicitly specify intention permissions. For example,
 the following policy will allow a service to be discovered without granting
