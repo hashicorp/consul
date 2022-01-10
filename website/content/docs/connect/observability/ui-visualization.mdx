@@ -66,6 +66,8 @@ service named `prometheus-server` so each Consul agent can reach it on
 
 A full configuration to enable Prometheus is given below.
 
+<CodeTabs>
+
 ```hcl
 ui_config {
   enabled = true
@@ -75,6 +77,24 @@ ui_config {
   }
 }
 ```
+
+```json
+{
+  "ui_config": [
+    {
+      "enabled": true,
+      "metrics_provider": "prometheus",
+      "metrics_proxy": [
+        {
+          "base_url": "http://prometheus-server"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
 
 Similarly, to configure the UI on Kubernetes, use this [reference](/docs/k8s/connect/observability/metrics).
 
@@ -95,30 +115,41 @@ to the relevant information.
 
 An example with Grafana is shown below.
 
-<Tabs>
-<Tab heading="HCL">
+<CodeTabs tabs={[ "HCL", "JSON", "YAML (Kubernetes)" ]}>
+
+<CodeBlockConfig>
 
 ```hcl
 ui_config {
   enabled = true
   dashboard_url_templates {
-    service = "https://grafana.example.com/d/lDlaj-NGz/
-      service-overview?orgId=1&var-service={{Service.Name}}&
-      var-namespace={{Service.Namespace}}&
-      var-partition={{Service.Partition}}&var-dc={{Datacenter}}"
+    service = "https://grafana.example.com/d/lDlaj-NGz/service-overview?orgId=1&var-service={{Service.Name}}&var-namespace={{Service.Namespace}}&var-partition={{Service.Partition}}&var-dc={{Datacenter}}"
   }
 }
 ```
 
--> **Note**: the URL is wrapped over multiple lines to make it easier to read
-without horizontal scrolling in the example above however this needs to be a
-normal single-line string value in an HCL configuration file.
+</CodeBlockConfig>
 
-</Tab>
-<Tab heading="Kubernetes YAML">
+<CodeBlockConfig>
 
-On Kubernetes, Consul Server configuration is set in your Helm config via the
-[`server.extraConfig`](/docs/k8s/helm#v-server-extraconfig) key as JSON:
+```json
+{
+  "ui_config": [
+    {
+      "dashboard_url_templates": [
+        {
+          "service": "https://grafana.example.com/d/lDlaj-NGz/service-overview?orgId=1\u0026var-service={{Service.Name}}\u0026var-namespace={{Service.Namespace}}\u0026var-partition={{Service.Partition}}\u0026var-dc={{Datacenter}}"
+        }
+      ],
+      "enabled": true
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig>
 
 ```yaml
 # The UI is enabled by default so this stanza is not required.
@@ -135,10 +166,14 @@ server:
     }
 ```
 
--> **Note**: The `{{` characters in the URL must be escaped using `{{ "{{" }}` so that Helm doesn't try to template them.
+</CodeBlockConfig>
 
-</Tab>
-</Tabs>
+</CodeTabs>
+
+~> **Note**: On Kubernetes, Consul Server configuration is set in your Helm
+config via the [`server.extraConfig`](/docs/k8s/helm#v-server-extraconfig) key as JSON.
+The `{{` characters in the URL must be escaped using `{{ "{{" }}` so that Helm
+doesn't try to template them.
 
 ![Consul UI Service Dashboard Link](/img/ui-dashboard-url-template.png)
 
@@ -171,6 +206,8 @@ un-authenticated workloads on the network**.
 With ACLs enabled, the proxy endpoint requires a valid token with read access
 to all nodes and services (across all namespaces in Enterprise):
 
+<CodeTabs>
+
 ```hcl
 # Consul OSS
 service_prefix "" {
@@ -190,6 +227,8 @@ namespace_prefix "" {
   }
 }
 ```
+
+</CodeTabs>
 
 It's typical for most authenticated users to have this level of access in Consul
 as it's required for viewing the catalog or discovering services. If you use a
@@ -235,6 +274,8 @@ visible to Consul operators in the configuration file while UI users can query
 the metrics they need without separately obtaining a token for that provider or
 having a token exposed to them that they might be able to use elsewhere.
 
+<CodeTabs>
+
 ```hcl
 ui_config {
   enabled = true
@@ -251,6 +292,30 @@ ui_config {
 }
 ```
 
+```json
+{
+  "ui_config": [
+    {
+      "enabled": true,
+      "metrics_provider": "example-apm",
+      "metrics_proxy": [
+        {
+          "add_headers": [
+            {
+              "name": "Authorization",
+              "value": "Bearer \u003ctoken\u003e"
+            }
+          ],
+          "base_url": "https://example-apm.com/api/v1/metrics"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
 ## Custom Metrics Providers
 
 Consul 1.9.0 includes a built-in provider for fetching metrics from
@@ -265,6 +330,8 @@ feedback on [GitHub](https://github.com/hashicorp/consul) or
 [Discuss](https://discuss.hashicorp.com/) on how you'd like to use this.
 
 The template for a complete provider JavaScript file is given below.
+
+<CodeTabs>
 
 ```JavaScript
 (function () {
@@ -472,6 +539,8 @@ The template for a complete provider JavaScript file is given below.
 }());
 ```
 
+</CodeTabs>
+
 Additionally, the built in [Prometheus
 provider code](https://github.com/hashicorp/consul/blob/main/ui/packages/consul-ui/vendor/metrics-providers/prometheus.js)
 can be used as a reference.
@@ -483,6 +552,8 @@ named `example-provider`, which is defined in
 `/usr/local/bin/example-metrics-provider.js`. The name `example-provider` must
 have been specified in the call to `consul.registerMetricsProvider` as in the
 code listing in the last section.
+
+<CodeTabs>
 
 ```hcl
 ui_config {
@@ -496,6 +567,19 @@ ui_config {
   EOT
 }
 ```
+
+```json
+{
+  "ui_config": {
+    "enabled": true,
+    "metrics_provider": "example-provider",
+    "metrics_provide_files": ["/usr/local/bin/example-metrics-provider.js"],
+    "metrics_provider_options_json": "{\"foo\":\"bar\"}"
+  }
+}
+```
+
+</CodeTabs>
 
 More than one JavaScript file may be specified in
 [`metrics_provider_files`](/docs/agent/options#ui_config_metrics_provider_files)
