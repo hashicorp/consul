@@ -8,12 +8,12 @@ description: >-
 # Distributed Tracing
 
 Distributed tracing is a way to track and correlate requests across microservices. Distributed tracing must first
-be implemented in each application, it can't be added by Consul. Once implemented in your applications, adding
+be implemented in each application, it cannot be added by Consul. Once implemented in your applications, adding
 distributed tracing to Consul will add the sidecar proxies as spans in the request path.
 
 ## Application Changes
 
-Consul alone can't implement distributed tracing for your applications. Each application must propagate the required
+Consul alone cannot implement distributed tracing for your applications. Each application must propagate the required
 headers. Typically this is done using a tracing library.
 
 ## Configuration
@@ -159,7 +159,7 @@ This configuration only applies when proxies are _restarted_ since it changes th
 which can only be applied on startup. This means you must restart all your proxies for changes to this
 config to take effect.
 
--> On Kubernetes this is a matter of restarting your deployments, e.g. `kubectl rollout restart deploy/deploy-name`.
+-> **Note:** On Kubernetes this is a matter of restarting your deployments, e.g. `kubectl rollout restart deploy/deploy-name`.
 
 ## Considerations
 
