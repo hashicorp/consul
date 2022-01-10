@@ -142,6 +142,19 @@ There are several different kinds of checks:
 
 A script check:
 
+<CodeTabs heading="Script Check">
+
+```hcl
+check = {
+  id = "mem-util"
+  name =  "Memory utilization"
+  args = ["/usr/local/bin/check_mem.py", "-limit", "256MB"]
+  interval = "10s"
+  timeout = "1s"
+}
+
+```
+
 ```json
 {
   "check": {
@@ -154,7 +167,28 @@ A script check:
 }
 ```
 
+</CodeTabs>
+
 A HTTP check:
+
+<CodeTabs heading="HTTP Check">
+
+```hcl
+check = {
+  id = "api"
+  name = "HTTP API on port 5000"
+  http = "https://localhost:5000/health"
+  tls_server_name =  ""
+  tls_skip_verify = false
+  method = "POST"
+  header = {
+     Content-Type =  ["application/json"]
+  }
+  body = "{\"method\":\"health\"}"
+  interval =  "10s"
+  timeout =  "1s"
+}
+```
 
 ```json
 {
@@ -173,7 +207,22 @@ A HTTP check:
 }
 ```
 
+</CodeTabs>
+
 A TCP check:
+
+<CodeTabs heading="TCP Check">
+
+```hcl
+check = {
+  id = "ssh"
+  name = "SSH TCP on port 22"
+  tcp = "localhost:22"
+  interval = "10s"
+  timeout = "1s"
+}
+
+```
 
 ```json
 {
@@ -187,7 +236,20 @@ A TCP check:
 }
 ```
 
+</CodeTabs>
+
 A TTL check:
+
+<CodeTabs heading="TTL Check">
+
+```hcl
+check =  {
+  id = "web-app"
+  name = "Web App Status"
+  notes = "Web app does a curl internally every 10 seconds"
+  ttl =  "30s"
+}
+```
 
 ```json
 {
@@ -200,7 +262,22 @@ A TTL check:
 }
 ```
 
+</CodeTabs>
+
 A Docker check:
+
+<CodeTabs heading="Docker Check">
+
+```hcl
+check = {
+  id = "mem-util"
+  name = "Memory utilization"
+  docker_container_id = "f972c95ebf0e"
+  shell = "/bin/bash"
+  args = ["/usr/local/bin/check_mem.py"]
+  interval = "10s"
+}
+```
 
 ```json
 {
@@ -215,7 +292,21 @@ A Docker check:
 }
 ```
 
+</CodeTabs>
+
 A gRPC check for the whole application:
+
+<CodeTabs heading="gRPC Check">
+
+```hcl
+check = {
+  id =  "mem-util"
+  name = "Service health status"
+  grpc =  "127.0.0.1:12345"
+  grpc_use_tls = true
+  interval =  "10s"
+}
+```
 
 ```json
 {
@@ -229,7 +320,21 @@ A gRPC check for the whole application:
 }
 ```
 
+</CodeTabs>
+
 A gRPC check for the specific `my_service` service:
+
+<CodeTabs heading="gRPC Specific Service Check">
+
+```hcl
+check = {
+  id = "mem-util"
+  name = "Service health status"
+  grpc = "127.0.0.1:12345/my_service"
+  grpc_use_tls = true
+  interval = "10s"
+}
+```
 
 ```json
 {
@@ -243,7 +348,21 @@ A gRPC check for the specific `my_service` service:
 }
 ```
 
+</CodeTabs>
+
 A h2ping check:
+
+<CodeTabs heading="H2ping Check">
+
+```hcl
+check = {
+  id = "h2ping-check"
+  name = "h2ping"
+  h2ping = "localhost:22222"
+  interval = "10s"
+  h2ping_use_tls = false
+}
+```
 
 ```json
 {
@@ -257,7 +376,18 @@ A h2ping check:
 }
 ```
 
+</CodeTabs>
+
 An alias check for a local service:
+
+<CodeTabs heading="Alias Check">
+
+```hcl
+check = {
+  id = "web-alias"
+  alias_service = "web"
+}
+```
 
 ```json
 {
@@ -267,6 +397,8 @@ An alias check for a local service:
   }
 }
 ```
+
+</CodeTabs>
 
 ~> Configuration info: The alias check configuration expects the alias to be
 registered on the same agent as the one you are aliasing. If the service is
@@ -342,6 +474,17 @@ to be healthy. In certain cases, it may be desirable to specify the initial
 state of a health check. This can be done by specifying the `status` field in a
 health check definition, like so:
 
+<CodeTabs heading="Status Field Example">
+
+```hcl
+check =  {
+  "id": "mem",
+  "args": ["/bin/check_mem", "-limit", "256MB"]
+  "interval": "10s"
+  "status": "passing"
+}
+```
+
 ```json
 {
   "check": {
@@ -353,6 +496,8 @@ health check definition, like so:
 }
 ```
 
+</CodeTabs>
+
 The above service definition would cause the new "mem" check to be
 registered with its initial state set to "passing".
 
@@ -362,6 +507,17 @@ Health checks may optionally be bound to a specific service. This ensures
 that the status of the health check will only affect the health status of the
 given service instead of the entire node. Service-bound health checks may be
 provided by adding a `service_id` field to a check configuration:
+
+<CodeTabs heading="Status Field Example">
+
+```hcl
+check =  {
+  id = "web-app"
+  name =  "Web App Status"
+  service_id =  "web-app"
+  ttl = "30s"
+}
+```
 
 ```json
 {
@@ -373,6 +529,8 @@ provided by adding a `service_id` field to a check configuration:
   }
 }
 ```
+
+</CodeTabs>
 
 In the above configuration, if the web-app health check begins failing, it will
 only affect the availability of the web-app service. All other services
@@ -388,6 +546,32 @@ to use the agent's credentials when configured for TLS.
 
 Multiple check definitions can be defined using the `checks` (plural)
 key in your configuration file.
+
+<CodeTabs heading="Multiple Checks Example">
+
+```hcl
+checks = [
+  {
+    id       = "chk1"
+    name     = "mem"
+    args     = ["/bin/check_mem", "-limit", "256MB"]
+    interval = "5s"
+  },
+  {
+    id       = "chk2"
+    name     = "/health"
+    http     = "http://localhost:5000/health"
+    interval = "15s"
+  },
+  {
+    id       = "chk3"
+    name     = "cpu"
+    args     = ["/bin/check_cpu"]
+    interval = "10s"
+  },
+  ...
+]
+```
 
 ```json
 {
@@ -415,6 +599,8 @@ key in your configuration file.
 }
 ```
 
+</CodeTabs>
+
 ## Success/Failures before passing/warning/critical
 
 To prevent flapping health checks, and limit the load they cause on the cluster,
@@ -436,6 +622,22 @@ This feature is available for HTTP, TCP, gRPC, Docker & Monitor checks.
 By default, both passing and critical thresholds will be set to 0 so the check
 status will always reflect the last check result.
 
+<CodeTabs heading="Flapping Prevention Example">
+
+```hcl
+checks = [
+  {
+    name = "HTTP TCP on port 80"
+    tcp = "localhost:80"
+    interval = "10s"
+    timeout =  "1s"
+    success_before_passing =  3
+    failures_before_warning =  1
+    failures_before_critical =  3
+  }
+]
+```
+
 ```json
 {
   "checks": [
@@ -451,3 +653,5 @@ status will always reflect the last check result.
   ]
 }
 ```
+
+</CodeTabs>
