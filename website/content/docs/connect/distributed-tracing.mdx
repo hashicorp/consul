@@ -14,7 +14,11 @@ distributed tracing to Consul will add the sidecar proxies as spans in the reque
 ## Application Changes
 
 Consul alone cannot implement distributed tracing for your applications. Each application must propagate the required
-headers. Typically this is done using a tracing library.
+headers. Typically this is done using a tracing library such as:
+
+- https://github.com/opentracing/opentracing-go
+- https://github.com/DataDog/dd-trace-go
+- https://github.com/openzipkin/zipkin-go
 
 ## Configuration
 
