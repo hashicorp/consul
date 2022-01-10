@@ -9,7 +9,7 @@ Command: `consul kv put`
 
 The `kv put` command writes the data to the given path in the KV store.
 
--> When writing multiple entries at once, consider using
+-> **Note**: When writing multiple entries at once, consider using
 [`kv import`](/commands/kv/import) instead. Alternatively, the
 [transaction API](/api-docs/txn) provides support for performing up to
 64 KV operations atomically.
@@ -121,8 +121,8 @@ EOF
 Success! Data written to: leaderboard/scores
 ```
 
-~> For secret and sensitive values, you should consider using a secret
-management solution like **[HashiCorp's Vault](https://www.vaultproject.io/)**.
+~> **Warning**: For secret and sensitive values, you should consider using a
+secret management solution like **[HashiCorp's Vault](https://learn.hashicorp.com/tutorials/vault/static-secrets?in=vault/secrets-management)**.
 While it is possible to encrpyt data before writing it to Consul's KV store,
 Consul provides no built-in support for encryption at-rest.
 
@@ -142,7 +142,7 @@ $ consul kv put -cas -modify-index=456 redis/config/connections 10
 Success! Data written to: redis/config/connections
 ```
 
-### Locking Primatives
+### Locking Primitives
 
 To create or tune a lock, use the `-acquire` and `-session` flags. The session must already exist (this command will not create it or manage it):
 

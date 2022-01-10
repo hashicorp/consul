@@ -12,10 +12,10 @@ store at the given key name. If no key exists with that name, an error is
 returned. If a key exists with that name but has no data, nothing is returned.
 A key name or prefix is required.
 
--> When reading many entries under a given prefix, it may be worth considering
-[`kv export`](/commands/kv/export) instead, the output of which can be used
-with [`kv import`](/commands/kv/import) to move entire trees between Consul
-clusters. Alternatively, the [transaction API](/api-docs/txn) provides
+-> **Note**: When reading many entries under a given prefix, it may be worth
+considering [`kv export`](/commands/kv/export) instead. The kv export output
+can be used with [`kv import`](/commands/kv/import) to move entire trees between
+Consul clusters. Alternatively, the [transaction API](/api-docs/txn) provides
 support for performing up to 64 KV operations atomically.
 
 ## Usage
@@ -64,9 +64,9 @@ $ consul kv get redis/config/connections
 5
 ```
 
-This will return the original, raw value stored in Consul.
+This will return the original raw value stored in Consul.
 
-If the key with the given name does not exist, an error is returned:
+If the key with the given name does not exist, an error is returned.
 
 ```shell-session hideClipboard
 $ consul kv get not-a-real-key
@@ -76,7 +76,7 @@ Error! No key exists at: not-a-real-key
 ### Detailed Output
 
 To view detailed information about the key, specify the `-detailed` flag.
-This will output all known metadata about the key including ModifyIndex
+This will output all known metadata about the key including `ModifyIndex`
 and any user-supplied flags:
 
 ```shell-session hideClipboard
@@ -102,8 +102,8 @@ redis/config/cpu:128
 redis/config/memory:512
 ```
 
-Or combine with the `-detailed` flag to list detailed information about all
-entries under a prefix:
+Alternatively, combine with the `-detailed` flag to list detailed information
+about all entries under a prefix:
 
 ```shell-session hideClipboard
 $ consul kv get -recurse -detailed redis
