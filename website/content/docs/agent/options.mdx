@@ -919,7 +919,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     unhealthy. Defaults to 250.
 
   - `min_quorum` - Sets the minimum number of servers necessary
-    in a cluster before autopilot can prune dead servers. There is no default.
+    in a cluster. Autopilot will stop pruning dead servers when this minimum is reached. There is no default.
 
   - `server_stabilization_time` - Controls
     the minimum amount of time a server must be stable in the 'healthy' state before
