@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"strings"
 )
 
 // TLSVersion is a strongly-typed string for TLS versions
@@ -173,21 +174,31 @@ func (c *TLSCipherSuite) String() string {
 }
 
 func ValidateConsulAgentCipherSuites(cipherSuites []TLSCipherSuite) error {
+	var unmatched []string
+
 	for _, c := range cipherSuites {
 		if _, ok := consulAgentTLSCipherSuites[c]; !ok {
-			return fmt.Errorf("no matching Consul Agent TLS cipher suite found for %s", c.String())
+			unmatched = append(unmatched, c.String())
 		}
 	}
 
+	if len(unmatched) > 0 {
+		return fmt.Errorf("no matching Consul Agent TLS cipher suite found for %s", strings.Join(unmatched, ","))
+	}
 	return nil
 }
 
-// TODO: Should this return an errgroup instead of only the first error?
 func ValidateEnvoyCipherSuites(cipherSuites []TLSCipherSuite) error {
+	var unmatched []string
+
 	for _, c := range cipherSuites {
 		if _, ok := envoyTLSCipherSuiteStrings[c]; !ok {
-			return fmt.Errorf("no matching Envoy TLS cipher suite found for %s", c.String())
+			unmatched = append(unmatched, c.String())
 		}
+	}
+
+	if len(unmatched) > 0 {
+		return fmt.Errorf("no matching Envoy TLS cipher suite found for %s", strings.Join(unmatched, ","))
 	}
 
 	return nil
