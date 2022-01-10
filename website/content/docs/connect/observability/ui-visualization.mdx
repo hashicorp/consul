@@ -66,6 +66,9 @@ service named `prometheus-server` so each Consul agent can reach it on
 
 A full configuration to enable Prometheus is given below.
 
+<Tabs>
+<Tab heading="HCL">
+
 ```hcl
 ui_config {
   enabled = true
@@ -75,6 +78,28 @@ ui_config {
   }
 }
 ```
+
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "ui_config": [
+    {
+      "enabled": true,
+      "metrics_provider": "prometheus",
+      "metrics_proxy": [
+        {
+          "base_url": "http://prometheus-server"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</Tab>
+</Tabs>
 
 Similarly, to configure the UI on Kubernetes, use this [reference](/docs/k8s/connect/observability/metrics).
 
@@ -113,6 +138,31 @@ ui_config {
 -> **Note**: the URL is wrapped over multiple lines to make it easier to read
 without horizontal scrolling in the example above however this needs to be a
 normal single-line string value in an HCL configuration file.
+
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "ui_config": [
+    {
+      "dashboard_url_templates": [
+        {
+          "service": "https://grafana.example.com/d/lDlaj-NGz/
+            service-overview?orgId=1\u0026var-service={{Service.Name}}\u0026
+            var-namespace={{Service.Namespace}}\u0026
+            var-partition={{Service.Partition}}\u0026var-dc={{Datacenter}}"
+        }
+      ],
+      "enabled": true
+    }
+  ]
+}
+```
+
+-> **Note**: the URL is wrapped over multiple lines to make it easier to read
+without horizontal scrolling in the example above however this needs to be a
+normal single-line string value in a JSON configuration file.
 
 </Tab>
 <Tab heading="Kubernetes YAML">
@@ -235,6 +285,9 @@ visible to Consul operators in the configuration file while UI users can query
 the metrics they need without separately obtaining a token for that provider or
 having a token exposed to them that they might be able to use elsewhere.
 
+<Tabs>
+<Tab heading="HCL">
+
 ```hcl
 ui_config {
   enabled = true
@@ -250,6 +303,34 @@ ui_config {
   }
 }
 ```
+
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "ui_config": [
+    {
+      "enabled": true,
+      "metrics_provider": "example-apm",
+      "metrics_proxy": [
+        {
+          "add_headers": [
+            {
+              "name": "Authorization",
+              "value": "Bearer \u003ctoken\u003e"
+            }
+          ],
+          "base_url": "https://example-apm.com/api/v1/metrics"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</Tab>
+</Tabs>
 
 ## Custom Metrics Providers
 
@@ -484,6 +565,9 @@ named `example-provider`, which is defined in
 have been specified in the call to `consul.registerMetricsProvider` as in the
 code listing in the last section.
 
+<Tabs>
+<Tab heading="HCL">
+
 ```hcl
 ui_config {
   enabled = true
@@ -496,6 +580,23 @@ ui_config {
   EOT
 }
 ```
+
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "ui_config": {
+    "enabled": true,
+    "metrics_provider": "example-provider",
+    "metrics_provide_files": ["/usr/local/bin/example-metrics-provider.js"],
+    "metrics_provider_options_json": "{\"foo\":\"bar\"}"
+  }
+}
+```
+
+</Tab>
+</Tabs>
 
 More than one JavaScript file may be specified in
 [`metrics_provider_files`](/docs/agent/options#ui_config_metrics_provider_files)
