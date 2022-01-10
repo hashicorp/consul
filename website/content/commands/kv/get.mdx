@@ -53,17 +53,27 @@ Usage: `consul kv get [options] [KEY_OR_PREFIX]`
 To retrieve the value for the key named "redis/config/connections" in the
 KV store:
 
-```shell-session
+```shell-session hideClipboard
 $ consul kv get redis/config/connections
 5
 ```
 
-This will return the original, raw value stored in Consul. To view detailed
-information about the key, specify the "-detailed" flag. This will output all
-known metadata about the key including ModifyIndex and any user-supplied
-flags:
+This will return the original, raw value stored in Consul.
 
-```shell-session
+If the key with the given name does not exist, an error is returned:
+
+```shell-session hideClipboard
+$ consul kv get not-a-real-key
+Error! No key exists at: not-a-real-key
+```
+
+### Detailed Output
+
+To view detailed information about the key, specify the `-detailed` flag.
+This will output all known metadata about the key including ModifyIndex
+and any user-supplied flags:
+
+```shell-session hideClipboard
 $ consul kv get -detailed redis/config/connections
 CreateIndex      336
 Flags            0
@@ -74,26 +84,22 @@ Session          -
 Value            5
 ```
 
-If the key with the given name does not exist, an error is returned:
+### Recursively Reading By Prefix
 
-```shell-session
-$ consul kv get not-a-real-key
-Error! No key exists at: not-a-real-key
-```
+To treat the path as a prefix and list all entries which start with the given
+prefix, specify the `-recurse` flag:
 
-To treat the path as a prefix and list all keys which start with the given
-prefix, specify the "-recurse" flag:
-
-```shell-session
+```shell-session hideClipboard
 $ consul kv get -recurse redis/
 redis/config/connections:5
 redis/config/cpu:128
 redis/config/memory:512
 ```
 
-Or list detailed information about all pairs under a prefix:
+Or combine with the `-detailed` flag to list detailed information about all
+entries under a prefix:
 
-```shell-session
+```shell-session hideClipboard
 $ consul kv get -recurse -detailed redis
 CreateIndex      336
 Flags            0
@@ -120,10 +126,12 @@ Session          -
 Value            512
 ```
 
-To just list the keys which start with the specified prefix, use the "-keys"
+### Listing Keys
+
+To just list the keys which start with the specified prefix, use the `-keys`
 option instead. This is more performant and results in a smaller payload:
 
-```shell-session
+```shell-session hideClipboard
 $ consul kv get -keys redis/config/
 redis/config/connections
 redis/config/cpu
@@ -134,7 +142,7 @@ By default, the `-keys` operation uses a separator of "/", meaning it will not
 recurse beyond that separator. You can choose a different separator by setting
 `-separator="<string>"`.
 
-```shell-session
+```shell-session hideClipboard
 $ consul kv get -keys -separator="c" redis
 redis/c
 ```
@@ -142,7 +150,7 @@ redis/c
 Alternatively, you can disable the separator altogether by setting it to the
 empty string:
 
-```shell-session
+```shell-session hideClipboard
 $ consul kv get -keys -separator="" redis
 redis/config/connections
 redis/config/cpu
@@ -151,7 +159,7 @@ redis/config/memory
 
 To list all keys at the root, simply omit the prefix parameter:
 
-```shell-session
+```shell-session hideClipboard
 $ consul kv get -keys
 memcached/
 redis/
