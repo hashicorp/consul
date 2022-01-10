@@ -18,11 +18,11 @@ upgrade flow.
 
 ### 1.10 Compatibility <EnterpriseAlert inline />
 Consul Enterprise versions 1.10.0 through 1.10.4 contain a latent bug that
-causes those agents to deregister the Serf health check of the node when they 
-are syncing their services and health checks with a server running 1.11. Prior
+causes those client or server agents to deregister their own services or health
+checks when some of the servers have been upgraded to 1.11. Prior
 to upgrading Consul Enterprise servers to 1.11, all Consul agents should first 
 be upgraded to 1.10.6 or higher to ensure forwards compatibility and preventing
-flapping of health checks.
+flapping of catalog registrations.
 
 ### Deprecated Agent Config Options
 
