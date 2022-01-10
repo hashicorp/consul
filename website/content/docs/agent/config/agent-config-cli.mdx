@@ -56,17 +56,6 @@ information.
   intended for production use as it does not write any data to disk. The gRPC port
   is also defaulted to `8502` in this mode.
 
-- `-disable-host-node-id` ((#\_disable_host_node_id)) - Setting this to
-  true will prevent Consul from using information from the host to generate a deterministic
-  node ID, and will instead generate a random node ID which will be persisted in
-  the data directory. This is useful when running multiple Consul agents on the same
-  host for testing. This defaults to false in Consul prior to version 0.8.5 and in
-  0.8.5 and later defaults to true, so you must opt-in for host-based IDs. Host-based
-  IDs are generated using [gopsutil](https://github.com/shirou/gopsutil/tree/master/v3/host), which
-  is shared with HashiCorp's [Nomad](https://www.nomadproject.io/), so if you opt-in
-  to host-based IDs then Consul and Nomad will use information on the host to automatically
-  assign the same ID in both systems.
-
 - `-disable-keyring-file` ((#\_disable_keyring_file)) - If set, the keyring
   will not be persisted to a file. Any installed keys will be lost on shutdown, and
   only the given `-encrypt` key will be available on startup. This defaults to false.
@@ -166,7 +155,7 @@ information.
   accessed from a remote datacenter if the remote datacenter is configured with [`translate_wan_addrs`](#translate_wan_addrs). In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
   template that is resolved at runtime.
 
-## Bind Options
+## Address Bind Options
 
 - `-bind` ((#\_bind)) - The address that should be bound to for internal
   cluster communications. This is an IP address that should be reachable by all other
@@ -451,6 +440,17 @@ information.
   - Metadata values must be between 0 and 512 (inclusive) characters in length.
   - Metadata values for keys beginning with `rfc1035-` are encoded verbatim in DNS TXT requests, otherwise
     the metadata kv-pair is encoded according [RFC1464](https://www.ietf.org/rfc/rfc1464.txt).
+
+- `-disable-host-node-id` ((#\_disable_host_node_id)) - Setting this to
+  true will prevent Consul from using information from the host to generate a deterministic
+  node ID, and will instead generate a random node ID which will be persisted in
+  the data directory. This is useful when running multiple Consul agents on the same
+  host for testing. This defaults to false in Consul prior to version 0.8.5 and in
+  0.8.5 and later defaults to true, so you must opt-in for host-based IDs. Host-based
+  IDs are generated using [gopsutil](https://github.com/shirou/gopsutil/tree/master/v3/host), which
+  is shared with HashiCorp's [Nomad](https://www.nomadproject.io/), so if you opt-in
+  to host-based IDs then Consul and Nomad will use information on the host to automatically
+  assign the same ID in both systems.
 
 ## Serf Options
 
