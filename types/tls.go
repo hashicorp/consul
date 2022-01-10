@@ -70,7 +70,7 @@ var (
 )
 
 func (v *TLSVersion) String() string {
-	return fmt.Sprintf("%s", *v)
+	return string(*v)
 }
 
 var tlsVersionComparison = map[TLSVersion]uint{
