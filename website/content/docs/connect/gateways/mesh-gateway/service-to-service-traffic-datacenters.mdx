@@ -10,13 +10,13 @@ description: >-
 
 -> **1.6.0+:** This feature is available in Consul versions 1.6.0 and newer.
 
-Mesh gateways enable service mesh traffic to be routed between different Consul datacenters. 
+Mesh gateways enable service mesh traffic to be routed between different Consul datacenters.
 Datacenters can reside in different clouds or runtime environments where general interconnectivity between all services
-in all datacenters isn't feasible. 
+in all datacenters isn't feasible.
 
 Mesh gateways operate by sniffing and extracting the server name indication (SNI) header from the service mesh session and routing the connection to the appropriate destination based on the server name requested. The gateway does not decrypt the data within the mTLS session.
 
-The following diagram describes the architecture for using mesh gateways for cross-datacenter communication:<a name="mesh-architecture-diagram"/> 
+The following diagram describes the architecture for using mesh gateways for cross-datacenter communication:<a name="mesh-architecture-diagram"/>
 
 ![Mesh Gateway Architecture](/img/mesh-gateways.png)
 
@@ -30,12 +30,12 @@ Ensure that your Consul environment meets the following requirements.
 
 * Consul version 1.6.0 or newer.
 * A local Consul agent is required to manage its configuration.
-* Consul [Connect](/docs/agent/options#connect) must be enabled in both datacenters.
-* Each [datacenter](/docs/agent/options#datacenter) must have a unique name.
+* Consul [Connect](/docs/agent/config/agent-config-files#connect) must be enabled in both datacenters.
+* Each [datacenter](/docs/agent/config/agent-config-files#datacenter) must have a unique name.
 * Each datacenters must be [WAN joined](https://learn.hashicorp.com/tutorials/consul/federarion-gossip-wan).
-* The [primary datacenter](/docs/agent/options#primary_datacenter) must be set to the same value in both datacenters. This specifies which datacenter is the authority for Connect certificates and is required for services in all datacenters to establish mutual TLS with each other.
-* [gRPC](/docs/agent/options#grpc_port) must be enabled.
-* If you want to [enable gateways globally](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/options#enable_central_service_config).
+* The [primary datacenter](/docs/agent/config/agent-config-files#primary_datacenter) must be set to the same value in both datacenters. This specifies which datacenter is the authority for Connect certificates and is required for services in all datacenters to establish mutual TLS with each other.
+* [gRPC](/docs/agent/config/agent-config-files#grpc_port) must be enabled.
+* If you want to [enable gateways globally](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/config/agent-config-files#enable_central_service_config).
 
 ### Network
 
@@ -58,23 +58,23 @@ Sidecar proxies that do not send upstream traffic through a gateway are not affe
 Configure the following settings to register the mesh gateway as a service in Consul.
 
 * Specify `mesh-gateway` in the `kind` field to register the gateway with Consul.
-* Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and datacenter. Refer to the [`upstreams` documentation](/docs/connect/registration/service-registration#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.datacenter` must be configured to enable cross-datacenter traffic. The `proxy.upstreams.destination_namespace` configuration is only necessary if the destination service is in a different namespace. 
-* Define the `Proxy.Config` settings using opaque parameters compatible with your proxy (i.e., Envoy). For Envoy, refer to the [Gateway Options](/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.  
+* Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and datacenter. Refer to the [`upstreams` documentation](/docs/connect/registration/service-registration#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.datacenter` must be configured to enable cross-datacenter traffic. The `proxy.upstreams.destination_namespace` configuration is only necessary if the destination service is in a different namespace.
+* Define the `Proxy.Config` settings using opaque parameters compatible with your proxy (i.e., Envoy). For Envoy, refer to the [Gateway Options](/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
 * If ACLs are enabled, a token granting `service:write` for the gateway's service name and `service:read` for all services in the datacenter or partition must be added to the gateway's service definition. These permissions authorize the token to route communications for other Consul service mesh services, but does not allow decrypting any of their communications.
 
 ### Modes
 
-Each upstream associated with a service mesh proxy can be configured so that it is routed through a mesh gateway.  
+Each upstream associated with a service mesh proxy can be configured so that it is routed through a mesh gateway.
 Depending on your network, the proxy's connection to the gateway can operate in one of the following modes (refer to the [mesh-architecture-diagram](#mesh-architecture-diagram)):
 
 * `none` - (Default) No gateway is used and a service mesh connect proxy makes its outbound connections directly
   to the destination services.
 
 * `local` - The service mesh connect proxy makes an outbound connection to a gateway running in the
-  same datacenter. That gateway is responsible for ensuring that the data is forwarded to gateways in the destination datacenter. 
+  same datacenter. That gateway is responsible for ensuring that the data is forwarded to gateways in the destination datacenter.
   Refer to the flow labeled `local` in the [mesh-architecture-diagram](#mesh-architecture-diagram).
 
-* `remote` - The service mesh proxy makes an outbound connection to a gateway running in the destination datacenter. 
+* `remote` - The service mesh proxy makes an outbound connection to a gateway running in the destination datacenter.
   The gateway forwards the data to the final destination service.
   Refer to the flow labeled `remote` in the [mesh-architecture-diagram](#mesh-architecture-diagram).
 

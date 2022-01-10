@@ -35,7 +35,7 @@ The Consul agent must be running in order to dynamically update network devices.
 
 When running a Consul agent with CTS in production, we suggest to keep a few considerations in mind. CTS uses [blocking queries](/api-docs/features/blocking) to monitor task dependencies, like changes to registered services. This results in multiple long running TCP connections between CTS and the agent to poll changes for each dependency. Monitoring a high number of services may quickly hit the default Consul agent connection limits.
 
-There are 2 ways to fix this issue. The first and recommended fix is to use HTTP/2 (requires HTTPS) to communicate between CTS and the Consul agent. When using HTTP/2 only a single connection is made and reused for all communications. See the [Consul Configuration section](/docs/nia/configuration#consul) for more. The other option is to configure [`limits.http_max_conns_per_client`](/docs/agent/options#http_max_conns_per_client) for the agent to a reasonable value proportional to the number of services monitored by CTS.
+There are 2 ways to fix this issue. The first and recommended fix is to use HTTP/2 (requires HTTPS) to communicate between Consul-Terraform-Sync and the Consul agent. When using HTTP/2 only a single connection is made and reused for all communications. See the [Consul Configuration section](/docs/nia/configuration#consul) for more. The other option is to configure [`limits.http_max_conns_per_client`](/docs/agent/config/agent-config-files#http_max_conns_per_client) for the agent to a reasonable value proportional to the number of services monitored by Consul-Terraform-Sync.
 
 ### Register Services
 

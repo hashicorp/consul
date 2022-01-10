@@ -47,11 +47,11 @@ UI. If there are multiple clients with the UI enabled in a datacenter for
 redundancy these configurations must be added to all of them.
 
 We assume that the UI is already enabled by setting
-[`ui_config.enabled`](/docs/agent/options#ui_config_enabled) to `true` in the
+[`ui_config.enabled`](/docs/agent/config/agent-config-files#ui_config_enabled) to `true` in the
 agent's configuration file.
 
 To use the built-in Prometheus provider
-[`ui_config.metrics_provider`](/docs/agent/options#ui_config_metrics_provider)
+[`ui_config.metrics_provider`](/docs/agent/config/agent-config-files#ui_config_metrics_provider)
 must be set to `prometheus`.
 
 The UI must query the metrics provider through a proxy endpoint. This simplifies
@@ -59,7 +59,7 @@ deployment where Prometheus is not exposed externally to UI user's browsers.
 
 To set this up, provide the URL that the _Consul agent_ should use to reach the
 Prometheus server in
-[`ui_config.metrics_proxy.base_url`](/docs/agent/options#ui_config_metrics_proxy_base_url).
+[`ui_config.metrics_proxy.base_url`](/docs/agent/config/agent-config-files#ui_config_metrics_proxy_base_url).
 For example in Kubernetes, the Prometheus helm chart by default installs a
 service named `prometheus-server` so each Consul agent can reach it on
 `http://prometheus-server` (using Kubernetes' DNS resolution).
@@ -124,7 +124,7 @@ service-specific dashboard in an external tool like
 [Grafana](https://grafana.com) or a hosted provider.
 
 To configure this, you must provide a URL template in the [agent configuration
-file](/docs/agent/options#ui_config_dashboard_url_templates) for all agents that
+file](/docs/agent/config/agent-config-files#ui_config_dashboard_url_templates) for all agents that
 have the UI enabled. The template is essentially the URL to the external
 dashboard, but can have placeholder values which will be replaced with the
 service name, namespace and datacenter where appropriate to allow deep-linking
@@ -659,12 +659,12 @@ ui_config {
 </CodeTabs>
 
 More than one JavaScript file may be specified in
-[`metrics_provider_files`](/docs/agent/options#ui_config_metrics_provider_files),
+[`metrics_provider_files`](/docs/agent/config/agent-config-files#ui_config_metrics_provider_files)
 and all will be served allowing flexibility if needed to include dependencies.
 Only one metrics provider can be configured and used at one time.
 
 The
-[`metrics_provider_options_json`](/docs/agent/options#ui_config_metrics_provider_options_json)
+[`metrics_provider_options_json`](/docs/agent/config/agent-config-files#ui_config_metrics_provider_options_json)
 field is an optional literal JSON object which is passed to the provider's
 `init` method at startup time. This allows configuring arbitrary parameters for
 the provider in config rather than hard coding them into the provider itself to
@@ -673,7 +673,7 @@ make providers more reusable.
 The provider may fetch metrics directly from another source although in this
 case the agent will probably need to serve the correct CORS headers to prevent
 browsers from blocking these requests. These may be configured with
-[`http_config.response_headers`](/docs/agent/options#response_headers).
+[`http_config.response_headers`](/docs/agent/config/agent-config-files#response_headers).
 
 Alternatively, the provider may choose to use the [built-in metrics
 proxy](#metrics-proxy) to avoid cross domain issues or to inject additional

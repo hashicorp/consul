@@ -12,7 +12,7 @@ description: >-
 
 Mesh gateways enable you to route service mesh traffic between different Consul [admin partitions](/docs/enterprise/admin-partitions).
 Partitions can reside in different clouds or runtime environments where general interconnectivity between all services
-in all partitions isn't feasible. 
+in all partitions isn't feasible.
 
 Mesh gateways operate by sniffing and extracting the server name indication (SNI) header from the service mesh session and routing the connection to the appropriate destination based on the server name requested. The gateway does not decrypt the data within the mTLS session.
 
@@ -24,15 +24,15 @@ Ensure that your Consul environment meets the following requirements.
 
 * Consul Enterprise version 1.11.0 or newer.
 * A local Consul agent is required to manage its configuration.
-* Consul service mesh must be enabled in all partitions. Refer to the [`connect` documentation](/docs/agent/options#connect) for details.
+* Consul service mesh must be enabled in all partitions. Refer to the [`connect` documentation](/docs/agent/config/agent-config-files#connect) for details.
 * Each partition must have a unique name. Refer to the [admin partitions documentation](/docs/enterprise/admin-partitions) for details.
-* If you want to [enable gateways globally](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/options#enable_central_service_config).
+* If you want to [enable gateways globally](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/config/agent-config-files#enable_central_service_config).
 
 ### Proxy
 
 Envoy is the only proxy with mesh gateway capabilities in Consul.
 
-Mesh gateway proxies receive their configuration through Consul, which automatically generates it based on the proxy's registration. 
+Mesh gateway proxies receive their configuration through Consul, which automatically generates it based on the proxy's registration.
 Consul can only translate mesh gateway registration information into Envoy configuration.
 
 Sidecar proxies that send traffic to an upstream service through a gateway need to know the location of that gateway. They discover the gateway based on their sidecar proxy registrations. Consul can only translate the gateway registration information into Envoy configuration.
@@ -44,22 +44,22 @@ Sidecar proxies that do not send upstream traffic through a gateway are not affe
 Configure the following settings to register the mesh gateway as a service in Consul.
 
 * Specify `mesh-gateway` in the `kind` field to register the gateway with Consul.
-* Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and partition. Refer to the [`upstreams` documentation](/docs/connect/registration/service-registration#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.destination_partition` must be configured to enable cross-partition traffic. The `proxy.upstreams.destination_namespace` configuration is only necessary if the destination service is in a different namespace. 
-* Configure the `exported-services` configuration entry to enable Consul to export services contained in an admin partition to one or more additional partitions. Refer to the [Exported Services documentation](/docs/connect/config-entries/exported-services) for details. 
-* Define the `Proxy.Config` settings using opaque parameters compatible with your proxy, i.e., Envoy. For Envoy, refer to the [Gateway Options](/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.  
+* Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and partition. Refer to the [`upstreams` documentation](/docs/connect/registration/service-registration#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.destination_partition` must be configured to enable cross-partition traffic. The `proxy.upstreams.destination_namespace` configuration is only necessary if the destination service is in a different namespace.
+* Configure the `exported-services` configuration entry to enable Consul to export services contained in an admin partition to one or more additional partitions. Refer to the [Exported Services documentation](/docs/connect/config-entries/exported-services) for details.
+* Define the `Proxy.Config` settings using opaque parameters compatible with your proxy, i.e., Envoy. For Envoy, refer to the [Gateway Options](/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
 * If ACLs are enabled, a token granting `service:write` for the gateway's service name and `service:read` for all services in the datacenter or partition must be added to the gateway's service definition. These permissions authorize the token to route communications for other Consul service mesh services, but does not allow decrypting any of their communications.
 
 ### Modes
 
-Each upstream associated with a service mesh proxy can be configured so that it is routed through a mesh gateway.  
+Each upstream associated with a service mesh proxy can be configured so that it is routed through a mesh gateway.
 Depending on your network, the proxy's connection to the gateway can operate in one of the following modes:
 
 * `none` - (Default) No gateway is used and a service mesh connect proxy makes its outbound connections directly
   to the destination services.
 
-* `local` - The service mesh connect proxy makes an outbound connection to a gateway running in the same datacenter. The gateway at the outbound connection is responsible for ensuring that the data is forwarded to gateways in the destination partition. 
+* `local` - The service mesh connect proxy makes an outbound connection to a gateway running in the same datacenter. The gateway at the outbound connection is responsible for ensuring that the data is forwarded to gateways in the destination partition.
 
-* `remote` - The service mesh connect proxy makes an outbound connection to a gateway running in the destination datacenter. 
+* `remote` - The service mesh connect proxy makes an outbound connection to a gateway running in the destination datacenter.
   The gateway forwards the data to the final destination service.
 
 ### Connect Proxy Configuration
