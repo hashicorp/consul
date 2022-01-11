@@ -37,7 +37,7 @@ Consul-Terraform-Sync executes one or more automation tasks with the most recent
 
 **Network Infrastructure Automation (NIA)** - Enables dynamic updates to network infrastructure devices triggered when specific conditions, such as service changes and registration, are met.
 
-**Services** - A service in CTS represents a service that is registered with Consul for service discovery. Services are grouped by its service name that may have one or more instances of that service with unique ids. CTS monitors services based on service names, and can provide service instance details to a Terraform module for network automation.
+**Services** - A service in CTS represents a service that is registered with Consul for service discovery. Services are grouped by their service names, as there may be more than one instances of a particular service, each with their own unique ID. CTS monitors services based on service names, and can provide service instance details to a Terraform module for network automation.
 
 **Tasks** - A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream.
 
