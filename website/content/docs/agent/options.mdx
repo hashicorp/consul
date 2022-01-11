@@ -154,7 +154,7 @@ The options below are all specified on the command-line.
   <CodeBlockConfig hideClipboard heading="Bind consul client interfaces to private IPv4 interfaces">
   
   ```shell
-$ consul agent -dev -client '{{ GetPrivateInterfaces | exclude "type" "ipv6" | join "address" " " }}'
+  $ consul agent -dev -client '{{ GetPrivateInterfaces | exclude "type" "ipv6" | join "address" " " }}'
   ```
   
   </CodeBlockConfig>
