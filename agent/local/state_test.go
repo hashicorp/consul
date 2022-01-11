@@ -373,36 +373,41 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	// We should have 5 services (consul included)
 	assert.Len(services.NodeServices.Services, 5)
 
-	// All the services should match
+	// Check that virtual IPs have been set
 	vips := make(map[string]struct{})
-	srv1.TaggedAddresses = nil
-	srv2.TaggedAddresses = nil
-	for id, serv := range services.NodeServices.Services {
-		serv.CreateIndex, serv.ModifyIndex = 0, 0
+	for _, serv := range services.NodeServices.Services {
 		if serv.TaggedAddresses != nil {
 			serviceVIP := serv.TaggedAddresses[structs.TaggedAddressVirtualIP].Address
 			assert.NotEmpty(serviceVIP)
 			vips[serviceVIP] = struct{}{}
 		}
-		serv.TaggedAddresses = nil
-		switch id {
-		case "mysql-proxy":
-			assert.Equal(srv1, serv)
-		case "redis-proxy":
-			assert.Equal(srv2, serv)
-		case "web-proxy":
-			assert.Equal(srv3, serv)
-		case "cache-proxy":
-			assert.Equal(srv5, serv)
-		case structs.ConsulServiceID:
-			// ignore
-		default:
-			t.Fatalf("unexpected service: %v", id)
-		}
 	}
-
 	assert.Len(vips, 4)
-	assert.Nil(servicesInSync(a.State, 4, structs.DefaultEnterpriseMetaInDefaultPartition()))
+
+	// All the services should match
+	// Retry to mitigate data races between local and remote state
+	retry.Run(t, func(r *retry.R) {
+		require.NoError(r, a.State.SyncFull())
+		for id, serv := range services.NodeServices.Services {
+			serv.CreateIndex, serv.ModifyIndex = 0, 0
+			switch id {
+			case "mysql-proxy":
+				require.Equal(r, srv1, serv)
+			case "redis-proxy":
+				require.Equal(r, srv2, serv)
+			case "web-proxy":
+				require.Equal(r, srv3, serv)
+			case "cache-proxy":
+				require.Equal(r, srv5, serv)
+			case structs.ConsulServiceID:
+				// ignore
+			default:
+				r.Fatalf("unexpected service: %v", id)
+			}
+		}
+	})
+
+	assert.NoError(servicesInSync(a.State, 4, structs.DefaultEnterpriseMetaInDefaultPartition()))
 
 	// Remove one of the services
 	a.State.RemoveService(structs.NewServiceID("cache-proxy", nil))
@@ -415,12 +420,6 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	// All the services should match
 	for id, serv := range services.NodeServices.Services {
 		serv.CreateIndex, serv.ModifyIndex = 0, 0
-		if serv.TaggedAddresses != nil {
-			serviceVIP := serv.TaggedAddresses[structs.TaggedAddressVirtualIP].Address
-			assert.NotEmpty(serviceVIP)
-			vips[serviceVIP] = struct{}{}
-		}
-		serv.TaggedAddresses = nil
 		switch id {
 		case "mysql-proxy":
 			assert.Equal(srv1, serv)
