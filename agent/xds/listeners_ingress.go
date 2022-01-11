@@ -226,7 +226,7 @@ func resolveListenerTLSConfig(gatewayTLSCfg *structs.GatewayTLSConfig, listenerC
 	// input but be resilient to bugs later.
 	if len(mergedCfg.CipherSuites) != 0 {
 		if _, ok := TLSVersionsWithConfigurableCipherSuites[mergedCfg.TLSMinVersion]; !ok {
-			return nil, fmt.Errorf("configuring CipherSuites is only applicable to conncetions negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s in listener or gateway config", mergedCfg.TLSMinVersion)
+			return nil, fmt.Errorf("configuring CipherSuites is only applicable to connections negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s in listener or gateway config", mergedCfg.TLSMinVersion)
 		}
 	}
 
