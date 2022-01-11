@@ -7,7 +7,7 @@ description: >-
 
 # Command-line Options ((#commandline_options))
 
--> **Note:** Some CLI arguments may be different from HCL keys. See [Configuration Key Reference](/docs/agent/config/agent-config-files#config_key_reference) for equivalent HCL Keys.
+-> **Note:** Some CLI arguments may be different from HCL keys. See [Configuration Key Reference](/docs/agent/config/config-files#config_key_reference) for equivalent HCL Keys.
 
 This topic describes the available command-line options for the Consul agent.
 
@@ -30,7 +30,7 @@ information.
   limit of 4k for maximum size of checks, this is a positive value. By limiting this
   size, it allows to put less pressure on Consul servers when many checks are having
   a very large output in their checks. In order to completely disable check output
-  capture, it is possible to use [`discard_check_output`](/docs/agent/config/agent-config-files#discard_check_output).
+  capture, it is possible to use [`discard_check_output`](/docs/agent/config/config-files#discard_check_output).
 
 - `-client` ((#\_client)) - The address to which Consul will bind client
   interfaces, including the HTTP and DNS servers. By default, this is "127.0.0.1",
@@ -126,7 +126,7 @@ information.
 
 - `-raft-protocol` ((#\_raft_protocol)) - This controls the internal version
   of the Raft consensus protocol used for server communications. This must be set
-  to 3 in order to gain access to Autopilot features, with the exception of [`cleanup_dead_servers`](/docs/agent/config/agent-config-files#cleanup_dead_servers). Defaults to 3 in Consul 1.0.0 and later (defaulted to 2 previously). See [Raft Protocol Version Compatibility](/docs/upgrade-specific#raft-protocol-version-compatibility) for more details.
+  to 3 in order to gain access to Autopilot features, with the exception of [`cleanup_dead_servers`](/docs/agent/config/config-files#cleanup_dead_servers). Defaults to 3 in Consul 1.0.0 and later (defaulted to 2 previously). See [Raft Protocol Version Compatibility](/docs/upgrade-specific#raft-protocol-version-compatibility) for more details.
 
 - `-segment` ((#\_segment)) <EnterpriseAlert inline /> - This flag is used to set
   the name of the network segment the agent belongs to. An agent can only join and
@@ -150,13 +150,13 @@ information.
 
 - `-advertise-wan` ((#\_advertise-wan)) - The advertise WAN address is used
   to change the address that we advertise to server nodes joining through the WAN.
-  This can also be set on client agents when used in combination with the [`translate_wan_addrs`](/docs/agent/config/agent-config-files#translate_wan_addrs) configuration option. By default, the [`-advertise`](#_advertise) address
+  This can also be set on client agents when used in combination with the [`translate_wan_addrs`](/docs/agent/config/config-files#translate_wan_addrs) configuration option. By default, the [`-advertise`](#_advertise) address
   is advertised. However, in some cases all members of all datacenters cannot be
   on the same physical or virtual network, especially on hybrid setups mixing cloud
   and private datacenters. This flag enables server nodes gossiping through the public
   network for the WAN while using private VLANs for gossiping to each other and their
   client agents, and it allows client agents to be reached at this address when being
-  accessed from a remote datacenter if the remote datacenter is configured with [`translate_wan_addrs`](/docs/agent/config/agent-config-files#translate_wan_addrs). In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  accessed from a remote datacenter if the remote datacenter is configured with [`translate_wan_addrs`](/docs/agent/config/config-files#translate_wan_addrs). In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
   template that is resolved at runtime.
 
 ## Address Bind Options
@@ -294,7 +294,7 @@ information.
 
   If Consul is running on the non-default Serf LAN port, the port must
   be specified in the join address, or configured as the agent's default Serf port
-  using the [`ports.serf_lan`](/docs/agent/config/agent-config-files#serf_lan_port) configuration option or
+  using the [`ports.serf_lan`](/docs/agent/config/config-files#serf_lan_port) configuration option or
   [`-serf-lan-port`](#_serf_lan_port) command line flag.
 
   If using network segments (Enterprise), see [additional documentation on

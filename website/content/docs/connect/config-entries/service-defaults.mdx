@@ -662,8 +662,8 @@ spec:
           type: 'bool: false',
           description: `If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
         Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
-        [advertise address](/docs/agent/config/agent-config-files#advertise). The port for these listeners are dynamically allocated from
-        [expose_min_port](/docs/agent/config/agent-config-files#expose_min_port) to [expose_max_port](/docs/agent/config/agent-config-files#expose_max_port).
+        [advertise address](/docs/agent/config/config-files#advertise). The port for these listeners are dynamically allocated from
+        [expose_min_port](/docs/agent/config/config-files#expose_min_port) to [expose_max_port](/docs/agent/config/config-files#expose_max_port).
         This flag is useful when a Consul client cannot reach registered services over localhost. One example is when running
         Consul on Kubernetes, and Consul agents run in their own pods.`,
         },

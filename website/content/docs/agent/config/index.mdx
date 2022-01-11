@@ -16,8 +16,8 @@ descriptions.
 
 Configuration precedence is evaluated in the following order:
 
-1. [Command line arguments](/docs/agent/config/agent-config-cli)
-2. [Configuration files](/docs/agent/config/agent-config-files)
+1. [Command line arguments](/docs/agent/config/cli-flags)
+2. [Configuration files](/docs/agent/config/config-files)
 
 When loading configuration, the Consul agent loads the configuration from files and
 directories in lexical order. For example, configuration file
@@ -57,22 +57,22 @@ Reloading configuration does not reload all configuration items. The
 items which are reloaded include:
 
 - ACL Tokens
-- [Configuration Entry Bootstrap](/docs/agent/config/agent-config-files#config_entries_bootstrap)
+- [Configuration Entry Bootstrap](/docs/agent/config/config-files#config_entries_bootstrap)
 - Checks
-- [Discard Check Output](/docs/agent/config/agent-config-files#discard_check_output)
+- [Discard Check Output](/docs/agent/config/config-files#discard_check_output)
 - HTTP Client Address
 - Log level
-- [Metric Prefix Filter](/docs/agent/config/agent-config-files#telemetry-prefix_filter)
-- [Node Metadata](/docs/agent/config/agent-config-files#node_meta)
+- [Metric Prefix Filter](/docs/agent/config/config-files#telemetry-prefix_filter)
+- [Node Metadata](/docs/agent/config/config-files#node_meta)
 - Some Raft options (since Consul 1.10.0)
-  - [`raft_snapshot_threshold`](/docs/agent/config/agent-config-files#_raft_snapshot_threshold)
-  - [`raft_snapshot_interval`](/docs/agent/config/agent-config-files#_raft_snapshot_interval)
-  - [`raft_trailing_logs`](/docs/agent/config/agent-config-files#_raft_trailing_logs)
+  - [`raft_snapshot_threshold`](/docs/agent/config/config-files#_raft_snapshot_threshold)
+  - [`raft_snapshot_interval`](/docs/agent/config/config-files#_raft_snapshot_interval)
+  - [`raft_trailing_logs`](/docs/agent/config/config-files#_raft_trailing_logs)
   - These can be important in certain outage situations so being able to control
     them without a restart provides a recovery path that doesn't involve
     downtime. They generally shouldn't be changed otherwise.
-- [RPC rate limiting](/docs/agent/config/agent-config-files#limits)
-- [HTTP Maximum Connections per Client](/docs/agent/config/agent-config-files#http_max_conns_per_client)
+- [RPC rate limiting](/docs/agent/config/config-files#limits)
+- [HTTP Maximum Connections per Client](/docs/agent/config/config-files#http_max_conns_per_client)
 - Services
 - TLS Configuration
   - Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.

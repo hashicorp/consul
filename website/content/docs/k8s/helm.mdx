@@ -58,7 +58,7 @@ Use these links to navigate to a particular top-level stanza.
     the prefix will be `<helm release name>-consul`.
 
   - `domain` ((#v-global-domain)) (`string: consul`) - The domain Consul will answer DNS queries for
-    (see `-domain` (https://consul.io/docs/agent/config/agent-config-cli#_domain)) and the domain services synced from
+    (see `-domain` (https://consul.io/docs/agent/config/cli-flags#_domain)) and the domain services synced from
     Consul into Kubernetes will have, e.g. `service-name.service.consul`.
 
   - `adminPartitions` ((#v-global-adminpartitions)) - <EnterpriseAlert inline /> Enabling `adminPartitions` allows creation of Admin Partitions in Kubernetes clusters.
@@ -261,7 +261,7 @@ Use these links to navigate to a particular top-level stanza.
           ```
 
   - `gossipEncryption` ((#v-global-gossipencryption)) - Configures Consul's gossip encryption key.
-    (see `-encrypt` (https://consul.io/docs/agent/config/agent-config-cli#_encrypt)).
+    (see `-encrypt` (https://consul.io/docs/agent/config/cli-flags#_encrypt)).
     By default, gossip encryption is not enabled. The gossip encryption key may be set automatically or manually.
     The recommended method is to automatically generate the key.
     To automatically generate and set a gossip encryption key, set autoGenerate to true.
@@ -292,7 +292,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `recursors` ((#v-global-recursors)) (`array<string>: []`) - A list of addresses of upstream DNS servers that are used to recursively resolve DNS queries.
     These values are given as `-recursor` flags to Consul servers and clients.
-    See https://www.consul.io/docs/agent/config/agent-config-cli#_recursor for more details.
+    See https://www.consul.io/docs/agent/config/cli-flags#_recursor for more details.
     If this is an empty array (the default), then Consul DNS will only resolve queries for the Consul top level domain (by default `.consul`).
 
   - `tls` ((#v-global-tls)) - Enables TLS (https://learn.hashicorp.com/tutorials/consul/tls-encryption-secure)
@@ -864,7 +864,7 @@ Use these links to navigate to a particular top-level stanza.
   - `image` ((#v-client-image)) (`string: null`) - The name of the Docker image (including any tag) for the containers
     running Consul client agents.
 
-  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid `-retry-join` values (https://consul.io/docs/agent/config/agent-config-files#retry-join).
+  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid `-retry-join` values (https://consul.io/docs/agent/config/config-files#retry-join).
     If this is `null` (default), then the clients will attempt to automatically
     join the server cluster running within Kubernetes.
     This means that with `server.enabled` set to true, clients will automatically
@@ -885,7 +885,7 @@ Use these links to navigate to a particular top-level stanza.
     required for Connect.
 
   - `nodeMeta` ((#v-client-nodemeta)) - nodeMeta specifies an arbitrary metadata key/value pair to associate with the node
-    (see https://www.consul.io/docs/agent/config/agent-config-cli#_node_meta)
+    (see https://www.consul.io/docs/agent/config/cli-flags#_node_meta)
 
     - `pod-name` ((#v-client-nodemeta-pod-name)) (`string: ${HOSTNAME}`)
 
@@ -1238,7 +1238,7 @@ Use these links to navigate to a particular top-level stanza.
       will inherit from `global.metrics.enabled` value.
 
     - `provider` ((#v-ui-metrics-provider)) (`string: prometheus`) - Provider for metrics. See
-      https://www.consul.io/docs/agent/config/agent-config-files#ui_config_metrics_provider
+      https://www.consul.io/docs/agent/config/config-files#ui_config_metrics_provider
       This value is only used if `ui.enabled` is set to true.
 
     - `baseURL` ((#v-ui-metrics-baseurl)) (`string: http://prometheus-server`) - baseURL is the URL of the prometheus server, usually the service URL.
