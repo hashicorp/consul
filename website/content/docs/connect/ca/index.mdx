@@ -15,9 +15,9 @@ In the primary datacenter, the Consul and AWS providers use the Primary Root CA 
 leaf certificates. The Vault provider uses an intermediate CA to sign leaf certificates.
 
 Leaf certificates are created for two purposes:
-1. the Leaf Cert Service is used by envoy proxies in the mesh to perform mTLS with other
+- the Leaf Cert Service is used by envoy proxies in the mesh to perform mTLS with other
 services.
-2. the Leaf Cert Client Agent is created by auto-encrypt and auto-config. It is used by
+- the Leaf Cert Client Agent is created by auto-encrypt and auto-config. It is used by
 client agents for HTTP API TLS, and for mTLS for RPC requests to servers.
 
 Any secondary datacenters receive an intermediate certificate, signed by the Primary Root
