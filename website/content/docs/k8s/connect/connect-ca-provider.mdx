@@ -14,7 +14,8 @@ Consul has support for different certificate authority (CA) providers to be used
 Please see [Connect Certificate Management](/docs/connect/ca) for the information on the providers
 we currently support.
 
-To configure a provider via the Consul Helm chart, you need to follow three steps:
+If Connect is enabled, the built-in Consul CA is automatically enabled for the Connect CA.
+To configure an external CA provider via the Consul Helm chart, you need to follow three steps:
 
 1. Create a configuration file containing your provider information.
 1. Create a Kubernetes secret containing the configuration file.
