@@ -77,9 +77,6 @@
     > *:not(:last-child) {
       padding-bottom: 6px;
     }
-    span {
-      display: none;
-    }
     .group {
       display: grid;
       grid-template-columns: 20px 1fr;
