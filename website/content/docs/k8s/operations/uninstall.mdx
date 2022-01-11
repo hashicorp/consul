@@ -47,7 +47,7 @@ Run the `helm uninstall` **and** manually remove resources that Helm does not de
 1. Ensure that the CRDs were previously created for Consul on Kubernetes are deleted, so subsequent installs of Consul on Kubernetes on the same Kubernetes cluster do not get blocked. 
 
    ```shell-session
-   $ kubectl get crd | grep consul.hashicorp.com | awk '{print $1}' | xargs kubectl delete crd
+   $ kubectl delete crd --selector app=consul
    ```
 
 1. After deleting the Helm release, you need to delete the `PersistentVolumeClaim`'s
