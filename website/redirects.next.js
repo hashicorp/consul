@@ -207,7 +207,7 @@ module.exports = [
   },
   {
     source: '/docs/k8s/operations/uninstalling',
-    destination: '/docs/k8s/uninstall',
+    destination: '/docs/k8s/operations/uninstall',
     permanent: true,
   },
   {
@@ -1176,7 +1176,7 @@ module.exports = [
   },
   {
     source: '/docs/platform/k8s/uninstalling',
-    destination: '/docs/k8s/operations/upgrading',
+    destination: '/docs/k8s/operations/uninstall',
     permanent: true,
   },
   {
