@@ -263,9 +263,8 @@ func validateGatewayTLSConfig(tlsCfg GatewayTLSConfig) error {
 			return fmt.Errorf("configuring CipherSuites is only applicable to conncetions negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s", tlsCfg.TLSMinVersion)
 		}
 
-		// TODO: is it possible to emit a warning but not return an error from here if TLSMaxVersion is undefined,
-		// TLS_AUTO or TLSv1_3 and len(tlsCfg.CipherSuites) != 0?
-
+		// NOTE: it would be nice to emit a warning but not return an error from
+		// here if TLSMaxVersion is unspecified, TLS_AUTO or TLSv1_3
 		if err := types.ValidateEnvoyCipherSuites(tlsCfg.CipherSuites); err != nil {
 			return err
 		}
