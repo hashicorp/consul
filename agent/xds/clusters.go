@@ -186,7 +186,7 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 			ConnectTimeout: ptypes.DurationProto(5 * time.Second),
 		}
 
-		commonTLSContext := makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf())
+		commonTLSContext := makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf())
 		err := injectSANMatcher(commonTLSContext, passthrough.SpiffeID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", passthrough.SNI, err)
@@ -550,7 +550,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 	}
 
 	// Enable TLS upstream with the configured client certificate.
-	commonTLSContext := makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf())
+	commonTLSContext := makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf())
 	err = injectSANMatcher(commonTLSContext, spiffeIDs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
@@ -728,7 +728,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			c.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
 		}
 
-		commonTLSContext := makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf())
+		commonTLSContext := makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf())
 		err = injectSANMatcher(commonTLSContext, spiffeIDs...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)

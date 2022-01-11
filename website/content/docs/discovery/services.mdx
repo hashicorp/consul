@@ -32,7 +32,91 @@ Send a `SIGHUP` to the running agent or use [`consul reload`](/commands/reload) 
 update existing services. Alternatively, the service can be [registered dynamically](/api-docs/agent/service#register-service)
 using the [HTTP API](/api).
 
-A service definition contains a set of parameters that specify various aspects of the service, including how it is discovered by other services in the network. All possible parameters are included in the following example, but only the top-level `service` parameter and its `name` parameter child are required by default.
+A service definition contains a set of parameters that specify various aspects of the service, including how it is discovered by other services in the network.
+All possible parameters are included in the following example, but only the top-level `service` parameter and its `name` parameter child are required by default.
+
+<CodeTabs heading="Service Definition">
+
+```hcl
+service {
+  name = "redis"
+  id   = "redis"
+  port = 80
+  tags = ["primary"]
+
+  meta = {
+    custom_meta_key = "custom_meta_value"
+  }
+
+  tagged_addresses = {
+    lan = {
+      address = "192.168.0.55"
+      port    = 8000
+    }
+
+    wan = {
+      address = "198.18.0.23"
+      port    = 80
+    }
+  }
+
+  port                = 8000
+  socket_path         = "/tmp/redis.sock"
+  enable_tag_override = false
+
+  checks = [
+    {
+      args     = ["/usr/local/bin/check_redis.py"]
+      interval = "10s"
+    }
+  ]
+
+  kind              = "connect-proxy"
+  proxy_destination = "redis"
+
+  proxy = {
+    destination_service_name  = "redis"
+    destination_service_id    = "redis1"
+    local_service_address     = "127.0.0.1"
+    local_service_port        = 9090
+    local_service_socket_path = "/tmp/redis.sock"
+    mode                      = "transparent"
+
+    transparent_proxy {
+      outbound_listener_port = 22500
+    }
+
+    mesh_gateway = {
+      mode = "local"
+    }
+
+    expose = {
+      checks = true
+
+      paths = [
+        {
+          path            = "/healthz"
+          local_path_port = 8080
+          listener_port   = 21500
+          protocol        = "http2"
+        }
+      ]
+    }
+  }
+
+  connect = {
+    native = false
+  }
+
+  weights = {
+    passing = 5
+    warning = 1
+  }
+
+  token     = "233b604b-b92e-48c8-a253-5f11514e4b50"
+  namespace = "foo"
+}
+```
 
 ```json
 {
@@ -109,6 +193,8 @@ A service definition contains a set of parameters that specify various aspects o
   }
 }
 ```
+
+</CodeTabs>
 
 The following table describes the available parameters for service definitions.
 
@@ -504,6 +590,51 @@ Multiple services definitions can be provided at once when registering services
 via the agent configuration by using the plural `services` key (registering
 multiple services in this manner is not supported using the HTTP API).
 
+<CodeTabs heading="Multiple Service Definitions">
+
+<CodeBlockConfig filename="redis-services.hcl">
+
+```hcl
+services {
+  id = "red0"
+  name = "redis"
+  tags = [
+    "primary"
+  ]
+  address = ""
+  port = 6000
+  checks = [
+    {
+      args = ["/bin/check_redis", "-p", "6000"]
+      interval = "5s"
+      timeout = "20s"
+    }
+  ]
+}
+services {
+  id = "red1"
+  name = "redis"
+  tags = [
+    "delayed",
+    "secondary"
+  ]
+  address = ""
+  port = 7000
+  checks = [
+    {
+      args = ["/bin/check_redis", "-p", "7000"]
+      interval = "30s"
+      timeout = "60s"
+    }
+  ]
+}
+
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="redis-services.json">
+
 ```json
 {
   "services": [
@@ -545,43 +676,8 @@ multiple services in this manner is not supported using the HTTP API).
 }
 ```
 
-In HCL you can specify the plural `services` key (although not `service`) multiple times:
-
-```hcl
-services {
-  id = "red0"
-  name = "redis"
-  tags = [
-    "primary"
-  ]
-  address = ""
-  port = 6000
-  checks = [
-    {
-      args = ["/bin/check_redis", "-p", "6000"]
-      interval = "5s"
-      timeout = "20s"
-    }
-  ]
-}
-services {
-  id = "red1"
-  name = "redis"
-  tags = [
-    "delayed",
-    "secondary"
-  ]
-  address = ""
-  port = 7000
-  checks = [
-    {
-      args = ["/bin/check_redis", "-p", "7000"]
-      interval = "30s"
-      timeout = "60s"
-    }
-  ]
-}
-```
+</CodeBlockConfig>
+</CodeTabs>
 
 ## Service and Tag Names with DNS
 

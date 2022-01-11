@@ -68,7 +68,7 @@ The following syntax describes how to include a resource label in the rule:
 </CodeBlockConfig>
 </CodeTabs>
 
-Labels provide operators with more granular control over access to the resouce, but the following resource types do not take a label:
+Labels provide operators with more granular control over access to the resource, but the following resource types do not take a label:
 
 * `acl`
 * `keyring`
@@ -102,7 +102,7 @@ Use the `policy` keyword and one of the following access levels to set a policy 
 - `write`: Allows the resource to be read and modified.
 - `deny`: Denies read and write access to the resource.
 
-The special `list` access level provices access to all keys with the specified resource label in the Consul KV. The `list` access level can only be used with the `key_prefix` resource. The [`acl.enable_key_list_policy`](/docs/agent/options#acl_enable_key_list_policy) setting must be set to `true`.
+The special `list` access level provides access to all keys with the specified resource label in the Consul KV. The `list` access level can only be used with the `key_prefix` resource. The [`acl.enable_key_list_policy`](/docs/agent/options#acl_enable_key_list_policy) setting must be set to `true`.
 
 ### Matching and Prefix Values
 
@@ -295,7 +295,7 @@ $ curl \
 }' http://127.0.0.1:8500/v1/acl/policy?token=<management token>
 ```
 
-The policy configuration is returned when the call is succesfully performaed:
+The policy configuration is returned when the call is successfully performed:
 
 ```json
 {

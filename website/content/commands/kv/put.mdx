@@ -11,6 +11,11 @@ Corresponding HTTP API Endpoint: [\[PUT\] /v1/kv/:key](/api-docs/kv#create-updat
 
 The `kv put` command writes the data to the given path in the KV store.
 
+-> **Note**: When writing multiple entries at once, consider using
+[`kv import`](/commands/kv/import) instead. Alternatively, the
+[transaction API](/api-docs/txn) provides support for performing up to
+64 KV operations atomically.
+
 The table below shows this command's [required ACLs](/api#authentication). Configuration of
 [blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
@@ -67,57 +72,76 @@ Usage: `consul kv put [options] KEY [DATA]`
 To insert a value of "5" for the key named "redis/config/connections" in the
 KV store:
 
-```shell-session
+```shell-session hideClipboard
 $ consul kv put redis/config/connections 5
 Success! Data written to: redis/config/connections
 ```
 
 If no data is specified, the key will be created with empty data:
 
-```shell-session
+```shell-session hideClipboard
 $ consul kv put redis/config/connections
 Success! Data written to: redis/config/connections
 ```
 
-If the `-base64` flag is set, the data will be decoded before writing:
+!> **Be careful of overwriting data!** The above operation would overwrite
+any existing value at the key to the empty value.
 
-```shell-session
+### Base64 Encoded Values
+
+If the `-base64` flag is set, the given data will be Base64-decoded before writing:
+
+```shell-session hideClipboard
 $ consul kv put -base64 foo/encoded aGVsbG8gd29ybGQK
 Success! Data written to: foo/encoded
 ```
 
-!> **Be careful when overwriting data!** The above operation would overwrite
-the value at the key to the empty value.
+### Longer or Sensitive Values
 
-For longer or sensitive values, it is possible to read from a file by prefixing
-with the `@` symbol:
+For longer or sensitive values, it is possible to read from a file by
+supplying its path prefixed with the `@` symbol:
 
-```shell-session
+```shell-session hideClipboard
 $ consul kv put redis/config/password @password.txt
-Success! Data written to: redis/config/connections
+Success! Data written to: redis/config/password
 ```
 
 Or read values from stdin by specifying the `-` symbol:
 
-```shell-session
-$ echo "5" | consul kv put redis/config/password -
+```shell-session hideClipboard
+$ echo "5" | consul kv put redis/config/connections -
 Success! Data written to: redis/config/connections
+```
 
-$ consul kv put redis/config/password -
+```shell-session hideClipboard
+$ consul kv put redis/config/connections -
 5
 <CTRL+D>
 Success! Data written to: redis/config/connections
 ```
 
-~> For secret and sensitive values, you should consider using a secret
-management solution like **[HashiCorp's Vault](https://www.vaultproject.io/)**.
-While it is possible to secure values in Consul's KV store, Vault provides a
-more robust interface for secret management.
+```shell-session hideClipboard
+$ consul kv put leaderboard/scores - <<EOF
+{
+  "user-a": 100,
+  "user-b": 250,
+  "user-c": 75
+}
+EOF
+Success! Data written to: leaderboard/scores
+```
+
+~> **Warning**: For secret and sensitive values, you should consider using a
+secret management solution like **[HashiCorp's Vault](https://learn.hashicorp.com/tutorials/vault/static-secrets?in=vault/secrets-management)**.
+While it is possible to encrpyt data before writing it to Consul's KV store,
+Consul provides no built-in support for encryption at-rest.
+
+### Atomic Check-And-Set (CAS)
 
 To only update a key if it has not been modified since a given index, specify
 the `-cas` and `-modify-index` flags:
 
-```shell-session
+```shell-session hideClipboard
 $ consul kv get -detailed redis/config/connections | grep ModifyIndex
 ModifyIndex      456
 
@@ -128,24 +152,18 @@ $ consul kv put -cas -modify-index=456 redis/config/connections 10
 Success! Data written to: redis/config/connections
 ```
 
-To specify flags on the key, use the `-flags` option. These flags are completely
-controlled by the user:
-
-```shell-session
-$ consul kv put -flags=42 redis/config/password s3cr3t
-Success! Data written to: redis/config/password
-```
+### Locking Primitives
 
 To create or tune a lock, use the `-acquire` and `-session` flags. The session must already exist (this command will not create it or manage it):
 
-```shell-session
+```shell-session hideClipboard
 $ consul kv put -acquire -session=abc123 redis/lock/update
 Success! Lock acquired on: redis/lock/update
 ```
 
 When you are finished, release the lock:
 
-```shell-session
+```shell-session hideClipboard
 $ consul kv put -release -session=acb123 redis/lock/update
 Success! Lock released on: redis/lock/update
 ```
@@ -154,3 +172,13 @@ Success! Lock released on: redis/lock/update
 low-level primitives, you may want to look at the [<tt>consul
 lock</tt>](/commands/lock) command. It provides higher-level
 functionality without exposing the internal APIs of Consul.
+
+### Flags
+
+To set user-defined flags on the entry, use the `-flags` option. These flags
+are completely controlled by the user and have no special meaning to Consul:
+
+```shell-session hideClipboard
+$ consul kv put -flags=42 redis/config/password s3cr3t
+Success! Data written to: redis/config/password
+```

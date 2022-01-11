@@ -40,7 +40,7 @@ export default class OidcProviderService extends RepositoryService {
     // with an empty `ns=` Consul will use the namespace that is assigned to
     // the token, and when we get the response we can pick that back off the
     // responses `Namespace` property. As we don't receive a `Namespace`
-    // property here, we have to figure this out ourselves. Biut we also want
+    // property here, we have to figure this out ourselves. But we also want
     // to make this completely invisible to 'the application engineer/a
     // template engineer'. This feels like the best place/way to do it as we
     // are already in a asynchronous method, and we avoid adding extra 'just
@@ -54,6 +54,7 @@ export default class OidcProviderService extends RepositoryService {
     const token = (await this.settings.findBySlug('token')) || {};
     return super.findBySlug({
       ns: params.ns || token.Namespace || 'default',
+      partition: params.partition || token.Partition || 'default',
       dc: params.dc,
       id: params.id,
     });

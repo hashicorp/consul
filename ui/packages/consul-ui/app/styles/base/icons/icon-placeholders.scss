@@ -9448,6 +9448,16 @@
   mask-image: var(--unfold-open-24-svg);
 }
 
+%with-union-icon {
+  @extend %with-icon, %union-svg;
+  background-image: var(--union-svg);
+}
+%with-union-mask {
+  @extend %with-mask, %union-svg;
+  -webkit-mask-image: var(--union-svg);
+  mask-image: var(--union-svg);
+}
+
 %with-unlock-16-icon {
   @extend %with-icon, %unlock-16-svg-prop;
   background-image: var(--unlock-16-svg);
