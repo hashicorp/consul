@@ -42,7 +42,7 @@ Looking through these changes prior to upgrading is highly recommended.
 consul server in that DC:
 
 ```shell
-curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+curl --silent --header "X-Consul-Token: $MASTER_TOKEN" "localhost:8500/v1/acl/replication?pretty"
 ```
 
 You should receive output similar to this:
@@ -68,7 +68,7 @@ disabled, so this is normal even if replication is happening.
 consul server in that DC:
 
 ```shell
-curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+curl --silent --header "X-Consul-Token: $MASTER_TOKEN" "localhost:8500/v1/acl/replication?pretty"
 ```
 
 You should receive output similar to this:
@@ -93,7 +93,7 @@ You should receive output similar to this:
 consul server in that DC:
 
 ```shell
-curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+curl --silent --header "X-Consul-Token: $MASTER_TOKEN" "localhost:8500/v1/acl/replication?pretty"
 ```
 
 You should receive output similar to this:
