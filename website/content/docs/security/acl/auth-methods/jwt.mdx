@@ -176,8 +176,8 @@ with a different name.
 ## Token Locality
 
 By default, tokens created by the JWT Auth Method will have local scope and will
-therefore only be valid for the datacenter in which they were created. When the
-Auth Method is created with [`-token-locality=global`](/commands/acl/auth-method/create#token-locality),
-all tokens will be replicated to all other datacenters. Cross-datacenter requests
-that are authenticated with tokens provided by this Auth Method must be configured
-to create tokens with global scope in order for requests to be validated.
+therefore only be valid for the datacenter in which they were created.
+
+In the primary DC, the Auth Method can be created with [`-token-locality=global`](/commands/acl/auth-method/create#token-locality). With globaly token locality, the tokens will be replicated to all secondary datacenters.
+
+Either a global token, or a local token in the target datacenter, is required to perform a cross-datacenter request.
