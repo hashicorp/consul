@@ -1,24 +1,24 @@
 | Endpoint Action      | API Endpoint           | Access Level   | Note   |
 | -------------------- | ---------------------- | -------------- | ------ |
-List Services|[GET/v1/catalog/services](https://www.consul.io/api-docs/catalog#list-services)|service:read|
-List Configurations|[GET/v1/config/:kind](https://www.consul.io/api-docs/config#list-configurations)|service:read|
-Get Configuration|[GET/v1/config/:kind/:name](https://www.consul.io/api-docs/config#get-configuration)|service:read|
-List Checks|[GET/v1/agent/checks](https://www.consul.io/api-docs/agent/check#list-checks)|node:read,service:read|
-List Services|[GET/v1/agent/services](https://www.consul.io/api-docs/agent/service#list-services)|service:read|
-Get Service Configuration|[GET/v1/agent/service/:service_id](https://www.consul.io/api-docs/agent/service#get-service-configuration)|service:read|
-Get Local Service Health|[GET/v1/agent/health/service/name/:service_name](https://www.consul.io/api-docs/agent/service#get-local-service-health)|service:read|
-Get Local Service Health by ID|[GET/v1/agent/health/service/id/:service_id](https://www.consul.io/api-docs/agent/service#get-local-service-health-by-its-id)|service:read|
-List Nodes for Service|[GET/v1/catalog/service/:service](https://www.consul.io/api-docs/catalog#list-nodes-for-service)|node:read,service:read|
-List Nodes for Connect-capable Service|[GET/v1/catalog/connect/:service](https://www.consul.io/api-docs/catalog#list-nodes-for-connect-capable-service)|node:read,service:read|
-Retrieve Map of Services for a Node|[GET/v1/catalog/node/:node](https://www.consul.io/api-docs/catalog#retrieve-map-of-services-for-a-node)|node:read,service:read|
-List Services for Node|[GET/v1/catalog/node-services/:node](https://www.consul.io/api-docs/catalog#list-services-for-node)|node:read,service:read|
-List Services for Gateway|[GET/v1/catalog/gateway-services/:gateway](https://www.consul.io/api-docs/catalog#list-services-for-gateway)|service:read|
-Read Compiled Discovery Chain|[GET/v1/discovery-chain/:service](https://www.consul.io/api-docs/discovery-chain#read-compiled-discovery-chain)|service:read|
-Read Compiled Discovery Chain|[POST/v1/discovery-chain/:service](https://www.consul.io/api-docs/discovery-chain#read-compiled-discovery-chain)|service:read|
-List Checks for Node|[GET/v1/health/node/:node](https://www.consul.io/api-docs/health#list-checks-for-node)|node:read,service:read|
-List Checks for Service|[GET/v1/health/checks/:service](https://www.consul.io/api-docs/health#list-checks-for-service)|node:read,service:read|
-List Service Instances for Service|[GET/v1/health/service/:service](https://www.consul.io/api-docs/health#list-nodes-for-service)|node:read,service:read|
-List Service Instances for Connect-enabled Service|[GET/v1/health/connect/:service](https://www.consul.io/api-docs/health#list-service-instances-for-connect-enabled-service)|node:read,service:read|
-List Service Instances for Ingress Gateways Associated with a Service|[GET/v1/health/ingress/:service](https://www.consul.io/api-docs/health#list-service-instances-for-ingress-gateways-associated-with-a-service)|node:read,service:read|
-List Checks in State|[GET/v1/health/state/:state](https://www.consul.io/api-docs/health#list-checks-in-state)|node:read,service:read|
-Create Transaction|[PUT/v1/txn](https://www.consul.io/api-docs/txn#create-transaction)|key:read,key:write,node:read,node:write,service:read,service:write|
+List Services|[[GET] /v1/catalog/services](https://www.consul.io/api-docs/catalog#list-services)|service:read|
+List Configurations|[[GET] /v1/config/:kind](https://www.consul.io/api-docs/config#list-configurations)|service:read|
+Get Configuration|[[GET] /v1/config/:kind/:name](https://www.consul.io/api-docs/config#get-configuration)|service:read|
+List Checks|[[GET] /v1/agent/checks](https://www.consul.io/api-docs/agent/check#list-checks)|node:read,service:read|
+List Services|[[GET] /v1/agent/services](https://www.consul.io/api-docs/agent/service#list-services)|service:read|
+Get Service Configuration|[[GET] /v1/agent/service/:service_id](https://www.consul.io/api-docs/agent/service#get-service-configuration)|service:read|
+Get Local Service Health|[[GET] /v1/agent/health/service/name/:service_name](https://www.consul.io/api-docs/agent/service#get-local-service-health)|service:read|
+Get Local Service Health by ID|[[GET] /v1/agent/health/service/id/:service_id](https://www.consul.io/api-docs/agent/service#get-local-service-health-by-its-id)|service:read|
+List Nodes for Service|[[GET] /v1/catalog/service/:service](https://www.consul.io/api-docs/catalog#list-nodes-for-service)|node:read,service:read|
+List Nodes for Connect-capable Service|[[GET] /v1/catalog/connect/:service](https://www.consul.io/api-docs/catalog#list-nodes-for-connect-capable-service)|node:read,service:read|
+Retrieve Map of Services for a Node|[[GET] /v1/catalog/node/:node](https://www.consul.io/api-docs/catalog#retrieve-map-of-services-for-a-node)|node:read,service:read|
+List Services for Node|[[GET] /v1/catalog/node-services/:node](https://www.consul.io/api-docs/catalog#list-services-for-node)|node:read,service:read|
+List Services for Gateway|[[GET] /v1/catalog/gateway-services/:gateway](https://www.consul.io/api-docs/catalog#list-services-for-gateway)|service:read|
+Read Compiled Discovery Chain|[[GET] /v1/discovery-chain/:service](https://www.consul.io/api-docs/discovery-chain#read-compiled-discovery-chain)|service:read|
+Read Compiled Discovery Chain|[[POST] /v1/discovery-chain/:service](https://www.consul.io/api-docs/discovery-chain#read-compiled-discovery-chain)|service:read|
+List Checks for Node|[[GET] /v1/health/node/:node](https://www.consul.io/api-docs/health#list-checks-for-node)|node:read,service:read|
+List Checks for Service|[[GET] /v1/health/checks/:service](https://www.consul.io/api-docs/health#list-checks-for-service)|node:read,service:read|
+List Service Instances for Service|[[GET] /v1/health/service/:service](https://www.consul.io/api-docs/health#list-nodes-for-service)|node:read,service:read|
+List Service Instances for Connect-enabled Service|[[GET] /v1/health/connect/:service](https://www.consul.io/api-docs/health#list-service-instances-for-connect-enabled-service)|node:read,service:read|
+List Service Instances for Ingress Gateways Associated with a Service|[[GET] /v1/health/ingress/:service](https://www.consul.io/api-docs/health#list-service-instances-for-ingress-gateways-associated-with-a-service)|node:read,service:read|
+List Checks in State|[[GET] /v1/health/state/:state](https://www.consul.io/api-docs/health#list-checks-in-state)|node:read,service:read|
+Create Transaction|[[PUT] /v1/txn](https://www.consul.io/api-docs/txn#create-transaction)|key:read,key:write,node:read,node:write,service:read,service:write|

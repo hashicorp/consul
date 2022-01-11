@@ -1,0 +1,184 @@
+Name	API Endpoint	API Method	API Docs	Equiv Command	Command URL	ACL Required	Info Revealed with No Token	Additional Notes
+Create an Auth Method	/v1/acl/auth-method	PUT	https://www.consul.io/api-docs/acl/auth-methods#create-an-auth-method	consul acl auth-method create	https://www.consul.io/commands/acl/auth-method/create#consul-acl-auth-method-create	acl:write		
+Delete an Auth Method	/v1/acl/auth-method/:name	DELETE	https://www.consul.io/api-docs/acl/auth-methods#delete-an-auth-method	consul acl auth-method delete	https://www.consul.io/commands/acl/auth-method/delete#consul-acl-auth-method-delete	acl:write		
+List Auth Methods	/v1/acl/auth-methods	GET	https://www.consul.io/api-docs/acl/auth-methods#list-auth-methods	consul acl auth-method list	https://www.consul.io/commands/acl/auth-method/list#consul-acl-auth-method-list	acl:read		
+Read an Auth Method	/v1/acl/auth-method/:name	GET	https://www.consul.io/api-docs/acl/auth-methods#read-an-auth-method	consul acl auth-method read	https://www.consul.io/commands/acl/auth-method/read#consul-acl-auth-method-read	acl:read		
+Update an Auth Method	/v1/acl/auth-method/:name	PUT	https://www.consul.io/api-docs/acl/auth-methods#update-an-auth-method	consul acl auth-method update	https://www.consul.io/commands/acl/auth-method/update#consul-acl-auth-method-update	acl:write		
+Create a Binding Rule	/v1/acl/binding-rule	PUT	https://www.consul.io/api-docs/acl/binding-rules#create-a-binding-rule	consul acl binding-rule create	https://www.consul.io/commands/acl/binding-rule/create#consul-acl-binding-rule-create	acl:write		
+Delete a Binding Rule	/v1/acl/binding-rule/:id	DELETE	https://www.consul.io/api-docs/acl/binding-rules#delete-a-binding-rule	consul acl binding-rule delete	https://www.consul.io/commands/acl/binding-rule/delete#consul-acl-binding-rule-delete	acl:write		
+List Binding Rules	/v1/acl/binding-rules	GET	https://www.consul.io/api-docs/acl/binding-rules#list-binding-rules	consul acl binding-rule list	https://www.consul.io/commands/acl/binding-rule/list#consul-acl-binding-rule-list	acl:read		
+Read a Binding Rule	/v1/acl/binding-rule/:id	GET	https://www.consul.io/api-docs/acl/binding-rules#read-a-binding-rule	consul acl binding-rule read	https://www.consul.io/commands/acl/binding-rule/read#consul-acl-binding-rule-read	acl:read		
+Update a Binding Rule	/v1/acl/binding-rule/:id	PUT	https://www.consul.io/api-docs/acl/binding-rules#update-a-binding-rule	consul acl binding-rule update	https://www.consul.io/commands/acl/binding-rule/update#consul-acl-binding-rule-update	acl:write		
+Bootstrap ACLs	/v1/acl/bootstrap	PUT	https://www.consul.io/api-docs/acl#bootstrap-acls	consul acl bootstrap	https://www.consul.io/commands/acl/bootstrap#consul-acl-bootstrap	none	Full management token on first call; 403 error after first call	
+Create a Policy	/v1/acl/policy	PUT	https://www.consul.io/api-docs/acl/policies#create-a-policy	consul acl policy create	https://www.consul.io/commands/acl/policy/create	acl:write		
+Delete a Policy	/v1/acl/policy/:id	DELETE	https://www.consul.io/api-docs/acl/policies#delete-a-policy	consul acl policy delete	https://www.consul.io/commands/acl/policy/delete#consul-acl-policy-delete	acl:write		
+List Policies	/v1/acl/policies	GET	https://www.consul.io/api-docs/acl/policies#list-policies	consul acl policy list	https://www.consul.io/commands/acl/policy/list#consul-acl-policy-list	acl:read		
+Read a Policy	/v1/acl/policy/:id	GET	https://www.consul.io/api-docs/acl/policies#read-a-policy	consul acl policy read	https://www.consul.io/commands/acl/policy/read#consul-acl-policy-read	acl:read		
+Read a Policy	/v1/acl/policy/name/:name	GET	https://www.consul.io/api-docs/acl/policies#read-a-policy-by-name	consul acl policy read	https://www.consul.io/commands/acl/policy/read#consul-acl-policy-read	acl:read		
+Update a Policy	/v1/acl/policy/:id	PUT	https://www.consul.io/api-docs/acl/policies#update-a-policy	consul acl policy update	https://www.consul.io/commands/acl/policy/update#consul-acl-policy-update	acl:write		
+Create a Role	/v1/acl/role	PUT	https://www.consul.io/api-docs/acl/roles#create-a-role	consul acl role create	https://www.consul.io/commands/acl/role/create#consul-acl-role-create	acl:write		
+Delete a Role	/v1/acl/role/:id	DELETE	https://www.consul.io/api-docs/acl/roles#delete-a-role	consul acl role delete	https://www.consul.io/commands/acl/role/delete#consul-acl-role-delete	acl:write		
+List Roles	/v1/acl/roles	GET	https://www.consul.io/api-docs/acl/roles#list-roles	consul acl role list	https://www.consul.io/commands/acl/role/list#consul-acl-role-list	acl:read		
+Read a Role	/v1/acl/role/:id	GET	https://www.consul.io/api-docs/acl/roles#read-a-role	consul acl role read	https://www.consul.io/commands/acl/role/read#consul-acl-role-read	acl:read		
+Read a Role by Name	/v1/acl/role/name/:name	GET	https://www.consul.io/api-docs/acl/roles#read-a-role-by-name	consul acl role read	https://www.consul.io/commands/acl/role/read#consul-acl-role-read	acl:read		
+Update a Role	/v1/acl/role/:id	PUT	https://www.consul.io/api-docs/acl/roles#update-a-role	consul acl role update	https://www.consul.io/commands/acl/role/update#consul-acl-role-update	acl:write		
+Update ACL Tokens	/v1/agent/token/:type	PUT	https://www.consul.io/api-docs/agent#update-acl-tokens	consul acl set-agent-token	https://www.consul.io/commands/acl/set-agent-token#consul-acl-set-agent-token	acl:write		
+Clone a Token	/v1/acl/token/:AccessorID/clone	PUT	https://www.consul.io/api-docs/acl/tokens#clone-a-token	consul acl token clone	https://www.consul.io/commands/acl/token/clone#consul-acl-token-clone	acl:write		
+Create a Token	/v1/acl/token	PUT	https://www.consul.io/api-docs/acl/tokens#create-a-token	consul acl token create	https://www.consul.io/commands/acl/token/create#consul-acl-token-create	acl:write		
+Delete a Token	/v1/acl/token/:AccessorID	DELETE	https://www.consul.io/api-docs/acl/tokens#delete-a-token	consul acl token delete	https://www.consul.io/commands/acl/token/delete#consul-acl-token-delete	acl:write		
+List Tokens	/v1/acl/tokens	GET	https://www.consul.io/api-docs/acl/tokens#list-tokens	consul acl token list	https://www.consul.io/commands/acl/token/list#consul-acl-token-list	acl:read		
+Read a Token	/v1/acl/token/:AccessorID	GET	https://www.consul.io/api-docs/acl/tokens#read-a-token	consul acl token read	https://www.consul.io/commands/acl/token/read#consul-acl-token-read	acl:read		
+Update a Token	/v1/acl/token/:AccessorID	PUT	https://www.consul.io/api-docs/acl/tokens#update-a-token	consul acl token update	https://www.consul.io/commands/acl/token/update#consul-acl-token-update	acl:write		
+Translate a Legacy Token's Rules	/v1/acl/rules/translate/:accessor_id	GET	https://www.consul.io/api-docs/acl#translate-a-legacy-token-s-rules	consul acl translate-rules	https://www.consul.io/commands/acl/translate-rules#consul-acl-translate-rules	acl:read		Should be removed when legacy ACLs removed
+List Datacenters	/v1/catalog/datacenters	GET	https://www.consul.io/api-docs/catalog#list-datacenters	consul catalog datacenters	https://www.consul.io/commands/catalog/datacenters#consul-catalog-list-datacenters	none	list of names of DCs	
+List Nodes	/v1/catalog/nodes	GET	https://www.consul.io/api-docs/catalog#list-nodes	consul catalog nodes	https://www.consul.io/commands/catalog/nodes#consul-catalog-list-nodes	node:read		
+List Services	/v1/catalog/services	GET	https://www.consul.io/api-docs/catalog#list-services	consul catalog services	https://www.consul.io/commands/catalog/services#consul-catalog-list-services	service:read		
+Delete Configuration	/v1/config/:kind/:name	DELETE	https://www.consul.io/api-docs/config#delete-configuration	consul config delete	https://www.consul.io/commands/config/delete#consul-config-delete	service:write,operator:write		may require mesh:write
+List Configurations	/v1/config/:kind	GET	https://www.consul.io/api-docs/config#list-configurations	consul config list	https://www.consul.io/commands/config/list#consul-config-list	service:read		
+Get Configuration	/v1/config/:kind/:name	GET	https://www.consul.io/api-docs/config#get-configuration	consul config read	https://www.consul.io/commands/config/read#consul-config-read	service:read		
+Apply Configuration	/v1/config	PUT	https://www.consul.io/api-docs/config#apply-configuration	consul config write	https://www.consul.io/commands/config/write#consul-config-write	service:write,operator:write	A	may require mesh:write
+Get CA Configuration	/v1/connect/ca/configuration	GET	https://www.consul.io/api-docs/connect/ca#get-ca-configuration	consul connect ca get-config	https://www.consul.io/commands/connect/ca#get-config	operator:write		Used to require operator:read
+Update CA Configuration	/v1/connect/ca/configuration	PUT	https://www.consul.io/api-docs/connect/ca#update-ca-configuration	consul connect ca set-config	https://www.consul.io/commands/connect/ca#set-config	operator:write		
+Consul Connect Envoy	None	None	None	consul connect envoy	https://www.consul.io/commands/connect/envoy	??		
+Consul Connect Expose	None	None	None	consul connect expose	https://www.consul.io/commands/connect/expose	??		
+Consul Connect Proxy	None	None	None	consul connect proxy	https://www.consul.io/commands/connect/proxy	??		
+Consul Connect Redirect-Traffic	None	None	None	consul connect redirect-traffic	https://www.consul.io/commands/connect/redirect-traffic	??		
+Consul Debug	None	None	None	consul debug	https://www.consul.io/commands/debug	??		
+Fire Event	/v1/event/fire/:name	PUT	https://www.consul.io/api-docs/event#fire-event	consul event	https://www.consul.io/commands/event#consul-event	event:write		
+Consul Exec	None	None	None	consul exec	https://www.consul.io/commands/exec	??		
+Force Leave and Shutdown	/v1/agent/force-leave/:node	PUT	https://www.consul.io/api-docs/agent#force-leave-and-shutdown	consul force-leave	https://www.consul.io/commands/force-leave#consul-force-leave	operator:write		
+Consul Info	None	None	None	consul info	https://www.consul.io/commands/info	??		
+Check Intention Result	/v1/connect/intentions/check	GET	https://www.consul.io/api-docs/connect/intentions#check-intention-result	consul intention check	https://www.consul.io/commands/intention/check#consul-intention-check			
+Create Intention with ID	/v1/connect/intentions	POST	https://www.consul.io/api-docs/connect/intentions#create-intention-with-id	consul intention create	https://www.consul.io/commands/intention/create#consul-intention-create	intentions:write		
+Upsert Intention by Name	/v1/connect/intentions/exact	PUT	https://www.consul.io/api-docs/connect/intentions#upsert-intention-by-name	consul intention create -replace	https://www.consul.io/commands/intention/create#consul-intention-create	intentions:write		
+Delete Intention by Name	/v1/connect/intentions/exact	DELETE	https://www.consul.io/api-docs/connect/intentions#delete-intention-by-name	consul intention delete	https://www.consul.io/commands/intention/delete#consul-intention-delete	intentions:write		
+Delete Intention with ID	/v1/connect/intentions/:uuid	DELETE	https://www.consul.io/api-docs/connect/intentions#delete-intention-by-id	consul intention delete	https://www.consul.io/commands/intention/delete#consul-intention-delete	intentions:write		
+Read Specific Intention By Name	/v1/connect/intentions/exact	GET	https://www.consul.io/api-docs/connect/intentions##read-specific-intention-by-name	consul intention get	https://www.consul.io/commands/intention/get#consul-intention-get	intentions:read		
+List Intentions	/v1/connect/intentions	GET	https://www.consul.io/api-docs/connect/intentions#list-intentions	consul intention get	https://www.consul.io/commands/intention/get#consul-intention-get	intentions:read		
+Read Specific Intention by ID	/v1/connect/intentions/:uuid	GET	https://www.consul.io/api-docs/connect/intentions#read-specific-intention-by-id	consul intention get	https://www.consul.io/commands/intention/get#consul-intention-get	intentions:read		
+List Matching Intentions	/v1/connect/intentions/match	GET	https://www.consul.io/api-docs/connect/intentions#list-matching-intentions	consul intention match	https://www.consul.io/commands/intention/match#consul-intention-match	intentions:read		
+Join Agent	/v1/agent/join/:address	PUT	https://www.consul.io/api-docs/agent#join-agent	consul join	https://www.consul.io/commands/join#consul-join	agent:write		
+Consul Keygen	None	None	None	consul keygen	https://www.consul.io/commands/keygen	??		
+Add New Gossip Encryption Key	/v1/operator/keyring	POST	https://www.consul.io/api-docs/operator/keyring#add-new-gossip-encryption-key	consul keyring -install	https://www.consul.io/commands/keyring#consul-keyring	keyring:write		
+List Gossip Encryption Keys	/v1/operator/keyring	GET	https://www.consul.io/api-docs/operator/keyring#list-gossip-encryption-keys	consul keyring -list	https://www.consul.io/commands/keyring#consul-keyring	keyring:read		
+Delete Gossip Encryption Key	/v1/operator/keyring	DELETE	https://www.consul.io/api-docs/operator/keyring#delete-gossip-encryption-key	consul keyring -remove	https://www.consul.io/commands/keyring#consul-keyring	keyring:write		
+Change Primary Gossip Encryption Key	/v1/operator/keyring	PUT	https://www.consul.io/api-docs/operator/keyring#change-primary-gossip-encryption-key	consul keyring -use	https://www.consul.io/commands/keyring#consul-keyring	keyring:write		
+Delete Key	/v1/kv/:key	DELETE	https://www.consul.io/api-docs/kv#delete-key	consul kv delete	https://www.consul.io/commands/kv/delete#consul-kv-delete	key:write		
+Consul KV Export	None	None	None	consul kv export	https://www.consul.io/commands/kv/export#consul-kv-export	??		
+Read Key	/v1/kv/:key	GET	https://www.consul.io/api-docs/kv#read-key	consul kv get	https://www.consul.io/commands/kv/get#consul-kv-get	key:read		
+Consul KV Import	None	None	None	consul kv import	https://www.consul.io/commands/kv/import#consul-kv-import	??		
+Create/Update Key	/v1/kv/:key	PUT	https://www.consul.io/api-docs/kv#create-update-key	consul kv put	https://www.consul.io/commands/kv/put#consul-kv-put	key:write		
+Graceful Leave and Shutdown	/v1/agent/leave	PUT	https://www.consul.io/api-docs/agent#graceful-leave-and-shutdown	consul leave	https://www.consul.io/commands/leave	agent:write		
+Getting the Consul License	/v1/operator/license	GET	https://www.consul.io/api-docs/operator/license#getting-the-consul-license	consul license get	https://www.consul.io/commands/license#get	none	license timing, package/feature availability, license and customer id	
+Consul License Inspect	None	None	None	consul license inspect	https://www.consul.io/commands/license#inspect	??		
+Updating the Consul License	/v1/operator/license	PUT	https://www.consul.io/api-docs/operator/license#updating-the-consul-license	consul license put	https://www.consul.io/commands/license#put	operator:write		Removed 1.10
+Resetting the Consul License	/v1/operator/license	DELETE	https://www.consul.io/api-docs/operator/license#resetting-the-consul-license	consul license reset	https://www.consul.io/commands/license#reset	operator:write		Removed 1.10
+Consul Lock	None	None	None	consul lock	https://www.consul.io/commands/lock	??		
+Login to Auth Method	/v1/acl/login	POST	https://www.consul.io/api-docs/acl#login-to-auth-method	consul login	https://www.consul.io/commands/login#consul-login	none	Returns all token info if bearer token known	
+Logout from Auth Method	/v1/acl/logout	POST	https://www.consul.io/api-docs/acl#logout-from-auth-method	consul logout	https://www.consul.io/commands/logout#consul-logout	none	No return value (deletes a token if the bearer token is known)	
+Enable Maintenance Mode (Agent)	/v1/agent/maintenance	PUT	https://www.consul.io/api-docs/agent#enable-maintenance-mode	consul maint	https://www.consul.io/commands/maint	node:write		
+List Members	/v1/agent/members	GET	https://www.consul.io/api-docs/agent#list-members	consul members	https://www.consul.io/commands/members#consul-members	node:read		
+Consul Monitor	None	None	None	consul monitor	https://www.consul.io/commands/monitor#consul-monitor	??		
+Create a Namespace	/v1/namespace	PUT	https://www.consul.io/api-docs/namespaces#create-a-namespace	consul namespace create	https://www.consul.io/commands/namespace/create#consul-namespace-create	operator:write		
+Delete a Namespace	/v1/namespace/:name	DELETE	https://www.consul.io/api-docs/namespaces#delete-a-namespace	consul namespace delete	https://www.consul.io/commands/namespace/delete#consul-namespace-delete	operator:write		
+List All Namespaces	/v1/namespaces	GET	https://www.consul.io/api-docs/namespaces#list-all-namespaces	consul namespace list	https://www.consul.io/commands/namespace/list#consul-namespace-list	operator:read or namespace:* read		Access can be granted to list the Namespace if the token used when making the request has been granted any access in the namespace (read, list or write).
+Read a Namespace	/v1/namespace/:name	GET	https://www.consul.io/api-docs/namespaces#read-a-namespace	consul namespace read	https://www.consul.io/commands/namespace/read#consul-namespace-read	operator:read or namespace:* read		Access can be granted to list the Namespace if the token used when making the request has been granted any access in the namespace (read, list or write).
+Update a Namespace	/v1/namespace/:name	PUT	https://www.consul.io/api-docs/namespaces#update-a-namespace	consul namespace update consul namespace write	https://www.consul.io/commands/namespace/update#consul-namespace-update https://www.consul.io/commands/namespace/write	operator:write		
+Create Network Area	/v1/operator/area	POST	https://www.consul.io/api-docs/operator/area#create-network-area	consul operator area create	https://www.consul.io/commands/operator/area#create	operator:write		
+Delete Network Area	/v1/operator/area/:uuid	DELETE	https://www.consul.io/api-docs/operator/area#delete-network-area	consul operator area delete	https://www.consul.io/commands/operator/area#delete	operator:write		
+Join Network Area	/v1/operator/area/:uuid/join	PUT	https://www.consul.io/api-docs/operator/area#join-network-area	consul operator area join	https://www.consul.io/commands/operator/area#join	operator:write		
+List Network Areas	/v1/operator/area	GET	https://www.consul.io/api-docs/operator/area#list-network-areas	consul operator area list	https://www.consul.io/commands/operator/area#list	operator:read		
+List Network Area Members	/v1/operator/area/:uuid/members	GET	https://www.consul.io/api-docs/operator/area#list-network-area-members	consul operator area members	https://www.consul.io/commands/operator/area#members	operator:read		
+Update Network Area	/v1/operator/area/:uuid	PUT	https://www.consul.io/api-docs/operator/area#update-network-area	consul operator area update	https://www.consul.io/commands/operator/area#update	operator:write		
+Read Configuration	/v1/operator/autopilot/configuration	GET	https://www.consul.io/api-docs/operator/autopilot#read-configuration	consul operator autopilot get-config	https://www.consul.io/commands/operator/autopilot#get-config	operator:read		
+Update Configuration	/v1/operator/autopilot/configuration	PUT	https://www.consul.io/api-docs/operator/autopilot#update-configuration	consul operator autopilot set-config	https://www.consul.io/commands/operator/autopilot#set-config	operator:write		
+Read the Autopilot State	/v1/operator/autopilot/state	GET	https://www.consul.io/api-docs/operator/autopilot#read-the-autopilot-state	consul operator autopilot state	https://www.consul.io/commands/operator/autopilot#state	operator:read		
+List Raft Peers	/v1/status/peers	GET	https://www.consul.io/api-docs/status#list-raft-peers	consul operator raft list-peers	https://www.consul.io/commands/operator/raft#list-peers	none	IP address + port of Raft members (servers)	
+Delete Raft Peer	/v1/operator/raft/peer	DELETE	https://www.consul.io/api-docs/operator/raft#delete-raft-peer	consul operator raft remove-peer	https://www.consul.io/commands/operator/raft#remove-peer	operator:write		
+Reload Agent	/v1/agent/reload	PUT	https://www.consul.io/api-docs/agent#reload-agent	consul reload SIGHUP to process	https://www.consul.io/commands/reload	agent:write		
+Read WAN Coordinates	/v1/coordinate/datacenters	GET	https://www.consul.io/api-docs/coordinate#read-wan-coordinates	consul rtt -wan # to get data, doesn't perform calculation	https://www.consul.io/commands/rtt#consul-rtt	none	Consul datacenter names, server node names, and their network coordinates	
+Read LAN Coordinates for All Nodes	/v1/coordinate/nodes	GET	https://www.consul.io/api-docs/coordinate#read-lan-coordinates-for-all-nodes	consul rtt # to get data, doesn't perform calculation	https://www.consul.io/commands/rtt#consul-rtt	node:read		
+Deregister Service	/v1/agent/service/deregister/:service_id	PUT	https://www.consul.io/api-docs/agent/service#deregister-service	consul services deregister	https://www.consul.io/commands/services/deregister#consul-agent-service-deregistration	service:write		
+Register Service	/v1/agent/service/register	PUT	https://www.consul.io/api-docs/agent/service#register-service	consul services register	https://www.consul.io/commands/services/register#consul-agent-service-registration	service:write		
+Consul Snapshot Agent	None	None	None	consul snapshot agent	https://www.consul.io/commands/snapshot/agent#consul-snapshot-agent	??		
+Consul Shapshot Inspect	None	None	None	consul snapshot inspect	https://www.consul.io/commands/snapshot/inspect#consul-snapshot-inspect	??		
+Restore Snapshot	/v1/snapshot	PUT	https://www.consul.io/api-docs/snapshot#restore-snapshot	consul snapshot restore	https://www.consul.io/commands/snapshot/restore#consul-snapshot-restore	management		
+Generate Snapshot	/v1/snapshot	GET	https://www.consul.io/api-docs/snapshot#generate-snapshot	consul snapshot save	https://www.consul.io/commands/snapshot/save#consul-snapshot-save	management		??? management? what token is that?
+Consul TLS	None	None	None	consul tls {ca, cert}	https://www.consul.io/commands/tls	??		
+Consul Validate	None	None	None	consul validate	https://www.consul.io/commands/validate#consul-validate	??		
+Consul Version	None	None	None	consul version	https://www.consul.io/commands/version#consul-version	??		
+Consul Watch	Any blocking query	Varies	https://www.consul.io/api-docs/features/blocking	consul watch	https://www.consul.io/commands/watch#consul-watch	Varies		Depends on what is being watched
+Check ACL Replication	/v1/acl/replication	GET	https://www.consul.io/api-docs/acl#check-acl-replication	None	None	none	Whether replication is enabled and its status	
+Translate Rules	/v1/acl/rules/translate	POST	https://www.consul.io/api-docs/acl#translate-rules	None	None	acl:read		Should be removed when legacy ACLs removed
+OIDC Authorization URL Request	/v1/oidc/auth-url	POST	https://www.consul.io/api-docs/acl#oidc-authorization-url-request	None	None	none	Obtain an auth URL to start the OIDC login flow	
+OIDC Callback	/v1/oidc/callback	POST	https://www.consul.io/api-docs/acl#oidc-callback	None	None	none	Nothing that isn't already known	Returns token in exchange for provided authorization code
+Create ACL Token (Legacy)	/v1/acl/create	PUT	https://www.consul.io/api-docs/acl/legacy#create-acl-token	None	None	management		
+Update ACL Token (Legacy)	/v1/acl/update	PUT	https://www.consul.io/api-docs/acl/legacy#update-acl-token	None	None	management		
+Delete ACL Token (Legacy)	/v1/acl/destroy/	PUT	https://www.consul.io/api-docs/acl/legacy#delete-acl-token	None	None	management		
+Read ACL Token (Legacy)	/v1/acl/info/	GET	https://www.consul.io/api-docs/acl/legacy#read-acl-token	None	None	none	Returns all token info if token UUID known	
+Clone ACL Token (Legacy)	/v1/acl/clone/	PUT	https://www.consul.io/api-docs/acl/legacy#delete-acl-token	None	None	management		
+List ACLs (Legacy)	/v1/acl/list/	GET	https://www.consul.io/api-docs/acl/legacy#list-acls	None	None	management		
+Read Self Token	/v1/acl/token/self	GET	https://www.consul.io/api-docs/acl/tokens#read-self-token	None	None	none	Returns all token info if token secret ID known	
+Retrieve Host Information	/vt/agent/host	GET	https://www.consul.io/api-docs/agent#retrieve-host-information	None	None	operator:read		
+Read Configuration	/v1/agent/self	GET	https://www.consul.io/api-docs/agent#read-configuration	None	None	agent:read		
+View Metrics	/v1/agent/metrics	GET	https://www.consul.io/api-docs/agent#view-metrics	None	None	agent:read		
+Stream Logs	/v1/agent/monitor	GET	https://www.consul.io/api-docs/agent#stream-logs	None	None	agent:read		
+List Checks	/v1/agent/checks	GET	https://www.consul.io/api-docs/agent/check#list-checks	None	None	node:read,service:read		
+Register Check	/v1/agent/check/register	PUT	https://www.consul.io/api-docs/agent/check#register-check	None	None	node:write,service:write		
+Deregister Check	/v1/agent/check/deregister/:check_id	PUT	https://www.consul.io/api-docs/agent/check#deregister-check	None	None	node:write,service:write		
+TTL Check Pass	/v1/agent/check/pass/:check_id	PUT	https://www.consul.io/api-docs/agent/check#ttl-check-pass	None	None	node:write,service:write		
+TTL Check Warn	/v1/agent/check/warn/:check_id	PUT	https://www.consul.io/api-docs/agent/check#ttl-check-warn	None	None	node:write,service:write		
+TTL Check Fail	/v1/agent/check/fail/:check_id	PUT	https://www.consul.io/api-docs/agent/check#ttl-check-fail	None	None	node:write,service:write		
+TTL Check Update	/v1/agent/check/update/:check_id	PUT	https://www.consul.io/api-docs/agent/check#ttl-check-update	None	None	node:write,service:write		
+List Services	/v1/agent/services	GET	https://www.consul.io/api-docs/agent/service#list-services	None	None	service:read		
+Get Service Configuration	/v1/agent/service/:service_id	GET	https://www.consul.io/api-docs/agent/service#get-service-configuration	None	None	service:read		
+Get Local Service Health	/v1/agent/health/service/name/:service_name	GET	https://www.consul.io/api-docs/agent/service#get-local-service-health	None	None	service:read		
+Get Local Service Health by ID	/v1/agent/health/service/id/:service_id	GET	https://www.consul.io/api-docs/agent/service#get-local-service-health-by-its-id	None	None	service:read		
+Enable Maintenance Mode (Service)	/v1/agent/service/maintenance/:service_id	PUT	https://www.consul.io/api-docs/agent/service#enable-maintenance-mode	None	None	service:write		
+Authorize	/v1/agent/connect/authorize	POST	https://www.consul.io/api-docs/agent/connect#authorize	None	None	service:write		
+Certificate Authority (CA) Roots	/v1/agent/connect/ca/roots	GET	https://www.consul.io/api-docs/agent/connect#certificate-authority-ca-roots	None	None	none	Trusted CA (public) root certificates	
+Service Leaf Certificate	/v1/agent/connect/ca/leaf/:service	GET	https://www.consul.io/api-docs/agent/connect#service-leaf-certificate	None	None	service:write		
+Register Entity	/v1/catalog/register	PUT	https://www.consul.io/api-docs/catalog#register-entity	None	None	node:write,service:write		
+Deregister Entity	/v1/catalog/deregister	PUT	https://www.consul.io/api-docs/catalog#deregister-entity	None	None	node:write,service:write		
+List Nodes for Service	/v1/catalog/service/:service	GET	https://www.consul.io/api-docs/catalog#list-nodes-for-service	None	None	node:read,service:read		
+List Nodes for Connect-capable Service	/v1/catalog/connect/:service	GET	https://www.consul.io/api-docs/catalog#list-nodes-for-connect-capable-service	None	None	node:read,service:read		
+Retrieve Map of Services for a Node	/v1/catalog/node/:node	GET	https://www.consul.io/api-docs/catalog#retrieve-map-of-services-for-a-node	None	None	node:read,service:read		
+List Services for Node	/v1/catalog/node-services/:node	GET	https://www.consul.io/api-docs/catalog#list-services-for-node	None	None	node:read,service:read		
+List Services for Gateway	/v1/catalog/gateway-services/:gateway	GET	https://www.consul.io/api-docs/catalog#list-services-for-gateway	None	None	service:read		
+List CA Root Certificates	/v1/connect/ca/roots	GET	https://www.consul.io/api-docs/connect/ca#list-ca-root-certificates	None	None	none	List of trusted CA (public) root certificates	
+Update Intention by ID	/v1/connect/intentions/:uuid	PUT	https://www.consul.io/api-docs/connect/intentions#update-intention-by-id	None	None	intentions:write		
+Read LAN Coordinates for a Node	/v1/coordinate/node/:node	GET	https://www.consul.io/api-docs/coordinate#read-lan-coordinates-for-a-node	None	None	node:read		
+Update LAN Coordinates for a Node	/v1/coordinate/update	PUT	https://www.consul.io/api-docs/coordinate#update-lan-coordinates-for-a-node	None	None	node:write		
+Read Compiled Discovery Chain	/v1/discovery-chain/:service	GET	https://www.consul.io/api-docs/discovery-chain#read-compiled-discovery-chain	None	None	service:read		
+Read Compiled Discovery Chain	/v1/discovery-chain/:service	POST	https://www.consul.io/api-docs/discovery-chain#read-compiled-discovery-chain	None	None	service:read		
+List Events	/v1/event/list	GET	https://www.consul.io/api-docs/event#list-events	None	None	event:read		
+List Checks for Node	/v1/health/node/:node	GET	https://www.consul.io/api-docs/health#list-checks-for-node	None	None	node:read,service:read		
+List Checks for Service	/v1/health/checks/:service	GET	https://www.consul.io/api-docs/health#list-checks-for-service	None	None	node:read,service:read		
+List Service Instances for Service	/v1/health/service/:service	GET	https://www.consul.io/api-docs/health#list-nodes-for-service	None	None	node:read,service:read		
+List Service Instances for Connect-enabled Service	/v1/health/connect/:service	GET	https://www.consul.io/api-docs/health#list-service-instances-for-connect-enabled-service	None	None	node:read,service:read		
+List Service Instances for Ingress Gateways Associated with a Service	/v1/health/ingress/:service	GET	https://www.consul.io/api-docs/health#list-service-instances-for-ingress-gateways-associated-with-a-service	None	None	node:read,service:read		
+List Checks in State	/v1/health/state/:state	GET	https://www.consul.io/api-docs/health#list-checks-in-state	None	None	node:read,service:read		
+List Specific Network Area	/v1/operator/area/:uuid	GET	https://www.consul.io/api-docs/operator/area#list-specific-network-area	None	None	operator:read		
+Read Health	/v1/operator/autopilot/health	GET	https://www.consul.io/api-docs/operator/autopilot#read-health	None	None	operator:read		
+Read Raft Configuration	/v1/operator/raft/configuration	GET	https://www.consul.io/api-docs/operator/raft#read-configuration	None	None	operator:read		
+List Network Segments	/v1/operator/segment	GET	https://www.consul.io/api-docs/operator/segment#list-network-segments	None	None	operator:read		
+Create Prepared Query	/v1/query	POST	https://www.consul.io/api-docs/query#create-prepared-query	None	None	query:write		
+List Prepared Queries	/v1/query	GET	https://www.consul.io/api-docs/query#list-prepared-queries	None	None	query:read		
+Update Prepared Query	/v1/query/:uuid	PUT	https://www.consul.io/api-docs/query#update-prepared-query	None	None	query:write		
+Read Prepared Query	/v1/query/:uuid	GET	https://www.consul.io/api-docs/query#read-prepared-query	None	None	query:read		
+Delete Prepared Query	/v1/query/:uuid	DELETE	https://www.consul.io/api-docs/query#delete-prepared-query	None	None	query:write		
+Execute Prepared Query	/v1/query/:uuid/execute	GET	https://www.consul.io/api-docs/query#execute-prepared-query	None	None	depends		If an ACL Token was bound to the query when it was defined then it will be used when executing the request. Otherwise, the client's supplied ACL Token will be used.
+Explain Prepared Query	/v1/query/:uuid/explain	GET	https://www.consul.io/api-docs/query#explain-prepared-query	None	None	query:read		
+Create Session	/v1/session/create	PUT	https://www.consul.io/api-docs/session#create-session	None	None	session:write		
+Delete Session	/v1/session/destroy/:uuid	PUT	https://www.consul.io/api-docs/session#delete-session	None	None	session:write		
+Read Session	/v1/session/info/:uuid	GET	https://www.consul.io/api-docs/session#read-session	None	None	session:read		
+List Sessions for Node	/v1/session/node/:node	GET	https://www.consul.io/api-docs/session#list-sessions-for-node	None	None	session:read		
+List Sessions	/v1/session/list	GET	https://www.consul.io/api-docs/session#list-sessions	None	None	session:read		
+Renew Session	/v1/session/renew/:uuid	PUT	https://www.consul.io/api-docs/session#renew-session	None	None	session:write		
+Get Raft Leader	/v1/status/leader	GET	https://www.consul.io/api-docs/status#get-raft-leader	None	None	none	IP address + port of Raft leader	consul operator raft list-peers consul operator autopilot state ... Can both be used, but they require operator:read  https://www.consul.io/commands/operator/raft#list-peers https://www.consul.io/commands/operator/autopilot#state 
+Create Transaction	/v1/txn	PUT	https://www.consul.io/api-docs/txn#create-transaction	None	None	key:read,key:write,node:read,node:write,service:read,service:write		Depends on the operations in the transaction
+								
+								
+								
+								
+	/v1/agent/leader	?	None					

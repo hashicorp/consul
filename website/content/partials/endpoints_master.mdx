@@ -1,184 +1,184 @@
-Name|[API MethodAPI Endpoint](API Docs)|ACL Required|Info Revealed with No Token
-Create an Auth Method|[PUT/v1/acl/auth-method](https://www.consul.io/api-docs/acl/auth-methods#create-an-auth-method)|acl:write|
-Delete an Auth Method|[DELETE/v1/acl/auth-method/:name](https://www.consul.io/api-docs/acl/auth-methods#delete-an-auth-method)|acl:write|
-List Auth Methods|[GET/v1/acl/auth-methods](https://www.consul.io/api-docs/acl/auth-methods#list-auth-methods)|acl:read|
-Read an Auth Method|[GET/v1/acl/auth-method/:name](https://www.consul.io/api-docs/acl/auth-methods#read-an-auth-method)|acl:read|
-Update an Auth Method|[PUT/v1/acl/auth-method/:name](https://www.consul.io/api-docs/acl/auth-methods#update-an-auth-method)|acl:write|
-Create a Binding Rule|[PUT/v1/acl/binding-rule](https://www.consul.io/api-docs/acl/binding-rules#create-a-binding-rule)|acl:write|
-Delete a Binding Rule|[DELETE/v1/acl/binding-rule/:id](https://www.consul.io/api-docs/acl/binding-rules#delete-a-binding-rule)|acl:write|
-List Binding Rules|[GET/v1/acl/binding-rules](https://www.consul.io/api-docs/acl/binding-rules#list-binding-rules)|acl:read|
-Read a Binding Rule|[GET/v1/acl/binding-rule/:id](https://www.consul.io/api-docs/acl/binding-rules#read-a-binding-rule)|acl:read|
-Update a Binding Rule|[PUT/v1/acl/binding-rule/:id](https://www.consul.io/api-docs/acl/binding-rules#update-a-binding-rule)|acl:write|
-Bootstrap ACLs|[PUT/v1/acl/bootstrap](https://www.consul.io/api-docs/acl#bootstrap-acls)|none|Full management token on first call; 403 error after first call
-Create a Policy|[PUT/v1/acl/policy](https://www.consul.io/api-docs/acl/policies#create-a-policy)|acl:write|
-Delete a Policy|[DELETE/v1/acl/policy/:id](https://www.consul.io/api-docs/acl/policies#delete-a-policy)|acl:write|
-List Policies|[GET/v1/acl/policies](https://www.consul.io/api-docs/acl/policies#list-policies)|acl:read|
-Read a Policy|[GET/v1/acl/policy/:id](https://www.consul.io/api-docs/acl/policies#read-a-policy)|acl:read|
-Read a Policy|[GET/v1/acl/policy/name/:name](https://www.consul.io/api-docs/acl/policies#read-a-policy-by-name)|acl:read|
-Update a Policy|[PUT/v1/acl/policy/:id](https://www.consul.io/api-docs/acl/policies#update-a-policy)|acl:write|
-Create a Role|[PUT/v1/acl/role](https://www.consul.io/api-docs/acl/roles#create-a-role)|acl:write|
-Delete a Role|[DELETE/v1/acl/role/:id](https://www.consul.io/api-docs/acl/roles#delete-a-role)|acl:write|
-List Roles|[GET/v1/acl/roles](https://www.consul.io/api-docs/acl/roles#list-roles)|acl:read|
-Read a Role|[GET/v1/acl/role/:id](https://www.consul.io/api-docs/acl/roles#read-a-role)|acl:read|
-Read a Role by Name|[GET/v1/acl/role/name/:name](https://www.consul.io/api-docs/acl/roles#read-a-role-by-name)|acl:read|
-Update a Role|[PUT/v1/acl/role/:id](https://www.consul.io/api-docs/acl/roles#update-a-role)|acl:write|
-Update ACL Tokens|[PUT/v1/agent/token/:type](https://www.consul.io/api-docs/agent#update-acl-tokens)|acl:write|
-Clone a Token|[PUT/v1/acl/token/:AccessorID/clone](https://www.consul.io/api-docs/acl/tokens#clone-a-token)|acl:write|
-Create a Token|[PUT/v1/acl/token](https://www.consul.io/api-docs/acl/tokens#create-a-token)|acl:write|
-Delete a Token|[DELETE/v1/acl/token/:AccessorID](https://www.consul.io/api-docs/acl/tokens#delete-a-token)|acl:write|
-List Tokens|[GET/v1/acl/tokens](https://www.consul.io/api-docs/acl/tokens#list-tokens)|acl:read|
-Read a Token|[GET/v1/acl/token/:AccessorID](https://www.consul.io/api-docs/acl/tokens#read-a-token)|acl:read|
-Update a Token|[PUT/v1/acl/token/:AccessorID](https://www.consul.io/api-docs/acl/tokens#update-a-token)|acl:write|
-Translate a Legacy Token's Rules|[GET/v1/acl/rules/translate/:accessor_id](https://www.consul.io/api-docs/acl#translate-a-legacy-token-s-rules)|acl:read|
-List Datacenters|[GET/v1/catalog/datacenters](https://www.consul.io/api-docs/catalog#list-datacenters)|none|list of names of DCs
-List Nodes|[GET/v1/catalog/nodes](https://www.consul.io/api-docs/catalog#list-nodes)|node:read|
-List Services|[GET/v1/catalog/services](https://www.consul.io/api-docs/catalog#list-services)|service:read|
-Delete Configuration|[DELETE/v1/config/:kind/:name](https://www.consul.io/api-docs/config#delete-configuration)|service:write,operator:write|
-List Configurations|[GET/v1/config/:kind](https://www.consul.io/api-docs/config#list-configurations)|service:read|
-Get Configuration|[GET/v1/config/:kind/:name](https://www.consul.io/api-docs/config#get-configuration)|service:read|
-Apply Configuration|[PUT/v1/config](https://www.consul.io/api-docs/config#apply-configuration)|service:write,operator:write|A
-Get CA Configuration|[GET/v1/connect/ca/configuration](https://www.consul.io/api-docs/connect/ca#get-ca-configuration)|operator:write|
-Update CA Configuration|[PUT/v1/connect/ca/configuration](https://www.consul.io/api-docs/connect/ca#update-ca-configuration)|operator:write|
-Consul Connect Envoy|[NoneNone](None)|??|
-Consul Connect Expose|[NoneNone](None)|??|
-Consul Connect Proxy|[NoneNone](None)|??|
-Consul Connect Redirect-Traffic|[NoneNone](None)|??|
-Consul Debug|[NoneNone](None)|??|
-Fire Event|[PUT/v1/event/fire/:name](https://www.consul.io/api-docs/event#fire-event)|event:write|
-Consul Exec|[NoneNone](None)|??|
-Force Leave and Shutdown|[PUT/v1/agent/force-leave/:node](https://www.consul.io/api-docs/agent#force-leave-and-shutdown)|operator:write|
-Consul Info|[NoneNone](None)|??|
-Check Intention Result|[GET/v1/connect/intentions/check](https://www.consul.io/api-docs/connect/intentions#check-intention-result)||
-Create Intention with ID|[POST/v1/connect/intentions](https://www.consul.io/api-docs/connect/intentions#create-intention-with-id)|intentions:write|
-Upsert Intention by Name|[PUT/v1/connect/intentions/exact](https://www.consul.io/api-docs/connect/intentions#upsert-intention-by-name)|intentions:write|
-Delete Intention by Name|[DELETE/v1/connect/intentions/exact](https://www.consul.io/api-docs/connect/intentions#delete-intention-by-name)|intentions:write|
-Delete Intention with ID|[DELETE/v1/connect/intentions/:uuid](https://www.consul.io/api-docs/connect/intentions#delete-intention-by-id)|intentions:write|
-Read Specific Intention By Name|[GET/v1/connect/intentions/exact](https://www.consul.io/api-docs/connect/intentions##read-specific-intention-by-name)|intentions:read|
-List Intentions|[GET/v1/connect/intentions](https://www.consul.io/api-docs/connect/intentions#list-intentions)|intentions:read|
-Read Specific Intention by ID|[GET/v1/connect/intentions/:uuid](https://www.consul.io/api-docs/connect/intentions#read-specific-intention-by-id)|intentions:read|
-List Matching Intentions|[GET/v1/connect/intentions/match](https://www.consul.io/api-docs/connect/intentions#list-matching-intentions)|intentions:read|
-Join Agent|[PUT/v1/agent/join/:address](https://www.consul.io/api-docs/agent#join-agent)|agent:write|
-Consul Keygen|[NoneNone](None)|??|
-Add New Gossip Encryption Key|[POST/v1/operator/keyring](https://www.consul.io/api-docs/operator/keyring#add-new-gossip-encryption-key)|keyring:write|
-List Gossip Encryption Keys|[GET/v1/operator/keyring](https://www.consul.io/api-docs/operator/keyring#list-gossip-encryption-keys)|keyring:read|
-Delete Gossip Encryption Key|[DELETE/v1/operator/keyring](https://www.consul.io/api-docs/operator/keyring#delete-gossip-encryption-key)|keyring:write|
-Change Primary Gossip Encryption Key|[PUT/v1/operator/keyring](https://www.consul.io/api-docs/operator/keyring#change-primary-gossip-encryption-key)|keyring:write|
-Delete Key|[DELETE/v1/kv/:key](https://www.consul.io/api-docs/kv#delete-key)|key:write|
-Consul KV Export|[NoneNone](None)|??|
-Read Key|[GET/v1/kv/:key](https://www.consul.io/api-docs/kv#read-key)|key:read|
-Consul KV Import|[NoneNone](None)|??|
-Create/Update Key|[PUT/v1/kv/:key](https://www.consul.io/api-docs/kv#create-update-key)|key:write|
-Graceful Leave and Shutdown|[PUT/v1/agent/leave](https://www.consul.io/api-docs/agent#graceful-leave-and-shutdown)|agent:write|
-Getting the Consul License|[GET/v1/operator/license](https://www.consul.io/api-docs/operator/license#getting-the-consul-license)|none|license timing, package/feature availability, license and customer id
-Consul License Inspect|[NoneNone](None)|??|
-Updating the Consul License|[PUT/v1/operator/license](https://www.consul.io/api-docs/operator/license#updating-the-consul-license)|operator:write|
-Resetting the Consul License|[DELETE/v1/operator/license](https://www.consul.io/api-docs/operator/license#resetting-the-consul-license)|operator:write|
-Consul Lock|[NoneNone](None)|??|
-Login to Auth Method|[POST/v1/acl/login](https://www.consul.io/api-docs/acl#login-to-auth-method)|none|Returns all token info if bearer token known
-Logout from Auth Method|[POST/v1/acl/logout](https://www.consul.io/api-docs/acl#logout-from-auth-method)|none|No return value (deletes a token if the bearer token is known)
-Enable Maintenance Mode (Agent)|[PUT/v1/agent/maintenance](https://www.consul.io/api-docs/agent#enable-maintenance-mode)|node:write|
-List Members|[GET/v1/agent/members](https://www.consul.io/api-docs/agent#list-members)|node:read|
-Consul Monitor|[NoneNone](None)|??|
-Create a Namespace|[PUT/v1/namespace](https://www.consul.io/api-docs/namespaces#create-a-namespace)|operator:write|
-Delete a Namespace|[DELETE/v1/namespace/:name](https://www.consul.io/api-docs/namespaces#delete-a-namespace)|operator:write|
-List All Namespaces|[GET/v1/namespaces](https://www.consul.io/api-docs/namespaces#list-all-namespaces)|operator:read or namespace:* read|
-Read a Namespace|[GET/v1/namespace/:name](https://www.consul.io/api-docs/namespaces#read-a-namespace)|operator:read or namespace:* read|
-Update a Namespace|[PUT/v1/namespace/:name](https://www.consul.io/api-docs/namespaces#update-a-namespace)|operator:write|
-Create Network Area|[POST/v1/operator/area](https://www.consul.io/api-docs/operator/area#create-network-area)|operator:write|
-Delete Network Area|[DELETE/v1/operator/area/:uuid](https://www.consul.io/api-docs/operator/area#delete-network-area)|operator:write|
-Join Network Area|[PUT/v1/operator/area/:uuid/join](https://www.consul.io/api-docs/operator/area#join-network-area)|operator:write|
-List Network Areas|[GET/v1/operator/area](https://www.consul.io/api-docs/operator/area#list-network-areas)|operator:read|
-List Network Area Members|[GET/v1/operator/area/:uuid/members](https://www.consul.io/api-docs/operator/area#list-network-area-members)|operator:read|
-Update Network Area|[PUT/v1/operator/area/:uuid](https://www.consul.io/api-docs/operator/area#update-network-area)|operator:write|
-Read Configuration|[GET/v1/operator/autopilot/configuration](https://www.consul.io/api-docs/operator/autopilot#read-configuration)|operator:read|
-Update Configuration|[PUT/v1/operator/autopilot/configuration](https://www.consul.io/api-docs/operator/autopilot#update-configuration)|operator:write|
-Read the Autopilot State|[GET/v1/operator/autopilot/state](https://www.consul.io/api-docs/operator/autopilot#read-the-autopilot-state)|operator:read|
-List Raft Peers|[GET/v1/status/peers](https://www.consul.io/api-docs/status#list-raft-peers)|none|IP address + port of Raft members (servers)
-Delete Raft Peer|[DELETE/v1/operator/raft/peer](https://www.consul.io/api-docs/operator/raft#delete-raft-peer)|operator:write|
-Reload Agent|[PUT/v1/agent/reload](https://www.consul.io/api-docs/agent#reload-agent)|agent:write|
-Read WAN Coordinates|[GET/v1/coordinate/datacenters](https://www.consul.io/api-docs/coordinate#read-wan-coordinates)|none|Consul datacenter names, server node names, and their network coordinates
-Read LAN Coordinates for All Nodes|[GET/v1/coordinate/nodes](https://www.consul.io/api-docs/coordinate#read-lan-coordinates-for-all-nodes)|node:read|
-Deregister Service|[PUT/v1/agent/service/deregister/:service_id](https://www.consul.io/api-docs/agent/service#deregister-service)|service:write|
-Register Service|[PUT/v1/agent/service/register](https://www.consul.io/api-docs/agent/service#register-service)|service:write|
-Consul Snapshot Agent|[NoneNone](None)|??|
-Consul Shapshot Inspect|[NoneNone](None)|??|
-Restore Snapshot|[PUT/v1/snapshot](https://www.consul.io/api-docs/snapshot#restore-snapshot)|management|
-Generate Snapshot|[GET/v1/snapshot](https://www.consul.io/api-docs/snapshot#generate-snapshot)|management|
-Consul TLS|[NoneNone](None)|??|
-Consul Validate|[NoneNone](None)|??|
-Consul Version|[NoneNone](None)|??|
-Consul Watch|[VariesAny blocking query](https://www.consul.io/api-docs/features/blocking)|Varies|
-Check ACL Replication|[GET/v1/acl/replication](https://www.consul.io/api-docs/acl#check-acl-replication)|none|Whether replication is enabled and its status
-Translate Rules|[POST/v1/acl/rules/translate](https://www.consul.io/api-docs/acl#translate-rules)|acl:read|
-OIDC Authorization URL Request|[POST/v1/oidc/auth-url](https://www.consul.io/api-docs/acl#oidc-authorization-url-request)|none|Obtain an auth URL to start the OIDC login flow
-OIDC Callback|[POST/v1/oidc/callback](https://www.consul.io/api-docs/acl#oidc-callback)|none|Nothing that isn't already known
-Create ACL Token (Legacy)|[PUT/v1/acl/create](https://www.consul.io/api-docs/acl/legacy#create-acl-token)|management|
-Update ACL Token (Legacy)|[PUT/v1/acl/update](https://www.consul.io/api-docs/acl/legacy#update-acl-token)|management|
-Delete ACL Token (Legacy)|[PUT/v1/acl/destroy/](https://www.consul.io/api-docs/acl/legacy#delete-acl-token)|management|
-Read ACL Token (Legacy)|[GET/v1/acl/info/](https://www.consul.io/api-docs/acl/legacy#read-acl-token)|none|Returns all token info if token UUID known
-Clone ACL Token (Legacy)|[PUT/v1/acl/clone/](https://www.consul.io/api-docs/acl/legacy#delete-acl-token)|management|
-List ACLs (Legacy)|[GET/v1/acl/list/](https://www.consul.io/api-docs/acl/legacy#list-acls)|management|
-Read Self Token|[GET/v1/acl/token/self](https://www.consul.io/api-docs/acl/tokens#read-self-token)|none|Returns all token info if token secret ID known
-Retrieve Host Information|[GET/vt/agent/host](https://www.consul.io/api-docs/agent#retrieve-host-information)|operator:read|
-Read Configuration|[GET/v1/agent/self](https://www.consul.io/api-docs/agent#read-configuration)|agent:read|
-View Metrics|[GET/v1/agent/metrics](https://www.consul.io/api-docs/agent#view-metrics)|agent:read|
-Stream Logs|[GET/v1/agent/monitor](https://www.consul.io/api-docs/agent#stream-logs)|agent:read|
-List Checks|[GET/v1/agent/checks](https://www.consul.io/api-docs/agent/check#list-checks)|node:read,service:read|
-Register Check|[PUT/v1/agent/check/register](https://www.consul.io/api-docs/agent/check#register-check)|node:write,service:write|
-Deregister Check|[PUT/v1/agent/check/deregister/:check_id](https://www.consul.io/api-docs/agent/check#deregister-check)|node:write,service:write|
-TTL Check Pass|[PUT/v1/agent/check/pass/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-pass)|node:write,service:write|
-TTL Check Warn|[PUT/v1/agent/check/warn/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-warn)|node:write,service:write|
-TTL Check Fail|[PUT/v1/agent/check/fail/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-fail)|node:write,service:write|
-TTL Check Update|[PUT/v1/agent/check/update/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-update)|node:write,service:write|
-List Services|[GET/v1/agent/services](https://www.consul.io/api-docs/agent/service#list-services)|service:read|
-Get Service Configuration|[GET/v1/agent/service/:service_id](https://www.consul.io/api-docs/agent/service#get-service-configuration)|service:read|
-Get Local Service Health|[GET/v1/agent/health/service/name/:service_name](https://www.consul.io/api-docs/agent/service#get-local-service-health)|service:read|
-Get Local Service Health by ID|[GET/v1/agent/health/service/id/:service_id](https://www.consul.io/api-docs/agent/service#get-local-service-health-by-its-id)|service:read|
-Enable Maintenance Mode (Service)|[PUT/v1/agent/service/maintenance/:service_id](https://www.consul.io/api-docs/agent/service#enable-maintenance-mode)|service:write|
-Authorize|[POST/v1/agent/connect/authorize](https://www.consul.io/api-docs/agent/connect#authorize)|service:write|
-Certificate Authority (CA) Roots|[GET/v1/agent/connect/ca/roots](https://www.consul.io/api-docs/agent/connect#certificate-authority-ca-roots)|none|Trusted CA (public) root certificates
-Service Leaf Certificate|[GET/v1/agent/connect/ca/leaf/:service](https://www.consul.io/api-docs/agent/connect#service-leaf-certificate)|service:write|
-Register Entity|[PUT/v1/catalog/register](https://www.consul.io/api-docs/catalog#register-entity)|node:write,service:write|
-Deregister Entity|[PUT/v1/catalog/deregister](https://www.consul.io/api-docs/catalog#deregister-entity)|node:write,service:write|
-List Nodes for Service|[GET/v1/catalog/service/:service](https://www.consul.io/api-docs/catalog#list-nodes-for-service)|node:read,service:read|
-List Nodes for Connect-capable Service|[GET/v1/catalog/connect/:service](https://www.consul.io/api-docs/catalog#list-nodes-for-connect-capable-service)|node:read,service:read|
-Retrieve Map of Services for a Node|[GET/v1/catalog/node/:node](https://www.consul.io/api-docs/catalog#retrieve-map-of-services-for-a-node)|node:read,service:read|
-List Services for Node|[GET/v1/catalog/node-services/:node](https://www.consul.io/api-docs/catalog#list-services-for-node)|node:read,service:read|
-List Services for Gateway|[GET/v1/catalog/gateway-services/:gateway](https://www.consul.io/api-docs/catalog#list-services-for-gateway)|service:read|
-List CA Root Certificates|[GET/v1/connect/ca/roots](https://www.consul.io/api-docs/connect/ca#list-ca-root-certificates)|none|List of trusted CA (public) root certificates
-Update Intention by ID|[PUT/v1/connect/intentions/:uuid](https://www.consul.io/api-docs/connect/intentions#update-intention-by-id)|intentions:write|
-Read LAN Coordinates for a Node|[GET/v1/coordinate/node/:node](https://www.consul.io/api-docs/coordinate#read-lan-coordinates-for-a-node)|node:read|
-Update LAN Coordinates for a Node|[PUT/v1/coordinate/update](https://www.consul.io/api-docs/coordinate#update-lan-coordinates-for-a-node)|node:write|
-Read Compiled Discovery Chain|[GET/v1/discovery-chain/:service](https://www.consul.io/api-docs/discovery-chain#read-compiled-discovery-chain)|service:read|
-Read Compiled Discovery Chain|[POST/v1/discovery-chain/:service](https://www.consul.io/api-docs/discovery-chain#read-compiled-discovery-chain)|service:read|
-List Events|[GET/v1/event/list](https://www.consul.io/api-docs/event#list-events)|event:read|
-List Checks for Node|[GET/v1/health/node/:node](https://www.consul.io/api-docs/health#list-checks-for-node)|node:read,service:read|
-List Checks for Service|[GET/v1/health/checks/:service](https://www.consul.io/api-docs/health#list-checks-for-service)|node:read,service:read|
-List Service Instances for Service|[GET/v1/health/service/:service](https://www.consul.io/api-docs/health#list-nodes-for-service)|node:read,service:read|
-List Service Instances for Connect-enabled Service|[GET/v1/health/connect/:service](https://www.consul.io/api-docs/health#list-service-instances-for-connect-enabled-service)|node:read,service:read|
-List Service Instances for Ingress Gateways Associated with a Service|[GET/v1/health/ingress/:service](https://www.consul.io/api-docs/health#list-service-instances-for-ingress-gateways-associated-with-a-service)|node:read,service:read|
-List Checks in State|[GET/v1/health/state/:state](https://www.consul.io/api-docs/health#list-checks-in-state)|node:read,service:read|
-List Specific Network Area|[GET/v1/operator/area/:uuid](https://www.consul.io/api-docs/operator/area#list-specific-network-area)|operator:read|
-Read Health|[GET/v1/operator/autopilot/health](https://www.consul.io/api-docs/operator/autopilot#read-health)|operator:read|
-Read Raft Configuration|[GET/v1/operator/raft/configuration](https://www.consul.io/api-docs/operator/raft#read-configuration)|operator:read|
-List Network Segments|[GET/v1/operator/segment](https://www.consul.io/api-docs/operator/segment#list-network-segments)|operator:read|
-Create Prepared Query|[POST/v1/query](https://www.consul.io/api-docs/query#create-prepared-query)|query:write|
-List Prepared Queries|[GET/v1/query](https://www.consul.io/api-docs/query#list-prepared-queries)|query:read|
-Update Prepared Query|[PUT/v1/query/:uuid](https://www.consul.io/api-docs/query#update-prepared-query)|query:write|
-Read Prepared Query|[GET/v1/query/:uuid](https://www.consul.io/api-docs/query#read-prepared-query)|query:read|
-Delete Prepared Query|[DELETE/v1/query/:uuid](https://www.consul.io/api-docs/query#delete-prepared-query)|query:write|
-Execute Prepared Query|[GET/v1/query/:uuid/execute](https://www.consul.io/api-docs/query#execute-prepared-query)|depends|
-Explain Prepared Query|[GET/v1/query/:uuid/explain](https://www.consul.io/api-docs/query#explain-prepared-query)|query:read|
-Create Session|[PUT/v1/session/create](https://www.consul.io/api-docs/session#create-session)|session:write|
-Delete Session|[PUT/v1/session/destroy/:uuid](https://www.consul.io/api-docs/session#delete-session)|session:write|
-Read Session|[GET/v1/session/info/:uuid](https://www.consul.io/api-docs/session#read-session)|session:read|
-List Sessions for Node|[GET/v1/session/node/:node](https://www.consul.io/api-docs/session#list-sessions-for-node)|session:read|
-List Sessions|[GET/v1/session/list](https://www.consul.io/api-docs/session#list-sessions)|session:read|
-Renew Session|[PUT/v1/session/renew/:uuid](https://www.consul.io/api-docs/session#renew-session)|session:write|
-Get Raft Leader|[GET/v1/status/leader](https://www.consul.io/api-docs/status#get-raft-leader)|none|IP address + port of Raft leader
-Create Transaction|[PUT/v1/txn](https://www.consul.io/api-docs/txn#create-transaction)|key:read,key:write,node:read,node:write,service:read,service:write|
-|[]()||
-|[]()||
-|[]()||
-|[]()||
-|[?/v1/agent/leader](None)||
+Name|[[API Method] API Endpoint](API Docs)|ACL Required|Info Revealed with No Token
+Create an Auth Method|[[PUT] /v1/acl/auth-method](https://www.consul.io/api-docs/acl/auth-methods#create-an-auth-method)|acl:write|
+Delete an Auth Method|[[DELETE] /v1/acl/auth-method/:name](https://www.consul.io/api-docs/acl/auth-methods#delete-an-auth-method)|acl:write|
+List Auth Methods|[[GET] /v1/acl/auth-methods](https://www.consul.io/api-docs/acl/auth-methods#list-auth-methods)|acl:read|
+Read an Auth Method|[[GET] /v1/acl/auth-method/:name](https://www.consul.io/api-docs/acl/auth-methods#read-an-auth-method)|acl:read|
+Update an Auth Method|[[PUT] /v1/acl/auth-method/:name](https://www.consul.io/api-docs/acl/auth-methods#update-an-auth-method)|acl:write|
+Create a Binding Rule|[[PUT] /v1/acl/binding-rule](https://www.consul.io/api-docs/acl/binding-rules#create-a-binding-rule)|acl:write|
+Delete a Binding Rule|[[DELETE] /v1/acl/binding-rule/:id](https://www.consul.io/api-docs/acl/binding-rules#delete-a-binding-rule)|acl:write|
+List Binding Rules|[[GET] /v1/acl/binding-rules](https://www.consul.io/api-docs/acl/binding-rules#list-binding-rules)|acl:read|
+Read a Binding Rule|[[GET] /v1/acl/binding-rule/:id](https://www.consul.io/api-docs/acl/binding-rules#read-a-binding-rule)|acl:read|
+Update a Binding Rule|[[PUT] /v1/acl/binding-rule/:id](https://www.consul.io/api-docs/acl/binding-rules#update-a-binding-rule)|acl:write|
+Bootstrap ACLs|[[PUT] /v1/acl/bootstrap](https://www.consul.io/api-docs/acl#bootstrap-acls)|none|Full management token on first call; 403 error after first call
+Create a Policy|[[PUT] /v1/acl/policy](https://www.consul.io/api-docs/acl/policies#create-a-policy)|acl:write|
+Delete a Policy|[[DELETE] /v1/acl/policy/:id](https://www.consul.io/api-docs/acl/policies#delete-a-policy)|acl:write|
+List Policies|[[GET] /v1/acl/policies](https://www.consul.io/api-docs/acl/policies#list-policies)|acl:read|
+Read a Policy|[[GET] /v1/acl/policy/:id](https://www.consul.io/api-docs/acl/policies#read-a-policy)|acl:read|
+Read a Policy|[[GET] /v1/acl/policy/name/:name](https://www.consul.io/api-docs/acl/policies#read-a-policy-by-name)|acl:read|
+Update a Policy|[[PUT] /v1/acl/policy/:id](https://www.consul.io/api-docs/acl/policies#update-a-policy)|acl:write|
+Create a Role|[[PUT] /v1/acl/role](https://www.consul.io/api-docs/acl/roles#create-a-role)|acl:write|
+Delete a Role|[[DELETE] /v1/acl/role/:id](https://www.consul.io/api-docs/acl/roles#delete-a-role)|acl:write|
+List Roles|[[GET] /v1/acl/roles](https://www.consul.io/api-docs/acl/roles#list-roles)|acl:read|
+Read a Role|[[GET] /v1/acl/role/:id](https://www.consul.io/api-docs/acl/roles#read-a-role)|acl:read|
+Read a Role by Name|[[GET] /v1/acl/role/name/:name](https://www.consul.io/api-docs/acl/roles#read-a-role-by-name)|acl:read|
+Update a Role|[[PUT] /v1/acl/role/:id](https://www.consul.io/api-docs/acl/roles#update-a-role)|acl:write|
+Update ACL Tokens|[[PUT] /v1/agent/token/:type](https://www.consul.io/api-docs/agent#update-acl-tokens)|acl:write|
+Clone a Token|[[PUT] /v1/acl/token/:AccessorID/clone](https://www.consul.io/api-docs/acl/tokens#clone-a-token)|acl:write|
+Create a Token|[[PUT] /v1/acl/token](https://www.consul.io/api-docs/acl/tokens#create-a-token)|acl:write|
+Delete a Token|[[DELETE] /v1/acl/token/:AccessorID](https://www.consul.io/api-docs/acl/tokens#delete-a-token)|acl:write|
+List Tokens|[[GET] /v1/acl/tokens](https://www.consul.io/api-docs/acl/tokens#list-tokens)|acl:read|
+Read a Token|[[GET] /v1/acl/token/:AccessorID](https://www.consul.io/api-docs/acl/tokens#read-a-token)|acl:read|
+Update a Token|[[PUT] /v1/acl/token/:AccessorID](https://www.consul.io/api-docs/acl/tokens#update-a-token)|acl:write|
+Translate a Legacy Token's Rules|[[GET] /v1/acl/rules/translate/:accessor_id](https://www.consul.io/api-docs/acl#translate-a-legacy-token-s-rules)|acl:read|
+List Datacenters|[[GET] /v1/catalog/datacenters](https://www.consul.io/api-docs/catalog#list-datacenters)|none|list of names of DCs
+List Nodes|[[GET] /v1/catalog/nodes](https://www.consul.io/api-docs/catalog#list-nodes)|node:read|
+List Services|[[GET] /v1/catalog/services](https://www.consul.io/api-docs/catalog#list-services)|service:read|
+Delete Configuration|[[DELETE] /v1/config/:kind/:name](https://www.consul.io/api-docs/config#delete-configuration)|service:write,operator:write|
+List Configurations|[[GET] /v1/config/:kind](https://www.consul.io/api-docs/config#list-configurations)|service:read|
+Get Configuration|[[GET] /v1/config/:kind/:name](https://www.consul.io/api-docs/config#get-configuration)|service:read|
+Apply Configuration|[[PUT] /v1/config](https://www.consul.io/api-docs/config#apply-configuration)|service:write,operator:write|A
+Get CA Configuration|[[GET] /v1/connect/ca/configuration](https://www.consul.io/api-docs/connect/ca#get-ca-configuration)|operator:write|
+Update CA Configuration|[[PUT] /v1/connect/ca/configuration](https://www.consul.io/api-docs/connect/ca#update-ca-configuration)|operator:write|
+Consul Connect Envoy|[[None] None](None)|??|
+Consul Connect Expose|[[None] None](None)|??|
+Consul Connect Proxy|[[None] None](None)|??|
+Consul Connect Redirect-Traffic|[[None] None](None)|??|
+Consul Debug|[[None] None](None)|??|
+Fire Event|[[PUT] /v1/event/fire/:name](https://www.consul.io/api-docs/event#fire-event)|event:write|
+Consul Exec|[[None] None](None)|??|
+Force Leave and Shutdown|[[PUT] /v1/agent/force-leave/:node](https://www.consul.io/api-docs/agent#force-leave-and-shutdown)|operator:write|
+Consul Info|[[None] None](None)|??|
+Check Intention Result|[[GET] /v1/connect/intentions/check](https://www.consul.io/api-docs/connect/intentions#check-intention-result)||
+Create Intention with ID|[[POST] /v1/connect/intentions](https://www.consul.io/api-docs/connect/intentions#create-intention-with-id)|intentions:write|
+Upsert Intention by Name|[[PUT] /v1/connect/intentions/exact](https://www.consul.io/api-docs/connect/intentions#upsert-intention-by-name)|intentions:write|
+Delete Intention by Name|[[DELETE] /v1/connect/intentions/exact](https://www.consul.io/api-docs/connect/intentions#delete-intention-by-name)|intentions:write|
+Delete Intention with ID|[[DELETE] /v1/connect/intentions/:uuid](https://www.consul.io/api-docs/connect/intentions#delete-intention-by-id)|intentions:write|
+Read Specific Intention By Name|[[GET] /v1/connect/intentions/exact](https://www.consul.io/api-docs/connect/intentions##read-specific-intention-by-name)|intentions:read|
+List Intentions|[[GET] /v1/connect/intentions](https://www.consul.io/api-docs/connect/intentions#list-intentions)|intentions:read|
+Read Specific Intention by ID|[[GET] /v1/connect/intentions/:uuid](https://www.consul.io/api-docs/connect/intentions#read-specific-intention-by-id)|intentions:read|
+List Matching Intentions|[[GET] /v1/connect/intentions/match](https://www.consul.io/api-docs/connect/intentions#list-matching-intentions)|intentions:read|
+Join Agent|[[PUT] /v1/agent/join/:address](https://www.consul.io/api-docs/agent#join-agent)|agent:write|
+Consul Keygen|[[None] None](None)|??|
+Add New Gossip Encryption Key|[[POST] /v1/operator/keyring](https://www.consul.io/api-docs/operator/keyring#add-new-gossip-encryption-key)|keyring:write|
+List Gossip Encryption Keys|[[GET] /v1/operator/keyring](https://www.consul.io/api-docs/operator/keyring#list-gossip-encryption-keys)|keyring:read|
+Delete Gossip Encryption Key|[[DELETE] /v1/operator/keyring](https://www.consul.io/api-docs/operator/keyring#delete-gossip-encryption-key)|keyring:write|
+Change Primary Gossip Encryption Key|[[PUT] /v1/operator/keyring](https://www.consul.io/api-docs/operator/keyring#change-primary-gossip-encryption-key)|keyring:write|
+Delete Key|[[DELETE] /v1/kv/:key](https://www.consul.io/api-docs/kv#delete-key)|key:write|
+Consul KV Export|[[None] None](None)|??|
+Read Key|[[GET] /v1/kv/:key](https://www.consul.io/api-docs/kv#read-key)|key:read|
+Consul KV Import|[[None] None](None)|??|
+Create/Update Key|[[PUT] /v1/kv/:key](https://www.consul.io/api-docs/kv#create-update-key)|key:write|
+Graceful Leave and Shutdown|[[PUT] /v1/agent/leave](https://www.consul.io/api-docs/agent#graceful-leave-and-shutdown)|agent:write|
+Getting the Consul License|[[GET] /v1/operator/license](https://www.consul.io/api-docs/operator/license#getting-the-consul-license)|none|license timing, package/feature availability, license and customer id
+Consul License Inspect|[[None] None](None)|??|
+Updating the Consul License|[[PUT] /v1/operator/license](https://www.consul.io/api-docs/operator/license#updating-the-consul-license)|operator:write|
+Resetting the Consul License|[[DELETE] /v1/operator/license](https://www.consul.io/api-docs/operator/license#resetting-the-consul-license)|operator:write|
+Consul Lock|[[None] None](None)|??|
+Login to Auth Method|[[POST] /v1/acl/login](https://www.consul.io/api-docs/acl#login-to-auth-method)|none|Returns all token info if bearer token known
+Logout from Auth Method|[[POST] /v1/acl/logout](https://www.consul.io/api-docs/acl#logout-from-auth-method)|none|No return value (deletes a token if the bearer token is known)
+Enable Maintenance Mode (Agent)|[[PUT] /v1/agent/maintenance](https://www.consul.io/api-docs/agent#enable-maintenance-mode)|node:write|
+List Members|[[GET] /v1/agent/members](https://www.consul.io/api-docs/agent#list-members)|node:read|
+Consul Monitor|[[None] None](None)|??|
+Create a Namespace|[[PUT] /v1/namespace](https://www.consul.io/api-docs/namespaces#create-a-namespace)|operator:write|
+Delete a Namespace|[[DELETE] /v1/namespace/:name](https://www.consul.io/api-docs/namespaces#delete-a-namespace)|operator:write|
+List All Namespaces|[[GET] /v1/namespaces](https://www.consul.io/api-docs/namespaces#list-all-namespaces)|operator:read or namespace:* read|
+Read a Namespace|[[GET] /v1/namespace/:name](https://www.consul.io/api-docs/namespaces#read-a-namespace)|operator:read or namespace:* read|
+Update a Namespace|[[PUT] /v1/namespace/:name](https://www.consul.io/api-docs/namespaces#update-a-namespace)|operator:write|
+Create Network Area|[[POST] /v1/operator/area](https://www.consul.io/api-docs/operator/area#create-network-area)|operator:write|
+Delete Network Area|[[DELETE] /v1/operator/area/:uuid](https://www.consul.io/api-docs/operator/area#delete-network-area)|operator:write|
+Join Network Area|[[PUT] /v1/operator/area/:uuid/join](https://www.consul.io/api-docs/operator/area#join-network-area)|operator:write|
+List Network Areas|[[GET] /v1/operator/area](https://www.consul.io/api-docs/operator/area#list-network-areas)|operator:read|
+List Network Area Members|[[GET] /v1/operator/area/:uuid/members](https://www.consul.io/api-docs/operator/area#list-network-area-members)|operator:read|
+Update Network Area|[[PUT] /v1/operator/area/:uuid](https://www.consul.io/api-docs/operator/area#update-network-area)|operator:write|
+Read Configuration|[[GET] /v1/operator/autopilot/configuration](https://www.consul.io/api-docs/operator/autopilot#read-configuration)|operator:read|
+Update Configuration|[[PUT] /v1/operator/autopilot/configuration](https://www.consul.io/api-docs/operator/autopilot#update-configuration)|operator:write|
+Read the Autopilot State|[[GET] /v1/operator/autopilot/state](https://www.consul.io/api-docs/operator/autopilot#read-the-autopilot-state)|operator:read|
+List Raft Peers|[[GET] /v1/status/peers](https://www.consul.io/api-docs/status#list-raft-peers)|none|IP address + port of Raft members (servers)
+Delete Raft Peer|[[DELETE] /v1/operator/raft/peer](https://www.consul.io/api-docs/operator/raft#delete-raft-peer)|operator:write|
+Reload Agent|[[PUT] /v1/agent/reload](https://www.consul.io/api-docs/agent#reload-agent)|agent:write|
+Read WAN Coordinates|[[GET] /v1/coordinate/datacenters](https://www.consul.io/api-docs/coordinate#read-wan-coordinates)|none|Consul datacenter names, server node names, and their network coordinates
+Read LAN Coordinates for All Nodes|[[GET] /v1/coordinate/nodes](https://www.consul.io/api-docs/coordinate#read-lan-coordinates-for-all-nodes)|node:read|
+Deregister Service|[[PUT] /v1/agent/service/deregister/:service_id](https://www.consul.io/api-docs/agent/service#deregister-service)|service:write|
+Register Service|[[PUT] /v1/agent/service/register](https://www.consul.io/api-docs/agent/service#register-service)|service:write|
+Consul Snapshot Agent|[[None] None](None)|??|
+Consul Shapshot Inspect|[[None] None](None)|??|
+Restore Snapshot|[[PUT] /v1/snapshot](https://www.consul.io/api-docs/snapshot#restore-snapshot)|management|
+Generate Snapshot|[[GET] /v1/snapshot](https://www.consul.io/api-docs/snapshot#generate-snapshot)|management|
+Consul TLS|[[None] None](None)|??|
+Consul Validate|[[None] None](None)|??|
+Consul Version|[[None] None](None)|??|
+Consul Watch|[[Varies] Any blocking query](https://www.consul.io/api-docs/features/blocking)|Varies|
+Check ACL Replication|[[GET] /v1/acl/replication](https://www.consul.io/api-docs/acl#check-acl-replication)|none|Whether replication is enabled and its status
+Translate Rules|[[POST] /v1/acl/rules/translate](https://www.consul.io/api-docs/acl#translate-rules)|acl:read|
+OIDC Authorization URL Request|[[POST] /v1/oidc/auth-url](https://www.consul.io/api-docs/acl#oidc-authorization-url-request)|none|Obtain an auth URL to start the OIDC login flow
+OIDC Callback|[[POST] /v1/oidc/callback](https://www.consul.io/api-docs/acl#oidc-callback)|none|Nothing that isn't already known
+Create ACL Token (Legacy)|[[PUT] /v1/acl/create](https://www.consul.io/api-docs/acl/legacy#create-acl-token)|management|
+Update ACL Token (Legacy)|[[PUT] /v1/acl/update](https://www.consul.io/api-docs/acl/legacy#update-acl-token)|management|
+Delete ACL Token (Legacy)|[[PUT] /v1/acl/destroy/](https://www.consul.io/api-docs/acl/legacy#delete-acl-token)|management|
+Read ACL Token (Legacy)|[[GET] /v1/acl/info/](https://www.consul.io/api-docs/acl/legacy#read-acl-token)|none|Returns all token info if token UUID known
+Clone ACL Token (Legacy)|[[PUT] /v1/acl/clone/](https://www.consul.io/api-docs/acl/legacy#delete-acl-token)|management|
+List ACLs (Legacy)|[[GET] /v1/acl/list/](https://www.consul.io/api-docs/acl/legacy#list-acls)|management|
+Read Self Token|[[GET] /v1/acl/token/self](https://www.consul.io/api-docs/acl/tokens#read-self-token)|none|Returns all token info if token secret ID known
+Retrieve Host Information|[[GET] /vt/agent/host](https://www.consul.io/api-docs/agent#retrieve-host-information)|operator:read|
+Read Configuration|[[GET] /v1/agent/self](https://www.consul.io/api-docs/agent#read-configuration)|agent:read|
+View Metrics|[[GET] /v1/agent/metrics](https://www.consul.io/api-docs/agent#view-metrics)|agent:read|
+Stream Logs|[[GET] /v1/agent/monitor](https://www.consul.io/api-docs/agent#stream-logs)|agent:read|
+List Checks|[[GET] /v1/agent/checks](https://www.consul.io/api-docs/agent/check#list-checks)|node:read,service:read|
+Register Check|[[PUT] /v1/agent/check/register](https://www.consul.io/api-docs/agent/check#register-check)|node:write,service:write|
+Deregister Check|[[PUT] /v1/agent/check/deregister/:check_id](https://www.consul.io/api-docs/agent/check#deregister-check)|node:write,service:write|
+TTL Check Pass|[[PUT] /v1/agent/check/pass/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-pass)|node:write,service:write|
+TTL Check Warn|[[PUT] /v1/agent/check/warn/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-warn)|node:write,service:write|
+TTL Check Fail|[[PUT] /v1/agent/check/fail/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-fail)|node:write,service:write|
+TTL Check Update|[[PUT] /v1/agent/check/update/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-update)|node:write,service:write|
+List Services|[[GET] /v1/agent/services](https://www.consul.io/api-docs/agent/service#list-services)|service:read|
+Get Service Configuration|[[GET] /v1/agent/service/:service_id](https://www.consul.io/api-docs/agent/service#get-service-configuration)|service:read|
+Get Local Service Health|[[GET] /v1/agent/health/service/name/:service_name](https://www.consul.io/api-docs/agent/service#get-local-service-health)|service:read|
+Get Local Service Health by ID|[[GET] /v1/agent/health/service/id/:service_id](https://www.consul.io/api-docs/agent/service#get-local-service-health-by-its-id)|service:read|
+Enable Maintenance Mode (Service)|[[PUT] /v1/agent/service/maintenance/:service_id](https://www.consul.io/api-docs/agent/service#enable-maintenance-mode)|service:write|
+Authorize|[[POST] /v1/agent/connect/authorize](https://www.consul.io/api-docs/agent/connect#authorize)|service:write|
+Certificate Authority (CA) Roots|[[GET] /v1/agent/connect/ca/roots](https://www.consul.io/api-docs/agent/connect#certificate-authority-ca-roots)|none|Trusted CA (public) root certificates
+Service Leaf Certificate|[[GET] /v1/agent/connect/ca/leaf/:service](https://www.consul.io/api-docs/agent/connect#service-leaf-certificate)|service:write|
+Register Entity|[[PUT] /v1/catalog/register](https://www.consul.io/api-docs/catalog#register-entity)|node:write,service:write|
+Deregister Entity|[[PUT] /v1/catalog/deregister](https://www.consul.io/api-docs/catalog#deregister-entity)|node:write,service:write|
+List Nodes for Service|[[GET] /v1/catalog/service/:service](https://www.consul.io/api-docs/catalog#list-nodes-for-service)|node:read,service:read|
+List Nodes for Connect-capable Service|[[GET] /v1/catalog/connect/:service](https://www.consul.io/api-docs/catalog#list-nodes-for-connect-capable-service)|node:read,service:read|
+Retrieve Map of Services for a Node|[[GET] /v1/catalog/node/:node](https://www.consul.io/api-docs/catalog#retrieve-map-of-services-for-a-node)|node:read,service:read|
+List Services for Node|[[GET] /v1/catalog/node-services/:node](https://www.consul.io/api-docs/catalog#list-services-for-node)|node:read,service:read|
+List Services for Gateway|[[GET] /v1/catalog/gateway-services/:gateway](https://www.consul.io/api-docs/catalog#list-services-for-gateway)|service:read|
+List CA Root Certificates|[[GET] /v1/connect/ca/roots](https://www.consul.io/api-docs/connect/ca#list-ca-root-certificates)|none|List of trusted CA (public) root certificates
+Update Intention by ID|[[PUT] /v1/connect/intentions/:uuid](https://www.consul.io/api-docs/connect/intentions#update-intention-by-id)|intentions:write|
+Read LAN Coordinates for a Node|[[GET] /v1/coordinate/node/:node](https://www.consul.io/api-docs/coordinate#read-lan-coordinates-for-a-node)|node:read|
+Update LAN Coordinates for a Node|[[PUT] /v1/coordinate/update](https://www.consul.io/api-docs/coordinate#update-lan-coordinates-for-a-node)|node:write|
+Read Compiled Discovery Chain|[[GET] /v1/discovery-chain/:service](https://www.consul.io/api-docs/discovery-chain#read-compiled-discovery-chain)|service:read|
+Read Compiled Discovery Chain|[[POST] /v1/discovery-chain/:service](https://www.consul.io/api-docs/discovery-chain#read-compiled-discovery-chain)|service:read|
+List Events|[[GET] /v1/event/list](https://www.consul.io/api-docs/event#list-events)|event:read|
+List Checks for Node|[[GET] /v1/health/node/:node](https://www.consul.io/api-docs/health#list-checks-for-node)|node:read,service:read|
+List Checks for Service|[[GET] /v1/health/checks/:service](https://www.consul.io/api-docs/health#list-checks-for-service)|node:read,service:read|
+List Service Instances for Service|[[GET] /v1/health/service/:service](https://www.consul.io/api-docs/health#list-nodes-for-service)|node:read,service:read|
+List Service Instances for Connect-enabled Service|[[GET] /v1/health/connect/:service](https://www.consul.io/api-docs/health#list-service-instances-for-connect-enabled-service)|node:read,service:read|
+List Service Instances for Ingress Gateways Associated with a Service|[[GET] /v1/health/ingress/:service](https://www.consul.io/api-docs/health#list-service-instances-for-ingress-gateways-associated-with-a-service)|node:read,service:read|
+List Checks in State|[[GET] /v1/health/state/:state](https://www.consul.io/api-docs/health#list-checks-in-state)|node:read,service:read|
+List Specific Network Area|[[GET] /v1/operator/area/:uuid](https://www.consul.io/api-docs/operator/area#list-specific-network-area)|operator:read|
+Read Health|[[GET] /v1/operator/autopilot/health](https://www.consul.io/api-docs/operator/autopilot#read-health)|operator:read|
+Read Raft Configuration|[[GET] /v1/operator/raft/configuration](https://www.consul.io/api-docs/operator/raft#read-configuration)|operator:read|
+List Network Segments|[[GET] /v1/operator/segment](https://www.consul.io/api-docs/operator/segment#list-network-segments)|operator:read|
+Create Prepared Query|[[POST] /v1/query](https://www.consul.io/api-docs/query#create-prepared-query)|query:write|
+List Prepared Queries|[[GET] /v1/query](https://www.consul.io/api-docs/query#list-prepared-queries)|query:read|
+Update Prepared Query|[[PUT] /v1/query/:uuid](https://www.consul.io/api-docs/query#update-prepared-query)|query:write|
+Read Prepared Query|[[GET] /v1/query/:uuid](https://www.consul.io/api-docs/query#read-prepared-query)|query:read|
+Delete Prepared Query|[[DELETE] /v1/query/:uuid](https://www.consul.io/api-docs/query#delete-prepared-query)|query:write|
+Execute Prepared Query|[[GET] /v1/query/:uuid/execute](https://www.consul.io/api-docs/query#execute-prepared-query)|depends|
+Explain Prepared Query|[[GET] /v1/query/:uuid/explain](https://www.consul.io/api-docs/query#explain-prepared-query)|query:read|
+Create Session|[[PUT] /v1/session/create](https://www.consul.io/api-docs/session#create-session)|session:write|
+Delete Session|[[PUT] /v1/session/destroy/:uuid](https://www.consul.io/api-docs/session#delete-session)|session:write|
+Read Session|[[GET] /v1/session/info/:uuid](https://www.consul.io/api-docs/session#read-session)|session:read|
+List Sessions for Node|[[GET] /v1/session/node/:node](https://www.consul.io/api-docs/session#list-sessions-for-node)|session:read|
+List Sessions|[[GET] /v1/session/list](https://www.consul.io/api-docs/session#list-sessions)|session:read|
+Renew Session|[[PUT] /v1/session/renew/:uuid](https://www.consul.io/api-docs/session#renew-session)|session:write|
+Get Raft Leader|[[GET] /v1/status/leader](https://www.consul.io/api-docs/status#get-raft-leader)|none|IP address + port of Raft leader
+Create Transaction|[[PUT] /v1/txn](https://www.consul.io/api-docs/txn#create-transaction)|key:read,key:write,node:read,node:write,service:read,service:write|
+|[[] ]()||
+|[[] ]()||
+|[[] ]()||
+|[[] ]()||
+|[[?] /v1/agent/leader](None)||

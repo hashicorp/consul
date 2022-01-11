@@ -1,18 +1,18 @@
 | Endpoint Action      | API Endpoint           | Access Level   | Note   |
 | -------------------- | ---------------------- | -------------- | ------ |
-Delete Configuration|[DELETE/v1/config/:kind/:name](https://www.consul.io/api-docs/config#delete-configuration)|service:write,operator:write|
-Apply Configuration|[PUT/v1/config](https://www.consul.io/api-docs/config#apply-configuration)|service:write,operator:write|A
-Deregister Service|[PUT/v1/agent/service/deregister/:service_id](https://www.consul.io/api-docs/agent/service#deregister-service)|service:write|
-Register Service|[PUT/v1/agent/service/register](https://www.consul.io/api-docs/agent/service#register-service)|service:write|
-Register Check|[PUT/v1/agent/check/register](https://www.consul.io/api-docs/agent/check#register-check)|node:write,service:write|
-Deregister Check|[PUT/v1/agent/check/deregister/:check_id](https://www.consul.io/api-docs/agent/check#deregister-check)|node:write,service:write|
-TTL Check Pass|[PUT/v1/agent/check/pass/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-pass)|node:write,service:write|
-TTL Check Warn|[PUT/v1/agent/check/warn/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-warn)|node:write,service:write|
-TTL Check Fail|[PUT/v1/agent/check/fail/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-fail)|node:write,service:write|
-TTL Check Update|[PUT/v1/agent/check/update/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-update)|node:write,service:write|
-Enable Maintenance Mode (Service)|[PUT/v1/agent/service/maintenance/:service_id](https://www.consul.io/api-docs/agent/service#enable-maintenance-mode)|service:write|
-Authorize|[POST/v1/agent/connect/authorize](https://www.consul.io/api-docs/agent/connect#authorize)|service:write|
-Service Leaf Certificate|[GET/v1/agent/connect/ca/leaf/:service](https://www.consul.io/api-docs/agent/connect#service-leaf-certificate)|service:write|
-Register Entity|[PUT/v1/catalog/register](https://www.consul.io/api-docs/catalog#register-entity)|node:write,service:write|
-Deregister Entity|[PUT/v1/catalog/deregister](https://www.consul.io/api-docs/catalog#deregister-entity)|node:write,service:write|
-Create Transaction|[PUT/v1/txn](https://www.consul.io/api-docs/txn#create-transaction)|key:read,key:write,node:read,node:write,service:read,service:write|
+Delete Configuration|[[DELETE] /v1/config/:kind/:name](https://www.consul.io/api-docs/config#delete-configuration)|service:write,operator:write|
+Apply Configuration|[[PUT] /v1/config](https://www.consul.io/api-docs/config#apply-configuration)|service:write,operator:write|A
+Deregister Service|[[PUT] /v1/agent/service/deregister/:service_id](https://www.consul.io/api-docs/agent/service#deregister-service)|service:write|
+Register Service|[[PUT] /v1/agent/service/register](https://www.consul.io/api-docs/agent/service#register-service)|service:write|
+Register Check|[[PUT] /v1/agent/check/register](https://www.consul.io/api-docs/agent/check#register-check)|node:write,service:write|
+Deregister Check|[[PUT] /v1/agent/check/deregister/:check_id](https://www.consul.io/api-docs/agent/check#deregister-check)|node:write,service:write|
+TTL Check Pass|[[PUT] /v1/agent/check/pass/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-pass)|node:write,service:write|
+TTL Check Warn|[[PUT] /v1/agent/check/warn/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-warn)|node:write,service:write|
+TTL Check Fail|[[PUT] /v1/agent/check/fail/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-fail)|node:write,service:write|
+TTL Check Update|[[PUT] /v1/agent/check/update/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-update)|node:write,service:write|
+Enable Maintenance Mode (Service)|[[PUT] /v1/agent/service/maintenance/:service_id](https://www.consul.io/api-docs/agent/service#enable-maintenance-mode)|service:write|
+Authorize|[[POST] /v1/agent/connect/authorize](https://www.consul.io/api-docs/agent/connect#authorize)|service:write|
+Service Leaf Certificate|[[GET] /v1/agent/connect/ca/leaf/:service](https://www.consul.io/api-docs/agent/connect#service-leaf-certificate)|service:write|
+Register Entity|[[PUT] /v1/catalog/register](https://www.consul.io/api-docs/catalog#register-entity)|node:write,service:write|
+Deregister Entity|[[PUT] /v1/catalog/deregister](https://www.consul.io/api-docs/catalog#deregister-entity)|node:write,service:write|
+Create Transaction|[[PUT] /v1/txn](https://www.consul.io/api-docs/txn#create-transaction)|key:read,key:write,node:read,node:write,service:read,service:write|

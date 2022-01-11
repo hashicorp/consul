@@ -1,13 +1,13 @@
 | Endpoint Action      | API Endpoint           | Access Level   | Note   |
 | -------------------- | ---------------------- | -------------- | ------ |
-Enable Maintenance Mode (Agent)|[PUT/v1/agent/maintenance](https://www.consul.io/api-docs/agent#enable-maintenance-mode)|node:write|
-Register Check|[PUT/v1/agent/check/register](https://www.consul.io/api-docs/agent/check#register-check)|node:write,service:write|
-Deregister Check|[PUT/v1/agent/check/deregister/:check_id](https://www.consul.io/api-docs/agent/check#deregister-check)|node:write,service:write|
-TTL Check Pass|[PUT/v1/agent/check/pass/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-pass)|node:write,service:write|
-TTL Check Warn|[PUT/v1/agent/check/warn/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-warn)|node:write,service:write|
-TTL Check Fail|[PUT/v1/agent/check/fail/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-fail)|node:write,service:write|
-TTL Check Update|[PUT/v1/agent/check/update/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-update)|node:write,service:write|
-Register Entity|[PUT/v1/catalog/register](https://www.consul.io/api-docs/catalog#register-entity)|node:write,service:write|
-Deregister Entity|[PUT/v1/catalog/deregister](https://www.consul.io/api-docs/catalog#deregister-entity)|node:write,service:write|
-Update LAN Coordinates for a Node|[PUT/v1/coordinate/update](https://www.consul.io/api-docs/coordinate#update-lan-coordinates-for-a-node)|node:write|
-Create Transaction|[PUT/v1/txn](https://www.consul.io/api-docs/txn#create-transaction)|key:read,key:write,node:read,node:write,service:read,service:write|
+Enable Maintenance Mode (Agent)|[[PUT] /v1/agent/maintenance](https://www.consul.io/api-docs/agent#enable-maintenance-mode)|node:write|
+Register Check|[[PUT] /v1/agent/check/register](https://www.consul.io/api-docs/agent/check#register-check)|node:write,service:write|
+Deregister Check|[[PUT] /v1/agent/check/deregister/:check_id](https://www.consul.io/api-docs/agent/check#deregister-check)|node:write,service:write|
+TTL Check Pass|[[PUT] /v1/agent/check/pass/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-pass)|node:write,service:write|
+TTL Check Warn|[[PUT] /v1/agent/check/warn/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-warn)|node:write,service:write|
+TTL Check Fail|[[PUT] /v1/agent/check/fail/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-fail)|node:write,service:write|
+TTL Check Update|[[PUT] /v1/agent/check/update/:check_id](https://www.consul.io/api-docs/agent/check#ttl-check-update)|node:write,service:write|
+Register Entity|[[PUT] /v1/catalog/register](https://www.consul.io/api-docs/catalog#register-entity)|node:write,service:write|
+Deregister Entity|[[PUT] /v1/catalog/deregister](https://www.consul.io/api-docs/catalog#deregister-entity)|node:write,service:write|
+Update LAN Coordinates for a Node|[[PUT] /v1/coordinate/update](https://www.consul.io/api-docs/coordinate#update-lan-coordinates-for-a-node)|node:write|
+Create Transaction|[[PUT] /v1/txn](https://www.consul.io/api-docs/txn#create-transaction)|key:read,key:write,node:read,node:write,service:read,service:write|
