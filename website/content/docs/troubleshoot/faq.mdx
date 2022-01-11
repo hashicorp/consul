@@ -62,8 +62,8 @@ messages.
 This anonymous ID can be disabled. In fact, using the Checkpoint service is
 optional and can be disabled.
 
-See [`disable_anonymous_signature`](/docs/agent/config/agent-config-files#disable_anonymous_signature)
-and [`disable_update_check`](/docs/agent/config/agent-config-files#disable_update_check).
+See [`disable_anonymous_signature`](/docs/agent/config/config-files#disable_anonymous_signature)
+and [`disable_update_check`](/docs/agent/config/config-files#disable_update_check).
 
 ### Q: Does Consul rely on UDP Broadcast or Multicast?
 
@@ -116,7 +116,7 @@ as well as race conditions between data updates and watch registrations.
 
 ### Q: What network ports does Consul use?
 
-The [Ports Used](/docs/agent/config/agent-config-files#ports) section of the Configuration
+The [Ports Used](/docs/agent/config/config-files#ports) section of the Configuration
 documentation lists all ports that Consul uses.
 
 ### Q: Does Consul require certain user process resource limits?
@@ -143,7 +143,7 @@ of any excessive resource utilization before arbitrarily increasing the limits.
 The default recommended limit on a key's value size is 512KB. This is strictly
 enforced and an HTTP 413 status will be returned to any client that attempts to
 store more than that limit in a value. The limit can be increased by using the
-[`kv_max_value_size`](/docs/agent/config/agent-config-files#kv_max_value_size) configuration option.
+[`kv_max_value_size`](/docs/agent/config/config-files#kv_max_value_size) configuration option.
 
 It should be noted that the Consul key/value store is not designed to be used as
 a general purpose database. See

@@ -22,7 +22,7 @@ The first step to use Connect is to enable Connect for your Consul
 cluster. By default, Connect is disabled. Enabling Connect requires changing
 the configuration of only your Consul _servers_ (not client agents). To enable
 Connect, add the following to a new or existing
-[server configuration file](/docs/agent/config/agent-config-files). In an existing cluster, this configuration change requires a Consul server restart, which you can perform one server at a time to maintain availability. In HCL:
+[server configuration file](/docs/agent/config/config-files). In an existing cluster, this configuration change requires a Consul server restart, which you can perform one server at a time to maintain availability. In HCL:
 
 ```hcl
 connect {
@@ -43,20 +43,20 @@ connection attempts to fail until Connect is enabled on the server agents.
 Other optional Connect configurations that you can set in the server
 configuration file include:
 
-- [certificate authority settings](/docs/agent/config/agent-config-files#connect)
-- [token replication](/docs/agent/config/agent-config-files#acl_tokens_replication)
-- [dev mode](/docs/agent/config/agent-config-cli#_dev)
-- [server host name verification](/docs/agent/config/agent-config-files#verify_server_hostname)
+- [certificate authority settings](/docs/agent/config/config-files#connect)
+- [token replication](/docs/agent/config/config-files#acl_tokens_replication)
+- [dev mode](/docs/agent/config/cli-flags#_dev)
+- [server host name verification](/docs/agent/config/config-files#verify_server_hostname)
 
 If you would like to use Envoy as your Connect proxy you will need to [enable
-gRPC](/docs/agent/config/agent-config-files#grpc_port).
+gRPC](/docs/agent/config/config-files#grpc_port).
 
 Additionally if you plan on using the observability features of Connect, it can
 be convenient to configure your proxies and services using [configuration
 entries](/docs/agent/config-entries) which you can interact with using the
 CLI or API, or by creating configuration entry files. You will want to enable
 [centralized service
-configuration](/docs/agent/config/agent-config-files#enable_central_service_config) on
+configuration](/docs/agent/config/config-files#enable_central_service_config) on
 clients, which allows each service's proxy configuration to be managed centrally
 via API.
 

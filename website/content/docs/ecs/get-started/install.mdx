@@ -62,7 +62,7 @@ however there are some important inputs worth highlighting:
   This is where you include application containers.
 - `port` is the port that your application listens on. This should be set to a
   string, not an integer, i.e. `port = "9090"`, not `port = 9090`.
-- `retry_join` is passed to the [`-retry-join`](/docs/agent/config/agent-config-cli#_retry_join) option for the Consul agent. This tells
+- `retry_join` is passed to the [`-retry-join`](/docs/agent/config/cli-flags#_retry_join) option for the Consul agent. This tells
   the agent the location of your Consul servers so that it can join the Consul cluster.
 
 -> **NOTE:** If your tasks run in a public subnet, they must have `assign_public_ip = true`

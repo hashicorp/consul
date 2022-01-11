@@ -84,10 +84,10 @@ Usage: `consul operator autopilot set-config [options]`
 - `-disable-upgrade-migration` <EnterpriseAlert inline /> - Controls whether Consul will avoid promoting
   new servers until it can perform a migration. Must be one of `[true|false]`.
 
-- `-redundancy-zone-tag` <EnterpriseAlert inline /> - Controls the [`-node-meta`](/docs/agent/config/agent-config-cli#_node_meta)
+- `-redundancy-zone-tag` <EnterpriseAlert inline /> - Controls the [`-node-meta`](/docs/agent/config/cli-flags#_node_meta)
   key name used for separating servers into different redundancy zones.
 
-- `-upgrade-version-tag` <EnterpriseAlert inline /> - Controls the [`-node-meta`](/docs/agent/config/agent-config-cli#_node_meta)
+- `-upgrade-version-tag` <EnterpriseAlert inline /> - Controls the [`-node-meta`](/docs/agent/config/cli-flags#_node_meta)
   tag to use for version info when performing upgrade migrations. If left blank, the Consul version will be used.
 
 ### Command Output

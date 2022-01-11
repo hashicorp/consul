@@ -778,11 +778,11 @@
           },
           {
             "title": "CLI Reference",
-            "path": "agent/config/agent-config-cli"
+            "path": "agent/config/cli-flags"
           },
           {
             "title": "Configuration Reference",
-            "path": "agent/config/agent-config-files"
+            "path": "agent/config/config-files"
           }
         ]
       },

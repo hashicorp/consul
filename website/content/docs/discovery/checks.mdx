@@ -34,10 +34,10 @@ There are several different kinds of checks:
   In Consul 0.9.0 and later, script checks are not enabled by default. To use them you
   can either use :
 
-  - [`enable_local_script_checks`](/docs/agent/config/agent-config-cli#_enable_local_script_checks):
+  - [`enable_local_script_checks`](/docs/agent/config/cli-flags#_enable_local_script_checks):
     enable script checks defined in local config files. Script checks defined via the HTTP
     API will not be allowed.
-  - [`enable_script_checks`](/docs/agent/config/agent-config-cli#_enable_script_checks): enable
+  - [`enable_script_checks`](/docs/agent/config/cli-flags#_enable_script_checks): enable
     script checks regardless of how they are defined.
 
   ~> **Security Warning:** Enabling script checks in some configurations may
@@ -105,7 +105,7 @@ There are several different kinds of checks:
   has to be performed is configurable which makes it possible to run containers which
   have different shells on the same host. Check output for Docker is limited to
   4KB. Any output larger than this will be truncated. In Consul 0.9.0 and later, the agent
-  must be configured with [`enable_script_checks`](/docs/agent/config/agent-config-cli#_enable_script_checks)
+  must be configured with [`enable_script_checks`](/docs/agent/config/cli-flags#_enable_script_checks)
   set to `true` in order to enable Docker health checks.
 
 - `gRPC + Interval` - These checks are intended for applications that support the standard
@@ -462,7 +462,7 @@ This is the only convention that Consul depends on. Any output of the script
 will be captured and stored in the `output` field.
 
 In Consul 0.9.0 and later, the agent must be configured with
-[`enable_script_checks`](/docs/agent/config/agent-config-cli#_enable_script_checks) set to `true`
+[`enable_script_checks`](/docs/agent/config/cli-flags#_enable_script_checks) set to `true`
 in order to enable script checks.
 
 ## Initial Health Check Status
@@ -538,7 +538,7 @@ provided by the node will remain unchanged.
 
 ## Agent Certificates for TLS Checks
 
-The [enable_agent_tls_for_checks](/docs/agent/config/agent-config-files#enable_agent_tls_for_checks)
+The [enable_agent_tls_for_checks](/docs/agent/config/config-files#enable_agent_tls_for_checks)
 agent configuration option can be utilized to have HTTP or gRPC health checks
 to use the agent's credentials when configured for TLS.
 

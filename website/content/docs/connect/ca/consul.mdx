@@ -92,7 +92,7 @@ Connect is enabled - the PrivateKey and RootCert fields have not been set, so th
 been generated (as seen above in the roots list).
 
 There are two ways to have the Consul CA use a custom private key and root certificate:
-either through the `ca_config` section of the [Agent configuration](/docs/agent/config/agent-config-files#connect_ca_config) (which can only be used during the cluster's
+either through the `ca_config` section of the [Agent configuration](/docs/agent/config/config-files#connect_ca_config) (which can only be used during the cluster's
 initial bootstrap) or through the [Update CA Configuration endpoint](/api/connect/ca#update-ca-configuration).
 
 Currently Consul requires that root certificates are valid [SPIFFE SVID Signing certificates](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md) and that the URI encoded
