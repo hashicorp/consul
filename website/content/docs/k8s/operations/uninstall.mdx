@@ -35,6 +35,12 @@ Run the `helm uninstall` **and** manually remove resources that Helm does not de
     ```
     kubectl config set-context --current --namespace=consul
     ```
+    
+1. Although the Helm chart automates the deletion of CRDs upon uninstall of the Helm chart, sometimes the finalizers tied to those CRDs may not complete executing and leave previous Consul Kubernetes CRDs around. Ensure that the CRDs were previously created for Consul on Kubernetes are deleted, so subsequent installs of Consul on Kubernetes on the same Kubernetes cluster do not get blocked. 
+
+   ```shell-session
+   $ kubectl delete crd --selector app=consul
+   ```
 
 1. Run the `helm uninstall <release-name>` command and specify the release name you've installed Consul with, e.g.,:
 
@@ -43,12 +49,6 @@ Run the `helm uninstall` **and** manually remove resources that Helm does not de
    release "consul" uninstalled
    ```
    
-   
-1. The Helm chart automates the deletion of CRDs. However, on occasion the finalizers tied to those CRDs may not complete executing and leave previous Consul Kubernetes CRDs around. Ensure that the CRDs were previously created for Consul on Kubernetes are deleted, so subsequent installs of Consul on Kubernetes on the same Kubernetes cluster do not get blocked. 
-
-   ```shell-session
-   $ kubectl delete crd --selector app=consul
-   ```
 
 1. After deleting the Helm release, you need to delete the `PersistentVolumeClaim`'s
    for the persistent volumes that store Consul's data. A [bug](https://github.com/helm/helm/issues/5156) in Helm prevents PVCs from being deleted. Issue the following commands:
