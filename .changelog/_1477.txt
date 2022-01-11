@@ -1,0 +1,3 @@
+```release-note:bug
+structs: **(Enterprise only)** Remove partition field parsing from 1.10 to prevent further 1.11 upgrade compatibility issues.
+```
