@@ -1166,7 +1166,7 @@ module.exports = [
   },
   {
     source: '/docs/platform/k8s/upgrading',
-    destination: '/docs/k8s/operations/upgrading',
+    destination: '/docs/k8s/upgrade',
     permanent: true,
   },
   {
