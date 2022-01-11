@@ -9,8 +9,6 @@ description: >-
 
 # Proxy Defaults
 
--> **v1.8.4+:** On Kubernetes, the `ProxyDefaults` custom resource is supported in Consul versions 1.8.4+.<br />
-**v1.5.0+:** On other platforms, this config entry is supported in Consul versions 1.5.0+.
 
 The `proxy-defaults` config entry kind (`ProxyDefaults` on Kubernetes) allows
 for configuring global config defaults across all services for Connect proxy
@@ -29,7 +27,9 @@ service definitions](/docs/connect/registration/sidecar-service).
 
 ## Requirements
 
-- A Consul binary
+The following Consul binaries are supported:
+* Consul 1.8.4+ on Kubernetes. 
+* Consul 1.5.0+ on other platforms. 
 
 ## Usage
 
