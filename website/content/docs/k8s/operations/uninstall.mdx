@@ -42,6 +42,13 @@ Run the `helm uninstall` **and** manually remove resources that Helm does not de
    $ helm uninstall consul
    release "consul" uninstalled
    ```
+   
+   
+1. Ensure that the CRDs were previously created for Consul on Kubernetes are deleted, so subsequent installs of Consul on Kubernetes on the same Kubernetes cluster do not get blocked. 
+
+   ```shell-session
+   $ kubectl get crd | grep consul.hashicorp.com | awk '{print $1}' | xargs kubectl delete crd
+   ```
 
 1. After deleting the Helm release, you need to delete the `PersistentVolumeClaim`'s
    for the persistent volumes that store Consul's data. A [bug](https://github.com/helm/helm/issues/5156) in Helm prevents PVCs from being deleted. Issue the following commands:
@@ -101,4 +108,10 @@ Run the `helm uninstall` **and** manually remove resources that Helm does not de
    ```shell-session
    $ kubectl delete serviceaccount consul-tls-init
    serviceaccount "consul-tls-init" deleted
+   ```
+   
+1. (Optional) Delete the namespace (i.e. `consul` in the following example) that you have dedicated for installing Consul on Kubernetes. 
+
+   ```shell-session
+   $ kubectl delete ns consul
    ```
