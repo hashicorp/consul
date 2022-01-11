@@ -172,3 +172,12 @@ If multiple methods are needed, another auth method of this type may be created
 with a different name.
 
 @include 'jwt_claim_mapping_details.mdx'
+
+## Token Locality
+
+By default, tokens created by the JWT Auth Method will have local scope and will
+therefore only be valid for the datacenter in which they were created. When the
+Auth Method is created with [`-token-locality=global`](/commands/acl/auth-method/create#token-locality),
+all tokens will be replicated to all other datacenters. Cross-datacenter requests
+that are authenticated with tokens provided by this Auth Method must be configured
+to create tokens with global scope in order for requests to be validated.

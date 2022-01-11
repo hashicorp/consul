@@ -158,3 +158,13 @@ use in binding rule selectors and bind name interpolation.
 | `serviceaccount.namespace` | Equal, Not Equal, In, Not In, Matches, Not Matches | yes                 |
 | `serviceaccount.name`      | Equal, Not Equal, In, Not In, Matches, Not Matches | yes                 |
 | `serviceaccount.uid`       | Equal, Not Equal, In, Not In, Matches, Not Matches | yes                 |
+
+## Token Locality
+
+By default, tokens created by the Kubernetes Auth Method will have local scope
+and will therefore only be valid for the datacenter in which they were created.
+For cases requiring global token scope, the primary Consul datacenter must have
+access to all Kubernetes clusters in order for tokens to be validated. This
+property is often prohibitive so using [`-token-locality=global`](/commands/acl/auth-method/create#token-locality)
+with the Kubernetes Auth method is not recommended. As an alternative, configuring
+the anonymous token policy to allow specific cross-datacenter access is recommended.

@@ -136,3 +136,26 @@ bearer token for a Consul ACL token by using the login process:
 
 For more details about specific auth methods and how to configure them, click
 on the name of the auth method type in the sidebar.
+
+# Token Locality
+
+By default, Auth Methods create ACL tokens with _local_ scope. ACL tokens with
+local scope are only valid in the local datacenter where they were created.
+Auth Methods created in the primary datacenter can be configured to create ACL
+tokens that have global scope; however, there are limitations depending on the
+type of the Auth Method being used. Please refer to the documentation for the
+given Auth Method being used for the details related to token locality:
+
+- [`kubernetes`](/docs/acl/auth-methods/kubernetes#token-locality)
+- [`jwt`](/docs/acl/auth-methods/jwt#token-locality)
+- [`oidc`](/docs/acl/auth-methods/oidc#token-locality)
+
+For cross-datacenter requests that use a token provided by an Auth Method, one
+of the following must be true for requests to be successfully authenticated:
+- the Auth Method is configured with [`-token-locality=global`](/commands/acl/auth-method/create#token-locality)
+- the anonymous token policy in the remote datacenter grants access to read services
+
+Depending on the type of Auth Method being used, configuring it with
+[`-token-locality=global`](/commands/acl/auth-method/create#token-locality) may
+not be possible. Alternatively, the operator can configure the Auth Method and
+associated Binding Rules manually in all datacenters as a workaround.
