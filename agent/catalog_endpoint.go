@@ -2,9 +2,10 @@ package agent
 
 import (
 	"fmt"
+	"net/http"
+
 	metrics "github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"net/http"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"

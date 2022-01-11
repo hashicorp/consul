@@ -2,9 +2,10 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/agent/structs"
 	"net/http"
 	"sort"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // checkCoordinateDisabled will return a standard response if coordinates are
