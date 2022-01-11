@@ -41,14 +41,12 @@ Run the `helm uninstall` **and** manually remove resources that Helm does not de
     $ kubectl config set-context --current --namespace=consul
     ```
     
-
 1. Run the `helm uninstall <release-name>` command and specify the release name you've installed Consul with, e.g.,:
 
    ```shell-session
    $ helm uninstall consul
    release "consul" uninstalled
    ```
-   
 
 1. After deleting the Helm release, you need to delete the `PersistentVolumeClaim`'s
    for the persistent volumes that store Consul's data. A [bug](https://github.com/helm/helm/issues/5156) in Helm prevents PVCs from being deleted. Issue the following commands:
