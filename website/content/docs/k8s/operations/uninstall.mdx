@@ -38,7 +38,7 @@ Run the `helm uninstall` **and** manually remove resources that Helm does not de
 1. (Optional) If Consul is installed in a dedicated namespace, set the kubeConfig context to the `consul` namespace. Otherwise, subsequent commands will need to include `-n consul`. 
 
     ```
-    kubectl config set-context --current --namespace=consul
+    $ kubectl config set-context --current --namespace=consul
     ```
     
 
