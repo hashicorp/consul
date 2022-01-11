@@ -119,7 +119,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/docs/connect/gateways/mesh-gateway',
+    source: '/docs/connect/gateways/mesh-gateway(s?)',
     destination:
       '/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
     permanent: true,
@@ -263,11 +263,6 @@ module.exports = [
   {
     source: '/docs/glossary',
     destination: '/docs/install/glossary',
-    permanent: true,
-  },
-  {
-    source: '/docs/connect/gateways/mesh-gateways',
-    destination: '/docs/connect/gateways/mesh-gateway',
     permanent: true,
   },
   {
@@ -1235,23 +1230,8 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/docs/k8s/ambassador',
-    destination: '/docs/k8s/connect/ambassador',
-    permanent: true,
-  },
-  {
     source: '/docs/agent/config-entries/:path',
     destination: '/docs/connect/config-entries/:path*',
-    permanent: true,
-  },
-  {
-    source: '/docs/partnerships',
-    destination: '/docs/integrate/partnerships',
-    permanent: true,
-  },
-  {
-    source: '/docs/k8s/installation/overview',
-    destination: '/docs/k8s/installation/install',
     permanent: true,
   },
   {
