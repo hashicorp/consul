@@ -91,7 +91,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 		fmt.Fprintf(resp,
 			"Request body(%d bytes) too large, max size: %d bytes. See %s.",
 			req.ContentLength, maxTxnLen,
-			"https://www.consul.io/docs/agent/options.html#txn_max_req_len",
+			"https://www.consul.io/docs/agent/config/config-files.html#txn_max_req_len",
 		)
 		return nil, 0, false
 	}
@@ -106,7 +106,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 			fmt.Fprintf(resp,
 				"Request body too large, max size: %d bytes. See %s.",
 				maxTxnLen,
-				"https://www.consul.io/docs/agent/options.html#txn_max_req_len",
+				"https://www.consul.io/docs/agent/config/config-files.html#txn_max_req_len",
 			)
 		} else {
 			// Note the body is in API format, and not the RPC format. If we can't
