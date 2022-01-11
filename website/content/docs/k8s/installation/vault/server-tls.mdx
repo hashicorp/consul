@@ -9,7 +9,7 @@ description: >-
 
 To use Vault to issue Server TLS certificates the following will be needed:
 
-1. Bootstrap the Vault PKI engine and boostrap it with any configuration required for your infrastructure.
+1. Bootstrap the Vault PKI engine and bootstrap it with any configuration required for your infrastructure.
 1. Create Vault Policies that will allow the Consul server to access the certificate issuing url.
 1. Create Vault Policies that will allow the Consul components, e.g. ingress gateways, controller, to access the CA url.
 1. Create Kubernetes auth roles that link these policies to the Kubernetes service accounts of the Consul components.
@@ -130,7 +130,7 @@ vault write auth/kubernetes/role/consul-ca \
 ```
 
 The above Vault Roles will now be your Helm values for `global.secretsBackend.vault.consulServerRole` and
-`global.secretsBAckend.vault.consulCARole` respectively.
+`global.secretsBackend.vault.consulCARole` respectively.
 
 
 ## Deploying the Consul Helm chart

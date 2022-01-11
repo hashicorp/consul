@@ -136,7 +136,7 @@ $ consul agent -data-dir=/tmp/consul
 - **Server**: This indicates whether the agent is running in server or client
   mode.
   Running an agent in server mode requires additional overhead. This is because they participate in the consensus quorum, store cluster state, and handle queries. A server may also be
-  in ["bootstrap"](/docs/agent/options#_bootstrap_expect) mode, which enables the server to elect itselft as the Raft leader. Multiple servers cannot be in bootstrap mode because it would put the cluster in an inconsistent state.
+  in ["bootstrap"](/docs/agent/options#_bootstrap_expect) mode, which enables the server to elect itself as the Raft leader. Multiple servers cannot be in bootstrap mode because it would put the cluster in an inconsistent state.
 
 - **Client Addr**: This is the address used for client interfaces to the agent.
   This includes the ports for the HTTP and DNS interfaces. By default, this
