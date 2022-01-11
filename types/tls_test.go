@@ -7,12 +7,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTLSVersion_Equality(t *testing.T) {
-	require.Equal(t, TLSVersionAuto, tlsVersions["TLS_AUTO"])
-	require.Equal(t, TLSv1_0, tlsVersions["TLSv1_0"])
-	require.Equal(t, TLSv1_1, tlsVersions["TLSv1_1"])
-	require.Equal(t, TLSv1_2, tlsVersions["TLSv1_2"])
-	require.Equal(t, TLSv1_3, tlsVersions["TLSv1_3"])
+func TestTLSVersion_Valid(t *testing.T) {
+	require.NoError(t, ValidateTLSVersion("TLS_AUTO"))
+	require.NoError(t, ValidateTLSVersion("TLSv1_0"))
+	require.NoError(t, ValidateTLSVersion("TLSv1_1"))
+	require.NoError(t, ValidateTLSVersion("TLSv1_2"))
+	require.NoError(t, ValidateTLSVersion("TLSv1_3"))
 }
 
 func TestTLSVersion_Invalid(t *testing.T) {
@@ -37,7 +37,8 @@ func TestTLSVersion_ToJSON(t *testing.T) {
 	err := json.Unmarshal([]byte(`"foo"`), &tlsVersion)
 	require.NoError(t, err)
 
-	for str, version := range tlsVersions {
+	for version := range tlsVersions {
+		str := version.String()
 		versionJSON, err := json.Marshal(version)
 		require.NoError(t, err)
 		require.Equal(t, versionJSON, []byte(`"`+str+`"`))
