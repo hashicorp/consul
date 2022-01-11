@@ -7,8 +7,10 @@ description: >-
 
 # Configuration Files ((#configuration_files))
 
-In addition to the command-line options, configuration can be put into
-files. This may be easier in certain situations, for example when Consul is
+You can create one or more files to configure the Consul agent on startup. We recommend 
+grouping similar configurations into separate files, such as ACL parameters, to make it 
+easier to manage configuration changes. Using external files may be easier than 
+configuring agents on the command-line when Consul is
 being configured using a configuration management system.
 
 The configuration files are JSON formatted, making them easily readable
