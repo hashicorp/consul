@@ -122,9 +122,9 @@ spec:
 
 </CodeTabs>
 
-### Datacenter failover
+### Failover
 
-Enable failover for subset 'v2' to 'dc2', and all other subsets to dc3 or dc4:
+Enable failover for subset `v2` to `dc2`, and all other subsets to `dc3` or `dc4`:
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -167,6 +167,104 @@ spec:
     },
     "*": {
       "Datacenters": ["dc3", "dc4"]
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+<EnterpriseAlert product="consul">
+  Failover to another datacenter and namespace for all service subsets.
+</EnterpriseAlert>
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind           = "service-resolver"
+Name           = "product-api"
+Namespace      = "primary"
+ConnectTimeout = "0s"
+Failover = {
+  "*" = {
+    Datacenters = ["dc2"]
+    Namespace = "secondary"
+  }
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceResolver
+metadata:
+  name: product-api
+  namespace: primary
+spec:
+  connectTimeout: 0s
+  failover:
+    namespace: 'secondary'
+    datacenters: ['dc2']
+```
+
+```json
+{
+  "Kind": "service-resolver",
+  "Name": "product-api",
+  "Namespace": "primary",
+  "ConnectTimeout": "0s",
+  "Failover": {
+    "*": {
+      "Datacenters": ["dc2"],
+      "Namespace": "secondary"
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+<EnterpriseAlert product="consul">
+  Failover within a datacenter and a different namespace.
+</EnterpriseAlert>
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind           = "service-resolver"
+Name           = "product-api"
+Namespace      = "primary"
+ConnectTimeout = "0s"
+Failover = {
+  "*" = {
+    Service = "product-api-backup"
+    Namespace = "secondary"
+  }
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceResolver
+metadata:
+  name: product-api
+  namespace: primary
+spec:
+  connectTimeout: 0s
+  failover:
+    service: 'product-api-backup'
+    namespace: 'secondary'
+```
+
+```json
+{
+  "Kind": "service-resolver",
+  "Name": "product-api",
+  "Namespace": "primary",
+  "ConnectTimeout": "0s",
+  "Failover": {
+    "*": {
+      "Service": "product-api-backup",
+      "Namespace": "secondary"
     }
   }
 }
