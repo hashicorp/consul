@@ -7,92 +7,217 @@ description: |-
 
 # API Endpoint Access List
 
-Below are the lists of API endpoint access. click on each action in the list to view the API documentation for a particular action.
+Below are lists of API endpoints organized by the resource and access level that controls. Write access also provides read access.
 
 ## ACL
-
-Description ...
+Write includes Read permissions
 
 <Tabs>
-<Tab heading="Deny">
-
-
-
-</Tab>
 
 <Tab heading="Read">
-| Endpoint Action    	| API Endpoint          	| Access Level 	| Note 	|
-|--------------------	|-----------------------	|--------------	|------	|
-| List Binding Rules	| /v1/acl/binding-rules 	| Read         	|      	|
-|                    	|                       	|              	|      	|
-|                    	|                       	|              	|      	|
 
-</Tab>
-
-<Tab heading="List">
-
+@include 'endpoints_acl_read.mdx'
 
 </Tab>
 
 <Tab heading="Write">
 
+@include 'endpoints_acl_write.mdx'
 
 </Tab>
 
 </Tabs>
 
-## KV
-
-Description ...
+## Agent
+Write includes Read permissions
 
 <Tabs>
-<Tab heading="Deny">
-
-
-
-</Tab>
 
 <Tab heading="Read">
 
-
-</Tab>
-
-<Tab heading="List">
-
+@include 'endpoints_agent_read.mdx'
 
 </Tab>
 
 <Tab heading="Write">
 
+@include 'endpoints_agent_write.mdx'
 
 </Tab>
 
 </Tabs>
+
+## Event
+Write includes Read permissions
+
+<Tabs>
+
+<Tab heading="Read">
+
+@include 'endpoints_event_read.mdx'
+
+</Tab>
+
+<Tab heading="Write">
+
+@include 'endpoints_event_write.mdx'
+
+</Tab>
+
+</Tabs>
+
+## Intentions
+Write includes Read permissions
+
+<Tabs>
+
+<Tab heading="Read">
+
+@include 'endpoints_intentions_read.mdx'
+
+</Tab>
+
+<Tab heading="Write">
+
+@include 'endpoints_intentions_write.mdx'
+
+</Tab>
+
+</Tabs>
+
+## Key
+Write includes Read permissions
+
+<Tabs>
+
+<Tab heading="Read">
+
+@include 'endpoints_key_read.mdx'
+
+</Tab>
+
+<Tab heading="Write">
+
+@include 'endpoints_key_write.mdx'
+
+</Tab>
+
+</Tabs>
+
+## Keyring
+Write includes Read permissions
+
+<Tabs>
+
+<Tab heading="Read">
+
+@include 'endpoints_keyring_read.mdx'
+
+</Tab>
+
+<Tab heading="Write">
+
+@include 'endpoints_keyring_write.mdx'
+
+</Tab>
+
+</Tabs>
+
+
 
 ## Node
-
-Description ...
+Write includes Read permissions
 
 <Tabs>
-<Tab heading="Deny">
-
-
-
-</Tab>
 
 <Tab heading="Read">
 
-
-</Tab>
-
-<Tab heading="List">
-
+@include 'endpoints_node_read.mdx'
 
 </Tab>
 
 <Tab heading="Write">
 
+@include 'endpoints_node_write.mdx'
 
 </Tab>
 
 </Tabs>
+
+## operator
+Write includes Read permissions
+
+<Tabs>
+
+<Tab heading="Read">
+
+@include 'endpoints_operator_read.mdx'
+
+</Tab>
+
+<Tab heading="Write">
+
+@include 'endpoints_operator_write.mdx'
+
+</Tab>
+
+</Tabs>
+
+## Prepared Query
+Write includes Read permissions
+
+<Tabs>
+
+<Tab heading="Read">
+
+@include 'endpoints_query_read.mdx'
+
+</Tab>
+
+<Tab heading="Write">
+
+@include 'endpoints_query_write.mdx'
+
+</Tab>
+
+</Tabs>
+
+## Service
+Write includes Read permissions
+
+<Tabs>
+
+<Tab heading="Read">
+
+@include 'endpoints_service_read.mdx'
+
+</Tab>
+
+<Tab heading="Write">
+
+@include 'endpoints_service_write.mdx'
+
+</Tab>
+
+</Tabs>
+
+
+## Session
+Write includes Read permissions
+
+<Tabs>
+
+<Tab heading="Read">
+
+@include 'endpoints_session_read.mdx'
+
+</Tab>
+
+<Tab heading="Write">
+
+@include 'endpoints_session_write.mdx'
+
+</Tab>
+
+</Tabs>
+

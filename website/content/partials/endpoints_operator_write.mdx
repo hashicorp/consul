@@ -1,0 +1,18 @@
+| Endpoint Action      | API Endpoint           | Access Level   | Note   |
+| -------------------- | ---------------------- | -------------- | ------ |
+Delete Configuration|[DELETE/v1/config/:kind/:name](https://www.consul.io/api-docs/config#delete-configuration)|service:write,operator:write|
+Apply Configuration|[PUT/v1/config](https://www.consul.io/api-docs/config#apply-configuration)|service:write,operator:write|A
+Get CA Configuration|[GET/v1/connect/ca/configuration](https://www.consul.io/api-docs/connect/ca#get-ca-configuration)|operator:write|
+Update CA Configuration|[PUT/v1/connect/ca/configuration](https://www.consul.io/api-docs/connect/ca#update-ca-configuration)|operator:write|
+Force Leave and Shutdown|[PUT/v1/agent/force-leave/:node](https://www.consul.io/api-docs/agent#force-leave-and-shutdown)|operator:write|
+Updating the Consul License|[PUT/v1/operator/license](https://www.consul.io/api-docs/operator/license#updating-the-consul-license)|operator:write|
+Resetting the Consul License|[DELETE/v1/operator/license](https://www.consul.io/api-docs/operator/license#resetting-the-consul-license)|operator:write|
+Create a Namespace|[PUT/v1/namespace](https://www.consul.io/api-docs/namespaces#create-a-namespace)|operator:write|
+Delete a Namespace|[DELETE/v1/namespace/:name](https://www.consul.io/api-docs/namespaces#delete-a-namespace)|operator:write|
+Update a Namespace|[PUT/v1/namespace/:name](https://www.consul.io/api-docs/namespaces#update-a-namespace)|operator:write|
+Create Network Area|[POST/v1/operator/area](https://www.consul.io/api-docs/operator/area#create-network-area)|operator:write|
+Delete Network Area|[DELETE/v1/operator/area/:uuid](https://www.consul.io/api-docs/operator/area#delete-network-area)|operator:write|
+Join Network Area|[PUT/v1/operator/area/:uuid/join](https://www.consul.io/api-docs/operator/area#join-network-area)|operator:write|
+Update Network Area|[PUT/v1/operator/area/:uuid](https://www.consul.io/api-docs/operator/area#update-network-area)|operator:write|
+Update Configuration|[PUT/v1/operator/autopilot/configuration](https://www.consul.io/api-docs/operator/autopilot#update-configuration)|operator:write|
+Delete Raft Peer|[DELETE/v1/operator/raft/peer](https://www.consul.io/api-docs/operator/raft#delete-raft-peer)|operator:write|

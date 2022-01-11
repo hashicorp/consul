@@ -1,0 +1,13 @@
+| Endpoint Action      | API Endpoint           | Access Level   | Note   |
+| -------------------- | ---------------------- | -------------- | ------ |
+List All Namespaces|[GET/v1/namespaces](https://www.consul.io/api-docs/namespaces#list-all-namespaces)|operator:read or namespace:* read|
+Read a Namespace|[GET/v1/namespace/:name](https://www.consul.io/api-docs/namespaces#read-a-namespace)|operator:read or namespace:* read|
+List Network Areas|[GET/v1/operator/area](https://www.consul.io/api-docs/operator/area#list-network-areas)|operator:read|
+List Network Area Members|[GET/v1/operator/area/:uuid/members](https://www.consul.io/api-docs/operator/area#list-network-area-members)|operator:read|
+Read Configuration|[GET/v1/operator/autopilot/configuration](https://www.consul.io/api-docs/operator/autopilot#read-configuration)|operator:read|
+Read the Autopilot State|[GET/v1/operator/autopilot/state](https://www.consul.io/api-docs/operator/autopilot#read-the-autopilot-state)|operator:read|
+Retrieve Host Information|[GET/vt/agent/host](https://www.consul.io/api-docs/agent#retrieve-host-information)|operator:read|
+List Specific Network Area|[GET/v1/operator/area/:uuid](https://www.consul.io/api-docs/operator/area#list-specific-network-area)|operator:read|
+Read Health|[GET/v1/operator/autopilot/health](https://www.consul.io/api-docs/operator/autopilot#read-health)|operator:read|
+Read Raft Configuration|[GET/v1/operator/raft/configuration](https://www.consul.io/api-docs/operator/raft#read-configuration)|operator:read|
+List Network Segments|[GET/v1/operator/segment](https://www.consul.io/api-docs/operator/segment#list-network-segments)|operator:read|
