@@ -44,7 +44,7 @@ Run the `helm uninstall` **and** manually remove resources that Helm does not de
    ```
    
    
-1. Ensure that the CRDs were previously created for Consul on Kubernetes are deleted, so subsequent installs of Consul on Kubernetes on the same Kubernetes cluster do not get blocked. 
+1. The Helm chart automates the deletion of CRDs. However, on occasion the finalizers tied to those CRDs may not complete executing and leave previous Consul Kubernetes CRDs around. Ensure that the CRDs were previously created for Consul on Kubernetes are deleted, so subsequent installs of Consul on Kubernetes on the same Kubernetes cluster do not get blocked. 
 
    ```shell-session
    $ kubectl delete crd --selector app=consul
