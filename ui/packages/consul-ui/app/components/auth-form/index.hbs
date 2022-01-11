@@ -154,7 +154,7 @@ as |TabState IgnoredGuard IgnoredAction tabDispatch tabState|>
       @nspace={{or this.value.Namespace @nspace}}
       @partition={{or this.value.Partition @partition}}
       @type={{if this.value.Name 'oidc' 'secret'}}
-      @value={{if this.value.Name this.value.Name this.value}}
+      @value={{this.value}}
       @onchange={{queue (action dispatch "RESET") @onsubmit}}
       @onerror={{queue (action (mut this.error) value="error.errors.firstObject") (action dispatch "ERROR")}}
     />

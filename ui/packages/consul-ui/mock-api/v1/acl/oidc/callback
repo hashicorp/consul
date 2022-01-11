@@ -5,6 +5,11 @@
     typeof location.search.ns !== 'undefined' ? location.search.ns :
       typeof http.body.Namespace !== 'undefined' ? http.body.Namespace : 'default'
   }",
+  "Partition": "${
+    typeof location.search.partition !== 'undefined' ?
+    location.search.partition :
+      typeof http.body.Partition !== 'undefined' ? http.body.Partition : 'default'
+  }",
   "Local": false,
   "Description": "AuthMethod: ${http.body.AuthMethod}; Code: ${http.body.Code}; State: ${http.body.State}; - ${fake.lorem.sentence()}",
   "Policies": [
