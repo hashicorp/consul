@@ -1082,34 +1082,31 @@ func (l *State) updateSyncState() error {
 			continue
 		}
 
-		// to avoid a data race with the service struct,
-		// We copy the Service struct, mutate it and replace the pointer
-		svc := *ls.Service
-
 		// If our definition is different, we need to update it. Make a
 		// copy so that we don't retain a pointer to any actual state
 		// store info for in-memory RPCs.
-		if svc.EnableTagOverride {
-			svc.Tags = make([]string, len(rs.Tags))
-			copy(svc.Tags, rs.Tags)
+		if ls.Service.EnableTagOverride {
+			ls.Service.Tags = make([]string, len(rs.Tags))
+			copy(ls.Service.Tags, rs.Tags)
 		}
 
 		// Merge any tagged addresses with the consul- prefix (set by the server)
 		// back into the local state.
-		if !reflect.DeepEqual(svc.TaggedAddresses, rs.TaggedAddresses) {
-			if svc.TaggedAddresses == nil {
-				svc.TaggedAddresses = make(map[string]structs.ServiceAddress)
+		if !reflect.DeepEqual(ls.Service.TaggedAddresses, rs.TaggedAddresses) {
+			// Make a copy of TaggedAddresses to prevent races when writing
+			// since other goroutines may be reading from the map
+			m := make(map[string]structs.ServiceAddress)
+			for k, v := range ls.Service.TaggedAddresses {
+				m[k] = v
 			}
 			for k, v := range rs.TaggedAddresses {
 				if strings.HasPrefix(k, structs.MetaKeyReservedPrefix) {
-					svc.TaggedAddresses[k] = v
+					m[k] = v
 				}
 			}
+			ls.Service.TaggedAddresses = m
 		}
-		ls.InSync = svc.IsSame(rs)
-
-		// replace the service pointer to the new mutated struct
-		ls.Service = &svc
+		ls.InSync = ls.Service.IsSame(rs)
 	}
 
 	// Check which checks need syncing
