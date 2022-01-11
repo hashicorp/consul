@@ -81,11 +81,11 @@ Task health status value is determined by the success or failure of all stored [
 
 #### Request Parameters
 
-| Name	   | Type	  | Description        |
-| -------- | ------ | ------------------ |
-|`task`    | string | Option to specify the name of the task to return in the response. If not specified, all tasks are returned in the response.
-|`include` | string | Only accepts the value `"events"`. Use to include stored event information in response.
-|`status`  | string | Only accepts health status values `"successful"`, `"errored"`, `"critical"`, or `"unknown"`. Use to filter response by tasks that have the specified health status value. Recommend setting this parameter when requesting all tasks i.e. no `task` parameter is set.
+| Name	   | Required | Type	 | Description        | Default |
+| -------- | -------- | ------ | ------------------ | ------- |
+|`task`    | Optional | string | Option to specify the name of the task to return in the response. If not specified, all tasks are returned in the response.| none
+|`include` | Optional | string | Only accepts the value `"events"`. Use to include stored event information in response. | none
+|`status`  | Optional | string | Only accepts health status values `"successful"`, `"errored"`, `"critical"`, or `"unknown"`. Use to filter response by tasks that have the specified health status value. Recommend setting this parameter when requesting all tasks i.e. no `task` parameter is set. | none
 
 #### Response Statuses
 
