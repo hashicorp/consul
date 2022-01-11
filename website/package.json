@@ -46,7 +46,7 @@
     "ci": "^2.1.1",
     "framer-motion": "^5.3.3",
     "next": "^11.1.2",
-    "next-mdx-remote": "3.0.1",
+    "next-mdx-remote": "3.0.8",
     "next-remote-watch": "1.0.0",
     "nuka-carousel": "4.7.7",
     "react": "^17.0.2",
