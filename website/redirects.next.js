@@ -323,26 +323,6 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/download-tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/downloads_tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/download_tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/downloads_tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
     source: '/docs/k8s/ambassador',
     destination: '/docs/k8s/connect/ambassador',
     permanent: true,
@@ -1225,7 +1205,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/(/downloads?[-_]tools)',
+    source: '/download(s?[-_])tools',
     destination: '/docs/download-tools',
     permanent: true,
   },
