@@ -29,6 +29,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
+-> The corresponding CLI command is [`consul partition create`](/commands/partition#create).
+
 ### Parameters
 
 - `Name` `(string: <required>)` - The partition name. This must be a valid
@@ -85,6 +87,8 @@ The table below shows this endpoint's support for
 
 <sup>1</sup> A non-anonymous token can read its own partition.
 
+-> The corresponding CLI command is [`consul partition read`](/commands/partition#read).
+
 ### Parameters
 
 - `name` `(string: <required>)` - Specifies the partition to read. This
@@ -125,6 +129,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
+
+-> The corresponding CLI command is [`consul partition write`](/commands/partition#write).
 
 ### Parameters
 
@@ -188,6 +194,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
+-> The corresponding CLI command is [`consul partition delete`](/commands/partition#delete).
+
 ### Parameters
 
 - `name` `(string: <required>)` - Specifies the partition to delete. This
@@ -230,6 +238,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `consistent`      | `none`        | `operator:read` |
+
+-> The corresponding CLI command is [`consul partition list`](/commands/partition#list).
 
 ### Sample Request
 
