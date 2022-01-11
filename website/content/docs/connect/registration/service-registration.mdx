@@ -97,14 +97,14 @@ Sidecar proxies are co-located with the single service instance they represent a
 Specify the following parameters in the `proxy` code block to configure a sidecar proxy in its own service registration:
 
 * `destination_service_id`: String value that specifies the ID of the service being proxied. Refer to the [proxy parameters reference](#destination-service-id) for details.
-* `local_service_port`: Integer value that specifes the port that the proxy should use to connect to the _local_ service instance. Refer to the [proxy parameters reference](#local-service-port) for details. 
-* `local_service_address`: String value that specifies the IP address or hostname that the proxy should use to connect to the _local_ service. Refer to the [proxy parameters reference](#local-service-address) for details. 
+* `local_service_port`: Integer value that specifies the port that the proxy should use to connect to the _local_ service instance. Refer to the [proxy parameters reference](#local-service-port) for details.
+* `local_service_address`: String value that specifies the IP address or hostname that the proxy should use to connect to the _local_ service. Refer to the [proxy parameters reference](#local-service-address) for details.
 
 See (Sidecar Service Registration)[/docs/connect/registration/sidecar-service] for additional information about configuring service mesh proxies as sidecars.
 
 ### Complete Configuration Example
 
-The following example includes values for all availble options when registering a proxy instance.
+The following example includes values for all available options when registering a proxy instance.
 
 <CodeTabs heading="Example that includes all configuration options when registering a proxy instance">
 <CodeBlockConfig>
@@ -160,7 +160,7 @@ The following table describes all parameters that can be defined in the `proxy` 
 | Parameter | Description | Required | Default |
 | ---       | ---         | ---      | ---     |
 | `destination_service_id` <a name="destination-service-id"/>| String value that specifies the ID of a single service instance represented by the proxy. <br/>This parameter is only applicable for sidecar proxies that run on the same node as the service. <br/>Consul checks for the proxied service on the same agent. <br/>The ID is unique and may differ from its `name` value. <br/>Specifying this parameter helps tools identify which sidecar proxy instances are associated with which application instance, as well as enable fine-grained analysis of the metrics coming from the proxy.| Required when registering proxy as a sidecar | None |
-| `local_service_port` <a name="local-service-port"/>| Integer value that specifes the port that a sidecar proxy should use to connect to the _local_ service instance. | Required when registering proxy as a sidecar | Port advertised by the service instance configured in `destination_service_id` |
+| `local_service_port` <a name="local-service-port"/>| Integer value that specifies the port that a sidecar proxy should use to connect to the _local_ service instance. | Required when registering proxy as a sidecar | Port advertised by the service instance configured in `destination_service_id` |
 | `local_service_address` <a name="local-service-address"/>| String value that specifies the IP address or hostname that a sidecar proxy should use to connect to the _local_ service. | Optional | `127.0.0.1` |
 | `destination_service_name` | String value that specifies the _name_ of the service the instance is proxying. The name is used during service discovery to route to the correct proxy instances for a given service name. | Required | None |
 | `local_service_socket_path` | String value that specifies the path of a Unix domain socket for connecting to the local application instance. <br/>This parameter value is created by the application and conflicts with `local_service_address` and `local_service_port`. <br/>Supported when using Envoy for the proxy. | Optional | None |
@@ -175,23 +175,23 @@ The following table describes all parameters that can be defined in the `proxy` 
 
 You can configure the service mesh proxy to create listeners for upstream services. The listeners enable the upstream service to accept requests. You can specify the following parameters to configure upstream service listeners.
 
-| Parameter | Description | Required | Defautl |
+| Parameter | Description | Required | Default |
 | ---       | ---         | ---      | ---     |
 |`destination_name` | String value that specifies the name of the service or prepared query to route the service mesh to. The prepared query should be the name or the ID of the prepared query. | Required | None |
 | `destination_namespace` | String value that specifies the namespace containing the upstream service. <EnterpriseAlert inline /> | Optional | `default` |
 | `destination_partition` | String value that specifies the name of the admin partition containing the upstream service. | Optional | `default` |
 | `local_bind_port` | Integer value that specifies the port to bind a local listener to. The application will make outbound connections to the upstream from the local port. | Required | None |
-| `local_bind_address` | String value that specifies the address to bind a local listener to. The application will make outbound connecttions to the upstream service from the local bind address. | Optional | `127.0.0.1` |
+| `local_bind_address` | String value that specifies the address to bind a local listener to. The application will make outbound connections to the upstream service from the local bind address. | Optional | `127.0.0.1` |
 | `local_bind_socket_path` | String value that specifies the path at which to bind a Unix domain socket listener. The application will make outbound connections to the upstream from the local bind socket path. <br/>This parameter conflicts with the `local_bind_port` or `local_bind_address` parameters. <br/>Supported when using Envoy as a proxy. | Optional | None|
 | `local_bind_socket_mode` | String value that specifies a Unix octal that configures file permissions for the socket. | Optional | None |
 | `destination_type` | String value that specifies the type of discovery query the proxy should use for finding service mesh instances. The following values are supported: <li>`service`: Queries for upstream `service` types. </li><li> `prepared_query`: Queries for upstream prepared queries.</li> | Optional | `service` |
 | `datacenter` | String value that specifies the datacenter to issue the discovery query to. | Optional | Defaults to the local datacenter. |
-| `config` | Object value that specifies opaque configuration options that will be provided to the proxy instance for the upstream. <br/>Valid JSON objects are also suppported. <br/>The `config` parameter can specify timeouts, retries, and other proxy-specific features for the given upstream. <br/>See the [built-in proxy configuration reference](/docs/connect/proxies/built-in#proxy-upstream-config-key-reference) for configuration options when using the built-in proxy. <br/>If using Envoy as a proxy, see [Envoy configuration reference](/docs/connect/proxies/envoy#proxy-upstream-config-options) | Optional | None |
+| `config` | Object value that specifies opaque configuration options that will be provided to the proxy instance for the upstream. <br/>Valid JSON objects are also supported. <br/>The `config` parameter can specify timeouts, retries, and other proxy-specific features for the given upstream. <br/>See the [built-in proxy configuration reference](/docs/connect/proxies/built-in#proxy-upstream-config-key-reference) for configuration options when using the built-in proxy. <br/>If using Envoy as a proxy, see [Envoy configuration reference](/docs/connect/proxies/envoy#proxy-upstream-config-options) | Optional | None |
 | `mesh_gateway` | Object that defines the mesh gateway configuration for the proxy. Refer to the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference) for configuration details. | Optional | None |
 
 ### Upstream Configuration Examples
 
-Upstreams support multiple destination types. The following examples include information about each implmentation. 
+Upstreams support multiple destination types. The following examples include information about each implementation.
 
 -> **Snake case**: The examples in this topic use `snake_case` because the syntax is supported in configuration files and API registrations. See [Service Definition Parameter Case](/docs/agent/services#service-definition-parameter-case) for additional information.
 
