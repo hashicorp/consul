@@ -20,9 +20,12 @@ The table below shows this command's [required ACLs](/api#authentication). Confi
 [blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
-| ACL Required                          |
-| ------------------------------------- |
-| `operator:read` or `namespace:* read` |
+| ACL Required                                      |
+| ------------------------------------------------- |
+| `operator:read` or `namespace:*:read`<sup>1</sup> |
+
+<sup>1</sup> Access can be granted to list the Namespace if the token used when making
+the request has been granted any access in the namespace (read, list or write).
 
 ## Usage
 

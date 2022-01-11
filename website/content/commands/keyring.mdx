@@ -29,6 +29,19 @@ All variations of the `keyring` command return 0 if all nodes reply and there
 are no errors. If any node fails to reply or reports failure, the exit code
 will be 1.
 
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required<sup>1</sup>            |
+| ----------------------------------- |
+| `keyring:read`<br />`keyring:write` |
+
+<p>
+  <sup>1</sup> The actual ACL required depends on the flags being used in the
+  command.
+</p>
+
 ## Usage
 
 Usage: `consul keyring [options]`
