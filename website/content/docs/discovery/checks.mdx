@@ -613,7 +613,7 @@ The status will not transition states until the configured threshold is reached.
 - `failures_before_warning` - Number of consecutive unsuccessful results required
   before check status transitions to warning. Defaults to the same value as that of
   `failures_before_critical` to maintain the expected behavior of not changing the
-  status of serivce checks to `warning` before `critical` unless configured to do so.
+  status of service checks to `warning` before `critical` unless configured to do so.
   Values higher than `failures_before_critical` are invalid. Added in Consul 1.11.0.
 - `failures_before_critical` - Number of consecutive unsuccessful results required
   before check status transitions to critical. Defaults to `0`. Added in Consul 1.7.0.
