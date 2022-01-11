@@ -212,10 +212,13 @@ func resolveListenerTLSConfig(gatewayTLSCfg *structs.GatewayTLSConfig, listenerC
 	}
 
 	var TLSVersionsWithConfigurableCipherSuites = map[types.TLSVersion]struct{}{
-		types.TLSVersionAuto: {}, // Remove if Envoy ever sets TLS 1.3 as default minimum
-		types.TLSv1_0:        {},
-		types.TLSv1_1:        {},
-		types.TLSv1_2:        {},
+		// Remove these two if Envoy ever sets TLS 1.3 as default minimum
+		types.TLSVersionUnspecified: {},
+		types.TLSVersionAuto:        {},
+
+		types.TLSv1_0: {},
+		types.TLSv1_1: {},
+		types.TLSv1_2: {},
 	}
 
 	// Validate. Configuring cipher suites is only applicable to connections negotiated
