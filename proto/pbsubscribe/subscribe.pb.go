@@ -90,9 +90,8 @@ type SubscribeRequest struct {
 	Topic Topic `protobuf:"varint,1,opt,name=Topic,proto3,enum=subscribe.Topic" json:"Topic,omitempty"`
 	// Key is a topic-specific identifier that restricts the scope of the
 	// subscription to only events pertaining to that identifier. For example,
-	// to receive events for a single service, the service's name is
-	// specified as the key. An empty key indicates that all events in the topic
-	// are of interest.
+	// to receive events for a single service, the service's name is specified
+	// as the key.
 	Key string `protobuf:"bytes,2,opt,name=Key,proto3" json:"Key,omitempty"`
 	// Token is the ACL token to authenticate the request. The token must have
 	// sufficient privileges to read the requested information otherwise events

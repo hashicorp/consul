@@ -51,9 +51,8 @@ message SubscribeRequest {
 
     // Key is a topic-specific identifier that restricts the scope of the
     // subscription to only events pertaining to that identifier. For example,
-    // to receive events for a single service, the service's name is
-    // specified as the key. An empty key indicates that all events in the topic
-    // are of interest.
+    // to receive events for a single service, the service's name is specified
+    // as the key.
     string Key = 2;
 
     // Token is the ACL token to authenticate the request. The token must have

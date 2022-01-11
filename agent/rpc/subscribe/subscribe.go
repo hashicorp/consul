@@ -57,6 +57,10 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 		return err
 	}
 
+	if req.Key == "" {
+		return status.Error(codes.InvalidArgument, "Key is required")
+	}
+
 	sub, err := h.Backend.Subscribe(toStreamSubscribeRequest(req, entMeta))
 	if err != nil {
 		return err
