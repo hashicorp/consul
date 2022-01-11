@@ -17,7 +17,7 @@ description: >-
 
 | Name | Type	 | Required | Description  |
 | -----| ----- | -------- | ------------ |
-|`task_name` | string | true | The name of the task to enable.
+|`task_name` | string | Required | The name of the task to enable.
 
 **Options:** Currently only supporting [general options](/docs/nia/cli/cli-overview#general-options)
 
@@ -66,7 +66,7 @@ Enter a value: yes
 
 | Name | Type	 | Required | Description  |
 | -----| ----- | -------- | ------------ |
-|`task_name` | string | true | The name of the task to disable.
+|`task_name` | string | Required | The name of the task to disable.
 
 **Options:** Currently only supporting [general options](/docs/nia/cli/cli-overview#general-options)
 
@@ -91,7 +91,7 @@ $ consul-terraform-sync task disable task_b
 
 | Name | Type	 | Required | Description  |
 | -----| ----- | -------- | ------------ |
-|`task_name` | string | true | The name of the task to delete.
+|`task_name` | string | Required | The name of the task to delete.
 
 **Options:** Currently only supporting [general options](/docs/nia/cli/cli-overview#general-options)
 
