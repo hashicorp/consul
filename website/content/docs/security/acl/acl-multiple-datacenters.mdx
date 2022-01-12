@@ -86,11 +86,11 @@ Replication tokens are needed for ACL token replication and
 to create both [local tokens](/api/acl/tokens#local) and [auth methods](/docs/acl/auth-methods)
 in connected secondary datacenters.
 
-Replication tokens need specific permissions as described below
+Replication tokens require the following permissions:
 
-- acl = "write" which will allow you to replicate tokens.
-- operator = "write" for replicating proxy-default configuration entries and enabling CA certificate signing in the secondary datacenter.
-- service_prefix, policy = "read" and intentions = "read" for replicating service-default configuration entries, CA, and intention data.
+- `acl = "write"`: The permission allows you to replicate tokens.
+- `operator = "write"`: This permission enables the `proxy-default` configuration entries to be replicated and enables CA certificate signing in the secondary datacenter.
+- `policy = "read"` and `intentions = "read"` in the `service_prefix` field: These permissions enable `service-default` configuration entries, CA, and intention data to be replicated.
 
 <CodeTabs heading="Replication Token Policy">
 
