@@ -341,7 +341,9 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 
 	codec := rpcClient(t, s2)
 	roots := structs.IndexedCARoots{}
-	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{
+		Datacenter: "dc2",
+	}, &roots)
 	require.NoError(err)
 	require.Len(roots.Roots, 1)
 
@@ -359,7 +361,7 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	}
 	csr, _ := connect.TestCSR(t, spiffeService)
 
-	req := structs.CASignRequest{CSR: csr}
+	req := structs.CASignRequest{CSR: csr, Datacenter: "dc2"}
 	cert := structs.IssuedCert{}
 	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
 	require.NoError(err)
