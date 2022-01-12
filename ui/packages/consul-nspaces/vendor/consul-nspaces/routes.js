@@ -26,7 +26,7 @@
       },
       create: {
         _options: {
-          template: 'dc/nspaces/edit',
+          template: '../edit',
           path: '/create',
           abilities: ['create nspaces'],
         },
