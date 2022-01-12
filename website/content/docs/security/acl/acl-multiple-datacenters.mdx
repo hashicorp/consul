@@ -110,13 +110,13 @@ service_prefix "" {
 
 Create a replication policy with the following command:
 
-```
+```shell-session
 $ consul acl policy create -name replication -rules @replication-policy.hcl
 ```
 
 Use your newly created policy to create the replication token.
 
-```
+```shell-session
 $ consul acl token create -description "replication token" -policy-name replication
 ```
 
@@ -167,7 +167,7 @@ servers in each federated datacenter to discover each other.
 
 Run the following command from one of the server nodes.
 
-```
+```shell-session
 $ consul join -token="ACL_MANAGEMENT_TOKEN" -wan [server 1, server 2, ...]
 ```
 
@@ -184,7 +184,7 @@ in Consul 1.8.1 and enable creating agent tokens with appropriately scoped polic
 
 To generate the ACL token using node identity, run the following command:
 
-```
+```shell-session
 $ consul acl token create -node-identity=node-two:dc2
 ```
 
