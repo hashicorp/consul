@@ -1086,8 +1086,9 @@ func (l *State) updateSyncState() error {
 		// copy so that we don't retain a pointer to any actual state
 		// store info for in-memory RPCs.
 		if ls.Service.EnableTagOverride {
-			ls.Service.Tags = make([]string, len(rs.Tags))
-			copy(ls.Service.Tags, rs.Tags)
+			tags := make([]string, len(rs.Tags))
+			copy(tags, rs.Tags)
+			ls.Service.Tags = tags
 		}
 
 		// Merge any tagged addresses with the consul- prefix (set by the server)
