@@ -133,8 +133,26 @@ as |item readonly|}}
         />
     {{/if}}
 
-    {{#if (and api.isCreate this.isManagedByCRDs)}}
+    {{#if api.isCreate}}
+      {{#if (and (can 'use partitions') (not (can 'choose partitions' dc=@dc)))}}
+        <Notice
+          @type="info"
+        as |notice|>
+          <notice.Header>
+            <h3>
+              Cross-partition communication not supported
+            </h3>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              Cross-partition communication is not supported outside of the primary datacenter. You will only be able to select namespaces for source and destination services.
+            </p>
+          </notice.Body>
+        </Notice>
+      {{/if}}
+      {{#if this.isManagedByCRDs}}
         <Consul::Intention::Notice::CustomResource @type="warning" />
+      {{/if}}
     {{/if}}
       <form
         {{on 'submit' (fn this.submit item api.submit)}}
