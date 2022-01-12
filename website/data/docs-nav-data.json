@@ -357,6 +357,10 @@
     ]
   },
   {
+    "title": "Consul API Gateway <sup>BETA</sup>",
+    "path": "api-gateway"
+  },
+  {
     "title": "Kubernetes",
     "routes": [
       {
@@ -474,10 +478,6 @@
           {
             "title": "Transparent Proxy",
             "href": "/docs/connect/transparent-proxy"
-          },
-          {
-            "title": "Consul API Gateway <sup>BETA</sup>",
-            "path": "k8s/connect/api-gateway"
           },
           {
             "title": "Ingress Gateways",
