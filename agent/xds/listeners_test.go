@@ -1224,6 +1224,54 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:   "transparent-proxy-terminating-gateway",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Mode = structs.ProxyModeTransparent
+
+				snap.ConnectProxy.MeshConfigSet = true
+				snap.ConnectProxy.MeshConfig = &structs.MeshConfigEntry{
+					TransparentProxy: structs.TransparentProxyMeshConfig{
+						MeshDestinationsOnly: true,
+					},
+				}
+
+				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
+				google := structs.NewServiceName("google", nil)
+				kafka := structs.NewServiceName("kafka", nil)
+				snap.ConnectProxy.IntentionUpstreams = map[string]struct{}{
+					google.String(): {},
+					kafka.String():  {},
+				}
+				snap.ConnectProxy.DiscoveryChain[google.String()] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[kafka.String()] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+
+				tgate := structs.CheckServiceNode{
+					Node: &structs.Node{
+						Address:    "8.8.8.8",
+						Datacenter: "dc1",
+					},
+					Service: &structs.NodeService{
+						Service: "tgate1",
+						Kind:    structs.ServiceKind(structs.TerminatingGateway),
+						Address: "9.9.9.9",
+						Port:    9090,
+						TaggedAddresses: map[string]structs.ServiceAddress{
+							structs.ServiceGatewayVirtualIPTag(google): {Address: "10.0.0.1"},
+							structs.ServiceGatewayVirtualIPTag(kafka):  {Address: "10.0.0.2"},
+							"virtual": {Address: "6.6.6.6"},
+						},
+					},
+				}
+				snap.ConnectProxy.WatchedUpstreamEndpoints[google.String()] = map[string]structs.CheckServiceNodes{
+					"google.default.default.dc1": {tgate},
+				}
+				snap.ConnectProxy.WatchedUpstreamEndpoints[kafka.String()] = map[string]structs.CheckServiceNodes{
+					"kafka.default.default.dc1": {tgate},
+				}
+			},
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]

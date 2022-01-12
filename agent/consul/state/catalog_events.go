@@ -315,8 +315,8 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 		events = append(events, e)
 	}
 
-	for gatewayName, serviceChanges := range termGatewayChanges {
-		for serviceName, gsChange := range serviceChanges {
+	for gatewayName, svcChanges := range termGatewayChanges {
+		for serviceName, gsChange := range svcChanges {
 			gs := changeObject(gsChange.change).(*structs.GatewayService)
 
 			q := Query{
@@ -355,6 +355,12 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 			// Build service events and append them
 			for _, sn := range nodes {
 				tuple := newNodeServiceTupleFromServiceNode(sn)
+
+				// If we're already sending an event for the service, don't send another.
+				if _, ok := serviceChanges[tuple]; ok {
+					continue
+				}
+
 				e, err := newServiceHealthEventForService(tx, changes.Index, tuple)
 				if err != nil {
 					return nil, err

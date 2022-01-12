@@ -1999,6 +1999,10 @@ func (n ServiceName) ToServiceID() ServiceID {
 	return ServiceID{ID: n.Name, EnterpriseMeta: n.EnterpriseMeta}
 }
 
+func ServiceGatewayVirtualIPTag(sn ServiceName) string {
+	return fmt.Sprintf("%s:%s", TaggedAddressVirtualIP, sn.String())
+}
+
 type ServiceList []ServiceName
 
 type IndexedServiceList struct {
