@@ -63,6 +63,12 @@ runInDebug(() => {
   };
 });
 
+// Consul UIs routes are kept in individual configuration files Please see for
+// example /ui/pacakges/consul-ui/vendor/routes.js Routing for additional
+// applications/features are kept in the corresponding configuration files for
+// the application/feature and optional merged at runtime depending on a
+// Consul backend feature flag. Please see for example
+// /ui/packages/consul-nspaces/vendor/route.js
 export default class Router extends EmberRouter {
   location = env('locationType');
   rootURL = env('rootURL');
