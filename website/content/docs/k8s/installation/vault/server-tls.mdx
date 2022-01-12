@@ -106,7 +106,7 @@ Finally, three Kubernetes auth roles need to be created, one for the Consul serv
 
 Role for Consul servers:
 ```shell-session
-vault write auth/kubernetes/role/consul-server \
+$ vault write auth/kubernetes/role/consul-server \
     bound_service_account_names=<Consul server service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
     policies=consul-server \
