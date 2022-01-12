@@ -48,7 +48,15 @@ as |route|>
         </h1>
       </BlockSlot>
       <BlockSlot @name="actions">
-          <a data-test-create href="{{href-to 'dc.partitions.create'}}" class="type-create">Create</a>
+{{#if (can 'create partitions')}}
+        <a 
+          data-test-create 
+          class="type-create"
+          href="{{href-to 'dc.partitions.create'}}"
+        >
+          Create
+        </a>
+{{/if}}
       </BlockSlot>
       <BlockSlot @name="toolbar">
       {{#if (gt items.length 0)}}

@@ -21,6 +21,15 @@ This component **does not store the resulting token**, it only emits it via
 its `onchange` argument/event handler. Errors are emitted via the `onerror`
 argument/event handler.
 
+## Potential improvements
+
+We could decide to remove the `@type` argument and always require an object
+passed to `@value` instead of a `String|Object`. Alternatively we could still
+allow `String|Object`. Then inside the component we could decide whether to
+use the Consul or SSO depending on the shape of the `@value` argument. All in
+all this means we can remove the `@type` argument making a slimmer component
+API.
+
 ```hbs preview-template
 <figure>
   <figcaption>Provide a widget to login with</figcaption>
@@ -75,7 +84,7 @@ argument/event handler.
 | `nspace` | `String` | | The name of the current namespace |
 | `partition` | `String` | | The name of the current partition |
 | `type` | `String` | | `secret` or `oidc`. `secret` is just traditional login, whereas `oidc` uses the users OIDC provider |
-| `value` | `String` | | When `type` is `secret` this should be the users secret. When `type` is `oidc` this should be the name of the `AuthMethod` to use for authentication |
+| `value` | `String|Object` | | When `type` is `secret` this should be the users secret. When `type` is `oidc` this should be object returned by Consul's AuthMethod HTTP API endpoint |
 | `onchange` | `Function` |  | The action to fire when the data changes. Emits an Event-like object with a `data` property containing the jwt data, in this case the autorizationCode and the status |
 | `onerror` | `Function` |  | The action to fire when an error occurs. Emits ErrorEvent object with an `error` property containing the Error. |
 

@@ -3,25 +3,30 @@
     nspaces: {
       _options: {
         path: '/namespaces',
-        queryParams: {
-          sortBy: 'sort',
-          searchproperty: {
-            as: 'searchproperty',
-            empty: [['Name', 'Description', 'Role', 'Policy']],
-          },
-          search: {
-            as: 'filter',
-            replace: true,
+        abilities: ['read nspaces'],
+      },
+      index: {
+        _options: {
+          path: '/',
+          queryParams: {
+            sortBy: 'sort',
+            searchproperty: {
+              as: 'searchproperty',
+              empty: [['Name', 'Description', 'Role', 'Policy']],
+            },
+            search: {
+              as: 'filter',
+              replace: true,
+            },
           },
         },
-        abilities: ['read nspaces'],
       },
       edit: {
         _options: { path: '/:name' },
       },
       create: {
         _options: {
-          template: 'dc/nspaces/edit',
+          template: '../edit',
           path: '/create',
           abilities: ['create nspaces'],
         },

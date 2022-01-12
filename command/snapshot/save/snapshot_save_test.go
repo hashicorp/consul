@@ -94,6 +94,10 @@ func TestSnapshotSaveCommand(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
+	fi, err := os.Stat(file)
+	require.NoError(t, err)
+	require.Equal(t, fi.Mode(), os.FileMode(0600))
+
 	f, err := os.Open(file)
 	if err != nil {
 		t.Fatalf("err: %v", err)

@@ -55,7 +55,7 @@ $ curl http://<host-ip>:8500/v1/agent/connect/ca/roots
 After validating the client certificate from the caller, the proxy can authorize the entire connection (L4) or each request (L7). Depending upon the [protocol] of the proxied service, authorization is performed either on a per-connection (L4) or per-request (L7) basis. Authentication is based on "service identity" (TLS), and is implemented at the
 transport layer.
 
--> **Note:** Some features, such as (local) rate limiting or max connections, are expected to be proxy-level configurations enforced separately when authorization calls are made. Proxies can enforce the configurations based on information about request rates and other states that should already be availabe.
+-> **Note:** Some features, such as (local) rate limiting or max connections, are expected to be proxy-level configurations enforced separately when authorization calls are made. Proxies can enforce the configurations based on information about request rates and other states that should already be available.
 
 The proxy can authorize the connection by either calling the [`/v1/agent/connect/authorize`](/api/agent/connect) API endpoint or by querying the [intention match API](/api/connect/intentions#list-matching-intentions) endpoint.
 

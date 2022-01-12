@@ -660,9 +660,9 @@ func TestAgent_Service(t *testing.T) {
 			wantResp: &updatedResponse,
 		},
 		{
-			name:     "err: non-existent proxy",
-			url:      "/v1/agent/service/nope",
-			wantCode: 404,
+			name:    "err: non-existent proxy",
+			url:     "/v1/agent/service/nope",
+			wantErr: fmt.Sprintf("unknown service ID: %s", structs.NewServiceID("nope", nil)),
 		},
 		{
 			name: "err: bad ACL for service",
@@ -2889,12 +2889,19 @@ func TestAgent_DeregisterCheck(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/test", nil)
-	resp := httptest.NewRecorder()
-	a.srv.h.ServeHTTP(resp, req)
-	if http.StatusOK != resp.Code {
-		t.Fatalf("expected 200 but got %v", resp.Code)
-	}
+	t.Run("remove registered check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/test", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
+	})
+
+	t.Run("remove non-existent check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/test", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusNotFound, resp.Code)
+	})
 
 	// Ensure we have a check mapping
 	requireCheckMissing(t, a, "test")
@@ -2927,6 +2934,20 @@ func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
+	})
+
+	t.Run("non-existent check without token", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/_nope_", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusNotFound, resp.Code)
+	})
+
+	t.Run("non-existent check with token", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/_nope_?token=root", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusNotFound, resp.Code)
 	})
 }
 
@@ -3783,9 +3804,6 @@ func testAgent_RegisterService_InvalidAddress(t *testing.T, extraHCL string) {
 			a.srv.h.ServeHTTP(resp, req)
 			if got, want := resp.Code, 400; got != want {
 				t.Fatalf("got code %d want %d", got, want)
-			}
-			if got, want := resp.Body.String(), "Invalid service address"; got != want {
-				t.Fatalf("got body %q want %q", got, want)
 			}
 		})
 	}
@@ -4751,7 +4769,8 @@ func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, 404, resp.Code)
-		require.Contains(t, resp.Body.String(), `Unknown service "_nope_"`)
+		sid := structs.NewServiceID("_nope_", nil)
+		require.Contains(t, resp.Body.String(), fmt.Sprintf(`Unknown service ID %q`, sid))
 	})
 }
 

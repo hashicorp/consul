@@ -25,9 +25,10 @@ as |route|>
     route.params.dc
 
     route.model.proxy
+    route.model.meta
     route.model.proxy.Service.Proxy.Upstreams
 
-  as |sort filters partition nspace dc proxy items|}}
+  as |sort filters partition nspace dc proxy meta items|}}
       {{#if (gt items.length 0)}}
         <input type="checkbox" id="toolbar-toggle" />
         <Consul::UpstreamInstance::SearchBar
@@ -40,29 +41,33 @@ as |route|>
           @filter={{filters}}
         />
       {{/if}}
-      {{#if (eq proxy.ServiceProxy.Mode 'transparent')}}
-      <Notice
-        @type="warning"
-      as |notice|>
-        <notice.Header>
-          <h3>{{t "routes.dc.services.instance.upstreams.tproxy-mode.header"}}</h3>
-        </notice.Header>
-        <notice.Body>
-          <p>
-           {{t "routes.dc.services.instance.upstreams.tproxy-mode.body"}}
-          </p>
-        </notice.Body>
-        <notice.Footer>
-          <p>
-            <Action
-              @href={{concat (env 'CONSUL_DOCS_URL') '/connect/transparent-proxy'}}
-              @external={{true}}
-            >
-              {{t "routes.dc.services.instance.upstreams.tproxy-mode.footer"}}
-            </Action>
-          </p>
-        </notice.Footer>
-      </Notice>
+      {{! TODO: Looks like we can get this straight from item.Proxy.Mode }}
+      {{! the less we need `proxy` and `meta` the better }}
+      {{#if (eq meta.ServiceProxy.Mode 'transparent')}}
+        <Notice
+          @type="warning"
+        as |notice|>
+          <notice.Header>
+            <h3>
+              {{t "routes.dc.services.instance.upstreams.tproxy-mode.header"}}
+            </h3>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              {{t "routes.dc.services.instance.upstreams.tproxy-mode.body"}}
+            </p>
+          </notice.Body>
+          <notice.Footer>
+            <p>
+              <Action
+                @href={{concat (env 'CONSUL_DOCS_URL') '/connect/transparent-proxy'}}
+                @external={{true}}
+              >
+                {{t "routes.dc.services.instance.upstreams.tproxy-mode.footer"}}
+              </Action>
+            </p>
+          </notice.Footer>
+        </Notice>
       {{/if}}
       <DataCollection
         @type="upstream-instance"

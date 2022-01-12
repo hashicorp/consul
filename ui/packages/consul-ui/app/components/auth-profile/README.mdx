@@ -1,23 +1,22 @@
----
-class: ember
----
 # AuthProfile
-
-```hbs preview-template
-<AuthProfile @item={{hash AccessorID='123456-1234567-123456'}} />
-```
 
 A straightforward partial-like component for rendering a user profile.
 
 Only the last 8 characters are shown.
 
-### Arguments
+```hbs preview-template
+<AuthProfile
+  @item={{hash AccessorID='123456-1234567-123456'}}
+/>
+```
+
+## Arguments
 
 | Argument | Type | Default | Description |
 | --- | --- | --- | --- |
-| `item` | `Object` |  | A Consul shaped token object (currently only requires an AccessorID property to be set |
+| `item` | `Token` |  | A token object (currently only requires an AccessorID property to be set |
 
-### See
+## See
 
 - [Component Source Code](./index.js)
 - [Template Source Code](./index.hbs)

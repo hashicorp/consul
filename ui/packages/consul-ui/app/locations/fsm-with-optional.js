@@ -240,7 +240,7 @@ export default class FSMWithOptionalLocation {
    */
   transitionTo(url) {
     if (this.router.currentRouteName.startsWith('docs') && url.startsWith('console://')) {
-      console.log(`location.transitionTo: ${url.substr(10)}`);
+      console.info(`location.transitionTo: ${url.substr(10)}`);
       return true;
     }
     const previousOptional = Object.entries(this.optionalParams());

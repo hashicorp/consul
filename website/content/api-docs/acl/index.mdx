@@ -128,7 +128,8 @@ $ curl \
   "ReplicatedIndex": 1976,
   "ReplicatedTokenIndex": 2018,
   "LastSuccess": "2018-11-03T06:28:58Z",
-  "LastError": "2016-11-03T06:28:28Z"
+  "LastError": "2016-11-03T06:28:28Z",
+  "LastErrorMessage": "failed to retrieve ACL policy updates: RPC rate limit exceeded"
 }
 ```
 
@@ -178,6 +179,9 @@ $ curl \
   operation. If this time is later than `LastSuccess`, you can assume the
   replication process is not in a good state. A zero value of
   "0001-01-01T00:00:00Z" will be present if no sync has resulted in an error.
+
+- `LastErrorMessage` - The last error message produced at the time of `LastError`.
+  An empty string indicates that no sync has resulted in an error.
 
 ## Translate Rules
 

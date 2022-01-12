@@ -3,13 +3,17 @@
 as |route|>
 {{#let
   route.model.proxy
-as |proxy|}}
+  route.model.meta
+as |item proxy|}}
   <div class="tab-section">
-  {{#if (gt proxy.Service.Proxy.Expose.Paths.length 0)}}
+  {{#if (gt proxy.ServiceProxy.Expose.Paths.length 0)}}
     <p>
-      The following list shows individual HTTP paths exposed through Envoy for external services like Prometheus. Read more about this in our documentation.
+      The following list shows individual HTTP paths exposed through Envoy for external services like Prometheus. Read more about this in our <Action @href={{concat (env 'CONSUL_DOCS_URL') '/connect/registration/service-registration#expose-paths-configuration-reference'}} @external={{true}}>documentation</Action>.
     </p>
-    <Consul::ExposedPath::List @items={{proxy.Service.Proxy.Expose.Paths}} @address={{proxy.Address}} />
+    <Consul::ExposedPath::List
+      @items={{proxy.ServiceProxy.Expose.Paths}}
+      @address={{or item.Service.Address item.Node.Address}}
+    />
   {{else}}
     <EmptyState>
       <BlockSlot @name="body">

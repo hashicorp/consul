@@ -70,10 +70,8 @@ func TestACL_Disabled_Response(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/should/not/care", nil)
 			resp := httptest.NewRecorder()
 			obj, err := tt.fn(resp, req)
-			require.NoError(t, err)
 			require.Nil(t, obj)
-			require.Equal(t, http.StatusUnauthorized, resp.Code)
-			require.Contains(t, resp.Body.String(), "ACL support disabled")
+			require.ErrorIs(t, err, UnauthorizedError{Reason: "ACL support disabled"})
 		})
 	}
 }
@@ -118,9 +116,6 @@ func TestACL_Bootstrap(t *testing.T) {
 			out, err := a.srv.ACLBootstrap(resp, req)
 			if tt.token && err != nil {
 				t.Fatalf("err: %v", err)
-			}
-			if got, want := resp.Code, tt.code; got != want {
-				t.Fatalf("got %d want %d", got, want)
 			}
 			if tt.token {
 				wrap, ok := out.(*aclBootstrapResponse)

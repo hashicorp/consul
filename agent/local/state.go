@@ -272,7 +272,7 @@ func (l *State) addServiceLocked(service *structs.NodeService, token string) err
 	}
 
 	if l.agentEnterpriseMeta.PartitionOrDefault() != service.PartitionOrDefault() {
-		return fmt.Errorf("cannot add service %q to node in partition %q", service.CompoundServiceID(), l.config.Partition)
+		return fmt.Errorf("cannot add service ID %q to node in partition %q", service.CompoundServiceID(), l.config.Partition)
 	}
 
 	l.setServiceStateLocked(&ServiceState{
@@ -328,7 +328,14 @@ func (l *State) RemoveServiceWithChecks(serviceID structs.ServiceID, checkIDs []
 func (l *State) removeServiceLocked(id structs.ServiceID) error {
 	s := l.services[id]
 	if s == nil || s.Deleted {
-		return fmt.Errorf("Service %q does not exist", id)
+		// Take care if modifying this error message.
+		// deleteService assumes the Catalog.Deregister RPC call will include "Unknown service"
+		// in the error if deregistration fails due to a service with that ID not existing.
+
+		// When the service register endpoint is called, this error message is also typically
+		// shadowed by vetServiceUpdateWithAuthorizer, which checks for the existence of the
+		// service and, if none is found, returns an error before this function is ever called.
+		return fmt.Errorf("Unknown service ID %q. Ensure that the service ID is passed, not the service name.", id)
 	}
 
 	// To remove the service on the server we need the token.
@@ -539,7 +546,7 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 	// if there is a serviceID associated with the check, make sure it exists before adding it
 	// NOTE - This logic may be moved to be handled within the Agent's Addcheck method after a refactor
 	if _, ok := l.services[check.CompoundServiceID()]; check.ServiceID != "" && !ok {
-		return fmt.Errorf("Check %q refers to non-existent service %q", check.CheckID, check.ServiceID)
+		return fmt.Errorf("Check ID %q refers to non-existent service ID %q", check.CheckID, check.ServiceID)
 	}
 
 	l.setCheckStateLocked(&CheckState{
@@ -561,7 +568,7 @@ func (l *State) AddAliasCheck(checkID structs.CheckID, srcServiceID structs.Serv
 	defer l.Unlock()
 
 	if l.agentEnterpriseMeta.PartitionOrDefault() != checkID.PartitionOrDefault() {
-		return fmt.Errorf("cannot add alias check %q to node in partition %q", checkID.String(), l.config.Partition)
+		return fmt.Errorf("cannot add alias check ID %q to node in partition %q", checkID.String(), l.config.Partition)
 	}
 	if l.agentEnterpriseMeta.PartitionOrDefault() != srcServiceID.PartitionOrDefault() {
 		return fmt.Errorf("cannot add alias check for %q to node in partition %q", srcServiceID.String(), l.config.Partition)
@@ -612,7 +619,7 @@ func (l *State) RemoveCheck(id structs.CheckID) error {
 func (l *State) removeCheckLocked(id structs.CheckID) error {
 	c := l.checks[id]
 	if c == nil || c.Deleted {
-		return fmt.Errorf("Check %q does not exist", id)
+		return fmt.Errorf("Check ID %q does not exist", id)
 	}
 
 	// If this is a check for an aliased service, then notify the waiters.
@@ -1079,21 +1086,26 @@ func (l *State) updateSyncState() error {
 		// copy so that we don't retain a pointer to any actual state
 		// store info for in-memory RPCs.
 		if ls.Service.EnableTagOverride {
-			ls.Service.Tags = make([]string, len(rs.Tags))
-			copy(ls.Service.Tags, rs.Tags)
+			tags := make([]string, len(rs.Tags))
+			copy(tags, rs.Tags)
+			ls.Service.Tags = tags
 		}
 
 		// Merge any tagged addresses with the consul- prefix (set by the server)
 		// back into the local state.
 		if !reflect.DeepEqual(ls.Service.TaggedAddresses, rs.TaggedAddresses) {
-			if ls.Service.TaggedAddresses == nil {
-				ls.Service.TaggedAddresses = make(map[string]structs.ServiceAddress)
+			// Make a copy of TaggedAddresses to prevent races when writing
+			// since other goroutines may be reading from the map
+			m := make(map[string]structs.ServiceAddress)
+			for k, v := range ls.Service.TaggedAddresses {
+				m[k] = v
 			}
 			for k, v := range rs.TaggedAddresses {
 				if strings.HasPrefix(k, structs.MetaKeyReservedPrefix) {
-					ls.Service.TaggedAddresses[k] = v
+					m[k] = v
 				}
 			}
+			ls.Service.TaggedAddresses = m
 		}
 		ls.InSync = ls.Service.IsSame(rs)
 	}

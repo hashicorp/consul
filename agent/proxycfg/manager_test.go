@@ -598,7 +598,146 @@ func TestManager_SyncState_DefaultToken(t *testing.T) {
 
 	err = state.AddServiceWithChecks(srv, nil, "")
 	require.NoError(t, err)
-	m.syncState()
+	m.syncState(m.notifyBroadcast)
 
 	require.Equal(t, "default-token", m.proxies[srv.CompoundServiceID()].serviceInstance.token)
+}
+
+func TestManager_SyncState_No_Notify(t *testing.T) {
+	types := NewTestCacheTypes(t)
+	c := TestCacheWithTypes(t, types)
+	logger := testutil.Logger(t)
+	tokens := new(token.Store)
+	tokens.UpdateUserToken("default-token", token.TokenSourceConfig)
+
+	state := local.NewState(local.Config{}, logger, tokens)
+	state.TriggerSyncChanges = func() {}
+
+	m, err := NewManager(ManagerConfig{
+		Cache:  c,
+		Health: &health.Client{Cache: c, CacheName: cachetype.HealthServicesName},
+		State:  state,
+		Tokens: tokens,
+		Source: &structs.QuerySource{Datacenter: "dc1"},
+		Logger: logger,
+	})
+	require.NoError(t, err)
+	defer m.Close()
+
+	srv := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-sidecar-proxy",
+		Service: "web-sidecar-proxy",
+		Port:    9999,
+		Meta:    map[string]string{},
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceID:   "web",
+			DestinationServiceName: "web",
+			LocalServiceAddress:    "127.0.0.1",
+			LocalServicePort:       8080,
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+		},
+	}
+
+	err = state.AddServiceWithChecks(srv, nil, "")
+	require.NoError(t, err)
+
+	readEvent := make(chan bool, 1)
+	snapSent := make(chan bool, 1)
+
+	m.syncState(func(ch <-chan ConfigSnapshot) {
+		for {
+			<-readEvent
+			snap := <-ch
+			m.notify(&snap)
+			snapSent <- true
+		}
+	})
+
+	// Get the relevant notification Channel, should only have 1
+	notifyCH := m.proxies[srv.CompoundServiceID()].ch
+
+	// update the leaf certs
+	roots, issuedCert := TestCerts(t)
+	notifyCH <- cache.UpdateEvent{
+		CorrelationID: leafWatchID,
+		Result:        issuedCert,
+		Err:           nil,
+	}
+	// at this point the snapshot should not be valid and not be sent
+	after := time.After(200 * time.Millisecond)
+	select {
+	case <-snapSent:
+		t.Fatal("snap should not be valid")
+	case <-after:
+
+	}
+
+	// update the root certs
+	notifyCH <- cache.UpdateEvent{
+		CorrelationID: rootsWatchID,
+		Result:        roots,
+		Err:           nil,
+	}
+
+	// at this point the snapshot should not be valid and not be sent
+	after = time.After(200 * time.Millisecond)
+	select {
+	case <-snapSent:
+		t.Fatal("snap should not be valid")
+	case <-after:
+
+	}
+
+	// prepare to read a snapshot update as the next update should make the snapshot valid
+	readEvent <- true
+
+	// update the intentions
+	notifyCH <- cache.UpdateEvent{
+		CorrelationID: intentionsWatchID,
+		Result:        &structs.IndexedIntentionMatches{},
+		Err:           nil,
+	}
+
+	// at this point we have a valid snapshot
+	after = time.After(500 * time.Millisecond)
+	select {
+	case <-snapSent:
+	case <-after:
+		t.Fatal("snap should be valid")
+
+	}
+
+	// send two snapshots back to back without reading them to overflow the snapshot channel and get to the default use case
+	for i := 0; i < 2; i++ {
+		time.Sleep(250 * time.Millisecond)
+		notifyCH <- cache.UpdateEvent{
+			CorrelationID: leafWatchID,
+			Result:        issuedCert,
+			Err:           nil,
+		}
+	}
+
+	// make sure that we are not receiving any snapshot and wait for the snapshots to be processed
+	after = time.After(500 * time.Millisecond)
+	select {
+	case <-snapSent:
+		t.Fatal("snap should not be sent")
+	case <-after:
+	}
+
+	// now make sure that both snapshots got propagated
+	for i := 0; i < 2; i++ {
+
+		readEvent <- true
+		after = time.After(500 * time.Millisecond)
+		select {
+		case <-snapSent:
+		case <-after:
+			t.Fatal("snap should be valid")
+
+		}
+	}
 }
