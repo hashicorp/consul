@@ -175,6 +175,15 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// We do not match on all endpoints here since it would lead to load balancing across
 		// all instances when any instance address is dialed.
 		for _, e := range endpoints {
+			if e.Service.Kind == structs.ServiceKind(structs.TerminatingGateway) {
+				key := structs.ServiceGatewayVirtualIPTag(chain.CompoundServiceName())
+
+				if vip := e.Service.TaggedAddresses[key]; vip.Address != "" {
+					uniqueAddrs[vip.Address] = struct{}{}
+				}
+
+				continue
+			}
 			if vip := e.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; vip.Address != "" {
 				uniqueAddrs[vip.Address] = struct{}{}
 			}

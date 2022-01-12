@@ -1551,10 +1551,7 @@ func TestStateStore_EnsureService_connectProxy(t *testing.T) {
 func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	assert := assert.New(t)
 	s := testStateStore(t)
-	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
-		Key:   structs.SystemMetadataVirtualIPsEnabled,
-		Value: "true",
-	}))
+	setVirtualIPFlags(t, s)
 
 	// Create the service registration.
 	entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
@@ -1687,10 +1684,7 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 	assert := assert.New(t)
 	s := testStateStore(t)
-	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
-		Key:   structs.SystemMetadataVirtualIPsEnabled,
-		Value: "true",
-	}))
+	setVirtualIPFlags(t, s)
 
 	// Create the service registration.
 	entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
@@ -7985,4 +7979,15 @@ func generateUUID() ([]byte, string) {
 		buf[8:10],
 		buf[10:16])
 	return buf, uuid
+}
+
+func setVirtualIPFlags(t *testing.T, s *Store) {
+	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataVirtualIPsEnabled,
+		Value: "true",
+	}))
+	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataTermGatewayVirtualIPsEnabled,
+		Value: "true",
+	}))
 }
