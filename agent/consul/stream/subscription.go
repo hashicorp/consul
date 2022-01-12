@@ -74,6 +74,10 @@ type SubscribeRequest struct {
 	Index uint64
 }
 
+func (req SubscribeRequest) TopicKey() TopicKey {
+	return NewTopicKey(req.Key, req.Namespace, req.Partition)
+}
+
 // newSubscription return a new subscription. The caller is responsible for
 // calling Unsubscribe when it is done with the subscription, to free resources.
 func newSubscription(req SubscribeRequest, item *bufferItem, unsub func()) *Subscription {
@@ -104,11 +108,7 @@ func (s *Subscription) Next(ctx context.Context) (Event, error) {
 		if len(next.Events) == 0 {
 			continue
 		}
-		event := newEventFromBatch(s.req, next.Events)
-		if !event.Payload.MatchesKey(s.req.Key, s.req.Namespace, s.req.Partition) {
-			continue
-		}
-		return event, nil
+		return newEventFromBatch(s.req, next.Events), nil
 	}
 }
 

@@ -23,13 +23,13 @@ type EventPublisher struct {
 	// This lock protects the topicBuffers, and snapCache
 	lock sync.RWMutex
 
-	// topicBuffers stores the head of the linked-list buffer to publish events to
+	// topicBuffers stores the head of the linked-list buffers to publish events to
 	// for a topic.
-	topicBuffers map[Topic]*eventBuffer
+	topicBuffers map[Topic]map[TopicKey]*eventBuffer
 
 	// snapCache if a cache of EventSnapshots indexed by topic and key.
 	// TODO(streaming): new snapshotCache struct for snapCache and snapCacheTTL
-	snapCache map[Topic]map[string]*eventSnapshot
+	snapCache map[Topic]map[TopicKey]*eventSnapshot
 
 	subscriptions *subscriptions
 
@@ -79,8 +79,8 @@ type SnapshotAppender interface {
 func NewEventPublisher(handlers SnapshotHandlers, snapCacheTTL time.Duration) *EventPublisher {
 	e := &EventPublisher{
 		snapCacheTTL: snapCacheTTL,
-		topicBuffers: make(map[Topic]*eventBuffer),
-		snapCache:    make(map[Topic]map[string]*eventSnapshot),
+		topicBuffers: make(map[Topic]map[TopicKey]*eventBuffer),
+		snapCache:    make(map[Topic]map[TopicKey]*eventSnapshot),
 		publishCh:    make(chan []Event, 64),
 		subscriptions: &subscriptions{
 			byToken: make(map[string]map[*SubscribeRequest]*Subscription),
@@ -116,32 +116,47 @@ func (e *EventPublisher) Run(ctx context.Context) {
 // publishEvent appends the events to any applicable topic buffers. It handles
 // any closeSubscriptionPayload events by closing associated subscriptions.
 func (e *EventPublisher) publishEvent(events []Event) {
-	eventsByTopic := make(map[Topic][]Event)
+	eventsByTopic := make(map[Topic]map[TopicKey][]Event)
 	for _, event := range events {
 		if unsubEvent, ok := event.Payload.(closeSubscriptionPayload); ok {
 			e.subscriptions.closeSubscriptionsForTokens(unsubEvent.tokensSecretIDs)
 			continue
 		}
 
-		eventsByTopic[event.Topic] = append(eventsByTopic[event.Topic], event)
+		byTopic, ok := eventsByTopic[event.Topic]
+		if !ok {
+			byTopic = make(map[TopicKey][]Event)
+			eventsByTopic[event.Topic] = byTopic
+		}
+
+		key := event.Payload.TopicKey()
+		byTopic[key] = append(byTopic[key], event)
 	}
 
 	e.lock.Lock()
 	defer e.lock.Unlock()
-	for topic, events := range eventsByTopic {
-		e.getTopicBuffer(topic).Append(events)
+	for topic, byKey := range eventsByTopic {
+		for key, events := range byKey {
+			e.getTopicBuffer(topic, key).Append(events)
+		}
 	}
 }
 
-// getTopicBuffer for the topic. Creates a new event buffer if one does not
-// already exist.
+// getTopicBuffer returns the event buffer for the given {topic, key} combination.
+// Creates a new buffer if one does not already exist.
 //
 // EventPublisher.lock must be held to call this method.
-func (e *EventPublisher) getTopicBuffer(topic Topic) *eventBuffer {
-	buf, ok := e.topicBuffers[topic]
+func (e *EventPublisher) getTopicBuffer(topic Topic, key TopicKey) *eventBuffer {
+	byTopic, ok := e.topicBuffers[topic]
+	if !ok {
+		byTopic = make(map[TopicKey]*eventBuffer)
+		e.topicBuffers[topic] = byTopic
+	}
+
+	buf, ok := byTopic[key]
 	if !ok {
 		buf = newEventBuffer()
-		e.topicBuffers[topic] = buf
+		byTopic[key] = buf
 	}
 	return buf
 }
@@ -163,7 +178,7 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
-	topicHead := e.getTopicBuffer(req.Topic).Head()
+	topicHead := e.getTopicBuffer(req.Topic, req.TopicKey()).Head()
 
 	// If the client view is fresh, resume the stream.
 	if req.Index > 0 && topicHead.HasEventIndex(req.Index) {
@@ -264,11 +279,11 @@ func (s *subscriptions) closeAll() {
 func (e *EventPublisher) getCachedSnapshotLocked(req *SubscribeRequest) *eventSnapshot {
 	topicSnaps, ok := e.snapCache[req.Topic]
 	if !ok {
-		topicSnaps = make(map[string]*eventSnapshot)
+		topicSnaps = make(map[TopicKey]*eventSnapshot)
 		e.snapCache[req.Topic] = topicSnaps
 	}
 
-	snap, ok := topicSnaps[snapCacheKey(req)]
+	snap, ok := topicSnaps[req.TopicKey()]
 	if ok && snap.err() == nil {
 		return snap
 	}
@@ -280,16 +295,12 @@ func (e *EventPublisher) setCachedSnapshotLocked(req *SubscribeRequest, snap *ev
 	if e.snapCacheTTL == 0 {
 		return
 	}
-	e.snapCache[req.Topic][snapCacheKey(req)] = snap
+	e.snapCache[req.Topic][req.TopicKey()] = snap
 
 	// Setup a cache eviction
 	time.AfterFunc(e.snapCacheTTL, func() {
 		e.lock.Lock()
 		defer e.lock.Unlock()
-		delete(e.snapCache[req.Topic], snapCacheKey(req))
+		delete(e.snapCache[req.Topic], req.TopicKey())
 	})
-}
-
-func snapCacheKey(req *SubscribeRequest) string {
-	return req.Partition + "/" + req.Namespace + "/" + req.Key
 }

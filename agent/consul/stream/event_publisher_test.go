@@ -56,6 +56,13 @@ func TestEventPublisher_SubscribeWithIndex0(t *testing.T) {
 		Payload: simplePayload{key: "sub-key", value: "the-published-event-payload"},
 	}
 	require.Equal(t, expected, next)
+
+	// Subscriber should not see events for other keys
+	publisher.Publish([]Event{{
+		Topic:   testTopic,
+		Payload: simplePayload{key: "other-key", value: "this-should-not-reach-the-subscriber"},
+	}})
+	assertNoResult(t, eventCh)
 }
 
 var testSnapshotEvent = Event{
@@ -70,15 +77,12 @@ type simplePayload struct {
 	noReadPerm bool
 }
 
-func (p simplePayload) MatchesKey(key, _, _ string) bool {
-	if key == "" {
-		return true
-	}
-	return p.key == key
-}
-
 func (p simplePayload) HasReadPermission(acl.Authorizer) bool {
 	return !p.noReadPerm
+}
+
+func (p simplePayload) TopicKey() TopicKey {
+	return NewTopicKey(p.key, "", "")
 }
 
 func newTestSnapshotHandlers() SnapshotHandlers {

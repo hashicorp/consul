@@ -59,10 +59,6 @@ func TestSubscription(t *testing.T) {
 		"Event should have been delivered after short time, took %s", elapsed)
 	require.Equal(t, index, got.Index)
 
-	// Event with wrong key should not be delivered. Deliver a good message right
-	// so we don't have to block test thread forever or cancel func yet.
-	index++
-	publishTestEvent(index, eb, "nope")
 	index++
 	publishTestEvent(index, eb, "test")
 

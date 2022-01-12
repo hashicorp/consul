@@ -1,8 +1,6 @@
 package state
 
 import (
-	"strings"
-
 	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
@@ -32,31 +30,23 @@ func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bo
 	return e.Value.CanRead(authz) == acl.Allow
 }
 
-func (e EventPayloadCheckServiceNode) MatchesKey(key, namespace, partition string) bool {
-	if key == "" && namespace == "" && partition == "" {
-		return true
-	}
-
-	if e.Value.Service == nil {
-		return false
-	}
-
-	name := e.Value.Service.Service
+func (e EventPayloadCheckServiceNode) TopicKey() stream.TopicKey {
+	key := e.Value.Service.Service
 	if e.overrideKey != "" {
-		name = e.overrideKey
-	}
-	ns := e.Value.Service.EnterpriseMeta.NamespaceOrDefault()
-	if e.overrideNamespace != "" {
-		ns = e.overrideNamespace
-	}
-	ap := e.Value.Service.EnterpriseMeta.PartitionOrDefault()
-	if e.overridePartition != "" {
-		ap = e.overridePartition
+		key = e.overrideKey
 	}
 
-	return (key == "" || strings.EqualFold(key, name)) &&
-		(namespace == "" || strings.EqualFold(namespace, ns)) &&
-		(partition == "" || strings.EqualFold(partition, ap))
+	namespace := e.Value.Service.NamespaceOrDefault()
+	if e.overrideNamespace != "" {
+		namespace = e.overrideNamespace
+	}
+
+	partition := e.Value.Service.PartitionOrDefault()
+	if e.overridePartition != "" {
+		partition = e.overridePartition
+	}
+
+	return stream.NewTopicKey(key, namespace, partition)
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot

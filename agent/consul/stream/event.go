@@ -26,18 +26,14 @@ type Event struct {
 // should not modify the state of the payload if the Event is being submitted to
 // EventPublisher.Publish.
 type Payload interface {
-	// MatchesKey must return true if the Payload should be included in a
-	// subscription requested with the key, namespace, and partition.
-	//
-	// Generally this means that the payload matches the key, namespace, and
-	// partition or the payload is a special framing event that should be
-	// returned to every subscription.
-	MatchesKey(key, namespace, partition string) bool
-
 	// HasReadPermission uses the acl.Authorizer to determine if the items in the
 	// Payload are visible to the request. It returns true if the payload is
 	// authorized for Read, otherwise returns false.
 	HasReadPermission(authz acl.Authorizer) bool
+
+	// TopicKey is used to identify which subscribers should be notified of this
+	// event - e.g. those subscribing to health events for a particular service.
+	TopicKey() TopicKey
 }
 
 // PayloadEvents is a Payload that may be returned by Subscription.Next when
@@ -81,14 +77,6 @@ func (p *PayloadEvents) filter(f func(Event) bool) bool {
 	return true
 }
 
-// MatchesKey filters the PayloadEvents to those which match the key,
-// namespace, and partition.
-func (p *PayloadEvents) MatchesKey(key, namespace, partition string) bool {
-	return p.filter(func(event Event) bool {
-		return event.Payload.MatchesKey(key, namespace, partition)
-	})
-}
-
 func (p *PayloadEvents) Len() int {
 	return len(p.Items)
 }
@@ -99,6 +87,14 @@ func (p *PayloadEvents) HasReadPermission(authz acl.Authorizer) bool {
 	return p.filter(func(event Event) bool {
 		return event.Payload.HasReadPermission(authz)
 	})
+}
+
+// TopicKey is required to satisfy the Payload interface but is not implemented
+// by PayloadEvents. PayloadEvents structs are constructed by Subscription.Next
+// *after* TopicKey has been used to dispatch the enclosed events to the correct
+// buffer.
+func (PayloadEvents) TopicKey() TopicKey {
+	panic("PayloadEvents does not implement TopicKey")
 }
 
 // IsEndOfSnapshot returns true if this is a framing event that indicates the
@@ -117,12 +113,15 @@ func (e Event) IsNewSnapshotToFollow() bool {
 
 type framingEvent struct{}
 
-func (framingEvent) MatchesKey(string, string, string) bool {
+func (framingEvent) HasReadPermission(acl.Authorizer) bool {
 	return true
 }
 
-func (framingEvent) HasReadPermission(acl.Authorizer) bool {
-	return true
+// TopicKey is required by the Payload interface but is not implemented by
+// framing events, as they are typically *manually* appended to the correct
+// buffer and do not need to be routed using a TopicKey.
+func (framingEvent) TopicKey() TopicKey {
+	panic("framing events do not implement TopicKey")
 }
 
 type endOfSnapshot struct {
@@ -137,12 +136,12 @@ type closeSubscriptionPayload struct {
 	tokensSecretIDs []string
 }
 
-func (closeSubscriptionPayload) MatchesKey(string, string, string) bool {
+func (closeSubscriptionPayload) HasReadPermission(acl.Authorizer) bool {
 	return false
 }
 
-func (closeSubscriptionPayload) HasReadPermission(acl.Authorizer) bool {
-	return false
+func (closeSubscriptionPayload) TopicKey() TopicKey {
+	return TopicKey{}
 }
 
 // NewCloseSubscriptionEvent returns a special Event that is handled by the

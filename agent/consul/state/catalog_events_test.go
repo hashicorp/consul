@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
 )
@@ -1673,7 +1672,7 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 // all events for a particular topic are grouped together. The sort is
 // stable so events with the same key retain their relative order.
 //
-// This sort should match the logic in EventPayloadCheckServiceNode.MatchesKey
+// This sort should match the logic in EventPayloadCheckServiceNode.TopicKey
 // to avoid masking bugs.
 var cmpPartialOrderEvents = cmp.Options{
 	cmpopts.SortSlices(func(i, j stream.Event) bool {
@@ -2312,107 +2311,6 @@ func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) 
 				},
 			},
 		},
-	}
-}
-
-func TestEventPayloadCheckServiceNode_FilterByKey(t *testing.T) {
-	type testCase struct {
-		name      string
-		payload   EventPayloadCheckServiceNode
-		key       string
-		namespace string
-		partition string // TODO(partitions): create test cases for this being set
-		expected  bool
-	}
-
-	fn := func(t *testing.T, tc testCase) {
-		if tc.namespace != "" && pbcommon.DefaultEnterpriseMeta.Namespace == "" {
-			t.Skip("cant test namespace matching without namespace support")
-		}
-
-		require.Equal(t, tc.expected, tc.payload.MatchesKey(tc.key, tc.namespace, tc.partition))
-	}
-
-	var testCases = []testCase{
-		{
-			name:     "no key or namespace",
-			payload:  newPayloadCheckServiceNode("srv1", "ns1"),
-			expected: true,
-		},
-		{
-			name:      "no key, with namespace match",
-			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
-			namespace: "ns1",
-			expected:  true,
-		},
-		{
-			name:     "no namespace, with key match",
-			payload:  newPayloadCheckServiceNode("srv1", "ns1"),
-			key:      "srv1",
-			expected: true,
-		},
-		{
-			name:      "key match, namespace mismatch",
-			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
-			key:       "srv1",
-			namespace: "ns2",
-			expected:  false,
-		},
-		{
-			name:      "key mismatch, namespace match",
-			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
-			key:       "srv2",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "override key match",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv1", ""),
-			key:       "srv1",
-			namespace: "ns1",
-			expected:  true,
-		},
-		{
-			name:      "override key mismatch",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv2", ""),
-			key:       "proxy",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "override namespace match",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "", "ns2"),
-			key:       "proxy",
-			namespace: "ns2",
-			expected:  true,
-		},
-		{
-			name:      "override namespace mismatch",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "", "ns3"),
-			key:       "proxy",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "override both key and namespace match",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv1", "ns2"),
-			key:       "srv1",
-			namespace: "ns2",
-			expected:  true,
-		},
-		{
-			name:      "override both key and namespace mismatch namespace",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv2", "ns3"),
-			key:       "proxy",
-			namespace: "ns1",
-			expected:  false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			fn(t, tc)
-		})
 	}
 }
 
