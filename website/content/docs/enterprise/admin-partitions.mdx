@@ -143,10 +143,10 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     enableRedirection: true
   ```
   </CodeBlockConfig>
-  </CodeTabs> 
+  </CodeTabs>
 
-  Refer to the [Helm Chart Configuration reference](/docs/k8s/helm) for details about the parameters you can specify in the file.  
-  
+  Refer to the [Helm Chart Configuration reference](/docs/k8s/helm) for details about the parameters you can specify in the file.
+
 1. Install the Consul server(s) using the values file created in the previous step:
 
   ```shell-session
@@ -244,7 +244,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Install the workload client clusters:
 
   ```shell-session
-  helm install clients hashicorp/consul --filename client.yaml
+  helm install clients hashicorp/consul --values client.yaml
   ```
 
 ### Verifying the Deployment
