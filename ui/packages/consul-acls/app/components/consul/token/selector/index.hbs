@@ -126,10 +126,10 @@
           <BlockSlot @name="menu">
             {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
 {{!TODO: It might be nice to use one of our recursive components here}}
-{{#if @token.AccessorID}}
+{{#if authDialog.token.AccessorID}}
                 <li role="none">
                   <AuthProfile
-                    @item={{@token}}
+                    @item={{authDialog.token}}
                   />
                 </li>
                 <MenuSeparator />
@@ -151,7 +151,8 @@
   </li>
 {{yield
   (hash
-    modal=this.modal
+    open=this.modal.open
+    close=this.model.close
   )
 }}
 {{/if}}

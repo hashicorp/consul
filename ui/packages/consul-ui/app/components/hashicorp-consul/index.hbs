@@ -236,20 +236,23 @@
             </a>
         </li>
         <Consul::Token::Selector
-          @token={{@user.token}}
           @dc={{@dc}}
           @partition={{@partition}}
           @nspace={{@nspace}}
           @onchange={{@onchange}}
-        as |modal|>
-          {{did-insert (set this 'modal')}}
+        as |selector|>
+          <Ref
+            @target={{this}}
+            @name="tokenSelector"
+            @value={{selector}}
+          />
         </Consul::Token::Selector>
     </ul>
   </:complementary-nav>
 
   <:main>
     {{yield (hash
-      login=(if this.modal this.modal (hash open=undefined))
+      login=(if this.tokenSelector this.tokenSelector (hash open=undefined close=undefined))
     )}}
   </:main>
 
