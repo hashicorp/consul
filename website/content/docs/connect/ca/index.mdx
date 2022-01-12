@@ -11,9 +11,6 @@ secondary Consul datacenter.
 
 ![CA relationship](/img/cert-relationship.svg)
 
-In the primary datacenter, the Consul and AWS providers use the Primary Root CA to sign
-leaf certificates. The Vault provider uses an intermediate CA to sign leaf certificates.
-
 Leaf certificates are created for two purposes:
 - the Leaf Cert Service is used by envoy proxies in the mesh to perform mTLS with other
 services.
