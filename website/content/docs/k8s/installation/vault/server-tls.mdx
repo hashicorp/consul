@@ -142,7 +142,7 @@ the Kube auth role in a comma separated value e.g.  `policies=ca-policy,consul-g
 
 Role for CA components:
 ```shell-session
-vault write auth/kubernetes/role/consul-ca \
+$ vault write auth/kubernetes/role/consul-ca \
     bound_service_account_names="*" \
     bound_service_account_namespaces=<Consul installation namespace> \
     policies=ca-policy \
