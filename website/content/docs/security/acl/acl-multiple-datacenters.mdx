@@ -1,8 +1,8 @@
 ---
 layout: docs
-page_title: ACL in Multiple Datacenters
+page_title: ACL in Federated Datacenters
 description: >-
-  This topic describes the specific ACL bootstrapping policies that are necessary when ACLs are enabled for federated, multi-datacenter deployments. 
+  This topic describes the specific ACL bootstrapping policies that are necessary when ACLs are enabled for federated, multi-datacenter deployments.
 ---
 
 # ACLs in Federated Datacenters
@@ -15,7 +15,7 @@ to new clusters rather than existing clusters.
 
 ## Configure ACLs in the Primary Datacenter
 
-In a federated Consul deployment, one of the datacenters is marked as the primary datacenter.
+In a [federated Consul deployment](https://www.consul.io/docs/k8s/installation/multi-cluster), one of the datacenters is marked as the primary datacenter.
 The `acl` configuration block should be added to the primary datacenter server's configuration file
 as shown in the following example.
 
