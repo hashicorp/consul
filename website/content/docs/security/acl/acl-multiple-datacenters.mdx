@@ -64,7 +64,7 @@ acl = {
 </CodeTabs>
 
 ~> **Warning:** Note that most enterprise deployments have security requirements that prevent specifying tokens in configuration files.
-Additionally, in the above config `enable_token_persistence` flag is set, so the token is stored to disk in the agent's
+The `enable_token_persistence` flag is also set in the configuration example so that the token is stored to disk in the agent's
 `data` directory. Any future changes to the token that are made through the [API](/api/agent#update-acl-tokens) will
 be persisted to the same location, and the value in the config file is ignored.
 
