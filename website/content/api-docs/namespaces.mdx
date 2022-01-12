@@ -98,8 +98,8 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X PUT \
-   -H "X-Consul-Token: 5cdcae6c-0cce-4210-86fe-5dff3b984a6e" \
+$ curl --request PUT \
+   --header "X-Consul-Token: 5cdcae6c-0cce-4210-86fe-5dff3b984a6e" \
    --data @payload.json \
    http://127.0.0.1:8500/v1/namespace
 ```
@@ -169,7 +169,7 @@ the request has been granted any access in the namespace (read, list or write).
 ### Sample Request
 
 ```shell-session
-$ curl -H "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
+$ curl --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
    http://127.0.0.1:8500/v1/namespace/team-1
 ```
 
@@ -296,8 +296,8 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X PUT \
-   -H "X-Consul-Token: 5cdcae6c-0cce-4210-86fe-5dff3b984a6e" \
+$ curl --request PUT \
+   --header "X-Consul-Token: 5cdcae6c-0cce-4210-86fe-5dff3b984a6e" \
    --data @payload.json \
    http://127.0.0.1:8500/v1/namespace/team-1
 ```
@@ -372,8 +372,8 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X DELETE \
-   -H "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
+$ curl --request DELETE \
+   --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
    http://127.0.0.1:8500/v1/namespace/team-1
 ```
 
@@ -439,7 +439,7 @@ the request has been granted any access in the namespace (read, list or write).
 ### Sample Request
 
 ```shell-session
-$ curl -H "X-Consul-Token: 0137db51-5895-4c25-b6cd-d9ed992f4a52" \
+$ curl --header "X-Consul-Token: 0137db51-5895-4c25-b6cd-d9ed992f4a52" \
    http://127.0.0.1:8500/v1/namespaces
 ```
 

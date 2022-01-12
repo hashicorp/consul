@@ -314,8 +314,9 @@ In the following example, the `alt_domain` parameter is set to `test-domain`:
 ```
 
 ```shell-session
-$ dig @127.0.0.1 -p 8600  consul.service.test-domain SRV
+$ dig @127.0.0.1 -p 8600 consul.service.test-domain SRV
 ```
+
 The following responses are returned:
 
 ```
@@ -330,7 +331,7 @@ machine.node.dc1.test-domain. 0	IN	A	127.0.0.1
 machine.node.dc1.test-domain. 0	IN	TXT	"consul-network-segment="
 ```
 
--> **PTR queries:**  Responses to PTR queries (`<ip>.in-addr.arpa.`) will always use the
+-> **PTR queries:** Responses to PTR queries (`<ip>.in-addr.arpa.`) will always use the
 [primary domain](/docs/agent/options#domain) (not the alternative domain),
 as there is no way for the query to specify a domain.
 

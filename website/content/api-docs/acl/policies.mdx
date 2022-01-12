@@ -68,7 +68,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X PUT \
+$ curl --request PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/policy
 ```
@@ -120,7 +120,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X GET http://127.0.0.1:8500/v1/acl/policy/e359bd81-baca-903e-7e64-1ccd9fdc78f5
+$ curl --request GET http://127.0.0.1:8500/v1/acl/policy/e359bd81-baca-903e-7e64-1ccd9fdc78f5
 ```
 
 ### Sample Response
@@ -170,7 +170,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X GET http://127.0.0.1:8500/v1/acl/policy/name/node-read
+$ curl --request GET http://127.0.0.1:8500/v1/acl/policy/name/node-read
 ```
 
 ### Sample Response
@@ -245,7 +245,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X PUT \
+$ curl --request PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/policy/c01a1f82-44be-41b0-a686-685fb6e0f485
 ```
@@ -299,7 +299,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X DELETE \
+$ curl --request DELETE \
     http://127.0.0.1:8500/v1/acl/policy/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
@@ -339,7 +339,7 @@ The table below shows this endpoint's support for
 ## Sample Request
 
 ```shell-session
-$ curl -X GET http://127.0.0.1:8500/v1/acl/policies
+$ curl --request GET http://127.0.0.1:8500/v1/acl/policies
 ```
 
 ### Sample Response

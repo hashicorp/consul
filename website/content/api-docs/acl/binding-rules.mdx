@@ -118,7 +118,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X PUT \
+$ curl --request PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/binding-rule
 ```
@@ -172,7 +172,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X GET http://127.0.0.1:8500/v1/acl/binding-rule/000ed53c-e2d3-e7e6-31a5-c19bc3518a3d
+$ curl --request GET http://127.0.0.1:8500/v1/acl/binding-rule/000ed53c-e2d3-e7e6-31a5-c19bc3518a3d
 ```
 
 ### Sample Response
@@ -297,7 +297,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X PUT \
+$ curl --request PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/binding-rule/000ed53c-e2d3-e7e6-31a5-c19bc3518a3d
 ```
@@ -352,7 +352,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X DELETE \
+$ curl --request DELETE \
     http://127.0.0.1:8500/v1/acl/binding-rule/000ed53c-e2d3-e7e6-31a5-c19bc3518a3d
 ```
 
@@ -395,7 +395,7 @@ The table below shows this endpoint's support for
 ## Sample Request
 
 ```shell-session
-$ curl -X GET http://127.0.0.1:8500/v1/acl/binding-rules
+$ curl --request GET http://127.0.0.1:8500/v1/acl/binding-rules
 ```
 
 ### Sample Response

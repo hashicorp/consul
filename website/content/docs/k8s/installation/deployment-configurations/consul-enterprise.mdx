@@ -66,7 +66,7 @@ server:
 Now run `helm install`:
 
 ```shell-session
-$ helm install --wait hashicorp hashicorp/consul -f config.yaml
+$ helm install --wait hashicorp hashicorp/consul --values config.yaml
 ```
 
 Once the cluster is up, you can verify the nodes are running Consul Enterprise by
