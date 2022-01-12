@@ -5,6 +5,8 @@ description: |
   The partition command enables you create and manage Consul Enterprise admin partitions.
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Admin Partition
 
 Command: `consul partition`
@@ -66,6 +68,16 @@ You can issue the following subcommands with the `consul partition` command.
 ### `create`
 
 The `create` subcommand sends a request to the server to create a new admin partition.
+This subcommand has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `operator:write` |
+| Corresponding HTTP API Endpoint | [\[PUT\] /partition](/api-docs/admin-partitions#create-a-partition) |
+| [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+
+#### Usage
 
 ```shell-session
 consul partition create <OPTIONS>
@@ -95,7 +107,20 @@ $ consul partition create -name "webdev" -description "Partition for admin of we
 
 ### `write`
 
-The `write` subcommand sends a request to the server to create a new admin partition or update an existing partition from its full definition. You can specify an admin partition definition file or use values from `stdin`.
+The `write` subcommand sends a request to the server to create a new admin partition or update an existing partition from its full definition.
+This subcommand has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `operator:write` |
+| Corresponding HTTP API Endpoint | [\[PUT\] /partition/:name](/api-docs/admin-partitions#update-a-partition) |
+| [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+
+#### Usage
+
+You can specify an admin partition definition file or use values from `stdin`
+in either JSON or HCL format.
 
 Use the following syntax to write from file:
 
@@ -109,7 +134,7 @@ Use the following syntax to write from `stdin`:
 consul partition write <OPTIONS> -
 ```
 
-The definition file or `stdin` values can be provided in JSON or HCL format. Refer to the [Admin Partition Definition](#partition-definition) section for details about the supported parameters.
+Refer to the [Admin Partition Definition](#partition-definition) section for details about the supported parameters.
 
 You can specify the following options:
 
@@ -134,6 +159,16 @@ $ consul partition write -format json -show-meta - <<< 'name = "webdev-bu" descr
 ### `read`
 
 The `read` subcommand sends a request to the server to read the configuration for the specified partition and print it to the console.
+This subcommand has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `operator:read`; however, a non-anonymous token can always read its own partition |
+| Corresponding HTTP API Endpoint | [\[GET\] /partition/:name](/api-docs/admin-partitions#read-a-partition) |
+| [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+
+#### Usage
 
 ```shell-session
 consul partition read <OPTIONS> <PARTITION_NAME>
@@ -161,6 +196,16 @@ consul partition read -format json -meta webdev
 ### `list`
 
 The `list` subcommand prints existing admin partitions to the console.
+This subcommand has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `operator:read` |
+| Corresponding HTTP API Endpoint | [\[GET\] /partitions](/api-docs/admin-partitions#list-all-partitions) |
+| [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+
+#### Usage
 
 ```shell-session
 consul partition list <OPTIONS>
@@ -202,6 +247,16 @@ $ consul partition list -format json -show-meta
 ### `delete`
 
 The `delete` subcommand sends a request to the server to remove the specified partition.
+This subcommand has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `operator:write` |
+| Corresponding HTTP API Endpoint | [\[DELETE\] /partitions](/api-docs/admin-partitions#delete-a-partition) |
+| [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+
+#### Usage
 
 ```shell-session
 $ consul partition delete <PARTITION_NAME>
