@@ -102,8 +102,9 @@ echo allowed_domains=\"$DATACENTER.consul, $NAME-server, $NAME-server.$NAMESPACE
 
 Prior to creating Vault auth roles for the Consul server and the Consul components, ensure that the Vault Kubernetes auth method is enabled as described in [Vault Kubernetes Auth Method](/docs/k8s/installation/vault#vault-kubernetes-auth-method).
 
-Finally, two Kubernetes auth roles need to be created, one for the Consul servers and one for the Consul components:
+Finally, three Kubernetes auth roles need to be created, one for the Consul servers, one for the Consul clients, and one for the Consul components.
 
+Role for Consul servers:
 ```shell-session
 vault write auth/kubernetes/role/consul-server \
     bound_service_account_names=<Consul server service account> \
@@ -121,11 +122,30 @@ you can run:
 -> **Note:** Should you enable other supported features such as gossip-encryption be sure to append additional policies to
 the Kube auth role in a comma separated value e.g.  `policies=consul-server,consul-gossip`
 
+Role for Consul clients:
+```shell-session
+vault write auth/kubernetes/role/consul-client \
+    bound_service_account_names=<Consul client service account>  \
+    bound_service_account_namespaces=default \
+    policies=ca-policy \
+    ttl=1h
+```
+
+To find out the service account name of the Consul client
+you can run:
+```shell-session
+ helm template --release-name <your release name> -s templates/client-serviceaccount.yaml hashicorp/consul
+```
+
+-> **Note:** Should you enable other supported features such as gossip-encryption be sure to append additional policies to
+the Kube auth role in a comma separated value e.g.  `policies=ca-policy,consul-gossip`
+
+Role for CA components:
 ```shell-session
 vault write auth/kubernetes/role/consul-ca \
     bound_service_account_names="*" \
     bound_service_account_namespaces=<Consul installation namespace> \
-    policies=consul-ca \
+    policies=ca-policy \
     ttl=1h
 ```
 
@@ -147,6 +167,7 @@ global:
       consulClientRole: consul-client
       consulCARole: consul-ca
   tls:
+    enableAutoEncrypt: true
     enabled: true
     caCert:
       secretName: "pki/cert/ca"
