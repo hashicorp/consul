@@ -476,7 +476,7 @@
             "href": "/docs/connect/transparent-proxy"
           },
           {
-            "title": "Consul API Gateway",
+            "title": "Consul API Gateway <sup>BETA</sup>",
             "path": "k8s/connect/api-gateway"
           },
           {
