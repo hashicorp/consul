@@ -11,6 +11,8 @@ description: >-
 
 Command: `consul members`
 
+Corresponding HTTP API Endpoint: [\[GET\] /v1/agent/members](/api-docs/agent#list-members)
+
 The `members` command outputs the current list of members that a Consul
 agent knows about, along with their state. The state of a node can only
 be "alive", "left", or "failed".
@@ -18,6 +20,14 @@ be "alive", "left", or "failed".
 Nodes in the "failed" state are still listed because Consul attempts to
 reconnect with failed nodes for a certain amount of time in the case
 that the failure is actually just a network partition.
+
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `node:read`  |
 
 ## Usage
 
