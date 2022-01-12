@@ -134,7 +134,7 @@ $ vault write auth/kubernetes/role/consul-client \
 To find out the service account name of the Consul client
 you can run:
 ```shell-session
- helm template --release-name <your release name> -s templates/client-serviceaccount.yaml hashicorp/consul
+ $ helm template --release-name <your release name> -s templates/client-serviceaccount.yaml hashicorp/consul
 ```
 
 -> **Note:** Should you enable other supported features such as gossip-encryption be sure to append additional policies to
