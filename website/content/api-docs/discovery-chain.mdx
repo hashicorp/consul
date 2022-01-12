@@ -209,8 +209,8 @@ redirect {
 Request:
 
 ```shell-session
-$ curl -X POST \
-    -d'
+$ curl --request POST \
+    --data '
 {
     "OverrideConnectTimeout": "7s",
     "OverrideProtocol": "grpc",

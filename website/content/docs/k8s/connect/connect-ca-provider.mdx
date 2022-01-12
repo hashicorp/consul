@@ -123,13 +123,13 @@ We will provide this secret and the Vault CA secret, to the Consul server via th
 Finally, [install](/docs/k8s/installation/install#installing-consul) the Helm chart using the above config file:
 
 ```shell-session
-$ helm install consul -f config.yaml hashicorp/consul
+$ helm install consul --values config.yaml hashicorp/consul
 ```
 
 Verify that the CA provider is set correctly:
 
 ```shell-session
-$ kubectl exec consul-server-0 -- curl -s http://localhost:8500/v1/connect/ca/configuration\?pretty
+$ kubectl exec consul-server-0 -- curl --silent http://localhost:8500/v1/connect/ca/configuration\?pretty
 {
   "Provider": "vault",
   "Config": {

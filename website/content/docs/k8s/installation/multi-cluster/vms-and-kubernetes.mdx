@@ -99,7 +99,7 @@ Retrieve the WAN addresses of the mesh gateways:
 
 ```shell-session
 $ kubectl exec statefulset/consul-server -- sh -c \
-  'curl -sk https://localhost:8501/v1/catalog/service/mesh-gateway | jq ".[].ServiceTaggedAddresses.wan"'
+  'curl --silent --insecure https://localhost:8501/v1/catalog/service/mesh-gateway | jq ".[].ServiceTaggedAddresses.wan"'
 {
   "Address": "1.2.3.4",
   "Port": 443
@@ -125,7 +125,7 @@ primary_gateways = ["1.2.3.4:443"]
 If ACLs are enabled, you'll also need the replication ACL token:
 
 ```shell-session
-$ kubectl get secrets/consul-acl-replication-acl-token --template='{{.data.token}}'
+$ kubectl get secrets/consul-acl-replication-acl-token --template='{{.data.token | base64decode}}'
 e7924dd1-dc3f-f644-da54-81a73ba0a178
 ```
 

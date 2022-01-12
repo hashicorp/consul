@@ -48,8 +48,8 @@ Looking through these changes prior to upgrading is highly recommended.
 **1.** Check replication status in DC1 by issuing the following curl command from a
 consul server in that DC:
 
-```shell
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
 ```
 
 You should receive output similar to this:
@@ -71,8 +71,8 @@ disabled, so this is normal even if replication is happening.
 **2.** Check replication status in DC2 by issuing the following curl command from a
 consul server in that DC:
 
-```shell
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
 ```
 
 You should receive output similar to this:
@@ -94,8 +94,8 @@ This should be done one DC at a time, leaving the primary DC for last.
 **4.** Confirm that replication is still working in DC2 by issuing the following curl command from a
 consul server in that DC:
 
-```shell
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
 ```
 
 You should receive output similar to this:

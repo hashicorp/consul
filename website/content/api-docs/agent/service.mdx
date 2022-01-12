@@ -274,11 +274,11 @@ The table below shows this endpoint's support for
 Those endpoints return the aggregated values of all health checks for the
 service instance(s) and will return the corresponding HTTP codes:
 
-| Result | Meaning                                                         |
-| ------ | --------------------------------------------------------------- |
+| Result | Meaning                                                          |
+| ------ | ---------------------------------------------------------------- |
 | `200`  | All health checks of every matching service instance are passing |
-| `400`  | Bad parameter (missing service name of id)                      |
-| `404`  | No such service id or name                                      |
+| `400`  | Bad parameter (missing service name of id)                       |
+| `404`  | No such service id or name                                       |
 | `429`  | Some health checks are passing, at least one is warning          |
 | `503`  | At least one of the health checks is critical                    |
 
@@ -305,8 +305,8 @@ Given 2 services with name `web`, with web2 critical and web1 passing:
 
 ##### By Name, Text
 
-```shell
-$ curl http://localhost:8500/v1/agent/health/service/name/web?format=text
+```shell-session
+$ curl "http://localhost:8500/v1/agent/health/service/name/web?format=text"
 critical
 ```
 
@@ -438,8 +438,8 @@ Query the health status of the service with ID `web2`.
 
 ##### Failure By ID, Text
 
-```shell
-$ curl http://localhost:8500/v1/agent/health/service/id/web2?format=text
+```shell-session
+$ curl "http://localhost:8500/v1/agent/health/service/id/web2?format=text"
 critical
 ```
 
@@ -522,7 +522,7 @@ curl localhost:8500/v1/agent/health/service/id/web2
 ##### Success By ID, Text
 
 ```shell
-$ curl localhost:8500/v1/agent/health/service/id/web1?format=text
+$ curl "localhost:8500/v1/agent/health/service/id/web1?format=text"
 passing
 ```
 
