@@ -131,8 +131,7 @@ $ vault write auth/kubernetes/role/consul-client \
     ttl=1h
 ```
 
-To find out the service account name of the Consul client
-you can run:
+To find out the service account name of the Consul client, use the command below.
 ```shell-session
  $ helm template --release-name <your release name> -s templates/client-serviceaccount.yaml hashicorp/consul
 ```
