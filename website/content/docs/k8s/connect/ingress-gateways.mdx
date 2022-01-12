@@ -249,7 +249,7 @@ If TLS is enabled, use: [https://localhost:8501/ui/dc1/services/static-server/in
 You can also validate the connectivity of the application from the ingress gateway using `curl`:
 
 ```shell-session
-$ EXTERNAL_IP=$(kubectl get services --selector component=ingress-gateway --output jsonpath="{range .items[*]}{@.status.loadBalancer.ingress[*].ip}{end}"
+$ EXTERNAL_IP=$(kubectl get services --selector component=ingress-gateway --output jsonpath="{range .items[*]}{@.status.loadBalancer.ingress[*].ip}{end}")
 $ echo "Connecting to \"$EXTERNAL_IP\""
 $ curl --header "Host: static-server.ingress.consul" "http://$EXTERNAL_IP:8080"
 "hello world"
