@@ -23,19 +23,19 @@ which also uses an intermediate signing authority.
 * Enable the PKI Secrets Engine:
 
 ```shell-session
-vault secrets enable pki
+$ vault secrets enable pki
 ```
 
 * Tune the engine to enable longer TTL:
 
 ```shell-session
-vault secrets tune -max-lease-ttl=87600h pki
+$ vault secrets tune -max-lease-ttl=87600h pki
 ```
 
 * Generate the root CA
 
 ```shell-session
-vault write -field=certificate pki/root/generate/internal \
+$ vault write -field=certificate pki/root/generate/internal \
         common_name="dc1.consul" \
         ttl=87600h
 ```
@@ -56,7 +56,7 @@ path "pki/issue/consul-server" {
 ```
 
 ```shell-session
-vault policy write consul-server consul-server-policy.hcl
+$ vault policy write consul-server consul-server-policy.hcl
 ```
 
 -> **Note:** The PKI secret path referenced by the above Policy will be your `server.serverCert.secretName` Helm value.
@@ -74,7 +74,7 @@ path "pki/cert/ca" {
 ```
 
 ```shell-session
-vault policy write ca-policy ca-policy.hcl
+$ vault policy write ca-policy ca-policy.hcl
 ```
 
 -> **Note:** The PKI secret path referenced by the above Policy will be your `global.tls.caCert.secretName` Helm value.
@@ -125,13 +125,14 @@ To find out the service account name of the Consul server,
 you can run:
 
 ```shell-session
- helm template --release-name <your release name> --show-only templates/server-serviceaccount.yaml hashicorp/consul
+ $ helm template --release-name <your release name> --show-only templates/server-serviceaccount.yaml hashicorp/consul
 ```
 
 -> **Note:** Should you enable other supported features such as gossip-encryption be sure to append additional policies to
 the Kube auth role in a comma separated value e.g. `policies=consul-server,consul-gossip`
 
 Role for Consul clients:
+
 ```shell-session
 $ vault write auth/kubernetes/role/consul-client \
     bound_service_account_names=<Consul client service account>  \
@@ -142,7 +143,7 @@ $ vault write auth/kubernetes/role/consul-client \
 
 To find out the service account name of the Consul client, use the command below.
 ```shell-session
- $ helm template --release-name <your release name> -s templates/client-serviceaccount.yaml hashicorp/consul
+ $ helm template --release-name <your release name> --show-only templates/client-serviceaccount.yaml hashicorp/consul
 ```
 
 -> **Note:** Should you enable other supported features such as gossip-encryption, ensure you append additional policies to

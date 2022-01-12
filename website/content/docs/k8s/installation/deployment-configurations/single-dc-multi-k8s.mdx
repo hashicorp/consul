@@ -74,8 +74,8 @@ we need to extract the gossip encryption key we've created, the CA certificate
 and the ACL bootstrap token generated during installation,
 so that we can apply them to our second Kubernetes cluster.
 
-```shell
-kubectl get secret consul-gossip-encryption-key cluster1-consul-ca-cert cluster1-consul-bootstrap-acl-token --output yaml > cluster1-credentials.yaml
+```shell-session
+$ kubectl get secret consul-gossip-encryption-key cluster1-consul-ca-cert cluster1-consul-bootstrap-acl-token --output yaml > cluster1-credentials.yaml
 ```
 
 ## Deploying Consul clients in the second cluster
@@ -86,7 +86,7 @@ that will join the first Consul cluster.
 
 First, we need to apply credentials we've extracted from the first cluster to the second cluster:
 
-```shell
+```shell-session
 $ kubectl apply --filename cluster1-credentials.yaml
 ```
 To deploy in the second cluster, we will use the following Helm configuration:
@@ -182,8 +182,8 @@ for more details.
 
 Now we're ready to install!
 
-```shell
-helm install cluster2 --values cluster2-config.yaml hashicorp/consul
+```shell-session
+$ helm install cluster2 --values cluster2-config.yaml hashicorp/consul
 ```
 
 ## Verifying the Consul Service Mesh works
@@ -311,7 +311,7 @@ spec:
 
 Once both services are up and running, we can connect to the `static-server` from `static-client`:
 
-```shell
+```shell-session
 $ kubectl exec deploy/static-client -- curl --silent localhost:1234
 "hello world"
 ```

@@ -305,7 +305,7 @@ Given 2 services with name `web`, with web2 critical and web1 passing:
 
 ##### By Name, Text
 
-```shell
+```shell-session
 $ curl "http://localhost:8500/v1/agent/health/service/name/web?format=text"
 critical
 ```
@@ -438,7 +438,7 @@ Query the health status of the service with ID `web2`.
 
 ##### Failure By ID, Text
 
-```shell
+```shell-session
 $ curl "http://localhost:8500/v1/agent/health/service/id/web2?format=text"
 critical
 ```

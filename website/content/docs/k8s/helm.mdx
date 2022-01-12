@@ -762,8 +762,8 @@ Use these links to navigate to a particular top-level stanza.
 
     You could retrieve this value from your `kubeconfig` by running:
 
-    ```shell
-    kubectl config view \
+    ```shell-session
+  $ kubectl config view \
       --output jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
     ```
 

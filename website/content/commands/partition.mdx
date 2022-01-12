@@ -83,7 +83,7 @@ The admin partition is created according to the values specified in the options.
 In the following example, a partition named `webdev` is created:
 
 ```shell-session
-consul partition create -name "webdev" -description "Partition for admin of webdev services" -format json -show-meta
+$ consul partition create -name "webdev" -description "Partition for admin of webdev services" -format json -show-meta
 
 {
    "Name": "webdev",
@@ -121,7 +121,7 @@ You can specify the following options:
 In the following example, the `webdev-bu` partition is written using `stdin` values:
 
 ```shell-session
-consul partition write -format json -show-meta - <<< 'name = "webdev-bu" description = "backup webdev partition"'
+$ consul partition write -format json -show-meta - <<< 'name = "webdev-bu" description = "backup webdev partition"'
 
 {
    "Name": "webdev-bu",
@@ -176,7 +176,7 @@ The admin partition is created according to the values specified in the options.
 The following example lists the admin partitions and their meta data in JSON format:
 
 ```shell-session
-consul partition list -format json -show-meta
+$ consul partition list -format json -show-meta
 
 [
    {
@@ -204,7 +204,7 @@ consul partition list -format json -show-meta
 The `delete` subcommand sends a request to the server to remove the specified partition.
 
 ```shell-session
-consul partition delete <PARTITION_NAME>
+$ consul partition delete <PARTITION_NAME>
 ```
 
 In the following example, the `webdev-bu` partition is deleted:

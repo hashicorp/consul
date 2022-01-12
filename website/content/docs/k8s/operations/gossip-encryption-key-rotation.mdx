@@ -20,7 +20,7 @@ The following steps should only be performed in the *primary datacenter* if your
 1. Generate a new key and store in safe place for retrieval in the future ([Vault KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv/kv-v2#usage) is a recommended option).
 
     ```shell-session
-    consul keygen
+    $ consul keygen
     ```
 
     This should generate a new key which can be used as the gossip encryption key. In this example, we will be using
@@ -37,7 +37,7 @@ The following steps should only be performed in the *primary datacenter* if your
     1. **Note:** If ACLs are enabled, export the bootstrap token as the CONSUL_HTTP_TOKEN to perform all `consul keyring` operations. The bootstrap token can be found in the Kubernetes secret `consul-bootstrap-acl-token` of the primary datacenter.
 
         ```shell-session
-        export CONSUL_HTTP_TOKEN=<INSERT BOOTSTRAP ACL TOKEN>
+        $ export CONSUL_HTTP_TOKEN=<INSERT BOOTSTRAP ACL TOKEN>
         ```
 
     1. Install the new Gossip encryption key with the `consul keyring` command:
@@ -107,7 +107,7 @@ The following steps should only be performed in the *primary datacenter* if your
     ```
 
     ```shell-session
-    kubectl patch secret consul-gossip-encryption-key --patch='{"stringData":{"key": "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="}}'
+    $ kubectl patch secret consul-gossip-encryption-key --patch='{"stringData":{"key": "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="}}'
     ```
 
     **Note:** In the case of federated Consul clusters, update the federation-secret value for the gossip encryption key. The name of the secret and key can be found in the values file of the secondary datacenter.
@@ -120,7 +120,7 @@ The following steps should only be performed in the *primary datacenter* if your
     ```
 
     ```shell-session
-    kubectl patch secret consul-federation --patch='{"stringData":{"gossipEncryptionKey": "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="}}'
+    $ kubectl patch secret consul-federation --patch='{"stringData":{"gossipEncryptionKey": "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="}}'
     ```
 
 1. Remove the old key once the new one has been installed successfully.

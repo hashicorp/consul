@@ -32,7 +32,7 @@ To find out the service account name of the Consul server,
 you can run:
 
 ```shell-session
-helm template --release-name <your release name> --show-only templates/server-serviceaccount.yaml hashicorp/consul
+$ helm template --release-name <your release name> --show-only templates/server-serviceaccount.yaml hashicorp/consul
 ```
 
 Now we can configure the Consul Helm chart to use Vault as the Connect CA provider:
