@@ -584,7 +584,6 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 
 	m, err := NewManager(ManagerConfig{
 		Cache:  c,
-		Health: &health.Client{Cache: c, CacheName: cachetype.HealthServicesName},
 		State:  state,
 		Tokens: tokens,
 		Source: &structs.QuerySource{Datacenter: "dc1"},

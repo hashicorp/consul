@@ -286,7 +286,7 @@ func (c *CAManager) startPostInitializeRoutines() {
 		c.leaderRoutineManager.Start(secondaryCARootWatchRoutineName, c.secondaryCARootWatch)
 	}
 
-	c.leaderRoutineManager.Start(intermediateCertRenewWatchRoutineName, c.intermediateCertRenewalWatch)
+	c.leaderRoutineManager.Start(intermediateCertRenewWatchRoutineName, c.runRenewIntermediate)
 }
 
 func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
@@ -1051,8 +1051,22 @@ func (c *CAManager) getIntermediateCASigned(provider ca.Provider, newActiveRoot 
 	return nil
 }
 
-// intermediateCertRenewalWatch periodically attempts to renew the intermediate cert.
-func (c *CAManager) intermediateCertRenewalWatch(ctx context.Context) error {
+// setLeafSigningCert updates the CARoot by appending the pem to the list of
+// intermediate certificates, and setting the SigningKeyID to the encoded
+// SubjectKeyId of the certificate.
+func setLeafSigningCert(caRoot *structs.CARoot, pem string) error {
+	cert, err := connect.ParseCert(pem)
+	if err != nil {
+		return fmt.Errorf("error parsing leaf signing cert: %w", err)
+	}
+
+	caRoot.IntermediateCerts = append(caRoot.IntermediateCerts, pem)
+	caRoot.SigningKeyID = connect.EncodeSigningKeyID(cert.SubjectKeyId)
+	return nil
+}
+
+// runRenewIntermediate periodically attempts to renew the intermediate cert.
+func (c *CAManager) runRenewIntermediate(ctx context.Context) error {
 	isPrimary := c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter
 
 	for {
@@ -1120,8 +1134,7 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 		return fmt.Errorf("error parsing active intermediate cert: %v", err)
 	}
 
-	if lessThanHalfTimePassed(time.Now(), intermediateCert.NotBefore.Add(ca.CertificateTimeDriftBuffer),
-		intermediateCert.NotAfter) {
+	if lessThanHalfTimePassed(time.Now(), intermediateCert.NotBefore, intermediateCert.NotAfter) {
 		return nil
 	}
 
