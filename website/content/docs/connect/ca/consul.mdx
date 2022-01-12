@@ -45,8 +45,8 @@ connect {
 The configuration options are listed below.
 
 -> **Note**: The first key is the value used in API calls, and the second key
-   (after the `/`) is used if you are adding the configuration to the agent's
-   configuration file.
+(after the `/`) is used if you are adding the configuration to the agent's
+configuration file.
 
 - `PrivateKey` / `private_key` (`string: ""`) - A PEM-encoded private key
   for signing operations. This must match the private key used for the root
@@ -103,7 +103,7 @@ In order to use the Update CA Configuration HTTP endpoint, the private key and c
 must be passed via JSON:
 
 ```shell-session
-$ jq -n --arg key "$(cat root.key)"  --arg cert "$(cat root.crt)" '
+$ jq --null-input --arg key "$(cat root.key)" --arg cert "$(cat root.crt)" '
 {
     "Provider": "consul",
     "Config": {

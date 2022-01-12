@@ -95,7 +95,7 @@ used by the Helm chart when enabling ingress gateways.
 Apply the `IngressGateway` resource with `kubectl apply`:
 
 ```shell-session
-$ kubectl apply -f ingress-gateway.yaml
+$ kubectl apply --filename ingress-gateway.yaml
 ingressgateway.consul.hashicorp.com/ingress-gateway created
 ```
 
@@ -118,7 +118,7 @@ spec:
 Apply the `ServiceDefaults` resource with `kubectl apply`:
 
 ```shell-session
-$ kubectl apply -f service-defaults.yaml
+$ kubectl apply --filename service-defaults.yaml
 servicedefaults.consul.hashicorp.com/static-server created
 ```
 
@@ -174,7 +174,7 @@ spec:
 Apply the `ServiceIntentions` resource with `kubectl apply`:
 
 ```shell-session
-$ kubectl apply -f service-intentions.yaml
+$ kubectl apply --filename service-intentions.yaml
 serviceintentions.consul.hashicorp.com/ingress-gateway created
 ```
 
@@ -236,7 +236,7 @@ spec:
 </CodeBlockConfig>
 
 ```shell-session
-$ kubectl apply -f static-server.yaml
+$ kubectl apply --filename static-server.yaml
 ```
 
 ## Connecting to your application
@@ -249,9 +249,9 @@ If TLS is enabled, use: [https://localhost:8501/ui/dc1/services/static-server/in
 You can also validate the connectivity of the application from the ingress gateway using `curl`:
 
 ```shell-session
-$ EXTERNAL_IP=$(kubectl get services | grep ingress-gateway | awk ‘{print $4}’)
+$ EXTERNAL_IP=$(kubectl get services --selector component=ingress-gateway --output jsonpath="{range .items[*]}{@.status.loadBalancer.ingress[*].ip}{end}")
 $ echo "Connecting to \"$EXTERNAL_IP\""
-$ curl -H "Host: static-server.ingress.consul" "http://$EXTERNAL_IP:8080"
+$ curl --header "Host: static-server.ingress.consul" "http://$EXTERNAL_IP:8080"
 "hello world"
 ```
 
@@ -282,5 +282,5 @@ ingressGateways:
 And run Helm upgrade:
 
 ```shell-session
-$ helm upgrade consul hashicorp/consul -f config.yaml
+$ helm upgrade consul hashicorp/consul --values config.yaml
 ```

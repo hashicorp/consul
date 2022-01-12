@@ -127,14 +127,14 @@ Create a sample external service and register it with Consul.
 Register the external service with Consul:
 
 ```shell-session
-$ curl --request PUT --data @external.json -k $CONSUL_HTTP_ADDR/v1/catalog/register
+$ curl --request PUT --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catalog/register
 true
 ```
 
 If ACLs and TLS are enabled :
 
 ```shell-session
-$ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @external.json -k $CONSUL_HTTP_ADDR/v1/catalog/register
+$ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catalog/register
 true
 ```
 
@@ -219,7 +219,7 @@ container (`/etc/ssl/cert.pem`).
 Apply the `TerminatingGateway` resource with `kubectl apply`:
 
 ```shell-session
-$ kubectl apply -f terminating-gateway.yaml
+$ kubectl apply --filename terminating-gateway.yaml
 ```
 
 If using ACLs and TLS, create a [`ServiceIntentions`](/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to the external service
@@ -244,7 +244,7 @@ spec:
 Apply the `ServiceIntentions` resource with `kubectl apply`:
 
 ```shell-session
-$ kubectl apply -f service-intentions.yaml
+$ kubectl apply --filename service-intentions.yaml
 ```
 
 ### Define the external services as upstreams for services in the mesh
@@ -301,7 +301,7 @@ spec:
 Run the service via `kubectl apply`:
 
 ```shell-session
-$ kubectl apply -f static-client.yaml
+$ kubectl apply --filename static-client.yaml
 ```
 
 Wait for the service to be ready:
@@ -314,5 +314,5 @@ deployment "static-client" successfully rolled out
 You can verify connectivity of the static-client and terminating gateway via a curl command:
 
 ```shell-session
-$ kubectl exec deploy/static-client -- curl -vvvs -H "Host: example-https.com" http://localhost:1234/
+$ kubectl exec deploy/static-client -- curl -vvvs --header "Host: example-https.com" http://localhost:1234/
 ```
