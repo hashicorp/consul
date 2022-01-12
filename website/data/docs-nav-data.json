@@ -820,7 +820,7 @@
           },
           {
             "title": "ACLs in Federated Datacenters",
-            "path": "security/acl/acl-multiple-datacenters"
+            "path": "security/acl/acl-federated-datacenters"
           },
           {
             "title": "Auth Methods",
