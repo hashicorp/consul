@@ -136,7 +136,7 @@ To find out the service account name of the Consul client, use the command below
  $ helm template --release-name <your release name> -s templates/client-serviceaccount.yaml hashicorp/consul
 ```
 
--> **Note:** Should you enable other supported features such as gossip-encryption be sure to append additional policies to
+-> **Note:** Should you enable other supported features such as gossip-encryption, ensure you append additional policies to
 the Kube auth role in a comma separated value e.g.  `policies=ca-policy,consul-gossip`
 
 Role for CA components:
