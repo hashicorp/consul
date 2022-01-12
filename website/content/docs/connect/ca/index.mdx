@@ -4,6 +4,22 @@ page_title: Connect - Certificate Management
 description: An overview of the Connect Certificate Authority mechanisms.
 ---
 
+# Connect Certificate Management
+
+Certificate management in Connect is done centrally through the Consul
+servers using the configured CA (Certificate Authority) provider. A CA provider
+manages root and intermediate certificates and performs certificate signing
+operations. The Consul leader orchestrates CA provider operations as necessary,
+such as when a service needs a new certificate or during CA rotation events.
+
+The CA provider abstraction enables Consul to support multiple systems for
+storing and signing certificates. Consul ships with a
+[built-in CA](/docs/connect/ca/consul) which generates and stores the
+root certificate and private key on the Consul servers. Consul also has
+support for using
+[Vault as a CA](/docs/connect/ca/vault). With Vault, the root certificate
+and private key material remain with the Vault cluster.
+
 ### CA and Certificate relationship
 
 This diagram shows the relationship between the CA certificates in a Consul primary datacenter and a
@@ -20,22 +36,6 @@ client agents for HTTP API TLS, and for mTLS for RPC requests to servers.
 Any secondary datacenters receive an intermediate certificate, signed by the Primary Root
 CA, which is used as the CA certificate to sign leaf certificates in the secondary
 datacenter.
-
-# Connect Certificate Management
-
-Certificate management in Connect is done centrally through the Consul
-servers using the configured CA (Certificate Authority) provider. A CA provider
-manages root and intermediate certificates and performs certificate signing
-operations. The Consul leader orchestrates CA provider operations as necessary,
-such as when a service needs a new certificate or during CA rotation events.
-
-The CA provider abstraction enables Consul to support multiple systems for
-storing and signing certificates. Consul ships with a
-[built-in CA](/docs/connect/ca/consul) which generates and stores the
-root certificate and private key on the Consul servers. Consul also has
-support for using
-[Vault as a CA](/docs/connect/ca/vault). With Vault, the root certificate
-and private key material remain with the Vault cluster.
 
 ## CA Bootstrapping
 
