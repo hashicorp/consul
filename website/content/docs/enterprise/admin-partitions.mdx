@@ -152,18 +152,12 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   ```shell-session
   helm install server hashicorp/consul --values server.yaml
   ```
-1. After the server starts, get the external IP address for partition service so that it can be added to the client configuration. The partition service is a `LoadBalancer` type. The IP address is used to bootstrap connectivity between servers and clients. <a name="get-external-ip-address"/>
+
+1. After the server starts, get the external IP address for partition service so that it can be added to the client configuration. The IP address is used to bootstrap connectivity between servers and clients. <a name="get-external-ip-address"/>
 
   ```shell-session
-  kubectl get service
-  NAME                                  TYPE           CLUSTER-IP       EXTERNAL-IP       PORT(S)                                                                   AGE
-  kubernetes                           ClusterIP      10.8.0.1      <none>            443/TCP                                                                   77m
-  server-consul-connect-injector-svc   ClusterIP      10.8.13.188   <none>            443/TCP                                                                   76s
-  server-consul-controller-webhook     ClusterIP      10.8.14.178   <none>            443/TCP                                                                   77s
-  server-consul-dns                    ClusterIP      10.8.6.6      <none>            53/TCP,53/UDP                                                             77s
-  server-consul-partition-service      LoadBalancer   10.8.1.186    34.135.103.67     8501:31130/TCP,8301:31587/TCP,8300:30378/TCP                              76s
-  server-consul-server                 ClusterIP      None          <none>            8501/TCP,8301/TCP,8301/UDP,8302/TCP,8302/UDP,8300/TCP,8600/TCP,8600/UDP   76s
-  server-consul-ui                     ClusterIP      10.8.0.218    <none>            443/TCP                                                                   77s
+  $ kubectl get services --selector="app=consul,component=server" --output jsonpath="{range .items[*]}{@.status.loadBalancer.ingress[*].ip}{end}"
+  34.135.103.67
   ```
 
 1. Get the Kubernetes authentication method URL for the workload cluster:
@@ -171,7 +165,8 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   ```shell-session
   kubectl config view --output "jsonpath={.clusters[?(@.name=='<workload-cluster-name>')].cluster.server}"
   ```
-  Use the IP address printed to the console to configure the `k8sAuthMethodHost` parameter in the workload configuration file for your client nodes. 
+
+  Use the IP address printed to the console to configure the `k8sAuthMethodHost` parameter in the workload configuration file for your client nodes.
 
 1. Copy the server certificate to the workload cluster.
 
