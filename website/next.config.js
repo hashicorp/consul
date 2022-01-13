@@ -23,6 +23,7 @@ module.exports = withHashicorp({
     SEGMENT_WRITE_KEY: 'IyzLrqXkox5KJ8XL4fo8vTYNGfiKlTCm',
     BUGSNAG_CLIENT_KEY: '01625078d856ef022c88f0c78d2364f1',
     BUGSNAG_SERVER_KEY: 'be8ed0d0fc887d547284cce9e98e60e5',
+    ENABLE_VERSIONED_DOCS: process.env.ENABLE_VERSIONED_DOCS || false,
   },
   images: {
     domains: ['www.datocms-assets.com'],
