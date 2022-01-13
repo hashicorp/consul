@@ -9,7 +9,6 @@ const additionalComponents = { ConfigEntryReference }
 const baseRoute = 'docs'
 const navDataFile = `data/${baseRoute}-nav-data.json`
 const localContentDir = `content/${baseRoute}`
-// const mainBranch = 'main'
 const product = { name: productName, slug: productSlug }
 
 export default function DocsLayout(props) {
