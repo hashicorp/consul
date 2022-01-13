@@ -23,7 +23,7 @@ An optional `sentinel` field specifying code and enforcement level can be added 
 
 <CodeBlockConfig heading="Ensure values written during KV updates end in 'dc1'">
 
-```sentinel
+```go
 key "datacenter_name" {
   policy = "write"
   sentinel {
@@ -64,7 +64,7 @@ The following are two examples of ACL policies with Sentinel rules.
 
 <CodeBlockConfig heading="Any values stored under the key 'dc1' end with 'dev'">
 
-```sentinel
+```go
 key "dc1" {
     policy = "write"
     sentinel {
@@ -82,7 +82,7 @@ EOF
 
 <CodeBlockConfig heading="The key 'haproxy_version' can only be updated during business hours">
 
-```sentinel
+```go
 key "haproxy_version" {
     policy = "write"
     sentinel {
