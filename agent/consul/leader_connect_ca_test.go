@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -124,11 +125,12 @@ func verifyLeafCert(t *testing.T, root *structs.CARoot, leafCertPEM string) {
 }
 
 type mockCAServerDelegate struct {
-	t           *testing.T
-	config      *Config
-	store       *state.Store
-	primaryRoot *structs.CARoot
-	callbackCh  chan string
+	t                     *testing.T
+	config                *Config
+	store                 *state.Store
+	primaryRoot           *structs.CARoot
+	secondaryIntermediate string
+	callbackCh            chan string
 }
 
 func NewMockCAServerDelegate(t *testing.T, config *Config) *mockCAServerDelegate {
@@ -189,7 +191,7 @@ func (m *mockCAServerDelegate) forwardDC(method, dc string, args interface{}, re
 		roots.ActiveRootID = m.primaryRoot.ID
 	case "ConnectCA.SignIntermediate":
 		r := reply.(*string)
-		*r = m.primaryRoot.RootCert
+		*r = m.secondaryIntermediate
 	default:
 		return fmt.Errorf("received call to unsupported method %q", method)
 	}
@@ -316,6 +318,7 @@ func TestCAManager_Initialize(t *testing.T) {
 	conf.PrimaryDatacenter = "dc1"
 	conf.Datacenter = "dc2"
 	delegate := NewMockCAServerDelegate(t, conf)
+	delegate.secondaryIntermediate = delegate.primaryRoot.RootCert
 	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 
 	// Call Initialize and then confirm the RPCs and provider calls
@@ -358,6 +361,7 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	conf.PrimaryDatacenter = "dc1"
 	conf.Datacenter = "dc2"
 	delegate := NewMockCAServerDelegate(t, conf)
+	delegate.secondaryIntermediate = delegate.primaryRoot.RootCert
 	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 	initTestManager(t, manager, delegate)
 
@@ -394,6 +398,13 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	}
 
 	require.EqualValues(t, caStateInitialized, manager.state)
+}
+
+func TestCADelegateWithState_GenerateCASignRequest(t *testing.T) {
+	s := Server{config: &Config{PrimaryDatacenter: "east"}, tokens: new(token.Store)}
+	d := &caDelegateWithState{Server: &s}
+	req := d.generateCASignRequest("A")
+	require.Equal(t, "east", req.RequestDatacenter())
 }
 
 func TestCAManager_Initialize_Logging(t *testing.T) {
