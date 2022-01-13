@@ -1,0 +1,3 @@
+```release-note:bug
+serf: Complete the leave process if boradcasting leave timeout.
+```
