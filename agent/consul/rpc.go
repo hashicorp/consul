@@ -982,6 +982,9 @@ func (s *Server) blockingQuery(
 		var ws memdb.WatchSet
 		err := query(ws, s.fsm.State())
 		s.setQueryMeta(responseMeta, opts.GetToken())
+		if errors.Is(err, errNotFound) {
+			return nil
+		}
 		return err
 	}
 
@@ -993,6 +996,8 @@ func (s *Server) blockingQuery(
 	metrics.SetGauge([]string{"rpc", "queries_blocking"}, float32(count))
 	// decrement the count when the function returns.
 	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
+
+	var notFound bool
 
 	for {
 		if opts.GetRequireConsistent() {
@@ -1013,7 +1018,15 @@ func (s *Server) blockingQuery(
 
 		err := query(ws, state)
 		s.setQueryMeta(responseMeta, opts.GetToken())
-		if err != nil {
+		switch {
+		case errors.Is(err, errNotFound):
+			if notFound {
+				// query result has not changed
+				minQueryIndex = responseMeta.GetIndex()
+			}
+
+			notFound = true
+		case err != nil:
 			return err
 		}
 
@@ -1035,6 +1048,8 @@ func (s *Server) blockingQuery(
 		}
 	}
 }
+
+var errNotFound = fmt.Errorf("no data found for query")
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
 //
