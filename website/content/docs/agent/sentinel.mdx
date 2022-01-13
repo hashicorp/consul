@@ -21,7 +21,9 @@ Sentinel policies are applied during writes to the KV Store.
 
 An optional `sentinel` field specifying code and enforcement level can be added to [ACL policy definitions](/docs/agent/acl-rules#sentinel-integration) for Consul KV. The following policy ensures that the value written during a KV update must end with "dc1".
 
-```text
+<CodeBlockConfig heading="Ensure values written during KV updates end in 'dc1'">
+
+```hcl
 key "datacenter_name" {
   policy = "write"
   sentinel {
@@ -33,6 +35,8 @@ EOF
   }
 }
 ```
+
+</CodeBlockConfig>
 
 If the `enforcementlevel` property is not set, it defaults to "hard-mandatory".
 
@@ -58,7 +62,7 @@ The following are two examples of ACL policies with Sentinel rules.
 
 ### Required Key Suffix
 
-Any values stored under the key prefix "dc1" must end with "dev"
+<CodeBlockConfig heading="Any values stored under the key 'dc1' end with 'dev'">
 
 ```text
 key "dc1" {
@@ -72,9 +76,11 @@ EOF
 }
 ```
 
+</CodeBlockConfig>
+
 ### Restricted Update Time
 
-The key "haproxy_version" can only be updated during business hours.
+<CodeBlockConfig heading="The key 'haproxy_version' can only be updated during business hours">
 
 ```text
 key "haproxy_version" {
@@ -87,3 +93,5 @@ EOF
     }
 }
 ```
+
+</CodeBlockConfig>
