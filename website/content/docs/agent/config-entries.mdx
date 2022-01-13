@@ -20,15 +20,19 @@ Outside of Kubernetes, every configuration entry specified in HCL or JSON has at
 configuration entry. Configuration entries specified as HCL or JSON objects
 use either `snake_case` or `CamelCase` for key names.
 
-Example:
+<CodeBlockConfig heading="Example config specified outside of Kubernetes">
 
 ```hcl
 Kind = "<supported kind>"
 Name = "<name of entry>"
 ```
 
+</CodeBlockConfig>
+
 On Kubernetes, `Kind` is set as the custom resource `kind` and `Name` is set
 as `metadata.name`:
+
+<CodeBlockConfig heading="Example config specified on Kubernetes">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -36,6 +40,8 @@ kind: <supported kind>
 metadata:
   name: <name of entry>
 ```
+
+</CodeBlockConfig>
 
 ## Supported Config Entries
 
