@@ -68,7 +68,7 @@ The options below are all specified on the command-line.
 
   <CodeBlockConfig heading="Using a static network interface name">
 
-  ```shell
+  ```shell-session
   $ consul agent -advertise '{{ GetInterfaceIP "eth0" }}'
   ```
 
@@ -114,7 +114,7 @@ The options below are all specified on the command-line.
 
   <CodeBlockConfig heading="Using address within a specific CIDR">
   
-  ```shell
+  ```shell-session
   $ consul agent -bind '{{ GetPrivateInterfaces | include "network" "10.0.0.0/8" | attr "address" }}'
   ```
 
@@ -122,7 +122,7 @@ The options below are all specified on the command-line.
 
   <CodeBlockConfig heading="Using a static network interface name">
 
-  ```shell
+  ```shell-session
   $ consul agent -bind '{{ GetInterfaceIP "eth0" }}'
   ```
 
@@ -130,7 +130,7 @@ The options below are all specified on the command-line.
 
   <CodeBlockConfig heading="Using regular expression matching for network interface name that is forwardable and up">
 
-  ```shell
+  ```shell-session
   $ consul agent -bind '{{ GetAllInterfaces | include "name" "^eth" | include "flags" "forwardable|up" | attr "address" }}'
   ```
 
@@ -372,7 +372,7 @@ The options below are all specified on the command-line.
 
   <CodeBlockConfig heading="Using a DNS entry">
 
-  ```shell
+  ```shell-session
   $ consul agent -retry-join "consul.domain.internal"
   ```
 
@@ -380,7 +380,7 @@ The options below are all specified on the command-line.
 
   <CodeBlockConfig heading="Using IPv4">
 
-  ```shell
+  ```shell-session
   $ consul agent -retry-join "10.0.4.67"
   ```
 
@@ -388,7 +388,7 @@ The options below are all specified on the command-line.
 
   <CodeBlockConfig heading="Using a non-default Serf LAN port">
 
-  ```shell
+  ```shell-session
   $ consul agent -retry-join "192.0.2.10:8304"
   ```
 
@@ -396,7 +396,7 @@ The options below are all specified on the command-line.
 
   <CodeBlockConfig heading="Using IPv6">
 
-  ```shell
+  ```shell-session
   $ consul agent -retry-join "[::1]:8301"
   ```
 
@@ -404,7 +404,7 @@ The options below are all specified on the command-line.
 
   <CodeBlockConfig heading="Using multiple addresses">
 
-  ```shell
+  ```shell-session
   $ consul agent -retry-join "consul.domain.internal" -retry-join "10.0.4.67"
   ```
 
@@ -419,7 +419,7 @@ The options below are all specified on the command-line.
 
   <CodeBlockConfig heading="Using Cloud Auto-Joining">
 
-  ```shell
+  ```shell-session
   $ consul agent -retry-join "provider=aws tag_key=..."
   ```
 
