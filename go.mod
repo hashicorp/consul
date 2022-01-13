@@ -41,7 +41,7 @@ require (
 	github.com/hashicorp/go-memdb v1.3.1
 	github.com/hashicorp/go-msgpack v0.5.5
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/go-raftchunking v0.6.1
+	github.com/hashicorp/go-raftchunking v0.6.2
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/go-syslog v1.0.0
@@ -69,8 +69,8 @@ require (
 	github.com/mitchellh/copystructure v1.0.0
 	github.com/mitchellh/go-testing-interface v1.14.0
 	github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452
-	github.com/mitchellh/mapstructure v1.4.1-0.20210112042008-8ebf2d61a8b4
-	github.com/mitchellh/pointerstructure v1.0.0
+	github.com/mitchellh/mapstructure v1.4.1
+	github.com/mitchellh/pointerstructure v1.2.1
 	github.com/mitchellh/reflectwalk v1.0.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
