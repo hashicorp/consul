@@ -18,15 +18,15 @@ This endpoint allows patch updates to specifically supported fields for existing
 
 #### Request Parameters
 
-| Name | Type	 | Required | Description  |
-| -----| ----- | -------- | ------------ |
-|`run` | string | false   | Values can only be `"inspect"` and `"now"`.<br/><ul><li>`"inspect"`: Does not update the task but returns information on if/how resources would be changed for the proposed task update.</li><li> `"now"`: Updates the task accordingly and immediately runs the task, rather than allowing the task to run at the natural daemon cadence</li></ul>
+| Name | Required | Type | Description  | Default |
+| -----| -------- | ---- | ------------ | ------- |
+|`run` | Optional | string | Values can only be `"inspect"` and `"now"`.<br/><ul><li>`"inspect"`: Does not update the task but returns information on if/how resources would be changed for the proposed task update.</li><li> `"now"`: Updates the task accordingly and immediately runs the task, rather than allowing the task to run at the natural daemon cadence</li></ul> | none |
 
 #### Request Body
 
-| Name | Type	 | Required | Description  |
-| -----| ----- | -------- | ------------ |
-|`enabled` | boolean | true | Whether the task is enabled to run and manage resources.|
+| Name | Required | Type | Description  |
+| -----| -------- | ---- | ------------ |
+|`enabled` | Required | boolean | Whether the task is enabled to run and manage resources.|
 
 #### Response Statuses
 
@@ -38,7 +38,7 @@ This endpoint allows patch updates to specifically supported fields for existing
 #### Response Fields
 
 | Name	| Type	 | Description        |
-| --------- | ------ | ------------------ |
+| ----- | ------ | ------------------ |
 |`inspect` | object |  Information on how resources would be changed given a proposed task update, similar to [inspect-mode](/docs/nia/cli/cli-overview#inspect-mode). This is only returned when passed the `run=inspect` request parameter.
 |`inspect.changes_present` | boolean | Whether or not changes were detected for running the proposed task update.
 |`inspect.plan` | string | The Terraform plan generated for the proposed task update. Note: a non-empty string does not necessarily indicate changes were detected.
@@ -107,7 +107,7 @@ This endpoint allows for deletion of existing tasks. It does not allow deletion 
 
 #### Response Fields
 | Name	| Type	 | Description        |
-| --------- | ------ | ------------------ |
+| ----- | ------ | ------------------ |
 |`request_id` | string | The ID of the request. Used for auditing and debugging purposes.
 
 #### Sample Request
