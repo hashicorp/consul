@@ -1,6 +1,6 @@
 ---
 layout: docs
-page_title: Installing Consul on Kubernetes 
+page_title: Installing Consul on Kubernetes
 description: >-
   Consul can run directly on Kubernetes, both in server or client mode. For
   pure-Kubernetes workloads, this enables Consul to also exist purely within
@@ -27,22 +27,22 @@ mesh](https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?utm_sourc
 
 ## Consul K8s CLI Installation
 
-We recommend using the [Consul K8S CLI](/docs/k8s/k8s-cli) to install Consul on Kubernetes for single-cluster deployments. You can install Consul on Kubernetes using the Consul K8s CLI tool after installing the CLI. 
+We recommend using the [Consul K8S CLI](/docs/k8s/k8s-cli) to install Consul on Kubernetes for single-cluster deployments. You can install Consul on Kubernetes using the Consul K8s CLI tool after installing the CLI.
 
-Before beginning the installation process, verify that `kubectl` is already configured to authenticate to the Kubernetes cluster using a valid `kubeconfig` file. 
+Before beginning the installation process, verify that `kubectl` is already configured to authenticate to the Kubernetes cluster using a valid `kubeconfig` file.
 
 The [Homebrew](https://brew.sh) package manager is required to complete the following installation instructions.
 
 1. Install the HashiCorp `tap`, which is a repository of all Homebrew packages for HashiCorp:
    ```shell-session
-   brew tap hashicorp/tap
+   $ brew tap hashicorp/tap
    ```
-   
+
 1. Install the Consul K8s CLI with the `hashicorp/tap/consul` formula.
    ```shell-session
-   brew install hashicorp/tap/consul-k8s
+   $ brew install hashicorp/tap/consul-k8s
    ```
-   
+
 1. Issue the `install` subcommand to install Consul on Kubernetes:
 
    ```shell-session
@@ -123,7 +123,7 @@ The Consul Helm only supports Helm 3.2+. Install the latest version of the Helm 
    ```
 
 1. Prior to installing via Helm, ensure that the `consul` Kubernetes namespace does not exist, as installing on a dedicated namespace
-   is recommended.  
+   is recommended.
 
     ```shell-session
     $ kubectl get namespace
@@ -134,11 +134,11 @@ The Consul Helm only supports Helm 3.2+. Install the latest version of the Helm 
     kube-system       Active   18h
     ```
 
-1. Issue the following command to install Consul with the default configuration using Helm. You could also install Consul on a dedicated 
+1. Issue the following command to install Consul with the default configuration using Helm. You could also install Consul on a dedicated
    namespace of your choosing by modifying the value of the `-n` flag for the Helm install.
 
    ```shell-session
-   $ helm install consul hashicorp/consul --set global.name=consul --create-namespace -n consul
+   $ helm install consul hashicorp/consul --set global.name=consul --create-namespace --namespace consul
    NAME: consul
    ...
    ```
@@ -169,10 +169,10 @@ controller:
 
 </CodeBlockConfig>
 
-Once you've created your `config.yaml` file, run `helm install` with the `-f` flag:
+Once you've created your `config.yaml` file, run `helm install` with the `--values` flag:
 
 ```shell-session
-$ helm install consul hashicorp/consul --create-namespace -n consul -f config.yaml
+$ helm install consul hashicorp/consul --create-namespace --namespace consul --values config.yaml
 NAME: consul
 ...
 ```
@@ -191,7 +191,7 @@ use `kubectl port-forward` to visit the UI.
 If running with TLS disabled, the Consul UI will be accessible via http on port 8500:
 
 ```shell-session
-$ kubectl port-forward service/consul-server -n consul 8500:8500
+$ kubectl port-forward service/consul-server --namespace consul 8500:8500
 ...
 ```
 
@@ -202,7 +202,7 @@ Once the port is forwarded navigate to [http://localhost:8500](http://localhost:
 If running with TLS enabled, the Consul UI will be accessible via https on port 8501:
 
 ```shell-session
-$ kubectl port-forward service/consul-server -n consul 8501:8501
+$ kubectl port-forward service/consul-server --namespace consul 8501:8501
 ...
 ```
 

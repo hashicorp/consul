@@ -167,8 +167,8 @@ You can get the AccessorID of every legacy token from the API. For example,
 using `curl` and `jq` in bash:
 
 ```shell-session
-$ LEGACY_IDS=$(curl -sH "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
-   'localhost:8500/v1/acl/tokens' | jq -r '.[] | select (.Legacy) | .AccessorID')
+$ LEGACY_IDS=$(curl --silent --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+   'localhost:8500/v1/acl/tokens' | jq --raw-output '.[] | select (.Legacy) | .AccessorID')
 $ echo "$LEGACY_IDS"
 621cbd12-dde7-de06-9be0-e28d067b5b7f
 65cecc86-eb5b-ced5-92dc-f861cf7636fe
@@ -230,8 +230,8 @@ You can get the AccessorID of every legacy token from the API. For example,
 using `curl` and `jq` in bash:
 
 ```shell-session
-$ LEGACY_IDS=$(curl -sH "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
-   'localhost:8500/v1/acl/tokens' | jq -r '.[] | select (.Legacy) | .AccessorID')
+$ LEGACY_IDS=$(curl --silent --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+   'localhost:8500/v1/acl/tokens' | jq --raw-output '.[] | select (.Legacy) | .AccessorID')
 $ echo "$LEGACY_IDS"
 8b65fdf9-303e-0894-9f87-e71b3273600c
 d9deb39b-1b30-e100-b9c5-04aba3f593a1

@@ -27,7 +27,7 @@ as |route|>
       )
     )
 
-    route.model.item.MeshChecks
+    (merge-checks (array route.model.item.Checks route.model.proxy.Checks) route.model.proxy.ServiceProxy.Expose.Checks)
 
   as |sort filters items|}}
   <div class="tab-section">

@@ -26,7 +26,7 @@
       },
       create: {
         _options: {
-          template: 'dc/partitions/edit',
+          template: '../edit',
           path: '/create',
           abilities: ['create partitions'],
         },

@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / services / show / intentions: Intentions per service
+Feature: dc / services / show / intentions / index: Intentions per service
   Background:
     Given 1 datacenter model with the value "dc1"
     And 1 node models

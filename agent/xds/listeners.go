@@ -175,6 +175,15 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// We do not match on all endpoints here since it would lead to load balancing across
 		// all instances when any instance address is dialed.
 		for _, e := range endpoints {
+			if e.Service.Kind == structs.ServiceKind(structs.TerminatingGateway) {
+				key := structs.ServiceGatewayVirtualIPTag(chain.CompoundServiceName())
+
+				if vip := e.Service.TaggedAddresses[key]; vip.Address != "" {
+					uniqueAddrs[vip.Address] = struct{}{}
+				}
+
+				continue
+			}
 			if vip := e.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; vip.Address != "" {
 				uniqueAddrs[vip.Address] = struct{}{}
 			}
@@ -740,7 +749,7 @@ func injectHTTPFilterOnFilterChains(
 func (s *ResourceGenerator) injectConnectTLSOnFilterChains(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
 	for idx := range listener.FilterChains {
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
+			CommonTlsContext:         makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf()),
 			RequireClientCertificate: &wrappers.BoolValue{Value: true},
 		}
 		transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -1062,7 +1071,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 	protocol string,
 ) (*envoy_listener_v3.FilterChain, error) {
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-		CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
+		CommonTlsContext:         makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
 		RequireClientCertificate: &wrappers.BoolValue{Value: true},
 	}
 	transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -1536,7 +1545,11 @@ func makeEnvoyHTTPFilter(name string, cfg proto.Message) (*envoy_http_v3.HttpFil
 	}, nil
 }
 
-func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoy_tls_v3.CommonTlsContext {
+func makeCommonTLSContextFromLeafWithoutParams(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoy_tls_v3.CommonTlsContext {
+	return makeCommonTLSContextFromLeaf(cfgSnap, leaf, nil)
+}
+
+func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert, tlsParams *envoy_tls_v3.TlsParameters) *envoy_tls_v3.CommonTlsContext {
 	// Concatenate all the root PEMs into one.
 	if cfgSnap.Roots == nil {
 		return nil
@@ -1547,8 +1560,12 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 		rootPEMS += ca.EnsureTrailingNewline(root.RootCert)
 	}
 
+	if tlsParams == nil {
+		tlsParams = &envoy_tls_v3.TlsParameters{}
+	}
+
 	return &envoy_tls_v3.CommonTlsContext{
-		TlsParams: &envoy_tls_v3.TlsParameters{},
+		TlsParams: tlsParams,
 		TlsCertificates: []*envoy_tls_v3.TlsCertificate{
 			{
 				CertificateChain: &envoy_core_v3.DataSource{

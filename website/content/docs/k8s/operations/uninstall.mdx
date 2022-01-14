@@ -10,12 +10,11 @@ You can uninstall Consul using Helm commands or the Consul K8s CLI.
 
 ## Consul K8s CLI
 
-Issue the `consul-k8s uninstall` command to remove Consul on Kubernetes. You can specify the installation name, namespace, and data retention behavior using the applicable options. By default, the uninstallation preserves the secrets and PVCs that are provisioned by Consul on Kubernetes. 
+Issue the `consul-k8s uninstall` command to remove Consul on Kubernetes. You can specify the installation name, namespace, and data retention behavior using the applicable options. By default, the uninstall preserves the secrets and PVCs that are provisioned by Consul on Kubernetes.
 
 ```shell-session
 $ consul-k8s uninstall <OPTIONS>
 ```
-
 
 In the following example, Consul will be uninstalled and the data removed without prompting you to verify the operations:
 
@@ -29,11 +28,16 @@ Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli#uninstall) topic for d
 
 Run the `helm uninstall` **and** manually remove resources that Helm does not delete.
 
+1. Although the Helm chart automates the deletion of CRDs upon uninstallation, sometimes the finalizers tied to those CRDs may not complete because the deletion of the CRDs rely on the Consul K8s controller running. Ensure that previously created CRDs for Consul on Kubernetes are deleted, so subsequent installs of Consul on Kubernetes on the same Kubernetes cluster do not get blocked.
 
-1. (Optional) If Consul is installed in a dedicated namespace, set the kubeConfig context to the `consul` namespace. Otherwise, subsequent commands will need to include `-n consul`. 
+   ```shell-session
+   $ kubectl delete crd --selector app=consul
+   ```
 
-    ```
-    kubectl config set-context --current --namespace=consul
+1. (Optional) If Consul is installed in a dedicated namespace, set the kubeConfig context to the `consul` namespace. Otherwise, subsequent commands will need to include `--namespace consul`.
+
+    ```shell-session
+    $ kubectl config set-context --current --namespace=consul
     ```
 
 1. Run the `helm uninstall <release-name>` command and specify the release name you've installed Consul with, e.g.,:
@@ -47,13 +51,13 @@ Run the `helm uninstall` **and** manually remove resources that Helm does not de
    for the persistent volumes that store Consul's data. A [bug](https://github.com/helm/helm/issues/5156) in Helm prevents PVCs from being deleted. Issue the following commands:
 
    ```shell-session
-   $ kubectl get pvc -l chart=consul-helm
+   $ kubectl get pvc --selector="chart=consul-helm"
    NAME                                   STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
    data-default-hashicorp-consul-server-0   Bound    pvc-32cb296b-1213-11ea-b6f0-42010a8001db   10Gi       RWO            standard       17m
    data-default-hashicorp-consul-server-1   Bound    pvc-32d79919-1213-11ea-b6f0-42010a8001db   10Gi       RWO            standard       17m
    data-default-hashicorp-consul-server-2   Bound    pvc-331581ea-1213-11ea-b6f0-42010a8001db   10Gi       RWO            standard       17m
 
-   $ kubectl delete pvc -l chart=consul-helm
+   $ kubectl delete pvc --selector="chart=consul-helm"
    persistentvolumeclaim "data-default-hashicorp-consul-server-0" deleted
    persistentvolumeclaim "data-default-hashicorp-consul-server-1" deleted
    persistentvolumeclaim "data-default-hashicorp-consul-server-2" deleted
@@ -65,7 +69,7 @@ Run the `helm uninstall` **and** manually remove resources that Helm does not de
 1. If installing with ACLs enabled, you will need to then delete the ACL secrets:
 
    ```shell-session
-   $ kubectl get secret | grep consul | grep Opaque
+   $ kubectl get secrets --field-selector="type=Opaque" | grep consul
    consul-acl-replication-acl-token    Opaque                                1      41m
    consul-bootstrap-acl-token          Opaque                                1      41m
    consul-client-acl-token             Opaque                                1      41m
@@ -79,7 +83,7 @@ Run the `helm uninstall` **and** manually remove resources that Helm does not de
    created by another user with the word `consul`.
 
    ```shell-session
-   $ kubectl get secret | grep consul | grep Opaque | awk '{print $1}' | xargs kubectl delete secret
+   $ kubectl get secrets --field-selector="type=Opaque" | grep consul | awk '{print $1}' | xargs kubectl delete secret
    secret "consul-acl-replication-acl-token" deleted
    secret "consul-bootstrap-acl-token" deleted
    secret "consul-client-acl-token" deleted
@@ -101,4 +105,10 @@ Run the `helm uninstall` **and** manually remove resources that Helm does not de
    ```shell-session
    $ kubectl delete serviceaccount consul-tls-init
    serviceaccount "consul-tls-init" deleted
+   ```
+
+1. (Optional) Delete the namespace (i.e. `consul` in the following example) that you have dedicated for installing Consul on Kubernetes.
+
+   ```shell-session
+   $ kubectl delete ns consul
    ```

@@ -80,7 +80,7 @@ The [Datacenter Deploy tutorial](https://learn.hashicorp.com/tutorials/consul/re
 Start a Consul agent with the `consul` command and `agent` subcommand using the following syntax:
 
 ```shell-session
-consul agent <options>
+$ consul agent <options>
 ```
 
 Consul ships with a `-dev` flag that configures the agent to run in server mode and several additional settings that enable you to quickly get started with Consul.
@@ -99,7 +99,7 @@ This enables you to logically group configuration settings into separate files. 
 The following example starts an agent in dev mode and stores agent state data in the `tmp/consul` directory:
 
 ```shell-session
-consul agent -data-dir=tmp/consul -dev
+$ consul agent -data-dir=tmp/consul -dev
 ```
 
 Agents are highly configurable, which enables you to deploy Consul to any infrastructure. Many of the default options for the `agent` command are suitable for becoming familiar with a local instance of Consul. In practice, however, several additional configuration options must be specified for Consul to function as expected. Refer to [Agent Configuration](/docs/agent/options) topic for a complete list of configuration options.
@@ -136,7 +136,7 @@ $ consul agent -data-dir=/tmp/consul
 - **Server**: This indicates whether the agent is running in server or client
   mode.
   Running an agent in server mode requires additional overhead. This is because they participate in the consensus quorum, store cluster state, and handle queries. A server may also be
-  in ["bootstrap"](/docs/agent/options#_bootstrap_expect) mode, which enables the server to elect itselft as the Raft leader. Multiple servers cannot be in bootstrap mode because it would put the cluster in an inconsistent state.
+  in ["bootstrap"](/docs/agent/options#_bootstrap_expect) mode, which enables the server to elect itself as the Raft leader. Multiple servers cannot be in bootstrap mode because it would put the cluster in an inconsistent state.
 
 - **Client Addr**: This is the address used for client interfaces to the agent.
   This includes the ports for the HTTP and DNS interfaces. By default, this
@@ -166,8 +166,8 @@ This is because clients are most commonly used to register services in the Consu
 
 The following example starts a Consul agent that takes configuration settings from a file called `server.json` located in the current working directory:
 
-```shell-session
-consul agent -config-file=server.json
+```shell-session hideClipboard
+$ consul agent -config-file=server.json
 ```
 
 The configuration options necessary to successfully use Consul depend on several factors, including the type of agent you are configuring (client or server), the type of environment you are deploying to (e.g., on-premise, multi-cloud, etc.), and the security options you want to implement (ACLs, gRPC encryption).
@@ -193,11 +193,9 @@ The following settings are commonly used in the configuration file (also called 
 The following example configuration is for a server agent named "`consul-server`". The server is [bootstrapped](/docs/agent/options#_bootstrap) and the Consul GUI is enabled.
 The reason this server agent is configured for a service mesh is that the `connect` configuration is enabled. Connect is Consul's service mesh component that provides service-to-service connection authorization and encryption using mutual Transport Layer Security (TLS). Applications can use sidecar proxies in a service mesh configuration to establish TLS connections for inbound and outbound connections without being aware of Connect at all. See [Connect](/docs/connect) for details.
 
-<Tabs>
-<Tab heading="HCL">
+<CodeTabs>
 
 ```hcl
-
 node_name = "consul-server"
 server    = true
 bootstrap = true
@@ -215,8 +213,6 @@ connect {
 }
 ```
 
-</Tab>
-<Tab heading="JSON">
 
 ```json
 {
@@ -238,19 +234,16 @@ connect {
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
 
 ### Server Node with Encryption Enabled
 
 The following example shows a server node configured with encryption enabled.
 Refer to the [Security](/docs/security) chapter for additional information about how to configure security options for Consul.
 
-<Tabs>
-<Tab heading="HCL">
+<CodeTabs>
 
 ```hcl
-
 node_name = "consul-server"
 server    = true
 ui_config {
@@ -274,8 +267,6 @@ key_file               = "/consul/config/certs/dc1-server-consul-0-key.pem"
 
 ```
 
-</Tab>
-<Tab heading="JSON">
 
 ```json
 {
@@ -299,19 +290,16 @@ key_file               = "/consul/config/certs/dc1-server-consul-0-key.pem"
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
 
 ### Client Node Registering a Service
 
 Using Consul as a central service registry is a common use case.
 The following example configuration includes common settings to register a service with a Consul agent and enable health checks (see [Checks](/docs/discovery/checks) to learn more about health checks):
 
-<Tabs>
-<Tab heading="HCL">
+<CodeTabs>
 
 ```hcl
-
 node_name  = "consul-client"
 server     = false
 datacenter = "dc1"
@@ -334,9 +322,6 @@ service {
 }
 
 ```
-
-</Tab>
-<Tab heading="JSON">
 
 ```json
 {
@@ -363,8 +348,58 @@ service {
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
+
+## Client Node with Multiple Interfaces or IP addresses
+
+The following example shows how to configure Consul to listen on multiple interfaces or IP addresses using a [go-sockaddr template].
+
+The `bind_addr` is used for internal RPC and Serf communication ([read the Agent Configuration for more information](/docs/agent/options#bind_addr)).
+
+The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS and gRPC servers. ([read the Agent Configuration for more information](/docs/agent/options#client_addr)).
+
+<CodeTabs>
+
+```hcl
+node_name = "consul-server"
+server    = true
+bootstrap = true
+ui_config {
+  enabled = true
+}
+datacenter = "dc1"
+data_dir   = "consul/data"
+log_level  = "INFO"
+
+# used for internal RPC and Serf
+bind_addr = "0.0.0.0"
+
+# Used for HTTP, HTTPS, DNS, and gRPC addresses.
+# loopback is not included in GetPrivateInterfaces because it is not routable. 
+client_addr = "{{ GetPrivateInterfaces | exclude \"type\" \"ipv6\" | join \"address\" \" \" }} {{ GetAllInterfaces | include \"flags\" \"loopback\" | join \"address\" \" \" }}"
+
+# advertises gossip and RPC interface to other nodes
+advertise_addr = "{{ GetInterfaceIP \"en0\" }}"
+```
+
+```json
+{
+  "node_name": "consul-server",
+  "server": true,
+  "bootstrap": true,
+  "ui_config": {
+    "enabled": true
+  },
+  "datacenter": "dc1",
+  "data_dir": "consul/data",
+  "log_level": "INFO",
+  "bind_addr": "{{ GetPrivateIP }}",
+  "client_addr": "{{ GetPrivateInterfaces | exclude \"type\" \"ipv6\" | join \"address\" \" \" }} {{ GetAllInterfaces | include \"flags\" \"loopback\" | join \"address\" \" \" }}",
+  "advertise_addr": "{{ GetInterfaceIP \"en0\"}}"
+}
+```
+
+</CodeTabs>
 
 ## Stopping an Agent
 
@@ -402,3 +437,7 @@ from the load balancer pool.
 The [`skip_leave_on_interrupt`](/docs/agent/options#skip_leave_on_interrupt) and
 [`leave_on_terminate`](/docs/agent/options#leave_on_terminate) configuration
 options allow you to adjust this behavior.
+
+<!-- list of reference-style links -->
+
+[go-sockaddr template]: https://godoc.org/github.com/hashicorp/go-sockaddr/template

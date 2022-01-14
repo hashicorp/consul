@@ -224,7 +224,7 @@ After the installation into your primary cluster you will need to export
 this secret:
 
 ```shell-session
-$ kubectl get secret consul-federation -o yaml > consul-federation-secret.yaml
+$ kubectl get secret consul-federation --output yaml > consul-federation-secret.yaml
 ```
 
 !> **Security note:** The federation secret makes it possible to gain
@@ -249,7 +249,7 @@ Switched to context "dc2".
 And import the secret:
 
 ```shell-session
-$ kubectl apply -f consul-federation-secret.yaml
+$ kubectl apply --filename consul-federation-secret.yaml
 secret/consul-federation configured
 ```
 
@@ -441,7 +441,7 @@ to retrieve the bootstrap token mentioned in the UI documentation.
 With the UI open, you'll be able to switch between datacenters via the dropdown
 in the top left:
 
-![Consul Datacenter Dropdown](/img/consul-datacenter-dropdown.png 'Consul Datacenter Dropdown')
+![Consul Datacenter Dropdown](/img/data-center-dropdown.png 'Consul Datacenter Dropdown')
 
 ## Next Steps
 

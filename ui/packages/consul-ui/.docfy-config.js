@@ -87,6 +87,12 @@ module.exports = {
       urlPrefix: 'docs/consul',
     },
     {
+      root: `${path.dirname(require.resolve('consul-acls/package.json'))}/app/components`,
+      pattern: '**/README.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/consul-acls',
+    },
+    {
       root: `${path.dirname(require.resolve('consul-partitions/package.json'))}/app/components`,
       pattern: '**/README.mdx',
       urlSchema: 'auto',

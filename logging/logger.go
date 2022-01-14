@@ -27,16 +27,16 @@ type Config struct {
 	// SyslogFacility is the destination for syslog forwarding.
 	SyslogFacility string
 
-	//LogFilePath is the path to write the logs to the user specified file.
+	// LogFilePath is the path to write the logs to the user specified file.
 	LogFilePath string
 
-	//LogRotateDuration is the user specified time to rotate logs
+	// LogRotateDuration is the user specified time to rotate logs
 	LogRotateDuration time.Duration
 
-	//LogRotateBytes is the user specified byte limit to rotate logs
+	// LogRotateBytes is the user specified byte limit to rotate logs
 	LogRotateBytes int
 
-	//LogRotateMaxFiles is the maximum number of past archived log files to keep
+	// LogRotateMaxFiles is the maximum number of past archived log files to keep
 	LogRotateMaxFiles int
 }
 
@@ -44,6 +44,17 @@ type Config struct {
 const defaultRotateDuration = 24 * time.Hour
 
 type LogSetupErrorFn func(string)
+
+// noErrorWriter is a wrapper to suppress errors when writing to w.
+type noErrorWriter struct {
+	w io.Writer
+}
+
+func (w noErrorWriter) Write(p []byte) (n int, err error) {
+	_, _ = w.w.Write(p)
+	// We purposely return n == len(p) as if write was successful
+	return len(p), nil
+}
 
 // Setup logging from Config, and return an hclog Logger.
 //
@@ -55,7 +66,10 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 			allowedLogLevels)
 	}
 
-	writers := []io.Writer{out}
+	// If out is os.Stdout and Consul is being run as a Windows Service, writes will
+	// fail silently, which may inadvertently prevent writes to other writers.
+	// noErrorWriter is used as a wrapper to suppress any errors when writing to out.
+	writers := []io.Writer{noErrorWriter{w: out}}
 
 	if config.EnableSyslog {
 		retries := 12

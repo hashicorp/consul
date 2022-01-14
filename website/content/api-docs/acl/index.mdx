@@ -128,7 +128,8 @@ $ curl \
   "ReplicatedIndex": 1976,
   "ReplicatedTokenIndex": 2018,
   "LastSuccess": "2018-11-03T06:28:58Z",
-  "LastError": "2016-11-03T06:28:28Z"
+  "LastError": "2016-11-03T06:28:28Z",
+  "LastErrorMessage": "failed to retrieve ACL policy updates: RPC rate limit exceeded"
 }
 ```
 
@@ -179,6 +180,9 @@ $ curl \
   replication process is not in a good state. A zero value of
   "0001-01-01T00:00:00Z" will be present if no sync has resulted in an error.
 
+- `LastErrorMessage` - The last error message produced at the time of `LastError`.
+  An empty string indicates that no sync has resulted in an error.
+
 ## Translate Rules
 
 -> **Deprecated** - This endpoint was removed in Consul 1.11.0.
@@ -213,7 +217,7 @@ agent "" {
 ### Sample Request
 
 ```shell-session
-$ curl -X POST -d @rules.hcl http://127.0.0.1:8500/v1/acl/rules/translate
+$ curl --request POST --data @rules.hcl http://127.0.0.1:8500/v1/acl/rules/translate
 ```
 
 ### Sample Response
@@ -252,7 +256,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X GET http://127.0.0.1:8500/v1/acl/rules/translate/4f48f7e6-9359-4890-8e67-6144a962b0a5
+$ curl --request GET http://127.0.0.1:8500/v1/acl/rules/translate/4f48f7e6-9359-4890-8e67-6144a962b0a5
 ```
 
 ### Sample Response
@@ -380,7 +384,7 @@ deleting a token for which you already must possess its secret.
 
 ```shell-session
 $ curl \
-    -H "X-Consul-Token: b78d37c7-0ca7-5f4d-99ee-6d9975ce4586" \
+    --header "X-Consul-Token: b78d37c7-0ca7-5f4d-99ee-6d9975ce4586" \
     --request POST \
     http://127.0.0.1:8500/v1/acl/logout
 ```

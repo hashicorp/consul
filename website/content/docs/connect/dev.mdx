@@ -44,7 +44,7 @@ the example above, the proxy is identifying as `operator-mitchellh`.
 With the proxy running, we can now use `psql` like normal:
 
 ```shell-session
-$ psql -h 127.0.0.1 -p 8181 -U mitchellh mydb
+$ psql --host=127.0.0.1 --port=8181 --username=mitchellh mydb
 >
 ```
 

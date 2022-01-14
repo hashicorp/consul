@@ -2,14 +2,14 @@
   @name={{routeName}}
 as |route|>
 {{#let
-  route.model.item
-as |item|}}
+  (entries route.model.item.Service.TaggedAddresses)
+as |items|}}
   <div class="tab-section">
-    {{#if item.Service.TaggedAddresses }}
+    {{#if (gt items.length 0)}}
       <TabularCollection
         data-test-addresses
         class="consul-tagged-addresses"
-        @items={{entries item.Service.TaggedAddresses}} as |taggedAddress index|
+        @items={{items}} as |taggedAddress index|
       >
           <BlockSlot @name="header">
             <th>Tag</th>

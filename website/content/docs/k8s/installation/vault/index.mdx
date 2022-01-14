@@ -41,7 +41,7 @@ Prior to creating Vault auth roles for the Consul servers and clients, ensure th
 $ vault auth enable kubernetes
 ```
 
-After enabling the Kubernetes auth method, in Vault, ensure that you have configured the Kubernetes Auth method properly as described in [Kubernetes Auth Method Configuration](https://www.vaultproject.io/docs/auth/kubernetes#configuration). The command should look simliar to the following with a custom `kubernetes_host` config provided from the information provided via `kubectl cluster-info`. 
+After enabling the Kubernetes auth method, in Vault, ensure that you have configured the Kubernetes Auth method properly as described in [Kubernetes Auth Method Configuration](https://www.vaultproject.io/docs/auth/kubernetes#configuration). The command should look similar to the following with a custom `kubernetes_host` config provided from the information provided via `kubectl cluster-info`.
 
 ```shell-session
 $ vault write auth/kubernetes/config \
@@ -52,7 +52,7 @@ $ vault write auth/kubernetes/config \
 
 ### Vault KV Secrets Engine - Version 2
 
-In order to utlize Vault as a secrets backend, we must enable thne [Vault KV secrets engine - Version 2](https://www.vaultproject.io/docs/secrets/kv/kv-v2).
+In order to utilize Vault as a secrets backend, we must enable the [Vault KV secrets engine - Version 2](https://www.vaultproject.io/docs/secrets/kv/kv-v2).
 
 ```shell-session
 $ vault secrets enable -path=consul kv-v2

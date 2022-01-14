@@ -5,8 +5,10 @@ export default function(type) {
       requests = ['/v1/catalog/datacenters'];
       break;
     case 'service':
-    case 'instance':
       requests = ['/v1/internal/ui/services', '/v1/health/service/'];
+      break;
+    case 'instance':
+      requests = ['/v1/health/service/'];
       break;
     case 'proxy':
       requests = ['/v1/catalog/connect'];
@@ -37,6 +39,9 @@ export default function(type) {
       break;
     case 'authMethod':
       requests = ['/v1/acl/auth-methods', '/v1/acl/auth-method/'];
+      break;
+    case 'oidcProvider':
+      requests = ['/v1/internal/ui/oidc-auth-methods'];
       break;
     case 'nspace':
       requests = ['/v1/namespaces', '/v1/namespace/'];

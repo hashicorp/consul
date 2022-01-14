@@ -284,6 +284,10 @@
         "path": "connect/connectivity-tasks"
       },
       {
+        "title": "Distributed Tracing",
+        "path": "connect/distributed-tracing"
+      },
+      {
         "title": "Gateways",
         "routes": [
           {

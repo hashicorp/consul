@@ -38,10 +38,10 @@ require (
 	github.com/hashicorp/go-connlimit v0.3.0
 	github.com/hashicorp/go-discover v0.0.0-20210818145131-c573d69da192
 	github.com/hashicorp/go-hclog v0.14.1
-	github.com/hashicorp/go-memdb v1.3.1
+	github.com/hashicorp/go-memdb v1.3.2
 	github.com/hashicorp/go-msgpack v0.5.5
-	github.com/hashicorp/go-multierror v1.1.0
-	github.com/hashicorp/go-raftchunking v0.6.1
+	github.com/hashicorp/go-multierror v1.1.1
+	github.com/hashicorp/go-raftchunking v0.6.2
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/go-syslog v1.0.0
@@ -50,7 +50,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/hil v0.0.0-20200423225030-a18a1cd20038
-	github.com/hashicorp/memberlist v0.3.0
+	github.com/hashicorp/memberlist v0.3.1
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
 	github.com/hashicorp/raft v1.3.3
 	github.com/hashicorp/raft-autopilot v0.1.5

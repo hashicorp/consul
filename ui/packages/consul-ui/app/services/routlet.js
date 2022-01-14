@@ -75,21 +75,11 @@ export default class RoutletService extends Service {
     return key;
   }
 
-  addOutlet(name, outlet) {
-    outlets.set(name, outlet);
-  }
-
-  removeOutlet(name) {
-    outlets.delete(name);
-  }
-
-  // modelFor gets the model for Outlet specified by `name`, not the Route
-  modelFor(name) {
-    const outlet = outlets.get(name);
-    if (typeof outlet !== 'undefined') {
-      return outlet.model || {};
-    }
-    return {};
+  outletFor(routeName) {
+    const keys = [...outlets.keys()];
+    const pos = keys.indexOf(routeName);
+    const key = pos + 1;
+    return outlets.get(keys[key]);
   }
 
   /**
@@ -149,20 +139,43 @@ export default class RoutletService extends Service {
     };
   }
 
-  addRoute(name, route) {
-    const keys = [...outlets.keys()];
-    const pos = keys.indexOf(name);
-    const key = pos + 1;
-    const outlet = outlets.get(keys[key]);
+
+  // modelFor gets the model for Outlet specified by `name`, not the Route
+  modelFor(name) {
+    const outlet = outlets.get(name);
     if (typeof outlet !== 'undefined') {
-      route._model = outlet.model;
+      return outlet.model;
+    }
+  }
+
+  addRoute(name, route) {
+    const outlet = this.outletFor(name);
+    if (typeof outlet !== 'undefined') {
       outlet.route = route;
       // TODO: Try to avoid the double computation bug
       schedule('afterRender', () => {
-        outlet.routeName = route.args.name;
+        outlet.routeName = name;
       });
     }
   }
 
-  removeRoute(name, route) {}
+  removeRoute(name, route) {
+    const outlet = this.outletFor(name);
+    route._model = undefined;
+    if (typeof outlet !== 'undefined') {
+      schedule('afterRender', () => {
+        outlet.route = undefined;
+      });
+    }
+  }
+
+  addOutlet(name, outlet) {
+    outlets.set(name, outlet);
+  }
+
+  removeOutlet(name) {
+    schedule('afterRender', () => {
+      outlets.delete(name);
+    });
+  }
 }
