@@ -209,11 +209,9 @@ Again, note that the SRV record returns the port of the service as well as its I
 
 #### SRV response for hosts in the .addr subdomain
 
--> **Note**: This functionality was introduced in Consul 1.7.0.
-
 If a service registered to Consul has an explicit IP [`address`](/api-docs/agent/service#address)
-defined on the service registration that is different from the node's IP address,
-the hostname returned in the answer section of the DNS SRV query for the service
+or tagged address(es) defined on the service registration, the hostname returned
+in the target field of the answer section for the DNS SRV query for the service
 will be in the format of `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
 
 <Tabs>
