@@ -297,8 +297,7 @@
       },
       {
         "title": "list",
-        "path": "intention/list",
-        "hidden": true
+        "path": "intention/list"
       },
       {
         "title": "match",
