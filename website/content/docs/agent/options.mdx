@@ -113,7 +113,7 @@ The options below are all specified on the command-line.
   template that must resolve at runtime to a single address. Some example templates:
 
   <CodeBlockConfig heading="Using address within a specific CIDR">
-  
+
   ```shell-session
   $ consul agent -bind '{{ GetPrivateInterfaces | include "network" "10.0.0.0/8" | attr "address" }}'
   ```
@@ -162,11 +162,11 @@ The options below are all specified on the command-line.
   template that can potentially resolve to multiple addresses.
 
   <CodeBlockConfig hideClipboard heading="Bind consul client interfaces to private IPv4 interfaces">
-  
+
   ```shell
   $ consul agent -dev -client '{{ GetPrivateInterfaces | exclude "type" "ipv6" | join "address" " " }}'
   ```
-  
+
   </CodeBlockConfig>
 
   <CodeBlockConfig hideClipboard heading="Bind consul client interfaces to private IP addresses and loopback">
@@ -274,7 +274,6 @@ The options below are all specified on the command-line.
   Like [`enable_script_checks`](#_enable_script_checks), but only enable them when
   they are defined in the local configuration files. Script checks defined in HTTP
   API registrations will still not be allowed.
-
 
 - `-encrypt` ((#\_encrypt)) - Specifies the secret key to use for encryption
   of Consul network traffic. This key must be 32-bytes that are Base64-encoded. The
@@ -595,18 +594,36 @@ In addition to the command-line options, configuration can be put into
 files. This may be easier in certain situations, for example when Consul is
 being configured using a configuration management system.
 
-The configuration files are JSON formatted, making them easily readable
-and editable by both humans and computers. The configuration is formatted
-as a single JSON object with configuration within it.
+The configuration files are formatted as HCL, or JSON. JSON formatted configs are easily readable
+and editable by both humans and computers. JSON formatted configuration consists
+of a single JSON object with multiple configuration keys specified within it.
 
-Configuration files are used for more than just setting up the agent,
-they are also used to provide check and service definitions. These are used
-to announce the availability of system servers to the rest of the cluster.
-They are documented separately under [check configuration](/docs/agent/checks) and
-[service configuration](/docs/agent/services) respectively. The service and check
+Configuration files are used for more than just setting up the agent.
+They are also used to provide check and service definitions that
+announce the availability of system servers to the rest of the cluster.
+These definitions are documented separately under [check configuration](/docs/agent/checks) and
+[service configuration](/docs/agent/services) respectively. Service and check
 definitions support being updated during a reload.
 
-<CodeBlockConfig heading="Example Configuration File">
+<CodeTabs heading="Example Configuration File">
+
+```hcl
+datacenter = "east-aws"
+data_dir = "/opt/consul"
+log_level = "INFO"
+node_name = "foobar"
+server = true
+watches = [
+  {
+    type = "checks"
+    handler = "/usr/bin/health-check-handler.sh"
+  }
+]
+
+telemetry {
+  statsite_address = "127.0.0.1:2180"
+}
+```
 
 ```json
 {
@@ -627,7 +644,7 @@ definitions support being updated during a reload.
 }
 ```
 
-</CodeBlockConfig>
+</CodeTabs>
 
 #### Configuration Key Reference ((#config_key_reference))
 
@@ -764,7 +781,14 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     - `managed_service_provider` ((#acl_tokens_managed_service_provider)) <EnterpriseAlert inline /> - An
       array of ACL tokens used by Consul managed service providers for cluster operations.
 
-      <CodeBlockConfig heading="Example managed_service_provider configuration">
+      <CodeTabs heading="Example managed_service_provider configuration">
+
+      ```hcl
+      managed_service_provider {
+        accessor_id = "ed22003b-0832-4e48-ac65-31de64e5c2ff"
+        secret_id = "cb6be010-bba8-4f30-a9ed-d347128dde17"
+      }
+      ```
 
       ```json
       "managed_service_provider": [
@@ -775,7 +799,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       ]
       ```
 
-      </CodeBlockConfig>
+      </CodeTabs>
 
 - `acl_datacenter` - **This field is deprecated in Consul 1.4.0. See the [`primary_datacenter`](#primary_datacenter) field instead.**
 
@@ -915,7 +939,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `audit` <EnterpriseAlert inline /> - Added in Consul 1.8, the audit object allow users to enable auditing
   and configure a sink and filters for their audit logs. For more information, review the [audit log tutorial](https://learn.hashicorp.com/tutorials/consul/audit-logging).
 
-  <CodeBlockConfig heading="Example audit configuration">
+  <CodeTabs heading="Example audit configuration">
 
   ```hcl
   audit {
@@ -932,7 +956,26 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   }
   ```
 
-  </CodeBlockConfig>
+  ```json
+  {
+    "audit": {
+      "enabled": true,
+      "sink": {
+        "My sink": {
+          "type": "file",
+          "format": "json",
+          "path": "data/audit/audit.json",
+          "delivery_guarantee": "best-effort",
+          "rotate_duration": "24h",
+          "rotate_max_files": 15,
+          "rotate_bytes": 25165824
+        }
+      }
+    }
+  }
+  ```
+
+  </CodeTabs>
 
   The following sub-keys are available:
 
@@ -1118,14 +1161,14 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
         validating all claims to account for clock skew. Defaults to 60s (1 minute)
         if set to 0s and can be disabled if set to -1ns.
 
-      - `claim_assertions` (Defaults to []) List of assertions about the mapped
+      - `claim_assertions` (Defaults to `[]`) List of assertions about the mapped
         claims required to authorize the incoming RPC request. The syntax uses
-        github.com/hashicorp/go-bexpr which is shared with the
+        [github.com/hashicorp/go-bexpr](https://github.com/hashicorp/go-bexpr) which is shared with the
         [API filtering feature](/api/features/filtering). For example, the following
         configurations when combined will ensure that the JWT `sub` matches the node
         name requested by the client.
 
-        <CodeBlockConfig heading="Ensure that the JWT `sub` matches the node name requested by the client">
+        <CodeTabs heading="Ensure that the JWT sub matches the node name requested by the client">
 
         ```hcl
         claim_mappings {
@@ -1136,7 +1179,16 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
         ]
         ```
 
-        </CodeBlockConfig>
+        ```json
+        {
+          "claim_mappings": {
+            "sub": "node_name"
+          },
+          "claim_assertions": ["value.node_name == \"${node}\""]
+        }
+        ```
+
+        </CodeTabs>
 
         The assertions are lightly templated using [HIL syntax](https://github.com/hashicorp/hil)
         to interpolate some values from the RPC request. The list of variables that can be interpolated
@@ -1534,7 +1586,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     equivalent to "no max age". To get a fresh value from the cache use a very small value
     of `1ns` instead of 0.
 
-  - `prefer_namespace` ((#dns_prefer_namespace)) <EnterpriseAlert inline /> **Deprecated in 
+  - `prefer_namespace` ((#dns_prefer_namespace)) <EnterpriseAlert inline /> **Deprecated in
     Consul 1.11. Use the [canonical DNS format](/docs/discovery/dns#namespaced-partitioned-services) instead.** -
     When set to true, in a DNS query for a service, the label between the domain
     and the `service` label will be treated as a namespace name instead of a datacenter.
@@ -1702,7 +1754,15 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
   - `response_headers` This object allows adding headers to the HTTP API and UI responses. For example, the following config can be used to enable [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on the HTTP API endpoints:
 
-    <CodeBlockConfig heading="Enable CORS on the HTTP API endpoints">
+    <CodeTabs heading="Enable CORS on the HTTP API endpoints">
+
+    ```hcl
+    http_config {
+      response_headers {
+        Access-Control-Allow-Origin = "*"
+      }
+    }
+    ```
 
     ```json
     {
@@ -1714,7 +1774,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     }
     ```
 
-    </CodeBlockConfig>
+    </CodeTabs>
 
   - `allow_write_http_from` This object is a list of networks in CIDR notation (eg "127.0.0.0/8") that are allowed to call the agent write endpoints. It defaults to an empty list, which means all networks are allowed. This is used to make the agent read-only, except for select ip ranges. - To block write calls from anywhere, use `[ "255.255.255.255/32" ]`. - To only allow write calls from localhost, use `[ "127.0.0.0/8" ]` - To only allow specific IPs, use `[ "10.0.0.1/32", "10.0.0.2/32" ]`
 
@@ -1762,7 +1822,13 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `node_meta` Available in Consul 0.7.3 and later, This object allows associating arbitrary metadata key/value pairs with the local node, which can then be used for filtering results from certain catalog endpoints. See the [`-node-meta` command-line flag](#_node_meta) for more information.
 
-  <CodeBlockConfig heading="Example node_meta configuration">
+  <CodeTabs heading="Example node_meta configuration">
+
+  ```hcl
+  node_meta {
+    instance_type = "t2.medium"
+  }
+  ```
 
   ```json
   {
@@ -1772,7 +1838,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   }
   ```
 
-  </CodeBlockConfig>
+  </CodeTabs>
 
 - `partition` <EnterpriseAlert inline /> - This flag is used to set
   the name of the admin partition the agent belongs to. An agent can only join
@@ -1782,7 +1848,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   partition. This cannot be set on a server agent.
 
   ~> **Warning:** The `partition` option cannot be used either the
-    [`segment`](#segment-2) option or [`-segment`](#_segment) flag.
+  [`segment`](#segment-2) option or [`-segment`](#_segment) flag.
 
 - `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. See the [Server Performance](/docs/install/performance) documentation for more details. The following parameters are available:
 
@@ -1866,15 +1932,14 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 - `protocol` ((#protocol)) Equivalent to the [`-protocol` command-line
   flag](#_protocol).
 
-- `raft_boltdb` ((#raft_boltdb)) This is a nested object that allows configuring 
+- `raft_boltdb` ((#raft_boltdb)) This is a nested object that allows configuring
   options for Raft's BoltDB based log store.
 
-  - `NoFreelistSync` ((#NoFreelistSync)) Setting this to `true` will disable 
+  - `NoFreelistSync` ((#NoFreelistSync)) Setting this to `true` will disable
     syncing the BoltDB freelist to disk within the raft.db file. Not syncing
     the freelist to disk will reduce disk IO required for write operations
     at the expense of potentially increasing start up time due to needing
     to scan the db to discover where the free space resides within the file.
-    
 
 - `raft_protocol` ((#raft_protocol)) Equivalent to the [`-raft-protocol`
   command-line flag](#_raft_protocol).
@@ -2119,13 +2184,23 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     This is a list of filter rules to apply for allowing/blocking metrics by
     prefix in the following format:
 
-    <CodeBlockConfig heading="Example prefix_filter configuration">
+    <CodeTabs heading="Example prefix_filter configuration">
 
-    ```json
-    ["+consul.raft.apply", "-consul.http", "+consul.http.GET"]
+    ```hcl
+    telemetry {
+      prefix_filter = ["+consul.raft.apply", "-consul.http", "+consul.http.GET"]
+    }
     ```
 
-    </CodeBlockConfig>
+    ```json
+    {
+      "telemetry": {
+        "prefix_filter": ["+consul.raft.apply", "-consul.http", "+consul.http.GET"]
+      }
+    }
+    ```
+
+    </CodeTabs>
 
     A leading "**+**" will enable any metrics with the given prefix, and a leading "**-**" will block them. If there is overlap between two rules, the more specific rule will take precedence. Blocking will take priority if the same prefix is listed multiple times.
 
@@ -2141,7 +2216,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     it is recommended to also enable the option [`disable_hostname`](#telemetry-disable_hostname)
     to avoid having prefixed metrics with hostname. Consul does not use the default
     Prometheus path, so Prometheus must be configured as follows. Note that using
-    `?format=prometheus` in the path won't work as ? will be escaped, so it must be
+    `?format=prometheus` in the path won't work as `?` will be escaped, so it must be
     specified as a parameter.
 
     <CodeBlockConfig heading="Example Prometheus configuration">
@@ -2465,7 +2540,35 @@ will result in TLS not being enabled at all, even when specifying a [`ca_file`](
 
 See, especially, the use of the `ports` setting highlighted below.
 
-<CodeBlockConfig heading="Example configuration with TLS" lineNumbers highlight="10-12">
+<CodeTabs heading="Example configuration with TLS">
+
+<CodeBlockConfig lineNumbers highlight="10-12">
+
+```hcl
+datacenter = "east-aws"
+data_dir = "/opt/consul"
+log_level = "INFO"
+node_name = "foobar"
+server = true
+
+addresses = {
+  https = "0.0.0.0"
+}
+ports {
+  https = 8501
+}
+
+key_file = "/etc/pki/tls/private/my.key"
+cert_file = "/etc/pki/tls/certs/my.crt"
+ca_file = "/etc/pki/tls/certs/ca-bundle.crt"
+verify_incoming = true
+verify_outgoing = true
+verify_server_hostname = true
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig lineNumbers highlight="10-12">
 
 ```json
 {
@@ -2490,6 +2593,8 @@ See, especially, the use of the `ports` setting highlighted below.
 ```
 
 </CodeBlockConfig>
+
+</CodeTabs>
 
 Consul will not enable TLS for the HTTP API unless the `https` port has been
 assigned a port number `> 0`. We recommend using `8501` for `https` as this
