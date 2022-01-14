@@ -211,9 +211,10 @@ Again, note that the SRV record returns the port of the service as well as its I
 
 -> **Note**: This functionality was introduced in Consul 1.7.0.
 
-If a service registered to Consul has an explicit IP[`address`](/api-docs/agent/service#address)
-defined on the service registration, the hostname returned in the answer section
-of the DNS SRV query for the service will be `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
+If a service registered to Consul has an explicit IP [`address`](/api-docs/agent/service#address)
+defined on the service registration that is different from the node's IP address,
+the hostname returned in the answer section of the DNS SRV query for the service
+will be in the format of `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
 
 <Tabs>
 
@@ -222,7 +223,7 @@ of the DNS SRV query for the service will be `<hexadecimal-encoded IP>.addr.<dat
 In the example below, the `rabbitmq` service has been registered with an explicit
 IPv4 address of `192.0.2.10`.
 
-<CodeTabs heading="Service registered with explicit IPv4 address in agent config" filename="agent-config.hcl">
+<CodeTabs heading="Service defined with explicit IPv4 address in agent config" filename="agent-config.hcl">
 
 ```hcl
 node_name = "node1"
@@ -273,7 +274,7 @@ $ echo -n "c000020a" | perl -ne 'printf("%vd\n", pack("H*", $_))'
 In the example below, the `rabbitmq` service has been registered with an explicit
 IPv6 address of `2001:db8:1:2:cafe::1337`.
 
-<CodeTabs heading="Service registered with explicit IPv6 address in agent config" filename="agent-config.hcl">
+<CodeTabs heading="Service defined with explicit IPv6 address in agent config" filename="agent-config.hcl">
 
 ```hcl
 node_name = "node1"
