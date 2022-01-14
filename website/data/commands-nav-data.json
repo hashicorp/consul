@@ -292,6 +292,10 @@
         "path": "intention/get"
       },
       {
+        "title": "list",
+        "path": "intention/list"
+      },
+      {
         "title": "match",
         "path": "intention/match"
       }
