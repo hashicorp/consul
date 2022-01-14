@@ -15,11 +15,11 @@ to new clusters rather than existing clusters.
 
 ## Configure ACLs in the Primary Datacenter
 
-In a [federated Consul deployment](https://www.consul.io/docs/k8s/installation/multi-cluster), one of the datacenters is marked as the primary datacenter.
+In a [federated Consul deployment](/docs/k8s/installation/multi-cluster), one of the datacenters is marked as the primary datacenter.
 The `acl` configuration block should be added to the primary datacenter server's configuration file
 as shown in the following example.
 
-See the [ACL Config Stanza](https://www.consul.io/docs/agent/options#acl) for more detailed descriptions of each option.
+See the [ACL Config Stanza](/docs/agent/options#acl) for more detailed descriptions of each option.
 
 -> **Versions before 1.11.0:** The `initial_management` token was called the `master` token in versions
 prior to 1.11.0
@@ -65,10 +65,10 @@ acl = {
 
 ~> **Warning:** Note that most enterprise deployments have security requirements that prevent specifying tokens in configuration files.
 The `enable_token_persistence` flag is also set in the configuration example so that the token is stored to disk in the agent's
-`data` directory. Any future changes to the token that are made through the [API](/api/agent#update-acl-tokens) will
+[data directory](/docs/agent/options#_data_dir). Any future changes to the token that are made through the [API](/api/agent#update-acl-tokens) will
 be persisted to the same location, and the value in the config file will be ignored.
 
-The ACL agent token can also be set using the CLI as shown below.
+The ACL agent token can also be set using the [`consul acl set-agent-token`](/commands/acl/set-agent-token) CLI as shown below.
 
 ```shell-session
 $ consul acl set-agent-token agent "<agent token here>"
@@ -83,14 +83,14 @@ provided to them.
 ### Create the replication token for ACL Management
 
 Replication tokens are needed for ACL token replication and
-to create both [local tokens](/api/acl/tokens#local) and [auth methods](/docs/acl/auth-methods)
+to create both [configuration entries](/docs/agent/config-entries) and [auth methods](/docs/acl/auth-methods)
 in connected secondary datacenters.
 
 Replication tokens require the following permissions:
 
 - `acl = "write"`: The permission allows you to replicate tokens.
 - `operator = "write"`: This permission enables the `proxy-default` configuration entries to be replicated and enables CA certificate signing in the secondary datacenter.
-- `policy = "read"` and `intentions = "read"` in the `service_prefix` field: These permissions enable `service-default` configuration entries, CA, and intention data to be replicated.
+- `policy = "read"` and `intentions = "read"` in the `service_prefix` field: These permissions enable `service-default` configuration entries, CA, and intention data to be replicated for all services.
 
 <CodeTabs heading="Replication Token Policy">
 
@@ -147,7 +147,8 @@ acl = {
     "default_policy": "deny",
     "down_policy": "deny",
     "tokens": {
-      "agent": "ACL_AGENT_TOKEN"
+      "agent": "ACL_AGENT_TOKEN",
+      "replication": "ACL_REPLICATION_TOKEN"
     }
   }
 }
@@ -173,25 +174,24 @@ $ consul join -token="ACL_MANAGEMENT_TOKEN" -wan [server 1, server 2, ...]
 
 ## Configure Clients in Secondary Datacenters
 
-When ACLs are enabled, client agents need a special token known as the `agent token` for ACL-related operations. Agent tokens need to have the right policies for node related actions, including
-registering itself in the catalog, updating node level health checks, and having write access on its
-agent configuration file.
+When ACLs are enabled, client agents need a special token known as the [`agent token`](/docs/security/acl/acl-system#acl-agent-token) to perform internal operations. Agent tokens need to have the right policies for node related actions, including
+registering itself in the catalog, updating node level health checks, and performing [anti-entropy](/docs/architecture/anti-entropy) syncing.
 
 ### Generate Agent ACL Token
 
-[ACL Node Identities](https://www.consul.io/docs/security/acl/acl-system#acl-node-identities) were introduced
-in Consul 1.8.1 and enable creating agent tokens with appropriately scoped policies easily.
+[ACL Node Identities](/docs/security/acl/acl-system#acl-node-identities) were introduced
+in Consul 1.8.1 and enable easily creating agent tokens with appropriately scoped policies.
 
 To generate the ACL token using node identity, run the following command:
 
 ```shell-session
-$ consul acl token create -node-identity=node-two:dc2
+$ consul acl token create -node-identity=<NODE_NAME>:<DATACENTER>
 ```
 
 ### Configure clients to use the ACL agent token
 
 Update the client agents to include the token value from the previous step. Replace
-the `ACL_AGENT_TOKEN` value below with the token value from the command output.
+the `ACL_AGENT_TOKEN` value below with the secret ID value from the command output.
 
 <CodeTabs heading = "ACL Configuration in Client Agents">
 
