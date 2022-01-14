@@ -207,14 +207,13 @@ rabbitmq.node1.dc1.consul.	0	IN	A	10.1.11.20
 
 Again, note that the SRV record returns the port of the service as well as its IP.
 
-#### Hosts in `.addr` subdomain for SRV responses
+#### SRV response for hosts in the .addr subdomain
 
 -> **Note**: This functionality was introduced in Consul 1.7.0.
 
 If a service registered to Consul has an explicit IP[`address`](/api-docs/agent/service#address)
 defined on the service registration, the hostname returned in the answer section
-of the DNS SRV query the service registration will be
-`<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
+of the DNS SRV query for the service will be `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
 
 <Tabs>
 
@@ -250,7 +249,7 @@ services {
 
 </CodeTabs>
 
-When performing an SRV query for this servie, the SRV response contains a single
+When performing an SRV query for this service, the SRV response contains a single
 record with a hostname in the format of `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
 
 ```shell-session
