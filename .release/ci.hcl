@@ -14,7 +14,8 @@ project "consul" {
       "release/1.8.x",
       "release/1.9.x",
       "release/1.10.x",
-      "release/1.11.x"
+      "release/1.11.x",
+      "fix-broken-dockerfile", // just needed for testing, remove before merge
     ]
   }
 }

@@ -1,5 +1,5 @@
 # This Dockerfile creates a production release image for the project using crt release flow.
-FROM alpine:3.13 as  default
+FROM alpine:3.15.0 as default
 
 ARG VERSION
 ARG BIN_NAME
@@ -24,7 +24,23 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.title="consul" \
       org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
 
-RUN apk add --no-cache dumb-init
+# Set up certificates and base tools.
+# libc6-compat is needed to symlink the shared libraries for ARM builds
+RUN apk update
+RUN apk add -v --no-cache \
+		dumb-init \
+		libc6-compat \
+		iptables \
+		tzdata \
+		curl \
+		ca-certificates \
+		gnupg \
+		iputils \ 
+		libcap \
+		openssl \
+		su-exec \
+		jq 
+
 # Create a consul user and group first so the IDs get set the same way, even as
 # the rest of this may change over time.
 RUN addgroup $BIN_NAME && \
@@ -35,6 +51,10 @@ COPY dist/$TARGETOS/$TARGETARCH/$BIN_NAME /bin/
 RUN mkdir -p /consul/data && \
     mkdir -p /consul/config && \
     chown -R consul:consul /consul
+
+# Set up nsswitch.conf for Go's "netgo" implementation which is used by Consul,
+# otherwise DNS supercedes the container's hosts file, which we don't want.
+RUN test -e /etc/nsswitch.conf || echo 'hosts: files dns' > /etc/nsswitch.conf
 
 # Expose the consul data directory as a volume since there's mutable state in there.
 VOLUME /consul/data
