@@ -11,7 +11,9 @@ This topic describes how to set up Consul's access control list (ACL) system
 in cluster deployments that span multiple data centers. This documentation is applicable
 to new clusters rather than existing clusters.
 
--> **1.4.0 and later:** This guide only applies in Consul versions 1.4.0 and later.
+# Requirements
+
+Consul versions 1.4.0 and later
 
 ## Configure ACLs in the Primary Datacenter
 
@@ -160,6 +162,10 @@ acl = {
 global tokens already present in the secondary datacenter will be lost. For
 production environments, consider configuring ACL replication in your initial
 datacenter bootstrapping process.
+
+~> **Warning:** If you are using [Consul Enterprise](/docs/enterprise) and
+the [Admin Partitions](https://www.consul.io/docs/enterprise/admin-partitions)
+feature, only ACL tokens in the default partition are replicated to other datacenters.
 
 ## WAN Join Servers
 
