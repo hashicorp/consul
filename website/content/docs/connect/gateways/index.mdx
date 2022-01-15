@@ -10,10 +10,10 @@ description: >-
 This topic provides an overview of the gateway features shipped with Consul. Gateways provide connectivity into, out of, and between Consul service meshes. You can configure the following types of gateways:
 
 - [Mesh gateways](#mesh-gateways) enable service-to-service traffic between Consul datacenters or between Consul admin partitions. They also enable datacenters to be federated across wide area networks.
-- [Ingress gateways](#ingress-gateways) enable services to accept traffic from outside the Consul service mesh.
-- [Terminating gateways](#terminating-gateways) enable you to route traffic from services in the Consul service mesh to external services.
+- [Ingress gateways](#ingress-gateways) enable connectivity within your organizational network from services outside the Consul service mesh to services in the mesh.
+- [Terminating gateways](#terminating-gateways) enable connectivity within your organizational network from services in the Consul service mesh to services outside the mesh.
 
-[![Gateway Architecture](/img/consul-connect/svgs/consul_gateway_overview_wide.svg)](/img/consul-connect/svgs/consul_gateway_overview_wide.svg)
+[![Gateway Architecture](/img/consul-connect/svgs/consul_gateway_overview.svg)](/img/consul-connect/svgs/consul_gateway_overview.svg)
 
 ## Mesh Gateways
 
@@ -37,8 +37,9 @@ Mesh gateways enable the following scenarios:
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
-Ingress gateways are an entrypoint for outside traffic. They enable potentially unauthenticated ingress traffic from
-services outside the Consul service mesh to services inside the service mesh.
+Ingress gateways enable connectivity within your organizational network from services outside the Consul service mesh
+to services in the mesh. To accept ingress traffic from the public internet, use Consul's
+[API Gateway](https://www.hashicorp.com/blog/announcing-hashicorp-consul-api-gateway) instead.
 
 These gateways allow you to define what services should be exposed, on what port, and by what hostname. You configure
 an ingress gateway by defining a set of listeners that can map to different sets of backing services.
@@ -55,7 +56,8 @@ and the [ingress gateway tutorial](https://learn.hashicorp.com/tutorials/consul/
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
-Terminating gateways enable connectivity from services in the Consul service mesh to services outside the mesh.
+Terminating gateways enable connectivity within your organizational network from services in the Consul service mesh
+to services outside the mesh.
 Services outside the mesh do not have sidecar proxies or are not [integrated natively](/docs/connect/native).
 These may be services running on legacy infrastructure or managed cloud services running on
 infrastructure you do not control.
