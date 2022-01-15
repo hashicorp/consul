@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-secure-stdlib/awsutil"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
 
@@ -181,7 +182,7 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 			// re-authenticate using the auth method and set up a new watcher.
 			if v.config.AuthMethod != nil {
 				// Login to Vault using the auth method.
-				loginResp, err := vaultLogin(v.client, v.config.AuthMethod)
+				loginResp, err := vaultLogin(v.client, v.config.AuthMethod, v.logger)
 				if err != nil {
 					v.logger.Error("Error login in to Vault with %q auth method", v.config.AuthMethod.Type)
 					// Restart the watcher.
@@ -705,9 +706,9 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 	return &config, nil
 }
 
-func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod) (*vaultapi.Secret, error) {
+func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod, logger hclog.Logger) (*vaultapi.Secret, error) {
 	// Adapted from https://www.vaultproject.io/docs/auth/kubernetes#code-example
-	loginPath, err := configureVaultAuthMethod(authMethod)
+	loginPath, err := configureVaultAuthMethod(authMethod, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -723,7 +724,7 @@ func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod) (*
 	return resp, nil
 }
 
-func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (loginPath string, err error) {
+func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod, logger hclog.Logger) (loginPath string, err error) {
 	if authMethod.MountPath == "" {
 		authMethod.MountPath = authMethod.Type
 	}
@@ -756,13 +757,50 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (loginPath st
 		} else {
 			return "", fmt.Errorf("failed to get 'role' from auth method params")
 		}
+	// vault provides a lot of help for aws integration
+	// lifted from https://github.com/hashicorp/vault/builtin/credential/aws/cli.go
+	case VaultAuthMethodTypeAWS:
+
+		creds, err := awsutil.RetrieveCreds(authMethod.Params["aws_access_key_id"], authMethod.Params["aws_secret_access_key"], authMethod.Params["aws_security_token"], logger)
+		if err != nil {
+			return "", err
+		}
+
+		headerValue, ok := authMethod.Params["header_value"]
+		if !ok {
+			headerValue = ""
+		}
+
+		region := authMethod.Params["region"]
+		if region == "" {
+			region = awsutil.DefaultRegion
+		}
+
+		loginData, err := awsutil.GenerateLoginData(creds, headerValue, region, logger)
+		if err != nil {
+			return "", err
+		}
+		if loginData == nil {
+			return "", fmt.Errorf("got nil response from GenerateLoginData")
+		}
+
+		role, ok := authMethod.Params["role"]
+		if !ok {
+			role = ""
+		}
+
+		loginPath = fmt.Sprintf("auth/%s/login", authMethod.MountPath)
+
+		// values in authMethod.Params are all consumed in the earlier operations, none are relevant to vault except role
+		authMethod.Params = loginData
+		authMethod.Params["role"] = role
+
 	case VaultAuthMethodTypeToken:
 		return "", fmt.Errorf("'token' auth method is not supported via auth method configuration; " +
 			"please provide the token with the 'token' parameter in the CA configuration")
 	// The rest of the auth methods use auth/<auth method path> login API path.
 	case VaultAuthMethodTypeAliCloud,
 		VaultAuthMethodTypeAppRole,
-		VaultAuthMethodTypeAWS,
 		VaultAuthMethodTypeAzure,
 		VaultAuthMethodTypeCloudFoundry,
 		VaultAuthMethodTypeGitHub,
