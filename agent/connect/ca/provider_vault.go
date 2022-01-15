@@ -100,7 +100,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	}
 
 	if config.AuthMethod != nil {
-		loginResp, err := vaultLogin(client, config.AuthMethod)
+		loginResp, err := vaultLogin(client, config.AuthMethod, v.logger)
 		if err != nil {
 			return err
 		}
@@ -761,17 +761,21 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod, logger hclog.
 	// lifted from https://github.com/hashicorp/vault/builtin/credential/aws/cli.go
 	case VaultAuthMethodTypeAWS:
 
-		creds, err := awsutil.RetrieveCreds(authMethod.Params["aws_access_key_id"], authMethod.Params["aws_secret_access_key"], authMethod.Params["aws_security_token"], logger)
+        aws_access_key_id := authMethod.Params["aws_access_key_id"].(string)
+		aws_secret_access_key := authMethod.Params["aws_secret_access_key"].(string)
+		aws_security_token := authMethod.Params["aws_security_token"].(string)
+
+		creds, err := awsutil.RetrieveCreds(aws_access_key_id, aws_secret_access_key, aws_security_token, logger)
 		if err != nil {
 			return "", err
 		}
 
-		headerValue, ok := authMethod.Params["header_value"]
+		headerValue, ok := authMethod.Params["header_value"].(string)
 		if !ok {
 			headerValue = ""
 		}
 
-		region := authMethod.Params["region"]
+		region := authMethod.Params["region"].(string)
 		if region == "" {
 			region = awsutil.DefaultRegion
 		}
@@ -784,7 +788,7 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod, logger hclog.
 			return "", fmt.Errorf("got nil response from GenerateLoginData")
 		}
 
-		role, ok := authMethod.Params["role"]
+		role, ok := authMethod.Params["role"].(string)
 		if !ok {
 			role = ""
 		}
