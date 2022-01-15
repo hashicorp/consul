@@ -33,6 +33,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
+The corresponding CLI command is [`consul acl policy create`](/commands/acl/policy/create).
+
 ### Parameters
 
 - `Name` `(string: <required>)` - Specifies a name for the ACL policy. The name
@@ -106,6 +108,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
+The corresponding CLI command is [`consul acl policy read`](/commands/acl/policy/read).
+
 ### Parameters
 
 - `id` `(string: <required>)` - Specifies the UUID of the ACL policy to
@@ -156,6 +160,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
+The corresponding CLI command is [`consul acl policy read -name=<string>`](/commands/acl/policy/read#name).
+
 ### Parameters
 
 - `name` `(string: <required>)` - Specifies the name of the ACL policy to
@@ -205,6 +211,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
+
+The corresponding CLI command is [`consul acl policy update`](/commands/acl/policy/update).
 
 ### Parameters
 
@@ -285,6 +293,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
+The corresponding CLI command is [`consul acl policy delete`](/commands/acl/policy/delete).
+
 ### Parameters
 
 - `id` `(string: <required>)` - Specifies the UUID of the ACL policy to
@@ -326,6 +336,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
+
+The corresponding CLI command is [`consul acl policy list`](/commands/acl/policy/list).
 
 ### Parameters
 
