@@ -32,6 +32,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
+The corresponding CLI command is [`consul acl token create`](/commands/acl/token/create).
+
 ### Parameters
 
 - `AccessorID` `(string: "")` - Specifies a UUID to use as the token's Accessor ID.
@@ -173,6 +175,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
+The corresponding CLI command is [`consul acl token read`](/commands/acl/token/read).
+
 ### Parameters
 
 - `AccessorID` `(string: <required>)` - Specifies the accessor ID of the ACL token to
@@ -243,6 +247,8 @@ The table below shows this endpoint's support for
 -> **Note** - This endpoint requires no specific privileges as it is just
 retrieving the data for a token that you must already possess its secret.
 
+The corresponding CLI command is [`consul acl token read -self`](/commands/acl/token/read#self).
+
 ### Sample Request
 
 ```shell-session
@@ -292,6 +298,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
+
+The corresponding CLI command is [`consul acl token update`](/commands/acl/token/update).
 
 ### Parameters
 
@@ -441,6 +449,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
+The corresponding CLI command is [`consul acl token clone`](/commands/acl/token/clone).
+
 ### Parameters
 
 - `AccessorID` `(string: <required>)` - The accessor ID of the token to clone. This is required
@@ -520,6 +530,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
+The corresponding CLI command is [`consul acl token delete`](/commands/acl/token/delete).
+
 ### Parameters
 
 - `AccessorID` `(string: <required>)` - Specifies the accessor ID of the ACL token to
@@ -561,6 +573,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
+
+The corresponding CLI command is [`consul acl token list`](/commands/acl/token/list).
 
 ## Parameters
 
