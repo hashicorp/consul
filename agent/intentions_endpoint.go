@@ -486,7 +486,10 @@ func parseIntentionStringComponent(input string, entMeta *structs.EnterpriseMeta
 // IntentionSpecific handles the endpoint for /v1/connect/intentions/:id.
 // Deprecated: use IntentionExact.
 func (s *HTTPHandlers) IntentionSpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	id := strings.TrimPrefix(req.URL.Path, "/v1/connect/intentions/")
+	id, err := getPathSuffixUnescaped(req.URL.Path, "/v1/connect/intentions/")
+	if err != nil {
+		return nil, err
+	}
 
 	switch req.Method {
 	case "GET":

@@ -30,7 +30,11 @@ func (s *HTTPHandlers) HealthChecksInState(resp http.ResponseWriter, req *http.R
 	}
 
 	// Pull out the service name
-	args.State = strings.TrimPrefix(req.URL.Path, "/v1/health/state/")
+	var err error
+	args.State, err = getPathSuffixUnescaped(req.URL.Path, "/v1/health/state/")
+	if err != nil {
+		return nil, err
+	}
 	if args.State == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing check state")
