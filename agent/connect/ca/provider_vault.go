@@ -760,15 +760,14 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod, logger hclog.
 	// vault provides a lot of help for aws integration
 	// lifted from https://github.com/hashicorp/vault/builtin/credential/aws/cli.go
 	case VaultAuthMethodTypeAWS:
+                aws_access_key_id := authMethod.Params["aws_access_key_id"].(string)
+                aws_secret_access_key := authMethod.Params["aws_secret_access_key"].(string)
+                aws_security_token := authMethod.Params["aws_security_token"].(string)
 
-        aws_access_key_id := authMethod.Params["aws_access_key_id"].(string)
-		aws_secret_access_key := authMethod.Params["aws_secret_access_key"].(string)
-		aws_security_token := authMethod.Params["aws_security_token"].(string)
-
-		creds, err := awsutil.RetrieveCreds(aws_access_key_id, aws_secret_access_key, aws_security_token, logger)
-		if err != nil {
-			return "", err
-		}
+                creds, err := awsutil.RetrieveCreds(aws_access_key_id, aws_secret_access_key, aws_security_token, logger)
+                if err != nil {
+                        return "", err
+                }
 
 		headerValue, ok := authMethod.Params["header_value"].(string)
 		if !ok {
