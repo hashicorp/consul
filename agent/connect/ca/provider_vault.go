@@ -79,7 +79,7 @@ func NewAWSLoginClient(logger hclog.Logger) *AWSLoginClient {
 		RetrieveCreds: func (accessKey, secretKey, sessionToken string) (*credentials.Credentials, error) {
 			return awsutils.RetrieveCreds(accessKey, secretKey, sessionToken, logger)
 		}
-		GenerateLoginData func(creds *credentials.Credentials, headerValue, configuredRegion string) (map[string]interface{}, error) {
+		GenerateLoginData: func(creds *credentials.Credentials, headerValue, configuredRegion string) (map[string]interface{}, error) {
 			return awsutils.GenerateLoginData(creds, headerValue, configuredRegion, logger)
 		}
 	}
