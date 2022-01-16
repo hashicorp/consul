@@ -20,11 +20,8 @@ import (
 
 NewMockAWSLoginClient := func (logger hclog.Logger) *AWSLoginClient {
 	return &AWSLoginClient{
-		RetrieveCreds: func (accessKey, secretKey, sessionToken string) (*credentials.Credentials, error) {
-			return nil, nil
-		}
-		GenerateLoginData: func(creds *credentials.Credentials, headerValue, configuredRegion string) (map[string]interface{}, error) {
-			n := map[string]interface{}{"aws1": "sdsd", "aws2": ""}
+		GenerateLoginData: func (accessKey, secretKey, sessionToken, headerValue, configuredRegion string) (map[string]interface{}, error) {
+			n := map[string]interface{}{"iam_http_request_method": "", "iam_request_url": "", "iam_request_headers": "", "iam_request_body": ""}
 			return n, nil
 		}
 	}
