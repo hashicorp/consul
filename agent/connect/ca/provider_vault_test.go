@@ -18,6 +18,18 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
+NewMockAWSLoginClient := func (logger hclog.Logger) *AWSLoginClient {
+	return &AWSLoginClient{
+		RetrieveCreds: func (accessKey, secretKey, sessionToken string) (*credentials.Credentials, error) {
+			return nil, nil
+		}
+		GenerateLoginData: func(creds *credentials.Credentials, headerValue, configuredRegion string) (map[string]interface{}, error) {
+			n := map[string]interface{}{"aws1": "sdsd", "aws2": ""}
+			return n, nil
+		}
+	}
+}
+
 func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 	cases := map[string]struct {
 		rawConfig map[string]interface{}
@@ -90,12 +102,14 @@ func TestVaultCAProvider_configureVaultAuthMethod(t *testing.T) {
 		"unsupported": {expError: "auth method \"unsupported\" is not supported"},
 	}
 
+	NewAWSLoginClient := NewMockAWSLoginClient
+	
 	for authMethodType, c := range cases {
 		t.Run(authMethodType, func(t *testing.T) {
 			loginPath, err := configureVaultAuthMethod(&structs.VaultAuthMethod{
 				Type:   authMethodType,
 				Params: c.params,
-			})
+			}, nil)
 			if c.expError == "" {
 				require.NoError(t, err)
 				require.Equal(t, c.expLoginPath, loginPath)
