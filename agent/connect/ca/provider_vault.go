@@ -69,6 +69,22 @@ func NewVaultProvider(logger hclog.Logger) *VaultProvider {
 	}
 }
 
+type AWSLoginClient struct {
+	RetrieveCreds func (accessKey, secretKey, sessionToken string) (*credentials.Credentials, error)
+	GenerateLoginData func(creds *credentials.Credentials, headerValue, configuredRegion string) (map[string]interface{}, error)
+}
+
+func NewAWSLoginClient(logger hclog.Logger) *AWSLoginClient {
+	return &AWSLoginClient{
+		RetrieveCreds: func (accessKey, secretKey, sessionToken string) (*credentials.Credentials, error) {
+			return awsutils.RetrieveCreds(accessKey, secretKey, sessionToken, logger)
+		}
+		GenerateLoginData func(creds *credentials.Credentials, headerValue, configuredRegion string) (map[string]interface{}, error) {
+			return awsutils.GenerateLoginData(creds, headerValue, configuredRegion, logger)
+		}
+	}
+}
+
 func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
 	return &vaultapi.TLSConfig{
 		CACert:        config.CAFile,
@@ -760,11 +776,13 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod, logger hclog.
 	// vault provides a lot of help for aws integration
 	// lifted from https://github.com/hashicorp/vault/builtin/credential/aws/cli.go
 	case VaultAuthMethodTypeAWS:
+		aws := NewAWSLoginClient(logger)
+		
                 aws_access_key_id := authMethod.Params["aws_access_key_id"].(string)
                 aws_secret_access_key := authMethod.Params["aws_secret_access_key"].(string)
                 aws_security_token := authMethod.Params["aws_security_token"].(string)
 
-                creds, err := awsutil.RetrieveCreds(aws_access_key_id, aws_secret_access_key, aws_security_token, logger)
+                creds, err := aws.RetrieveCreds(aws_access_key_id, aws_secret_access_key, aws_security_token)
                 if err != nil {
                         return "", err
                 }
@@ -779,7 +797,7 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod, logger hclog.
 			region = awsutil.DefaultRegion
 		}
 
-		loginData, err := awsutil.GenerateLoginData(creds, headerValue, region, logger)
+		loginData, err := aws.GenerateLoginData(creds, headerValue, region)
 		if err != nil {
 			return "", err
 		}
