@@ -302,11 +302,6 @@ func (s *subscriptions) closeSubscriptionsForTokens(tokenSecretIDs []string) {
 	}
 }
 
-// unsubscribe returns a function that the subscription will call to remove
-// itself from the subsByToken.
-// This function is returned as a closure so that the caller doesn't need to keep
-// track of the SubscriptionRequest, and can not accidentally call unsubscribe with the
-// wrong pointer.
 func (s *subscriptions) unsubscribe(req *SubscribeRequest) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
