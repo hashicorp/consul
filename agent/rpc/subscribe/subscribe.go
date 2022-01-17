@@ -93,12 +93,11 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 
 func toStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta structs.EnterpriseMeta) *stream.SubscribeRequest {
 	return &stream.SubscribeRequest{
-		Topic:     req.Topic,
-		Key:       req.Key,
-		Token:     req.Token,
-		Index:     req.Index,
-		Namespace: entMeta.NamespaceOrEmpty(),
-		Partition: entMeta.PartitionOrEmpty(),
+		Topic:          req.Topic,
+		Key:            req.Key,
+		EnterpriseMeta: entMeta,
+		Token:          req.Token,
+		Index:          req.Index,
 	}
 }
 

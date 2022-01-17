@@ -6,6 +6,8 @@ import (
 	time "time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func noopUnSub() {}
@@ -16,20 +18,12 @@ func TestSubscription_Subject(t *testing.T) {
 		sub Subject
 	}{
 		"default partition and namespace": {
-			SubscribeRequest{Key: "foo"},
+			SubscribeRequest{Key: "foo", EnterpriseMeta: structs.EnterpriseMeta{}},
 			"default/default/foo",
 		},
-		"default namespace": {
-			SubscribeRequest{Partition: "foo", Key: "bar"},
-			"foo/default/bar",
-		},
-		"default partition": {
-			SubscribeRequest{Namespace: "foo", Key: "bar"},
-			"default/foo/bar",
-		},
 		"mixed casing": {
-			SubscribeRequest{Partition: "fOo", Namespace: "BAr", Key: "BaZ"},
-			"foo/bar/baz",
+			SubscribeRequest{Key: "BaZ"},
+			"default/default/baz",
 		},
 	} {
 		t.Run(desc, func(t *testing.T) {

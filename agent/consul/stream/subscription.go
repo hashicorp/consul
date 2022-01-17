@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"sync/atomic"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 const (
@@ -60,12 +62,9 @@ type SubscribeRequest struct {
 	// be returned by the subscription. A blank key will return all events. Key
 	// is generally the name of the resource.
 	Key string
-	// Namespace used to filter events in the topic. Only events matching the
-	// namespace will be returned by the subscription.
-	Namespace string
-	// Partition used to filter events in the topic. Only events matching the
-	// partition will be returned by the subscription.
-	Partition string // TODO(partitions): make this work
+	// EnterpriseMeta is used to filter events in the topic. Only events matching
+	// the partition and namespace will be returned by the subscription.
+	EnterpriseMeta structs.EnterpriseMeta
 	// Token that was used to authenticate the request. If any ACL policy
 	// changes impact the token the subscription will be forcefully closed.
 	Token string
@@ -76,18 +75,11 @@ type SubscribeRequest struct {
 }
 
 func (req SubscribeRequest) Subject() Subject {
-	partition := strings.ToLower(req.Partition)
-	if partition == "" {
-		partition = "default"
-	}
-
-	namespace := strings.ToLower(req.Namespace)
-	if namespace == "" {
-		namespace = "default"
-	}
-
-	key := strings.ToLower(req.Key)
-
+	var (
+		partition = strings.ToLower(req.EnterpriseMeta.PartitionOrDefault())
+		namespace = strings.ToLower(req.EnterpriseMeta.NamespaceOrDefault())
+		key       = strings.ToLower(req.Key)
+	)
 	return Subject(partition + "/" + namespace + "/" + key)
 }
 

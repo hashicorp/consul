@@ -62,8 +62,7 @@ func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 		defer tx.Abort()
 
 		connect := topic == topicServiceHealthConnect
-		entMeta := structs.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
-		idx, nodes, err := checkServiceNodesTxn(tx, nil, req.Key, connect, &entMeta)
+		idx, nodes, err := checkServiceNodesTxn(tx, nil, req.Key, connect, &req.EnterpriseMeta)
 		if err != nil {
 			return 0, err
 		}

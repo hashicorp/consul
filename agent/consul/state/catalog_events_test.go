@@ -30,9 +30,8 @@ func TestEventPayloadCheckServiceNode_SubjectMatchesRequests(t *testing.T) {
 				},
 			},
 			stream.SubscribeRequest{
-				Key:       "foo",
-				Partition: "default",
-				Namespace: "default",
+				Key:            "foo",
+				EnterpriseMeta: structs.EnterpriseMeta{},
 			},
 		},
 		"mixed casing": {
@@ -56,34 +55,6 @@ func TestEventPayloadCheckServiceNode_SubjectMatchesRequests(t *testing.T) {
 		evt EventPayloadCheckServiceNode
 		req stream.SubscribeRequest
 	}{
-		"different partition": {
-			EventPayloadCheckServiceNode{
-				Value: &structs.CheckServiceNode{
-					Service: &structs.NodeService{
-						Service: "foo",
-					},
-				},
-			},
-			stream.SubscribeRequest{
-				Key:       "foo",
-				Partition: "us-east-1",
-				Namespace: "default",
-			},
-		},
-		"different namespace": {
-			EventPayloadCheckServiceNode{
-				Value: &structs.CheckServiceNode{
-					Service: &structs.NodeService{
-						Service: "foo",
-					},
-				},
-			},
-			stream.SubscribeRequest{
-				Key:       "foo",
-				Partition: "default",
-				Namespace: "sre",
-			},
-		},
 		"different key": {
 			EventPayloadCheckServiceNode{
 				Value: &structs.CheckServiceNode{
@@ -93,9 +64,7 @@ func TestEventPayloadCheckServiceNode_SubjectMatchesRequests(t *testing.T) {
 				},
 			},
 			stream.SubscribeRequest{
-				Key:       "bar",
-				Partition: "default",
-				Namespace: "default",
+				Key: "bar",
 			},
 		},
 	} {
