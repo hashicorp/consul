@@ -131,33 +131,25 @@ func (e *EventPublisher) Run(ctx context.Context) {
 // publishEvent appends the events to any applicable topic buffers. It handles
 // any closeSubscriptionPayload events by closing associated subscriptions.
 func (e *EventPublisher) publishEvent(events []Event) {
-	eventsByTopic := make(map[Topic]map[Subject][]Event)
+	groupedEvents := make(map[topicSubject][]Event)
 	for _, event := range events {
 		if unsubEvent, ok := event.Payload.(closeSubscriptionPayload); ok {
 			e.subscriptions.closeSubscriptionsForTokens(unsubEvent.tokensSecretIDs)
 			continue
 		}
 
-		byTopic, ok := eventsByTopic[event.Topic]
-		if !ok {
-			byTopic = make(map[Subject][]Event)
-			eventsByTopic[event.Topic] = byTopic
-		}
-
-		key := event.Payload.Subject()
-		byTopic[key] = append(byTopic[key], event)
+		groupKey := topicSubject{event.Topic, event.Payload.Subject()}
+		groupedEvents[groupKey] = append(groupedEvents[groupKey], event)
 	}
 
 	e.lock.Lock()
 	defer e.lock.Unlock()
-	for topic, byKey := range eventsByTopic {
-		for key, events := range byKey {
-			// Note: bufferForPublishing returns nil if there are no subscribers for the
-			// given topic and key, in which case events will be dropped on the floor and
-			// future subscribers will catch up by consuming the snapshot.
-			if buf := e.bufferForPublishing(topic, key); buf != nil {
-				buf.Append(events)
-			}
+	for groupKey, events := range groupedEvents {
+		// Note: bufferForPublishing returns nil if there are no subscribers for the
+		// given topic and subject, in which case events will be dropped on the floor and
+		// future subscribers will catch up by consuming the snapshot.
+		if buf := e.bufferForPublishing(groupKey); buf != nil {
+			buf.Append(events)
 		}
 	}
 }
@@ -184,8 +176,7 @@ func (e *EventPublisher) bufferForSubscription(key topicSubject) *topicBuffer {
 // subscribers for the given topic and key.
 //
 // Warning: e.lock MUST be held when calling this function.
-func (e *EventPublisher) bufferForPublishing(topic Topic, sub Subject) *eventBuffer {
-	key := topicSubject{topic, sub}
+func (e *EventPublisher) bufferForPublishing(key topicSubject) *eventBuffer {
 	buf, ok := e.topicBuffers[key]
 	if !ok {
 		return nil
