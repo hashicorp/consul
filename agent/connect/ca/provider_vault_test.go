@@ -18,12 +18,12 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
-NewMockAWSLoginClient := func (logger hclog.Logger) *AWSLoginClient {
-	return &AWSLoginClient{
-		GenerateLoginData: func (accessKey, secretKey, sessionToken, headerValue, configuredRegion string) (map[string]interface{}, error) {
-			n := map[string]interface{}{"iam_http_request_method": "", "iam_request_url": "", "iam_request_headers": "", "iam_request_body": ""}
+func NewMockVaultAuthHelper() *VaultAuthHelper {
+	return &VaultAuthHelper{
+		GenerateAWSLoginData: func (accessKey, secretKey, sessionToken, headerValue, configuredRegion string) (map[string]interface{}, error) {
+			n := map[string]interface{}{"iam_http_request_method": "method", "iam_request_url": "url", "iam_request_headers": "headers", "iam_request_body": "body"}
 			return n, nil
-		}
+		},
 	}
 }
 
@@ -99,14 +99,14 @@ func TestVaultCAProvider_configureVaultAuthMethod(t *testing.T) {
 		"unsupported": {expError: "auth method \"unsupported\" is not supported"},
 	}
 
-	NewAWSLoginClient := NewMockAWSLoginClient
+	vaultAuthHelper := NewMockVaultAuthHelper()
 	
 	for authMethodType, c := range cases {
 		t.Run(authMethodType, func(t *testing.T) {
 			loginPath, err := configureVaultAuthMethod(&structs.VaultAuthMethod{
 				Type:   authMethodType,
 				Params: c.params,
-			}, nil)
+			}, vaultAuthHelper)
 			if c.expError == "" {
 				require.NoError(t, err)
 				require.Equal(t, c.expLoginPath, loginPath)
@@ -115,6 +115,50 @@ func TestVaultCAProvider_configureVaultAuthMethod(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVaultCAProvider_configureAWSVaultAuthMethod(t *testing.T) {
+
+	vaultAuthHelper := NewMockVaultAuthHelper()
+	authMethod := &structs.VaultAuthMethod{
+		Type:   "aws",
+		Params: map[string]interface{}{"role": "foo", "region": "xxx", "header": "falafel"},
+	}
+	
+	t.Run("aws", func(t *testing.T) {
+		loginPath, err := configureVaultAuthMethod(authMethod, vaultAuthHelper)
+		require.NoError(t, err)
+		require.Equal(t, "auth/aws/login", loginPath)
+		require.NotNil(t, authMethod.Params)
+		require.Equal(t, 5, len(authMethod.Params))
+		require.Equal(t, "foo", authMethod.Params["role"])
+		require.Equal(t, "method", authMethod.Params["iam_http_request_method"])
+		require.Equal(t, "url", authMethod.Params["iam_request_url"])
+		require.Equal(t, "headers", authMethod.Params["iam_request_headers"])
+		require.Equal(t, "body", authMethod.Params["iam_request_body"])
+	})
+}
+
+func TestVaultCAProvider_configureAWSVaultAuthMethod_no_role(t *testing.T) {
+
+	vaultAuthHelper := NewMockVaultAuthHelper()
+	authMethod := &structs.VaultAuthMethod{
+		Type:   "aws",
+		Params: map[string]interface{}{"region": "xxx", "header": "falafel"},
+	}
+	
+	t.Run("aws", func(t *testing.T) {
+		loginPath, err := configureVaultAuthMethod(authMethod, vaultAuthHelper)
+		require.NoError(t, err)
+		require.Equal(t, "auth/aws/login", loginPath)
+		require.NotNil(t, authMethod.Params)
+		require.Equal(t, 5, len(authMethod.Params))
+		require.Equal(t, "", authMethod.Params["role"])
+		require.Equal(t, "method", authMethod.Params["iam_http_request_method"])
+		require.Equal(t, "url", authMethod.Params["iam_request_url"])
+		require.Equal(t, "headers", authMethod.Params["iam_request_headers"])
+		require.Equal(t, "body", authMethod.Params["iam_request_body"])
+	})
 }
 
 func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {

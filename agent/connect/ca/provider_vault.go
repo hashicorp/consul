@@ -53,6 +53,7 @@ type VaultProvider struct {
 	config *structs.VaultCAProviderConfig
 	client *vaultapi.Client
 
+	vaultAuthHelper *VaultAuthHelper
 	shutdown func()
 
 	isPrimary                    bool
@@ -63,19 +64,23 @@ type VaultProvider struct {
 }
 
 func NewVaultProvider(logger hclog.Logger) *VaultProvider {
+
+	vaultAuthHelper := NewVaultAuthHelper(logger);
+
 	return &VaultProvider{
 		shutdown: func() {},
+		vaultAuthHelper: vaultAuthHelper,
 		logger:   logger,
 	}
 }
 
-type AWSLoginClient struct {
-	GenerateLoginData func (accessKey, secretKey, sessionToken, headerValue, configuredRegion string) (map[string]interface{}, error)
+type VaultAuthHelper struct {
+	GenerateAWSLoginData func (accessKey, secretKey, sessionToken, headerValue, configuredRegion string) (map[string]interface{}, error)
 }
 
-func NewAWSLoginClient(logger hclog.Logger) *AWSLoginClient {
-	return &AWSLoginClient{
-		GenerateLoginData: func (accessKey, secretKey, sessionToken, headerValue, configuredRegion string) (map[string]interface{}, error) {
+func NewVaultAuthHelper(logger hclog.Logger) *VaultAuthHelper {
+	return &VaultAuthHelper{
+		GenerateAWSLoginData: func (accessKey, secretKey, sessionToken, headerValue, configuredRegion string) (map[string]interface{}, error) {
 			creds, err := awsutil.RetrieveCreds(accessKey, secretKey, sessionToken, logger)
 			if err != nil {
 				return nil, err
@@ -116,7 +121,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	}
 
 	if config.AuthMethod != nil {
-		loginResp, err := vaultLogin(client, config.AuthMethod, v.logger)
+		loginResp, err := vaultLogin(client, config.AuthMethod, v.vaultAuthHelper)
 		if err != nil {
 			return err
 		}
@@ -198,7 +203,7 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 			// re-authenticate using the auth method and set up a new watcher.
 			if v.config.AuthMethod != nil {
 				// Login to Vault using the auth method.
-				loginResp, err := vaultLogin(v.client, v.config.AuthMethod, v.logger)
+				loginResp, err := vaultLogin(v.client, v.config.AuthMethod, v.vaultAuthHelper)
 				if err != nil {
 					v.logger.Error("Error login in to Vault with %q auth method", v.config.AuthMethod.Type)
 					// Restart the watcher.
@@ -722,9 +727,9 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 	return &config, nil
 }
 
-func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod, logger hclog.Logger) (*vaultapi.Secret, error) {
+func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod, vaultAuthHelper *VaultAuthHelper) (*vaultapi.Secret, error) {
 	// Adapted from https://www.vaultproject.io/docs/auth/kubernetes#code-example
-	loginPath, err := configureVaultAuthMethod(authMethod, logger)
+	loginPath, err := configureVaultAuthMethod(authMethod, vaultAuthHelper)
 	if err != nil {
 		return nil, err
 	}
@@ -740,7 +745,14 @@ func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod, lo
 	return resp, nil
 }
 
-func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod, logger hclog.Logger) (loginPath string, err error) {
+func asString(obj interface{}) (value string) {
+	if obj == nil {
+		return ""
+	}
+	return obj.(string)
+}
+
+func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod, vaultAuthHelper *VaultAuthHelper) (loginPath string, err error) {
 	if authMethod.MountPath == "" {
 		authMethod.MountPath = authMethod.Type
 	}
@@ -775,24 +787,22 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod, logger hclog.
 		}
 	// vault provides a lot of help for aws integration
 	// lifted from https://github.com/hashicorp/vault/builtin/credential/aws/cli.go
-	case VaultAuthMethodTypeAWS:
-		aws := NewAWSLoginClient(logger)
-		
-		aws_access_key_id := authMethod.Params["aws_access_key_id"].(string)
-		aws_secret_access_key := authMethod.Params["aws_secret_access_key"].(string)
-		aws_security_token := authMethod.Params["aws_security_token"].(string)
+	case VaultAuthMethodTypeAWS:		
+		aws_access_key_id := authMethod.Params["aws_access_key_id"]
+		aws_secret_access_key := authMethod.Params["aws_secret_access_key"]
+		aws_security_token := authMethod.Params["aws_security_token"]
 
-		headerValue, ok := authMethod.Params["header_value"].(string)
+		headerValue, ok := authMethod.Params["header_value"]
 		if !ok {
 			headerValue = ""
 		}
 
-		region := authMethod.Params["region"].(string)
+		region := authMethod.Params["region"]
 		if region == "" {
 			region = awsutil.DefaultRegion
 		}
 
-		loginData, err := aws.GenerateLoginData(aws_access_key_id, aws_secret_access_key, aws_security_token, headerValue, region)
+		loginData, err := vaultAuthHelper.GenerateAWSLoginData(asString(aws_access_key_id), asString(aws_secret_access_key), asString(aws_security_token), asString(headerValue), asString(region))
 		if err != nil {
 			return "", err
 		}
