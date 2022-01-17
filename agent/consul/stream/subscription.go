@@ -91,6 +91,10 @@ func (req SubscribeRequest) Subject() Subject {
 	return Subject(partition + "/" + namespace + "/" + key)
 }
 
+func (req SubscribeRequest) topicSubject() topicSubject {
+	return topicSubject{req.Topic, req.Subject()}
+}
+
 // newSubscription return a new subscription. The caller is responsible for
 // calling Unsubscribe when it is done with the subscription, to free resources.
 func newSubscription(req SubscribeRequest, item *bufferItem, unsub func()) *Subscription {

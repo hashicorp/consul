@@ -25,11 +25,11 @@ type EventPublisher struct {
 
 	// topicBuffers stores the head of the linked-list buffers to publish events to
 	// for a topic.
-	topicBuffers map[Topic]map[Subject]*topicBuffer
+	topicBuffers map[topicSubject]*topicBuffer
 
-	// snapCache if a cache of EventSnapshots indexed by topic and key.
+	// snapCache if a cache of EventSnapshots indexed by topic and subject.
 	// TODO(streaming): new snapshotCache struct for snapCache and snapCacheTTL
-	snapCache map[Topic]map[Subject]*eventSnapshot
+	snapCache map[topicSubject]*eventSnapshot
 
 	subscriptions *subscriptions
 
@@ -39,6 +39,13 @@ type EventPublisher struct {
 	publishCh chan []Event
 
 	snapshotHandlers SnapshotHandlers
+}
+
+// topicSubject is used as a map key when accessing topic buffers and cached
+// snapshots.
+type topicSubject struct {
+	Topic   Topic
+	Subject Subject
 }
 
 type subscriptions struct {
@@ -87,8 +94,8 @@ type SnapshotAppender interface {
 func NewEventPublisher(handlers SnapshotHandlers, snapCacheTTL time.Duration) *EventPublisher {
 	e := &EventPublisher{
 		snapCacheTTL: snapCacheTTL,
-		topicBuffers: make(map[Topic]map[Subject]*topicBuffer),
-		snapCache:    make(map[Topic]map[Subject]*eventSnapshot),
+		topicBuffers: make(map[topicSubject]*topicBuffer),
+		snapCache:    make(map[topicSubject]*eventSnapshot),
 		publishCh:    make(chan []Event, 64),
 		subscriptions: &subscriptions{
 			byToken: make(map[string]map[*SubscribeRequest]*Subscription),
@@ -160,21 +167,16 @@ func (e *EventPublisher) publishEvent(events []Event) {
 // will be created.
 //
 // Warning: e.lock MUST be held when calling this function.
-func (e *EventPublisher) bufferForSubscription(topic Topic, key Subject) *topicBuffer {
-	byTopic, ok := e.topicBuffers[topic]
+func (e *EventPublisher) bufferForSubscription(key topicSubject) *topicBuffer {
+	buf, ok := e.topicBuffers[key]
 	if !ok {
-		byTopic = make(map[Subject]*topicBuffer)
-		e.topicBuffers[topic] = byTopic
-	}
-
-	topicBuf, ok := byTopic[key]
-	if !ok {
-		topicBuf = &topicBuffer{
+		buf = &topicBuffer{
 			buf: newEventBuffer(),
 		}
-		byTopic[key] = topicBuf
+		e.topicBuffers[key] = buf
 	}
-	return topicBuf
+
+	return buf
 }
 
 // bufferForPublishing returns the event buffer to which events for the given
@@ -182,16 +184,13 @@ func (e *EventPublisher) bufferForSubscription(topic Topic, key Subject) *topicB
 // subscribers for the given topic and key.
 //
 // Warning: e.lock MUST be held when calling this function.
-func (e *EventPublisher) bufferForPublishing(topic Topic, key Subject) *eventBuffer {
-	byTopic, ok := e.topicBuffers[topic]
+func (e *EventPublisher) bufferForPublishing(topic Topic, sub Subject) *eventBuffer {
+	key := topicSubject{topic, sub}
+	buf, ok := e.topicBuffers[key]
 	if !ok {
 		return nil
 	}
-	topicBuf, ok := byTopic[key]
-	if !ok {
-		return nil
-	}
-	return topicBuf.buf
+	return buf.buf
 }
 
 // Subscribe returns a new Subscription for the given request. A subscription
@@ -211,7 +210,7 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
-	topicBuf := e.bufferForSubscription(req.Topic, req.Subject())
+	topicBuf := e.bufferForSubscription(req.topicSubject())
 	topicBuf.refs++
 
 	// freeBuf is used to free the topic buffer once there are no remaining
@@ -223,12 +222,12 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 		topicBuf.refs--
 
 		if topicBuf.refs == 0 {
-			delete(e.topicBuffers[req.Topic], req.Subject())
+			delete(e.topicBuffers, req.topicSubject())
 
 			// Evict cached snapshot too because the topic buffer will have been spliced
 			// onto it. If we don't do this, any new subscribers started before the cache
 			// TTL is reached will get "stuck" waiting on the old buffer.
-			delete(e.snapCache[req.Topic], req.Subject())
+			delete(e.snapCache, req.topicSubject())
 		}
 	}
 
@@ -335,13 +334,7 @@ func (s *subscriptions) closeAll() {
 
 // EventPublisher.lock must be held to call this method.
 func (e *EventPublisher) getCachedSnapshotLocked(req *SubscribeRequest) *eventSnapshot {
-	topicSnaps, ok := e.snapCache[req.Topic]
-	if !ok {
-		topicSnaps = make(map[Subject]*eventSnapshot)
-		e.snapCache[req.Topic] = topicSnaps
-	}
-
-	snap, ok := topicSnaps[req.Subject()]
+	snap, ok := e.snapCache[req.topicSubject()]
 	if ok && snap.err() == nil {
 		return snap
 	}
@@ -353,12 +346,12 @@ func (e *EventPublisher) setCachedSnapshotLocked(req *SubscribeRequest, snap *ev
 	if e.snapCacheTTL == 0 {
 		return
 	}
-	e.snapCache[req.Topic][req.Subject()] = snap
+	e.snapCache[req.topicSubject()] = snap
 
 	// Setup a cache eviction
 	time.AfterFunc(e.snapCacheTTL, func() {
 		e.lock.Lock()
 		defer e.lock.Unlock()
-		delete(e.snapCache[req.Topic], req.Subject())
+		delete(e.snapCache, req.topicSubject())
 	})
 }
