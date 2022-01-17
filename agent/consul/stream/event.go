@@ -140,8 +140,11 @@ func (closeSubscriptionPayload) HasReadPermission(acl.Authorizer) bool {
 	return false
 }
 
+// TopicKey is required by the Payload interface but it is not implemented by
+// closeSubscriptionPayload, as this event type is handled separately and not
+// actually appended to the buffer.
 func (closeSubscriptionPayload) TopicKey() TopicKey {
-	return TopicKey{}
+	panic("closeSubscriptionPayload does not implement TopicKey")
 }
 
 // NewCloseSubscriptionEvent returns a special Event that is handled by the
