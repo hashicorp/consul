@@ -1,6 +1,8 @@
 package state
 
 import (
+	"strings"
+
 	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
@@ -30,23 +32,26 @@ func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bo
 	return e.Value.CanRead(authz) == acl.Allow
 }
 
-func (e EventPayloadCheckServiceNode) TopicKey() stream.TopicKey {
-	key := e.Value.Service.Service
-	if e.overrideKey != "" {
-		key = e.overrideKey
+func (e EventPayloadCheckServiceNode) Subject() stream.Subject {
+	partition := e.Value.Service.PartitionOrDefault()
+	if e.overridePartition != "" {
+		partition = e.overridePartition
 	}
+	partition = strings.ToLower(partition)
 
 	namespace := e.Value.Service.NamespaceOrDefault()
 	if e.overrideNamespace != "" {
 		namespace = e.overrideNamespace
 	}
+	namespace = strings.ToLower(namespace)
 
-	partition := e.Value.Service.PartitionOrDefault()
-	if e.overridePartition != "" {
-		partition = e.overridePartition
+	key := e.Value.Service.Service
+	if e.overrideKey != "" {
+		key = e.overrideKey
 	}
+	key = strings.ToLower(key)
 
-	return stream.NewTopicKey(key, namespace, partition)
+	return stream.Subject(partition + "/" + namespace + "/" + key)
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot

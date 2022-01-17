@@ -14,6 +14,11 @@ import (
 // events which match the Topic.
 type Topic fmt.Stringer
 
+// Subject identifies a portion of a topic for which a subscriber wishes to
+// receive events (e.g. health events for a particular service) usually the
+// normalized resource name (including partition and namespace if applicable).
+type Subject string
+
 // Event is a structure with identifiers and a payload. Events are Published to
 // EventPublisher and returned to Subscribers.
 type Event struct {
@@ -31,9 +36,11 @@ type Payload interface {
 	// authorized for Read, otherwise returns false.
 	HasReadPermission(authz acl.Authorizer) bool
 
-	// TopicKey is used to identify which subscribers should be notified of this
+	// Subject is used to identify which subscribers should be notified of this
 	// event - e.g. those subscribing to health events for a particular service.
-	TopicKey() TopicKey
+	// it is usually the normalized resource name (including the partition and
+	// namespace if applicable).
+	Subject() Subject
 }
 
 // PayloadEvents is a Payload that may be returned by Subscription.Next when
@@ -89,12 +96,12 @@ func (p *PayloadEvents) HasReadPermission(authz acl.Authorizer) bool {
 	})
 }
 
-// TopicKey is required to satisfy the Payload interface but is not implemented
+// Subject is required to satisfy the Payload interface but is not implemented
 // by PayloadEvents. PayloadEvents structs are constructed by Subscription.Next
-// *after* TopicKey has been used to dispatch the enclosed events to the correct
+// *after* Subject has been used to dispatch the enclosed events to the correct
 // buffer.
-func (PayloadEvents) TopicKey() TopicKey {
-	panic("PayloadEvents does not implement TopicKey")
+func (PayloadEvents) Subject() Subject {
+	panic("PayloadEvents does not implement Subject")
 }
 
 // IsEndOfSnapshot returns true if this is a framing event that indicates the
@@ -117,11 +124,11 @@ func (framingEvent) HasReadPermission(acl.Authorizer) bool {
 	return true
 }
 
-// TopicKey is required by the Payload interface but is not implemented by
+// Subject is required by the Payload interface but is not implemented by
 // framing events, as they are typically *manually* appended to the correct
-// buffer and do not need to be routed using a TopicKey.
-func (framingEvent) TopicKey() TopicKey {
-	panic("framing events do not implement TopicKey")
+// buffer and do not need to be routed using a Subject.
+func (framingEvent) Subject() Subject {
+	panic("framing events do not implement Subject")
 }
 
 type endOfSnapshot struct {
@@ -140,11 +147,11 @@ func (closeSubscriptionPayload) HasReadPermission(acl.Authorizer) bool {
 	return false
 }
 
-// TopicKey is required by the Payload interface but it is not implemented by
+// Subject is required by the Payload interface but it is not implemented by
 // closeSubscriptionPayload, as this event type is handled separately and not
 // actually appended to the buffer.
-func (closeSubscriptionPayload) TopicKey() TopicKey {
-	panic("closeSubscriptionPayload does not implement TopicKey")
+func (closeSubscriptionPayload) Subject() Subject {
+	panic("closeSubscriptionPayload does not implement Subject")
 }
 
 // NewCloseSubscriptionEvent returns a special Event that is handled by the

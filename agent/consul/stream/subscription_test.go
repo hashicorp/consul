@@ -10,6 +10,34 @@ import (
 
 func noopUnSub() {}
 
+func TestSubscription_Subject(t *testing.T) {
+	for desc, tc := range map[string]struct {
+		req SubscribeRequest
+		sub Subject
+	}{
+		"default partition and namespace": {
+			SubscribeRequest{Key: "foo"},
+			"default/default/foo",
+		},
+		"default namespace": {
+			SubscribeRequest{Partition: "foo", Key: "bar"},
+			"foo/default/bar",
+		},
+		"default partition": {
+			SubscribeRequest{Namespace: "foo", Key: "bar"},
+			"default/foo/bar",
+		},
+		"mixed casing": {
+			SubscribeRequest{Partition: "fOo", Namespace: "BAr", Key: "BaZ"},
+			"foo/bar/baz",
+		},
+	} {
+		t.Run(desc, func(t *testing.T) {
+			require.Equal(t, tc.sub, tc.req.Subject())
+		})
+	}
+}
+
 func TestSubscription(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

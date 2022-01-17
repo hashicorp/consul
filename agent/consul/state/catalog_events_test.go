@@ -15,6 +15,96 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
+func TestEventPayloadCheckServiceNode_SubjectMatchesRequests(t *testing.T) {
+	// Matches.
+	for desc, tc := range map[string]struct {
+		evt EventPayloadCheckServiceNode
+		req stream.SubscribeRequest
+	}{
+		"default partition and namespace": {
+			EventPayloadCheckServiceNode{
+				Value: &structs.CheckServiceNode{
+					Service: &structs.NodeService{
+						Service: "foo",
+					},
+				},
+			},
+			stream.SubscribeRequest{
+				Key:       "foo",
+				Partition: "default",
+				Namespace: "default",
+			},
+		},
+		"mixed casing": {
+			EventPayloadCheckServiceNode{
+				Value: &structs.CheckServiceNode{
+					Service: &structs.NodeService{
+						Service: "FoO",
+					},
+				},
+			},
+			stream.SubscribeRequest{Key: "foo"},
+		},
+	} {
+		t.Run(desc, func(t *testing.T) {
+			require.Equal(t, tc.req.Subject(), tc.evt.Subject())
+		})
+	}
+
+	// Non-matches.
+	for desc, tc := range map[string]struct {
+		evt EventPayloadCheckServiceNode
+		req stream.SubscribeRequest
+	}{
+		"different partition": {
+			EventPayloadCheckServiceNode{
+				Value: &structs.CheckServiceNode{
+					Service: &structs.NodeService{
+						Service: "foo",
+					},
+				},
+			},
+			stream.SubscribeRequest{
+				Key:       "foo",
+				Partition: "us-east-1",
+				Namespace: "default",
+			},
+		},
+		"different namespace": {
+			EventPayloadCheckServiceNode{
+				Value: &structs.CheckServiceNode{
+					Service: &structs.NodeService{
+						Service: "foo",
+					},
+				},
+			},
+			stream.SubscribeRequest{
+				Key:       "foo",
+				Partition: "default",
+				Namespace: "sre",
+			},
+		},
+		"different key": {
+			EventPayloadCheckServiceNode{
+				Value: &structs.CheckServiceNode{
+					Service: &structs.NodeService{
+						Service: "foo",
+					},
+				},
+			},
+			stream.SubscribeRequest{
+				Key:       "bar",
+				Partition: "default",
+				Namespace: "default",
+			},
+		},
+	} {
+		t.Run(desc, func(t *testing.T) {
+			require.NotEqual(t, tc.req.Subject(), tc.evt.Subject())
+		})
+	}
+}
+
 func TestServiceHealthSnapshot(t *testing.T) {
 	store := NewStateStore(nil)
 
@@ -1672,7 +1762,7 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 // all events for a particular topic are grouped together. The sort is
 // stable so events with the same key retain their relative order.
 //
-// This sort should match the logic in EventPayloadCheckServiceNode.TopicKey
+// This sort should match the logic in EventPayloadCheckServiceNode.Subject
 // to avoid masking bugs.
 var cmpPartialOrderEvents = cmp.Options{
 	cmpopts.SortSlices(func(i, j stream.Event) bool {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync/atomic"
 )
 
@@ -74,8 +75,20 @@ type SubscribeRequest struct {
 	Index uint64
 }
 
-func (req SubscribeRequest) TopicKey() TopicKey {
-	return NewTopicKey(req.Key, req.Namespace, req.Partition)
+func (req SubscribeRequest) Subject() Subject {
+	partition := strings.ToLower(req.Partition)
+	if partition == "" {
+		partition = "default"
+	}
+
+	namespace := strings.ToLower(req.Namespace)
+	if namespace == "" {
+		namespace = "default"
+	}
+
+	key := strings.ToLower(req.Key)
+
+	return Subject(partition + "/" + namespace + "/" + key)
 }
 
 // newSubscription return a new subscription. The caller is responsible for

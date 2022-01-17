@@ -426,12 +426,8 @@ func (p nodePayload) HasReadPermission(acl.Authorizer) bool {
 	return true
 }
 
-func (p nodePayload) TopicKey() stream.TopicKey {
-	return stream.NewTopicKey(
-		p.key,
-		p.node.NamespaceOrDefault(),
-		p.node.PartitionOrDefault(),
-	)
+func (p nodePayload) Subject() stream.Subject {
+	return stream.Subject(p.node.PartitionOrDefault() + "/" + p.node.NamespaceOrDefault() + "/" + p.key)
 }
 
 func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLToken {
