@@ -250,7 +250,9 @@ func TestEventPublisher_SubscribeWithIndexNotZero_CanResume(t *testing.T) {
 	// Note: we must evict the snapshot that was created by the above subscription
 	// first, as it has already had the topic buffer spliced onto it (so therefore
 	// would include the snapshot event again).
+	publisher.lock.Lock()
 	delete(publisher.snapCache, req.topicSubject())
+	publisher.lock.Unlock()
 	publisher.publishEvent([]Event{testSnapshotEvent})
 
 	runStep(t, "start a subscription and unsub", func(t *testing.T) {
@@ -368,7 +370,9 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 	// Note: we must evict the snapshot that was created by the above subscription
 	// first, as it has already had the topic buffer spliced onto it (so therefore
 	// would include the snapshot event again).
+	publisher.lock.Lock()
 	delete(publisher.snapCache, req.topicSubject())
+	publisher.lock.Unlock()
 	publisher.publishEvent([]Event{testSnapshotEvent})
 
 	runStep(t, "start a subscription and unsub", func(t *testing.T) {
@@ -464,7 +468,9 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot_WithCache(t *testi
 	// Note: we must evict the snapshot that was created by the above subscription
 	// first, as it has already had the topic buffer spliced onto it (so therefore
 	// would include the events again).
+	publisher.lock.Lock()
 	delete(publisher.snapCache, req.topicSubject())
+	publisher.lock.Unlock()
 	publisher.publishEvent([]Event{testSnapshotEvent})
 	publisher.publishEvent([]Event{nextEvent})
 
@@ -551,8 +557,10 @@ func TestEventPublisher_Unsubscribe_FreesResourcesWhenThereAreNoSubscribers(t *t
 	require.NoError(t, err)
 
 	// Expect a topic buffer and snapshot to have been created.
+	publisher.lock.Lock()
 	require.NotNil(t, publisher.topicBuffers[req.topicSubject()])
 	require.NotNil(t, publisher.snapCache[req.topicSubject()])
+	publisher.lock.Unlock()
 
 	// Create another subscription and close the old one, to ensure the buffer and
 	// snapshot stick around as long as there's at least one subscriber.
@@ -561,13 +569,17 @@ func TestEventPublisher_Unsubscribe_FreesResourcesWhenThereAreNoSubscribers(t *t
 
 	sub1.Unsubscribe()
 
+	publisher.lock.Lock()
 	require.NotNil(t, publisher.topicBuffers[req.topicSubject()])
 	require.NotNil(t, publisher.snapCache[req.topicSubject()])
+	publisher.lock.Unlock()
 
 	// Close the other subscription and expect the buffer and snapshot to have
 	// been cleaned up.
 	sub2.Unsubscribe()
 
+	publisher.lock.Lock()
 	require.Nil(t, publisher.topicBuffers[req.topicSubject()])
 	require.Nil(t, publisher.snapCache[req.topicSubject()])
+	publisher.lock.Unlock()
 }
