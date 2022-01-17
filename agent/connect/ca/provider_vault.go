@@ -54,7 +54,7 @@ type VaultProvider struct {
 	client *vaultapi.Client
 
 	vaultAuthHelper *VaultAuthHelper
-	shutdown func()
+	shutdown        func()
 
 	isPrimary                    bool
 	clusterID                    string
@@ -65,22 +65,22 @@ type VaultProvider struct {
 
 func NewVaultProvider(logger hclog.Logger) *VaultProvider {
 
-	vaultAuthHelper := NewVaultAuthHelper(logger);
+	vaultAuthHelper := NewVaultAuthHelper(logger)
 
 	return &VaultProvider{
-		shutdown: func() {},
+		shutdown:        func() {},
 		vaultAuthHelper: vaultAuthHelper,
-		logger:   logger,
+		logger:          logger,
 	}
 }
 
 type VaultAuthHelper struct {
-	GenerateAWSLoginData func (accessKey, secretKey, sessionToken, headerValue, configuredRegion string) (map[string]interface{}, error)
+	GenerateAWSLoginData func(accessKey, secretKey, sessionToken, headerValue, configuredRegion string) (map[string]interface{}, error)
 }
 
 func NewVaultAuthHelper(logger hclog.Logger) *VaultAuthHelper {
 	return &VaultAuthHelper{
-		GenerateAWSLoginData: func (accessKey, secretKey, sessionToken, headerValue, configuredRegion string) (map[string]interface{}, error) {
+		GenerateAWSLoginData: func(accessKey, secretKey, sessionToken, headerValue, configuredRegion string) (map[string]interface{}, error) {
 			creds, err := awsutil.RetrieveCreds(accessKey, secretKey, sessionToken, logger)
 			if err != nil {
 				return nil, err
@@ -787,7 +787,7 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod, vaultAuthHelp
 		}
 	// vault provides a lot of help for aws integration
 	// lifted from https://github.com/hashicorp/vault/builtin/credential/aws/cli.go
-	case VaultAuthMethodTypeAWS:		
+	case VaultAuthMethodTypeAWS:
 		aws_access_key_id := authMethod.Params["aws_access_key_id"]
 		aws_secret_access_key := authMethod.Params["aws_secret_access_key"]
 		aws_security_token := authMethod.Params["aws_security_token"]

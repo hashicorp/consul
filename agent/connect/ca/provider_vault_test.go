@@ -20,7 +20,7 @@ import (
 
 func NewMockVaultAuthHelper() *VaultAuthHelper {
 	return &VaultAuthHelper{
-		GenerateAWSLoginData: func (accessKey, secretKey, sessionToken, headerValue, configuredRegion string) (map[string]interface{}, error) {
+		GenerateAWSLoginData: func(accessKey, secretKey, sessionToken, headerValue, configuredRegion string) (map[string]interface{}, error) {
 			n := map[string]interface{}{"iam_http_request_method": "method", "iam_request_url": "url", "iam_request_headers": "headers", "iam_request_body": "body"}
 			return n, nil
 		},
@@ -100,7 +100,7 @@ func TestVaultCAProvider_configureVaultAuthMethod(t *testing.T) {
 	}
 
 	vaultAuthHelper := NewMockVaultAuthHelper()
-	
+
 	for authMethodType, c := range cases {
 		t.Run(authMethodType, func(t *testing.T) {
 			loginPath, err := configureVaultAuthMethod(&structs.VaultAuthMethod{
@@ -124,7 +124,7 @@ func TestVaultCAProvider_configureAWSVaultAuthMethod(t *testing.T) {
 		Type:   "aws",
 		Params: map[string]interface{}{"role": "foo", "region": "xxx", "header": "falafel"},
 	}
-	
+
 	t.Run("aws", func(t *testing.T) {
 		loginPath, err := configureVaultAuthMethod(authMethod, vaultAuthHelper)
 		require.NoError(t, err)
@@ -146,7 +146,7 @@ func TestVaultCAProvider_configureAWSVaultAuthMethod_no_role(t *testing.T) {
 		Type:   "aws",
 		Params: map[string]interface{}{"region": "xxx", "header": "falafel"},
 	}
-	
+
 	t.Run("aws", func(t *testing.T) {
 		loginPath, err := configureVaultAuthMethod(authMethod, vaultAuthHelper)
 		require.NoError(t, err)
