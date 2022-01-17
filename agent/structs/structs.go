@@ -370,7 +370,9 @@ func (q QueryBackend) String() string {
 // QueryMeta allows a query response to include potentially
 // useful metadata about a query
 type QueryMeta struct {
-	// Index in the raft log of the latest item returned by the query.
+	// Index in the raft log of the latest item returned by the query. If the
+	// query did not return any results the Index will be a value that will
+	// change when a new item is added.
 	Index uint64
 
 	// If AllowStale is used, this is time elapsed since

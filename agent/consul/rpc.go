@@ -984,18 +984,6 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 			return err
 		}
 
-		// Note we check queryOpts.MinQueryIndex is greater than zero to determine if
-		// blocking was requested by client, NOT meta.Index since the state function
-		// might return zero if something is not initialized and care wasn't taken to
-		// handle that special case (in practice this happened a lot so fixing it
-		// systematically here beats trying to remember to add zero checks in every
-		// state method). We also need to ensure that unless there is an error, we
-		// return an index > 0 otherwise the client will never block and burn CPU and
-		// requests.
-		if queryMeta.GetIndex() < 1 {
-			queryMeta.SetIndex(1)
-		}
-
 		if queryMeta.GetIndex() > minQueryIndex {
 			return nil
 		}
@@ -1034,6 +1022,17 @@ func (s *Server) setQueryMeta(m structs.QueryMetaCompat, token string) {
 		m.SetKnownLeader(s.raft.Leader() != "")
 	}
 	maskResultsFilteredByACLs(token, m)
+
+	// Always set a non-zero QueryMeta.Index. Generally we expect the
+	// QueryMeta.Index to be set to structs.RaftIndex.ModifyIndex. If the query
+	// returned no results we expect it to be set to the max index of the table,
+	// however we can't guarantee this always happens.
+	// To prevent a client from accidentally performing many non-blocking queries
+	// (which causes lots of unnecessary load), we always set a default value of 1.
+	// This is sufficient to prevent the unnecessary load in most cases.
+	if m.GetIndex() < 1 {
+		m.SetIndex(1)
+	}
 }
 
 // consistentRead is used to ensure we do not perform a stale
