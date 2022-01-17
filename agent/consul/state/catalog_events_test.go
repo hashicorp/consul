@@ -44,6 +44,17 @@ func TestEventPayloadCheckServiceNode_SubjectMatchesRequests(t *testing.T) {
 			},
 			stream.SubscribeRequest{Key: "foo"},
 		},
+		"override key": {
+			EventPayloadCheckServiceNode{
+				Value: &structs.CheckServiceNode{
+					Service: &structs.NodeService{
+						Service: "foo",
+					},
+				},
+				overrideKey: "bar",
+			},
+			stream.SubscribeRequest{Key: "bar"},
+		},
 	} {
 		t.Run(desc, func(t *testing.T) {
 			require.Equal(t, tc.req.Subject(), tc.evt.Subject())
@@ -65,6 +76,32 @@ func TestEventPayloadCheckServiceNode_SubjectMatchesRequests(t *testing.T) {
 			},
 			stream.SubscribeRequest{
 				Key: "bar",
+			},
+		},
+		"different partition": {
+			EventPayloadCheckServiceNode{
+				Value: &structs.CheckServiceNode{
+					Service: &structs.NodeService{
+						Service: "foo",
+					},
+				},
+				overridePartition: "bar",
+			},
+			stream.SubscribeRequest{
+				Key: "foo",
+			},
+		},
+		"different namespace": {
+			EventPayloadCheckServiceNode{
+				Value: &structs.CheckServiceNode{
+					Service: &structs.NodeService{
+						Service: "foo",
+					},
+				},
+				overrideNamespace: "bar",
+			},
+			stream.SubscribeRequest{
+				Key: "foo",
 			},
 		},
 	} {
