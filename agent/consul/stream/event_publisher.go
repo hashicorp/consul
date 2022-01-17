@@ -215,6 +215,12 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 
 	// freeBuf is used to free the topic buffer once there are no remaining
 	// subscribers for the given topic and key.
+	//
+	// Note: it's called by Subcription.Unsubscribe which has its own side-effects
+	// that are made without holding e.lock (so there's a moment where the ref
+	// counter is inconsistent with the subscription map) — in practice this is
+	// fine, we don't need these things to be strongly consistent. The alternative
+	// would be to hold both locks, which introduces the risk of deadlocks.
 	freeBuf := func() {
 		e.lock.Lock()
 		defer e.lock.Unlock()
