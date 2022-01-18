@@ -567,9 +567,19 @@ spec:
       type: `string: "default"`,
       enterprise: true,
       description:
-        'Specifies the namespace the config entry will apply to. This must be the namespace the gateway is registered in.' +
+        'Specifies the namespace to which the configuration entry will apply. This must match the namespace in which the gateway is registered.' +
         ' If omitted, the namespace will be inherited from [the request](/api/config#ns)' +
         ' or will default to the `default` namespace.',
+      yaml: false,
+    },
+    {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        'Specifies the admin partition to which the configuration entry will apply. This must match the partition in which the gateway is registered.' +
+        ' If omitted, the partition will be inherited from [the request](/api/config)' +
+        ' or will default to the `default` partition.',
       yaml: false,
     },
     {
