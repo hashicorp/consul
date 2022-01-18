@@ -33,7 +33,9 @@ In a _zero trust_ model, applications require identity-based access to ensure al
 A _service meshe_ typically consist of a control plane, and a data plane. The control plane maintains a central registry that keeps track of all services and their respective IP addresses, this is called _service discovery_.
 As long as the application is registered with the control plane, the control plane will be able to share with other members of the mesh how to communicate with the application and enforce rules for who can communicate with each other.
 
-The control plane is responsible for securing the mesh, facilitating service discovery, health checking, policy enforcement, and other similar operational concerns. The data plane handles communication between services.
+The control plane is responsible for securing the mesh, facilitating service discovery, health checking, policy enforcement, and other similar operational concerns.
+
+The data plane handles communication between services.
 Many _service mesh_ solutions employ a sidecar proxy to handle data plane communications, and thus limit the level of awareness the services need to have about the network environment.
 
 ![Overview of a service mesh](/img/what_is_service_mesh_1.png)
@@ -83,14 +85,31 @@ This shift from an IP address-based security model to a service-focused model re
 
 ## How Do You Implement a Service Mesh?
 
-Easy peasy, use Terraform
+Service meshes are commonly installed in Kubernetes clusters. There are also platform-agnostic service meshes available for non-Kubernetes-based workloads.
+For Kubernetes, most service mesh can be installed by operators through a [Helm chart](https://artifacthub.io/). Additionally, the service mesh may offer a CLI tool that supports the installation and maintenance of the service mesh.
+Non-Kubernetes based service meshes can be installed through infrastructure as code (IaC) products such as [Terraform](https://www.terraform.io/), CloudFormation, ARM Templates, Puppet, Chef, etc.
 
 ## What is Service Mesh Automation?
 
-When Consul and Terraform get together.
+** Waiting to hear back from Marketing what this question means**.
 
 ## What is a Multi Platform Service Mesh?
 
-AWS + GCP + Azure + Consul = Easy Peasy
+A multi-platform service mesh is capable of supporting various infrastructure environments. This can range from having the service mesh support Kubernetes and non-Kubernetes workloads, to having a service mesh span across various cloud environments (multi-cloud).
+
+## What is Consul?
+
+Consul is a multi-networking tool that offers a fully-featured service mesh solution that solves the networking and security challenges of operating microservices and cloud infrastructure.
+Consul offers a software-driven approach to routing and segmentation. It also brings additional benefits such as failure handling, retries, and network observability.
+Each of these features can be used individually as needed or they can be used together to build a full service mesh and achieve [zero trust](https://www.hashicorp.com/solutions/zero-trust-security) security. In simple terms, Consul is the control plane of the service mesh.
+
+You can use Consul with virtual machines (VMs), containers, or with container orchestration platforms, such as [Nomad](https://www.nomadproject.io/) and Kubernetes.
+Consul is platform agnostic which makes it a great fit for all environments, including legacy platforms.
+
+Consul is available as a [self-install](/downloads) project or as a fully managed service mesh solution called [HCP Consul](https://portal.cloud.hashicorp.com/sign-in?utm_source=consul_docs).
+HCP Consul enables users to discover and securely connect services without the added operational burden of maintaining a _service mesh_ on their own.
 
 ## Next
+
+Get started today with a _service mesh_ by leveraging [HCP Consul](https://portal.cloud.hashicorp.com/sign-in?utm_source=consul_docs).
+Prepare your organization for the future of multi-cloud and embrace a [zero-trust](https://www.hashicorp.com/solutions/zero-trust-security) architecture.
