@@ -42,7 +42,7 @@ controller:
 1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file.
 
 ```shell-session
-$ helm install consul hashicorp/consul --version 0.39.0 -f values.yaml
+$ helm install consul hashicorp/consul --version 0.39.0 --values values.yaml
 ```
 
 The following components will be installed: - Gateway controller - CRDs required by the Kubernetes Gateway API specification - `kustomize` manifests for completing the installation
@@ -62,7 +62,7 @@ $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config?ref=
 1. Issue the `kubectl apply` command to implement the configurations, e.g.:
 
 ```shell-session
-$ kubectl apply -f gateway-configuration.yaml
+$ kubectl apply --values gateway-configuration.yaml
 ```
 
 ### Using the Consul API Gateway Binary
@@ -152,7 +152,7 @@ spec:
 </CodeBlockConfig>
 
 Refer to the Kubernetes Gateway API documentation for details about configuring gateways:
-https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Gateway
+<https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Gateway>
 
 ### Listeners
 
@@ -164,7 +164,7 @@ Add the `listener` object to the `gateway` configuration and specify the followi
 - `protocol`: Specifies the network protocol expected by the listener.
 
 Refer to the Kubernetes Gateway API documentation for details about configuring listeners:
-https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Listener
+<https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Listener>
 
 In the example included the [Gateway](#gateway) description, a listener named `https` that listens over `HTTPS` is configured to listen on port `443`
 
