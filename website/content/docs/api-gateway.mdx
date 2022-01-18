@@ -17,23 +17,27 @@ Consul API Gateway is an implementation of the Kubernetes Gateway [API Specifica
 Your datacenter must meet the following requirements prior to configuring the Consul API Gateway:
 
 - A Kubernetes cluster must be running
-- Consul 1.11.1+
+- Consul 1.11.2+
 
 ## Installation
 
 1. Create a values file for your Consul server agents that contains the following parameters:
 
-   ```yaml
-   global:
-     name: consul
-     image: 'hashicorp/consul:1.11.1'
-     tls:
-       enabled: true
-   connectInject:
-     enabled: true
-   controller:
-     enabled: true
-   ```
+  <CodeBlockConfig hideClipboard filename="values.yaml">
+
+```yaml
+global:
+  name: consul
+  image: 'hashicorp/consul:1.11.2'
+  tls:
+    enabled: true
+connectInject:
+  enabled: true
+controller:
+  enabled: true
+```
+
+   </CodeBlockConfig>
 
 1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file.
 
@@ -46,8 +50,8 @@ The following components will be installed: - Gateway controller - CRDs required
 1. After `helm` installs Consul API Gateway packages, issue the following commands to apply the API gateway to your Kubernetes cluster.
 
 ```shell-session
-$ kubectl apply -k "github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.1.0-techpreview"
-$ kubectl apply -k "github.com/hashicorp/consul-api-gateway/config?ref=v0.1.0-techpreview"
+$ kubectl apply -k "github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.1.0-beta"
+$ kubectl apply -k "github.com/hashicorp/consul-api-gateway/config?ref=v0.1.0-beta"
 ```
 
 ## Usage
@@ -63,7 +67,22 @@ $ kubectl apply -f gateway-configuration.yaml
 
 ### Using the Consul API Gateway Binary
 
-You can manually start the Consul API Gateway control plane server using the binary located in the home directory to issue the `server` command:
+You can download the Consul API Gateway binary and use it to manually start the control plane server.
+
+1. Download the binary from the [Consul API Gateway repository](https://github.com/hashicorp/consul-api-gateway).
+1. Navigate to the `consul-api-gateway-main` directory and build the binary:
+
+```shell-session
+$ go build
+```
+
+1.  (Optional) Copy the binary to the execution path, e.g.:
+
+```shell-session
+$ cp consul-api-gateway /usr/bin
+```
+
+1.  Use the `server` command to interact with the Consul API Gateway binary:
 
 ```shell-session
 $ ./consul-api-gateway server <options>
@@ -89,7 +108,7 @@ You can also issue the `version` command to print the Consul API Gateway version
 
 ```shell-session
 $ ./consul-api-gateway version
-consul-api-gateway 0.1.0-dev
+consul-api-gateway 0.1.0
 ```
 
 ## Configuration
@@ -151,7 +170,7 @@ In the example included the [Gateway](#gateway) description, a listener named `h
 
 ### Route
 
-Routes are independent configuration objects that are associated with a specific listener.
+Routes are independent configuration objects that are associated with specific listeners.
 Use the `kind: HTTPRoute` option to declare a route and use the `spec` option to specify the route details.
 The following example creates a route named `example-route` associated with a listener defined in `example-gateway`.
 
