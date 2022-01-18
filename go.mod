@@ -56,7 +56,7 @@ require (
 	github.com/hashicorp/raft-autopilot v0.1.5
 	github.com/hashicorp/raft-boltdb v0.0.0-20211202195631-7d34b9fb3f42 // indirect
 	github.com/hashicorp/raft-boltdb/v2 v2.2.0
-	github.com/hashicorp/serf v0.9.6
+	github.com/hashicorp/serf v0.9.7
 	github.com/hashicorp/vault/api v1.0.5-0.20200717191844-f687267c8086
 	github.com/hashicorp/vault/sdk v0.1.14-0.20200519221838-e0cfd64bc267
 	github.com/hashicorp/yamux v0.0.0-20210826001029-26ff87cf9493
