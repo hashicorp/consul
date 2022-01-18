@@ -287,7 +287,6 @@ kind: IngressGateway
 metadata:
   name: us-east-ingress
   namespace: default
-  partition: team-frontend
 spec:
   listeners:
     - port: 3456
@@ -670,7 +669,6 @@ kind: IngressGateway
 metadata:
   name: us-east-ingress
   namespace: default
-  partition: default
 spec:
   listeners:
     - port: 80
@@ -845,7 +843,6 @@ kind: ServiceRouter
 metadata:
   name: api
   namespace: default
-  partition: default
 spec:
   routes:
     - match:
