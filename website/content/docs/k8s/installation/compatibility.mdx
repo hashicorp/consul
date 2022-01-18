@@ -10,7 +10,7 @@ For every release of Consul on Kubernetes, a Helm chart, `consul-k8s-control-pla
 
 ## Supported Consul versions
 
-### `consul-k8s` version 0.33.0 and above
+### Version 0.33.0 and above
 
 Starting with Consul Kubernetes 0.33.0, Consul Kubernetes versions all of it components (`consul-k8s` CLI, `consul-k8s-control-plane`, and Helm chart) with a single version. 
 
@@ -19,7 +19,7 @@ Starting with Consul Kubernetes 0.33.0, Consul Kubernetes versions all of it com
 | 1.11.x         | 0.39.0 - latest                 |
 | 1.10.x         | 0.33.0 - 0.38.0                 |
 
-### Versions prior to `consul-k8s` version 0.33.0
+### Prior to version 0.33.0
 
 Prior to Consul Kubernetes 0.33.0, a separately versioned Consul Helm chart was distributed to deploy the Consul on Kubernetes binary. The default version of the `consul-k8s` binary specified by the Helm chart should be used to ensure proper compatibility, since the Helm chart is designed and tested with the default `consul-k8s` version. To find the default version for the appropriate Helm chart version, navigate to the corresponding tag (i.e. 0.32.1) in [`values.yaml`](https://github.com/hashicorp/consul-helm/blob/v0.32.1/values.yaml) and retrieve the `imageK8S` global value. 
 
@@ -37,7 +37,10 @@ Supported versions of Envoy for Consul versions are also found in [Envoy - Suppo
 
 ## Red Hat OpenShift compatability 
 
-Consul Kubernetes delivered Red Hat OpenShift support starting with Consul Helm chart version 0.25.0 for Consul 1.8.4. Red Hat OpenShift is only supported for OpenShift 4.4.x and above. In addition only the default [OpenShift SDN CNI Plugin](https://docs.openshift.com/container-platform/4.9/networking/openshift_sdn/about-openshift-sdn.html) is currently supported. 
+Consul Kubernetes delivered Red Hat OpenShift support starting with Consul Helm chart version 0.25.0 for Consul 1.8.4 Please note the following details regarding OpenShift support. 
+
+- Red Hat OpenShift is only supported for OpenShift 4.4.x and above. 
+- Only the default CNI Plugin, [OpenShift SDN CNI Plugin](https://docs.openshift.com/container-platform/4.9/networking/openshift_sdn/about-openshift-sdn.html) is currently supported. 
 
 ## Vault as a Secrets Backend compatibility
 
