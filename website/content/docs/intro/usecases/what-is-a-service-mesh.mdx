@@ -58,7 +58,28 @@ A _service mesh_ can be connected to another _service mesh_ in another datacente
 
 ## What Problems Does a Service Mesh Solve?
 
-Consul is a bit tricky to master.
+Modern infrastructure is transitioning from primarily being static-based to dynamic in nature (ephemeral).
+This dynamic infrastructure has a short life cycle, meaning virtual machines (VM) and containers are frequently recycled.
+It's difficult for an organization to manage and keep track of application services that live on short-lived resources. A _service mesh_ solves this problem by acting as a central registry of all registered services.
+As service instances, either VMs or containers, come up and down, the mesh is aware of their state and availability. The ability to conduct _service discovery_ is the foundation to the other problems a _service mesh_ solves.
+
+As a service mesh is aware of the state of a service and its instances, the mesh can implement more intelligent and dynamic network routing.
+Many service meshes offer L7 traffic management capabilities. As a result, operators and developers can create powerful rules to direct network traffic as needed, such as load balancing, traffic splitting, dynamic failover, and custom resolvers.
+A service mesh's dynamic network behavior allows application owners to improve application resiliency and availability with no application changes.
+
+Implementing dynamic network behavior is critical as more and more applications are deployed across different cloud providers (multi-cloud) and private datacenters.
+Organizations may need to route network traffic to other infrastructure environments. Ensuring this traffic is secure is on top of mind for all organizations.
+Service meshes offer the ability to enforce network traffic encryption (mTLS) and authentication between all services. The _service mesh_ can automatically generate an SSL certificate for each service and its instances.
+The certificate authenticates with other services inside the mesh and encrypts the TCP/UDP/gRPC connection with SSL.
+
+<!-- As mentioned earlier, the _service mesh_ is aware of all services and their respective state and can require authentication between all service to service communication.  -->
+
+Fine-grained policies that dictate what services are allowed to communicate with each other is another benefit of a _service mesh_.
+Traditionally, services are permitted to communicate with other services through firewall rules.
+The traditional firewall (IP-based) model is difficult to enforce with dynamic infrastructure resources with a short lifecycle and frequently recycling IP addresses.
+As a result, network administrators have to open up network ranges to permit network traffic between services without differentiating the services generating the network traffic. However, a _service mesh_ allows operators and developers to shift away from an IP-based model and focus more on service to service permissions.
+An operator defines a policy that only allows _service A_ to communicate with _service B_. Otherwise, the default action is to deny the traffic.
+This shift from an IP address-based security model to a service-focused model reduces the overhead of securing network traffic and allows an organization to take advantage of multi-cloud environments without sacrificing security due to complexity.
 
 ## How Do You Implement a Service Mesh?
 
