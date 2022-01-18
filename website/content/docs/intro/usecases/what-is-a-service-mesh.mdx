@@ -74,8 +74,6 @@ Organizations may need to route network traffic to other infrastructure environm
 Service meshes offer the ability to enforce network traffic encryption (mTLS) and authentication between all services. The _service mesh_ can automatically generate an SSL certificate for each service and its instances.
 The certificate authenticates with other services inside the mesh and encrypts the TCP/UDP/gRPC connection with SSL.
 
-<!-- As mentioned earlier, the _service mesh_ is aware of all services and their respective state and can require authentication between all service to service communication.  -->
-
 Fine-grained policies that dictate what services are allowed to communicate with each other is another benefit of a _service mesh_.
 Traditionally, services are permitted to communicate with other services through firewall rules.
 The traditional firewall (IP-based) model is difficult to enforce with dynamic infrastructure resources with a short lifecycle and frequently recycling IP addresses.
@@ -88,10 +86,6 @@ This shift from an IP address-based security model to a service-focused model re
 Service meshes are commonly installed in Kubernetes clusters. There are also platform-agnostic service meshes available for non-Kubernetes-based workloads.
 For Kubernetes, most service mesh can be installed by operators through a [Helm chart](https://artifacthub.io/). Additionally, the service mesh may offer a CLI tool that supports the installation and maintenance of the service mesh.
 Non-Kubernetes based service meshes can be installed through infrastructure as code (IaC) products such as [Terraform](https://www.terraform.io/), CloudFormation, ARM Templates, Puppet, Chef, etc.
-
-## What is Service Mesh Automation?
-
-** Waiting to hear back from Marketing what this question means**.
 
 ## What is a Multi Platform Service Mesh?
 
