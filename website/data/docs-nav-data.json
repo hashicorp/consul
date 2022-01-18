@@ -465,6 +465,10 @@
                 "path": "k8s/installation/vault/connect-ca"
               }
             ]
+          },
+          {
+            "title": "Compatibility Matrix",
+            "path": "k8s/installation/compatibility"
           }
         ]
       },
@@ -541,10 +545,6 @@
           {
             "title": "Overview",
             "path": "k8s/upgrade"
-          },
-          {
-            "title": "Compatibility Matrix",
-            "path": "k8s/upgrade/compatibility"
           }
         ]
       },
