@@ -43,6 +43,12 @@ type RaftConfigurationResponse struct {
 	Index uint64
 }
 
+// RaftConfigurationResponse is returned when querying for the current Raft
+// configuration.
+type LeadershipTransferResponse struct {
+	Success bool
+}
+
 // RaftRemovePeerRequest is used by the Operator endpoint to apply a Raft
 // operation on a specific Raft peer by address in the form of "IP:port".
 type RaftRemovePeerRequest struct {

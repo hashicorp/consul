@@ -90,6 +90,7 @@ import (
 	operautoset "github.com/hashicorp/consul/command/operator/autopilot/set"
 	operautostate "github.com/hashicorp/consul/command/operator/autopilot/state"
 	operraft "github.com/hashicorp/consul/command/operator/raft"
+	"github.com/hashicorp/consul/command/operator/raft/leadertransfer"
 	operraftlist "github.com/hashicorp/consul/command/operator/raft/listpeers"
 	operraftremove "github.com/hashicorp/consul/command/operator/raft/removepeer"
 	"github.com/hashicorp/consul/command/reload"
@@ -201,6 +202,7 @@ func init() {
 	Register("operator autopilot state", func(ui cli.Ui) (cli.Command, error) { return operautostate.New(ui), nil })
 	Register("operator raft", func(cli.Ui) (cli.Command, error) { return operraft.New(), nil })
 	Register("operator raft list-peers", func(ui cli.Ui) (cli.Command, error) { return operraftlist.New(ui), nil })
+	Register("operator raft leader-transfer", func(ui cli.Ui) (cli.Command, error) { return leadertransfer.New(ui), nil })
 	Register("operator raft remove-peer", func(ui cli.Ui) (cli.Command, error) { return operraftremove.New(ui), nil })
 	Register("reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil })
 	Register("rtt", func(ui cli.Ui) (cli.Command, error) { return rtt.New(ui), nil })
