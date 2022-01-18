@@ -1,28 +1,30 @@
 ---
 layout: docs
-page_title: Installation - AWS ECS
+page_title: Installation with Terraform - AWS ECS
 description: >-
-  Install Consul Service Mesh on AWS ECS (Elastic Container Service).
+  Install Consul Service Mesh on AWS ECS with Terraform (Elastic Container Service).
 ---
 
-# Installation
+# Installation with Terraform
 
-Installing Consul on ECS is a multi-part process:
+This will describe how to use the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task) Terraform module to launch your application in AWS ECS as part of Consul service mesh.
 
-1. [**Task Module:**](#task-module) Define the [`mesh-task` Terraform module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task)
-   to create a task definition with the necessary sidecar containers for your application to join the service mesh.
-1. [**Routing:**](#routing) With your tasks as part of the mesh, you must specify their upstream
-   services and change the URLs the tasks are using so that they're making requests through the service mesh.
-1. [**Bind Address:**](#bind-address) Now that all communication is flowing through the service mesh,
-   you should change the address your application is listening on to `127.0.0.1`
-   so that it only receives requests through the sidecar proxy.
+## Pre-requisites
 
--> **NOTE:** This page assumes you're familiar with ECS. See [What is Amazon Elastic Container Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) for more details.
+* This pages assumes you are familiar with Terraform. If you are new to Terraform, see the [Terraform documentation](https://www.terraform.io/docs) to
+  learn about infrastructure as code and how to get started with Terraform.
+* This page assumes you are familiar with AWS ECS. See [What is Amazon Elastic Container Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) for more details.
+* This page does not show how to create all necessary AWS resources, such as a VPC or the ECS Cluster.
+  For complete runnable examples, see the links in the [Getting Started](/docs/ecs#getting-started) section.
 
-## Task Module
+## Using the Mesh Task Module
 
-In order to add the necessary sidecar containers for your task to join the mesh,
-you must use the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task):
+To run an application in ECS with Consul service mesh, you must create an ECS task definition which includes your application container(s)
+and additional sidecar containers, such as the Consul agent container and the Envoy sidecar proxy container.
+
+The [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task) will automatically include the necessary sidecar containers.
+
+Here is an example Terraform configuration file which defines a task definition with an application container called `example-client-app`.
 
 ```hcl
 module "my_task" {
@@ -53,35 +55,52 @@ module "my_task" {
 }
 ```
 
-All possible inputs are documented on the [module reference documentation](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task?tab=inputs),
+All possible inputs are documented in the [module reference documentation](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task?tab=inputs),
 however there are some important inputs worth highlighting:
 
-- `family` is used as the [task definition family](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family)
-  but it's also used as the name of the service that gets registered in Consul.
-- `container_definitions` accepts an array of [container definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions).
-  This is where you include application containers.
-- `port` is the port that your application listens on. This should be set to a
-  string, not an integer, i.e. `port = "9090"`, not `port = 9090`.
-- `retry_join` is passed to the [`-retry-join`](/docs/agent/options#_retry_join) option for the Consul agent. This tells
-  the agent the location of your Consul servers so that it can join the Consul cluster.
-
--> **NOTE:** If your tasks run in a public subnet, they must have `assign_public_ip = true`
-in their [`network_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service#network_configuration) block so that ECS can pull the Docker images.
+| Input Variable          | Type     | Description                                                                                                                                                                                                                                    |
+| ----------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source` and `version`  | string   | This specifies the source location and version of the `mesh-task` module.                                                                                                                                                                      |
+| `family`                | string   | The [ECS task definition family](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family). The family is also used as the Consul service name, by default.                                          |
+| `container_definitions` | list     | This is the list of [container definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions) for the task definition. This is where you include your application containers. |
+| `port`                  | number   | The port that your application listens on, if any. If your application does not listen on a port, set `outbound_only = true`.                                                                                                                  |
+| `retry_join`            | list     | The is the [`retry_join`](/docs/agent/options#_retry_join) option for the Consul agent, which specifies the locations of your Consul servers.                                                                                                  |
 
 ## ECS Service
+
+[ECS services](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html) are one of the most common
+ways to start tasks using a task definition..
 
 To define an ECS Service, reference the mesh-task module's `task_definition_arn` output value
 in your `aws_ecs_service` resource:
 
 ```hcl
 resource "aws_ecs_service" "my_task" {
-  ...
+  name            = "my_task_service"
   task_definition = module.my_task.task_definition_arn
+  launch_type     = "FARGATE"
+  propagate_tags  = "TASK_DEFINITION"
+  ...
 }
 ```
 
-After running `terraform apply`, you should see your tasks registered in
-the Consul UI.
+This is a partial configuration to highlight some important fields.
+See the [`aws_ecs_service`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service) documentation for a complete reference.
+
+| Input Variable    | Type    | Description                                                                                                         |
+| ----------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| `name`            | string  | The name of the ECS service. This is required by AWS but is not used by Consul service mesh.                        |
+| `task_definition` | string  | The task definition used to start tasks. Set this to the task definition ARN returned by the `mesh-task` module.    |
+| `launch_type`     | string  | The launch type. Consul on ECS supports the `FARGATE` and `EC2` launch types.                                       |
+| `propagate_tags`  | string  | This must be set to `TASK_DEFINITION` so that tags added by `mesh-task` to the task definition are copied to tasks. |
+
+After defining the Terraform configuration for both the `mesh-task` and ECS service,
+run `terraform apply` to create the ECS task definition and service resources. The ECS
+service will soon start your application in a task. The task will automatically
+register itself into the Consul service catalog.
+
+-> **NOTE:** If your tasks run in a public subnet, they must have `assign_public_ip = true`
+in their [`network_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service#network_configuration) block so that ECS can pull the Docker images.
 
 ## Routing
 
@@ -94,25 +113,23 @@ needs to call. You then must modify your application to make requests to the sid
 proxy on that port.
 
 For example, if your application `web` makes calls to another application called `backend`, then you would first configure the `mesh-task` module's upstream(s):
-`backend`.
 
 ```hcl
 module "web" {
   family = "web"
   upstreams = [
     {
-      destination_name = "backend"
-      local_bind_port  = 8080
+      destinationName = "backend"
+      localBindPort = 8080
     }
   ]
 }
 ```
 
-- Set the `destination_name` to the name of the upstream service (in this case `backend`)
-- Set `local_bind_port` to an unused port. This is the port that the sidecar proxy
-  will listen on. Any requests to this port will be forwarded over to the `destination_name`.
-  This does not have to be the port that `backend` is listening on because the service mesh
-  will handle routing the request to the right port.
+| Input Variable    | Type    | Description                                                                                                                                                      |
+| ----------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `destinationName` | string  | The name of the upstream service, as it is registered in the Consul service catalog.                                                                             |
+| `localBindPort`   | number  | Requests to this port will be forwarded by the proxy to the upstream service. This must be an unused port, but does not need to match the upstream service port. |
 
 If you have multiple upstream services they each need to be listed here.
 
@@ -127,8 +144,8 @@ module "web" {
   family = "web"
   upstreams = [
     {
-      destination_name = "backend"
-      local_bind_port  = 8080
+      destinationName = "backend"
+      localBindPort = 8080
     }
   ]
   container_definitions = [

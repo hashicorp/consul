@@ -612,7 +612,7 @@
         "path": "ecs/requirements"
       },
       {
-        "title": "Installation",
+        "title": "Installation with Terraform",
         "path": "ecs/install"
       },
       {
@@ -630,6 +630,10 @@
       {
         "title": "Consul Enterprise",
         "path": "ecs/enterprise"
+      },
+      {
+        "title": "Manual Installation",
+        "path": "ecs/install-no-terraform"
       }
     ]
   },
