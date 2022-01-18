@@ -266,6 +266,14 @@ spec:
       yaml: false,
     },
     {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/docs/enterprise/admin-partitions) for additional information.',
+      yaml: false,
+    },
+    {
       name: 'Meta',
       type: 'map<string|string>: nil',
       description:
@@ -283,6 +291,12 @@ spec:
           name: 'namespace',
           description:
             'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+        },
+        {
+          name: 'partition',
+          enterprise: true,
+          description:
+            'Specifies the admin partition in which the configuration will apply. The current partition is used if unspecified. Refer to the [Admin Partitions documentation](/docs/enterprise/admin-partitions) for details. The partitions parameter is not supported in Consul OSS.',
         },
       ],
       hcl: false,
@@ -323,23 +337,22 @@ spec:
           type: 'array<UpstreamConfig>: []',
           description: `A list of optional overrides for per-upstream configuration.`,
           children: [
-              {
-                name: 'Name',
-                type: 'string: ""',
-                description:
-                  'The upstream name to apply the configuration to. This should not be set to the wildcard specifier `*`.',
-              },
-              {
-                name: 'Namespace',
-                type: 'string: ""',
-                description:
-                  'The namespace of the upstream. This should not be set to the wildcard specifier `*`.',
-              },
-              {
-                name: 'Protocol',
-                type: 'string: ""',
-                description:
-                  `The protocol for the upstream listener.<br><br>
+            {
+              name: 'Name',
+              type: 'string: ""',
+              description:
+                'The upstream name to apply the configuration to. This should not be set to the wildcard specifier `*`.',
+            },
+            {
+              name: 'Namespace',
+              type: 'string: ""',
+              description:
+                'The namespace of the upstream. This should not be set to the wildcard specifier `*`.',
+            },
+            {
+              name: 'Protocol',
+              type: 'string: ""',
+              description: `The protocol for the upstream listener.<br><br>
                   NOTE: The protocol of a service should ideally be configured via the
                     [\`protocol\`](/docs/connect/config-entries/service-defaults#protocol)
                     field of a
@@ -349,12 +362,12 @@ spec:
                     [L7 features](/docs/connect/l7-traffic-management).
                     It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
                   `,
-              },
-              {
-                name: 'ConnectTimeoutMs',
-                type: 'int: 5000',
-                description: {
-                  hcl: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
+            },
+            {
+              name: 'ConnectTimeoutMs',
+              type: 'int: 5000',
+              description: {
+                hcl: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
                     NOTE: The connect timeout of a service should ideally be configured via the
                       [\`connect_timeout\`](/docs/connect/config-entries/service-resolver#connecttimeout)
                       field of a
@@ -364,7 +377,7 @@ spec:
                       [L7 features](/docs/connect/l7-traffic-management).
                       It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
                     `,
-                  yaml: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
+                yaml: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
                     NOTE: The connect timeout of a service should ideally be configured via the
                       [\`connectTimeout\`](/docs/connect/config-entries/service-resolver#connecttimeout)
                       field of a
@@ -374,82 +387,82 @@ spec:
                       [L7 features](/docs/connect/l7-traffic-management).
                       It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
                 `,
-                },
               },
-              {
-                name: 'MeshGateway',
-                type: 'MeshGatewayConfig: <optional>',
-                description: `Controls the default
+            },
+            {
+              name: 'MeshGateway',
+              type: 'MeshGatewayConfig: <optional>',
+              description: `Controls the default
                   [mesh gateway configuration](/docs/connect/mesh-gateway#connect-proxy-configuration)
                   for this upstream.`,
-                children: [
-                  {
-                    name: 'Mode',
-                    type: 'string: ""',
-                    description: 'One of `none`, `local`, or `remote`.',
-                  },
-                ],
-              },
-              {
-                name: 'Limits',
-                type: 'Limits: <optional>',
-                description: `A set of limits to apply when connecting to the upstream service.
+              children: [
+                {
+                  name: 'Mode',
+                  type: 'string: ""',
+                  description: 'One of `none`, `local`, or `remote`.',
+                },
+              ],
+            },
+            {
+              name: 'Limits',
+              type: 'Limits: <optional>',
+              description: `A set of limits to apply when connecting to the upstream service.
                     These limits are applied on a per-service-instance basis.
                     The following limits are respected.`,
-                children: [
-                  {
-                    name: 'MaxConnections',
-                    type: 'int: 0',
-                    description: `The maximum number of connections a service instance
+              children: [
+                {
+                  name: 'MaxConnections',
+                  type: 'int: 0',
+                  description: `The maximum number of connections a service instance
                         will be allowed to establish against the given upstream. Use this to limit
                         HTTP/1.1 traffic, since HTTP/1.1 has a request per connection.`,
-                  },
-                  {
-                    name: 'MaxPendingRequests',
-                    type: 'int: 0',
-                    description: `The maximum number of requests that will be queued
+                },
+                {
+                  name: 'MaxPendingRequests',
+                  type: 'int: 0',
+                  description: `The maximum number of requests that will be queued
                         while waiting for a connection to be established. For this configuration to
                         be respected, a L7 protocol must be defined in the \`protocol\` field.`,
-                  },
-                  {
-                    name: 'MaxConcurrentRequests',
-                    type: 'int: 0',
-                    description: `The maximum number of concurrent requests that
+                },
+                {
+                  name: 'MaxConcurrentRequests',
+                  type: 'int: 0',
+                  description: `The maximum number of concurrent requests that
                         will be allowed at a single point in time. Use this to limit HTTP/2 traffic,
                         since HTTP/2 has many requests per connection. For this configuration to be
                         respected, a L7 protocol must be defined in the \`protocol\` field.`,
-                  },
-                ],
-              },
-              {
-                name: 'PassiveHealthCheck',
-                type: 'PassiveHealthCheck: <optional>',
-                description: `Passive health checks are used to remove hosts from
+                },
+              ],
+            },
+            {
+              name: 'PassiveHealthCheck',
+              type: 'PassiveHealthCheck: <optional>',
+              description: `Passive health checks are used to remove hosts from
                     the upstream cluster which are unreachable or are returning errors..`,
-                children: [
-                  {
-                    name: 'Interval',
-                    type: 'duration: 0s',
-                    description: {
-                      hcl: `The time between checks. Each check will cause hosts which
+              children: [
+                {
+                  name: 'Interval',
+                  type: 'duration: 0s',
+                  description: {
+                    hcl: `The time between checks. Each check will cause hosts which
                           have exceeded \`max_failures\` to be removed from the load balancer, and
                           any hosts which have passed their ejection time to be returned to the
                           load balancer.`,
-                      yaml: `The time between checks. Each check will cause hosts which
+                    yaml: `The time between checks. Each check will cause hosts which
                           have exceeded \`maxFailures\` to be removed from the load balancer, and
                           any hosts which have passed their ejection time to be returned to the
                           load balancer.`,
-                    },
                   },
-                  {
-                    name: 'MaxFailures',
-                    type: 'int: 0',
-                    description: `The number of consecutive failures which cause a host to be
+                },
+                {
+                  name: 'MaxFailures',
+                  type: 'int: 0',
+                  description: `The number of consecutive failures which cause a host to be
                       removed from the load balancer.`,
-                  },
-                ],
-              },
-            ],
+                },
+              ],
+            },
+          ],
         },
         {
           name: 'Defaults',
@@ -687,7 +700,7 @@ spec:
           ],
         },
       ],
-    }
+    },
   ]}
 />
 
