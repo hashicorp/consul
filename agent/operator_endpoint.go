@@ -31,6 +31,21 @@ func (s *HTTPHandlers) OperatorRaftConfiguration(resp http.ResponseWriter, req *
 	return reply, nil
 }
 
+// OperatorRaftLeaderTransfer is used to transfer raft cluster leadership to another node
+func (s *HTTPHandlers) OperatorRaftLeaderTransfer(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var args structs.DCSpecificRequest
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var reply structs.RaftConfigurationResponse
+	if err := s.agent.RPC("Operator.RaftLeaderTransfer", &args, &reply); err != nil {
+		return nil, err
+	}
+
+	return reply, nil
+}
+
 // OperatorRaftPeer supports actions on Raft peers. Currently we only support
 // removing peers by address.
 func (s *HTTPHandlers) OperatorRaftPeer(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

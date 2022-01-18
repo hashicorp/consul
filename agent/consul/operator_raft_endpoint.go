@@ -1,7 +1,9 @@
 package consul
 
 import (
+	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/acl"
 	"net"
 
 	"github.com/hashicorp/raft"
@@ -10,6 +12,28 @@ import (
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 )
+
+// RaftGetConfiguration is used to retrieve the current Raft configuration.
+func (op *Operator) RaftLeaderTransfer(args *structs.DCSpecificRequest, reply *structs.LeadershipTransferResponse) error {
+	if done, err := op.srv.ForwardRPC("Operator.RaftLeaderTransfer", args, reply); done {
+		return err
+	}
+	// This action requires operator read access.
+	authz, err := op.srv.ResolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if authz.OperatorRead(nil) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+
+	if !op.srv.attemptLeadershipTransfer() {
+		reply.Success = false
+		return errors.New("leadership transfer failed")
+	}
+	reply.Success = true
+	return nil
+}
 
 // RaftGetConfiguration is used to retrieve the current Raft configuration.
 func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply *structs.RaftConfigurationResponse) error {
