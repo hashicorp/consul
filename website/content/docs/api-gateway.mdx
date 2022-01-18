@@ -50,8 +50,8 @@ The following components will be installed: - Gateway controller - CRDs required
 1. After `helm` installs Consul API Gateway packages, issue the following commands to apply the API gateway to your Kubernetes cluster.
 
 ```shell-session
-$ kubectl apply -k "github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.1.0-beta"
-$ kubectl apply -k "github.com/hashicorp/consul-api-gateway/config?ref=v0.1.0-beta"
+$ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.1.0-beta"
+$ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config?ref=v0.1.0-beta"
 ```
 
 ## Usage
