@@ -616,6 +616,10 @@
         "path": "ecs/migrate-existing-tasks"
       },
       {
+        "title": "Architecture",
+        "path": "ecs/architecture"
+      },
+      {
         "title": "Consul Enterprise",
         "path": "ecs/enterprise"
       }
