@@ -8,21 +8,163 @@ description: >-
 
 # Ingress Gateway
 
--> **v1.8.4+:** On Kubernetes, the `IngressGateway` custom resource is supported in Consul versions 1.8.4+.<br />
-**v1.8.0+:** On other platforms, this config entry is supported in Consul versions 1.8.0+.
+This topic provides reference information for the `ingress-gateway` configuration entry.
 
-The `ingress-gateway` config entry kind (`IngressGateway` on Kubernetes) allows you to configure ingress gateways
-with listeners that expose a set of services outside the Consul service mesh.
+## Introduction
 
-For Kubernetes, see [Kubernetes Ingress Gateway](/docs/k8s/connect/ingress-gateways) for more information.
+You can define an `ingress-gateway` configuration entry to connect the Consul service mesh to a set of external services. The specification for ingress gateways include a `listeners` configuration, which exposes the service mesh to the external services. Use camel case (`IngressGateway`) to declare an ingress gateway configuration entry on Kubernetes.
+
+Refer to the [Kubernetes Ingress Gateway](/docs/k8s/connect/ingress-gateways) documentation for information about configuring ingress gateways on Kubernetes.
+
 For other platforms, see [Ingress Gateway](/docs/connect/ingress-gateway).
 
-~> **Note:** [Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
-across all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different
-sets of services within their datacenter then the ingress gateways **must** be registered with different names.<br />
-See [Ingress Gateway](/docs/connect/ingress-gateway) for more information.
+## Requirements
 
-## Wildcard service specification
+- Consul versions 1.8.4+ is required to use the `IngressGateway` custom resource on Kubernetes.
+- Consul versions 1.8.0+ is required to use the `ingress-gateway` custom resource on all other platforms.
+
+## Usage
+
+1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
+1. Create a file containing the configuration entry settings (see [Configuration](#configuration)).
+1. Apply the configuration settings using one of the following methods:
+   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/docs/k8s/crds) documentation for details.
+   - Issue the `consul config write` command: Refer to the [Consul Config Write](/commands/config/write) documentation for details.
+
+## Configuration
+
+Use the following syntax to configure an ingress gateway.
+
+<Tabs>
+<Tab heading="Consul OSS">
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "ingress-gateway"
+Name = "<name for the gateway>"
+
+Listeners = [
+  {
+    Port = <external service port>
+    Protocol = "<protocol used by external service>"
+    Services = [
+      {
+        Name = "<name of external service>"
+      }
+    ]
+
+  }
+]
+
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: IngressGateway
+metadata:
+  name: <name for the gateway>
+spec:
+  listeners:
+    - port: <external service port>
+      protocol: <protocol used by external service>
+      services:
+        - name: <name of external service>
+```
+
+```json
+{
+  "Kind": "ingress-gateway",
+  "Name": "<name for the gateway>",
+  "Listeners": [
+    {
+      "Port": <external service port>,
+      "Protocol": "<protocol used by external service>",
+      "Services": [
+        {
+          "Name": "<name of external service>"
+        }
+      ]
+    }
+  ]
+}
+
+```
+
+</CodeTabs>
+</Tab>
+
+<Tab heading="Consul Enterprise">
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "ingress-gateway"
+Name = "<name for the gateway>"
+Namespace = "<namespace containing the gateway>"
+Partition = "<partition containing the gateway namespace>"
+
+Listeners = [
+  {
+    Port = <external service port>
+    Protocol = "<protocol used by external service>"
+    Services = [
+      {
+        Name = "<name of external service>"
+      }
+    ]
+
+  }
+]
+
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: IngressGateway
+metadata:
+  name: <name for the gateway>
+  namespace: <namespace containing the gateway>
+  partition: <partition containing the gateway namespace>
+
+spec:
+  listeners:
+    - port: <external service port>
+      protocol: <protocol used by external service>
+      services:
+        - name: <name of external service>
+```
+
+```json
+{
+  "Kind": "ingress-gateway",
+  "Name": "<name for the gateway>",
+  "Namespace": "<namespace containing the gateway>",
+  "Partition": "<partition containing the gateway namespace>",
+
+  "Listeners": [
+    {
+      "Port": <external service port>,
+      "Protocol": "<protocol used by external service>",
+      "Services": [
+        {
+          "Name": "<name of external service>"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+</Tab>
+</Tabs>
+
+Refer to the [Available Fields](#available-fields) section for complete information about all ingress gateway configuration entry options and to the [Example Configurations](#example-configurations) section for example use-cases.
+
+### Scope
+
+[Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies across the default partition of all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different sets of services within their datacenter then the ingress gateways **must** be registered with different names or partitions. See [Ingress Gateway](/docs/connect/ingress-gateway) for more information.
+
+### Wildcard Service Specification
 
 Ingress gateways can optionally target all services within a Consul namespace by
 specifying a wildcard `*` as the service name. A wildcard specifier allows
@@ -43,15 +185,26 @@ gateway:
 
 A wildcard specifier cannot be set on a listener of protocol `tcp`.
 
-## Sample Config Entries
+### ACLs
 
-### TCP listener
+Configuration entries may be protected by [ACLs](/docs/security/acl).
+
+Reading an `ingress-gateway` config entry requires `service:read` on the `Name`
+field of the config entry.
+
+Creating, updating, or deleting an `ingress-gateway` config entry requires
+`operator:write`.
+
+### Example Configurations
+
+The following examples describe possible use-cases for ingress gateway configuration entries.
+
+#### TCP listener
+
+The following example sets up a TCP listener on an ingress gateway named `us-east-ingress` to proxy traffic to the `db` service. The Consul Enterprise version also posits the gateway listener inside the `default` [namespace](/docs/enterprise/namespaces) and the `team-frontend` [admin partition](/docs/enterprise/admin-partitions):
 
 <Tabs>
 <Tab heading="Consul OSS">
-
-Set up a TCP listener on an ingress gateway named "us-east-ingress" to proxy traffic to the "db" service:
-
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
@@ -106,16 +259,13 @@ spec:
 
 </Tab>
 <Tab heading="Consul Enterprise">
-
-Set up a TCP listener on an ingress gateway named "us-east-ingress" in the default namespace
-to proxy traffic to the "db" service in the ops namespace:
-
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "ingress-gateway"
 Name = "us-east-ingress"
 Namespace = "default"
+Partition = "team-frontend"
 
 Listeners = [
   {
@@ -151,6 +301,7 @@ spec:
   "Kind": "ingress-gateway",
   "Name": "us-east-ingress",
   "Namespace": "default",
+  "Partition": "team-frontend",
   "Listeners": [
     {
       "Port": 3456,
@@ -171,14 +322,21 @@ spec:
 </Tab>
 </Tabs>
 
-### Wildcard HTTP listener
+#### Wildcard HTTP Listener
+
+In the following example, two listeners are configured on an ingress gateway named `us-east-ingress`:
+
+- The first listener is configured to listen on port `8080` and uses a wildcard (`*`) to proxy traffic to all services in the datacenter.
+- The second listener exposes the `api` and `web` services on port `4567` at user-provided hosts.
+- TLS is enabled on every listener.
+
+The Consul Enterprise version implements the following additional configurations:
+
+- The ingress gateway is set up in the `default` [namespace](/docs/enterprise/namespaces) and proxies traffic to all services in the `frontend` namespace.
+- The `api` and `web` services are proxied to team-specific [admin partitions](/docs/enterprise/admin-partitions):
 
 <Tabs>
 <Tab heading="Consul OSS">
-
-Set up a wildcard HTTP listener on an ingress gateway named "us-east-ingress" to proxy traffic to all services in the datacenter.
-Also make two services available over a custom port with user-provided hosts, and enable TLS on every listener:
-
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
@@ -277,10 +435,6 @@ spec:
 
 </Tab>
 <Tab heading="Consul Enterprise">
-
-Set up a wildcard HTTP listener on an ingress gateway named "us-east-ingress" to proxy traffic to all services in the frontend namespace.
-Also make two services in the frontend namespace available over a custom port with user-provided hosts, and enable TLS on every listener:
-
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
@@ -311,11 +465,13 @@ Listeners = [
         Namespace = "frontend"
         Name  = "api"
         Hosts = ["foo.example.com"]
+        Partition = "api-team"
       },
       {
         Namespace = "frontend"
         Name  = "web"
         Hosts = ["website.example.com"]
+        Partition = "web-team"
       }
     ]
   }
@@ -343,9 +499,11 @@ spec:
         - name: api
           namespace: frontend
           hosts: ['foo.example.com']
+          partition: api-team
         - name: web
           namespace: frontend
           hosts: ['website.example.com']
+          partition: web-team
 ```
 
 ```json
@@ -374,12 +532,14 @@ spec:
         {
           "Namespace": "frontend",
           "Name": "api",
-          "Hosts": ["foo.example.com"]
+          "Hosts": ["foo.example.com"],
+          "Partition": "api-team"
         },
         {
           "Namespace": "frontend",
           "Name": "web",
-          "Hosts": ["website.example.com"]
+          "Hosts": ["website.example.com"],
+          "Partition": "web-team"
         }
       ]
     }
@@ -392,18 +552,16 @@ spec:
 </Tab>
 </Tabs>
 
-### HTTP listener with path-based routing
+#### HTTP listener with Path-based Routing
+
+The following example sets up an HTTP listener on an ingress gateway named `us-east-ingress` to proxy
+traffic to a virtual service named `api`. In the Consul Enterprise version, `us-east-ingress` is set up in the `default` namespace and `default` partition.
+
+In this use-case, internal-only debug headers should be stripped before responding to external clients.
+Requests to internal services should also be labelled to indicate which gateway they came through.
 
 <Tabs>
 <Tab heading="Consul OSS">
-
-Set up an HTTP listener on an ingress gateway named "us-east-ingress" to proxy
-traffic to a virtual service named "api".
-
-Additionally, ensure internal-only debug headers are stripped before responding
-to external clients, and that requests to internal services are labelled to
-indicate which gateway they came through.
-
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
@@ -442,7 +600,7 @@ spec:
       protocol: http
       services:
         - name: api
-          # HTTP Header manipulation is not yet supported in Kubernetes CRD
+          # HTTP Header manipulation is not supported in Kubernetes CRD
 ```
 
 ```json
@@ -475,20 +633,13 @@ spec:
 
 </Tab>
 <Tab heading="Consul Enterprise">
-
-Set up an HTTP listener on an ingress gateway named "us-east-ingress" in the
-default namespace to proxy traffic to a virtual service named "api".
-
-Additionally, ensure internal-only debug headers are stripped before responding
-to external clients, and that requests to internal services are labelled to
-indicate which gateway they came through.
-
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "ingress-gateway"
 Name = "us-east-ingress"
 Namespace = "default"
+Partition = "default"
 
 Listeners = [
   {
@@ -525,7 +676,7 @@ spec:
       services:
         - name: api
           namespace: frontend
-          # HTTP Header manipulation is not yet supported in Kubernetes CRD
+          # HTTP Header manipulation is not supported in Kubernetes CRD
 ```
 
 ```json
@@ -533,6 +684,7 @@ spec:
   "Kind": "ingress-gateway",
   "Name": "us-east-ingress",
   "Namespace": "default",
+  "Partition": "default",
   "Listeners": [
     {
       "Port": 80,
@@ -541,7 +693,7 @@ spec:
         {
           "Name": "api",
           "Namespace": "frontend",
-           "RequestHeaders": {
+          "RequestHeaders": {
             "Add": {
               "x-gateway": "us-east-ingress"
             }
@@ -561,10 +713,7 @@ spec:
 </Tab>
 </Tabs>
 
-The `api` service is not an actual registered service. It exist as a "virtual"
-service for L7 configuration only. A `service-router` (`ServiceRouter` on Kubernetes) is defined for this
-virtual service which uses path-based routing to route requests to different
-backend services:
+For this use-case, the `api` service is not an actual registered service. It exists as a virtual service for L7 configuration only. A `service-router` (`ServiceRouter` on Kubernetes) is defined for the virtual service that uses path-based routing to route requests to different backend services:
 
 <Tabs>
 <Tab heading="Consul OSS">
@@ -659,6 +808,7 @@ spec:
 Kind = "service-router"
 Name = "api"
 Namespace = "default"
+Partition = "default"
 Routes = [
   {
     Match {
@@ -714,6 +864,7 @@ spec:
   "Kind": "service-router",
   "Name": "api",
   "Namespace": "default",
+  "Partition": "default",
   "Routes": [
     {
       "Match": {
@@ -748,6 +899,8 @@ spec:
 
 ## Available Fields
 
+You can specify the following parameters to configure ingress gateway configuration entries.
+
 <ConfigEntryReference
   keys={[
     {
@@ -770,11 +923,11 @@ spec:
     },
     {
       name: 'Namespace',
-      type: `string: "default"`,
+      type: 'string: `default`',
       enterprise: true,
       description:
-        'Specifies the namespace the config entry will apply to. This must be the namespace the gateway is registered in.' +
-        ' If omitted, the namespace will be inherited from [the request](/api/config#ns)' +
+        'Specifies the namespace in which the configuration entry will apply. The value must match the namespace in which the gateway is registered.' +
+        ' If omitted, the namespace will be inherited from the `ns` request parameter (refer to the [`config` API endpoint documentation](/api/config#ns)).' +
         ' or will default to the `default` namespace.',
       yaml: false,
     },
@@ -786,6 +939,16 @@ spec:
       yaml: false,
     },
     {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        'Specifies the admin partition in which the configuration will apply. The value must match the partition in which the gateway is registered.' +
+        ' If omitted, the partition will be inherited from the request (refer to the [`config` API endpoint documentation](/api/config)).' +
+        ' See [Admin Partitions](/docs/enterprise/admin-partitions) for additional information.',
+      yaml: false,
+    },
+    {
       name: 'metadata',
       children: [
         {
@@ -794,8 +957,9 @@ spec:
         },
         {
           name: 'namespace',
+          enterprise: true,
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+            'Refer to the [Kubernetes Namespaces documentation for Consul Enterprise](/docs/k8s/crds#consul-enterprise). The `namespace` parameter is not supported in Consul OSS (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)).',
         },
       ],
       hcl: false,
@@ -819,17 +983,20 @@ spec:
           name: 'SDS',
           yaml: false,
           type: 'SDSConfig: <optional>',
-          description: "Defines a set of parameters that configures the gateway to load TLS certificates from an external SDS service. See [SDS](/docs/connect/gateways/ingress-gateway#sds) for more details on usage.<br><br>SDS properties defined in this field are used as defaults for all listeners on the gateway.",
+          description:
+            'Defines a set of parameters that configures the gateway to load TLS certificates from an external SDS service. See [SDS](/docs/connect/gateways/ingress-gateway#sds) for more details on usage.<br><br>SDS properties defined in this field are used as defaults for all listeners on the gateway.',
           children: [
             {
               name: 'ClusterName',
               type: 'string',
-              description: "Specifies the name of the SDS cluster from which Consul should retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/docs/connect/gateways/ingress-gateway#sds).",
+              description:
+                "Specifies the name of the SDS cluster from which Consul should retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/docs/connect/gateways/ingress-gateway#sds).",
             },
             {
               name: 'CertResource',
               type: 'string',
-              description: "Specifies an SDS resource name. Consul will request the SDS resource name when fetching the certificate from the SDS service. Setting this causes all listeners to be served exclusively over TLS with this certificate unless overridden by listener-specific TLS configuration.",
+              description:
+                'Specifies an SDS resource name. Consul will request the SDS resource name when fetching the certificate from the SDS service. Setting this causes all listeners to be served exclusively over TLS with this certificate unless overridden by listener-specific TLS configuration.',
             },
           ],
         },
@@ -880,7 +1047,14 @@ spec:
               type: 'string: ""',
               enterprise: true,
               description:
-                'The namespace to resolve the service from instead of the current namespace. If empty the current namespace is assumed.',
+                'The namespace from which to resolve the service if different than the existing namespace. The current namespace is used if unspecified.',
+            },
+            {
+              name: 'Partition',
+              type: 'string: ""',
+              enterprise: true,
+              description:
+                'The admin partition from which to resolve the service if different than the existing partition. The current partition is used if unspecified.',
             },
             {
               name: 'Hosts',
@@ -917,33 +1091,35 @@ spec:
               This cannot be used with a \`tcp\` listener.`,
             },
             {
-          name: 'TLS',
-          yaml: false,
-          type: 'ServiceTLSConfig: <optional>',
-          description: 'TLS configuration for this service.',
-          children: [
-            {
-              name: 'SDS',
-              type: 'SDSConfig: <optional>',
-              description: `Defines a set of parameters that configures the SDS source for the certificate for this specific service.
+              name: 'TLS',
+              yaml: false,
+              type: 'ServiceTLSConfig: <optional>',
+              description: 'TLS configuration for this service.',
+              children: [
+                {
+                  name: 'SDS',
+                  type: 'SDSConfig: <optional>',
+                  description: `Defines a set of parameters that configures the SDS source for the certificate for this specific service.
                   At least one custom host must be specified in \`Hosts\`.
                   The certificate retrieved from SDS will be served for all requests identifying one of the
                   \`Hosts\` values in the TLS Server Name Indication (SNI) header.`,
-              children: [
-                {
-                  name: 'ClusterName',
-                  type: 'string',
-                  description: "The SDS cluster name to connect to to retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/docs/connect/gateways/ingress-gateway#sds).",
-                },
-                {
-                  name: 'CertResource',
-                  type: 'string',
-                  description: "The SDS resource name to request when fetching the certificate from the SDS service.",
+                  children: [
+                    {
+                      name: 'ClusterName',
+                      type: 'string',
+                      description:
+                        "The SDS cluster name to connect to to retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/docs/connect/gateways/ingress-gateway#sds).",
+                    },
+                    {
+                      name: 'CertResource',
+                      type: 'string',
+                      description:
+                        'The SDS resource name to request when fetching the certificate from the SDS service.',
+                    },
+                  ],
                 },
               ],
             },
-          ],
-        },
           ],
         },
         {
@@ -965,17 +1141,20 @@ spec:
             {
               name: 'SDS',
               type: 'SDSConfig: <optional>',
-              description: "Defines a set of parameters that configures the listener to load TLS certificates from an external SDS service. See [SDS](/docs/connect/gateways/ingress-gateway#sds) for more details on usage.<br><br>SDS properties set here will be used as defaults for all services on this listener.",
+              description:
+                'Defines a set of parameters that configures the listener to load TLS certificates from an external SDS service. See [SDS](/docs/connect/gateways/ingress-gateway#sds) for more details on usage.<br><br>SDS properties set here will be used as defaults for all services on this listener.',
               children: [
                 {
                   name: 'ClusterName',
                   type: 'string',
-                  description: "The SDS cluster name to connect to to retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/docs/connect/gateways/ingress-gateway#sds).",
+                  description:
+                    "The SDS cluster name to connect to to retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/docs/connect/gateways/ingress-gateway#sds).",
                 },
                 {
                   name: 'CertResource',
                   type: 'string',
-                  description: "The SDS resource name to request when fetching the certificate from the SDS service.",
+                  description:
+                    'The SDS resource name to request when fetching the certificate from the SDS service.',
                 },
               ],
             },
@@ -985,13 +1164,3 @@ spec:
     },
   ]}
 />
-
-## ACLs
-
-Configuration entries may be protected by [ACLs](/docs/security/acl).
-
-Reading an `ingress-gateway` config entry requires `service:read` on the `Name`
-field of the config entry.
-
-Creating, updating, or deleting an `ingress-gateway` config entry requires
-`operator:write`.

@@ -10,13 +10,12 @@ description: >-
 
 # Mesh
 
--> **v1.10.0+:** This config entry is supported in Consul versions 1.10.0+.
+-> **v1.10.0+:** This configuration entry is supported in Consul versions 1.10.0+.
 
-The `mesh` config entry kind allows for globally defining
-default configuration that applies to all service mesh proxies.
+The `mesh` configuration entry allows you to define a global default configuration that applies to all service mesh proxies.
 Settings in this config entry apply across all namespaces and federated datacenters.
 
-## Sample Config Entries
+## Sample Configuration Entries
 
 ### Mesh Destinations Only
 
@@ -58,14 +57,14 @@ spec:
 </Tab>
 <Tab heading="Consul Enterprise">
 
--> **Note**: The `mesh` config entry can only be created in the `default`
-namespace and it will apply to proxies across **all** namespaces.
+The `mesh` configuration entry can only be created in the `default` namespace and will apply to proxies across **all** namespaces.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind      = "mesh"
 Namespace = "default" # Can only be set to "default".
+Partition = "default"
 
 TransparentProxy {
   MeshDestinationsOnly = true
@@ -77,6 +76,7 @@ apiVersion: consul.hashicorp.com/v1alpha1
 kind: Mesh
 metadata:
   name: mesh
+  namespace: default
 spec:
   transparentProxy:
     meshDestinationsOnly: true
@@ -86,6 +86,7 @@ spec:
 {
   "Kind": "mesh",
   "Namespace": "default",
+  "Partition": "default",
   "TransparentProxy": {
     "MeshDestinationsOnly": true
   }
@@ -96,6 +97,8 @@ spec:
 
 </Tab>
 </Tabs>
+
+Note that the Kuberetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/docs/k8s/crds), which can only be scoped to their own partition.
 
 ## Available Fields
 
@@ -118,7 +121,15 @@ spec:
       type: `string: "default"`,
       enterprise: true,
       description:
-        'Must be set to default. Config will apply to all namespaces.',
+        'Must be set to `default`. The configuration will apply to all namespaces.',
+      yaml: false,
+    },
+    {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/docs/enterprise/admin-partitions) for additional information.',
       yaml: false,
     },
     {
@@ -137,8 +148,9 @@ spec:
         },
         {
           name: 'namespace',
+          enterprise: true,
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+            'Must be set to `default`. If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for additional information.',
         },
       ],
       hcl: false,
