@@ -17,7 +17,7 @@ for use without Terraform.
 * This page does not show how to create all necessary AWS resources, such as a VPC or the ECS Cluster.
   For complete runnable examples, see the links in the [Getting Started](/docs/ecs#getting-started) section.
 
-# Task Definition
+## Task Definition
 
 You must define a Task Definition which includes the following containers:
 
@@ -57,7 +57,7 @@ In your task definition, you'll need to define these important top-level fields:
 ## Application container
 
 First, include your application container in the `containerDefinitions` list
-in the task definition:
+in the task definition. Ensure that the `dependsOn` field is set as shown below so that your application container starts in the correct order (see [task startup](/docs/ecs/architecture#task-startup) for more information):
 
 ```json
 {
@@ -155,7 +155,7 @@ The sidecar proxy container runs [Envoy proxy](/docs/connect/proxies/envoy) for 
 
 ## `consul-client` container
 
-Each task must include a Consul agent container in order for the task to join your Consul cluster.
+Each task must include a Consul client container in order for the task to join your Consul cluster.
 
 ```json
 {
@@ -197,7 +197,7 @@ Each task must include a Consul agent container in order for the task to join yo
 | -----------   | ------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `name`        | string  | The name of the Consul agent container, which should always be `consul-client`.                                          |
 | `image`       | string  | The container image for Consul. Use our public AWS registry, `public.ecr.aws/hashicorp/consul`, to avoid rate limits.    |
-| `mountPoints` | list    | The mounts the `/consul` data volume which contains the Envoy configuration file.                                        |
+| `mountPoints` | list    | Mount the `/consul` data volume which contains the Envoy configuration file.                                        |
 | `ulimits`     | list    | Set the file descriptor limit, `nofile`, to a sufficiently high value so that Envoy does not fail to open sockets.       |
 | `entrypoint`  | list    | A custom entrypoint binary is used to run Envoy, in order to facilitate graceful shutdown.                               |
 | `command`     | list    | The startup command. See below for details.
