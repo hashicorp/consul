@@ -1,6 +1,6 @@
 import base64js from 'base64-js';
-export default function(str, encoding = 'utf-8') {
+export default function(str) {
   // encode
-  const bytes = new TextEncoder(encoding).encode(str);
+  const bytes = new TextEncoder().encode(str);
   return base64js.fromByteArray(bytes);
 }
