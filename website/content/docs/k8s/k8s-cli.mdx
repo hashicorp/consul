@@ -42,7 +42,8 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
 1. Download the Consul K8s CLI using the following `curl` command. 
 
    ```shell-session
-   curl --location https://releases.hashicorp.com/consul-k8s/0.39.0/consul-k8s_0.39.0_darwin_amd64.zip --output consul-k8s-cli.zip
+   export VERSION=0.39.0
+   curl --location "https://releases.hashicorp.com/consul-k8s/${VERSION}/consul-k8s_${VERSION}_darwin_amd64.zip" --output consul-k8s-cli.zip
    ```
    
 1. Unzip the zip file ouput to extract the `consul-k8s` CLI binary. 
