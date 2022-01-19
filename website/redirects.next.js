@@ -324,7 +324,14 @@ module.exports = [
   },
   {
     source: '/docs/k8s/ambassador',
-    destination: '/docs/k8s/connect/ambassador',
+    destination:
+      'https://learn.hashicorp.com/tutorials/consul/service-mesh-gateway-ambassador',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/connect/ambassador',
+    destination:
+      'https://learn.hashicorp.com/tutorials/consul/service-mesh-gateway-ambassador',
     permanent: true,
   },
   {
