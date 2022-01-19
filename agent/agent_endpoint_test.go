@@ -5964,8 +5964,6 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
 	a := StartTestAgent(t, TestAgent{Overrides: `
 		connect {
 			test_ca_leaf_root_change_spread = "1ns"
@@ -5993,7 +5991,7 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		if !assert.Equal(200, resp.Code) {
+		if !assert.Equal(t, 200, resp.Code) {
 			t.Log("Body: ", resp.Body.String())
 		}
 	}
@@ -6002,19 +6000,19 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equal("MISS", resp.Header().Get("X-Cache"))
+	require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 
 	// Get the issued cert
 	dec := json.NewDecoder(resp.Body)
 	issued := &structs.IssuedCert{}
-	require.NoError(dec.Decode(issued))
+	require.NoError(t, dec.Decode(issued))
 
 	// Verify that the cert is signed by the CA
 	requireLeafValidUnderCA(t, issued, ca1)
 
 	// Verify blocking index
-	assert.True(issued.ModifyIndex > 0)
-	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
+	assert.True(t, issued.ModifyIndex > 0)
+	assert.Equal(t, fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
 	index := resp.Header().Get("X-Consul-Index")
@@ -6026,8 +6024,8 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		a.srv.h.ServeHTTP(resp, req)
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
-		require.NoError(dec.Decode(issued2))
-		require.Equal(issued, issued2)
+		require.NoError(t, dec.Decode(issued2))
+		require.Equal(t, issued, issued2)
 	}
 
 	// Set a new CA
@@ -6040,26 +6038,26 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		a.srv.h.ServeHTTP(resp, req)
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
-		require.NoError(dec.Decode(issued2))
-		require.NotEqual(issued.CertPEM, issued2.CertPEM)
-		require.NotEqual(issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
+		require.NoError(t, dec.Decode(issued2))
+		require.NotEqual(t, issued.CertPEM, issued2.CertPEM)
+		require.NotEqual(t, issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
 
 		// Verify that the cert is signed by the new CA
 		requireLeafValidUnderCA(t, issued2, ca2)
 
 		// Should not be a cache hit! The data was updated in response to the blocking
 		// query being made.
-		require.Equal("MISS", resp.Header().Get("X-Cache"))
+		require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 	}
 
 	t.Run("test non-blocking queries update leaf cert", func(t *testing.T) {
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.AgentConnectCALeafCert(resp, req)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		// Get the issued cert
 		issued, ok := obj.(*structs.IssuedCert)
-		assert.True(ok)
+		assert.True(t, ok)
 
 		// Verify that the cert is signed by the CA
 		requireLeafValidUnderCA(t, issued, ca2)
@@ -6071,18 +6069,18 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 
 			resp := httptest.NewRecorder()
 			req, err := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
-			require.NoError(err)
+			require.NoError(t, err)
 			obj, err = a.srv.AgentConnectCALeafCert(resp, req)
-			require.NoError(err)
+			require.NoError(t, err)
 			issued2 := obj.(*structs.IssuedCert)
-			require.NotEqual(issued.CertPEM, issued2.CertPEM)
-			require.NotEqual(issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
+			require.NotEqual(t, issued.CertPEM, issued2.CertPEM)
+			require.NotEqual(t, issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
 
 			// Verify that the cert is signed by the new CA
 			requireLeafValidUnderCA(t, issued2, ca3)
 
 			// Should not be a cache hit!
-			require.Equal("MISS", resp.Header().Get("X-Cache"))
+			require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 		}
 
 		// Test caching for the leaf cert
@@ -6093,8 +6091,8 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 				// Fetch it again
 				resp := httptest.NewRecorder()
 				obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
-				require.NoError(err)
-				require.Equal(obj, obj2)
+				require.NoError(t, err)
+				require.Equal(t, obj, obj2)
 			}
 		}
 	})
@@ -6109,8 +6107,6 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
 	a := StartTestAgent(t, TestAgent{Overrides: `
 		connect {
 			test_ca_leaf_root_change_spread = "1ns"
@@ -6138,7 +6134,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		if !assert.Equal(200, resp.Code) {
+		if !assert.Equal(t, 200, resp.Code) {
 			t.Log("Body: ", resp.Body.String())
 		}
 	}
@@ -6147,19 +6143,19 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equal("MISS", resp.Header().Get("X-Cache"))
+	require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 
 	// Get the issued cert
 	dec := json.NewDecoder(resp.Body)
 	issued := &structs.IssuedCert{}
-	require.NoError(dec.Decode(issued))
+	require.NoError(t, dec.Decode(issued))
 
 	// Verify that the cert is signed by the CA
 	requireLeafValidUnderCA(t, issued, ca1)
 
 	// Verify blocking index
-	assert.True(issued.ModifyIndex > 0)
-	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
+	assert.True(t, issued.ModifyIndex > 0)
+	assert.Equal(t, fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
 	// Test caching
@@ -6169,8 +6165,8 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 		a.srv.h.ServeHTTP(resp, req)
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
-		require.NoError(dec.Decode(issued2))
-		require.Equal(issued, issued2)
+		require.NoError(t, dec.Decode(issued2))
+		require.Equal(t, issued, issued2)
 	}
 
 	// Test Blocking - see https://github.com/hashicorp/consul/issues/4462
@@ -6186,7 +6182,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 
 		select {
 		case <-time.After(500 * time.Millisecond):
-			require.FailNow("Shouldn't block for this long - not respecting wait parameter in the query")
+			require.FailNow(t, "Shouldn't block for this long - not respecting wait parameter in the query")
 
 		case <-doneCh:
 		}
@@ -6205,7 +6201,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 
 			dec := json.NewDecoder(resp.Body)
 			issued2 := &structs.IssuedCert{}
-			require.NoError(dec.Decode(issued2))
+			require.NoError(r, dec.Decode(issued2))
 			if issued.CertPEM == issued2.CertPEM {
 				r.Fatalf("leaf has not updated")
 			}
@@ -6217,9 +6213,9 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 			}
 
 			// Verify that the cert is signed by the new CA
-			requireLeafValidUnderCA(t, issued2, ca)
+			requireLeafValidUnderCA(r, issued2, ca)
 
-			require.NotEqual(issued, issued2)
+			require.NotEqual(r, issued, issued2)
 		})
 	}
 }
@@ -6359,9 +6355,6 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
-
 	a1 := StartTestAgent(t, TestAgent{Name: "dc1", HCL: `
 		datacenter = "dc1"
 		primary_datacenter = "dc1"
@@ -6387,7 +6380,7 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	// Wait for the WAN join.
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
 	_, err := a2.JoinWAN([]string{addr})
-	require.NoError(err)
+	require.NoError(t, err)
 
 	testrpc.WaitForLeader(t, a1.RPC, "dc1")
 	testrpc.WaitForLeader(t, a2.RPC, "dc2")
@@ -6419,30 +6412,30 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		resp := httptest.NewRecorder()
 		a2.srv.h.ServeHTTP(resp, req)
-		if !assert.Equal(200, resp.Code) {
+		if !assert.Equal(t, 200, resp.Code) {
 			t.Log("Body: ", resp.Body.String())
 		}
 	}
 
 	// List
 	req, err := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
-	require.NoError(err)
+	require.NoError(t, err)
 	resp := httptest.NewRecorder()
 	a2.srv.h.ServeHTTP(resp, req)
-	require.Equal(http.StatusOK, resp.Code)
-	require.Equal("MISS", resp.Header().Get("X-Cache"))
+	require.Equal(t, http.StatusOK, resp.Code)
+	require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 
 	// Get the issued cert
 	dec := json.NewDecoder(resp.Body)
 	issued := &structs.IssuedCert{}
-	require.NoError(dec.Decode(issued))
+	require.NoError(t, dec.Decode(issued))
 
 	// Verify that the cert is signed by the CA
 	requireLeafValidUnderCA(t, issued, dc1_ca1)
 
 	// Verify blocking index
-	assert.True(issued.ModifyIndex > 0)
-	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
+	assert.True(t, issued.ModifyIndex > 0)
+	assert.Equal(t, fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
 	// Test caching
@@ -6452,8 +6445,8 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		a2.srv.h.ServeHTTP(resp, req)
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
-		require.NoError(dec.Decode(issued2))
-		require.Equal(issued, issued2)
+		require.NoError(t, dec.Decode(issued2))
+		require.Equal(t, issued, issued2)
 	}
 
 	// Test that we aren't churning leaves for no reason at idle.
@@ -6508,11 +6501,11 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		// Try and sign again (note no index/wait arg since cache should update in
 		// background even if we aren't actively blocking)
 		a2.srv.h.ServeHTTP(resp, req)
-		require.Equal(http.StatusOK, resp.Code)
+		require.Equal(r, http.StatusOK, resp.Code)
 
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
-		require.NoError(dec.Decode(issued2))
+		require.NoError(r, dec.Decode(issued2))
 		if issued.CertPEM == issued2.CertPEM {
 			r.Fatalf("leaf has not updated")
 		}
@@ -6524,9 +6517,9 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		}
 
 		// Verify that the cert is signed by the new CA
-		requireLeafValidUnderCA(t, issued2, dc1_ca2)
+		requireLeafValidUnderCA(r, issued2, dc1_ca2)
 
-		require.NotEqual(issued, issued2)
+		require.NotEqual(r, issued, issued2)
 	})
 }
 
@@ -6559,7 +6552,7 @@ func waitForActiveCARoot(t *testing.T, srv *HTTPHandlers, expect *structs.CARoot
 	})
 }
 
-func requireLeafValidUnderCA(t *testing.T, issued *structs.IssuedCert, ca *structs.CARoot) {
+func requireLeafValidUnderCA(t require.TestingT, issued *structs.IssuedCert, ca *structs.CARoot) {
 	leaf, intermediates, err := connect.ParseLeafCerts(issued.CertPEM)
 	require.NoError(t, err)
 
