@@ -8,10 +8,10 @@ import MultiMap from 'mnemonist/multi-map';
  * proxy is likely to be on the same node, without adding something extra here
  * the node check will likely end up in the list twice.
  *
- * @param {array} checks - Multiple lists of healthchecks to merge each one of the items in this array should be a further array of healthchecks
- * @param {boolean} exposed - Whether the checks should be marked as exposed via the proxy or not
- * @param {class} MMap - A MultiMap class. This is only exposed to allow for an easier interface but still allow an innjectable MultiMap if we choose to do that during testing
- * @returns {array} - The final array of all of the healthchecks with any duplicate node checks removed, and also marked as exposed if required
+ * @param {Array} checks - Multiple lists of healthchecks to merge each one of the items in this array should be a further array of healthchecks
+ * @param {Boolean} exposed - Whether the checks should be marked as exposed via the proxy or not
+ * @param {Object} MMap - A MultiMap class. This is only exposed to allow for an easier interface but still allow an injectable MultiMap if we choose to do that during testing
+ * @returns {Array} - The final array of all of the healthchecks with any duplicate node checks removed, and also marked as exposed if required
  */
 export default (checks = [], exposed = false, MMap = MultiMap) => {
   const ids = new MMap();

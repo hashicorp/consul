@@ -2,7 +2,7 @@
  * Promise aware conditional function call
  *
  * @param {function} cb - The function to possibily call
- * @param {function} [what] - A function returning a boolean resolving promise
+ * @param {Promise} [what] - A boolean resolving promise
  * @returns {function} - function when called returns a Promise that resolves the argument it is called with
  */
 export default function(cb, what) {
