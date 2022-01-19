@@ -10,9 +10,9 @@ description: >-
 Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes.
 This topic describes the commands, subcommands, and available options for using Consul K8s CLI.
 
-## Install the Consul K8s CLI (latest)
+## Install the Consul K8s CLI 
 
-The [Homebrew](https://brew.sh) package manager is required to complete the following installation instructions.
+The [Homebrew](https://brew.sh) package manager is required to complete the following installation instructions. Homebrew formulae will always install the latest version of a binary. If you are looking to install a specific version of the CLI please follow [Install a specific version of Consul K8s CLI](#install-a-specific-version-of-consul-k8s-cli).
 
 1. Install the HashiCorp `tap`, which is a repository of all Homebrew packages for HashiCorp:
     ```shell-session
@@ -39,23 +39,32 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
    
 ## Install a specific version of Consul K8s CLI
 
-1. Download the Consul K8s CLI using the following `curl` command. 
+Since Homebrew does not provide a way to install previous versions of packages, follow the below instructions to install the Consul K8S CLI to a version that matches your Control Plane deployment. 
+
+1. Download the Consul K8s CLI using the following `curl` command. Enter the approriate version for your deployment via an environment variable. 
 
    ```shell-session
    export VERSION=0.39.0
    curl --location "https://releases.hashicorp.com/consul-k8s/${VERSION}/consul-k8s_${VERSION}_darwin_amd64.zip" --output consul-k8s-cli.zip
    ```
    
-1. Unzip the zip file ouput to extract the `consul-k8s` CLI binary. 
+1. Unzip the zip file ouput to extract the `consul-k8s` CLI binary. This overwrites existing files and also creates a `.consul-k8s` subdirectory in your `$HOME` folder. 
    
    ```shell-session
    unzip -o consul-k8s-cli.zip -d ~/.consul-k8s
    ```
    
-1. Add the path to your directory
+1. Add the path to your directory. 
 
    ```shell-session
    export PATH=$PATH:$HOME/.consul-k8s/
+   ```
+   
+1. (Optional) Issue the `consul-k8s version` command to verify the installation:
+
+   ```shell-session
+   consul-k8s version
+   consul-k8s 0.39.0
    ```
    
 ## Upgrade the Consul K8s CLI
