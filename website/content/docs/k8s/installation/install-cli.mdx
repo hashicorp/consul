@@ -97,10 +97,10 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
    $ consul-k8s version
    consul-k8s 0.39.0
    ```
-
 </Tab>
 
 </Tabs>
+   
    
 ## Install a specific version of Consul K8s CLI
 
@@ -203,16 +203,70 @@ Homebrew does not provide a method to install previous versions of a package.  T
    
 ## Upgrade the Consul K8s CLI
 
+<Tabs>
+
+<Tab heading="Mac OS X">
+
 The [Homebrew](https://brew.sh) package manager is required to complete the following installation instructions. The `brew upgrade` command assumes that Hashicorp `tap` repository has already been installed from a prior install. 
 
 1. Upgrade the Consul K8s CLI with the latest `consul-k8s` package. 
    ```shell-session
-   brew upgrade consul-k8s
+   $ brew upgrade consul-k8s
    ```
    
-2. (Optional) Issue the `consul-k8s version` command to verify the installation:
+1. (Optional) Issue the `consul-k8s version` command to verify the installation:
 
    ```shell-session
-   consul-k8s version
+   $ consul-k8s version
    consul-k8s 0.39.0
    ```
+   
+</Tab>
+
+<Tab heading="Linux - Ubuntu/Debian">
+
+1. Upgrade all the available packages on your system. 
+
+   ```shell-session
+   $ sudo apt-get update
+   ```
+   
+1. Upgrade the Consul K8s CLI with the latest `consul-k8s` package. 
+
+   ```shell-session
+   $ sudo apt-get --only-upgrade install consul-k8s
+   ```
+   
+1. (Optional) Issue the `consul-k8s version` command to verify the installation:
+
+   ```shell-session
+   $ consul-k8s version
+   consul-k8s 0.39.0
+   ```
+
+</Tab>
+
+<Tab heading="Linux - CentOS/RHEL">
+
+1. Upgrade all the available packages on your system. 
+
+   ```shell-session
+   $ sudo yum update
+   ```
+   
+1. Upgrade the Consul K8s CLI with the latest `consul-k8s` package. 
+
+   ```shell-session
+   $ sudo yum update consul-k8s
+   ```
+   
+1. (Optional) Issue the `consul-k8s version` command to verify the installation:
+
+   ```shell-session
+   $ consul-k8s version
+   consul-k8s 0.39.0
+   ```
+   
+</Tab>
+
+</Tabs>
