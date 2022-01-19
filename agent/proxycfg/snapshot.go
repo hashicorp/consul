@@ -18,47 +18,47 @@ import (
 type ConfigSnapshotUpstreams struct {
 	Leaf *structs.IssuedCert
 
-	// DiscoveryChain is a map of upstream.Identifier() ->
-	// CompiledDiscoveryChain's, and is used to determine what services could be
-	// targeted by this upstream. We then instantiate watches for those targets.
-	DiscoveryChain map[string]*structs.CompiledDiscoveryChain
+	// DiscoveryChain is a map of UpstreamID -> CompiledDiscoveryChain's, and
+	// is used to determine what services could be targeted by this upstream.
+	// We then instantiate watches for those targets.
+	DiscoveryChain map[UpstreamID]*structs.CompiledDiscoveryChain
 
-	// WatchedDiscoveryChains is a map of upstream.Identifier() -> CancelFunc's
+	// WatchedDiscoveryChains is a map of UpstreamID -> CancelFunc's
 	// in order to cancel any watches when the proxy's configuration is
 	// changed. Ingress gateways and transparent proxies need this because
 	// discovery chain watches are added and removed through the lifecycle
 	// of a single proxycfg state instance.
-	WatchedDiscoveryChains map[string]context.CancelFunc
+	WatchedDiscoveryChains map[UpstreamID]context.CancelFunc
 
-	// WatchedUpstreams is a map of upstream.Identifier() -> (map of TargetID ->
+	// WatchedUpstreams is a map of UpstreamID -> (map of TargetID ->
 	// CancelFunc's) in order to cancel any watches when the configuration is
 	// changed.
-	WatchedUpstreams map[string]map[string]context.CancelFunc
+	WatchedUpstreams map[UpstreamID]map[string]context.CancelFunc
 
-	// WatchedUpstreamEndpoints is a map of upstream.Identifier() -> (map of
+	// WatchedUpstreamEndpoints is a map of UpstreamID -> (map of
 	// TargetID -> CheckServiceNodes) and is used to determine the backing
 	// endpoints of an upstream.
-	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
+	WatchedUpstreamEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
 
-	// WatchedGateways is a map of upstream.Identifier() -> (map of
-	// GatewayKey.String() -> CancelFunc) in order to cancel watches for mesh gateways
-	WatchedGateways map[string]map[string]context.CancelFunc
+	// WatchedGateways is a map of UpstreamID -> (map of GatewayKey.String() ->
+	// CancelFunc) in order to cancel watches for mesh gateways
+	WatchedGateways map[UpstreamID]map[string]context.CancelFunc
 
-	// WatchedGatewayEndpoints is a map of upstream.Identifier() -> (map of
-	// GatewayKey.String() -> CheckServiceNodes) and is used to determine the backing
-	// endpoints of a mesh gateway.
-	WatchedGatewayEndpoints map[string]map[string]structs.CheckServiceNodes
+	// WatchedGatewayEndpoints is a map of UpstreamID -> (map of
+	// GatewayKey.String() -> CheckServiceNodes) and is used to determine the
+	// backing endpoints of a mesh gateway.
+	WatchedGatewayEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
 
 	// UpstreamConfig is a map to an upstream's configuration.
-	UpstreamConfig map[string]*structs.Upstream
+	UpstreamConfig map[UpstreamID]*structs.Upstream
 
-	// PassthroughEndpoints is a map of: ServiceName -> ServicePassthroughAddrs.
-	PassthroughUpstreams map[string]ServicePassthroughAddrs
+	// PassthroughEndpoints is a map of: UpstreamID -> ServicePassthroughAddrs.
+	PassthroughUpstreams map[UpstreamID]ServicePassthroughAddrs
 
 	// IntentionUpstreams is a set of upstreams inferred from intentions.
-	// The keys are created with structs.ServiceName.String().
+	//
 	// This list only applies to proxies registered in 'transparent' mode.
-	IntentionUpstreams map[string]struct{}
+	IntentionUpstreams map[UpstreamID]struct{}
 }
 
 type GatewayKey struct {
@@ -107,7 +107,7 @@ type configSnapshotConnectProxy struct {
 	ConfigSnapshotUpstreams
 
 	WatchedServiceChecks   map[structs.ServiceID][]structs.CheckType // TODO: missing garbage collection
-	PreparedQueryEndpoints map[string]structs.CheckServiceNodes      // DEPRECATED:see:WatchedUpstreamEndpoints
+	PreparedQueryEndpoints map[UpstreamID]structs.CheckServiceNodes  // DEPRECATED:see:WatchedUpstreamEndpoints
 
 	// NOTE: Intentions stores a list of lists as returned by the Intentions
 	// Match RPC. So far we only use the first list as the list of matching
@@ -371,8 +371,8 @@ type configSnapshotIngressGateway struct {
 	// the GatewayServices RPC to retrieve them.
 	Upstreams map[IngressListenerKey]structs.Upstreams
 
-	// UpstreamsSet is the unique set of upstream.Identifier() the gateway routes to.
-	UpstreamsSet map[string]struct{}
+	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
+	UpstreamsSet map[UpstreamID]struct{}
 
 	// Listeners is the original listener config from the ingress-gateway config
 	// entry to save us trying to pass fields through Upstreams

@@ -43,8 +43,8 @@ func newTestSnapshot(
 	additionalEntries ...structs.ConfigEntry,
 ) *proxycfg.ConfigSnapshot {
 	snap := proxycfg.TestConfigSnapshotDiscoveryChainDefaultWithEntries(t, additionalEntries...)
-	snap.ConnectProxy.PreparedQueryEndpoints = map[string]structs.CheckServiceNodes{
-		"prepared_query:geo-cache": proxycfg.TestPreparedQueryNodes(t, "geo-cache"),
+	snap.ConnectProxy.PreparedQueryEndpoints = map[proxycfg.UpstreamID]structs.CheckServiceNodes{
+		UID("prepared_query:geo-cache"): proxycfg.TestPreparedQueryNodes(t, "geo-cache"),
 	}
 	if prevSnap != nil {
 		snap.Roots = prevSnap.Roots
@@ -53,7 +53,7 @@ func newTestSnapshot(
 	if dbServiceProtocol != "" {
 		// Simulate ServiceManager injection of protocol
 		snap.Proxy.Upstreams[0].Config["protocol"] = dbServiceProtocol
-		snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamConfig = snap.Proxy.Upstreams.ToMap()
+		snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamConfig = proxycfg.UpstreamsToMap(snap.Proxy.Upstreams)
 	}
 	return snap
 }
