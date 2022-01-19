@@ -10,7 +10,7 @@ description: >-
 Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes.
 This topic describes the commands, subcommands, and available options for using Consul K8s CLI.
 
-## Install the Consul K8s CLI
+## Install the Consul K8s CLI (latest)
 
 The [Homebrew](https://brew.sh) package manager is required to complete the following installation instructions.
 
@@ -35,6 +35,26 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
    ```shell-session
    consul-k8s version
    consul-k8s 0.39.0
+   ```
+   
+## Install a specific version of Consul K8s CLI
+
+1. Download the Consul K8s CLI using the following `curl` command. 
+
+   ```shell-session
+   curl --location https://releases.hashicorp.com/consul-k8s/0.39.0/consul-k8s_0.39.0_darwin_amd64.zip --output consul-k8s-cli.zip
+   ```
+   
+1. Unzip the zip file ouput to extract the `consul-k8s` CLI binary. 
+   
+   ```shell-session
+   unzip -o consul-k8s-cli.zip -d ~/.consul-k8s
+   ```
+   
+1. Add the path to your directory
+
+   ```shell-session
+   export PATH=$PATH:$HOME/.consul-k8s/consul-k8s
    ```
    
 ## Upgrade the Consul K8s CLI
