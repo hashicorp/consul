@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Fixed a bug with creating multiple nested KVs in one interaction
+```
