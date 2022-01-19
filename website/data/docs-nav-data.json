@@ -375,6 +375,10 @@
             "path": "k8s/installation/install"
           },
           {
+            "title": "Installing Consul K8s CLI",
+            "path": "k8s/installation/install-cli"
+          },
+          {
             "title": "Platform Guides",
             "routes": [
               {
