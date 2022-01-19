@@ -77,6 +77,8 @@ type TestServerConfig struct {
 	Performance         *TestPerformanceConfig `json:"performance,omitempty"`
 	Bootstrap           bool                   `json:"bootstrap,omitempty"`
 	Server              bool                   `json:"server,omitempty"`
+	Partition           string                 `json:"partition,omitempty"`
+	RetryJoin           []string               `json:"retry_join,omitempty"`
 	DataDir             string                 `json:"data_dir,omitempty"`
 	Datacenter          string                 `json:"datacenter,omitempty"`
 	Segments            []TestNetworkSegment   `json:"segments"`
