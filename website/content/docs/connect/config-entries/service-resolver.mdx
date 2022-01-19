@@ -23,7 +23,7 @@ and discovery terminates.
 - Service resolver config entries are a component of [L7 Traffic
   Management](/docs/connect/l7-traffic-management).
 
-## UI 
+## UI
 
 Once a `service-resolver` is successfully entered, you can view it in the UI. Service routers, service splitters, and service resolvers can all be viewed by clicking on your service then switching to the *routing* tab.
 
@@ -546,13 +546,13 @@ spec:
           description: 'Configuration for the `ring_hash` policy type.',
           children: [
             {
-              name: 'MinimumRingRize',
+              name: 'MinimumRingSize',
               type: 'int: 1024',
               description:
                 'Determines the minimum number of entries in the hash ring.',
             },
             {
-              name: 'MaximumRingRize',
+              name: 'MaximumRingSize',
               type: 'int: 8192',
               description:
                 'Determines the maximum number of entries in the hash ring.',
