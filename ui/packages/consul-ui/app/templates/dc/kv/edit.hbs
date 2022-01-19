@@ -16,7 +16,7 @@ as |parentKey|}}
         partition=route.params.partition
         nspace=route.params.nspace
         dc=route.params.dc
-        key=(if (string-ends-with routeName 'create') parentKey route.params.key)
+        key=(if (string-ends-with routeName 'create') '' route.params.key)
       )
     }}
   as |loader|>
