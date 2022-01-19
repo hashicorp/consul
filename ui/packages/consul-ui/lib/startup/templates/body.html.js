@@ -42,12 +42,13 @@ ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.oper
     "codemirror/mode/xml/xml.js": "${rootURL}assets/codemirror/mode/xml/xml.js"
   }
   </script>
-  <script data-app-name="${appName}" data-${appName}-services src="${rootURL}assets/consul-ui/services.js"></script>
+  <script src="${rootURL}assets/consul-ui/services.js"></script>
+  <script src="${rootURL}assets/consul-ui/routes.js"></script>
 ${
   environment === 'development' || environment === 'staging'
     ? `
-  <script data-app-name="${appName}" data-${appName}-services src="${rootURL}assets/consul-ui/services-debug.js"></script>
-  <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-ui/routes-debug.js"></script>
+  <script src="${rootURL}assets/consul-ui/services-debug.js"></script>
+  <script src="${rootURL}assets/consul-ui/routes-debug.js"></script>
 `
     : ``
 }
@@ -55,13 +56,14 @@ ${
   environment === 'production'
     ? `
 {{if .ACLsEnabled}}
-  <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-acls/routes.js"></script>
+  <script src="${rootURL}assets/consul-acls/routes.js"></script>
 {{end}}
 {{if .PartitionsEnabled}}
-  <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-partitions/routes.js"></script>
+  <script src="${rootURL}assets/consul-partitions/services.js"></script>
+  <script src="${rootURL}assets/consul-partitions/routes.js"></script>
 {{end}}
 {{if .NamespacesEnabled}}
-  <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-nspaces/routes.js"></script>
+  <script src="${rootURL}assets/consul-nspaces/routes.js"></script>
 {{end}}
 `
     : `
@@ -72,7 +74,8 @@ ${
       if(get(key) || (key === 'CONSUL_NSPACES_ENABLE' && ${
         env('CONSUL_NSPACES_ENABLED') === '1' ? `true` : `false`
       })) {
-        document.write(\`\\x3Cscript data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/\${value}/routes.js">\\x3C/script>\`);
+        document.write(\`\\x3Cscript src="${rootURL}assets/\${value}/services.js">\\x3C/script>\`);
+        document.write(\`\\x3Cscript src="${rootURL}assets/\${value}/routes.js">\\x3C/script>\`);
       }
     });
   }
