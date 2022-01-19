@@ -125,6 +125,7 @@ to update to the new version.
    global:
      image: consul:1.8.3
    ```
+
    </CodeBlockConfig>
 
 1. Determine your current installed chart version:
@@ -220,9 +221,8 @@ the following will occur:
    of time, however, it's important for the local Consul client to be restarted
    as quickly as possible.
 
-Once the local Consul client pod restarts, each service pod needs to re-register
-itself with the client. This is done automatically by the `consul-connect-lifecycle-sidecar`
-sidecar container that is injected alongside each service.
+Once the local Consul client pod restarts, each service pod needs to be re-registered
+with its local Consul client. This is done automatically by the connect inject controller.
 
 Because service mesh pods are briefly deregistered during a Consul client restart,
 it's **important that you do not restart all Consul clients at once**. Otherwise
