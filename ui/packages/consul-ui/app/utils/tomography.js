@@ -44,9 +44,9 @@ export default function(distance) {
     }
     return {
       distances: distances,
-      min: parseInt(min * 100) / 100,
-      median: parseInt(median * 100) / 100,
-      max: parseInt(max * 100) / 100,
+      min: Math.trunc(min * 100) / 100,
+      median: Math.trunc(median * 100) / 100,
+      max: Math.trunc(max * 100) / 100,
     };
   };
 }
