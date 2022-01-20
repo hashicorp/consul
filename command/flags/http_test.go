@@ -8,8 +8,7 @@ import (
 
 func TestHTTPFlagsSetToken(t *testing.T) {
 	var f HTTPFlags
-	require := require.New(t)
-	require.Empty(f.Token())
-	require.NoError(f.SetToken("foo"))
-	require.Equal("foo", f.Token())
+	require.Empty(t, f.Token())
+	require.NoError(t, f.SetToken("foo"))
+	require.Equal(t, "foo", f.Token())
 }

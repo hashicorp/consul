@@ -738,8 +738,6 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	assert := assert.New(t)
-
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &QueryOptions{
 		Namespace:         "operator",
@@ -785,7 +783,7 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	if r.params.Get("local-only") != "true" {
 		t.Fatalf("bad: %v", r.params)
 	}
-	assert.Equal("", r.header.Get("Cache-Control"))
+	assert.Equal(t, "", r.header.Get("Cache-Control"))
 
 	r = c.newRequest("GET", "/v1/kv/foo")
 	q = &QueryOptions{
@@ -796,8 +794,8 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	r.setQueryOptions(q)
 
 	_, ok := r.params["cached"]
-	assert.True(ok)
-	assert.Equal("max-age=30, stale-if-error=346", r.header.Get("Cache-Control"))
+	assert.True(t, ok)
+	assert.Equal(t, "max-age=30, stale-if-error=346", r.header.Get("Cache-Control"))
 }
 
 func TestAPI_SetWriteOptions(t *testing.T) {

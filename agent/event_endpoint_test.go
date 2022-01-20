@@ -9,10 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/require"
 )
 
 func TestEventFire(t *testing.T) {
@@ -212,25 +213,21 @@ func TestEventList_ACLFilter(t *testing.T) {
 
 	t.Run("no token", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			require := require.New(r)
-
 			req := httptest.NewRequest("GET", "/v1/event/list", nil)
 			resp := httptest.NewRecorder()
 
 			obj, err := a.srv.EventList(resp, req)
-			require.NoError(err)
+			require.NoError(r, err)
 
 			list, ok := obj.([]*UserEvent)
-			require.True(ok)
-			require.Empty(list)
-			require.Empty(resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+			require.True(r, ok)
+			require.Empty(r, list)
+			require.Empty(r, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 		})
 	})
 
 	t.Run("token with access to one event type", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			require := require.New(r)
-
 			token := testCreateToken(t, a, `
 				event "foo" {
 					policy = "read"
@@ -241,37 +238,35 @@ func TestEventList_ACLFilter(t *testing.T) {
 			resp := httptest.NewRecorder()
 
 			obj, err := a.srv.EventList(resp, req)
-			require.NoError(err)
+			require.NoError(r, err)
 
 			list, ok := obj.([]*UserEvent)
-			require.True(ok)
-			require.Len(list, 1)
-			require.Equal("foo", list[0].Name)
-			require.NotEmpty(resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+			require.True(r, ok)
+			require.Len(r, list, 1)
+			require.Equal(r, "foo", list[0].Name)
+			require.NotEmpty(r, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 		})
 	})
 
 	t.Run("root token", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			require := require.New(r)
-
 			req := httptest.NewRequest("GET", "/v1/event/list?token=root", nil)
 			resp := httptest.NewRecorder()
 
 			obj, err := a.srv.EventList(resp, req)
-			require.NoError(err)
+			require.NoError(r, err)
 
 			list, ok := obj.([]*UserEvent)
-			require.True(ok)
-			require.Len(list, 2)
+			require.True(r, ok)
+			require.Len(r, list, 2)
 
 			var names []string
 			for _, e := range list {
 				names = append(names, e.Name)
 			}
-			require.ElementsMatch([]string{"foo", "bar"}, names)
+			require.ElementsMatch(r, []string{"foo", "bar"}, names)
 
-			require.Empty(resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+			require.Empty(r, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 		})
 	})
 }

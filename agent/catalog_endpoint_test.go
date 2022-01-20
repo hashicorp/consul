@@ -635,9 +635,6 @@ func TestCatalogServiceNodes(t *testing.T) {
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
-	assert := assert.New(t)
-	require := require.New(t)
-
 	// Make sure an empty list is returned, not a nil
 	{
 		req, _ := http.NewRequest("GET", "/v1/catalog/service/api?tag=a", nil)
@@ -691,12 +688,12 @@ func TestCatalogServiceNodes(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/catalog/service/api?cached", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.CatalogServiceNodes(resp, req)
-		require.NoError(err)
+		require.NoError(t, err)
 		nodes := obj.(structs.ServiceNodes)
-		assert.Len(nodes, 1)
+		assert.Len(t, nodes, 1)
 
 		// Should be a cache miss
-		assert.Equal("MISS", resp.Header().Get("X-Cache"))
+		assert.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 	}
 
 	{
@@ -704,13 +701,13 @@ func TestCatalogServiceNodes(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/catalog/service/api?cached", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.CatalogServiceNodes(resp, req)
-		require.NoError(err)
+		require.NoError(t, err)
 		nodes := obj.(structs.ServiceNodes)
-		assert.Len(nodes, 1)
+		assert.Len(t, nodes, 1)
 
 		// Should be a cache HIT now!
-		assert.Equal("HIT", resp.Header().Get("X-Cache"))
-		assert.Equal("0", resp.Header().Get("Age"))
+		assert.Equal(t, "HIT", resp.Header().Get("X-Cache"))
+		assert.Equal(t, "0", resp.Header().Get("Age"))
 	}
 
 	// Ensure background refresh works
@@ -719,7 +716,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 		args2 := args
 		args2.Node = "bar"
 		args2.Address = "127.0.0.2"
-		require.NoError(a.RPC("Catalog.Register", args, &out))
+		require.NoError(t, a.RPC("Catalog.Register", args, &out))
 
 		retry.Run(t, func(r *retry.R) {
 			// List it again
@@ -1057,7 +1054,6 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -1065,19 +1061,19 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	// Register
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(a.RPC("Catalog.Register", args, &out))
+	assert.Nil(t, a.RPC("Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
 		"/v1/catalog/service/%s", args.Service.Service), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.CatalogServiceNodes(resp, req)
-	assert.Nil(err)
+	assert.Nil(t, err)
 	assertIndex(t, resp)
 
 	nodes := obj.(structs.ServiceNodes)
-	assert.Len(nodes, 1)
-	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
-	assert.Equal(args.Service.Proxy, nodes[0].ServiceProxy)
+	assert.Len(t, nodes, 1)
+	assert.Equal(t, structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
+	assert.Equal(t, args.Service.Proxy, nodes[0].ServiceProxy)
 }
 
 // Test that the Connect-compatible endpoints can be queried for a
@@ -1089,7 +1085,6 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -1098,20 +1093,20 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 	args := structs.TestRegisterRequestProxy(t)
 	args.Service.Address = "127.0.0.55"
 	var out struct{}
-	assert.Nil(a.RPC("Catalog.Register", args, &out))
+	assert.Nil(t, a.RPC("Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
 		"/v1/catalog/connect/%s", args.Service.Proxy.DestinationServiceName), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.CatalogConnectServiceNodes(resp, req)
-	assert.Nil(err)
+	assert.Nil(t, err)
 	assertIndex(t, resp)
 
 	nodes := obj.(structs.ServiceNodes)
-	assert.Len(nodes, 1)
-	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
-	assert.Equal(args.Service.Address, nodes[0].ServiceAddress)
-	assert.Equal(args.Service.Proxy, nodes[0].ServiceProxy)
+	assert.Len(t, nodes, 1)
+	assert.Equal(t, structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
+	assert.Equal(t, args.Service.Address, nodes[0].ServiceAddress)
+	assert.Equal(t, args.Service.Proxy, nodes[0].ServiceProxy)
 }
 
 func TestCatalogConnectServiceNodes_Filter(t *testing.T) {
@@ -1307,7 +1302,6 @@ func TestCatalogNodeServices_ConnectProxy(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -1315,19 +1309,19 @@ func TestCatalogNodeServices_ConnectProxy(t *testing.T) {
 	// Register
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(a.RPC("Catalog.Register", args, &out))
+	assert.Nil(t, a.RPC("Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
 		"/v1/catalog/node/%s", args.Node), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.CatalogNodeServices(resp, req)
-	assert.Nil(err)
+	assert.Nil(t, err)
 	assertIndex(t, resp)
 
 	ns := obj.(*structs.NodeServices)
-	assert.Len(ns.Services, 1)
+	assert.Len(t, ns.Services, 1)
 	v := ns.Services[args.Service.Service]
-	assert.Equal(structs.ServiceKindConnectProxy, v.Kind)
+	assert.Equal(t, structs.ServiceKindConnectProxy, v.Kind)
 }
 
 func TestCatalogNodeServices_WanTranslation(t *testing.T) {

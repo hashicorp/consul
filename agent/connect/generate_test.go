@@ -8,8 +8,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 type KeyConfig struct {
@@ -47,32 +48,30 @@ func makeConfig(kc KeyConfig) structs.CommonCAProviderConfig {
 }
 
 func testGenerateRSAKey(t *testing.T, bits int) {
-	r := require.New(t)
 	_, rsaBlock, err := GeneratePrivateKeyWithConfig("rsa", bits)
-	r.NoError(err)
-	r.Contains(rsaBlock, "RSA PRIVATE KEY")
+	require.NoError(t, err)
+	require.Contains(t, rsaBlock, "RSA PRIVATE KEY")
 
 	rsaBytes, _ := pem.Decode([]byte(rsaBlock))
-	r.NotNil(rsaBytes)
+	require.NotNil(t, rsaBytes)
 
 	rsaKey, err := x509.ParsePKCS1PrivateKey(rsaBytes.Bytes)
-	r.NoError(err)
-	r.NoError(rsaKey.Validate())
-	r.Equal(bits/8, rsaKey.Size()) // note: returned size is in bytes. 2048/8==256
+	require.NoError(t, err)
+	require.NoError(t, rsaKey.Validate())
+	require.Equal(t, bits/8, rsaKey.Size()) // note: returned size is in bytes. 2048/8==256
 }
 
 func testGenerateECDSAKey(t *testing.T, bits int) {
-	r := require.New(t)
 	_, pemBlock, err := GeneratePrivateKeyWithConfig("ec", bits)
-	r.NoError(err)
-	r.Contains(pemBlock, "EC PRIVATE KEY")
+	require.NoError(t, err)
+	require.Contains(t, pemBlock, "EC PRIVATE KEY")
 
 	block, _ := pem.Decode([]byte(pemBlock))
-	r.NotNil(block)
+	require.NotNil(t, block)
 
 	pk, err := x509.ParseECPrivateKey(block.Bytes)
-	r.NoError(err)
-	r.Equal(bits, pk.Curve.Params().BitSize)
+	require.NoError(t, err)
+	require.Equal(t, bits, pk.Curve.Params().BitSize)
 }
 
 // Tests to make sure we are able to generate every type of private key supported by the x509 lib.
@@ -104,7 +103,7 @@ func TestValidateGoodConfigs(t *testing.T) {
 		config := makeConfig(params)
 		t.Run(fmt.Sprintf("TestValidateGoodConfigs-%s-%d", params.keyType, params.keyBits),
 			func(t *testing.T) {
-				require.New(t).NoError(config.Validate(), "unexpected error: type=%s bits=%d",
+				require.NoError(t, config.Validate(), "unexpected error: type=%s bits=%d",
 					params.keyType, params.keyBits)
 			})
 
@@ -117,7 +116,7 @@ func TestValidateBadConfigs(t *testing.T) {
 	for _, params := range badParams {
 		config := makeConfig(params)
 		t.Run(fmt.Sprintf("TestValidateBadConfigs-%s-%d", params.keyType, params.keyBits), func(t *testing.T) {
-			require.New(t).Error(config.Validate(), "expected error: type=%s bits=%d",
+			require.Error(t, config.Validate(), "expected error: type=%s bits=%d",
 				params.keyType, params.keyBits)
 		})
 	}
@@ -131,7 +130,6 @@ func TestSignatureMismatches(t *testing.T) {
 	}
 
 	t.Parallel()
-	r := require.New(t)
 	for _, p1 := range goodParams {
 		for _, p2 := range goodParams {
 			if p1 == p2 {
@@ -139,14 +137,14 @@ func TestSignatureMismatches(t *testing.T) {
 			}
 			t.Run(fmt.Sprintf("TestMismatches-%s%d-%s%d", p1.keyType, p1.keyBits, p2.keyType, p2.keyBits), func(t *testing.T) {
 				ca := TestCAWithKeyType(t, nil, p1.keyType, p1.keyBits)
-				r.Equal(p1.keyType, ca.PrivateKeyType)
-				r.Equal(p1.keyBits, ca.PrivateKeyBits)
+				require.Equal(t, p1.keyType, ca.PrivateKeyType)
+				require.Equal(t, p1.keyBits, ca.PrivateKeyBits)
 				certPEM, keyPEM, err := testLeaf(t, "foobar.service.consul", "default", ca, p2.keyType, p2.keyBits)
-				r.NoError(err)
+				require.NoError(t, err)
 				_, err = ParseCert(certPEM)
-				r.NoError(err)
+				require.NoError(t, err)
 				_, err = ParseSigner(keyPEM)
-				r.NoError(err)
+				require.NoError(t, err)
 			})
 		}
 	}

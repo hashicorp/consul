@@ -227,17 +227,16 @@ func TestIntentionValidate(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			assert := assert.New(t)
 			ixn := TestIntention(t)
 			tc.Modify(ixn)
 
 			err := ixn.Validate()
-			assert.Equal(err != nil, tc.Err != "", err)
+			assert.Equal(t, err != nil, tc.Err != "", err)
 			if err == nil {
 				return
 			}
 
-			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 		})
 	}
 }
@@ -301,7 +300,6 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			assert := assert.New(t)
 
 			var input Intentions
 			for _, v := range tc.Input {
@@ -331,7 +329,7 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 					v.DestinationName,
 				})
 			}
-			assert.Equal(tc.Expected, actual)
+			assert.Equal(t, tc.Expected, actual)
 		})
 	}
 }

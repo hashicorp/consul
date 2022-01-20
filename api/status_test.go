@@ -83,7 +83,6 @@ func TestAPI_StatusPeersWithQueryOptions(t *testing.T) {
 
 func TestAPI_StatusLeader_WrongDC(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
 
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -96,13 +95,12 @@ func TestAPI_StatusLeader_WrongDC(t *testing.T) {
 	}
 
 	_, err := status.LeaderWithQueryOptions(&opts)
-	require.Error(err)
-	require.Contains(err.Error(), "No path to datacenter")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "No path to datacenter")
 }
 
 func TestAPI_StatusPeers_WrongDC(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
 
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -114,6 +112,6 @@ func TestAPI_StatusPeers_WrongDC(t *testing.T) {
 		Datacenter: "wrong_dc1",
 	}
 	_, err := status.PeersWithQueryOptions(&opts)
-	require.Error(err)
-	require.Contains(err.Error(), "No path to datacenter")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "No path to datacenter")
 }

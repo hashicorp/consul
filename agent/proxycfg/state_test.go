@@ -115,11 +115,10 @@ func TestStateChanged(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
 			state, err := newState(tt.ns, tt.token, stateConfig{logger: hclog.New(nil)})
-			require.NoError(err)
+			require.NoError(t, err)
 			otherNS, otherToken := tt.mutate(*tt.ns, tt.token)
-			require.Equal(tt.want, state.Changed(otherNS, otherToken))
+			require.Equal(t, tt.want, state.Changed(otherNS, otherToken))
 		})
 	}
 }

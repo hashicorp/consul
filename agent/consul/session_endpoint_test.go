@@ -420,7 +420,6 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("Get", func(t *testing.T) {
-		require := require.New(t)
 
 		req := &structs.SessionSpecificRequest{
 			Datacenter: "dc1",
@@ -432,30 +431,29 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 		var sessions structs.IndexedSessions
 
 		err := msgpackrpc.CallWithCodec(codec, "Session.Get", req, &sessions)
-		require.NoError(err)
-		require.Empty(sessions.Sessions)
-		require.True(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.NoError(t, err)
+		require.Empty(t, sessions.Sessions)
+		require.True(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 		// ACL-restricted results included.
 		req.Token = allowedToken
 
 		err = msgpackrpc.CallWithCodec(codec, "Session.Get", req, &sessions)
-		require.NoError(err)
-		require.Len(sessions.Sessions, 1)
-		require.False(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.NoError(t, err)
+		require.Len(t, sessions.Sessions, 1)
+		require.False(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 
 		// Try to get a session that doesn't exist to make sure that's handled
 		// correctly by the filter (it will get passed a nil slice).
 		req.SessionID = "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
 
 		err = msgpackrpc.CallWithCodec(codec, "Session.Get", req, &sessions)
-		require.NoError(err)
-		require.Empty(sessions.Sessions)
-		require.False(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.NoError(t, err)
+		require.Empty(t, sessions.Sessions)
+		require.False(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("List", func(t *testing.T) {
-		require := require.New(t)
 
 		req := &structs.DCSpecificRequest{
 			Datacenter: "dc1",
@@ -466,21 +464,20 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 		var sessions structs.IndexedSessions
 
 		err := msgpackrpc.CallWithCodec(codec, "Session.List", req, &sessions)
-		require.NoError(err)
-		require.Empty(sessions.Sessions)
-		require.True(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.NoError(t, err)
+		require.Empty(t, sessions.Sessions)
+		require.True(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 		// ACL-restricted results included.
 		req.Token = allowedToken
 
 		err = msgpackrpc.CallWithCodec(codec, "Session.List", req, &sessions)
-		require.NoError(err)
-		require.Len(sessions.Sessions, 1)
-		require.False(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.NoError(t, err)
+		require.Len(t, sessions.Sessions, 1)
+		require.False(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("NodeSessions", func(t *testing.T) {
-		require := require.New(t)
 
 		req := &structs.NodeSpecificRequest{
 			Datacenter: "dc1",
@@ -492,17 +489,17 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 		var sessions structs.IndexedSessions
 
 		err := msgpackrpc.CallWithCodec(codec, "Session.NodeSessions", req, &sessions)
-		require.NoError(err)
-		require.Empty(sessions.Sessions)
-		require.True(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.NoError(t, err)
+		require.Empty(t, sessions.Sessions)
+		require.True(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 		// ACL-restricted results included.
 		req.Token = allowedToken
 
 		err = msgpackrpc.CallWithCodec(codec, "Session.NodeSessions", req, &sessions)
-		require.NoError(err)
-		require.Len(sessions.Sessions, 1)
-		require.False(sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.NoError(t, err)
+		require.Len(t, sessions.Sessions, 1)
+		require.False(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 }
 

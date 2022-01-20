@@ -611,9 +611,6 @@ func TestHealthServiceNodes(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	assert := assert.New(t)
-	require := require.New(t)
-
 	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.HealthServiceNodes(resp, req)
@@ -680,12 +677,12 @@ func TestHealthServiceNodes(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/health/service/test?cached", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthServiceNodes(resp, req)
-		require.NoError(err)
+		require.NoError(t, err)
 		nodes := obj.(structs.CheckServiceNodes)
-		assert.Len(nodes, 1)
+		assert.Len(t, nodes, 1)
 
 		// Should be a cache miss
-		assert.Equal("MISS", resp.Header().Get("X-Cache"))
+		assert.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 	}
 
 	{
@@ -693,12 +690,12 @@ func TestHealthServiceNodes(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/health/service/test?cached", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthServiceNodes(resp, req)
-		require.NoError(err)
+		require.NoError(t, err)
 		nodes := obj.(structs.CheckServiceNodes)
-		assert.Len(nodes, 1)
+		assert.Len(t, nodes, 1)
 
 		// Should be a cache HIT now!
-		assert.Equal("HIT", resp.Header().Get("X-Cache"))
+		assert.Equal(t, "HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Ensure background refresh works
@@ -707,7 +704,7 @@ func TestHealthServiceNodes(t *testing.T) {
 		args2 := args
 		args2.Node = "baz"
 		args2.Address = "127.0.0.2"
-		require.NoError(a.RPC("Catalog.Register", args, &out))
+		require.NoError(t, a.RPC("Catalog.Register", args, &out))
 
 		retry.Run(t, func(r *retry.R) {
 			// List it again
@@ -1414,27 +1411,26 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Register
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(a.RPC("Catalog.Register", args, &out))
+	assert.Nil(t, a.RPC("Catalog.Register", args, &out))
 
 	// Request
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
 		"/v1/health/connect/%s?dc=dc1", args.Service.Proxy.DestinationServiceName), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.HealthConnectServiceNodes(resp, req)
-	assert.Nil(err)
+	assert.Nil(t, err)
 	assertIndex(t, resp)
 
 	// Should be a non-nil empty list for checks
 	nodes := obj.(structs.CheckServiceNodes)
-	assert.Len(nodes, 1)
-	assert.Len(nodes[0].Checks, 0)
+	assert.Len(t, nodes, 1)
+	assert.Len(t, nodes[0].Checks, 0)
 }
 
 func TestHealthIngressServiceNodes(t *testing.T) {
@@ -1616,58 +1612,54 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	assert.Nil(t, a.RPC("Catalog.Register", args, &out))
 
 	t.Run("bc_no_query_value", func(t *testing.T) {
-		assert := assert.New(t)
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
 			"/v1/health/connect/%s?passing", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
-		assert.Nil(err)
+		assert.Nil(t, err)
 		assertIndex(t, resp)
 
 		// Should be 0 health check for consul
 		nodes := obj.(structs.CheckServiceNodes)
-		assert.Len(nodes, 0)
+		assert.Len(t, nodes, 0)
 	})
 
 	t.Run("passing_true", func(t *testing.T) {
-		assert := assert.New(t)
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
 			"/v1/health/connect/%s?passing=true", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
-		assert.Nil(err)
+		assert.Nil(t, err)
 		assertIndex(t, resp)
 
 		// Should be 0 health check for consul
 		nodes := obj.(structs.CheckServiceNodes)
-		assert.Len(nodes, 0)
+		assert.Len(t, nodes, 0)
 	})
 
 	t.Run("passing_false", func(t *testing.T) {
-		assert := assert.New(t)
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
 			"/v1/health/connect/%s?passing=false", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
-		assert.Nil(err)
+		assert.Nil(t, err)
 		assertIndex(t, resp)
 
 		// Should be 1
 		nodes := obj.(structs.CheckServiceNodes)
-		assert.Len(nodes, 1)
+		assert.Len(t, nodes, 1)
 	})
 
 	t.Run("passing_bad", func(t *testing.T) {
-		assert := assert.New(t)
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
 			"/v1/health/connect/%s?passing=nope-nope", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		a.srv.HealthConnectServiceNodes(resp, req)
-		assert.Equal(400, resp.Code)
+		assert.Equal(t, 400, resp.Code)
 
 		body, err := ioutil.ReadAll(resp.Body)
-		assert.Nil(err)
-		assert.True(bytes.Contains(body, []byte("Invalid value for ?passing")))
+		assert.Nil(t, err)
+		assert.True(t, bytes.Contains(body, []byte("Invalid value for ?passing")))
 	})
 }
 

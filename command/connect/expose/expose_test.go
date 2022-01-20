@@ -16,7 +16,6 @@ func TestConnectExpose(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	client := a.Client()
 	defer a.Shutdown()
@@ -41,7 +40,7 @@ func TestConnectExpose(t *testing.T) {
 
 	// Make sure the config entry and intention have been created.
 	entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
-	require.NoError(err)
+	require.NoError(t, err)
 	ns := entry.(*api.IngressGatewayConfigEntry).Namespace
 	ap := entry.(*api.IngressGatewayConfigEntry).Partition
 	expected := &api.IngressGatewayConfigEntry{
@@ -64,13 +63,13 @@ func TestConnectExpose(t *testing.T) {
 	}
 	expected.CreateIndex = entry.GetCreateIndex()
 	expected.ModifyIndex = entry.GetModifyIndex()
-	require.Equal(expected, entry)
+	require.Equal(t, expected, entry)
 
 	ixns, _, err := client.Connect().Intentions(nil)
-	require.NoError(err)
-	require.Len(ixns, 1)
-	require.Equal("ingress", ixns[0].SourceName)
-	require.Equal("foo", ixns[0].DestinationName)
+	require.NoError(t, err)
+	require.Len(t, ixns, 1)
+	require.Equal(t, "ingress", ixns[0].SourceName)
+	require.Equal(t, "foo", ixns[0].DestinationName)
 
 	// Run the command again with a different port, make sure the config entry
 	// is updated while intentions are unmodified.
@@ -104,15 +103,15 @@ func TestConnectExpose(t *testing.T) {
 
 		// Make sure the config entry/intention weren't affected.
 		entry, _, err = client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
-		require.NoError(err)
+		require.NoError(t, err)
 		expected.ModifyIndex = entry.GetModifyIndex()
-		require.Equal(expected, entry)
+		require.Equal(t, expected, entry)
 
 		ixns, _, err = client.Connect().Intentions(nil)
-		require.NoError(err)
-		require.Len(ixns, 1)
-		require.Equal("ingress", ixns[0].SourceName)
-		require.Equal("foo", ixns[0].DestinationName)
+		require.NoError(t, err)
+		require.Len(t, ixns, 1)
+		require.Equal(t, "ingress", ixns[0].SourceName)
+		require.Equal(t, "foo", ixns[0].DestinationName)
 	}
 
 	// Run the command again with a conflicting protocol, should exit with an error and
@@ -132,18 +131,18 @@ func TestConnectExpose(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 		}
-		require.Contains(ui.ErrorWriter.String(), `conflicting protocol "tcp"`)
+		require.Contains(t, ui.ErrorWriter.String(), `conflicting protocol "tcp"`)
 
 		// Make sure the config entry/intention weren't affected.
 		entry, _, err = client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
-		require.NoError(err)
-		require.Equal(expected, entry)
+		require.NoError(t, err)
+		require.Equal(t, expected, entry)
 
 		ixns, _, err = client.Connect().Intentions(nil)
-		require.NoError(err)
-		require.Len(ixns, 1)
-		require.Equal("ingress", ixns[0].SourceName)
-		require.Equal("foo", ixns[0].DestinationName)
+		require.NoError(t, err)
+		require.Len(t, ixns, 1)
+		require.Equal(t, "ingress", ixns[0].SourceName)
+		require.Equal(t, "foo", ixns[0].DestinationName)
 	}
 }
 
@@ -153,7 +152,6 @@ func TestConnectExpose_invalidFlags(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
@@ -169,7 +167,7 @@ func TestConnectExpose_invalidFlags(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 		}
-		require.Contains(ui.ErrorWriter.String(), "A service name must be given")
+		require.Contains(t, ui.ErrorWriter.String(), "A service name must be given")
 	})
 	t.Run("missing gateway", func(t *testing.T) {
 		ui := cli.NewMockUi()
@@ -183,7 +181,7 @@ func TestConnectExpose_invalidFlags(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 		}
-		require.Contains(ui.ErrorWriter.String(), "An ingress gateway service must be given")
+		require.Contains(t, ui.ErrorWriter.String(), "An ingress gateway service must be given")
 	})
 	t.Run("missing port", func(t *testing.T) {
 		ui := cli.NewMockUi()
@@ -198,7 +196,7 @@ func TestConnectExpose_invalidFlags(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 		}
-		require.Contains(ui.ErrorWriter.String(), "A port must be provided")
+		require.Contains(t, ui.ErrorWriter.String(), "A port must be provided")
 	})
 }
 
@@ -208,7 +206,6 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	client := a.Client()
 	defer a.Shutdown()
@@ -220,7 +217,7 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 			Name:     service,
 			Protocol: "http",
 		}, nil)
-		require.NoError(err)
+		require.NoError(t, err)
 	}
 
 	// Create an existing ingress config entry with some services.
@@ -249,7 +246,7 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 		},
 	}
 	_, _, err := client.ConfigEntries().Set(ingressConf, nil)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Add a service on a new port.
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -271,7 +268,7 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 
 		// Make sure the ingress config was updated and existing services preserved.
 		entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		entryConf := entry.(*api.IngressGatewayConfigEntry)
 		ingressConf.Listeners = append(ingressConf.Listeners, api.IngressListener{
@@ -290,7 +287,7 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 		}
 		ingressConf.CreateIndex = entry.GetCreateIndex()
 		ingressConf.ModifyIndex = entry.GetModifyIndex()
-		require.Equal(ingressConf, entry)
+		require.Equal(t, ingressConf, entry)
 	}
 
 	// Add an service on a port shared with an existing listener.
@@ -315,7 +312,7 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 
 		// Make sure the ingress config was updated and existing services preserved.
 		entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		entryConf := entry.(*api.IngressGatewayConfigEntry)
 		ingressConf.Listeners[1].Services = append(ingressConf.Listeners[1].Services, api.IngressService{
@@ -326,7 +323,7 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 		})
 		ingressConf.CreateIndex = entry.GetCreateIndex()
 		ingressConf.ModifyIndex = entry.GetModifyIndex()
-		require.Equal(ingressConf, entry)
+		require.Equal(t, ingressConf, entry)
 	}
 
 	// Update the bar service and add a custom host.
@@ -350,11 +347,11 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 
 		// Make sure the ingress config was updated and existing services preserved.
 		entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		ingressConf.Listeners[1].Services[0].Hosts = []string{"bar.com"}
 		ingressConf.CreateIndex = entry.GetCreateIndex()
 		ingressConf.ModifyIndex = entry.GetModifyIndex()
-		require.Equal(ingressConf, entry)
+		require.Equal(t, ingressConf, entry)
 	}
 }
