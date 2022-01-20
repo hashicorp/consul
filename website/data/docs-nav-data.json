@@ -375,6 +375,10 @@
             "path": "k8s/installation/install"
           },
           {
+            "title": "Installing Consul K8s CLI",
+            "path": "k8s/installation/install-cli"
+          },
+          {
             "title": "Platform Guides",
             "routes": [
               {
@@ -543,8 +547,12 @@
         "title": "Upgrade",
         "routes": [
           {
-            "title": "Overview",
+            "title": "Upgrading Consul on Kubernetes",
             "path": "k8s/upgrade"
+          },
+          {
+            "title": "Upgrading Consul K8s CLI",
+            "path": "k8s/upgrade/upgrade-cli"
           }
         ]
       },

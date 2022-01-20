@@ -8,50 +8,7 @@ description: >-
 # Consul K8s CLI Reference
 
 Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes.
-This topic describes the commands, subcommands, and available options for using Consul K8s CLI.
-
-## Install the Consul K8s CLI
-
-The [Homebrew](https://brew.sh) package manager is required to complete the following installation instructions.
-
-1. Install the HashiCorp `tap`, which is a repository of all Homebrew packages for HashiCorp:
-    ```shell-session
-    brew tap hashicorp/tap
-    ```
-    
-1. Install the Consul K8s CLI with `hashicorp/tap/consul` formula. 
-    ```shell-session
-    brew install hashicorp/tap/consul-k8s
-    ```
-
-1. If you have already provisioned a Kubernetes cluster and have already configured access to the cluster via a `kubeconfig` file, you are ready to install Consul K8s. Issue the `install` subcommand to install Consul on Kubernetes:
-
-    ```shell-session
-    consul-k8s install <OPTIONS>
-    ```
-
-1. (Optional) Issue the `consul-k8s version` command to verify the installation:
-
-   ```shell-session
-   consul-k8s version
-   consul-k8s 0.39.0
-   ```
-   
-## Upgrade the Consul K8s CLI
-
-The [Homebrew](https://brew.sh) package manager is required to complete the following installation instructions. The `brew upgrade` command assumes that Hashicorp `tap` repository has already been installed from a prior install. 
-
-1. Upgrade the Consul K8s CLI with the latest `consul-k8s` package. 
-   ```shell-session
-   brew upgrade consul-k8s
-   ```
-   
-2. (Optional) Issue the `consul-k8s version` command to verify the installation:
-
-   ```shell-session
-   consul-k8s version
-   consul-k8s 0.39.0
-   ```
+This topic describes the subcommands and available options for using Consul K8s CLI.
 
 ## Usage
 
