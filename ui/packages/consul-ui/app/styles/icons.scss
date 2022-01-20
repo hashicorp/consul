@@ -1,0 +1,4 @@
+%with-vault-300 {
+  @extend %with-vault-16-mask, %as-pseudo;
+  color: rgb(var(--tone-vault-500));
+}
