@@ -207,7 +207,7 @@ environment and adapt these configurations accordingly.
 - **Rotate Credentials** - Using short-lived credentials and rotating them frequently is highly recommended for
   production environments to limit the blast radius from potentially compromised secrets, and enabling basic auditing.
 
-  - **ACL Tokens** - Consul API’s require an ACL token to authorize actions within a cluster.
+  - **ACL Tokens** - Consul APIs require an ACL token to authorize actions within a cluster.
 
   - **X.509 Certificates** - Rotate certificates used by the Consul agent; e.g. integrate with Vault's PKI secret engine
     to automatically generate and renew dynamic, unique X.509 certificates for each Consul node with a short TTL. Client

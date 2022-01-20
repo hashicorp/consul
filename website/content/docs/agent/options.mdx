@@ -686,7 +686,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     leader node, the down policy is applied. In "allow" mode, all actions are permitted,
     "deny" restricts all operations, and "extend-cache" allows any cached objects
     to be used, ignoring the expiry time of the cached entry. If the request uses an
-    ACL that is not in the cache, "extend-cache" falls back to the behaviour of
+    ACL that is not in the cache, "extend-cache" falls back to the behavior of
     `default_policy`.
     The value "async-cache" acts the same way as "extend-cache"
     but performs updates asynchronously when ACL is present but its TTL is expired,
@@ -2068,7 +2068,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `read_replica` - Equivalent to the [`-read-replica` command-line flag](#_read_replica).
 
-- `session_ttl_min` The minimum allowed session TTL. This ensures sessions are not created with TTL's
+- `session_ttl_min` The minimum allowed session TTL. This ensures sessions are not created with TTLs
   shorter than the specified limit. It is recommended to keep this limit at or above
   the default to encourage clients to send infrequent heartbeats. Defaults to 10s.
 
