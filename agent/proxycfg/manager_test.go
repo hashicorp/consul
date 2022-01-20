@@ -187,6 +187,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	})
 
 	db := structs.NewServiceName("db", nil)
+	dbUID := NewUpstreamIDFromServiceName(db)
 
 	// Create test cases using some of the common data above.
 	tests := []*testcase_BasicLifecycle{
@@ -214,28 +215,28 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				ConnectProxy: configSnapshotConnectProxy{
 					ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
 						Leaf: leaf,
-						DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-							db.String(): dbDefaultChain(),
+						DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
+							dbUID: dbDefaultChain(),
 						},
-						WatchedDiscoveryChains: map[string]context.CancelFunc{},
+						WatchedDiscoveryChains: map[UpstreamID]context.CancelFunc{},
 						WatchedUpstreams:       nil, // Clone() clears this out
-						WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-							db.String(): {
+						WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+							dbUID: {
 								"db.default.default.dc1": TestUpstreamNodes(t, db.Name),
 							},
 						},
 						WatchedGateways: nil, // Clone() clears this out
-						WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
-							db.String(): {},
+						WatchedGatewayEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+							dbUID: {},
 						},
-						UpstreamConfig: map[string]*structs.Upstream{
-							upstreams[0].Identifier(): &upstreams[0],
-							upstreams[1].Identifier(): &upstreams[1],
-							upstreams[2].Identifier(): &upstreams[2],
+						UpstreamConfig: map[UpstreamID]*structs.Upstream{
+							NewUpstreamID(&upstreams[0]): &upstreams[0],
+							NewUpstreamID(&upstreams[1]): &upstreams[1],
+							NewUpstreamID(&upstreams[2]): &upstreams[2],
 						},
-						PassthroughUpstreams: map[string]ServicePassthroughAddrs{},
+						PassthroughUpstreams: map[UpstreamID]ServicePassthroughAddrs{},
 					},
-					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
+					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
 					Intentions:             TestIntentions().Matches[0],
 					IntentionsSet:          true,
@@ -271,29 +272,29 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				ConnectProxy: configSnapshotConnectProxy{
 					ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
 						Leaf: leaf,
-						DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-							db.String(): dbSplitChain(),
+						DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
+							dbUID: dbSplitChain(),
 						},
-						WatchedDiscoveryChains: map[string]context.CancelFunc{},
+						WatchedDiscoveryChains: map[UpstreamID]context.CancelFunc{},
 						WatchedUpstreams:       nil, // Clone() clears this out
-						WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-							db.String(): {
+						WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+							dbUID: {
 								"v1.db.default.default.dc1": TestUpstreamNodes(t, db.Name),
 								"v2.db.default.default.dc1": TestUpstreamNodesAlternate(t),
 							},
 						},
 						WatchedGateways: nil, // Clone() clears this out
-						WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
-							db.String(): {},
+						WatchedGatewayEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+							dbUID: {},
 						},
-						UpstreamConfig: map[string]*structs.Upstream{
-							upstreams[0].Identifier(): &upstreams[0],
-							upstreams[1].Identifier(): &upstreams[1],
-							upstreams[2].Identifier(): &upstreams[2],
+						UpstreamConfig: map[UpstreamID]*structs.Upstream{
+							NewUpstreamID(&upstreams[0]): &upstreams[0],
+							NewUpstreamID(&upstreams[1]): &upstreams[1],
+							NewUpstreamID(&upstreams[2]): &upstreams[2],
 						},
-						PassthroughUpstreams: map[string]ServicePassthroughAddrs{},
+						PassthroughUpstreams: map[UpstreamID]ServicePassthroughAddrs{},
 					},
-					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
+					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
 					Intentions:             TestIntentions().Matches[0],
 					IntentionsSet:          true,

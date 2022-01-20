@@ -72,6 +72,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 				snap.Proxy.Upstreams[0].LocalBindPort = 0
 				snap.Proxy.Upstreams[0].LocalBindSocketPath = "/tmp/service-mesh/client-1/grpc-employee-server"
 				snap.Proxy.Upstreams[0].LocalBindSocketMode = "0640"
+
+				snap.ConnectProxy.UpstreamConfig = proxycfg.UpstreamsToMap(snap.Proxy.Upstreams)
 			},
 		},
 		{
@@ -95,6 +97,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["protocol"] = "http"
+
+				snap.ConnectProxy.UpstreamConfig = proxycfg.UpstreamsToMap(snap.Proxy.Upstreams)
 			},
 		},
 		{
@@ -159,14 +163,21 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				for i := range snap.Proxy.Upstreams {
+					if snap.Proxy.Upstreams[i].DestinationName != "db" {
+						continue // only tweak the db upstream
+					}
 					if snap.Proxy.Upstreams[i].Config == nil {
 						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
 					}
+
+					uid := proxycfg.NewUpstreamID(&snap.Proxy.Upstreams[i])
+
 					snap.Proxy.Upstreams[i].Config["envoy_listener_json"] =
 						customListenerJSON(t, customListenerJSONOptions{
-							Name: snap.Proxy.Upstreams[i].Identifier() + ":custom-upstream",
+							Name: uid.EnvoyID() + ":custom-upstream",
 						})
 				}
+				snap.ConnectProxy.UpstreamConfig = proxycfg.UpstreamsToMap(snap.Proxy.Upstreams)
 			},
 		},
 		{
@@ -174,14 +185,22 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				for i := range snap.Proxy.Upstreams {
+					if snap.Proxy.Upstreams[i].DestinationName != "db" {
+						continue // only tweak the db upstream
+					}
 					if snap.Proxy.Upstreams[i].Config == nil {
 						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
 					}
+
+					uid := proxycfg.NewUpstreamID(&snap.Proxy.Upstreams[i])
+
 					snap.Proxy.Upstreams[i].Config["envoy_listener_json"] =
 						customListenerJSON(t, customListenerJSONOptions{
-							Name: snap.Proxy.Upstreams[i].Identifier() + ":custom-upstream",
+							Name: uid.EnvoyID() + ":custom-upstream",
 						})
 				}
+
+				snap.ConnectProxy.UpstreamConfig = proxycfg.UpstreamsToMap(snap.Proxy.Upstreams)
 			},
 		},
 		{
@@ -901,7 +920,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					connect.TestClusterID+".consul",
 					nil,
 				)
-				snap.IngressGateway.DiscoveryChain["secure"] = secureChain
+				snap.IngressGateway.DiscoveryChain[UID("secure")] = secureChain
 
 				insecureChain := discoverychain.TestCompileConfigEntries(
 					t,
@@ -912,7 +931,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					connect.TestClusterID+".consul",
 					nil,
 				)
-				snap.IngressGateway.DiscoveryChain["insecure"] = insecureChain
+				snap.IngressGateway.DiscoveryChain[UID("insecure")] = insecureChain
 
 				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
 					{Protocol: "tcp", Port: 8080}: {
@@ -1084,12 +1103,13 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
 				google := structs.NewServiceName("google", nil)
-				snap.ConnectProxy.IntentionUpstreams = map[string]struct{}{
-					google.String(): {},
+				googleUID := proxycfg.NewUpstreamIDFromServiceName(google)
+				snap.ConnectProxy.IntentionUpstreams = map[proxycfg.UpstreamID]struct{}{
+					googleUID: {},
 				}
-				snap.ConnectProxy.DiscoveryChain[google.String()] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[googleUID] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
-				snap.ConnectProxy.WatchedUpstreamEndpoints[google.String()] = map[string]structs.CheckServiceNodes{
+				snap.ConnectProxy.WatchedUpstreamEndpoints[googleUID] = map[string]structs.CheckServiceNodes{
 					"google.default.default.dc1": {
 						structs.CheckServiceNode{
 							Node: &structs.Node{
@@ -1126,7 +1146,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
-				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[UID("no-endpoints")] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 			},
 		},
 		{
@@ -1144,11 +1164,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
 				google := structs.NewServiceName("google", nil)
-				snap.ConnectProxy.IntentionUpstreams = map[string]struct{}{
-					google.String(): {},
+				googleUID := proxycfg.NewUpstreamIDFromServiceName(google)
+				snap.ConnectProxy.IntentionUpstreams = map[proxycfg.UpstreamID]struct{}{
+					googleUID: {},
 				}
-				snap.ConnectProxy.DiscoveryChain[google.String()] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
-				snap.ConnectProxy.WatchedUpstreamEndpoints[google.String()] = map[string]structs.CheckServiceNodes{
+				snap.ConnectProxy.DiscoveryChain[googleUID] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.WatchedUpstreamEndpoints[googleUID] = map[string]structs.CheckServiceNodes{
 					"google.default.default.dc1": {
 						structs.CheckServiceNode{
 							Node: &structs.Node{
@@ -1168,7 +1189,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
-				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[UID("no-endpoints")] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 			},
 		},
 		{
@@ -1178,24 +1199,26 @@ func TestListenersFromSnapshot(t *testing.T) {
 				snap.Proxy.Mode = structs.ProxyModeTransparent
 				kafka := structs.NewServiceName("kafka", nil)
 				mongo := structs.NewServiceName("mongo", nil)
+				kafkaUID := proxycfg.NewUpstreamIDFromServiceName(kafka)
+				mongoUID := proxycfg.NewUpstreamIDFromServiceName(mongo)
 
-				snap.ConnectProxy.IntentionUpstreams = map[string]struct{}{
-					kafka.String(): {},
-					mongo.String(): {},
+				snap.ConnectProxy.IntentionUpstreams = map[proxycfg.UpstreamID]struct{}{
+					kafkaUID: {},
+					mongoUID: {},
 				}
-				snap.ConnectProxy.DiscoveryChain[mongo.String()] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
-				snap.ConnectProxy.DiscoveryChain[kafka.String()] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[mongoUID] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[kafkaUID] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 				// We add a filter chains for each passthrough service name.
 				// The filter chain will route to a cluster with the same SNI name.
-				snap.ConnectProxy.PassthroughUpstreams = map[string]proxycfg.ServicePassthroughAddrs{
-					kafka.String(): {
+				snap.ConnectProxy.PassthroughUpstreams = map[proxycfg.UpstreamID]proxycfg.ServicePassthroughAddrs{
+					kafkaUID: {
 						SNI: "kafka.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
 						Addrs: map[string]struct{}{
 							"9.9.9.9": {},
 						},
 					},
-					mongo.String(): {
+					mongoUID: {
 						SNI: "mongo.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
 						Addrs: map[string]struct{}{
 							"10.10.10.10": {},
@@ -1205,7 +1228,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// There should still be a filter chain for mongo's virtual address
-				snap.ConnectProxy.WatchedUpstreamEndpoints[mongo.String()] = map[string]structs.CheckServiceNodes{
+				snap.ConnectProxy.WatchedUpstreamEndpoints[mongoUID] = map[string]structs.CheckServiceNodes{
 					"mongo.default.default.dc1": {
 						structs.CheckServiceNode{
 							Node: &structs.Node{
@@ -1240,12 +1263,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
 				google := structs.NewServiceName("google", nil)
 				kafka := structs.NewServiceName("kafka", nil)
-				snap.ConnectProxy.IntentionUpstreams = map[string]struct{}{
-					google.String(): {},
-					kafka.String():  {},
+				googleUID := proxycfg.NewUpstreamIDFromServiceName(google)
+				kafkaUID := proxycfg.NewUpstreamIDFromServiceName(kafka)
+				snap.ConnectProxy.IntentionUpstreams = map[proxycfg.UpstreamID]struct{}{
+					googleUID: {},
+					kafkaUID:  {},
 				}
-				snap.ConnectProxy.DiscoveryChain[google.String()] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
-				snap.ConnectProxy.DiscoveryChain[kafka.String()] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[googleUID] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[kafkaUID] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 				tgate := structs.CheckServiceNode{
 					Node: &structs.Node{
@@ -1264,10 +1289,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 						},
 					},
 				}
-				snap.ConnectProxy.WatchedUpstreamEndpoints[google.String()] = map[string]structs.CheckServiceNodes{
+				snap.ConnectProxy.WatchedUpstreamEndpoints[googleUID] = map[string]structs.CheckServiceNodes{
 					"google.default.default.dc1": {tgate},
 				}
-				snap.ConnectProxy.WatchedUpstreamEndpoints[kafka.String()] = map[string]structs.CheckServiceNodes{
+				snap.ConnectProxy.WatchedUpstreamEndpoints[kafkaUID] = map[string]structs.CheckServiceNodes{
 					"kafka.default.default.dc1": {tgate},
 				}
 			},

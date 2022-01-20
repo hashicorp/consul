@@ -48,12 +48,12 @@ func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot,
 		return snap, err
 	}
 
-	snap.IngressGateway.WatchedDiscoveryChains = make(map[string]context.CancelFunc)
-	snap.IngressGateway.DiscoveryChain = make(map[string]*structs.CompiledDiscoveryChain)
-	snap.IngressGateway.WatchedUpstreams = make(map[string]map[string]context.CancelFunc)
-	snap.IngressGateway.WatchedUpstreamEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
-	snap.IngressGateway.WatchedGateways = make(map[string]map[string]context.CancelFunc)
-	snap.IngressGateway.WatchedGatewayEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
+	snap.IngressGateway.WatchedDiscoveryChains = make(map[UpstreamID]context.CancelFunc)
+	snap.IngressGateway.DiscoveryChain = make(map[UpstreamID]*structs.CompiledDiscoveryChain)
+	snap.IngressGateway.WatchedUpstreams = make(map[UpstreamID]map[string]context.CancelFunc)
+	snap.IngressGateway.WatchedUpstreamEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
+	snap.IngressGateway.WatchedGateways = make(map[UpstreamID]map[string]context.CancelFunc)
+	snap.IngressGateway.WatchedGatewayEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
 	snap.IngressGateway.Listeners = make(map[IngressListenerKey]structs.IngressListener)
 	return snap, nil
 }
@@ -102,13 +102,15 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 
 		// Update our upstreams and watches.
 		var hosts []string
-		watchedSvcs := make(map[string]struct{})
+		watchedSvcs := make(map[UpstreamID]struct{})
 		upstreamsMap := make(map[IngressListenerKey]structs.Upstreams)
 		for _, service := range services.Services {
 			u := makeUpstream(service)
 
+			uid := NewUpstreamID(&u)
+
 			watchOpts := discoveryChainWatchOpts{
-				id:         u.Identifier(),
+				id:         uid,
 				name:       u.DestinationName,
 				namespace:  u.DestinationNamespace,
 				partition:  u.DestinationPartition,
@@ -117,9 +119,9 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 			up := &handlerUpstreams{handlerState: s.handlerState}
 			err := up.watchDiscoveryChain(ctx, snap, watchOpts)
 			if err != nil {
-				return fmt.Errorf("failed to watch discovery chain for %s: %v", u.Identifier(), err)
+				return fmt.Errorf("failed to watch discovery chain for %s: %v", uid, err)
 			}
-			watchedSvcs[u.Identifier()] = struct{}{}
+			watchedSvcs[uid] = struct{}{}
 
 			hosts = append(hosts, service.Hosts...)
 
@@ -132,10 +134,10 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 		snap.IngressGateway.Hosts = hosts
 		snap.IngressGateway.HostsSet = true
 
-		for id, cancelFn := range snap.IngressGateway.WatchedDiscoveryChains {
-			if _, ok := watchedSvcs[id]; !ok {
+		for uid, cancelFn := range snap.IngressGateway.WatchedDiscoveryChains {
+			if _, ok := watchedSvcs[uid]; !ok {
 				cancelFn()
-				delete(snap.IngressGateway.WatchedDiscoveryChains, id)
+				delete(snap.IngressGateway.WatchedDiscoveryChains, uid)
 			}
 		}
 
