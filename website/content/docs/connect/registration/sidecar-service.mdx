@@ -14,7 +14,7 @@ the same VM or running as a separate container in the same network namespace.
 
 To simplify the configuration experience when deploying a sidecar for a service
 instance, Consul 1.3 introduced a new field in the Connect block of the [service
-definition](/docs/agent/services).
+definition](/docs/discovery/services).
 
 To deploy a service and sidecar proxy locally, complete the
 [Getting Started guide](https://learn.hashicorp.com/tutorials/consul/get-started-service-networking?utm_source=consul.io&utm_medium=docs).
@@ -136,7 +136,7 @@ proxy.
 - `kind` - Defaults to `connect-proxy`. This can't be overridden currently.
 - `check`, `checks` - By default we add a TCP check on the local address and
   port for the proxy, and a [service alias
-  check](/docs/agent/checks#alias) for the parent service. If either
+  check](/docs/discovery/checks#alias) for the parent service. If either
   `check` or `checks` fields are set, only the provided checks are registered.
 - `proxy.destination_service_name` - Defaults to the parent service name.
 - `proxy.destination_service_id` - Defaults to the parent service ID.
@@ -145,7 +145,7 @@ proxy.
 
 ## Limitations
 
-Almost all fields in a [service definition](/docs/agent/services) may be
+Almost all fields in a [service definition](/docs/discovery/services) may be
 set on the `connect.sidecar_service` except for the following:
 
 - `id` - Sidecar services get an ID assigned and it is an error to override

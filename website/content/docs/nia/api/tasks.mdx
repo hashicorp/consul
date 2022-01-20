@@ -24,7 +24,7 @@ This endpoint allows patch updates to specifically supported fields for existing
 
 #### Response Fields
 
-* `inspect` - Information on how resources would be changed given a proposed task update, similar to [inspect-mode](/docs/nia/cli/cli-overview#inspect-mode). This is only returned when passed the `run=inspect` request parameter
+* `inspect` - Information on how resources would be changed given a proposed task update, similar to [inspect-mode](/docs/nia/cli#inspect-mode). This is only returned when passed the `run=inspect` request parameter
   * `changes_present` - (bool) Whether or not changes were detected for running the proposed task update
   * `plan` - (string) The Terraform plan generated for the proposed task update . Note: a non-empty string does not necessarily indicate changes were detected.
 

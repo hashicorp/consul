@@ -136,7 +136,7 @@ transparent proxy's datacenter. Services can also dial explicit upstreams in oth
 [annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) such as
 `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"` to reach an upstream service called `my-service`
 in the datacenter `dc2`.
-* In the deployment configuration where a [single Consul datacenter spans multiple Kubernetes clusters](https://www.consul.io/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s), services in one Kubernetes cluster must explicitly dial a service in another Kubernetes cluster using the [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) annotation. An example would be
+* In the deployment configuration where a [single Consul datacenter spans multiple Kubernetes clusters](/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s), services in one Kubernetes cluster must explicitly dial a service in another Kubernetes cluster using the [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) annotation. An example would be
 `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234"`, where `my-service` is the service that exists in another Kubernetes cluster and is exposed on port `1234`. Although Transparent Proxy is enabled, KubeDNS is not utilized when communicating between services existing on separate Kubernetes clusters.
 * When dialing headless services the request will be proxied using a plain TCP proxy with a 5s connection timeout.
 Currently the upstream's protocol and connection timeout are not considered.

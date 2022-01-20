@@ -27,7 +27,7 @@ They operate by sniffing and extracting the server name indication (SNI) header 
 
 Mesh gateways enable the following scenarios:
 
-- **Federate multiple datacenters across a WAN**. Since Consul 1.8.0, mesh gateways can forward gossip and RPC traffic between Consul servers. See [WAN federation via mesh gateways](/docs/connect/gateways/wan-federation-via-mesh-gateways) for additional information.
+* **Federate multiple datacenters across a WAN**. Since Consul 1.8.0, mesh gateways can forward gossip and RPC traffic between Consul servers. See [WAN federation via mesh gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways) for additional information.
 - **Service-to-service communication across datacenters**. Refer to [Enabling Service-to-service Traffic Across Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters) for additional information.
 - **Service-to-service communication across admin partitions**. Since Consul 1.11.0, you can create administrative boundaries for single Consul deployments called "admin partitions". You can use mesh gateways to facilitate cross-partition communication. Refer to [Enabling Service-to-service Traffic Across Admin Partitions](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions) for additional information.
 

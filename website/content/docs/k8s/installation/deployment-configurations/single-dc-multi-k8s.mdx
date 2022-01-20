@@ -169,7 +169,7 @@ the value of `cluster.server` for the second cluster.
 
 Lastly, we need to set up the clients so that they can discover the servers in the first cluster.
 For this, we will use Consul's cloud auto-join feature
-for the [Kubernetes provider](https://www.consul.io/docs/install/cloud-auto-join#kubernetes-k8s).
+for the [Kubernetes provider](/docs/install/cloud-auto-join#kubernetes-k8s).
 To use it we need to provide a way for the Consul clients to reach the first Kubernetes cluster.
 To do that, we need to save the `kubeconfig` for the first cluster as a Kubernetes secret in the second cluster
 and reference it in the `clients.join` value. Note that we're making that secret available to the client pods
@@ -177,7 +177,7 @@ by setting it in `client.extraVolumes`.
 
 ~> **Note:** The kubeconfig you're providing to the client should have minimal permissions.
 The cloud auto-join provider will only need permission to read pods.
-Please see [Kubernetes Cloud auto-join](https://www.consul.io/docs/install/cloud-auto-join#kubernetes-k8s)
+Please see [Kubernetes Cloud auto-join](/docs/install/cloud-auto-join#kubernetes-k8s)
 for more details.
 
 Now we're ready to install!
@@ -188,7 +188,7 @@ $ helm install cluster2 --values cluster2-config.yaml hashicorp/consul
 
 ## Verifying the Consul Service Mesh works
 
-~> When Transparent proxy is enabled, services in one Kubernetes cluster that need to communicate with a service in another Kubernetes cluster must have a explicit upstream configured through the ["consul.hashicorp.com/connect-service-upstreams"](https://www.consul.io/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) annotation.
+~> When Transparent proxy is enabled, services in one Kubernetes cluster that need to communicate with a service in another Kubernetes cluster must have a explicit upstream configured through the ["consul.hashicorp.com/connect-service-upstreams"](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) annotation.
 
 Now that we have our Consul cluster in multiple k8s clusters up and running, we will
 deploy two services and verify that they can connect to each other.
