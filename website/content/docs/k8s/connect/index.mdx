@@ -358,6 +358,15 @@ Pod annotations can be used to configure the injection behavior.
   - `consul.hashicorp.com/sidecar-proxy-memory-limit` - Override the default memory limit.
   - `consul.hashicorp.com/sidecar-proxy-memory-request` - Override the default memory request.
 
+- `consul.hashicorp.com/consul-sidecar-` - Override default resource settings for
+the `consul-sidecar` container.
+The defaults are set in Helm config via the [`global.consulSidecarContainer.resources`](/docs/k8s/helm#v-global-consulsidecarcontainer) key.
+
+  - `consul.hashicorp.com/consul-sidecar-cpu-limit` - Override the default CPU limit.
+  - `consul.hashicorp.com/consul-sidecar-cpu-request` - Override the default CPU request.
+  - `consul.hashicorp.com/consul-sidecar-memory-limit` - Override the default memory limit.
+  - `consul.hashicorp.com/consul-sidecar-memory-request` - Override the default memory request.
+
 - `consul.hashicorp.com/enable-metrics` - Override the default Helm value [`connectInject.metrics.defaultEnabled`](/docs/k8s/helm#v-connectinject-metrics-defaultenabled).
 - `consul.hashicorp.com/enable-metrics-merging` - Override the default Helm value [`connectInject.metrics.defaultEnableMerging`](/docs/k8s/helm#v-connectinject-metrics-defaultenablemerging).
 - `consul.hashicorp.com/merged-metrics-port` - Override the default Helm value [`connectInject.metrics.defaultMergedMetricsPort`](/docs/k8s/helm#v-connectinject-metrics-defaultmergedmetricsport).
