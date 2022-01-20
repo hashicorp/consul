@@ -27,7 +27,6 @@ func TestPolicyListCommand(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -57,7 +56,7 @@ func TestPolicyListCommand(t *testing.T) {
 		)
 		policyIDs = append(policyIDs, policy.ID)
 
-		assert.NoError(err)
+		assert.NoError(t, err)
 	}
 
 	args := []string{
@@ -66,13 +65,13 @@ func TestPolicyListCommand(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
 
 	for i, v := range policyIDs {
-		assert.Contains(output, fmt.Sprintf("test-policy-%d", i))
-		assert.Contains(output, v)
+		assert.Contains(t, output, fmt.Sprintf("test-policy-%d", i))
+		assert.Contains(t, output, v)
 	}
 }
 
@@ -82,7 +81,6 @@ func TestPolicyListCommand_JSON(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -112,7 +110,7 @@ func TestPolicyListCommand_JSON(t *testing.T) {
 		)
 		policyIDs = append(policyIDs, policy.ID)
 
-		assert.NoError(err)
+		assert.NoError(t, err)
 	}
 
 	args := []string{
@@ -122,16 +120,16 @@ func TestPolicyListCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
 
 	for i, v := range policyIDs {
-		assert.Contains(output, fmt.Sprintf("test-policy-%d", i))
-		assert.Contains(output, v)
+		assert.Contains(t, output, fmt.Sprintf("test-policy-%d", i))
+		assert.Contains(t, output, v)
 	}
 
 	var jsonOutput json.RawMessage
 	err := json.Unmarshal([]byte(output), &jsonOutput)
-	assert.NoError(err)
+	assert.NoError(t, err)
 }

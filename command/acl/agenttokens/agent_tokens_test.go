@@ -25,7 +25,6 @@ func TestAgentTokensCommand(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -50,7 +49,7 @@ func TestAgentTokensCommand(t *testing.T) {
 		&api.ACLToken{Description: "test"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(err)
+	assert.NoError(t, err)
 
 	// default token
 	{
@@ -61,8 +60,8 @@ func TestAgentTokensCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(code, 0)
-		assert.Empty(ui.ErrorWriter.String())
+		assert.Equal(t, code, 0)
+		assert.Empty(t, ui.ErrorWriter.String())
 	}
 
 	// agent token
@@ -74,8 +73,8 @@ func TestAgentTokensCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(code, 0)
-		assert.Empty(ui.ErrorWriter.String())
+		assert.Equal(t, code, 0)
+		assert.Empty(t, ui.ErrorWriter.String())
 	}
 
 	// recovery token
@@ -87,8 +86,8 @@ func TestAgentTokensCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(code, 0)
-		assert.Empty(ui.ErrorWriter.String())
+		assert.Equal(t, code, 0)
+		assert.Empty(t, ui.ErrorWriter.String())
 	}
 
 	// replication token
@@ -100,7 +99,7 @@ func TestAgentTokensCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(code, 0)
-		assert.Empty(ui.ErrorWriter.String())
+		assert.Equal(t, code, 0)
+		assert.Empty(t, ui.ErrorWriter.String())
 	}
 }

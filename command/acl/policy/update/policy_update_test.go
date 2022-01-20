@@ -28,7 +28,6 @@ func TestPolicyUpdateCommand(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	testDir := testutil.TempDir(t, "acl")
 
@@ -49,7 +48,7 @@ func TestPolicyUpdateCommand(t *testing.T) {
 
 	rules := []byte("service \"\" { policy = \"write\" }")
 	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
-	assert.NoError(err)
+	assert.NoError(t, err)
 
 	// Create a policy
 	client := a.Client()
@@ -58,7 +57,7 @@ func TestPolicyUpdateCommand(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(err)
+	assert.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -69,8 +68,8 @@ func TestPolicyUpdateCommand(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 }
 
 func TestPolicyUpdateCommand_JSON(t *testing.T) {
@@ -79,7 +78,6 @@ func TestPolicyUpdateCommand_JSON(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	testDir := testutil.TempDir(t, "acl")
 
@@ -100,7 +98,7 @@ func TestPolicyUpdateCommand_JSON(t *testing.T) {
 
 	rules := []byte("service \"\" { policy = \"write\" }")
 	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
-	assert.NoError(err)
+	assert.NoError(t, err)
 
 	// Create a policy
 	client := a.Client()
@@ -109,7 +107,7 @@ func TestPolicyUpdateCommand_JSON(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(err)
+	assert.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -121,10 +119,10 @@ func TestPolicyUpdateCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 
 	var jsonOutput json.RawMessage
 	err = json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
-	assert.NoError(err)
+	assert.NoError(t, err)
 }

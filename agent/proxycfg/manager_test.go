@@ -354,7 +354,6 @@ func testManager_BasicLifecycle(
 ) {
 	c := TestCacheWithTypes(t, types)
 
-	require := require.New(t)
 	logger := testutil.Logger(t)
 	state := local.NewState(agentConfig, logger, &token.Store{})
 	source := &structs.QuerySource{Datacenter: "dc1"}
@@ -370,12 +369,12 @@ func testManager_BasicLifecycle(
 		Source: source,
 		Logger: logger,
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// And run it
 	go func() {
 		err := m.Run()
-		require.NoError(err)
+		require.NoError(t, err)
 	}()
 
 	// BEFORE we register, we should be able to get a watch channel
@@ -385,19 +384,19 @@ func testManager_BasicLifecycle(
 	// And it should block with nothing sent on it yet
 	assertWatchChanBlocks(t, wCh)
 
-	require.NoError(state.AddService(webProxy, "my-token"))
+	require.NoError(t, state.AddService(webProxy, "my-token"))
 
 	// We should see the initial config delivered but not until after the
 	// coalesce timeout
 	start := time.Now()
 	assertWatchChanRecvs(t, wCh, expectSnap)
-	require.True(time.Since(start) >= coalesceTimeout)
+	require.True(t, time.Since(start) >= coalesceTimeout)
 
 	assertLastReqArgs(t, types, "my-token", source)
 
 	// Update NodeConfig
 	webProxy.Port = 7777
-	require.NoError(state.AddService(webProxy, "my-token"))
+	require.NoError(t, state.AddService(webProxy, "my-token"))
 
 	expectSnap.Port = 7777
 	assertWatchChanRecvs(t, wCh, expectSnap)
@@ -410,7 +409,7 @@ func testManager_BasicLifecycle(
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
 	// Change token
-	require.NoError(state.AddService(webProxy, "other-token"))
+	require.NoError(t, state.AddService(webProxy, "other-token"))
 	assertWatchChanRecvs(t, wCh, expectSnap)
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
@@ -445,7 +444,7 @@ func testManager_BasicLifecycle(
 
 	// Re-add the proxy with another new port
 	webProxy.Port = 3333
-	require.NoError(state.AddService(webProxy, "other-token"))
+	require.NoError(t, state.AddService(webProxy, "other-token"))
 
 	// Same watch chan should be notified again
 	expectSnap.Port = 3333
@@ -460,13 +459,13 @@ func testManager_BasicLifecycle(
 
 	// We specifically don't remove the proxy or cancel the second watcher to
 	// ensure both are cleaned up by close.
-	require.NoError(m.Close())
+	require.NoError(t, m.Close())
 
 	// Sanity check the state is clean
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	require.Len(m.proxies, 0)
-	require.Len(m.watchers, 0)
+	require.Len(t, m.proxies, 0)
+	require.Len(t, m.watchers, 0)
 }
 
 func assertWatchChanBlocks(t *testing.T, ch <-chan *ConfigSnapshot) {
@@ -505,10 +504,9 @@ func TestManager_deliverLatest(t *testing.T) {
 		},
 		Logger: logger,
 	}
-	require := require.New(t)
 
 	m, err := NewManager(cfg)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	snap1 := &ConfigSnapshot{
 		ProxyID: structs.NewServiceID("test-proxy", nil),
@@ -526,14 +524,14 @@ func TestManager_deliverLatest(t *testing.T) {
 	m.deliverLatest(snap1, ch1)
 
 	// Check it was delivered
-	require.Equal(snap1, <-ch1)
+	require.Equal(t, snap1, <-ch1)
 
 	// Now send both without reading simulating a slow client
 	m.deliverLatest(snap1, ch1)
 	m.deliverLatest(snap2, ch1)
 
 	// Check we got the _second_ one
-	require.Equal(snap2, <-ch1)
+	require.Equal(t, snap2, <-ch1)
 
 	// Same again for 5-buffered chan
 	ch5 := make(chan *ConfigSnapshot, 5)
@@ -542,7 +540,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	m.deliverLatest(snap1, ch5)
 
 	// Check it was delivered
-	require.Equal(snap1, <-ch5)
+	require.Equal(t, snap1, <-ch5)
 
 	// Now send enough to fill the chan simulating a slow client
 	for i := 0; i < 5; i++ {
@@ -551,7 +549,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	m.deliverLatest(snap2, ch5)
 
 	// Check we got the _second_ one
-	require.Equal(snap2, <-ch5)
+	require.Equal(t, snap2, <-ch5)
 }
 
 func testGenCacheKey(req cache.Request) string {

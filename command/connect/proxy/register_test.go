@@ -18,7 +18,6 @@ func TestRegisterMonitor_good(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -28,16 +27,16 @@ func TestRegisterMonitor_good(t *testing.T) {
 	defer m.Close()
 
 	// Verify the settings
-	require.Equal(api.ServiceKindConnectProxy, service.Kind)
-	require.Equal("foo", service.Proxy.DestinationServiceName)
-	require.Equal("127.0.0.1", service.Address)
-	require.Equal(1234, service.Port)
+	require.Equal(t, api.ServiceKindConnectProxy, service.Kind)
+	require.Equal(t, "foo", service.Proxy.DestinationServiceName)
+	require.Equal(t, "127.0.0.1", service.Address)
+	require.Equal(t, 1234, service.Port)
 
 	// Stop should deregister the service
-	require.NoError(m.Close())
+	require.NoError(t, m.Close())
 	services, err := client.Agent().Services()
-	require.NoError(err)
-	require.NotContains(services, m.serviceID())
+	require.NoError(t, err)
+	require.NotContains(t, services, m.serviceID())
 }
 
 func TestRegisterMonitor_heartbeat(t *testing.T) {

@@ -318,13 +318,11 @@ func TestAPI_CatalogServiceCached(t *testing.T) {
 		}
 	})
 
-	require := require.New(t)
-
 	// Got success, next hit must be cache hit
 	_, meta, err := catalog.Service("consul", "", q)
-	require.NoError(err)
-	require.True(meta.CacheHit)
-	require.Equal(time.Duration(0), meta.CacheAge)
+	require.NoError(t, err)
+	require.True(t, meta.CacheHit)
+	require.Equal(t, time.Duration(0), meta.CacheAge)
 }
 
 func TestAPI_CatalogService_SingleTag(t *testing.T) {

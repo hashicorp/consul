@@ -10,7 +10,6 @@ import (
 )
 
 func TestMonitor_Start(t *testing.T) {
-	require := require.New(t)
 
 	logger := log.NewInterceptLogger(&log.LoggerOptions{
 		Level: log.Error,
@@ -31,7 +30,7 @@ func TestMonitor_Start(t *testing.T) {
 	for {
 		select {
 		case log := <-logCh:
-			require.Contains(string(log), "[DEBUG] test log")
+			require.Contains(t, string(log), "[DEBUG] test log")
 			return
 		case <-time.After(3 * time.Second):
 			t.Fatal("Expected to receive from log channel")
@@ -43,8 +42,6 @@ func TestMonitor_Stop(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	require := require.New(t)
 
 	logger := log.NewInterceptLogger(&log.LoggerOptions{
 		Level: log.Error,
@@ -60,7 +57,7 @@ func TestMonitor_Stop(t *testing.T) {
 	logCh := m.Start()
 	logger.Debug("test log")
 
-	require.Eventually(func() bool {
+	require.Eventually(t, func() bool {
 		return len(logCh) == 1
 	}, 3*time.Second, 100*time.Millisecond, "expected logCh to have 1 log in it")
 
@@ -73,7 +70,7 @@ func TestMonitor_Stop(t *testing.T) {
 		select {
 		case log := <-logCh:
 			if string(log) != "" {
-				require.Contains(string(log), "[DEBUG] test log")
+				require.Contains(t, string(log), "[DEBUG] test log")
 			} else {
 				return
 			}
@@ -87,8 +84,6 @@ func TestMonitor_DroppedMessages(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	require := require.New(t)
 
 	logger := log.NewInterceptLogger(&log.LoggerOptions{
 		Level: log.Warn,
@@ -118,7 +113,7 @@ func TestMonitor_DroppedMessages(t *testing.T) {
 	}
 
 	// Make sure we do not stop before the goroutines have time to process.
-	require.Eventually(func() bool {
+	require.Eventually(t, func() bool {
 		return len(logCh) == mcfg.BufferSize
 	}, 3*time.Second, 100*time.Millisecond, "expected logCh to have a full log buffer")
 
@@ -126,15 +121,13 @@ func TestMonitor_DroppedMessages(t *testing.T) {
 
 	// The number of dropped messages is non-deterministic, so we only assert
 	// that we dropped at least 1.
-	require.GreaterOrEqual(dropped, 1)
+	require.GreaterOrEqual(t, dropped, 1)
 }
 
 func TestMonitor_ZeroBufSizeDefault(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	require := require.New(t)
 
 	logger := log.NewInterceptLogger(&log.LoggerOptions{
 		Level: log.Error,
@@ -154,14 +147,14 @@ func TestMonitor_ZeroBufSizeDefault(t *testing.T) {
 
 	// If we do not default the buffer size, the monitor will be unable to buffer
 	// a log line.
-	require.Eventually(func() bool {
+	require.Eventually(t, func() bool {
 		return len(logCh) == 1
 	}, 3*time.Second, 100*time.Millisecond, "expected logCh to have 1 log buffered")
 
 	for {
 		select {
 		case log := <-logCh:
-			require.Contains(string(log), "[DEBUG] test log")
+			require.Contains(t, string(log), "[DEBUG] test log")
 			return
 		case <-time.After(3 * time.Second):
 			t.Fatal("Expected to receive from log channel")
@@ -170,7 +163,6 @@ func TestMonitor_ZeroBufSizeDefault(t *testing.T) {
 }
 
 func TestMonitor_WriteStopped(t *testing.T) {
-	require := require.New(t)
 
 	logger := log.NewInterceptLogger(&log.LoggerOptions{
 		Level: log.Error,
@@ -183,6 +175,6 @@ func TestMonitor_WriteStopped(t *testing.T) {
 
 	mwriter.Stop()
 	n, err := mwriter.Write([]byte("write after close"))
-	require.Equal(n, 0)
-	require.EqualError(err, "monitor stopped")
+	require.Equal(t, n, 0)
+	require.EqualError(t, err, "monitor stopped")
 }

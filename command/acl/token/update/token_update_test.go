@@ -157,7 +157,6 @@ func TestTokenUpdateCommand_JSON(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -201,8 +200,8 @@ func TestTokenUpdateCommand_JSON(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(code, 0)
-		assert.Empty(ui.ErrorWriter.String())
+		assert.Equal(t, code, 0)
+		assert.Empty(t, ui.ErrorWriter.String())
 
 		var jsonOutput json.RawMessage
 		err := json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)

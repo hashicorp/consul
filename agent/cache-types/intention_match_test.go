@@ -11,7 +11,6 @@ import (
 )
 
 func TestIntentionMatch(t *testing.T) {
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 	typ := &IntentionMatch{RPC: rpc}
@@ -22,8 +21,8 @@ func TestIntentionMatch(t *testing.T) {
 	rpc.On("RPC", "Intention.Match", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			req := args.Get(1).(*structs.IntentionQueryRequest)
-			require.Equal(uint64(24), req.MinQueryIndex)
-			require.Equal(1*time.Second, req.MaxQueryTime)
+			require.Equal(t, uint64(24), req.MinQueryIndex)
+			require.Equal(t, 1*time.Second, req.MaxQueryTime)
 
 			reply := args.Get(2).(*structs.IndexedIntentionMatches)
 			reply.Index = 48
@@ -35,15 +34,14 @@ func TestIntentionMatch(t *testing.T) {
 		MinIndex: 24,
 		Timeout:  1 * time.Second,
 	}, &structs.IntentionQueryRequest{Datacenter: "dc1"})
-	require.NoError(err)
-	require.Equal(cache.FetchResult{
+	require.NoError(t, err)
+	require.Equal(t, cache.FetchResult{
 		Value: resp,
 		Index: 48,
 	}, result)
 }
 
 func TestIntentionMatch_badReqType(t *testing.T) {
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 	typ := &IntentionMatch{RPC: rpc}
@@ -51,7 +49,7 @@ func TestIntentionMatch_badReqType(t *testing.T) {
 	// Fetch
 	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
-	require.Error(err)
-	require.Contains(err.Error(), "wrong type")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "wrong type")
 
 }

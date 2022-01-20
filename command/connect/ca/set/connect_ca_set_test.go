@@ -28,7 +28,6 @@ func TestConnectCASetConfigCommand(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
@@ -49,10 +48,10 @@ func TestConnectCASetConfigCommand(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var reply structs.CAConfiguration
-	require.NoError(a.RPC("ConnectCA.ConfigurationGet", &req, &reply))
-	require.Equal("consul", reply.Provider)
+	require.NoError(t, a.RPC("ConnectCA.ConfigurationGet", &req, &reply))
+	require.Equal(t, "consul", reply.Provider)
 
 	parsed, err := ca.ParseConsulCAConfig(reply.Config)
-	require.NoError(err)
-	require.Equal(288*time.Hour, parsed.IntermediateCertTTL)
+	require.NoError(t, err)
+	require.Equal(t, 288*time.Hour, parsed.IntermediateCertTTL)
 }

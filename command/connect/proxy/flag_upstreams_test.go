@@ -103,7 +103,6 @@ func TestFlagUpstreams(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require := require.New(t)
 
 			var actual map[string]proxy.UpstreamConfig
 			f := (*FlagUpstreams)(&actual)
@@ -115,12 +114,12 @@ func TestFlagUpstreams(t *testing.T) {
 				// test failures confusing but it shouldn't be too bad.
 			}
 			if tc.Error != "" {
-				require.Error(err)
-				require.Contains(err.Error(), tc.Error)
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.Error)
 				return
 			}
 
-			require.Equal(tc.Expected, actual)
+			require.Equal(t, tc.Expected, actual)
 		})
 	}
 }

@@ -853,7 +853,6 @@ func TestInternal_ServiceDump_ACL(t *testing.T) {
 	}
 
 	t.Run("can read all", func(t *testing.T) {
-		require := require.New(t)
 
 		token := tokenWithRules(t, `
 			node_prefix "" {
@@ -870,14 +869,13 @@ func TestInternal_ServiceDump_ACL(t *testing.T) {
 		}
 		var out structs.IndexedNodesWithGateways
 		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
-		require.NoError(err)
-		require.NotEmpty(out.Nodes)
-		require.NotEmpty(out.Gateways)
-		require.False(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.NoError(t, err)
+		require.NotEmpty(t, out.Nodes)
+		require.NotEmpty(t, out.Gateways)
+		require.False(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("cannot read service node", func(t *testing.T) {
-		require := require.New(t)
 
 		token := tokenWithRules(t, `
 			node "node1" {
@@ -894,13 +892,12 @@ func TestInternal_ServiceDump_ACL(t *testing.T) {
 		}
 		var out structs.IndexedNodesWithGateways
 		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
-		require.NoError(err)
-		require.Empty(out.Nodes)
-		require.True(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.NoError(t, err)
+		require.Empty(t, out.Nodes)
+		require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("cannot read service", func(t *testing.T) {
-		require := require.New(t)
 
 		token := tokenWithRules(t, `
 			node "node1" {
@@ -917,13 +914,12 @@ func TestInternal_ServiceDump_ACL(t *testing.T) {
 		}
 		var out structs.IndexedNodesWithGateways
 		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
-		require.NoError(err)
-		require.Empty(out.Nodes)
-		require.True(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.NoError(t, err)
+		require.Empty(t, out.Nodes)
+		require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("cannot read gateway node", func(t *testing.T) {
-		require := require.New(t)
 
 		token := tokenWithRules(t, `
 			node "node2" {
@@ -940,13 +936,12 @@ func TestInternal_ServiceDump_ACL(t *testing.T) {
 		}
 		var out structs.IndexedNodesWithGateways
 		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
-		require.NoError(err)
-		require.Empty(out.Gateways)
-		require.True(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.NoError(t, err)
+		require.Empty(t, out.Gateways)
+		require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("cannot read gateway", func(t *testing.T) {
-		require := require.New(t)
 
 		token := tokenWithRules(t, `
 			node "node2" {
@@ -963,9 +958,9 @@ func TestInternal_ServiceDump_ACL(t *testing.T) {
 		}
 		var out structs.IndexedNodesWithGateways
 		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
-		require.NoError(err)
-		require.Empty(out.Gateways)
-		require.True(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.NoError(t, err)
+		require.Empty(t, out.Gateways)
+		require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 

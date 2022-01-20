@@ -27,7 +27,6 @@ func TestBootstrapCommand_Pretty(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -46,11 +45,11 @@ func TestBootstrapCommand_Pretty(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
-	assert.Contains(output, "Bootstrap Token")
-	assert.Contains(output, structs.ACLPolicyGlobalManagementID)
+	assert.Contains(t, output, "Bootstrap Token")
+	assert.Contains(t, output, structs.ACLPolicyGlobalManagementID)
 }
 
 func TestBootstrapCommand_JSON(t *testing.T) {
@@ -59,7 +58,6 @@ func TestBootstrapCommand_JSON(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -79,11 +77,11 @@ func TestBootstrapCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
-	assert.Contains(output, "Bootstrap Token")
-	assert.Contains(output, structs.ACLPolicyGlobalManagementID)
+	assert.Contains(t, output, "Bootstrap Token")
+	assert.Contains(t, output, structs.ACLPolicyGlobalManagementID)
 
 	var jsonOutput json.RawMessage
 	err := json.Unmarshal([]byte(output), &jsonOutput)

@@ -11,7 +11,6 @@ import (
 )
 
 func TestNodeServices(t *testing.T) {
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 	typ := &NodeServices{RPC: rpc}
@@ -22,10 +21,10 @@ func TestNodeServices(t *testing.T) {
 	rpc.On("RPC", "Catalog.NodeServices", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			req := args.Get(1).(*structs.NodeSpecificRequest)
-			require.Equal(uint64(24), req.QueryOptions.MinQueryIndex)
-			require.Equal(1*time.Second, req.QueryOptions.MaxQueryTime)
-			require.Equal("node-01", req.Node)
-			require.True(req.AllowStale)
+			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
+			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
+			require.Equal(t, "node-01", req.Node)
+			require.True(t, req.AllowStale)
 
 			reply := args.Get(2).(*structs.IndexedNodeServices)
 			reply.NodeServices = &structs.NodeServices{
@@ -49,15 +48,14 @@ func TestNodeServices(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       "node-01",
 	})
-	require.NoError(err)
-	require.Equal(cache.FetchResult{
+	require.NoError(t, err)
+	require.Equal(t, cache.FetchResult{
 		Value: resp,
 		Index: 48,
 	}, resultA)
 }
 
 func TestNodeServices_badReqType(t *testing.T) {
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 	typ := &NodeServices{RPC: rpc}
@@ -65,7 +63,7 @@ func TestNodeServices_badReqType(t *testing.T) {
 	// Fetch
 	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
-	require.Error(err)
-	require.Contains(err.Error(), "wrong type")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "wrong type")
 
 }

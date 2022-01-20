@@ -907,7 +907,6 @@ func TestParseCacheControl(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
 
 			r, _ := http.NewRequest("GET", "/foo/bar", nil)
 			if tt.headerVal != "" {
@@ -919,13 +918,13 @@ func TestParseCacheControl(t *testing.T) {
 
 			failed := parseCacheControl(rr, r, &got)
 			if tt.wantErr {
-				require.True(failed)
-				require.Equal(http.StatusBadRequest, rr.Code)
+				require.True(t, failed)
+				require.Equal(t, http.StatusBadRequest, rr.Code)
 			} else {
-				require.False(failed)
+				require.False(t, failed)
 			}
 
-			require.Equal(tt.want, got)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -990,7 +989,6 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 	dc1 := "dc1"
 
 	a := NewTestAgent(t, `
@@ -1062,7 +1060,7 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", c.endpoint, c.token), nil)
 			resp := httptest.NewRecorder()
 			a.srv.handler(true).ServeHTTP(resp, req)
-			assert.Equal(c.code, resp.Code)
+			assert.Equal(t, c.code, resp.Code)
 		})
 	}
 }

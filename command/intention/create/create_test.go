@@ -37,7 +37,6 @@ func TestIntentionCreate_Validation(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			require := require.New(t)
 
 			c.init()
 
@@ -49,9 +48,9 @@ func TestIntentionCreate_Validation(t *testing.T) {
 				ui.OutputWriter.Reset()
 			}
 
-			require.Equal(1, c.Run(tc.args))
+			require.Equal(t, 1, c.Run(tc.args))
 			output := ui.ErrorWriter.String()
-			require.Contains(output, tc.output)
+			require.Contains(t, output, tc.output)
 		})
 	}
 }
@@ -63,7 +62,6 @@ func TestIntentionCreate(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -77,14 +75,14 @@ func TestIntentionCreate(t *testing.T) {
 		"-http-addr=" + a.HTTPAddr(),
 		"foo", "bar",
 	}
-	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+	require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 
 	ixns, _, err := client.Connect().Intentions(nil)
-	require.NoError(err)
-	require.Len(ixns, 1)
-	require.Equal("foo", ixns[0].SourceName)
-	require.Equal("bar", ixns[0].DestinationName)
-	require.Equal(api.IntentionActionAllow, ixns[0].Action)
+	require.NoError(t, err)
+	require.Len(t, ixns, 1)
+	require.Equal(t, "foo", ixns[0].SourceName)
+	require.Equal(t, "bar", ixns[0].DestinationName)
+	require.Equal(t, api.IntentionActionAllow, ixns[0].Action)
 }
 
 func TestIntentionCreate_deny(t *testing.T) {
@@ -94,7 +92,6 @@ func TestIntentionCreate_deny(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -109,14 +106,14 @@ func TestIntentionCreate_deny(t *testing.T) {
 		"-deny",
 		"foo", "bar",
 	}
-	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+	require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 
 	ixns, _, err := client.Connect().Intentions(nil)
-	require.NoError(err)
-	require.Len(ixns, 1)
-	require.Equal("foo", ixns[0].SourceName)
-	require.Equal("bar", ixns[0].DestinationName)
-	require.Equal(api.IntentionActionDeny, ixns[0].Action)
+	require.NoError(t, err)
+	require.Len(t, ixns, 1)
+	require.Equal(t, "foo", ixns[0].SourceName)
+	require.Equal(t, "bar", ixns[0].DestinationName)
+	require.Equal(t, api.IntentionActionDeny, ixns[0].Action)
 }
 
 func TestIntentionCreate_meta(t *testing.T) {
@@ -126,7 +123,6 @@ func TestIntentionCreate_meta(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -141,14 +137,14 @@ func TestIntentionCreate_meta(t *testing.T) {
 		"-meta", "hello=world",
 		"foo", "bar",
 	}
-	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+	require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 
 	ixns, _, err := client.Connect().Intentions(nil)
-	require.NoError(err)
-	require.Len(ixns, 1)
-	require.Equal("foo", ixns[0].SourceName)
-	require.Equal("bar", ixns[0].DestinationName)
-	require.Equal(map[string]string{"hello": "world"}, ixns[0].Meta)
+	require.NoError(t, err)
+	require.Len(t, ixns, 1)
+	require.Equal(t, "foo", ixns[0].SourceName)
+	require.Equal(t, "bar", ixns[0].DestinationName)
+	require.Equal(t, map[string]string{"hello": "world"}, ixns[0].Meta)
 }
 
 func TestIntentionCreate_File(t *testing.T) {
@@ -158,7 +154,6 @@ func TestIntentionCreate_File(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -180,14 +175,14 @@ func TestIntentionCreate_File(t *testing.T) {
 		f.Name(),
 	}
 
-	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+	require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 
 	ixns, _, err := client.Connect().Intentions(nil)
-	require.NoError(err)
-	require.Len(ixns, 1)
-	require.Equal("foo", ixns[0].SourceName)
-	require.Equal("bar", ixns[0].DestinationName)
-	require.Equal(api.IntentionActionAllow, ixns[0].Action)
+	require.NoError(t, err)
+	require.Len(t, ixns, 1)
+	require.Equal(t, "foo", ixns[0].SourceName)
+	require.Equal(t, "bar", ixns[0].DestinationName)
+	require.Equal(t, api.IntentionActionAllow, ixns[0].Action)
 }
 
 func TestIntentionCreate_File_L7_fails(t *testing.T) {
@@ -197,7 +192,6 @@ func TestIntentionCreate_File_L7_fails(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
@@ -231,8 +225,8 @@ func TestIntentionCreate_File_L7_fails(t *testing.T) {
 		f.Name(),
 	}
 
-	require.Equal(1, c.Run(args), ui.ErrorWriter.String())
-	require.Contains(ui.ErrorWriter.String(), "cannot create L7 intention from file")
+	require.Equal(t, 1, c.Run(args), ui.ErrorWriter.String())
+	require.Contains(t, ui.ErrorWriter.String(), "cannot create L7 intention from file")
 }
 
 func TestIntentionCreate_FileNoExist(t *testing.T) {
@@ -242,7 +236,6 @@ func TestIntentionCreate_FileNoExist(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
@@ -257,8 +250,8 @@ func TestIntentionCreate_FileNoExist(t *testing.T) {
 		"shouldnotexist.txt",
 	}
 
-	require.Equal(1, c.Run(args), ui.ErrorWriter.String())
-	require.Contains(ui.ErrorWriter.String(), "no such file")
+	require.Equal(t, 1, c.Run(args), ui.ErrorWriter.String())
+	require.Contains(t, ui.ErrorWriter.String(), "no such file")
 }
 
 func TestIntentionCreate_replace(t *testing.T) {
@@ -268,7 +261,6 @@ func TestIntentionCreate_replace(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -284,14 +276,14 @@ func TestIntentionCreate_replace(t *testing.T) {
 			"-http-addr=" + a.HTTPAddr(),
 			"foo", "bar",
 		}
-		require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+		require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 
 		ixns, _, err := client.Connect().Intentions(nil)
-		require.NoError(err)
-		require.Len(ixns, 1)
-		require.Equal("foo", ixns[0].SourceName)
-		require.Equal("bar", ixns[0].DestinationName)
-		require.Equal(api.IntentionActionAllow, ixns[0].Action)
+		require.NoError(t, err)
+		require.Len(t, ixns, 1)
+		require.Equal(t, "foo", ixns[0].SourceName)
+		require.Equal(t, "bar", ixns[0].DestinationName)
+		require.Equal(t, api.IntentionActionAllow, ixns[0].Action)
 	}
 
 	// Don't replace, should be an error
@@ -304,8 +296,8 @@ func TestIntentionCreate_replace(t *testing.T) {
 			"-deny",
 			"foo", "bar",
 		}
-		require.Equal(1, c.Run(args), ui.ErrorWriter.String())
-		require.Contains(ui.ErrorWriter.String(), "more than once")
+		require.Equal(t, 1, c.Run(args), ui.ErrorWriter.String())
+		require.Contains(t, ui.ErrorWriter.String(), "more than once")
 	}
 
 	// Replace it
@@ -319,13 +311,13 @@ func TestIntentionCreate_replace(t *testing.T) {
 			"-deny",
 			"foo", "bar",
 		}
-		require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+		require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 
 		ixns, _, err := client.Connect().Intentions(nil)
-		require.NoError(err)
-		require.Len(ixns, 1)
-		require.Equal("foo", ixns[0].SourceName)
-		require.Equal("bar", ixns[0].DestinationName)
-		require.Equal(api.IntentionActionDeny, ixns[0].Action)
+		require.NoError(t, err)
+		require.Len(t, ixns, 1)
+		require.Equal(t, "foo", ixns[0].SourceName)
+		require.Equal(t, "bar", ixns[0].DestinationName)
+		require.Equal(t, api.IntentionActionDeny, ixns[0].Action)
 	}
 }
