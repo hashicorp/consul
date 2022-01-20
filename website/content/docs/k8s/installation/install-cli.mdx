@@ -7,10 +7,11 @@ description: >-
 
 # Installing the Consul K8s CLI 
 
-Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes.
+Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes. Ensure that you are installing the correct version of the CLI for your Consul on Kubernetes deployment, as the CLI and the control plane are version dependent. 
 
 ## Install the CLI 
 
+These instructions describe how to install the latest version of the CLI depending on your Operating System, and are suited for fresh installations of Consul on Kubernetes. 
 
 <Tabs>
 
@@ -74,13 +75,13 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
 
 <Tab heading="Linux - CentOS/RHEL">
 
-1. Install yum-config-manager to manage your repositories.
+1. Install `yum-config-manager` to manage your repositories.
 
     ```shell-session
     $ sudo yum install -y yum-utils
     ```
 
-1. Use yum-config-manager to add the official HashiCorp Linux repository.
+1. Use `yum-config-manager` to add the official HashiCorp Linux repository.
 
     ```shell-session
     $ sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
@@ -102,9 +103,10 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
 </Tab>
 
 </Tabs>
-   
-## Install a Specific Version of the CLI
 
+## Install a specific version of the CLI
+
+These instructions describe how to install a specific version of the CLI and are best suited for installing or managing specific versions of the Consul on Kubernetes control plane. 
 
 <Tabs>
 
@@ -202,9 +204,9 @@ Homebrew does not provide a method to install previous versions of a package.  T
 
 </Tabs>
 
-   
 ## Upgrade the CLI
 
+These instructions describe how to upgrade the current installed version of the CLI to the latest version. If you are looking to upgrade to a specific version, please follow [Install a specific version of the CLI](#install-a-specific-version-of-the-cli).
 
 <Tabs>
 
