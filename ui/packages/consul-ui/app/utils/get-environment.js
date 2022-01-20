@@ -31,7 +31,7 @@ export default function(config = {}, win = window, doc = document) {
           // 2. Uses localStorage
           // Once we have a user facing widget to do this, it can all go
           if (item.startsWith('CONSUL_COLOR_SCHEME=')) {
-            const [_, value] = item.split('=');
+            const [, value] = item.split('=');
             let current;
             try {
               current = JSON.parse(win.localStorage.getItem('consul:theme'));
