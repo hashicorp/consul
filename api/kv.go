@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -127,7 +128,7 @@ func (k *KV) Keys(prefix, separator string, q *QueryOptions) ([]string, *QueryMe
 }
 
 func (k *KV) getInternal(key string, params map[string]string, q *QueryOptions) (*http.Response, *QueryMeta, error) {
-	r := k.c.newRequest("GET", "/v1/kv/"+strings.TrimPrefix(key, "/"))
+	r := k.c.newRequest("GET", "/v1/kv/"+url.PathEscape(strings.TrimPrefix(key, "/")))
 	r.setQueryOptions(q)
 	for param, val := range params {
 		r.params.Set(param, val)
@@ -206,7 +207,7 @@ func (k *KV) put(key string, params map[string]string, body []byte, q *WriteOpti
 		return false, nil, fmt.Errorf("Invalid key. Key must not begin with a '/': %s", key)
 	}
 
-	r := k.c.newRequest("PUT", "/v1/kv/"+key)
+	r := k.c.newRequest("PUT", "/v1/kv/"+url.PathEscape(key))
 	r.setWriteOptions(q)
 	for param, val := range params {
 		r.params.Set(param, val)
@@ -255,7 +256,7 @@ func (k *KV) DeleteTree(prefix string, w *WriteOptions) (*WriteMeta, error) {
 }
 
 func (k *KV) deleteInternal(key string, params map[string]string, q *WriteOptions) (bool, *WriteMeta, error) {
-	r := k.c.newRequest("DELETE", "/v1/kv/"+strings.TrimPrefix(key, "/"))
+	r := k.c.newRequest("DELETE", "/v1/kv/"+url.PathEscape(strings.TrimPrefix(key, "/")))
 	r.setWriteOptions(q)
 	for param, val := range params {
 		r.params.Set(param, val)

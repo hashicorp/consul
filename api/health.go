@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -229,7 +230,7 @@ func (c *Client) Health() *Health {
 
 // Node is used to query for checks belonging to a given node
 func (h *Health) Node(node string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
-	r := h.c.newRequest("GET", "/v1/health/node/"+node)
+	r := h.c.newRequest("GET", "/v1/health/node/"+url.PathEscape(node))
 	r.setQueryOptions(q)
 	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
@@ -253,7 +254,7 @@ func (h *Health) Node(node string, q *QueryOptions) (HealthChecks, *QueryMeta, e
 
 // Checks is used to return the checks associated with a service
 func (h *Health) Checks(service string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
-	r := h.c.newRequest("GET", "/v1/health/checks/"+service)
+	r := h.c.newRequest("GET", "/v1/health/checks/"+url.PathEscape(service))
 	r.setQueryOptions(q)
 	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
@@ -366,7 +367,7 @@ func (h *Health) State(state string, q *QueryOptions) (HealthChecks, *QueryMeta,
 	default:
 		return nil, nil, fmt.Errorf("Unsupported state: %v", state)
 	}
-	r := h.c.newRequest("GET", "/v1/health/state/"+state)
+	r := h.c.newRequest("GET", "/v1/health/state/"+url.PathEscape(state))
 	r.setQueryOptions(q)
 	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {

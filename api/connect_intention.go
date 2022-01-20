@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net/url"
 	"time"
 )
 
@@ -228,7 +229,7 @@ func (h *Connect) IntentionGetExact(source, destination string, q *QueryOptions)
 //
 // Deprecated: use IntentionGetExact instead
 func (h *Connect) IntentionGet(id string, q *QueryOptions) (*Intention, *QueryMeta, error) {
-	r := h.c.newRequest("GET", "/v1/connect/intentions/"+id)
+	r := h.c.newRequest("GET", "/v1/connect/intentions/"+url.PathEscape(id))
 	r.setQueryOptions(q)
 	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
@@ -282,7 +283,7 @@ func (h *Connect) IntentionDeleteExact(source, destination string, q *WriteOptio
 //
 // Deprecated: use IntentionDeleteExact instead
 func (h *Connect) IntentionDelete(id string, q *WriteOptions) (*WriteMeta, error) {
-	r := h.c.newRequest("DELETE", "/v1/connect/intentions/"+id)
+	r := h.c.newRequest("DELETE", "/v1/connect/intentions/"+url.PathEscape(id))
 	r.setWriteOptions(q)
 	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
@@ -431,7 +432,7 @@ func (c *Connect) IntentionCreate(ixn *Intention, q *WriteOptions) (string, *Wri
 //
 // Deprecated: use IntentionUpsert instead
 func (c *Connect) IntentionUpdate(ixn *Intention, q *WriteOptions) (*WriteMeta, error) {
-	r := c.c.newRequest("PUT", "/v1/connect/intentions/"+ixn.ID)
+	r := c.c.newRequest("PUT", "/v1/connect/intentions/"+url.PathEscape(ixn.ID))
 	r.setWriteOptions(q)
 	r.obj = ixn
 	rtt, resp, err := c.c.doRequest(r)

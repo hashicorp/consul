@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"net/url"
 	"strconv"
 )
 
@@ -31,7 +32,7 @@ func (c *Client) Event() *Event {
 // are respected. This returns the ID or an associated error. Cross DC requests
 // are supported.
 func (e *Event) Fire(params *UserEvent, q *WriteOptions) (string, *WriteMeta, error) {
-	r := e.c.newRequest("PUT", "/v1/event/fire/"+params.Name)
+	r := e.c.newRequest("PUT", "/v1/event/fire/"+url.PathEscape(params.Name))
 	r.setWriteOptions(q)
 	if params.NodeFilter != "" {
 		r.params.Set("node", params.NodeFilter)

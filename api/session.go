@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 )
 
@@ -135,7 +136,7 @@ func (s *Session) Destroy(id string, q *WriteOptions) (*WriteMeta, error) {
 
 // Renew renews the TTL on a given session
 func (s *Session) Renew(id string, q *WriteOptions) (*SessionEntry, *WriteMeta, error) {
-	r := s.c.newRequest("PUT", "/v1/session/renew/"+id)
+	r := s.c.newRequest("PUT", "/v1/session/renew/"+url.PathEscape(id))
 	r.setWriteOptions(q)
 	rtt, resp, err := s.c.doRequest(r)
 	if err != nil {

@@ -1,5 +1,7 @@
 package api
 
+import "net/url"
+
 // QueryDatacenterOptions sets options about how we fail over if there are no
 // healthy nodes in the local datacenter.
 type QueryDatacenterOptions struct {
@@ -201,7 +203,7 @@ func (c *PreparedQuery) Get(queryID string, q *QueryOptions) ([]*PreparedQueryDe
 
 // Delete is used to delete a specific prepared query.
 func (c *PreparedQuery) Delete(queryID string, q *WriteOptions) (*WriteMeta, error) {
-	r := c.c.newRequest("DELETE", "/v1/query/"+queryID)
+	r := c.c.newRequest("DELETE", "/v1/query/"+url.PathEscape(queryID))
 	r.setWriteOptions(q)
 	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
