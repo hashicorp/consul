@@ -117,8 +117,8 @@ Homebrew does not provide a method to install previous versions of a package. Th
 1. Download the desired Consul K8s CLI using the following `curl` command. Enter the approriate version for your deployment via the `$VERSION` environment variable. 
 
    ```shell-session
-   $ export VERSION=0.39.0
-   $ curl --location "https://releases.hashicorp.com/consul-k8s/${VERSION}/consul-k8s_${VERSION}_darwin_amd64.zip" --output consul-k8s-cli.zip
+   $ export VERSION=0.39.0 && \
+       curl --location "https://releases.hashicorp.com/consul-k8s/${VERSION}/consul-k8s_${VERSION}_darwin_amd64.zip" --output consul-k8s-cli.zip
    ```
    
 1. Unzip the zip file ouput to extract the `consul-k8s` CLI binary. This overwrites existing files and also creates a `.consul-k8s` subdirectory in your `$HOME` folder. 
@@ -159,8 +159,8 @@ Homebrew does not provide a method to install previous versions of a package. Th
 1. Run apt-get install to install the `consul-k8s` CLI.
 
    ```shell-session
-   $ export VERSION=0.39.0
-   $ sudo apt-get update && sudo apt-get install consul-k8s=${VERSION}
+   $ export VERSION=0.39.0 && \
+       sudo apt-get update && sudo apt-get install consul-k8s=${VERSION}
    ```
    
 1. (Optional) Issue the `consul-k8s version` command to verify the installation.
@@ -189,8 +189,8 @@ Homebrew does not provide a method to install previous versions of a package. Th
 1. Install the `consul-k8s` CLI. 
 
     ```shell-session
-    $ export VERSION=-0.39.0
-    $ sudo yum -y install consul-k8s-${VERSION}-1
+    $ export VERSION=-0.39.0 && \
+        sudo yum -y install consul-k8s-${VERSION}-1
     ```
     
 1. (Optional) Issue the `consul-k8s version` command to verify the installation.
