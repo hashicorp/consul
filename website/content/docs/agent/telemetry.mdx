@@ -310,7 +310,7 @@ could end up writing a large amount of extra data to disk for each log storage o
 to drastically increase disk write throughput, potentially beyond what the underlying disks can keep up with. To
 detect this situation you can look at the `consul.raft.boltdb.freelistBytes` metric. This metric is a count of
 the extra bytes that are being written for each log storage operation beyond the log data itself. While not a clear
-indicator of an actual issue, thiss metric can be used to diagnose why the `consul.raft.boltdb.storeLogs` metric
+indicator of an actual issue, this metric can be used to diagnose why the `consul.raft.boltdb.storeLogs` metric
 is high. 
 
 If Bolt DB log storage performance becomes an issue and is caused by free list management then setting
