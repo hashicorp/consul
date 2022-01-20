@@ -1717,3 +1717,33 @@ func TestGetPathSuffixUnescaped(t *testing.T) {
 		})
 	}
 }
+
+func TestQueryParamUnescaped(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name         string
+		urlInput     string
+		paramDecoded string
+	}{
+		// No decoding required (resource name must be unaffected by the decode)
+		{"Normal Valid", "/foo/bar?param=foo-1", "foo-1"},
+		// This function is not responsible for enforcing a valid URL, just for decoding escaped values.
+		// If there's an invalid URL segment in the path, it will be returned as is.
+		{"Unencoded Invalid", "/foo/bar?param=foo 1", "foo 1"},
+		// Decode the encoded value properly
+		{"Encoded Valid", "/foo/bar?param=foo%201", "foo 1"},
+		// Fail to decode an invalidly encoded input (empty return value)
+		{"Encoded Invalid", "/foo/bar?param=foo%Z1", ""},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			req, _ := http.NewRequest("GET", tc.urlInput, nil)
+			param := req.URL.Query().Get("param")
+
+			require.Equal(t, param, tc.paramDecoded)
+		})
+	}
+}

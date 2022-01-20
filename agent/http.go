@@ -1156,3 +1156,21 @@ func getPathSuffixUnescaped(path string, prefixToTrim string) (string, error) {
 
 	return suffixUnescaped, nil
 }
+
+func getQueryParamUnescaped(queryParamRaw string) (string) {
+	// If unescaping causes an error, the original input will be returned.
+	// This function does not return an error for convenience of use:
+	// not needing to define error handling everywhere a query parameter is
+	// read. The caller does not need to adapt its behavior based on whether
+	// or not an error is generated here. And it's likely that a malformed
+	// query parameter would generate an error in the higher level http handler
+	// anyways, so the unescape in this function should never fail in actual use.
+
+	queryParamUnescaped, err := url.QueryUnescape(queryParamRaw)
+
+	if err != nil {
+		return queryParamRaw
+	}
+
+	return queryParamUnescaped
+}
