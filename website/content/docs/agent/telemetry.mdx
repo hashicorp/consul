@@ -314,7 +314,7 @@ indicator of an actual issue, this metric can be used to diagnose why the `consu
 is high. 
 
 If Bolt DB log storage performance becomes an issue and is caused by free list management then setting
-[`raft_boltdb.NoFreelistSync`](/docs/agent/options#NoFreelistSync) to `true` in the servers configuration
+[`raft_boltdb.NoFreelistSync`](/docs/agent/options#NoFreelistSync) to `true` in the server's configuration
 may help to reduce disk IO and log storage operation times. Disabling free list syncing will however increase
 the startup time for a server as it must scan the raft.db file for free space instead of loading the already
 populated free list structure.
