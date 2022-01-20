@@ -102,7 +102,7 @@ A service lookup is used to query for service providers. Service queries support
 two lookup methods: standard and strict [RFC 2782](https://tools.ietf.org/html/rfc2782).
 
 By default, SRV weights are all set at 1, but changing weights is supported using the
-`Weights` attribute of the [service definition](/docs/agent/services).
+`Weights` attribute of the [service definition](/docs/discovery/services).
 
 Note that DNS is limited in size per request, even when performing DNS TCP
 queries.
@@ -394,7 +394,7 @@ To find ingress-enabled services:
 <service>.ingress.<domain>
 ```
 
-This will find all [ingress gateway](/docs/connect/ingress-gateway)
+This will find all [ingress gateway](/docs/connect/gateways/ingress-gateway)
 endpoints for the given `service`.
 
 This endpoint currently only finds services within the same datacenter

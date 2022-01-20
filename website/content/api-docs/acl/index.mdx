@@ -276,7 +276,7 @@ agent_prefix "" {
 ## Login to Auth Method
 
 This endpoint was added in Consul 1.5.0 and is used to exchange an [auth
-method](/docs/acl/auth-methods) bearer token for a newly-created
+method](/docs/security/acl/auth-methods) bearer token for a newly-created
 Consul ACL token.
 
 | Method | Path         | Produces           |
@@ -407,7 +407,7 @@ $ curl \
 </EnterpriseAlert>
 
 This endpoint was added in Consul 1.8.0 and is used to obtain an authorization
-URL from Consul to start an [OIDC login flow](/docs/acl/auth-methods/oidc).
+URL from Consul to start an [OIDC login flow](/docs/security/acl/auth-methods/oidc).
 
 | Method | Path                 | Produces           |
 | ------ | -------------------- | ------------------ |
@@ -433,10 +433,10 @@ replication enabled.
 ### Parameters
 
 - `AuthMethod` `(string: <required>)` - The name of the auth method to use for
-  login. This must be of type [`oidc`](/docs/acl/auth-methods/oidc).
+  login. This must be of type [`oidc`](/docs/security/acl/auth-methods/oidc).
 
 - `RedirectURI` `(string: <required>)` - See [Redirect
-  URIs](/docs/acl/auth-methods/oidc#redirect-uris) for more information.
+  URIs](/docs/security/acl/auth-methods/oidc#redirect-uris) for more information.
 
 - `ClientNonce` `(string: "")` - Optional client-provided nonce that must match
   during callback, if present.
@@ -513,7 +513,7 @@ replication enabled.
 ### Parameters
 
 - `AuthMethod` `(string: <required>)` - The name of the auth method to use for
-  login. This must be of type [`oidc`](/docs/acl/auth-methods/oidc).
+  login. This must be of type [`oidc`](/docs/security/acl/auth-methods/oidc).
 
 - `State` `(string: <required>)` - Opaque state ID that is part of the
   Authorization URL and will be included in the the redirect following

@@ -193,7 +193,7 @@ You can configure the service mesh proxy to create listeners for upstream servic
 
 Upstreams support multiple destination types. The following examples include information about each implementation.
 
--> **Snake case**: The examples in this topic use `snake_case` because the syntax is supported in configuration files and API registrations. See [Service Definition Parameter Case](/docs/agent/services#service-definition-parameter-case) for additional information.
+-> **Snake case**: The examples in this topic use `snake_case` because the syntax is supported in configuration files and API registrations. See [Service Definition Parameter Case](/docs/discovery/services#service-definition-parameter-case) for additional information.
 
 <CodeTabs heading="Example service destination upstream">
 <CodeBlockConfig>
@@ -306,7 +306,7 @@ The following examples show additional configuration for transparent proxies.
 Added in v1.10.0.
 
 -> Note that `snake_case` is used here as it works in both [config file and API
-registrations](/docs/agent/services#service-definition-parameter-case).
+registrations](/docs/discovery/services#service-definition-parameter-case).
 
 #### Configure a proxy listener for outbound traffic on port 22500
 
@@ -332,7 +332,7 @@ registrations](/docs/agent/services#service-definition-parameter-case).
 The following examples show all possible mesh gateway configurations.
 
 -> Note that `snake_case` is used here as it works in both [config file and API
-registrations](/docs/agent/services#service-definition-parameter-case).
+registrations](/docs/discovery/services#service-definition-parameter-case).
 
 #### Using a Local/Egress Gateway in the Local Datacenter
 
@@ -390,7 +390,7 @@ non-Connect-enabled applications to contact an HTTP endpoint.
 Some examples include: exposing a `/metrics` path for Prometheus or `/healthz` for kubelet liveness checks.
 
 -> Note that `snake_case` is used here as it works in both [config file and API
-registrations](/docs/agent/services#service-definition-parameter-case).
+registrations](/docs/discovery/services#service-definition-parameter-case).
 
 #### Expose listeners in Envoy for HTTP and GRPC checks registered with the local Consul agent
 

@@ -26,7 +26,7 @@ The following diagram describes the architecture for using mesh gateways for cro
 
 Ensure that your Consul environment meets the following requirements.
 
-### Consul 
+### Consul
 
 * Consul version 1.6.0 or newer.
 * A local Consul agent is required to manage its configuration.
@@ -35,18 +35,18 @@ Ensure that your Consul environment meets the following requirements.
 * Each datacenters must be [WAN joined](https://learn.hashicorp.com/tutorials/consul/federarion-gossip-wan).
 * The [primary datacenter](/docs/agent/options#primary_datacenter) must be set to the same value in both datacenters. This specifies which datacenter is the authority for Connect certificates and is required for services in all datacenters to establish mutual TLS with each other.
 * [gRPC](/docs/agent/options#grpc_port) must be enabled.
-* If you want to [enable gateways globally](/docs/connect/mesh-gateway#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/options#enable_central_service_config).
+* If you want to [enable gateways globally](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/options#enable_central_service_config).
 
 ### Network
 
 * General network connectivity to all services within its local Consul datacenter.
 * General network connectivity to all mesh gateways within remote Consul datacenters.
 
-### Proxy 
+### Proxy
 
 Envoy is the only proxy with mesh gateway capabilities in Consul.
 
-Mesh gateway proxies receive their configuration through Consul, which automatically generates it based on the proxy's registration. 
+Mesh gateway proxies receive their configuration through Consul, which automatically generates it based on the proxy's registration.
 Consul can only translate mesh gateway registration information into Envoy configuration.
 
 Sidecar proxies that send traffic to an upstream service through a gateway need to know the location of that gateway. They discover the gateway based on their sidecar proxy registrations. Consul can only translate the gateway registration information into Envoy configuration.

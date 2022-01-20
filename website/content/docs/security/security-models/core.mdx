@@ -154,7 +154,7 @@ environment and adapt these configurations accordingly.
   capabilities tied to an individual human, or machine operator identity. To ultimately secure the ACL system,
   administrators should configure the [`default_policy`](/docs/agent/options#acl_default_policy) to "deny".
 
-  The [system](/docs/acl/acl-system) is comprised of five major components:
+  The [system](/docs/security/acl/acl-system) is comprised of five major components:
 
   - **🗝 Token** - API key associated with policies, roles, or service identities.
 
@@ -207,7 +207,7 @@ environment and adapt these configurations accordingly.
 - **Rotate Credentials** - Using short-lived credentials and rotating them frequently is highly recommended for
   production environments to limit the blast radius from potentially compromised secrets, and enabling basic auditing.
 
-  - **ACL Tokens** - Consul API’s require an ACL token to authorize actions within a cluster.
+  - **ACL Tokens** - Consul APIs require an ACL token to authorize actions within a cluster.
 
   - **X.509 Certificates** - Rotate certificates used by the Consul agent; e.g. integrate with Vault's PKI secret engine
     to automatically generate and renew dynamic, unique X.509 certificates for each Consul node with a short TTL. Client
@@ -235,7 +235,7 @@ environment and adapt these configurations accordingly.
 
 - **Customize HTTP Response Headers** - Additional security headers, such as
   [`X-XSS-Protection`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection), can be
-  [configured](https://www.consul.io/docs/agent/options#response_headers) for HTTP API responses.
+  [configured](/docs/agent/options#response_headers) for HTTP API responses.
 
   ```hcl
   http_config {
@@ -411,6 +411,6 @@ The following are not part of the threat model for client agents:
 - **Gateways** - Consul supports a variety of [gateways](/docs/connect/gateways) to allow traffic in-and-out of the
   service mesh to support a variety of workloads. When using an internet-exposed gateway, you should be sure to harden
   your Consul agent and host configurations. In most configurations, ACLS, gossip encryption, and mTLS should be
-  enforced. If an [escape hatch override](https://www.consul.io/docs/connect/proxies/envoy#escape-hatch-overrides) is
+  enforced. If an [escape hatch override](/docs/connect/proxies/envoy#escape-hatch-overrides) is
   required, the proxy configuration should be audited to ensure security configurations remain intact, and do not
   violate Consul’s security model.
