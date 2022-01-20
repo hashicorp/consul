@@ -69,7 +69,7 @@
   @extend %with-logo-nomad-color-icon, %as-pseudo;
 }
 %popover-select .vault button::before {
-  @extend %with-logo-vault-color-icon, %as-pseudo;
+  @extend %with-vault-300;
 }
 %popover-select .terraform button::before {
   @extend %with-logo-terraform-color-icon, %as-pseudo;
