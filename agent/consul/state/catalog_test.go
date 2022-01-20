@@ -2389,9 +2389,8 @@ func TestStateStore_ConnectServiceNodes(t *testing.T) {
 	assert.Len(nodes, 3)
 
 	for _, n := range nodes {
-		assert.True(
-			n.ServiceKind == structs.ServiceKindConnectProxy ||
-				n.ServiceConnect.Native,
+		assert.True(n.ServiceKind == structs.ServiceKindConnectProxy ||
+			n.ServiceConnect.Native,
 			"either proxy or connect native")
 	}
 

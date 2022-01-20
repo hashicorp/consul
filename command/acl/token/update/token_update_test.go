@@ -158,8 +158,6 @@ func TestTokenUpdateCommand_JSON(t *testing.T) {
 
 	t.Parallel()
 	assert := assert.New(t)
-	// Alias because we need to access require package in Retry below
-	req := require.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -182,14 +180,14 @@ func TestTokenUpdateCommand_JSON(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	req.NoError(err)
+	require.NoError(t, err)
 
 	// create a token
 	token, _, err := client.ACL().TokenCreate(
 		&api.ACLToken{Description: "test"},
 		&api.WriteOptions{Token: "root"},
 	)
-	req.NoError(err)
+	require.NoError(t, err)
 
 	t.Run("update with policy by name", func(t *testing.T) {
 		cmd := New(ui)

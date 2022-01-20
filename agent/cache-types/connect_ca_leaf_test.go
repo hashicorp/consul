@@ -406,8 +406,7 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 
 		// Sanity check that we've not gone way beyond the deadline without a
 		// new cert. We give some leeway to make it less brittle.
-		require.Falsef(
-			time.Now().After(shouldExpireAfter.Add(100*time.Millisecond)),
+		require.Falsef(time.Now().After(shouldExpireAfter.Add(100*time.Millisecond)),
 			"waited extra 100ms and delayed CA rotate renew didn't happen")
 	}
 }

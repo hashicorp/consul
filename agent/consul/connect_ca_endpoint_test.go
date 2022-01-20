@@ -899,7 +899,6 @@ func TestConnectCASign(t *testing.T) {
 func BenchmarkConnectCASign(b *testing.B) {
 	t := &testing.T{}
 
-	require := require.New(b)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -919,7 +918,9 @@ func BenchmarkConnectCASign(b *testing.B) {
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
+		if err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply); err != nil {
+			b.Fatalf("err: %v", err)
+		}
 	}
 }
 

@@ -1516,30 +1516,30 @@ func TestMergePolicies(t *testing.T) {
 		},
 	}
 
-	req := require.New(t)
+	require := require.New(t)
 
 	for _, tcase := range tests {
 		t.Run(tcase.name, func(t *testing.T) {
 			act := MergePolicies(tcase.input)
 			exp := tcase.expected
-			req.Equal(exp.ACL, act.ACL)
-			req.Equal(exp.Keyring, act.Keyring)
-			req.Equal(exp.Operator, act.Operator)
-			req.Equal(exp.Mesh, act.Mesh)
-			req.ElementsMatch(exp.Agents, act.Agents)
-			req.ElementsMatch(exp.AgentPrefixes, act.AgentPrefixes)
-			req.ElementsMatch(exp.Events, act.Events)
-			req.ElementsMatch(exp.EventPrefixes, act.EventPrefixes)
-			req.ElementsMatch(exp.Keys, act.Keys)
-			req.ElementsMatch(exp.KeyPrefixes, act.KeyPrefixes)
-			req.ElementsMatch(exp.Nodes, act.Nodes)
-			req.ElementsMatch(exp.NodePrefixes, act.NodePrefixes)
-			req.ElementsMatch(exp.PreparedQueries, act.PreparedQueries)
-			req.ElementsMatch(exp.PreparedQueryPrefixes, act.PreparedQueryPrefixes)
-			req.ElementsMatch(exp.Services, act.Services)
-			req.ElementsMatch(exp.ServicePrefixes, act.ServicePrefixes)
-			req.ElementsMatch(exp.Sessions, act.Sessions)
-			req.ElementsMatch(exp.SessionPrefixes, act.SessionPrefixes)
+			require.Equal(exp.ACL, act.ACL)
+			require.Equal(exp.Keyring, act.Keyring)
+			require.Equal(exp.Operator, act.Operator)
+			require.Equal(exp.Mesh, act.Mesh)
+			require.ElementsMatch(exp.Agents, act.Agents)
+			require.ElementsMatch(exp.AgentPrefixes, act.AgentPrefixes)
+			require.ElementsMatch(exp.Events, act.Events)
+			require.ElementsMatch(exp.EventPrefixes, act.EventPrefixes)
+			require.ElementsMatch(exp.Keys, act.Keys)
+			require.ElementsMatch(exp.KeyPrefixes, act.KeyPrefixes)
+			require.ElementsMatch(exp.Nodes, act.Nodes)
+			require.ElementsMatch(exp.NodePrefixes, act.NodePrefixes)
+			require.ElementsMatch(exp.PreparedQueries, act.PreparedQueries)
+			require.ElementsMatch(exp.PreparedQueryPrefixes, act.PreparedQueryPrefixes)
+			require.ElementsMatch(exp.Services, act.Services)
+			require.ElementsMatch(exp.ServicePrefixes, act.ServicePrefixes)
+			require.ElementsMatch(exp.Sessions, act.Sessions)
+			require.ElementsMatch(exp.SessionPrefixes, act.SessionPrefixes)
 		})
 	}
 

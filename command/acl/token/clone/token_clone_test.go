@@ -65,7 +65,7 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 	}
 
 	t.Parallel()
-	req := require.New(t)
+	require := require.New(t)
 
 	a := agent.NewTestAgent(t, `
    primary_datacenter = "dc1"
@@ -86,14 +86,14 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	req.NoError(err)
+	require.NoError(err)
 
 	// create a token
 	token, _, err := client.ACL().TokenCreate(
 		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: "test-policy"}}},
 		&api.WriteOptions{Token: "root"},
 	)
-	req.NoError(err)
+	require.NoError(err)
 
 	// clone with description
 	t.Run("Description", func(t *testing.T) {
@@ -108,27 +108,27 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		req.Empty(ui.ErrorWriter.String())
-		req.Equal(code, 0)
+		require.Empty(ui.ErrorWriter.String())
+		require.Equal(code, 0)
 
 		cloned := parseCloneOutput(t, ui.OutputWriter.String())
 
-		req.Equal("test cloned", cloned.Description)
-		req.Len(cloned.Policies, 1)
+		require.Equal("test cloned", cloned.Description)
+		require.Len(cloned.Policies, 1)
 
 		apiToken, _, err := client.ACL().TokenRead(
 			cloned.AccessorID,
 			&api.QueryOptions{Token: "root"},
 		)
 
-		req.NoError(err)
-		req.NotNil(apiToken)
+		require.NoError(err)
+		require.NotNil(apiToken)
 
-		req.Equal(cloned.AccessorID, apiToken.AccessorID)
-		req.Equal(cloned.SecretID, apiToken.SecretID)
-		req.Equal(cloned.Description, apiToken.Description)
-		req.Equal(cloned.Local, apiToken.Local)
-		req.Equal(cloned.Policies, apiToken.Policies)
+		require.Equal(cloned.AccessorID, apiToken.AccessorID)
+		require.Equal(cloned.SecretID, apiToken.SecretID)
+		require.Equal(cloned.Description, apiToken.Description)
+		require.Equal(cloned.Local, apiToken.Local)
+		require.Equal(cloned.Policies, apiToken.Policies)
 	})
 
 	// clone without description
@@ -143,27 +143,27 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		req.Equal(code, 0)
-		req.Empty(ui.ErrorWriter.String())
+		require.Equal(code, 0)
+		require.Empty(ui.ErrorWriter.String())
 
 		cloned := parseCloneOutput(t, ui.OutputWriter.String())
 
-		req.Equal("test", cloned.Description)
-		req.Len(cloned.Policies, 1)
+		require.Equal("test", cloned.Description)
+		require.Len(cloned.Policies, 1)
 
 		apiToken, _, err := client.ACL().TokenRead(
 			cloned.AccessorID,
 			&api.QueryOptions{Token: "root"},
 		)
 
-		req.NoError(err)
-		req.NotNil(apiToken)
+		require.NoError(err)
+		require.NotNil(apiToken)
 
-		req.Equal(cloned.AccessorID, apiToken.AccessorID)
-		req.Equal(cloned.SecretID, apiToken.SecretID)
-		req.Equal(cloned.Description, apiToken.Description)
-		req.Equal(cloned.Local, apiToken.Local)
-		req.Equal(cloned.Policies, apiToken.Policies)
+		require.Equal(cloned.AccessorID, apiToken.AccessorID)
+		require.Equal(cloned.SecretID, apiToken.SecretID)
+		require.Equal(cloned.Description, apiToken.Description)
+		require.Equal(cloned.Local, apiToken.Local)
+		require.Equal(cloned.Policies, apiToken.Policies)
 	})
 }
 
@@ -173,7 +173,7 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 	}
 
 	t.Parallel()
-	req := require.New(t)
+	require := require.New(t)
 
 	a := agent.NewTestAgent(t, `
    primary_datacenter = "dc1"
@@ -194,14 +194,14 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	req.NoError(err)
+	require.NoError(err)
 
 	// create a token
 	token, _, err := client.ACL().TokenCreate(
 		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: "test-policy"}}},
 		&api.WriteOptions{Token: "root"},
 	)
-	req.NoError(err)
+	require.NoError(err)
 
 	// clone with description
 	t.Run("Description", func(t *testing.T) {
@@ -217,8 +217,8 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		req.Empty(ui.ErrorWriter.String())
-		req.Equal(code, 0)
+		require.Empty(ui.ErrorWriter.String())
+		require.Equal(code, 0)
 
 		output := ui.OutputWriter.String()
 		var jsonOutput json.RawMessage
@@ -239,8 +239,8 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		req.Empty(ui.ErrorWriter.String())
-		req.Equal(code, 0)
+		require.Empty(ui.ErrorWriter.String())
+		require.Equal(code, 0)
 
 		output := ui.OutputWriter.String()
 		var jsonOutput json.RawMessage

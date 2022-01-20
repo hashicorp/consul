@@ -43,7 +43,7 @@ func TestConnectCARoots_list(t *testing.T) {
 
 	t.Parallel()
 
-	assertion := assert.New(t)
+	assert := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -56,16 +56,16 @@ func TestConnectCARoots_list(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/connect/ca/roots", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.ConnectCARoots(resp, req)
-	assertion.NoError(err)
+	assert.NoError(err)
 
 	value := obj.(structs.IndexedCARoots)
-	assertion.Equal(value.ActiveRootID, ca2.ID)
-	assertion.Len(value.Roots, 2)
+	assert.Equal(value.ActiveRootID, ca2.ID)
+	assert.Len(value.Roots, 2)
 
 	// We should never have the secret information
 	for _, r := range value.Roots {
-		assertion.Equal("", r.SigningCert)
-		assertion.Equal("", r.SigningKey)
+		assert.Equal("", r.SigningCert)
+		assert.Equal("", r.SigningKey)
 	}
 }
 
