@@ -826,7 +826,7 @@ func TestAPI_CatalogRegistration(t *testing.T) {
 	service := &AgentService{
 		ID:      "redis1",
 		Service: "redis",
-		Tags:    []string{"master", "v1"},
+		Tags:    []string{"primary", "v1"},
 		Port:    8000,
 	}
 
@@ -1023,7 +1023,7 @@ func TestAPI_CatalogEnableTagOverride(t *testing.T) {
 	service := &AgentService{
 		ID:      "redis1",
 		Service: "redis",
-		Tags:    []string{"master", "v1"},
+		Tags:    []string{"primary", "v1"},
 		Port:    8000,
 	}
 

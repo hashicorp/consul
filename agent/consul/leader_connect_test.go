@@ -196,7 +196,7 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 	for _, tc := range tests {
 		tc := tc
 		t.Run(fmt.Sprintf("%s-%d", tc.keyType, tc.keyBits), func(t *testing.T) {
-			masterToken := "8a85f086-dd95-4178-b128-e10902767c5c"
+			initialManagementToken := "8a85f086-dd95-4178-b128-e10902767c5c"
 
 			// Initialize primary as the primary DC
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -204,7 +204,7 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 				c.PrimaryDatacenter = "primary"
 				c.Build = "1.6.0"
 				c.ACLsEnabled = true
-				c.ACLInitialManagementToken = masterToken
+				c.ACLInitialManagementToken = initialManagementToken
 				c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 				c.CAConfig.Config["PrivateKeyType"] = tc.keyType
 				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
@@ -213,7 +213,7 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
 
-			s1.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
+			s1.tokens.UpdateAgentToken(initialManagementToken, token.TokenSourceConfig)
 
 			testrpc.WaitForLeader(t, s1.RPC, "primary")
 
@@ -232,8 +232,8 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 			defer os.RemoveAll(dir2)
 			defer s2.Shutdown()
 
-			s2.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
-			s2.tokens.UpdateReplicationToken(masterToken, token.TokenSourceConfig)
+			s2.tokens.UpdateAgentToken(initialManagementToken, token.TokenSourceConfig)
+			s2.tokens.UpdateReplicationToken(initialManagementToken, token.TokenSourceConfig)
 
 			// Create the WAN link
 			joinWAN(t, s2, s1)

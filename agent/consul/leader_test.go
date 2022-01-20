@@ -1162,15 +1162,15 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
-		build     string
-		master    string
-		bootstrap bool
+		name              string
+		build             string
+		initialManagement string
+		bootstrap         bool
 	}{
-		{"old version, no master", "0.8.0", "", true},
-		{"old version, master", "0.8.0", "root", false},
-		{"new version, no master", "0.9.1", "", true},
-		{"new version, master", "0.9.1", "root", false},
+		{"old version, no initial management", "0.8.0", "", true},
+		{"old version, initial management", "0.8.0", "root", false},
+		{"new version, no initial management", "0.9.1", "", true},
+		{"new version, initial management", "0.9.1", "root", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1180,17 +1180,17 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				c.Datacenter = "dc1"
 				c.PrimaryDatacenter = "dc1"
 				c.ACLsEnabled = true
-				c.ACLInitialManagementToken = tt.master
+				c.ACLInitialManagementToken = tt.initialManagement
 			}
 			dir1, s1 := testServerWithConfig(t, conf)
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
 			testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-			if tt.master != "" {
-				_, master, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.master, nil)
+			if tt.initialManagement != "" {
+				_, initialManagement, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.initialManagement, nil)
 				require.NoError(t, err)
-				require.NotNil(t, master)
+				require.NotNil(t, initialManagement)
 			}
 
 			_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken, nil)

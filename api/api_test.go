@@ -16,10 +16,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 type configCallback func(c *Config)
@@ -39,7 +40,7 @@ func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
 		clientConfig.Token = "root"
 	}, func(serverConfig *testutil.TestServerConfig) {
 		serverConfig.PrimaryDatacenter = "dc1"
-		serverConfig.ACL.Tokens.Master = "root"
+		serverConfig.ACL.Tokens.InitialManagement = "root"
 		serverConfig.ACL.Tokens.Agent = "root"
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"

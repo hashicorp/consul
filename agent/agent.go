@@ -209,9 +209,6 @@ type Agent struct {
 	// depending on the configuration
 	delegate delegate
 
-	// aclMasterAuthorizer is an object that helps manage local ACL enforcement.
-	aclMasterAuthorizer acl.Authorizer
-
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
 	State *local.State
