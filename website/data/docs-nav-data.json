@@ -633,7 +633,7 @@
       },
       {
         "title": "Manual Installation",
-        "path": "ecs/install-no-terraform"
+        "path": "ecs/manual-installation"
       }
     ]
   },
