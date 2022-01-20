@@ -302,7 +302,7 @@ that increased write latencies and other errors may occur.
 
 There can be a number of potential issues that can cause this. Often times it could be performance of the underlying
 disks that is the issue. Other times it may be caused by Bolt DB behavior. Bolt DB keeps track of free space within
-the raft.db file. When needing to allocate data it will use existing free space first before further expanding the
+the `raft.db` file. When needing to allocate data it will use existing free space first before further expanding the
 file. By default, Bolt DB will write a data structure containing metadata about free pages within the DB to disk for
 every log storage operation. Therefore if the free space within the database grows excessively large, such as after
 a large spike in writes beyond the normal steady state and a subsequent slow down in the write rate, then Bolt DB
