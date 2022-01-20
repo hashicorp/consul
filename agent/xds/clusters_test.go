@@ -641,6 +641,16 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "ingress-multiple-listeners-upstream-without-discovery-chain",
+			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersUpstreamWithoutDiscoveryChain,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-multiple-listeners-upstream-without-backing-endpoint",
+			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersUpstreamWithoutBackingEndpoint,
+			setup:  nil,
+		},
+		{
 			name:   "transparent-proxy",
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {

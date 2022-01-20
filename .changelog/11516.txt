@@ -1,0 +1,3 @@
+```release-note:improvement
+xds, proxycfg: improve eventual consistency in ingress gateway generator.
+```
