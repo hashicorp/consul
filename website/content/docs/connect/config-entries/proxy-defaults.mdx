@@ -34,8 +34,8 @@ The following Consul binaries are supported:
 ## Usage
 
 1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
+1. Determine the settings you want to implement (see [Configuration](#configuration)). You can create a file containing the configuration or pass them to the state store directly to apply the configuration.
 1. Apply the configuration using one of the following methods:
-   - Specify the `proxy-defaults` configuration in the agent configuration file (see [`config_entries`](/docs/agent/options#config_entries)) as described in [Configuration](#configuration).
    - Kubernetes CRD: Refer to the [Custom Resource Definitions](/docs/k8s/crds) documentation for details.
    - Issue the `consul config write` command: Refer to the [Consul Config Write](/commands/config/write) documentation for details.
 
