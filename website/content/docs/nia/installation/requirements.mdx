@@ -56,7 +56,7 @@ $ curl --request PUT --data @payload.json http://localhost:8500/v1/agent/service
 
 The above example registers a service named "web" with your Consul agent. This represents a non-existent web service running at 10.10.10.10:8000. Your web service is now available for Consul-Terraform-Sync to consume. In Consul-Terraform-Sync, you can optionally configure the web service with a [service block](/docs/nia/configuration#service) if it has any non-default values. You can also have Consul-Terraform-Sync monitor the web service to execute a task and update network device(s) by configuring "web" in [`task.services`](/docs/nia/configuration#services) of a task block.
 
-For more details on registering a service by HTTP API request, refer to the [register service API docs](https://www.consul.io/api-docs/agent/service#register-service).
+For more details on registering a service by HTTP API request, refer to the [register service API docs](/api-docs/agent/service#register-service).
 
 For more details on registering a service by loading a service definition, refer to the [Getting Started: Register a Service with Consul Service Discovery Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-service-discovery?in=consul/getting-started).
 

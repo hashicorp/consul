@@ -17,7 +17,7 @@ Agents run in either client or server mode. Client nodes are lightweight process
 They interface with the server nodes for most operations and maintain very little state of their own.
 Clients run on every node where services are running.
 
-In addition to the core agent operations, server nodes participate in the [consensus quorum](/docs/internals/consensus).
+In addition to the core agent operations, server nodes participate in the [consensus quorum](/docs/architecture/consensus).
 The quorum is based on the Raft protocol, which provides strong consistency and availability in the case of failure.
 Server nodes should run on dedicated instances because they are more resource intensive than client nodes.
 
@@ -46,7 +46,7 @@ As a result, agent crashes are handled in the same manner is network failures.
 Once a node is marked as failed, this information is updated in the service
 catalog.
 
--> **Note:** Updating the catalog is only possible if the servers can still [form a quorum](/docs/internals/consensus).
+-> **Note:** Updating the catalog is only possible if the servers can still [form a quorum](/docs/architecture/consensus).
 Once the network recovers or a crashed agent restarts, the cluster will repair itself and unmark a node as failed.
 The health check in the catalog will also be updated to reflect the current state.
 

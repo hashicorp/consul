@@ -4,15 +4,15 @@ page_title: Compatibility Matrix
 description: Compatibility Matrix for Consul Kubernetes
 ---
 
-# Compatibility Matrix for Consul on Kubernetes 
+# Compatibility Matrix for Consul on Kubernetes
 
-For every release of Consul on Kubernetes, a Helm chart, `consul-k8s-control-plane` binary and a `consul-k8s` CLI binary is built and distributed through a single version. When deploying via Helm, the recommended best path for upgrading Consul on Kubernetes, is to upgrade using the same `consul-k8s-control-plane` version as the Helm Chart, as the Helm Chart and Control Plane binary are tightly coupled. 
+For every release of Consul on Kubernetes, a Helm chart, `consul-k8s-control-plane` binary and a `consul-k8s` CLI binary is built and distributed through a single version. When deploying via Helm, the recommended best path for upgrading Consul on Kubernetes, is to upgrade using the same `consul-k8s-control-plane` version as the Helm Chart, as the Helm Chart and Control Plane binary are tightly coupled.
 
 ## Supported Consul versions
 
 ### Version 0.33.0 and above
 
-Starting with Consul Kubernetes 0.33.0, Consul Kubernetes versions all of its components (`consul-k8s` CLI, `consul-k8s-control-plane`, and Helm chart) with a single semantic version. 
+Starting with Consul Kubernetes 0.33.0, Consul Kubernetes versions all of its components (`consul-k8s` CLI, `consul-k8s-control-plane`, and Helm chart) with a single semantic version.
 
 | Consul Version | Compatible consul-k8s Versions  |
 | -------------- | ------------------------------- |
@@ -21,7 +21,7 @@ Starting with Consul Kubernetes 0.33.0, Consul Kubernetes versions all of its co
 
 ### Prior to version 0.33.0
 
-Prior to Consul Kubernetes 0.33.0, a separately versioned Consul Helm chart was distributed to deploy the Consul on Kubernetes binary. The default version of the `consul-k8s` binary specified by the Helm chart should be used to ensure proper compatibility, since the Helm chart is designed and tested with the default `consul-k8s` version. To find the default version for the appropriate Helm chart version, navigate to the corresponding tag (i.e. 0.32.1) in [`values.yaml`](https://github.com/hashicorp/consul-helm/blob/v0.32.1/values.yaml) and retrieve the `imageK8S` global value. 
+Prior to Consul Kubernetes 0.33.0, a separately versioned Consul Helm chart was distributed to deploy the Consul on Kubernetes binary. The default version of the `consul-k8s` binary specified by the Helm chart should be used to ensure proper compatibility, since the Helm chart is designed and tested with the default `consul-k8s` version. To find the default version for the appropriate Helm chart version, navigate to the corresponding tag (i.e. 0.32.1) in [`values.yaml`](https://github.com/hashicorp/consul-helm/blob/v0.32.1/values.yaml) and retrieve the `imageK8S` global value.
 
 | Consul Version | Compatible Consul Helm Versions (default `consul-k8s` image) |
 | -------------- | -----------------------------------------------------------|
@@ -33,20 +33,20 @@ Prior to Consul Kubernetes 0.33.0, a separately versioned Consul Helm chart was 
 
 ## Supported Envoy versions
 
-Supported versions of Envoy for Consul versions are also found in [Envoy - Supported Versions](https://www.consul.io/docs/connect/proxies/envoy#supported-versions). The recommended best practice is to use the default version of Envoy that is provided in the Helm values.yml file, as that is the version that has been tested with the default Consul and Consul Kubernetes binaries for a given Helm chart.
+Supported versions of Envoy for Consul versions are also found in [Envoy - Supported Versions](/docs/connect/proxies/envoy#supported-versions). The recommended best practice is to use the default version of Envoy that is provided in the Helm values.yml file, as that is the version that has been tested with the default Consul and Consul Kubernetes binaries for a given Helm chart.
 
-## Red Hat OpenShift compatability 
+## Red Hat OpenShift compatibility
 
-Consul Kubernetes delivered Red Hat OpenShift support starting with Consul Helm chart version 0.25.0 for Consul 1.8.4. Please note the following details regarding OpenShift support. 
+Consul Kubernetes delivered Red Hat OpenShift support starting with Consul Helm chart version 0.25.0 for Consul 1.8.4. Please note the following details regarding OpenShift support.
 
-- Red Hat OpenShift is only supported for OpenShift 4.4.x and above. 
-- Only the default CNI Plugin, [OpenShift SDN CNI Plugin](https://docs.openshift.com/container-platform/4.9/networking/openshift_sdn/about-openshift-sdn.html) is currently supported. 
+- Red Hat OpenShift is only supported for OpenShift 4.4.x and above.
+- Only the default CNI Plugin, [OpenShift SDN CNI Plugin](https://docs.openshift.com/container-platform/4.9/networking/openshift_sdn/about-openshift-sdn.html) is currently supported.
 
 ## Vault as a Secrets Backend compatibility
 
-Starting with Consul K8s 0.39.0 and Consul 1.11.x, Consul Kubernetes supports the ability to utilize Vault as the secrets backend for all the secrets utilized by Consul on Kubernetes.  
+Starting with Consul K8s 0.39.0 and Consul 1.11.x, Consul Kubernetes supports the ability to utilize Vault as the secrets backend for all the secrets utilized by Consul on Kubernetes.
 
-| `consul-k8s` Versions    | Compatible Vault Versions | Compatible `vault-k8s` Versions | 
+| `consul-k8s` Versions    | Compatible Vault Versions | Compatible `vault-k8s` Versions |
 | ------------------------ | --------------------------| ----------------------------- |
 | 0.39.0 - latest          | 1.9.0 - latest            | 0.14.0 - latest               |
 

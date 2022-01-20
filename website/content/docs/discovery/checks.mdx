@@ -420,7 +420,7 @@ updating a TTL check via the HTTP interface can set the `notes` value.
 
 Checks may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the check, including
-[anti-entropy syncs](/docs/internals/anti-entropy) and deregistration.
+[anti-entropy syncs](/docs/architecture/anti-entropy) and deregistration.
 For Alias checks, this token is used if a remote blocking query is necessary
 to watch the state of the aliased node or service.
 

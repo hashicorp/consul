@@ -119,7 +119,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/docs/connect/gateways/mesh-gateway',
+    source: '/docs/connect/gateways/mesh-gateway(s?)',
     destination:
       '/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
     permanent: true,
@@ -207,7 +207,7 @@ module.exports = [
   },
   {
     source: '/docs/k8s/operations/uninstalling',
-    destination: '/docs/k8s/uninstall',
+    destination: '/docs/k8s/operations/uninstall',
     permanent: true,
   },
   {
@@ -263,11 +263,6 @@ module.exports = [
   {
     source: '/docs/glossary',
     destination: '/docs/install/glossary',
-    permanent: true,
-  },
-  {
-    source: '/docs/connect/gateways/mesh-gateways',
-    destination: '/docs/connect/gateways/mesh-gateway',
     permanent: true,
   },
   {
@@ -328,28 +323,15 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/download-tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/downloads_tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/download_tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/downloads_tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
     source: '/docs/k8s/ambassador',
-    destination: '/docs/k8s/connect/ambassador',
+    destination:
+      'https://learn.hashicorp.com/tutorials/consul/service-mesh-gateway-ambassador',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/connect/ambassador',
+    destination:
+      'https://learn.hashicorp.com/tutorials/consul/service-mesh-gateway-ambassador',
     permanent: true,
   },
   {
@@ -1191,7 +1173,7 @@ module.exports = [
   },
   {
     source: '/docs/platform/k8s/upgrading',
-    destination: '/docs/k8s/operations/upgrading',
+    destination: '/docs/k8s/upgrade',
     permanent: true,
   },
   {
@@ -1201,7 +1183,7 @@ module.exports = [
   },
   {
     source: '/docs/platform/k8s/uninstalling',
-    destination: '/docs/k8s/operations/upgrading',
+    destination: '/docs/k8s/operations/uninstall',
     permanent: true,
   },
   {
@@ -1230,28 +1212,13 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/(/downloads?[-_]tools)',
+    source: '/download(s?[-_])tools',
     destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/docs/k8s/ambassador',
-    destination: '/docs/k8s/connect/ambassador',
     permanent: true,
   },
   {
     source: '/docs/agent/config-entries/:path',
     destination: '/docs/connect/config-entries/:path*',
-    permanent: true,
-  },
-  {
-    source: '/docs/partnerships',
-    destination: '/docs/integrate/partnerships',
-    permanent: true,
-  },
-  {
-    source: '/docs/k8s/installation/overview',
-    destination: '/docs/k8s/installation/install',
     permanent: true,
   },
   {
