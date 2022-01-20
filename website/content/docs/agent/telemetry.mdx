@@ -293,7 +293,7 @@ logs and store them within Bolt DB in batches. Each call to store logs within Bo
 it took as well as how many logs were contained in the batch. Writing logs is this fashion is serialized so that
 a subsequent log storage operation can only be started after the previous one completed. Therefore the maximum number
 of log storage operations that can be performed each second can be calculated with the following equation: 
-`1000 ms / consul.raft.boltdb.storeLogs ms/op`. From there we can extrapolate the maximum number of Consul writes
+`(1000 ms) / (consul.raft.boltdb.storeLogs ms/op)`. From there we can extrapolate the maximum number of Consul writes
 per second by multiplying that value by the `consul.raft.boltdb.logsPerBatch` metric's value. When log storage 
 operations are becoming slower you may not see an immediate decrease in write throughput to Consul due to increased 
 batch sizes of the each operation. However, the max batch size allowed is 64 logs. Therefore if the `logsPerBatch`
