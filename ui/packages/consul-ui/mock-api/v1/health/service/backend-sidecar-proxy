@@ -1,0 +1,204 @@
+[
+  {
+    "Node": {
+      "ID": "237b9eeb-bba1-e6e3-3c99-c527d6d76cc0",
+      "Node": "node",
+      "Address": "172.17.0.2",
+      "Datacenter": "dc1",
+      "TaggedAddresses": {
+        "lan": "172.17.0.2",
+        "lan_ipv4": "172.17.0.2",
+        "wan": "172.17.0.2",
+        "wan_ipv4": "172.17.0.2"
+      },
+      "Meta": {
+        "consul-network-segment": ""
+      },
+      "CreateIndex": 14,
+      "ModifyIndex": 17
+    },
+    "Service": {
+      "Kind": "connect-proxy",
+      "ID": "backend-sidecar-proxy",
+      "Service": "backend-sidecar-proxy",
+      "Tags": [],
+      "Address": "",
+      "Meta": null,
+      "Port": 21000,
+      "Weights": {
+        "Passing": 1,
+        "Warning": 1
+      },
+      "EnableTagOverride": false,
+      "Proxy": {
+        "DestinationServiceName": "backend",
+        "DestinationServiceID": "backend",
+        "LocalServiceAddress": "127.0.0.1",
+        "LocalServicePort": 7000,
+        "Mode": "",
+        "MeshGateway": {},
+        "Expose": {}
+      },
+      "Connect": {},
+      "CreateIndex": 19,
+      "ModifyIndex": 19
+    },
+    "Checks": [
+      {
+        "Node": "node",
+        "CheckID": "serfHealth",
+        "Name": "Serf Health Status",
+        "Status": "passing",
+        "Notes": "",
+        "Output": "Agent alive and reachable",
+        "ServiceID": "",
+        "ServiceName": "",
+        "ServiceTags": [],
+        "Type": "",
+        "Interval": "",
+        "Timeout": "",
+        "ExposedPort": 0,
+        "Definition": {},
+        "CreateIndex": 14,
+        "ModifyIndex": 14
+      },
+      {
+        "Node": "node",
+        "CheckID": "service:backend-sidecar-proxy:1",
+        "Name": "Connect Sidecar Listening",
+        "Status": "critical",
+        "Notes": "",
+        "Output": "dial tcp 127.0.0.1:21000: connect: connection refused",
+        "ServiceID": "backend-sidecar-proxy",
+        "ServiceName": "backend-sidecar-proxy",
+        "ServiceTags": [],
+        "Type": "tcp",
+        "Interval": "",
+        "Timeout": "",
+        "ExposedPort": 0,
+        "Definition": {},
+        "CreateIndex": 19,
+        "ModifyIndex": 42
+      },
+      {
+        "Node": "node",
+        "CheckID": "service:backend-sidecar-proxy:2",
+        "Name": "Connect Sidecar Aliasing backend",
+        "Status": "critical",
+        "Notes": "",
+        "Output": "No checks found.",
+        "ServiceID": "backend-sidecar-proxy",
+        "ServiceName": "backend-sidecar-proxy",
+        "ServiceTags": [],
+        "Type": "alias",
+        "Interval": "",
+        "Timeout": "",
+        "ExposedPort": 0,
+        "Definition": {},
+        "CreateIndex": 19,
+        "ModifyIndex": 19
+      }
+    ]
+  },
+  {
+    "Node": {
+      "ID": "237b9eeb-bba1-e6e3-3c99-c527d6d76cc0",
+      "Node": "node",
+      "Address": "172.17.0.2",
+      "Datacenter": "dc1",
+      "TaggedAddresses": {
+        "lan": "172.17.0.2",
+        "lan_ipv4": "172.17.0.2",
+        "wan": "172.17.0.2",
+        "wan_ipv4": "172.17.0.2"
+      },
+      "Meta": {
+        "consul-network-segment": ""
+      },
+      "CreateIndex": 14,
+      "ModifyIndex": 17
+    },
+    "Service": {
+      "Kind": "connect-proxy",
+      "ID": "backend-v2-sidecar-proxy",
+      "Service": "backend-sidecar-proxy",
+      "Tags": [],
+      "Address": "",
+      "Meta": null,
+      "Port": 21001,
+      "Weights": {
+        "Passing": 1,
+        "Warning": 1
+      },
+      "EnableTagOverride": false,
+      "Proxy": {
+        "DestinationServiceName": "backend",
+        "DestinationServiceID": "backend-v2",
+        "LocalServiceAddress": "127.0.0.1",
+        "LocalServicePort": 7001,
+        "Mode": "",
+        "MeshGateway": {},
+        "Expose": {}
+      },
+      "Connect": {},
+      "CreateIndex": 21,
+      "ModifyIndex": 21
+    },
+    "Checks": [
+      {
+        "Node": "node",
+        "CheckID": "serfHealth",
+        "Name": "Serf Health Status",
+        "Status": "passing",
+        "Notes": "",
+        "Output": "Agent alive and reachable",
+        "ServiceID": "",
+        "ServiceName": "",
+        "ServiceTags": [],
+        "Type": "",
+        "Interval": "",
+        "Timeout": "",
+        "ExposedPort": 0,
+        "Definition": {},
+        "CreateIndex": 14,
+        "ModifyIndex": 14
+      },
+      {
+        "Node": "node",
+        "CheckID": "service:backend-v2-sidecar-proxy:1",
+        "Name": "Connect Sidecar Listening",
+        "Status": "critical",
+        "Notes": "",
+        "Output": "dial tcp 127.0.0.1:21001: connect: connection refused",
+        "ServiceID": "backend-v2-sidecar-proxy",
+        "ServiceName": "backend-sidecar-proxy",
+        "ServiceTags": [],
+        "Type": "tcp",
+        "Interval": "",
+        "Timeout": "",
+        "ExposedPort": 0,
+        "Definition": {},
+        "CreateIndex": 21,
+        "ModifyIndex": 44
+      },
+      {
+        "Node": "node",
+        "CheckID": "service:backend-v2-sidecar-proxy:2",
+        "Name": "Connect Sidecar Aliasing backend-v2",
+        "Status": "passing",
+        "Notes": "",
+        "Output": "No checks found.",
+        "ServiceID": "backend-v2-sidecar-proxy",
+        "ServiceName": "backend-sidecar-proxy",
+        "ServiceTags": [],
+        "Type": "alias",
+        "Interval": "",
+        "Timeout": "",
+        "ExposedPort": 0,
+        "Definition": {},
+        "CreateIndex": 21,
+        "ModifyIndex": 21
+      }
+    ]
+  }
+]

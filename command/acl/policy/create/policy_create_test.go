@@ -28,7 +28,6 @@ func TestPolicyCreateCommand(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 
 	testDir := testutil.TempDir(t, "acl")
 
@@ -49,7 +48,7 @@ func TestPolicyCreateCommand(t *testing.T) {
 
 	rules := []byte("service \"\" { policy = \"write\" }")
 	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -59,8 +58,8 @@ func TestPolicyCreateCommand(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	require.Equal(code, 0)
-	require.Empty(ui.ErrorWriter.String())
+	require.Equal(t, code, 0)
+	require.Empty(t, ui.ErrorWriter.String())
 }
 
 func TestPolicyCreateCommand_JSON(t *testing.T) {
@@ -69,7 +68,6 @@ func TestPolicyCreateCommand_JSON(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 
 	testDir := testutil.TempDir(t, "acl")
 
@@ -90,7 +88,7 @@ func TestPolicyCreateCommand_JSON(t *testing.T) {
 
 	rules := []byte("service \"\" { policy = \"write\" }")
 	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -101,8 +99,8 @@ func TestPolicyCreateCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	require.Equal(code, 0)
-	require.Empty(ui.ErrorWriter.String())
+	require.Equal(t, code, 0)
+	require.Empty(t, ui.ErrorWriter.String())
 
 	var jsonOutput json.RawMessage
 	err = json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)

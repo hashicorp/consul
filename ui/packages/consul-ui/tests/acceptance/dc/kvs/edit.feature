@@ -1,6 +1,19 @@
 @setupApplicationTest
 Feature: dc / kvs / edit: KV Viewing
-  Scenario:
+  Scenario: Viewing a KV with a URL unsafe character
+    Given 1 datacenter model with the value "datacenter"
+    And 1 kv model from yaml
+    ---
+      Key: "@key"
+    ---
+    When I visit the kv page for yaml
+    ---
+      dc: datacenter
+      kv: "@key"
+    ---
+    Then the url should be /datacenter/kv/%40key/edit
+    And I see Key on the kv like "@key"
+  Scenario: Viewing a Session attached to a KV
     Given 1 datacenter model with the value "datacenter"
     And 1 kv model from yaml
     ---
@@ -14,7 +27,9 @@ Feature: dc / kvs / edit: KV Viewing
     ---
     Then the url should be /datacenter/kv/key/edit
     And I see ID on the session like "session-id"
-    Given 1 kv model from yaml
+  Scenario: Viewing a Session attached to a KV
+    Given 1 datacenter model with the value "datacenter"
+    And 1 kv model from yaml
     ---
       Key: another-key
       Session: ~

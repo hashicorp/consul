@@ -46,7 +46,6 @@ func TestIntentionCheck_Validation(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			require := require.New(t)
 
 			c.init()
 
@@ -58,9 +57,9 @@ func TestIntentionCheck_Validation(t *testing.T) {
 				ui.OutputWriter.Reset()
 			}
 
-			require.Equal(2, c.Run(tc.args))
+			require.Equal(t, 2, c.Run(tc.args))
 			output := ui.ErrorWriter.String()
-			require.Contains(output, tc.output)
+			require.Contains(t, output, tc.output)
 		})
 	}
 }
@@ -72,7 +71,6 @@ func TestIntentionCheck(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -87,7 +85,7 @@ func TestIntentionCheck(t *testing.T) {
 			DestinationName: "db",
 			Action:          api.IntentionActionDeny,
 		}, nil)
-		require.NoError(err)
+		require.NoError(t, err)
 	}
 
 	// Get it
@@ -99,8 +97,8 @@ func TestIntentionCheck(t *testing.T) {
 			"-http-addr=" + a.HTTPAddr(),
 			"foo", "db",
 		}
-		require.Equal(0, c.Run(args), ui.ErrorWriter.String())
-		require.Contains(ui.OutputWriter.String(), "Allow")
+		require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(), "Allow")
 	}
 
 	{
@@ -111,7 +109,7 @@ func TestIntentionCheck(t *testing.T) {
 			"-http-addr=" + a.HTTPAddr(),
 			"web", "db",
 		}
-		require.Equal(1, c.Run(args), ui.ErrorWriter.String())
-		require.Contains(ui.OutputWriter.String(), "Denied")
+		require.Equal(t, 1, c.Run(args), ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(), "Denied")
 	}
 }

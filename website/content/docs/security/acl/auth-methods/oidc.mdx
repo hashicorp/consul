@@ -24,10 +24,10 @@ This method may be initiated from the Consul UI or the command line.
 This page assumes general knowledge of [OIDC
 concepts](https://developer.okta.com/blog/2017/07/25/oidc-primer-part-1) and
 the concepts described in the main [auth method
-documentation](/docs/acl/auth-methods).
+documentation](/docs/security/acl/auth-methods).
 
-Both the [`jwt`](/docs/acl/auth-methods/jwt) and the
-[`oidc`](/docs/acl/auth-methods/oidc) auth method types allow additional
+Both the [`jwt`](/docs/security/acl/auth-methods/jwt) and the
+[`oidc`](/docs/security/acl/auth-methods/oidc) auth method types allow additional
 processing of the claims data in the JWT.
 
 @include 'jwt_or_oidc.mdx'
@@ -203,7 +203,7 @@ be tricky to debug why things aren't working. Some tips for setting up OIDC:
   request to obtain a JWT that you can inspect. An example of how to decode the
   JWT (in this case located in the `access_token` field of a JSON response):
 
-      cat jwt.json | jq -r .access_token | cut -d. -f2 | base64 --decode
+      cat jwt.json | jq --raw-output .access_token | cut -d. -f2 | base64 --decode
 
 - The [`VerboseOIDCLogging`](#verboseoidclogging) option is available which
   will log the received OIDC token if debug level logging is enabled. This can

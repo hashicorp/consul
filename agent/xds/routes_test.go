@@ -204,11 +204,11 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				bazChain := discoverychain.TestCompileConfigEntries(t, "baz", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 				quxChain := discoverychain.TestCompileConfigEntries(t, "qux", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 
-				snap.IngressGateway.DiscoveryChain = map[string]*structs.CompiledDiscoveryChain{
-					"foo": fooChain,
-					"bar": barChain,
-					"baz": bazChain,
-					"qux": quxChain,
+				snap.IngressGateway.DiscoveryChain = map[proxycfg.UpstreamID]*structs.CompiledDiscoveryChain{
+					UID("foo"): fooChain,
+					UID("bar"): barChain,
+					UID("baz"): bazChain,
+					UID("qux"): quxChain,
 				}
 			},
 		},
@@ -667,6 +667,9 @@ func setupIngressWithTwoHTTPServices(t *testing.T, o ingressSDSOpts) func(snap *
 			},
 		}
 
+		webUID := proxycfg.NewUpstreamID(&webUpstream)
+		fooUID := proxycfg.NewUpstreamID(&fooUpstream)
+
 		// Setup additional HTTP service on same listener with default router
 		snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
 			{Protocol: "http", Port: 9191}: {webUpstream, fooUpstream},
@@ -775,7 +778,7 @@ func setupIngressWithTwoHTTPServices(t *testing.T, o ingressSDSOpts) func(snap *
 			o.entMetas["web"].PartitionOrDefault(), "dc1",
 			connect.TestClusterID+".consul", nil, entries...)
 
-		snap.IngressGateway.DiscoveryChain[webUpstream.Identifier()] = webChain
-		snap.IngressGateway.DiscoveryChain[fooUpstream.Identifier()] = fooChain
+		snap.IngressGateway.DiscoveryChain[webUID] = webChain
+		snap.IngressGateway.DiscoveryChain[fooUID] = fooChain
 	}
 }

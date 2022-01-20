@@ -123,13 +123,12 @@ func TestClientSideVerifier(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
 			err := clientSideVerifier(tt.tlsCfg, tt.rawCerts)
 			if tt.wantErr == "" {
-				require.Nil(err)
+				require.Nil(t, err)
 			} else {
-				require.NotNil(err)
-				require.Contains(err.Error(), tt.wantErr)
+				require.NotNil(t, err)
+				require.Contains(t, err.Error(), tt.wantErr)
 			}
 		})
 	}
@@ -265,33 +264,32 @@ func TestServerSideVerifier(t *testing.T) {
 // cmp.Diff fail on tls.Config due to unexported fields in each. expectLeaf
 // allows expecting a leaf cert different from the one in expect
 func requireEqualTLSConfig(t *testing.T, expect, got *tls.Config) {
-	require := require.New(t)
-	require.Equal(expect.RootCAs, got.RootCAs)
+	require.Equal(t, expect.RootCAs, got.RootCAs)
 	assertDeepEqual(t, expect.ClientCAs, got.ClientCAs, cmpCertPool)
-	require.Equal(expect.InsecureSkipVerify, got.InsecureSkipVerify)
-	require.Equal(expect.MinVersion, got.MinVersion)
-	require.Equal(expect.CipherSuites, got.CipherSuites)
-	require.NotNil(got.GetCertificate)
-	require.NotNil(got.GetClientCertificate)
-	require.NotNil(got.GetConfigForClient)
-	require.Contains(got.NextProtos, "h2")
+	require.Equal(t, expect.InsecureSkipVerify, got.InsecureSkipVerify)
+	require.Equal(t, expect.MinVersion, got.MinVersion)
+	require.Equal(t, expect.CipherSuites, got.CipherSuites)
+	require.NotNil(t, got.GetCertificate)
+	require.NotNil(t, got.GetClientCertificate)
+	require.NotNil(t, got.GetConfigForClient)
+	require.Contains(t, got.NextProtos, "h2")
 
 	var expectLeaf *tls.Certificate
 	var err error
 	if expect.GetCertificate != nil {
 		expectLeaf, err = expect.GetCertificate(nil)
-		require.Nil(err)
+		require.Nil(t, err)
 	} else if len(expect.Certificates) > 0 {
 		expectLeaf = &expect.Certificates[0]
 	}
 
 	gotLeaf, err := got.GetCertificate(nil)
-	require.Nil(err)
-	require.Equal(expectLeaf, gotLeaf)
+	require.Nil(t, err)
+	require.Equal(t, expectLeaf, gotLeaf)
 
 	gotLeaf, err = got.GetClientCertificate(nil)
-	require.Nil(err)
-	require.Equal(expectLeaf, gotLeaf)
+	require.Nil(t, err)
+	require.Equal(t, expectLeaf, gotLeaf)
 }
 
 // cmpCertPool is a custom comparison for x509.CertPool, because CertPool.lazyCerts
@@ -324,7 +322,6 @@ func requireCorrectVerifier(t *testing.T, expect, got *tls.Config,
 }
 
 func TestDynamicTLSConfig(t *testing.T) {
-	require := require.New(t)
 
 	ca1 := connect.TestCA(t, nil)
 	ca2 := connect.TestCA(t, nil)
@@ -334,8 +331,8 @@ func TestDynamicTLSConfig(t *testing.T) {
 	c := newDynamicTLSConfig(baseCfg, nil)
 
 	// Should set them from the base config
-	require.Equal(c.Leaf(), &baseCfg.Certificates[0])
-	require.Equal(c.Roots(), baseCfg.RootCAs)
+	require.Equal(t, c.Leaf(), &baseCfg.Certificates[0])
+	require.Equal(t, c.Roots(), baseCfg.RootCAs)
 
 	// Create verifiers we can assert are set and run correctly.
 	v1Ch := make(chan *tls.Config, 1)
@@ -361,7 +358,7 @@ func TestDynamicTLSConfig(t *testing.T) {
 
 	// Now change the roots as if we just loaded new roots from Consul
 	err := c.SetRoots(newCfg.RootCAs)
-	require.Nil(err)
+	require.Nil(t, err)
 
 	// The dynamic config should have the new roots, but old leaf
 	gotAfter := c.Get(verify2)
@@ -378,7 +375,7 @@ func TestDynamicTLSConfig(t *testing.T) {
 
 	// Now change the leaf
 	err = c.SetLeaf(&newCfg.Certificates[0])
-	require.Nil(err)
+	require.Nil(t, err)
 
 	// The dynamic config should have the new roots, AND new leaf
 	gotAfterLeaf := c.Get(verify3)
@@ -392,7 +389,6 @@ func TestDynamicTLSConfig(t *testing.T) {
 }
 
 func TestDynamicTLSConfig_Ready(t *testing.T) {
-	require := require.New(t)
 
 	ca1 := connect.TestCA(t, nil)
 	baseCfg := TestTLSConfig(t, "web", ca1)
@@ -400,28 +396,28 @@ func TestDynamicTLSConfig_Ready(t *testing.T) {
 	c := newDynamicTLSConfig(defaultTLSConfig(), nil)
 	readyCh := c.ReadyWait()
 	assertBlocked(t, readyCh)
-	require.False(c.Ready(), "no roots or leaf, should not be ready")
+	require.False(t, c.Ready(), "no roots or leaf, should not be ready")
 
 	err := c.SetLeaf(&baseCfg.Certificates[0])
-	require.NoError(err)
+	require.NoError(t, err)
 	assertBlocked(t, readyCh)
-	require.False(c.Ready(), "no roots, should not be ready")
+	require.False(t, c.Ready(), "no roots, should not be ready")
 
 	err = c.SetRoots(baseCfg.RootCAs)
-	require.NoError(err)
+	require.NoError(t, err)
 	assertNotBlocked(t, readyCh)
-	require.True(c.Ready(), "should be ready")
+	require.True(t, c.Ready(), "should be ready")
 
 	ca2 := connect.TestCA(t, nil)
 	ca2cfg := TestTLSConfig(t, "web", ca2)
 
-	require.NoError(c.SetRoots(ca2cfg.RootCAs))
+	require.NoError(t, c.SetRoots(ca2cfg.RootCAs))
 	assertNotBlocked(t, readyCh)
-	require.False(c.Ready(), "invalid leaf, should not be ready")
+	require.False(t, c.Ready(), "invalid leaf, should not be ready")
 
-	require.NoError(c.SetRoots(baseCfg.RootCAs))
+	require.NoError(t, c.SetRoots(baseCfg.RootCAs))
 	assertNotBlocked(t, readyCh)
-	require.True(c.Ready(), "should be ready")
+	require.True(t, c.Ready(), "should be ready")
 }
 
 func assertBlocked(t *testing.T, ch <-chan struct{}) {

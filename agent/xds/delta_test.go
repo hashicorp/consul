@@ -153,9 +153,9 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
-	deleteAllButOneEndpoint := func(snap *proxycfg.ConfigSnapshot, svc, targetID string) {
-		snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[svc][targetID] =
-			snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[svc][targetID][0:1]
+	deleteAllButOneEndpoint := func(snap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID, targetID string) {
+		snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[uid][targetID] =
+			snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[uid][targetID][0:1]
 	}
 
 	runStep(t, "avoid sending config for unsubscribed resource", func(t *testing.T) {
@@ -169,7 +169,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 
 		// now reconfigure the snapshot and JUST edit the endpoints to strike one of the two current endpoints for DB
 		snap = newTestSnapshot(t, snap, "")
-		deleteAllButOneEndpoint(snap, "db", "db.default.default.dc1")
+		deleteAllButOneEndpoint(snap, UID("db"), "db.default.default.dc1")
 		mgr.DeliverConfig(t, sid, snap)
 
 		// We never send an EDS reply about this change.
@@ -206,7 +206,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	runStep(t, "simulate envoy NACKing an endpoint update", func(t *testing.T) {
 		// Trigger only an EDS update.
 		snap = newTestSnapshot(t, snap, "")
-		deleteAllButOneEndpoint(snap, "db", "db.default.default.dc1")
+		deleteAllButOneEndpoint(snap, UID("db"), "db.default.default.dc1")
 		mgr.DeliverConfig(t, sid, snap)
 
 		// Send envoy an EDS update.

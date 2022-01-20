@@ -9,7 +9,7 @@ description: |-
 # Keyring Operator HTTP API
 
 The `/operator/keyring` endpoints allow for management of the gossip encryption
-keyring. Please see the [Gossip Protocol Guide](/docs/internals/gossip) for
+keyring. Please see the [Gossip Protocol Guide](/docs/architecture/gossip) for
 more details on the gossip protocol and its use.
 
 ## List Gossip Encryption Keys
@@ -34,6 +34,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
 | `NO`             | `none`            | `none`        | `keyring:read` |
+
+The corresponding CLI command is [`consul keyring -list`](/commands/keyring#list).
 
 ### Parameters
 
@@ -120,6 +122,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `keyring:write` |
 
+The corresponding CLI command is [`consul keyring -install`](/commands/keyring#install).
+
 ### Parameters
 
 - `relay-factor` `(int: 0)` - Specifies the relay factor. Setting this to a
@@ -166,6 +170,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `keyring:write` |
 
+The corresponding CLI command is [`consul keyring -use`](/commands/keyring#use).
+
 ### Parameters
 
 - `relay-factor` `(int: 0)` - Specifies the relay factor. Setting this to a
@@ -211,6 +217,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `keyring:write` |
+
+The corresponding CLI command is [`consul keyring -remove`](/commands/keyring#remove).
 
 ### Parameters
 

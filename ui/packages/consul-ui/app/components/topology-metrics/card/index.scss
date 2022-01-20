@@ -9,7 +9,10 @@
   overflow: hidden;
   background-color: rgb(var(--tone-gray-000));
   border-radius: var(--decor-radius-100);
-  border: 1px solid rgb(var(--tone-gray-200));
+  border: 1px solid;
+  /* TODO: If this color is combined with the above */
+  /* border property then the compressor removes the color */
+  border-color: rgb(var(--tone-gray-200));
   p {
     padding: 12px 12px 0 12px;
     font-size: var(--typo-size-500);
@@ -20,7 +23,6 @@
     padding: 12px !important;
   }
   div {
-    display: inline-flex;
     dl {
       display: inline-flex;
       margin-right: 8px;
@@ -39,11 +41,8 @@
     .health dt::before {
       margin-top: 2px;
     }
-    .nspace dt::before {
-      @extend %with-folder-outline-mask, %as-pseudo;
-    }
-    .health dt::before {
-      @extend %with-help-circle-outline-mask, %as-pseudo;
+    .partition dt::before {
+      @extend %with-user-team-mask, %as-pseudo;
     }
     .nspace dt::before {
       @extend %with-folder-outline-mask, %as-pseudo;
@@ -51,6 +50,10 @@
     .health dt::before {
       @extend %with-help-circle-outline-mask, %as-pseudo;
     }
+    .health dt::before {
+      @extend %with-help-circle-outline-mask, %as-pseudo;
+    }
+    .partition dt::before,
     .nspace dt::before,
     .health dt::before {
       background-color: rgb(var(--tone-gray-500));
@@ -74,5 +77,34 @@
   }
   .details {
     padding: 0 12px 12px 12px;
+    > *:not(:last-child) {
+      padding-bottom: 6px;
+    }
+    .group {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      grid-template-rows: repeat(2, 1fr);
+      grid-template-areas:
+        'partition partition'
+        'union namespace';
+      span {
+        display: inline-block;
+        grid-area: union;
+        padding-left: 7px;
+        margin-right: 0px;
+      }
+      span::before {
+        margin-right: 0px;
+        @extend %with-union-mask, %as-pseudo;
+        background-color: rgb(var(--tone-gray-500));
+      }
+      dl:first-child {
+        grid-area: partition;
+        padding-bottom: 6px;
+      }
+      dl:nth-child(2) {
+        grid-area: namespace;
+      }
+    }
   }
 }

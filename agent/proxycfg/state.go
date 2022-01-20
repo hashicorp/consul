@@ -294,6 +294,8 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 			}
 
 		case <-sendCh:
+			// Allow the next change to trigger a send
+			coalesceTimer = nil
 			// Make a deep copy of snap so we don't mutate any of the embedded structs
 			// etc on future updates.
 			snapCopy, err := snap.Clone()
@@ -307,9 +309,6 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 			case s.snapCh <- *snapCopy:
 				s.logger.Trace("Delivered new snapshot to proxy config watchers")
 
-				// Allow the next change to trigger a send
-				coalesceTimer = nil
-
 				// Skip rest of loop - there is nothing to send since nothing changed on
 				// this iteration
 				continue
@@ -320,11 +319,9 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 				s.logger.Trace("Failed to deliver new snapshot to proxy config watchers")
 
 				// Reset the timer to retry later. This is to ensure we attempt to redeliver the updated snapshot shortly.
-				if coalesceTimer == nil {
-					coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
-						sendCh <- struct{}{}
-					})
-				}
+				coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
+					sendCh <- struct{}{}
+				})
 
 				// Do not reset coalesceTimer since we just queued a timer-based refresh
 				continue
@@ -440,7 +437,7 @@ type gatewayWatchOpts struct {
 	source     structs.QuerySource
 	token      string
 	key        GatewayKey
-	upstreamID string
+	upstreamID UpstreamID
 }
 
 func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
@@ -451,5 +448,5 @@ func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
 		UseServiceKind: true,
 		Source:         opts.source,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(opts.key.Partition),
-	}, fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID), opts.notifyCh)
+	}, fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID.String()), opts.notifyCh)
 }

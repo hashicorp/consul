@@ -54,6 +54,8 @@ The table below shows this endpoint's support for
   for more details.
 </p>
 
+The corresponding CLI command is [`consul intention create -replace`](/commands/intention/create#replace).
+
 ### URL Parameters
 
 - `source` `(string: <required>)` - Specifies the source service. This
@@ -117,7 +119,7 @@ The table below shows this endpoint's support for
 $ curl \
     --request PUT \
     --data @payload.json \
-    http://127.0.0.1:8500/v1/connect/intentions/exact?source=web&destination=db
+    "http://127.0.0.1:8500/v1/connect/intentions/exact?source=web&destination=db"
 ```
 
 ### Sample Response
@@ -162,6 +164,8 @@ The table below shows this endpoint's support for
   </a>{' '}
   for more details.
 </p>
+
+The corresponding CLI command is [`consul intention create`](/commands/intention/create).
 
 ### URL Parameters
 
@@ -315,6 +319,8 @@ The table below shows this endpoint's support for
   for more details.
 </p>
 
+The corresponding CLI command is [`consul intention get`](/commands/intention/get).
+
 ### Parameters
 
 - `source` `(string: <required>)` - Specifies the source service. This
@@ -390,6 +396,8 @@ The table below shows this endpoint's support for
   for more details.
 </p>
 
+The corresponding CLI command is [`consul intention get`](/commands/intention/get).
+
 ### Parameters
 
 - `uuid` `(string: <required>)` - Specifies the UUID of the intention to read. This
@@ -449,6 +457,8 @@ The table below shows this endpoint's support for
   </a>{' '}
   for more details.
 </p>
+
+The corresponding CLI command is [`consul intention list`](/commands/intention/list).
 
 ### Parameters
 
@@ -539,6 +549,8 @@ The table below shows this endpoint's support for
   for more details.
 </p>
 
+The corresponding CLI command is [`consul intention delete`](/commands/intention/delete).
+
 ### Parameters
 
 - `source` `(string: <required>)` - Specifies the source service. This
@@ -597,6 +609,8 @@ The table below shows this endpoint's support for
   for more details.
 </p>
 
+The corresponding CLI command is [`consul intention delete`](/commands/intention/delete).
+
 ### Parameters
 
 - `uuid` `(string: <required>)` - Specifies the UUID of the intention to delete. This
@@ -652,6 +666,8 @@ The table below shows this endpoint's support for
   for more details.
 </p>
 
+The corresponding CLI command is [`consul intention check`](/commands/intention/check).
+
 ### Parameters
 
 - `source` `(string: <required>)` - Specifies the source service. This
@@ -674,7 +690,7 @@ The table below shows this endpoint's support for
 
 ```shell-session
 $ curl \
-    http://127.0.0.1:8500/v1/connect/intentions/check?source=web&destination=db
+    "http://127.0.0.1:8500/v1/connect/intentions/check?source=web&destination=db"
 ```
 
 ### Sample Response
@@ -715,6 +731,8 @@ The table below shows this endpoint's support for
   for more details.
 </p>
 
+The corresponding CLI command is [`consul intention match`](/commands/intention/match).
+
 ### Parameters
 
 - `by` `(string: <required>)` - Specifies whether to match the "name" value
@@ -736,7 +754,7 @@ The table below shows this endpoint's support for
 
 ```shell-session
 $ curl \
-    http://127.0.0.1:8500/v1/connect/intentions/match?by=source&name=web
+    "http://127.0.0.1:8500/v1/connect/intentions/match?by=source&name=web"
 ```
 
 ### Sample Response

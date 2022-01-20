@@ -14,6 +14,7 @@ module.exports = {
     browser: true,
   },
   rules: {
+    'no-console': ['error', {allow: ['error', 'info']}],
     'no-unused-vars': ['error', { args: 'none' }],
     'ember/no-new-mixins': ['warn'],
     'ember/no-jquery': 'warn',

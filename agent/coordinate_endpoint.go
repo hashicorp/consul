@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -103,7 +102,10 @@ func (s *HTTPHandlers) CoordinateNode(resp http.ResponseWriter, req *http.Reques
 		return nil, nil
 	}
 
-	node := strings.TrimPrefix(req.URL.Path, "/v1/coordinate/node/")
+	node, err := getPathSuffixUnescaped(req.URL.Path, "/v1/coordinate/node/")
+	if err != nil {
+		return nil, err
+	}
 	args := structs.NodeSpecificRequest{Node: node}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil

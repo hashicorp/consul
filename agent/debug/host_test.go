@@ -7,14 +7,13 @@ import (
 )
 
 func TestCollectHostInfo(t *testing.T) {
-	assert := assert.New(t)
 
 	host := CollectHostInfo()
 
-	assert.Nil(host.Errors)
+	assert.Nil(t, host.Errors)
 
-	assert.NotNil(host.CollectionTime)
-	assert.NotNil(host.Host)
-	assert.NotNil(host.Disk)
-	assert.NotNil(host.Memory)
+	assert.NotNil(t, host.CollectionTime)
+	assert.NotNil(t, host.Host)
+	assert.NotNil(t, host.Disk)
+	assert.NotNil(t, host.Memory)
 }

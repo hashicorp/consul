@@ -41,7 +41,6 @@ func TestCommand_Validation(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			require := require.New(t)
 
 			c.init()
 
@@ -53,9 +52,9 @@ func TestCommand_Validation(t *testing.T) {
 				ui.OutputWriter.Reset()
 			}
 
-			require.Equal(1, c.Run(tc.args))
+			require.Equal(t, 1, c.Run(tc.args))
 			output := ui.ErrorWriter.String()
-			require.Contains(output, tc.output)
+			require.Contains(t, output, tc.output)
 		})
 	}
 }
@@ -67,15 +66,14 @@ func TestCommand_File_id(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
 	// Register a service
-	require.NoError(client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+	require.NoError(t, client.Agent().ServiceRegister(&api.AgentServiceRegistration{
 		Name: "web"}))
-	require.NoError(client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+	require.NoError(t, client.Agent().ServiceRegister(&api.AgentServiceRegistration{
 		Name: "db"}))
 
 	ui := cli.NewMockUi()
@@ -93,12 +91,12 @@ func TestCommand_File_id(t *testing.T) {
 		f.Name(),
 	}
 
-	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+	require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 
 	svcs, err := client.Agent().Services()
-	require.NoError(err)
-	require.Len(svcs, 1)
-	require.NotNil(svcs["db"])
+	require.NoError(t, err)
+	require.Len(t, svcs, 1)
+	require.NotNil(t, svcs["db"])
 }
 
 func TestCommand_File_nameOnly(t *testing.T) {
@@ -108,15 +106,14 @@ func TestCommand_File_nameOnly(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
 	// Register a service
-	require.NoError(client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+	require.NoError(t, client.Agent().ServiceRegister(&api.AgentServiceRegistration{
 		Name: "web"}))
-	require.NoError(client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+	require.NoError(t, client.Agent().ServiceRegister(&api.AgentServiceRegistration{
 		Name: "db"}))
 
 	ui := cli.NewMockUi()
@@ -134,12 +131,12 @@ func TestCommand_File_nameOnly(t *testing.T) {
 		f.Name(),
 	}
 
-	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+	require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 
 	svcs, err := client.Agent().Services()
-	require.NoError(err)
-	require.Len(svcs, 1)
-	require.NotNil(svcs["db"])
+	require.NoError(t, err)
+	require.Len(t, svcs, 1)
+	require.NotNil(t, svcs["db"])
 }
 
 func TestCommand_Flag(t *testing.T) {
@@ -149,15 +146,14 @@ func TestCommand_Flag(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
 	// Register a service
-	require.NoError(client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+	require.NoError(t, client.Agent().ServiceRegister(&api.AgentServiceRegistration{
 		Name: "web"}))
-	require.NoError(client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+	require.NoError(t, client.Agent().ServiceRegister(&api.AgentServiceRegistration{
 		Name: "db"}))
 
 	ui := cli.NewMockUi()
@@ -168,12 +164,12 @@ func TestCommand_Flag(t *testing.T) {
 		"-id", "web",
 	}
 
-	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+	require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 
 	svcs, err := client.Agent().Services()
-	require.NoError(err)
-	require.Len(svcs, 1)
-	require.NotNil(svcs["db"])
+	require.NoError(t, err)
+	require.Len(t, svcs, 1)
+	require.NotNil(t, svcs["db"])
 }
 
 func testFile(t *testing.T, suffix string) *os.File {

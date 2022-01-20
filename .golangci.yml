@@ -7,6 +7,7 @@ linters:
     - staticcheck
     - ineffassign
     - unparam
+    - forbidigo
 
 issues:
   # Disable the default exclude list so that all excludes are explicitly
@@ -57,6 +58,14 @@ issues:
 linters-settings:
   gofmt:
     simplify: true
+  forbidigo:
+    # Forbid the following identifiers (list of regexp).
+    forbid:
+      - '\brequire\.New\b(# Use package-level functions with explicit TestingT)?'
+      - '\bassert\.New\b(# Use package-level functions with explicit TestingT)?'
+    # Exclude godoc examples from forbidigo checks.
+    # Default: true
+    exclude_godoc_examples: false
 
 run:
   timeout: 10m

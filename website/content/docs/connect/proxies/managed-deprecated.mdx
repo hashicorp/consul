@@ -18,7 +18,7 @@ definition.
 !> **Consul 1.6.0 removes Managed Proxies completely.**
 This documentation is provided for prior versions only. You may consider using
 [sidecar service
-registrations](/docs/connect/proxies/sidecar-service) instead.
+registrations](/docs/connect/registration/sidecar-service) instead.
 
 Managed proxies have been deprecated since Consul 1.3 and have been fully removed
 in Consul 1.6. Anyone using Managed Proxies should aim to change their workflow
@@ -42,7 +42,7 @@ with other workloads. So the high implementation cost of building robust process
 supervision didn't actually benefit most real use-cases.
 
 Instead of this Connect 1.3.0 introduces the concept of [sidecar service
-registrations](/docs/connect/proxies/sidecar-service) which
+registrations](/docs/connect/registration/sidecar-service) which
 have almost all of the benefits of simpler configuration but without any of the
 additional process management complexity. As a result they can be used to
 simplify configuration in both container-based and realistic production
@@ -55,7 +55,7 @@ page will document how they work in the interim.
 
 -> **Deprecation Note:** It's _strongly_ recommended you do not build anything
 using Managed proxies and consider using [sidecar service
-registrations](/docs/connect/proxies/sidecar-service) instead.
+registrations](/docs/connect/registration/sidecar-service) instead.
 
 Managed proxies are given
 a unique proxy-specific ACL token that allows read-only access to Connect
@@ -103,7 +103,7 @@ to re-adopt them on restart.
 ### Minimal Configuration
 
 Managed proxies are configured within a
-[service definition](/docs/agent/services). The simplest possible
+[service definition](/docs/discovery/services). The simplest possible
 managed proxy configuration is an empty configuration. This enables the
 default managed proxy and starts a listener for that service:
 

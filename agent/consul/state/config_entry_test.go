@@ -12,7 +12,6 @@ import (
 )
 
 func TestStore_ConfigEntry(t *testing.T) {
-	require := require.New(t)
 	s := testConfigStateStore(t)
 
 	expected := &structs.ProxyConfigEntry{
@@ -24,12 +23,12 @@ func TestStore_ConfigEntry(t *testing.T) {
 	}
 
 	// Create
-	require.NoError(s.EnsureConfigEntry(0, expected))
+	require.NoError(t, s.EnsureConfigEntry(0, expected))
 
 	idx, config, err := s.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
-	require.NoError(err)
-	require.Equal(uint64(0), idx)
-	require.Equal(expected, config)
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), idx)
+	require.Equal(t, expected, config)
 
 	// Update
 	updated := &structs.ProxyConfigEntry{
@@ -39,44 +38,43 @@ func TestStore_ConfigEntry(t *testing.T) {
 			"DestinationServiceName": "bar",
 		},
 	}
-	require.NoError(s.EnsureConfigEntry(1, updated))
+	require.NoError(t, s.EnsureConfigEntry(1, updated))
 
 	idx, config, err = s.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
-	require.NoError(err)
-	require.Equal(uint64(1), idx)
-	require.Equal(updated, config)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, updated, config)
 
 	// Delete
-	require.NoError(s.DeleteConfigEntry(2, structs.ProxyDefaults, "global", nil))
+	require.NoError(t, s.DeleteConfigEntry(2, structs.ProxyDefaults, "global", nil))
 
 	idx, config, err = s.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
-	require.NoError(err)
-	require.Equal(uint64(2), idx)
-	require.Nil(config)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), idx)
+	require.Nil(t, config)
 
 	// Set up a watch.
 	serviceConf := &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
 	}
-	require.NoError(s.EnsureConfigEntry(3, serviceConf))
+	require.NoError(t, s.EnsureConfigEntry(3, serviceConf))
 
 	ws := memdb.NewWatchSet()
 	_, _, err = s.ConfigEntry(ws, structs.ServiceDefaults, "foo", nil)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Make an unrelated modification and make sure the watch doesn't fire.
-	require.NoError(s.EnsureConfigEntry(4, updated))
-	require.False(watchFired(ws))
+	require.NoError(t, s.EnsureConfigEntry(4, updated))
+	require.False(t, watchFired(ws))
 
 	// Update the watched config and make sure it fires.
 	serviceConf.Protocol = "http"
-	require.NoError(s.EnsureConfigEntry(5, serviceConf))
-	require.True(watchFired(ws))
+	require.NoError(t, s.EnsureConfigEntry(5, serviceConf))
+	require.True(t, watchFired(ws))
 }
 
 func TestStore_ConfigEntryCAS(t *testing.T) {
-	require := require.New(t)
 	s := testConfigStateStore(t)
 
 	expected := &structs.ProxyConfigEntry{
@@ -88,12 +86,12 @@ func TestStore_ConfigEntryCAS(t *testing.T) {
 	}
 
 	// Create
-	require.NoError(s.EnsureConfigEntry(1, expected))
+	require.NoError(t, s.EnsureConfigEntry(1, expected))
 
 	idx, config, err := s.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
-	require.NoError(err)
-	require.Equal(uint64(1), idx)
-	require.Equal(expected, config)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, expected, config)
 
 	// Update with invalid index
 	updated := &structs.ProxyConfigEntry{
@@ -104,29 +102,28 @@ func TestStore_ConfigEntryCAS(t *testing.T) {
 		},
 	}
 	ok, err := s.EnsureConfigEntryCAS(2, 99, updated)
-	require.False(ok)
-	require.NoError(err)
+	require.False(t, ok)
+	require.NoError(t, err)
 
 	// Entry should not be changed
 	idx, config, err = s.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
-	require.NoError(err)
-	require.Equal(uint64(1), idx)
-	require.Equal(expected, config)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, expected, config)
 
 	// Update with a valid index
 	ok, err = s.EnsureConfigEntryCAS(2, 1, updated)
-	require.True(ok)
-	require.NoError(err)
+	require.True(t, ok)
+	require.NoError(t, err)
 
 	// Entry should be updated
 	idx, config, err = s.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
-	require.NoError(err)
-	require.Equal(uint64(2), idx)
-	require.Equal(updated, config)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), idx)
+	require.Equal(t, updated, config)
 }
 
 func TestStore_ConfigEntry_DeleteCAS(t *testing.T) {
-	require := require.New(t)
 	s := testConfigStateStore(t)
 
 	entry := &structs.ProxyConfigEntry{
@@ -139,31 +136,31 @@ func TestStore_ConfigEntry_DeleteCAS(t *testing.T) {
 
 	// Attempt to delete the entry before it exists.
 	ok, err := s.DeleteConfigEntryCAS(1, 0, entry)
-	require.NoError(err)
-	require.False(ok)
+	require.NoError(t, err)
+	require.False(t, ok)
 
 	// Create the entry.
-	require.NoError(s.EnsureConfigEntry(1, entry))
+	require.NoError(t, s.EnsureConfigEntry(1, entry))
 
 	// Attempt to delete with an invalid index.
 	ok, err = s.DeleteConfigEntryCAS(2, 99, entry)
-	require.NoError(err)
-	require.False(ok)
+	require.NoError(t, err)
+	require.False(t, ok)
 
 	// Entry should not be deleted.
 	_, config, err := s.ConfigEntry(nil, entry.Kind, entry.Name, nil)
-	require.NoError(err)
-	require.NotNil(config)
+	require.NoError(t, err)
+	require.NotNil(t, config)
 
 	// Attempt to delete with a valid index.
 	ok, err = s.DeleteConfigEntryCAS(2, 1, entry)
-	require.NoError(err)
-	require.True(ok)
+	require.NoError(t, err)
+	require.True(t, ok)
 
 	// Entry should be deleted.
 	_, config, err = s.ConfigEntry(nil, entry.Kind, entry.Name, nil)
-	require.NoError(err)
-	require.Nil(config)
+	require.NoError(t, err)
+	require.Nil(t, config)
 }
 
 func TestStore_ConfigEntry_UpdateOver(t *testing.T) {
@@ -263,7 +260,6 @@ func TestStore_ConfigEntry_UpdateOver(t *testing.T) {
 }
 
 func TestStore_ConfigEntries(t *testing.T) {
-	require := require.New(t)
 	s := testConfigStateStore(t)
 
 	// Create some config entries.
@@ -280,39 +276,39 @@ func TestStore_ConfigEntries(t *testing.T) {
 		Name: "test3",
 	}
 
-	require.NoError(s.EnsureConfigEntry(0, entry1))
-	require.NoError(s.EnsureConfigEntry(1, entry2))
-	require.NoError(s.EnsureConfigEntry(2, entry3))
+	require.NoError(t, s.EnsureConfigEntry(0, entry1))
+	require.NoError(t, s.EnsureConfigEntry(1, entry2))
+	require.NoError(t, s.EnsureConfigEntry(2, entry3))
 
 	// Get all entries
 	idx, entries, err := s.ConfigEntries(nil, nil)
-	require.NoError(err)
-	require.Equal(uint64(2), idx)
-	require.Equal([]structs.ConfigEntry{entry1, entry2, entry3}, entries)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), idx)
+	require.Equal(t, []structs.ConfigEntry{entry1, entry2, entry3}, entries)
 
 	// Get all proxy entries
 	idx, entries, err = s.ConfigEntriesByKind(nil, structs.ProxyDefaults, nil)
-	require.NoError(err)
-	require.Equal(uint64(2), idx)
-	require.Equal([]structs.ConfigEntry{entry1}, entries)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), idx)
+	require.Equal(t, []structs.ConfigEntry{entry1}, entries)
 
 	// Get all service entries
 	ws := memdb.NewWatchSet()
 	idx, entries, err = s.ConfigEntriesByKind(ws, structs.ServiceDefaults, nil)
-	require.NoError(err)
-	require.Equal(uint64(2), idx)
-	require.Equal([]structs.ConfigEntry{entry2, entry3}, entries)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), idx)
+	require.Equal(t, []structs.ConfigEntry{entry2, entry3}, entries)
 
 	// Watch should not have fired
-	require.False(watchFired(ws))
+	require.False(t, watchFired(ws))
 
 	// Now make an update and make sure the watch fires.
-	require.NoError(s.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
+	require.NoError(t, s.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "test2",
 		Protocol: "tcp",
 	}))
-	require.True(watchFired(ws))
+	require.True(t, watchFired(ws))
 }
 
 func TestStore_ConfigEntry_GraphValidation(t *testing.T) {

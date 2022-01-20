@@ -15,7 +15,7 @@ similarities to one.
 
 The Consul KV datastore is located on the servers, but can be accessed by any
 agent (client or server). The natively integrated [RPC
-functionality](/docs/internals/architecture) allows clients to forward
+functionality](/docs/architecture) allows clients to forward
 requests to servers, including key/value reads and writes. Part of Consul’s
 core design allows data to be replicated automatically across all the servers.
 Having a quorum of servers will decrease the risk of data loss if an outage
@@ -32,7 +32,7 @@ subcommands](/commands/kv), [HTTP API](/api/kv), and Consul UI.
 To restrict access, enable and configure
 [ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 Once the ACL system has been bootstrapped, users and services, will need a
-valid token with KV [privileges](/docs/agent/acl-rules#key-value-rules) to
+valid token with KV [privileges](/docs/security/acl/acl-rules#key-value-rules) to
 access the the data store, this includes even reads. We recommend creating a
 token with limited privileges, for example, you could create a token with write
 privileges on one key for developers to update the value related to their
@@ -75,9 +75,9 @@ to be initiated on value changes to a Consul key.
 ### Watches
 
 Consul KV can also be extended with the use of watches.
-[Watches](/docs/agent/watches) are a way to monitor data for updates. When
+[Watches](/docs/dynamic-app-config/watches) are a way to monitor data for updates. When
 an update is detected, an external handler is invoked. To use watches with the
-KV store the [key](/docs/agent/watches#key) watch type should be used.
+KV store the [key](/docs/dynamic-app-config/watches#key) watch type should be used.
 
 ### Consul Sessions
 
@@ -87,7 +87,7 @@ API supports an `acquire` and `release` operation. The `acquire` operation acts
 like a Check-And-Set operation. On success, there is a key update and an
 increment to the `LockIndex` and the session value is updated to reflect the
 session holding the lock. Review the session documentation for more information
-on the [integration](/docs/internals/sessions#k-v-integration).
+on the [integration](/docs/dynamic-app-config/sessions#k-v-integration).
 
 Review the following tutorials to learn how to use Consul sessions for [application leader election](https://learn.hashicorp.com/tutorials/consul/application-leader-elections) and
 to [build distributed semaphores](https://learn.hashicorp.com/tutorials/consul/distributed-semaphore).

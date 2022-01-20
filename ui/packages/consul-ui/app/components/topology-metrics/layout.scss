@@ -39,13 +39,6 @@
 #upstream-container {
   padding: 12px;
 }
-#downstream-container div:first-child {
-  display: inline-flex;
-  span::before {
-    @extend %with-info-circle-outline-mask, %as-pseudo;
-    margin-left: 4px;
-  }
-}
 #upstream-column #upstream-container:not(:last-child) {
   margin-bottom: 8px;
 }

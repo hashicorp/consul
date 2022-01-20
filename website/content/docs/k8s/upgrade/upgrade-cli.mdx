@@ -1,0 +1,82 @@
+---
+layout: docs
+page_title: Upgrade the Consul K8s CLI
+description: >-
+  Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes.
+---
+
+# Upgrade the Consul K8s CLI 
+
+Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes. Ensure that you are running  the correct version of the CLI prior to upgrading your Consul on Kubernetes deployment, as the CLI and the control plane are version dependent. 
+
+## Upgrade the CLI
+
+These instructions describe how to upgrade the current installed version of the CLI to the latest version. If you are looking to upgrade to a specific version, please follow [Install a specific version of the CLI](/docs/k8s/installation/install-cli#install-a-specific-version-of-the-cli).
+
+<Tabs>
+
+<Tab heading="MacOS">
+
+The [Homebrew](https://brew.sh) package manager is required to complete the following installation instructions. The `brew upgrade` command assumes that Hashicorp `tap` repository has already been installed from a prior install. 
+
+1. Upgrade the Consul K8s CLI with the latest `consul-k8s` package. 
+   ```shell-session
+   $ brew upgrade consul-k8s
+   ```
+   
+1. (Optional) Issue the `consul-k8s version` command to verify the installation:
+
+   ```shell-session
+   $ consul-k8s version
+   consul-k8s 0.39.0
+   ```
+   
+</Tab>
+
+<Tab heading="Linux - Ubuntu/Debian">
+
+1. Upgrade all the available packages on your system. 
+
+   ```shell-session
+   $ sudo apt-get update
+   ```
+   
+1. Upgrade the Consul K8s CLI with the latest `consul-k8s` package. 
+
+   ```shell-session
+   $ sudo apt-get --only-upgrade install consul-k8s
+   ```
+   
+1. (Optional) Issue the `consul-k8s version` command to verify the installation:
+
+   ```shell-session
+   $ consul-k8s version
+   consul-k8s 0.39.0
+   ```
+
+</Tab>
+
+<Tab heading="Linux - CentOS/RHEL">
+
+1. Upgrade all the available packages on your system. 
+
+   ```shell-session
+   $ sudo yum update
+   ```
+   
+1. Upgrade the Consul K8s CLI with the latest `consul-k8s` package. 
+
+   ```shell-session
+   $ sudo yum update consul-k8s
+   ```
+   
+1. (Optional) Issue the `consul-k8s version` command to verify the installation:
+
+   ```shell-session
+   $ consul-k8s version
+   consul-k8s 0.39.0
+   ```
+   
+</Tab>
+
+</Tabs>

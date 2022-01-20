@@ -27,7 +27,6 @@ func TestPolicyReadCommand(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -51,7 +50,7 @@ func TestPolicyReadCommand(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(err)
+	assert.NoError(t, err)
 
 	// Test querying by id field
 	args := []string{
@@ -61,12 +60,12 @@ func TestPolicyReadCommand(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
-	assert.Contains(output, fmt.Sprintf("test-policy"))
-	assert.Contains(output, policy.ID)
+	assert.Contains(t, output, fmt.Sprintf("test-policy"))
+	assert.Contains(t, output, policy.ID)
 
 	// Test querying by name field
 	argsName := []string{
@@ -77,12 +76,12 @@ func TestPolicyReadCommand(t *testing.T) {
 
 	cmd = New(ui)
 	code = cmd.Run(argsName)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 
 	output = ui.OutputWriter.String()
-	assert.Contains(output, fmt.Sprintf("test-policy"))
-	assert.Contains(output, policy.ID)
+	assert.Contains(t, output, fmt.Sprintf("test-policy"))
+	assert.Contains(t, output, policy.ID)
 }
 
 func TestPolicyReadCommand_JSON(t *testing.T) {
@@ -91,7 +90,6 @@ func TestPolicyReadCommand_JSON(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -115,7 +113,7 @@ func TestPolicyReadCommand_JSON(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(err)
+	assert.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -125,14 +123,14 @@ func TestPolicyReadCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
-	assert.Contains(output, fmt.Sprintf("test-policy"))
-	assert.Contains(output, policy.ID)
+	assert.Contains(t, output, fmt.Sprintf("test-policy"))
+	assert.Contains(t, output, policy.ID)
 
 	var jsonOutput json.RawMessage
 	err = json.Unmarshal([]byte(output), &jsonOutput)
-	assert.NoError(err)
+	assert.NoError(t, err)
 }

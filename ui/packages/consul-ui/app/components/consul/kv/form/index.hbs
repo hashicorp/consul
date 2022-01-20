@@ -18,7 +18,7 @@
         {{disabled (or disabld api.disabled)}}
       >
 {{#if api.isCreate}}
-        <label class="type-text{{if api.data.error.Key ' has-error'}}">
+        <label data-test-kv-key class="type-text{{if api.data.error.Key ' has-error'}}">
             <span>Key or folder</span>
             <input autofocus="autofocus" type="text" value={{left-trim api.data.Key parent}} name="additional" oninput={{action api.change}} placeholder="Key or folder" />
             <em>To create a folder, end a key with <code>/</code></em>

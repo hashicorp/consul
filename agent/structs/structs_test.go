@@ -941,17 +941,16 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			assert := assert.New(t)
 			ns := TestNodeServiceProxy(t)
 			tc.Modify(ns)
 
 			err := ns.Validate()
-			assert.Equal(err != nil, tc.Err != "", err)
+			assert.Equal(t, err != nil, tc.Err != "", err)
 			if err == nil {
 				return
 			}
 
-			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 		})
 	}
 }
@@ -1000,17 +999,16 @@ func TestStructs_NodeService_ValidateConnectProxy_In_Partition(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			assert := assert.New(t)
 			ns := TestNodeServiceProxyInPartition(t, "bar")
 			tc.Modify(ns)
 
 			err := ns.Validate()
-			assert.Equal(err != nil, tc.Err != "", err)
+			assert.Equal(t, err != nil, tc.Err != "", err)
 			if err == nil {
 				return
 			}
 
-			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 		})
 	}
 }
@@ -1046,17 +1044,16 @@ func TestStructs_NodeService_ValidateSidecarService(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			assert := assert.New(t)
 			ns := TestNodeServiceSidecar(t)
 			tc.Modify(ns)
 
 			err := ns.Validate()
-			assert.Equal(err != nil, tc.Err != "", err)
+			assert.Equal(t, err != nil, tc.Err != "", err)
 			if err == nil {
 				return
 			}
 
-			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 		})
 	}
 }

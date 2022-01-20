@@ -16,6 +16,13 @@ upgrade flow.
 
 ## Consul 1.11.0
 
+### 1.10 Compatibility <EnterpriseAlert inline />
+Consul Enterprise versions 1.10.0 through 1.10.4 contain a latent bug that
+causes those client or server agents to deregister their own services or health
+checks when some of the servers have been upgraded to 1.11. Before upgrading Consul Enterprise servers to 1.11, all Consul agents should first 
+be upgraded to 1.10.7 or higher to ensure forward compatibility and prevent
+flapping of catalog registrations.
+
 ### Deprecated Agent Config Options
 
 Consul 1.11.0 is compiled with Go 1.17 and now the ordering of
@@ -413,7 +420,7 @@ as soon as possible after upgrade, as well as updating any integrations to work
 with the the new ACL [Token](/api/acl/tokens) and
 [Policy](/api/acl/policies) APIs.
 
-More complete details on how to upgrade "legacy" tokens is available [here](/docs/acl/acl-migrate-tokens).
+More complete details on how to upgrade "legacy" tokens is available [here](/docs/security/acl/acl-migrate-tokens).
 
 ### Connect Multi-datacenter
 
@@ -473,7 +480,7 @@ The following previously deprecated fields and config options have been removed:
 - `CheckID` has been removed from config file check definitions (use `id` instead).
 - `script` has been removed from config file check definitions (use `args` instead).
 - `enableTagOverride` is no longer valid in service definitions (use `enable_tag_override` instead).
-- The [deprecated set of metric names](/docs/upgrade-specific#metric-names-updated) (beginning with `consul.consul.`) has been removed
+- The [deprecated set of metric names](/docs/upgrading/upgrade-specific#metric-names-updated) (beginning with `consul.consul.`) has been removed
   along with the `enable_deprecated_names` option from the metrics configuration.
 
 #### New defaults for Raft Snapshot Creation
@@ -543,7 +550,7 @@ Raft protocol version 3 requires Consul running 0.8.0 or newer on all servers
 in order to work, so if you are upgrading with older servers in a cluster then
 you will need to set this back to 2 in order to upgrade. See [Raft Protocol
 Version
-Compatibility](/docs/upgrade-specific#raft-protocol-version-compatibility)
+Compatibility](/docs/upgrading/upgrade-specific#raft-protocol-version-compatibility)
 for more details. Also the format of `peers.json` used for outage recovery is
 different when running with the latest Raft protocol. Review [Manual Recovery
 Using
@@ -551,7 +558,7 @@ peers.json](https://learn.hashicorp.com/tutorials/consul/recovery-outage#manual-
 for a description of the required format.
 
 Please note that the Raft protocol is different from Consul's internal protocol
-as described on the [Protocol Compatibility Promise](/docs/compatibility)
+as described on the [Protocol Compatibility Promise](/docs/upgrading/compatibility)
 page, and as is shown in commands like `consul members` and `consul version`.
 To see the version of the Raft protocol in use on each server, use the `consul operator raft list-peers` command.
 
@@ -585,7 +592,7 @@ file directly.
 
 All config file formats now require snake_case fields, so all CamelCased parameter
 names should be changed before upgrading.
-See [Service Definition Parameter Case](/docs/agent/services#service-definition-parameter-case) documentation for details.
+See [Service Definition Parameter Case](/docs/discovery/services#service-definition-parameter-case) documentation for details.
 
 #### Deprecated Options Have Been Removed
 
@@ -619,10 +626,10 @@ upgrading. Here's the complete list of removed options and their equivalents:
 | `statsite_addr`                                        | [`telemetry.statsite_address`](https://github.com/hashicorp/consul/blob/main/website/pages/docs/agent/options.mdx#telemetry-statsite_address)                        |
 | `statsite_prefix`                                      | [`telemetry.metrics_prefix`](/docs/agent/options#telemetry-metrics_prefix)                                                                                             |
 | `telemetry.statsite_prefix`                            | [`telemetry.metrics_prefix`](/docs/agent/options#telemetry-metrics_prefix)                                                                                             |
-| (service definitions) `serviceid`                      | [`service_id`](/docs/agent/services)                                                                                                                                   |
-| (service definitions) `dockercontainerid`              | [`docker_container_id`](/docs/agent/services)                                                                                                                          |
-| (service definitions) `tlsskipverify`                  | [`tls_skip_verify`](/docs/agent/services)                                                                                                                              |
-| (service definitions) `deregistercriticalserviceafter` | [`deregister_critical_service_after`](/docs/agent/services)                                                                                                            |
+| (service definitions) `serviceid`                      | [`service_id`](/docs/discovery/services)                                                                                                                                   |
+| (service definitions) `dockercontainerid`              | [`docker_container_id`](/docs/discovery/services)                                                                                                                          |
+| (service definitions) `tlsskipverify`                  | [`tls_skip_verify`](/docs/discovery/services)                                                                                                                              |
+| (service definitions) `deregistercriticalserviceafter` | [`deregister_critical_service_after`](/docs/discovery/services)                                                                                                            |
 
 #### `statsite_prefix` Renamed to `metrics_prefix`
 
@@ -989,7 +996,7 @@ require any ACL to manage them, and prepared queries with a `Name` defined are
 now governed by a new `query` ACL policy that will need to be configured
 after the upgrade.
 
-See the [ACL rules documentation](/docs/acl/acl-rules#prepared-query-rules) for more details
+See the [ACL rules documentation](/docs/security/acl/acl-rules#prepared-query-rules) for more details
 about the new behavior and how it compares to previous versions of Consul.
 
 ## Consul 0.6

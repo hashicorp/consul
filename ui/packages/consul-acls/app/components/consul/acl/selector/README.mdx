@@ -1,0 +1,35 @@
+# Consul::Acl::Selector
+
+A component to allow the user to 'select' the ACL area they wish to view.
+Whilst the 'Selector' naming here is a bit of a reach, it fits well with other
+similar 'Selector' components that we use within the main navigation area.
+
+The component itself is a simple wrapper around a bunch of `li a`'s.
+
+Please note: 
+
+- Currently at least, you must add this inside of a `<ul>` element.
+
+```hbs preview-template
+<ul>
+  <Consul::Acl::Selector
+    @dc={{hash
+      Name='dc-1'
+    }}
+  />
+</ul>
+```
+
+
+## Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dc` | `object` |  | The current datacenter |
+
+## See
+
+- [Template Source Code](./index.hbs)
+- [Component Source Code](./index.js)
+
+---

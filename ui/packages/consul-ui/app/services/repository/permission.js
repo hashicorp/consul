@@ -155,10 +155,10 @@ export default class PermissionService extends RepositoryService {
     // This temporary measure should be removed again once https://github.com/hashicorp/consul/issues/11098
     // has been resolved
     this.permissions.forEach(item => {
-      if(['key', 'node', 'service', 'intentions', 'session'].includes(item.Resource)) {
+      if (['key', 'node', 'service', 'intention', 'session'].includes(item.Resource)) {
         item.Allow = true;
       }
-    })
+    });
     /**/
     return this.permissions;
   }

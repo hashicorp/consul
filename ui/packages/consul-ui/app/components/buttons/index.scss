@@ -13,6 +13,7 @@ button.type-cancel {
   @extend %secondary-button;
 }
 .with-confirmation .type-delete,
+.modal-dialog .type-delete,
 %app-view-content form button[type='button'].type-delete {
   @extend %dangerous-button;
 }

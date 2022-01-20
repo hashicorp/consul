@@ -40,7 +40,7 @@ Perform the following steps:
 1. Determine your current installed chart version.
 
 ```bash
-helm list -f consul
+helm list --filter consul
 NAME  	NAMESPACE	REVISION	UPDATED        	STATUS  	CHART        	APP VERSION
 consul	default  	2       	2020-09-30 ...	deployed	consul-0.24.0	1.8.2
 ```
@@ -49,8 +49,8 @@ In this example, version `0.24.0` (from `consul-0.24.0`) is being used.
 
 1. Perform a `helm upgrade`:
 
-   ```bash
-   helm upgrade consul hashicorp/consul --version 0.24.0 -f /path/to/my/values.yaml
+   ```shell-session
+   $ helm upgrade consul hashicorp/consul --version 0.24.0 --values /path/to/my/values.yaml
    ```
 
    **Before performing the upgrade, be sure you've read the other sections on this page,
@@ -74,8 +74,8 @@ helm repo update
 
 1. List all available versions:
 
-```bash
-helm search repo hashicorp/consul -l
+```shell-session hideClipboard
+$ helm search repo hashicorp/consul --versions
 NAME            	CHART VERSION	APP VERSION	DESCRIPTION
 hashicorp/consul	0.24.1       	1.8.2      	Official HashiCorp Consul Chart
 hashicorp/consul	0.24.0       	1.8.1      	Official HashiCorp Consul Chart
@@ -86,8 +86,8 @@ Here we can see that the latest version of `0.24.1`.
 
 1. To determine which version you have installed, issue the following command:
 
-```bash
-helm list -f consul
+```shell-session
+$ helm list --filter consul
 NAME  	NAMESPACE	REVISION	UPDATED        	STATUS  	CHART        	APP VERSION
 consul	default  	2       	2020-09-30 ...	deployed	consul-0.24.0	1.8.2
 ```
@@ -99,8 +99,8 @@ If you want to upgrade to the latest `0.24.1` version, use the following procedu
 
 1. Upgrade by performing a `helm upgrade` with the `--version` flag:
 
-```bash
-helm upgrade consul hashicorp/consul --version 0.24.1 -f /path/to/my/values.yaml
+```shell-session
+$ helm upgrade consul hashicorp/consul --version 0.24.1 --values /path/to/my/values.yaml
 ```
 
 **Before performing the upgrade, be sure you've read the other sections on this page,
@@ -125,12 +125,13 @@ to update to the new version.
    global:
      image: consul:1.8.3
    ```
+
    </CodeBlockConfig>
 
 1. Determine your current installed chart version:
 
-```bash
-helm list -f consul
+```shell-session
+$ helm list --filter consul
 NAME  	NAMESPACE	REVISION	UPDATED        	STATUS  	CHART        	APP VERSION
 consul	default  	2       	2020-09-30 ...	deployed	consul-0.24.0	1.8.2
 ```
@@ -139,8 +140,8 @@ In this example, version `0.24.0` (from `consul-0.24.0`) is being used.
 
 1. Perform a `helm upgrade`:
 
-```bash
-helm upgrade consul hashicorp/consul --version 0.24.0 -f /path/to/my/values.yaml`.
+```shell-session
+$ helm upgrade consul hashicorp/consul --version 0.24.0 --values /path/to/my/values.yaml
 ```
 
 **Before performing the upgrade, be sure you've read the other sections on this page,
@@ -154,7 +155,7 @@ unintended upgrade.
 
 Before upgrading, it's important to understand what changes will be made to your
 cluster. For example, you will need to take more care if your upgrade will result
-in the Consul server statefulset being redeployed.
+in the Consul server StatefulSet being redeployed.
 
 There is no built-in functionality in Helm that shows what a helm upgrade will
 change. There is, however, a Helm plugin [helm-diff](https://github.com/databus23/helm-diff)
@@ -169,16 +170,16 @@ helm plugin install https://github.com/databus23/helm-diff
 1. If you are updating your `values.yaml` file, do so now.
 1. Take the same `helm upgrade` command you were planning to issue but perform `helm diff upgrade` instead of `helm upgrade`:
 
-```bash
-helm diff upgrade consul hashicorp/consul --version 0.24.1 -f /path/to/your/values.yaml
+```shell-session
+$ helm diff upgrade consul hashicorp/consul --version 0.24.1 --values /path/to/your/values.yaml
 ```
 
 This will print out the manifests that will be updated and their diffs.
 
 1. To see only the objects that will be updated, add `| grep "has changed"`:
 
-```bash
-helm diff upgrade consul hashicorp/consul --version 0.24.1 -f /path/to/your/values.yaml |
+```shell-session
+$ helm diff upgrade consul hashicorp/consul --version 0.24.1 --values /path/to/your/values.yaml |
   grep "has changed"
 ```
 
@@ -220,9 +221,8 @@ the following will occur:
    of time, however, it's important for the local Consul client to be restarted
    as quickly as possible.
 
-Once the local Consul client pod restarts, each service pod needs to re-register
-itself with the client. This is done automatically by the `consul-connect-lifecycle-sidecar`
-sidecar container that is injected alongside each service.
+Once the local Consul client pod restarts, each service pod needs to be re-registered
+with its local Consul client. This is done automatically by the connect inject controller.
 
 Because service mesh pods are briefly deregistered during a Consul client restart,
 it's **important that you do not restart all Consul clients at once**. Otherwise
@@ -272,8 +272,8 @@ servers to be upgraded _before_ the clients.
 
 1. Next, perform the upgrade:
 
-```bash
-helm upgrade consul hashicorp/consul --version <your-version> -f /path/to/your/values.yaml
+```shell-session
+$ helm upgrade consul hashicorp/consul --version <your-version> --values /path/to/your/values.yaml
 ```
 
 This will not cause the servers to redeploy (although the resource will be updated). If
@@ -323,4 +323,4 @@ Consul clients.
 If you already have a Consul cluster deployed on Kubernetes and
 would like to turn on TLS for internal Consul communication,
 please see
-[Configuring TLS on an Existing Cluster](/docs/k8s/tls-on-existing-cluster).
+[Configuring TLS on an Existing Cluster](/docs/k8s/operations/tls-on-existing-cluster).

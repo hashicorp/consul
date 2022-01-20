@@ -18,9 +18,9 @@ as part of this upgrade. The 1.6.x series is the last series that had support fo
 ACL tokens, so this migration _must_ happen before upgrading past the 1.6.x release series.
 Here is some documentation that may prove useful for reference during this upgrade process:
 
-- [ACL System in Legacy Mode](https://www.consul.io/docs/acl/acl-legacy) - You can find
+- [ACL System in Legacy Mode](/docs/security/acl/acl-legacy) - You can find
   information about legacy configuration options and differences between modes here.
-- [Configuration](https://www.consul.io/docs/agent/options) - You can find more details
+- [Configuration](/docs/agent/options) - You can find more details
   around legacy ACL and new ACL configuration options here. Legacy ACL config options
   will be listed as deprecates as of 1.4.0.
 
@@ -51,15 +51,15 @@ Looking through these changes prior to upgrading is highly recommended.
 Two very notable items are:
 
 - 1.6.2 introduced more strict JSON decoding. Invalid JSON that was previously ignored might result in errors now (e.g., `Connect: null` in service definitions). See [[GH#6680](https://github.com/hashicorp/consul/pull/6680)].
-- 1.6.3 introduced the [http_max_conns_per_client](https://www.consul.io/docs/agent/options.html#http_max_conns_per_client) limit. This defaults to 200. Prior to this, connections per client were unbounded. [[GH#7159](https://github.com/hashicorp/consul/issues/7159)]
+- 1.6.3 introduced the [http_max_conns_per_client](/docs/agent/options#http_max_conns_per_client) limit. This defaults to 200. Prior to this, connections per client were unbounded. [[GH#7159](https://github.com/hashicorp/consul/issues/7159)]
 
 ## Procedure
 
 **1.** Check the replication status of the primary datacenter (DC1) by issuing the following curl command from a
 consul server in that DC:
 
-```shell
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
 ```
 
 You should receive output similar to this:
@@ -81,8 +81,8 @@ disabled, so this is normal even if replication is happening.
 **2.** Check replication status in DC2 by issuing the following curl command from a
 consul server in that DC:
 
-```shell
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
 ```
 
 You should receive output similar to this:
@@ -115,9 +115,9 @@ continue working.
 
 From a Consul server in DC2:
 
-```shell
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/list?pretty
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/list?pretty
 ```
 
 Take note of the `ReplicatedIndex` value.
@@ -139,15 +139,15 @@ with the following contents:
 
 From a Consul server in DC1, create a new token using that file:
 
-```shell
-curl -X PUT -H "X-Consul-Token: $MASTER_TOKEN" -d @test-ui-token.json localhost:8500/v1/acl/create
+```shell-session
+$ curl --request PUT --header "X-Consul-Token: $MASTER_TOKEN" --data @test-ui-token.json localhost:8500/v1/acl/create
 ```
 
 From a Consul server in DC2:
 
-```shell
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/list?pretty
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" "localhost:8500/v1/acl/replication?pretty"
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" "localhost:8500/v1/acl/list?pretty"
 ```
 
 `ReplicatedIndex` should have incremented and you should find the new token listed. If you try using CLI ACL commands you will receive this error:
@@ -169,8 +169,8 @@ Once this is complete, you should observe a log entry like this from your server
 **6.** Confirm that replication is still working in DC2 by issuing the following curl command from a
 consul server in that DC:
 
-```shell
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" "localhost:8500/v1/acl/replication?pretty"
 ```
 
 You should receive output similar to this:
@@ -189,7 +189,7 @@ You should receive output similar to this:
 }
 ```
 
-**6.** Migrate your legacy ACL tokens to the new ACL system by following the instructions in our [ACL Token Migration guide](https://www.consul.io/docs/acl/acl-migrate-tokens).
+**6.** Migrate your legacy ACL tokens to the new ACL system by following the instructions in our [ACL Token Migration guide](/docs/security/acl/acl-migrate-tokens).
 
 ~> This step _must_ be completed before upgrading to a version higher than 1.6.x.
 
@@ -202,8 +202,8 @@ update those now to avoid issues when moving to newer versions.
 
 These are the changes you will need to make:
 
-- `acl_datacenter` is now named `primary_datacenter` (review our [docs](https://www.consul.io/docs/agent/options#primary_datacenter) for more info)
-- `acl_default_policy`, `acl_down_policy`, `acl_ttl`, `acl_*_token` and `enable_acl_replication` options are now specified like this (review our [docs](https://www.consul.io/docs/agent/options#acl) for more info):
+- `acl_datacenter` is now named `primary_datacenter` (review our [docs](/docs/agent/options#primary_datacenter) for more info)
+- `acl_default_policy`, `acl_down_policy`, `acl_ttl`, `acl_*_token` and `enable_acl_replication` options are now specified like this (review our [docs](/docs/agent/options#acl) for more info):
   ```hcl
   acl {
     enabled                  = true/false

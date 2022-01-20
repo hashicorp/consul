@@ -23,7 +23,12 @@ Feature: dc / intentions / index
       dc: dc-1
     ---
     Then the url should be /dc-1/intentions
-    And I don't see create
+    And I see create
+# We currently hardcode intention write to true until the API does what we need
+# Once we can use this as we need we'll be able to un-hardcode And this test
+# will fail again, at which point we can remove the above assertion and
+# uncomment the below one
+    # And I don't see create
   Scenario: Viewing intentions in the listing live updates
     Given 1 datacenter model with the value "dc-1"
     Given 3 intention models

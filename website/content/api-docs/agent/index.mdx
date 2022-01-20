@@ -12,7 +12,7 @@ The `/agent` endpoints are used to interact with the local Consul agent.
 Usually, services and checks are registered with an agent which then takes on
 the burden of keeping that data synchronized with the cluster. For example, the
 agent registers services and checks with the Catalog and performs
-[anti-entropy](/docs/internals/anti-entropy) to recover from outages.
+[anti-entropy](/docs/architecture/anti-entropy) to recover from outages.
 
 In addition to these endpoints, additional endpoints are grouped in the
 navigation for `Checks` and `Services`.
@@ -227,6 +227,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `node:read`  |
 
+The corresponding CLI command is [`consul members`](/commands/members).
+
 ### Parameters
 
 - `wan` `(bool: false)` - Specifies to list WAN members instead of the LAN
@@ -373,6 +375,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------- |
 | `NO`             | `none`            | `none`        | `agent:write` |
 
+The corresponding CLI command is [`consul reload`](/commands/reload).
+
 ### Sample Request
 
 ```shell-session
@@ -403,6 +407,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `node:write` |
+
+The corresponding CLI command is [`consul maint`](/commands/maint).
 
 ### Parameters
 
@@ -629,6 +635,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------- |
 | `NO`             | `none`            | `none`        | `agent:write` |
 
+The corresponding CLI command is [`consul join`](/commands/join).
+
 ### Parameters
 
 - `address` `(string: <required>)` - Specifies the address of the other agent to
@@ -669,6 +677,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------- |
 | `NO`             | `none`            | `none`        | `agent:write` |
 
+The corresponding CLI command is [`consul leave`](/commands/leave).
+
 ### Sample Request
 
 ```shell-session
@@ -679,8 +689,8 @@ $ curl \
 
 ## Force Leave and Shutdown
 
-This endpoint instructs the agent to force a node into the `left` state. If a
-node fails unexpectedly, then it will be in a `failed` state. Once in the
+This endpoint instructs the agent to force a node into the `left` state in the
+LAN and WAN gossip pools. If a node fails unexpectedly, then it will be in a `failed` state. Once in the
 `failed` state, Consul will attempt to reconnect, and the services and checks
 belonging to that node will not be cleaned up. Forcing a node into the `left`
 state allows its old entries to be removed.
@@ -706,9 +716,19 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
+The corresponding CLI command is [`consul force-leave`](/commands/force-leave).
+
 ### Parameters
 
 - `node` `(string: <required>)` - Specifies the name of the node to be forced into `left` state. This is specified as part of the URL.
+
+- `prune` `(bool: false)` - Specifies whether to forcibly remove the node from the list of members.
+  Pruning a node in the `left` or `failed` state removes it from the list altogether. 
+  This is specified as part of the URL as a query parameter. Added in Consul 1.6.2.
+
+- `wan` `(bool: false)` - Specifies the node should only be removed from the WAN
+  gossip pool. This is specified as part of the URL as a query parameter. Added
+  in Consul 1.11.0.
 
 ### Sample Request
 
@@ -771,6 +791,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
 | `NO`             | `none`            | `none`        | `agent:write` |
+
+The corresponding CLI command is [`consul acl set-agent-token`](/commands/acl/set-agent-token).
 
 ### Parameters
 

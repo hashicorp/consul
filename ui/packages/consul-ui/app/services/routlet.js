@@ -1,6 +1,11 @@
 import Service, { inject as service } from '@ember/service';
 import { schedule } from '@ember/runloop';
 
+import wildcard from 'consul-ui/utils/routing/wildcard';
+import { routes } from 'consul-ui/router';
+
+const isWildcard = wildcard(routes);
+
 class Outlets {
   constructor() {
     this.map = new Map();
@@ -70,21 +75,29 @@ export default class RoutletService extends Service {
     return key;
   }
 
-  addOutlet(name, outlet) {
-    outlets.set(name, outlet);
+  outletFor(routeName) {
+    const keys = [...outlets.keys()];
+    const pos = keys.indexOf(routeName);
+    const key = pos + 1;
+    return outlets.get(keys[key]);
   }
 
-  removeOutlet(name) {
-    outlets.delete(name);
-  }
-
-  // modelFor gets the model for Outlet specified by `name`, not the Route
-  modelFor(name) {
-    const outlet = outlets.get(name);
-    if (typeof outlet !== 'undefined') {
-      return outlet.model || {};
+  /**
+   * Adds urldecoding to any wildcard route `params`
+   */
+  normalizeParamsFor(name, params = {}) {
+    if (isWildcard(name)) {
+      return Object.keys(params).reduce(function(prev, item) {
+        if (typeof params[item] !== 'undefined') {
+          prev[item] = decodeURIComponent(params[item]);
+        } else {
+          prev[item] = params[item];
+        }
+        return prev;
+      }, {});
+    } else {
+      return params;
     }
-    return {};
   }
 
   paramsFor(name) {
@@ -102,16 +115,14 @@ export default class RoutletService extends Service {
     // of the specified params with the values specified
     let current = route;
     let parent;
-    let routeParams = {
-      ...current.params,
-    };
+    let routeParams = this.normalizeParamsFor(name, current.params);
     // TODO: Not entirely sure whether we are ok exposing queryParams here
     // seeing as accessing them from here means you can get them but not set
     // them as yet
     // let queryParams = {};
     while ((parent = current.parent)) {
       routeParams = {
-        ...parent.params,
+        ...this.normalizeParamsFor(parent.name, parent.params),
         ...routeParams,
       };
       // queryParams = {
@@ -128,20 +139,43 @@ export default class RoutletService extends Service {
     };
   }
 
-  addRoute(name, route) {
-    const keys = [...outlets.keys()];
-    const pos = keys.indexOf(name);
-    const key = pos + 1;
-    const outlet = outlets.get(keys[key]);
+
+  // modelFor gets the model for Outlet specified by `name`, not the Route
+  modelFor(name) {
+    const outlet = outlets.get(name);
     if (typeof outlet !== 'undefined') {
-      route._model = outlet.model;
+      return outlet.model;
+    }
+  }
+
+  addRoute(name, route) {
+    const outlet = this.outletFor(name);
+    if (typeof outlet !== 'undefined') {
       outlet.route = route;
       // TODO: Try to avoid the double computation bug
       schedule('afterRender', () => {
-        outlet.routeName = route.args.name;
+        outlet.routeName = name;
       });
     }
   }
 
-  removeRoute(name, route) {}
+  removeRoute(name, route) {
+    const outlet = this.outletFor(name);
+    route._model = undefined;
+    if (typeof outlet !== 'undefined') {
+      schedule('afterRender', () => {
+        outlet.route = undefined;
+      });
+    }
+  }
+
+  addOutlet(name, outlet) {
+    outlets.set(name, outlet);
+  }
+
+  removeOutlet(name) {
+    schedule('afterRender', () => {
+      outlets.delete(name);
+    });
+  }
 }

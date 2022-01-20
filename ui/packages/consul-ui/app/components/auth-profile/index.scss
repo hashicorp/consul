@@ -1,0 +1,19 @@
+.auth-profile {
+  padding: 0.9em 1em;
+}
+.auth-profile {
+  @extend %p2;
+}
+.auth-profile dt span {
+  font-weight: var(--typo-weight-normal);
+}
+.auth-profile dt {
+  font-weight: var(--typo-weight-bold);
+}
+.auth-profile dt,
+.auth-profile dd {
+  color: rgb(var(--tone-gray-800));
+}
+.auth-profile dt span {
+  color: rgb(var(--tone-gray-600));
+}

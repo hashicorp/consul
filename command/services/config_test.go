@@ -176,10 +176,9 @@ func TestStructsToAgentService(t *testing.T) {
 		tc := tt
 		t.Run(tc.Name, func(t *testing.T) {
 			t.Parallel()
-			r := require.New(t)
 			actual, err := serviceToAgentService(tc.Input)
-			r.NoError(err)
-			r.Equal(tc.Output, actual)
+			require.NoError(t, err)
+			require.Equal(t, tc.Output, actual)
 		})
 	}
 }

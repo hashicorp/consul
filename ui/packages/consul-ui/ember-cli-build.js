@@ -27,6 +27,7 @@ module.exports = function(defaults, $ = process.env) {
   let excludeFiles = [];
 
   const apps = [
+    'consul-ui',
     'consul-acls',
     'consul-partitions',
     'consul-nspaces'
@@ -55,6 +56,7 @@ module.exports = function(defaults, $ = process.env) {
     ])
   }
 
+
   if(['test', 'production'].includes(env)) {
     // exclude our debug initializer, route and template
     excludeFiles = excludeFiles.concat([
@@ -66,6 +68,30 @@ module.exports = function(defaults, $ = process.env) {
       'templates/debug.hbs',
       'components/debug/**/*.*'
     ])
+    // inspect *-debug configuration files for files to exclude
+    excludeFiles = apps.reduce(
+      (prev, item) => {
+        return ['services', 'routes'].reduce(
+          (prev, type) => {
+            const path = `${item.path}/vendor/${item.name}/${type}-debug.js`;
+            if(exists(path)) {
+              return Object.entries(JSON.parse(require(path)[type])).reduce(
+                (prev, [key, definition]) => {
+                  if(typeof definition.class !== 'undefined') {
+                    return prev.concat(`${definition.class.replace(`${item.name}/`, '')}.js`);
+                  }
+                  return prev;
+                },
+                prev
+              );
+            }
+            return prev;
+          },
+          prev
+        )
+      },
+      excludeFiles
+    );
     // exclude any debug like addons from production or test environments
     addons.blacklist = [
       // exclude docfy
@@ -88,18 +114,24 @@ module.exports = function(defaults, $ = process.env) {
   }
 
   //
-  trees.app = mergeTrees([
-    new Funnel('app', { exclude: excludeFiles })
-  ].concat(
-    apps.filter(item => exists(`${item.path}/app`)).map(item => new Funnel(`${item.path}/app`, {exclude: excludeFiles}))
-  ), {
-    overwrite: true
-  });
-  trees.vendor = mergeTrees([
-    new Funnel('vendor'),
-  ].concat(
-    apps.map(item => new Funnel(`${item.path}/vendor`))
-  ));
+  (
+    function(apps) {
+      trees.app = mergeTrees([
+        new Funnel('app', { exclude: excludeFiles })
+      ].concat(
+        apps.filter(item => exists(`${item.path}/app`)).map(item => new Funnel(`${item.path}/app`, {exclude: excludeFiles}))
+      ), {
+        overwrite: true
+      });
+      trees.vendor = mergeTrees([
+        new Funnel('vendor'),
+      ].concat(
+        apps.map(item => new Funnel(`${item.path}/vendor`))
+      ));
+    }
+  // consul-ui will eventually be a separate app just like the others
+  // at which point we can remove this filter/extra scope
+  )(apps.filter(item => item.name !== 'consul-ui'));
   //
 
   const app = new EmberApp(
@@ -147,20 +179,31 @@ module.exports = function(defaults, $ = process.env) {
       },
     }
   );
+  const build = function(path, options) {
+    const {root, ...rest} = options;
+    if(exists(`${root}/${path}`)) {
+      app.import(path, rest);
+    }
+  };
   apps.forEach(item => {
-    app.import(`vendor/${item.name}/routes.js`, {
+    build(`vendor/${item.name}/routes.js`, {
+      root: item.path,
       outputFile: `assets/${item.name}/routes.js`,
     });
-  });
-  [
-    'consul-ui/services'
-    ].concat(devlike ? [
-      'consul-ui/services-debug',
-      'consul-ui/routes-debug'
-    ] : []).forEach(item => {
-      app.import(`vendor/${item}.js`, {
-        outputFile: `assets/${item}.js`,
+    build(`vendor/${item.name}/services.js`, {
+      root: item.path,
+      outputFile: `assets/${item.name}/services.js`,
+    });
+    if(devlike) {
+      build(`vendor/${item.name}/routes-debug.js`, {
+        root: item.path,
+        outputFile: `assets/${item.name}/routes-debug.js`,
       });
+      build(`vendor/${item.name}/services-debug.js`, {
+        root: item.path,
+        outputFile: `assets/${item.name}/services-debug.js`,
+      });
+    }
   });
   // Use `app.import` to add additional libraries to the generated
   // output files.
@@ -205,6 +248,10 @@ module.exports = function(defaults, $ = process.env) {
   });
   app.import('node_modules/codemirror/mode/yaml/yaml.js', {
     outputFile: 'assets/codemirror/mode/yaml/yaml.js',
+  });
+  // XML linting support. Possibly dynamically loaded via CodeMirror linting. See services/code-mirror/linter.js
+  app.import('node_modules/codemirror/mode/xml/xml.js', {
+    outputFile: 'assets/codemirror/mode/xml/xml.js',
   });
   // metrics-providers
   app.import('vendor/metrics-providers/consul.js', {

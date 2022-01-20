@@ -187,6 +187,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	})
 
 	db := structs.NewServiceName("db", nil)
+	dbUID := NewUpstreamIDFromServiceName(db)
 
 	// Create test cases using some of the common data above.
 	tests := []*testcase_BasicLifecycle{
@@ -214,28 +215,28 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				ConnectProxy: configSnapshotConnectProxy{
 					ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
 						Leaf: leaf,
-						DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-							db.String(): dbDefaultChain(),
+						DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
+							dbUID: dbDefaultChain(),
 						},
-						WatchedDiscoveryChains: map[string]context.CancelFunc{},
+						WatchedDiscoveryChains: map[UpstreamID]context.CancelFunc{},
 						WatchedUpstreams:       nil, // Clone() clears this out
-						WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-							db.String(): {
+						WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+							dbUID: {
 								"db.default.default.dc1": TestUpstreamNodes(t, db.Name),
 							},
 						},
 						WatchedGateways: nil, // Clone() clears this out
-						WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
-							db.String(): {},
+						WatchedGatewayEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+							dbUID: {},
 						},
-						UpstreamConfig: map[string]*structs.Upstream{
-							upstreams[0].Identifier(): &upstreams[0],
-							upstreams[1].Identifier(): &upstreams[1],
-							upstreams[2].Identifier(): &upstreams[2],
+						UpstreamConfig: map[UpstreamID]*structs.Upstream{
+							NewUpstreamID(&upstreams[0]): &upstreams[0],
+							NewUpstreamID(&upstreams[1]): &upstreams[1],
+							NewUpstreamID(&upstreams[2]): &upstreams[2],
 						},
-						PassthroughUpstreams: map[string]ServicePassthroughAddrs{},
+						PassthroughUpstreams: map[UpstreamID]ServicePassthroughAddrs{},
 					},
-					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
+					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
 					Intentions:             TestIntentions().Matches[0],
 					IntentionsSet:          true,
@@ -271,29 +272,29 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				ConnectProxy: configSnapshotConnectProxy{
 					ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
 						Leaf: leaf,
-						DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-							db.String(): dbSplitChain(),
+						DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
+							dbUID: dbSplitChain(),
 						},
-						WatchedDiscoveryChains: map[string]context.CancelFunc{},
+						WatchedDiscoveryChains: map[UpstreamID]context.CancelFunc{},
 						WatchedUpstreams:       nil, // Clone() clears this out
-						WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-							db.String(): {
+						WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+							dbUID: {
 								"v1.db.default.default.dc1": TestUpstreamNodes(t, db.Name),
 								"v2.db.default.default.dc1": TestUpstreamNodesAlternate(t),
 							},
 						},
 						WatchedGateways: nil, // Clone() clears this out
-						WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
-							db.String(): {},
+						WatchedGatewayEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+							dbUID: {},
 						},
-						UpstreamConfig: map[string]*structs.Upstream{
-							upstreams[0].Identifier(): &upstreams[0],
-							upstreams[1].Identifier(): &upstreams[1],
-							upstreams[2].Identifier(): &upstreams[2],
+						UpstreamConfig: map[UpstreamID]*structs.Upstream{
+							NewUpstreamID(&upstreams[0]): &upstreams[0],
+							NewUpstreamID(&upstreams[1]): &upstreams[1],
+							NewUpstreamID(&upstreams[2]): &upstreams[2],
 						},
-						PassthroughUpstreams: map[string]ServicePassthroughAddrs{},
+						PassthroughUpstreams: map[UpstreamID]ServicePassthroughAddrs{},
 					},
-					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
+					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
 					Intentions:             TestIntentions().Matches[0],
 					IntentionsSet:          true,
@@ -353,7 +354,6 @@ func testManager_BasicLifecycle(
 ) {
 	c := TestCacheWithTypes(t, types)
 
-	require := require.New(t)
 	logger := testutil.Logger(t)
 	state := local.NewState(agentConfig, logger, &token.Store{})
 	source := &structs.QuerySource{Datacenter: "dc1"}
@@ -369,12 +369,12 @@ func testManager_BasicLifecycle(
 		Source: source,
 		Logger: logger,
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// And run it
 	go func() {
 		err := m.Run()
-		require.NoError(err)
+		require.NoError(t, err)
 	}()
 
 	// BEFORE we register, we should be able to get a watch channel
@@ -384,19 +384,19 @@ func testManager_BasicLifecycle(
 	// And it should block with nothing sent on it yet
 	assertWatchChanBlocks(t, wCh)
 
-	require.NoError(state.AddService(webProxy, "my-token"))
+	require.NoError(t, state.AddService(webProxy, "my-token"))
 
 	// We should see the initial config delivered but not until after the
 	// coalesce timeout
 	start := time.Now()
 	assertWatchChanRecvs(t, wCh, expectSnap)
-	require.True(time.Since(start) >= coalesceTimeout)
+	require.True(t, time.Since(start) >= coalesceTimeout)
 
 	assertLastReqArgs(t, types, "my-token", source)
 
 	// Update NodeConfig
 	webProxy.Port = 7777
-	require.NoError(state.AddService(webProxy, "my-token"))
+	require.NoError(t, state.AddService(webProxy, "my-token"))
 
 	expectSnap.Port = 7777
 	assertWatchChanRecvs(t, wCh, expectSnap)
@@ -409,7 +409,7 @@ func testManager_BasicLifecycle(
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
 	// Change token
-	require.NoError(state.AddService(webProxy, "other-token"))
+	require.NoError(t, state.AddService(webProxy, "other-token"))
 	assertWatchChanRecvs(t, wCh, expectSnap)
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
@@ -444,7 +444,7 @@ func testManager_BasicLifecycle(
 
 	// Re-add the proxy with another new port
 	webProxy.Port = 3333
-	require.NoError(state.AddService(webProxy, "other-token"))
+	require.NoError(t, state.AddService(webProxy, "other-token"))
 
 	// Same watch chan should be notified again
 	expectSnap.Port = 3333
@@ -459,13 +459,13 @@ func testManager_BasicLifecycle(
 
 	// We specifically don't remove the proxy or cancel the second watcher to
 	// ensure both are cleaned up by close.
-	require.NoError(m.Close())
+	require.NoError(t, m.Close())
 
 	// Sanity check the state is clean
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	require.Len(m.proxies, 0)
-	require.Len(m.watchers, 0)
+	require.Len(t, m.proxies, 0)
+	require.Len(t, m.watchers, 0)
 }
 
 func assertWatchChanBlocks(t *testing.T, ch <-chan *ConfigSnapshot) {
@@ -504,10 +504,9 @@ func TestManager_deliverLatest(t *testing.T) {
 		},
 		Logger: logger,
 	}
-	require := require.New(t)
 
 	m, err := NewManager(cfg)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	snap1 := &ConfigSnapshot{
 		ProxyID: structs.NewServiceID("test-proxy", nil),
@@ -525,14 +524,14 @@ func TestManager_deliverLatest(t *testing.T) {
 	m.deliverLatest(snap1, ch1)
 
 	// Check it was delivered
-	require.Equal(snap1, <-ch1)
+	require.Equal(t, snap1, <-ch1)
 
 	// Now send both without reading simulating a slow client
 	m.deliverLatest(snap1, ch1)
 	m.deliverLatest(snap2, ch1)
 
 	// Check we got the _second_ one
-	require.Equal(snap2, <-ch1)
+	require.Equal(t, snap2, <-ch1)
 
 	// Same again for 5-buffered chan
 	ch5 := make(chan *ConfigSnapshot, 5)
@@ -541,7 +540,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	m.deliverLatest(snap1, ch5)
 
 	// Check it was delivered
-	require.Equal(snap1, <-ch5)
+	require.Equal(t, snap1, <-ch5)
 
 	// Now send enough to fill the chan simulating a slow client
 	for i := 0; i < 5; i++ {
@@ -550,7 +549,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	m.deliverLatest(snap2, ch5)
 
 	// Check we got the _second_ one
-	require.Equal(snap2, <-ch5)
+	require.Equal(t, snap2, <-ch5)
 }
 
 func testGenCacheKey(req cache.Request) string {
@@ -598,7 +597,146 @@ func TestManager_SyncState_DefaultToken(t *testing.T) {
 
 	err = state.AddServiceWithChecks(srv, nil, "")
 	require.NoError(t, err)
-	m.syncState()
+	m.syncState(m.notifyBroadcast)
 
 	require.Equal(t, "default-token", m.proxies[srv.CompoundServiceID()].serviceInstance.token)
+}
+
+func TestManager_SyncState_No_Notify(t *testing.T) {
+	types := NewTestCacheTypes(t)
+	c := TestCacheWithTypes(t, types)
+	logger := testutil.Logger(t)
+	tokens := new(token.Store)
+	tokens.UpdateUserToken("default-token", token.TokenSourceConfig)
+
+	state := local.NewState(local.Config{}, logger, tokens)
+	state.TriggerSyncChanges = func() {}
+
+	m, err := NewManager(ManagerConfig{
+		Cache:  c,
+		Health: &health.Client{Cache: c, CacheName: cachetype.HealthServicesName},
+		State:  state,
+		Tokens: tokens,
+		Source: &structs.QuerySource{Datacenter: "dc1"},
+		Logger: logger,
+	})
+	require.NoError(t, err)
+	defer m.Close()
+
+	srv := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-sidecar-proxy",
+		Service: "web-sidecar-proxy",
+		Port:    9999,
+		Meta:    map[string]string{},
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceID:   "web",
+			DestinationServiceName: "web",
+			LocalServiceAddress:    "127.0.0.1",
+			LocalServicePort:       8080,
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+		},
+	}
+
+	err = state.AddServiceWithChecks(srv, nil, "")
+	require.NoError(t, err)
+
+	readEvent := make(chan bool, 1)
+	snapSent := make(chan bool, 1)
+
+	m.syncState(func(ch <-chan ConfigSnapshot) {
+		for {
+			<-readEvent
+			snap := <-ch
+			m.notify(&snap)
+			snapSent <- true
+		}
+	})
+
+	// Get the relevant notification Channel, should only have 1
+	notifyCH := m.proxies[srv.CompoundServiceID()].ch
+
+	// update the leaf certs
+	roots, issuedCert := TestCerts(t)
+	notifyCH <- cache.UpdateEvent{
+		CorrelationID: leafWatchID,
+		Result:        issuedCert,
+		Err:           nil,
+	}
+	// at this point the snapshot should not be valid and not be sent
+	after := time.After(200 * time.Millisecond)
+	select {
+	case <-snapSent:
+		t.Fatal("snap should not be valid")
+	case <-after:
+
+	}
+
+	// update the root certs
+	notifyCH <- cache.UpdateEvent{
+		CorrelationID: rootsWatchID,
+		Result:        roots,
+		Err:           nil,
+	}
+
+	// at this point the snapshot should not be valid and not be sent
+	after = time.After(200 * time.Millisecond)
+	select {
+	case <-snapSent:
+		t.Fatal("snap should not be valid")
+	case <-after:
+
+	}
+
+	// prepare to read a snapshot update as the next update should make the snapshot valid
+	readEvent <- true
+
+	// update the intentions
+	notifyCH <- cache.UpdateEvent{
+		CorrelationID: intentionsWatchID,
+		Result:        &structs.IndexedIntentionMatches{},
+		Err:           nil,
+	}
+
+	// at this point we have a valid snapshot
+	after = time.After(500 * time.Millisecond)
+	select {
+	case <-snapSent:
+	case <-after:
+		t.Fatal("snap should be valid")
+
+	}
+
+	// send two snapshots back to back without reading them to overflow the snapshot channel and get to the default use case
+	for i := 0; i < 2; i++ {
+		time.Sleep(250 * time.Millisecond)
+		notifyCH <- cache.UpdateEvent{
+			CorrelationID: leafWatchID,
+			Result:        issuedCert,
+			Err:           nil,
+		}
+	}
+
+	// make sure that we are not receiving any snapshot and wait for the snapshots to be processed
+	after = time.After(500 * time.Millisecond)
+	select {
+	case <-snapSent:
+		t.Fatal("snap should not be sent")
+	case <-after:
+	}
+
+	// now make sure that both snapshots got propagated
+	for i := 0; i < 2; i++ {
+
+		readEvent <- true
+		after = time.After(500 * time.Millisecond)
+		select {
+		case <-snapSent:
+		case <-after:
+			t.Fatal("snap should be valid")
+
+		}
+	}
 }

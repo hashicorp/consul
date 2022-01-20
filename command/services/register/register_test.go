@@ -40,7 +40,6 @@ func TestCommand_Validation(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			require := require.New(t)
 
 			c.init()
 
@@ -52,9 +51,9 @@ func TestCommand_Validation(t *testing.T) {
 				ui.OutputWriter.Reset()
 			}
 
-			require.Equal(1, c.Run(tc.args))
+			require.Equal(t, 1, c.Run(tc.args))
 			output := ui.ErrorWriter.String()
-			require.Contains(output, tc.output)
+			require.Contains(t, output, tc.output)
 		})
 	}
 }
@@ -66,7 +65,6 @@ func TestCommand_File(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -86,14 +84,14 @@ func TestCommand_File(t *testing.T) {
 		f.Name(),
 	}
 
-	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+	require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 
 	svcs, err := client.Agent().Services()
-	require.NoError(err)
-	require.Len(svcs, 1)
+	require.NoError(t, err)
+	require.Len(t, svcs, 1)
 
 	svc := svcs["web"]
-	require.NotNil(svc)
+	require.NotNil(t, svc)
 }
 
 func TestCommand_Flags(t *testing.T) {
@@ -103,7 +101,6 @@ func TestCommand_Flags(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -116,14 +113,14 @@ func TestCommand_Flags(t *testing.T) {
 		"-name", "web",
 	}
 
-	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+	require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 
 	svcs, err := client.Agent().Services()
-	require.NoError(err)
-	require.Len(svcs, 1)
+	require.NoError(t, err)
+	require.Len(t, svcs, 1)
 
 	svc := svcs["web"]
-	require.NotNil(svc)
+	require.NotNil(t, svc)
 }
 
 func TestCommand_Flags_TaggedAddresses(t *testing.T) {
@@ -133,7 +130,6 @@ func TestCommand_Flags_TaggedAddresses(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -148,21 +144,21 @@ func TestCommand_Flags_TaggedAddresses(t *testing.T) {
 		"-tagged-address", "v6=[2001:db8::12]:1234",
 	}
 
-	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+	require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 
 	svcs, err := client.Agent().Services()
-	require.NoError(err)
-	require.Len(svcs, 1)
+	require.NoError(t, err)
+	require.Len(t, svcs, 1)
 
 	svc := svcs["web"]
-	require.NotNil(svc)
-	require.Len(svc.TaggedAddresses, 2)
-	require.Contains(svc.TaggedAddresses, "lan")
-	require.Contains(svc.TaggedAddresses, "v6")
-	require.Equal(svc.TaggedAddresses["lan"].Address, "127.0.0.1")
-	require.Equal(svc.TaggedAddresses["lan"].Port, 1234)
-	require.Equal(svc.TaggedAddresses["v6"].Address, "2001:db8::12")
-	require.Equal(svc.TaggedAddresses["v6"].Port, 1234)
+	require.NotNil(t, svc)
+	require.Len(t, svc.TaggedAddresses, 2)
+	require.Contains(t, svc.TaggedAddresses, "lan")
+	require.Contains(t, svc.TaggedAddresses, "v6")
+	require.Equal(t, svc.TaggedAddresses["lan"].Address, "127.0.0.1")
+	require.Equal(t, svc.TaggedAddresses["lan"].Port, 1234)
+	require.Equal(t, svc.TaggedAddresses["v6"].Address, "2001:db8::12")
+	require.Equal(t, svc.TaggedAddresses["v6"].Port, 1234)
 }
 
 func TestCommand_FileWithUnnamedCheck(t *testing.T) {
@@ -172,7 +168,6 @@ func TestCommand_FileWithUnnamedCheck(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -192,18 +187,18 @@ func TestCommand_FileWithUnnamedCheck(t *testing.T) {
 		f.Name(),
 	}
 
-	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+	require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 
 	svcs, err := client.Agent().Services()
-	require.NoError(err)
-	require.Len(svcs, 1)
+	require.NoError(t, err)
+	require.Len(t, svcs, 1)
 
 	svc := svcs["web"]
-	require.NotNil(svc)
+	require.NotNil(t, svc)
 
 	checks, err := client.Agent().Checks()
-	require.NoError(err)
-	require.Len(checks, 1)
+	require.NoError(t, err)
+	require.Len(t, checks, 1)
 }
 
 func testFile(t *testing.T, suffix string) *os.File {

@@ -77,6 +77,8 @@ type TestServerConfig struct {
 	Performance         *TestPerformanceConfig `json:"performance,omitempty"`
 	Bootstrap           bool                   `json:"bootstrap,omitempty"`
 	Server              bool                   `json:"server,omitempty"`
+	Partition           string                 `json:"partition,omitempty"`
+	RetryJoin           []string               `json:"retry_join,omitempty"`
 	DataDir             string                 `json:"data_dir,omitempty"`
 	Datacenter          string                 `json:"datacenter,omitempty"`
 	Segments            []TestNetworkSegment   `json:"segments"`
@@ -86,7 +88,6 @@ type TestServerConfig struct {
 	Addresses           *TestAddressConfig     `json:"addresses,omitempty"`
 	Ports               *TestPortConfig        `json:"ports,omitempty"`
 	RaftProtocol        int                    `json:"raft_protocol,omitempty"`
-	ACLMasterToken      string                 `json:"acl_master_token,omitempty"`
 	ACLDatacenter       string                 `json:"acl_datacenter,omitempty"`
 	PrimaryDatacenter   string                 `json:"primary_datacenter,omitempty"`
 	ACLDefaultPolicy    string                 `json:"acl_default_policy,omitempty"`
@@ -124,11 +125,17 @@ type TestACLs struct {
 }
 
 type TestTokens struct {
-	Master      string `json:"master,omitempty"`
 	Replication string `json:"replication,omitempty"`
-	AgentMaster string `json:"agent_master,omitempty"`
 	Default     string `json:"default,omitempty"`
 	Agent       string `json:"agent,omitempty"`
+
+	// Note: this field is marshaled as master for compatibility with
+	// versions of Consul prior to 1.11.
+	InitialManagement string `json:"master,omitempty"`
+
+	// Note: this field is marshaled as agent_master for compatibility with
+	// versions of Consul prior to 1.11.
+	AgentRecovery string `json:"agent_master,omitempty"`
 }
 
 // ServerConfigCallback is a function interface which can be
@@ -375,7 +382,7 @@ func (s *TestServer) waitForAPI() error {
 		time.Sleep(timer.Wait)
 
 		url := s.url("/v1/status/leader")
-		resp, err := s.masterGet(url)
+		resp, err := s.privilegedGet(url)
 		if err != nil {
 			failed = true
 			continue
@@ -397,7 +404,7 @@ func (s *TestServer) WaitForLeader(t testing.TB) {
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
 		url := s.url("/v1/catalog/nodes")
-		resp, err := s.masterGet(url)
+		resp, err := s.privilegedGet(url)
 		if err != nil {
 			r.Fatalf("failed http get '%s': %v", url, err)
 		}
@@ -433,7 +440,7 @@ func (s *TestServer) WaitForActiveCARoot(t testing.TB) {
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
 		url := s.url("/v1/agent/connect/ca/roots")
-		resp, err := s.masterGet(url)
+		resp, err := s.privilegedGet(url)
 		if err != nil {
 			r.Fatalf("failed http get '%s': %v", url, err)
 		}
@@ -469,7 +476,7 @@ func (s *TestServer) WaitForServiceIntentions(t testing.TB) {
 		// preflightCheck call in agent/consul/config_endpoint.go will fail if
 		// we aren't ready yet, vs just doing no work instead.
 		url := s.url("/v1/config/service-intentions/" + fakeConfigName)
-		resp, err := s.masterDelete(url)
+		resp, err := s.privilegedDelete(url)
 		if err != nil {
 			r.Fatalf("failed http get '%s': %v", url, err)
 		}
@@ -486,7 +493,7 @@ func (s *TestServer) WaitForSerfCheck(t testing.TB) {
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
 		url := s.url("/v1/catalog/nodes?index=0")
-		resp, err := s.masterGet(url)
+		resp, err := s.privilegedGet(url)
 		if err != nil {
 			r.Fatalf("failed http get: %v", err)
 		}
@@ -507,7 +514,7 @@ func (s *TestServer) WaitForSerfCheck(t testing.TB) {
 
 		// Ensure the serfHealth check is registered
 		url = s.url(fmt.Sprintf("/v1/health/node/%s", payload[0]["Node"]))
-		resp, err = s.masterGet(url)
+		resp, err = s.privilegedGet(url)
 		if err != nil {
 			r.Fatalf("failed http get: %v", err)
 		}
@@ -533,24 +540,24 @@ func (s *TestServer) WaitForSerfCheck(t testing.TB) {
 	})
 }
 
-func (s *TestServer) masterGet(url string) (*http.Response, error) {
+func (s *TestServer) privilegedGet(url string) (*http.Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	if s.Config.ACL.Tokens.Master != "" {
-		req.Header.Set("x-consul-token", s.Config.ACL.Tokens.Master)
+	if s.Config.ACL.Tokens.InitialManagement != "" {
+		req.Header.Set("x-consul-token", s.Config.ACL.Tokens.InitialManagement)
 	}
 	return s.HTTPClient.Do(req)
 }
 
-func (s *TestServer) masterDelete(url string) (*http.Response, error) {
+func (s *TestServer) privilegedDelete(url string) (*http.Response, error) {
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	if s.Config.ACL.Tokens.Master != "" {
-		req.Header.Set("x-consul-token", s.Config.ACL.Tokens.Master)
+	if s.Config.ACL.Tokens.InitialManagement != "" {
+		req.Header.Set("x-consul-token", s.Config.ACL.Tokens.InitialManagement)
 	}
 	return s.HTTPClient.Do(req)
 }

@@ -2,7 +2,7 @@ import RepositoryService from 'consul-ui/services/repository';
 import isFolder from 'consul-ui/utils/isFolder';
 import { get } from '@ember/object';
 import { PRIMARY_KEY } from 'consul-ui/models/kv';
-import { ACCESS_LIST } from 'consul-ui/abilities/base';
+// import { ACCESS_LIST } from 'consul-ui/abilities/base';
 import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'kv';
@@ -44,31 +44,48 @@ export default class KvService extends RepositoryService {
         });
       }
     } else {
-      item = await super.findBySlug(...arguments);
+      if (params.id === '') {
+        item = await this.create({
+          Datacenter: params.dc,
+          Namespace: params.ns,
+          Partition: params.partition,
+        });
+      } else {
+        item = await super.findBySlug(...arguments);
+      }
     }
-    // TODO: Whilst KV is using DataForm and DataForm does the model > changeset conversion
-    // a model > changeset conversion is not needed here
+    // TODO: Whilst KV is using DataForm and DataForm does the model >
+    // changeset conversion a model > changeset conversion is not needed here
+    // until we move KV to just use DataWriter like the other new stuff
     return item;
   }
 
   // this one only gives you keys
   // https://www.consul.io/api/kv.html
   @dataSource('/:partition/:ns/:dc/kvs/:id')
-  findAllBySlug(params, configuration = {}) {
+  async findAllBySlug(params, configuration = {}) {
     params.separator = '/';
     if (params.id === '/') {
       params.id = '';
     }
-    return this.authorizeBySlug(
-      async () => {
-        let items = await this.findAll(...arguments);
-        const meta = items.meta;
-        items = items.filter(item => params.id !== get(item, 'Key'));
-        items.meta = meta;
-        return items;
-      },
-      ACCESS_LIST,
-      params
-    );
+
+    /**/
+    // Temporarily revert to pre-1.10 UI functionality by not pre-checking backend
+    // permissions.
+    // This temporary measure should be removed again once https://github.com/hashicorp/consul/issues/11098
+    // has been resolved
+
+    // return this.authorizeBySlug(
+    //   async () => {
+    let items = await this.findAll(...arguments);
+    const meta = items.meta;
+    items = items.filter(item => params.id !== get(item, 'Key'));
+    items.meta = meta;
+    return items;
+    // },
+    // ACCESS_LIST,
+    // params
+    // );
+    /**/
   }
 }

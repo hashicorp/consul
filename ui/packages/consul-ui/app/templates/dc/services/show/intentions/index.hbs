@@ -89,7 +89,9 @@ as |route|>
                 </Consul::Intention::List>
               </collection.Collection>
               <collection.Empty>
-                <EmptyState>
+                <EmptyState
+                  @login={{route.model.app.login.open}}
+                >
                   <BlockSlot @name="header">
                     <h2>
                       {{#if (gt items.length 0)}}
