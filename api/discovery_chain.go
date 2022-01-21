@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"time"
 )
 
@@ -26,7 +27,7 @@ func (d *DiscoveryChain) Get(name string, opts *DiscoveryChainOptions, q *QueryO
 		method = "POST"
 	}
 
-	r := d.c.newRequest(method, fmt.Sprintf("/v1/discovery-chain/%s", name))
+	r := d.c.newRequest(method, fmt.Sprintf("/v1/discovery-chain/%s", url.PathEscape(name)))
 	r.setQueryOptions(q)
 
 	if opts != nil {
