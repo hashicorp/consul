@@ -27,7 +27,9 @@ At a high level, there are two points of integration with Vault:
 
 ### Vault Helm Config
 
-A minimal valid installation of Vault must include the Agent Injector:
+A minimal valid installation of Vault Kubernetes must include the Agent Injector which is utilized for accessing secrets from Vault. Vault servers could be deployed
+external to Vault on Kubernetes as described via the [`externalvaultaddr`](https://www.vaultproject.io/docs/platform/k8s/helm/configuration#externalvaultaddr) value in the Vault Helm Configuration 
+
 ```yaml
 injector:
   enabled: "true"
@@ -83,7 +85,7 @@ which bootstrap Vault Auth roles and Policies for Consul to use. For the support
 guides and ensure to, when combining the secrets, append the Vault Policies to your Vault Kube Auth Roles via a comma separated value (i.e. `policies=gossip-policy,consul-ca,consul-server,custom-policy`).
 Ex:
 ```shell-session
-vault write auth/kubernetes/role/consul-server \
+$ vault write auth/kubernetes/role/consul-server \
     bound_service_account_names=<Consul server service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
     policies=gossip-policy,consul-ca,consul-server \
