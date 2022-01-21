@@ -9,31 +9,37 @@ description: >-
 
 To use Vault to issue Server TLS certificates the following will be needed:
 
-1. Bootstrap the Vault PKI engine and boostrap it with any configuration required for your infrastructure.
+1. Bootstrap the Vault PKI engine and bootstrap it with any configuration required for your infrastructure.
 1. Create Vault Policies that will allow the Consul server to access the certificate issuing url.
 1. Create Vault Policies that will allow the Consul components, e.g. ingress gateways, controller, to access the CA url.
 1. Create Kubernetes auth roles that link these policies to the Kubernetes service accounts of the Consul components.
 
-
 ### Bootstrapping the PKI Engine
+
 First, we need to bootstrap the Vault cluster by enabling and configuring the PKI Secrets Engine to be able to serve
 TLS certificates to Consul. The process can be as simple as the following, or more complicated such as in this [example](https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-secure-tls)
 which also uses an intermediate signing authority.
 
 * Enable the PKI Secrets Engine:
+
 ```shell-session
-vault secrets enable pki
+$ vault secrets enable pki
 ```
+
 * Tune the engine to enable longer TTL:
+
 ```shell-session
-vault secrets tune -max-lease-ttl=87600h pki
+$ vault secrets tune -max-lease-ttl=87600h pki
 ```
+
 * Generate the root CA
+
 ```shell-session
-vault write -field=certificate pki/root/generate/internal \
+$ vault write -field=certificate pki/root/generate/internal \
         common_name="dc1.consul" \
         ttl=87600h
 ```
+
 -> **Note:** Where `common_name` is comprised of combining `global.datacenter` dot `global.domain`.
 
 ### Create Vault Policies for the Server TLS Certificates
@@ -50,8 +56,9 @@ path "pki/issue/consul-server" {
 ```
 
 ```shell-session
-vault policy write consul-server consul-server-policy.hcl
+$ vault policy write consul-server consul-server-policy.hcl
 ```
+
 -> **Note:** The PKI secret path referenced by the above Policy will be your `server.serverCert.secretName` Helm value.
 
 ### Create Vault Policies for the CA URL
@@ -67,8 +74,9 @@ path "pki/cert/ca" {
 ```
 
 ```shell-session
-vault policy write ca-policy ca-policy.hcl
+$ vault policy write ca-policy ca-policy.hcl
 ```
+
 -> **Note:** The PKI secret path referenced by the above Policy will be your `global.tls.caCert.secretName` Helm value.
 
 ### Create Vault Roles for the PKI engine, Consul servers and components
@@ -102,10 +110,11 @@ echo allowed_domains=\"$DATACENTER.consul, $NAME-server, $NAME-server.$NAMESPACE
 
 Prior to creating Vault auth roles for the Consul server and the Consul components, ensure that the Vault Kubernetes auth method is enabled as described in [Vault Kubernetes Auth Method](/docs/k8s/installation/vault#vault-kubernetes-auth-method).
 
-Finally, two Kubernetes auth roles need to be created, one for the Consul servers and one for the Consul components:
+Finally, three Kubernetes auth roles need to be created, one for the Consul servers, one for the Consul clients, and one for the Consul components.
 
+Role for Consul servers:
 ```shell-session
-vault write auth/kubernetes/role/consul-server \
+$ vault write auth/kubernetes/role/consul-server \
     bound_service_account_names=<Consul server service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
     policies=consul-server \
@@ -114,24 +123,43 @@ vault write auth/kubernetes/role/consul-server \
 
 To find out the service account name of the Consul server,
 you can run:
+
 ```shell-session
- helm template --release-name <your release name> -s templates/server-serviceaccount.yaml hashicorp/consul
+ $ helm template --release-name <your release name> --show-only templates/server-serviceaccount.yaml hashicorp/consul
 ```
 
 -> **Note:** Should you enable other supported features such as gossip-encryption be sure to append additional policies to
-the Kube auth role in a comma separated value e.g.  `policies=consul-server,consul-gossip`
+the Kube auth role in a comma separated value e.g. `policies=consul-server,consul-gossip`
+
+Role for Consul clients:
 
 ```shell-session
-vault write auth/kubernetes/role/consul-ca \
+$ vault write auth/kubernetes/role/consul-client \
+    bound_service_account_names=<Consul client service account>  \
+    bound_service_account_namespaces=default \
+    policies=ca-policy \
+    ttl=1h
+```
+
+To find out the service account name of the Consul client, use the command below.
+```shell-session
+ $ helm template --release-name <your release name> --show-only templates/client-serviceaccount.yaml hashicorp/consul
+```
+
+-> **Note:** Should you enable other supported features such as gossip-encryption, ensure you append additional policies to
+the Kube auth role in a comma separated value e.g.  `policies=ca-policy,consul-gossip`
+
+Role for CA components:
+```shell-session
+$ vault write auth/kubernetes/role/consul-ca \
     bound_service_account_names="*" \
     bound_service_account_namespaces=<Consul installation namespace> \
-    policies=consul-ca \
+    policies=ca-policy \
     ttl=1h
 ```
 
 The above Vault Roles will now be your Helm values for `global.secretsBackend.vault.consulServerRole` and
-`global.secretsBAckend.vault.consulCARole` respectively.
-
+`global.secretsBackend.vault.consulCARole` respectively.
 
 ## Deploying the Consul Helm chart
 
@@ -147,6 +175,7 @@ global:
       consulClientRole: consul-client
       consulCARole: consul-ca
   tls:
+    enableAutoEncrypt: true
     enabled: true
     caCert:
       secretName: "pki/cert/ca"
@@ -154,9 +183,9 @@ server:
   serverCert:
     secretName: "pki/issue/consul-server"
   extraVolumes:
-  - type: "secret"
-    name: <vaultCASecret>
-    load: "false"
+    - type: "secret"
+      name: <vaultCASecret>
+      load: "false"
 ```
 
 The `vaultCASecret` is the Kubernetes secret that stores the CA Certificate that is used for Vault communication. To provide a CA, you first need to create a Kubernetes secret containing the CA. For example, you may create a secret with the Vault CA like so:

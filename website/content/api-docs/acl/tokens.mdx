@@ -32,6 +32,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
+The corresponding CLI command is [`consul acl token create`](/commands/acl/token/create).
+
 ### Parameters
 
 - `AccessorID` `(string: "")` - Specifies a UUID to use as the token's Accessor ID.
@@ -60,7 +62,7 @@ The table below shows this endpoint's support for
   enables role renaming without breaking tokens. Added in Consul 1.5.0.
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
-  identities](/docs/acl/acl-system#acl-service-identities) that should be
+  identities](/docs/security/acl/acl-system#acl-service-identities) that should be
   applied to the token. Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
@@ -74,7 +76,7 @@ The table below shows this endpoint's support for
     but may in the future.
 
 - `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
-  identities](/docs/acl/acl-system#acl-node-identities) that should be
+  identities](/docs/security/acl/acl-system#acl-node-identities) that should be
   applied to the token. Added in Consul 1.8.1.
 
   - `NodeName` `(string: <required>)` - The name of the node. The name
@@ -125,7 +127,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X PUT \
+$ curl --request PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/token
 ```
@@ -173,6 +175,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
+The corresponding CLI command is [`consul acl token read`](/commands/acl/token/read).
+
 ### Parameters
 
 - `AccessorID` `(string: <required>)` - Specifies the accessor ID of the ACL token to
@@ -187,7 +191,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X GET http://127.0.0.1:8500/v1/acl/token/6a1253d2-1785-24fd-91c2-f8e78c745511
+$ curl --request GET http://127.0.0.1:8500/v1/acl/token/6a1253d2-1785-24fd-91c2-f8e78c745511
 ```
 
 ### Sample Response
@@ -243,10 +247,12 @@ The table below shows this endpoint's support for
 -> **Note** - This endpoint requires no specific privileges as it is just
 retrieving the data for a token that you must already possess its secret.
 
+The corresponding CLI command is [`consul acl token read -self`](/commands/acl/token/read#self).
+
 ### Sample Request
 
 ```shell-session
-$ curl -H "X-Consul-Token: 6a1253d2-1785-24fd-91c2-f8e78c745511" \
+$ curl --header "X-Consul-Token: 6a1253d2-1785-24fd-91c2-f8e78c745511" \
    http://127.0.0.1:8500/v1/acl/token/self
 ```
 
@@ -293,6 +299,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
+The corresponding CLI command is [`consul acl token update`](/commands/acl/token/update).
+
 ### Parameters
 
 - `AccessorID` `(string: "")` - Specifies the accessor ID of the token being updated. This is
@@ -321,7 +329,7 @@ The table below shows this endpoint's support for
   enables role renaming without breaking tokens.
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
-  identities](/docs/acl/acl-system#acl-service-identities) that should be
+  identities](/docs/security/acl/acl-system#acl-service-identities) that should be
   applied to the token. Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
@@ -335,7 +343,7 @@ The table below shows this endpoint's support for
     but may in the future.
 
 - `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
-  identities](/docs/acl/acl-system#acl-node-identities) that should be
+  identities](/docs/security/acl/acl-system#acl-node-identities) that should be
   applied to the token. Added in Consul 1.8.1.
 
   - `NodeName` `(string: <required>)` - The name of the node. The name
@@ -389,7 +397,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X PUT \
+$ curl --request PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/token/6a1253d2-1785-24fd-91c2-f8e78c745511
 ```
@@ -441,6 +449,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
+The corresponding CLI command is [`consul acl token clone`](/commands/acl/token/clone).
+
 ### Parameters
 
 - `AccessorID` `(string: <required>)` - The accessor ID of the token to clone. This is required
@@ -465,7 +475,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X PUT \
+$ curl --request PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/token/6a1253d2-1785-24fd-91c2-f8e78c745511/clone
 ```
@@ -520,6 +530,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
+The corresponding CLI command is [`consul acl token delete`](/commands/acl/token/delete).
+
 ### Parameters
 
 - `AccessorID` `(string: <required>)` - Specifies the accessor ID of the ACL token to
@@ -534,7 +546,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X DELETE \
+$ curl --request DELETE \
     http://127.0.0.1:8500/v1/acl/token/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
@@ -561,6 +573,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
+
+The corresponding CLI command is [`consul acl token list`](/commands/acl/token/list).
 
 ## Parameters
 
@@ -589,7 +603,7 @@ The table below shows this endpoint's support for
 ## Sample Request
 
 ```shell-session
-$ curl -X GET http://127.0.0.1:8500/v1/acl/tokens
+$ curl --request GET http://127.0.0.1:8500/v1/acl/tokens
 ```
 
 ### Sample Response

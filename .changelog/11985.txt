@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Added a notice for non-primary intention creation
+```

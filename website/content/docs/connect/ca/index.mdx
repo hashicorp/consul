@@ -20,6 +20,23 @@ support for using
 [Vault as a CA](/docs/connect/ca/vault). With Vault, the root certificate
 and private key material remain with the Vault cluster.
 
+### CA and Certificate relationship
+
+This diagram shows the relationship between the CA certificates in a Consul primary datacenter and a
+secondary Consul datacenter.
+
+![CA relationship](/img/cert-relationship.svg)
+
+Leaf certificates are created for two purposes:
+- the Leaf Cert Service is used by envoy proxies in the mesh to perform mTLS with other
+services.
+- the Leaf Cert Client Agent is created by auto-encrypt and auto-config. It is used by
+client agents for HTTP API TLS, and for mTLS for RPC requests to servers.
+
+Any secondary datacenters receive an intermediate certificate, signed by the Primary Root
+CA, which is used as the CA certificate to sign leaf certificates in the secondary
+datacenter.
+
 ## CA Bootstrapping
 
 CA initialization happens automatically when a new Consul leader is elected

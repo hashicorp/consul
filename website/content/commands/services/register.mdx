@@ -7,18 +7,28 @@ page_title: 'Commands: Services Register'
 
 Command: `consul services register`
 
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/service/register](/api-docs/agent/service#register-service)
+
 The `services register` command registers a service with the local agent.
 This command returns after registration and must be paired with explicit
 service deregistration. This command simplifies service registration from
 scripts, in dev mode, etc.
 
 This is just one method of service registration. Services can also be
-registered by placing a [service definition](/docs/agent/services)
+registered by placing a [service definition](/docs/discovery/services)
 in the Consul agent configuration directory and issuing a
 [reload](/commands/reload). This approach is easiest for
 configuration management systems that other systems that have access to
 the configuration directory. Clients may also use the
 [HTTP API](/api/agent/service) directly.
+
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required    |
+| --------------- |
+| `service:write` |
 
 ## Usage
 
@@ -64,7 +74,7 @@ arguments are given, the flags below can be used to register a single
 service.
 
 Note that the behavior of each of the fields below is exactly the same
-as when constructing a standard [service definition](/docs/agent/services).
+as when constructing a standard [service definition](/docs/discovery/services).
 Please refer to that documentation for full details.
 
 - `-id` - The ID of the service. This will default to `-name` if not set.

@@ -26,7 +26,7 @@
       },
       create: {
         _options: {
-          template: 'dc/nspaces/edit',
+          template: '../edit',
           path: '/create',
           abilities: ['create nspaces'],
         },
@@ -34,10 +34,7 @@
     },
   },
 }))(
-  (json, data = document.currentScript.dataset) => {
-    const appNameJS = data.appName.split('-')
-      .map((item, i) => i ? `${item.substr(0, 1).toUpperCase()}${item.substr(1)}` : item)
-      .join('');
-    data[`${appNameJS}Routes`] = JSON.stringify(json);
+  (json, data = (typeof document !== 'undefined' ? document.currentScript.dataset : module.exports)) => {
+    data[`routes`] = JSON.stringify(json);
   }
 );

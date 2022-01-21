@@ -77,7 +77,6 @@ func TestAutopilot_CleanupDeadServer(t *testing.T) {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 5)) })
 	}
 
-	require := require.New(t)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	leaderIndex := -1
 	for i, s := range servers {
@@ -86,7 +85,7 @@ func TestAutopilot_CleanupDeadServer(t *testing.T) {
 			break
 		}
 	}
-	require.NotEqual(leaderIndex, -1)
+	require.NotEqual(t, leaderIndex, -1)
 
 	// Shutdown two non-leader servers
 	killed := make(map[string]struct{})

@@ -263,19 +263,19 @@ type ACLResolver struct {
 	// disabledLock synchronizes access to disabledUntil
 	disabledLock sync.RWMutex
 
-	agentMasterAuthz acl.Authorizer
+	agentRecoveryAuthz acl.Authorizer
 }
 
-func agentMasterAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta, aclConf *acl.Config) (acl.Authorizer, error) {
+func agentRecoveryAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta, aclConf *acl.Config) (acl.Authorizer, error) {
 	var conf acl.Config
 	if aclConf != nil {
 		conf = *aclConf
 	}
 	setEnterpriseConf(entMeta, &conf)
 
-	// Build a policy for the agent master token.
+	// Build a policy for the agent recovery token.
 	//
-	// The builtin agent master policy allows reading any node information
+	// The builtin agent recovery policy allows reading any node information
 	// and allows writes to the agent with the node name of the running agent
 	// only. This used to allow a prefix match on agent names but that seems
 	// entirely unnecessary so it is now using an exact match.
@@ -323,21 +323,21 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 		return nil, fmt.Errorf("invalid ACL down policy %q", config.Config.ACLDownPolicy)
 	}
 
-	authz, err := agentMasterAuthorizer(config.Config.NodeName, &config.Config.EnterpriseMeta, config.ACLConfig)
+	authz, err := agentRecoveryAuthorizer(config.Config.NodeName, &config.Config.EnterpriseMeta, config.ACLConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize the agent master authorizer")
+		return nil, fmt.Errorf("failed to initialize the agent recovery authorizer")
 	}
 
 	return &ACLResolver{
-		config:           config.Config,
-		logger:           config.Logger.Named(logging.ACL),
-		delegate:         config.Delegate,
-		aclConf:          config.ACLConfig,
-		cache:            cache,
-		disableDuration:  config.DisableDuration,
-		down:             down,
-		tokens:           config.Tokens,
-		agentMasterAuthz: authz,
+		config:             config.Config,
+		logger:             config.Logger.Named(logging.ACL),
+		delegate:           config.Delegate,
+		aclConf:            config.ACLConfig,
+		cache:              cache,
+		disableDuration:    config.DisableDuration,
+		down:               down,
+		tokens:             config.Tokens,
+		agentRecoveryAuthz: authz,
 	}, nil
 }
 
@@ -1049,7 +1049,7 @@ func (r *ACLResolver) resolveLocallyManagedToken(token string) (structs.ACLIdent
 	}
 
 	if r.tokens.IsAgentRecoveryToken(token) {
-		return structs.NewAgentMasterTokenIdentity(r.config.NodeName, token), r.agentMasterAuthz, true
+		return structs.NewAgentRecoveryTokenIdentity(r.config.NodeName, token), r.agentRecoveryAuthz, true
 	}
 
 	return r.resolveLocallyManagedEnterpriseToken(token)

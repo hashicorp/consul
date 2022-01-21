@@ -314,8 +314,6 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -333,16 +331,16 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 		Key:   "nope",
 		Value: []byte("hello"),
 	}
-	require.NoError(state.KVSSet(1, d))
+	require.NoError(t, state.KVSSet(1, d))
 
 	node := &structs.Node{
 		ID:   types.NodeID(testNodeID),
 		Node: "nope",
 	}
-	require.NoError(state.EnsureNode(2, node))
+	require.NoError(t, state.EnsureNode(2, node))
 
 	svc := structs.NodeService{ID: "nope", Service: "nope", Address: "127.0.0.1"}
-	require.NoError(state.EnsureService(3, "nope", &svc))
+	require.NoError(t, state.EnsureService(3, "nope", &svc))
 
 	check := structs.HealthCheck{Node: "nope", CheckID: types.CheckID("nope")}
 	state.EnsureCheck(4, &check)
@@ -606,7 +604,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 		}
 	}
 
-	require.Equal(expected, out)
+	require.Equal(t, expected, out)
 }
 
 func TestTxn_Apply_LockDelay(t *testing.T) {
@@ -707,8 +705,6 @@ func TestTxn_Read(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -732,7 +728,7 @@ func TestTxn_Read(t *testing.T) {
 		ID:   types.NodeID(testNodeID),
 		Node: "foo",
 	}
-	require.NoError(state.EnsureNode(2, node))
+	require.NoError(t, state.EnsureNode(2, node))
 
 	svc := structs.NodeService{
 		ID:             "svc-foo",
@@ -740,7 +736,7 @@ func TestTxn_Read(t *testing.T) {
 		Address:        "127.0.0.1",
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	require.NoError(state.EnsureService(3, "foo", &svc))
+	require.NoError(t, state.EnsureService(3, "foo", &svc))
 
 	check := structs.HealthCheck{
 		Node:           "foo",
@@ -823,7 +819,7 @@ func TestTxn_Read(t *testing.T) {
 			KnownLeader: true,
 		},
 	}
-	require.Equal(expected, out)
+	require.Equal(t, expected, out)
 }
 
 func TestTxn_Read_ACLDeny(t *testing.T) {
@@ -832,8 +828,6 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-
-	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
@@ -863,10 +857,10 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 		ID:   types.NodeID(testNodeID),
 		Node: "nope",
 	}
-	require.NoError(state.EnsureNode(2, node))
+	require.NoError(t, state.EnsureNode(2, node))
 
 	svc := structs.NodeService{ID: "nope", Service: "nope", Address: "127.0.0.1"}
-	require.NoError(state.EnsureService(3, "nope", &svc))
+	require.NoError(t, state.EnsureService(3, "nope", &svc))
 
 	check := structs.HealthCheck{Node: "nope", CheckID: types.CheckID("nope")}
 	state.EnsureCheck(4, &check)
@@ -899,10 +893,10 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 
 		var out structs.TxnReadResponse
 		err := msgpackrpc.CallWithCodec(codec, "Txn.Read", &arg, &out)
-		require.NoError(err)
-		require.Empty(out.Results)
-		require.Empty(out.Errors)
-		require.True(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.NoError(t, err)
+		require.Empty(t, out.Results)
+		require.Empty(t, out.Errors)
+		require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("complex operations (return permission denied errors)", func(t *testing.T) {
@@ -931,11 +925,11 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 
 		var out structs.TxnReadResponse
 		err := msgpackrpc.CallWithCodec(codec, "Txn.Read", &arg, &out)
-		require.NoError(err)
-		require.Equal(structs.TxnErrors{
+		require.NoError(t, err)
+		require.Equal(t, structs.TxnErrors{
 			{OpIndex: 0, What: acl.ErrPermissionDenied.Error()},
 			{OpIndex: 1, What: acl.ErrPermissionDenied.Error()},
 		}, out.Errors)
-		require.Empty(out.Results)
+		require.Empty(t, out.Results)
 	})
 }

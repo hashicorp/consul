@@ -28,7 +28,6 @@ func TestTokenListCommand_Pretty(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -58,7 +57,7 @@ func TestTokenListCommand_Pretty(t *testing.T) {
 		)
 		tokenIds = append(tokenIds, token.AccessorID)
 
-		assert.NoError(err)
+		assert.NoError(t, err)
 	}
 
 	args := []string{
@@ -67,13 +66,13 @@ func TestTokenListCommand_Pretty(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
 
 	for i, v := range tokenIds {
-		assert.Contains(output, fmt.Sprintf("test token %d", i))
-		assert.Contains(output, v)
+		assert.Contains(t, output, fmt.Sprintf("test token %d", i))
+		assert.Contains(t, output, v)
 	}
 }
 
@@ -83,7 +82,6 @@ func TestTokenListCommand_JSON(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -113,7 +111,7 @@ func TestTokenListCommand_JSON(t *testing.T) {
 		)
 		tokenIds = append(tokenIds, token.AccessorID)
 
-		assert.NoError(err)
+		assert.NoError(t, err)
 	}
 
 	args := []string{
@@ -123,8 +121,8 @@ func TestTokenListCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 
 	var jsonOutput []api.ACLTokenListEntry
 	err := json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)

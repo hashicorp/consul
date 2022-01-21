@@ -156,7 +156,7 @@ If the pods are unable to connect to a Consul client running on the same host,
 first check if the Consul clients are up and running with `kubectl get pods`.
 
 ```shell-session
-$ kubectl get pods -l "component=client"
+$ kubectl get pods --selector="component=client"
 NAME           READY   STATUS    RESTARTS   AGE
 consul-kzws6   1/1     Running   0          58s
 ```

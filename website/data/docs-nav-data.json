@@ -270,6 +270,10 @@
         "path": "connect/connectivity-tasks"
       },
       {
+        "title": "Distributed Tracing",
+        "path": "connect/distributed-tracing"
+      },
+      {
         "title": "Gateways",
         "routes": [
           {
@@ -371,6 +375,10 @@
             "path": "k8s/installation/install"
           },
           {
+            "title": "Installing Consul K8s CLI",
+            "path": "k8s/installation/install-cli"
+          },
+          {
             "title": "Platform Guides",
             "routes": [
               {
@@ -461,6 +469,10 @@
                 "path": "k8s/installation/vault/connect-ca"
               }
             ]
+          },
+          {
+            "title": "Compatibility Matrix",
+            "path": "k8s/installation/compatibility"
           }
         ]
       },
@@ -535,12 +547,12 @@
         "title": "Upgrade",
         "routes": [
           {
-            "title": "Overview",
+            "title": "Upgrading Consul on Kubernetes",
             "path": "k8s/upgrade"
           },
           {
-            "title": "Compatibility Matrix",
-            "path": "k8s/upgrade/compatibility"
+            "title": "Upgrading Consul K8s CLI",
+            "path": "k8s/upgrade/upgrade-cli"
           }
         ]
       },
@@ -817,6 +829,10 @@
           {
             "title": "Token Migration",
             "path": "security/acl/acl-migrate-tokens"
+          },
+          {
+            "title": "ACLs in Federated Datacenters",
+            "path": "security/acl/acl-federated-datacenters"
           },
           {
             "title": "Auth Methods",

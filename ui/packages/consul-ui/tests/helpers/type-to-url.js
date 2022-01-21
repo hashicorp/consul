@@ -40,6 +40,9 @@ export default function(type) {
     case 'authMethod':
       requests = ['/v1/acl/auth-methods', '/v1/acl/auth-method/'];
       break;
+    case 'oidcProvider':
+      requests = ['/v1/internal/ui/oidc-auth-methods'];
+      break;
     case 'nspace':
       requests = ['/v1/namespaces', '/v1/namespace/'];
       break;

@@ -8,7 +8,7 @@ export default function Footer({ openConsentManager }) {
           <Link href="/intro">
             <a>Intro</a>
           </Link>
-          <Link href="/guides">
+          <Link href="/docs/guides">
             <a>Guides</a>
           </Link>
           <Link href="/docs">

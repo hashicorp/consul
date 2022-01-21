@@ -22,6 +22,7 @@ export default class OidcSerializer extends Serializer {
           cb(headers, {
             Name: query.id,
             Namespace: query.ns,
+            Partition: query.partition,
             ...body,
           })
         ),

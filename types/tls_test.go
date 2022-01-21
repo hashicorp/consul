@@ -7,14 +7,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTLSVersion_PartialEq(t *testing.T) {
-	require.Greater(t, TLSv1_3, TLSv1_2)
-	require.Greater(t, TLSv1_2, TLSv1_1)
-	require.Greater(t, TLSv1_1, TLSv1_0)
-
-	require.Less(t, TLSv1_2, TLSv1_3)
-	require.Less(t, TLSv1_1, TLSv1_2)
-	require.Less(t, TLSv1_0, TLSv1_1)
+func TestTLSVersion_Valid(t *testing.T) {
+	require.NoError(t, ValidateTLSVersion("TLS_AUTO"))
+	require.NoError(t, ValidateTLSVersion("TLSv1_0"))
+	require.NoError(t, ValidateTLSVersion("TLSv1_1"))
+	require.NoError(t, ValidateTLSVersion("TLSv1_2"))
+	require.NoError(t, ValidateTLSVersion("TLSv1_3"))
 }
 
 func TestTLSVersion_Invalid(t *testing.T) {
@@ -33,16 +31,19 @@ func TestTLSVersion_Zero(t *testing.T) {
 
 func TestTLSVersion_ToJSON(t *testing.T) {
 	var tlsVersion TLSVersion
-	err := tlsVersion.UnmarshalJSON([]byte(`"foo"`))
-	require.Error(t, err)
-	require.Equal(t, tlsVersion, TLSVersionInvalid)
 
-	for str, version := range TLSVersions {
+	// Unmarshalling won't catch invalid version strings,
+	// must be checked in config or config entry validation
+	err := json.Unmarshal([]byte(`"foo"`), &tlsVersion)
+	require.NoError(t, err)
+
+	for version := range tlsVersions {
+		str := version.String()
 		versionJSON, err := json.Marshal(version)
 		require.NoError(t, err)
 		require.Equal(t, versionJSON, []byte(`"`+str+`"`))
 
-		err = tlsVersion.UnmarshalJSON([]byte(`"` + str + `"`))
+		err = json.Unmarshal([]byte(`"`+str+`"`), &tlsVersion)
 		require.NoError(t, err)
 		require.Equal(t, tlsVersion, version)
 	}

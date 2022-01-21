@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Ensure partition query parameter is passed through to all OIDC related API
+requests
+```

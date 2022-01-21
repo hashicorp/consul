@@ -38,7 +38,6 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 	for _, tc := range KeyTestCases {
 		tc := tc
 		t.Run(tc.Desc, func(t *testing.T) {
-			require := require.New(t)
 			cfg := map[string]interface{}{
 				"PrivateKeyType": tc.KeyType,
 				"PrivateKeyBits": tc.KeyBits,
@@ -48,33 +47,33 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 			defer provider.Cleanup(true, nil)
 
 			// Generate the root
-			require.NoError(provider.GenerateRoot())
+			require.NoError(t, provider.GenerateRoot())
 
 			// Fetch Active Root
 			rootPEM, err := provider.ActiveRoot()
-			require.NoError(err)
+			require.NoError(t, err)
 
 			// Generate Intermediate (not actually needed for this provider for now
 			// but this simulates the calls in Server.initializeRoot).
 			interPEM, err := provider.GenerateIntermediate()
-			require.NoError(err)
+			require.NoError(t, err)
 
 			// Should be the same for now
-			require.Equal(rootPEM, interPEM)
+			require.Equal(t, rootPEM, interPEM)
 
 			// Ensure they use the right key type
 			rootCert, err := connect.ParseCert(rootPEM)
-			require.NoError(err)
+			require.NoError(t, err)
 
 			keyType, keyBits, err := connect.KeyInfoFromCert(rootCert)
-			require.NoError(err)
-			require.Equal(tc.KeyType, keyType)
-			require.Equal(tc.KeyBits, keyBits)
+			require.NoError(t, err)
+			require.Equal(t, tc.KeyType, keyType)
+			require.Equal(t, tc.KeyBits, keyBits)
 
 			// Ensure that the root cert ttl is withing the configured value
 			// computation is similar to how we are passing the TTL thru the aws client
 			expectedTime := time.Now().AddDate(0, 0, int(8761*60*time.Minute/day)).UTC()
-			require.WithinDuration(expectedTime, rootCert.NotAfter, 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
+			require.WithinDuration(t, expectedTime, rootCert.NotAfter, 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
 
 			// Sign a leaf with it
 			testSignAndValidate(t, provider, rootPEM, nil)

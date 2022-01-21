@@ -46,7 +46,6 @@ func TestIntentionMatch_Validation(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			require := require.New(t)
 
 			c.init()
 
@@ -58,9 +57,9 @@ func TestIntentionMatch_Validation(t *testing.T) {
 				ui.OutputWriter.Reset()
 			}
 
-			require.Equal(1, c.Run(tc.args))
+			require.Equal(t, 1, c.Run(tc.args))
 			output := ui.ErrorWriter.String()
-			require.Contains(output, tc.output)
+			require.Contains(t, output, tc.output)
 		})
 	}
 }
@@ -72,7 +71,6 @@ func TestIntentionMatch_matchDst(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -94,8 +92,8 @@ func TestIntentionMatch_matchDst(t *testing.T) {
 				DestinationName: v[1],
 				Action:          api.IntentionActionDeny,
 			}, nil)
-			require.NoError(err)
-			require.NotEmpty(id)
+			require.NoError(t, err)
+			require.NotEmpty(t, id)
 		}
 	}
 
@@ -108,10 +106,10 @@ func TestIntentionMatch_matchDst(t *testing.T) {
 			"-http-addr=" + a.HTTPAddr(),
 			"db",
 		}
-		require.Equal(0, c.Run(args), ui.ErrorWriter.String())
-		require.Contains(ui.OutputWriter.String(), "web")
-		require.Contains(ui.OutputWriter.String(), "db")
-		require.Contains(ui.OutputWriter.String(), "*")
+		require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(), "web")
+		require.Contains(t, ui.OutputWriter.String(), "db")
+		require.Contains(t, ui.OutputWriter.String(), "*")
 	}
 }
 
@@ -122,7 +120,6 @@ func TestIntentionMatch_matchSource(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -144,8 +141,8 @@ func TestIntentionMatch_matchSource(t *testing.T) {
 				DestinationName: v[1],
 				Action:          api.IntentionActionDeny,
 			}, nil)
-			require.NoError(err)
-			require.NotEmpty(id)
+			require.NoError(t, err)
+			require.NotEmpty(t, id)
 		}
 	}
 
@@ -159,8 +156,8 @@ func TestIntentionMatch_matchSource(t *testing.T) {
 			"-source",
 			"foo",
 		}
-		require.Equal(0, c.Run(args), ui.ErrorWriter.String())
-		require.Contains(ui.OutputWriter.String(), "db")
-		require.NotContains(ui.OutputWriter.String(), "web")
+		require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(), "db")
+		require.NotContains(t, ui.OutputWriter.String(), "web")
 	}
 }
