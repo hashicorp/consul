@@ -66,12 +66,21 @@ $ vault policy write consul-server consul-server-policy.hcl
 Next, we will create a policy that allows `["read"]` access to the [CA URL](https://www.vaultproject.io/api/secret/pki#read-certificate),
 this is required for the Consul components to communicate with the Consul servers in order to fetch their auto-encryption certificates.
 
-```shell-session
+
+<CodeTabs>
+
+<CodeBlockConfig filename="ca-policy.hcl">
+
+```HCL
 # ca-policy.hcl
 path "pki/cert/ca" {
   capabilities = ["read"]
 }
 ```
+
+</CodeBlockConfig>
+
+</CodeTabs>
 
 ```shell-session
 $ vault policy write ca-policy ca-policy.hcl
@@ -84,7 +93,7 @@ $ vault policy write ca-policy ca-policy.hcl
 Next, a Vault role for the PKI engine will set the default certificate issuance parameters:
 
 ```shell-session
-vault write pki/roles/consul-server \
+$ vault write pki/roles/consul-server \
   allowed_domains="<Allowed-domains-string>" \
   allow_subdomains=true \
   allow_bare_domains=true \
