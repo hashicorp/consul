@@ -128,7 +128,7 @@ func (k *KV) Keys(prefix, separator string, q *QueryOptions) ([]string, *QueryMe
 }
 
 func (k *KV) getInternal(key string, params map[string]string, q *QueryOptions) (*http.Response, *QueryMeta, error) {
-	r := k.c.newRequest("GET", "/v1/kv/"+url.PathEscape(strings.TrimPrefix(key, "/")))
+	r := k.c.newRequest("GET", "/v1/kv/"+strings.TrimPrefix(key, "/"))
 	r.setQueryOptions(q)
 	for param, val := range params {
 		r.params.Set(param, val)
