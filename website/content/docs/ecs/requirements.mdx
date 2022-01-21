@@ -16,7 +16,7 @@ The following requirements must be met in order to install Consul on ECS:
 1. **Sidecar containers:** Consul on ECS requires two sidecar containers to run in each ECS task: a
    Consul agent container and a sidecar proxy container. These additional sidecar containers must
    be included in the ECS task definition. The [Consul ECS Terraform module](/docs/ecs/install)
-   will include these sidecar containers for you. Or if you do not use Terraform, you can construct
+   will include these sidecar containers for you. If you do not use Terraform, you can construct
    the task definition yourself by following [our documentation](/docs/ecs/manual-installation).
 1. **Routing:** With your application running in tasks as part of the mesh, you must specify the
    upstream services that your application calls. You will also need to change the URLs your
