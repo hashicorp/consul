@@ -17,7 +17,7 @@ page_title: 1.11.0
 
 ## What's Changed
  
-- The legacy ACL system that was deprecated in Consul 1.4.0 has been removed. Before upgrading you should verify that nothing is still using the legacy ACL system. See the [Migrate Legacy ACL Tokens Learn Guide](https://learn.hashicorp.com/tutorials/consul/access-control-token-migration) for more information. 
+- The legacy ACL system that was deprecated in Consul 1.4.0 has been removed. Before upgrading you should verify that all tokens and policies have been migrated to newer ACL system. See the [Migrate Legacy ACL Tokens Learn Guide](https://learn.hashicorp.com/tutorials/consul/access-control-token-migration) for more information. 
 
 - The previously named `agent_master` ACL token is now renamed as the `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. See [ACL Agent Recovery Token](https://www.consul.io/docs/security/acl/acl-system#acl-agent-recovery-token) and [Consul ACL Set Agent Token](https://www.consul.io/commands/acl/set-agent-token) for more information. 
 
