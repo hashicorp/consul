@@ -30,10 +30,14 @@ At a high level, there are two points of integration with Vault:
 A minimal valid installation of Vault Kubernetes must include the Agent Injector which is utilized for accessing secrets from Vault. Vault servers could be deployed
 external to Vault on Kubernetes as described via the [`externalvaultaddr`](https://www.vaultproject.io/docs/platform/k8s/helm/configuration#externalvaultaddr) value in the Vault Helm Configuration 
 
+<CodeBlockConfig filename="values.yaml">
+
 ```yaml
 injector:
   enabled: "true"
 ```
+
+</CodeBlockConfig>
 
 ### Vault Kubernetes Auth Method
 
