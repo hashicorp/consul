@@ -13,7 +13,7 @@ page_title: 1.11.0
 
 - **Replace [boltdb](https://github.com/boltdb/bolt) with [etcd-io/bbolt](https://github.com/etcd-io/bbolt) for raft log store:** Consul now leverages `etcd-io/bbolt` as the default implementation of `boltdb` instead of `boltdb/bolt`. This change also exposes a configuration to allow for disabling boltdb freelist syncing. In addition, Consul now emits metrics for the raft boltdb store to provide insights into boltdb performance.
 
-- **Vault Auth Method support for Connect CA Vault Provider:** Consul now supports Vault auth methods for the Connect CA Vault provider. Currently, we support any non-deprecated auth methods the latest version of Vault supports (v1.8.5), which include AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud, JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password.
+- **Vault Auth Method support for Connect CA Vault Provider:** Consul now supports configuring the Connect CA Vault provider to use auth methods for authentication to Vault. Consul supports using any non-deprecated auth method that is available in Vault v1.8.5, including AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud, JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password.
 
 ## What's Changed
  
