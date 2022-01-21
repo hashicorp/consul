@@ -24,8 +24,6 @@ $ vault kv put secret/consul/gossip key="$(consul keygen)"
 Next, we will need to create a policy that allows read access to this secret:
 
 
-<CodeTabs>
-
 <CodeBlockConfig filename="gossip-policy.hcl">
 
 ```HCL
@@ -35,8 +33,6 @@ path "secret/data/consul/gossip" {
 ```
 
 </CodeBlockConfig>
-
-</CodeTabs>
 
 ```shell-session
 $ vault policy write gossip-policy gossip-policy.hcl
@@ -80,8 +76,6 @@ you can run the following `helm template` commands with your Consul on Kubernete
 Now that we've configured Vault, you can configure the Consul Helm chart to
 use the gossip key in Vault:
 
-<CodeTabs>
-
 <CodeBlockConfig filename="values.yaml">
 
 ```yaml
@@ -97,8 +91,6 @@ global:
 ```
 
 </CodeBlockConfig>
-
-</CodeTabs>
 
 Note that `global.gossipEncryption.secretName` is the path of the secret in Vault.
 This should be the same path as the one you'd include in your Vault policy.
