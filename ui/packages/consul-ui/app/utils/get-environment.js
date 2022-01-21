@@ -23,7 +23,7 @@ export default function(config = {}, win = window, doc = document) {
             .startsWith('CONSUL_')
         );
     };
-    win.Scenario = function(str = '') {
+    win['Scenario'] = function(str = '') {
       if (str.length > 0) {
         cookies(str).forEach(item => (doc.cookie = `${item};Path=/`));
         win.location.hash = '';
@@ -41,7 +41,7 @@ export default function(config = {}, win = window, doc = document) {
       typeof win.location.hash === 'string' &&
       win.location.hash.length > 0
     ) {
-      win.Scenario(win.location.hash.substr(1));
+      win['Scenario'](win.location.hash.substr(1));
     }
   });
   const dev = function(str = doc.cookie) {
@@ -107,7 +107,9 @@ export default function(config = {}, win = window, doc = document) {
       case 'CONSUL_DATACENTER_PRIMARY':
         return operatorConfig.PrimaryDatacenter;
       case 'CONSUL_UI_CONFIG':
-        dashboards = {};
+        dashboards = {
+          service: undefined
+        };
         provider = env('CONSUL_METRICS_PROVIDER');
         proxy = env('CONSUL_METRICS_PROXY_ENABLED');
         dashboards.service = env('CONSUL_SERVICE_DASHBOARD_URL');
