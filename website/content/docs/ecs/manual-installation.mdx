@@ -7,19 +7,17 @@ description: >-
 
 # Manual Installation
 
-While the [Consul ECS Terraform module](/docs/ecs/install) is the easiest way to use Consul on ECS,
-this page will describe how to directly create the ECS task definition using the [`consul-ecs` Docker image](https://gallery.ecr.aws/hashicorp/consul-ecs)
-for use without Terraform.
+This topic describes how to manually create the ECS task definition for use without Terraform from the [`consul-ecs` Docker image](https://gallery.ecr.aws/hashicorp/consul-ecs). Refer to the [Consul ECS Terraform module](/docs/ecs/install) documentation for an alternative method for installing Consul on ECS.
 
-## Pre-requisites
+This topic does not include instructions for creating all AWS resources necessary to install Consul, such as a VPC or the ECS cluster. Refer to the linked guides in the [Getting Started](/docs/ecs#getting-started) section for complete, runnable examples.
 
-* This page assumes you are familiar with AWS ECS. See [What is Amazon Elastic Container Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) for more details.
-* This page does not show how to create all necessary AWS resources, such as a VPC or the ECS Cluster.
-  For complete runnable examples, see the links in the [Getting Started](/docs/ecs#getting-started) section.
+## Prerequisites
+
+You should have some familiarity with AWS ECS. See [What is Amazon Elastic Container Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) for details.
 
 ## Task Definition
 
-You must define a Task Definition which includes the following containers:
+You must define a task definition which includes the following containers:
 
 * Your application container
 * An Envoy sidecar-proxy container
@@ -29,7 +27,7 @@ You must define a Task Definition which includes the following containers:
 
 ## Top-level fields
 
-In your task definition, you'll need to define these important top-level fields:
+Your task definition must include the following top-level fields:
 
 ```json
 {
@@ -49,9 +47,9 @@ In your task definition, you'll need to define these important top-level fields:
 
 | Field name             | Type   | Description                                                                                                        |
 | ---------------------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
-| `family`               | string | The task family name. This is used as the Consul service name, by default.                                         |
+| `family`               | string | The task family name. This is used as the Consul service name by default.                                         |
 | `networkMode`          | string | Must be `awsvpc`, which is the only network mode supported by Consul on ECS.                                       |
-| `volumes`              | list   | Must be defined as shown above. Volumes ares used to share configuration between containers for intial task setup. |
+| `volumes`              | list   | Must be defined as shown above. Volumes are used to share configuration between containers for intial task setup. |
 | `containerDefinitions` | list   | The list of containers to run in this task (see below).                                                            |
 
 ## Application container
@@ -95,7 +93,7 @@ See the [ECS Task Definition](https://docs.aws.amazon.com/AmazonECS/latest/devel
 
 ## `sidecar-proxy` container
 
-The sidecar proxy container runs [Envoy proxy](/docs/connect/proxies/envoy) for Consul Connect.
+The `sidecar-proxy` container runs [Envoy proxy](/docs/connect/proxies/envoy) for Consul Connect. In most cases, the container should contain the following parameters and values.
 
 <CodeBlockConfig highlight="8-40">
 
@@ -146,7 +144,7 @@ The sidecar proxy container runs [Envoy proxy](/docs/connect/proxies/envoy) for 
 
 </CodeBlockConfig>
 
-In most cases, the `sidecar-proxy` container can be configured exactly as shown above.
+The following table describes the available configuration settings.
 
 | Field name    | Type    | Description                                                                                                                                                |
 | ------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -252,7 +250,7 @@ exec consul agent \
     -config-file /consul/agent-defaults.hcl
 ```
 
-Set the following fields as shown above:
+The following table describes the values that you should use to configure the `command` script:
 
 | Field name           | Type    | Description                                                                                                  |
 | -------------------- | ------- | ------------------------------------------------------------------------------------------------------------ |
@@ -263,7 +261,7 @@ Set the following fields as shown above:
 | `leave_on_terminate` | boolean | Must be set to `true` so that the Consul agent leaves the cluster gracefully before exiting.                 |
 | `retry_join`         | string  | Must be set to your Consul server location(s) so this agent can join the Consul cluster.                     |
 
--> **NOTE**: Use `exec` to start the Consul agent, so that the Consul agent runs as PID 1. This ensures
+-> **NOTE**: Use `exec` to start the Consul agent so that the Consul agent runs as PID 1. This ensures
 the Consul agent directly receives signals from ECS, which is important for graceful shutdown of the Consul agent.
 
 Refer to the [Consul Agent documentation](/docs/agent/options#configuration_files) for a complete reference of Consul agent
@@ -364,14 +362,14 @@ Here is the sample config from above, expanded to be readable:
 | `proxy.upstreams` | list   | The upstream services that your application calls over the service mesh, if any.                                               |
 | `service.name`    | string | The name used to register this service into the Consul service catalog.                                                        |
 | `service.port`    | number | The port your application listens on. Set to `0` if your application does not listen on any port.                              |
-| `service.checks`  | list   | Consul [checks](/docs/discovery/checks) to include, to have Consul run health checks against your application. |
+| `service.checks`  | list   | Specifies the Consul health [checks](/docs/discovery/checks) to run against your application. |
 
 See the [`consul-ecs JSON Schema`](https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json) for a complete reference of fields.
 
 ## `consul-ecs-health-sync` container
 
 Optionally, Consul ECS can sync health checks for this task into Consul checks.
-This allows you to configure a health check for your application in one place, and
+This allows you to configure a health check for your application in one place and
 see a consistent health status in both ECS and Consul.
 
 For example, the following defines an ECS health check command that runs `curl localhost:9090/health`:
