@@ -9,7 +9,7 @@ page_title: 1.11.0
 
 - **Admin Partitions (Enterprise):** Consul 1.11.0 Enteprise introduces a new entity for defining administrative and networking boundaries within a Consul deployment. This feature also enables servers to communicate with clients over a specific gossip segments created for each partition, and also enables cross partition communication between services across partitions using Mesh Gateways. For more information refer to the [Admin Partitions](/docs/enterprise/admin-partitions) documentation.
 
-- **Virtual IPs for Connect-enabled services**  Consul will now generate a unique virtual IP for each connect-enabled service (this will also differ across namespace/partition in Enterprise)
+- **Virtual IPs for Connect-enabled services**  Consul will now generate a unique virtual IP for each connect-enabled service, allowing transparent proxy to route to services within a data center that exist in different clusters or outside the service mesh.
 
 - **Replace legacy `boltdb` implementation with `etcd/bbolt` for raft log store:** Consul now leverages `etcd/bbolt` as the default implemetation of `boltdb` instead of the legacy version of `boltdb`, which inefficiently used available disk. This change also exposes a configuration to allow for disabling boltdb freelist syncing. In addition, Consul now emits metrics for the raft boltdb store to give us insights into boltdb performance.
 
