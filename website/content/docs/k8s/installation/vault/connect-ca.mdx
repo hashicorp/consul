@@ -37,8 +37,6 @@ $ helm template --release-name ${RELEASE_NAME} --show-only templates/server-serv
 
 Now you can configure the Consul Helm chart to use Vault as the Connect CA provider:
 
-<CodeTabs>
-
 <CodeBlockConfig filename="values.yaml">
 
 ```yaml
@@ -58,8 +56,6 @@ global:
 ```
 
 </CodeBlockConfig>
-
-</CodeTabs>
 
 The `address` you provide to the `connectCA` configuration can be a Kubernetes DNS
 address if the Vault cluster is running the same Kubernetes cluster.
