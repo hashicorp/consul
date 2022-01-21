@@ -25,17 +25,17 @@ Next, we will need to create a policy that allows read access to this secret:
 
 
 <CodeTabs tabs={[ "HCL" ]}>
-  
+
 <CodeBlockConfig filename="gossip-policy.hcl">
-  
+
 ```HCL
 path "secret/data/consul/gossip" {
   capabilities = ["read"]
 }
 ```
-  
+
 </CodeBlockConfig>
-  
+
 </CodeTabs>
 
 ```shell-session
@@ -78,7 +78,7 @@ Now that we've configured Vault, you can configure the Consul Helm chart to
 use the gossip key in Vault:
 
 <CodeTabs tabs={[ "YAML" ]}>
-  
+
 <CodeBlockConfig filename="values.yaml">
 
 ```yaml
@@ -94,7 +94,7 @@ global:
 ```
 
 </CodeBlockConfig>
-  
+
 </CodeTabs>
 
 Note that `global.gossipEncryption.secretName` is the path of the secret in Vault.
