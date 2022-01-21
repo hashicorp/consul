@@ -25,7 +25,31 @@ export default function(config = {}, win = window, doc = document) {
     };
     win['Scenario'] = function(str = '') {
       if (str.length > 0) {
-        cookies(str).forEach(item => (doc.cookie = `${item};Path=/`));
+        cookies(str).forEach(item => {
+          // this current outlier is the only one that
+          // 1. Toggles
+          // 2. Uses localStorage
+          // Once we have a user facing widget to do this, it can all go
+          if (item.startsWith('CONSUL_COLOR_SCHEME=')) {
+            const [, value] = item.split('=');
+            let current;
+            try {
+              current = JSON.parse(win.localStorage.getItem('consul:theme'));
+            } catch (e) {
+              current = {
+                'color-scheme': 'light',
+              };
+            }
+            win.localStorage.setItem(
+              'consul:theme',
+              `{"color-scheme": "${
+                value === '!' ? (current['color-scheme'] === 'light' ? 'dark' : 'light') : value
+              }"}`
+            );
+          } else {
+            doc.cookie = `${item};Path=/`;
+          }
+        });
         win.location.hash = '';
         location.reload();
       } else {
@@ -70,9 +94,7 @@ export default function(config = {}, win = window, doc = document) {
   };
   const operatorConfig = {
     ...config.operatorConfig,
-    ...JSON.parse(
-      doc.querySelector(`[data-${config.modulePrefix}-config]`).textContent
-    )
+    ...JSON.parse(doc.querySelector(`[data-${config.modulePrefix}-config]`).textContent),
   };
   const ui_config = operatorConfig.UIConfig || {};
   const scripts = doc.getElementsByTagName('script');
