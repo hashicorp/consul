@@ -3,14 +3,16 @@ layout: docs
 page_title: API Gateway
 description: Using Consul API gateway functionality
 ---
-
 # Consul API Gateway
 
-This topic describes how to use the Consul API Gateway module, which enables applications and services running in a datacenter to be accessed by network clients outside the datacenter. This type of network traffic is commonly referred to as "north-south" network traffic.
+The Consul API Gateway add-on module helps users control access to services running within a Consul service mesh. Using the API Gateway, applications and services running in a Consul datacenter can be accessed by network clients residing outside of the datacenter. This type of network traffic is commonly referred to as "north-south" network traffic as it refers to the flow of data into and out of a specific environment. Requests from clients can also be forwarded based on path or request protocol. 
 
 ## Introduction
 
-Consul API Gateway is an implementation of the Kubernetes Gateway [API Specification](https://gateway-api.sigs.k8s.io/). The specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes.
+Consul API Gateway is an implementation of the Kubernetes Gateway [API Specification](https://gateway-api.sigs.k8s.io/). This specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes based on the path or protocol of a client request. The Consul API gateway solves for two primary use cases:
+
+* **Controlling access at the point entry** - The Consul API Gateway allows users to set the protocols of external connection requests and provide clients with TLS certificates from trusted providers (e.g. VeriSign, Let’sEncrypt). 
+* **Simplifying traffic management** - The Consul API Gateway can be used to load balance requests across services and route traffic to the appropriate service based on matching one or more criteria such as hostname, path, header presence or value, and HTTP Method type (e.g. Get, Post, Patch).
 
 ## Requirements
 
