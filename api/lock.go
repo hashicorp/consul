@@ -81,6 +81,7 @@ type LockOptions struct {
 	LockTryOnce      bool          // Optional, defaults to false which means try forever
 	LockDelay        time.Duration // Optional, defaults to 15s
 	Namespace        string        `json:",omitempty"` // Optional, defaults to API client config, namespace of ACL token, or "default" namespace
+	LockRetryTime    time.Duration //Optional, defaults to DefaultLockRetryTime
 }
 
 // LockKey returns a handle to a lock struct which can be used
@@ -115,6 +116,9 @@ func (c *Client) LockOpts(opts *LockOptions) (*Lock, error) {
 	}
 	if opts.LockWaitTime == 0 {
 		opts.LockWaitTime = DefaultLockWaitTime
+	}
+	if opts.LockRetryTime == 0 {
+		opts.LockRetryTime = DefaultLockRetryTime
 	}
 	l := &Lock{
 		c:    c,
@@ -240,7 +244,7 @@ WAIT:
 			// If the session is empty and the lock failed to acquire, then it means
 			// a lock-delay is in effect and a timed wait must be used
 			select {
-			case <-time.After(DefaultLockRetryTime):
+			case <-time.After(l.opts.LockRetryTime):
 				goto WAIT
 			case <-stopCh:
 				return nil, nil
