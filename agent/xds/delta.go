@@ -106,18 +106,18 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	handlers := map[string]*xDSDeltaType{
 		ListenerType: newDeltaType(generator, stream, ListenerType, func(kind structs.ServiceKind) bool {
 			return cfgSnap.Kind == structs.ServiceKindIngressGateway
-		}),
+		}, true),
 		RouteType: newDeltaType(generator, stream, RouteType, func(kind structs.ServiceKind) bool {
 			return cfgSnap.Kind == structs.ServiceKindIngressGateway
-		}),
+		}, false),
 		ClusterType: newDeltaType(generator, stream, ClusterType, func(kind structs.ServiceKind) bool {
 			// Mesh, Ingress, and Terminating gateways are allowed to inform CDS of
 			// no clusters.
 			return cfgSnap.Kind == structs.ServiceKindMeshGateway ||
 				cfgSnap.Kind == structs.ServiceKindTerminatingGateway ||
 				cfgSnap.Kind == structs.ServiceKindIngressGateway
-		}),
-		EndpointType: newDeltaType(generator, stream, EndpointType, nil),
+		}, true),
+		EndpointType: newDeltaType(generator, stream, EndpointType, nil, false),
 	}
 
 	// Endpoints are stored within a Cluster (and Routes
@@ -379,6 +379,10 @@ type xDSDeltaType struct {
 	// specific resource names. subscribe/unsubscribe are ignored.
 	wildcard bool
 
+	// alwaysWildCard indicates that this type is always wildcard regardless of
+	// specific resource names in the initial request.
+	alwaysWildCard bool
+
 	// sentToEnvoyOnce is true after we've sent one response to envoy.
 	sentToEnvoyOnce bool
 
@@ -419,12 +423,14 @@ func newDeltaType(
 	stream ADSDeltaStream,
 	typeUrl string,
 	allowEmptyFn func(kind structs.ServiceKind) bool,
+	alwaysWildcard bool,
 ) *xDSDeltaType {
 	return &xDSDeltaType{
 		generator:        generator,
 		stream:           stream,
 		typeURL:          typeUrl,
 		allowEmptyFn:     allowEmptyFn,
+		alwaysWildCard:   alwaysWildcard,
 		subscriptions:    make(map[string]struct{}),
 		resourceVersions: make(map[string]string),
 		pendingUpdates:   make(map[string]map[string]PendingUpdate),
@@ -442,9 +448,9 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool 
 
 	registeredThisTime := false
 	if !t.registered {
-		// We are in the wildcard mode if the first request of a particular
-		// type has empty subscription list
-		t.wildcard = len(req.ResourceNamesSubscribe) == 0
+		// We are in the wildcard mode if a type should always be set to wildcard,
+		// or the first request of this type has empty subscription list
+		t.wildcard = t.alwaysWildCard || len(req.ResourceNamesSubscribe) == 0
 		t.registered = true
 		registeredThisTime = true
 	}
