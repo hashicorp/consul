@@ -689,11 +689,15 @@ jobs:
             if ! git diff --quiet --exit-code HEAD^! ui/; then
               git config --local user.email "github-team-consul-core@hashicorp.com"
               git config --local user.name "hc-github-team-consul-core"
-
+              
+              # checkout the CI branch and merge latest from main
+              git checkout ci/main-assetfs-build
+              git merge --no-edit main
+            
               short_sha=$(git rev-parse --short HEAD)
               git add agent/uiserver/bindata_assetfs.go
               git commit -m "auto-updated agent/uiserver/bindata_assetfs.go from commit ${short_sha}"
-              git push origin main
+              git push origin ci/main-assetfs-build
             else
               echo "no UI changes so no static assets to publish"
             fi
