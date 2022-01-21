@@ -147,7 +147,7 @@ task {
 - `name` - (string: required) Name is the unique name of the task (required). A task name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes.
 - `enabled` - (bool: true) Enable or disable a task from running and managing resources.
 - `providers` - (list[string]) Providers is the list of provider names the task is dependent on. This is used to map [Terraform provider configuration](#terraform-provider) to the task.
-- `services` - (list[string]) Required depending on [`condition`](#condition) configuration. Services is the list of logical service names or service IDs the task executes on. CTS monitors the Consul Catalog for changes to these services and triggers the task to run. Any service value not explicitly defined by a `service` block with a matching ID is assumed to be a logical service name in the default namespace. Alternative to configuring `services`, a `condition` can be configured so that the task does not trigger on changes to services (default behavior) but instead trigger on a different condition. See [Task Condition](#task-condition) configuration for more details.
+- `services` - (list[string]) An optional list of logical service names or service IDs that the task monitors in Consul Catalog for changes. `services` can be configured with a `condition` block of type `consul-kv`, `catalog-services`, or `schedule` to provide additional services source input to the task. Or it can be configured with no `condition` block to set the task's condition so that the task triggers when the services change. Any service value not explicitly defined by a `service` block with a matching ID is assumed to be a logical service name in the default namespace.
 - `source` - (string: required) Source is the location the driver uses to discover the Terraform module used for automation. The source is the module path which can be local or remote on the [Terraform Registry](https://registry.terraform.io/) or private module registry. Read more on [Terraform module source and other supported types here](https://www.terraform.io/docs/modules/sources.html).
 
   - To use a private module with the [`terraform` driver](#terraform-driver), run the command [`terraform login [hostname]`](https://learn.hashicorp.com/tutorials/terraform/cloud-login) to authenticate the local Terraform CLI prior to starting CTS.
@@ -186,7 +186,7 @@ task {
   - `min` - (string: "5s") The minimum period of time to wait after changes are detected before triggering related tasks.
   - `max` - (string: "20s") The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
 - `condition` - (obj) The requirement that, when met, triggers CTS to execute the task. When unconfigured, the default condition is to trigger the task on changes in the services configured in [`services`](#services). Only one `condition` may be configured per task. CTS supports different types of conditions, which each have their own configuration options. See [Task Condition](#task-condition) configuration for full details on configuration options for each condition type.
-- `source_input` - (obj) Specifies a Consul object containing values or metadata to be provided to the Terraform Module. When source input is empty, source input will be determined by the condition or services list. Only one `source_input` may be configured per task. CTS supports different types of source input, each source input has their own configuration options. The source input block is currently only supported with [schedule condition](#schedule-condition). See [Task Source Input](#task-source-input) configuration for full details on configuration options for each source input type.
+- `source_input` - (obj) Specifies a Consul object containing values or metadata to be provided to the Terraform Module. The `source_input` block defines any extra source inputs needed for task in addition to any source input provided by the `condition` block or `services` list. Multiple `source_input` blocks can be configured per task. [Task Source Input](#task-source-input) configuration for full details on usage and restrictions.
 - `terraform_version` - (string) <EnterpriseAlert inline /> The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization. This option is only available when used with the [Terraform Cloud driver](#terraform-cloud-driver); otherwise, set the version within the [Terraform driver](#terraform-driver).
 
 ### Task Condition
@@ -196,6 +196,8 @@ A `task` block can be optionally configured with a `condition` block to set the 
 #### Services Condition
 
 This condition will trigger the task on services that match the regular expression configured in `regexp` or services listed by name in `names`. Either `regexp` or `names` must be configured, but not both.
+
+When a `condition "services"` is configured for a task, the task cannot be configured with the `services` list field or a `source_input "services"` block. The monitored services information for a task can only be set through one configuration option. Any services source input that the task needs should be configured solely through the `condition` block.
 
 See [Task Execution: Services Condition](/docs/nia/tasks#services-condition) for more details on how tasks are triggered with a services condition.
 
@@ -285,7 +287,10 @@ task {
 
 #### Consul KV Condition
 
-A consul-kv condition block configures a task to only execute on changes to a Consul KV entry. The condition can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path.
+A `condition "consul-kv"` block configures a task to only execute on changes to a Consul KV entry. The condition can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path.
+
+When a `condition "consul-kv"` block is configured for a task, the task cannot be configured with a `source_input "consul-kv"` block. The monitored consul-kv information for a task can only be set through one configuration option. Any consul-kv source input that the task needs should be configured solely through the `condition` block.
+
 
 See [Task Execution: Consul KV Condition](/docs/nia/tasks#consul-kv-condition) for more information on how tasks are triggered with a consul-kv condition.
 
@@ -343,9 +348,14 @@ task {
 
 ### Task Source Input
 
-You can add an optional `source_input` block to the `task` block. The `source_input` block specifies a Consul object containing values or metadata to be provided to the Terraform Module. CTS supports the following source input types.
+You can optionally add one or more `source_input` blocks to the `task` block. A `source_input` block specifies a Consul object containing values or metadata to be provided to the Terraform Module. Both scheduled and dynamic tasks can be configured with `source_input` blocks.
 
-~> **The source input block is currently only supported when using a schedule condition.** Adding a `source_input` block alongside any other type of condition will result in an error. To accomplish a similar behavior with other condition blocks, use the `source_includes_var` field.
+There are some limitations to the type of `source_input` blocks that can be configured for a task given the task's `condition` block and `services` field. This is because a task cannot have multiple configurations defining the same type of monitored variable:
+- A task cannot be configured with a `condition` and `source_input` block of the same type. For example: configuring `condition "consul-kv"` and `source_input "consul-kv"` will error because both configure the `consul_kv` variable.
+- A task cannot be configured with two or more `source_input` blocks with the same type. For example: configuring `source_input "catalog-services"` twice within a task will error because those are multiple configurations for the `catalog_services` variable.
+- A task monitoring services can only configure one of `condition "services"`, `source_input "services"`, `services` list because all configure the `services` variable.
+
+Below describes the source input types that CTS supports.
 
 #### Services Source Input
 
