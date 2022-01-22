@@ -309,12 +309,12 @@ func vetRegisterWithACL(
 		// Service-level check for some other service. Make sure they've
 		// got write permissions for that service.
 		if ns == nil {
-			return fmt.Errorf("Unknown service '%s' for check '%s'", check.ServiceID, check.CheckID)
+			return fmt.Errorf("Unknown service ID '%s' for check ID '%s'", check.ServiceID, check.CheckID)
 		}
 
 		other, ok := ns.Services[check.ServiceID]
 		if !ok {
-			return fmt.Errorf("Unknown service '%s' for check '%s'", check.ServiceID, check.CheckID)
+			return fmt.Errorf("Unknown service ID '%s' for check ID '%s'", check.ServiceID, check.CheckID)
 		}
 
 		// We are only adding a check here, so we don't add the scope,
@@ -417,7 +417,7 @@ func vetDeregisterWithACL(
 	// ignore them from an ACL perspective.
 	if subj.ServiceID != "" {
 		if ns == nil {
-			return fmt.Errorf("Unknown service '%s'", subj.ServiceID)
+			return fmt.Errorf("Unknown service ID '%s'", subj.ServiceID)
 		}
 
 		ns.FillAuthzContext(&authzContext)
@@ -427,7 +427,7 @@ func vetDeregisterWithACL(
 		}
 	} else if subj.CheckID != "" {
 		if nc == nil {
-			return fmt.Errorf("Unknown check '%s'", subj.CheckID)
+			return fmt.Errorf("Unknown check ID '%s'", subj.CheckID)
 		}
 
 		nc.FillAuthzContext(&authzContext)

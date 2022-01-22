@@ -7,22 +7,34 @@ description: >-
 
 # Compatibility
 
-## Consul-Terraform-Sync
+The following tables list the Consul-Terraform-Sync (CTS) version compatibility for Consul, Terraform, and Vault.
 
-The following table describes Consul-Terraform-Sync version compatibility for Consul, Terraform, and Vault.
+## Consul
 
-|                                                                         |  **CTS OSS**<br/><span><sub>0.1+</sub></span>  |          **CTS Enterprise**<br/><span><sub>0.3+</sub></span>           |
-| :---------------------------------------------------------------------: | :--------------------------------------------: | :--------------------------------------------------------------------: |
-|             **Consul OSS**<br/><span><sub>1.8+</sub></span>             | <span style={{color:'#2EB039'}}>&check;</span> |             <span style={{color:'#2EB039'}}>&check;</span>             |
-|         **Consul Enterprise**<br/><span><sub>1.8+</sub></span>          | <span style={{color:'#2EB039'}}>&check;</span> |             <span style={{color:'#2EB039'}}>&check;</span>             |
-|                                                                         |
-|        **Terraform OSS**<br/><span><sub>0.13 - 1.1</sub></span>         | <span style={{color:'#2EB039'}}>&check;</span> |             <span style={{color:'#2EB039'}}>&check;</span>             |
-| **Terraform Enterprise**<br/><span><sub>2020 10-2 - Latest</sub></span> | <span style={{color:'#C73445'}}>&cross;</span> |             <span style={{color:'#2EB039'}}>&check;</span>             |
-|   **Terraform Cloud**<br/><span><sub>Continuous Updates</sub></span>    | <span style={{color:'#C73445'}}>&cross;</span> | <span style={{color:'#2EB039'}}>&check;</span><br/><sub>CTS 0.4+</sub> |
-|                                                                         |
-|            **\*Vault OSS**<br/><span><sub>0.7+</sub></span>             | <span style={{color:'#2EB039'}}>&check;</span> |             <span style={{color:'#2EB039'}}>&check;</span>             |
-|         **\*Vault Enterprise**<br/><span><sub>0.7+</sub></span>         | <span style={{color:'#2EB039'}}>&check;</span> |             <span style={{color:'#2EB039'}}>&check;</span>             |
+Below are Consul-Terraform-Sync versions with supported Consul versions. The latest Consul-Terraform-Sync binary targets supporting the latest patch version of the three most recent Consul minor versions.
 
-<p>
-  <span>*CTS integrates with Vault to query secrets</span>
-</p>
+| Consul-Terraform-Sync Version | Consul OSS & Enterprise Version |
+| :---------------------------- | :------------------------------ |
+| CTS Enterprise 0.3+           | 1.8+                            |
+| CTS OSS 0.1+                  | 1.8+                            |
+
+## Terraform
+
+Consul-Terraform-Sync integration with Terraform is supported for the following:
+
+| Consul-Terraform-Sync Version | Terraform CLI Version | Terraform Cloud Version | Terraform Enterprise Version |
+| :---------------------------- | :-------------------- | :---------------------- | :--------------------------- |
+| CTS Enterprise 0.4+           | 0.13 - 1.1            | Latest                  | v202010-2 - Latest           |
+| CTS Enterprise 0.3+           | 0.13 - 1.1            | N/A                     | v202010-2 - Latest           |
+| CTS OSS 0.3+                  | 0.13 - 1.1            | N/A                     | N/A                          |
+| CTS OSS 0.2                   | 0.13 - 1.0            | N/A                     | N/A                          |
+| CTS OSS 0.1                   | 0.13 - 0.14           | N/A                     | N/A                          |
+
+## Vault
+
+Consul-Terraform-Sync integrates with Vault to query secrets, and is supported for the following:
+
+| Consul-Terraform-Sync Version | Vault OSS & Enterprise Version |
+| :---------------------------- | :----------------------------- |
+| CTS Enterprise 0.3+           | 0.7+                           |
+| CTS OSS 0.1+                  | 0.7+                           |

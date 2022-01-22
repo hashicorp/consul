@@ -14,7 +14,7 @@ description: >-
 
 This guide explains how to best upgrade a single Consul Enterprise datacenter to v1.10.0
 from a version of Consul that is forward compatible with v1.10. If you are on a major
-version of Consul prior to 1.8, you will need to complete and [upgrade to 1.8.13](/docs/upgrading/instructions)
+version of Consul prior to 1.8, you will need to complete and [upgrade to 1.8.13](/docs/upgrading/instructions/upgrade-to-1-8-x)
 or higher before continuing with this guide. If you are already on a major version of 1.8 or 1.9, then
 this guide will go over the procedures required for upgrading to v1.10. This process
 will require intermediate version upgrades to a forward-compatible release of v1.8 or v1.9,
@@ -115,7 +115,7 @@ are operating Consul within Kubernetes.
 
 **5.** Upgrade all client agents to the latest 1.8.x or 1.9.x release.
 
-**6.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
+**6.** Upgrade all [snapshot agents](/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
 
 **7.** Take a snapshot of the upgraded cluster by running the following command:
 
@@ -124,7 +124,7 @@ consul snapshot save intermediate.snap
 ```
 
 Note that you can run the command from anywhere Consul is already running or from a location that has network access to the cluster.
-If run elsewhere, [additional command line options](/docs/commands/snapshot/save#api-options) may be needed to direct the request to the right Consul API.
+If run elsewhere, [additional command line options](/commands/snapshot/save#api-options) may be needed to direct the request to the right Consul API.
 
 Note that you will need to ensure there is enough disk space in the current directory
 to store the snapshot. In the worst case, the snapshot size could be close to the amount
@@ -145,7 +145,7 @@ You can also refer to the [Apply Enterprise License](https://learn.hashicorp.com
 
 **10.** Upgrade all client agents to v1.10.0.
 
-**11.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to v1.10.0.
+**11.** Upgrade all [snapshot agents](/commands/snapshot/agent) to v1.10.0.
 
 </Tab>
 <Tab heading="ACLs Disabled">
@@ -173,7 +173,7 @@ to promptly proceed with the upgrade and not leave agents in the intermediate st
 **7.** Pre-configure the snapshot agents with a license. This is the same process that
 was executed for the servers in step 5.
 
-**8.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
+**8.** Upgrade all [snapshot agents](/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
 
 **9.** Take a snapshot of the upgraded cluster by running the following command:
 
@@ -198,7 +198,7 @@ was executed for the servers in step 5.
 
 **12.** Upgrade all client agents to v1.10.0.
 
-**13.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to v1.10.0.
+**13.** Upgrade all [snapshot agents](/commands/snapshot/agent) to v1.10.0.
 
 </Tab>
 <Tab heading="Kubernetes">
@@ -210,7 +210,7 @@ to the latest 1.8.x or 1.9.x before the next steps. Otherwise, this step can be 
 
 **6.** Update the value of `global.image` in the values file to the latest 1.8.x or 1.9.x image.
 
-Additionally, ensure that the Kuberenetes secret with the license is specified in the
+Additionally, ensure that the Kubernetes secret with the license is specified in the
 values `server.enterpriseLicense.secretName` and `server.enterpriseLicense.secretKey`.
 
 **7.** Upgrade the cluster.

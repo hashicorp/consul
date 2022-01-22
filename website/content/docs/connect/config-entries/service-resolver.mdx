@@ -21,7 +21,13 @@ and discovery terminates.
 ## Interaction with other Config Entries
 
 - Service resolver config entries are a component of [L7 Traffic
-  Management](/docs/connect/l7-traffic-management).
+  Management](/docs/connect/l7-traffic).
+
+## UI
+
+Once a `service-resolver` is successfully entered, you can view it in the UI. Service routers, service splitters, and service resolvers can all be viewed by clicking on your service then switching to the *routing* tab.
+
+![screenshot of service resolver in the UI](/img/l7-routing/Resolver.png)
 
 ## Sample Config Entries
 
@@ -116,9 +122,9 @@ spec:
 
 </CodeTabs>
 
-### Datacenter failover
+### Failover
 
-Enable failover for subset 'v2' to 'dc2', and all other subsets to dc3 or dc4:
+Enable failover for subset `v2` to `dc2`, and all other subsets to `dc3` or `dc4`:
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -161,6 +167,104 @@ spec:
     },
     "*": {
       "Datacenters": ["dc3", "dc4"]
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+<EnterpriseAlert product="consul">
+  Failover to another datacenter and namespace for all service subsets.
+</EnterpriseAlert>
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind           = "service-resolver"
+Name           = "product-api"
+Namespace      = "primary"
+ConnectTimeout = "0s"
+Failover = {
+  "*" = {
+    Datacenters = ["dc2"]
+    Namespace = "secondary"
+  }
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceResolver
+metadata:
+  name: product-api
+  namespace: primary
+spec:
+  connectTimeout: 0s
+  failover:
+    namespace: 'secondary'
+    datacenters: ['dc2']
+```
+
+```json
+{
+  "Kind": "service-resolver",
+  "Name": "product-api",
+  "Namespace": "primary",
+  "ConnectTimeout": "0s",
+  "Failover": {
+    "*": {
+      "Datacenters": ["dc2"],
+      "Namespace": "secondary"
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+<EnterpriseAlert product="consul">
+  Failover within a datacenter and a different namespace.
+</EnterpriseAlert>
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind           = "service-resolver"
+Name           = "product-api"
+Namespace      = "primary"
+ConnectTimeout = "0s"
+Failover = {
+  "*" = {
+    Service = "product-api-backup"
+    Namespace = "secondary"
+  }
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceResolver
+metadata:
+  name: product-api
+  namespace: primary
+spec:
+  connectTimeout: 0s
+  failover:
+    service: 'product-api-backup'
+    namespace: 'secondary'
+```
+
+```json
+{
+  "Kind": "service-resolver",
+  "Name": "product-api",
+  "Namespace": "primary",
+  "ConnectTimeout": "0s",
+  "Failover": {
+    "*": {
+      "Service": "product-api-backup",
+      "Namespace": "secondary"
     }
   }
 }
@@ -246,7 +350,16 @@ spec:
       name: 'Namespace',
       type: `string: "default"`,
       enterprise: true,
-      description: 'Specifies the namespace the config entry will apply to.',
+      description:
+        'Specifies the namespace in which the configuration entry will apply.',
+      yaml: false,
+    },
+    {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        'Specifies the admin partition in which the configuration entry will apply.',
       yaml: false,
     },
     {
@@ -348,13 +461,20 @@ spec:
           enterprise: true,
           type: 'string: ""',
           description:
-            'The namespace to resolve the service from instead of the current one.',
+            'Specifies the destination namespace to resolve the service from.',
+        },
+        {
+          name: 'Partition',
+          enterprise: true,
+          type: 'string: ""',
+          description:
+            'Specifies the destination admin partition to resolve the service from.',
         },
         {
           name: 'Datacenter',
           type: 'string: ""',
           description:
-            'The datacenter to resolve the service from instead of the current one.',
+            'Specifies the destination datacenter to resolve the service from.',
         },
       ],
     },
@@ -426,13 +546,13 @@ spec:
           description: 'Configuration for the `ring_hash` policy type.',
           children: [
             {
-              name: 'MinimumRingRize',
+              name: 'MinimumRingSize',
               type: 'int: 1024',
               description:
                 'Determines the minimum number of entries in the hash ring.',
             },
             {
-              name: 'MaximumRingRize',
+              name: 'MaximumRingSize',
               type: 'int: 8192',
               description:
                 'Determines the maximum number of entries in the hash ring.',

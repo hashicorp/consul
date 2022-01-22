@@ -233,9 +233,6 @@ func TestRPC_blockingQuery(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer s.Shutdown()
 
-	require := require.New(t)
-	assert := assert.New(t)
-
 	// Perform a non-blocking query. Note that it's significant that the meta has
 	// a zero index in response - the implied opts.MinQueryIndex is also zero but
 	// this should not block still.
@@ -311,9 +308,9 @@ func TestRPC_blockingQuery(t *testing.T) {
 			calls++
 			return nil
 		}
-		require.NoError(s.blockingQuery(&opts, &meta, fn))
-		assert.Equal(1, calls)
-		assert.Equal(uint64(1), meta.Index,
+		require.NoError(t, s.blockingQuery(&opts, &meta, fn))
+		assert.Equal(t, 1, calls)
+		assert.Equal(t, uint64(1), meta.Index,
 			"expect fake index of 1 to force client to block on next update")
 
 		// Simulate client making next request
@@ -322,12 +319,12 @@ func TestRPC_blockingQuery(t *testing.T) {
 
 		// This time we should block even though the func returns index 0 still
 		t0 := time.Now()
-		require.NoError(s.blockingQuery(&opts, &meta, fn))
+		require.NoError(t, s.blockingQuery(&opts, &meta, fn))
 		t1 := time.Now()
-		assert.Equal(2, calls)
-		assert.Equal(uint64(1), meta.Index,
+		assert.Equal(t, 2, calls)
+		assert.Equal(t, uint64(1), meta.Index,
 			"expect fake index of 1 to force client to block on next update")
-		assert.True(t1.Sub(t0) > 20*time.Millisecond,
+		assert.True(t, t1.Sub(t0) > 20*time.Millisecond,
 			"should have actually blocked waiting for timeout")
 
 	}
@@ -382,13 +379,13 @@ func TestRPC_blockingQuery(t *testing.T) {
 		}
 
 		err := s.blockingQuery(&opts, &meta, fn)
-		require.NoError(err)
-		require.False(meta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be reset for unauthenticated calls")
+		require.NoError(t, err)
+		require.False(t, meta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be reset for unauthenticated calls")
 	})
 
 	t.Run("ResultsFilteredByACLs is honored for authenticated calls", func(t *testing.T) {
 		token, err := lib.GenerateUUID(nil)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		opts := structs.QueryOptions{
 			Token: token,
@@ -400,8 +397,8 @@ func TestRPC_blockingQuery(t *testing.T) {
 		}
 
 		err = s.blockingQuery(&opts, &meta, fn)
-		require.NoError(err)
-		require.True(meta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be honored for authenticated calls")
+		require.NoError(t, err)
+		require.True(t, meta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be honored for authenticated calls")
 	})
 }
 

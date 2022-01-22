@@ -270,6 +270,10 @@
         "path": "connect/connectivity-tasks"
       },
       {
+        "title": "Distributed Tracing",
+        "path": "connect/distributed-tracing"
+      },
+      {
         "title": "Gateways",
         "routes": [
           {
@@ -277,24 +281,28 @@
             "path": "connect/gateways"
           },
           {
-            "title": "Connect Datacenters - Mesh Gateways",
+            "title": "Mesh Gateways",
             "routes": [
-              {
-                "title": "Overview",
-                "path": "connect/gateways/mesh-gateway"
-              },
               {
                 "title": "WAN Federation",
                 "path": "connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways"
+              },
+              {
+                "title": "Enabling Service-to-service Traffic Across Datacenters",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-datacenters"
+              },
+              {
+                "title": "Enabling Service-to-service Traffic Across Admin Partitions",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-partitions"
               }
             ]
           },
           {
-            "title": "External <> Internal Services -  Ingress Gateways",
+            "title": "Ingress Gateways",
             "path": "connect/gateways/ingress-gateway"
           },
           {
-            "title": "Internal <> External Services - Terminating Gateways",
+            "title": "Terminating Gateways",
             "path": "connect/gateways/terminating-gateway"
           }
         ]
@@ -365,6 +373,10 @@
           {
             "title": "Installing Consul on Kubernetes",
             "path": "k8s/installation/install"
+          },
+          {
+            "title": "Installing Consul K8s CLI",
+            "path": "k8s/installation/install-cli"
           },
           {
             "title": "Platform Guides",
@@ -457,6 +469,10 @@
                 "path": "k8s/installation/vault/connect-ca"
               }
             ]
+          },
+          {
+            "title": "Compatibility Matrix",
+            "path": "k8s/installation/compatibility"
           }
         ]
       },
@@ -531,12 +547,12 @@
         "title": "Upgrade",
         "routes": [
           {
-            "title": "Overview",
+            "title": "Upgrading Consul on Kubernetes",
             "path": "k8s/upgrade"
           },
           {
-            "title": "Compatibility Matrix",
-            "path": "k8s/upgrade/compatibility"
+            "title": "Upgrading Consul K8s CLI",
+            "path": "k8s/upgrade/upgrade-cli"
           }
         ]
       },
@@ -815,6 +831,10 @@
             "path": "security/acl/acl-migrate-tokens"
           },
           {
+            "title": "ACLs in Federated Datacenters",
+            "path": "security/acl/acl-federated-datacenters"
+          },
+          {
             "title": "Auth Methods",
             "routes": [
               {
@@ -1047,12 +1067,16 @@
     "title": "Release Notes",
     "routes": [
       {
-        "title": "1.9.0",
-        "path": "release-notes/1-9-0"
+        "title": "1.11.0",
+        "path": "release-notes/1-11-0"
       },
       {
         "title": "1.10.0",
         "path": "release-notes/1-10-0"
+      },
+      {
+        "title": "1.9.0",
+        "path": "release-notes/1-9-0"
       }
     ]
   },

@@ -105,7 +105,6 @@ func TestExecEnvoy(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require := require.New(t)
 
 			args := append([]string{"exec-fake-envoy"}, tc.Args...)
 			cmd, destroy := helperProcess(args...)
@@ -113,10 +112,10 @@ func TestExecEnvoy(t *testing.T) {
 
 			cmd.Stderr = os.Stderr
 			outBytes, err := cmd.Output()
-			require.NoError(err)
+			require.NoError(t, err)
 
 			var got FakeEnvoyExecData
-			require.NoError(json.Unmarshal(outBytes, &got))
+			require.NoError(t, json.Unmarshal(outBytes, &got))
 
 			expectConfigData := fakeEnvoyTestData
 
@@ -126,11 +125,11 @@ func TestExecEnvoy(t *testing.T) {
 					"{{ got.ConfigPath }}", got.ConfigPath, 1)
 			}
 
-			require.Equal(tc.WantArgs, got.Args)
-			require.Equal(expectConfigData, got.ConfigData)
+			require.Equal(t, tc.WantArgs, got.Args)
+			require.Equal(t, expectConfigData, got.ConfigData)
 			// Sanity check the config path in a non-brittle way since we used it to
 			// generate expectation for the args.
-			require.Regexp(`-bootstrap.json$`, got.ConfigPath)
+			require.Regexp(t, `-bootstrap.json$`, got.ConfigPath)
 		})
 	}
 }

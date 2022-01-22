@@ -1,18 +1,17 @@
 ---
 layout: docs
-page_title: External <> Internal Services -  Ingress Gateways
+page_title: Using Ingress Gateways to Connect External Traffic to Internal Services
 description: >-
-  An ingress gateway enables ingress traffic from services outside the Consul
-  service mesh to services inside the Consul service mesh. This section details
-  how to use Envoy and describes how you can plug in a gateway of your choice.
+  This topic describes how ingress gateways enable traffic from external services to reach services inside the Consul service mesh. 
+  It provides guidance on how to use Envoy and how to plug into your preferred gateway.
 ---
 
 # Ingress Gateways
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
-Ingress gateways enable ingress traffic from services outside the Consul
-service mesh to services inside the Consul service mesh. An ingress gateway is
+Ingress gateways enable connectivity within your organizational network from services outside the Consul
+service mesh to services in the mesh. An ingress gateway is
 a type of proxy and must be registered as a service in Consul, with the
 [kind](/api/agent/service#kind) set to "ingress-gateway". They are an
 entrypoint for outside traffic and allow you to define what services should be
