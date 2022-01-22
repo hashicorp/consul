@@ -523,22 +523,3 @@ func TestACL_filterChecksWithAuthorizer(t *testing.T) {
 	_, ok = checks["my-other"]
 	require.False(t, ok)
 }
-
-// TODO: remove?
-func TestACL_ResolveIdentity(t *testing.T) {
-	t.Parallel()
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), nil, catalogIdent)
-
-	// this test is meant to ensure we are calling the correct function
-	// which is ResolveTokenToIdentity on the Agent delegate. Our
-	// nil authz resolver will cause it to emit an error if used
-	ident, err := a.delegate.ResolveTokenToIdentity(nodeROSecret)
-	require.NoError(t, err)
-	require.NotNil(t, ident)
-
-	// just double checkingto ensure if we had used the wrong function
-	// that an error would be produced
-	_, err = a.delegate.ResolveTokenAndDefaultMeta(nodeROSecret, nil, nil)
-	require.Error(t, err)
-
-}

@@ -15,7 +15,7 @@ import (
 // critical purposes, such as logging. Therefore we interpret all errors as empty-string
 // so we can safely log it without handling non-critical errors at the usage site.
 func (a *Agent) aclAccessorID(secretID string) string {
-	ident, err := a.delegate.ResolveTokenToIdentity(secretID)
+	ident, err := a.delegate.ResolveTokenAndDefaultMeta(secretID, nil, nil)
 	if acl.IsErrNotFound(err) {
 		return ""
 	}
@@ -23,10 +23,7 @@ func (a *Agent) aclAccessorID(secretID string) string {
 		a.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
 		return ""
 	}
-	if ident == nil {
-		return ""
-	}
-	return ident.ID()
+	return ident.AccessorID()
 }
 
 // vetServiceRegister makes sure the service registration action is allowed by

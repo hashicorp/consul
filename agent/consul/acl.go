@@ -1128,33 +1128,6 @@ func (a ACLResolveResult) AccessorID() string {
 	return a.ACLIdentity.ID()
 }
 
-// TODO: rename to AccessorIDFromToken. This method is only used to retrieve the
-// ACLIdentity.ID, so we don't need to return a full ACLIdentity. We could
-// return a much smaller type (instad of just a string) to allow for changes
-// in the future.
-func (r *ACLResolver) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
-	if !r.ACLsEnabled() {
-		return nil, nil
-	}
-
-	if acl.RootAuthorizer(token) != nil {
-		return nil, acl.ErrRootDenied
-	}
-
-	// handle the anonymous token
-	if token == "" {
-		token = anonymousToken
-	}
-
-	if ident, _, ok := r.resolveLocallyManagedToken(token); ok {
-		return ident, nil
-	}
-
-	defer metrics.MeasureSince([]string{"acl", "ResolveTokenToIdentity"}, time.Now())
-
-	return r.resolveIdentityFromToken(token)
-}
-
 func (r *ACLResolver) ACLsEnabled() bool {
 	// Whether we desire ACLs to be enabled according to configuration
 	if !r.config.ACLsEnabled {

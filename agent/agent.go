@@ -167,9 +167,6 @@ type delegate interface {
 	// RemoveFailedNode is used to remove a failed node from the cluster.
 	RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error
 
-	// TODO: replace this method with consul.ACLResolver
-	ResolveTokenToIdentity(token string) (structs.ACLIdentity, error)
-
 	// ResolveTokenAndDefaultMeta returns an acl.Authorizer which authorizes
 	// actions based on the permissions granted to the token.
 	// If either entMeta or authzContext are non-nil they will be populated with the
