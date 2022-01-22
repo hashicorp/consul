@@ -1139,6 +1139,45 @@ You can specify the following parameters to configure ingress gateway configurat
               },
             },
             {
+              name: 'TLSMinVersion',
+              type: 'string: ""',
+              description: "Set the minimum TLS version supported for this listener. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`.",
+            },
+            {
+              name: 'TLSMaxVersion',
+              type: 'string: ""',
+              description: {
+                hcl:
+                  "Set the maximum TLS version supported for this listener. Must be greater than or equal to `TLSMinVersion`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`." ,
+                yaml:
+                  "Set the maximum TLS version supported for this listener. Must be greater than or equal to `tls_min_version`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`." ,
+              },
+            },
+            {
+              name: 'CipherSuites',
+              type: 'array<string>: <optional>',
+              description: `A list of TLS cipher suites to support when negotiating
+                            connections using TLS 1.2 or earlier. If unspecified,
+                            Envoy will use a
+                            [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites").
+                            <br><br>
+                            Supported values:<br>
+                            \`\`\`TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 <br>
+                            TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256<br>
+                            TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256<br>
+                            TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256<br>
+                            TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA<br>
+                            TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA<br>
+                            TLS_RSA_WITH_AES_128_GCM_SHA256<br>
+                            TLS_RSA_WITH_AES_128_CBC_SHA<br>
+                            TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384<br>
+                            TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384<br>
+                            TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA<br>
+                            TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA<br>
+                            TLS_RSA_WITH_AES_256_GCM_SHA384<br>
+                            TLS_RSA_WITH_AES_256_CBC_SHA\`\`\``
+            },
+            {
               name: 'SDS',
               type: 'SDSConfig: <optional>',
               description:
