@@ -401,13 +401,13 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	}
 
 	// Check ACLs
-	authz, err := m.srv.ResolveToken(args.Token)
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, nil, nil)
 	if err != nil {
 		return err
 	}
 
 	if authz.EventWrite(args.Name, nil) != acl.Allow {
-		accessorID := m.aclAccessorID(args.Token)
+		accessorID := authz.AccessorID()
 		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
 		return acl.ErrPermissionDenied
 	}
@@ -544,22 +544,4 @@ func (m *Internal) executeKeyringOpMgr(
 	}
 
 	return serfResp, err
-}
-
-// aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
-// critical purposes, such as logging. Therefore we interpret all errors as empty-string
-// so we can safely log it without handling non-critical errors at the usage site.
-func (m *Internal) aclAccessorID(secretID string) string {
-	_, ident, err := m.srv.ResolveIdentityFromToken(secretID)
-	if acl.IsErrNotFound(err) {
-		return ""
-	}
-	if err != nil {
-		m.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
-		return ""
-	}
-	if ident == nil {
-		return ""
-	}
-	return ident.ID()
 }
