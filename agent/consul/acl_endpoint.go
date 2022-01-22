@@ -724,7 +724,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
-	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
+	a.srv.ACLResolver.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 
 	// Don't check expiration times here as it doesn't really matter.
 	if _, updatedToken, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, token.AccessorID, nil); err == nil && updatedToken != nil {
@@ -876,7 +876,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
-	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
+	a.srv.ACLResolver.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 
 	if reply != nil {
 		*reply = token.AccessorID
@@ -1198,7 +1198,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	}
 
 	// Remove from the cache to prevent stale cache usage
-	a.srv.acls.cache.RemovePolicy(policy.ID)
+	a.srv.ACLResolver.cache.RemovePolicy(policy.ID)
 
 	if _, policy, err := a.srv.fsm.State().ACLPolicyGetByID(nil, policy.ID, &policy.EnterpriseMeta); err == nil && policy != nil {
 		*reply = *policy
@@ -1257,7 +1257,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		return fmt.Errorf("Failed to apply policy delete request: %v", err)
 	}
 
-	a.srv.acls.cache.RemovePolicy(policy.ID)
+	a.srv.ACLResolver.cache.RemovePolicy(policy.ID)
 
 	*reply = policy.Name
 
@@ -1318,12 +1318,12 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 	}
 
 	// get full list of policies for this token
-	identity, policies, err := a.srv.acls.resolveTokenToIdentityAndPolicies(args.Token)
+	identity, policies, err := a.srv.ACLResolver.resolveTokenToIdentityAndPolicies(args.Token)
 	if err != nil {
 		return err
 	}
 
-	entIdentity, entPolicies, err := a.srv.acls.resolveEnterpriseIdentityAndPolicies(identity)
+	entIdentity, entPolicies, err := a.srv.ACLResolver.resolveEnterpriseIdentityAndPolicies(identity)
 	if err != nil {
 		return err
 	}
@@ -1609,7 +1609,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 	}
 
 	// Remove from the cache to prevent stale cache usage
-	a.srv.acls.cache.RemoveRole(role.ID)
+	a.srv.ACLResolver.cache.RemoveRole(role.ID)
 
 	if _, role, err := a.srv.fsm.State().ACLRoleGetByID(nil, role.ID, &role.EnterpriseMeta); err == nil && role != nil {
 		*reply = *role
@@ -1664,7 +1664,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 		return fmt.Errorf("Failed to apply role delete request: %v", err)
 	}
 
-	a.srv.acls.cache.RemoveRole(role.ID)
+	a.srv.ACLResolver.cache.RemoveRole(role.ID)
 
 	*reply = role.Name
 
@@ -1719,12 +1719,12 @@ func (a *ACL) RoleResolve(args *structs.ACLRoleBatchGetRequest, reply *structs.A
 	}
 
 	// get full list of roles for this token
-	identity, roles, err := a.srv.acls.resolveTokenToIdentityAndRoles(args.Token)
+	identity, roles, err := a.srv.ACLResolver.resolveTokenToIdentityAndRoles(args.Token)
 	if err != nil {
 		return err
 	}
 
-	entIdentity, entRoles, err := a.srv.acls.resolveEnterpriseIdentityAndRoles(identity)
+	entIdentity, entRoles, err := a.srv.ACLResolver.resolveEnterpriseIdentityAndRoles(identity)
 	if err != nil {
 		return err
 	}
@@ -2481,7 +2481,7 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
-	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
+	a.srv.ACLResolver.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 
 	*reply = true
 

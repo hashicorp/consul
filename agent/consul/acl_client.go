@@ -48,12 +48,12 @@ func (c *Client) ResolveTokenToIdentity(token string) (structs.ACLIdentity, erro
 	// not using ResolveTokenToIdentityAndAuthorizer because in this case we don't
 	// need to resolve the roles, policies and namespace but just want the identity
 	// information such as accessor id.
-	return c.acls.ResolveTokenToIdentity(token)
+	return c.ACLResolver.ResolveTokenToIdentity(token)
 }
 
 // TODO: Server has an identical implementation, remove duplication
 func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
-	identity, authz, err := c.acls.ResolveTokenToIdentityAndAuthorizer(token)
+	identity, authz, err := c.ACLResolver.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {
 		return nil, err
 	}
