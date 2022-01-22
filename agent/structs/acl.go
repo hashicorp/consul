@@ -89,8 +89,8 @@ var ACLBootstrapNotAllowedErr = errors.New("ACL bootstrap no longer allowed")
 var ACLBootstrapInvalidResetIndexErr = errors.New("Invalid ACL bootstrap reset index")
 
 type ACLIdentity interface {
-	// ID returns a string that can be used for logging and telemetry. This should not
-	// contain any secret data used for authentication
+	// ID returns the accessor ID, a string that can be used for logging and
+	// telemetry. It is not the secret ID used for authentication.
 	ID() string
 	SecretToken() string
 	PolicyIDs() []string

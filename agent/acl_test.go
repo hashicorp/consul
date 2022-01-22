@@ -102,10 +102,10 @@ func (a *TestACLAgent) ResolveTokenToIdentity(secretID string) (structs.ACLIdent
 	return a.resolveIdentFn(secretID)
 }
 
-func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
+func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
 	identity, authz, err := a.ResolveTokenToIdentityAndAuthorizer(secretID)
 	if err != nil {
-		return nil, err
+		return consul.ACLResolveResult{}, err
 	}
 
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
@@ -119,7 +119,7 @@ func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *stru
 	// Use the meta to fill in the ACL authorization context
 	entMeta.FillAuthzContext(authzContext)
 
-	return authz, err
+	return consul.ACLResolveResult{Authorizer: authz, ACLIdentity: identity}, err
 }
 
 // All of these are stubs to satisfy the interface

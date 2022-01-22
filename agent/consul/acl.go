@@ -1115,6 +1115,19 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 	return identity, acl.NewChainedAuthorizer(chain), nil
 }
 
+type ACLResolveResult struct {
+	acl.Authorizer
+	// TODO: likely we can reduce this interface
+	structs.ACLIdentity
+}
+
+func (a ACLResolveResult) AccessorID() string {
+	if a.ACLIdentity == nil {
+		return ""
+	}
+	return a.ACLIdentity.ID()
+}
+
 // TODO: rename to AccessorIDFromToken. This method is only used to retrieve the
 // ACLIdentity.ID, so we don't need to return a full ACLIdentity. We could
 // return a much smaller type (instad of just a string) to allow for changes
@@ -1158,10 +1171,10 @@ func (r *ACLResolver) ACLsEnabled() bool {
 	return true
 }
 
-func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
+func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (ACLResolveResult, error) {
 	identity, authz, err := r.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {
-		return nil, err
+		return ACLResolveResult{}, err
 	}
 
 	if entMeta == nil {
@@ -1179,7 +1192,7 @@ func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *structs.
 	// Use the meta to fill in the ACL authorization context
 	entMeta.FillAuthzContext(authzContext)
 
-	return authz, err
+	return ACLResolveResult{Authorizer: authz, ACLIdentity: identity}, err
 }
 
 // aclFilter is used to filter results from our state store based on ACL rules
