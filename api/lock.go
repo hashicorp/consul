@@ -81,7 +81,7 @@ type LockOptions struct {
 	LockTryOnce      bool          // Optional, defaults to false which means try forever
 	LockDelay        time.Duration // Optional, defaults to 15s
 	Namespace        string        `json:",omitempty"` // Optional, defaults to API client config, namespace of ACL token, or "default" namespace
-	LockRetryTime    time.Duration //Optional, defaults to DefaultLockRetryTime
+	LockRetryTime    time.Duration // Optional, defaults to DefaultLockRetryTime
 }
 
 // LockKey returns a handle to a lock struct which can be used
