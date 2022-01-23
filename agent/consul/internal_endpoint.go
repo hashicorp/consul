@@ -433,11 +433,11 @@ func (m *Internal) KeyringOperation(
 	}
 
 	// Check ACLs
-	identity, authz, err := m.srv.ACLResolver.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	authz, err := m.srv.ACLResolver.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if err := m.srv.validateEnterpriseToken(identity); err != nil {
+	if err := m.srv.validateEnterpriseToken(authz.ACLIdentity); err != nil {
 		return err
 	}
 	switch args.Operation {

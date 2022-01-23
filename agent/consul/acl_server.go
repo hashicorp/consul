@@ -159,12 +159,6 @@ func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error
 	return s.InPrimaryDatacenter() || index > 0, role, acl.ErrNotFound
 }
 
-// TODO: remove
-func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
-	_, authz, err := s.ACLResolver.ResolveTokenToIdentityAndAuthorizer(token)
-	return authz, err
-}
-
 func (s *Server) filterACL(token string, subj interface{}) error {
 	return filterACL(s.ACLResolver, token, subj)
 }

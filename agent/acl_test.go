@@ -86,16 +86,13 @@ func (a *TestACLAgent) ResolveToken(secretID string) (acl.Authorizer, error) {
 	return authz, err
 }
 
-func (a *TestACLAgent) ResolveTokenToIdentityAndAuthorizer(secretID string) (structs.ACLIdentity, acl.Authorizer, error) {
-	if a.resolveAuthzFn == nil {
-		return nil, nil, fmt.Errorf("ResolveTokenToIdentityAndAuthorizer call is unexpected - no authz resolver callback set")
+func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
+	authz, err := a.ResolveToken(secretID)
+	if err != nil {
+		return consul.ACLResolveResult{}, err
 	}
 
-	return a.resolveAuthzFn(secretID)
-}
-
-func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
-	identity, authz, err := a.ResolveTokenToIdentityAndAuthorizer(secretID)
+	identity, err := a.resolveIdentFn(secretID)
 	if err != nil {
 		return consul.ACLResolveResult{}, err
 	}
