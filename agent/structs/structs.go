@@ -2279,6 +2279,10 @@ func (d *DirEntry) IDValue() string {
 	return d.Key
 }
 
+func (d *DirEntry) KVResourceID() string {
+	return d.Key
+}
+
 type DirEntries []*DirEntry
 
 // KVSRequest is used to operate on the Key-Value store

@@ -62,12 +62,22 @@ func IsErrPermissionDenied(err error) bool {
 }
 
 type PermissionDeniedError struct {
+	Resource    Resource
+	AccessLevel AccessLevel
+	AccessorID  string
+	ResourceID  string
+
+	// TODO: remove Cause, use other fields
 	Cause string
 }
 
 func (e PermissionDeniedError) Error() string {
 	if e.Cause != "" {
 		return errPermissionDenied + ": " + e.Cause
+	}
+	if e.Resource != "" {
+		return fmt.Sprintf("%s: token %s is missing %s:%s for %s",
+			errPermissionDenied, e.AccessorID, e.Resource, e.AccessLevel, e.ResourceID)
 	}
 	return errPermissionDenied
 }

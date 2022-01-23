@@ -1117,6 +1117,7 @@ func (r *ACLResolver) ResolveToken(token string) (ACLResolveResult, error) {
 	return ACLResolveResult{Authorizer: acl.NewChainedAuthorizer(chain), ACLIdentity: identity}, nil
 }
 
+// TODO: move to a new package under acl/
 type ACLResolveResult struct {
 	acl.Authorizer
 	// TODO: likely we can reduce this interface
@@ -1132,6 +1133,27 @@ func (a ACLResolveResult) AccessorID() string {
 
 func (a ACLResolveResult) Identity() structs.ACLIdentity {
 	return a.ACLIdentity
+}
+
+type ACLKVResourceID interface {
+	KVResourceID() string
+	FillAuthzContext(*acl.AuthorizerContext)
+}
+
+func (a ACLResolveResult) HasKeyWrite(id ACLKVResourceID) error {
+	key := id.KVResourceID()
+	var authzCtx acl.AuthorizerContext
+	id.FillAuthzContext(&authzCtx)
+
+	if a.Authorizer.KeyWrite(key, &authzCtx) == acl.Allow {
+		return nil
+	}
+	return acl.PermissionDeniedError{
+		Resource:    acl.ResourceKey,
+		ResourceID:  key,
+		AccessorID:  a.AccessorID(),
+		AccessLevel: acl.AccessWrite,
+	}
 }
 
 func (r *ACLResolver) ACLsEnabled() bool {
