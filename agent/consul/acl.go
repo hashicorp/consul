@@ -1148,10 +1148,11 @@ func (r *ACLResolver) ACLsEnabled() bool {
 	return true
 }
 
+// Deprecated: use ResolveTokenForRequest
 func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (ACLResolveResult, error) {
 	result, err := r.ResolveToken(token)
 	if err != nil {
-		return ACLResolveResult{}, err
+		return result, err
 	}
 
 	if entMeta == nil {
@@ -1169,7 +1170,30 @@ func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *structs.
 	// Use the meta to fill in the ACL authorization context
 	entMeta.FillAuthzContext(authzContext)
 
-	return result, err
+	return result, nil
+}
+
+type ACLRequest interface {
+	TokenSecret() string
+
+	// Merge sets the fields in this request to the values from source, if the
+	// request does not already have a value.
+	// TODO: rename
+	Merge(source *structs.EnterpriseMeta)
+}
+
+func (r *ACLResolver) ResolveTokenForRequest(req ACLRequest) (ACLResolveResult, error) {
+	result, err := r.ResolveToken(req.TokenSecret())
+	if err != nil {
+		return result, err
+	}
+
+	if result.ACLIdentity != nil {
+		req.Merge(result.ACLIdentity.EnterpriseMetadata())
+	} else {
+		req.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
+	}
+	return result, nil
 }
 
 // aclFilter is used to filter results from our state store based on ACL rules

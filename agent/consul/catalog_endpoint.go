@@ -79,8 +79,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 	defer metrics.MeasureSince([]string{"catalog", "register"}, time.Now())
 
-	// Fetch the ACL token, if any.
-	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	authz, err := c.srv.ResolveTokenForRequest(args)
 	if err != nil {
 		return err
 	}
