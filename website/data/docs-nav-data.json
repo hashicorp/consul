@@ -612,16 +612,38 @@
         "path": "ecs/requirements"
       },
       {
-        "title": "Installation with Terraform",
-        "path": "ecs/install"
+        "title": "Install with Terraform",
+        "routes": [
+          {
+            "title": "Installation",
+            "path": "ecs/terraform/install"
+          },
+          {
+            "title": "Secure Configuration",
+            "path": "ecs/terraform/secure-configuration"
+          },
+          {
+            "title": "Migrate Existing Tasks",
+            "path": "ecs/terraform/migrate-existing-tasks"
+          }
+        ]
       },
       {
-        "title": "Production Installation",
-        "path": "ecs/production-installation"
-      },
-      {
-        "title": "Migrate Existing Tasks",
-        "path": "ecs/migrate-existing-tasks"
+        "title": "Install Manually",
+        "routes": [
+          {
+            "title": "Installation",
+            "path": "ecs/manual/install"
+          },
+          {
+            "title": "Secure Configuration",
+            "path": "ecs/manual/secure-configuration"
+          },
+          {
+            "title": "ACL Controller",
+            "path": "ecs/manual/acl-controller"
+          }
+        ]
       },
       {
         "title": "Architecture",
@@ -630,10 +652,6 @@
       {
         "title": "Consul Enterprise",
         "path": "ecs/enterprise"
-      },
-      {
-        "title": "Manual Installation",
-        "path": "ecs/manual-installation"
       }
     ]
   },
