@@ -563,6 +563,7 @@ func TestServer_DeltaAggregatedResources_v3_GetAllClusterAfterConsulRestarted(t 
 	}
 	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
 	_, mgr, errCh, envoy := scenario.server, scenario.mgr, scenario.errCh, scenario.envoy
+	envoy.EnvoyVersion = "1.18.0"
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
@@ -575,6 +576,8 @@ func TestServer_DeltaAggregatedResources_v3_GetAllClusterAfterConsulRestarted(t 
 
 		// Send initial cluster discover.
 		// This is to simulate the discovery request call from envoy after disconnected from consul ads stream.
+		//
+		// We need to force it to be an older version of envoy so that the logic shifts.
 		envoy.SendDeltaReq(t, ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{
 			ResourceNamesSubscribe: []string{
 				"local_app",
