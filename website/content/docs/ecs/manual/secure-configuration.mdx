@@ -1,0 +1,215 @@
+---
+layout: docs
+page_title: Secure Configuration - AWS ECS
+description: >-
+  Manual Secure Confguration of the Consul Service Mesh on AWS ECS (Elastic Container Service).
+---
+
+# Secure Configuration
+
+For a production-ready installation of Consul on ECS, you will need to make sure that the cluster is secured.
+A secure Consul cluster should include the following:
+
+1. [TLS Encryption](/docs/security/encryption#rpc-encryption-with-tls) for RPC communication between Consul clients and servers.
+1. [Gossip Encryption](/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
+1. [Access Control (ACLs)](/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
+
+-> **NOTE:** This page assumes that you have already configured your Consul server with the above features.
+
+## Prerequisites
+
+* You should already have followed the [installation instructions](/docs/ecs/manual/install) to understand how to define
+the necessary components of the task definition for Consul on ECS.
+* You should be familiar with [specifying sensitive data](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data.html) on ECS.
+* You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the following [Learn Guides](https://learn.hashicorp.com/collections/consul/security) for an introduction and the [ACL system](/docs/security/acl) documentation for more information.
+
+## ACL Tokens
+
+You must create two types of ACL tokens for Consul on ECS:
+
+* **Client tokens:** used by the `consul-client` containers to join the Consul cluster
+* **Service tokens:** used by sidecar containers for service registration and health syncing
+
+The following sections describe the ACL polices which must be associated with these token types.
+
+-> **NOTE:** This section describes how operators would create ACL tokens by hand. To ease operator
+burden, the ACL Controller can automatically create ACL tokens for Consul on ECS. Refer to the
+[ACL Controller](/docs/manual/acl-controller) page for installation details.
+
+### Create Consul client token
+
+You must create a token for the Consul client. This is a shared token used by the `consul-client`
+containers to join the Consul cluster.
+
+The following is the ACL policy needed for the Consul client token:
+
+```hcl
+node_prefix "" {
+  policy = "write"
+}
+service_prefix "" {
+  policy = "read"
+}
+```
+
+This policy allows `node:write` for any node name, which is necessary because the Consul node
+names on ECS are not known until runtime.
+
+### Create service tokens
+
+Service tokens should be associated with a [service identity](https://www.consul.io/docs/security/acl/acl-system#acl-service-identities).
+The service identity includes `service:write` permissions for the service and sidecar proxy.
+
+The following example shows how to use the Consul CLI to create a service token for a service named `example-client-app`:
+
+```shell
+consul acl token create -service-identity=example-client-app ...
+```
+
+-> **NOTE**: You will need to create one service token for each registered Consul service in ECS,
+including when new services are added to the service mesh.
+
+## Secret storage
+
+You should securely store the following secrets in order to make them available to ECS tasks.
+
+1. Consul Server CA certificate
+2. Consul gossip encryption key
+3. Consul client ACL token
+4. Consul service ACL tokens (one per service)
+
+These secrets can be securely stored and passed to ECS tasks using either of the following AWS secret services:
+
+* [AWS Systems Manager Parameter Store](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data-parameters.html)
+* [AWS Secrets Manager](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data-secrets.html)
+
+Once the secrets are stored they can be referenced using their ARN. The following shows
+example secret ARNs when using AWS Secrets Manager:
+
+| Secret                 | Sample Secret ARN                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| Consul Server CA Cert  | `arn:aws:secretsmanager:us-west-2:000000000000:secret:my-consul-ca-cert`           |
+| Gossip encryption key  | `arn:aws:secretsmanager:us-west-2:000000000000:secret:my-consul-gossip-key`        |
+| Client token           | `arn:aws:secretsmanager:us-west-2:000000000000:secret:my-consul-client-token`      |
+| Service token          | `arn:aws:secretsmanager:us-west-2:000000000000:secret:my-example-client-app-token` |
+
+## Configure `consul-client`
+
+The following secrets must be passed to the `consul-client` container:
+
+* Consul server CA certificate
+* Gossip encryption key
+* Consul client ACL token
+
+The following example shows how to include these secrets in the task definition. The `secrets`
+list specifies environment variable `name`s that will be set to the secret values for this container.
+ECS automatically fetches the secret values specified in the `valueFrom` fields during task provisioning.
+
+```json
+{
+  "containerDefinitions": [
+    {
+      "name": "consul-client"
+      "image": "public.ecr.aws/hashicorp/consul:<CONSUL_VERSION>",
+      "secrets": [
+        {
+          "name": "CONSUL_CACERT",
+          "valueFrom": "arn:aws:secretsmanager:us-west-2:000000000000:secret:my-consul-ca-cert"
+        },
+        {
+          "name": "CONSUL_GOSSIP_ENCRYPTION_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-west-2:000000000000:secret:my-consul-gossip-key"
+        },
+        {
+          "name": "AGENT_TOKEN",
+          "valueFrom": "arn:aws:secretsmanager:us-west-2:000000000000:secret:my-consul-client-token"
+        }
+      ]
+    },
+    ...
+  ]
+}
+```
+
+Next, update Consul configuration options to pass the secrets to the Consul client.
+
+The following is an example of the *additional* content to include in the `consul-client` startup script. Refer to the [install
+page](/docs/ecs/manual/install#consul-client-container) for the remainder of the startup script and how to pass this
+script to the container.
+
+<CodeBlockConfig highlight="3-4,10-29">
+
+```shell
+...
+
+# Write the CA Cert to a file
+echo "$CONSUL_CACERT" > /tmp/consul-ca-cert.pem
+
+# Write the Consul agent configuration file.
+cat << EOF > /consul/agent-defaults.hcl
+...
+
+# Configure gossip encryption key
+encrypt = "$CONSUL_GOSSIP_ENCRYPTION_KEY"
+
+# Configure TLS settings
+auto_encrypt = {
+  tls = true
+  ip_san = ["$ECS_IPV4"]
+}
+ca_file = "/tmp/consul-ca-cert.pem"
+verify_outgoing = true
+
+# Configure ACLs
+acl {
+  enabled = true
+  default_policy = "deny"
+  down_policy = "async-cache"
+  tokens {
+    agent = "$AGENT_TOKEN"
+  }
+}
+
+EOF
+```
+
+</CodeBlockConfig>
+
+The following are the additional fields that must be included in the Consul client configuration file.
+
+| Field name                                                 | Type    | Description                                                                          |
+| ---------------------------------------------------------  | ------- | ------------------------------------------------------------------------------------ |
+| [`encrypt`](/docs/agent/options#_encrypt)                  | string  | Specifies the gossip encryption key                                                  |
+| [`ca_file`](/docs/agent/options#ca_file)                   | string  | Specifies the Consul server CA cert for TLS verification.                            |
+| [`acl.enabled`](/docs/agent/options#acl_enabled)           | boolen  | Enable ACLs for this agent.                                                          |
+| [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent) | string  | Specifies the Consul client token which authorizes this agent with Consul servers.   |
+
+## Configure `consul-ecs-mesh-init` and `consul-ecs-health-sync`
+
+Both `consul-ecs-mesh-init` and `consul-ecs-health-sync` containers need to be configured with
+the service ACL token. This allows these containers to make HTTP API requests to the local
+Consul client for service registration and health syncing.
+
+The following shows how to set the `CONSUL_HTTP_TOKEN` variable to the service token for the `example-client-app` service,
+if the token is stored in AWS Secrets Manager.
+
+<CodeBlockConfig highlight="5-8">
+
+```json
+{
+  "containerDefinitions": [
+    {
+      "secrets": [
+        {
+          "name": "CONSUL_HTTP_TOKEN",
+          "valueFrom": "arn:aws:secretsmanager:us-west-2:000000000000:secret:my-example-client-app-token"
+        }
+      ]
+    },
+    ...
+  ],
+  ...
+}
+```
+
+</CodeBlockConfig>
