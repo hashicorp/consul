@@ -75,7 +75,7 @@ consul-terraform-sync <command> [options] [args]
 Example:
 
 ```shell-session
-consul-terraform-sync task disable -port=2000 task_a
+consul-terraform-sync task disable -http-addr=http://localhost:2000 task_a
 ```
 
 ### General Options
@@ -84,7 +84,7 @@ Below are options that can be used across all commands:
 
 | Option | Required | Type | Description  | Default |
 | ------ | -------- | ---- | ------------ | --------|
-| `-port`| Optional | integer | Port from which the CTS daemon serves its API.<br/>The value is prepended with `http://localhost:`, but you can specify a different scheme or address with the `-http-addr` if necessary. | `8558` |
+| `-port`| Optional | integer | **Deprecated in Consul-Terraform-Sync 0.5.0 and will be removed in a later version.** Use `-http-addr` option instead to specify the address and port of the Consul-Terraform-Sync API.<br/><br/>Port from which the CTS daemon serves its API.<br/>The value is prepended with `http://localhost:`, but you can specify a different scheme or address with the `-http-addr` if necessary. | `8558` |
 | `-http-addr` | Optional | string | Address and port of the CTS API. You can specify an IP or DNS address.<br/><br/> Alternatively, you can specify a value using the `CTS_HTTP_ADDR` environment variable. | `http://localhost:8558` |
 | `-ssl-verify` | Optional | boolean | Enables verification for TLS/SSL connections to the API if set to true. This does not affect insecure HTTP connections.<br/><br/>Alternatively, you can specify the value using the `CTS_SSL_VERIFY` environment variable. | `true` |
 | `-ca-cert` | Optional | string | Path to a PEM-encoded certificate authority file that is used to verify TLS/SSL connections. Takes precedence over `-ca-path` if both are provided.<br/><br/>Alternatively, you can specify the value using the `CTS_CACERT` environment variable.  | none |
