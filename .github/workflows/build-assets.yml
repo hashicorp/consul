@@ -1,0 +1,36 @@
+# When UI files are updated on main, the changes get compiled and serialized by
+# CI job publish-static-assets, which then get pushed to ci/main-assetfs-build.
+# This workflow creates a PR to merge the updated file back into main.
+#
+# We could consider moving the entire process to github actions, but leaving that
+# as a potential future enhancement (or we scrap the idea of including pre-built
+# assets in our repo entirely).
+name: build-assets
+
+on:
+  push:
+    branches: [
+        "ci/main-assetfs-build"
+    ]
+
+jobs:
+  createPullRequest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: "ci: Update bindata_assetfs.go"
+          branch: ci/main-assetfs-build-merge
+          title: "ci: Merge bindata_assetfs.go to main"
+          body: |
+            This PR updates bindata_assetfs.go with the latest compiled
+            code from ci/main-assetfs-build.
+            
+            Should only contain 1 file diff.
+          labels: no-changelog
+          delete-branch: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+
