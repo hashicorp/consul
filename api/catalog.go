@@ -2,6 +2,7 @@ package api
 
 import (
 	"net"
+	"net/url"
 	"strconv"
 )
 
@@ -254,9 +255,9 @@ func (c *Catalog) ConnectMultipleTags(service string, tags []string, q *QueryOpt
 }
 
 func (c *Catalog) service(service string, tags []string, q *QueryOptions, connect bool) ([]*CatalogService, *QueryMeta, error) {
-	path := "/v1/catalog/service/" + service
+	path := "/v1/catalog/service/" + url.PathEscape(service)
 	if connect {
-		path = "/v1/catalog/connect/" + service
+		path = "/v1/catalog/connect/" + url.PathEscape(service)
 	}
 	r := c.c.newRequest("GET", path)
 	r.setQueryOptions(q)
@@ -287,7 +288,7 @@ func (c *Catalog) service(service string, tags []string, q *QueryOptions, connec
 
 // Node is used to query for service information about a single node
 func (c *Catalog) Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, error) {
-	r := c.c.newRequest("GET", "/v1/catalog/node/"+node)
+	r := c.c.newRequest("GET", "/v1/catalog/node/"+url.PathEscape(node))
 	r.setQueryOptions(q)
 	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
@@ -314,7 +315,7 @@ func (c *Catalog) Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, 
 // a map of service ids to services. This different structure allows for using the wildcard specifier
 // '*' for the Namespace in the QueryOptions.
 func (c *Catalog) NodeServiceList(node string, q *QueryOptions) (*CatalogNodeServiceList, *QueryMeta, error) {
-	r := c.c.newRequest("GET", "/v1/catalog/node-services/"+node)
+	r := c.c.newRequest("GET", "/v1/catalog/node-services/"+url.PathEscape(node))
 	r.setQueryOptions(q)
 	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
@@ -338,7 +339,7 @@ func (c *Catalog) NodeServiceList(node string, q *QueryOptions) (*CatalogNodeSer
 
 // GatewayServices is used to query the services associated with an ingress gateway or terminating gateway.
 func (c *Catalog) GatewayServices(gateway string, q *QueryOptions) ([]*GatewayService, *QueryMeta, error) {
-	r := c.c.newRequest("GET", "/v1/catalog/gateway-services/"+gateway)
+	r := c.c.newRequest("GET", "/v1/catalog/gateway-services/"+url.PathEscape(gateway))
 	r.setQueryOptions(q)
 	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
