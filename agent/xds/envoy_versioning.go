@@ -13,7 +13,7 @@ var (
 	// the zero'th point release of the last element of proxysupport.EnvoyVersions.
 	minSupportedVersion = version.Must(version.NewVersion("1.17.0"))
 
-	minVersionWithLDSAndCDSProperlyUsingWildcardsWithIncrementalXDS = version.Must(version.NewVersion("1.19.0"))
+	minVersionToForceLDSandCDSToAlwaysUseWildcardsOnReconnect = version.Must(version.NewVersion("1.19.0"))
 
 	specificUnsupportedVersions = []unsupportedVersion{}
 )
@@ -75,7 +75,7 @@ func determineSupportedProxyFeaturesFromVersion(version *version.Version) (suppo
 
 	sf := supportedProxyFeatures{}
 
-	if version.LessThan(minVersionWithLDSAndCDSProperlyUsingWildcardsWithIncrementalXDS) {
+	if version.LessThan(minVersionToForceLDSandCDSToAlwaysUseWildcardsOnReconnect) {
 		sf.ForceLDSandCDSToAlwaysUseWildcardsOnReconnect = true
 	}
 
