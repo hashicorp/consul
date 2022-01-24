@@ -1567,8 +1567,26 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 		tlsParams = &envoy_tls_v3.TlsParameters{}
 	}
 
+	// Determine listener protocol type from configured service protocol
+	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		// s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
+	}
+
+	// Add supported ALPN protocol to listener
+	var alpnProtocols = []string{}
+	switch cfg.Protocol {
+	case "grpc", "http2":
+		alpnProtocols = append(alpnProtocols, "h2")
+	case "http":
+		alpnProtocols = append(alpnProtocols, "http/1.1")
+	}
+
 	return &envoy_tls_v3.CommonTlsContext{
-		TlsParams: tlsParams,
+		TlsParams:     tlsParams,
+		AlpnProtocols: alpnProtocols,
 		TlsCertificates: []*envoy_tls_v3.TlsCertificate{
 			{
 				CertificateChain: &envoy_core_v3.DataSource{
@@ -1585,7 +1603,6 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 		},
 		ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContext{
 			ValidationContext: &envoy_tls_v3.CertificateValidationContext{
-				// TODO(banks): later for L7 support we may need to configure ALPN here.
 				TrustedCa: &envoy_core_v3.DataSource{
 					Specifier: &envoy_core_v3.DataSource_InlineString{
 						InlineString: rootPEMS,
