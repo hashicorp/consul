@@ -934,7 +934,6 @@ You can specify the following parameters to configure ingress gateway configurat
     {
       name: "TracingStrategy",
       type: `string: "random_sampling"`,
-      yaml: false,
       description:
         'Specifies the request tracing strategy to be used by the underlying http connection manager. Possible values '+
         'are `random_sampling` or `client_sampling`.'
@@ -942,7 +941,6 @@ You can specify the following parameters to configure ingress gateway configurat
     {
       name: "TracingPercentage",
       type: `float: 0`,
-      yaml: false,
       description:
         'Target percentage of requests received by the gateway that should be traced. ' + 
         'When `TracingStrategy` is set to `client_sampling` this percentage applies to requests containing the `x-client-trace-id` header. ' +
