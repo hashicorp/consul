@@ -27,11 +27,13 @@ type unsupportedVersion struct {
 type supportedProxyFeatures struct {
 	// Older versions of Envoy incorrectly exploded a wildcard subscription for
 	// LDS and CDS into specific line items on incremental xDS reconnect. They
-	// would populate both InitialResourceVersions and ResourceNamesSubscribe.
-	// In this scenario they SHOULD have populated left ResourceNamesSubscribe
-	// empty (or used an explicit "*" in later versions) to imply wildcard
-	// mode. On reconnect this causes newly created listeners and clusters to
-	// be ignored.
+	// would populate both InitialResourceVersions and ResourceNamesSubscribe
+	// when they SHOULD have left ResourceNamesSubscribe empty (or used an
+	// explicit "*" in later Envoy versions) to imply wildcard mode. On
+	// reconnect, Consul interpreted the lack of the wildcard attribute as
+	// implying that the Envoy instance should not receive updates for any
+	// newly created listeners and clusters for the remaining life of that
+	// Envoy sidecar process.
 	//
 	// see: https://github.com/envoyproxy/envoy/issues/16063
 	// see: https://github.com/envoyproxy/envoy/pull/16153
