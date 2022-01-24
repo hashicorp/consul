@@ -1,8 +1,8 @@
 ---
 layout: docs
-page_title: What is service mesh??
+page_title: What is service mesh?
 description: >-
-  Learn what a serive mesh is, it's benefits, and how it works.
+  Learn what a service mesh is, it's benefits, and how it works.
 ---
 
 # What is a Service Mesh?
@@ -12,7 +12,7 @@ Service meshes are often used with a microservice architectural pattern, but can
 
 ## Benefits of a Service Mesh
 
-A _service mesh_ provides benefits for all organziations, ranging from security to improved application resiliency.
+A service mesh provides benefits for all organizations, ranging from security to improved application resiliency.
 Some of the benefits of a _service mesh_ include;
 
 - service discovery
@@ -21,16 +21,16 @@ Some of the benefits of a _service mesh_ include;
 - automatic failover
 - traffic management
 - encryption
-- observability and tracability,
+- observability and traceability,
 - authentication and authorization,
 - network automation
 
-A common usecase for leveraging a _service mesh_ is to achieve a [_zero trust_ model](/use-cases/zero-trust-networking).
+A common use case for leveraging a _service mesh_ is to achieve a [_zero trust_ model](/use-cases/zero-trust-networking).
 In a _zero trust_ model, applications require identity-based access to ensure all communication within the service mesh is authenticated with TLS certificates and encrypted in transit.
 
 ## How does a Service Mesh work?
 
-A _service meshe_ typically consist of a control plane, and a data plane. The control plane maintains a central registry that keeps track of all services and their respective IP addresses, this is called _service discovery_.
+A _service mesh_ typically consist of a control plane, and a data plane. The control plane maintains a central registry that keeps track of all services and their respective IP addresses, this is called _service discovery_.
 As long as the application is registered with the control plane, the control plane will be able to share with other members of the mesh how to communicate with the application and enforce rules for who can communicate with each other.
 
 The control plane is responsible for securing the mesh, facilitating service discovery, health checking, policy enforcement, and other similar operational concerns.
@@ -49,14 +49,14 @@ The API Gateway will route the incoming requests to the respective service. API 
 A _service mesh_ specializes in the network management of services and the communication between services.
 The mesh is responsible for keeping track of services and their health status, IP address, traffic routing, and ensuring all the traffic between services are authenticated and encrypted.
 Unlike API Gateways, a _service mesh_ will track all registered services' lifecycle and ensure requests are routed to healthy instances of the service.
-API Gateways are frequently deployed alongside a loadbalancer to ensure traffic is directed to healthy and available instances of the service.
-The mesh reduces the loadbalancer footprint as routing responsibilities are handled in a decentralized manner.
+API Gateways are frequently deployed alongside a load balancer to ensure traffic is directed to healthy and available instances of the service.
+The mesh reduces the load balancer footprint as routing responsibilities are handled in a decentralized manner.
 
-API Gateways can be used togehter with a _service mesh_ to bridge external networks (non-mesh) with a _service mesh_.
+API Gateways can be used together with a _service mesh_ to bridge external networks (non-mesh) with a _service mesh_.
 
--> **Note**: API Gateways are frequently used to accept north-south based traffic. North-south traffic is networking traffic that either enters or exits a datacenter or a virutal private network (VPC).
-A _service mesh_ is primarly used for handling east-west based traffic. East-west traffic traditionaly remains inside a datacenter or a VPC.
-A _service mesh_ can be connected to another _service mesh_ in another datacenter or VPC to form a federated mesh.
+-> **Note**: API Gateways are frequently used to accept north-south based traffic. North-south traffic is networking traffic that either enters or exits a data center or a virtual private network (VPC).
+A _service mesh_ is primarily used for handling east-west based traffic. East-west traffic traditionally remains inside a data center or a VPC.
+A _service mesh_ can be connected to another _service mesh_ in another data center or VPC to form a federated mesh.
 
 ## What Problems Does a Service Mesh Solve?
 
@@ -69,7 +69,7 @@ As a service mesh is aware of the state of a service and its instances, the mesh
 Many service meshes offer L7 traffic management capabilities. As a result, operators and developers can create powerful rules to direct network traffic as needed, such as load balancing, traffic splitting, dynamic failover, and custom resolvers.
 A service mesh's dynamic network behavior allows application owners to improve application resiliency and availability with no application changes.
 
-Implementing dynamic network behavior is critical as more and more applications are deployed across different cloud providers (multi-cloud) and private datacenters.
+Implementing dynamic network behavior is critical as more and more applications are deployed across different cloud providers (multi-cloud) and private data centers.
 Organizations may need to route network traffic to other infrastructure environments. Ensuring this traffic is secure is on top of mind for all organizations.
 Service meshes offer the ability to enforce network traffic encryption (mTLS) and authentication between all services. The _service mesh_ can automatically generate an SSL certificate for each service and its instances.
 The certificate authenticates with other services inside the mesh and encrypts the TCP/UDP/gRPC connection with SSL.
@@ -84,7 +84,7 @@ This shift from an IP address-based security model to a service-focused model re
 ## How Do You Implement a Service Mesh?
 
 Service meshes are commonly installed in Kubernetes clusters. There are also platform-agnostic service meshes available for non-Kubernetes-based workloads.
-For Kubernetes, most service mesh can be installed by operators through a [Helm chart](https://artifacthub.io/). Additionally, the service mesh may offer a CLI tool that supports the installation and maintenance of the service mesh.
+For Kubernetes, most service mesh can be installed by operators through a [Helm chart](https://helm.sh/). Additionally, the service mesh may offer a CLI tool that supports the installation and maintenance of the service mesh.
 Non-Kubernetes based service meshes can be installed through infrastructure as code (IaC) products such as [Terraform](https://www.terraform.io/), CloudFormation, ARM Templates, Puppet, Chef, etc.
 
 ## What is a Multi Platform Service Mesh?
