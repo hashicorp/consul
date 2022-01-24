@@ -1000,7 +1000,7 @@ You can specify the following parameters to configure ingress gateway configurat
           description: `A list of TLS cipher suites to support when negotiating
                         connections using TLS 1.2 or earlier. If unspecified,
                         Envoy will use a
-                        [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites"). The list of supported cipher suites can seen in [`types/tls.go`](https://github.com/hashicorp/consul/blob/main/types/tls.go#L154-L169) and is dependent on underlying support in Envoy - future releases of Envoy may remove currently-supported but insecure cipher suites, and future releases of Consul may add new supported cipher suites if any are added to Envoy."
+                        [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites). The list of supported cipher suites can seen in [\`types/tls.go\`](https://github.com/hashicorp/consul/blob/main/types/tls.go#L154-L169) and is dependent on underlying support in Envoy - future releases of Envoy may remove currently-supported but insecure cipher suites, and future releases of Consul may add new supported cipher suites if any are added to Envoy.`
         },
         {
           name: 'SDS',
@@ -1182,7 +1182,7 @@ You can specify the following parameters to configure ingress gateway configurat
               description: `A list of TLS cipher suites to support when negotiating
                             connections using TLS 1.2 or earlier. If unspecified,
                             Envoy will use a
-                            [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites").
+                            [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites).
                             <br><br>
                             Supported values:<br>
                             \`\`\`TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 <br>
