@@ -351,11 +351,16 @@ task {
 You can optionally add one or more `source_input` blocks to the `task` block. A `source_input` block specifies a Consul object containing values or metadata to be provided to the Terraform Module. Both scheduled and dynamic tasks can be configured with `source_input` blocks.
 
 There are some limitations to the type of `source_input` blocks that can be configured for a task given the task's `condition` block and `services` field. This is because a task cannot have multiple configurations defining the same type of monitored variable:
-- A task cannot be configured with a `condition` and `source_input` block of the same type. For example: configuring `condition "consul-kv"` and `source_input "consul-kv"` will error because both configure the `consul_kv` variable.
-- A task cannot be configured with two or more `source_input` blocks of the same type. For example: configuring `source_input "catalog-services"` twice within a task will error because those are multiple configurations for the `catalog_services` variable.
-- A task monitoring services can only configure one of `condition "services"`, `source_input "services"`, `services` list because all configure the `services` variable.
+- A task cannot be configured with a `condition` and `source_input` block of the same type. For example, configuring `condition "consul-kv"` and `source_input "consul-kv"` will error because both configure the `consul_kv` variable.
+- A task cannot be configured with two or more `source_input` blocks of the same type. For example, configuring two `source_input "catalog-services"` within a task will return an error because they define multiple configurations for the `catalog_services` variable.
+- A task that monitors services can only contain one of the following configurations:
+  - `condition "services"` block
+  - `source_input "services"` block
+  - `services` list
 
-The section below describes the source input types that CTS supports.
+  All of the listed configurations define the `services` variable and including more than one configuration will return an error.
+
+The following section describes the source input types that CTS supports.
 
 #### Services Source Input
 
