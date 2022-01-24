@@ -152,14 +152,6 @@ ui_config {
 <CodeBlockConfig>
 
 ```yaml
-################################### Notes: ####################################
-# On Kubernetes, Consul Server configuration is set in your Helm config via   #
-# the server.extraConfig key as JSON.                                         #
-#                                                                             #
-# The `{{` characters in the URL must be escaped using `{{ "{{" }}` so that   #
-# Helm doesn't try to template them.                                          #
-###############################################################################
-
 # The UI is enabled by default so this stanza is not required.
 ui:
   enabled: true
@@ -177,6 +169,11 @@ server:
 </CodeBlockConfig>
 
 </CodeTabs>
+
+~> **Note**: On Kubernetes, Consul Server configuration is set in your Helm
+config via the [`server.extraConfig`](/docs/k8s/helm#v-server-extraconfig) key as JSON.
+The `{{` characters in the URL must be escaped using `{{ "{{" }}` so that Helm
+doesn't try to template them.
 
 ![Consul UI Service Dashboard Link](/img/ui-dashboard-url-template.png)
 
