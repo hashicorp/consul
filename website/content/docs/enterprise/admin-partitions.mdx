@@ -82,7 +82,8 @@ Your Consul configuration must meet the following requirements to use admin part
 
 One of the primary use cases for admin partitions is for enabling a service mesh across multiple Kubernetes clusters. The following requirements must be met to create admin partitions on Kubernetes:
 
-* Two or more Kubernetes clusters. Consul servers must be deployed to a single cluster. The other clusters should run Consul clients.
+* If you are deploying Consul servers on Kubernetes, then ensure that the Consul servers are deployed within the same Kubernetes cluster. Consul servers may be deployed external to Kubernetes and configured using the `externalServers` stanza. 
+* Consul clients deployed on the same Kubernetes cluster as the Consul Servers must use the `default` partition. If the clients are required to run on a non-default partition, then the clients must be deployed in a separate Kubernetes cluster. 
 * A Consul Enterprise license must be installed on each Kubernetes cluster.
 * The helm chart for consul-k8s v0.39.0 or greater.
 * Consul 1.11.1-ent or greater.
