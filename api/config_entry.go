@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -378,7 +379,7 @@ func (conf *ConfigEntries) Get(kind string, name string, q *QueryOptions) (Confi
 		return nil, nil, err
 	}
 
-	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s/%s", kind, name))
+	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s/%s", url.PathEscape(kind), url.PathEscape(name)))
 	r.setQueryOptions(q)
 	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
@@ -405,7 +406,7 @@ func (conf *ConfigEntries) List(kind string, q *QueryOptions) ([]ConfigEntry, *Q
 		return nil, nil, fmt.Errorf("The kind parameter must not be empty")
 	}
 
-	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s", kind))
+	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s", url.PathEscape(kind)))
 	r.setQueryOptions(q)
 	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
@@ -485,7 +486,7 @@ func (conf *ConfigEntries) delete(kind, name string, params map[string]string, w
 		return false, nil, fmt.Errorf("Both kind and name parameters must not be empty")
 	}
 
-	r := conf.c.newRequest("DELETE", fmt.Sprintf("/v1/config/%s/%s", kind, name))
+	r := conf.c.newRequest("DELETE", fmt.Sprintf("/v1/config/%s/%s", url.PathEscape(kind), url.PathEscape(name)))
 	r.setWriteOptions(w)
 	for param, value := range params {
 		r.params.Set(param, value)
