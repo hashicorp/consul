@@ -10,6 +10,7 @@ func NodeToStructs(s Node) structs.Node {
 	t.Node = s.Node
 	t.Address = s.Address
 	t.Datacenter = s.Datacenter
+	t.Partition = s.Partition
 	t.TaggedAddresses = s.TaggedAddresses
 	t.Meta = s.Meta
 	t.RaftIndex = RaftIndexToStructs(s.RaftIndex)
@@ -21,6 +22,7 @@ func NewNodeFromStructs(t structs.Node) Node {
 	s.Node = t.Node
 	s.Address = t.Address
 	s.Datacenter = t.Datacenter
+	s.Partition = t.Partition
 	s.TaggedAddresses = t.TaggedAddresses
 	s.Meta = t.Meta
 	s.RaftIndex = NewRaftIndexFromStructs(t.RaftIndex)
@@ -36,6 +38,7 @@ func NodeServiceToStructs(s NodeService) structs.NodeService {
 	t.TaggedAddresses = MapStringServiceAddressToStructs(s.TaggedAddresses)
 	t.Meta = s.Meta
 	t.Port = int(s.Port)
+	t.SocketPath = s.SocketPath
 	t.Weights = WeightsPtrToStructs(s.Weights)
 	t.EnableTagOverride = s.EnableTagOverride
 	t.Proxy = ConnectProxyConfigToStructs(s.Proxy)
@@ -55,6 +58,7 @@ func NewNodeServiceFromStructs(t structs.NodeService) NodeService {
 	s.TaggedAddresses = NewMapStringServiceAddressFromStructs(t.TaggedAddresses)
 	s.Meta = t.Meta
 	s.Port = int32(t.Port)
+	s.SocketPath = t.SocketPath
 	s.Weights = NewWeightsPtrFromStructs(t.Weights)
 	s.EnableTagOverride = t.EnableTagOverride
 	s.Proxy = NewConnectProxyConfigFromStructs(t.Proxy)

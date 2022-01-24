@@ -1,0 +1,5 @@
+@import './skin';
+@import './layout';
+.progress.indeterminate {
+  @extend %progress-indeterminate;
+}

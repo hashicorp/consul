@@ -413,6 +413,27 @@ RETRY_GET:
 	_, entryValid, entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
 	c.entriesLock.RUnlock()
 
+	if entry.Expiry != nil {
+		// The entry already exists in the TTL heap, touch it to keep it alive since
+		// this Get is still interested in the value. Note that we used to only do
+		// this in the `entryValid` block below but that means that a cache entry
+		// will expire after it's TTL regardless of how many callers are waiting for
+		// updates in this method in a couple of cases:
+		//  1. If the agent is disconnected from servers for the TTL then the client
+		//     will be in backoff getting errors on each call to Get and since an
+		//     errored cache entry has Valid = false it won't be touching the TTL.
+		//  2. If the value is just not changing then the client's current index
+		//     will be equal to the entry index and entryValid will be false. This
+		//     is a common case!
+		//
+		// But regardless of the state of the entry, assuming it's already in the
+		// TTL heap, we should touch it every time around here since this caller at
+		// least still cares about the value!
+		c.entriesLock.Lock()
+		c.entriesExpiryHeap.Update(entry.Expiry.Index(), r.TypeEntry.Opts.LastGetTTL)
+		c.entriesLock.Unlock()
+	}
+
 	if entryValid {
 		meta := ResultMeta{Index: entry.Index}
 		if first {
@@ -434,11 +455,6 @@ RETRY_GET:
 				meta.Age = time.Since(entry.FetchedAt)
 			}
 		}
-
-		// Touch the expiration and fix the heap.
-		c.entriesLock.Lock()
-		c.entriesExpiryHeap.Update(entry.Expiry.Index(), r.TypeEntry.Opts.LastGetTTL)
-		c.entriesLock.Unlock()
 
 		// We purposely do not return an error here since the cache only works with
 		// fetching values that either have a value or have an error, but not both.
@@ -722,6 +738,22 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 		// Set our entry
 		c.entriesLock.Lock()
+
+		if _, ok := c.entries[key]; !ok {
+			// This entry was evicted during our fetch. DON'T re-insert it or fall
+			// through to the refresh loop below otherwise it will live forever! In
+			// theory there should not be any Get calls waiting on entry.Waiter since
+			// they would have prevented the eviction, but in practice there may be
+			// due to timing and the fact that we don't update the TTL on the entry if
+			// errors are being returned for a while. So we do need to unblock them,
+			// which will mean they recreate the entry again right away and so "reset"
+			// to a good state anyway!
+			c.entriesLock.Unlock()
+
+			// Trigger any waiters that are around.
+			close(entry.Waiter)
+			return
+		}
 
 		// If this is a new entry (not in the heap yet), then setup the
 		// initial expiry information and insert. If we're already in

@@ -5,10 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/lib"
 	discover "github.com/hashicorp/go-discover"
 	discoverk8s "github.com/hashicorp/go-discover/provider/k8s"
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/lib"
 )
 
 func (a *Agent) retryJoinLAN() {
@@ -18,8 +19,12 @@ func (a *Agent) retryJoinLAN() {
 		addrs:       a.config.RetryJoinLAN,
 		maxAttempts: a.config.RetryJoinMaxAttemptsLAN,
 		interval:    a.config.RetryJoinIntervalLAN,
-		join:        a.JoinLAN,
-		logger:      a.logger.With("cluster", "LAN"),
+		join: func(addrs []string) (int, error) {
+			// NOTE: For partitioned servers you are only capable of using retry join
+			// to join nodes in the default partition.
+			return a.JoinLAN(addrs, a.AgentEnterpriseMeta())
+		},
+		logger: a.logger.With("cluster", "LAN"),
 	}
 	if err := r.retryJoin(); err != nil {
 		a.retryJoinCh <- err

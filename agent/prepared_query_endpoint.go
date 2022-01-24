@@ -94,9 +94,10 @@ func (s *HTTPHandlers) preparedQueryExecute(id string, resp http.ResponseWriter,
 	args := structs.PreparedQueryExecuteRequest{
 		QueryIDOrName: id,
 		Agent: structs.QuerySource{
-			Node:       s.agent.config.NodeName,
-			Datacenter: s.agent.config.Datacenter,
-			Segment:    s.agent.config.SegmentName,
+			Node:          s.agent.config.NodeName,
+			NodePartition: s.agent.config.PartitionOrEmpty(),
+			Datacenter:    s.agent.config.Datacenter,
+			Segment:       s.agent.config.SegmentName,
 		},
 	}
 	s.parseSource(req, &args.Source)
@@ -178,9 +179,10 @@ func (s *HTTPHandlers) preparedQueryExplain(id string, resp http.ResponseWriter,
 	args := structs.PreparedQueryExecuteRequest{
 		QueryIDOrName: id,
 		Agent: structs.QuerySource{
-			Node:       s.agent.config.NodeName,
-			Datacenter: s.agent.config.Datacenter,
-			Segment:    s.agent.config.SegmentName,
+			Node:          s.agent.config.NodeName,
+			NodePartition: s.agent.config.PartitionOrEmpty(),
+			Datacenter:    s.agent.config.Datacenter,
+			Segment:       s.agent.config.SegmentName,
 		},
 	}
 	s.parseSource(req, &args.Source)

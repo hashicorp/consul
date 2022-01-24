@@ -23,9 +23,33 @@ export default function(config = {}, win = window, doc = document) {
             .startsWith('CONSUL_')
         );
     };
-    win.Scenario = function(str = '') {
+    win['Scenario'] = function(str = '') {
       if (str.length > 0) {
-        cookies(str).forEach(item => (doc.cookie = `${item};Path=/`));
+        cookies(str).forEach(item => {
+          // this current outlier is the only one that
+          // 1. Toggles
+          // 2. Uses localStorage
+          // Once we have a user facing widget to do this, it can all go
+          if (item.startsWith('CONSUL_COLOR_SCHEME=')) {
+            const [, value] = item.split('=');
+            let current;
+            try {
+              current = JSON.parse(win.localStorage.getItem('consul:theme'));
+            } catch (e) {
+              current = {
+                'color-scheme': 'light',
+              };
+            }
+            win.localStorage.setItem(
+              'consul:theme',
+              `{"color-scheme": "${
+                value === '!' ? (current['color-scheme'] === 'light' ? 'dark' : 'light') : value
+              }"}`
+            );
+          } else {
+            doc.cookie = `${item};Path=/`;
+          }
+        });
         win.location.hash = '';
         location.reload();
       } else {
@@ -41,7 +65,7 @@ export default function(config = {}, win = window, doc = document) {
       typeof win.location.hash === 'string' &&
       win.location.hash.length > 0
     ) {
-      win.Scenario(win.location.hash.substr(1));
+      win['Scenario'](win.location.hash.substr(1));
     }
   });
   const dev = function(str = doc.cookie) {
@@ -68,9 +92,10 @@ export default function(config = {}, win = window, doc = document) {
       return {};
     }
   };
-  const operatorConfig = JSON.parse(
-    doc.querySelector(`[data-${config.modulePrefix}-config]`).textContent
-  );
+  const operatorConfig = {
+    ...config.operatorConfig,
+    ...JSON.parse(doc.querySelector(`[data-${config.modulePrefix}-config]`).textContent),
+  };
   const ui_config = operatorConfig.UIConfig || {};
   const scripts = doc.getElementsByTagName('script');
   // we use the currently executing script as a reference
@@ -95,10 +120,18 @@ export default function(config = {}, win = window, doc = document) {
         return typeof operatorConfig.ACLsEnabled === 'undefined'
           ? false
           : operatorConfig.ACLsEnabled;
+      case 'CONSUL_PARTITIONS_ENABLED':
+        return typeof operatorConfig.PartitionsEnabled === 'undefined'
+          ? false
+          : operatorConfig.PartitionsEnabled;
       case 'CONSUL_DATACENTER_LOCAL':
         return operatorConfig.LocalDatacenter;
+      case 'CONSUL_DATACENTER_PRIMARY':
+        return operatorConfig.PrimaryDatacenter;
       case 'CONSUL_UI_CONFIG':
-        dashboards = {};
+        dashboards = {
+          service: undefined
+        };
         provider = env('CONSUL_METRICS_PROVIDER');
         proxy = env('CONSUL_METRICS_PROXY_ENABLED');
         dashboards.service = env('CONSUL_SERVICE_DASHBOARD_URL');
@@ -155,6 +188,12 @@ export default function(config = {}, win = window, doc = document) {
       case 'test':
         $ = dev().reduce(function(prev, [key, value]) {
           switch (key) {
+            case 'CONSUL_INTL_LOCALE':
+              prev['CONSUL_INTL_LOCALE'] = String(value).toLowerCase();
+              break;
+            case 'CONSUL_INTL_DEBUG':
+              prev['CONSUL_INTL_DEBUG'] = !!JSON.parse(String(value).toLowerCase());
+              break;
             case 'CONSUL_ACLS_ENABLE':
               prev['CONSUL_ACLS_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
               break;
@@ -163,6 +202,9 @@ export default function(config = {}, win = window, doc = document) {
               break;
             case 'CONSUL_SSO_ENABLE':
               prev['CONSUL_SSO_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
+              break;
+            case 'CONSUL_PARTITIONS_ENABLE':
+              prev['CONSUL_PARTITIONS_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
               break;
             case 'CONSUL_METRICS_PROXY_ENABLE':
               prev['CONSUL_METRICS_PROXY_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
@@ -196,9 +238,11 @@ export default function(config = {}, win = window, doc = document) {
         return user(str) || ui(str);
       case 'CONSUL_UI_CONFIG':
       case 'CONSUL_DATACENTER_LOCAL':
+      case 'CONSUL_DATACENTER_PRIMARY':
       case 'CONSUL_ACLS_ENABLED':
       case 'CONSUL_NSPACES_ENABLED':
       case 'CONSUL_SSO_ENABLED':
+      case 'CONSUL_PARTITIONS_ENABLED':
       case 'CONSUL_METRICS_PROVIDER':
       case 'CONSUL_METRICS_PROXY_ENABLE':
       case 'CONSUL_SERVICE_DASHBOARD_URL':

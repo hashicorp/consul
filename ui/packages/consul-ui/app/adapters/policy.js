@@ -1,31 +1,21 @@
 import Adapter from './application';
 import { SLUG_KEY } from 'consul-ui/models/policy';
-import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
-import { NSPACE_KEY } from 'consul-ui/models/nspace';
-import { env } from 'consul-ui/env';
-import nonEmptySet from 'consul-ui/utils/non-empty-set';
-
-let Namespace;
-if (env('CONSUL_NSPACES_ENABLED')) {
-  Namespace = nonEmptySet('Namespace');
-} else {
-  Namespace = () => ({});
-}
 
 // TODO: Update to use this.formatDatacenter()
 export default class PolicyAdapter extends Adapter {
-  requestForQuery(request, { dc, ns, index, id }) {
+  requestForQuery(request, { dc, ns, partition, index, id }) {
     return request`
       GET /v1/acl/policies?${{ dc }}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;
   }
 
-  requestForQueryRecord(request, { dc, ns, index, id }) {
+  requestForQueryRecord(request, { dc, ns, partition, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -33,7 +23,8 @@ export default class PolicyAdapter extends Adapter {
       GET /v1/acl/policy/${id}?${{ dc }}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;
@@ -41,7 +32,9 @@ export default class PolicyAdapter extends Adapter {
 
   requestForCreateRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatDatacenter(data.Datacenter),
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/acl/policy?${params}
@@ -51,14 +44,15 @@ export default class PolicyAdapter extends Adapter {
         Description: serialized.Description,
         Rules: serialized.Rules,
         Datacenters: serialized.Datacenters,
-        ...Namespace(serialized.Namespace),
       }}
     `;
   }
 
   requestForUpdateRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatDatacenter(data.Datacenter),
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/acl/policy/${data[SLUG_KEY]}?${params}
@@ -68,15 +62,15 @@ export default class PolicyAdapter extends Adapter {
         Description: serialized.Description,
         Rules: serialized.Rules,
         Datacenters: serialized.Datacenters,
-        ...Namespace(serialized.Namespace),
       }}
     `;
   }
 
   requestForDeleteRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ...this.formatNspace(data[NSPACE_KEY]),
+      ...this.formatDatacenter(data.Datacenter),
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       DELETE /v1/acl/policy/${data[SLUG_KEY]}?${params}

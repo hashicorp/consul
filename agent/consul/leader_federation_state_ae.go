@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 const (
@@ -16,7 +17,7 @@ const (
 	federationStatePruneInterval = time.Hour
 )
 
-func (s *Server) startFederationStateAntiEntropy() {
+func (s *Server) startFederationStateAntiEntropy(ctx context.Context) {
 	// Check to see if we can skip waiting for serf feature detection below.
 	if !s.DatacenterSupportsFederationStates() {
 		_, fedStates, err := s.fsm.State().FederationStateList(nil)
@@ -30,12 +31,12 @@ func (s *Server) startFederationStateAntiEntropy() {
 	if s.config.DisableFederationStateAntiEntropy {
 		return
 	}
-	s.leaderRoutineManager.Start(federationStateAntiEntropyRoutineName, s.federationStateAntiEntropySync)
+	s.leaderRoutineManager.Start(ctx, federationStateAntiEntropyRoutineName, s.federationStateAntiEntropySync)
 
 	// If this is the primary, then also prune any stale datacenters from the
 	// list of federation states.
 	if s.config.PrimaryDatacenter == s.config.Datacenter {
-		s.leaderRoutineManager.Start(federationStatePruningRoutineName, s.federationStatePruning)
+		s.leaderRoutineManager.Start(ctx, federationStatePruningRoutineName, s.federationStatePruning)
 	}
 }
 
@@ -117,12 +118,9 @@ func (s *Server) updateOurFederationState(curr *structs.FederationState) error {
 
 	if s.config.Datacenter == s.config.PrimaryDatacenter {
 		// We are the primary, so we can't do an RPC as we don't have a replication token.
-		resp, err := s.raftApply(structs.FederationStateRequestType, args)
+		_, err := s.raftApply(structs.FederationStateRequestType, args)
 		if err != nil {
 			return err
-		}
-		if respErr, ok := resp.(error); ok {
-			return respErr
 		}
 	} else {
 		args.WriteRequest = structs.WriteRequest{
@@ -158,7 +156,7 @@ func (s *Server) fetchFederationStateAntiEntropyDetails(
 			}
 
 			// Fetch our current list of all mesh gateways.
-			entMeta := structs.WildcardEnterpriseMeta()
+			entMeta := structs.WildcardEnterpriseMetaInDefaultPartition()
 			idx2, raw, err := state.ServiceDump(ws, structs.ServiceKindMeshGateway, true, entMeta)
 			if err != nil {
 				return err
@@ -225,12 +223,9 @@ func (s *Server) pruneStaleFederationStates() error {
 				Datacenter: dc,
 			},
 		}
-		resp, err := s.raftApply(structs.FederationStateRequestType, &req)
+		_, err := s.raftApply(structs.FederationStateRequestType, &req)
 		if err != nil {
 			return fmt.Errorf("Failed to delete federation state %s: %v", dc, err)
-		}
-		if respErr, ok := resp.(error); ok {
-			return fmt.Errorf("Failed to delete federation state %s: %v", dc, respErr)
 		}
 	}
 

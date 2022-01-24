@@ -1,0 +1,3 @@
+```release-note:bug
+connect: ensure SAN validation for prepared queries validates against all possible prepared query targets
+```

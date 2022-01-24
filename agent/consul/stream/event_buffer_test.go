@@ -17,10 +17,6 @@ func TestEventBufferFuzz(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	if testing.Short() {
-		t.Skip("too slow for short run")
-	}
-
 	nReaders := 1000
 	nMessages := 1000
 

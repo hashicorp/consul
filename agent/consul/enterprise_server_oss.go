@@ -1,16 +1,19 @@
+//go:build !consulent
 // +build !consulent
 
 package consul
 
 import (
+	"context"
 	"errors"
 	"net"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 var (
@@ -21,7 +24,7 @@ var (
 
 type EnterpriseServer struct{}
 
-func (s *Server) initEnterprise() error {
+func (s *Server) initEnterprise(_ Deps) error {
 	return nil
 }
 
@@ -45,11 +48,7 @@ func (s *Server) handleEnterpriseLeave() {
 	return
 }
 
-func (s *Server) enterpriseStats() map[string]map[string]string {
-	return nil
-}
-
-func (s *Server) establishEnterpriseLeadership() error {
+func (s *Server) establishEnterpriseLeadership(_ context.Context) error {
 	return nil
 }
 
@@ -59,6 +58,18 @@ func (s *Server) revokeEnterpriseLeadership() error {
 
 func (s *Server) validateEnterpriseRequest(entMeta *structs.EnterpriseMeta, write bool) error {
 	return nil
+}
+
+func (s *Server) validateEnterpriseIntentionPartition(partition string) error {
+	if partition == "" {
+		return nil
+	} else if strings.ToLower(partition) == "default" {
+		return nil
+	}
+
+	// No special handling for wildcard partitions as they are pointless in OSS.
+
+	return errors.New("Partitions is a Consul Enterprise feature")
 }
 
 func (s *Server) validateEnterpriseIntentionNamespace(ns string, _ bool) error {
@@ -73,12 +84,31 @@ func (s *Server) validateEnterpriseIntentionNamespace(ns string, _ bool) error {
 	return errors.New("Namespaces is a Consul Enterprise feature")
 }
 
-func (_ *Server) addEnterpriseSerfTags(_ map[string]string) {
-	// do nothing
+// setupSerfLAN is used to setup and initialize a Serf for the LAN
+func (s *Server) setupSerfLAN(config *Config) error {
+	var err error
+	// Initialize the LAN Serf for the default network segment.
+	s.serfLAN, _, err = s.setupSerf(setupSerfOptions{
+		Config:       config.SerfLANConfig,
+		EventCh:      s.eventChLAN,
+		SnapshotPath: serfLANSnapshot,
+		Listener:     s.Listener,
+		WAN:          false,
+		Segment:      "",
+		Partition:    "",
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-// updateEnterpriseSerfTags in enterprise will update any instances of Serf with the tag that
-// are not the normal LAN or WAN serf instances (network segments and network areas)
-func (_ *Server) updateEnterpriseSerfTags(_, _ string) {
+func (s *Server) shutdownSerfLAN() {
+	if s.serfLAN != nil {
+		s.serfLAN.Shutdown()
+	}
+}
+
+func addEnterpriseSerfTags(_ map[string]string, _ *structs.EnterpriseMeta) {
 	// do nothing
 }

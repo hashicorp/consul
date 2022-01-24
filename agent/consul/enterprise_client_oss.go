@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package consul
@@ -8,8 +9,12 @@ import (
 
 type EnterpriseClient struct{}
 
-func (c *Client) initEnterprise() error {
+func (c *Client) initEnterprise(_ Deps) error {
 	return nil
+}
+
+func enterpriseModifyClientSerfConfigLAN(_ *Config, _ *serf.Config) {
+	// nothing
 }
 
 func (c *Client) startEnterprise() error {
@@ -22,8 +27,4 @@ func (c *Client) handleEnterpriseUserEvents(event serf.UserEvent) bool {
 
 func (c *Client) enterpriseStats() map[string]map[string]string {
 	return nil
-}
-
-func (_ *Client) addEnterpriseSerfTags(_ map[string]string) {
-	// do nothing
 }

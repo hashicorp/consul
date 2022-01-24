@@ -33,7 +33,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -76,8 +76,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Delete an ACL token"
-const help = `
+const (
+	synopsis = "Delete an ACL token"
+	help     = `
 Usage: consul acl token delete [options] -id TOKEN
 
   Deletes an ACL token by providing either the ID or a unique ID prefix.
@@ -90,3 +91,4 @@ Usage: consul acl token delete [options] -id TOKEN
 
           $ consul acl token delete -id b6b856da-5193-4e78-845a-7d61ca8371ba
 `
+)

@@ -56,6 +56,9 @@ func (a *Authenticator) GetAuthCodeURL(ctx context.Context, redirectURI string, 
 	authCodeOpts := []oauth2.AuthCodeOption{
 		oidc.Nonce(nonce),
 	}
+	if len(a.config.OIDCACRValues) > 0 {
+		authCodeOpts = append(authCodeOpts, oauth2.SetAuthURLParam("acr_values", strings.Join(a.config.OIDCACRValues, " ")))
+	}
 
 	return oauth2Config.AuthCodeURL(stateID, authCodeOpts...), nil
 }

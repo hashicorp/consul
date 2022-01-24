@@ -31,7 +31,7 @@ func newLeaf(t *testing.T, agentName, datacenter string, ca *structs.CARoot, idx
 		ValidBefore:    cert.NotAfter,
 		Agent:          agentID.Agent,
 		AgentURI:       agentID.URI().String(),
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		RaftIndex: structs.RaftIndex{
 			CreateIndex: idx,
 			ModifyIndex: idx,

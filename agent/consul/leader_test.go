@@ -9,16 +9,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/go-hclog"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/require"
 )
 
 func TestLeader_RegisterMember(t *testing.T) {
@@ -28,10 +29,10 @@ func TestLeader_RegisterMember(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -48,7 +49,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	// Client should be registered
 	state := s1.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -77,7 +78,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 
 	// Server should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(s1.config.NodeName)
+		_, node, err := state.GetNode(s1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -103,10 +104,10 @@ func TestLeader_FailedMember(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -126,7 +127,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	// Should be registered
 	state := s1.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -168,10 +169,10 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -187,7 +188,7 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -202,7 +203,7 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be deregistered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -218,10 +219,10 @@ func TestLeader_ReapMember(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -237,7 +238,7 @@ func TestLeader_ReapMember(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -247,7 +248,7 @@ func TestLeader_ReapMember(t *testing.T) {
 	})
 
 	// Simulate a node reaping
-	mems := s1.LANMembers()
+	mems := s1.LANMembersInAgentPartition()
 	var c1mem serf.Member
 	for _, m := range mems {
 		if m.Name == c1.config.NodeName {
@@ -262,7 +263,7 @@ func TestLeader_ReapMember(t *testing.T) {
 	// anti-entropy will put it back.
 	reaped := false
 	for start := time.Now(); time.Since(start) < 5*time.Second; {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -283,30 +284,30 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "allow"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "allow"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "allow"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
 	defer os.RemoveAll(dir3)
@@ -359,7 +360,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		member.Tags["nonvoter"] = "1"
 		member.Tags["read_replica"] = "1"
 		member.Tags["build"] = versionToExpect
-		err := s1.handleAliveMember(member)
+		err := s1.handleAliveMember(member, nil)
 		if err != nil {
 			r.Fatalf("Unexpected error :%v", err)
 		}
@@ -391,30 +392,30 @@ func TestLeader_ReapServer(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "allow"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "allow"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "allow"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
 	defer os.RemoveAll(dir3)
@@ -431,7 +432,7 @@ func TestLeader_ReapServer(t *testing.T) {
 
 	// s3 should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(s3.config.NodeName)
+		_, node, err := state.GetNode(s3.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -445,14 +446,14 @@ func TestLeader_ReapServer(t *testing.T) {
 	knownMembers[s1.config.NodeName] = struct{}{}
 	knownMembers[s2.config.NodeName] = struct{}{}
 
-	err := s1.reconcileReaped(knownMembers)
+	err := s1.reconcileReaped(knownMembers, nil)
 
 	if err != nil {
 		t.Fatalf("Unexpected error :%v", err)
 	}
 	// s3 should be deregistered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(s3.config.NodeName)
+		_, node, err := state.GetNode(s3.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -470,10 +471,10 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -507,7 +508,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 
 	// Node should be gone
 	state := s1.fsm.State()
-	_, node, err := state.GetNode("no-longer-around")
+	_, node, err := state.GetNode("no-longer-around", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -523,10 +524,10 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -540,7 +541,7 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	// Should not be registered
 	state := s1.fsm.State()
-	_, node, err := state.GetNode(c1.config.NodeName)
+	_, node, err := state.GetNode(c1.config.NodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -550,7 +551,7 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -582,7 +583,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	state := s1.fsm.State()
 	var nodeAddr string
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -618,7 +619,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	if err := s1.reconcile(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	_, node, err := state.GetNode(c1.config.NodeName)
+	_, node, err := state.GetNode(c1.config.NodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -642,7 +643,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	})
 
 	// Make sure the metadata didn't get clobbered.
-	_, node, err = state.GetNode(c1.config.NodeName)
+	_, node, err = state.GetNode(c1.config.NodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -686,7 +687,7 @@ func TestLeader_LeftServer(t *testing.T) {
 	servers[0].Shutdown()
 
 	// Force remove the non-leader (transition to left state)
-	if err := servers[1].RemoveFailedNode(servers[0].config.NodeName, false); err != nil {
+	if err := servers[1].RemoveFailedNode(servers[0].config.NodeName, false, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -757,7 +758,7 @@ func TestLeader_LeftLeader(t *testing.T) {
 	// Verify the old leader is deregistered
 	state := remain.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(leader.config.NodeName)
+		_, node, err := state.GetNode(leader.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -872,10 +873,10 @@ func TestLeader_ReapTombstones(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.TombstoneTTL = 50 * time.Millisecond
 		c.TombstoneTTLGranularity = 10 * time.Millisecond
 	})
@@ -1043,7 +1044,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		alive := 0
-		for _, m := range s1.LANMembers() {
+		for _, m := range s1.LANMembersInAgentPartition() {
 			if m.Status == serf.StatusAlive {
 				alive++
 			}
@@ -1116,10 +1117,10 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 
 	// Shut down a server, freeing up its address/port
 	s3.Shutdown()
-	// wait for s1.LANMembers() to show s3 as StatusFailed or StatusLeft on
+	// wait for s1.LANMembersInAgentPartition() to show s3 as StatusFailed or StatusLeft on
 	retry.Run(t, func(r *retry.R) {
 		var gone bool
-		for _, m := range s1.LANMembers() {
+		for _, m := range s1.LANMembersInAgentPartition() {
 			if m.Name == s3.config.NodeName && (m.Status == serf.StatusFailed || m.Status == serf.StatusLeft) {
 				gone = true
 			}
@@ -1147,7 +1148,7 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 	})
 
 	retry.Run(t, func(r *retry.R) {
-		for _, m := range s1.LANMembers() {
+		for _, m := range s1.LANMembersInAgentPartition() {
 			require.Equal(r, serf.StatusAlive, m.Status)
 		}
 	})
@@ -1161,15 +1162,15 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
-		build     string
-		master    string
-		bootstrap bool
+		name              string
+		build             string
+		initialManagement string
+		bootstrap         bool
 	}{
-		{"old version, no master", "0.8.0", "", true},
-		{"old version, master", "0.8.0", "root", false},
-		{"new version, no master", "0.9.1", "", true},
-		{"new version, master", "0.9.1", "root", false},
+		{"old version, no initial management", "0.8.0", "", true},
+		{"old version, initial management", "0.8.0", "root", false},
+		{"new version, no initial management", "0.9.1", "", true},
+		{"new version, initial management", "0.9.1", "root", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1177,19 +1178,19 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				c.Build = tt.build
 				c.Bootstrap = true
 				c.Datacenter = "dc1"
-				c.ACLDatacenter = "dc1"
+				c.PrimaryDatacenter = "dc1"
 				c.ACLsEnabled = true
-				c.ACLMasterToken = tt.master
+				c.ACLInitialManagementToken = tt.initialManagement
 			}
 			dir1, s1 := testServerWithConfig(t, conf)
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
 			testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-			if tt.master != "" {
-				_, master, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.master, nil)
+			if tt.initialManagement != "" {
+				_, initialManagement, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.initialManagement, nil)
 				require.NoError(t, err)
-				require.NotNil(t, master)
+				require.NotNil(t, initialManagement)
 			}
 
 			_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken, nil)
@@ -1207,72 +1208,6 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 	}
 }
 
-func TestLeader_ACLUpgrade(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	// create a legacy management ACL
-	mgmt := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "Management token",
-			Type: structs.ACLTokenTypeManagement,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var mgmt_id string
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &mgmt, &mgmt_id))
-
-	// wait for it to be upgraded
-	retry.Run(t, func(t *retry.R) {
-		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, mgmt_id, nil)
-		require.NoError(t, err)
-		require.NotNil(t, token)
-		require.NotEqual(t, "", token.AccessorID)
-		require.Equal(t, structs.ACLTokenTypeManagement, token.Type)
-		require.Len(t, token.Policies, 1)
-		require.Equal(t, structs.ACLPolicyGlobalManagementID, token.Policies[0].ID)
-	})
-
-	// create a legacy management ACL
-	client := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "Management token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: `node "" { policy = "read"}`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var client_id string
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &client, &client_id))
-
-	// wait for it to be upgraded
-	retry.Run(t, func(t *retry.R) {
-		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, client_id, nil)
-		require.NoError(t, err)
-		require.NotNil(t, token)
-		require.NotEqual(t, "", token.AccessorID)
-		require.Len(t, token.Policies, 0)
-		require.Equal(t, structs.ACLTokenTypeClient, token.Type)
-		require.Equal(t, client.ACL.Rules, token.Rules)
-	})
-}
-
 func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1288,9 +1223,9 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1301,7 +1236,7 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLTokenReplication = false
 		c.ACLReplicationRate = 100
@@ -1322,18 +1257,15 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	joinWAN(t, s2, s1)
 	waitForLeaderEstablishment(t, s1)
 	waitForLeaderEstablishment(t, s2)
-
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies, 1, 0, 0)
 
 	// Everybody has the management policy.
 	retry.Run(t, func(r *retry.R) {
-		_, policy1, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
+		_, policy1, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
 		require.NoError(r, err)
 		require.NotNil(r, policy1)
 
-		_, policy2, err := s2.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
+		_, policy2, err := s2.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
 		require.NoError(r, err)
 		require.NotNil(r, policy2)
 	})
@@ -1346,7 +1278,7 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 
 	dir2new, s2new := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLTokenReplication = false
 		c.ACLReplicationRate = 100
@@ -1361,9 +1293,6 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	defer s2new.Shutdown()
 
 	waitForLeaderEstablishment(t, s2new)
-
-	// It should be able to transition without connectivity to the primary.
-	waitForNewACLs(t, s2new)
 }
 
 func TestLeader_ConfigEntryBootstrap(t *testing.T) {
@@ -1392,7 +1321,7 @@ func TestLeader_ConfigEntryBootstrap(t *testing.T) {
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	retry.Run(t, func(t *retry.R) {
-		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
+		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMetaInDefaultPartition())
 		require.NoError(t, err)
 		require.NotNil(t, entry)
 		global, ok := entry.(*structs.ProxyConfigEntry)
@@ -1540,30 +1469,6 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 	}
 }
 
-func TestLeader_ACLLegacyReplication(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-
-	// This test relies on configuring a secondary DC with no route to the primary DC
-	// Having no route will cause the ACL mode checking of the primary to "fail". In this
-	// scenario legacy ACL replication should be enabled without also running new ACL
-	// replication routines.
-	cb := func(c *Config) {
-		c.Datacenter = "dc2"
-		c.ACLTokenReplication = true
-	}
-	_, srv, _ := testACLServerWithConfig(t, cb, true)
-	waitForLeaderEstablishment(t, srv)
-
-	require.True(t, srv.leaderRoutineManager.IsRunning(legacyACLReplicationRoutineName))
-	require.False(t, srv.leaderRoutineManager.IsRunning(aclPolicyReplicationRoutineName))
-	require.False(t, srv.leaderRoutineManager.IsRunning(aclRoleReplicationRoutineName))
-	require.False(t, srv.leaderRoutineManager.IsRunning(aclTokenReplicationRoutineName))
-}
-
 func TestDatacenterSupportsFederationStates(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1596,7 +1501,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1651,7 +1556,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1826,7 +1731,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1917,7 +1822,7 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 		tags["ft_si"] = "0"
 	}
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	t.Run("one node primary with old version", func(t *testing.T) {
 		dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -2213,5 +2118,228 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 			addLegacyIntention(s2, "dc1", "web", "api", true),
 			ErrIntentionsNotUpgradedYet.Error(),
 		)
+	})
+}
+
+func TestLeader_EnableVirtualIPs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	orig := virtualIPVersionCheckInterval
+	virtualIPVersionCheckInterval = 50 * time.Millisecond
+	t.Cleanup(func() { virtualIPVersionCheckInterval = orig })
+
+	conf := func(c *Config) {
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.Datacenter = "dc1"
+		c.Build = "1.11.2"
+	}
+	dir1, s1 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		conf(c)
+		c.Build = "1.10.0"
+	})
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join and wait for all servers to get promoted
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Should have nothing stored.
+	state := s1.fsm.State()
+	_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
+	require.NoError(t, err)
+	require.Nil(t, entry)
+	state = s1.fsm.State()
+	_, entry, err = state.SystemMetadataGet(nil, structs.SystemMetadataTermGatewayVirtualIPsEnabled)
+	require.NoError(t, err)
+	require.Nil(t, entry)
+
+	// Register a connect-native service and make sure we don't have a virtual IP yet.
+	err = state.EnsureRegistration(10, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	vip, err := state.VirtualIPForService(structs.NewServiceName("api", nil))
+	require.NoError(t, err)
+	require.Equal(t, "", vip)
+
+	// Register a terminating gateway.
+	err = state.EnsureRegistration(11, &structs.RegisterRequest{
+		Node:    "bar",
+		Address: "127.0.0.2",
+		Service: &structs.NodeService{
+			Service: "tgate1",
+			ID:      "tgate1",
+			Kind:    structs.ServiceKindTerminatingGateway,
+		},
+	})
+	require.NoError(t, err)
+
+	err = state.EnsureConfigEntry(12, &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "tgate1",
+		Services: []structs.LinkedService{
+			{
+				Name: "bar",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// Make sure the service referenced in the terminating gateway config doesn't have
+	// a virtual IP yet.
+	vip, err = state.VirtualIPForService(structs.NewServiceName("bar", nil))
+	require.NoError(t, err)
+	require.Equal(t, "", vip)
+
+	// Leave s3 and wait for the version to get updated.
+	require.NoError(t, s3.Leave())
+	retry.Run(t, func(r *retry.R) {
+		_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
+		require.NoError(r, err)
+		require.NotNil(r, entry)
+		require.Equal(r, "true", entry.Value)
+		_, entry, err = state.SystemMetadataGet(nil, structs.SystemMetadataTermGatewayVirtualIPsEnabled)
+		require.NoError(r, err)
+		require.NotNil(r, entry)
+		require.Equal(r, "true", entry.Value)
+	})
+
+	// Update the connect-native service - now there should be a virtual IP assigned.
+	err = state.EnsureRegistration(20, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.2",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	vip, err = state.VirtualIPForService(structs.NewServiceName("api", nil))
+	require.NoError(t, err)
+	require.Equal(t, "240.0.0.1", vip)
+
+	// Update the terminating gateway config entry - now there should be a virtual IP assigned.
+	err = state.EnsureConfigEntry(21, &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "tgate1",
+		Services: []structs.LinkedService{
+			{
+				Name: "api",
+			},
+			{
+				Name: "baz",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	_, node, err := state.NodeService("bar", "tgate1", nil)
+	require.NoError(t, err)
+	sn := structs.ServiceName{Name: "api"}
+	key := structs.ServiceGatewayVirtualIPTag(sn)
+	require.Contains(t, node.TaggedAddresses, key)
+	require.Equal(t, node.TaggedAddresses[key].Address, "240.0.0.1")
+
+	// Make sure the baz service (only referenced in the config entry so far)
+	// has a virtual IP.
+	vip, err = state.VirtualIPForService(structs.NewServiceName("baz", nil))
+	require.NoError(t, err)
+	require.Equal(t, "240.0.0.2", vip)
+}
+
+func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = true
+		c.Datacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken, nil)
+		require.NoError(r, err)
+		require.NotNil(r, anon)
+		require.Len(r, anon.Policies, 0)
+	})
+
+	reqToken := structs.ACLTokenSetRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			AccessorID:  structs.ACLTokenAnonymousID,
+			SecretID:    anonymousToken,
+			Description: "Anonymous Token",
+			CreateTime:  time.Now(),
+			Policies: []structs.ACLTokenPolicyLink{
+				{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var respToken structs.ACLToken
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &reqToken, &respToken))
+
+	// Restart the server to re-initialize ACLs when establishing leadership
+	require.NoError(t, s1.Shutdown())
+	dir2, newS1 := testServerWithConfig(t, func(c *Config) {
+		// Keep existing data dir and node info since it's a restart
+		c.DataDir = s1.config.DataDir
+		c.NodeName = s1.config.NodeName
+		c.NodeID = s1.config.NodeID
+		c.Bootstrap = true
+		c.Datacenter = "dc1"
+		c.ACLsEnabled = true
+	})
+	defer os.RemoveAll(dir2)
+	defer newS1.Shutdown()
+	testrpc.WaitForTestAgent(t, newS1.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		_, anon, err := newS1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken, nil)
+		require.NoError(r, err)
+		require.NotNil(r, anon)
+
+		// Existing token should not have been purged during ACL initialization
+		require.Len(r, anon.Policies, 1)
+		require.Equal(r, structs.ACLPolicyGlobalManagementID, anon.Policies[0].ID)
 	})
 }

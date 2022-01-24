@@ -1,7 +1,6 @@
 ---
 layout: docs
 page_title: Sessions
-sidebar_title: Sessions
 description: >-
   Consul provides a session mechanism which can be used to build distributed
   locks. Sessions act as a binding layer between nodes, health checks, and
@@ -52,7 +51,7 @@ deleted by Consul.
 
 While this is a simple design, it enables a multitude of usage
 patterns. By default, the
-[gossip based failure detector](/docs/internals/gossip)
+[gossip based failure detector](/docs/architecture/gossip)
 is used as the associated health check. This failure detector allows
 Consul to detect when a node that is holding a lock has failed and
 to automatically release the lock. This ability provides **liveness** to

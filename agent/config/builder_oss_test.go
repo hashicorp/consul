@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package config
@@ -97,11 +98,24 @@ func TestValidateEnterpriseConfigKeys(t *testing.T) {
 				require.Nil(t, c.ACL.Tokens.ManagedServiceProvider)
 			},
 		},
+		"license_path": {
+			config: Config{
+				LicensePath: &stringVal,
+			},
+			badKeys: []string{"license_path"},
+			check: func(t *testing.T, c *Config) {
+				require.Empty(t, c.LicensePath)
+			},
+		},
 		"multi": {
 			config: Config{
 				ReadReplica: &boolVal,
 				SegmentName: &stringVal,
-				ACL:         ACL{Tokens: Tokens{AgentMaster: &stringVal}},
+				ACL: ACL{
+					Tokens: Tokens{
+						DeprecatedTokens: DeprecatedTokens{AgentMaster: &stringVal},
+					},
+				},
 			},
 			badKeys: []string{"read_replica (or the deprecated non_voting_server)", "segment"},
 		},

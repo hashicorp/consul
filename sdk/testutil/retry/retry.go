@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -35,12 +34,17 @@ type Failer interface {
 // R provides context for the retryer.
 type R struct {
 	fail   bool
+	done   bool
 	output []string
 }
 
+func (r *R) Helper() {}
+
+var runFailed = struct{}{}
+
 func (r *R) FailNow() {
 	r.fail = true
-	runtime.Goexit()
+	panic(runFailed)
 }
 
 func (r *R) Fatal(args ...interface{}) {
@@ -74,6 +78,12 @@ func (r *R) log(s string) {
 	r.output = append(r.output, decorate(s))
 }
 
+// Stop retrying, and fail the test with the specified error.
+func (r *R) Stop(err error) {
+	r.log(err.Error())
+	r.done = true
+}
+
 func decorate(s string) string {
 	_, file, line, ok := runtime.Caller(3)
 	if ok {
@@ -89,10 +99,12 @@ func decorate(s string) string {
 }
 
 func Run(t Failer, f func(r *R)) {
+	t.Helper()
 	run(DefaultFailer(), t, f)
 }
 
 func RunWith(r Retryer, t Failer, f func(r *R)) {
+	t.Helper()
 	run(r, t, f)
 }
 
@@ -100,23 +112,23 @@ func dedup(a []string) string {
 	if len(a) == 0 {
 		return ""
 	}
-	m := map[string]int{}
-	for _, s := range a {
-		m[s] = m[s] + 1
-	}
+	seen := map[string]struct{}{}
 	var b bytes.Buffer
 	for _, s := range a {
-		if _, ok := m[s]; ok {
-			b.WriteString(s)
-			b.WriteRune('\n')
-			delete(m, s)
+		if _, ok := seen[s]; ok {
+			continue
 		}
+		seen[s] = struct{}{}
+		b.WriteString(s)
+		b.WriteRune('\n')
 	}
 	return b.String()
 }
 
 func run(r Retryer, t Failer, f func(r *R)) {
+	t.Helper()
 	rr := &R{}
+
 	fail := func() {
 		t.Helper()
 		out := dedup(rr.output)
@@ -125,20 +137,27 @@ func run(r Retryer, t Failer, f func(r *R)) {
 		}
 		t.FailNow()
 	}
-	for r.NextOr(fail) {
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+
+	for r.Continue() {
+		func() {
+			defer func() {
+				if p := recover(); p != nil && p != runFailed {
+					panic(p)
+				}
+			}()
 			f(rr)
 		}()
-		wg.Wait()
-		if rr.fail {
-			rr.fail = false
-			continue
+
+		switch {
+		case rr.done:
+			fail()
+			return
+		case !rr.fail:
+			return
 		}
-		break
+		rr.fail = false
 	}
+	fail()
 }
 
 // DefaultFailer provides default retry.Run() behavior for unit tests.
@@ -159,9 +178,9 @@ func ThreeTimes() *Counter {
 // Retryer provides an interface for repeating operations
 // until they succeed or an exit condition is met.
 type Retryer interface {
-	// NextOr returns true if the operation should be repeated.
-	// Otherwise, it calls fail and returns false.
-	NextOr(fail func()) bool
+	// Continue returns true if the operation should be repeated, otherwise it
+	// returns false to indicate retrying should stop.
+	Continue() bool
 }
 
 // Counter repeats an operation a given number of
@@ -173,9 +192,8 @@ type Counter struct {
 	count int
 }
 
-func (r *Counter) NextOr(fail func()) bool {
+func (r *Counter) Continue() bool {
 	if r.count == r.Count {
-		fail()
 		return false
 	}
 	if r.count > 0 {
@@ -196,13 +214,12 @@ type Timer struct {
 	stop time.Time
 }
 
-func (r *Timer) NextOr(fail func()) bool {
+func (r *Timer) Continue() bool {
 	if r.stop.IsZero() {
 		r.stop = time.Now().Add(r.Timeout)
 		return true
 	}
 	if time.Now().After(r.stop) {
-		fail()
 		return false
 	}
 	time.Sleep(r.Wait)

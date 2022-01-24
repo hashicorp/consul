@@ -10,10 +10,11 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -44,6 +45,10 @@ type Listener struct {
 	// `connection refused`. Retry loops and sleeps are unpleasant workarounds and
 	// this is cheap and correct.
 	listeningChan chan struct{}
+
+	// listenerLock guards access to the listener field
+	listenerLock sync.Mutex
+	listener     net.Listener
 
 	logger hclog.Logger
 
@@ -136,14 +141,17 @@ func (l *Listener) Serve() error {
 		return errors.New("serve called on a closed listener")
 	}
 
-	listen, err := l.listenFunc()
+	listener, err := l.listenFunc()
 	if err != nil {
 		return err
 	}
+
+	l.setListener(listener)
+
 	close(l.listeningChan)
 
 	for {
-		conn, err := listen.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			if atomic.LoadInt32(&l.stopFlag) == 1 {
 				return nil
@@ -151,6 +159,7 @@ func (l *Listener) Serve() error {
 			return err
 		}
 
+		l.connWG.Add(1)
 		go l.handleConn(conn)
 	}
 }
@@ -158,6 +167,8 @@ func (l *Listener) Serve() error {
 // handleConn is the internal connection handler goroutine.
 func (l *Listener) handleConn(src net.Conn) {
 	defer src.Close()
+	// Make sure Listener.Close waits for this conn to be cleaned up.
+	defer l.connWG.Done()
 
 	dst, err := l.dialFunc()
 	if err != nil {
@@ -168,11 +179,6 @@ func (l *Listener) handleConn(src net.Conn) {
 	// Track active conn now (first function call) and defer un-counting it when
 	// it closes.
 	defer l.trackConn()()
-
-	// Make sure Close() waits for this conn to be cleaned up. Note defer is
-	// before conn.Close() so runs after defer conn.Close().
-	l.connWG.Add(1)
-	defer l.connWG.Done()
 
 	// Note no need to defer dst.Close() since conn handles that for us.
 	conn := NewConn(src, dst)
@@ -241,12 +247,23 @@ func (l *Listener) trackConn() func() {
 
 // Close terminates the listener and all active connections.
 func (l *Listener) Close() error {
+	// Prevent the listener from being started.
 	oldFlag := atomic.SwapInt32(&l.stopFlag, 1)
-	if oldFlag == 0 {
-		close(l.stopChan)
-		// Wait for all conns to close
-		l.connWG.Wait()
+	if oldFlag != 0 {
+		return nil
 	}
+
+	// Stop the current listener and stop accepting new requests.
+	if listener := l.getListener(); listener != nil {
+		listener.Close()
+	}
+
+	// Stop outstanding requests.
+	close(l.stopChan)
+
+	// Wait for all conns to close
+	l.connWG.Wait()
+
 	return nil
 }
 
@@ -258,4 +275,16 @@ func (l *Listener) Wait() {
 // BindAddr returns the address the listen is bound to.
 func (l *Listener) BindAddr() string {
 	return l.bindAddr
+}
+
+func (l *Listener) setListener(listener net.Listener) {
+	l.listenerLock.Lock()
+	l.listener = listener
+	l.listenerLock.Unlock()
+}
+
+func (l *Listener) getListener() net.Listener {
+	l.listenerLock.Lock()
+	defer l.listenerLock.Unlock()
+	return l.listener
 }

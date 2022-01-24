@@ -1,29 +1,30 @@
-<StateChart @src={{chart}} as |State Guard Action dispatch state|>
-  <Ref @target={{this}} @name="dispatch" @value={{dispatch}} />
+<StateChart
+  @src={{this.chart}}
+  as |State Guard Action dispatch state|
+>
   <div
-    {{did-insert this.connect}}
-    {{will-destroy this.disconnect}}
     class="copy-button"
-    id={{this.guid}}
     ...attributes
   >
+{{#let (fn dispatch 'SUCCESS') (fn dispatch 'ERROR') (fn dispatch 'RESET') as |success error reset|}}
     <button
-      title={{concat "Copy " @name " to the clipboard"}}
+      {{with-copyable @value success=success error=error}}
+      aria-label={{t 'components.copy-button.title' name=@name}}
       type="button"
       class="copy-btn"
-      data-clipboard-text={{@value}}
       ...attributes
       {{tooltip
-        (if (state-matches state 'success') (concat 'Copied ' @name '!!') 'There was a problem!')
+        (if (state-matches state 'success') (t 'components.copy-button.success' name=@name) (t 'components.copy-button.error'))
         options=(hash
           trigger='manual'
           showOnCreate=(not (state-matches state 'idle'))
           delay=(array 0 3000)
-          onHidden=(action dispatch 'RESET')
+          onHidden=reset
         )
       }}
     >
       {{~yield~}}
     </button>
+{{/let}}
   </div>
 </StateChart>

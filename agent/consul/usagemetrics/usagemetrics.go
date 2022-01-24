@@ -8,9 +8,11 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/serf"
+
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
 )
 
 var Gauges = []prometheus.GaugeDefinition{
@@ -26,7 +28,29 @@ var Gauges = []prometheus.GaugeDefinition{
 		Name: []string{"consul", "state", "service_instances"},
 		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
+	{
+		Name: []string{"consul", "members", "clients"},
+		Help: "Measures the current number of client agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
+	},
+	{
+		Name: []string{"consul", "members", "servers"},
+		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
+	},
+	{
+		Name: []string{"consul", "kv", "entries"},
+		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.10.3.",
+	},
+	{
+		Name: []string{"consul", "state", "connect_instances"},
+		Help: "Measures the current number of unique connect service instances registered with Consul, labeled by Kind. It is only emitted by Consul servers. Added in v1.10.4.",
+	},
+	{
+		Name: []string{"consul", "state", "config_entries"},
+		Help: "Measures the current number of unique configuration entries registered with Consul, labeled by Kind. It is only emitted by Consul servers. Added in v1.10.4.",
+	},
 }
+
+type getMembersFunc func() []serf.Member
 
 // Config holds the settings for various parameters for the
 // UsageMetricsReporter
@@ -35,6 +59,7 @@ type Config struct {
 	metricLabels   []metrics.Label
 	stateProvider  StateProvider
 	tickerInterval time.Duration
+	getMembersFunc getMembersFunc
 }
 
 // WithDatacenter adds the datacenter as a label to all metrics emitted by the
@@ -63,6 +88,12 @@ func (c *Config) WithStateProvider(sp StateProvider) *Config {
 	return c
 }
 
+// WithGetMembersFunc specifies the function used to identify cluster members
+func (c *Config) WithGetMembersFunc(fn getMembersFunc) *Config {
+	c.getMembersFunc = fn
+	return c
+}
+
 // StateProvider defines an inteface for retrieving a state.Store handle. In
 // non-test code, this is satisfied by the fsm.FSM struct.
 type StateProvider interface {
@@ -77,11 +108,16 @@ type UsageMetricsReporter struct {
 	metricLabels   []metrics.Label
 	stateProvider  StateProvider
 	tickerInterval time.Duration
+	getMembersFunc getMembersFunc
 }
 
 func NewUsageMetricsReporter(cfg *Config) (*UsageMetricsReporter, error) {
 	if cfg.stateProvider == nil {
 		return nil, errors.New("must provide a StateProvider to usage reporter")
+	}
+
+	if cfg.getMembersFunc == nil {
+		return nil, errors.New("must provide a getMembersFunc to usage reporter")
 	}
 
 	if cfg.logger == nil {
@@ -98,6 +134,7 @@ func NewUsageMetricsReporter(cfg *Config) (*UsageMetricsReporter, error) {
 		stateProvider:  cfg.stateProvider,
 		metricLabels:   cfg.metricLabels,
 		tickerInterval: cfg.tickerInterval,
+		getMembersFunc: cfg.getMembersFunc,
 	}
 
 	return u, nil
@@ -120,16 +157,15 @@ func (u *UsageMetricsReporter) Run(ctx context.Context) {
 }
 
 func (u *UsageMetricsReporter) runOnce() {
+	u.logger.Trace("Starting usage run")
 	state := u.stateProvider.State()
-	_, nodes, err := state.NodeCount()
+
+	_, nodeUsage, err := state.NodeUsage()
 	if err != nil {
 		u.logger.Warn("failed to retrieve nodes from state store", "error", err)
 	}
-	metrics.SetGaugeWithLabels(
-		[]string{"consul", "state", "nodes"},
-		float32(nodes),
-		u.metricLabels,
-	)
+
+	u.emitNodeUsage(nodeUsage)
 
 	_, serviceUsage, err := state.ServiceUsage()
 	if err != nil {
@@ -137,4 +173,42 @@ func (u *UsageMetricsReporter) runOnce() {
 	}
 
 	u.emitServiceUsage(serviceUsage)
+
+	members := u.memberUsage()
+	u.emitMemberUsage(members)
+
+	_, kvUsage, err := state.KVUsage()
+	if err != nil {
+		u.logger.Warn("failed to retrieve kv entry usage from state store", "error", err)
+	}
+
+	u.emitKVUsage(kvUsage)
+
+	_, configUsage, err := state.ConfigEntryUsage()
+	if err != nil {
+		u.logger.Warn("failed to retrieve config usage from state store", "error", err)
+	}
+
+	u.emitConfigEntryUsage(configUsage)
+}
+
+func (u *UsageMetricsReporter) memberUsage() []serf.Member {
+	if u.getMembersFunc == nil {
+		return nil
+	}
+
+	mems := u.getMembersFunc()
+	if len(mems) <= 0 {
+		u.logger.Warn("cluster reported zero members")
+	}
+
+	out := make([]serf.Member, 0, len(mems))
+	for _, m := range mems {
+		if m.Status != serf.StatusAlive {
+			continue
+		}
+		out = append(out, m)
+	}
+
+	return out
 }

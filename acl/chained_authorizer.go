@@ -145,6 +145,22 @@ func (c *ChainedAuthorizer) KeyringWrite(entCtx *AuthorizerContext) EnforcementD
 	})
 }
 
+// MeshRead determines if the read-only Consul mesh functions
+// can be used.
+func (c *ChainedAuthorizer) MeshRead(entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.MeshRead(entCtx)
+	})
+}
+
+// MeshWrite determines if the state-changing Consul mesh
+// functions can be used.
+func (c *ChainedAuthorizer) MeshWrite(entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.MeshWrite(entCtx)
+	})
+}
+
 // NodeRead checks for permission to read (discover) a given node.
 func (c *ChainedAuthorizer) NodeRead(node string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {

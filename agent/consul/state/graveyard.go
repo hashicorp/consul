@@ -3,8 +3,9 @@ package state
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // Tombstone is the internal type used to track tombstones.
@@ -13,6 +14,10 @@ type Tombstone struct {
 	Index uint64
 
 	structs.EnterpriseMeta
+}
+
+func (t Tombstone) IDValue() string {
+	return t.Key
 }
 
 // Graveyard manages a set of tombstones.
@@ -49,37 +54,14 @@ func (g *Graveyard) InsertTxn(tx WriteTxn, key string, idx uint64, entMeta *stru
 	return nil
 }
 
-// GetMaxIndexTxn returns the highest index tombstone whose key matches the
-// given context, using a prefix match.
-func (g *Graveyard) GetMaxIndexTxn(tx ReadTxn, prefix string, entMeta *structs.EnterpriseMeta) (uint64, error) {
-	stones, err := getWithTxn(tx, "tombstones", "id_prefix", prefix, entMeta)
-	if err != nil {
-		return 0, fmt.Errorf("failed querying tombstones: %s", err)
-	}
-
-	var lindex uint64
-	for stone := stones.Next(); stone != nil; stone = stones.Next() {
-		s := stone.(*Tombstone)
-		if s.Index > lindex {
-			lindex = s.Index
-		}
-	}
-	return lindex, nil
-}
-
 // DumpTxn returns all the tombstones.
 func (g *Graveyard) DumpTxn(tx ReadTxn) (memdb.ResultIterator, error) {
-	iter, err := tx.Get("tombstones", "id")
-	if err != nil {
-		return nil, err
-	}
-
-	return iter, nil
+	return tx.Get(tableTombstones, indexID)
 }
 
 // RestoreTxn is used when restoring from a snapshot. For general inserts, use
 // InsertTxn.
-func (g *Graveyard) RestoreTxn(tx *txn, stone *Tombstone) error {
+func (g *Graveyard) RestoreTxn(tx WriteTxn, stone *Tombstone) error {
 	if err := g.insertTombstoneWithTxn(tx, "tombstones", stone, true); err != nil {
 		return fmt.Errorf("failed inserting tombstone: %s", err)
 	}
@@ -89,11 +71,11 @@ func (g *Graveyard) RestoreTxn(tx *txn, stone *Tombstone) error {
 
 // ReapTxn cleans out all tombstones whose index values are less than or equal
 // to the given idx. This prevents unbounded storage growth of the tombstones.
-func (g *Graveyard) ReapTxn(tx *txn, idx uint64) error {
+func (g *Graveyard) ReapTxn(tx WriteTxn, idx uint64) error {
 	// This does a full table scan since we currently can't index on a
 	// numeric value. Since this is all in-memory and done infrequently
 	// this pretty reasonable.
-	stones, err := tx.Get("tombstones", "id")
+	stones, err := tx.Get(tableTombstones, indexID)
 	if err != nil {
 		return fmt.Errorf("failed querying tombstones: %s", err)
 	}

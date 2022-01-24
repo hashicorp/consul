@@ -1,0 +1,37 @@
+# OidcSelect
+
+OidcSelect is a mostly template only form component specifically providing a
+way for the user to select their OIDC provider for their available options
+which can depend upon whether they have any OIDC providers confifured for
+their partition. The necessary functionality/data retrieval is all composed
+together using a StateChart to orchestrate the flow.
+
+unlike most other components which require 'buckets' specifying, this
+component **does not** require a `@partition` argument as this needs to be
+provided by the user.
+
+
+```hbs preview-template
+<OidcSelect
+  @dc={{'dc-1'}}
+  @nspace={{'default'}}
+  @disabled={{false}}
+  @onchange={{noop}}
+  @onerror={{noop}}
+/>
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dc` | `String` | | The name of the current datacenter |
+| `nspace` | `String` | | The name of the current namespace |
+| `onchange` | `Function` |  | The action to fire when an oidc provider has been selected/changed |
+
+## See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

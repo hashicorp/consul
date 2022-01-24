@@ -22,7 +22,7 @@ export default class IntentionSerializer extends Serializer {
       item.LegacyID = item.ID;
     }
     item.ID = this
-      .uri`${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}`;
+      .uri`${item.SourcePartition}:${item.SourceNS}:${item.SourceName}:${item.DestinationPartition}:${item.DestinationNS}:${item.DestinationName}`;
     return item;
   }
 
@@ -56,7 +56,7 @@ export default class IntentionSerializer extends Serializer {
     return respond((headers, body) => {
       body = data;
       body.ID = this
-        .uri`${serialized.SourceNS}:${serialized.SourceName}:${serialized.DestinationNS}:${serialized.DestinationName}`;
+        .uri`${serialized.SourcePartition}:${serialized.SourceNS}:${serialized.SourceName}:${serialized.DestinationPartition}:${serialized.DestinationNS}:${serialized.DestinationName}`;
       return this.fingerprint(primaryKey, slugKey, body.Datacenter)(body);
     });
   }

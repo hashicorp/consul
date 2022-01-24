@@ -1,7 +1,6 @@
 ---
 layout: docs
 page_title: Terminating Gateways - Kubernetes
-sidebar_title: Terminating Gateways
 description: Configuring Terminating Gateways on Kubernetes
 ---
 
@@ -9,18 +8,20 @@ description: Configuring Terminating Gateways on Kubernetes
 
 -> 1.9.0+: This feature is available in Consul versions 1.9.0 and higher
 
-~> This topic requires familiarity with [Terminating Gateways](/docs/connect/terminating-gateway).
+~> This topic requires familiarity with [Terminating Gateways](/docs/connect/gateways/terminating-gateway).
 
 Adding a terminating gateway is a multi-step process:
 
-- Update the helm chart with terminating gateway config options
-- Deploy the helm chart
+- Update the Helm chart with terminating gateway config options
+- Deploy the Helm chart
 - Access the Consul agent
 - Register external services with Consul
 
 ## Update the helm chart with terminating gateway config options
 
 Minimum required Helm options:
+
+<CodeBlockConfig filename="config.yaml">
 
 ```yaml
 global:
@@ -33,7 +34,9 @@ terminatingGateways:
   enabled: true
 ```
 
-## Deploying the helm chart
+</CodeBlockConfig>
+
+## Deploying the Helm chart
 
 Ensure you have the latest consul-helm chart and install Consul via helm using the following
 [guide](/docs/k8s/installation/install#installing-consul) while being sure to provide the yaml configuration
@@ -70,7 +73,7 @@ $ export CONSUL_HTTP_SSL_VERIFY=false
 If ACLs are enabled also set:
 
 ```shell-session
-$ export CONSUL_HTTP_TOKEN=$(kubectl get secret consul-bootstrap-acl-token -o jsonpath={.data.token} | base64 -D)
+$ export CONSUL_HTTP_TOKEN=$(kubectl get secret consul-bootstrap-acl-token --template='{{.data.token | base64decode }}')
 ```
 
 ## Register external services with Consul
@@ -85,17 +88,25 @@ Registering the external services with Consul is a multi-step process:
 
 ### Register external services with Consul
 
+-> **Note:** Normal Consul services are registered with the Consul client on the node that
+they're running on. Since this is an external service, there is no Consul node
+to register it onto. Instead, we will make up a node name and register the
+service to that node.
+
 Create a sample external service and register it with Consul.
+
+<CodeBlockConfig filename="external.json">
 
 ```json
 {
-  "Node": "legacy_node",
+  "Node": "example_com",
   "Address": "example.com",
   "NodeMeta": {
     "external-node": "true",
     "external-probe": "true"
   },
   "Service": {
+    "Address": "example.com",
     "ID": "example-https",
     "Service": "example-https",
     "Port": 443
@@ -103,17 +114,27 @@ Create a sample external service and register it with Consul.
 }
 ```
 
+</CodeBlockConfig>
+
+- `"Node": "example_com"` is our made up node name.
+- `"Address": "example.com"` is the address of our node. Services registered to that node will use this address if
+  their own address isn't specified. If you're registering multiple external services, ensure you
+  use different node names with different addresses or set the `Service.Address` key.
+- `"Service": { "Address": "example.com" ... }` is the address of our service. In this example this doesn't need to be set
+  since the address of the node is the same, but if there were two services registered to that same node
+  then this should be set.
+
 Register the external service with Consul:
 
 ```shell-session
-$ curl --request PUT --data @external.json -k $CONSUL_HTTP_ADDR/v1/catalog/register
+$ curl --request PUT --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catalog/register
 true
 ```
 
 If ACLs and TLS are enabled :
 
 ```shell-session
-$ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @external.json -k $CONSUL_HTTP_ADDR/v1/catalog/register
+$ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catalog/register
 true
 ```
 
@@ -128,11 +149,15 @@ being represented by the gateway:
 ~> The CLI command should be run with the `-merge-policies`, `-merge-roles` and `-merge-service-identities` so
 nothing is removed from the terminating gateway token
 
+<CodeBlockConfig filename="write-policy.hcl">
+
 ```hcl
 service "example-https" {
   policy = "write"
 }
 ```
+
+</CodeBlockConfig>
 
 ```shell-session
 $ consul acl policy create -name "example-https-write-policy" -rules @write-policy.hcl
@@ -146,7 +171,7 @@ service "example-https" {
 }
 ```
 
-Now fetch the id of the terminating gateway token
+Now fetch the ID of the terminating gateway token
 
 ```shell-session
 consul acl token list | grep -B 6 -- "- terminating-gateway-terminating-gateway-token" | grep AccessorID
@@ -173,7 +198,9 @@ Policies:
 Once the tokens have been updated, create the [TerminatingGateway](/docs/connect/config-entries/terminating-gateway)
 resource to configure the terminating gateway:
 
-```hcl
+<CodeBlockConfig filename="terminating-gateway.yaml">
+
+```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: TerminatingGateway
 metadata:
@@ -184,16 +211,20 @@ spec:
       caFile: /etc/ssl/cert.pem
 ```
 
+</CodeBlockConfig>
+
 ~> If TLS is enabled a `caFile` must be provided, it must point to the system trust store of the terminating gateway
 container (`/etc/ssl/cert.pem`).
 
 Apply the `TerminatingGateway` resource with `kubectl apply`:
 
 ```shell-session
-$ kubectl apply -f terminating-gateway.yaml
+$ kubectl apply --filename terminating-gateway.yaml
 ```
 
 If using ACLs and TLS, create a [`ServiceIntentions`](/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to the external service
+
+<CodeBlockConfig filename="service-intentions.yaml">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -208,10 +239,12 @@ spec:
       action: allow
 ```
 
+</CodeBlockConfig>
+
 Apply the `ServiceIntentions` resource with `kubectl apply`:
 
 ```shell-session
-$ kubectl apply -f service-intentions.yaml
+$ kubectl apply --filename service-intentions.yaml
 ```
 
 ### Define the external services as upstreams for services in the mesh
@@ -219,7 +252,19 @@ $ kubectl apply -f service-intentions.yaml
 Finally define and deploy the external services as upstreams for the internal mesh services that wish to talk to them.
 An example deployment is provided which will serve as a static client for the terminating gateway service.
 
+<CodeBlockConfig filename="static-client.yaml">
+
 ```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: static-client
+spec:
+  selector:
+    app: static-client
+  ports:
+    - port: 80
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -244,19 +289,19 @@ spec:
         'consul.hashicorp.com/connect-service-upstreams': 'example-https:1234'
     spec:
       containers:
-        # This name will be the service name in Consul.
         - name: static-client
-          image: tutum/curl:latest
+          image: curlimages/curl:latest
           command: ['/bin/sh', '-c', '--']
           args: ['while true; do sleep 30; done;']
-        # If ACLs are enabled, the serviceAccountName must match the Consul service name.
       serviceAccountName: static-client
 ```
+
+</CodeBlockConfig>
 
 Run the service via `kubectl apply`:
 
 ```shell-session
-$ kubectl apply -f static-client.yaml
+$ kubectl apply --filename static-client.yaml
 ```
 
 Wait for the service to be ready:
@@ -269,5 +314,5 @@ deployment "static-client" successfully rolled out
 You can verify connectivity of the static-client and terminating gateway via a curl command:
 
 ```shell-session
-$ kubectl exec deploy/static-client -- curl -vvvs -H "Host: example-https.com" http://localhost:1234/
+$ kubectl exec deploy/static-client -- curl -vvvs --header "Host: example-https.com" http://localhost:1234/
 ```

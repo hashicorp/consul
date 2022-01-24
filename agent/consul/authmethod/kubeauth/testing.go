@@ -4,20 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authentication/v1"
@@ -33,9 +29,8 @@ import (
 //   - GET  /api/v1/namespaces/<NAMESPACE>/serviceaccounts/<NAME>
 //
 type TestAPIServer struct {
-	srv        *httptest.Server
-	caCert     string
-	returnFunc func()
+	srv    *httptest.Server
+	caCert string
 
 	mu                       sync.Mutex
 	authorizedJWT            string                 // token review and sa read
@@ -48,12 +43,7 @@ type TestAPIServer struct {
 // random free port.
 func StartTestAPIServer(t testing.T) *TestAPIServer {
 	s := &TestAPIServer{}
-
-	ports := freeport.MustTake(1)
-	s.returnFunc = func() {
-		freeport.Return(ports)
-	}
-	s.srv = httptestNewUnstartedServerWithPort(s, ports[0])
+	s.srv = httptest.NewUnstartedServer(s)
 	s.srv.Config.ErrorLog = log.New(ioutil.Discard, "", 0)
 	s.srv.StartTLS()
 
@@ -101,10 +91,6 @@ func (s *TestAPIServer) SetAllowedServiceAccount(
 // Stop stops the running TestAPIServer.
 func (s *TestAPIServer) Stop() {
 	s.srv.Close()
-	if s.returnFunc != nil {
-		s.returnFunc()
-		s.returnFunc = nil
-	}
 }
 
 // Addr returns the current base URL for the running webserver.
@@ -543,21 +529,5 @@ func createStatus(status, message string, reason metav1.StatusReason, details *m
 		Reason:   reason,
 		Details:  details,
 		Code:     code,
-	}
-}
-
-func httptestNewUnstartedServerWithPort(handler http.Handler, port int) *httptest.Server {
-	if port == 0 {
-		return httptest.NewUnstartedServer(handler)
-	}
-	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
-	l, err := net.Listen("tcp", addr)
-	if err != nil {
-		panic(fmt.Sprintf("httptest: failed to listen on a port: %v", err))
-	}
-
-	return &httptest.Server{
-		Listener: l,
-		Config:   &http.Server{Handler: handler},
 	}
 }

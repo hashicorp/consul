@@ -1,8 +1,11 @@
+//go:build !consulent
 // +build !consulent
 
 package consul
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -26,3 +29,11 @@ type EnterpriseACLResolverTestDelegate struct{}
 func (d *EnterpriseACLResolverTestDelegate) RPC(string, interface{}, interface{}) (bool, error) {
 	return false, nil
 }
+
+func (d *EnterpriseACLResolverTestDelegate) UseTestLocalData(data []interface{}) {
+	if len(data) > 0 {
+		panic(fmt.Sprintf("unexpected data type: %T", data[0]))
+	}
+}
+func (d *EnterpriseACLResolverTestDelegate) UseDefaultData() {}
+func (d *EnterpriseACLResolverTestDelegate) Reset()          {}

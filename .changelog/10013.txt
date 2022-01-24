@@ -1,0 +1,3 @@
+```release-note:bug
+audit-logging: (Enterprise only) Fixed an issue that resulted in usage of the agent master token or managed service provider tokens from being resolved properly.
+```

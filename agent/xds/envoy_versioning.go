@@ -3,7 +3,7 @@ package xds
 import (
 	"fmt"
 
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 
 	"github.com/hashicorp/go-version"
 )
@@ -11,7 +11,10 @@ import (
 var (
 	// minSupportedVersion is the oldest mainline version we support. This should always be
 	// the zero'th point release of the last element of proxysupport.EnvoyVersions.
-	minSupportedVersion = version.Must(version.NewVersion("1.14.0"))
+	minSupportedVersion = version.Must(version.NewVersion("1.17.0"))
+
+	// add min version constraints for associated feature flags when necessary, for example:
+	// minVersionAllowingEmptyGatewayClustersWithIncrementalXDS = version.Must(version.NewVersion("1.16.0"))
 
 	specificUnsupportedVersions = []unsupportedVersion{}
 )
@@ -24,9 +27,18 @@ type unsupportedVersion struct {
 
 type supportedProxyFeatures struct {
 	// add version dependent feature flags here
+	//
+	// For example, we previously had flags for Envoy < 1.16 called:
+	//
+	// GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS
+	// IncrementalXDSUpdatesMustBeSerial
+	//
+	// Which then manifested in the code for checks with this struct populated.
+	// By dropping support for 1.15, we no longer have any special flags here
+	// but leaving this flagging functionality for future one-offs.
 }
 
-func determineSupportedProxyFeatures(node *envoycore.Node) (supportedProxyFeatures, error) {
+func determineSupportedProxyFeatures(node *envoy_core_v3.Node) (supportedProxyFeatures, error) {
 	version := determineEnvoyVersionFromNode(node)
 	return determineSupportedProxyFeaturesFromVersion(version)
 }
@@ -59,10 +71,19 @@ func determineSupportedProxyFeaturesFromVersion(version *version.Version) (suppo
 		}
 	}
 
-	return supportedProxyFeatures{}, nil
+	sf := supportedProxyFeatures{}
+
+	// add version constraints to populate feature flags here when necessary, for example:
+	/*
+		if version.LessThan(minVersionAllowingEmptyGatewayClustersWithIncrementalXDS) {
+			sf.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS = true
+		}
+	*/
+
+	return sf, nil
 }
 
-func determineEnvoyVersionFromNode(node *envoycore.Node) *version.Version {
+func determineEnvoyVersionFromNode(node *envoy_core_v3.Node) *version.Version {
 	if node == nil {
 		return nil
 	}
@@ -75,7 +96,7 @@ func determineEnvoyVersionFromNode(node *envoycore.Node) *version.Version {
 		return nil
 	}
 
-	bv, ok := node.UserAgentVersionType.(*envoycore.Node_UserAgentBuildVersion)
+	bv, ok := node.UserAgentVersionType.(*envoy_core_v3.Node_UserAgentBuildVersion)
 	if !ok {
 		// NOTE: we could sniff for *envoycore.Node_UserAgentVersion and do more regex but official builds don't have this problem.
 		return nil

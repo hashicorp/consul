@@ -14,11 +14,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 var (
@@ -50,9 +49,19 @@ type ConsulProvider struct {
 	sync.RWMutex
 }
 
+// NewConsulProvider returns a new ConsulProvider that is ready to be used.
+func NewConsulProvider(delegate ConsulProviderStateDelegate, logger hclog.Logger) *ConsulProvider {
+	return &ConsulProvider{Delegate: delegate, logger: logger}
+}
+
 type ConsulProviderStateDelegate interface {
-	State() *state.Store
+	ProviderState(id string) (*structs.CAConsulProviderState, error)
 	ApplyCARequest(*structs.CARequest) (interface{}, error)
+}
+
+func hexStringHash(input string) string {
+	hash := sha256.Sum256([]byte(input))
+	return connect.HexString(hash[:])
 }
 
 // Configure sets up the provider using the given configuration.
@@ -63,17 +72,16 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 		return err
 	}
 	c.config = config
-	hash := sha256.Sum256([]byte(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, cfg.IsPrimary)))
-	c.id = connect.HexString(hash[:])
+	c.id = hexStringHash(fmt.Sprintf("%s,%s,%s,%d,%v", config.PrivateKey, config.RootCert, config.PrivateKeyType, config.PrivateKeyBits, cfg.IsPrimary))
 	c.clusterID = cfg.ClusterID
 	c.isPrimary = cfg.IsPrimary
-	c.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: c.clusterID})
+	c.spiffeID = connect.SpiffeIDSigningForCluster(c.clusterID)
 
 	// Passthrough test state for state handling tests. See testState doc.
 	c.parseTestState(cfg.RawConfig, cfg.State)
 
 	// Exit early if the state store has an entry for this provider's config.
-	_, providerState, err := c.Delegate.State().CAProviderState(c.id)
+	providerState, err := c.Delegate.ProviderState(c.id)
 	if err != nil {
 		return err
 	}
@@ -82,54 +90,52 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 		return nil
 	}
 
-	// Check if there's an entry with the old ID scheme.
-	oldID := fmt.Sprintf("%s,%s", config.PrivateKey, config.RootCert)
-	_, providerState, err = c.Delegate.State().CAProviderState(oldID)
-	if err != nil {
-		return err
+	oldIDs := []string{
+		hexStringHash(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, cfg.IsPrimary)),
+		fmt.Sprintf("%s,%s", config.PrivateKey, config.RootCert),
 	}
 
-	// Found an entry with the old ID, so update it to the new ID and
-	// delete the old entry.
-	if providerState != nil {
-		newState := *providerState
-		newState.ID = c.id
-		createReq := &structs.CARequest{
-			Op:            structs.CAOpSetProviderState,
-			ProviderState: &newState,
-		}
-		if _, err := c.Delegate.ApplyCARequest(createReq); err != nil {
+	// Check if there are any entries with old ID schemes.
+	for _, oldID := range oldIDs {
+		providerState, err = c.Delegate.ProviderState(oldID)
+		if err != nil {
 			return err
 		}
 
-		deleteReq := &structs.CARequest{
-			Op:            structs.CAOpDeleteProviderState,
-			ProviderState: providerState,
-		}
-		if _, err := c.Delegate.ApplyCARequest(deleteReq); err != nil {
-			return err
-		}
+		// Found an entry with the old ID, so update it to the new ID and
+		// delete the old entry.
+		if providerState != nil {
+			newState := *providerState
+			newState.ID = c.id
+			createReq := &structs.CARequest{
+				Op:            structs.CAOpSetProviderState,
+				ProviderState: &newState,
+			}
+			if _, err := c.Delegate.ApplyCARequest(createReq); err != nil {
+				return err
+			}
 
-		return nil
-	}
+			deleteReq := &structs.CARequest{
+				Op:            structs.CAOpDeleteProviderState,
+				ProviderState: providerState,
+			}
+			if _, err := c.Delegate.ApplyCARequest(deleteReq); err != nil {
+				return err
+			}
 
-	// Write the provider state to the state store.
-	newState := structs.CAConsulProviderState{
-		ID: c.id,
+			return nil
+		}
 	}
 
 	args := &structs.CARequest{
 		Op:            structs.CAOpSetProviderState,
-		ProviderState: &newState,
+		ProviderState: &structs.CAConsulProviderState{ID: c.id},
 	}
 	if _, err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
-	c.logger.Debug("consul CA provider configured",
-		"id", c.id,
-		"is_primary", c.isPrimary,
-	)
+	c.logger.Debug("consul CA provider configured", "id", c.id, "is_primary", c.isPrimary)
 
 	return nil
 }
@@ -187,7 +193,7 @@ func (c *ConsulProvider) GenerateRoot() error {
 			return fmt.Errorf("error computing next serial number: %v", err)
 		}
 
-		ca, err := c.generateCA(newState.PrivateKey, nextSerial)
+		ca, err := c.generateCA(newState.PrivateKey, nextSerial, c.config.RootCertTTL)
 		if err != nil {
 			return fmt.Errorf("error generating CA: %v", err)
 		}
@@ -227,13 +233,7 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 		return "", err
 	}
 
-	uid, err := connect.CompactUID()
-	if err != nil {
-		return "", err
-	}
-	cn := connect.CACN("consul", uid, c.clusterID, c.isPrimary)
-
-	csr, err := connect.CreateCACSR(c.spiffeID, cn, signer)
+	csr, err := connect.CreateCACSR(c.spiffeID, signer)
 	if err != nil {
 		return "", err
 	}
@@ -329,6 +329,8 @@ func (c *ConsulProvider) Cleanup(_ bool, _ map[string]interface{}) error {
 // Sign returns a new certificate valid for the given SpiffeIDService
 // using the current CA.
 func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
+	connect.HackSANExtensionForCSR(csr)
+
 	// Lock during the signing so we don't use the same index twice
 	// for different cert serial numbers.
 	c.Lock()
@@ -362,20 +364,6 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", err
 	}
 
-	// Parse the SPIFFE ID
-	spiffeId, err := connect.ParseCertURI(csr.URIs[0])
-	if err != nil {
-		return "", err
-	}
-
-	// Even though leafs should be from our own CSRs which should have the same CN
-	// logic as here, override anyway to account for older version clients that
-	// didn't include the Common Name in the CSR.
-	subject, err := connect.CNForCertURI(spiffeId)
-	if err != nil {
-		return "", err
-	}
-
 	// Parse the CA cert
 	certPEM, err := c.ActiveIntermediate()
 	if err != nil {
@@ -400,7 +388,6 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	effectiveNow := time.Now().Add(-1 * time.Minute)
 	template := x509.Certificate{
 		SerialNumber: sn,
-		Subject:      pkix.Name{CommonName: subject},
 		URIs:         csr.URIs,
 		Signature:    csr.Signature,
 		// We use the correct signature algorithm for the CA key we are signing with
@@ -487,8 +474,12 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 	effectiveNow := time.Now().Add(-1 * CertificateTimeDriftBuffer)
 	template := x509.Certificate{
 		SerialNumber:          sn,
-		Subject:               csr.Subject,
+		DNSNames:              csr.DNSNames,
+		EmailAddresses:        csr.EmailAddresses,
+		IPAddresses:           csr.IPAddresses,
 		URIs:                  csr.URIs,
+		ExtraExtensions:       csr.ExtraExtensions,
+		Subject:               csr.Subject,
 		Signature:             csr.Signature,
 		SignatureAlgorithm:    connect.SigAlgoForKey(signer),
 		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
@@ -597,8 +588,7 @@ func (c *ConsulProvider) SupportsCrossSigning() (bool, error) {
 // getState returns the current provider state from the state delegate, and returns
 // ErrNotInitialized if no entry is found.
 func (c *ConsulProvider) getState() (*structs.CAConsulProviderState, error) {
-	stateStore := c.Delegate.State()
-	_, providerState, err := stateStore.CAProviderState(c.id)
+	providerState, err := c.Delegate.ProviderState(c.id)
 	if err != nil {
 		return nil, err
 	}
@@ -624,20 +614,14 @@ func (c *ConsulProvider) incrementAndGetNextSerialNumber() (uint64, error) {
 }
 
 // generateCA makes a new root CA using the current private key
-func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error) {
-	stateStore := c.Delegate.State()
-	_, config, err := stateStore.CAConfig(nil)
-	if err != nil {
-		return "", err
-	}
-
+func (c *ConsulProvider) generateCA(privateKey string, sn uint64, rootCertTTL time.Duration) (string, error) {
 	privKey, err := connect.ParseSigner(privateKey)
 	if err != nil {
 		return "", fmt.Errorf("error parsing private key %q: %s", privateKey, err)
 	}
 
 	// The URI (SPIFFE compatible) for the cert
-	id := connect.SpiffeIDSigningForCluster(config)
+	id := connect.SpiffeIDSigningForCluster(c.clusterID)
 	keyId, err := connect.KeyId(privKey.Public())
 	if err != nil {
 		return "", err
@@ -660,7 +644,7 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 			x509.KeyUsageCRLSign |
 			x509.KeyUsageDigitalSignature,
 		IsCA:           true,
-		NotAfter:       time.Now().AddDate(10, 0, 0),
+		NotAfter:       time.Now().Add(rootCertTTL),
 		NotBefore:      time.Now(),
 		AuthorityKeyId: keyId,
 		SubjectKeyId:   keyId,
@@ -679,14 +663,6 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	}
 
 	return buf.String(), nil
-}
-
-// SetLogger implements the NeedsLogger interface so the provider can log important messages.
-func (c *ConsulProvider) SetLogger(logger hclog.Logger) {
-	c.logger = logger.
-		ResetNamed(logging.Connect).
-		Named(logging.CA).
-		Named(logging.Consul)
 }
 
 func (c *ConsulProvider) parseTestState(rawConfig map[string]interface{}, state map[string]string) {

@@ -12,6 +12,8 @@ func CheckTypeToStructs(s CheckType) structs.CheckType {
 	t.Notes = s.Notes
 	t.ScriptArgs = s.ScriptArgs
 	t.HTTP = s.HTTP
+	t.H2PING = s.H2PING
+	t.H2PingUseTLS = s.H2PingUseTLS
 	t.Header = MapHeadersToStructs(s.Header)
 	t.Method = s.Method
 	t.Body = s.Body
@@ -23,11 +25,13 @@ func CheckTypeToStructs(s CheckType) structs.CheckType {
 	t.Shell = s.Shell
 	t.GRPC = s.GRPC
 	t.GRPCUseTLS = s.GRPCUseTLS
+	t.TLSServerName = s.TLSServerName
 	t.TLSSkipVerify = s.TLSSkipVerify
 	t.Timeout = s.Timeout
 	t.TTL = s.TTL
 	t.SuccessBeforePassing = int(s.SuccessBeforePassing)
 	t.FailuresBeforeCritical = int(s.FailuresBeforeCritical)
+	t.FailuresBeforeWarning = int(s.FailuresBeforeWarning)
 	t.ProxyHTTP = s.ProxyHTTP
 	t.ProxyGRPC = s.ProxyGRPC
 	t.DeregisterCriticalServiceAfter = s.DeregisterCriticalServiceAfter
@@ -42,6 +46,8 @@ func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	s.Notes = t.Notes
 	s.ScriptArgs = t.ScriptArgs
 	s.HTTP = t.HTTP
+	s.H2PING = t.H2PING
+	s.H2PingUseTLS = t.H2PingUseTLS
 	s.Header = NewMapHeadersFromStructs(t.Header)
 	s.Method = t.Method
 	s.Body = t.Body
@@ -53,11 +59,13 @@ func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	s.Shell = t.Shell
 	s.GRPC = t.GRPC
 	s.GRPCUseTLS = t.GRPCUseTLS
+	s.TLSServerName = t.TLSServerName
 	s.TLSSkipVerify = t.TLSSkipVerify
 	s.Timeout = t.Timeout
 	s.TTL = t.TTL
 	s.SuccessBeforePassing = int32(t.SuccessBeforePassing)
 	s.FailuresBeforeCritical = int32(t.FailuresBeforeCritical)
+	s.FailuresBeforeWarning = int32(t.FailuresBeforeWarning)
 	s.ProxyHTTP = t.ProxyHTTP
 	s.ProxyGRPC = t.ProxyGRPC
 	s.DeregisterCriticalServiceAfter = t.DeregisterCriticalServiceAfter
@@ -76,9 +84,12 @@ func HealthCheckToStructs(s HealthCheck) structs.HealthCheck {
 	t.ServiceName = s.ServiceName
 	t.ServiceTags = s.ServiceTags
 	t.Type = s.Type
+	t.ExposedPort = int(s.ExposedPort)
 	t.Definition = HealthCheckDefinitionToStructs(s.Definition)
 	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
 	t.RaftIndex = RaftIndexToStructs(s.RaftIndex)
+	t.Interval = s.Interval
+	t.Timeout = s.Timeout
 	return t
 }
 func NewHealthCheckFromStructs(t structs.HealthCheck) HealthCheck {
@@ -93,19 +104,25 @@ func NewHealthCheckFromStructs(t structs.HealthCheck) HealthCheck {
 	s.ServiceName = t.ServiceName
 	s.ServiceTags = t.ServiceTags
 	s.Type = t.Type
+	s.ExposedPort = int32(t.ExposedPort)
 	s.Definition = NewHealthCheckDefinitionFromStructs(t.Definition)
 	s.EnterpriseMeta = NewEnterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.RaftIndex = NewRaftIndexFromStructs(t.RaftIndex)
+	s.Interval = t.Interval
+	s.Timeout = t.Timeout
 	return s
 }
 func HealthCheckDefinitionToStructs(s HealthCheckDefinition) structs.HealthCheckDefinition {
 	var t structs.HealthCheckDefinition
 	t.HTTP = s.HTTP
+	t.TLSServerName = s.TLSServerName
 	t.TLSSkipVerify = s.TLSSkipVerify
 	t.Header = MapHeadersToStructs(s.Header)
 	t.Method = s.Method
 	t.Body = s.Body
 	t.TCP = s.TCP
+	t.H2PING = s.H2PING
+	t.H2PingUseTLS = s.H2PingUseTLS
 	t.Interval = s.Interval
 	t.OutputMaxSize = uint(s.OutputMaxSize)
 	t.Timeout = s.Timeout
@@ -123,11 +140,14 @@ func HealthCheckDefinitionToStructs(s HealthCheckDefinition) structs.HealthCheck
 func NewHealthCheckDefinitionFromStructs(t structs.HealthCheckDefinition) HealthCheckDefinition {
 	var s HealthCheckDefinition
 	s.HTTP = t.HTTP
+	s.TLSServerName = t.TLSServerName
 	s.TLSSkipVerify = t.TLSSkipVerify
 	s.Header = NewMapHeadersFromStructs(t.Header)
 	s.Method = t.Method
 	s.Body = t.Body
 	s.TCP = t.TCP
+	s.H2PING = t.H2PING
+	s.H2PingUseTLS = t.H2PingUseTLS
 	s.Interval = t.Interval
 	s.OutputMaxSize = uint32(t.OutputMaxSize)
 	s.Timeout = t.Timeout

@@ -1,7 +1,6 @@
 ---
 layout: docs
 page_title: Monitor Services - Check Definitions
-sidebar_title: Monitor Services - Check Definitions
 description: >-
   One of the primary roles of the agent is management of system- and
   application-level health checks. A health check is considered to be
@@ -63,7 +62,9 @@ There are several different kinds of checks:
   check is limited to roughly 4KB. Responses larger than this will be truncated.
   HTTP checks also support TLS. By default, a valid TLS certificate is expected.
   Certificate verification can be turned off by setting the `tls_skip_verify`
-  field to `true` in the check definition.
+  field to `true` in the check definition. When using TLS, the SNI will be set
+  automatically from the URL if it uses a hostname (as opposed to an IP address);
+  the value can be overridden by setting `tls_server_name`.
 
 - `TCP + Interval` - These checks make a TCP connection attempt to the specified
   IP/hostname and port, waiting `interval` amount of time between attempts
@@ -119,6 +120,14 @@ There are several different kinds of checks:
   `tls_skip_verify` field to `true` in the check definition.
   To check on a specific service instead of the whole gRPC server, add the service identifier after the `gRPC` check's endpoint in the following format `/:service_identifier`.
 
+- `H2ping + Interval` - These checks test an endpoint that uses http2
+  by connecting to the endpoint and sending a ping frame. TLS is assumed to be configured by default.
+  To disable TLS and use h2c, set `h2ping_use_tls` to `false`. If the ping is successful
+  within a specified timeout, then the check is updated as passing.
+  The timeout defaults to 10 seconds, but is configurable using the `timeout` field. If TLS is enabled a valid
+  certificate is required, unless `tls_skip_verify` is set to `true`.
+  The check will be run on the interval specified by the `interval` field.
+
 - `Alias` - These checks alias the health state of another registered
   node or service. The state of the check will be updated asynchronously, but is
   nearly instant. For aliased services on the same agent, the local state is monitored
@@ -133,7 +142,20 @@ There are several different kinds of checks:
 
 A script check:
 
-```javascript
+<CodeTabs heading="Script Check">
+
+```hcl
+check = {
+  id = "mem-util"
+  name =  "Memory utilization"
+  args = ["/usr/local/bin/check_mem.py", "-limit", "256MB"]
+  interval = "10s"
+  timeout = "1s"
+}
+
+```
+
+```json
 {
   "check": {
     "id": "mem-util",
@@ -145,17 +167,39 @@ A script check:
 }
 ```
 
+</CodeTabs>
+
 A HTTP check:
 
-```javascript
+<CodeTabs heading="HTTP Check">
+
+```hcl
+check = {
+  id = "api"
+  name = "HTTP API on port 5000"
+  http = "https://localhost:5000/health"
+  tls_server_name =  ""
+  tls_skip_verify = false
+  method = "POST"
+  header = {
+     Content-Type =  ["application/json"]
+  }
+  body = "{\"method\":\"health\"}"
+  interval =  "10s"
+  timeout =  "1s"
+}
+```
+
+```json
 {
   "check": {
     "id": "api",
     "name": "HTTP API on port 5000",
     "http": "https://localhost:5000/health",
+    "tls_server_name": "",
     "tls_skip_verify": false,
     "method": "POST",
-    "header": {"Content-Type": ["application/json"]},
+    "header": { "Content-Type": ["application/json"] },
     "body": "{\"method\":\"health\"}",
     "interval": "10s",
     "timeout": "1s"
@@ -163,9 +207,24 @@ A HTTP check:
 }
 ```
 
+</CodeTabs>
+
 A TCP check:
 
-```javascript
+<CodeTabs heading="TCP Check">
+
+```hcl
+check = {
+  id = "ssh"
+  name = "SSH TCP on port 22"
+  tcp = "localhost:22"
+  interval = "10s"
+  timeout = "1s"
+}
+
+```
+
+```json
 {
   "check": {
     "id": "ssh",
@@ -177,9 +236,22 @@ A TCP check:
 }
 ```
 
+</CodeTabs>
+
 A TTL check:
 
-```javascript
+<CodeTabs heading="TTL Check">
+
+```hcl
+check =  {
+  id = "web-app"
+  name = "Web App Status"
+  notes = "Web app does a curl internally every 10 seconds"
+  ttl =  "30s"
+}
+```
+
+```json
 {
   "check": {
     "id": "web-app",
@@ -190,9 +262,24 @@ A TTL check:
 }
 ```
 
+</CodeTabs>
+
 A Docker check:
 
-```javascript
+<CodeTabs heading="Docker Check">
+
+```hcl
+check = {
+  id = "mem-util"
+  name = "Memory utilization"
+  docker_container_id = "f972c95ebf0e"
+  shell = "/bin/bash"
+  args = ["/usr/local/bin/check_mem.py"]
+  interval = "10s"
+}
+```
+
+```json
 {
   "check": {
     "id": "mem-util",
@@ -205,9 +292,23 @@ A Docker check:
 }
 ```
 
+</CodeTabs>
+
 A gRPC check for the whole application:
 
-```javascript
+<CodeTabs heading="gRPC Check">
+
+```hcl
+check = {
+  id =  "mem-util"
+  name = "Service health status"
+  grpc =  "127.0.0.1:12345"
+  grpc_use_tls = true
+  interval =  "10s"
+}
+```
+
+```json
 {
   "check": {
     "id": "mem-util",
@@ -219,9 +320,23 @@ A gRPC check for the whole application:
 }
 ```
 
+</CodeTabs>
+
 A gRPC check for the specific `my_service` service:
 
-```javascript
+<CodeTabs heading="gRPC Specific Service Check">
+
+```hcl
+check = {
+  id = "mem-util"
+  name = "Service health status"
+  grpc = "127.0.0.1:12345/my_service"
+  grpc_use_tls = true
+  interval = "10s"
+}
+```
+
+```json
 {
   "check": {
     "id": "mem-util",
@@ -233,9 +348,48 @@ A gRPC check for the specific `my_service` service:
 }
 ```
 
+</CodeTabs>
+
+A h2ping check:
+
+<CodeTabs heading="H2ping Check">
+
+```hcl
+check = {
+  id = "h2ping-check"
+  name = "h2ping"
+  h2ping = "localhost:22222"
+  interval = "10s"
+  h2ping_use_tls = false
+}
+```
+
+```json
+{
+  "check": {
+    "id": "h2ping-check",
+    "name": "h2ping",
+    "h2ping": "localhost:22222",
+    "interval": "10s",
+    "h2ping_use_tls": false
+  }
+}
+```
+
+</CodeTabs>
+
 An alias check for a local service:
 
-```javascript
+<CodeTabs heading="Alias Check">
+
+```hcl
+check = {
+  id = "web-alias"
+  alias_service = "web"
+}
+```
+
+```json
 {
   "check": {
     "id": "web-alias",
@@ -243,6 +397,8 @@ An alias check for a local service:
   }
 }
 ```
+
+</CodeTabs>
 
 ~> Configuration info: The alias check configuration expects the alias to be
 registered on the same agent as the one you are aliasing. If the service is
@@ -264,7 +420,7 @@ updating a TTL check via the HTTP interface can set the `notes` value.
 
 Checks may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the check, including
-[anti-entropy syncs](/docs/internals/anti-entropy) and deregistration.
+[anti-entropy syncs](/docs/architecture/anti-entropy) and deregistration.
 For Alias checks, this token is used if a remote blocking query is necessary
 to watch the state of the aliased node or service.
 
@@ -318,7 +474,18 @@ to be healthy. In certain cases, it may be desirable to specify the initial
 state of a health check. This can be done by specifying the `status` field in a
 health check definition, like so:
 
-```javascript
+<CodeTabs heading="Status Field Example">
+
+```hcl
+check =  {
+  "id": "mem",
+  "args": ["/bin/check_mem", "-limit", "256MB"]
+  "interval": "10s"
+  "status": "passing"
+}
+```
+
+```json
 {
   "check": {
     "id": "mem",
@@ -328,6 +495,8 @@ health check definition, like so:
   }
 }
 ```
+
+</CodeTabs>
 
 The above service definition would cause the new "mem" check to be
 registered with its initial state set to "passing".
@@ -339,7 +508,18 @@ that the status of the health check will only affect the health status of the
 given service instead of the entire node. Service-bound health checks may be
 provided by adding a `service_id` field to a check configuration:
 
-```javascript
+<CodeTabs heading="Status Field Example">
+
+```hcl
+check =  {
+  id = "web-app"
+  name =  "Web App Status"
+  service_id =  "web-app"
+  ttl = "30s"
+}
+```
+
+```json
 {
   "check": {
     "id": "web-app",
@@ -349,6 +529,8 @@ provided by adding a `service_id` field to a check configuration:
   }
 }
 ```
+
+</CodeTabs>
 
 In the above configuration, if the web-app health check begins failing, it will
 only affect the availability of the web-app service. All other services
@@ -365,7 +547,33 @@ to use the agent's credentials when configured for TLS.
 Multiple check definitions can be defined using the `checks` (plural)
 key in your configuration file.
 
-```javascript
+<CodeTabs heading="Multiple Checks Example">
+
+```hcl
+checks = [
+  {
+    id       = "chk1"
+    name     = "mem"
+    args     = ["/bin/check_mem", "-limit", "256MB"]
+    interval = "5s"
+  },
+  {
+    id       = "chk2"
+    name     = "/health"
+    http     = "http://localhost:5000/health"
+    interval = "15s"
+  },
+  {
+    id       = "chk3"
+    name     = "cpu"
+    args     = ["/bin/check_cpu"]
+    interval = "10s"
+  },
+  ...
+]
+```
+
+```json
 {
   "checks": [
     {
@@ -391,15 +599,44 @@ key in your configuration file.
 }
 ```
 
-## Success/Failures before passing/critical
+</CodeTabs>
 
-In Consul 1.7.0 and later, a check may be configured to become passing/critical
-only after a specified number of consecutive checks return passing/critical.
+## Success/Failures before passing/warning/critical
+
+To prevent flapping health checks, and limit the load they cause on the cluster,
+a health check may be configured to become passing/warning/critical only after a
+specified number of consecutive checks return passing/critical.
 The status will not transition states until the configured threshold is reached.
+
+- `success_before_passing` - Number of consecutive successful results required
+  before check status transitions to passing. Defaults to `0`. Added in Consul 1.7.0.
+- `failures_before_warning` - Number of consecutive unsuccessful results required
+  before check status transitions to warning. Defaults to the same value as that of
+  `failures_before_critical` to maintain the expected behavior of not changing the
+  status of service checks to `warning` before `critical` unless configured to do so.
+  Values higher than `failures_before_critical` are invalid. Added in Consul 1.11.0.
+- `failures_before_critical` - Number of consecutive unsuccessful results required
+  before check status transitions to critical. Defaults to `0`. Added in Consul 1.7.0.
 
 This feature is available for HTTP, TCP, gRPC, Docker & Monitor checks.
 By default, both passing and critical thresholds will be set to 0 so the check
 status will always reflect the last check result.
+
+<CodeTabs heading="Flapping Prevention Example">
+
+```hcl
+checks = [
+  {
+    name = "HTTP TCP on port 80"
+    tcp = "localhost:80"
+    interval = "10s"
+    timeout =  "1s"
+    success_before_passing =  3
+    failures_before_warning =  1
+    failures_before_critical =  3
+  }
+]
+```
 
 ```json
 {
@@ -410,8 +647,11 @@ status will always reflect the last check result.
       "interval": "10s",
       "timeout": "1s",
       "success_before_passing": 3,
+      "failures_before_warning": 1,
       "failures_before_critical": 3
     }
   ]
 }
 ```
+
+</CodeTabs>

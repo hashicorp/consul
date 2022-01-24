@@ -1,7 +1,6 @@
 ---
 layout: docs
 page_title: Server Performance
-sidebar_title: Server Performance
 description: >-
   Consul requires different amounts of compute resources, depending on cluster
   size and expected workload. This guide provides guidance on choosing compute
@@ -10,7 +9,7 @@ description: >-
 
 # Server Performance
 
-Since Consul servers run a [consensus protocol](/docs/internals/consensus) to
+Since Consul servers run a [consensus protocol](/docs/architecture/consensus) to
 process all write operations and are contacted on nearly all read operations, server
 performance is critical for overall throughput and health of a Consul cluster. Servers
 are generally I/O bound for writes because the underlying Raft log store performs a sync
@@ -33,7 +32,7 @@ expense of some performance in leader failure detection and leader election time
 
 The default performance configuration is equivalent to this:
 
-```javascript
+```json
 {
   "performance": {
     "raft_multiplier": 5
@@ -51,7 +50,7 @@ timeouts by a factor of 5, so it can be quite slow during these events.
 
 The high performance configuration is simple and looks like this:
 
-```javascript
+```json
 {
   "performance": {
     "raft_multiplier": 1

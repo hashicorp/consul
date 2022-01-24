@@ -46,6 +46,11 @@ export default modifier(($element, [content], hash = {}) => {
     }
   }
   let $trigger = $anchor;
+  let needsTabIndex = false;
+  if (!$trigger.hasAttribute('tabindex')) {
+    needsTabIndex = true;
+    $trigger.setAttribute('tabindex', '0');
+  }
   const tooltip = tippy($anchor, {
     theme: 'tooltip',
     triggerTarget: $trigger,
@@ -59,6 +64,9 @@ export default modifier(($element, [content], hash = {}) => {
   });
 
   return () => {
+    if (needsTabIndex) {
+      $trigger.removeAttribute('tabindex');
+    }
     clearInterval(interval);
     tooltip.destroy();
   };

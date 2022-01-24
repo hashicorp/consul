@@ -13,15 +13,16 @@ parameters:
 
 references:
   images:
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.15.6
-    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:12-browsers
+    # When updating the Go version, remember to also update the versions in the
+    # workflows section for go-test-lib jobs.
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.17.5
+    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
 
   paths:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
 
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v3-{{ checksum "ui/yarn.lock" }}
-    rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v6-{{ checksum "ui/yarn.lock" }}
 
   environment: &ENVIRONMENT
     TEST_RESULTS_DIR: *TEST_RESULTS_DIR
@@ -36,7 +37,7 @@ steps:
   install-gotestsum: &install-gotestsum
     name: install gotestsum
     environment:
-      GOTESTSUM_RELEASE: 0.6.0
+      GOTESTSUM_RELEASE: 1.6.4
     command: |
       url=https://github.com/gotestyourself/gotestsum/releases/download
       curl -sSL "${url}/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | \
@@ -58,7 +59,7 @@ steps:
     name: notify-slack-failure
     when: on_fail
     command: |
-      if [[ $CIRCLE_BRANCH == "master" ]]; then
+      if [[ $CIRCLE_BRANCH == "main" ]]; then
         CIRCLE_ENDPOINT="https://app.circleci.com/pipelines/github/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}?branch=${CIRCLE_BRANCH}"
         GITHUB_ENDPOINT="https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/commit/${CIRCLE_SHA1}"
         COMMIT_MESSAGE=$(git log -1 --pretty=%B | head -n1)
@@ -77,7 +78,7 @@ steps:
         ] \
         }" "${FEED_CONSUL_GH_URL}"
       else
-        echo "Not posting slack failure notifications for non-master branch"
+        echo "Not posting slack failure notifications for non-main branch"
       fi
 
 commands:
@@ -111,22 +112,28 @@ jobs:
       - image: *GOLANG_IMAGE
     steps:
       - checkout
-      - run: go get -u github.com/hashicorp/lint-consul-retry && lint-consul-retry
+      - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
       - run: *notify-slack-failure
 
-  # Runs Go linters
   lint:
+    description: "Run golangci-lint"
+    parameters:
+      go-arch:
+        type: string
+        default: ""
     docker:
       - image: *GOLANG_IMAGE
     environment:
       GOTAGS: "" # No tags for OSS but there are for enterprise
+      GOARCH: "<<parameters.go-arch>>"
     steps:
       - checkout
+      - run: go env
       - run:
           name: Install golangci-lint
           command: |
             download=https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
-            wget -O- -q $download | sh -x -s -- -d -b /go/bin/ v1.23.6
+            wget -O- -q $download | sh -x -s -- -d -b /home/circleci/go/bin v1.40.1
       - run: go mod download
       - run:
           name: lint
@@ -142,16 +149,14 @@ jobs:
           command: *lintcmd
       - run: *notify-slack-failure
 
-  # checks vendor directory is correct
-  check-vendor:
+  check-go-mod:
     docker:
       - image: *GOLANG_IMAGE
     environment:
       <<: *ENVIRONMENT
     steps:
       - checkout
-      - run:
-          command: make update-vendor
+      - run: go mod tidy
       - run: |
           if [[ -n $(git status -s) ]]; then
             echo "Git directory has changes"
@@ -178,9 +183,8 @@ jobs:
           name: Install gogo/protobuf
           command: |
             gogo_version=$(go list -m github.com/gogo/protobuf | awk '{print $2}')
-            mkdir -p .gotools; cd .gotools; go mod init consul-tools
-            go get -v github.com/hashicorp/protoc-gen-go-binary
-            go get -v github.com/gogo/protobuf/protoc-gen-gofast@${gogo_version}
+            go install -v github.com/hashicorp/protoc-gen-go-binary@master
+            go install -v github.com/gogo/protobuf/protoc-gen-gofast@${gogo_version}
 
       - run:
           command: make --always-make proto
@@ -206,15 +210,13 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: /go/bin
-      - run: sudo apt-get update && sudo apt-get install -y rsyslog
+          at: /home/circleci/go/bin
+      - run: sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y rsyslog
       - run: sudo service rsyslog start
-      - run: *install-gotestsum
       - run: go mod download
       - run:
           name: go test
           command: |
-            mkdir -p $TEST_RESULTS_DIR
             mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
             PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./... | circleci tests split --split-by=timings --timings-type=classname)
             echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
@@ -222,10 +224,14 @@ jobs:
             gotestsum \
               --format=short-verbose \
               --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
+              --debug \
+              --rerun-fails=3 \
+              --rerun-fails-max-failures=40 \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --packages="$PACKAGE_NAMES" \
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -p 2 \
-              -cover -coverprofile=coverage.txt \
-              $PACKAGE_NAMES
+              -cover -coverprofile=coverage.txt
 
       - store_test_results:
           path: *TEST_RESULTS_DIR
@@ -233,12 +239,10 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: /tmp/jsonfile
-      - run: &codecov_upload
-          name: codecov upload
-          when: always
-          # The -C flag shouldn't be necessary, but it fails to find the commit
-          # without it.
-          command: bash <(curl -s https://codecov.io/bash) -C "$CIRCLE_SHA1"
+      - run: &rerun-fails-report
+          name: "Re-run fails report"
+          command: |
+            .circleci/scripts/rerun-fails-report.sh /tmp/gotestsum-rerun-fails
       - run: *notify-slack-failure
 
   go-test-race:
@@ -255,7 +259,6 @@ jobs:
       # but we can run a little over that limit.
     steps:
       - checkout
-      - run: *install-gotestsum
       - run: go mod download
       - run:
           name: go test -race
@@ -279,8 +282,12 @@ jobs:
           path: /tmp/jsonfile
       - run: *notify-slack-failure
 
-  # split off a job for the API package since it is separate
-  go-test-api:
+  # go-test-32bit is to catch problems where 64-bit ints must be 64-bit aligned 
+  # to use them with sync/atomic. See https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
+  # Running tests with GOARCH=386 seems to be the best way to detect this 
+  # problem. Only runs tests that are -short to limit the time we spend checking
+  # for these bugs.
+  go-test-32bit:
     docker:
       - image: *GOLANG_IMAGE
     environment:
@@ -288,20 +295,58 @@ jobs:
       GOTAGS: "" # No tags for OSS but there are for enterprise
     steps:
       - checkout
-      - attach_workspace:
-          at: /go/bin
-      - run: *install-gotestsum
+      - run: go mod download
       - run:
-          working_directory: api
+          name: go test 32-bit
+          environment:
+            GOARCH: 386
+          command: |
+            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
+            go env
+            PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./...)
+            gotestsum \
+              --jsonfile /tmp/jsonfile/go-test-32bit.log \
+              --rerun-fails=3 \
+              --rerun-fails-max-failures=40 \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --packages="$PACKAGE_NAMES" \
+              --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
+              -tags="$GOTAGS" -p 2 \
+              -short
+
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+      - run: *notify-slack-failure
+
+  go-test-lib:
+    description: "test a library against a specific Go version"
+    parameters:
+      go-version:
+        type: string
+      path:
+        type: string
+    docker:
+      - image: "docker.mirror.hashicorp.services/cimg/go:<<parameters.go-version>>"
+    environment:
+      <<: *ENVIRONMENT
+      GOTAGS: "" # No tags for OSS but there are for enterprise
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /home/circleci/go/bin
+      - run:
+          working_directory: <<parameters.path>>
           command: go mod download
       - run:
-          working_directory: api
+          working_directory: <<parameters.path>>
           name: go test
           command: |
             mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
             gotestsum \
               --format=short-verbose \
-              --jsonfile /tmp/jsonfile/go-test-api.log \
+              --jsonfile /tmp/jsonfile/go-test-<<parameters.path>>.log \
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -cover -coverprofile=coverage.txt \
               ./...
@@ -312,40 +357,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: /tmp/jsonfile
-      - run: *codecov_upload
-      - run: *notify-slack-failure
-
-  # split off a job for the SDK package since it is separate
-  go-test-sdk:
-    docker:
-      - image: *GOLANG_IMAGE
-    environment:
-      <<: *ENVIRONMENT
-      GOTAGS: "" # No tags for OSS but there are for enterprise
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /go/bin
-      - run: *install-gotestsum
-      - run:
-          working_directory: sdk
-          command: go mod download
-      - run:
-          working_directory: sdk
-          name: go test
-          command: |
-            mkdir -p $TEST_RESULTS_DIR
-            gotestsum \
-              --format=short-verbose \
-              --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
-              -tags=$GOTAGS -cover -coverprofile=coverage.txt \
-              ./...
-
-      - store_test_results:
-          path: *TEST_RESULTS_DIR
-      - store_artifacts:
-          path: *TEST_RESULTS_DIR
-      - run: *codecov_upload
       - run: *notify-slack-failure
 
   # build all distros
@@ -389,7 +400,7 @@ jobs:
       GOOS: linux
     steps:
       - checkout
-      - run: sudo apt-get update && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
+      - run: sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
       - run:
           environment:
             GOARM: 5
@@ -419,14 +430,14 @@ jobs:
       <<: *ENVIRONMENT
     steps:
       - checkout
-      - attach_workspace: # this normally runs as the first job and has nothing to attach; only used in master branch after rebuilding UI
+      - attach_workspace: # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
           at: .
       - run:
           command: make dev
 
       # save dev build to pass to downstream jobs
       - persist_to_workspace:
-          root: /go/bin
+          root: /home/circleci/go/bin
           paths:
             - consul
       - run: *notify-slack-failure
@@ -478,7 +489,7 @@ jobs:
       - run: make ci.dev-docker
       - run: *notify-slack-failure
 
-  # Nomad 0.8 builds on go0.10
+  # Nomad 0.8 builds on go1.10
   # Run integration tests on nomad/v0.8.7
   nomad-integration-0_8:
     docker:
@@ -519,14 +530,14 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  # run integration tests on nomad/master
-  nomad-integration-master:
+  # run integration tests on nomad/main
+  nomad-integration-main:
     docker:
-      - image: *GOLANG_IMAGE
+      - image: docker.mirror.hashicorp.services/circleci/golang:1.17 # TODO: replace with cimg/go (requires steps update)
     environment:
       <<: *ENVIRONMENT
       NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
-      NOMAD_VERSION: master
+      NOMAD_VERSION: main
     steps: *NOMAD_INTEGRATION_TEST_STEPS
 
   build-website-docker-image:
@@ -557,7 +568,7 @@ jobs:
 
   algolia-index:
     docker:
-      - image: docker.mirror.hashicorp.services/node:12
+      - image: docker.mirror.hashicorp.services/node:14
     steps:
       - checkout
       - run:
@@ -568,6 +579,7 @@ jobs:
               exit 0
             fi
             cd website/
+            npm install -g npm@latest
             npm install
             node scripts/index_search_content.js
       - run: *notify-slack-failure
@@ -585,7 +597,7 @@ jobs:
 
       - run:
           name: install yarn packages
-          command: cd ui && yarn install
+          command: cd ui && make deps
 
       - save_cache:
           key: *YARN_CACHE_KEY
@@ -665,7 +677,7 @@ jobs:
       - checkout
       - add_ssh_keys: # needs a key to push updated static asset commit back to github
           fingerprints:
-            - "c9:04:b7:85:bf:0e:ce:93:5f:b8:0e:68:8e:16:f3:71"
+            - "fc:55:84:15:0a:1d:c8:e9:06:d0:e8:9c:7b:a9:b7:31"
       - attach_workspace:
           at: .
       - run:
@@ -675,13 +687,17 @@ jobs:
             # if there are, we commit the ui static asset file
             # HEAD^! is shorthand for HEAD^..HEAD (parent of HEAD and HEAD)
             if ! git diff --quiet --exit-code HEAD^! ui/; then
-              git config --local user.email "hashicorp-ci@users.noreply.github.com"
-              git config --local user.name "hashicorp-ci"
-
+              git config --local user.email "github-team-consul-core@hashicorp.com"
+              git config --local user.name "hc-github-team-consul-core"
+              
+              # checkout the CI branch and merge latest from main
+              git checkout ci/main-assetfs-build
+              git merge --no-edit main
+            
               short_sha=$(git rev-parse --short HEAD)
               git add agent/uiserver/bindata_assetfs.go
               git commit -m "auto-updated agent/uiserver/bindata_assetfs.go from commit ${short_sha}"
-              git push origin master
+              git push origin ci/main-assetfs-build
             else
               echo "no UI changes so no static assets to publish"
             fi
@@ -773,20 +789,16 @@ jobs:
       - run:
           working_directory: ui/packages/consul-ui
           command: make test-coverage-ci
-      - run:
-          name: codecov ui upload
-          working_directory: ui/packages/consul-ui
-          command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_14_6: &ENVOY_TESTS
+  envoy-integration-test-1_17_4: &ENVOY_TESTS
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
       - image: *GOLANG_IMAGE
     parallelism: 2
     environment:
-      ENVOY_VERSION: "1.14.6"
+      ENVOY_VERSION: "1.17.4"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -819,17 +831,20 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_15_3:
+  envoy-integration-test-1_18_4:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.15.3"
+      ENVOY_VERSION: "1.18.4"
 
-  envoy-integration-test-1_16_2:
+  envoy-integration-test-1_19_1:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.16.2"
+      ENVOY_VERSION: "1.19.1"
 
-  # TODO(rb): add in 1.17.0 support when v3 is ready
+  envoy-integration-test-1_20_1:
+    <<: *ENVOY_TESTS
+    environment:
+      ENVOY_VERSION: "1.20.1"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -853,10 +868,9 @@ jobs:
             make test-connect-ca-providers
       - store_test_results:
           path: *TEST_RESULTS_DIR
-      - run: *codecov_upload
       - run: *notify-slack-failure
 
-  # only runs on master: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
+  # only runs on main: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
   cherry-picker:
     docker:
       - image: docker.mirror.hashicorp.services/alpine:3.12
@@ -865,7 +879,7 @@ jobs:
       - checkout
       - add_ssh_keys: # needs a key to push cherry-picked commits back to github
           fingerprints:
-            - "c9:04:b7:85:bf:0e:ce:93:5f:b8:0e:68:8e:16:f3:71"
+            - "fc:55:84:15:0a:1d:c8:e9:06:d0:e8:9c:7b:a9:b7:31"
       - run: .circleci/scripts/cherry-picker.sh
       - run: *notify-slack-failure
 
@@ -891,6 +905,8 @@ jobs:
     environment:
       AWS_DEFAULT_REGION: us-east-2
       BUCKET: consul-ci-load-tests
+      BASH_ENV: /etc/profile
+    shell: /bin/sh -leo pipefail
     steps:
       - checkout
       - run: apk add jq curl bash
@@ -922,7 +938,6 @@ jobs:
             echo "export TF_VAR_consul_download_url=https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip" >> $BASH_ENV
       - run:
           name: wait for dev build from test-integrations workflow
-          shell: /usr/bin/env bash -euo pipefail -c
           command: |
             echo "curl-ing https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip"
             until [ $SECONDS -ge 300 ] && exit 1; do
@@ -933,7 +948,6 @@ jobs:
       - run:
           working_directory: .circleci/terraform/load-test
           name: terraform init
-          shell: /usr/bin/env bash -euo pipefail -c
           command: |
             echo "commit is ${LOCAL_COMMIT_SHA}"
             terraform init \
@@ -944,24 +958,35 @@ jobs:
       - run:
           working_directory: .circleci/terraform/load-test
           name: run terraform apply
-          shell: /usr/bin/env bash -euo pipefail -c
           command: |
             terraform apply -auto-approve
       - run:
           working_directory: .circleci/terraform/load-test
           when: always
           name: terraform destroy
-          shell: /usr/bin/env bash -euo pipefail -c
           command: |
             terraform destroy -auto-approve
       - run: *notify-slack-failure
 
+  # The noop job is a used as a very fast job in the verify-ci workflow because every workflow
+  # requires at least one job. It does nothing.
+  noop:
+    docker:
+      - image: docker.mirror.hashicorp.services/alpine:latest
+    steps:
+      - run: "echo ok"
+
 workflows:
   version: 2
+  # verify-ci is a no-op workflow that must run on every PR. It is used in a
+  # branch protection rule to detect when CI workflows are not running.
+  verify-ci:
+    jobs: [noop]
+
   go-tests:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
-      - check-vendor: &filter-ignore-non-go-branches
+      - check-go-mod: &filter-ignore-non-go-branches
           filters:
             branches:
               ignore:
@@ -971,29 +996,51 @@ workflows:
       - check-generated-protobuf: *filter-ignore-non-go-branches
       - lint-consul-retry: *filter-ignore-non-go-branches
       - lint: *filter-ignore-non-go-branches
+      - lint:
+          name: "lint-32bit"
+          go-arch: "386"
+          <<: *filter-ignore-non-go-branches
       - test-connect-ca-providers: *filter-ignore-non-go-branches
       - dev-build: *filter-ignore-non-go-branches
       - go-test:
           requires: [dev-build]
-      - go-test-api:
+      - go-test-lib:
+          name: "go-test-api go1.16"
+          path: api
+          go-version: "1.16"
           requires: [dev-build]
+      - go-test-lib:
+          name: "go-test-api go1.17"
+          path: api
+          go-version: "1.17"
+          requires: [dev-build]
+      - go-test-lib:
+          name: "go-test-sdk go1.16"
+          path: sdk
+          go-version: "1.16"
+          <<: *filter-ignore-non-go-branches
+      - go-test-lib:
+          name: "go-test-sdk go1.17"
+          path: sdk
+          go-version: "1.17"
+          <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
-      - go-test-sdk: *filter-ignore-non-go-branches
+      - go-test-32bit: *filter-ignore-non-go-branches
   build-distros:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
-      - check-vendor: *filter-ignore-non-go-branches
-      - build-386: &require-check-vendor
+      - check-go-mod: *filter-ignore-non-go-branches
+      - build-386: &require-check-go-mod
           requires:
-            - check-vendor
-      - build-amd64: *require-check-vendor
-      - build-arm: *require-check-vendor
-      # every commit on master will have a rebuilt UI
+            - check-go-mod
+      - build-amd64: *require-check-go-mod
+      - build-arm: *require-check-go-mod
+      # every commit on main will have a rebuilt UI
       - frontend-cache:
           filters:
             branches:
               only:
-                - master
+                - main
       - ember-build-prod:
           requires:
             - frontend-cache
@@ -1004,7 +1051,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
                 - /release\/\d+\.\d+\.x$/
           requires:
             - build-static-assets
@@ -1029,26 +1076,28 @@ workflows:
             branches:
               ignore:
                 - /^pull\/.*$/ # only push dev builds from non forks
-                - master # all master dev uploads will include a UI rebuild in build-distros
+                - main # all main dev uploads will include a UI rebuild in build-distros
       - dev-upload-docker:
           <<: *dev-upload
           context: consul-ci
-      - nomad-integration-master:
+      - nomad-integration-main:
           requires:
             - dev-build
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_14_6:
+      - envoy-integration-test-1_17_4:
           requires:
             - dev-build
-      - envoy-integration-test-1_15_3:
+      - envoy-integration-test-1_18_4:
           requires:
             - dev-build
-      - envoy-integration-test-1_16_2:
+      - envoy-integration-test-1_19_1:
           requires:
             - dev-build
-  # TODO(rb): add in 1.17.0 support when v3 is ready
+      - envoy-integration-test-1_20_1:
+          requires:
+            - dev-build
 
   website:
     unless: << pipeline.parameters.trigger-load-test >>
@@ -1058,9 +1107,8 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
       - algolia-index:
-          context: consul-docs
           filters:
             branches:
               only:
@@ -1072,7 +1120,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
                 - /^ui\/.*/
       - workspace-tests:
           requires:
@@ -1105,14 +1153,15 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
                 - /release\/\d+\.\d+\.x$/
       - cherry-picker:
           context: team-consul
           filters:
             branches:
               only:
-                - master
+                - main
+                - /release\/\d+\.\d+\.x$/
   load-test:
     when: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1125,6 +1174,6 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
     jobs:
       - load-test

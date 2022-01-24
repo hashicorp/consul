@@ -1,0 +1,97 @@
+{{#if (eq @item.Datacenter '')}}
+<a
+  class="topology-metrics-card"
+  href={{href-to 'dc.services.index'}}
+  data-permission={{service/card-permissions @item}}
+>
+  <p class="empty">
+    {{@item.Name}}
+  </p>
+</a>
+{{else}}
+<a data-test-topology-metrics-card
+  class="topology-metrics-card"
+  href={{if
+   (and (env 'CONSUL_NSPACES_ENABLED') (not-eq @item.Namespace @service.Namespace))
+    (href-to this.hrefPath @item.Datacenter @item.Name params=(hash nspace=@item.Namespace))
+    (href-to this.hrefPath @item.Name)
+  }}
+  data-permission={{service/card-permissions @item}}
+  id="{{@item.Namespace}}{{@item.Name}}"
+>
+  <p>
+    {{@item.Name}}
+  </p>
+  {{#if (eq @item.Source 'proxy-registration')}}
+    <TopologyMetrics::SourceType @source='proxy-registration' />
+  {{/if}}
+  {{#if (eq @item.Source 'routing-config')}}
+    <TopologyMetrics::SourceType @source='routing-config' />
+  {{/if}}
+  <div class="details">
+    {{#if (and (can 'use partitions') (can 'use nspaces'))}}
+    <div class={{if (not-eq @item.Partition @service.Partition) 'group'}}>
+      {{#if (not-eq @item.Partition @service.Partition)}}
+      <dl class="partition">
+        <dt>
+          <Tooltip>
+              Admin Partition
+          </Tooltip>
+        </dt>
+        <dd>
+          {{@item.Partition}}
+        </dd>
+      </dl>
+      {{/if}}
+      <span></span>
+      {{#if (or (not-eq @item.Partition @service.Partition) (not-eq @item.Namespace @service.Namespace))}}
+      <dl class="nspace">
+        <dt>
+          <Tooltip>
+              Namespace
+          </Tooltip>
+        </dt>
+        <dd>
+          {{@item.Namespace}}
+        </dd>
+      </dl>
+      {{/if}}
+    </div>
+    {{/if}}
+
+{{#if (not-eq @item.Source 'routing-config')}}
+
+{{#if (eq @item.Datacenter @dc)}}
+  {{#let (service/health-percentage @item) as |percentage|}}
+  {{#if (eq percentage '')}}
+    <span class="empty">No health checks</span>
+  {{else}}
+    {{#if (not-eq percentage.passing 0)}}
+      <span class="passing">{{percentage.passing}}%</span>
+    {{/if}}
+    {{#if (not-eq percentage.warning 0)}}
+      <span class="warning">{{percentage.warning}}%</span>
+    {{/if}}
+    {{#if (not-eq percentage.critical 0)}}
+      <span class="critical">{{percentage.critical}}%</span>
+    {{/if}}
+  {{/if}}
+  {{/let}}
+{{else}}
+    <dl class="health">
+      <dt>
+        <Tooltip>
+            We are unable to determine the health status of services in remote datacenters.
+        </Tooltip>
+      </dt>
+      <dd>
+        Health
+      </dd>
+    </dl>
+{{/if}}
+
+{{/if}}
+  </div>
+  {{yield}}
+</a>
+{{/if}}

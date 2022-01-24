@@ -1,0 +1,7 @@
+```release-note:improvement
+areas: **(Enterprise only)** Make implementation of WriteToAddress non-blocking to avoid slowing down memberlist's packetListen routine.
+```
+
+```release-note:improvement
+areas: **(Enterprise only)** Apply backpressure to area gossip packet ingestion when more than 512 packets are waiting to be ingested.
+```

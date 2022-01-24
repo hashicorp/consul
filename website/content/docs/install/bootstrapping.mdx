@@ -1,7 +1,6 @@
 ---
 layout: docs
 page_title: Bootstrapping a Datacenter
-sidebar_title: Bootstrapping a Datacenter
 description: >-
   An agent can run in both client and server mode. Server nodes are responsible
   for running the consensus protocol and storing the cluster state. Before a
@@ -13,18 +12,18 @@ description: >-
 # Bootstrapping a Datacenter
 
 An agent can run in either client or server mode. Server nodes are responsible for running the
-[consensus protocol](/docs/internals/consensus) and storing the cluster state.
+[consensus protocol](/docs/architecture/consensus) and storing the cluster state.
 The client nodes are mostly stateless and rely heavily on the server nodes.
 
 Before a Consul cluster can begin to service requests,
 a server node must be elected leader. Bootstrapping is the process
 of joining these initial server nodes into a cluster. Read the
-[architecture documentation](/docs/internals/architecture) to learn more about
+[architecture documentation](/docs/architecture) to learn more about
 the internals of Consul.
 
 It is recommended to have three or five total servers per datacenter. A single server deployment is _highly_ discouraged
 as data loss is inevitable in a failure scenario. Please refer to the
-[deployment table](/docs/internals/consensus#deployment-table) for more detail.
+[deployment table](/docs/architecture/consensus#deployment-table) for more detail.
 
 ~> **Note**: In versions of Consul prior to 0.4, bootstrapping was a manual process. For details on using the `-bootstrap` flag directly, see the
 [manual bootstrapping documentation](/docs/install/bootstrapping#manually-join-the-servers).
@@ -46,7 +45,7 @@ or specify no value at all on all the servers. Only servers that specify a value
 Suppose we are starting a three server cluster. We can start `Node A`, `Node B`, and `Node C` with each
 providing the `-bootstrap-expect 3` flag. Once the nodes are started, you should see a warning message in the service output.
 
-```text
+```log
 [WARN] raft: EnableSingleNode disabled, and no known peers. Aborting election.
 ```
 
@@ -83,7 +82,7 @@ Successfully joined cluster by contacting 3 nodes.
 
 Since a join operation is symmetric, it does not matter which node initiates it. Once the join is successful, one of the nodes will output something like:
 
-```text
+```log
 [INFO] consul: adding server foo (Addr: 127.0.0.2:8300) (DC: dc1)
 [INFO] consul: adding server bar (Addr: 127.0.0.1:8300) (DC: dc1)
 [INFO] consul: Attempting bootstrap with nodes: [127.0.0.3:8300 127.0.0.2:8300 127.0.0.1:8300]

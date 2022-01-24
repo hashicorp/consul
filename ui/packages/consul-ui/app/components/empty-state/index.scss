@@ -1,0 +1,21 @@
+@import './layout';
+@import './skin';
+.empty-state {
+  @extend %empty-state;
+}
+%empty-state header :first-child {
+  @extend %empty-state-header;
+}
+%empty-state header :nth-child(2) {
+  @extend %empty-state-subheader;
+}
+%empty-state-anchor {
+  @extend %anchor;
+}
+%empty-state > ul > li > *,
+%empty-state > ul > li > label > button {
+  @extend %empty-state-anchor;
+}
+%empty-state div > button {
+  @extend %primary-button;
+}

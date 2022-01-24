@@ -3,9 +3,10 @@ package testrpc
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/require"
 )
 
 type rpcFn func(string, interface{}, interface{}) error
@@ -152,13 +153,7 @@ func WaitForActiveCARoot(t *testing.T, rpc rpcFn, dc string, expect *structs.CAR
 			r.Fatalf("err: %v", err)
 		}
 
-		var root *structs.CARoot
-		for _, r := range reply.Roots {
-			if r.ID == reply.ActiveRootID {
-				root = r
-				break
-			}
-		}
+		root := reply.Active()
 		if root == nil {
 			r.Fatal("no active root")
 		}
@@ -182,7 +177,7 @@ func WaitForServiceIntentions(t *testing.T, rpc rpcFn, dc string) {
 				Name: fakeConfigName,
 			},
 		}
-		var ignored struct{}
+		var ignored structs.ConfigEntryDeleteResponse
 		if err := rpc("ConfigEntry.Delete", args, &ignored); err != nil {
 			r.Fatalf("err: %v", err)
 		}

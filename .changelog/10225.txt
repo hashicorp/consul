@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Reflect the change of Session API response shape for Checks in post 1.7 Consul 
+```

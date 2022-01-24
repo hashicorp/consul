@@ -1,13 +1,14 @@
 .topology-metrics-popover {
   > button {
     position: absolute;
-    transform: translate(-50%,-50%);
-    background-color: $white;
+    transform: translate(-50%, -50%);
+    background-color: rgb(var(--tone-gray-000));
     padding: 1px 1px;
     &:hover {
       cursor: pointer;
     }
-    &:active, &:focus {
+    &:active,
+    &:focus {
       outline: none;
     }
     &:disabled {
@@ -19,12 +20,17 @@
   }
   &.deny > button::before,
   &.deny .tippy-arrow::after {
-    @extend %with-cancel-square-fill-color-mask, %as-pseudo;
-    background-color: $red-500;
+    @extend %with-cancel-square-fill-mask, %as-pseudo;
+    background-color: rgb(var(--tone-red-500));
   }
   &.l7 > button::before,
   &.l7 .tippy-arrow::after {
     @extend %with-layers-mask, %as-pseudo;
-    background-color: $gray-300;
+    background-color: rgb(var(--tone-gray-300));
+  }
+  &.not-defined > button::before,
+  &.not-defined .tippy-arrow::after {
+    @extend %with-alert-triangle-mask, %as-pseudo;
+    color: rgb(var(--tone-yellow-500));
   }
 }

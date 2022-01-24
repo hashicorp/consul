@@ -6,11 +6,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 // OperatorRaftConfiguration is used to inspect the current Raft configuration.
@@ -172,6 +173,11 @@ func keyringErrorsOrNil(responses []*structs.KeyringResponse) error {
 			if response.WAN {
 				pool = "WAN"
 			}
+			if response.Segment != "" {
+				pool += " [segment: " + response.Segment + "]"
+			} else if !structs.IsDefaultPartition(response.Partition) {
+				pool += " [partition: " + response.Partition + "]"
+			}
 			errs = multierror.Append(errs, fmt.Errorf("%s error: %s", pool, response.Error))
 			for key, message := range response.Messages {
 				errs = multierror.Append(errs, fmt.Errorf("%s: %s", key, message))
@@ -217,7 +223,7 @@ func (s *HTTPHandlers) OperatorAutopilotConfiguration(resp http.ResponseWriter, 
 		s.parseDC(req, &args.Datacenter)
 		s.parseToken(req, &args.Token)
 
-		var conf api.AutopilotConfiguration
+		conf := api.NewAutopilotConfiguration()
 		if err := decodeBody(req.Body, &conf); err != nil {
 			return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing autopilot config: %v", err)}
 		}

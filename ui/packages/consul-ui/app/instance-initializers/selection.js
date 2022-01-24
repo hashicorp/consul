@@ -19,10 +19,15 @@ export default {
       return;
     }
     const dom = container.lookup('service:dom');
+    const doc = dom.document();
+    const $html = doc.getElementsByTagName('html')[0];
     const findAnchor = function(el) {
       return el.tagName === 'A' ? el : dom.closest('a', el);
     };
     const mousedown = function(e) {
+      if ($html.classList.contains('is-debug')) {
+        return;
+      }
       const $a = findAnchor(e.target);
       if ($a) {
         if (typeof e.button !== 'undefined' && e.button === SECONDARY_BUTTON) {
@@ -40,6 +45,9 @@ export default {
       }
     };
     const mouseup = function(e) {
+      if ($html.classList.contains('is-debug')) {
+        return;
+      }
       const $a = findAnchor(e.target);
       if ($a) {
         const href = $a.dataset.href;
@@ -49,13 +57,13 @@ export default {
       }
     };
 
-    document.body.addEventListener('mousedown', mousedown);
-    document.body.addEventListener('mouseup', mouseup);
+    doc.body.addEventListener('mousedown', mousedown);
+    doc.body.addEventListener('mouseup', mouseup);
 
     container.reopen({
       willDestroy: function() {
-        document.body.removeEventListener('mousedown', mousedown);
-        document.body.removeEventListener('mouseup', mouseup);
+        doc.body.removeEventListener('mousedown', mousedown);
+        doc.body.removeEventListener('mouseup', mouseup);
         return this._super(...arguments);
       },
     });

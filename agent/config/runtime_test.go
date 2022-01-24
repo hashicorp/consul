@@ -23,6 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
@@ -74,7 +75,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		}
 	}
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	// ------------------------------------------------------------
 	// cmd line flags
@@ -179,6 +180,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
+			rt.RPCConfig.EnableStreaming = true
 		},
 		expectedWarnings: []string{"bootstrap = true: do not enable unless necessary"},
 	})
@@ -195,6 +197,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
+			rt.RPCConfig.EnableStreaming = true
 		},
 		expectedWarnings: []string{"bootstrap_expect > 0: expecting 3 servers"},
 	})
@@ -219,7 +222,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -235,7 +237,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -252,7 +253,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "b"
-			rt.ACLDatacenter = "b"
 			rt.PrimaryDatacenter = "b"
 			rt.DataDir = dataDir
 		},
@@ -283,7 +283,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -342,6 +341,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConsulServerHealthInterval = 10 * time.Millisecond
 			rt.GRPCPort = 8502
 			rt.GRPCAddrs = []net.Addr{tcpAddr("127.0.0.1:8502")}
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -468,7 +468,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -489,7 +488,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -506,7 +504,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -656,13 +653,13 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "dc2"
 			rt.PrimaryDatacenter = "dc1"
-			rt.ACLDatacenter = "dc1"
 			rt.PrimaryGateways = []string{"a", "b"}
 			rt.DataDir = dataDir
 			// server things
 			rt.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -845,6 +842,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -1479,7 +1477,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.Bootstrap = false
 			rt.BootstrapExpect = 0
 			rt.Datacenter = "b"
-			rt.ACLDatacenter = "b"
 			rt.PrimaryDatacenter = "b"
 			rt.StartJoinAddrsLAN = []string{"a", "b", "c", "d"}
 			rt.NodeMeta = map[string]string{"a": "c"}
@@ -1502,8 +1499,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						"start_join":["a", "b"]
 					}`,
 		},
-		hcl: []string{
-			`
+		hcl: []string{`
 					advertise_addr = "1.2.3.4"
 					advertise_addr_wan = "5.6.7.8"
 					bootstrap = true
@@ -1536,7 +1532,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SerfAdvertiseAddrLAN = tcpAddr("1.1.1.1:8301")
 			rt.SerfAdvertiseAddrWAN = tcpAddr("2.2.2.2:8302")
 			rt.Datacenter = "b"
-			rt.ACLDatacenter = "b"
 			rt.PrimaryDatacenter = "b"
 			rt.DNSRecursors = []string{"1.2.3.6", "5.6.7.10", "1.2.3.5", "5.6.7.9"}
 			rt.NodeMeta = map[string]string{"a": "c"}
@@ -1622,7 +1617,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl:  []string{`datacenter = "A"`},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -1634,20 +1628,31 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl:  []string{`acl_datacenter = "A"`},
 		expected: func(rt *RuntimeConfig) {
 			rt.ACLsEnabled = true
-			rt.ACLDatacenter = "a"
 			rt.DataDir = dataDir
 			rt.PrimaryDatacenter = "a"
 		},
 		expectedWarnings: []string{`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`},
 	})
 	run(t, testCase{
-		desc: "acl_replication_token enables acl replication",
-		args: []string{`-data-dir=` + dataDir},
-		json: []string{`{ "acl_replication_token": "a" }`},
-		hcl:  []string{`acl_replication_token = "a"`},
+		desc:             "acl_replication_token enables acl replication",
+		args:             []string{`-data-dir=` + dataDir},
+		json:             []string{`{ "acl_replication_token": "a" }`},
+		hcl:              []string{`acl_replication_token = "a"`},
+		expectedWarnings: []string{deprecationWarning("acl_replication_token", "acl.tokens.replication")},
 		expected: func(rt *RuntimeConfig) {
 			rt.ACLTokens.ACLReplicationToken = "a"
 			rt.ACLTokenReplication = true
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "acl.tokens.replace does not enable acl replication",
+		args: []string{`-data-dir=` + dataDir},
+		json: []string{`{ "acl": { "tokens": { "replication": "a" }}}`},
+		hcl:  []string{`acl { tokens { replication = "a"}}`},
+		expected: func(rt *RuntimeConfig) {
+			rt.ACLTokens.ACLReplicationToken = "a"
+			rt.ACLTokenReplication = false
 			rt.DataDir = dataDir
 		},
 	})
@@ -1745,15 +1750,28 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "acl_datacenter invalid",
+		desc: "primary_datacenter invalid",
 		args: []string{
 			`-datacenter=a`,
 			`-data-dir=` + dataDir,
 		},
-		json:             []string{`{ "acl_datacenter": "%" }`},
-		hcl:              []string{`acl_datacenter = "%"`},
-		expectedErr:      `acl_datacenter can only contain lowercase alphanumeric, - or _ characters.`,
+		json:        []string{`{ "primary_datacenter": "%" }`},
+		hcl:         []string{`primary_datacenter = "%"`},
+		expectedErr: `primary_datacenter can only contain lowercase alphanumeric, - or _ characters.`,
+	})
+	run(t, testCase{
+		desc: "acl_datacenter deprecated",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json:             []string{`{ "acl_datacenter": "ab" }`},
+		hcl:              []string{`acl_datacenter = "ab"`},
 		expectedWarnings: []string{`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`},
+		expected: func(rt *RuntimeConfig) {
+			rt.ACLsEnabled = true
+			rt.PrimaryDatacenter = "ab"
+			rt.DataDir = dataDir
+		},
 	})
 	run(t, testCase{
 		desc: "autopilot.max_trailing_logs invalid",
@@ -1851,6 +1869,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
+			rt.RPCConfig.EnableStreaming = true
 		},
 		expectedWarnings: []string{"BootstrapExpect is set to 1; this is the same as Bootstrap mode.", "bootstrap = true: do not enable unless necessary"},
 	})
@@ -1867,6 +1886,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
+			rt.RPCConfig.EnableStreaming = true
 		},
 		expectedWarnings: []string{
 			`bootstrap_expect = 2: A cluster with 2 servers will provide no failure tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
@@ -1886,6 +1906,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
+			rt.RPCConfig.EnableStreaming = true
 		},
 		expectedWarnings: []string{
 			`bootstrap_expect is even number: A cluster with an even number of servers does not achieve optimum fault tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
@@ -2322,17 +2343,17 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		json: []string{
-			`{ "check": { "name": "a", "args": ["/bin/true"] } }`,
-			`{ "check": { "name": "b", "args": ["/bin/false"] } }`,
+			`{ "check": { "name": "a", "args": ["/bin/true"], "interval": "1s" } }`,
+			`{ "check": { "name": "b", "args": ["/bin/false"], "interval": "1s" } }`,
 		},
 		hcl: []string{
-			`check = { name = "a" args = ["/bin/true"] }`,
-			`check = { name = "b" args = ["/bin/false"] }`,
+			`check = { name = "a" args = ["/bin/true"] interval = "1s"}`,
+			`check = { name = "b" args = ["/bin/false"] interval = "1s" }`,
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Checks = []*structs.CheckDefinition{
-				{Name: "a", ScriptArgs: []string{"/bin/true"}, OutputMaxSize: checks.DefaultBufSize},
-				{Name: "b", ScriptArgs: []string{"/bin/false"}, OutputMaxSize: checks.DefaultBufSize},
+				{Name: "a", ScriptArgs: []string{"/bin/true"}, OutputMaxSize: checks.DefaultBufSize, Interval: time.Second},
+				{Name: "b", ScriptArgs: []string{"/bin/false"}, OutputMaxSize: checks.DefaultBufSize, Interval: time.Second},
 			}
 			rt.DataDir = dataDir
 		},
@@ -2343,14 +2364,50 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		json: []string{
-			`{ "check": { "name": "a", "grpc": "localhost:12345/foo", "grpc_use_tls": true } }`,
+			`{ "check": { "name": "a", "grpc": "localhost:12345/foo", "grpc_use_tls": true, "interval": "1s" } }`,
 		},
 		hcl: []string{
-			`check = { name = "a" grpc = "localhost:12345/foo", grpc_use_tls = true }`,
+			`check = { name = "a" grpc = "localhost:12345/foo", grpc_use_tls = true interval = "1s" }`,
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Checks = []*structs.CheckDefinition{
-				{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize},
+				{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize, Interval: time.Second},
+			}
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "h2ping check without h2ping_use_tls set",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "h2ping": "localhost:55555", "interval": "5s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a" h2ping = "localhost:55555" interval = "5s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a", H2PING: "localhost:55555", H2PingUseTLS: true, OutputMaxSize: checks.DefaultBufSize, Interval: 5 * time.Second},
+			}
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "h2ping check with h2ping_use_tls set to false",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "h2ping": "localhost:55555", "h2ping_use_tls": false, "interval": "5s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a" h2ping = "localhost:55555" h2ping_use_tls = false interval = "5s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a", H2PING: "localhost:55555", H2PingUseTLS: false, OutputMaxSize: checks.DefaultBufSize, Interval: 5 * time.Second},
 			}
 			rt.DataDir = dataDir
 		},
@@ -2470,7 +2527,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							"name": "y",
 							"DockerContainerID": "z",
 							"DeregisterCriticalServiceAfter": "10s",
-							"ScriptArgs": ["a", "b"]
+							"ScriptArgs": ["a", "b"],
+							"Interval": "2s"
 						}
 					}
 				}`,
@@ -2492,6 +2550,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						DockerContainerID = "z"
 						DeregisterCriticalServiceAfter = "10s"
 						ScriptArgs = ["a", "b"]
+						Interval = "2s"
 					}
 				}`,
 		},
@@ -2509,12 +2568,13 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					EnableTagOverride: true,
 					Checks: []*structs.CheckType{
 						{
-							CheckID:                        types.CheckID("x"),
+							CheckID:                        "x",
 							Name:                           "y",
 							DockerContainerID:              "z",
 							DeregisterCriticalServiceAfter: 10 * time.Second,
 							ScriptArgs:                     []string{"a", "b"},
 							OutputMaxSize:                  checks.DefaultBufSize,
+							Interval:                       2 * time.Second,
 						},
 					},
 					Weights: &structs.Weights{
@@ -2574,10 +2634,20 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											}
 										]
 									},
+									"mode": "transparent",
+									"transparent_proxy": {
+										"outbound_listener_port": 10101,
+										"dialed_directly": true
+									},
 									"upstreams": [
 										{
 											"destination_name": "db",
 											"local_bind_port": 7000
+										},
+										{
+											"destination_name": "db2",
+											"local_bind_socket_path": "/tmp/socketpath",
+											"local_bind_socket_mode": "0644"
 										}
 									]
 								}
@@ -2609,12 +2679,22 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											protocol = "http"
 										}
 									]
-								},
+								}
+								mode = "transparent"
+								transparent_proxy = {
+									outbound_listener_port = 10101
+									dialed_directly = true
+								}
 								upstreams = [
 									{
 										destination_name = "db"
 										local_bind_port = 7000
 									},
+									{
+									    destination_name = "db2",
+									    local_bind_socket_path = "/tmp/socketpath",
+									    local_bind_socket_mode = "0644"
+									}
 								]
 							}
 						}
@@ -2649,11 +2729,22 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										},
 									},
 								},
+								Mode: structs.ProxyModeTransparent,
+								TransparentProxy: structs.TransparentProxyConfig{
+									OutboundListenerPort: 10101,
+									DialedDirectly:       true,
+								},
 								Upstreams: structs.Upstreams{
 									structs.Upstream{
 										DestinationType: "service",
 										DestinationName: "db",
 										LocalBindPort:   7000,
+									},
+									structs.Upstream{
+										DestinationType:     "service",
+										DestinationName:     "db2",
+										LocalBindSocketPath: "/tmp/socketpath",
+										LocalBindSocketMode: "0644",
 									},
 								},
 							},
@@ -2703,6 +2794,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											}
 										]
 									},
+									"mode": "transparent",
+									"transparent_proxy": {
+										"outbound_listener_port": 10101,
+										"dialed_directly": true
+									},
 									"upstreams": [
 										{
 											"destination_name": "db",
@@ -2738,7 +2834,12 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											protocol = "http"
 										}
 									]
-								},
+								}
+								mode = "transparent"
+								transparent_proxy = {
+									outbound_listener_port = 10101
+									dialed_directly = true
+								}
 								upstreams = [
 									{
 										destination_name = "db"
@@ -2777,6 +2878,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											Protocol:      "http",
 										},
 									},
+								},
+								Mode: structs.ProxyModeTransparent,
+								TransparentProxy: structs.TransparentProxyConfig{
+									OutboundListenerPort: 10101,
+									DialedDirectly:       true,
 								},
 								Upstreams: structs.Upstreams{
 									structs.Upstream{
@@ -2843,6 +2949,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -2870,6 +2977,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -2897,6 +3005,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -2921,6 +3030,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -2949,10 +3059,12 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		json: []string{`{
 			  "use_streaming_backend": true,
+              "rpc": {"enable_streaming": false},
 			  "server": true
 			}`},
 		hcl: []string{`
 			  use_streaming_backend = true
+              rpc { enable_streaming = false }
 			  server = true
 			`},
 		expectedWarnings: []string{"use_streaming_backend = true requires rpc.enable_streaming on servers to work properly"},
@@ -3047,6 +3159,65 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				"TLSSkipVerify":       true,
 				"Token":               "abc",
 				"RootPKIPath":         "consul-vault",
+				"IntermediatePKIPath": "connect-intermediate",
+			}
+		},
+	})
+	run(t, testCase{
+		desc: "test connect vault provider configuration with root cert ttl",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+				"connect": {
+					"enabled": true,
+					"ca_provider": "vault",
+					"ca_config": {
+						"ca_file": "/capath/ca.pem",
+						"ca_path": "/capath/",
+						"cert_file": "/certpath/cert.pem",
+						"key_file": "/certpath/key.pem",
+						"tls_server_name": "server.name",
+						"tls_skip_verify": true,
+						"token": "abc",
+						"root_pki_path": "consul-vault",
+						"root_cert_ttl": "96360h",
+						"intermediate_pki_path": "connect-intermediate"
+					}
+				}
+			}`},
+		hcl: []string{`
+			  connect {
+					enabled = true
+					ca_provider = "vault"
+					ca_config {
+						ca_file = "/capath/ca.pem"
+						ca_path = "/capath/"
+						cert_file = "/certpath/cert.pem"
+						key_file = "/certpath/key.pem"
+						tls_server_name = "server.name"
+						tls_skip_verify = true
+						root_pki_path = "consul-vault"
+						token = "abc"
+						intermediate_pki_path = "connect-intermediate"
+						root_cert_ttl = "96360h"
+					}
+				}
+			`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.ConnectEnabled = true
+			rt.ConnectCAProvider = "vault"
+			rt.ConnectCAConfig = map[string]interface{}{
+				"CAFile":              "/capath/ca.pem",
+				"CAPath":              "/capath/",
+				"CertFile":            "/certpath/cert.pem",
+				"KeyFile":             "/certpath/key.pem",
+				"TLSServerName":       "server.name",
+				"TLSSkipVerify":       true,
+				"Token":               "abc",
+				"RootPKIPath":         "consul-vault",
+				"RootCertTTL":         "96360h",
 				"IntermediatePKIPath": "connect-intermediate",
 			}
 		},
@@ -3314,7 +3485,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			rt.Datacenter = "two"
 			rt.PrimaryDatacenter = "one"
-			rt.ACLDatacenter = "one"
 			rt.PrimaryGateways = []string{"foo.local", "bar.local"}
 			rt.ConnectEnabled = true
 			rt.ConnectMeshGatewayWANFederationEnabled = true
@@ -3322,6 +3492,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 
@@ -3413,6 +3584,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							},
 							"mesh_gateway": {
 								"mode": "remote"
+							},
+							"mode": "transparent",
+							"transparent_proxy": {
+								"outbound_listener_port": 10101,
+								"dialed_directly": true
 							}
 						}
 					]
@@ -3432,6 +3608,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						mesh_gateway {
 							mode = "remote"
 						}
+						mode = "transparent"
+						transparent_proxy = {
+							outbound_listener_port = 10101
+							dialed_directly = true
+						}
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3449,6 +3630,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					},
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
+					},
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
 					},
 				},
 			}
@@ -3471,6 +3657,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							},
 							"MeshGateway": {
 								"Mode": "remote"
+							},
+							"Mode": "transparent",
+							"TransparentProxy": {
+								"OutboundListenerPort": 10101,
+								"DialedDirectly": true
 							}
 						}
 					]
@@ -3490,6 +3681,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						MeshGateway {
 							Mode = "remote"
 						}
+						Mode = "transparent"
+						TransparentProxy = {
+							OutboundListenerPort = 10101
+							DialedDirectly = true
+						}
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3507,6 +3703,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					},
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
+					},
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
 					},
 				},
 			}
@@ -3529,6 +3730,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							"external_sni": "abc-123",
 							"mesh_gateway": {
 								"mode": "remote"
+							},
+							"mode": "transparent",
+							"transparent_proxy": {
+								"outbound_listener_port": 10101,
+								"dialed_directly": true
 							}
 						}
 					]
@@ -3548,6 +3754,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						mesh_gateway {
 							mode = "remote"
 						}
+						mode = "transparent"
+						transparent_proxy = {
+							outbound_listener_port = 10101
+							dialed_directly = true
+						}
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3565,6 +3776,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					ExternalSNI:    "abc-123",
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
+					},
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
 					},
 				},
 			}
@@ -3587,6 +3803,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							"ExternalSNI": "abc-123",
 							"MeshGateway": {
 								"Mode": "remote"
+							},
+							"Mode": "transparent",
+							"TransparentProxy": {
+								"OutboundListenerPort": 10101,
+								"DialedDirectly": true
 							}
 						}
 					]
@@ -3606,6 +3827,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						MeshGateway {
 							Mode = "remote"
 						}
+						Mode = "transparent"
+						TransparentProxy = {
+							OutboundListenerPort = 10101
+							DialedDirectly = true
+						}
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3623,6 +3849,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					ExternalSNI:    "abc-123",
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
+					},
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
 					},
 				},
 			}
@@ -3855,6 +4086,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								Service:               "carrot",
 								ServiceSubset:         "kale",
 								Namespace:             "leek",
+								Partition:             acl.DefaultPartitionName,
 								PrefixRewrite:         "/alternate",
 								RequestTimeout:        99 * time.Second,
 								NumRetries:            12345,
@@ -4062,6 +4294,108 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			}
 		},
 	})
+	run(t, testCase{
+		desc: "ConfigEntry bootstrap cluster (snake-case)",
+		args: []string{`-data-dir=` + dataDir},
+		json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "mesh",
+							"meta" : {
+								"foo": "bar",
+								"gir": "zim"
+							},
+							"transparent_proxy": {
+								"mesh_destinations_only": true
+							}
+						}
+					]
+				}
+			}`,
+		},
+		hcl: []string{`
+				config_entries {
+				  bootstrap {
+					kind = "mesh"
+					meta {
+						"foo" = "bar"
+						"gir" = "zim"
+					}
+					transparent_proxy {
+						mesh_destinations_only = true
+					}
+				  }
+				}
+			`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+				&structs.MeshConfigEntry{
+					Meta: map[string]string{
+						"foo": "bar",
+						"gir": "zim",
+					},
+					EnterpriseMeta: *defaultEntMeta,
+					TransparentProxy: structs.TransparentProxyMeshConfig{
+						MeshDestinationsOnly: true,
+					},
+				},
+			}
+		},
+	})
+	run(t, testCase{
+		desc: "ConfigEntry bootstrap cluster (camel-case)",
+		args: []string{`-data-dir=` + dataDir},
+		json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"Kind": "mesh",
+							"Meta" : {
+								"foo": "bar",
+								"gir": "zim"
+							},
+							"TransparentProxy": {
+								"MeshDestinationsOnly": true
+							}
+						}
+					]
+				}
+			}`,
+		},
+		hcl: []string{`
+				config_entries {
+				  bootstrap {
+					Kind = "mesh"
+					Meta {
+						"foo" = "bar"
+						"gir" = "zim"
+					}
+					TransparentProxy {
+						MeshDestinationsOnly = true
+					}
+				  }
+				}
+			`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+				&structs.MeshConfigEntry{
+					Meta: map[string]string{
+						"foo": "bar",
+						"gir": "zim",
+					},
+					EnterpriseMeta: *defaultEntMeta,
+					TransparentProxy: structs.TransparentProxyMeshConfig{
+						MeshDestinationsOnly: true,
+					},
+				},
+			}
+		},
+	})
 
 	///////////////////////////////////
 	// Defaults sanity checks
@@ -4082,6 +4416,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
+			rt.SegmentLimit = 64
 		},
 	})
 
@@ -4497,6 +4832,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.CertFile = "foo"
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	// UI Config tests
@@ -4874,27 +5210,22 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		}
 
 		opts := tc.opts
+
 		fs := flag.NewFlagSet("", flag.ContinueOnError)
 		AddFlags(fs, &opts)
 		require.NoError(t, fs.Parse(tc.args))
 		require.Len(t, fs.Args(), 0)
 
-		// Then create a builder with the flags.
-		patchLoadOptsShims(&opts)
-		b, err := newBuilder(opts)
-		require.NoError(t, err)
-
-		// read the source fragments
 		for i, data := range tc.source(format) {
-			b.Sources = append(b.Sources, FileSource{
+			opts.sources = append(opts.sources, FileSource{
 				Name:   fmt.Sprintf("src-%d.%s", i, format),
 				Format: format,
 				Data:   data,
 			})
 		}
 
-		// build/merge the config fragments
-		actual, err := b.BuildAndValidate()
+		patchLoadOptsShims(&opts)
+		result, err := Load(opts)
 		switch {
 		case err == nil && tc.expectedErr != "":
 			t.Fatalf("got nil want error to contain %q", tc.expectedErr)
@@ -4906,7 +5237,7 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		if tc.expectedErr != "" {
 			return
 		}
-		require.Equal(t, tc.expectedWarnings, b.Warnings, "warnings")
+		require.Equal(t, tc.expectedWarnings, result.Warnings, "warnings")
 
 		// build a default configuration, then patch the fields we expect to change
 		// and compare it with the generated configuration. Since the expected
@@ -4916,17 +5247,23 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		x, err := newBuilder(expectedOpts)
 		require.NoError(t, err)
 
-		expected, err := x.Build()
+		expected, err := x.build()
 		require.NoError(t, err)
 		if tc.expected != nil {
 			tc.expected(&expected)
 		}
 
+		actual := *result.RuntimeConfig
 		// both DataDir fields should always be the same, so test for the
 		// invariant, and than updated the expected, so that every test
 		// case does not need to set this field.
 		require.Equal(t, actual.DataDir, actual.ACLTokens.DataDir)
 		expected.ACLTokens.DataDir = actual.ACLTokens.DataDir
+		// These fields are always the same
+		expected.ACLResolverSettings.Datacenter = expected.Datacenter
+		expected.ACLResolverSettings.ACLsEnabled = expected.ACLsEnabled
+		expected.ACLResolverSettings.NodeName = expected.NodeName
+		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
 		assertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 	}
@@ -4965,14 +5302,13 @@ func TestLoad_FullConfig(t *testing.T) {
 		return n
 	}
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+	nodeEntMeta := structs.NodeEnterpriseMetaInDefaultPartition()
 	expected := &RuntimeConfig{
 		// non-user configurable values
-		ACLDisabledTTL:             120 * time.Second,
 		AEInterval:                 time.Minute,
 		CheckDeregisterIntervalMin: time.Minute,
 		CheckReapInterval:          30 * time.Second,
-		SegmentLimit:               64,
 		SegmentNameLimit:           64,
 		SyncCoordinateIntervalMin:  15 * time.Second,
 		SyncCoordinateRateTarget:   64,
@@ -5005,23 +5341,29 @@ func TestLoad_FullConfig(t *testing.T) {
 		// user configurable values
 
 		ACLTokens: token.Config{
-			EnablePersistence:   true,
-			DataDir:             dataDir,
-			ACLDefaultToken:     "418fdff1",
-			ACLAgentToken:       "bed2377c",
-			ACLAgentMasterToken: "64fd0e08",
-			ACLReplicationToken: "5795983a",
+			EnablePersistence:     true,
+			DataDir:               dataDir,
+			ACLDefaultToken:       "418fdff1",
+			ACLAgentToken:         "bed2377c",
+			ACLAgentRecoveryToken: "1dba6aba",
+			ACLReplicationToken:   "5795983a",
 		},
 
-		ACLsEnabled:                      true,
-		ACLDatacenter:                    "ejtmd43d",
-		ACLDefaultPolicy:                 "72c2e7a0",
-		ACLDownPolicy:                    "03eb2aee",
+		ACLsEnabled:       true,
+		PrimaryDatacenter: "ejtmd43d",
+		ACLResolverSettings: consul.ACLResolverSettings{
+			ACLsEnabled:      true,
+			Datacenter:       "rzo029wg",
+			NodeName:         "otlLxGaI",
+			EnterpriseMeta:   *nodeEntMeta,
+			ACLDefaultPolicy: "72c2e7a0",
+			ACLDownPolicy:    "03eb2aee",
+			ACLTokenTTL:      3321 * time.Second,
+			ACLPolicyTTL:     1123 * time.Second,
+			ACLRoleTTL:       9876 * time.Second,
+		},
 		ACLEnableKeyListPolicy:           true,
-		ACLMasterToken:                   "8a19ac27",
-		ACLTokenTTL:                      3321 * time.Second,
-		ACLPolicyTTL:                     1123 * time.Second,
-		ACLRoleTTL:                       9876 * time.Second,
+		ACLInitialManagementToken:        "3820e09a",
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
 		AdvertiseAddrWAN:                 ipAddr("78.63.37.19"),
@@ -5061,13 +5403,15 @@ func TestLoad_FullConfig(t *testing.T) {
 				Method:                         "aldrIQ4l",
 				Body:                           "wSjTy7dg",
 				TCP:                            "RJQND605",
+				H2PING:                         "9N1cSb5B",
+				H2PingUseTLS:                   false,
 				Interval:                       22164 * time.Second,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				DockerContainerID:              "ipgdFtjd",
 				Shell:                          "qAeOYy0M",
+				TLSServerName:                  "bdeb5f6a",
 				TLSSkipVerify:                  true,
 				Timeout:                        1813 * time.Second,
-				TTL:                            21743 * time.Second,
 				DeregisterCriticalServiceAfter: 14232 * time.Second,
 			},
 			{
@@ -5087,12 +5431,14 @@ func TestLoad_FullConfig(t *testing.T) {
 				Body:                           "0jkKgGUC",
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "4jG5casb",
+				H2PING:                         "HCHU7gEb",
+				H2PingUseTLS:                   false,
 				Interval:                       28767 * time.Second,
 				DockerContainerID:              "THW6u7rL",
 				Shell:                          "C1Zt3Zwh",
+				TLSServerName:                  "6adc3bfb",
 				TLSSkipVerify:                  true,
 				Timeout:                        18506 * time.Second,
-				TTL:                            31006 * time.Second,
 				DeregisterCriticalServiceAfter: 2366 * time.Second,
 			},
 			{
@@ -5112,12 +5458,14 @@ func TestLoad_FullConfig(t *testing.T) {
 				Body:                           "5PBQd2OT",
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "JY6fTTcw",
+				H2PING:                         "rQ8eyCSF",
+				H2PingUseTLS:                   false,
 				Interval:                       18714 * time.Second,
 				DockerContainerID:              "qF66POS9",
 				Shell:                          "sOnDy228",
+				TLSServerName:                  "7BdnzBYk",
 				TLSSkipVerify:                  true,
 				Timeout:                        5954 * time.Second,
-				TTL:                            30044 * time.Second,
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
@@ -5153,7 +5501,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				AuthMethod: structs.ACLAuthMethod{
 					Name:           "Auto Config Authorizer",
 					Type:           "jwt",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					Config: map[string]interface{}{
 						"JWTValidationPubKeys": []string{"-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"},
 						"ClaimMappings": map[string]string{
@@ -5183,9 +5531,9 @@ func TestLoad_FullConfig(t *testing.T) {
 		ExposeMaxPort:         2222,
 		ConnectCAProvider:     "consul",
 		ConnectCAConfig: map[string]interface{}{
-			"RotationPeriod":      "90h",
 			"IntermediateCertTTL": "8760h",
 			"LeafCertTTL":         "1h",
+			"RootCertTTL":         "96360h",
 			"CSRMaxPerSecond":     float64(100),
 			"CSRMaxConcurrent":    float64(2),
 		},
@@ -5201,6 +5549,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		DNSNodeTTL:                             7084 * time.Second,
 		DNSOnlyPassing:                         true,
 		DNSPort:                                7001,
+		DNSRecursorStrategy:                    "sequential",
 		DNSRecursorTimeout:                     4427 * time.Second,
 		DNSRecursors:                           []string{"63.38.39.58", "92.49.18.18"},
 		DNSSOA:                                 RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
@@ -5243,7 +5592,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		HTTPSPort:                              15127,
 		HTTPUseCache:                           false,
 		KeyFile:                                "IEkkwgIA",
-		KVMaxValueSize:                         1234567800000000,
+		KVMaxValueSize:                         1234567800,
 		LeaveDrainTime:                         8265 * time.Second,
 		LeaveOnTerm:                            true,
 		Logging: logging.Config{
@@ -5258,7 +5607,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		NodeName:                "otlLxGaI",
 		ReadReplica:             true,
 		PidFile:                 "43xN80Km",
-		PrimaryDatacenter:       "ejtmd43d",
 		PrimaryGateways:         []string{"aej8eeZo", "roh2KahS"},
 		PrimaryGatewaysInterval: 18866 * time.Second,
 		RPCAdvertiseAddr:        tcpAddr("17.99.29.16:3757"),
@@ -5283,6 +5631,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		RetryJoinMaxAttemptsWAN: 23160,
 		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER"},
 		RPCConfig:               consul.RPCConfig{EnableStreaming: true},
+		SegmentLimit:            123,
 		SerfPortLAN:             8301,
 		SerfPortWAN:             8302,
 		ServerMode:              true,
@@ -5317,12 +5666,14 @@ func TestLoad_FullConfig(t *testing.T) {
 						Body:                           "WeikigLh",
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "ICbxkpSF",
+						H2PING:                         "7s7BbMyb",
+						H2PingUseTLS:                   false,
 						Interval:                       24392 * time.Second,
 						DockerContainerID:              "ZKXr68Yb",
 						Shell:                          "CEfzx0Fo",
+						TLSServerName:                  "4f191d4F",
 						TLSSkipVerify:                  true,
 						Timeout:                        38333 * time.Second,
-						TTL:                            57201 * time.Second,
 						DeregisterCriticalServiceAfter: 44214 * time.Second,
 					},
 				},
@@ -5367,33 +5718,22 @@ func TestLoad_FullConfig(t *testing.T) {
 						Body:                           "7CRjCJyz",
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "MN3oA9D2",
+						H2PING:                         "OV6Q2XEg",
+						H2PingUseTLS:                   false,
 						Interval:                       32718 * time.Second,
 						DockerContainerID:              "cU15LMet",
 						Shell:                          "nEz9qz2l",
+						TLSServerName:                  "f43ouY7a",
 						TLSSkipVerify:                  true,
 						Timeout:                        34738 * time.Second,
-						TTL:                            22773 * time.Second,
 						DeregisterCriticalServiceAfter: 84282 * time.Second,
 					},
 					&structs.CheckType{
-						CheckID:    "UHsDeLxG",
-						Name:       "PQSaPWlT",
-						Notes:      "jKChDOdl",
-						Status:     "5qFz6OZn",
-						ScriptArgs: []string{"NMtYWlT9", "vj74JXsm"},
-						HTTP:       "1LBDJhw4",
-						Header: map[string][]string{
-							"cXPmnv1M": {"imDqfaBx", "NFxZ1bQe"},
-							"vr7wY7CS": {"EtCoNPPL", "9vAarJ5s"},
-						},
-						Method:                         "wzByP903",
-						Body:                           "4I8ucZgZ",
+						CheckID:                        "UHsDeLxG",
+						Name:                           "PQSaPWlT",
+						Notes:                          "jKChDOdl",
+						Status:                         "5qFz6OZn",
 						OutputMaxSize:                  checks.DefaultBufSize,
-						TCP:                            "2exjZIGE",
-						Interval:                       5656 * time.Second,
-						DockerContainerID:              "5tDBWpfA",
-						Shell:                          "rlTpLM8s",
-						TLSSkipVerify:                  true,
 						Timeout:                        4868 * time.Second,
 						TTL:                            11222 * time.Second,
 						DeregisterCriticalServiceAfter: 68482 * time.Second,
@@ -5416,9 +5756,11 @@ func TestLoad_FullConfig(t *testing.T) {
 					},
 					Upstreams: structs.Upstreams{
 						{
-							DestinationType: "service", // Default should be explicitly filled
-							DestinationName: "KPtAj2cb",
-							LocalBindPort:   4051,
+							DestinationType:      "service", // Default should be explicitly filled
+							DestinationName:      "KPtAj2cb",
+							DestinationPartition: defaultEntMeta.PartitionOrEmpty(),
+							DestinationNamespace: defaultEntMeta.NamespaceOrEmpty(),
+							LocalBindPort:        4051,
 							Config: map[string]interface{}{
 								"kzRnZOyd": "nUNKoL8H",
 							},
@@ -5426,9 +5768,18 @@ func TestLoad_FullConfig(t *testing.T) {
 						{
 							DestinationType:      "prepared_query",
 							DestinationNamespace: "9nakw0td",
+							DestinationPartition: "part-9nakw0td",
 							DestinationName:      "KSd8HsRl",
 							LocalBindPort:        11884,
 							LocalBindAddress:     "127.24.88.0",
+						},
+						{
+							DestinationType:      "prepared_query",
+							DestinationNamespace: "9nakw0td",
+							DestinationPartition: "part-9nakw0td",
+							DestinationName:      "placeholder",
+							LocalBindSocketPath:  "/foo/bar/upstream",
+							LocalBindSocketMode:  "0600",
 						},
 					},
 					Expose: structs.ExposeConfig{
@@ -5441,6 +5792,11 @@ func TestLoad_FullConfig(t *testing.T) {
 								Protocol:      "http",
 							},
 						},
+					},
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
 					},
 				},
 				Weights: &structs.Weights{
@@ -5506,12 +5862,14 @@ func TestLoad_FullConfig(t *testing.T) {
 						Body:                           "OwGjTFQi",
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "bNnNfx2A",
+						H2PING:                         "qC1pidiW",
+						H2PingUseTLS:                   false,
 						Interval:                       22224 * time.Second,
 						DockerContainerID:              "ipgdFtjd",
 						Shell:                          "omVZq7Sz",
+						TLSServerName:                  "axw5QPL5",
 						TLSSkipVerify:                  true,
 						Timeout:                        18913 * time.Second,
-						TTL:                            44743 * time.Second,
 						DeregisterCriticalServiceAfter: 8482 * time.Second,
 					},
 					&structs.CheckType{
@@ -5529,12 +5887,14 @@ func TestLoad_FullConfig(t *testing.T) {
 						Body:                           "lUVLGYU7",
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "FfvCwlqH",
+						H2PING:                         "spI3muI3",
+						H2PingUseTLS:                   false,
 						Interval:                       12356 * time.Second,
 						DockerContainerID:              "HBndBU6R",
 						Shell:                          "hVI33JjA",
+						TLSServerName:                  "7uwWOnUS",
 						TLSSkipVerify:                  true,
 						Timeout:                        38282 * time.Second,
-						TTL:                            1181 * time.Second,
 						DeregisterCriticalServiceAfter: 4992 * time.Second,
 					},
 					&structs.CheckType{
@@ -5552,12 +5912,14 @@ func TestLoad_FullConfig(t *testing.T) {
 						Body:                           "wVVL2V6f",
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "fjiLFqVd",
+						H2PING:                         "5NbNWhan",
+						H2PingUseTLS:                   false,
 						Interval:                       23926 * time.Second,
 						DockerContainerID:              "dO5TtRHk",
 						Shell:                          "e6q2ttES",
+						TLSServerName:                  "ECSHk8WF",
 						TLSSkipVerify:                  true,
 						Timeout:                        38483 * time.Second,
-						TTL:                            10943 * time.Second,
 						DeregisterCriticalServiceAfter: 68787 * time.Second,
 					},
 				},
@@ -5600,6 +5962,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			StatsiteAddr:                       "HpFwKB8R",
 			PrometheusOpts: prometheus.PrometheusOpts{
 				Expiration: 15 * time.Second,
+				Name:       "ftO6DySn", // notice this is the same as the metrics prefix
 			},
 		},
 		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
@@ -5614,7 +5977,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			"wan_ipv4": "78.63.37.19",
 		},
 		TranslateWANAddrs: true,
-		TxnMaxReqLen:      5678000000000000,
+		TxnMaxReqLen:      567800000,
 		UIConfig: UIConfig{
 			Dir:                        "pVncV4Ey",
 			ContentPath:                "/qp1WRhYH/", // slashes are added in parsing
@@ -5655,11 +6018,24 @@ func TestLoad_FullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
+		RaftBoltDBConfig: consul.RaftBoltDBConfig{NoFreelistSync: true},
 	}
 	entFullRuntimeConfig(expected)
 
 	expectedWarns := []string{
-		`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`,
+		deprecationWarning("acl_datacenter", "primary_datacenter"),
+		deprecationWarning("acl_agent_master_token", "acl.tokens.agent_recovery"),
+		deprecationWarning("acl.tokens.agent_master", "acl.tokens.agent_recovery"),
+		deprecationWarning("acl_agent_token", "acl.tokens.agent"),
+		deprecationWarning("acl_token", "acl.tokens.default"),
+		deprecationWarning("acl_master_token", "acl.tokens.initial_management"),
+		deprecationWarning("acl.tokens.master", "acl.tokens.initial_management"),
+		deprecationWarning("acl_replication_token", "acl.tokens.replication"),
+		deprecationWarning("enable_acl_replication", "acl.enable_token_replication"),
+		deprecationWarning("acl_default_policy", "acl.default_policy"),
+		deprecationWarning("acl_down_policy", "acl.down_policy"),
+		deprecationWarning("acl_ttl", "acl.token_ttl"),
+		deprecationWarning("acl_enable_key_list_policy", "acl.enable_key_list_policy"),
 		`bootstrap_expect > 0: expecting 53 servers`,
 	}
 	expectedWarns = append(expectedWarns, enterpriseConfigKeyWarnings...)
@@ -6340,9 +6716,9 @@ func TestConnectCAConfiguration(t *testing.T) {
 			expected: &structs.CAConfiguration{
 				Provider: "consul",
 				Config: map[string]interface{}{
-					"RotationPeriod":      "2160h",
 					"LeafCertTTL":         "72h",
-					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"IntermediateCertTTL": "8760h",  // 365 * 24h
+					"RootCertTTL":         "87600h", // 365 * 10 * 24h
 				},
 			},
 		},
@@ -6357,9 +6733,9 @@ func TestConnectCAConfiguration(t *testing.T) {
 				Provider:  "consul",
 				ClusterID: "adfe7697-09b4-413a-ac0a-fa81ed3a3001",
 				Config: map[string]interface{}{
-					"RotationPeriod":      "2160h",
 					"LeafCertTTL":         "72h",
-					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"IntermediateCertTTL": "8760h",  // 365 * 24h
+					"RootCertTTL":         "87600h", // 365 * 10 * 24h
 					"cluster_id":          "adfe7697-09b4-413a-ac0a-fa81ed3a3001",
 				},
 			},
@@ -6381,9 +6757,9 @@ func TestConnectCAConfiguration(t *testing.T) {
 			expected: &structs.CAConfiguration{
 				Provider: "vault",
 				Config: map[string]interface{}{
-					"RotationPeriod":      "2160h",
 					"LeafCertTTL":         "72h",
-					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"IntermediateCertTTL": "8760h",  // 365 * 24h
+					"RootCertTTL":         "87600h", // 365 * 10 * 24h
 				},
 			},
 		},
@@ -6391,15 +6767,16 @@ func TestConnectCAConfiguration(t *testing.T) {
 			config: RuntimeConfig{
 				ConnectEnabled: true,
 				ConnectCAConfig: map[string]interface{}{
-					"foo": "bar",
+					"foo":         "bar",
+					"RootCertTTL": "8761h", // 365 * 24h + 1
 				},
 			},
 			expected: &structs.CAConfiguration{
 				Provider: "consul",
 				Config: map[string]interface{}{
-					"RotationPeriod":      "2160h",
 					"LeafCertTTL":         "72h",
 					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"RootCertTTL":         "8761h", // 365 * 24h + 1
 					"foo":                 "bar",
 				},
 			},

@@ -48,7 +48,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -114,8 +114,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Read an ACL token"
-const help = `
+const (
+	synopsis = "Read an ACL token"
+	help     = `
 Usage: consul acl token read [options] -id TOKENID
 
   This command will retrieve and print out the details of
@@ -129,3 +130,4 @@ Usage: consul acl token read [options] -id TOKENID
 
           $ consul acl token read -id 4be56c77-8244-4c7d-b08c-667b8c71baed
 `
+)

@@ -40,7 +40,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -86,8 +86,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Lists ACL roles"
-const help = `
+const (
+	synopsis = "Lists ACL roles"
+	help     = `
 Usage: consul acl role list [options]
 
     Lists all the ACL roles.
@@ -96,3 +97,4 @@ Usage: consul acl role list [options]
 
         $ consul acl role list
 `
+)

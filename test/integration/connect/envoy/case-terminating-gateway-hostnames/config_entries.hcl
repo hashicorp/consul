@@ -9,4 +9,9 @@ config_entries {
       }
     ]
   }
+  bootstrap {
+    kind     = "service-defaults"
+    name     = "s4"
+    protocol = "http"
+  }
 }

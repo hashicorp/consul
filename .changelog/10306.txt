@@ -1,0 +1,4 @@
+```release-note:bug
+autopilot: **(Enterprise only)** Fixed an issue where autopilot could cause a new leader to demote the wrong voter when redundancy zones are in use and the previous leader failed.
+```
+

@@ -1,17 +1,21 @@
 {{#let (hash
   main=(concat guid '-main')
+  Notification=(component 'app/notification')
 ) as |exported|}}
 
 <div
   class="app"
   ...attributes
 >
-  <ModalLayer />
 
   <div
     class="skip-links"
     {{on "click" this.focus}}
   >
+    <PortalTarget
+      @name="app-before-skip-links"
+      @multiple={{true}}
+    ></PortalTarget>
     <a href={{concat '#' exported.main}}>{{t 'components.app.skip_to_content'}}</a>
     {{!--
       In order to add further skip links from within other templates use:
@@ -21,10 +25,12 @@
       from within your template
     --}}
     <PortalTarget
-      @name="app-skip-links"
-      @mutiple={{true}}
+      @name="app-after-skip-links"
+      @multiple={{true}}
     ></PortalTarget>
   </div>
+
+  <ModalLayer />
 
   <input
     type="checkbox"
@@ -73,6 +79,13 @@
       </div>
   </header>
   <main id={{concat guid '-main'}}>
+    <div class="notifications">
+      {{yield exported to="notifications"}}
+      <PortalTarget
+        @name="app-notifications"
+        @multiple={{true}}
+      ></PortalTarget>
+    </div>
     {{yield exported to="main"}}
   </main>
   <footer

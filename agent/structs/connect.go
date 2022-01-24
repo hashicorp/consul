@@ -18,3 +18,7 @@ type ConnectAuthorizeRequest struct {
 	ClientCertURI    string
 	ClientCertSerial string
 }
+
+func (req *ConnectAuthorizeRequest) TargetPartition() string {
+	return req.PartitionOrDefault()
+}

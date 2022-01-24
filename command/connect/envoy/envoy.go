@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -24,17 +23,7 @@ import (
 )
 
 func New(ui cli.Ui) *cmd {
-	ui = &cli.PrefixedUi{
-		OutputPrefix: "==> ",
-		InfoPrefix:   "    ",
-		ErrorPrefix:  "==> ",
-		Ui:           ui,
-	}
-
-	c := &cmd{
-		UI:        ui,
-		directOut: os.Stdout,
-	}
+	c := &cmd{UI: ui}
 	c.init()
 	return c
 }
@@ -47,22 +36,21 @@ type cmd struct {
 	http   *flags.HTTPFlags
 	help   string
 	client *api.Client
-	// DirectOut defaults to os.stdout but is a property to allow capture during
-	// tests to have more useful output.
-	directOut io.Writer
 
 	// flags
-	meshGateway          bool
-	gateway              string
-	proxyID              string
-	sidecarFor           string
-	adminAccessLogPath   string
-	adminBind            string
-	envoyBin             string
-	bootstrap            bool
-	disableCentralConfig bool
-	grpcAddr             string
-	envoyVersion         string
+	meshGateway           bool
+	gateway               string
+	proxyID               string
+	sidecarFor            string
+	adminAccessLogPath    string
+	adminBind             string
+	envoyBin              string
+	bootstrap             bool
+	disableCentralConfig  bool
+	grpcAddr              string
+	envoyVersion          string
+	prometheusBackendPort string
+	prometheusScrapePath  string
 
 	// mesh gateway registration information
 	register           bool
@@ -134,8 +122,12 @@ func (c *cmd) init() {
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
 			"Alternatively, you can specify CONSUL_GRPC_ADDR in ENV.")
 
+	// Deprecated, no longer needed, keeping it around to not break back compat
 	c.flags.StringVar(&c.envoyVersion, "envoy-version", defaultEnvoyVersion,
-		"Sets the envoy-version that the envoy binary has.")
+		"This is a legacy flag that is currently not used but was formerly used to set the "+
+			"version for the envoy binary that gets invoked by Consul. This is no longer "+
+			"necessary as Consul will invoke the binary at a path set by -envoy-binary "+
+			"or whichever envoy binary it finds in $PATH")
 
 	c.flags.BoolVar(&c.register, "register", false,
 		"Register a new gateway service before configuring and starting Envoy")
@@ -165,9 +157,22 @@ func (c *cmd) init() {
 			"consul.destination.[service|dc|...]. The old tags were preserved for backward compatibility,"+
 			"but can be disabled with this flag.")
 
+	c.flags.StringVar(&c.prometheusBackendPort, "prometheus-backend-port", "",
+		"Sets the backend port for the 'prometheus_backend' cluster that envoy_prometheus_bind_addr will point to. "+
+			"Without this flag, envoy_prometheus_bind_addr would point to the 'self_admin' cluster where Envoy metrics are exposed. "+
+			"The metrics merging feature in consul-k8s uses this to point to the merged metrics endpoint combining Envoy and service metrics. "+
+			"Only applicable when envoy_prometheus_bind_addr is set in proxy config.")
+
+	c.flags.StringVar(&c.prometheusScrapePath, "prometheus-scrape-path", "/metrics",
+		"Sets the path where Envoy will expose metrics on envoy_prometheus_bind_addr listener. "+
+			"For example, if envoy_prometheus_bind_addr is 0.0.0.0:20200, and this flag is "+
+			"set to /scrape-metrics, prometheus metrics would be scrapeable at "+
+			"0.0.0.0:20200/scrape-metrics. "+
+			"Only applicable when envoy_prometheus_bind_addr is set in proxy config.")
+
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -365,7 +370,11 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 
-		c.UI.Output(fmt.Sprintf("Registered service: %s", svc.Name))
+		if !c.bootstrap {
+			// We need stdout to be reserved exclusively for the JSON blob, so
+			// we omit logging this to Info which also writes to stdout.
+			c.UI.Info(fmt.Sprintf("Registered service: %s", svc.Name))
+		}
 	}
 
 	// Generate config
@@ -377,7 +386,7 @@ func (c *cmd) run(args []string) int {
 
 	if c.bootstrap {
 		// Just output it and we are done
-		c.directOut.Write(bootstrapJson)
+		c.UI.Output(string(bootstrapJson))
 		return 0
 	}
 
@@ -421,7 +430,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		return nil, err
 	}
 
-	grpcAddr, err := c.grpcAddress(httpCfg)
+	xdsAddr, err := c.xdsAddress(httpCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -466,7 +475,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	caPEM = strings.Replace(strings.Join(pems, ""), "\n", "\\n", -1)
 
 	return &BootstrapTplArgs{
-		GRPC:                  grpcAddr,
+		GRPC:                  xdsAddr,
 		ProxyCluster:          cluster,
 		ProxyID:               c.proxyID,
 		ProxySourceService:    proxySourceService,
@@ -477,8 +486,10 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		Token:                 httpCfg.Token,
 		LocalAgentClusterName: xds.LocalAgentClusterName,
 		Namespace:             httpCfg.Namespace,
-		EnvoyVersion:          c.envoyVersion,
+		Partition:             httpCfg.Partition,
 		Datacenter:            httpCfg.Datacenter,
+		PrometheusBackendPort: c.prometheusBackendPort,
+		PrometheusScrapePath:  c.prometheusScrapePath,
 	}, nil
 }
 
@@ -518,17 +529,19 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		// Set the source service name from the proxy's own registration
 		args.ProxySourceService = svc.Service
 	}
+
+	// In most cases where namespaces and partitions are enabled they will already be set
+	// correctly because the http client that fetched this will provide them explicitly.
+	// However, if these arguments were not provided, they will be empty even
+	// though Namespaces and Partitions are actually being used.
+	// Overriding them ensures that we always set the Namespace and Partition args
+	// if the cluster is using them. This prevents us from defaulting to the "default"
+	// when a non-default partition or namespace was inferred from the ACL token.
 	if svc.Namespace != "" {
-		// In most cases where namespaces are enabled this will already be set
-		// correctly because the http client that fetched this will need to have
-		// had the namespace set on it which is also how we initially populate
-		// this. However in the case of "default" namespace being accessed because
-		// there was no namespace argument, args.Namespace will be empty even
-		// though Namespaces are actually being used and the namespace of the request was
-		// inferred from the ACL token or defaulted to the "default" namespace.
-		// Overriding it here ensures that we always set the Namespace arg if the
-		// cluster is using namespaces regardless.
 		args.Namespace = svc.Namespace
+	}
+	if svc.Partition != "" {
+		args.Partition = svc.Partition
 	}
 
 	if svc.Datacenter != "" {
@@ -547,13 +560,12 @@ func (c *cmd) generateConfig() ([]byte, error) {
 }
 
 // TODO: make method a function
-func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
+func (c *cmd) xdsAddress(httpCfg *api.Config) (GRPC, error) {
 	g := GRPC{}
 
 	addr := c.grpcAddr
-	// See if we need to lookup grpcAddr
 	if addr == "" {
-		port, err := c.lookupGRPCPort()
+		port, err := c.lookupXDSPort()
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		}
@@ -561,7 +573,6 @@ func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
 			// This is the dev mode default and recommended production setting if
 			// enabled.
 			port = 8502
-			c.UI.Info(fmt.Sprintf("Defaulting to grpc port = %d", port))
 		}
 		addr = fmt.Sprintf("localhost:%v", port)
 	}
@@ -612,11 +623,25 @@ func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
 	return g, nil
 }
 
-func (c *cmd) lookupGRPCPort() (int, error) {
+func (c *cmd) lookupXDSPort() (int, error) {
 	self, err := c.client.Agent().Self()
 	if err != nil {
 		return 0, err
 	}
+
+	type response struct {
+		XDS struct {
+			Port int
+		}
+	}
+
+	var resp response
+	if err := mapstructure.Decode(self, &resp); err == nil && resp.XDS.Port != 0 {
+		return resp.XDS.Port, nil
+	}
+
+	// Fallback to old API for the case where a new consul CLI is being used with
+	// an older API version.
 	cfg, ok := self["DebugConfig"]
 	if !ok {
 		return 0, fmt.Errorf("unexpected agent response: no debug config")
@@ -641,9 +666,10 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Runs or Configures Envoy as a Connect proxy"
-const help = `
-Usage: consul connect envoy [options]
+const (
+	synopsis = "Runs or Configures Envoy as a Connect proxy"
+	help     = `
+Usage: consul connect envoy [options] [-- pass-through options]
 
   Generates the bootstrap configuration needed to start an Envoy proxy instance
   for use as a Connect sidecar for a particular service instance. By default it
@@ -665,4 +691,9 @@ Usage: consul connect envoy [options]
 
     $ consul connect envoy -sidecar-for web
 
+  Additional arguments may be passed directly to Envoy by specifying a double
+  dash followed by a list of options.
+
+    $ consul connect envoy -sidecar-for web -- --log-level debug
 `
+)

@@ -5,7 +5,7 @@ export default function PrefooterCTA() {
     <CallToAction
       heading="Ready to get started?"
       content="Consul Open Source addresses the technical complexity of managing production services by providing a way to discover, automate, secure and connect applications and networking configurations across distributed infrastructure and clouds."
-      brand="consul"
+      product="consul"
       links={[
         {
           text: 'Explore HashiCorp Learn',

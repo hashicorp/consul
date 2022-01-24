@@ -1,14 +1,16 @@
 export default (clickable, deletable, collection, alias, roleForm) => (scope = '#roles') => {
   return {
     scope: scope,
-    create: clickable('[for="new-role-toggle"]'),
+    create: clickable('[data-test-role-create]'),
     form: roleForm(),
     roles: alias('selectedOptions'),
     selectedOptions: collection(
       '[data-test-roles] [data-test-tabular-row]',
-      deletable({
-        actions: clickable('label'),
-      })
+      {
+        actions: clickable('label > button'),
+        delete: clickable('[data-test-delete]'),
+        confirmDelete: clickable('.informed-action button'),
+      }
     ),
   };
 };

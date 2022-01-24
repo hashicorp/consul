@@ -13,10 +13,11 @@ module('Integration | Adapter | token', function(hooks) {
     test(`requestForQuery returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
+      const request = client.requestParams.bind(client);
       const expected = `GET /v1/acl/tokens?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQuery(client.requestParams.bind(client), {
+      let actual = adapter.requestForQuery(request, {
         dc: dc,
         ns: nspace,
       });
@@ -25,10 +26,11 @@ module('Integration | Adapter | token', function(hooks) {
     test(`requestForQuery returns the correct url/method when a policy is specified when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
+      const request = client.requestParams.bind(client);
       const expected = `GET /v1/acl/tokens?policy=${id}&dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQuery(client.requestParams.bind(client), {
+      let actual = adapter.requestForQuery(request, {
         dc: dc,
         policy: id,
         ns: nspace,
@@ -38,36 +40,44 @@ module('Integration | Adapter | token', function(hooks) {
     test(`requestForQuery returns the correct url/method when a role is specified when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
+      const request = client.requestParams.bind(client);
       const expected = `GET /v1/acl/tokens?role=${id}&dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQuery(client.requestParams.bind(client), {
+      let actual = adapter.requestForQuery(request, {
         dc: dc,
         role: id,
         ns: nspace,
       });
       assert.equal(`${actual.method} ${actual.url}`, expected);
     });
-    test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
+    test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, async function(assert) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
+      const request = function() {
+        return () => client.requestParams.bind(client)(...arguments);
+      };
       const expected = `GET /v1/acl/token/${id}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQueryRecord(client.requestParams.bind(client), {
+      let actual = await adapter.requestForQueryRecord(request, {
         dc: dc,
         id: id,
         ns: nspace,
       });
+      actual = actual();
       assert.equal(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
-      const expected = `PUT /v1/acl/token?dc=${dc}`;
+      const request = client.url.bind(client);
+      const expected = `PUT /v1/acl/token?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
       const actual = adapter
         .requestForCreateRecord(
-          client.url,
+          request,
           {},
           {
             Datacenter: dc,
@@ -81,10 +91,13 @@ module('Integration | Adapter | token', function(hooks) {
     test(`requestForUpdateRecord returns the correct url (without Rules it uses the v2 API) when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
-      const expected = `PUT /v1/acl/token/${id}?dc=${dc}`;
+      const request = client.url.bind(client);
+      const expected = `PUT /v1/acl/token/${id}?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
       const actual = adapter
         .requestForUpdateRecord(
-          client.url,
+          request,
           {},
           {
             Datacenter: dc,
@@ -99,10 +112,13 @@ module('Integration | Adapter | token', function(hooks) {
     test(`requestForUpdateRecord returns the correct url (with Rules it uses the v1 API) when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
+      const request = client.url.bind(client);
+      // As the title of the test says, this one uses the ACL legacy APIs and
+      // therefore does not expect a nspace
       const expected = `PUT /v1/acl/update?dc=${dc}`;
       const actual = adapter
         .requestForUpdateRecord(
-          client.url,
+          request,
           {},
           {
             Rules: 'key {}',
@@ -118,12 +134,13 @@ module('Integration | Adapter | token', function(hooks) {
     test(`requestForDeleteRecord returns the correct url/method when the nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
+      const request = client.url.bind(client);
       const expected = `DELETE /v1/acl/token/${id}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       const actual = adapter
         .requestForDeleteRecord(
-          client.url,
+          request,
           {},
           {
             Datacenter: dc,
@@ -138,12 +155,13 @@ module('Integration | Adapter | token', function(hooks) {
     test(`requestForCloneRecord returns the correct url when the nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
+      const request = client.url.bind(client);
       const expected = `PUT /v1/acl/token/${id}/clone?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       const actual = adapter
         .requestForCloneRecord(
-          client.url,
+          request,
           {},
           {
             Datacenter: dc,
@@ -159,19 +177,21 @@ module('Integration | Adapter | token', function(hooks) {
   test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:token');
     const client = this.owner.lookup('service:client/http');
-    assert.throws(function() {
-      adapter.requestForQueryRecord(client.url, {
+    const request = client.url.bind(client);
+    assert.rejects(
+      adapter.requestForQueryRecord(request, {
         dc: dc,
-      });
-    });
+      })
+    );
   });
   test('requestForSelf returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:token');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     const expected = `GET /v1/acl/token/self?dc=${dc}`;
     const actual = adapter
       .requestForSelf(
-        client.url,
+        request,
         {},
         {
           dc: dc,
@@ -183,11 +203,12 @@ module('Integration | Adapter | token', function(hooks) {
   test('requestForSelf sets a token header using a secret', function(assert) {
     const adapter = this.owner.lookup('adapter:token');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     const secret = 'sssh';
     const expected = `X-Consul-Token: ${secret}`;
     const actual = adapter
       .requestForSelf(
-        client.url,
+        request,
         {},
         {
           dc: dc,

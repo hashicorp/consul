@@ -30,6 +30,10 @@ load helpers
   assert_service_has_healthy_instances s2 1 secondary
 }
 
+@test "gateway-secondary should be up and listening" {
+  retry_long nc -z consul-secondary:4432
+}
+
 ################
 # PHASE 1: we show that by default requests are served from the primary
 
@@ -71,6 +75,6 @@ load helpers
   assert_expected_fortio_name s2-secondary
 }
 
-@test "s1 upstream made 1 connection to s2" {
+@test "s1 upstream made 1 connection again" {
   assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.primary.*cx_total" 1
 }

@@ -7,13 +7,14 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/raft"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/testrpc"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/hashicorp/raft"
-	"github.com/stretchr/testify/require"
 )
 
 func TestOperator_RaftGetConfiguration(t *testing.T) {
@@ -69,10 +70,10 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -92,26 +93,8 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 	}
 
 	// Create an ACL with operator read permissions.
-	var token string
-	{
-		var rules = `
-                    operator = "read"
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	rules := `operator = "read"`
+	token := createToken(t, codec, rules)
 
 	// Now it should go through.
 	arg.Token = token
@@ -157,13 +140,10 @@ func TestOperator_RaftRemovePeerByAddress(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	ports := freeport.MustTake(1)
-	defer freeport.Return(ports)
-
 	// Try to remove a peer that's not there.
 	arg := structs.RaftRemovePeerRequest{
 		Datacenter: "dc1",
-		Address:    raft.ServerAddress(fmt.Sprintf("127.0.0.1:%d", ports[0])),
+		Address:    raft.ServerAddress(fmt.Sprintf("127.0.0.1:%d", freeport.GetOne(t))),
 	}
 	var reply struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Operator.RaftRemovePeerByAddress", &arg, &reply)
@@ -217,10 +197,10 @@ func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -240,27 +220,7 @@ func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create an ACL with operator write permissions.
-	var token string
-	{
-		var rules = `
-                    operator = "write"
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	token := createToken(t, codec, `operator = "write" `)
 
 	// Now it should kick back for being an invalid config, which means it
 	// tried to do the operation.
@@ -300,10 +260,7 @@ func TestOperator_RaftRemovePeerByID(t *testing.T) {
 
 	// Add it manually to Raft.
 	{
-		ports := freeport.MustTake(1)
-		defer freeport.Return(ports)
-
-		future := s1.raft.AddVoter(arg.ID, raft.ServerAddress(fmt.Sprintf("127.0.0.1:%d", ports[0])), 0, 0)
+		future := s1.raft.AddVoter(arg.ID, raft.ServerAddress(fmt.Sprintf("127.0.0.1:%d", freeport.GetOne(t))), 0, 0)
 		if err := future.Error(); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -346,10 +303,10 @@ func TestOperator_RaftRemovePeerByID_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.RaftConfig.ProtocolVersion = 3
 	})
 	defer os.RemoveAll(dir1)
@@ -370,27 +327,7 @@ func TestOperator_RaftRemovePeerByID_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create an ACL with operator write permissions.
-	var token string
-	{
-		var rules = `
-                    operator = "write"
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	token := createToken(t, codec, `operator = "write"`)
 
 	// Now it should kick back for being an invalid config, which means it
 	// tried to do the operation.

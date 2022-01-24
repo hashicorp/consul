@@ -370,7 +370,7 @@ ERR_EXIT:
 	}
 }
 
-// validate checks that the configuration is sane
+// validate checks that the configuration is reasonable
 func (conf *rExecConf) validate() error {
 	// Validate the filters
 	if conf.node != "" {

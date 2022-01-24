@@ -7,11 +7,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
 )
 
 func TestConnectCASetConfigCommand_noTabs(t *testing.T) {
@@ -27,7 +28,6 @@ func TestConnectCASetConfigCommand(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
@@ -48,11 +48,10 @@ func TestConnectCASetConfigCommand(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var reply structs.CAConfiguration
-	require.NoError(a.RPC("ConnectCA.ConfigurationGet", &req, &reply))
-	require.Equal("consul", reply.Provider)
+	require.NoError(t, a.RPC("ConnectCA.ConfigurationGet", &req, &reply))
+	require.Equal(t, "consul", reply.Provider)
 
 	parsed, err := ca.ParseConsulCAConfig(reply.Config)
-	require.NoError(err)
-	require.Equal(24*time.Hour, parsed.RotationPeriod)
-	require.Equal(288*time.Hour, parsed.IntermediateCertTTL)
+	require.NoError(t, err)
+	require.Equal(t, 288*time.Hour, parsed.IntermediateCertTTL)
 }

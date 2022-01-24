@@ -1,28 +1,54 @@
 <form>
-  <RoleForm @form={{form}} @item={{item}} @dc={{dc}} @nspace={{nspace}} />
-{{#if (and (not create) (gt items.length 0))}}
-  <h2>Where is this role used?</h2>
-  <p>
-    We're only able to show information for the primary datacenter and the current datacenter. This list may not show every case where this role is applied.
-  </p>
-  <TokenList @caption="Tokens" @items={{items}} />
+  <RoleForm
+    @form={{form}}
+    @item={{item}}
+    @dc={{dc}}
+    @nspace={{nspace}}
+    @partition={{partition}}
+  />
+{{#if (not create)}}
+  <DataSource
+    @src={{uri '/${partition}/${nspace}/${dc}/tokens/for-role/${id}'
+      (hash
+        partition=partition
+        nspace=nspace
+        dc=dc
+        id=(or id '')
+      )
+    }}
+  as |loader|>
+  {{#if (gt loader.data.length 0)}}
+    <h2>Where is this role used?</h2>
+    <p>
+      We're only able to show information for the primary datacenter and the current datacenter. This list may not show every case where this role is applied.
+    </p>
+    <TokenList @caption="Tokens" @items={{loader.data}} />
+  {{/if}}
+  </DataSource>
 {{/if}}
     <div>
-{{#if create }}
+{{#if (and create (can "create roles")) }}
         {{! we only need to check for an empty name here as ember munges autofocus, once we have autofocus back revisit this}}
         <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid (eq item.Name '')) 'disabled'}}>Save</button>
 {{ else }}
+  {{#if (can "write role" item=item)}}
         <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+  {{/if}}
 {{/if}}
         <button type="reset" {{ action "cancel" item}}>Cancel</button>
-{{# if (not create) }}
+{{# if (and (not create) (can "delete role" item=item) ) }}
         <ConfirmationDialog @message="Are you sure you want to delete this Role?">
             <BlockSlot @name="action" as |confirm|>
                 <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item}}>Delete</button>
             </BlockSlot>
             <BlockSlot @name="dialog" as |execute cancel message|>
     {{#if (gt items.length 0)}}
-              <ModalDialog @onclose={{action cancel}}>
+              <ModalDialog
+                @onclose={{action cancel}}
+                @aria={{hash
+                  label="Role in Use"
+                }}
+              >
                   <BlockSlot @name="header">
                       <h2>Role in Use</h2>
                   </BlockSlot>

@@ -1,7 +1,6 @@
 ---
 layout: docs
 page_title: Connect - Development and Debugging
-sidebar_title: Develop and Debug
 description: >-
   It is often necessary to connect to a service for development or debugging. If
   a service only exposes a Connect listener, then we need a way to establish a
@@ -45,7 +44,7 @@ the example above, the proxy is identifying as `operator-mitchellh`.
 With the proxy running, we can now use `psql` like normal:
 
 ```shell-session
-$ psql -h 127.0.0.1 -p 8181 -U mitchellh mydb
+$ psql --host=127.0.0.1 --port=8181 --username=mitchellh mydb
 >
 ```
 

@@ -7,6 +7,9 @@ This top-level repository provides limited common tasks, such as installation
 and commit assistance.  However, most tasks must be executed from within a
 subproject, e.g. running or testing.
 
+**If you are looking to work on the Consul UI you probably want to read
+the README that is in `./packages/consul-ui/README.md`.**
+
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->

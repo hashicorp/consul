@@ -1,16 +1,18 @@
 ---
 layout: docs
 page_title: Connect - Built-in Proxy
-sidebar_title: Built-in Proxy
 description: Consul Connect comes with a built-in proxy for testing and development.
 ---
 
 # Built-In Proxy Options
 
-Consul comes with a built-in L4 proxy for testing and development with Consul
-Connect.
+~> **Note:** The built-in proxy is not supported for production deployments. It does not
+support many of the Connect service mesh features, and is not under active development.
+The [Envoy proxy](/docs/connect/proxies/envoy) should be used for production deployments.
 
-~> **Note:** [Envoy](/docs/connect/proxies/envoy) should be used for production deployments, or when [layer 7 traffic management](/docs/connect/l7-traffic-management) features are needed.
+Consul comes with a built-in L4 proxy for testing and development with Consul
+Connect service mesh.
+
 
 ## Getting Started
 
@@ -21,7 +23,7 @@ To get started with the built-in proxy and see a working example you can follow 
 Below is a complete example of all the configuration options available
 for the built-in proxy.
 
-```javascript
+```json
 {
   "service": {
     ...
@@ -30,8 +32,6 @@ for the built-in proxy.
         "config": {
           "bind_address": "0.0.0.0",
           "bind_port": 20000,
-          "tcp_check_address": "192.168.0.1",
-          "disable_tcp_check": false,
           "local_service_address": "127.0.0.1:1234",
           "local_connect_timeout_ms": 1000,
           "handshake_timeout_ms": 10000,
@@ -51,7 +51,7 @@ for the built-in proxy.
 }
 ```
 
-All fields are optional with a sane default.
+All fields are optional with a reasonable default.
 
 - `bind_address` - The address the proxy will bind its
   _public_ mTLS listener to. It defaults to the same address the agent binds to.
@@ -61,19 +61,6 @@ All fields are optional with a sane default.
   [configured proxy port range](/docs/agent/options#sidecar_min_port) if available.
   By default the range is [20000, 20255] and the port is selected at random from
   that range.
-
-- `tcp_check_address` - The address the agent will
-  run a [TCP health check](/docs/agent/checks) against. By default this is the same
-  as the proxy's [bind address](#bind_address) except if the bind address is `0.0.0.0`
-  or `[::]` in which case this defaults to `127.0.0.1` and assumes the agent can
-  dial the proxy over loopback. For more complex configurations where agent and proxy
-  communicate over a bridge for example, this configuration can be used to specify
-  a different _address_ (but not port) for the agent to use for health checks if
-  it can't talk to the proxy over localhost or its publicly advertised port. The
-  check always uses the same port that the proxy is bound to.
-
-- `disable_tcp_check` - If true, this disables a
-  TCP check being setup for the proxy. Default is false.
 
 - `local_service_address`- The `[address]:port`
   that the proxy should use to connect to the local application instance. By default
@@ -99,7 +86,7 @@ All fields are optional with a sane default.
 
 ## Proxy Upstream Config Key Reference
 
-All fields are optional with a sane default.
+All fields are optional with a reasonable default.
 
 - `connect_timeout_ms` - The number of milliseconds
   the proxy will wait to establish a TLS connection to the discovered upstream instance

@@ -1,0 +1,8 @@
+#docfy-demo-preview-icon-definition {
+  dl {
+    @extend %icon-definition;
+  }
+  .lock-delay dt::before {
+    @extend %with-delay-mask, %as-pseudo;
+  }
+}

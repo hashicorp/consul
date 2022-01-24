@@ -1,0 +1,6 @@
+```release-note:bug
+grpc: strip local ACL tokens from RPCs during forwarding if crossing datacenters
+```
+```release-note:feature
+partitions: allow for partition queries to be forwarded
+```

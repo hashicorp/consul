@@ -275,6 +275,7 @@ type translateKeyTestCase struct {
 // 	"script_args":                       "ScriptArgs",
 // 	"deregister_critical_service_after": "DeregisterCriticalServiceAfter",
 // 	"docker_container_id":               "DockerContainerID",
+// 	"tls_server_name":                   "TLSServerName",
 // 	"tls_skip_verify":                   "TLSSkipVerify",
 // 	"service_id":                        "ServiceID",
 
@@ -283,7 +284,9 @@ var translateCheckTypeTCs = [][]translateKeyTestCase{
 	translateDeregisterTCs,
 	translateDockerTCs,
 	translateGRPCUseTLSTCs,
-	translateTLSTCs,
+	translateTLSServerNameTCs,
+	translateH2PingUseTLS,
+	translateTLSSkipVerifyTCs,
 	translateServiceIDTCs,
 }
 
@@ -504,8 +507,65 @@ var translateDockerTCs = []translateKeyTestCase{
 	},
 }
 
+// TLSServerName: string
+func tlsServerNameEqFn(out interface{}, want interface{}) error {
+	var got interface{}
+	switch v := out.(type) {
+	case structs.CheckDefinition:
+		got = v.TLSServerName
+	case *structs.CheckDefinition:
+		got = v.TLSServerName
+	case structs.CheckType:
+		got = v.TLSServerName
+	case *structs.CheckType:
+		got = v.TLSServerName
+	case structs.HealthCheckDefinition:
+		got = v.TLSServerName
+	case *structs.HealthCheckDefinition:
+		got = v.TLSServerName
+	default:
+		panic(fmt.Sprintf("unexpected type %T", out))
+	}
+	if got != want {
+		return fmt.Errorf("expected TLSServerName to be %v, got %v", want, got)
+	}
+	return nil
+}
+
+var tlsServerNameFields = []string{`"TLSServerName": %s`, `"tls_server_name": %s`}
+var translateTLSServerNameTCs = []translateKeyTestCase{
+	{
+		desc:       "tlsServerName: both set",
+		in:         []interface{}{`"server1"`, `"server2"`},
+		want:       "server1",
+		jsonFmtStr: "{" + strings.Join(tlsServerNameFields, ",") + "}",
+		equalityFn: tlsServerNameEqFn,
+	},
+	{
+		desc:       "tlsServerName: first set",
+		in:         []interface{}{`"server1"`},
+		want:       "server1",
+		jsonFmtStr: "{" + tlsServerNameFields[0] + "}",
+		equalityFn: tlsServerNameEqFn,
+	},
+	{
+		desc:       "tlsServerName: second set",
+		in:         []interface{}{`"server2"`},
+		want:       "server2",
+		jsonFmtStr: "{" + tlsServerNameFields[1] + "}",
+		equalityFn: tlsServerNameEqFn,
+	},
+	{
+		desc:       "tlsServerName: neither set",
+		in:         []interface{}{},
+		want:       "", // zero value
+		jsonFmtStr: "{}",
+		equalityFn: tlsServerNameEqFn,
+	},
+}
+
 // TLSSkipVerify: bool
-func tlsEqFn(out interface{}, want interface{}) error {
+func tlsSkipVerifyEqFn(out interface{}, want interface{}) error {
 	var got interface{}
 	switch v := out.(type) {
 	case structs.CheckDefinition:
@@ -529,35 +589,35 @@ func tlsEqFn(out interface{}, want interface{}) error {
 	return nil
 }
 
-var tlsFields = []string{`"TLSSkipVerify": %s`, `"tls_skip_verify": %s`}
-var translateTLSTCs = []translateKeyTestCase{
+var tlsSkipVerifyFields = []string{`"TLSSkipVerify": %s`, `"tls_skip_verify": %s`}
+var translateTLSSkipVerifyTCs = []translateKeyTestCase{
 	{
 		desc:       "tlsSkipVerify: both set",
 		in:         []interface{}{`true`, `false`},
 		want:       true,
-		jsonFmtStr: "{" + strings.Join(tlsFields, ",") + "}",
-		equalityFn: tlsEqFn,
+		jsonFmtStr: "{" + strings.Join(tlsSkipVerifyFields, ",") + "}",
+		equalityFn: tlsSkipVerifyEqFn,
 	},
 	{
 		desc:       "tlsSkipVerify: first set",
 		in:         []interface{}{`true`},
 		want:       true,
-		jsonFmtStr: "{" + tlsFields[0] + "}",
-		equalityFn: tlsEqFn,
+		jsonFmtStr: "{" + tlsSkipVerifyFields[0] + "}",
+		equalityFn: tlsSkipVerifyEqFn,
 	},
 	{
 		desc:       "tlsSkipVerify: second set",
 		in:         []interface{}{`true`},
 		want:       true,
-		jsonFmtStr: "{" + tlsFields[1] + "}",
-		equalityFn: tlsEqFn,
+		jsonFmtStr: "{" + tlsSkipVerifyFields[1] + "}",
+		equalityFn: tlsSkipVerifyEqFn,
 	},
 	{
 		desc:       "tlsSkipVerify: neither set",
 		in:         []interface{}{},
 		want:       false, // zero value
 		jsonFmtStr: "{}",
-		equalityFn: tlsEqFn,
+		equalityFn: tlsSkipVerifyEqFn,
 	},
 }
 
@@ -615,6 +675,62 @@ var translateGRPCUseTLSTCs = []translateKeyTestCase{
 		want:       false, // zero value
 		jsonFmtStr: "{}",
 		equalityFn: grpcUseTLSEqFn,
+	},
+}
+
+func h2pingUseTLSEqFn(out interface{}, want interface{}) error {
+	var got interface{}
+	switch v := out.(type) {
+	case structs.CheckDefinition:
+		got = v.H2PingUseTLS
+	case *structs.CheckDefinition:
+		got = v.H2PingUseTLS
+	case structs.CheckType:
+		got = v.H2PingUseTLS
+	case *structs.CheckType:
+		got = v.H2PingUseTLS
+	case structs.HealthCheckDefinition:
+		got = v.H2PingUseTLS
+	case *structs.HealthCheckDefinition:
+		got = v.H2PingUseTLS
+	default:
+		panic(fmt.Sprintf("unexpected type %T", out))
+	}
+	if got != want {
+		return fmt.Errorf("expected H2PingUseTLS to be %v, got %v", want, got)
+	}
+	return nil
+}
+
+var h2pingUseTLSFields = []string{`"H2PING": "testing"`, `"H2PingUseTLS": %s`, `"h2ping_use_tls": %s`}
+var translateH2PingUseTLS = []translateKeyTestCase{
+	{
+		desc:       "H2PingUseTLS: both set",
+		in:         []interface{}{"false", "true"},
+		want:       false,
+		jsonFmtStr: "{" + strings.Join(h2pingUseTLSFields, ",") + "}",
+		equalityFn: h2pingUseTLSEqFn,
+	},
+	{
+		desc:       "H2PingUseTLS:: first set",
+		in:         []interface{}{`false`},
+		want:       false,
+		jsonFmtStr: "{" + strings.Join(h2pingUseTLSFields[0:2], ",") + "}",
+		equalityFn: h2pingUseTLSEqFn,
+	},
+	{
+		desc:       "H2PingUseTLS: second set",
+		in:         []interface{}{`false`},
+		want:       false,
+		jsonFmtStr: "{" + h2pingUseTLSFields[0] + "," + h2pingUseTLSFields[2] + "}",
+		equalityFn: h2pingUseTLSEqFn,
+	},
+	{
+		desc:       "H2PingUseTLS: neither set",
+		in:         []interface{}{},
+		want:       true, // zero value
+		jsonFmtStr: "{" + h2pingUseTLSFields[0] + "}",
+		equalityFn: h2pingUseTLSEqFn,
 	},
 }
 
@@ -876,6 +992,9 @@ func TestDecodeACLRoleWrite(t *testing.T) {
 // Shell	string
 // GRPC	string
 // GRPCUseTLS	bool
+// H2PING	string
+// H2PingUseTLS	bool
+// TLSServerName	string
 // TLSSkipVerify	bool
 // AliasNode	string
 // AliasService	string
@@ -988,6 +1107,7 @@ func TestDecodeAgentRegisterCheck(t *testing.T) {
 //     Shell	string
 //     GRPC	string
 //     GRPCUseTLS	bool
+//     TLSServerName	string
 //     TLSSkipVerify	bool
 //     Timeout	time.Duration
 //     TTL	time.Duration
@@ -1924,6 +2044,7 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 //                 Shell	string
 //                 GRPC	string
 //                 GRPCUseTLS	bool
+//                 TLSServerName	string
 //                 TLSSkipVerify	bool
 //                 Timeout	time.Duration
 //                 TTL	time.Duration
@@ -1953,6 +2074,7 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 //     ServiceTags	[]string
 //     Definition	structs.HealthCheckDefinition
 //         HTTP	string
+//         TLSServerName	string
 //         TLSSkipVerify	bool
 //         Header	map[string][]string
 //         Method	string
@@ -2425,6 +2547,7 @@ func TestDecodeSessionCreate(t *testing.T) {
 //                             TCP	string
 //                             Status	string
 //                             Notes	string
+//                             TLSServerName	string
 //                             TLSSkipVerify	bool
 //                             GRPC	string
 //                             GRPCUseTLS	bool
@@ -2451,6 +2574,7 @@ func TestDecodeSessionCreate(t *testing.T) {
 //                     Header	map[string][]string
 //                     Method	string
 //                     Body	string
+//                     TLSServerName	string
 //                     TLSSkipVerify	bool
 //                     TCP	string
 //                     IntervalDuration	time.Duration

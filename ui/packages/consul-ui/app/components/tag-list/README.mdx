@@ -1,0 +1,77 @@
+# TagList
+
+Template only component for rendering a list of tags. You can pass either/or/and `@tags=tags` and/or `@item=item` (`item` must have a `Tags` property) for ease. If you pass both they are merged and de-duped.
+
+Tags are de-duplicated when rendered.
+
+Uses `%horizontal-kv-list` for positioning/icon and `%csv-list` for tag separating
+
+```hbs preview-template
+<TagList
+  @item={{hash
+    Tags=(array 'tag' 'tag' 'another-tag')
+  }}
+/>
+
+<hr />
+
+<TagList
+  @tags={{array 'another-tag' 'tag' 'tag'}}
+/>
+```
+
+`TagList` is also a recursive component, which can currently be used for when you need to wrap the `TagList` component in more DOM, but you only want that DOM to appear if your array of tags is non-empty.
+
+
+```hbs preview-template
+<figure>
+  <figcaption>
+    This list has tags therefore the red border div will also be rendered.
+  </figcaption>
+
+  <TagList
+    @item={{hash
+      Tags=(array 'tag' 'tag' 'another-tag')
+    }}
+  as |Tags|>
+    <div style="border: 1px solid red;">
+      <Tags />
+    </div>
+  </TagList>
+
+</figure>
+
+<hr />
+
+<figure>
+  <figcaption>
+    This list has no tags therefore the tags _and_ red border div will <strong>not</strong> be rendered.
+  </figcaption>
+
+  <TagList
+    @item={{hash
+      Tags=(array)
+    }}
+  as |Tags|>
+    <div style="border: 1px solid red;">
+      <Tags />
+    </div>
+  </TagList>
+
+</figure>
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `item` | `Object` |  | Object with a `Tags` property equalling an array of string tags |
+| `tags` | `Array` |  | An array of string tags |
+
+## Exports
+
+When used as a block level component the `TagList` yields itself, see above example for usage.
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `Tags` | `Array` | The resulting collection of data after searching/sorting/filtering |

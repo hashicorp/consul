@@ -21,7 +21,9 @@ acl = {
     msp_disable_bootstrap = true
     tokens = {
         master = "8a19ac27",
+        initial_management = "3820e09a",
         agent_master = "64fd0e08",
+        agent_recovery = "1dba6aba",
         replication = "5795983a",
         agent = "bed2377c",
         default = "418fdff1",
@@ -47,7 +49,7 @@ advertise_addr = "17.99.29.16"
 advertise_addr_wan = "78.63.37.19"
 advertise_reconnect_timeout = "0s"
 audit = {
-    enabled = false
+    enabled = true
 }
 auto_config = {
     enabled = false
@@ -109,13 +111,15 @@ check = {
     method = "Dou0nGT5"
     body = "5PBQd2OT"
     tcp = "JY6fTTcw"
+    h2ping = "rQ8eyCSF"
+    h2ping_use_tls = false
     interval = "18714s"
     output_max_size = 4096
     docker_container_id = "qF66POS9"
     shell = "sOnDy228"
+    tls_server_name = "7BdnzBYk"
     tls_skip_verify = true
     timeout = "5954s"
-    ttl = "30044s"
     deregister_critical_service_after = "13209s"
 },
 checks = [
@@ -135,13 +139,15 @@ checks = [
         method = "aldrIQ4l"
         body = "wSjTy7dg"
         tcp = "RJQND605"
+        h2ping = "9N1cSb5B"
+        h2ping_use_tls = false
         interval = "22164s"
         output_max_size = 4096
         docker_container_id = "ipgdFtjd"
         shell = "qAeOYy0M"
+        tls_server_name = "bdeb5f6a"
         tls_skip_verify = true
         timeout = "1813s"
-        ttl = "21743s"
         deregister_critical_service_after = "14232s"
     },
     {
@@ -160,13 +166,15 @@ checks = [
         method = "gLrztrNw"
         body = "0jkKgGUC"
         tcp = "4jG5casb"
+        h2ping = "HCHU7gEb"
+        h2ping_use_tls = false
         interval = "28767s"
         output_max_size = 4096
         docker_container_id = "THW6u7rL"
         shell = "C1Zt3Zwh"
+        tls_server_name = "6adc3bfb"
         tls_skip_verify = true
         timeout = "18506s"
-        ttl = "31006s"
         deregister_critical_service_after = "2366s"
     }
 ]
@@ -192,9 +200,9 @@ auto_encrypt = {
 connect {
     ca_provider = "consul"
     ca_config {
-        rotation_period = "90h"
         intermediate_cert_ttl = "8760h"
         leaf_cert_ttl = "1h"
+        root_cert_ttl = "96360h"
         # hack float since json parses numbers as float and we have to
         # assert against the same thing
         csr_max_per_second = 100.0
@@ -271,6 +279,7 @@ http_config {
 }
 key_file = "IEkkwgIA"
 leave_on_terminate = true
+license_path = "/path/to/license.lic"
 limits {
     http_max_conns_per_client = 100
     https_handshake_timeout = "2391ms"
@@ -278,8 +287,8 @@ limits {
     rpc_rate = 12029.43
     rpc_max_burst = 44848
     rpc_max_conns_per_client = 2954
-    kv_max_value_size = 1234567800000000
-    txn_max_req_len = 5678000000000000
+    kv_max_value_size = 1234567800
+    txn_max_req_len = 567800000
 }
 log_level = "k1zo9Spt"
 log_json = true
@@ -291,6 +300,7 @@ node_meta {
 }
 node_name = "otlLxGaI"
 non_voting_server = true
+partition = ""
 performance {
     leave_drain_time = "8265s"
     raft_multiplier = 5
@@ -318,6 +328,9 @@ raft_protocol = 3
 raft_snapshot_threshold = 16384
 raft_snapshot_interval = "30s"
 raft_trailing_logs = 83749
+raft_boltdb {
+    NoFreelistSync = true
+}
 read_replica = true
 reconnect_timeout = "23739s"
 reconnect_timeout_wan = "26694s"
@@ -332,6 +345,7 @@ retry_max_wan = 23160
 rpc {
     enable_streaming = true
 }
+segment_limit = 123
 serf_lan = "99.43.63.15"
 serf_wan = "67.88.33.19"
 server = true
@@ -375,12 +389,14 @@ service = {
         method = "9afLm3Mj"
         body = "wVVL2V6f"
         tcp = "fjiLFqVd"
+        h2ping = "5NbNWhan"
+        h2ping_use_tls = false
         interval = "23926s"
         docker_container_id = "dO5TtRHk"
         shell = "e6q2ttES"
+        tls_server_name = "ECSHk8WF"
         tls_skip_verify = true
         timeout = "38483s"
-        ttl = "10943s"
         deregister_critical_service_after = "68787s"
     }
     checks = [
@@ -398,13 +414,15 @@ service = {
             method = "T66MFBfR"
             body = "OwGjTFQi"
             tcp = "bNnNfx2A"
+            h2ping = "qC1pidiW"
+            h2ping_use_tls = false
             interval = "22224s"
             output_max_size = 4096
             docker_container_id = "ipgdFtjd"
             shell = "omVZq7Sz"
+            tls_server_name = "axw5QPL5"
             tls_skip_verify = true
             timeout = "18913s"
-            ttl = "44743s"
             deregister_critical_service_after = "8482s"
         },
         {
@@ -421,13 +439,15 @@ service = {
             method = "ciYHWors"
             body = "lUVLGYU7"
             tcp = "FfvCwlqH"
+            h2ping = "spI3muI3"
+            h2ping_use_tls = false
             interval = "12356s"
             output_max_size = 4096
             docker_container_id = "HBndBU6R"
             shell = "hVI33JjA"
+            tls_server_name = "7uwWOnUS"
             tls_skip_verify = true
             timeout = "38282s"
-            ttl = "1181s"
             deregister_critical_service_after = "4992s"
         }
     ]
@@ -458,13 +478,15 @@ services = [
             method = "X5DrovFc"
             body = "WeikigLh"
             tcp = "ICbxkpSF"
+            h2ping = "7s7BbMyb"
+            h2ping_use_tls = false
             interval = "24392s"
             output_max_size = 4096
             docker_container_id = "ZKXr68Yb"
             shell = "CEfzx0Fo"
+            tls_server_name = "4f191d4F"
             tls_skip_verify = true
             timeout = "38333s"
-            ttl = "57201s"
             deregister_critical_service_after = "44214s"
         }
         connect {
@@ -498,13 +520,15 @@ services = [
                 method = "5wkAxCUE"
                 body = "7CRjCJyz"
                 tcp = "MN3oA9D2"
+                h2ping = "OV6Q2XEg"
+                h2ping_use_tls = false
                 interval = "32718s"
                 output_max_size = 4096
                 docker_container_id = "cU15LMet"
                 shell = "nEz9qz2l"
+                tls_server_name = "f43ouY7a"
                 tls_skip_verify = true
                 timeout = "34738s"
-                ttl = "22773s"
                 deregister_critical_service_after = "84282s"
             },
             {
@@ -512,20 +536,7 @@ services = [
                 name = "PQSaPWlT"
                 notes = "jKChDOdl"
                 status = "5qFz6OZn"
-                args = ["NMtYWlT9", "vj74JXsm"]
-                http = "1LBDJhw4"
-                header = {
-                    "cXPmnv1M" = [ "imDqfaBx", "NFxZ1bQe" ],
-                    "vr7wY7CS" = [ "EtCoNPPL", "9vAarJ5s" ]
-                }
-                method = "wzByP903"
-                body = "4I8ucZgZ"
-                tcp = "2exjZIGE"
-                interval = "5656s"
                 output_max_size = 4096
-                docker_container_id = "5tDBWpfA"
-                shell = "rlTpLM8s"
-                tls_skip_verify = true
                 timeout = "4868s"
                 ttl = "11222s"
                 deregister_critical_service_after = "68482s"
@@ -557,9 +568,18 @@ services = [
                 {
                     destination_type = "prepared_query"
                     destination_namespace = "9nakw0td"
+                    destination_partition = "part-9nakw0td"
                     destination_name = "KSd8HsRl"
                     local_bind_port = 11884
                     local_bind_address = "127.24.88.0"
+                },
+                {
+                    destination_type = "prepared_query"
+                    destination_namespace = "9nakw0td"
+                    destination_partition = "part-9nakw0td"
+                    destination_name = "placeholder"
+                    local_bind_socket_path = "/foo/bar/upstream"
+                    local_bind_socket_mode = "0600"
                 },
             ]
             expose {
@@ -572,6 +592,11 @@ services = [
                         protocol = "http"
                     }
                 ]
+            }
+            mode = "transparent"
+            transparent_proxy = {
+                outbound_listener_port = 10101
+                dialed_directly = true
             }
         }
     },

@@ -1,19 +1,44 @@
 ---
 name: Web UI Feedback
-about: You have usage feedback for either version of the web UI
+about: You have usage feedback for the browser based UI
 
 ---
 
-**Old UI or New UI**
-If you're using Consul 1.1.0 or later, you can use the new UI with the change of
-an environment variable. Let us know which UI you're using so that we can help.
+When filing a bug, please include the following headings if possible. Any example text in this template can be deleted.
 
-**Describe the problem you're having**
-A clear and concise description of what could be better. If you have screenshots
-of a bug, place them here.
+### Overview of the Issue
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+A paragraph or two about the issue you're experiencing / suggestion for
+improvement.
 
-**Share inspiration**
-How have you seen this problem solved well in other UIs?
+### Reproduction Steps
+
+Steps to reproduce this issue/view the area for improvement, eg:
+
+1. Visit the UI page at `/ui/services`
+1. Click .... then click...etc.
+1. View error/area.
+
+### Describe the solution you'd like
+
+If this is an improvement rather than a bug, a clear and concise description
+of what you want to happen. How have you seen this problem solved in other
+UIs?
+
+### Consul Version
+
+This can be found either in the footer of the UI (Consul versions pre 1.10) or
+at the top of the help menu that is in the top right side of the UI.
+
+### Browser and Operating system details
+
+Browser, Browser Version, OS, and any other information you can provide about the environment that may be relevant.
+
+### Screengrabs / Web Inspector logs
+
+If you think it's worthwhile, include appropriate screengrabs showing the
+error/area for improvement. Try to include the URL bar of the browser so we
+can see the current URL where the error manifests. Please be careful to
+obfuscate any sensitive information either in the URL or in the browser page
+itself.
+

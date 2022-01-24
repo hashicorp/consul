@@ -12,13 +12,13 @@ description: >-
 
 When deploying Consul to a datacenter for the first time, there is an initial
 bootstrapping that must be done. As of Consul 0.4, an
-[automatic bootstrapping](/docs/guides/bootstrapping) is available and is
+[automatic bootstrapping](/docs/install/bootstrapping) is available and is
 the recommended approach. However, older versions only support a manual
 bootstrap that is documented here.
 
 Generally, the first nodes that are started are the server nodes. Remember that
 an agent can run in both client and server mode. Server nodes are responsible
-for running the [consensus protocol](/docs/internals/consensus), and
+for running the [consensus protocol](/docs/architecture/consensus), and
 storing the cluster state. The client nodes are mostly stateless and rely on the
 server nodes, so they can be started easily.
 
@@ -30,12 +30,12 @@ This is necessary because at this point, there are no other servers running in
 the datacenter! Lets call this first server `Node A`. When starting `Node A`
 something like the following will be logged:
 
-```text
+```log
 2014/02/22 19:23:32 [INFO] consul: cluster leadership acquired
 ```
 
 Once `Node A` is running, we can start the next set of servers. There is a
-[deployment table](/docs/internals/consensus#toc_4) that covers various
+[deployment table](/docs/architecture/consensus#deployment_table) that covers various
 options, but it is recommended to have 3 or 5 total servers per datacenter. A
 single server deployment is _**highly**_ discouraged as data loss is inevitable
 in a failure scenario. We start the next servers **without** specifying
@@ -43,7 +43,7 @@ in a failure scenario. We start the next servers **without** specifying
 bootstrap mode. Once `Node B` and `Node C` are started, you should see a
 message to the effect of:
 
-```text
+```log
 [WARN] raft: EnableSingleNode disabled, and no known peers. Aborting election.
 ```
 
@@ -66,7 +66,7 @@ Successfully joined cluster by contacting 2 nodes.
 
 Once the join is successful, `Node A` should output something like:
 
-```text
+```log
 [INFO] raft: Added peer 127.0.0.2:8300, starting replication
 ....
 [INFO] raft: Added peer 127.0.0.3:8300, starting replication

@@ -1,0 +1,6 @@
+{
+  "Name": "${location.pathname.get(2)}",
+  "Description": "${fake.lorem.sentence()}",
+  "CreateIndex": 12,
+  "ModifyIndex": 16
+}

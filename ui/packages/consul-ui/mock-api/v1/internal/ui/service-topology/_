@@ -7,10 +7,12 @@ ${
       fake.seed(num);
       return range(num).map(i => {
         const nspace = i === 0 ? `default` : `${fake.hacker.noun()}-ns-${i}`;
+        const partition = i === 0 ? `default` : `${fake.hacker.noun()}-partition`;
         return {
           Name: `service-${fake.random.number({min:0, max:99})}`,
           Datacenter: `${dc}`,
-          Namespace: `${nspace}`
+          Namespace: `${nspace}`,
+          Partition: `${partition}`
         }
       })
     };
@@ -52,10 +54,12 @@ ${
     }
     fake.seed(index);
 
+
     return `
 {
   "Protocol": "${serviceProto}",
   "FilteredByACLs": ${fake.random.boolean()},
+  "TransparentProxy": ${fake.random.boolean()},
   "Upstreams": [
     ${
       upstreams.map((item, i) => {
@@ -64,17 +68,24 @@ ${
         const allowed = hasPerms ? false : fake.random.boolean();
         return `
     {
+${(Math.random(1) > 0.3) ? `
+      "Kind": "${fake.helpers.randomize(['mesh-gateway', 'ingress-gateway', 'terminating-gateway', ''])}",
+` : ''}
       "Name": "${item.Name}",
       "Datacenter": "${item.Datacenter}",
       "Namespace": "${item.Namespace}",
+      "Partition": "${item.Partition}",
       "ChecksPassing":${fake.random.number({min: 1, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+      "Source": "${fake.helpers.randomize(['routing-config', 'proxy-registration', 'default-allow', 'wildcard-intention'])}",
+      "TransparentProxy": ${fake.random.boolean()},
       "Intention": {
         "Allowed": ${allowed},
         "HasPermissions": ${hasPerms},
-        "ExternalSource": "${fake.helpers.randomize(['nomad', 'kubernetes', ''])}",
-        "HasExact": ${fake.random.boolean()}
+        "ExternalSource": "${fake.helpers.randomize(['vault', 'nomad', 'kubernetes', ''])}",
+        "HasExact": ${fake.random.boolean()},
+        "DefaultAllow": ${fake.random.boolean()}
       }
     }
     `})}
@@ -87,17 +98,24 @@ ${
         const allowed = hasPerms ? false : fake.random.boolean();
         return `
     {
+${(Math.random(1) > 0.3) ? `
+      "Kind": "${fake.helpers.randomize(['mesh-gateway', 'ingress-gateway', 'terminating-gateway', ''])}",
+` : ''}
       "Name": "${item.Name}",
       "Datacenter": "${item.Datacenter}",
       "Namespace": "${item.Namespace}",
+      "Partition": "${item.Partition}",
       "ChecksPassing":${fake.random.number({min: 1, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+      "Source": "${fake.helpers.randomize(['routing-config', 'proxy-registration', 'specific-intention', 'default-allow', 'wildcard-intention'])}",
+      "TransparentProxy": ${fake.random.boolean()},
       "Intention": {
         "Allowed": ${allowed},
         "HasPermissions": ${hasPerms},
         "ExternalSource": "${fake.helpers.randomize(['nomad', 'kubernetes', ''])}",
-        "HasExact": ${fake.random.boolean()}
+        "HasExact": ${fake.random.boolean()},
+        "DefaultAllow": ${fake.random.boolean()}
       }
     }
     `})}

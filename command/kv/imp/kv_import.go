@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
@@ -24,10 +25,11 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI    cli.Ui
-	flags *flag.FlagSet
-	http  *flags.HTTPFlags
-	help  string
+	UI     cli.Ui
+	flags  *flag.FlagSet
+	http   *flags.HTTPFlags
+	help   string
+	prefix string
 
 	// testStdin is the input for testing.
 	testStdin io.Reader
@@ -35,10 +37,11 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.prefix, "prefix", "", "Key prefix for imported data")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -76,7 +79,7 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		pair := &api.KVPair{
-			Key:   entry.Key,
+			Key:   path.Join(c.prefix, entry.Key),
 			Flags: entry.Flags,
 			Value: value,
 		}
@@ -142,8 +145,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Imports a tree stored as JSON to the KV store"
-const help = `
+const (
+	synopsis = "Imports a tree stored as JSON to the KV store"
+	help     = `
 Usage: consul kv import [DATA]
 
   Imports key-value pairs to the key-value store from the JSON representation
@@ -163,3 +167,4 @@ Usage: consul kv import [DATA]
 
   For a full list of options and examples, please see the Consul documentation.
 `
+)

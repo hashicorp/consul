@@ -52,8 +52,11 @@ var defaultMetrics = metrics.Default
 // statsHandler is a grpc/stats.StatsHandler which emits connection and
 // request metrics to go-metrics.
 type statsHandler struct {
+	// activeConns is used with sync/atomic and MUST be 64-bit aligned. To ensure
+	// alignment on 32-bit platforms this field must remain the first field in
+	// the struct. See https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
+	activeConns uint64
 	metrics     *metrics.Metrics
-	activeConns uint64 // must be 8-byte aligned for atomic access
 }
 
 func newStatsHandler(m *metrics.Metrics) *statsHandler {
@@ -103,10 +106,11 @@ func (c *statsHandler) HandleConn(_ context.Context, s stats.ConnStats) {
 }
 
 type activeStreamCounter struct {
+	// count is used with sync/atomic and MUST be 64-bit aligned. To ensure
+	// alignment on 32-bit platforms this field must remain the first field in
+	// the struct. See https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
+	count   uint64
 	metrics *metrics.Metrics
-	// count of the number of open streaming RPCs on a server. It is accessed
-	// atomically.
-	count uint64
 }
 
 // GRPCCountingStreamInterceptor is a grpc.ServerStreamInterceptor that emits a

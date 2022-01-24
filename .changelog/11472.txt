@@ -1,0 +1,3 @@
+```release-note:bug
+ui: **(Enterprise only)** When no namespace is selected, make sure to default to the tokens default namespace when requesting permissions
+```

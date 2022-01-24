@@ -1,0 +1,12 @@
+[id^=docfy-demo-preview-csv-list] {
+  p, ul {
+    @extend %csv-list;
+  }
+  ol li {
+    @extend %csv;
+  }
+  ol {
+    list-style-type: none;
+  }
+}
+

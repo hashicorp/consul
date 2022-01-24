@@ -5,14 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestOperator_Autopilot_GetConfiguration(t *testing.T) {
@@ -51,10 +52,10 @@ func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.AutopilotConfig.CleanupDeadServers = false
 	})
 	defer os.RemoveAll(dir1)
@@ -74,27 +75,7 @@ func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create an ACL with operator read permissions.
-	var token string
-	{
-		var rules = `
-                    operator = "read"
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	token := createToken(t, codec, `operator = "read"`)
 
 	// Now we can read and verify the config
 	arg.Token = token
@@ -155,10 +136,10 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.AutopilotConfig.CleanupDeadServers = false
 	})
 	defer os.RemoveAll(dir1)
@@ -181,27 +162,7 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create an ACL with operator write permissions.
-	var token string
-	{
-		var rules = `
-                    operator = "write"
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	token := createToken(t, codec, `operator = "write"`)
 
 	// Now we can update the config
 	arg.Token = token

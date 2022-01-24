@@ -16,12 +16,8 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/sdk/testutil"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -30,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -55,8 +52,9 @@ type TestAgent struct {
 	// when Shutdown() is called.
 	Config *config.RuntimeConfig
 
-	// LogOutput is the sink for the logs. If nil, logs are written
-	// to os.Stderr.
+	// LogOutput is the sink for the logs. If nil, logs are written to os.Stderr.
+	// The io.Writer must allow concurrent reads and writes. Note that
+	// bytes.Buffer is not safe for concurrent reads and writes.
 	LogOutput io.Writer
 
 	// DataDir may be set to a directory which exists. If is it not set,
@@ -90,7 +88,9 @@ type TestAgent struct {
 // The caller is responsible for calling Shutdown() to stop the agent and remove
 // temporary directories.
 func NewTestAgent(t *testing.T, hcl string) *TestAgent {
-	return StartTestAgent(t, TestAgent{HCL: hcl})
+	a := StartTestAgent(t, TestAgent{HCL: hcl})
+	t.Cleanup(func() { a.Shutdown() })
+	return a
 }
 
 // StartTestAgent and wait for it to become available. If the agent fails to
@@ -101,6 +101,7 @@ func NewTestAgent(t *testing.T, hcl string) *TestAgent {
 func StartTestAgent(t *testing.T, a TestAgent) *TestAgent {
 	t.Helper()
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
+		t.Helper()
 		if err := a.Start(t); err != nil {
 			r.Fatal(err)
 		}
@@ -132,7 +133,7 @@ func TestConfigHCL(nodeID string) string {
 
 // Start starts a test agent. It returns an error if the agent could not be started.
 // If no error is returned, the caller must call Shutdown() when finished.
-func (a *TestAgent) Start(t *testing.T) (err error) {
+func (a *TestAgent) Start(t *testing.T) error {
 	t.Helper()
 	if a.Agent != nil {
 		return fmt.Errorf("TestAgent already started")
@@ -164,8 +165,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 		Name:       name,
 	})
 
-	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
-	t.Cleanup(returnPortsFn)
+	portsConfig := randomPortsSource(t, a.UseTLS)
 
 	// Create NodeID outside the closure, so that it does not change
 	testHCLConfig := TestConfigHCL(NodeID())
@@ -184,15 +184,26 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 		}
 		result, err := config.Load(opts)
 		if result.RuntimeConfig != nil {
-			result.RuntimeConfig.Telemetry.Disable = true
+			// If prom metrics need to be enabled, do not disable telemetry
+			if result.RuntimeConfig.Telemetry.PrometheusOpts.Expiration > 0 {
+				result.RuntimeConfig.Telemetry.Disable = false
+			} else {
+				result.RuntimeConfig.Telemetry.Disable = true
+			}
 		}
 		return result, err
 	}
 	bd, err := NewBaseDeps(loader, logOutput)
-	require.NoError(t, err)
+	if err != nil {
+		return fmt.Errorf("failed to create base deps: %w", err)
+	}
 
 	bd.Logger = logger
-	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+	// if we are not testing telemetry things, let's use a "mock" sink for metrics
+	if bd.RuntimeConfig.Telemetry.Disable {
+		bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+	}
+
 	a.Config = bd.RuntimeConfig
 
 	agent, err := New(bd)
@@ -217,8 +228,8 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 
 	if err := a.waitForUp(); err != nil {
 		a.Shutdown()
-		t.Logf("Error while waiting for test agent to start: %v", err)
-		return errwrap.Wrapf(name+": {{err}}", err)
+		a.Agent = nil
+		return fmt.Errorf("error waiting for test agent to start: %w", err)
 	}
 
 	a.dns = a.dnsServers[0]
@@ -282,17 +293,6 @@ func (a *TestAgent) waitForUp() error {
 // Shutdown stops the agent and removes the data directory if it is
 // managed by the test agent.
 func (a *TestAgent) Shutdown() error {
-	/* Removed this because it was breaking persistence tests where we would
-	persist a service and load it through a new agent with the same data-dir.
-	Not sure if we still need this for other things, everywhere we manually make
-	a data dir we already do 'defer os.RemoveAll()'
-	defer func() {
-		if a.DataDir != "" {
-			os.RemoveAll(a.DataDir)
-		}
-	}()*/
-
-	// already shut down
 	if a.Agent == nil {
 		return nil
 	}
@@ -353,8 +353,8 @@ func (a *TestAgent) Client() *api.Client {
 // DNSDisableCompression disables compression for all started DNS servers.
 func (a *TestAgent) DNSDisableCompression(b bool) {
 	for _, srv := range a.dnsServers {
-		cfg := srv.config.Load().(*dnsConfig)
-		cfg.DisableCompression = b
+		a.config.DNSDisableCompression = b
+		srv.ReloadConfig(a.config)
 	}
 }
 
@@ -377,8 +377,8 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource(tls bool) (data string, returnPortsFn func()) {
-	ports := freeport.MustTake(7)
+func randomPortsSource(t *testing.T, tls bool) string {
+	ports := freeport.GetN(t, 7)
 
 	var http, https int
 	if tls {
@@ -399,7 +399,7 @@ func randomPortsSource(tls bool) (data string, returnPortsFn func()) {
 			server = ` + strconv.Itoa(ports[5]) + `
 			grpc = ` + strconv.Itoa(ports[6]) + `
 		}
-	`, func() { freeport.Return(ports) }
+	`
 }
 
 func NodeID() string {
@@ -461,55 +461,62 @@ func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeCo
 // with ACLs.
 func TestACLConfig() string {
 	return `
-		acl_datacenter = "dc1"
-		acl_default_policy = "deny"
-		acl_master_token = "root"
-		acl_agent_token = "root"
-		acl_agent_master_token = "towel"
+		primary_datacenter = "dc1"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+				agent = "root"
+				agent_recovery = "towel"
+			}
+		}
 	`
 }
 
 const (
-	TestDefaultMasterToken      = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
-	TestDefaultAgentMasterToken = "bca580d4-db07-4074-b766-48acc9676955'"
+	TestDefaultInitialManagementToken = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
+	TestDefaultAgentRecoveryToken     = "bca580d4-db07-4074-b766-48acc9676955'"
 )
 
 type TestACLConfigParams struct {
 	PrimaryDatacenter      string
 	DefaultPolicy          string
-	MasterToken            string
+	InitialManagementToken string
 	AgentToken             string
 	DefaultToken           string
-	AgentMasterToken       string
+	AgentRecoveryToken     string
 	ReplicationToken       string
 	EnableTokenReplication bool
 }
 
-func DefaulTestACLConfigParams() *TestACLConfigParams {
+func DefaultTestACLConfigParams() *TestACLConfigParams {
 	return &TestACLConfigParams{
-		PrimaryDatacenter: "dc1",
-		DefaultPolicy:     "deny",
-		MasterToken:       TestDefaultMasterToken,
-		AgentToken:        TestDefaultMasterToken,
-		AgentMasterToken:  TestDefaultAgentMasterToken,
+		PrimaryDatacenter:      "dc1",
+		DefaultPolicy:          "deny",
+		InitialManagementToken: TestDefaultInitialManagementToken,
+		AgentToken:             TestDefaultInitialManagementToken,
+		AgentRecoveryToken:     TestDefaultAgentRecoveryToken,
 	}
 }
 
 func (p *TestACLConfigParams) HasConfiguredTokens() bool {
-	return p.MasterToken != "" ||
+	return p.InitialManagementToken != "" ||
 		p.AgentToken != "" ||
 		p.DefaultToken != "" ||
-		p.AgentMasterToken != "" ||
+		p.AgentRecoveryToken != "" ||
 		p.ReplicationToken != ""
 }
 
 func TestACLConfigNew() string {
 	return TestACLConfigWithParams(&TestACLConfigParams{
-		PrimaryDatacenter: "dc1",
-		DefaultPolicy:     "deny",
-		MasterToken:       "root",
-		AgentToken:        "root",
-		AgentMasterToken:  "towel",
+		PrimaryDatacenter:      "dc1",
+		DefaultPolicy:          "deny",
+		InitialManagementToken: "root",
+		AgentToken:             "root",
+		AgentRecoveryToken:     "towel",
 	})
 }
 
@@ -525,14 +532,14 @@ var aclConfigTpl = template.Must(template.New("ACL Config").Parse(`
 		enable_token_replication = {{printf "%t" .EnableTokenReplication }}
 		{{- if .HasConfiguredTokens}}
 		tokens {
-			{{- if ne .MasterToken ""}}
-			master = "{{ .MasterToken }}"
+			{{- if ne .InitialManagementToken ""}}
+			initial_management = "{{ .InitialManagementToken }}"
 			{{- end}}
 			{{- if ne .AgentToken ""}}
 			agent = "{{ .AgentToken }}"
 			{{- end}}
-			{{- if ne .AgentMasterToken "" }}
-			agent_master = "{{ .AgentMasterToken }}"
+			{{- if ne .AgentRecoveryToken "" }}
+			agent_recovery = "{{ .AgentRecoveryToken }}"
 			{{- end}}
 			{{- if ne .DefaultToken "" }}
 			default = "{{ .DefaultToken }}"
@@ -550,7 +557,7 @@ func TestACLConfigWithParams(params *TestACLConfigParams) string {
 
 	cfg := params
 	if params == nil {
-		cfg = DefaulTestACLConfigParams()
+		cfg = DefaultTestACLConfigParams()
 	}
 
 	err := aclConfigTpl.Execute(&buf, &cfg)
@@ -574,21 +581,14 @@ func testTLSCertificates(serverName string) (cert string, key string, cacert str
 		return "", "", "", err
 	}
 
-	serial, err := tlsutil.GenerateSerialNumber()
-	if err != nil {
-		return "", "", "", err
-	}
-
-	cert, privateKey, err := tlsutil.GenerateCert(
-		signer,
-		ca,
-		serial,
-		"Test Cert Name",
-		365,
-		[]string{serverName},
-		nil,
-		[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-	)
+	cert, privateKey, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
 	if err != nil {
 		return "", "", "", err
 	}

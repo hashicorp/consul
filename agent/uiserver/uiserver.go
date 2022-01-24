@@ -12,9 +12,10 @@ import (
 	"sync/atomic"
 	"text/template"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -26,20 +27,12 @@ const (
 // transformations on the index.html file and includes a proxy for metrics
 // backends.
 type Handler struct {
-	// state is a reloadableState struct accessed through an atomic value to make
+	// runtimeConfig is a struct accessed through an atomic value to make
 	// it safe to reload at run time. Each call to ServeHTTP will see the latest
 	// version of the state without internal locking needed.
-	state     atomic.Value
-	logger    hclog.Logger
-	transform UIDataTransform
-}
-
-// reloadableState encapsulates all the state that might be modified during
-// ReloadConfig.
-type reloadableState struct {
-	cfg *config.UIConfig
-	srv http.Handler
-	err error
+	runtimeConfig atomic.Value
+	logger        hclog.Logger
+	transform     UIDataTransform
 }
 
 // UIDataTransform is an optional dependency that allows the agent to add
@@ -50,71 +43,60 @@ type reloadableState struct {
 // It is passed the current RuntimeConfig being applied and a map containing the
 // current data that will be passed to the template. It should be modified
 // directly to inject additional context.
-type UIDataTransform func(cfg *config.RuntimeConfig, data map[string]interface{}) error
+type UIDataTransform func(data map[string]interface{}) error
 
 // NewHandler returns a Handler that can be used to serve UI http requests. It
 // accepts a full agent config since properties like ACLs being enabled affect
 // the UI so we need more than just UIConfig parts.
-func NewHandler(agentCfg *config.RuntimeConfig, logger hclog.Logger, transform UIDataTransform) *Handler {
+func NewHandler(runtimeCfg *config.RuntimeConfig, logger hclog.Logger, transform UIDataTransform) *Handler {
 	h := &Handler{
 		logger:    logger.Named(logging.UIServer),
 		transform: transform,
 	}
-	// Don't return the error since this is likely the result of a
-	// misconfiguration and reloading config could fix it. Instead we'll capture
-	// it and return an error for all calls to ServeHTTP so the misconfiguration
-	// is visible. Sadly we can't log effectively
-	if err := h.ReloadConfig(agentCfg); err != nil {
-		h.state.Store(reloadableState{
-			err: err,
-		})
-	}
+	h.runtimeConfig.Store(runtimeCfg)
 	return h
 }
 
 // ServeHTTP implements http.Handler and serves UI HTTP requests
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
 	// We need to support the path being trimmed by http.StripTags just like the
 	// file servers do since http.StripPrefix will remove the leading slash in our
 	// current config. Everything else works fine that way so we should to.
 	pathTrimmed := strings.TrimLeft(r.URL.Path, "/")
 	if pathTrimmed == compiledProviderJSPath {
-		h.serveUIMetricsProviders(w, r)
+		h.serveUIMetricsProviders(w)
 		return
 	}
 
-	s := h.getState()
-	if s == nil {
-		panic("nil state")
-	}
-	if s.err != nil {
+	srv, err := h.handleIndex()
+	if err != nil {
 		http.Error(w, "UI server is misconfigured.", http.StatusInternalServerError)
-		h.logger.Error("Failed to configure UI server: %s", s.err)
+		h.logger.Error("Failed to configure UI server: %s", err)
 		return
 	}
-	s.srv.ServeHTTP(w, r)
+	srv.ServeHTTP(w, r)
 }
 
 // ReloadConfig is called by the agent when the configuration is reloaded and
 // updates the UIConfig values the handler uses to serve requests.
 func (h *Handler) ReloadConfig(newCfg *config.RuntimeConfig) error {
-	newState := reloadableState{
-		cfg: &newCfg.UIConfig,
-	}
+	h.runtimeConfig.Store(newCfg)
+	return nil
+}
+
+func (h *Handler) handleIndex() (http.Handler, error) {
+	cfg := h.getRuntimeConfig()
 
 	var fs http.FileSystem
-
-	if newCfg.UIConfig.Dir == "" {
-		// Serve from assetFS
+	if cfg.UIConfig.Dir == "" {
 		fs = assetFS()
 	} else {
-		fs = http.Dir(newCfg.UIConfig.Dir)
+		fs = http.Dir(cfg.UIConfig.Dir)
 	}
 
 	// Render a new index.html with the new config values ready to serve.
-	buf, info, err := h.renderIndex(newCfg, fs)
-	if _, ok := err.(*os.PathError); ok && newCfg.UIConfig.Dir != "" {
+	buf, info, err := h.renderIndex(cfg, fs)
+	if _, ok := err.(*os.PathError); ok && cfg.UIConfig.Dir != "" {
 		// A Path error indicates that there is no index.html. This could happen if
 		// the user configured their own UI dir and is serving something that is not
 		// our usual UI. This won't work perfectly because our uiserver will still
@@ -123,47 +105,39 @@ func (h *Handler) ReloadConfig(newCfg *config.RuntimeConfig) error {
 		// breaking change although quite an edge case. Instead, continue but just
 		// return a 404 response for the index.html and log a warning.
 		h.logger.Warn("ui_config.dir does not contain an index.html. Index templating and redirects to index.html are disabled.")
-	} else if err != nil {
-		return err
+		return http.FileServer(fs), nil
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	// buf can be nil in the PathError case above. We should skip this part but
-	// still serve the rest of the files in that case.
-	if buf != nil {
-		// Create a new fs that serves the rendered index file or falls back to the
-		// underlying FS.
-		fs = &bufIndexFS{
-			fs:            fs,
-			indexRendered: buf,
-			indexInfo:     info,
-		}
-
-		// Wrap the buffering FS our redirect FS. This needs to happen later so that
-		// redirected requests for /index.html get served the rendered version not the
-		// original.
-		fs = &redirectFS{fs: fs}
+	// Create a new fs that serves the rendered index file or falls back to the
+	// underlying FS.
+	fs = &bufIndexFS{
+		fs:            fs,
+		indexRendered: buf,
+		indexInfo:     info,
 	}
 
-	newState.srv = http.FileServer(fs)
-
-	// Store the new state
-	h.state.Store(newState)
-	return nil
+	// Wrap the buffering FS our redirect FS. This needs to happen later so that
+	// redirected requests for /index.html get served the rendered version not the
+	// original.
+	return http.FileServer(&redirectFS{fs: fs}), nil
 }
 
-// getState is a helper to access the atomic internal state
-func (h *Handler) getState() *reloadableState {
-	if cfg, ok := h.state.Load().(reloadableState); ok {
-		return &cfg
+// getRuntimeConfig is a helper to atomically access the runtime config.
+func (h *Handler) getRuntimeConfig() *config.RuntimeConfig {
+	if cfg, ok := h.runtimeConfig.Load().(*config.RuntimeConfig); ok {
+		return cfg
 	}
 	return nil
 }
 
-func (h *Handler) serveUIMetricsProviders(resp http.ResponseWriter, req *http.Request) {
+func (h *Handler) serveUIMetricsProviders(resp http.ResponseWriter) {
 	// Reload config in case it's changed
-	state := h.getState()
+	cfg := h.getRuntimeConfig()
 
-	if len(state.cfg.MetricsProviderFiles) < 1 {
+	if len(cfg.UIConfig.MetricsProviderFiles) < 1 {
 		http.Error(resp, "No provider JS files configured", http.StatusNotFound)
 		return
 	}
@@ -171,7 +145,7 @@ func (h *Handler) serveUIMetricsProviders(resp http.ResponseWriter, req *http.Re
 	var buf bytes.Buffer
 
 	// Open each one and concatenate them
-	for _, file := range state.cfg.MetricsProviderFiles {
+	for _, file := range cfg.UIConfig.MetricsProviderFiles {
 		if err := concatFile(&buf, file); err != nil {
 			http.Error(resp, "Internal Server Error", http.StatusInternalServerError)
 			h.logger.Error("failed serving metrics provider js file", "file", file, "error", err)
@@ -237,7 +211,7 @@ func (h *Handler) renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]
 
 	// Allow caller to apply additional data transformations if needed.
 	if h.transform != nil {
-		if err := h.transform(cfg, tplData); err != nil {
+		if err := h.transform(tplData); err != nil {
 			return nil, nil, fmt.Errorf("failed running transform: %w", err)
 		}
 	}

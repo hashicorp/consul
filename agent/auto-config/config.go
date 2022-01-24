@@ -2,6 +2,7 @@ package autoconf
 
 import (
 	"context"
+	"crypto/x509"
 	"net"
 	"time"
 
@@ -41,8 +42,7 @@ type TLSConfigurator interface {
 	UpdateAutoTLS(manualCAPEMs, connectCAPEMs []string, pub, priv string, verifyServerHostname bool) error
 	UpdateAutoTLSCA([]string) error
 	UpdateAutoTLSCert(pub, priv string) error
-	AutoEncryptCertNotAfter() time.Time
-	AutoEncryptCertExpired() bool
+	AutoEncryptCert() *x509.Certificate
 }
 
 // TokenStore is an interface of the methods we will need to use from the token.Store.
@@ -104,4 +104,7 @@ type Config struct {
 	// agent token as well as getting notifications when that token is updated.
 	// This field is required.
 	Tokens TokenStore
+
+	// EnterpriseConfig is the embedded specific enterprise configurations
+	EnterpriseConfig
 }

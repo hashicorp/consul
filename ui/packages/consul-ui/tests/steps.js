@@ -97,16 +97,30 @@ export default function({
   const clipboard = function() {
     return window.localStorage.getItem('clipboard');
   };
+  const currentURL = function() {
+    const context = helpers.getContext();
+    const locationType = context.owner.lookup('service:env').var('locationType');
+    let location = context.owner.lookup(`location:${locationType}`);
+    return location.getURLFrom();
+  };
+  const oidcProvider = function(name, response) {
+    const context = helpers.getContext();
+    const provider = context.owner.lookup('torii-provider:oidc-with-url');
+    provider.popup.open = async function() {
+      return response;
+    };
+  };
+
   models(library, create, setCookie);
-  http(library, respondWith, setCookie);
+  http(library, respondWith, setCookie, oidcProvider);
   visit(library, pages, utils.setCurrentPage, reset);
   click(library, utils.find, helpers.click);
   form(library, utils.find, helpers.fillIn, helpers.triggerKeyEvent, utils.getCurrentPage);
-  debug(library, assert, helpers.currentURL);
+  debug(library, assert, currentURL);
   assertHttp(library, assert, lastNthRequest);
   assertModel(library, assert, utils.find, utils.getCurrentPage, pauseUntil, pluralize);
   assertPage(library, assert, utils.find, utils.getCurrentPage, $);
-  assertDom(library, assert, pauseUntil, helpers.find, helpers.currentURL, clipboard);
+  assertDom(library, assert, pauseUntil, helpers.find, currentURL, clipboard);
   assertForm(library, assert, utils.find, utils.getCurrentPage);
 
   return library.given(["I'm using a legacy token"], function(number, model, data) {

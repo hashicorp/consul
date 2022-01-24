@@ -7,10 +7,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestConfig_Get(t *testing.T) {
@@ -45,6 +46,18 @@ func TestConfig_Get(t *testing.T) {
 				Config: map[string]interface{}{
 					"foo": "bar",
 					"bar": 1,
+				},
+			},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.MeshConfigEntry{
+				TransparentProxy: structs.TransparentProxyMeshConfig{
+					MeshDestinationsOnly: true,
+				},
+				Meta: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
 				},
 			},
 		},
@@ -95,6 +108,38 @@ func TestConfig_Get(t *testing.T) {
 		_, err := a.srv.Config(resp, req)
 		require.Error(t, errors.New("Must provide either a kind or both kind and name"), err)
 	})
+	t.Run("get the single mesh config", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/config/mesh/mesh", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.Config(resp, req)
+		require.NoError(t, err)
+
+		ce, ok := obj.(*structs.MeshConfigEntry)
+		require.True(t, ok, "wrong type %T", obj)
+		// Set indexes and EnterpriseMeta to expected values for assertions
+		ce.CreateIndex = 12
+		ce.ModifyIndex = 13
+		ce.EnterpriseMeta = structs.EnterpriseMeta{}
+
+		out, err := a.srv.marshalJSON(req, obj)
+		require.NoError(t, err)
+
+		expected := `
+{
+	"Kind": "mesh",
+	"TransparentProxy": {
+		"MeshDestinationsOnly": true
+	},
+	"Meta":{
+		"key1": "value1",
+		"key2": "value2"
+	},
+	"CreateIndex": 12,
+	"ModifyIndex": 13
+}
+`
+		require.JSONEq(t, expected, string(out))
+	})
 }
 
 func TestConfig_Delete(t *testing.T) {
@@ -104,7 +149,6 @@ func TestConfig_Delete(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -126,7 +170,7 @@ func TestConfig_Delete(t *testing.T) {
 	}
 	for _, req := range reqs {
 		out := false
-		require.NoError(a.RPC("ConfigEntry.Apply", &req, &out))
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &out))
 	}
 
 	// Delete an entry.
@@ -134,7 +178,7 @@ func TestConfig_Delete(t *testing.T) {
 		req, _ := http.NewRequest("DELETE", "/v1/config/service-defaults/bar", nil)
 		resp := httptest.NewRecorder()
 		_, err := a.srv.Config(resp, req)
-		require.NoError(err)
+		require.NoError(t, err)
 	}
 	// Get the remaining entry.
 	{
@@ -143,12 +187,92 @@ func TestConfig_Delete(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.IndexedConfigEntries
-		require.NoError(a.RPC("ConfigEntry.List", &args, &out))
-		require.Equal(structs.ServiceDefaults, out.Kind)
-		require.Len(out.Entries, 1)
+		require.NoError(t, a.RPC("ConfigEntry.List", &args, &out))
+		require.Equal(t, structs.ServiceDefaults, out.Kind)
+		require.Len(t, out.Entries, 1)
 		entry := out.Entries[0].(*structs.ServiceConfigEntry)
-		require.Equal(entry.Name, "foo")
+		require.Equal(t, entry.Name, "foo")
 	}
+}
+
+func TestConfig_Delete_CAS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Create a config entry.
+	entry := &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "foo",
+	}
+	var created bool
+	require.NoError(t, a.RPC("ConfigEntry.Apply", &structs.ConfigEntryRequest{
+		Datacenter: "dc1",
+		Entry:      entry,
+	}, &created))
+	require.True(t, created)
+
+	// Read it back to get its ModifyIndex.
+	var out structs.ConfigEntryResponse
+	require.NoError(t, a.RPC("ConfigEntry.Get", &structs.ConfigEntryQuery{
+		Datacenter: "dc1",
+		Kind:       entry.Kind,
+		Name:       entry.Name,
+	}, &out))
+	require.NotNil(t, out.Entry)
+
+	modifyIndex := out.Entry.GetRaftIndex().ModifyIndex
+
+	t.Run("attempt to delete with an invalid index", func(t *testing.T) {
+		req := httptest.NewRequest(
+			"DELETE",
+			fmt.Sprintf("/v1/config/%s/%s?cas=%d", entry.Kind, entry.Name, modifyIndex-1),
+			nil,
+		)
+		rawRsp, err := a.srv.Config(httptest.NewRecorder(), req)
+		require.NoError(t, err)
+
+		deleted, isBool := rawRsp.(bool)
+		require.True(t, isBool, "response should be a boolean")
+		require.False(t, deleted, "entry should not have been deleted")
+
+		// Verify it was not deleted.
+		var out structs.ConfigEntryResponse
+		require.NoError(t, a.RPC("ConfigEntry.Get", &structs.ConfigEntryQuery{
+			Datacenter: "dc1",
+			Kind:       entry.Kind,
+			Name:       entry.Name,
+		}, &out))
+		require.NotNil(t, out.Entry)
+	})
+
+	t.Run("attempt to delete with a valid index", func(t *testing.T) {
+		req := httptest.NewRequest(
+			"DELETE",
+			fmt.Sprintf("/v1/config/%s/%s?cas=%d", entry.Kind, entry.Name, modifyIndex),
+			nil,
+		)
+		rawRsp, err := a.srv.Config(httptest.NewRecorder(), req)
+		require.NoError(t, err)
+
+		deleted, isBool := rawRsp.(bool)
+		require.True(t, isBool, "response should be a boolean")
+		require.True(t, deleted, "entry should have been deleted")
+
+		// Verify it was deleted.
+		var out structs.ConfigEntryResponse
+		require.NoError(t, a.RPC("ConfigEntry.Get", &structs.ConfigEntryQuery{
+			Datacenter: "dc1",
+			Kind:       entry.Kind,
+			Name:       entry.Name,
+		}, &out))
+		require.Nil(t, out.Entry)
+	})
 }
 
 func TestConfig_Apply(t *testing.T) {
@@ -158,7 +282,6 @@ func TestConfig_Apply(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -174,7 +297,7 @@ func TestConfig_Apply(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/v1/config", body)
 	resp := httptest.NewRecorder()
 	_, err := a.srv.ConfigApply(resp, req)
-	require.NoError(err)
+	require.NoError(t, err)
 	if resp.Code != 200 {
 		t.Fatalf(resp.Body.String())
 	}
@@ -187,10 +310,10 @@ func TestConfig_Apply(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.ConfigEntryResponse
-		require.NoError(a.RPC("ConfigEntry.Get", &args, &out))
-		require.NotNil(out.Entry)
+		require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
+		require.NotNil(t, out.Entry)
 		entry := out.Entry.(*structs.ServiceConfigEntry)
-		require.Equal(entry.Name, "foo")
+		require.Equal(t, entry.Name, "foo")
 	}
 }
 
@@ -247,11 +370,11 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 				CAFile:         "/etc/web/ca.crt",
 				CertFile:       "/etc/web/client.crt",
 				KeyFile:        "/etc/web/tls.key",
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			{
 				Name:           "api",
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		}
 		require.Equal(t, expect, got.Services)
@@ -319,12 +442,12 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 					Services: []structs.IngressService{
 						{
 							Name:           "web",
-							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 						},
 					},
 				},
 			},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		}
 		require.Equal(t, expect, got)
 	}
@@ -379,7 +502,6 @@ func TestConfig_Apply_CAS(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -395,7 +517,7 @@ func TestConfig_Apply_CAS(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/v1/config", body)
 	resp := httptest.NewRecorder()
 	_, err := a.srv.ConfigApply(resp, req)
-	require.NoError(err)
+	require.NoError(t, err)
 	if resp.Code != 200 {
 		t.Fatalf(resp.Body.String())
 	}
@@ -408,8 +530,8 @@ func TestConfig_Apply_CAS(t *testing.T) {
 	}
 
 	out := &structs.ConfigEntryResponse{}
-	require.NoError(a.RPC("ConfigEntry.Get", &args, out))
-	require.NotNil(out.Entry)
+	require.NoError(t, a.RPC("ConfigEntry.Get", &args, out))
+	require.NotNil(t, out.Entry)
 	entry := out.Entry.(*structs.ServiceConfigEntry)
 
 	body = bytes.NewBuffer([]byte(`
@@ -422,11 +544,11 @@ func TestConfig_Apply_CAS(t *testing.T) {
 	req, _ = http.NewRequest("PUT", "/v1/config?cas=0", body)
 	resp = httptest.NewRecorder()
 	writtenRaw, err := a.srv.ConfigApply(resp, req)
-	require.NoError(err)
+	require.NoError(t, err)
 	written, ok := writtenRaw.(bool)
-	require.True(ok)
-	require.False(written)
-	require.EqualValues(200, resp.Code, resp.Body.String())
+	require.True(t, ok)
+	require.False(t, written)
+	require.EqualValues(t, 200, resp.Code, resp.Body.String())
 
 	body = bytes.NewBuffer([]byte(`
 	{
@@ -438,11 +560,11 @@ func TestConfig_Apply_CAS(t *testing.T) {
 	req, _ = http.NewRequest("PUT", fmt.Sprintf("/v1/config?cas=%d", entry.GetRaftIndex().ModifyIndex), body)
 	resp = httptest.NewRecorder()
 	writtenRaw, err = a.srv.ConfigApply(resp, req)
-	require.NoError(err)
+	require.NoError(t, err)
 	written, ok = writtenRaw.(bool)
-	require.True(ok)
-	require.True(written)
-	require.EqualValues(200, resp.Code, resp.Body.String())
+	require.True(t, ok)
+	require.True(t, written)
+	require.EqualValues(t, 200, resp.Code, resp.Body.String())
 
 	// Get the entry remaining entry.
 	args = structs.ConfigEntryQuery{
@@ -452,10 +574,10 @@ func TestConfig_Apply_CAS(t *testing.T) {
 	}
 
 	out = &structs.ConfigEntryResponse{}
-	require.NoError(a.RPC("ConfigEntry.Get", &args, out))
-	require.NotNil(out.Entry)
+	require.NoError(t, a.RPC("ConfigEntry.Get", &args, out))
+	require.NotNil(t, out.Entry)
 	newEntry := out.Entry.(*structs.ServiceConfigEntry)
-	require.NotEqual(entry.GetRaftIndex(), newEntry.GetRaftIndex())
+	require.NotEqual(t, entry.GetRaftIndex(), newEntry.GetRaftIndex())
 }
 
 func TestConfig_Apply_Decoding(t *testing.T) {

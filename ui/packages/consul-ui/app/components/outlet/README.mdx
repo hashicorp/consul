@@ -1,0 +1,43 @@
+# Outlet
+
+The `Outlet` component should be used to wrap *every* ember `{{outlet}}`. It
+provides/will provide functionality (along with the `<Route />` component)
+for setting and announcing the title of the page, passing data down through
+the route/template hierarchy, automatic orchestration of nested routing and
+visual animating/transitioning between routes.
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `name` | `String` | `undefined` | The name of the route in ember routeName format e.g. `dc.services.index`. This is generally the `routeName` variable that is available to you in all Consul UI route/page level templates.|
+| `model` | `Object` | `undefined` | Arbitrary hash of data to pass down to the child route (available in the `<Route as |route|>` export). |
+
+
+```hbs
+<Outlet
+  @name={{routeName}}
+  @model={{hash
+    dc=(hash
+      Name="dc-1"
+    )
+  }}
+>
+  {{outlet}}
+</Outlet>
+```
+
+Currently, using the `<Outlet />` component means that every single page/route
+template is wrapped in a HTML `<section>` element. This `<section>` element
+has various data attributes attached to indiciate the loading state of the
+outlet. These can be used to specifically target every individual outlet via
+CSS.
+
+## Attributes
+
+| Data Attribute  | Description |
+| --- | --- |
+| `data-outlet` | The name of this outlet in ember routeName format e.g. `dc.services.index` |
+| `data-route` | The name of the current child route of this outlet in ember routeName format e.g. `dc.services.show` |
+| `data-state` | The current state of this outlet, `idle` or `loading` |
+| `data-transition` | A combination of `idle` and `loading` states |

@@ -6,16 +6,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestIngressConfigEntry_Normalize(t *testing.T) {
+func TestIngressGatewayConfigEntry(t *testing.T) {
+	defaultMeta := DefaultEnterpriseMetaInDefaultPartition()
 
-	cases := []struct {
-		name     string
-		entry    IngressGatewayConfigEntry
-		expected IngressGatewayConfigEntry
-	}{
-		{
-			name: "empty protocol",
-			entry: IngressGatewayConfigEntry{
+	cases := map[string]configEntryTestcase{
+		"normalize: empty protocol": {
+			entry: &IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",
 				Name: "ingress-web",
 				Listeners: []IngressListener{
@@ -38,12 +34,12 @@ func TestIngressConfigEntry_Normalize(t *testing.T) {
 						Services: []IngressService{},
 					},
 				},
-				EnterpriseMeta: *DefaultEnterpriseMeta(),
+				EnterpriseMeta: *defaultMeta,
 			},
+			normalizeOnly: true,
 		},
-		{
-			name: "lowercase protocols",
-			entry: IngressGatewayConfigEntry{
+		"normalize: lowercase protocols": {
+			entry: &IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",
 				Name: "ingress-web",
 				Listeners: []IngressListener{
@@ -76,18 +72,860 @@ func TestIngressConfigEntry_Normalize(t *testing.T) {
 						Services: []IngressService{},
 					},
 				},
-				EnterpriseMeta: *DefaultEnterpriseMeta(),
+				EnterpriseMeta: *defaultMeta,
 			},
+			normalizeOnly: true,
+		},
+		"port conflict": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "mysql",
+							},
+						},
+					},
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "postgres",
+							},
+						},
+					},
+				},
+			},
+			validateErr: "port 1111 declared on two listeners",
+		},
+		"http features: wildcard": {
+			entry: &IngressGatewayConfigEntry{
+				Kind:            "ingress-gateway",
+				Name:            "ingress-web",
+				TracingStrategy: "random_sampling",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name: "*",
+							},
+						},
+					},
+				},
+			},
+		},
+		"http features: wildcard service on invalid protocol": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "*",
+							},
+						},
+					},
+				},
+			},
+			validateErr: "Wildcard service name is only valid for protocol",
+		},
+		"http features: multiple services": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "db1",
+							},
+							{
+								Name: "db2",
+							},
+						},
+					},
+				},
+			},
+			validateErr: "Multiple services per listener are only supported for protocol",
+		},
+		// ==========================
+		"tcp listener requires a defined service": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{},
+					},
+				},
+			},
+			validateErr: "No service declared for listener with port 1111",
+		},
+		"http listener requires a defined service": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{},
+					},
+				},
+			},
+			validateErr: "No service declared for listener with port 1111",
+		},
+		"empty service name not supported": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{},
+						},
+					},
+				},
+			},
+			validateErr: "Service name cannot be blank",
+		},
+		"protocol validation": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "asdf",
+						Services: []IngressService{
+							{
+								Name: "db",
+							},
+						},
+					},
+				},
+			},
+			validateErr: "protocol must be 'tcp', 'http', 'http2', or 'grpc'. 'asdf' is an unsupported protocol",
+		},
+		"hosts cannot be set on a tcp listener": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"db.example.com"},
+							},
+						},
+					},
+				},
+			},
+			validateErr: "Associating hosts to a service is not supported for the tcp protocol",
+		},
+		"hosts cannot be set on a wildcard specifier": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "*",
+								Hosts: []string{"db.example.com"},
+							},
+						},
+					},
+				},
+			},
+			validateErr: "Associating hosts to a wildcard service is not supported",
+		},
+		"hosts must be unique per listener": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"test.example.com"},
+							},
+							{
+								Name:  "api",
+								Hosts: []string{"test.example.com"},
+							},
+						},
+					},
+				},
+			},
+			validateErr: "Hosts must be unique within a specific listener",
+		},
+		"hosts must be a valid DNS name": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"example..com"},
+							},
+						},
+					},
+				},
+			},
+			validateErr: `Host "example..com" must be a valid DNS hostname`,
+		},
+		"wildcard specifier is only allowed in the leftmost label": {
+			entry: &IngressGatewayConfigEntry{
+				Kind:            "ingress-gateway",
+				Name:            "ingress-web",
+				TracingStrategy: "random_sampling",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*.example.com"},
+							},
+						},
+					},
+				},
+			},
+		},
+		"wildcard specifier is not allowed in non-leftmost labels": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"example.*.com"},
+							},
+						},
+					},
+				},
+			},
+			validateErr: `Host "example.*.com" is not valid, a wildcard specifier is only allowed as the leftmost label`,
+		},
+		"wildcard specifier is not allowed in leftmost labels as a partial": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*-test.example.com"},
+							},
+						},
+					},
+				},
+			},
+			validateErr: `Host "*-test.example.com" is not valid, a wildcard specifier is only allowed as the leftmost label`,
+		},
+		"wildcard specifier is allowed for hosts when TLS is disabled": {
+			entry: &IngressGatewayConfigEntry{
+				Kind:            "ingress-gateway",
+				Name:            "ingress-web",
+				TracingStrategy: "random_sampling",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*"},
+							},
+						},
+					},
+				},
+			},
+		},
+		"wildcard specifier is not allowed for hosts when TLS is enabled": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					Enabled: true,
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*"},
+							},
+						},
+					},
+				},
+			},
+			validateErr: `Host '*' is not allowed when TLS is enabled, all hosts must be valid DNS records to add as a DNSSAN`,
+		},
+		"request header manip allowed for http(ish) protocol": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name: "web",
+								RequestHeaders: &HTTPHeaderModifiers{
+									Set: map[string]string{"x-foo": "bar"},
+								},
+							},
+						},
+					},
+					{
+						Port:     2222,
+						Protocol: "http2",
+						Services: []IngressService{
+							{
+								Name: "web2",
+								ResponseHeaders: &HTTPHeaderModifiers{
+									Set: map[string]string{"x-foo": "bar"},
+								},
+							},
+						},
+					},
+					{
+						Port:     3333,
+						Protocol: "grpc",
+						Services: []IngressService{
+							{
+								Name: "api",
+								ResponseHeaders: &HTTPHeaderModifiers{
+									Remove: []string{"x-grpc-internal"},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"request header manip not allowed for non-http protocol": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "db",
+								RequestHeaders: &HTTPHeaderModifiers{
+									Set: map[string]string{"x-foo": "bar"},
+								},
+							},
+						},
+					},
+				},
+			},
+			validateErr: "request headers only valid for http",
+		},
+		"response header manip not allowed for non-http protocol": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "db",
+								ResponseHeaders: &HTTPHeaderModifiers{
+									Remove: []string{"x-foo"},
+								},
+							},
+						},
+					},
+				},
+			},
+			validateErr: "response headers only valid for http",
+		},
+		"duplicate services not allowed": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name: "web",
+							},
+							{
+								Name: "web",
+							},
+						},
+					},
+				},
+			},
+			// Match only the last part of the exected error because the service name
+			// differs between Ent and OSS default/default/web vs web
+			validateErr: "cannot be added multiple times (listener on port 1111)",
+		},
+		"TLS.SDS kitchen sink": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{
+						ClusterName:  "secret-service1",
+						CertResource: "some-ns/ingress-default",
+					},
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								ClusterName:  "secret-service2",
+								CertResource: "some-ns/ingress-1111",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name:  "web",
+								Hosts: []string{"*"},
+								TLS: &GatewayServiceTLSConfig{
+									SDS: &GatewayTLSSDSConfig{
+										ClusterName:  "secret-service3",
+										CertResource: "some-ns/web",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"TLS.SDS gateway-level": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{
+						ClusterName:  "secret-service1",
+						CertResource: "some-ns/ingress-default",
+					},
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "db",
+							},
+						},
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"TLS.SDS listener-level": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								ClusterName:  "secret-service1",
+								CertResource: "some-ns/db1",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db1",
+							},
+						},
+					},
+					{
+						Port:     2222,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								ClusterName:  "secret-service2",
+								CertResource: "some-ns/db2",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db2",
+							},
+						},
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"TLS.SDS gateway-level cluster only": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{
+						ClusterName: "secret-service",
+					},
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								CertResource: "some-ns/db1",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db1",
+							},
+						},
+					},
+					{
+						Port:     2222,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								CertResource: "some-ns/db2",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db2",
+							},
+						},
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"TLS.SDS mixed TLS and non-TLS listeners": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				// No Gateway level TLS.Enabled or SDS config
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								ClusterName:  "sds-cluster",
+								CertResource: "some-ns/db1",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db1",
+							},
+						},
+					},
+					{
+						Port:     2222,
+						Protocol: "tcp",
+						// No TLS config
+						Services: []IngressService{
+							{
+								Name: "db2",
+							},
+						},
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"TLS.SDS only service-level mixed": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				// No Gateway level TLS.Enabled or SDS config
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						// No TLS config
+						Services: []IngressService{
+							{
+								Name:  "web",
+								Hosts: []string{"www.example.com"},
+								TLS: &GatewayServiceTLSConfig{
+									SDS: &GatewayTLSSDSConfig{
+										ClusterName:  "sds-cluster",
+										CertResource: "web-cert",
+									},
+								},
+							},
+							{
+								Name:  "api",
+								Hosts: []string{"api.example.com"},
+								TLS: &GatewayServiceTLSConfig{
+									SDS: &GatewayTLSSDSConfig{
+										ClusterName:  "sds-cluster",
+										CertResource: "api-cert",
+									},
+								},
+							},
+						},
+					},
+					{
+						Port:     2222,
+						Protocol: "http",
+						// No TLS config
+						Services: []IngressService{
+							{
+								Name: "db2",
+							},
+						},
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"TLS.SDS requires cluster if gateway-level cert specified": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{
+						CertResource: "foo",
+					},
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "db",
+							},
+						},
+					},
+				},
+			},
+			validateErr: "TLS.SDS.ClusterName is required if CertResource is set",
+		},
+		"TLS.SDS listener requires cluster if there is no gateway-level one": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								CertResource: "foo",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db",
+							},
+						},
+					},
+				},
+			},
+			validateErr: "TLS.SDS.ClusterName is required if CertResource is set",
+		},
+		"TLS.SDS listener requires a cert resource if gw ClusterName set": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{
+						ClusterName: "foo",
+					},
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "db",
+							},
+						},
+					},
+				},
+			},
+			validateErr: "TLS.SDS.CertResource is required if ClusterName is set for gateway (listener on port 1111)",
+		},
+		"TLS.SDS listener requires a cert resource if listener ClusterName set": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								ClusterName: "foo",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db",
+							},
+						},
+					},
+				},
+			},
+			validateErr: "TLS.SDS.CertResource is required if ClusterName is set for listener (listener on port 1111)",
+		},
+		"TLS.SDS at service level is not supported without Hosts set": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name: "*",
+								TLS: &GatewayServiceTLSConfig{
+									SDS: &GatewayTLSSDSConfig{
+										CertResource: "foo",
+										ClusterName:  "sds-cluster",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			// Note we don't assert the last part `(service \"*\" on listener on port 1111)`
+			// since the service name is normalized differently on OSS and Ent
+			validateErr: "A service specifying TLS.SDS.CertResource must have at least one item in Hosts",
+		},
+		"TLS.SDS at service level needs a cluster from somewhere": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "foo",
+								Hosts: []string{"foo.example.com"},
+								TLS: &GatewayServiceTLSConfig{
+									SDS: &GatewayTLSSDSConfig{
+										CertResource: "foo",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			// Note we don't assert the last part `(service \"foo\" on listener on port 1111)`
+			// since the service name is normalized differently on OSS and Ent
+			validateErr: "TLS.SDS.ClusterName is required if CertResource is set",
+		},
+		"trace sampling strategy must be supported by envoy listener": {
+			entry: IngressGatewayConfigEntry{
+				Kind:            "ingress-gateway",
+				Name:            "ingress-web",
+				TracingStrategy: "bogus",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `"bogus" is not a valid trace sampling strategy. valid values are "random_sampling" and "client_sampling"`,
+		},
+		"trace sampling percentage must be between 0 and 100": {
+			entry: IngressGatewayConfigEntry{
+				Kind:              "ingress-gateway",
+				Name:              "ingress-web",
+				TracingStrategy:   "client_sampling",
+				TracingPercentage: 200,
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `trace sampling percentage must be between 0 and 100 inclusive`,
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			err := tc.entry.Normalize()
-			require.NoError(t, err)
-			require.Equal(t, tc.expected, tc.entry)
-		})
-	}
+	testConfigEntryNormalizeAndValidate(t, cases)
 }
 
 func TestIngressConfigEntry_ListRelatedServices(t *testing.T) {
@@ -172,422 +1010,10 @@ func TestIngressConfigEntry_ListRelatedServices(t *testing.T) {
 	}
 }
 
-func TestIngressConfigEntry_Validate(t *testing.T) {
-
-	cases := []struct {
-		name      string
-		entry     IngressGatewayConfigEntry
-		expectErr string
-	}{
-		{
-			name: "port conflict",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "tcp",
-						Services: []IngressService{
-							{
-								Name: "mysql",
-							},
-						},
-					},
-					{
-						Port:     1111,
-						Protocol: "tcp",
-						Services: []IngressService{
-							{
-								Name: "postgres",
-							},
-						},
-					},
-				},
-			},
-			expectErr: "port 1111 declared on two listeners",
-		},
-		{
-			name: "http features: wildcard",
-			entry: IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "http",
-						Services: []IngressService{
-							{
-								Name: "*",
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "http features: wildcard service on invalid protocol",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "tcp",
-						Services: []IngressService{
-							{
-								Name: "*",
-							},
-						},
-					},
-				},
-			},
-			expectErr: "Wildcard service name is only valid for protocol",
-		},
-		{
-			name: "http features: multiple services",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "tcp",
-						Services: []IngressService{
-							{
-								Name: "db1",
-							},
-							{
-								Name: "db2",
-							},
-						},
-					},
-				},
-			},
-			expectErr: "multiple services per listener are only supported for protocol",
-		},
-		{
-			name: "tcp listener requires a defined service",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "tcp",
-						Services: []IngressService{},
-					},
-				},
-			},
-			expectErr: "no service declared for listener with port 1111",
-		},
-		{
-			name: "http listener requires a defined service",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "http",
-						Services: []IngressService{},
-					},
-				},
-			},
-			expectErr: "no service declared for listener with port 1111",
-		},
-		{
-			name: "empty service name not supported",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "tcp",
-						Services: []IngressService{
-							{},
-						},
-					},
-				},
-			},
-			expectErr: "Service name cannot be blank",
-		},
-		{
-			name: "protocol validation",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "asdf",
-						Services: []IngressService{
-							{
-								Name: "db",
-							},
-						},
-					},
-				},
-			},
-			expectErr: "protocol must be 'tcp', 'http', 'http2', or 'grpc'. 'asdf' is an unsupported protocol",
-		},
-		{
-			name: "hosts cannot be set on a tcp listener",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "tcp",
-						Services: []IngressService{
-							{
-								Name:  "db",
-								Hosts: []string{"db.example.com"},
-							},
-						},
-					},
-				},
-			},
-			expectErr: "Associating hosts to a service is not supported for the tcp protocol",
-		},
-		{
-			name: "hosts cannot be set on a wildcard specifier",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "http",
-						Services: []IngressService{
-							{
-								Name:  "*",
-								Hosts: []string{"db.example.com"},
-							},
-						},
-					},
-				},
-			},
-			expectErr: "Associating hosts to a wildcard service is not supported",
-		},
-		{
-			name: "hosts must be unique per listener",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "http",
-						Services: []IngressService{
-							{
-								Name:  "db",
-								Hosts: []string{"test.example.com"},
-							},
-							{
-								Name:  "api",
-								Hosts: []string{"test.example.com"},
-							},
-						},
-					},
-				},
-			},
-			expectErr: "Hosts must be unique within a specific listener",
-		},
-		{
-			name: "hosts must be a valid DNS name",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "http",
-						Services: []IngressService{
-							{
-								Name:  "db",
-								Hosts: []string{"example..com"},
-							},
-						},
-					},
-				},
-			},
-			expectErr: `Host "example..com" must be a valid DNS hostname`,
-		},
-		{
-			name: "wildcard specifier is only allowed in the leftmost label",
-			entry: IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "http",
-						Services: []IngressService{
-							{
-								Name:  "db",
-								Hosts: []string{"*.example.com"},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "wildcard specifier is not allowed in non-leftmost labels",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "http",
-						Services: []IngressService{
-							{
-								Name:  "db",
-								Hosts: []string{"example.*.com"},
-							},
-						},
-					},
-				},
-			},
-			expectErr: `Host "example.*.com" is not valid, a wildcard specifier is only allowed as the leftmost label`,
-		},
-		{
-			name: "wildcard specifier is not allowed in leftmost labels as a partial",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "http",
-						Services: []IngressService{
-							{
-								Name:  "db",
-								Hosts: []string{"*-test.example.com"},
-							},
-						},
-					},
-				},
-			},
-			expectErr: `Host "*-test.example.com" is not valid, a wildcard specifier is only allowed as the leftmost label`,
-		},
-		{
-			name: "wildcard specifier is allowed for hosts when TLS is disabled",
-			entry: IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "http",
-						Services: []IngressService{
-							{
-								Name:  "db",
-								Hosts: []string{"*"},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "wildcard specifier is not allowed for hosts when TLS is enabled",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				TLS: GatewayTLSConfig{
-					Enabled: true,
-				},
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "http",
-						Services: []IngressService{
-							{
-								Name:  "db",
-								Hosts: []string{"*"},
-							},
-						},
-					},
-				},
-			},
-			expectErr: `Host '*' is not allowed when TLS is enabled, all hosts must be valid DNS records to add as a DNSSAN`,
-		},
-		{
-			name: "trace sampling strategy must be supported by envoy listener",
-			entry: IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "bogus",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "http",
-						Services: []IngressService{
-							{
-								Name:  "db",
-								Hosts: []string{"*"},
-							},
-						},
-					},
-				},
-			},
-			expectErr: `"bogus" is not a valid trace sampling strategy. valid values are "random_sampling" and "client_sampling"`,
-		},
-		{
-			name: "trace sampling percentage must be between 0 and 100",
-			entry: IngressGatewayConfigEntry{
-				Kind:              "ingress-gateway",
-				Name:              "ingress-web",
-				TracingStrategy:   "client_sampling",
-				TracingPercentage: 200,
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "http",
-						Services: []IngressService{
-							{
-								Name:  "db",
-								Hosts: []string{"*"},
-							},
-						},
-					},
-				},
-			},
-			expectErr: `trace sampling percentage must be between 0 and 100 inclusive`,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			err := tc.entry.Validate()
-			if tc.expectErr != "" {
-				require.Error(t, err)
-				requireContainsLower(t, err.Error(), tc.expectErr)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestTerminatingConfigEntry_Validate(t *testing.T) {
-
-	cases := []struct {
-		name      string
-		entry     TerminatingGatewayConfigEntry
-		expectErr string
-	}{
-		{
-			name: "service conflict",
-			entry: TerminatingGatewayConfigEntry{
+func TestTerminatingGatewayConfigEntry(t *testing.T) {
+	cases := map[string]configEntryTestcase{
+		"service conflict": {
+			entry: &TerminatingGatewayConfigEntry{
 				Kind: "terminating-gateway",
 				Name: "terminating-gw-west",
 				Services: []LinkedService{
@@ -599,11 +1025,10 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectErr: "specified more than once",
+			validateErr: "specified more than once",
 		},
-		{
-			name: "blank service name",
-			entry: TerminatingGatewayConfigEntry{
+		"blank service name": {
+			entry: &TerminatingGatewayConfigEntry{
 				Kind: "terminating-gateway",
 				Name: "terminating-gw-west",
 				Services: []LinkedService{
@@ -612,11 +1037,10 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectErr: "Service name cannot be blank.",
+			validateErr: "Service name cannot be blank.",
 		},
-		{
-			name: "not all TLS options provided-1",
-			entry: TerminatingGatewayConfigEntry{
+		"not all TLS options provided-1": {
+			entry: &TerminatingGatewayConfigEntry{
 				Kind: "terminating-gateway",
 				Name: "terminating-gw-west",
 				Services: []LinkedService{
@@ -626,11 +1050,10 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectErr: "must have a CertFile, CAFile, and KeyFile",
+			validateErr: "must have a CertFile, CAFile, and KeyFile",
 		},
-		{
-			name: "not all TLS options provided-2",
-			entry: TerminatingGatewayConfigEntry{
+		"not all TLS options provided-2": {
+			entry: &TerminatingGatewayConfigEntry{
 				Kind: "terminating-gateway",
 				Name: "terminating-gw-west",
 				Services: []LinkedService{
@@ -640,11 +1063,10 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectErr: "must have a CertFile, CAFile, and KeyFile",
+			validateErr: "must have a CertFile, CAFile, and KeyFile",
 		},
-		{
-			name: "all TLS options provided",
-			entry: TerminatingGatewayConfigEntry{
+		"all TLS options provided": {
+			entry: &TerminatingGatewayConfigEntry{
 				Kind: "terminating-gateway",
 				Name: "terminating-gw-west",
 				Services: []LinkedService{
@@ -657,9 +1079,8 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "only providing ca file is allowed",
-			entry: TerminatingGatewayConfigEntry{
+		"only providing ca file is allowed": {
+			entry: &TerminatingGatewayConfigEntry{
 				Kind: "terminating-gateway",
 				Name: "terminating-gw-west",
 				Services: []LinkedService{
@@ -671,19 +1092,7 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 			},
 		},
 	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-
-			err := tc.entry.Validate()
-			if tc.expectErr != "" {
-				require.Error(t, err)
-				requireContainsLower(t, err.Error(), tc.expectErr)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
+	testConfigEntryNormalizeAndValidate(t, cases)
 }
 
 func TestGatewayService_Addresses(t *testing.T) {
@@ -713,9 +1122,11 @@ func TestGatewayService_Addresses(t *testing.T) {
 			argument: []string{
 				"service.ingress.dc.domain",
 				"service.ingress.dc.alt.domain",
+				"service.ingress.dc.alt.domain.",
 			},
 			expected: []string{
 				"service.ingress.dc.domain:8080",
+				"service.ingress.dc.alt.domain:8080",
 				"service.ingress.dc.alt.domain:8080",
 			},
 		},
@@ -723,13 +1134,13 @@ func TestGatewayService_Addresses(t *testing.T) {
 			name: "user-defined hosts",
 			input: GatewayService{
 				Port:  8080,
-				Hosts: []string{"*.test.example.com", "other.example.com"},
+				Hosts: []string{"*.test.example.com", "other.example.com", "other.example.com."},
 			},
 			argument: []string{
 				"service.ingress.dc.domain",
 				"service.ingress.alt.domain",
 			},
-			expected: []string{"*.test.example.com:8080", "other.example.com:8080"},
+			expected: []string{"*.test.example.com:8080", "other.example.com:8080", "other.example.com:8080"},
 		},
 	}
 

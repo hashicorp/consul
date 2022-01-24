@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Hide all metrics for ingress gateway services
+```

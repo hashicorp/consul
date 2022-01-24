@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestAPI_CoordinateDatacenters(t *testing.T) {
@@ -85,8 +86,9 @@ func TestAPI_CoordinateUpdate(t *testing.T) {
 	newCoord := coordinate.NewCoordinate(coordinate.DefaultConfig())
 	newCoord.Height = 0.5
 	entry := &CoordinateEntry{
-		Node:  node,
-		Coord: newCoord,
+		Node:      node,
+		Partition: defaultPartition,
+		Coord:     newCoord,
 	}
 	_, err = coord.Update(entry, nil)
 	if err != nil {

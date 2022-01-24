@@ -15,10 +15,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestAPI_AgentSelf(t *testing.T) {
@@ -333,7 +334,7 @@ func TestAPI_AgentServices(t *testing.T) {
 	}
 }
 
-func TestAPI_AgentServicesWithFilter(t *testing.T) {
+func TestAPI_AgentServicesWithFilterOpts(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -362,7 +363,8 @@ func TestAPI_AgentServicesWithFilter(t *testing.T) {
 	}
 	require.NoError(t, agent.ServiceRegister(reg))
 
-	services, err := agent.ServicesWithFilter("foo in Tags")
+	opts := &QueryOptions{Namespace: defaultNamespace}
+	services, err := agent.ServicesWithFilterOpts("foo in Tags", opts)
 	require.NoError(t, err)
 	require.Len(t, services, 1)
 	_, ok := services["foo2"]
@@ -437,6 +439,7 @@ func TestAPI_AgentServices_ExternalConnectProxy(t *testing.T) {
 		Port: 8001,
 		Proxy: &AgentServiceConnectProxyConfig{
 			DestinationServiceName: "foo",
+			Mode:                   ProxyModeTransparent,
 		},
 	}
 	if err := agent.ServiceRegister(reg); err != nil {
@@ -452,6 +455,9 @@ func TestAPI_AgentServices_ExternalConnectProxy(t *testing.T) {
 	}
 	if _, ok := services["foo-proxy"]; !ok {
 		t.Fatalf("missing proxy service: %v", services)
+	}
+	if services["foo-proxy"].Proxy.Mode != ProxyModeTransparent {
+		t.Fatalf("expected transparent proxy mode to be enabled")
 	}
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
@@ -613,9 +619,53 @@ func TestAPI_AgentServiceAddress(t *testing.T) {
 	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Address, "198.18.0.1")
 	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Port, 80)
 
-	if err := agent.ServiceDeregister("foo"); err != nil {
+	if err := agent.ServiceDeregister("foo1"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
+	if err := agent.ServiceDeregister("foo2"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+func TestAPI_AgentServiceSocket(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg1 := &AgentServiceRegistration{
+		Name:    "foo1",
+		Port:    8000,
+		Address: "192.168.0.42",
+	}
+	reg2 := &AgentServiceRegistration{
+		Name:       "foo2",
+		SocketPath: "/tmp/foo2.sock",
+	}
+
+	if err := agent.ServiceRegister(reg1); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := agent.ServiceRegister(reg2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	require.Contains(t, services, "foo1", "missing service foo1")
+	require.Contains(t, services, "foo2", "missing service foo2")
+
+	require.Equal(t, "192.168.0.42", services["foo1"].Address,
+		"missing Address field in service foo1: %v", services["foo1"])
+
+	require.Equal(t, "", services["foo2"].Address,
+		"unexpected Address field in service foo1: %v", services["foo2"])
+	require.Equal(t, "/tmp/foo2.sock", services["foo2"].SocketPath,
+		"missing SocketPath field in service foo1: %v", services["foo2"])
 }
 
 func TestAPI_AgentEnableTagOverride(t *testing.T) {
@@ -712,8 +762,6 @@ func TestAPI_AgentService(t *testing.T) {
 
 	agent := c.Agent()
 
-	require := require.New(t)
-
 	reg := &AgentServiceRegistration{
 		Name: "foo",
 		Tags: []string{"bar", "baz"},
@@ -727,16 +775,16 @@ func TestAPI_AgentService(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(agent.ServiceRegister(reg))
+	require.NoError(t, agent.ServiceRegister(reg))
 
 	got, qm, err := agent.Service("foo", nil)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	expect := &AgentService{
 		ID:          "foo",
 		Service:     "foo",
 		Tags:        []string{"bar", "baz"},
-		ContentHash: "6b13684bfe179e67",
+		ContentHash: "f72563cae6924fb5",
 		Port:        8000,
 		Weights: AgentWeights{
 			Passing: 1,
@@ -744,10 +792,11 @@ func TestAPI_AgentService(t *testing.T) {
 		},
 		Meta:       map[string]string{},
 		Namespace:  defaultNamespace,
+		Partition:  defaultPartition,
 		Datacenter: "dc1",
 	}
-	require.Equal(expect, got)
-	require.Equal(expect.ContentHash, qm.LastContentHash)
+	require.Equal(t, expect, got)
+	require.Equal(t, expect.ContentHash, qm.LastContentHash)
 
 	// Sanity check blocking behavior - this is more thoroughly tested in the
 	// agent endpoint tests but this ensures that the API package is at least
@@ -759,8 +808,8 @@ func TestAPI_AgentService(t *testing.T) {
 	start := time.Now()
 	_, _, err = agent.Service("foo", &opts)
 	elapsed := time.Since(start)
-	require.NoError(err)
-	require.True(elapsed >= opts.WaitTime)
+	require.NoError(t, err)
+	require.True(t, elapsed >= opts.WaitTime)
 }
 
 func TestAPI_AgentSetTTLStatus(t *testing.T) {
@@ -848,6 +897,63 @@ func TestAPI_AgentSetTTLStatus(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentUpdateTTLOpts(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	s.WaitForSerfCheck(t)
+
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	verify := func(status, output string) {
+		checks, err := agent.Checks()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		chk, ok := checks["service:foo"]
+		if !ok {
+			t.Fatalf("missing check: %v", checks)
+		}
+		if chk.Status != status {
+			t.Fatalf("Bad: %#v", chk)
+		}
+		if chk.Output != output {
+			t.Fatalf("Bad: %#v", chk)
+		}
+	}
+
+	opts := &QueryOptions{Namespace: defaultNamespace}
+
+	if err := agent.UpdateTTLOpts("service:foo", "foo", HealthWarning, opts); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	verify(HealthWarning, "foo")
+
+	if err := agent.UpdateTTLOpts("service:foo", "bar", HealthPassing, opts); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	verify(HealthPassing, "bar")
+
+	if err := agent.UpdateTTL("service:foo", "baz", HealthCritical); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	verify(HealthCritical, "baz")
+
+	if err := agent.ServiceDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAPI_AgentChecks(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -883,7 +989,7 @@ func TestAPI_AgentChecks(t *testing.T) {
 	}
 }
 
-func TestAPI_AgentChecksWithFilter(t *testing.T) {
+func TestAPI_AgentChecksWithFilterOpts(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -901,7 +1007,8 @@ func TestAPI_AgentChecksWithFilter(t *testing.T) {
 	reg.TTL = "15s"
 	require.NoError(t, agent.CheckRegister(reg))
 
-	checks, err := agent.ChecksWithFilter("Name == foo")
+	opts := &QueryOptions{Namespace: defaultNamespace}
+	checks, err := agent.ChecksWithFilterOpts("Name == foo", opts)
 	require.NoError(t, err)
 	require.Len(t, checks, 1)
 	_, ok := checks["foo"]
@@ -1259,7 +1366,7 @@ func TestAPI_AgentMonitorJSON(t *testing.T) {
 	})
 }
 
-func TestAPI_ServiceMaintenance(t *testing.T) {
+func TestAPI_ServiceMaintenanceOpts(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -1274,8 +1381,11 @@ func TestAPI_ServiceMaintenance(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Specify namespace in query option
+	opts := &QueryOptions{Namespace: defaultNamespace}
+
 	// Enable maintenance mode
-	if err := agent.EnableServiceMaintenance("redis", "broken"); err != nil {
+	if err := agent.EnableServiceMaintenanceOpts("redis", "broken", opts); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1298,7 +1408,7 @@ func TestAPI_ServiceMaintenance(t *testing.T) {
 	}
 
 	// Disable maintenance mode
-	if err := agent.DisableServiceMaintenance("redis"); err != nil {
+	if err := agent.DisableServiceMaintenanceOpts("redis", opts); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1406,6 +1516,10 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
+		if _, err := agent.UpdateAgentRecoveryACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
 		if _, err := agent.UpdateReplicationACLToken("root", nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1458,6 +1572,9 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 		_, err = agent.UpdateAgentMasterACLToken("root", nil)
 		require.NoError(t, err)
 
+		_, err = agent.UpdateAgentRecoveryACLToken("root", nil)
+		require.NoError(t, err)
+
 		_, err = agent.UpdateReplicationACLToken("root", nil)
 		require.NoError(t, err)
 	})
@@ -1497,7 +1614,6 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
 		c.Connect = nil // disable connect to prevent CA being bootstrapped
 	})
@@ -1505,29 +1621,27 @@ func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 
 	agent := c.Agent()
 	_, _, err := agent.ConnectCARoots(nil)
-	require.Error(err)
-	require.Contains(err.Error(), "Connect must be enabled")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Connect must be enabled")
 }
 
 func TestAPI_AgentConnectCARoots_list(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	c, s := makeClient(t)
 	defer s.Stop()
 
 	agent := c.Agent()
 	s.WaitForSerfCheck(t)
 	list, meta, err := agent.ConnectCARoots(nil)
-	require.NoError(err)
-	require.True(meta.LastIndex > 0)
-	require.Len(list.Roots, 1)
+	require.NoError(t, err)
+	require.True(t, meta.LastIndex > 0)
+	require.Len(t, list.Roots, 1)
 }
 
 func TestAPI_AgentConnectCALeaf(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -1541,26 +1655,25 @@ func TestAPI_AgentConnectCALeaf(t *testing.T) {
 		Tags: []string{"bar", "baz"},
 		Port: 8000,
 	}
-	require.NoError(agent.ServiceRegister(reg))
+	require.NoError(t, agent.ServiceRegister(reg))
 
 	leaf, meta, err := agent.ConnectCALeaf("foo", nil)
-	require.NoError(err)
-	require.True(meta.LastIndex > 0)
+	require.NoError(t, err)
+	require.True(t, meta.LastIndex > 0)
 	// Sanity checks here as we have actual certificate validation checks at many
 	// other levels.
-	require.NotEmpty(leaf.SerialNumber)
-	require.NotEmpty(leaf.CertPEM)
-	require.NotEmpty(leaf.PrivateKeyPEM)
-	require.Equal("foo", leaf.Service)
-	require.True(strings.HasSuffix(leaf.ServiceURI, "/svc/foo"))
-	require.True(leaf.ModifyIndex > 0)
-	require.True(leaf.ValidAfter.Before(time.Now()))
-	require.True(leaf.ValidBefore.After(time.Now()))
+	require.NotEmpty(t, leaf.SerialNumber)
+	require.NotEmpty(t, leaf.CertPEM)
+	require.NotEmpty(t, leaf.PrivateKeyPEM)
+	require.Equal(t, "foo", leaf.Service)
+	require.True(t, strings.HasSuffix(leaf.ServiceURI, "/svc/foo"))
+	require.True(t, leaf.ModifyIndex > 0)
+	require.True(t, leaf.ValidAfter.Before(time.Now()))
+	require.True(t, leaf.ValidBefore.After(time.Now()))
 }
 
 func TestAPI_AgentConnectAuthorize(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -1573,12 +1686,12 @@ func TestAPI_AgentConnectAuthorize(t *testing.T) {
 		ClientCertURI: "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/ny1/svc/web",
 	}
 	auth, err := agent.ConnectAuthorize(params)
-	require.Nil(err)
-	require.True(auth.Authorized)
-	require.Equal(auth.Reason, "ACLs disabled, access is allowed by default")
+	require.Nil(t, err)
+	require.True(t, auth.Authorized)
+	require.Equal(t, auth.Reason, "Default behavior configured by ACLs")
 }
 
-func TestAPI_AgentHealthService(t *testing.T) {
+func TestAPI_AgentHealthServiceOpts(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -1588,7 +1701,8 @@ func TestAPI_AgentHealthService(t *testing.T) {
 	requireServiceHealthID := func(t *testing.T, serviceID, expected string, shouldExist bool) {
 		msg := fmt.Sprintf("service id:%s, shouldExist:%v, expectedStatus:%s : bad %%s", serviceID, shouldExist, expected)
 
-		state, out, err := agent.AgentHealthServiceByID(serviceID)
+		opts := &QueryOptions{Namespace: defaultNamespace}
+		state, out, err := agent.AgentHealthServiceByIDOpts(serviceID, opts)
 		require.Nil(t, err, msg, "err")
 		require.Equal(t, expected, state, msg, "state")
 		if !shouldExist {
@@ -1601,7 +1715,8 @@ func TestAPI_AgentHealthService(t *testing.T) {
 	requireServiceHealthName := func(t *testing.T, serviceName, expected string, shouldExist bool) {
 		msg := fmt.Sprintf("service name:%s, shouldExist:%v, expectedStatus:%s : bad %%s", serviceName, shouldExist, expected)
 
-		state, outs, err := agent.AgentHealthServiceByName(serviceName)
+		opts := &QueryOptions{Namespace: defaultNamespace}
+		state, outs, err := agent.AgentHealthServiceByNameOpts(serviceName, opts)
 		require.Nil(t, err, msg, "err")
 		require.Equal(t, expected, state, msg, "state")
 		if !shouldExist {

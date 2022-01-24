@@ -11,6 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/memberlist"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
@@ -18,10 +23,6 @@ import (
 	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/memberlist"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 
 	"gopkg.in/square/go-jose.v2/jwt"
 )
@@ -37,15 +38,15 @@ func (m *mockAutoConfigBackend) CreateACLToken(template *structs.ACLToken) (*str
 	return token, ret.Error(1)
 }
 
-func (m *mockAutoConfigBackend) DatacenterJoinAddresses(segment string) ([]string, error) {
-	ret := m.Called(segment)
+func (m *mockAutoConfigBackend) DatacenterJoinAddresses(partition, segment string) ([]string, error) {
+	ret := m.Called(partition, segment)
 	// this handles converting an untyped nil to a typed nil
 	addrs, _ := ret.Get(0).([]string)
 	return addrs, ret.Error(1)
 }
 
-func (m *mockAutoConfigBackend) ForwardRPC(method string, info structs.RPCInfo, args, reply interface{}) (bool, error) {
-	ret := m.Called(method, info, args, reply)
+func (m *mockAutoConfigBackend) ForwardRPC(method string, req structs.RPCInfo, reply interface{}) (bool, error) {
+	ret := m.Called(method, req, reply)
 	return ret.Bool(0), ret.Error(1)
 }
 
@@ -132,12 +133,12 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 	altCSR, _ := connect.TestCSR(t, &altCSRID)
 
 	_, s, _ := testACLServerWithConfig(t, func(c *Config) {
-		c.Domain = "consul"
+		c.TLSConfig.Domain = "consul"
 		c.AutoConfigAuthzEnabled = true
 		c.AutoConfigAuthzAuthMethod = structs.ACLAuthMethod{
 			Name:           "Auth Config Authorizer",
 			Type:           "jwt",
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			Config: map[string]interface{}{
 				"BoundAudiences":       []string{"consul"},
 				"BoundIssuer":          "consul",
@@ -164,14 +165,14 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		err = ioutil.WriteFile(keyfile, []byte(key), 0600)
 		require.NoError(t, err)
 
-		c.CAFile = cafile
-		c.CertFile = certfile
-		c.KeyFile = keyfile
-		c.VerifyOutgoing = true
-		c.VerifyIncoming = true
-		c.VerifyServerHostname = true
-		c.TLSMinVersion = "tls12"
-		c.TLSPreferServerCipherSuites = true
+		c.TLSConfig.CAFile = cafile
+		c.TLSConfig.CertFile = certfile
+		c.TLSConfig.KeyFile = keyfile
+		c.TLSConfig.VerifyOutgoing = true
+		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyServerHostname = true
+		c.TLSConfig.TLSMinVersion = "tls12"
+		c.TLSConfig.PreferServerCipherSuites = true
 
 		c.ConnectEnabled = true
 		c.AutoEncryptAllowTLS = true
@@ -183,18 +184,19 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		c.SerfLANConfig.MemberlistConfig.Keyring = keyring
 	}, false)
 
+	// TODO: use s.config.TLSConfig directly instead of creating a new one?
 	conf := tlsutil.Config{
-		CAFile:               s.config.CAFile,
-		VerifyServerHostname: s.config.VerifyServerHostname,
-		VerifyOutgoing:       s.config.VerifyOutgoing,
-		Domain:               s.config.Domain,
+		CAFile:               s.config.TLSConfig.CAFile,
+		VerifyServerHostname: s.config.TLSConfig.VerifyServerHostname,
+		VerifyOutgoing:       s.config.TLSConfig.VerifyOutgoing,
+		Domain:               s.config.TLSConfig.Domain,
 	}
 	codec, err := insecureRPCClient(s, conf)
 	require.NoError(t, err)
 
 	waitForLeaderEstablishment(t, s)
 
-	roots, err := s.GetCARoots()
+	roots, err := s.getCARoots(nil, s.fsm.State())
 	require.NoError(t, err)
 
 	pbroots, err := translateCARootsToProtobuf(roots)
@@ -212,6 +214,8 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		patchResponse func(t *testing.T, srv *Server, resp *pbautoconf.AutoConfigResponse)
 		err           string
 	}
+
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	cases := map[string]testCase{
 		"wrong-datacenter": {
@@ -261,7 +265,6 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 						PolicyTTL:     "30s",
 						TokenTTL:      "30s",
 						RoleTTL:       "30s",
-						DisabledTTL:   "0s",
 						DownPolicy:    "extend-cache",
 						DefaultPolicy: "deny",
 						Tokens: &pbconfig.ACLTokens{
@@ -303,6 +306,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 				expectedID := connect.SpiffeIDAgent{
 					Host:       roots.TrustDomain,
 					Agent:      "test-node",
+					Partition:  defaultEntMeta.PartitionOrDefault(),
 					Datacenter: "dc1",
 				}
 
@@ -582,7 +586,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 		CertPEM:        "not-currently-decoded",
 		ValidAfter:     now,
 		ValidBefore:    later,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		RaftIndex: structs.RaftIndex{
 			ModifyIndex: 10,
 			CreateIndex: 10,
@@ -714,15 +718,16 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 	cases := map[string]testCase{
 		"enabled": {
 			config: Config{
-				Datacenter:             testDC,
-				PrimaryDatacenter:      testDC,
-				ACLsEnabled:            true,
-				ACLPolicyTTL:           7 * time.Second,
-				ACLRoleTTL:             10 * time.Second,
-				ACLTokenTTL:            12 * time.Second,
-				ACLDisabledTTL:         31 * time.Second,
-				ACLDefaultPolicy:       "allow",
-				ACLDownPolicy:          "deny",
+				Datacenter:        testDC,
+				PrimaryDatacenter: testDC,
+				ACLsEnabled:       true,
+				ACLResolverSettings: ACLResolverSettings{
+					ACLPolicyTTL:     7 * time.Second,
+					ACLRoleTTL:       10 * time.Second,
+					ACLTokenTTL:      12 * time.Second,
+					ACLDefaultPolicy: "allow",
+					ACLDownPolicy:    "deny",
+				},
 				ACLEnableKeyListPolicy: true,
 			},
 			expectACLToken: true,
@@ -733,7 +738,6 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 						PolicyTTL:           "7s",
 						RoleTTL:             "10s",
 						TokenTTL:            "12s",
-						DisabledTTL:         "31s",
 						DownPolicy:          "deny",
 						DefaultPolicy:       "allow",
 						EnableKeyListPolicy: true,
@@ -746,15 +750,16 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 		},
 		"disabled": {
 			config: Config{
-				Datacenter:             testDC,
-				PrimaryDatacenter:      testDC,
-				ACLsEnabled:            false,
-				ACLPolicyTTL:           7 * time.Second,
-				ACLRoleTTL:             10 * time.Second,
-				ACLTokenTTL:            12 * time.Second,
-				ACLDisabledTTL:         31 * time.Second,
-				ACLDefaultPolicy:       "allow",
-				ACLDownPolicy:          "deny",
+				Datacenter:        testDC,
+				PrimaryDatacenter: testDC,
+				ACLsEnabled:       false,
+				ACLResolverSettings: ACLResolverSettings{
+					ACLPolicyTTL:     7 * time.Second,
+					ACLRoleTTL:       10 * time.Second,
+					ACLTokenTTL:      12 * time.Second,
+					ACLDefaultPolicy: "allow",
+					ACLDownPolicy:    "deny",
+				},
 				ACLEnableKeyListPolicy: true,
 			},
 			expectACLToken: false,
@@ -765,7 +770,6 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 						PolicyTTL:           "7s",
 						RoleTTL:             "10s",
 						TokenTTL:            "12s",
-						DisabledTTL:         "31s",
 						DownPolicy:          "deny",
 						DefaultPolicy:       "allow",
 						EnableKeyListPolicy: true,
@@ -795,7 +799,7 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 						Datacenter: testDC,
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 
 			testToken := &structs.ACLToken{
@@ -809,7 +813,7 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 						Datacenter: testDC,
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 
 			if tcase.expectACLToken {
@@ -835,7 +839,7 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 func TestAutoConfig_updateJoinAddressesInConfig(t *testing.T) {
 	addrs := []string{"198.18.0.7:8300", "198.18.0.1:8300"}
 	backend := &mockAutoConfigBackend{}
-	backend.On("DatacenterJoinAddresses", "").Return(addrs, nil).Once()
+	backend.On("DatacenterJoinAddresses", "", "").Return(addrs, nil).Once()
 
 	ac := AutoConfig{backend: backend}
 

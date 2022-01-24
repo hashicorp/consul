@@ -6,12 +6,13 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 var SessionEndpointSummaries = []prometheus.SummaryDefinition{
@@ -44,7 +45,7 @@ func fixupSessionSpecificRequest(args *structs.SessionSpecificRequest) {
 // Apply is used to apply a modifying request to the data store. This should
 // only be used for operations that modify the data
 func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
-	if done, err := s.srv.ForwardRPC("Session.Apply", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Session.Apply", args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"session", "apply"}, time.Now())
@@ -71,29 +72,27 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		return err
 	}
 
-	if authz != nil {
-		switch args.Op {
-		case structs.SessionDestroy:
-			state := s.srv.fsm.State()
-			_, existing, err := state.SessionGet(nil, args.Session.ID, &args.Session.EnterpriseMeta)
-			if err != nil {
-				return fmt.Errorf("Session lookup failed: %v", err)
-			}
-			if existing == nil {
-				return nil
-			}
-			if authz.SessionWrite(existing.Node, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
-			}
-
-		case structs.SessionCreate:
-			if authz.SessionWrite(args.Session.Node, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
-			}
-
-		default:
-			return fmt.Errorf("Invalid session operation %q", args.Op)
+	switch args.Op {
+	case structs.SessionDestroy:
+		state := s.srv.fsm.State()
+		_, existing, err := state.SessionGet(nil, args.Session.ID, &args.Session.EnterpriseMeta)
+		if err != nil {
+			return fmt.Errorf("Session lookup failed: %v", err)
 		}
+		if existing == nil {
+			return nil
+		}
+		if authz.SessionWrite(existing.Node, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+
+	case structs.SessionCreate:
+		if authz.SessionWrite(args.Session.Node, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+
+	default:
+		return fmt.Errorf("Invalid session operation %q", args.Op)
 	}
 
 	// Ensure that the specified behavior is allowed
@@ -147,21 +146,16 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	// Apply the update
 	resp, err := s.srv.raftApply(structs.SessionRequestType, args)
 	if err != nil {
-		s.logger.Error("Apply failed", "error", err)
-		return err
+		return fmt.Errorf("apply failed: %w", err)
 	}
 
 	if args.Op == structs.SessionCreate && args.Session.TTL != "" {
 		// If we created a session with a TTL, reset the expiration timer
-		s.srv.resetSessionTimer(args.Session.ID, &args.Session)
+		s.srv.resetSessionTimer(&args.Session)
 	} else if args.Op == structs.SessionDestroy {
 		// If we destroyed a session, it might potentially have a TTL,
 		// and we need to clear the timer
 		s.srv.clearSessionTimer(args.Session.ID)
-	}
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
 	}
 
 	// Check if the return type is a string
@@ -174,7 +168,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 // Get is used to retrieve a single session
 func (s *Session) Get(args *structs.SessionSpecificRequest,
 	reply *structs.IndexedSessions) error {
-	if done, err := s.srv.ForwardRPC("Session.Get", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Session.Get", args, reply); done {
 		return err
 	}
 
@@ -205,9 +199,7 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 			} else {
 				reply.Sessions = nil
 			}
-			if err := s.srv.filterACLWithAuthorizer(authz, reply); err != nil {
-				return err
-			}
+			s.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
 		})
 }
@@ -215,7 +207,7 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 // List is used to list all the active sessions
 func (s *Session) List(args *structs.SessionSpecificRequest,
 	reply *structs.IndexedSessions) error {
-	if done, err := s.srv.ForwardRPC("Session.List", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Session.List", args, reply); done {
 		return err
 	}
 
@@ -239,9 +231,7 @@ func (s *Session) List(args *structs.SessionSpecificRequest,
 			}
 
 			reply.Index, reply.Sessions = index, sessions
-			if err := s.srv.filterACLWithAuthorizer(authz, reply); err != nil {
-				return err
-			}
+			s.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
 		})
 }
@@ -249,7 +239,7 @@ func (s *Session) List(args *structs.SessionSpecificRequest,
 // NodeSessions is used to get all the sessions for a particular node
 func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedSessions) error {
-	if done, err := s.srv.ForwardRPC("Session.NodeSessions", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Session.NodeSessions", args, reply); done {
 		return err
 	}
 
@@ -273,9 +263,7 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 			}
 
 			reply.Index, reply.Sessions = index, sessions
-			if err := s.srv.filterACLWithAuthorizer(authz, reply); err != nil {
-				return err
-			}
+			s.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
 		})
 }
@@ -283,7 +271,7 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 // Renew is used to renew the TTL on a single session
 func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	reply *structs.IndexedSessions) error {
-	if done, err := s.srv.ForwardRPC("Session.Renew", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Session.Renew", args, reply); done {
 		return err
 	}
 
@@ -314,13 +302,13 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 		return nil
 	}
 
-	if authz != nil && authz.SessionWrite(session.Node, &authzContext) != acl.Allow {
+	if authz.SessionWrite(session.Node, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	// Reset the session TTL timer.
 	reply.Sessions = structs.Sessions{session}
-	if err := s.srv.resetSessionTimer(args.SessionID, session); err != nil {
+	if err := s.srv.resetSessionTimer(session); err != nil {
 		s.logger.Error("Session renew failed", "error", err)
 		return err
 	}

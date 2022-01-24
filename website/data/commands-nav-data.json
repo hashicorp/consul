@@ -1,0 +1,518 @@
+[
+  {
+    "title": "Commands (CLI)",
+    "path": "index"
+  },
+  {
+    "title": "acl",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "acl"
+      },
+      {
+        "title": "auth-method",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "acl/auth-method"
+          },
+          {
+            "title": "create",
+            "path": "acl/auth-method/create"
+          },
+          {
+            "title": "delete",
+            "path": "acl/auth-method/delete"
+          },
+          {
+            "title": "list",
+            "path": "acl/auth-method/list"
+          },
+          {
+            "title": "read",
+            "path": "acl/auth-method/read"
+          },
+          {
+            "title": "update",
+            "path": "acl/auth-method/update"
+          }
+        ]
+      },
+      {
+        "title": "binding-rule",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "acl/binding-rule"
+          },
+          {
+            "title": "create",
+            "path": "acl/binding-rule/create"
+          },
+          {
+            "title": "delete",
+            "path": "acl/binding-rule/delete"
+          },
+          {
+            "title": "list",
+            "path": "acl/binding-rule/list"
+          },
+          {
+            "title": "read",
+            "path": "acl/binding-rule/read"
+          },
+          {
+            "title": "update",
+            "path": "acl/binding-rule/update"
+          }
+        ]
+      },
+      {
+        "title": "bootstrap",
+        "path": "acl/bootstrap"
+      },
+      {
+        "title": "policy",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "acl/policy"
+          },
+          {
+            "title": "create",
+            "path": "acl/policy/create"
+          },
+          {
+            "title": "delete",
+            "path": "acl/policy/delete"
+          },
+          {
+            "title": "list",
+            "path": "acl/policy/list"
+          },
+          {
+            "title": "read",
+            "path": "acl/policy/read"
+          },
+          {
+            "title": "update",
+            "path": "acl/policy/update"
+          }
+        ]
+      },
+      {
+        "title": "role",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "acl/role"
+          },
+          {
+            "title": "create",
+            "path": "acl/role/create"
+          },
+          {
+            "title": "delete",
+            "path": "acl/role/delete"
+          },
+          {
+            "title": "list",
+            "path": "acl/role/list"
+          },
+          {
+            "title": "read",
+            "path": "acl/role/read"
+          },
+          {
+            "title": "update",
+            "path": "acl/role/update"
+          }
+        ]
+      },
+      {
+        "title": "set-agent-token",
+        "path": "acl/set-agent-token"
+      },
+      {
+        "title": "token",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "acl/token"
+          },
+          {
+            "title": "clone",
+            "path": "acl/token/clone"
+          },
+          {
+            "title": "create",
+            "path": "acl/token/create"
+          },
+          {
+            "title": "delete",
+            "path": "acl/token/delete"
+          },
+          {
+            "title": "list",
+            "path": "acl/token/list"
+          },
+          {
+            "title": "read",
+            "path": "acl/token/read"
+          },
+          {
+            "title": "update",
+            "path": "acl/token/update"
+          }
+        ]
+      },
+      {
+        "title": "translate-rules",
+        "path": "acl/translate-rules"
+      }
+    ]
+  },
+  {
+    "title": "agent",
+    "path": "agent"
+  },
+  {
+    "title": "catalog",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "catalog"
+      },
+      {
+        "title": "datacenters",
+        "path": "catalog/datacenters"
+      },
+      {
+        "title": "nodes",
+        "path": "catalog/nodes"
+      },
+      {
+        "title": "services",
+        "path": "catalog/services"
+      }
+    ]
+  },
+  {
+    "title": "config",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "config"
+      },
+      {
+        "title": "delete",
+        "path": "config/delete"
+      },
+      {
+        "title": "list",
+        "path": "config/list"
+      },
+      {
+        "title": "read",
+        "path": "config/read"
+      },
+      {
+        "title": "write",
+        "path": "config/write"
+      }
+    ]
+  },
+  {
+    "title": "connect",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "connect"
+      },
+      {
+        "title": "ca",
+        "path": "connect/ca"
+      },
+      {
+        "title": "proxy",
+        "path": "connect/proxy"
+      },
+      {
+        "title": "envoy",
+        "path": "connect/envoy"
+      },
+      {
+        "title": "expose",
+        "path": "connect/expose"
+      },
+      {
+        "title": "redirect-traffic",
+        "path": "connect/redirect-traffic"
+      }
+    ]
+  },
+  {
+    "title": "debug",
+    "path": "debug"
+  },
+  {
+    "title": "event",
+    "path": "event"
+  },
+  {
+    "title": "exec",
+    "path": "exec"
+  },
+  {
+    "title": "force-leave",
+    "path": "force-leave"
+  },
+  {
+    "title": "info",
+    "path": "info"
+  },
+  {
+    "title": "intention",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "intention"
+      },
+      {
+        "title": "check",
+        "path": "intention/check"
+      },
+      {
+        "title": "create",
+        "path": "intention/create"
+      },
+      {
+        "title": "delete",
+        "path": "intention/delete"
+      },
+      {
+        "title": "get",
+        "path": "intention/get"
+      },
+      {
+        "title": "list",
+        "path": "intention/list"
+      },
+      {
+        "title": "match",
+        "path": "intention/match"
+      }
+    ]
+  },
+  {
+    "title": "join",
+    "path": "join"
+  },
+  {
+    "title": "keygen",
+    "path": "keygen"
+  },
+  {
+    "title": "keyring",
+    "path": "keyring"
+  },
+  {
+    "title": "kv",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "kv"
+      },
+      {
+        "title": "delete",
+        "path": "kv/delete"
+      },
+      {
+        "title": "export",
+        "path": "kv/export"
+      },
+      {
+        "title": "get",
+        "path": "kv/get"
+      },
+      {
+        "title": "import",
+        "path": "kv/import"
+      },
+      {
+        "title": "put",
+        "path": "kv/put"
+      }
+    ]
+  },
+  {
+    "title": "leave",
+    "path": "leave"
+  },
+  {
+    "title": "license",
+    "path": "license"
+  },
+  {
+    "title": "lock",
+    "path": "lock"
+  },
+  {
+    "title": "login",
+    "path": "login"
+  },
+  {
+    "title": "logout",
+    "path": "logout"
+  },
+  {
+    "title": "maint",
+    "path": "maint"
+  },
+  {
+    "title": "members",
+    "path": "members"
+  },
+  {
+    "title": "monitor",
+    "path": "monitor"
+  },
+  {
+    "title": "namespace",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "namespace"
+      },
+      {
+        "title": "create",
+        "path": "namespace/create"
+      },
+      {
+        "title": "delete",
+        "path": "namespace/delete"
+      },
+      {
+        "title": "list",
+        "path": "namespace/list"
+      },
+      {
+        "title": "read",
+        "path": "namespace/read"
+      },
+      {
+        "title": "update",
+        "path": "namespace/update"
+      },
+      {
+        "title": "write",
+        "path": "namespace/write"
+      }
+    ]
+  },
+  {
+    "title": "operator",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "operator"
+      },
+      {
+        "title": "area",
+        "path": "operator/area"
+      },
+      {
+        "title": "autopilot",
+        "path": "operator/autopilot"
+      },
+      {
+        "title": "raft",
+        "path": "operator/raft"
+      }
+    ]
+  },
+  {
+    "title": "partition",
+    "path": "partition"
+  },
+  {
+    "title": "reload",
+    "path": "reload"
+  },
+  {
+    "title": "rtt",
+    "path": "rtt"
+  },
+  {
+    "title": "services",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "services"
+      },
+      {
+        "title": "register",
+        "path": "services/register"
+      },
+      {
+        "title": "deregister",
+        "path": "services/deregister"
+      }
+    ]
+  },
+  {
+    "title": "snapshot",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "snapshot"
+      },
+      {
+        "title": "agent",
+        "path": "snapshot/agent"
+      },
+      {
+        "title": "inspect",
+        "path": "snapshot/inspect"
+      },
+      {
+        "title": "restore",
+        "path": "snapshot/restore"
+      },
+      {
+        "title": "save",
+        "path": "snapshot/save"
+      }
+    ]
+  },
+  {
+    "title": "tls",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "tls"
+      },
+      {
+        "title": "ca",
+        "path": "tls/ca"
+      },
+      {
+        "title": "cert",
+        "path": "tls/cert"
+      }
+    ]
+  },
+  {
+    "title": "validate",
+    "path": "validate"
+  },
+  {
+    "title": "version",
+    "path": "version"
+  },
+  {
+    "title": "watch",
+    "path": "watch"
+  }
+]

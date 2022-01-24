@@ -10,14 +10,15 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/stretchr/testify/require"
 )
 
 // generateRandomCoordinate creates a random coordinate. This mucks with the
@@ -83,13 +84,13 @@ func TestCoordinate_Update(t *testing.T) {
 	// Make sure the updates did not yet apply because the update period
 	// hasn't expired.
 	state := s1.fsm.State()
-	_, c, err := state.Coordinate("node1", nil)
+	_, c, err := state.Coordinate(nil, "node1", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	require.Equal(t, lib.CoordinateSet{}, c)
 
-	_, c, err = state.Coordinate("node2", nil)
+	_, c, err = state.Coordinate(nil, "node2", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -104,7 +105,7 @@ func TestCoordinate_Update(t *testing.T) {
 
 	// Wait a while and the updates should get picked up.
 	time.Sleep(3 * s1.config.CoordinateUpdatePeriod)
-	_, c, err = state.Coordinate("node1", nil)
+	_, c, err = state.Coordinate(nil, "node1", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -113,7 +114,7 @@ func TestCoordinate_Update(t *testing.T) {
 	}
 	require.Equal(t, expected, c)
 
-	_, c, err = state.Coordinate("node2", nil)
+	_, c, err = state.Coordinate(nil, "node2", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -152,7 +153,7 @@ func TestCoordinate_Update(t *testing.T) {
 	time.Sleep(3 * s1.config.CoordinateUpdatePeriod)
 	numDropped := 0
 	for i := 0; i < spamLen; i++ {
-		_, c, err = state.Coordinate(fmt.Sprintf("bogusnode%d", i), nil)
+		_, c, err = state.Coordinate(nil, fmt.Sprintf("bogusnode%d", i), nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -188,10 +189,10 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -219,25 +220,7 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create an ACL that can write to the node.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
-node "node1" {
-	policy = "write"
-}
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	id := createToken(t, codec, `node "node1" { policy = "write" }`)
 
 	// With the token, it should now go through.
 	req.Token = id
@@ -364,10 +347,10 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -459,27 +442,7 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 		t.Fatalf("bad: %#v", resp.Coordinates)
 	}
 
-	// Create an ACL that can read one of the nodes.
-	var id string
-	{
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name: "User token",
-				Type: structs.ACLTokenTypeClient,
-				Rules: `
-node "foo" {
-	policy = "read"
-}
-`,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &id); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	id := createToken(t, codec, ` node "foo" { policy = "read" } `)
 
 	// With the token, it should now go through.
 	arg.Token = id
@@ -488,6 +451,9 @@ node "foo" {
 	}
 	if len(resp.Coordinates) != 1 || resp.Coordinates[0].Node != "foo" {
 		t.Fatalf("bad: %#v", resp.Coordinates)
+	}
+	if !resp.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should be true")
 	}
 }
 
@@ -556,10 +522,10 @@ func TestCoordinate_Node_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -597,25 +563,7 @@ func TestCoordinate_Node_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create an ACL that can read from the node.
-	aclReq := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
-node "node1" {
-	policy = "read"
-}
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &aclReq, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	id := createToken(t, codec, `node "node1" { policy = "read" } `)
 
 	// With the token, it should now go through.
 	arg.Token = id

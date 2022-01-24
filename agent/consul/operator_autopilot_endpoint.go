@@ -3,27 +3,28 @@ package consul
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/structs"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // AutopilotGetConfiguration is used to retrieve the current Autopilot configuration.
 func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, reply *structs.AutopilotConfig) error {
-	if done, err := op.srv.ForwardRPC("Operator.AutopilotGetConfiguration", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.AutopilotGetConfiguration", args, reply); done {
 		return err
 	}
 
 	// This action requires operator read access.
-	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
 	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if authz.OperatorRead(nil) != acl.Allow {
 		return acl.PermissionDenied("Missing operator:read permissions")
 	}
 
@@ -43,30 +44,26 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 
 // AutopilotSetConfiguration is used to set the current Autopilot configuration.
 func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRequest, reply *bool) error {
-	if done, err := op.srv.ForwardRPC("Operator.AutopilotSetConfiguration", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.AutopilotSetConfiguration", args, reply); done {
 		return err
 	}
 
 	// This action requires operator write access.
-	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
 	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if authz.OperatorWrite(nil) != acl.Allow {
 		return acl.PermissionDenied("Missing operator:write permissions")
 	}
 
 	// Apply the update
 	resp, err := op.srv.raftApply(structs.AutopilotRequestType, args)
 	if err != nil {
-		op.logger.Error("Raft apply failed", "error", err)
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
+		return fmt.Errorf("raft apply failed: %w", err)
 	}
 
 	// Check if the return type is a bool.
@@ -82,19 +79,19 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 	// re-using a structure where we don't support all the options.
 	args.RequireConsistent = true
 	args.AllowStale = false
-	if done, err := op.srv.ForwardRPC("Operator.ServerHealth", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.ServerHealth", args, reply); done {
 		return err
 	}
 
 	// This action requires operator read access.
-	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
 	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if authz.OperatorRead(nil) != acl.Allow {
 		return acl.PermissionDenied("Missing operator:read permissions")
 	}
 
@@ -149,19 +146,19 @@ func (op *Operator) AutopilotState(args *structs.DCSpecificRequest, reply *autop
 	// re-using a structure where we don't support all the options.
 	args.RequireConsistent = true
 	args.AllowStale = false
-	if done, err := op.srv.ForwardRPC("Operator.AutopilotState", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.AutopilotState", args, reply); done {
 		return err
 	}
 
 	// This action requires operator read access.
-	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
 	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if authz.OperatorRead(nil) != acl.Allow {
 		return acl.PermissionDenied("Missing operator:read permissions")
 	}
 

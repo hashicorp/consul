@@ -1,0 +1,3 @@
+```release-note:bug
+local: agents will no longer persist the default user token along with a service or check.
+```

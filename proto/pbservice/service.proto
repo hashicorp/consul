@@ -64,11 +64,21 @@ message ConnectProxyConfig {
     // mog: func-to=UpstreamsToStructs func-from=NewUpstreamsFromStructs
     repeated Upstream Upstreams = 6 [(gogoproto.nullable) = false];
 
-    // MeshGateway defines the mesh gateway configuration for this upstream
+    // MeshGateway defines the mesh gateway configuration for upstreams
     MeshGatewayConfig MeshGateway = 7 [(gogoproto.nullable) = false];
 
     // Expose defines whether checks or paths are exposed through the proxy
     ExposeConfig Expose = 8 [(gogoproto.nullable) = false];
+
+    // Mode represents how the proxy's inbound and upstream listeners are dialed.
+    string Mode = 9 [(gogoproto.casttype) = "github.com/hashicorp/consul/agent/structs.ProxyMode"];
+
+    // TransparentProxy defines configuration for when the proxy is in
+    // transparent mode.
+    TransparentProxyConfig TransparentProxy = 10 [(gogoproto.nullable) = false];
+
+      // LocalServiceSocketPath is the path to the unix domain socket for the local service instance
+    string LocalServiceSocketPath = 11;
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It
@@ -116,6 +126,15 @@ message Upstream {
 
     // MeshGateway is the configuration for mesh gateway usage of this upstream
     MeshGatewayConfig MeshGateway = 8  [(gogoproto.nullable) = false];
+
+    // CentrallyConfigured indicates whether the upstream was defined in a proxy
+    // instance registration or whether it was generated from a config entry.
+    bool CentrallyConfigured = 9;
+
+    // LocalBindSocketPath is the socket to create to connect to the upstream service
+    string LocalBindSocketPath = 10;
+    string LocalBindSocketMode = 11;
+    string DestinationPartition = 12;
 }
 
 // ServiceConnect are the shared Connect settings between all service
@@ -192,6 +211,21 @@ message MeshGatewayConfig {
     string Mode = 1 [(gogoproto.casttype) = "github.com/hashicorp/consul/agent/structs.MeshGatewayMode"];
 }
 
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.TransparentProxyConfig
+// output=service.gen.go
+// name=Structs
+message TransparentProxyConfig {
+    // mog: func-to=int func-from=int32
+    int32 OutboundListenerPort = 1;
+
+    // DialedDirectly indicates whether transparent proxies can dial this proxy instance directly.
+    // The discovery chain is not considered when dialing a service instance directly.
+    // This setting is useful when addressing stateful services, such as a database cluster with a leader node.
+    bool DialedDirectly = 2;
+}
+
 // ServiceDefinition is used to JSON decode the Service definitions. For
 // documentation on specific fields see NodeService which is better documented.
 //
@@ -211,6 +245,8 @@ message ServiceDefinition {
     map<string, string> Meta = 6;
     // mog: func-to=int func-from=int32
     int32 Port = 7;
+    // Path for socket
+    string SocketPath = 18;
     CheckType Check = 8 [(gogoproto.nullable) = false];
     // mog: func-to=CheckTypesToStructs func-from=NewCheckTypesFromStructs
     repeated CheckType Checks = 9;

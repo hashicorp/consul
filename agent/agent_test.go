@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -30,7 +31,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -213,10 +214,14 @@ func TestAgent_TokenStore(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestAgent(t, `
-		acl_token = "user"
-		acl_agent_token = "agent"
-		acl_agent_master_token = "master"`,
-	)
+		acl {
+			tokens {
+				default = "user"
+				agent = "agent"
+				agent_recovery = "recovery"
+			}
+		}
+	`)
 	defer a.Shutdown()
 
 	if got, want := a.tokens.UserToken(), "user"; got != want {
@@ -225,7 +230,7 @@ func TestAgent_TokenStore(t *testing.T) {
 	if got, want := a.tokens.AgentToken(), "agent"; got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
-	if got, want := a.tokens.IsAgentMasterToken("master"), true; got != want {
+	if got, want := a.tokens.IsAgentRecoveryToken("recovery"), true; got != want {
 		t.Fatalf("got %v want %v", got, want)
 	}
 }
@@ -294,10 +299,6 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ports, err := freeport.Take(1)
-			require.NoError(t, err)
-			t.Cleanup(func() { freeport.Return(ports) })
-
 			caConfig := tlsutil.Config{}
 			tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
 			require.NoError(t, err)
@@ -307,17 +308,23 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 					Logger:          hclog.NewInterceptLogger(nil),
 					Tokens:          new(token.Store),
 					TLSConfigurator: tlsConf,
+					GRPCConnPool:    &fakeGRPCConnPool{},
 				},
 				RuntimeConfig: &config.RuntimeConfig{
 					HTTPAddrs: []net.Addr{
-						&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+						&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: freeport.GetOne(t)},
 					},
 					HTTPMaxHeaderBytes: tt.maxHeaderBytes,
 				},
 				Cache: cache.New(cache.Options{}),
 			}
+			bd, err = initEnterpriseBaseDeps(bd, nil)
+			require.NoError(t, err)
+
 			a, err := New(bd)
 			require.NoError(t, err)
+
+			a.startLicenseManager(testutil.TestContext(t))
 
 			srvs, err := a.listenHTTP()
 			require.NoError(t, err)
@@ -353,6 +360,19 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 			}
 		})
 	}
+}
+
+type fakeGRPCConnPool struct{}
+
+func (f fakeGRPCConnPool) ClientConn(_ string) (*grpc.ClientConn, error) {
+	return nil, nil
+}
+
+func (f fakeGRPCConnPool) ClientConnLeader() (*grpc.ClientConn, error) {
+	return nil, nil
+}
+
+func (f fakeGRPCConnPool) SetGatewayResolver(_ func(string) string) {
 }
 
 func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
@@ -410,7 +430,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 				Tags:           []string{"tag1"},
 				Weights:        nil, // nil weights...
 				Port:           8100,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			// ... should be populated to avoid "IsSame" returning true during AE.
 			func(ns *structs.NodeService) {
@@ -438,7 +458,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname1",
 					ServiceTags:    []string{"tag1"},
 					Type:           "ttl",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 		},
@@ -453,7 +473,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 				},
 				Tags:           []string{"tag2"},
 				Port:           8200,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			nil, // No change expected
 			[]*structs.CheckType{
@@ -486,7 +506,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname2",
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				"check-noname": {
 					Node:           "node1",
@@ -497,7 +517,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname2",
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				"service:svcid2:3": {
 					Node:           "node1",
@@ -508,7 +528,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname2",
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				"service:svcid2:4": {
 					Node:           "node1",
@@ -519,7 +539,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname2",
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 		},
@@ -684,11 +704,11 @@ func test_createAlias(t *testing.T, agent *TestAgent, chk *structs.CheckType, ex
 	return func(r *retry.R) {
 		t.Helper()
 		found := false
-		for _, c := range agent.State.CheckStates(structs.WildcardEnterpriseMeta()) {
+		for _, c := range agent.State.CheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()) {
 			if c.Check.CheckID == chk.CheckID {
 				found = true
 				assert.Equal(t, expectedResult, c.Check.Status, "Check state should be %s, was %s in %#v", expectedResult, c.Check.Status, c.Check)
-				srvID := structs.NewServiceID(srv.ID, structs.WildcardEnterpriseMeta())
+				srvID := structs.NewServiceID(srv.ID, structs.WildcardEnterpriseMetaInDefaultPartition())
 				if err := agent.Agent.State.RemoveService(srvID); err != nil {
 					fmt.Println("[DEBUG] Fail to remove service", srvID, ", err:=", err)
 				}
@@ -754,7 +774,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 		err := a.RPC("Catalog.NodeServices", &args, &out)
 		assert.NoError(r, err)
 		foundService := false
-		lookup := structs.NewServiceID("svcid1", structs.WildcardEnterpriseMeta())
+		lookup := structs.NewServiceID("svcid1", structs.WildcardEnterpriseMetaInDefaultPartition())
 		for _, srv := range out.NodeServices.Services {
 			if lookup.Matches(srv.CompoundServiceID()) {
 				foundService = true
@@ -792,7 +812,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 		for i := 0; i < 50; i++ {
 			unlockIndexOnNode()
 			allNonWarning := true
-			for _, chk := range a.State.Checks(structs.WildcardEnterpriseMeta()) {
+			for _, chk := range a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition()) {
 				if chk.Status == api.HealthWarning {
 					allNonWarning = false
 				}
@@ -809,6 +829,57 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 		unlockIndexOnNode()
 		retry.Run(t, toRun)
 	}
+}
+
+func TestAgent_AddServiceWithH2PINGCheck(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	check := []*structs.CheckType{
+		{
+			CheckID:       "test-h2ping-check",
+			Name:          "test-h2ping-check",
+			H2PING:        "localhost:12345",
+			TLSSkipVerify: true,
+			Interval:      10 * time.Second,
+		},
+	}
+
+	nodeService := &structs.NodeService{
+		ID:      "test-h2ping-check-service",
+		Service: "test-h2ping-check-service",
+	}
+	err := a.addServiceFromSource(nodeService, check, false, "", ConfigSourceLocal)
+	if err != nil {
+		t.Fatalf("Error registering service: %v", err)
+	}
+	requireCheckExists(t, a, "test-h2ping-check")
+}
+
+func TestAgent_AddServiceWithH2CPINGCheck(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	check := []*structs.CheckType{
+		{
+			CheckID:       "test-h2cping-check",
+			Name:          "test-h2cping-check",
+			H2PING:        "localhost:12345",
+			TLSSkipVerify: true,
+			Interval:      10 * time.Second,
+			H2PingUseTLS:  false,
+		},
+	}
+
+	nodeService := &structs.NodeService{
+		ID:      "test-h2cping-check-service",
+		Service: "test-h2cping-check-service",
+	}
+	err := a.addServiceFromSource(nodeService, check, false, "", ConfigSourceLocal)
+	if err != nil {
+		t.Fatalf("Error registering service: %v", err)
+	}
+	requireCheckExists(t, a, "test-h2cping-check")
 }
 
 func TestAgent_AddServiceNoExec(t *testing.T) {
@@ -896,110 +967,6 @@ func testAgent_AddServiceNoRemoteExec(t *testing.T, extraHCL string) {
 	err := a.addServiceFromSource(srv, []*structs.CheckType{chk}, false, "", ConfigSourceRemote)
 	if err == nil || !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
 		t.Fatalf("err: %v", err)
-	}
-}
-
-func TestCacheRateLimit(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	tests := []struct {
-		// count := number of updates performed (1 every 10ms)
-		count int
-		// rateLimit rate limiting of cache
-		rateLimit float64
-		// Minimum number of updates to see from a cache perspective
-		// We add a value with tolerance to work even on a loaded CI
-		minUpdates int
-	}{
-		// 250 => we have a test running for at least 2.5s
-		{250, 0.5, 1},
-		{250, 1, 1},
-		{300, 2, 2},
-	}
-	for _, currentTest := range tests {
-		t.Run(fmt.Sprintf("rate_limit_at_%v", currentTest.rateLimit), func(t *testing.T) {
-			tt := currentTest
-			t.Parallel()
-			a := NewTestAgent(t, "cache = { entry_fetch_rate = 1, entry_fetch_max_burst = 100 }")
-			defer a.Shutdown()
-			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-
-			cfg := a.config
-			require.Equal(t, rate.Limit(1), a.config.Cache.EntryFetchRate)
-			require.Equal(t, 100, a.config.Cache.EntryFetchMaxBurst)
-			cfg.Cache.EntryFetchRate = rate.Limit(tt.rateLimit)
-			cfg.Cache.EntryFetchMaxBurst = 1
-			a.reloadConfigInternal(cfg)
-			require.Equal(t, rate.Limit(tt.rateLimit), a.config.Cache.EntryFetchRate)
-			require.Equal(t, 1, a.config.Cache.EntryFetchMaxBurst)
-			var wg sync.WaitGroup
-			stillProcessing := true
-
-			injectService := func(i int) {
-				srv := &structs.NodeService{
-					Service: "redis",
-					ID:      "redis",
-					Port:    1024 + i,
-					Address: fmt.Sprintf("10.0.1.%d", i%255),
-				}
-
-				err := a.addServiceFromSource(srv, []*structs.CheckType{}, false, "", ConfigSourceRemote)
-				require.Nil(t, err)
-			}
-
-			runUpdates := func() {
-				wg.Add(tt.count)
-				for i := 0; i < tt.count; i++ {
-					time.Sleep(10 * time.Millisecond)
-					injectService(i)
-					wg.Done()
-				}
-				stillProcessing = false
-			}
-
-			getIndex := func(t *testing.T, oldIndex int) int {
-				req, err := http.NewRequest("GET", fmt.Sprintf("/v1/health/service/redis?cached&wait=5s&index=%d", oldIndex), nil)
-				require.NoError(t, err)
-
-				resp := httptest.NewRecorder()
-				a.srv.handler(false).ServeHTTP(resp, req)
-				// Key doesn't actually exist so we should get 404
-				if got, want := resp.Code, http.StatusOK; got != want {
-					t.Fatalf("bad response code got %d want %d", got, want)
-				}
-				index, err := strconv.Atoi(resp.Header().Get("X-Consul-Index"))
-				require.NoError(t, err)
-				return index
-			}
-
-			{
-				start := time.Now()
-				injectService(0)
-				// Get the first index
-				index := getIndex(t, 0)
-				require.Greater(t, index, 2)
-				go runUpdates()
-				numberOfUpdates := 0
-				for stillProcessing {
-					oldIndex := index
-					index = getIndex(t, oldIndex)
-					require.GreaterOrEqual(t, index, oldIndex, "index must be increasing only")
-					numberOfUpdates++
-				}
-				elapsed := time.Since(start)
-				qps := float64(time.Second) * float64(numberOfUpdates) / float64(elapsed)
-				summary := fmt.Sprintf("received %v updates in %v aka %f qps, target max was: %f qps", numberOfUpdates, elapsed, qps, tt.rateLimit)
-
-				// We must never go beyond the limit, we give 10% margin to avoid having values like 1.05 instead of 1 due to precision of clock
-				require.LessOrEqual(t, qps, 1.1*tt.rateLimit, fmt.Sprintf("it should never get more requests than ratelimit, had: %s", summary))
-				// We must have at least being notified a few times
-				require.GreaterOrEqual(t, numberOfUpdates, tt.minUpdates, fmt.Sprintf("It should have received a minimum of %d updates, had: %s", tt.minUpdates, summary))
-			}
-			wg.Wait()
-		})
 	}
 }
 
@@ -1284,7 +1251,7 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 		node_name = "node1"
 	`+extraHCL)
 	defer a.Shutdown()
-	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000, EnterpriseMeta: *structs.DefaultEnterpriseMeta()}
+	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000, EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition()}
 	chk1 := &structs.CheckType{CheckID: "chk1", Name: "chk1", TTL: time.Minute}
 	chk2 := &structs.CheckType{CheckID: "chk2", Name: "chk2", TTL: 2 * time.Minute}
 	hchk1 := &structs.HealthCheck{
@@ -1295,7 +1262,7 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 		ServiceID:      "redis",
 		ServiceName:    "redis",
 		Type:           "ttl",
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	hchk2 := &structs.HealthCheck{Node: "node1",
 		CheckID:        "chk2",
@@ -1304,7 +1271,7 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 		ServiceID:      "redis",
 		ServiceName:    "redis",
 		Type:           "ttl",
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// register service with chk1
@@ -1356,6 +1323,7 @@ func TestAgent_IndexChurn(t *testing.T) {
 // verifyIndexChurn registers some things and runs anti-entropy a bunch of times
 // in a row to make sure there are no index bumps.
 func verifyIndexChurn(t *testing.T, tags []string) {
+	t.Helper()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -1770,14 +1738,12 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
-	testCtx, testCancel := context.WithCancel(context.Background())
-	defer testCancel()
-
-	testHTTPServer, returnPort := launchHTTPCheckServer(t, testCtx)
-	defer func() {
-		testHTTPServer.Close()
-		returnPort()
-	}()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK\n"))
+	})
+	testHTTPServer := httptest.NewServer(handler)
+	t.Cleanup(testHTTPServer.Close)
 
 	registerServicesAndChecks := func(t *testing.T, a *TestAgent) {
 		// add one persistent service with a simple check
@@ -1882,29 +1848,6 @@ node_name = "` + a.Config.NodeName + `"
 	}
 }
 
-func launchHTTPCheckServer(t *testing.T, ctx context.Context) (srv *httptest.Server, returnPortsFn func()) {
-	ports := freeport.MustTake(1)
-	port := ports[0]
-
-	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
-
-	var lc net.ListenConfig
-	listener, err := lc.Listen(ctx, "tcp", addr)
-	require.NoError(t, err)
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("OK\n"))
-	})
-
-	srv = &httptest.Server{
-		Listener: listener,
-		Config:   &http.Server{Handler: handler},
-	}
-	srv.Start()
-	return srv, func() { freeport.Return(ports) }
-}
-
 func TestAgent_AddCheck_Alias(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1912,7 +1855,6 @@ func TestAgent_AddCheck_Alias(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -1926,19 +1868,19 @@ func TestAgent_AddCheck_Alias(t *testing.T) {
 		AliasService: "foo",
 	}
 	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Ensure we have a check mapping
 	sChk := requireCheckExists(t, a, "aliashealth")
-	require.Equal(api.HealthCritical, sChk.Status)
+	require.Equal(t, api.HealthCritical, sChk.Status)
 
 	chkImpl, ok := a.checkAliases[structs.NewCheckID("aliashealth", nil)]
-	require.True(ok, "missing aliashealth check")
-	require.Equal("", chkImpl.RPCReq.Token)
+	require.True(t, ok, "missing aliashealth check")
+	require.Equal(t, "", chkImpl.RPCReq.Token)
 
 	cs := a.State.CheckState(structs.NewCheckID("aliashealth", nil))
-	require.NotNil(cs)
-	require.Equal("", cs.Token)
+	require.NotNil(t, cs)
+	require.Equal(t, "", cs.Token)
 }
 
 func TestAgent_AddCheck_Alias_setToken(t *testing.T) {
@@ -1948,7 +1890,6 @@ func TestAgent_AddCheck_Alias_setToken(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -1962,15 +1903,15 @@ func TestAgent_AddCheck_Alias_setToken(t *testing.T) {
 		AliasService: "foo",
 	}
 	err := a.AddCheck(health, chk, false, "foo", ConfigSourceLocal)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	cs := a.State.CheckState(structs.NewCheckID("aliashealth", nil))
-	require.NotNil(cs)
-	require.Equal("foo", cs.Token)
+	require.NotNil(t, cs)
+	require.Equal(t, "foo", cs.Token)
 
 	chkImpl, ok := a.checkAliases[structs.NewCheckID("aliashealth", nil)]
-	require.True(ok, "missing aliashealth check")
-	require.Equal("foo", chkImpl.RPCReq.Token)
+	require.True(t, ok, "missing aliashealth check")
+	require.Equal(t, "foo", chkImpl.RPCReq.Token)
 }
 
 func TestAgent_AddCheck_Alias_userToken(t *testing.T) {
@@ -1980,7 +1921,6 @@ func TestAgent_AddCheck_Alias_userToken(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, `
 acl_token = "hello"
 	`)
@@ -1996,15 +1936,15 @@ acl_token = "hello"
 		AliasService: "foo",
 	}
 	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	cs := a.State.CheckState(structs.NewCheckID("aliashealth", nil))
-	require.NotNil(cs)
-	require.Equal("", cs.Token) // State token should still be empty
+	require.NotNil(t, cs)
+	require.Equal(t, "", cs.Token) // State token should still be empty
 
 	chkImpl, ok := a.checkAliases[structs.NewCheckID("aliashealth", nil)]
-	require.True(ok, "missing aliashealth check")
-	require.Equal("hello", chkImpl.RPCReq.Token) // Check should use the token
+	require.True(t, ok, "missing aliashealth check")
+	require.Equal(t, "hello", chkImpl.RPCReq.Token) // Check should use the token
 }
 
 func TestAgent_AddCheck_Alias_userAndSetToken(t *testing.T) {
@@ -2014,7 +1954,6 @@ func TestAgent_AddCheck_Alias_userAndSetToken(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, `
 acl_token = "hello"
 	`)
@@ -2030,15 +1969,15 @@ acl_token = "hello"
 		AliasService: "foo",
 	}
 	err := a.AddCheck(health, chk, false, "goodbye", ConfigSourceLocal)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	cs := a.State.CheckState(structs.NewCheckID("aliashealth", nil))
-	require.NotNil(cs)
-	require.Equal("goodbye", cs.Token)
+	require.NotNil(t, cs)
+	require.Equal(t, "goodbye", cs.Token)
 
 	chkImpl, ok := a.checkAliases[structs.NewCheckID("aliashealth", nil)]
-	require.True(ok, "missing aliashealth check")
-	require.Equal("goodbye", chkImpl.RPCReq.Token)
+	require.True(t, ok, "missing aliashealth check")
+	require.Equal(t, "goodbye", chkImpl.RPCReq.Token)
 }
 
 func TestAgent_RemoveCheck(t *testing.T) {
@@ -2287,7 +2226,7 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 		Port:    8000,
 	}
 
-	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
+	file := filepath.Join(a.Config.DataDir, servicesDir, structs.NewServiceID(svc.ID, nil).StringHashSHA256())
 
 	// Check is not persisted unless requested
 	if err := a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal); err != nil {
@@ -2387,7 +2326,7 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 		Port:            8000,
 		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Weights:         &structs.Weights{Passing: 1, Warning: 1},
-		EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta:  *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// Encode the NodeService directly. This is what previous versions
@@ -2398,7 +2337,7 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 	}
 
 	// Write the content to the file
-	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
+	file := filepath.Join(a.Config.DataDir, servicesDir, structs.NewServiceID(svc.ID, nil).StringHashSHA256())
 	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2414,6 +2353,85 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 	// Ensure the service was restored
 	result := requireServiceExists(t, a, "redis")
 	require.Equal(t, svc, result)
+}
+
+func TestAgent_persistedService_compat_hash(t *testing.T) {
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_persistedService_compat_hash(t, "enable_central_service_config = false")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_persistedService_compat_hash(t, "enable_central_service_config = true")
+	})
+
+}
+
+func testAgent_persistedService_compat_hash(t *testing.T, extraHCL string) {
+	t.Helper()
+
+	// Tests backwards compatibility of persisted services from pre-0.5.1
+	a := NewTestAgent(t, extraHCL)
+	defer a.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:              "redis",
+		Service:         "redis",
+		Tags:            []string{"foo"},
+		Port:            8000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
+		Weights:         &structs.Weights{Passing: 1, Warning: 1},
+		EnterpriseMeta:  *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	}
+
+	// Encode the NodeService directly. This is what previous versions
+	// would serialize to the file (without the wrapper)
+	encoded, err := json.Marshal(svc)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Write the content to the file using the old md5 based path
+	file := filepath.Join(a.Config.DataDir, servicesDir, stringHashMD5(svc.ID))
+	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := ioutil.WriteFile(file, encoded, 0600); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	wrapped := persistedServiceConfig{
+		ServiceID:      "redis",
+		Defaults:       &structs.ServiceConfigResponse{},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	}
+
+	encodedConfig, err := json.Marshal(wrapped)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, stringHashMD5(svc.ID))
+	if err := os.MkdirAll(filepath.Dir(configFile), 0700); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := ioutil.WriteFile(configFile, encodedConfig, 0600); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Load the services
+	if err := a.loadServices(a.Config, nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the service was restored
+	result := requireServiceExists(t, a, "redis")
+	require.Equal(t, svc, result)
+}
+
+// Exists for backwards compatibility testing
+func stringHashMD5(s string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(s)))
 }
 
 func TestAgent_PurgeService(t *testing.T) {
@@ -2444,7 +2462,7 @@ func testAgent_PurgeService(t *testing.T, extraHCL string) {
 		Port:    8000,
 	}
 
-	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
+	file := filepath.Join(a.Config.DataDir, servicesDir, structs.NewServiceID(svc.ID, nil).StringHashSHA256())
 	if err := a.addServiceFromSource(svc, nil, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2524,7 +2542,7 @@ func testAgent_PurgeServiceOnDuplicate(t *testing.T, extraHCL string) {
 	defer a2.Shutdown()
 
 	sid := svc1.CompoundServiceID()
-	file := filepath.Join(a.Config.DataDir, servicesDir, sid.StringHash())
+	file := filepath.Join(a.Config.DataDir, servicesDir, sid.StringHashSHA256())
 	_, err := os.Stat(file)
 	require.Error(t, err, "should have removed persisted service")
 	result := requireServiceExists(t, a, "redis")
@@ -2558,7 +2576,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	}
 
 	cid := check.CompoundCheckID()
-	file := filepath.Join(a.Config.DataDir, checksDir, cid.StringHash())
+	file := filepath.Join(a.Config.DataDir, checksDir, cid.StringHashSHA256())
 
 	// Not persisted if not requested
 	require.NoError(t, a.AddCheck(check, chkType, false, "", ConfigSourceLocal))
@@ -2673,7 +2691,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 		CheckID:        "mem",
 		Name:           "memory check",
 		Status:         api.HealthPassing,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// First persist the check
@@ -2698,12 +2716,13 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 			notes = "my cool notes"
 			args = ["/bin/check-redis.py"]
 			interval = "30s"
+			timeout = "5s"
 		}
 	`})
 	defer a2.Shutdown()
 
 	cid := check1.CompoundCheckID()
-	file := filepath.Join(a.DataDir, checksDir, cid.StringHash())
+	file := filepath.Join(a.DataDir, checksDir, cid.StringHashSHA256())
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted check")
 	}
@@ -2714,7 +2733,9 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 		Name:           "memory check",
 		Status:         api.HealthCritical,
 		Notes:          "my cool notes",
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		Interval:       "30s",
+		Timeout:        "5s",
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	require.Equal(t, expected, result)
 }
@@ -2745,7 +2766,7 @@ func TestAgent_DeregisterPersistedSidecarAfterRestart(t *testing.T) {
 		},
 		Tags:           []string{"tag2"},
 		Port:           8200,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 
 		Connect: structs.ServiceConnect{
 			SidecarService: &structs.ServiceDefinition{},
@@ -3117,7 +3138,7 @@ func testAgent_unloadServices(t *testing.T, extraHCL string) {
 	if err := a.unloadServices(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if len(a.State.Services(structs.WildcardEnterpriseMeta())) != 0 {
+	if len(a.State.Services(structs.WildcardEnterpriseMetaInDefaultPartition())) != 0 {
 		t.Fatalf("should have unloaded services")
 	}
 }
@@ -3226,7 +3247,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 
 	// Make sure it's there and there's no critical check yet.
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 0, "should not have critical checks")
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0, "should not have critical checks")
 
 	// Wait for the check TTL to fail but before the check is reaped.
 	time.Sleep(100 * time.Millisecond)
@@ -3238,17 +3259,17 @@ func TestAgent_Service_Reap(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 0, "should not have critical checks")
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0, "should not have critical checks")
 
 	// Wait for the check TTL to fail again.
 	time.Sleep(100 * time.Millisecond)
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 1, "should have 1 critical check")
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 1, "should have 1 critical check")
 
 	// Wait for the reap.
 	time.Sleep(400 * time.Millisecond)
 	requireServiceMissing(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 0, "should not have critical checks")
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0, "should not have critical checks")
 }
 
 func TestAgent_Service_NoReap(t *testing.T) {
@@ -3283,17 +3304,17 @@ func TestAgent_Service_NoReap(t *testing.T) {
 
 	// Make sure it's there and there's no critical check yet.
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 0)
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0)
 
 	// Wait for the check TTL to fail.
 	time.Sleep(200 * time.Millisecond)
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 1)
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 1)
 
 	// Wait a while and make sure it doesn't reap.
 	time.Sleep(200 * time.Millisecond)
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 1)
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 1)
 }
 
 func TestAgent_AddService_restoresSnapshot(t *testing.T) {
@@ -3482,6 +3503,69 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 	}
 }
 
+func TestAgent_checkStateSnapshot_backcompat(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// First register a service
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+	if err := a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a check
+	check1 := &structs.HealthCheck{
+		Node:        a.Config.NodeName,
+		CheckID:     "service:redis",
+		Name:        "redischeck",
+		Status:      api.HealthPassing,
+		ServiceID:   "redis",
+		ServiceName: "redis",
+	}
+	if err := a.AddCheck(check1, nil, true, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Snapshot the state
+	snap := a.snapshotCheckState()
+
+	// Unload all of the checks
+	if err := a.unloadChecks(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Mutate the path to look like the old md5 checksum
+	dir := filepath.Join(a.config.DataDir, checksDir)
+	new_path := filepath.Join(dir, check1.CompoundCheckID().StringHashSHA256())
+	old_path := filepath.Join(dir, check1.CompoundCheckID().StringHashMD5())
+	if err := os.Rename(new_path, old_path); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Reload the checks and restore the snapshot.
+	if err := a.loadChecks(a.Config, snap); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Search for the check
+	out := requireCheckExists(t, a, check1.CheckID)
+
+	// Make sure state was restored
+	if out.Status != api.HealthPassing {
+		t.Fatalf("should have restored check state")
+	}
+}
+
 func TestAgent_loadChecks_checkFails(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -3544,7 +3628,7 @@ func TestAgent_persistCheckState(t *testing.T) {
 	}
 
 	// Check the persisted file exists and has the content
-	file := filepath.Join(a.Config.DataDir, checkStateDir, cid.StringHash())
+	file := filepath.Join(a.Config.DataDir, checkStateDir, cid.StringHashSHA256())
 	buf, err := ioutil.ReadFile(file)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -3612,7 +3696,7 @@ func TestAgent_loadCheckState(t *testing.T) {
 	}
 
 	// Should have purged the state
-	file := filepath.Join(a.Config.DataDir, checksDir, stringHash("check1"))
+	file := filepath.Join(a.Config.DataDir, checksDir, structs.NewCheckID("check1", nil).StringHashSHA256())
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
 		t.Fatalf("should have purged state")
 	}
@@ -3669,7 +3753,7 @@ func TestAgent_purgeCheckState(t *testing.T) {
 	}
 
 	// Removed the file
-	file := filepath.Join(a.Config.DataDir, checkStateDir, cid.StringHash())
+	file := filepath.Join(a.Config.DataDir, checkStateDir, cid.StringHashSHA256())
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
 		t.Fatalf("should have removed file")
 	}
@@ -3796,10 +3880,27 @@ func TestAgent_SecurityChecks(t *testing.T) {
 	defer a.Shutdown()
 
 	data := make([]byte, 0, 8192)
-	bytesBuffer := bytes.NewBuffer(data)
-	a.LogOutput = bytesBuffer
+	buf := &syncBuffer{b: bytes.NewBuffer(data)}
+	a.LogOutput = buf
 	assert.NoError(t, a.Start(t))
-	assert.Contains(t, bytesBuffer.String(), "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS")
+	assert.Contains(t, buf.String(), "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS")
+}
+
+type syncBuffer struct {
+	lock sync.RWMutex
+	b    *bytes.Buffer
+}
+
+func (b *syncBuffer) Write(data []byte) (int, error) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	return b.b.Write(data)
+}
+
+func (b *syncBuffer) String() string {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	return b.b.String()
 }
 
 func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
@@ -4266,8 +4367,8 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 		t.Fatalf("failed to add svc: %v", err)
 	}
 
-	// Register a proxy and expose HTTP checks
-	// This should trigger setting ProxyHTTP and ProxyGRPC in the checks
+	// Register a proxy and expose HTTP checks.
+	// This should trigger setting ProxyHTTP and ProxyGRPC in the checks.
 	proxy := &structs.NodeService{
 		Kind:    "connect-proxy",
 		ID:      "web-proxy",
@@ -4291,36 +4392,30 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
+		require.Equal(r, chks[0].ProxyHTTP, "http://localhost:21500/mypath?query")
+	})
 
-		got := chks[0].ProxyHTTP
-		if got == "" {
-			r.Fatal("proxyHTTP addr not set in check")
-		}
-
-		want := "http://localhost:21500/mypath?query"
-		if got != want {
-			r.Fatalf("unexpected proxy addr in check, want: %s, got: %s", want, got)
-		}
+	retry.Run(t, func(r *retry.R) {
+		hc := a.State.Check(structs.NewCheckID("http", nil))
+		require.Equal(r, hc.ExposedPort, 21500)
 	})
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
 
-		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks
-		got := chks[1].ProxyGRPC
-		if got == "" {
-			r.Fatal("ProxyGRPC addr not set in check")
-		}
-
-		// Node that this relies on listener ports auto-incrementing in a.listenerPortLocked
-		want := "localhost:21501/myservice"
-		if got != want {
-			r.Fatalf("unexpected proxy addr in check, want: %s, got: %s", want, got)
-		}
+		// GRPC check will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks.
+		// Note that this relies on listener ports auto-incrementing in a.listenerPortLocked.
+		require.Equal(r, chks[1].ProxyGRPC, "localhost:21501/myservice")
 	})
 
-	// Re-register a proxy and disable exposing HTTP checks
+	retry.Run(t, func(r *retry.R) {
+		hc := a.State.Check(structs.NewCheckID("grpc", nil))
+		require.Equal(r, hc.ExposedPort, 21501)
+	})
+
+	// Re-register a proxy and disable exposing HTTP checks.
 	// This should trigger resetting ProxyHTTP and ProxyGRPC to empty strings
+	// and reset saved exposed ports in the agent's state.
 	proxy = &structs.NodeService{
 		Kind:    "connect-proxy",
 		ID:      "web-proxy",
@@ -4344,21 +4439,24 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
+		require.Empty(r, chks[0].ProxyHTTP, "ProxyHTTP addr was not reset")
+	})
 
-		got := chks[0].ProxyHTTP
-		if got != "" {
-			r.Fatal("ProxyHTTP addr was not reset")
-		}
+	retry.Run(t, func(r *retry.R) {
+		hc := a.State.Check(structs.NewCheckID("http", nil))
+		require.Equal(r, hc.ExposedPort, 0)
 	})
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
 
-		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks
-		got := chks[1].ProxyGRPC
-		if got != "" {
-			r.Fatal("ProxyGRPC addr was not reset")
-		}
+		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks.
+		require.Empty(r, chks[1].ProxyGRPC, "ProxyGRPC addr was not reset")
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		hc := a.State.Check(structs.NewCheckID("grpc", nil))
+		require.Equal(r, hc.ExposedPort, 0)
 	})
 }
 
@@ -4447,31 +4545,24 @@ func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
+		require.Equal(r, chks[0].ProxyHTTP, "http://localhost:21500/mypath?query")
+	})
 
-		got := chks[0].ProxyHTTP
-		if got == "" {
-			r.Fatal("ProxyHTTP addr not set in check")
-		}
-
-		want := "http://localhost:21500/mypath?query"
-		if got != want {
-			r.Fatalf("unexpected proxy addr in http check, want: %s, got: %s", want, got)
-		}
+	retry.Run(t, func(r *retry.R) {
+		hc := a.State.Check(structs.NewCheckID("http", nil))
+		require.Equal(r, hc.ExposedPort, 21500)
 	})
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
 
-		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks
-		got := chks[1].ProxyGRPC
-		if got == "" {
-			r.Fatal("ProxyGRPC addr not set in check")
-		}
+		// GRPC check will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks.
+		require.Equal(r, chks[1].ProxyGRPC, "localhost:21501/myservice")
+	})
 
-		want := "localhost:21501/myservice"
-		if got != want {
-			r.Fatalf("unexpected proxy addr in grpc check, want: %s, got: %s", want, got)
-		}
+	retry.Run(t, func(r *retry.R) {
+		hc := a.State.Check(structs.NewCheckID("grpc", nil))
+		require.Equal(r, hc.ExposedPort, 21501)
 	})
 }
 
@@ -4549,7 +4640,7 @@ services {
 	// Now connect to server
 	_, err := a1.JoinLAN([]string{
 		fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN),
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	t.Logf("joined client to server")
@@ -4576,21 +4667,24 @@ LOOP:
 }
 
 // This is a mirror of a similar test in agent/consul/server_test.go
+//
+// TODO(rb): implement something similar to this as a full containerized test suite with proper
+// isolation so requests can't "cheat" and bypass the mesh gateways
 func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
 
-	gwPort := freeport.MustTake(1)
-	defer freeport.Return(gwPort)
-	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", gwPort[0])
+	port := freeport.GetOne(t)
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", port)
 
 	// Due to some ordering, we'll have to manually configure these ports in
 	// advance.
-	secondaryRPCPorts := freeport.MustTake(2)
-	defer freeport.Return(secondaryRPCPorts)
+	secondaryRPCPorts := freeport.GetN(t, 2)
 
 	a1 := StartTestAgent(t, TestAgent{Name: "bob", HCL: `
 		domain = "consul"
@@ -4644,7 +4738,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			ID:   "mesh-gateway",
 			Name: "mesh-gateway",
 			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
-			Port: gwPort[0],
+			Port: port,
 		}
 		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		require.NoError(t, err)
@@ -4758,7 +4852,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			ID:   "mesh-gateway",
 			Name: "mesh-gateway",
 			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
-			Port: gwPort[0],
+			Port: port,
 		}
 		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		require.NoError(t, err)
@@ -4773,7 +4867,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			ID:   "mesh-gateway",
 			Name: "mesh-gateway",
 			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
-			Port: gwPort[0],
+			Port: port,
 		}
 		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		require.NoError(t, err)
@@ -4823,6 +4917,9 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 	})
 
 	// Ensure we can do some trivial RPC in all directions.
+	//
+	// NOTE: we explicitly make streaming and non-streaming assertions here to
+	// verify both rpc and grpc codepaths.
 	agents := map[string]*TestAgent{"dc1": a1, "dc2": a2, "dc3": a3}
 	names := map[string]string{"dc1": "bob", "dc2": "betty", "dc3": "bonnie"}
 	for _, srcDC := range []string{"dc1", "dc2", "dc3"} {
@@ -4832,20 +4929,39 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 				continue
 			}
 			t.Run(srcDC+" to "+dstDC, func(t *testing.T) {
-				req, err := http.NewRequest("GET", "/v1/catalog/nodes?dc="+dstDC, nil)
-				require.NoError(t, err)
+				t.Run("normal-rpc", func(t *testing.T) {
+					req, err := http.NewRequest("GET", "/v1/catalog/nodes?dc="+dstDC, nil)
+					require.NoError(t, err)
 
-				resp := httptest.NewRecorder()
-				obj, err := a.srv.CatalogNodes(resp, req)
-				require.NoError(t, err)
-				require.NotNil(t, obj)
+					resp := httptest.NewRecorder()
+					obj, err := a.srv.CatalogNodes(resp, req)
+					require.NoError(t, err)
+					require.NotNil(t, obj)
 
-				nodes, ok := obj.(structs.Nodes)
-				require.True(t, ok)
-				require.Len(t, nodes, 1)
-				node := nodes[0]
-				require.Equal(t, dstDC, node.Datacenter)
-				require.Equal(t, names[dstDC], node.Node)
+					nodes, ok := obj.(structs.Nodes)
+					require.True(t, ok)
+					require.Len(t, nodes, 1)
+					node := nodes[0]
+					require.Equal(t, dstDC, node.Datacenter)
+					require.Equal(t, names[dstDC], node.Node)
+				})
+				t.Run("streaming-grpc", func(t *testing.T) {
+					req, err := http.NewRequest("GET", "/v1/health/service/consul?cached&dc="+dstDC, nil)
+					require.NoError(t, err)
+
+					resp := httptest.NewRecorder()
+					obj, err := a.srv.HealthServiceNodes(resp, req)
+					require.NoError(t, err)
+					require.NotNil(t, obj)
+
+					csns, ok := obj.(structs.CheckServiceNodes)
+					require.True(t, ok)
+					require.Len(t, csns, 1)
+
+					csn := csns[0]
+					require.Equal(t, dstDC, csn.Node.Datacenter)
+					require.Equal(t, names[dstDC], csn.Node.Node)
+				})
 			})
 		}
 	}
@@ -4921,7 +5037,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 	srv := StartTestAgent(t, TestAgent{Name: "TestAgent-Server", HCL: hclConfig})
 	defer srv.Shutdown()
 
-	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
 	// sign a JWT token
 	now := time.Now()
@@ -4968,7 +5084,10 @@ func TestAutoConfig_Integration(t *testing.T) {
 	// when this is successful we managed to get the gossip key and serf addresses to bind to
 	// and then connect. Additionally we would have to have certificates or else the
 	// verify_incoming config on the server would not let it work.
-	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
+
+	// spot check that we now have an ACL token
+	require.NotEmpty(t, client.tokens.AgentToken())
 
 	// grab the existing cert
 	cert1 := client.Agent.tlsConfigurator.Cert()
@@ -4979,14 +5098,13 @@ func TestAutoConfig_Integration(t *testing.T) {
 	ca := connect.TestCA(t, nil)
 	req := &structs.CARequest{
 		Datacenter:   "dc1",
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		Config: &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
 				"LeafCertTTL":         "1h",
 				"PrivateKey":          ca.SigningKey,
 				"RootCert":            ca.RootCert,
-				"RotationPeriod":      "6h",
 				"IntermediateCertTTL": "3h",
 			},
 		},
@@ -5013,9 +5131,6 @@ func TestAutoConfig_Integration(t *testing.T) {
 		require.NoError(r, err)
 		require.Equal(r, client.Agent.tlsConfigurator.Cert(), &actual)
 	})
-
-	// spot check that we now have an ACL token
-	require.NotEmpty(t, client.tokens.AgentToken())
 }
 
 func TestAgent_AutoEncrypt(t *testing.T) {
@@ -5055,7 +5170,7 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 	srv := StartTestAgent(t, TestAgent{Name: "test-server", HCL: hclConfig})
 	defer srv.Shutdown()
 
-	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
 	client := StartTestAgent(t, TestAgent{Name: "test-client", HCL: TestACLConfigWithParams(nil) + `
 	   bootstrap = false
@@ -5078,7 +5193,7 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 
 	// when this is successful we managed to get a TLS certificate and are using it for
 	// encrypted RPC connections.
-	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
 	// now we need to validate that our certificate has the correct CN
 	aeCert := client.tlsConfigurator.Cert()
@@ -5089,10 +5204,9 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 		Datacenter: "dc1",
 		Agent:      "test-client",
 	}
-	expectedCN := connect.AgentCN("test-client", connect.TestClusterID)
 	x509Cert, err := x509.ParseCertificate(aeCert.Certificate[0])
 	require.NoError(t, err)
-	require.Equal(t, expectedCN, x509Cert.Subject.CommonName)
+	require.Empty(t, x509Cert.Subject.CommonName)
 	require.Len(t, x509Cert.URIs, 1)
 	require.Equal(t, id.URI(), x509Cert.URIs[0])
 }
@@ -5136,10 +5250,7 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	ports, err := freeport.Take(2)
-	require.NoError(t, err)
-	t.Cleanup(func() { freeport.Return(ports) })
-
+	ports := freeport.GetN(t, 2)
 	caConfig := tlsutil.Config{}
 	tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
 	require.NoError(t, err)
@@ -5148,6 +5259,7 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 			Logger:          hclog.NewInterceptLogger(nil),
 			Tokens:          new(token.Store),
 			TLSConfigurator: tlsConf,
+			GRPCConnPool:    &fakeGRPCConnPool{},
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{
@@ -5157,8 +5269,14 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 		},
 		Cache: cache.New(cache.Options{}),
 	}
+
+	bd, err = initEnterpriseBaseDeps(bd, nil)
+	require.NoError(t, err)
+
 	agent, err := New(bd)
 	require.NoError(t, err)
+
+	agent.startLicenseManager(testutil.TestContext(t))
 
 	srvs, err := agent.listenHTTP()
 	require.NoError(t, err)
@@ -5198,4 +5316,11 @@ func uniqueAddrs(srvs []apiServer) map[string]struct{} {
 		result[s.Addr.String()] = struct{}{}
 	}
 	return result
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
 }

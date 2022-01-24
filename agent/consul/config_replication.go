@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func configSort(configs []structs.ConfigEntry) {
@@ -91,19 +92,19 @@ func (s *Server) reconcileLocalConfig(ctx context.Context, configs []structs.Con
 	defer ticker.Stop()
 
 	for i, entry := range configs {
+		// Exported services only apply to the primary datacenter.
+		if entry.GetKind() == structs.ExportedServices {
+			continue
+		}
 		req := structs.ConfigEntryRequest{
 			Op:         op,
 			Datacenter: s.config.Datacenter,
 			Entry:      entry,
 		}
 
-		resp, err := s.raftApply(structs.ConfigEntryRequestType, &req)
+		_, err := s.raftApply(structs.ConfigEntryRequestType, &req)
 		if err != nil {
 			return false, fmt.Errorf("Failed to apply config %s: %v", op, err)
-		}
-
-		if respErr, ok := resp.(error); ok {
-			return false, fmt.Errorf("Failed to apply config %s: %v", op, respErr)
 		}
 
 		if i < len(configs)-1 {

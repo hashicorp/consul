@@ -1,0 +1,7 @@
+%progress-indeterminate {
+  @extend %loading-svg-prop;
+  background-image: var(--loading-svg);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: transparent;
+}

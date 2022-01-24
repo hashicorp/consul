@@ -1,0 +1,54 @@
+---
+class: css
+---
+# csv-list
+
+Easily create comma separated lists via CSS. Also contains a `%csv` if you don't want to use the `%csv-list`s display and only apply the commas to specific DOM elements.
+
+```hbs preview-template
+<p>
+  <span>one</span>
+  <span>two</span>
+  <span>three</span>
+  <span>four</span>
+  <span>five</span>
+  <span>six</span>
+</p>
+
+<ul>
+  <li>one</li>
+  <li>two</li>
+  <li>three</li>
+  <li>four</li>
+  <li>five</li>
+  <li>six</li>
+</ul>
+
+<ol>
+  <li>one</li>
+  <li>two</li>
+  <li>three</li>
+  <li>four</li>
+  <li>five</li>
+  <li>six</li>
+</ol>
+```
+
+
+```css
+  p, ul {
+    @extend %csv-list;
+  }
+  ol li {
+    @extend %csv;
+  }
+  ol {
+    list-style-type: none;
+  }
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--csv-list-separator` | `string` | `,` | The separator to use between the list items. |

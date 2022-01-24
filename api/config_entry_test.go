@@ -196,6 +196,96 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		_, _, err = config_entries.Get(ServiceDefaults, "foo", nil)
 		require.Error(t, err)
 	})
+
+	t.Run("Mesh", func(t *testing.T) {
+		mesh := &MeshConfigEntry{
+			TransparentProxy: TransparentProxyMeshConfig{MeshDestinationsOnly: true},
+			Meta: map[string]string{
+				"foo": "bar",
+				"gir": "zim",
+			},
+			Partition: defaultPartition,
+			Namespace: defaultNamespace,
+		}
+		ce := c.ConfigEntries()
+
+		runStep(t, "set and get", func(t *testing.T) {
+			_, wm, err := ce.Set(mesh, nil)
+			require.NoError(t, err)
+			require.NotNil(t, wm)
+			require.NotEqual(t, 0, wm.RequestTime)
+
+			entry, qm, err := ce.Get(MeshConfig, MeshConfigMesh, nil)
+			require.NoError(t, err)
+			require.NotNil(t, qm)
+			require.NotEqual(t, 0, qm.RequestTime)
+
+			result, ok := entry.(*MeshConfigEntry)
+			require.True(t, ok)
+
+			// ignore indexes
+			result.CreateIndex = 0
+			result.ModifyIndex = 0
+			require.Equal(t, mesh, result)
+		})
+
+		runStep(t, "list", func(t *testing.T) {
+			entries, qm, err := ce.List(MeshConfig, nil)
+			require.NoError(t, err)
+			require.NotNil(t, qm)
+			require.NotEqual(t, 0, qm.RequestTime)
+			require.Len(t, entries, 1)
+		})
+
+		runStep(t, "delete", func(t *testing.T) {
+			wm, err := ce.Delete(MeshConfig, MeshConfigMesh, nil)
+			require.NoError(t, err)
+			require.NotNil(t, wm)
+			require.NotEqual(t, 0, wm.RequestTime)
+
+			// verify deletion
+			_, _, err = ce.Get(MeshConfig, MeshConfigMesh, nil)
+			require.Error(t, err)
+		})
+	})
+
+	t.Run("CAS deletion", func(t *testing.T) {
+
+		entry := &ProxyConfigEntry{
+			Kind: ProxyDefaults,
+			Name: ProxyConfigGlobal,
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+		}
+
+		// Create a config entry.
+		created, _, err := config_entries.Set(entry, nil)
+		require.NoError(t, err)
+		require.True(t, created, "entry should have been created")
+
+		// Read it back to get the ModifyIndex.
+		result, _, err := config_entries.Get(entry.Kind, entry.Name, nil)
+		require.NoError(t, err)
+		require.NotNil(t, entry)
+
+		// Attempt a deletion with an invalid index.
+		deleted, _, err := config_entries.DeleteCAS(entry.Kind, entry.Name, result.GetModifyIndex()-1, nil)
+		require.NoError(t, err)
+		require.False(t, deleted, "entry should not have been deleted")
+
+		// Attempt a deletion with a valid index.
+		deleted, _, err = config_entries.DeleteCAS(entry.Kind, entry.Name, result.GetModifyIndex(), nil)
+		require.NoError(t, err)
+		require.True(t, deleted, "entry should have been deleted")
+	})
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
 }
 
 func TestDecodeConfigEntry(t *testing.T) {
@@ -296,6 +386,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				"MeshGateway": {
 					"Mode": "remote"
+				},
+				"Mode": "transparent",
+				"TransparentProxy": {
+					"OutboundListenerPort": 808,
+					"DialedDirectly": true
 				}
 			}
 			`,
@@ -316,6 +411,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
+				Mode: ProxyModeTransparent,
+				TransparentProxy: &TransparentProxyConfig{
+					OutboundListenerPort: 808,
+					DialedDirectly:       true,
+				},
 			},
 		},
 		{
@@ -332,6 +432,43 @@ func TestDecodeConfigEntry(t *testing.T) {
 				"ExternalSNI": "abc-123",
 				"MeshGateway": {
 					"Mode": "remote"
+				},
+				"Mode": "transparent",
+				"TransparentProxy": {
+					"OutboundListenerPort": 808,
+					"DialedDirectly": true
+				},
+				"UpstreamConfig": {
+					"Overrides": [
+						{
+							"Name": "redis",
+							"PassiveHealthCheck": {
+								"MaxFailures": 3,
+								"Interval": "2s"
+							}
+						},
+						{
+							"Name": "finance--billing",
+							"MeshGateway": {
+								"Mode": "remote"
+							}
+						}
+					],
+					"Defaults": {
+						"EnvoyClusterJSON": "zip",
+						"EnvoyListenerJSON": "zop",
+						"ConnectTimeoutMs": 5000,
+						"Protocol": "http",
+						"Limits": {
+							"MaxConnections": 3,
+							"MaxPendingRequests": 4,
+							"MaxConcurrentRequests": 5
+						},
+						"PassiveHealthCheck": {
+								"MaxFailures": 5,
+								"Interval": "4s"
+						}
+					}
 				}
 			}
 			`,
@@ -346,6 +483,41 @@ func TestDecodeConfigEntry(t *testing.T) {
 				ExternalSNI: "abc-123",
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
+				},
+				Mode: ProxyModeTransparent,
+				TransparentProxy: &TransparentProxyConfig{
+					OutboundListenerPort: 808,
+					DialedDirectly:       true,
+				},
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name: "redis",
+							PassiveHealthCheck: &PassiveHealthCheck{
+								MaxFailures: 3,
+								Interval:    2 * time.Second,
+							},
+						},
+						{
+							Name:        "finance--billing",
+							MeshGateway: MeshGatewayConfig{Mode: "remote"},
+						},
+					},
+					Defaults: &UpstreamConfig{
+						EnvoyClusterJSON:  "zip",
+						EnvoyListenerJSON: "zop",
+						Protocol:          "http",
+						ConnectTimeoutMs:  5000,
+						Limits: &UpstreamLimits{
+							MaxConnections:        intPointer(3),
+							MaxPendingRequests:    intPointer(4),
+							MaxConcurrentRequests: intPointer(5),
+						},
+						PassiveHealthCheck: &PassiveHealthCheck{
+							MaxFailures: 5,
+							Interval:    4 * time.Second,
+						},
+					},
 				},
 			},
 		},
@@ -772,6 +944,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			// TODO(rb): test SDS stuff here in both places (global/service)
 			name: "ingress-gateway",
 			body: `
 			{
@@ -782,7 +955,13 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir": "zim"
 				},
 				"Tls": {
-					"Enabled": true
+					"Enabled": true,
+					"TLSMinVersion": "TLSv1_1",
+					"TLSMaxVersion": "TLSv1_2",
+					"CipherSuites": [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
 				},
 				"Listeners": [
 					{
@@ -791,7 +970,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 						"Services": [
 							{
 								"Name": "web",
-								"Namespace": "foo"
+								"Namespace": "foo",
+								"Partition": "bar"
 							},
 							{
 								"Name": "db"
@@ -818,7 +998,13 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir": "zim",
 				},
 				TLS: GatewayTLSConfig{
-					Enabled: true,
+					Enabled:       true,
+					TLSMinVersion: "TLSv1_1",
+					TLSMaxVersion: "TLSv1_2",
+					CipherSuites: []string{
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+					},
 				},
 				Listeners: []IngressListener{
 					{
@@ -828,6 +1014,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							{
 								Name:      "web",
 								Namespace: "foo",
+								Partition: "bar",
 							},
 							{
 								Name: "db",
@@ -1063,6 +1250,30 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			name: "mesh",
+			body: `
+			{
+				"Kind": "mesh",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"TransparentProxy": {
+					"MeshDestinationsOnly": true
+				}
+			}
+			`,
+			expect: &MeshConfigEntry{
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				TransparentProxy: TransparentProxyMeshConfig{
+					MeshDestinationsOnly: true,
+				},
+			},
+		},
+		{
 			name: "ingress-gateway: custom tracing",
 			body: `
 			{
@@ -1169,4 +1380,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 			require.Equal(t, tc.expect, got[0])
 		})
 	}
+}
+
+func intPointer(v int) *int {
+	return &v
 }

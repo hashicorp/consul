@@ -1,0 +1,3 @@
+```release-note:bug
+acl: fixes the fallback behaviour of down_policy with setting extend-cache/async-cache when the token is not cached.
+```

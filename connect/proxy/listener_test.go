@@ -26,6 +26,7 @@ func testSetupMetrics(t *testing.T) *metrics.InmemSink {
 	s := metrics.NewInmemSink(10*time.Second, 300*time.Second)
 	cfg := metrics.DefaultConfig("consul.proxy.test")
 	cfg.EnableHostname = false
+	cfg.EnableRuntimeMetrics = false
 	metrics.NewGlobal(cfg, s)
 	return s
 }
@@ -45,6 +46,7 @@ func assertCurrentGaugeValue(t *testing.T, sink *metrics.InmemSink,
 		currentInterval.RLock()
 		if len(currentInterval.Gauges) > 0 {
 			got = currentInterval.Gauges[name].Value
+			currentInterval.RUnlock()
 			break
 		}
 		currentInterval.RUnlock()
@@ -110,15 +112,13 @@ func TestPublicListener(t *testing.T) {
 	// Can't enable t.Parallel since we rely on the global metrics instance.
 
 	ca := agConnect.TestCA(t, nil)
-	ports := freeport.MustTake(1)
-	defer freeport.Return(ports)
-
 	testApp := NewTestTCPServer(t)
 	defer testApp.Close()
 
+	port := freeport.GetOne(t)
 	cfg := PublicListenerConfig{
 		BindAddress:           "127.0.0.1",
-		BindPort:              ports[0],
+		BindPort:              port,
 		LocalServiceAddress:   testApp.Addr().String(),
 		HandshakeTimeoutMs:    100,
 		LocalConnectTimeoutMs: 100,
@@ -132,8 +132,9 @@ func TestPublicListener(t *testing.T) {
 
 	// Run proxy
 	go func() {
-		err := l.Serve()
-		require.NoError(t, err)
+		if err := l.Serve(); err != nil {
+			t.Errorf("failed to listen: %v", err.Error())
+		}
 	}()
 	defer l.Close()
 	l.Wait()
@@ -141,7 +142,7 @@ func TestPublicListener(t *testing.T) {
 	// Proxy and backend are running, play the part of a TLS client using same
 	// cert for now.
 	conn, err := svc.Dial(context.Background(), &connect.StaticResolver{
-		Addr:    TestLocalAddr(ports[0]),
+		Addr:    TestLocalAddr(port),
 		CertURI: agConnect.TestSpiffeIDService(t, "db"),
 	})
 	require.NoError(t, err)
@@ -163,9 +164,6 @@ func TestUpstreamListener(t *testing.T) {
 	// Can't enable t.Parallel since we rely on the global metrics instance.
 
 	ca := agConnect.TestCA(t, nil)
-	ports := freeport.MustTake(1)
-	defer freeport.Return(ports)
-
 	// Run a test server that we can dial.
 	testSvr := connect.NewTestServer(t, "db", ca)
 	go func() {
@@ -181,7 +179,7 @@ func TestUpstreamListener(t *testing.T) {
 		DestinationName:      "db",
 		Config:               map[string]interface{}{"connect_timeout_ms": 100},
 		LocalBindAddress:     "localhost",
-		LocalBindPort:        ports[0],
+		LocalBindPort:        freeport.GetOne(t),
 	}
 
 	// Setup metrics to test they are recorded
@@ -200,8 +198,9 @@ func TestUpstreamListener(t *testing.T) {
 
 	// Run proxy
 	go func() {
-		err := l.Serve()
-		require.NoError(t, err)
+		if err := l.Serve(); err != nil {
+			t.Errorf("failed to listen: %v", err.Error())
+		}
 	}()
 	defer l.Close()
 	l.Wait()

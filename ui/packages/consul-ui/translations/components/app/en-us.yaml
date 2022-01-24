@@ -1,0 +1,10 @@
+skip_to_content: Skip to Content
+toggle_menu: Toggle Menu
+# landmark aria-labels - only screen read, so potentially included with
+# screenreader landmarks/phrases i.e. Main Navigation for nav elements and
+# therefore potentially do not need the word 'navigation' adding to them
+main: Main
+complementary: Complementary
+collapsible-notices:
+  expand: Expand Banners
+  collapse: Collapse Banners

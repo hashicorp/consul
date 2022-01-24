@@ -1,10 +1,13 @@
 package inspect
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"path"
 	"sort"
 	"strings"
 
@@ -111,18 +114,42 @@ func (c *cmd) Run(args []string) int {
 	}
 	defer f.Close()
 
-	readFile, meta, err := snapshot.Read(hclog.New(nil), f)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error reading snapshot: %s", err))
+	var readFile *os.File
+	var meta *raft.SnapshotMeta
+
+	if strings.ToLower(path.Base(file)) == "state.bin" {
+		// This is an internal raw raft snapshot not a gzipped archive one
+		// downloaded from the API, we can read it directly
+		readFile = f
+
+		// Assume the meta is colocated and error if not.
+		metaRaw, err := ioutil.ReadFile(path.Join(path.Dir(file), "meta.json"))
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error reading meta.json from internal snapshot dir: %s", err))
+			return 1
+		}
+		var metaDecoded raft.SnapshotMeta
+		err = json.Unmarshal(metaRaw, &metaDecoded)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error parsing meta.json from internal snapshot dir: %s", err))
+			return 1
+		}
+		meta = &metaDecoded
+	} else {
+		readFile, meta, err = snapshot.Read(hclog.New(nil), f)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error reading snapshot: %s", err))
+			return 1
+		}
+		defer func() {
+			if err := readFile.Close(); err != nil {
+				c.UI.Error(fmt.Sprintf("Failed to close temp snapshot: %v", err))
+			}
+			if err := os.Remove(readFile.Name()); err != nil {
+				c.UI.Error(fmt.Sprintf("Failed to clean up temp snapshot: %v", err))
+			}
+		}()
 	}
-	defer func() {
-		if err := readFile.Close(); err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to close temp snapshot: %v", err))
-		}
-		if err := os.Remove(readFile.Name()); err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to clean up temp snapshot: %v", err))
-		}
-	}()
 
 	info, err := c.enhance(readFile)
 	if err != nil {

@@ -1,37 +1,5 @@
-%with-modal {
-  overflow: hidden;
-}
-/*TODO: %display-toggle?*/
-%modal-control,
-%modal-control + * {
-  display: none;
-}
-%modal-control:checked + * {
-  display: block;
-}
-%modal-dialog > div > div {
-  @extend %modal-window;
-}
-%modal-dialog {
-  z-index: 500;
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-}
-%modal-dialog > label {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-%modal-dialog > div {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
+%modal-layer {
+  height: 0;
 }
 /*TODO: Should these be here? */
 %modal-window table {
@@ -40,15 +8,41 @@
 %modal-window tbody {
   max-height: 100px;
 }
-/**/
-%modal-window.overflowing {
-  overflow: auto;
+%modal-dialog table {
+  min-height: 149px;
+}
+%modal-dialog > div:first-child {
+  @extend %modal-dialog-overlay;
+}
+%modal-dialog,
+%modal-dialog-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+%modal-dialog {
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 100%;
 }
+
+%modal-dialog[aria-hidden='true'] {
+  display: none;
+}
+%modal-window {
+  margin: auto;
+  z-index: 2;
+  position: relative;
+}
+/**/
 %modal-window {
   max-width: 855px;
   position: relative;
-  z-index: 1;
 }
 %modal-window > * {
   padding-left: 15px;
@@ -67,7 +61,7 @@
 %modal-window > header {
   position: relative;
 }
-%modal-window > header [for='modal_close'] {
+%modal-window > header [data-a11y-dialog-hide] {
   float: right;
   text-indent: -9000px;
   width: 24px;

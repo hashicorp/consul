@@ -20,4 +20,5 @@ module "load-test" {
   test_public_ip       = true
   ami_owners           = var.ami_owners
   consul_download_url  = var.consul_download_url
+  cluster_name         = var.cluster_name
 }

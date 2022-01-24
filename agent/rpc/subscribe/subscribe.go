@@ -37,13 +37,13 @@ var _ pbsubscribe.StateChangeSubscriptionServer = (*Server)(nil)
 
 type Backend interface {
 	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
-	Forward(dc string, f func(*grpc.ClientConn) error) (handled bool, err error)
+	Forward(info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error)
 	Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error)
 }
 
 func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsubscribe.StateChangeSubscription_SubscribeServer) error {
 	logger := newLoggerForRequest(h.Logger, req)
-	handled, err := h.Backend.Forward(req.Datacenter, forwardToDC(req, serverStream, logger))
+	handled, err := h.Backend.Forward(req, forwardToDC(req, serverStream, logger))
 	if handled || err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 	logger.Trace("new subscription")
 	defer logger.Trace("subscription closed")
 
-	entMeta := structs.NewEnterpriseMeta(req.Namespace)
+	entMeta := structs.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
 	authz, err := h.Backend.ResolveTokenAndDefaultMeta(req.Token, &entMeta, nil)
 	if err != nil {
 		return err
@@ -75,9 +75,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 			return err
 		}
 
-		var ok bool
-		event, ok = filterByAuth(authz, event)
-		if !ok {
+		if !event.Payload.HasReadPermission(authz) {
 			continue
 		}
 
@@ -95,7 +93,8 @@ func toStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta structs
 		Key:       req.Key,
 		Token:     req.Token,
 		Index:     req.Index,
-		Namespace: entMeta.GetNamespace(),
+		Namespace: entMeta.NamespaceOrEmpty(),
+		Partition: entMeta.PartitionOrEmpty(),
 	}
 }
 
@@ -124,16 +123,6 @@ func forwardToDC(
 			}
 		}
 	}
-}
-
-// filterByAuth to only those Events allowed by the acl token.
-func filterByAuth(authz acl.Authorizer, event stream.Event) (stream.Event, bool) {
-	// authz will be nil when ACLs are disabled
-	if authz == nil {
-		return event, true
-	}
-
-	return event, event.Payload.HasReadPermission(authz)
 }
 
 func newEventFromStreamEvent(event stream.Event) *pbsubscribe.Event {

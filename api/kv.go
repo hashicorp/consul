@@ -44,6 +44,10 @@ type KVPair struct {
 	// Namespace is the namespace the KVPair is associated with
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition the KVPair is associated with
+	// Admin Partition is a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
 }
 
 // KVPairs is a list of KVPair objects
@@ -69,7 +73,7 @@ func (k *KV) Get(key string, q *QueryOptions) (*KVPair, *QueryMeta, error) {
 	if resp == nil {
 		return nil, qm, nil
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	var entries []*KVPair
 	if err := decodeBody(resp, &entries); err != nil {
@@ -90,7 +94,7 @@ func (k *KV) List(prefix string, q *QueryOptions) (KVPairs, *QueryMeta, error) {
 	if resp == nil {
 		return nil, qm, nil
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	var entries []*KVPair
 	if err := decodeBody(resp, &entries); err != nil {
@@ -113,7 +117,7 @@ func (k *KV) Keys(prefix, separator string, q *QueryOptions) ([]string, *QueryMe
 	if resp == nil {
 		return nil, qm, nil
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	var entries []string
 	if err := decodeBody(resp, &entries); err != nil {
@@ -133,17 +137,20 @@ func (k *KV) getInternal(key string, params map[string]string, q *QueryOptions) 
 		return nil, nil, err
 	}
 
+	err = requireHttpCodes(resp, 200, 404)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
 	if resp.StatusCode == 404 {
-		resp.Body.Close()
+		closeResponseBody(resp)
 		return nil, qm, nil
-	} else if resp.StatusCode != 200 {
-		resp.Body.Close()
-		return nil, nil, fmt.Errorf("Unexpected response code: %d", resp.StatusCode)
 	}
+
 	return resp, qm, nil
 }
 
@@ -205,11 +212,15 @@ func (k *KV) put(key string, params map[string]string, body []byte, q *WriteOpti
 		r.params.Set(param, val)
 	}
 	r.body = bytes.NewReader(body)
-	rtt, resp, err := requireOK(k.c.doRequest(r))
+	r.header.Set("Content-Type", "application/octet-stream")
+	rtt, resp, err := k.c.doRequest(r)
 	if err != nil {
 		return false, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return false, nil, err
+	}
 
 	qm := &WriteMeta{}
 	qm.RequestTime = rtt
@@ -249,11 +260,14 @@ func (k *KV) deleteInternal(key string, params map[string]string, q *WriteOption
 	for param, val := range params {
 		r.params.Set(param, val)
 	}
-	rtt, resp, err := requireOK(k.c.doRequest(r))
+	rtt, resp, err := k.c.doRequest(r)
 	if err != nil {
 		return false, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return false, nil, err
+	}
 
 	qm := &WriteMeta{}
 	qm.RequestTime = rtt

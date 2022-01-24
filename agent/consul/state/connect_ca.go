@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-memdb"
+	"github.com/pkg/errors"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -142,7 +143,7 @@ func (s *Store) CASetConfig(idx uint64, config *structs.CAConfiguration) error {
 
 // CACheckAndSetConfig is used to try updating the CA configuration with a
 // given Raft index. If the CAS index specified is not equal to the last observed index
-// for the config, then the call is a noop,
+// for the config, then the call will return an error,
 func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfiguration) (bool, error) {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
@@ -158,7 +159,7 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 	// return early here.
 	e, ok := existing.(*structs.CAConfiguration)
 	if (ok && e.ModifyIndex != cidx) || (!ok && cidx != 0) {
-		return false, nil
+		return false, errors.Errorf("ModifyIndex did not match existing")
 	}
 
 	if err := s.caSetConfigTxn(idx, tx, config); err != nil {
@@ -169,7 +170,7 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 	return err == nil, err
 }
 
-func (s *Store) caSetConfigTxn(idx uint64, tx *txn, config *structs.CAConfiguration) error {
+func (s *Store) caSetConfigTxn(idx uint64, tx WriteTxn, config *structs.CAConfiguration) error {
 	// Check for an existing config
 	prev, err := tx.First(tableConnectCAConfig, "id")
 	if err != nil {
@@ -179,8 +180,6 @@ func (s *Store) caSetConfigTxn(idx uint64, tx *txn, config *structs.CAConfigurat
 	if prev != nil {
 		existing := prev.(*structs.CAConfiguration)
 		config.CreateIndex = existing.CreateIndex
-		// Allow the ClusterID to change if it's provided by an internal operation, such
-		// as a primary datacenter being switched to secondary mode.
 		if config.ClusterID == "" {
 			config.ClusterID = existing.ClusterID
 		}
@@ -253,18 +252,8 @@ func caRootsTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, structs.CARoots, error) 
 func (s *Store) CARootActive(ws memdb.WatchSet) (uint64, *structs.CARoot, error) {
 	// Get all the roots since there should never be that many and just
 	// do the filtering in this method.
-	var result *structs.CARoot
 	idx, roots, err := s.CARoots(ws)
-	if err == nil {
-		for _, r := range roots {
-			if r.Active {
-				result = r
-				break
-			}
-		}
-	}
-
-	return idx, result, err
+	return idx, roots.Active(), err
 }
 
 // CARootSetCAS sets the current CA root state using a check-and-set operation.
@@ -326,7 +315,7 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 	}
 
 	// Update the index
-	if err := tx.Insert("index", &IndexEntry{tableConnectCARoots, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectCARoots, idx}); err != nil {
 		return false, fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -407,7 +396,7 @@ func (s *Store) CASetProviderState(idx uint64, state *structs.CAConsulProviderSt
 	}
 
 	// Update the index
-	if err := tx.Insert("index", &IndexEntry{tableConnectCABuiltin, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectCABuiltin, idx}); err != nil {
 		return false, fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -436,7 +425,7 @@ func (s *Store) CADeleteProviderState(idx uint64, id string) error {
 	if err := tx.Delete(tableConnectCABuiltin, providerState); err != nil {
 		return err
 	}
-	if err := tx.Insert("index", &IndexEntry{tableConnectCABuiltin, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectCABuiltin, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -476,7 +465,7 @@ func (s *Store) CAIncrementProviderSerialNumber(idx uint64) (uint64, error) {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	existing, err := tx.First("index", "id", tableConnectCABuiltinSerial)
+	existing, err := tx.First(tableIndex, "id", tableConnectCABuiltinSerial)
 	if err != nil {
 		return 0, fmt.Errorf("failed built-in CA serial number lookup: %s", err)
 	}
@@ -491,7 +480,7 @@ func (s *Store) CAIncrementProviderSerialNumber(idx uint64) (uint64, error) {
 	}
 	next := last + 1
 
-	if err := tx.Insert("index", &IndexEntry{tableConnectCABuiltinSerial, next}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectCABuiltinSerial, next}); err != nil {
 		return 0, fmt.Errorf("failed updating index: %s", err)
 	}
 

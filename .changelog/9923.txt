@@ -1,0 +1,3 @@
+```release-note:bug
+http: fix a bug in Consul Enterprise that would cause the UI to believe namespaces were supported, resulting in warning logs and incorrect UI behaviour.
+```

@@ -10,6 +10,18 @@ load helpers
    assert_upstream_has_endpoints_in_status 127.0.0.1:19001 primary HEALTHY 1
 }
 
+@test "gateway-secondary should have healthy endpoints for primary servers" {
+   assert_upstream_has_endpoints_in_status 127.0.0.1:19001 server.primary.consul HEALTHY 1
+}
+
+@test "gateway-secondary should have healthy endpoints for lone secondary server" {
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19001 sec.server.secondary.consul HEALTHY 1
+}
+
+@test "gateway-primary should be up and listening" {
+  retry_long nc -z consul-primary:4431
+}
+
 @test "secondary should be able to rpc to the primary" {
   retry_default curl -sL -f -XPUT localhost:8500/v1/kv/oof?dc=primary -d'{"Value":"rab"}'
 }

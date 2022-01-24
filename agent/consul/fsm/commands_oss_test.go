@@ -9,11 +9,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-raftchunking"
 	raftchunkingtypes "github.com/hashicorp/go-raftchunking/types"
 	"github.com/hashicorp/go-uuid"
@@ -22,6 +17,12 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 func generateUUID() (ret string) {
@@ -52,9 +53,10 @@ func TestFSM_RegisterNode(t *testing.T) {
 	}
 
 	req := structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
+		Datacenter:     "dc1",
+		Node:           "foo",
+		Address:        "127.0.0.1",
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInDefaultPartition(),
 	}
 	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
@@ -67,7 +69,7 @@ func TestFSM_RegisterNode(t *testing.T) {
 	}
 
 	// Verify we are registered
-	_, node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -79,7 +81,7 @@ func TestFSM_RegisterNode(t *testing.T) {
 	}
 
 	// Verify service registered
-	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -103,7 +105,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{
@@ -113,6 +115,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: "db",
 		},
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInDefaultPartition(),
 	}
 	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
@@ -125,7 +128,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	}
 
 	// Verify we are registered
-	_, node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -134,7 +137,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	}
 
 	// Verify service registered
-	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -143,7 +146,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	}
 
 	// Verify check
-	_, checks, err := fsm.state.NodeChecks(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, checks, err := fsm.state.NodeChecks(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -167,7 +170,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 	}
@@ -197,7 +200,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 	}
 
 	// Verify we are registered
-	_, node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -206,7 +209,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 	}
 
 	// Verify service not registered
-	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -260,7 +263,7 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 	}
 
 	// Verify we are registered
-	_, node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -269,7 +272,7 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 	}
 
 	// Verify check not registered
-	_, checks, err := fsm.state.NodeChecks(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, checks, err := fsm.state.NodeChecks(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -293,7 +296,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{
@@ -329,7 +332,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	}
 
 	// Verify we are not registered
-	_, node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -338,7 +341,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	}
 
 	// Verify service not registered
-	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -347,7 +350,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	}
 
 	// Verify checks not registered
-	_, checks, err := fsm.state.NodeChecks(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, checks, err := fsm.state.NodeChecks(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -711,12 +714,14 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	// Write a batch of two coordinates.
 	updates := structs.Coordinates{
 		&structs.Coordinate{
-			Node:  "node1",
-			Coord: generateRandomCoordinate(),
+			Node:      "node1",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			Coord:     generateRandomCoordinate(),
 		},
 		&structs.Coordinate{
-			Node:  "node2",
-			Coord: generateRandomCoordinate(),
+			Node:      "node2",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			Coord:     generateRandomCoordinate(),
 		},
 	}
 	buf, err := structs.Encode(structs.CoordinateBatchUpdateType, updates)
@@ -729,13 +734,11 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	}
 
 	// Read back the two coordinates to make sure they got updated.
-	_, coords, err := fsm.state.Coordinates(nil)
+	_, coords, err := fsm.state.Coordinates(nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if !reflect.DeepEqual(coords, updates) {
-		t.Fatalf("bad: %#v", coords)
-	}
+	require.Equal(t, updates, coords)
 }
 
 func TestFSM_SessionCreate_Destroy(t *testing.T) {
@@ -824,125 +827,6 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 	if session != nil {
 		t.Fatalf("should be destroyed")
 	}
-}
-
-func TestFSM_ACL_CRUD(t *testing.T) {
-	t.Parallel()
-	logger := testutil.Logger(t)
-	fsm, err := New(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Create a new ACL.
-	req := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			ID:   generateUUID(),
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-		},
-	}
-	buf, err := structs.Encode(structs.ACLRequestType, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	resp := fsm.Apply(makeLog(buf))
-	if err, ok := resp.(error); ok {
-		t.Fatalf("resp: %v", err)
-	}
-
-	// Get the ACL.
-	id := resp.(string)
-	_, acl, err := fsm.state.ACLTokenGetBySecret(nil, id, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if acl == nil {
-		t.Fatalf("missing")
-	}
-
-	// Verify the ACL.
-	if acl.SecretID != id {
-		t.Fatalf("bad: %v", *acl)
-	}
-	if acl.Description != "User token" {
-		t.Fatalf("bad: %v", *acl)
-	}
-	if acl.Type != structs.ACLTokenTypeClient {
-		t.Fatalf("bad: %v", *acl)
-	}
-
-	// Try to destroy.
-	destroy := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLDelete,
-		ACL: structs.ACL{
-			ID: id,
-		},
-	}
-	buf, err = structs.Encode(structs.ACLRequestType, destroy)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	resp = fsm.Apply(makeLog(buf))
-	if resp != nil {
-		t.Fatalf("resp: %v", resp)
-	}
-
-	_, acl, err = fsm.state.ACLTokenGetBySecret(nil, id, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if acl != nil {
-		t.Fatalf("should be destroyed")
-	}
-
-	// Initialize bootstrap (should work since we haven't made a management
-	// token).
-	init := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLBootstrapInit,
-	}
-	buf, err = structs.Encode(structs.ACLRequestType, init)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	resp = fsm.Apply(makeLog(buf))
-	if enabled, ok := resp.(bool); !ok || !enabled {
-		t.Fatalf("resp: %v", resp)
-	}
-	canBootstrap, _, err := fsm.state.CanBootstrapACLToken()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if !canBootstrap {
-		t.Fatalf("bad: shouldn't be able to bootstrap")
-	}
-
-	// Do a bootstrap.
-	bootstrap := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLBootstrapNow,
-		ACL: structs.ACL{
-			ID:   generateUUID(),
-			Name: "Bootstrap Token",
-			Type: structs.ACLTokenTypeManagement,
-		},
-	}
-	buf, err = structs.Encode(structs.ACLRequestType, bootstrap)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	resp = fsm.Apply(makeLog(buf))
-	respACL, ok := resp.(*structs.ACL)
-	if !ok {
-		t.Fatalf("resp: %v", resp)
-	}
-	bootstrap.ACL.CreateIndex = respACL.CreateIndex
-	bootstrap.ACL.ModifyIndex = respACL.ModifyIndex
-	require.Equal(t, &bootstrap.ACL, respACL)
 }
 
 func TestFSM_PreparedQuery_CRUD(t *testing.T) {
@@ -1217,10 +1101,9 @@ func TestFSM_Autopilot(t *testing.T) {
 func TestFSM_Intention_CRUD(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
-	assert.Nil(err)
+	assert.Nil(t, err)
 
 	// Create a new intention.
 	ixn := structs.IntentionRequest{
@@ -1234,19 +1117,19 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 
 	{
 		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
-		assert.Nil(err)
-		assert.Nil(fsm.Apply(makeLog(buf)))
+		assert.Nil(t, err)
+		assert.Nil(t, fsm.Apply(makeLog(buf)))
 	}
 
 	// Verify it's in the state store.
 	{
 		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
-		assert.Nil(err)
+		assert.Nil(t, err)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
-		assert.Equal(ixn.Intention, actual)
+		assert.Equal(t, ixn.Intention, actual)
 	}
 
 	// Make an update
@@ -1254,44 +1137,43 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 	ixn.Intention.SourceName = "api"
 	{
 		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
-		assert.Nil(err)
-		assert.Nil(fsm.Apply(makeLog(buf)))
+		assert.Nil(t, err)
+		assert.Nil(t, fsm.Apply(makeLog(buf)))
 	}
 
 	// Verify the update.
 	{
 		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
-		assert.Nil(err)
+		assert.Nil(t, err)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
-		assert.Equal(ixn.Intention, actual)
+		assert.Equal(t, ixn.Intention, actual)
 	}
 
 	// Delete
 	ixn.Op = structs.IntentionOpDelete
 	{
 		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
-		assert.Nil(err)
-		assert.Nil(fsm.Apply(makeLog(buf)))
+		assert.Nil(t, err)
+		assert.Nil(t, fsm.Apply(makeLog(buf)))
 	}
 
 	// Make sure it's gone.
 	{
 		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
-		assert.Nil(err)
-		assert.Nil(actual)
+		assert.Nil(t, err)
+		assert.Nil(t, actual)
 	}
 }
 
 func TestFSM_CAConfig(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
-	assert.Nil(err)
+	assert.Nil(t, err)
 
 	// Set the autopilot config using a request.
 	req := structs.CARequest{
@@ -1301,13 +1183,12 @@ func TestFSM_CAConfig(t *testing.T) {
 			Config: map[string]interface{}{
 				"PrivateKey":          "asdf",
 				"RootCert":            "qwer",
-				"RotationPeriod":      90 * 24 * time.Hour,
 				"IntermediateCertTTL": 365 * 24 * time.Hour,
 			},
 		},
 	}
 	buf, err := structs.Encode(structs.ConnectCARequestType, req)
-	assert.Nil(err)
+	assert.Nil(t, err)
 	resp := fsm.Apply(makeLog(buf))
 	if _, ok := resp.(error); ok {
 		t.Fatalf("bad: %v", resp)
@@ -1331,9 +1212,6 @@ func TestFSM_CAConfig(t *testing.T) {
 	if got, want := conf.RootCert, "qwer"; got != want {
 		t.Fatalf("got %v, want %v", got, want)
 	}
-	if got, want := conf.RotationPeriod, 90*24*time.Hour; got != want {
-		t.Fatalf("got %v, want %v", got, want)
-	}
 	if got, want := conf.IntermediateCertTTL, 365*24*time.Hour; got != want {
 		t.Fatalf("got %v, want %v", got, want)
 	}
@@ -1351,7 +1229,7 @@ func TestFSM_CAConfig(t *testing.T) {
 	}
 
 	_, config, err = fsm.state.CAConfig(nil)
-	assert.Nil(err)
+	assert.Nil(t, err)
 	if config.Provider != "static" {
 		t.Fatalf("bad: %v", config.Provider)
 	}
@@ -1360,10 +1238,9 @@ func TestFSM_CAConfig(t *testing.T) {
 func TestFSM_CARoots(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
-	assert.Nil(err)
+	assert.Nil(t, err)
 
 	// Roots
 	ca1 := connect.TestCA(t, nil)
@@ -1378,25 +1255,24 @@ func TestFSM_CARoots(t *testing.T) {
 
 	{
 		buf, err := structs.Encode(structs.ConnectCARequestType, req)
-		assert.Nil(err)
-		assert.True(fsm.Apply(makeLog(buf)).(bool))
+		assert.Nil(t, err)
+		assert.True(t, fsm.Apply(makeLog(buf)).(bool))
 	}
 
 	// Verify it's in the state store.
 	{
 		_, roots, err := fsm.state.CARoots(nil)
-		assert.Nil(err)
-		assert.Len(roots, 2)
+		assert.Nil(t, err)
+		assert.Len(t, roots, 2)
 	}
 }
 
 func TestFSM_CABuiltinProvider(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
-	assert.Nil(err)
+	assert.Nil(t, err)
 
 	// Provider state.
 	expected := &structs.CAConsulProviderState{
@@ -1417,25 +1293,24 @@ func TestFSM_CABuiltinProvider(t *testing.T) {
 
 	{
 		buf, err := structs.Encode(structs.ConnectCARequestType, req)
-		assert.Nil(err)
-		assert.True(fsm.Apply(makeLog(buf)).(bool))
+		assert.Nil(t, err)
+		assert.True(t, fsm.Apply(makeLog(buf)).(bool))
 	}
 
 	// Verify it's in the state store.
 	{
 		_, state, err := fsm.state.CAProviderState("foo")
-		assert.Nil(err)
-		assert.Equal(expected, state)
+		assert.Nil(t, err)
+		assert.Equal(t, expected, state)
 	}
 }
 
 func TestFSM_ConfigEntry(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Create a simple config entry
 	entry := &structs.ProxyConfigEntry{
@@ -1444,7 +1319,7 @@ func TestFSM_ConfigEntry(t *testing.T) {
 		Config: map[string]interface{}{
 			"foo": "bar",
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// Create a new request.
@@ -1455,7 +1330,7 @@ func TestFSM_ConfigEntry(t *testing.T) {
 
 	{
 		buf, err := structs.Encode(structs.ConfigEntryRequestType, req)
-		require.NoError(err)
+		require.NoError(t, err)
 		resp := fsm.Apply(makeLog(buf))
 		if _, ok := resp.(error); ok {
 			t.Fatalf("bad: %v", resp)
@@ -1465,11 +1340,60 @@ func TestFSM_ConfigEntry(t *testing.T) {
 	// Verify it's in the state store.
 	{
 		_, config, err := fsm.state.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
-		require.NoError(err)
+		require.NoError(t, err)
 		entry.RaftIndex.CreateIndex = 1
 		entry.RaftIndex.ModifyIndex = 1
-		require.Equal(entry, config)
+		require.Equal(t, entry, config)
 	}
+}
+
+func TestFSM_ConfigEntry_DeleteCAS(t *testing.T) {
+	t.Parallel()
+
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
+	require.NoError(t, err)
+
+	// Create a simple config entry and write it to the state store.
+	entry := &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "global",
+	}
+	require.NoError(t, fsm.state.EnsureConfigEntry(1, entry))
+
+	// Raft index is populated by EnsureConfigEntry, hold on to it so that we can
+	// restore it later.
+	raftIndex := entry.RaftIndex
+	require.NotZero(t, raftIndex.ModifyIndex)
+
+	// Attempt a CAS delete with an invalid index.
+	entry = entry.Clone()
+	entry.RaftIndex = structs.RaftIndex{
+		ModifyIndex: 99,
+	}
+	req := &structs.ConfigEntryRequest{
+		Op:    structs.ConfigEntryDeleteCAS,
+		Entry: entry,
+	}
+	buf, err := structs.Encode(structs.ConfigEntryRequestType, req)
+	require.NoError(t, err)
+
+	// Expect to get boolean false back.
+	rsp := fsm.Apply(makeLog(buf))
+	didDelete, isBool := rsp.(bool)
+	require.True(t, isBool)
+	require.False(t, didDelete)
+
+	// Attempt a CAS delete with a valid index.
+	entry.RaftIndex = raftIndex
+	buf, err = structs.Encode(structs.ConfigEntryRequestType, req)
+	require.NoError(t, err)
+
+	// Expect to get boolean true back.
+	rsp = fsm.Apply(makeLog(buf))
+	didDelete, isBool = rsp.(bool)
+	require.True(t, isBool)
+	require.True(t, didDelete)
 }
 
 // This adapts another test by chunking the encoded data and then performing
@@ -1482,12 +1406,10 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
-	assert := assert.New(t)
 
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	var logOfLogs [][]*raft.Log
 	for i := 0; i < 10; i++ {
@@ -1498,7 +1420,7 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 			Service: &structs.NodeService{
 				ID:      "db",
 				Service: "db",
-				Tags:    []string{"master"},
+				Tags:    []string{"primary"},
 				Port:    8000,
 			},
 			Check: &structs.HealthCheck{
@@ -1511,7 +1433,7 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 		}
 
 		buf, err := structs.Encode(structs.RegisterRequestType, req)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		var logs []*raft.Log
 
@@ -1522,7 +1444,7 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 				NumChunks:   uint32(len(buf)),
 			}
 			chunkBytes, err := proto.Marshal(chunkInfo)
-			require.NoError(err)
+			require.NoError(t, err)
 
 			logs = append(logs, &raft.Log{
 				Data:       []byte{b},
@@ -1537,41 +1459,41 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	// the full set, and out of order.
 	for _, logs := range logOfLogs {
 		resp := fsm.chunker.Apply(logs[8])
-		assert.Nil(resp)
+		assert.Nil(t, resp)
 		resp = fsm.chunker.Apply(logs[0])
-		assert.Nil(resp)
+		assert.Nil(t, resp)
 		resp = fsm.chunker.Apply(logs[3])
-		assert.Nil(resp)
+		assert.Nil(t, resp)
 	}
 
 	// Verify we are not registered
 	for i := 0; i < 10; i++ {
-		_, node, err := fsm.state.GetNode(fmt.Sprintf("foo%d", i))
-		require.NoError(err)
-		assert.Nil(node)
+		_, node, err := fsm.state.GetNode(fmt.Sprintf("foo%d", i), nil)
+		require.NoError(t, err)
+		assert.Nil(t, node)
 	}
 
 	// Snapshot, restore elsewhere, apply the rest of the logs, make sure it
 	// looks right
 	snap, err := fsm.Snapshot()
-	require.NoError(err)
+	require.NoError(t, err)
 	defer snap.Release()
 
 	sinkBuf := bytes.NewBuffer(nil)
 	sink := &MockSink{sinkBuf, false}
 	err = snap.Persist(sink)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	fsm2, err := New(nil, logger)
-	require.NoError(err)
+	require.NoError(t, err)
 	err = fsm2.Restore(sink)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Verify we are still not registered
 	for i := 0; i < 10; i++ {
-		_, node, err := fsm2.state.GetNode(fmt.Sprintf("foo%d", i))
-		require.NoError(err)
-		assert.Nil(node)
+		_, node, err := fsm2.state.GetNode(fmt.Sprintf("foo%d", i), nil)
+		require.NoError(t, err)
+		assert.Nil(t, node)
 	}
 
 	// Apply the rest of the logs
@@ -1583,43 +1505,41 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 			default:
 				resp = fsm2.chunker.Apply(log)
 				if i != len(logs)-1 {
-					assert.Nil(resp)
+					assert.Nil(t, resp)
 				}
 			}
 		}
 		_, ok := resp.(raftchunking.ChunkingSuccess)
-		assert.True(ok)
+		assert.True(t, ok)
 	}
 
 	// Verify we are registered
 	for i := 0; i < 10; i++ {
-		_, node, err := fsm2.state.GetNode(fmt.Sprintf("foo%d", i))
-		require.NoError(err)
-		assert.NotNil(node)
+		_, node, err := fsm2.state.GetNode(fmt.Sprintf("foo%d", i), nil)
+		require.NoError(t, err)
+		assert.NotNil(t, node)
 
 		// Verify service registered
-		_, services, err := fsm2.state.NodeServices(nil, fmt.Sprintf("foo%d", i), structs.DefaultEnterpriseMeta())
-		require.NoError(err)
-		require.NotNil(services)
+		_, services, err := fsm2.state.NodeServices(nil, fmt.Sprintf("foo%d", i), structs.DefaultEnterpriseMetaInDefaultPartition())
+		require.NoError(t, err)
+		require.NotNil(t, services)
 		_, ok := services.Services["db"]
-		assert.True(ok)
+		assert.True(t, ok)
 
 		// Verify check
 		_, checks, err := fsm2.state.NodeChecks(nil, fmt.Sprintf("foo%d", i), nil)
-		require.NoError(err)
-		require.NotNil(checks)
-		assert.Equal(string(checks[0].CheckID), "db")
+		require.NoError(t, err)
+		require.NotNil(t, checks)
+		assert.Equal(t, string(checks[0].CheckID), "db")
 	}
 }
 
 func TestFSM_Chunking_TermChange(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
-	require := require.New(t)
 
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -1628,7 +1548,7 @@ func TestFSM_Chunking_TermChange(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{
@@ -1640,7 +1560,7 @@ func TestFSM_Chunking_TermChange(t *testing.T) {
 		},
 	}
 	buf, err := structs.Encode(structs.RegisterRequestType, req)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Only need two chunks to test this
 	chunks := [][]byte{
@@ -1668,7 +1588,7 @@ func TestFSM_Chunking_TermChange(t *testing.T) {
 	// We should see nil for both
 	for _, log := range logs {
 		resp := fsm.chunker.Apply(log)
-		assert.Nil(resp)
+		assert.Nil(t, resp)
 	}
 
 	// Now verify the other baseline, that when the term doesn't change we see
@@ -1685,10 +1605,10 @@ func TestFSM_Chunking_TermChange(t *testing.T) {
 	for i, log := range logs {
 		resp := fsm.chunker.Apply(log)
 		if i == 0 {
-			assert.Nil(resp)
+			assert.Nil(t, resp)
 		}
 		if i == 1 {
-			assert.NotNil(resp)
+			assert.NotNil(t, resp)
 		}
 	}
 }

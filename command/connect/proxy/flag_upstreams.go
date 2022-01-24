@@ -15,6 +15,10 @@ import (
 //
 // The syntax of the value is "name:addr" where addr can be "port" or
 // "host:port". Examples: "db:8181", "db:127.0.0.10:8282", etc.
+//
+// This would need to be extended for Unix Domain Sockets; how does this get handled
+// addr: path & path:mode is ambigous; maybe path alone could be sorted by checking for a numeric port
+// but iffy
 type FlagUpstreams map[string]proxy.UpstreamConfig
 
 func (f *FlagUpstreams) String() string {

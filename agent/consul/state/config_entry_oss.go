@@ -1,24 +1,35 @@
+//go:build !consulent
 // +build !consulent
 
 package state
 
 import (
+	"fmt"
+	"strings"
+
 	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func firstConfigEntryWithTxn(tx ReadTxn, kind, name string, _ *structs.EnterpriseMeta) (interface{}, error) {
-	return tx.First(tableConfigEntries, "id", kind, name)
-}
+func indexFromConfigEntryKindName(arg interface{}) ([]byte, error) {
+	var b indexBuilder
 
-func firstWatchConfigEntryWithTxn(
-	tx ReadTxn,
-	kind string,
-	name string,
-	_ *structs.EnterpriseMeta,
-) (<-chan struct{}, interface{}, error) {
-	return tx.FirstWatch(tableConfigEntries, "id", kind, name)
+	switch n := arg.(type) {
+	case *structs.EnterpriseMeta:
+		return nil, nil
+	case structs.EnterpriseMeta:
+		return b.Bytes(), nil
+	case ConfigEntryKindQuery:
+		b.String(strings.ToLower(n.Kind))
+		return b.Bytes(), nil
+	case ConfigEntryKindName:
+		b.String(strings.ToLower(n.Kind))
+		b.String(strings.ToLower(n.Name))
+		return b.Bytes(), nil
+	}
+
+	return nil, fmt.Errorf("invalid type for ConfigEntryKindName query: %T", arg)
 }
 
 func validateConfigEntryEnterprise(_ ReadTxn, _ structs.ConfigEntry) error {
@@ -26,11 +37,15 @@ func validateConfigEntryEnterprise(_ ReadTxn, _ structs.ConfigEntry) error {
 }
 
 func getAllConfigEntriesWithTxn(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableConfigEntries, "id")
+	return tx.Get(tableConfigEntries, indexID)
+}
+
+func getAllConfigEntriesByKindWithTxn(tx ReadTxn, kind string) (memdb.ResultIterator, error) {
+	return getConfigEntryKindsWithTxn(tx, kind, nil)
 }
 
 func getConfigEntryKindsWithTxn(tx ReadTxn, kind string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableConfigEntries, "kind", kind)
+	return tx.Get(tableConfigEntries, indexID+"_prefix", ConfigEntryKindQuery{Kind: kind})
 }
 
 func configIntentionsConvertToList(iter memdb.ResultIterator, _ *structs.EnterpriseMeta) structs.Intentions {

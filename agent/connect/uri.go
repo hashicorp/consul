@@ -5,8 +5,6 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 // CertURI represents a Connect-valid URI value for a TLS certificate.
@@ -17,22 +15,15 @@ import (
 // However, we anticipate that we may accept URIs that are also not SPIFFE
 // compliant and therefore the interface is named as such.
 type CertURI interface {
-	// Authorize tests the authorization for this URI as a client
-	// for the given intention. The return value `auth` is only valid if
-	// the second value `match` is true. If the second value `match` is
-	// false, then the intention doesn't match this client and any
-	// result should be ignored.
-	Authorize(*structs.Intention) (auth bool, match bool)
-
 	// URI is the valid URI value used in the cert.
 	URI() *url.URL
 }
 
 var (
 	spiffeIDServiceRegexp = regexp.MustCompile(
-		`^/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$`)
+		`^(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$`)
 	spiffeIDAgentRegexp = regexp.MustCompile(
-		`^/agent/client/dc/([^/]+)/id/([^/]+)$`)
+		`^(?:/ap/([^/]+))?/agent/client/dc/([^/]+)/id/([^/]+)$`)
 )
 
 // ParseCertURIFromString attempts to parse a string representation of a
@@ -62,49 +53,67 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 
 	// Test for service IDs
 	if v := spiffeIDServiceRegexp.FindStringSubmatch(path); v != nil {
-		// Determine the values. We assume they're sane to save cycles,
+		// Determine the values. We assume they're reasonable to save cycles,
 		// but if the raw path is not empty that means that something is
 		// URL encoded so we go to the slow path.
-		ns := v[1]
-		dc := v[2]
-		service := v[3]
+		ap := v[1]
+		ns := v[2]
+		dc := v[3]
+		service := v[4]
 		if input.RawPath != "" {
 			var err error
-			if ns, err = url.PathUnescape(v[1]); err != nil {
+			if ap, err = url.PathUnescape(v[1]); err != nil {
+				return nil, fmt.Errorf("Invalid admin partition: %s", err)
+			}
+			if ns, err = url.PathUnescape(v[2]); err != nil {
 				return nil, fmt.Errorf("Invalid namespace: %s", err)
 			}
-			if dc, err = url.PathUnescape(v[2]); err != nil {
+			if dc, err = url.PathUnescape(v[3]); err != nil {
 				return nil, fmt.Errorf("Invalid datacenter: %s", err)
 			}
-			if service, err = url.PathUnescape(v[3]); err != nil {
+			if service, err = url.PathUnescape(v[4]); err != nil {
 				return nil, fmt.Errorf("Invalid service: %s", err)
 			}
 		}
 
+		if ap == "" {
+			ap = "default"
+		}
+
 		return &SpiffeIDService{
 			Host:       input.Host,
+			Partition:  ap,
 			Namespace:  ns,
 			Datacenter: dc,
 			Service:    service,
 		}, nil
 	} else if v := spiffeIDAgentRegexp.FindStringSubmatch(path); v != nil {
-		// Determine the values. We assume they're sane to save cycles,
+		// Determine the values. We assume they're reasonable to save cycles,
 		// but if the raw path is not empty that means that something is
 		// URL encoded so we go to the slow path.
-		dc := v[1]
-		agent := v[2]
+		ap := v[1]
+		dc := v[2]
+		agent := v[3]
 		if input.RawPath != "" {
 			var err error
-			if dc, err = url.PathUnescape(v[1]); err != nil {
+			if ap, err = url.PathUnescape(v[1]); err != nil {
+				return nil, fmt.Errorf("Invalid admin partition: %s", err)
+			}
+			if dc, err = url.PathUnescape(v[2]); err != nil {
 				return nil, fmt.Errorf("Invalid datacenter: %s", err)
 			}
-			if agent, err = url.PathUnescape(v[2]); err != nil {
+			if agent, err = url.PathUnescape(v[3]); err != nil {
 				return nil, fmt.Errorf("Invalid node: %s", err)
 			}
 		}
 
+		if ap == "" {
+			ap = "default"
+		}
+
 		return &SpiffeIDAgent{
 			Host:       input.Host,
+			Partition:  ap,
 			Datacenter: dc,
 			Agent:      agent,
 		}, nil

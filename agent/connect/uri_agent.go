@@ -1,7 +1,6 @@
 package connect
 
 import (
-	"fmt"
 	"net/url"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -10,24 +9,20 @@ import (
 // SpiffeIDService is the structure to represent the SPIFFE ID for an agent.
 type SpiffeIDAgent struct {
 	Host       string
+	Partition  string
 	Datacenter string
 	Agent      string
 }
 
+func (id SpiffeIDAgent) PartitionOrDefault() string {
+	return structs.PartitionOrDefault(id.Partition)
+}
+
 // URI returns the *url.URL for this SPIFFE ID.
-func (id *SpiffeIDAgent) URI() *url.URL {
+func (id SpiffeIDAgent) URI() *url.URL {
 	var result url.URL
 	result.Scheme = "spiffe"
 	result.Host = id.Host
-	result.Path = fmt.Sprintf("/agent/client/dc/%s/id/%s", id.Datacenter, id.Agent)
+	result.Path = id.uriPath()
 	return &result
-}
-
-// CertURI impl.
-func (id *SpiffeIDAgent) Authorize(_ *structs.Intention) (bool, bool) {
-	return false, false
-}
-
-func (id *SpiffeIDAgent) CommonName() string {
-	return AgentCN(id.Agent, id.Host)
 }

@@ -1,0 +1,64 @@
+# Consul::Bucket::List
+
+A presentational component for rendering a list of Consul 'buckets'
+(a single partition and/or a single namepace).
+
+Please note this is not your usual "scrollable list component" more a list of
+'buckets' that make up a partition / namespace combination.
+
+If only a the namespace is different to the currently selected namespace, then
+the namespace will be displayed, whereas if the partition is different it will
+show both the partition and namespace (as a namespace called 'team-1' in
+`partition-1` is different to a namespace called 'team-1' in `partition-2`)
+
+Showing the service name is a tiny bit awkward (different boolean type,
+doesn't care about difference) and could be improved but we only use it for
+the read only view of intentions.
+
+At the time of writing, this is not currently used across the entire UI
+(specifically in intentions and maybe other areas) but eventually should be.
+
+
+```hbs preview-template
+  <figure>
+    <figcaption>Show everything</figcaption>
+    <Consul::Bucket::List
+      @item={{hash
+        Namespace="different-nspace"
+        Partition="different-partition"
+        Service="service-name"
+      }}
+      @nspace={{'nspace'}}
+      @partition={{'partition'}}
+      @service={{true}}
+    />
+  </figure>
+
+  <figure>
+    <figcaption>Show just the top-level buckets</figcaption>
+    <Consul::Bucket::List
+      @item={{hash
+        Namespace="different-nspace"
+        Partition="different-partition"
+      }}
+      @nspace={{'nspace'}}
+      @partition={{'partition'}}
+    />
+  </figure>
+
+```
+
+## Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `item` | `array` |  | A Consul object that could have both a `Partition` and a `Namespace` property |
+| `nspace` | `string` | | The name of the current namespace |
+| `partition` | `string` | | The name of the current partition |
+| `service` | `boolean` | | Whether to show the service name on the end or not. Please note you must also pass a item.Service for it to show. We flag this incase an API request has a Service property but you don't want to show it |
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

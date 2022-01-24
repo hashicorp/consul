@@ -1,57 +1,161 @@
-{{#if item.Key }}
-  {{page-title 'Edit Key/Value'}}
+<Route
+  @name={{routeName}}
+as |route|>
+
+{{#let
+  '/'
+as |separator|}}
+
+{{#let
+  (concat (join separator (slice 0 -1 (split route.params.key separator))) separator)
+as |parentKey|}}
+
+  <DataLoader
+    @src={{uri '/${partition}/${nspace}/${dc}/kv/${key}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        key=(if (string-ends-with routeName 'create') '' route.params.key)
+      )
+    }}
+  as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+
+  route.params.dc
+  route.params.partition
+  route.params.nspace
+  loader.data
+
+as |dc partition nspace item|}}
+
+  <AppView>
+
+    <BlockSlot @name="breadcrumbs">
+      <ol>
+        <li>
+          <Action
+            data-test-back
+            @href={{href-to 'dc.kv.index'}}
+          >
+            Key / Values
+          </Action>
+        </li>
+{{#if (not-eq parentKey separator)}}
+
+{{#let
+  (split parentKey separator)
+as |parts|}}
+
+    {{#each parts as |breadcrumb index|}}
+      {{#if (gt breadcrumb.length 0)}}
+        {{! if breadcrumb isn't '' then slice of enough of the parentKey }}
+        {{! to make the correct href. 'Enough' is the current index plus 1.}}
+        {{! We push on a '' here so make sure we get a trailing slash/separator }}
+          <li>
+            <Action
+              @href={{href-to 'dc.kv.folder'
+                  (join '/'
+                    (append
+                      (slice 0 (add index 1) parts) ''
+                    )
+                  )
+              }}
+            >
+              {{breadcrumb}}
+            </Action>
+          </li>
+      {{/if}}
+    {{/each}}
+{{/let}}
+
+{{/if}}
+      </ol>
+    </BlockSlot>
+
+    <BlockSlot @name="header">
+        <h1 data-test-kv-key={{item.Key}}>
+{{#if (and item.Key (not-eq item.Key parentKey))}}
+          <route.Title @title="Edit Key / Value" @render={{false}} />
+          {{left-trim item.Key parentKey}}
 {{else}}
-  {{page-title 'New Key/Value'}}
+          <route.Title @title="New Key / Value" @render={{true}} />
 {{/if}}
-<AppView>
-  <BlockSlot @name="breadcrumbs">
-    <ol>
-        <li><a data-test-back href={{href-to 'dc.kv.index'}}>Key / Values</a></li>
-{{#if (not-eq parent.Key '/')}}
-  {{#each (slice 0 -1 (split parent.Key '/')) as |breadcrumb index|}}
-        <li><a href={{href-to 'dc.kv.folder' (join '/' (append (slice 0 (add index 1) (split parent.Key '/')) ''))}}>{{breadcrumb}}</a></li>
-  {{/each}}
+        </h1>
+    </BlockSlot>
+
+    <BlockSlot @name="content">
+
+{{! if a KV has a session `Session` will always be populated despite any specific session permissions }}
+{{#if item.Session}}
+      <Notice
+        @type="warning"
+        data-test-session-warning
+      as |notice|>
+        <notice.Body>
+          <p>
+            <strong>Warning.</strong> This KV has a lock session. You can edit KV's with lock sessions, but we recommend doing so with care, or not doing so at all. It may negatively impact the active node it's associated with. See below for more details on the Lock Session and see <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html" target="_blank" rel="noopener noreferrer">our documentation</a> for more information.
+          </p>
+        </notice.Body>
+      </Notice>
 {{/if}}
-    </ol>
-  </BlockSlot>
-  <BlockSlot @name="header">
-      <h1>
-{{#if item.Key}}
-        {{left-trim item.Key parent.Key}}
-{{else}}
-        New Key / Value
-{{/if}}
-      </h1>
-  </BlockSlot>
-  <BlockSlot @name="content">
-  {{! if a KV has a session `Session` will always be populated despite any specific session permissions }}
-  {{#if item.Session}}
-    <Notice
-      @type="warning"
-      data-test-session-warning
-    as |notice|>
-      <notice.Body>
-        <p>
-          <strong>Warning.</strong> This KV has a lock session. You can edit KV's with lock sessions, but we recommend doing so with care, or not doing so at all. It may negatively impact the active node it's associated with. See below for more details on the Lock Session and see <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html" target="_blank" rel="noopener noreferrer">our documentation</a> for more information.
-        </p>
-      </notice.Body>
-    </Notice>
+
+      <Consul::Kv::Form
+        @item={{item}}
+        @dc={{route.params.dc}}
+        @nspace={{route.params.nspace}}
+        @partition={{route.params.partition}}
+        @onsubmit={{if (eq parentKey separator) (transition-to 'dc.kv.index') (transition-to 'dc.kv.folder' parentKey)}}
+        @parent={{parentKey}}
+      />
+
+
+{{! `session` is slightly different to `item.Session` as we only have `session` }}
+{{! if you have `session:read perms` whereas you can get the sessions ID from }}
+{{! `item.Session` without any session perms }}
+{{#if (and item.Session)}}
+      <DataSource
+        @src={{uri '/${partition}/${nspace}/${dc}/sessions/for-key/${id}'
+            (hash
+              partition=route.params.partition
+              nspace=route.params.nspace
+              dc=route.params.dc
+              id=item.Session
+            )
+        }}
+        @onchange={{action (mut session) value="data"}}
+      />
+      <h2>
+        <Action
+          rel="help"
+          @href={{concat (env 'CONSUL_DOCS_URL') '/internals/sessions.html#session-design'}}
+          @external={{true}}
+        >
+          Lock Session
+        </Action>
+      </h2>
+  {{#if session.ID}}
+      <Consul::LockSession::Form
+        @item={{session}}
+        @ondelete={{loader.invalidate}}
+      />
   {{/if}}
-    <Consul::Kv::Form
-      @item={{item}}
-      @dc={{dc}}
-      @nspace={{nspace}}
-      @onsubmit={{if (eq parent.Key '/') (transition-to 'dc.kv.index') (transition-to 'dc.kv.folder' parent.Key)}}
-      @parent={{parent}}
-    />
-  {{! session is slightly different to item.Session as we only have session if you have session:read perms}}
-  {{#if session}}
-    <Consul::LockSession::Form
-      @item={{session}}
-      @dc={{dc}}
-      @nspace={{nspace}}
-      @onsubmit={{action (mut session) undefined}}
-    />
-  {{/if}}
-  </BlockSlot>
-</AppView>
+{{/if}}
+
+    </BlockSlot>
+  </AppView>
+{{/let}}
+    </BlockSlot>
+  </DataLoader>
+  {{/let}}
+{{/let}}
+</Route>

@@ -1,0 +1,3 @@
+```release-note:improvement
+ci: make changelog-checker only validate PR number against main base
+```

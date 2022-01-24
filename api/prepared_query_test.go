@@ -24,7 +24,7 @@ func TestAPI_PreparedQuery(t *testing.T) {
 		Service: &AgentService{
 			ID:      "redis1",
 			Service: "redis",
-			Tags:    []string{"master", "v1"},
+			Tags:    []string{"primary", "v1"},
 			Meta:    map[string]string{"redis-version": "4.0"},
 			Port:    8000,
 		},

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# This script is meant to run on every new commit to master in CircleCI. If the commit comes from a PR, it will
+# This script is meant to run on every new commit to main in CircleCI. If the commit comes from a PR, it will
 # check the PR associated with the commit for labels. If the label matches `docs*` it will be cherry-picked
 # to stable-website. If the label matches `backport/*`, it will be cherry-picked to the appropriate `release/*`
 # branch.
@@ -22,7 +22,7 @@ function get_latest_backport_label {
     local ret
     local latest_backport_label
 
-    resp=$(curl -f -s -H "Authorization: token ${GITHUB_TOKEN}" "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/labels")
+    resp=$(curl -f -s -H "Authorization: token ${GITHUB_TOKEN}" "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/labels?per_page=100")
     ret="$?"
     if [[ "$ret" -ne 0 ]]; then
         status "The GitHub API returned $ret which means it was probably rate limited."
@@ -165,11 +165,12 @@ if echo "$resp" | jq -e '.items[].labels[] | select(.name | contains("docs-cherr
     fi
 fi
 
+git config --local user.email "github-team-consul-core@hashicorp.com"
+git config --local user.name "hc-github-team-consul-core"
+
 backport_failures=0
 # loop through all labels on the PR
 for label in $labels; do
-    git config --local user.email "hashicorp-ci@users.noreply.github.com"
-    git config --local user.name "hashicorp-ci"
     status "checking label: $label"
     # if the label matches docs-cherrypick, it will attempt to cherry-pick to stable-website
     if [[ $label =~ docs-cherrypick ]]; then

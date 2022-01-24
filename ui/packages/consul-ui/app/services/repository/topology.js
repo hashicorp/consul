@@ -14,7 +14,7 @@ export default class TopologyService extends RepositoryService {
     return modelName;
   }
 
-  @dataSource('/:ns/:dc/topology/:id/:kind')
+  @dataSource('/:partition/:ns/:dc/topology/:id/:kind')
   findBySlug(params, configuration = {}) {
     const datacenter = this.dcs.peekOne(params.dc);
     if (datacenter !== null && !get(datacenter, 'MeshEnabled')) {

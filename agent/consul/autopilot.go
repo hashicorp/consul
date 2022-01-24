@@ -6,11 +6,14 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/serf/serf"
+	"math"
+
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 )
 
 var AutopilotGauges = []prometheus.GaugeDefinition{
@@ -50,13 +53,23 @@ func (d *AutopilotDelegate) NotifyState(state *autopilot.State) {
 		} else {
 			metrics.SetGauge([]string{"autopilot", "healthy"}, 0)
 		}
+	} else {
+
+		// if we are not a leader, emit NaN per
+		// https://www.consul.io/docs/agent/telemetry#autopilot
+		metrics.SetGauge([]string{"autopilot", "healthy"}, float32(math.NaN()))
+
+		// also emit NaN for failure tolerance to be backwards compatible
+		metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(math.NaN()))
+
 	}
 }
 
 func (d *AutopilotDelegate) RemoveFailedServer(srv *autopilot.Server) {
+	serverEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	go func() {
-		if err := d.server.RemoveFailedNode(srv.Name, false); err != nil {
-			d.server.logger.Error("failedto remove server", "name", srv.Name, "id", srv.ID, "error", err)
+		if err := d.server.RemoveFailedNode(srv.Name, false, serverEntMeta); err != nil {
+			d.server.logger.Error("failed to remove server", "name", srv.Name, "id", srv.ID, "error", err)
 		}
 	}()
 }
@@ -72,6 +85,9 @@ func (s *Server) initAutopilot(config *Config) {
 		autopilot.WithUpdateInterval(config.ServerHealthInterval),
 		autopilot.WithPromoter(s.autopilotPromoter()),
 	)
+
+	metrics.SetGauge([]string{"autopilot", "healthy"}, float32(math.NaN()))
+	metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(math.NaN()))
 }
 
 func (s *Server) autopilotServers() map[raft.ServerID]*autopilot.Server {
@@ -127,7 +143,7 @@ func (s *Server) autopilotServerFromMetadata(srv *metadata.Server) (*autopilot.S
 	// populate the node meta if there is any. When a node first joins or if
 	// there are ACL issues then this could be empty if the server has not
 	// yet been able to register itself in the catalog
-	_, node, err := s.fsm.State().GetNodeID(types.NodeID(srv.ID))
+	_, node, err := s.fsm.State().GetNodeID(types.NodeID(srv.ID), structs.NodeEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving node from state store: %w", err)
 	}

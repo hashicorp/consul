@@ -1,0 +1,41 @@
+# BrandLoader
+
+Initial loader full brand logo as opposed to the brand submark logo.
+
+The component is a little strange in how you configure it (a CSS-like `@width`
+and `@color` properties and the subtitle as a further component), but this is due to use
+wanting to source this in a JS only environment (without Glimmer/Handlebars)
+during compilation of the static `index.html` file. For this reason the
+template sourcecode should use extremely minimal handlebars syntax.
+
+Also, we want the logo to appear as soon as possible, so before any CSS has
+loaded, so we define its color in attributes instead of CSS.
+
+```hbs preview-template
+<div style="position: relative;height: 300px;">
+  <BrandLoader
+    @width="198"
+    @color="#e07eac"
+  >
+  </BrandLoader>
+</div>
+```
+
+```hbs preview-template
+<div style="position: relative;height: 300px;">
+  <BrandLoader
+    @width="394"
+    @color="#8E96A3"
+  >
+    <BrandLoader::Enterprise />
+  </BrandLoader>
+</div>
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `width` | `Number` |  | The width for the base SVG for the logo |
+| `color` | `String` |  | A hexcode color value for the logo |
+| `subtitle` | `String` |  | When used with JS you can pass extra DOM in here that will be yielded in the same position as the `{{yield}}`|

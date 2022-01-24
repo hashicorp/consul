@@ -2,7 +2,9 @@ ${
 	[1].map(() => {
 
   	const namespaces = ['default'];
+  	const partitions = ['default'];
   	const ns = location.search.ns || 'default';
+  	const partition = location.search.partition || 'default';
   	const dc = location.search.dc;
   	const service = location.pathname.get(2);
 
@@ -75,7 +77,7 @@ ${
   	  const service = fake.hacker.noun().split(' ').join('-');
   	  return {
   	    ServiceName: service,
-			  Name: `${service}.${ns}.${dc}`,
+			  Name: `${service}.${ns}.${partition}.${dc}`,
 			  Subsets: range(
     			  env(
       			  'CONSUL_SUBSET_COUNT',
@@ -96,7 +98,7 @@ ${
   	  const service = resolvers[i].ServiceName;
   	  return {
   	    ServiceName: service,
-			  Name: `${service}.${ns}.redirect-${dc}`,
+			  Name: `${service}.${ns}.${partition}.redirect-${dc}`,
 			  Subsets: []
   	  };
   	});
@@ -129,7 +131,7 @@ ${
 		const splitters = range(
   	  splitterCount
   	).map(() => ({
-			Name: `${service}-${fake.hacker.noun()}.${ns}`,
+			Name: `${service}-${fake.hacker.noun()}.${ns}.${partition}`,
 			Splits: range(
   		  splitCount
   		).map((item, i, arr) => ({
@@ -151,6 +153,7 @@ ${
   "Chain": {
     "ServiceName": "${service}",
     "Namespace": "${ns}",
+    "Partition": "${partition}",
     "Datacenter": "${dc}",
     "Protocol": "http",
     "StartNode": "router:${service}",
@@ -247,7 +250,8 @@ ${resolvers.map((resolver) => {
   );
 	const failover = ({
 	  Datacenter: `${resolver.Name.replace(`.${dc}`, `.fail-${dc}`).replace(`.redirect-${dc}`, `.fail-${dc}`)}`,
-	  Namespace: `${resolver.Name.replace(`.${ns}.`, `.fail-${ns}.`).replace(`.redirect-${ns}.`, `.fail-${ns}.`)}`,
+	  Partition: `${resolver.Name.replace(`${ns}.${partition}.`, `${ns}.fail-${partition}.`).replace(`${ns}.redirect-${partition}.`, `${ns}.fail-${partition}.`)}`,
+	  Namespace: `${resolver.Name.replace(`.${ns}.${partition}`, `.fail-${ns}.${partition}`).replace(`.redirect-${ns}.${partition}`, `.fail-${ns}.${partition}`)}`,
 	})[env('CONSUL_FAILOVER_TYPE', 'Datacenter')];
 
 	return `
@@ -272,7 +276,8 @@ ${resolver.Subsets.map((subset) => {
 		const id = `${subset}.${resolver.Name}`;
 	  const failover = ({
 	    Datacenter: `${subset}.${resolver.Name.replace(`.${dc}`, `.fail-${dc}`)}`,
-	    Namespace: `${subset}.${resolver.Name.replace(`.${ns}.`, `.fail-${ns}.`)}`,
+	    Partition: `${subset}.${resolver.Name.replace(`${ns}.${partition}.`, `${ns}.fail-${partition}.`)}`,
+	    Namespace: `${subset}.${resolver.Name.replace(`.${ns}.${partition}`, `.fail-${ns}.${partition}`)}`,
 	  })[env('CONSUL_FAILOVER_TYPE', 'Datacenter')];
 
 				return `
@@ -321,6 +326,7 @@ ${resolvers.map(item => {
       	"ID": "${item.Name}",
       	"Service": "${item.ServiceName}",
       	"Namespace": "${ns}",
+      	"Partition": "${partition}",
       	"Datacenter": "${dc}",
       	"MeshGateway": {},
       	"SNI": "${name}",
@@ -335,6 +341,7 @@ ${item.Subsets.map(ktem => {
         		"Service": "${item.ServiceName}",
         		"ServiceSubset": "${ktem}",
         		"Namespace": "${ns}",
+        		"Partition": "${partition}",
         		"Datacenter": "${dc}",
         		"MeshGateway": {
         		},

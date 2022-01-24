@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestAPI_CatalogDatacenters(t *testing.T) {
@@ -50,6 +51,7 @@ func TestAPI_CatalogNodes(t *testing.T) {
 			{
 				ID:         s.Config.NodeID,
 				Node:       s.Config.NodeName,
+				Partition:  defaultPartition,
 				Address:    "127.0.0.1",
 				Datacenter: "dc1",
 				TaggedAddresses: map[string]string{
@@ -316,13 +318,11 @@ func TestAPI_CatalogServiceCached(t *testing.T) {
 		}
 	})
 
-	require := require.New(t)
-
 	// Got success, next hit must be cache hit
 	_, meta, err := catalog.Service("consul", "", q)
-	require.NoError(err)
-	require.True(meta.CacheHit)
-	require.Equal(time.Duration(0), meta.CacheAge)
+	require.NoError(t, err)
+	require.True(t, meta.CacheHit)
+	require.Equal(t, time.Duration(0), meta.CacheAge)
 }
 
 func TestAPI_CatalogService_SingleTag(t *testing.T) {
@@ -505,6 +505,10 @@ func testUnmanagedProxy(t *testing.T) *AgentService {
 			LocalServiceAddress:    "127.0.0.2",
 			LocalServicePort:       8080,
 			Upstreams:              testUpstreams(t),
+			Mode:                   ProxyModeTransparent,
+			TransparentProxy: &TransparentProxyConfig{
+				OutboundListenerPort: 808,
+			},
 		},
 		ID:      "web-proxy1",
 		Service: "web-proxy",
@@ -777,6 +781,7 @@ func TestAPI_CatalogNodeServiceList(t *testing.T) {
 
 		if proxySvc == nil {
 			r.Fatalf("Missing proxy service: %v", info.Services)
+			return
 		}
 
 		if !reflect.DeepEqual(proxyReg.Service.Proxy, proxySvc.Proxy) {
@@ -819,7 +824,7 @@ func TestAPI_CatalogRegistration(t *testing.T) {
 	service := &AgentService{
 		ID:      "redis1",
 		Service: "redis",
-		Tags:    []string{"master", "v1"},
+		Tags:    []string{"primary", "v1"},
 		Port:    8000,
 	}
 
@@ -1016,7 +1021,7 @@ func TestAPI_CatalogEnableTagOverride(t *testing.T) {
 	service := &AgentService{
 		ID:      "redis1",
 		Service: "redis",
-		Tags:    []string{"master", "v1"},
+		Tags:    []string{"primary", "v1"},
 		Port:    8000,
 	}
 
@@ -1147,8 +1152,8 @@ func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
 
 	expect := []*GatewayService{
 		{
-			Service:     CompoundServiceName{"api", defaultNamespace},
-			Gateway:     CompoundServiceName{"terminating", defaultNamespace},
+			Service:     CompoundServiceName{Name: "api", Namespace: defaultNamespace, Partition: defaultPartition},
+			Gateway:     CompoundServiceName{Name: "terminating", Namespace: defaultNamespace, Partition: defaultPartition},
 			GatewayKind: ServiceKindTerminatingGateway,
 			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
@@ -1156,8 +1161,8 @@ func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
 			SNI:         "my-domain",
 		},
 		{
-			Service:      CompoundServiceName{"redis", defaultNamespace},
-			Gateway:      CompoundServiceName{"terminating", defaultNamespace},
+			Service:      CompoundServiceName{Name: "redis", Namespace: defaultNamespace, Partition: defaultPartition},
+			Gateway:      CompoundServiceName{Name: "terminating", Namespace: defaultNamespace, Partition: defaultPartition},
 			GatewayKind:  ServiceKindTerminatingGateway,
 			CAFile:       "ca.crt",
 			CertFile:     "client.crt",
@@ -1215,15 +1220,15 @@ func TestAPI_CatalogGatewayServices_Ingress(t *testing.T) {
 
 	expect := []*GatewayService{
 		{
-			Service:     CompoundServiceName{"api", defaultNamespace},
-			Gateway:     CompoundServiceName{"ingress", defaultNamespace},
+			Service:     CompoundServiceName{Name: "api", Namespace: defaultNamespace, Partition: defaultPartition},
+			Gateway:     CompoundServiceName{Name: "ingress", Namespace: defaultNamespace, Partition: defaultPartition},
 			GatewayKind: ServiceKindIngressGateway,
 			Protocol:    "tcp",
 			Port:        8888,
 		},
 		{
-			Service:     CompoundServiceName{"redis", defaultNamespace},
-			Gateway:     CompoundServiceName{"ingress", defaultNamespace},
+			Service:     CompoundServiceName{Name: "redis", Namespace: defaultNamespace, Partition: defaultPartition},
+			Gateway:     CompoundServiceName{Name: "ingress", Namespace: defaultNamespace, Partition: defaultPartition},
 			GatewayKind: ServiceKindIngressGateway,
 			Protocol:    "tcp",
 			Port:        9999,

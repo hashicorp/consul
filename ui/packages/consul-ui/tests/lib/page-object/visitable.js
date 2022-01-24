@@ -1,8 +1,11 @@
-// import { assign } from '../-private/helpers';
-const assign = Object.assign;
+import { getContext } from '@ember/test-helpers';
 import { getExecutionContext } from 'ember-cli-page-object/-private/execution_context';
+import createQueryParams from 'consul-ui/utils/http/create-query-params';
 
-import $ from '-jquery';
+const assign = Object.assign;
+const QueryParams = {
+  stringify: createQueryParams(),
+};
 
 function fillInDynamicSegments(path, params, encoder) {
   return path
@@ -29,10 +32,9 @@ function fillInDynamicSegments(path, params, encoder) {
 }
 
 function appendQueryParams(path, queryParams) {
-  if (Object.keys(queryParams).length) {
-    path += `?${$.param(queryParams)}`;
+  if (Object.keys(queryParams).length > 0) {
+    return `${path}?${QueryParams.stringify(queryParams)}`;
   }
-
   return path;
 }
 /**
@@ -59,14 +61,14 @@ export function visitable(path, encoder = encodeURIComponent) {
       let executionContext = getExecutionContext(this);
 
       return executionContext.runAsync(context => {
-        var params;
+        let params;
         let fullPath = (function _try(paths) {
           let path = paths.shift();
           if (typeof dynamicSegmentsAndQueryParams.nspace !== 'undefined') {
             path = `/:nspace${path}`;
           }
           params = assign({}, dynamicSegmentsAndQueryParams);
-          var fullPath;
+          let fullPath;
           try {
             fullPath = fillInDynamicSegments(path, params, encoder);
           } catch (e) {
@@ -78,9 +80,19 @@ export function visitable(path, encoder = encodeURIComponent) {
           }
           return fullPath;
         })(typeof path === 'string' ? [path] : path.slice(0));
+
         fullPath = appendQueryParams(fullPath, params);
 
-        return context.visit(fullPath);
+        const container = getContext().owner;
+        const locationType = container.lookup('service:env').var('locationType');
+        const location = container.lookup(`location:${locationType}`);
+        // look for a visit on the current location first before just using
+        // visit on the current context/app
+        if (typeof location.visit === 'function') {
+          return location.visit(fullPath);
+        } else {
+          return context.visit(fullPath);
+        }
       });
     },
   };

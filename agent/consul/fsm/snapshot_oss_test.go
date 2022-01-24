@@ -2,6 +2,7 @@ package fsm
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
@@ -59,6 +60,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Port:    80,
 		Connect: connectConf,
 	})
+
 	fsm.state.EnsureService(4, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000})
 	fsm.state.EnsureService(5, "baz", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.2", Port: 80})
 	fsm.state.EnsureService(6, "baz", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"secondary"}, Address: "127.0.0.2", Port: 5000})
@@ -110,10 +112,9 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		},
 		CreateTime: time.Now(),
 		Local:      false,
-		// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
-		Type: structs.ACLTokenTypeManagement,
+		Type:       "management",
 	}
-	require.NoError(t, fsm.state.ACLBootstrap(10, 0, token, false))
+	require.NoError(t, fsm.state.ACLBootstrap(10, 0, token))
 
 	method := &structs.ACLAuthMethod{
 		Name:        "some-method",
@@ -122,6 +123,13 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Config: map[string]interface{}{
 			"SessionID": "952ebfa8-2a42-46f0-bcd3-fd98a842000e",
 		},
+	}
+	require.NoError(t, fsm.state.ACLAuthMethodSet(1, method))
+
+	method = &structs.ACLAuthMethod{
+		Name:        "some-method2",
+		Type:        "testing",
+		Description: "test snapshot auth method",
 	}
 	require.NoError(t, fsm.state.ACLAuthMethodSet(1, method))
 
@@ -246,7 +254,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		},
 	}
 	require.NoError(t, fsm.state.EnsureConfigEntry(20, ingress))
-	_, gatewayServices, err := fsm.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMeta())
+	_, gatewayServices, err := fsm.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 
 	// Raft Chunking
@@ -419,6 +427,51 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 	require.NoError(t, fsm.state.EnsureConfigEntry(26, serviceIxn))
 
+	// mesh config entry
+	meshConfig := &structs.MeshConfigEntry{
+		TransparentProxy: structs.TransparentProxyMeshConfig{
+			MeshDestinationsOnly: true,
+		},
+	}
+	require.NoError(t, fsm.state.EnsureConfigEntry(27, meshConfig))
+
+	// Connect-native services for virtual IP generation
+	systemMetadataEntry = &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataVirtualIPsEnabled,
+		Value: "true",
+	}
+	require.NoError(t, fsm.state.SystemMetadataSet(28, systemMetadataEntry))
+
+	fsm.state.EnsureService(29, "foo", &structs.NodeService{
+		ID:      "frontend",
+		Service: "frontend",
+		Address: "127.0.0.1",
+		Port:    8000,
+		Connect: connectConf,
+	})
+	vip, err := fsm.state.VirtualIPForService(structs.NewServiceName("frontend", nil))
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.1")
+
+	fsm.state.EnsureService(30, "foo", &structs.NodeService{
+		ID:      "backend",
+		Service: "backend",
+		Address: "127.0.0.1",
+		Port:    9000,
+		Connect: connectConf,
+	})
+	vip, err = fsm.state.VirtualIPForService(structs.NewServiceName("backend", nil))
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.2")
+
+	_, serviceNames, err := fsm.state.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
+	require.NoError(t, err)
+
+	expect := []string{"backend", "db", "frontend", "web"}
+	for i, sn := range serviceNames {
+		require.Equal(t, expect[i], sn.Service.Name)
+	}
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	require.NoError(t, err)
@@ -437,10 +490,10 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	// Persist a legacy ACL token - this is not done in newer code
 	// but we want to ensure that restoring legacy tokens works as
 	// expected so we must inject one here manually
-	_, err = sink.Write([]byte{byte(structs.ACLRequestType)})
+	_, err = sink.Write([]byte{byte(structs.DeprecatedACLRequestType)})
 	require.NoError(t, err)
 
-	acl := structs.ACL{
+	acl := LegacyACL{
 		ID:        "1057354f-69ef-4487-94ab-aead3c755445",
 		Name:      "test-legacy",
 		Type:      "client",
@@ -474,7 +527,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, fsm2.Restore(sink))
 
 	// Verify the contents
-	_, nodes, err := fsm2.state.Nodes(nil)
+	_, nodes, err := fsm2.state.Nodes(nil, nil)
 	require.NoError(t, err)
 	require.Len(t, nodes, 2, "incorect number of nodes: %v", nodes)
 
@@ -504,7 +557,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 
 	_, fooSrv, err := fsm2.state.NodeServices(nil, "foo", nil)
 	require.NoError(t, err)
-	require.Len(t, fooSrv.Services, 2)
+	require.Len(t, fooSrv.Services, 4)
 	require.Contains(t, fooSrv.Services["db"].Tags, "primary")
 	require.True(t, stringslice.Contains(fooSrv.Services["db"].Tags, "primary"))
 	require.Equal(t, 5001, fooSrv.Services["db"].Port)
@@ -523,6 +576,14 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, uint64(7), checks[0].CreateIndex)
 	require.Equal(t, uint64(25), checks[0].ModifyIndex)
 
+	// Verify virtual IPs are consistent.
+	vip, err = fsm2.state.VirtualIPForService(structs.NewServiceName("frontend", nil))
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.1")
+	vip, err = fsm2.state.VirtualIPForService(structs.NewServiceName("backend", nil))
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.2")
+
 	// Verify key is set
 	_, d, err := fsm2.state.KVSGet(nil, "/test", nil)
 	require.NoError(t, err)
@@ -539,10 +600,12 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, bindingRule, bindingRule2)
 
-	// Verify ACL Auth Method is restored
-	_, method2, err := fsm2.state.ACLAuthMethodGetByName(nil, method.Name, nil)
+	// Verify ACL Auth Methods are restored
+	_, authMethods, err := fsm2.state.ACLAuthMethodList(nil, nil)
 	require.NoError(t, err)
-	require.Equal(t, method, method2)
+	require.Len(t, authMethods, 2)
+	require.Equal(t, "some-method", authMethods[0].Name)
+	require.Equal(t, "some-method2", authMethods[1].Name)
 
 	// Verify ACL Token is restored
 	_, rtoken, err := fsm2.state.ACLTokenGetByAccessor(nil, token.AccessorID, nil)
@@ -564,7 +627,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NotNil(t, rtoken)
 	require.NotEmpty(t, rtoken.Hash)
 
-	restoredACL, err := rtoken.Convert()
+	restoredACL, err := convertACLTokenToLegacy(rtoken)
 	require.NoError(t, err)
 	require.Equal(t, &acl, restoredACL)
 
@@ -608,7 +671,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}()
 
 	// Verify coordinates are restored
-	_, coords, err := fsm2.state.Coordinates(nil)
+	_, coords, err := fsm2.state.Coordinates(nil, nil)
 	require.NoError(t, err)
 	require.Equal(t, updates, coords)
 
@@ -624,7 +687,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, autopilotConf, restoredConf)
 
 	// Verify legacy intentions are restored.
-	_, ixns, err := fsm2.state.LegacyIntentions(nil, structs.WildcardEnterpriseMeta())
+	_, ixns, err := fsm2.state.LegacyIntentions(nil, structs.WildcardEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Len(t, ixns, 1)
 	require.Equal(t, ixn, ixns[0])
@@ -635,10 +698,10 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Len(t, roots, 2)
 
 	// Verify provider state is restored.
-	_, state, err := fsm2.state.CAProviderState("asdf")
+	_, provider, err := fsm2.state.CAProviderState("asdf")
 	require.NoError(t, err)
-	require.Equal(t, "foo", state.PrivateKey)
-	require.Equal(t, "bar", state.RootCert)
+	require.Equal(t, "foo", provider.PrivateKey)
+	require.Equal(t, "bar", provider.RootCert)
 
 	// Verify CA configuration is restored.
 	_, caConf, err := fsm2.state.CAConfig(nil)
@@ -646,19 +709,19 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, caConfig, caConf)
 
 	// Verify config entries are restored
-	_, serviceConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceDefaults, "foo", structs.DefaultEnterpriseMeta())
+	_, serviceConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceDefaults, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Equal(t, serviceConfig, serviceConfEntry)
 
-	_, proxyConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ProxyDefaults, "global", structs.DefaultEnterpriseMeta())
+	_, proxyConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ProxyDefaults, "global", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Equal(t, proxyConfig, proxyConfEntry)
 
-	_, ingressRestored, err := fsm2.state.ConfigEntry(nil, structs.IngressGateway, "ingress", structs.DefaultEnterpriseMeta())
+	_, ingressRestored, err := fsm2.state.ConfigEntry(nil, structs.IngressGateway, "ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Equal(t, ingress, ingressRestored)
 
-	_, restoredGatewayServices, err := fsm2.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMeta())
+	_, restoredGatewayServices, err := fsm2.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Equal(t, gatewayServices, restoredGatewayServices)
 
@@ -675,21 +738,34 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, fedState2, fedStateLoaded2)
 
 	// Verify usage data is correctly updated
-	idx, nodeCount, err := fsm2.state.NodeCount()
+	idx, nodeUsage, err := fsm2.state.NodeUsage()
 	require.NoError(t, err)
-	require.Equal(t, len(nodes), nodeCount)
+	require.Equal(t, len(nodes), nodeUsage.Nodes)
 	require.NotZero(t, idx)
 
 	// Verify system metadata is restored.
 	_, systemMetadataLoaded, err := fsm2.state.SystemMetadataList(nil)
 	require.NoError(t, err)
-	require.Len(t, systemMetadataLoaded, 1)
-	require.Equal(t, systemMetadataEntry, systemMetadataLoaded[0])
+	require.Len(t, systemMetadataLoaded, 2)
+	require.Equal(t, systemMetadataEntry, systemMetadataLoaded[1])
 
 	// Verify service-intentions is restored
-	_, serviceIxnEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceIntentions, "foo", structs.DefaultEnterpriseMeta())
+	_, serviceIxnEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceIntentions, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Equal(t, serviceIxn, serviceIxnEntry)
+
+	// Verify mesh config entry is restored
+	_, meshConfigEntry, err := fsm2.state.ConfigEntry(nil, structs.MeshConfig, structs.MeshConfigMesh, structs.DefaultEnterpriseMetaInDefaultPartition())
+	require.NoError(t, err)
+	require.Equal(t, meshConfig, meshConfigEntry)
+
+	_, restoredServiceNames, err := fsm2.state.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
+	require.NoError(t, err)
+
+	expect = []string{"backend", "db", "frontend", "web"}
+	for i, sn := range restoredServiceNames {
+		require.Equal(t, expect[i], sn.Service.Name)
+	}
 
 	// Snapshot
 	snap, err = fsm2.Snapshot()
@@ -712,6 +788,23 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 }
 
+// convertACLTokenToLegacy attempts to convert an ACLToken into an legacy ACL.
+// TODO(ACL-Legacy-Compat): remove in phase 2, used by snapshot restore
+func convertACLTokenToLegacy(tok *structs.ACLToken) (*LegacyACL, error) {
+	if tok.Type == "" {
+		return nil, fmt.Errorf("Cannot convert ACLToken into compat token")
+	}
+
+	compat := &LegacyACL{
+		ID:        tok.SecretID,
+		Name:      tok.Description,
+		Type:      tok.Type,
+		Rules:     tok.Rules,
+		RaftIndex: tok.RaftIndex,
+	}
+	return compat, nil
+}
+
 func TestFSM_BadRestore_OSS(t *testing.T) {
 	t.Parallel()
 	// Create an FSM with some state.
@@ -727,7 +820,7 @@ func TestFSM_BadRestore_OSS(t *testing.T) {
 	require.Error(t, fsm.Restore(sink))
 
 	// Verify the contents didn't get corrupted.
-	_, nodes, err := fsm.state.Nodes(nil)
+	_, nodes, err := fsm.state.Nodes(nil, nil)
 	require.NoError(t, err)
 	require.Len(t, nodes, 1)
 	require.Equal(t, "foo", nodes[0].Node)

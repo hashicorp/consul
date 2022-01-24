@@ -26,12 +26,13 @@ type Event struct {
 // should not modify the state of the payload if the Event is being submitted to
 // EventPublisher.Publish.
 type Payload interface {
-	// MatchesKey must return true if the Payload should be included in a subscription
-	// requested with the key and namespace.
-	// Generally this means that the payload matches the key and namespace or
-	// the payload is a special framing event that should be returned to every
-	// subscription.
-	MatchesKey(key, namespace string) bool
+	// MatchesKey must return true if the Payload should be included in a
+	// subscription requested with the key, namespace, and partition.
+	//
+	// Generally this means that the payload matches the key, namespace, and
+	// partition or the payload is a special framing event that should be
+	// returned to every subscription.
+	MatchesKey(key, namespace, partition string) bool
 
 	// HasReadPermission uses the acl.Authorizer to determine if the items in the
 	// Payload are visible to the request. It returns true if the payload is
@@ -80,10 +81,11 @@ func (p *PayloadEvents) filter(f func(Event) bool) bool {
 	return true
 }
 
-// MatchesKey filters the PayloadEvents to those which match the key and namespace.
-func (p *PayloadEvents) MatchesKey(key, namespace string) bool {
+// MatchesKey filters the PayloadEvents to those which match the key,
+// namespace, and partition.
+func (p *PayloadEvents) MatchesKey(key, namespace, partition string) bool {
 	return p.filter(func(event Event) bool {
-		return event.Payload.MatchesKey(key, namespace)
+		return event.Payload.MatchesKey(key, namespace, partition)
 	})
 }
 
@@ -115,7 +117,7 @@ func (e Event) IsNewSnapshotToFollow() bool {
 
 type framingEvent struct{}
 
-func (framingEvent) MatchesKey(string, string) bool {
+func (framingEvent) MatchesKey(string, string, string) bool {
 	return true
 }
 
@@ -135,7 +137,7 @@ type closeSubscriptionPayload struct {
 	tokensSecretIDs []string
 }
 
-func (closeSubscriptionPayload) MatchesKey(string, string) bool {
+func (closeSubscriptionPayload) MatchesKey(string, string, string) bool {
 	return false
 }
 

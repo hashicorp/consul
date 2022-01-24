@@ -30,10 +30,12 @@ module('Unit | Serializer | kv', function(hooks) {
     const uid = 'key/name';
     const dc = 'dc1';
     const nspace = 'default';
+    const partition = 'default';
     const expected = {
-      uid: JSON.stringify([nspace, dc, uid]),
+      uid: JSON.stringify([partition, nspace, dc, uid]),
       Key: uid,
       Namespace: nspace,
+      Partition: partition,
       Datacenter: dc,
     };
     const serializer = this.owner.lookup('serializer:kv');
@@ -42,7 +44,9 @@ module('Unit | Serializer | kv', function(hooks) {
     ['respondForCreateRecord', 'respondForUpdateRecord'].forEach(function(item) {
       const actual = serializer[item](
         function(cb) {
-          const headers = {};
+          const headers = {
+            'X-Consul-Namespace': nspace,
+          };
           const body = true;
           return cb(headers, body);
         },
@@ -50,6 +54,7 @@ module('Unit | Serializer | kv', function(hooks) {
         {
           Key: uid,
           Datacenter: dc,
+          Partition: partition,
         }
       );
       assert.deepEqual(actual, expected);
@@ -59,19 +64,24 @@ module('Unit | Serializer | kv', function(hooks) {
     const uid = 'key/name';
     const dc = 'dc1';
     const nspace = 'default';
+    const partition = 'default';
     const expected = {
-      uid: JSON.stringify([nspace, dc, uid]),
+      uid: JSON.stringify([partition, nspace, dc, uid]),
       Key: uid,
+      Partition: partition,
       Namespace: nspace,
       Datacenter: dc,
     };
     const serializer = this.owner.lookup('serializer:kv');
     serializer.primaryKey = 'uid';
     serializer.slugKey = 'Key';
-    ['respondForCreateRecord', 'respondForUpdateRecord'].forEach(function(item) {
+    ['respondForCreateRecord'].forEach(function(item) {
       const actual = serializer[item](
         function(cb) {
-          const headers = {};
+          const headers = {
+            'X-Consul-Namespace': nspace,
+            'X-Consul-Partition': partition,
+          };
           const body = {
             Key: uid,
             Datacenter: dc,
@@ -82,6 +92,7 @@ module('Unit | Serializer | kv', function(hooks) {
         {
           Key: uid,
           Datacenter: dc,
+          Partition: partition,
         }
       );
       assert.deepEqual(actual, expected);

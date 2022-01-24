@@ -4,25 +4,26 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/serf"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/serf"
 )
 
 // RaftGetConfiguration is used to retrieve the current Raft configuration.
 func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply *structs.RaftConfigurationResponse) error {
-	if done, err := op.srv.ForwardRPC("Operator.RaftGetConfiguration", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.RaftGetConfiguration", args, reply); done {
 		return err
 	}
 
 	// This action requires operator read access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	authz, err := op.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if authz.OperatorRead(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -74,20 +75,20 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 // "IP:port". The reply argument is not used, but it required to fulfill the RPC
 // interface.
 func (op *Operator) RaftRemovePeerByAddress(args *structs.RaftRemovePeerRequest, reply *struct{}) error {
-	if done, err := op.srv.ForwardRPC("Operator.RaftRemovePeerByAddress", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.RaftRemovePeerByAddress", args, reply); done {
 		return err
 	}
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
 	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if authz.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -127,20 +128,20 @@ REMOVE:
 // "IP:port". The reply argument is not used, but is required to fulfill the RPC
 // interface.
 func (op *Operator) RaftRemovePeerByID(args *structs.RaftRemovePeerRequest, reply *struct{}) error {
-	if done, err := op.srv.ForwardRPC("Operator.RaftRemovePeerByID", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.RaftRemovePeerByID", args, reply); done {
 		return err
 	}
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
 	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if authz.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

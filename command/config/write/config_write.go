@@ -6,13 +6,14 @@ import (
 	"io"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
+	"github.com/mitchellh/cli"
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
 	"github.com/hashicorp/consul/lib/decode"
-	"github.com/hashicorp/go-multierror"
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/mapstructure"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -44,7 +45,7 @@ func (c *cmd) init() {
 			"This is used in combination with the -cas flag.")
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -155,6 +156,12 @@ func newDecodeConfigEntry(raw map[string]interface{}) (api.ConfigEntry, error) {
 	}
 
 	for _, k := range md.Unused {
+		switch k {
+		case "kind", "Kind":
+			// The kind field is used to determine the target, but doesn't need
+			// to exist on the target.
+			continue
+		}
 		err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
 	}
 	if err != nil {
@@ -172,8 +179,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Create or update a centralized config entry"
-const help = `
+const (
+	synopsis = "Create or update a centralized config entry"
+	help     = `
 Usage: consul config write [options] <configuration>
 
   Request a config entry to be created or updated. The configuration
@@ -189,3 +197,4 @@ Usage: consul config write [options] <configuration>
 
     $ consul config write -
 `
+)

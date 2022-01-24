@@ -1,0 +1,81 @@
+---
+class: ember
+---
+# EmptyState
+
+Consul UIs default 'empty state' used for when we retrive an empty result set,
+whether that set is successful or erroneous. This is mainly used via the
+`ErrorState` component, so also consider using that directly instead of this
+component if dealing with errors.
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `login` | `Function` | `undefined` | A login action to call when the login button is pressed (if not provided no login button will be shown  |
+
+Icons are controlled via a `status-xxx` class. `xxx` should be some sort of
+3 digit error code, special icons are used for `404` and `403`, otherwise a
+generic icon will be used. To add any further special icons please add to the
+component's `skin` file.
+
+If the `@login` attribute is provided, a button will be shown directly
+underneath the body text clicking on which will fire the provided `@login`
+function.
+
+```hbs preview-template
+<EmptyState
+  class="status-404"
+  @login={{noop}}
+>
+  <BlockSlot @name="header">
+    <h2>
+      Header
+    </h2>
+  </BlockSlot>
+  <BlockSlot @name="subheader">
+    <h3>
+      Subheader
+    </h3>
+  </BlockSlot>
+  <BlockSlot @name="body">
+    <p>
+      Body text
+    </p>
+  </BlockSlot>
+  <BlockSlot @name="actions">
+    <li class="docs-link">
+      <a
+        href="{{env 'CONSUL_DOCS_URL'}}/agent/kv"
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+          Documentation on K/V
+      </a>
+    </li>
+    <li class="learn-link">
+      <a
+        href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv"
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        Read the guide
+      </a>
+    </li>
+  </BlockSlot>
+</EmptyState>
+```
+
+The component has four slots for specifying header, subheader, body and
+'actions', although the component will show a minimal empty slot if only the
+body slot is specified:
+
+```hbs preview-template
+<EmptyState>
+  <BlockSlot @name="body">
+    <p>
+      Minimal text
+    </p>
+  </BlockSlot>
+</EmptyState>
+```

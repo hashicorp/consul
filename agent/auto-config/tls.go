@@ -192,11 +192,12 @@ func (ac *AutoConfig) caRootsRequest() structs.DCSpecificRequest {
 
 func (ac *AutoConfig) leafCertRequest() cachetype.ConnectCALeafRequest {
 	return cachetype.ConnectCALeafRequest{
-		Datacenter: ac.config.Datacenter,
-		Agent:      ac.config.NodeName,
-		DNSSAN:     ac.getDNSSANs(),
-		IPSAN:      ac.getIPSANs(),
-		Token:      ac.acConfig.Tokens.AgentToken(),
+		Datacenter:     ac.config.Datacenter,
+		Agent:          ac.config.NodeName,
+		DNSSAN:         ac.getDNSSANs(),
+		IPSAN:          ac.getIPSANs(),
+		Token:          ac.acConfig.Tokens.AgentToken(),
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(ac.config.PartitionOrEmpty()),
 	}
 }
 
@@ -216,6 +217,7 @@ func (ac *AutoConfig) generateCSR() (csr string, key string, err error) {
 		Host:       unknownTrustDomain,
 		Datacenter: ac.config.Datacenter,
 		Agent:      ac.config.NodeName,
+		Partition:  ac.config.PartitionOrDefault(),
 	}
 
 	caConfig, err := ac.config.ConnectCAConfiguration()
@@ -245,11 +247,7 @@ func (ac *AutoConfig) generateCSR() (csr string, key string, err error) {
 	ipAddresses := ac.getIPSANs()
 
 	// Create a CSR.
-	//
-	// The Common Name includes the dummy trust domain for now but Server will
-	// override this when it is signed anyway so it's OK.
-	cn := connect.AgentCN(ac.config.NodeName, unknownTrustDomain)
-	csr, err = connect.CreateCSR(id, cn, pk, dnsNames, ipAddresses)
+	csr, err = connect.CreateCSR(id, pk, dnsNames, ipAddresses)
 	if err != nil {
 		return "", "", err
 	}

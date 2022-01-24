@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/command/acl/policy"
 	"github.com/hashicorp/consul/command/flags"
@@ -46,7 +47,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -67,19 +68,26 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	var policyID string
+	var pol *api.ACLPolicy
 	if c.policyID != "" {
 		policyID, err = acl.GetPolicyIDFromPartial(client, c.policyID)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error determining policy ID: %v", err))
+			return 1
+		}
+		pol, _, err = client.ACL().PolicyRead(policyID, nil)
 	} else {
-		policyID, err = acl.GetPolicyIDByName(client, c.policyName)
-	}
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error determining policy ID: %v", err))
-		return 1
+		pol, err = acl.GetPolicyByName(client, c.policyName)
 	}
 
-	p, _, err := client.ACL().PolicyRead(policyID, nil)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error reading policy %q: %v", policyID, err))
+		var errArg string
+		if c.policyID != "" {
+			errArg = fmt.Sprintf("id:%s", policyID)
+		} else {
+			errArg = fmt.Sprintf("name:%s", c.policyName)
+		}
+		c.UI.Error(fmt.Sprintf("Error reading policy %q: %v", errArg, err))
 		return 1
 	}
 
@@ -88,7 +96,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(err.Error())
 		return 1
 	}
-	out, err := formatter.FormatPolicy(p)
+	out, err := formatter.FormatPolicy(pol)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
@@ -108,8 +116,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Read an ACL policy"
-const help = `
+const (
+	synopsis = "Read an ACL policy"
+	help     = `
 Usage: consul acl policy read [options] POLICY
 
     This command will retrieve and print out the details
@@ -124,3 +133,4 @@ Usage: consul acl policy read [options] POLICY
         $ consul acl policy read -name my-policy
 
 `
+)

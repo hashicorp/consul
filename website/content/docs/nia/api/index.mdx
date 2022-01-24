@@ -1,0 +1,33 @@
+---
+layout: docs
+page_title: Consul-Terraform-Sync API
+description: >-
+  How to use the Consul-Terraform-Sync API
+---
+
+# Consul-Terraform-Sync API
+
+When running in [daemon mode](/docs/nia/cli#daemon-mode), Consul-Terraform-Sync serves an HTTP API interface. Details of the available API endpoints is available in the navigation to the left.
+
+### Port
+
+The API is served at the default port `8558` or a different port if set with [`port` configuration](/docs/nia/configuration#port)
+
+### Version Prefix
+
+All API routes are prefixed with `/v1/`. This documentation is for v1 of the API, which is the only version currently.
+
+Example: `localhost:8558/v1/status`
+
+### Error
+
+Successful API requests will receive a 2XX success status code. For other unsuccessful status codes, when possible, more details will be provided in a response body containing an error object.
+
+Example: Status 400 Bad Request
+```json
+{
+  "error": {
+    "message": "example error message: unsupported status parameter value"
+  }
+}
+```

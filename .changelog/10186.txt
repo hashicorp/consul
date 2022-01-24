@@ -1,0 +1,3 @@
+```release-note:bug
+ui: De-duplicate tags in rendered tag listings
+```

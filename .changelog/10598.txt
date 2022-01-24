@@ -1,0 +1,3 @@
+```release-note:enhancement
+acls: Show AuthMethodNamespace when reading/listing ACL tokens
+```

@@ -1,0 +1,39 @@
+# tooltip
+
+Consul UIs tooltip modifier is a thin wrapper around the excellent `tippy.js`. The
+most common usage will be something like the below:
+
+```hbs preview-template
+<span
+  {{tooltip "Tooltip message"}}
+>
+  Hover over me
+</span>
+```
+
+A `tabindex=0` is automatically added to the element that triggers the tooltip if it doesn't have one already to make sure the tooltip is in the natural tabbing order of the document.
+
+An additional options hash can be passed into the tooltip the contents of
+which are passed along to `tippy.js` [so all of the `tippy.js`
+props](https://atomiks.github.io/tippyjs/v5/all-props/) can be used to control
+tooltips, including `tippy.js` plugins.
+
+```hbs preview-template
+
+
+<span
+  {{tooltip "Tooltip message" options=(hash
+    showOnCreate=true
+    hideOnClick=false
+    placement="bottom"
+  )}}
+>
+  No need to hover over me
+</span>
+```
+
+An options hash has been chosen to begin, as and when its clear what common
+groups of settings are used throughout the app we can add new properties to
+the modifer without the risk of clashing with any `tippy.js` props.
+
+We also have a Tooltip component but this modifier is preferred over that.

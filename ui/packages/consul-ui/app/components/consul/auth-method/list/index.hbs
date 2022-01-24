@@ -1,12 +1,17 @@
 <ListCollection
   class="consul-auth-method-list"
   @items={{@items}}
-as |item|>
+  as |item|
+>
   <BlockSlot @name="header">
   {{#if (not-eq item.DisplayName '')}}
-    <p data-test-auth-method>{{item.DisplayName}}</p>
+    <a data-test-auth-method href={{href-to "dc.acls.auth-methods.show" item.Name}}>
+      {{item.DisplayName}}
+    </a>
   {{else}}
-    <p data-test-auth-method>{{item.Name}}</p>
+    <a data-test-auth-method href={{href-to "dc.acls.auth-methods.show" item.Name}}>
+      {{item.Name}}
+    </a>
   {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">

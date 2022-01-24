@@ -46,7 +46,7 @@ type Config struct {
 
 // Service returns the *connect.Service structure represented by this config.
 func (c *Config) Service(client *api.Client, logger hclog.Logger) (*connect.Service, error) {
-	return connect.NewServiceWithLogger(c.ProxiedServiceName, client, logger)
+	return connect.NewServiceWithConfig(c.ProxiedServiceName, connect.Config{Client: client, Logger: logger, ServerNextProtos: []string{}})
 }
 
 // PublicListenerConfig contains the parameters needed for the incoming mTLS
@@ -72,7 +72,7 @@ type PublicListenerConfig struct {
 	HandshakeTimeoutMs int `json:"handshake_timeout_ms" hcl:"handshake_timeout_ms" mapstructure:"handshake_timeout_ms"`
 }
 
-// applyDefaults sets zero-valued params to a sane default.
+// applyDefaults sets zero-valued params to a reasonable default.
 func (plc *PublicListenerConfig) applyDefaults() {
 	if plc.LocalConnectTimeoutMs == 0 {
 		plc.LocalConnectTimeoutMs = 1000
@@ -98,7 +98,7 @@ func (uc *UpstreamConfig) ConnectTimeout() time.Duration {
 	return 10000 * time.Millisecond
 }
 
-// applyDefaults sets zero-valued params to a sane default.
+// applyDefaults sets zero-valued params to a reasonable default.
 func (uc *UpstreamConfig) applyDefaults() {
 	if uc.DestinationType == "" {
 		uc.DestinationType = "service"
@@ -106,7 +106,10 @@ func (uc *UpstreamConfig) applyDefaults() {
 	if uc.DestinationNamespace == "" {
 		uc.DestinationNamespace = "default"
 	}
-	if uc.LocalBindAddress == "" {
+	if uc.DestinationPartition == "" {
+		uc.DestinationPartition = "default"
+	}
+	if uc.LocalBindAddress == "" && uc.LocalBindSocketPath == "" {
 		uc.LocalBindAddress = "127.0.0.1"
 	}
 }
@@ -114,8 +117,14 @@ func (uc *UpstreamConfig) applyDefaults() {
 // String returns a string that uniquely identifies the Upstream. Used for
 // identifying the upstream in log output and map keys.
 func (uc *UpstreamConfig) String() string {
-	return fmt.Sprintf("%s:%d->%s:%s/%s", uc.LocalBindAddress, uc.LocalBindPort,
-		uc.DestinationType, uc.DestinationNamespace, uc.DestinationName)
+	addr := uc.LocalBindSocketPath
+	if addr == "" {
+		addr = fmt.Sprintf(
+			"%s:%d",
+			uc.LocalBindAddress, uc.LocalBindPort)
+	}
+	return fmt.Sprintf("%s->%s:%s/%s/%s", addr,
+		uc.DestinationType, uc.DestinationPartition, uc.DestinationNamespace, uc.DestinationName)
 }
 
 // UpstreamResolverFuncFromClient returns a closure that captures a consul
@@ -134,6 +143,7 @@ func UpstreamResolverFuncFromClient(client *api.Client) func(cfg UpstreamConfig)
 		return &connect.ConsulResolver{
 			Client:     client,
 			Namespace:  cfg.DestinationNamespace,
+			Partition:  cfg.DestinationPartition,
 			Name:       cfg.DestinationName,
 			Type:       typ,
 			Datacenter: cfg.Datacenter,
@@ -242,6 +252,9 @@ func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 	}
 	cfg.PublicListener.BindAddress = resp.Address
 	cfg.PublicListener.BindPort = resp.Port
+	if resp.Proxy.LocalServiceSocketPath != "" {
+		w.logger.Error("Unhandled unix domain socket config %+v %+v", resp.Proxy, cfg.PublicListener)
+	}
 	cfg.PublicListener.LocalServiceAddress = ipaddr.FormatAddressPort(
 		resp.Proxy.LocalServiceAddress, resp.Proxy.LocalServicePort)
 

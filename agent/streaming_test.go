@@ -30,9 +30,12 @@ func testGRPCStreamingWorking(t *testing.T, config string) {
 
 	assertIndex(t, resp)
 	require.NotEmpty(t, resp.Header().Get("X-Consul-Index"))
+	require.Equal(t, "streaming", resp.Header().Get("X-Consul-Query-Backend"))
 }
 
 func TestGRPCWithTLSConfigs(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	t.Parallel()
 	testCases := []struct {
 		name   string

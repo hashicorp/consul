@@ -1,0 +1,3 @@
+```release-note:bug
+envoy: fixes a bug where a large envoy config could cause the `consul connect envoy` command to deadlock when attempting to start envoy.
+```

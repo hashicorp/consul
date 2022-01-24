@@ -1,33 +1,64 @@
-{{#if item.ID}}
-    {{page-title 'Edit Intention'}}
-{{else}}
-    {{page-title 'New Intention'}}
-{{/if}}
-<AppView>
-    <BlockSlot @name="breadcrumbs">
-        <ol>
-          <li><a data-test-back href={{href-to 'dc.intentions'}}>All Intentions</a></li>
-        </ol>
+<Route
+  @name={{routeName}}
+as |route|>
+  <DataLoader @src={{
+    uri '/${partition}/${nspace}/${dc}/intention/${id}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        id=(or route.params.intention_id '')
+      )
+    }}
+  as |loader|>
+
+    <BlockSlot @name="error">
+        <AppError
+          @error={{loader.error}}
+          @login={{route.model.app.login.open}}
+        />
     </BlockSlot>
-    <BlockSlot @name="header">
-        <h1>
-{{#if item.IsEditable}}
-  {{#if item.ID}}
-          Edit Intention
+
+    <BlockSlot @name="loaded">
+{{#let
+  loader.data
+  (not (can "write intention" item=item))
+as |item readOnly|}}
+  <AppView>
+      <BlockSlot @name="breadcrumbs">
+          <ol>
+            <li><a data-test-back href={{href-to 'dc.intentions'}}>All Intentions</a></li>
+          </ol>
+      </BlockSlot>
+      <BlockSlot @name="header">
+          <h1>
+  {{#if (not readOnly)}}
+    {{#if item.ID}}
+            <route.Title @title="Edit Intention" />
+    {{else}}
+            <route.Title @title="New Intention" />
+    {{/if}}
   {{else}}
-          New Intention
+            <route.Title @title="View Intention" />
   {{/if}}
-{{else}}
-          View Intention
-{{/if}}
-        </h1>
-    </BlockSlot>
-    <BlockSlot @name="content">
-      <Consul::Intention::Form
-        @item={{item}}
-        @dc={{dc}}
-        @nspace={{nspace}}
-        @onsubmit={{transition-to 'dc.intentions.index' dc}}
-      />
-    </BlockSlot>
-</AppView>
+          </h1>
+      </BlockSlot>
+      <BlockSlot @name="content">
+        <Consul::Intention::Form
+          @readonly={{readOnly}}
+          @item={{item}}
+          @dc={{route.model.dc}}
+          @nspace={{route.params.nspace}}
+          @partition={{route.params.partition}}
+          @onsubmit={{route-action 'transitionTo' 'dc.intentions.index'
+            (hash
+              dc=route.params.dc
+            )
+          }}
+        />
+      </BlockSlot>
+  </AppView>
+{{/let}}
+  </BlockSlot>
+</DataLoader>
+</Route>

@@ -1,0 +1,34 @@
+auth-method:
+  Description: Description
+  DisplayName: Display name
+  TokenLocality: Token locality
+  Type: Type
+  MaxTokenTTL: Maximum token TTL
+  Selector: Selector
+  BindNamespace: Bind Namespace
+  Config:
+    Host: Host
+    CACert: CA Cert
+    ServiceAccountJWT: Service account JSON Web Token
+    JWKSURL: JWKS URL
+    JWKSCACert: JWKS CA Cert
+    JWTValidationPubKeys: JWT validation pub keys
+    OIDCDiscoveryURL: Discovery URL
+    JWTSupportedAlgs: JWT supported algorithms
+    BoundAudiences: Bound audiences
+    BoundIssuer: Bound issuer
+    ExpirationLeeway: Expiration leeway
+    NotBeforeLeeway: Not before leeway
+    ClockSkewLeeway: Clock skew leeway
+    OIDCDiscoveryCACert: OIDC discovery CA cert
+    OIDCClientID: Client ID
+    OIDCClientSecret: Client secret
+    AllowedRedirectURIs: Allowed redirect URIs
+    OIDCScopes: OIDC scopes
+    VerboseOIDCLogging: Verbose OIDC logging
+    ClaimMappings: Claim Mappings
+    ListClaimMappings: List Claim Mappings
+binding-rule:
+  BindType: Type
+  Description: Description
+  Selector: Selector

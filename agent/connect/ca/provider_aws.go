@@ -12,12 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acmpca"
+
+	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -32,9 +32,6 @@ const (
 	// LeafTemplateARN is the AWS-defined template we need to use when issuing a
 	// leaf cert.
 	LeafTemplateARN = "arn:aws:acm-pca:::template/EndEntityCertificate/V1"
-
-	// RootTTL is the validity duration for root certs we create.
-	AWSRootTTL = 5 * 365 * 24 * time.Hour
 
 	// IntermediateTTL is the validity duration for the intermediate certs we
 	// create.
@@ -77,12 +74,9 @@ type AWSProvider struct {
 	logger          hclog.Logger
 }
 
-// SetLogger implements NeedsLogger
-func (a *AWSProvider) SetLogger(logger hclog.Logger) {
-	a.logger = logger.
-		ResetNamed(logging.Connect).
-		Named(logging.CA).
-		Named(logging.AWS)
+// NewAWSProvider returns a new AWSProvider
+func NewAWSProvider(logger hclog.Logger) *AWSProvider {
+	return &AWSProvider{logger: logger}
 }
 
 // Configure implements Provider
@@ -214,7 +208,7 @@ func (a *AWSProvider) ensureCA() error {
 	}
 
 	// Self-sign it as a root
-	certPEM, err := a.signCSR(csrPEM, RootTemplateARN, AWSRootTTL)
+	certPEM, err := a.signCSR(csrPEM, RootTemplateARN, a.config.RootCertTTL)
 	if err != nil {
 		return err
 	}
@@ -362,15 +356,15 @@ func (a *AWSProvider) loadCACerts() error {
 
 	if a.isPrimary {
 		// Just use the cert as a root
-		a.rootPEM = *output.Certificate
+		a.rootPEM = EnsureTrailingNewline(*output.Certificate)
 	} else {
-		a.intermediatePEM = *output.Certificate
+		a.intermediatePEM = EnsureTrailingNewline(*output.Certificate)
 		// TODO(banks) support user-supplied CA being a Subordinate even in the
 		// primary DC. For now this assumes there is only one cert in the chain
 		if output.CertificateChain == nil {
 			return fmt.Errorf("Subordinate CA %s returned no chain", a.arn)
 		}
-		a.rootPEM = *output.CertificateChain
+		a.rootPEM = EnsureTrailingNewline(*output.CertificateChain)
 	}
 	return nil
 }
@@ -488,7 +482,7 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 			}
 
 			if certOutput.Certificate != nil {
-				return true, *certOutput.Certificate, nil
+				return true, EnsureTrailingNewline(*certOutput.Certificate), nil
 			}
 
 			return false, "", nil
@@ -543,9 +537,9 @@ func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) er
 		return err
 	}
 
-	// We succsefully initialized, keep track of the root and intermediate certs.
-	a.rootPEM = rootPEM
-	a.intermediatePEM = intermediatePEM
+	// We successfully initialized, keep track of the root and intermediate certs.
+	a.rootPEM = EnsureTrailingNewline(rootPEM)
+	a.intermediatePEM = EnsureTrailingNewline(intermediatePEM)
 
 	return nil
 }
@@ -594,6 +588,8 @@ func (a *AWSProvider) GenerateIntermediate() (string, error) {
 
 // Sign implements Provider
 func (a *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
+	connect.HackSANExtensionForCSR(csr)
+
 	if a.rootPEM == "" {
 		return "", fmt.Errorf("AWS CA provider not fully Initialized")
 	}
@@ -607,7 +603,7 @@ func (a *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 
 // SignIntermediate implements Provider
 func (a *AWSProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
-	err := validateSignIntermediate(csr, &connect.SpiffeIDSigning{ClusterID: a.clusterID, Domain: "consul"})
+	err := validateSignIntermediate(csr, connect.SpiffeIDSigningForCluster(a.clusterID))
 	if err != nil {
 		return "", err
 	}

@@ -60,13 +60,20 @@ func (a *Agent) ConnectAuthorize(token string,
 	// We do this manually here since the RPC request below only verifies
 	// service:read.
 	var authzContext acl.AuthorizerContext
-	authz, err := a.resolveTokenAndDefaultMeta(token, &req.EnterpriseMeta, &authzContext)
+	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, &req.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return returnErr(err)
 	}
 
-	if authz != nil && authz.ServiceWrite(req.Target, &authzContext) != acl.Allow {
+	if authz.ServiceWrite(req.Target, &authzContext) != acl.Allow {
 		return returnErr(acl.ErrPermissionDenied)
+	}
+
+	if !uriService.MatchesPartition(req.TargetPartition()) {
+		reason = fmt.Sprintf("Mismatched partitions: %q != %q",
+			uriService.PartitionOrDefault(),
+			structs.PartitionOrDefault(req.TargetPartition()))
+		return false, reason, nil, nil
 	}
 
 	// Note that we DON'T explicitly validate the trust-domain matches ours. See
@@ -82,6 +89,7 @@ func (a *Agent) ConnectAuthorize(token string,
 			Entries: []structs.IntentionMatchEntry{
 				{
 					Namespace: req.TargetNamespace(),
+					Partition: req.TargetPartition(),
 					Name:      req.Target,
 				},
 			},
@@ -105,7 +113,9 @@ func (a *Agent) ConnectAuthorize(token string,
 	// Figure out which source matches this request.
 	var ixnMatch *structs.Intention
 	for _, ixn := range reply.Matches[0] {
-		if _, ok := uriService.Authorize(ixn); ok {
+		// We match on the intention source because the uriService is the source of the connection to authorize.
+		if _, ok := connect.AuthorizeIntentionTarget(
+			uriService.Service, uriService.Namespace, uriService.Partition, ixn, structs.IntentionMatchSource); ok {
 			ixnMatch = ixn
 			break
 		}
@@ -124,14 +134,6 @@ func (a *Agent) ConnectAuthorize(token string,
 		return false, reason, &meta, nil
 	}
 
-	// No match, we need to determine the default behavior. We do this by
-	// fetching the default intention behavior from the resolved authorizer. The
-	// default behavior if ACLs are disabled is to allow connections to mimic the
-	// behavior of Consul itself: everything is allowed if ACLs are disabled.
-	if authz == nil {
-		// ACLs not enabled at all, the default is allow all.
-		return true, "ACLs disabled, access is allowed by default", &meta, nil
-	}
 	reason = "Default behavior configured by ACLs"
 	return authz.IntentionDefaultAllow(nil) == acl.Allow, reason, &meta, nil
 }

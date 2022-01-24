@@ -1,0 +1,7 @@
+```release-note:breaking-change
+licensing: **(Enterprise Only)** Consul Enterprise has removed support for temporary licensing. All server agents must have a valid license at startup and client agents must have a license at startup or be able to retrieve one from the servers.
+```
+
+```release-note:breaking-change
+licensing: **(Enterprise Only)** Consul Enterprise client agents now require a valid non-anonymous ACL token for retrieving their license from the servers. Additionally client agents rely on the value of the `start_join` and `retry_join` configurations for determining the servers to query for the license. Therefore one must be set to use license auto-retrieval.
+```

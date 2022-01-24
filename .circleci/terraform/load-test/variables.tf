@@ -17,3 +17,8 @@ variable "consul_download_url" {
   description = "URL to download the Consul binary from"
   default     = ""
 }
+variable "cluster_name" {
+  description = "What to name the Consul cluster and all of its associated resources"
+  type        = string
+  default     = "consul-example"
+}

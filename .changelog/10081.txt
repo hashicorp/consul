@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: updates the ui with the new consul brand assets
+```

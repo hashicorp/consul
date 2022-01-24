@@ -2,6 +2,9 @@
   & {
     min-width: 190px;
   }
+  &.documentation {
+    min-width: 270px;
+  }
   > div {
     padding: 1rem;
   }

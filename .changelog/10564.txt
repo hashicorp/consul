@@ -1,0 +1,6 @@
+```release-note:feature
+cli: allow running `redirect-traffic` command in a provided Linux namespace.
+```
+```release-note:feature
+sdk: allow applying `iptables` rules in a provided Linux namespace.
+```

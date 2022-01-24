@@ -1,9 +1,8 @@
 {
   "ID": "${location.pathname.get(3)}",
-  "Namespace": "${
-    typeof location.search.ns !== 'undefined' ? location.search.ns :
-      typeof http.body.Namespace !== 'undefined' ? http.body.Namespace : 'default'
-  }",
+${typeof location.search.ns !== 'undefined' ? `
+  "Namespace": "${location.search.ns}",
+` : ``}
   "Description": "${location.pathname.get(3) === '00000000-0000-0000-0000-000000000001' ? 'Built-in Management Policy' : fake.lorem.sentence()}",
 ${ location.pathname.get(3) !== '00000000-0000-0000-0000-000000000001' ? `
   "Datacenters": ${fake.helpers.randomize(['["aq west-5", "ch east-4"]'])},

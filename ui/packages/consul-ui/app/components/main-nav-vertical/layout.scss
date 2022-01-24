@@ -11,31 +11,42 @@
 %main-nav-vertical:not(.in-viewport) {
   visibility: hidden;
 }
-%main-nav-vertical li.nspaces,
-%main-nav-vertical li.dcs {
+%main-nav-vertical li.partitions,
+%main-nav-vertical li.partition,
+%main-nav-vertical li.nspaces {
   margin-bottom: 25px;
-  padding: 0 20px;
+  padding: 0 26px;
+}
+%main-nav-vertical li.dcs {
+  margin-bottom: 18px;
+  padding: 0 18px;
 }
 // TODO: We no longer have the rule that menu-panel buttons only contain two
 // items, left and right aligned. We should remove this and look to use
 // align-self for anything that needs right aligning instead.
 
-%main-nav-vertical [role="menuitem"] {
+%main-nav-vertical [role='menuitem'] {
   justify-content: flex-start !important;
 }
-%main-nav-vertical [role="menuitem"] span {
-  margin-left: .5rem;
+%main-nav-vertical [role='menuitem'] span {
+  margin-left: 0.5rem;
 }
 %main-nav-vertical-action,
-%main-nav-vertical [role="separator"] {
+%main-nav-vertical li:not([role='separator']) > span,
+%main-nav-vertical [role='separator'] {
   display: block;
   padding: 7px 25px;
 }
-%main-nav-vertical [role="separator"] {
-  margin-top: .7rem;
+%main-nav-vertical [role='separator'] {
+  margin-top: 0.7rem;
   padding-bottom: 0;
 }
 
 %main-nav-vertical-menu-panel {
-  min-width: 260px;
+  min-width: 248px;
+}
+%main-nav-vertical-hoisted {
+  visibility: visible;
+  position: fixed;
+  z-index: 10;
 }

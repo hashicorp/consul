@@ -1,3 +1,6 @@
+<Route
+  @name={{routeName}}
+as |route|>
 <div class="tab-section">
 {{#let
 
@@ -25,7 +28,7 @@
     )
   )
 
-  items
+  route.model.items
 
 as |sort filters items|}}
     {{#if (gt items.length 0) }}
@@ -66,3 +69,4 @@ as |sort filters items|}}
     </DataCollection>
 {{/let}}
 </div>
+</Route>

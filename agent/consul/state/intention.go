@@ -154,7 +154,7 @@ func (s *Store) LegacyIntentions(ws memdb.WatchSet, entMeta *structs.EnterpriseM
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	idx, results, _, err := s.legacyIntentionsListTxn(tx, ws, entMeta)
+	idx, results, _, err := legacyIntentionsListTxn(tx, ws, entMeta)
 	return idx, results, err
 }
 
@@ -168,12 +168,12 @@ func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (
 		return 0, nil, false, err
 	}
 	if !usingConfigEntries {
-		return s.legacyIntentionsListTxn(tx, ws, entMeta)
+		return legacyIntentionsListTxn(tx, ws, entMeta)
 	}
-	return s.configIntentionsListTxn(tx, ws, entMeta)
+	return configIntentionsListTxn(tx, ws, entMeta)
 }
 
-func (s *Store) legacyIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
+func legacyIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, tableConnectIntentions)
 	if idx < 1 {
@@ -561,7 +561,7 @@ func legacyIntentionSetTxn(tx WriteTxn, idx uint64, ixn *structs.Intention) erro
 	if err := tx.Insert(tableConnectIntentions, ixn); err != nil {
 		return err
 	}
-	if err := tx.Insert("index", &IndexEntry{tableConnectIntentions, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectIntentions, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -578,13 +578,13 @@ func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.Ser
 		return 0, nil, nil, err
 	}
 	if !usingConfigEntries {
-		idx, ixn, err := s.legacyIntentionGetTxn(tx, ws, id)
+		idx, ixn, err := legacyIntentionGetTxn(tx, ws, id)
 		return idx, nil, ixn, err
 	}
-	return s.configIntentionGetTxn(tx, ws, id)
+	return configIntentionGetTxn(tx, ws, id)
 }
 
-func (s *Store) legacyIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *structs.Intention, error) {
+func legacyIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *structs.Intention, error) {
 	// Get the table index.
 	idx := maxIndexTxn(tx, tableConnectIntentions)
 	if idx < 1 {
@@ -689,7 +689,7 @@ func legacyIntentionDeleteTxn(tx WriteTxn, idx uint64, queryID string) error {
 	if err := tx.Delete(tableConnectIntentions, wrapped); err != nil {
 		return fmt.Errorf("failed intention delete: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{tableConnectIntentions, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectIntentions, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -706,13 +706,13 @@ func (s *Store) LegacyIntentionDeleteAll(idx uint64) error {
 	if _, err := tx.DeleteAll(tableConnectIntentions, "id"); err != nil {
 		return fmt.Errorf("failed intention delete-all: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{tableConnectIntentions, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectIntentions, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	// Also bump the index for the config entry table so that
 	// secondaries can correctly know when they've replicated all of the service-intentions
 	// config entries that USED to exist in the old intentions table.
-	if err := tx.Insert("index", &IndexEntry{tableConfigEntries, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConfigEntries, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -732,53 +732,46 @@ func (s *Store) LegacyIntentionDeleteAll(idx uint64) error {
 	return tx.Commit()
 }
 
-// IntentionDecision returns whether a connection should be allowed from a source URI to some destination
-// It returns true or false for the enforcement, and also a boolean for whether
-func (s *Store) IntentionDecision(
-	srcURI connect.CertURI, dstName, dstNS string, defaultDecision acl.EnforcementDecision,
-) (structs.IntentionDecisionSummary, error) {
+type IntentionDecisionOpts struct {
+	Target           string
+	Namespace        string
+	Partition        string
+	Intentions       structs.Intentions
+	MatchType        structs.IntentionMatchType
+	DefaultDecision  acl.EnforcementDecision
+	AllowPermissions bool
+}
 
-	_, matches, err := s.IntentionMatch(nil, &structs.IntentionQueryMatch{
-		Type: structs.IntentionMatchDestination,
-		Entries: []structs.IntentionMatchEntry{
-			{
-				Namespace: dstNS,
-				Name:      dstName,
-			},
-		},
-	})
-	if err != nil {
-		return structs.IntentionDecisionSummary{}, err
-	}
-	if len(matches) != 1 {
-		// This should never happen since the documented behavior of the
-		// Match call is that it'll always return exactly the number of results
-		// as entries passed in. But we guard against misbehavior.
-		return structs.IntentionDecisionSummary{}, errors.New("internal error loading matches")
-	}
+// IntentionDecision returns whether a connection should be allowed to a source or destination given a set of intentions.
+//
+// allowPermissions determines whether the presence of L7 permissions leads to a DENY decision.
+// This should be false when evaluating a connection between a source and destination, but not the request that will be sent.
+func (s *Store) IntentionDecision(opts IntentionDecisionOpts) (structs.IntentionDecisionSummary, error) {
 
 	// Figure out which source matches this request.
 	var ixnMatch *structs.Intention
-	for _, ixn := range matches[0] {
-		if _, ok := srcURI.Authorize(ixn); ok {
+	for _, ixn := range opts.Intentions {
+		if _, ok := connect.AuthorizeIntentionTarget(opts.Target, opts.Namespace, opts.Partition, ixn, opts.MatchType); ok {
 			ixnMatch = ixn
 			break
 		}
 	}
 
-	var resp structs.IntentionDecisionSummary
+	resp := structs.IntentionDecisionSummary{
+		DefaultAllow: opts.DefaultDecision == acl.Allow,
+	}
 	if ixnMatch == nil {
 		// No intention found, fall back to default
-		resp.Allowed = defaultDecision == acl.Allow
+		resp.Allowed = resp.DefaultAllow
 		return resp, nil
 	}
 
 	// Intention found, combine action + permissions
 	resp.Allowed = ixnMatch.Action == structs.IntentionActionAllow
 	if len(ixnMatch.Permissions) > 0 {
-		// If there are L7 permissions, DENY.
-		// We are only evaluating source and destination, not the request that will be sent.
-		resp.Allowed = false
+		// If any permissions are present, fall back to allowPermissions.
+		// We are not evaluating requests so we cannot know whether the L7 permission requirements will be met.
+		resp.Allowed = opts.AllowPermissions
 		resp.HasPermissions = true
 	}
 	resp.ExternalSource = ixnMatch.Meta[structs.MetaExternalSource]
@@ -853,6 +846,16 @@ func (s *Store) IntentionMatchOne(
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	return compatIntentionMatchOneTxn(tx, ws, entry, matchType)
+}
+
+func compatIntentionMatchOneTxn(
+	tx ReadTxn,
+	ws memdb.WatchSet,
+	entry structs.IntentionMatchEntry,
+	matchType structs.IntentionMatchType,
+) (uint64, structs.Intentions, error) {
+
 	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
 	if err != nil {
 		return 0, nil, err
@@ -915,6 +918,7 @@ func intentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet,
 	return result, nil
 }
 
+// TODO(partitions): Update for partitions
 // intentionMatchGetParams returns the tx.Get parameters to find all the
 // intentions for a certain entry.
 func intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}, error) {
@@ -935,4 +939,125 @@ func intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}
 	// Search for the exact NS/N value.
 	result = append(result, []interface{}{entry.Namespace, entry.Name})
 	return result, nil
+}
+
+type ServiceWithDecision struct {
+	Name     structs.ServiceName
+	Decision structs.IntentionDecisionSummary
+}
+
+// IntentionTopology returns the upstreams or downstreams of a service. Upstreams and downstreams are inferred from
+// intentions. If intentions allow a connection from the target to some candidate service, the candidate service is considered
+// an upstream of the target.
+func (s *Store) IntentionTopology(ws memdb.WatchSet,
+	target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision) (uint64, structs.ServiceList, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	idx, services, err := s.intentionTopologyTxn(tx, ws, target, downstreams, defaultDecision)
+	if err != nil {
+		requested := "upstreams"
+		if downstreams {
+			requested = "downstreams"
+		}
+		return 0, nil, fmt.Errorf("failed to fetch %s for %s: %v", requested, target.String(), err)
+	}
+
+	resp := make(structs.ServiceList, 0)
+	for _, svc := range services {
+		resp = append(resp, svc.Name)
+	}
+	return idx, resp, nil
+}
+
+func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
+	target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision) (uint64, []ServiceWithDecision, error) {
+
+	var maxIdx uint64
+
+	// If querying the upstreams for a service, we first query intentions that apply to the target service as a source.
+	// That way we can check whether intentions from the source allow connections to upstream candidates.
+	// The reverse is true for downstreams.
+	intentionMatchType := structs.IntentionMatchSource
+	if downstreams {
+		intentionMatchType = structs.IntentionMatchDestination
+	}
+	entry := structs.IntentionMatchEntry{
+		Namespace: target.NamespaceOrDefault(),
+		Partition: target.PartitionOrDefault(),
+		Name:      target.Name,
+	}
+	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to query intentions for %s", target.String())
+	}
+	if index > maxIdx {
+		maxIdx = index
+	}
+
+	// TODO(tproxy): One remaining improvement is that this includes non-Connect services (typical services without a proxy)
+	//				 Ideally those should be excluded as well, since they can't be upstreams/downstreams without a proxy.
+	//				 Maybe narrow serviceNamesOfKindTxn to services represented by proxies? (ingress, sidecar-proxy, terminating)
+	index, services, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical)
+	if err != nil {
+		return index, nil, fmt.Errorf("failed to list ingress service names: %v", err)
+	}
+	if index > maxIdx {
+		maxIdx = index
+	}
+
+	if downstreams {
+		// Ingress gateways can only ever be downstreams, since mesh services don't dial them.
+		index, ingress, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindIngressGateway)
+		if err != nil {
+			return index, nil, fmt.Errorf("failed to list ingress service names: %v", err)
+		}
+		if index > maxIdx {
+			maxIdx = index
+		}
+		services = append(services, ingress...)
+	}
+
+	// When checking authorization to upstreams, the match type for the decision is `destination` because we are deciding
+	// if upstream candidates are covered by intentions that have the target service as a source.
+	// The reverse is true for downstreams.
+	decisionMatchType := structs.IntentionMatchDestination
+	if downstreams {
+		decisionMatchType = structs.IntentionMatchSource
+	}
+	result := make([]ServiceWithDecision, 0, len(services))
+	for _, svc := range services {
+		candidate := svc.Service
+		if candidate.Name == structs.ConsulServiceName {
+			continue
+		}
+
+		opts := IntentionDecisionOpts{
+			Target:           candidate.Name,
+			Namespace:        candidate.NamespaceOrDefault(),
+			Partition:        candidate.PartitionOrDefault(),
+			Intentions:       intentions,
+			MatchType:        decisionMatchType,
+			DefaultDecision:  defaultDecision,
+			AllowPermissions: true,
+		}
+		decision, err := s.IntentionDecision(opts)
+		if err != nil {
+			src, dst := target, candidate
+			if downstreams {
+				src, dst = candidate, target
+			}
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
+				src.String(), dst.String(), err)
+		}
+		if !decision.Allowed || target.Matches(candidate) {
+			continue
+		}
+
+		result = append(result, ServiceWithDecision{
+			Name:     candidate,
+			Decision: decision,
+		})
+	}
+	return maxIdx, result, err
 }

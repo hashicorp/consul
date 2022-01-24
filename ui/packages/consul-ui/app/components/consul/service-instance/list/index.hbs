@@ -62,6 +62,15 @@ as |item index|>
         {{/if}}
       </dd>
     </dl>
+{{else if item.Service.SocketPath}}
+    <dl class="socket" data-test-socket>
+      <dt {{tooltip}}>
+        Socket Path
+      </dt>
+      <dd>
+        {{item.Service.SocketPath}}
+      </dd>
+    </dl>
 {{/if}}
     <TagList @item={{item.Service}} />
   </BlockSlot>

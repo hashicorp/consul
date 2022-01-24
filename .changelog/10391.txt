@@ -1,0 +1,3 @@
+```release-note:bug
+proxycfg: Ensure that endpoints for explicit upstreams in other datacenters are watched in transparent mode.
+```

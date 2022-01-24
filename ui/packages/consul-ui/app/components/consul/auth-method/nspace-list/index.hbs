@@ -1,0 +1,19 @@
+<div class="consul-auth-method-nspace-list">
+  <table>
+    <thead>
+      <tr>
+        <td>{{t "models.auth-method.Selector"}}</td>
+        <td>{{t "models.auth-method.BindNamespace"}}</td>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each @items as |item|}}
+      <tr>
+        <td>{{item.Selector}}</td>
+        <td>{{item.BindNamespace}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</div>
+

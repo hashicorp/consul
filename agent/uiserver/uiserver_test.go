@@ -11,11 +11,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/net/html"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUIServerIndex(t *testing.T) {
@@ -39,6 +40,7 @@ func TestUIServerIndex(t *testing.T) {
 			wantUICfgJSON: `{
 				"ACLsEnabled": false,
 				"LocalDatacenter": "dc1",
+				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
 				"UIConfig": {
 					"metrics_provider": "",
@@ -71,6 +73,7 @@ func TestUIServerIndex(t *testing.T) {
 			wantUICfgJSON: `{
 				"ACLsEnabled": false,
 				"LocalDatacenter": "dc1",
+				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
 				"UIConfig": {
 					"metrics_provider": "foo",
@@ -91,6 +94,7 @@ func TestUIServerIndex(t *testing.T) {
 			wantUICfgJSON: `{
 				"ACLsEnabled": true,
 				"LocalDatacenter": "dc1",
+				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
 				"UIConfig": {
 					"metrics_provider": "",
@@ -105,7 +109,7 @@ func TestUIServerIndex(t *testing.T) {
 				withMetricsProvider("foo"),
 			),
 			path: "/",
-			tx: func(cfg *config.RuntimeConfig, data map[string]interface{}) error {
+			tx: func(data map[string]interface{}) error {
 				data["SSOEnabled"] = true
 				o := data["UIConfig"].(map[string]interface{})
 				o["metrics_provider"] = "bar"
@@ -119,6 +123,7 @@ func TestUIServerIndex(t *testing.T) {
 				"ACLsEnabled": false,
 				"SSOEnabled": true,
 				"LocalDatacenter": "dc1",
+				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
 				"UIConfig": {
 					"metrics_provider": "bar",
@@ -215,7 +220,8 @@ func basicUIEnabledConfig(opts ...cfgFunc) *config.RuntimeConfig {
 			Enabled:     true,
 			ContentPath: "/ui/",
 		},
-		Datacenter: "dc1",
+		Datacenter:        "dc1",
+		PrimaryDatacenter: "dc1",
 	}
 	for _, f := range opts {
 		f(cfg)
@@ -225,8 +231,8 @@ func basicUIEnabledConfig(opts ...cfgFunc) *config.RuntimeConfig {
 
 func withACLs() cfgFunc {
 	return func(cfg *config.RuntimeConfig) {
-		cfg.ACLDatacenter = "dc1"
-		cfg.ACLDefaultPolicy = "deny"
+		cfg.PrimaryDatacenter = "dc1"
+		cfg.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		cfg.ACLsEnabled = true
 	}
 }
@@ -358,4 +364,59 @@ func TestCompiledJS(t *testing.T) {
 		})
 	}
 
+}
+
+func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
+	cfg := basicUIEnabledConfig()
+
+	value := "seeds"
+	transform := func(data map[string]interface{}) error {
+		data["apple"] = value
+		return nil
+	}
+	h := NewHandler(cfg, hclog.New(nil), transform)
+
+	t.Run("initial request", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/", nil)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		expected := `{
+		"ACLsEnabled": false,
+		"LocalDatacenter": "dc1",
+		"PrimaryDatacenter": "dc1",
+		"ContentPath": "/ui/",
+		"UIConfig": {
+			"metrics_provider": "",
+			"metrics_proxy_enabled": false,
+			"dashboard_url_templates": null
+		},
+		"apple": "seeds"
+	}`
+		require.JSONEq(t, expected, extractUIConfig(t, rec.Body.String()))
+	})
+
+	t.Run("transform value has changed", func(t *testing.T) {
+
+		value = "plant"
+		req := httptest.NewRequest("GET", "/", nil)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		expected := `{
+			"ACLsEnabled": false,
+			"LocalDatacenter": "dc1",
+			"PrimaryDatacenter": "dc1",
+			"ContentPath": "/ui/",
+			"UIConfig": {
+				"metrics_provider": "",
+				"metrics_proxy_enabled": false,
+				"dashboard_url_templates": null
+			},
+			"apple": "plant"
+		}`
+		require.JSONEq(t, expected, extractUIConfig(t, rec.Body.String()))
+	})
 }

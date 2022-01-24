@@ -291,6 +291,36 @@ config_entries {
           prefix_rewrite = "/debug"
         }
       },
+      {
+        match { http {
+          path_exact = "/header-manip/debug"
+        } },
+        destination {
+          service_subset = "v2"
+          prefix_rewrite = "/debug"
+          request_headers {
+            set {
+              x-foo = "request-bar"
+            }
+            remove = ["x-bad-req"]
+          }
+        }
+      },
+      {
+        match { http {
+          path_exact = "/header-manip/echo"
+        } },
+        destination {
+          service_subset = "v2"
+          prefix_rewrite = "/"
+          response_headers {
+            add {
+              x-foo = "response-bar"
+            }
+            remove = ["x-bad-resp"]
+          }
+        }
+      },
     ]
   }
 }

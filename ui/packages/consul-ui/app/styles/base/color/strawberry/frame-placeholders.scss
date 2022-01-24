@@ -1,0 +1,13 @@
+%frame-strawberry-300 {
+  @extend %frame-border-000;
+  background-color: rgb(var(--tone-gray-000));
+  border-color: rgb(var(--tone-strawberry-600));
+  color: rgb(var(--tone-strawberry-600));
+}
+%frame-strawberry-800 {
+  @extend %frame-border-000;
+  background-color: rgb(var(--tone-strawberry-500));
+  border-color: rgb(var(--tone-strawberry-800));
+  color: rgb(var(--tone-gray-000));
+}
+

@@ -1,7 +1,6 @@
 ---
 layout: api
 page_title: Certificate Authority - Connect - HTTP API
-sidebar_title: Certificate Authority (CA)
 description: |-
   The /connect/ca endpoints provide tools for interacting with Connect's
   Certificate Authority mechanism via Consul's HTTP API.
@@ -126,6 +125,8 @@ The table below shows this endpoint's support for
 <sup>1</sup> ACL required was <code>operator:read</code> prior to versions 1.8.6,
 1.7.10, and 1.6.10.
 
+The corresponding CLI command is [`consul connect ca get-config`](/commands/connect/ca#get-config).
+
 ### Sample Request
 
 ```shell-session
@@ -140,7 +141,6 @@ $ curl \
   "Provider": "consul",
   "Config": {
     "LeafCertTTL": "72h",
-    "RotationPeriod": "2160h",
     "IntermediateCertTTL": "8760h"
   },
   "CreateIndex": 5,
@@ -167,6 +167,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
+The corresponding CLI command is [`consul connect ca set-config`](/commands/connect/ca#set-config).
+
 ### Parameters
 
 - `Provider` `(string: <required>)` - Specifies the CA provider type to use.
@@ -176,7 +178,7 @@ The table below shows this endpoint's support for
   providers, see [Provider Config](/docs/connect/ca).
 
 - `ForceWithoutCrossSigning` `(bool: <optional>)` - Indicates that the CA change
-  should be force to complete even if the current CA doesn't support cross
+  should be forced to complete even if the current CA doesn't support cross
   signing. Changing root without cross-signing may cause temporary connection
   failures until the rollout completes. See [Forced Rotation Without
   Cross-Signing](/docs/connect/ca#forced-rotation-without-cross-signing)
@@ -191,7 +193,6 @@ The table below shows this endpoint's support for
     "LeafCertTTL": "72h",
     "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----...",
     "RootCert": "-----BEGIN CERTIFICATE-----...",
-    "RotationPeriod": "2160h",
     "IntermediateCertTTL": "8760h"
   },
   "ForceWithoutCrossSigning": false

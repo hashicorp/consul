@@ -1,0 +1,34 @@
+# is-href
+
+`{{is-href routeName}}` is used to determine whether the current route is the
+specified route, for example:
+
+```hbs preview-template
+<style>
+  .is-active {
+    color: red;
+  }
+</style>
+<ul>
+  <li class={{if (is-href 'docs.helpers.is-href') 'is-active'}}>
+    Active
+  </li>
+  <li class={{if (is-href 'docs.helpers.not-is-href') 'is-active'}}>
+    Not Active
+  </li>
+</ul>
+```
+
+The Consul UI generally uses this on `<li>` elements of navigation, not the
+`<a>` anchors themselves. There are cases of course where we need this for
+links that are not in `<li>`s so its fine to use it on the `<a>` in those
+cases.
+
+We currently use the `is-active` classname throughout the app to mirror the
+ember `<LinkTo />` class used for the same purpose.
+
+Different to `ember-href-to` and `<LinkTo />` our custom `is-href` helper will
+become `true` when you begin the transition to the specified route, not when
+the specified route is loaded. This means active states will happen when the
+user clicks the link and will remain active through the loading state until
+the user clicks on another link.

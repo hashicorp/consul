@@ -1,7 +1,6 @@
 package envoy
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"io/ioutil"
@@ -15,12 +14,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -90,7 +90,7 @@ func testSetAndResetEnv(t *testing.T, env []string) func() {
 			// save it as a nil so we know to remove again
 			old[pair[0]] = nil
 		}
-		os.Setenv(pair[0], pair[1])
+		require.NoError(t, os.Setenv(pair[0], pair[1]))
 	}
 	// Return a func that will reset to old values
 	return func() {
@@ -106,12 +106,14 @@ func testSetAndResetEnv(t *testing.T, env []string) func() {
 
 type generateConfigTestCase struct {
 	Name              string
+	TLSServer         bool
 	Flags             []string
 	Env               []string
 	Files             map[string]string
 	ProxyConfig       map[string]interface{}
 	NamespacesEnabled bool
-	GRPCPort          int // only used for testing custom-configured grpc port
+	XDSPort           int  // only used for testing custom-configured grpc port
+	AgentSelf110      bool // fake the agent API from versions v1.10 and earlier
 	WantArgs          BootstrapTplArgs
 	WantErr           string
 }
@@ -132,7 +134,6 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "defaults",
 			Flags: []string{"-proxy-id", "test-proxy"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -146,6 +147,36 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name: "prometheus-metrics",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-prometheus-backend-port", "20100", "-prometheus-scrape-path", "/scrape-path"},
+			ProxyConfig: map[string]interface{}{
+				// When envoy_prometheus_bind_addr is set, if
+				// PrometheusBackendPort is set, there will be a
+				// "prometheus_backend" cluster in the Envoy configuration.
+				"envoy_prometheus_bind_addr": "0.0.0.0:9000",
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "20100",
+				PrometheusScrapePath:  "/scrape-path",
 			},
 		},
 		{
@@ -153,7 +184,6 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-token", "c9a52720-bf6c-4aa6-b8bc-66881a5ade95"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -168,6 +198,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				Token:                 "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -177,7 +208,6 @@ func TestGenerateConfig(t *testing.T) {
 				"CONSUL_HTTP_TOKEN=c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -192,6 +222,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				Token:                 "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -203,7 +234,6 @@ func TestGenerateConfig(t *testing.T) {
 				"token.txt": "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -218,6 +248,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				Token:                 "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -230,7 +261,6 @@ func TestGenerateConfig(t *testing.T) {
 				"token.txt": "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -245,6 +275,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				Token:                 "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -252,7 +283,6 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-grpc-addr", "localhost:9999"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -269,6 +299,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -278,7 +309,6 @@ func TestGenerateConfig(t *testing.T) {
 				"CONSUL_GRPC_ADDR=localhost:9999",
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -295,6 +325,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -302,7 +333,6 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-grpc-addr", "unix:///var/run/consul.sock"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -315,14 +345,14 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
-			Name:     "grpc-addr-config",
-			Flags:    []string{"-proxy-id", "test-proxy"},
-			GRPCPort: 9999,
+			Name:    "xds-addr-config",
+			Flags:   []string{"-proxy-id", "test-proxy"},
+			XDSPort: 9999,
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -339,13 +369,38 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name:         "deprecated-grpc-addr-config",
+			Flags:        []string{"-proxy-id", "test-proxy"},
+			XDSPort:      9999,
+			AgentSelf110: true,
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "9999",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
 			Name:  "access-log-path",
 			Flags: []string{"-proxy-id", "test-proxy", "-admin-access-log-path", "/some/path/access.log"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -362,13 +417,13 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
 			Name:  "missing-ca-file",
 			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "some/path"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -385,11 +440,11 @@ func TestGenerateConfig(t *testing.T) {
 			WantErr: "Error loading CA File: open some/path: no such file or directory",
 		},
 		{
-			Name:  "existing-ca-file",
-			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
-			Env:   []string{"CONSUL_HTTP_SSL=1"},
+			Name:      "existing-ca-file",
+			TLSServer: true,
+			Flags:     []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
+			Env:       []string{"CONSUL_HTTP_SSL=1"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -408,13 +463,13 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
 			Name:  "missing-ca-path",
 			Flags: []string{"-proxy-id", "test-proxy", "-ca-path", "some/path"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -431,11 +486,11 @@ func TestGenerateConfig(t *testing.T) {
 			WantErr: "lstat some/path: no such file or directory",
 		},
 		{
-			Name:  "existing-ca-path",
-			Flags: []string{"-proxy-id", "test-proxy", "-ca-path", "../../../test/ca_path/"},
-			Env:   []string{"CONSUL_HTTP_SSL=1"},
+			Name:      "existing-ca-path",
+			TLSServer: true,
+			Flags:     []string{"-proxy-id", "test-proxy", "-ca-path", "../../../test/ca_path/"},
+			Env:       []string{"CONSUL_HTTP_SSL=1"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -454,6 +509,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -482,7 +538,6 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -496,6 +551,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -519,7 +575,6 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -533,6 +588,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -561,7 +617,6 @@ func TestGenerateConfig(t *testing.T) {
 				} , { "name": "fake_sink_2" }`,
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -575,6 +630,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -590,7 +646,6 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -604,6 +659,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -649,7 +705,6 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -663,6 +718,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -670,7 +726,6 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy"},
 			Env:   []string{"CONSUL_HTTP_ADDR=https://127.0.0.1:8888"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -688,13 +743,13 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
 			Name:  "ingress-gateway",
 			Flags: []string{"-proxy-id", "ingress-gateway-1", "-gateway", "ingress"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion:       defaultEnvoyVersion,
 				ProxyCluster:       "ingress-gateway",
 				ProxyID:            "ingress-gateway-1",
 				ProxySourceService: "ingress-gateway",
@@ -706,13 +761,13 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
 			Name:  "ingress-gateway-address-specified",
 			Flags: []string{"-proxy-id", "ingress-gateway", "-gateway", "ingress", "-address", "1.2.3.4:7777"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion:       defaultEnvoyVersion,
 				ProxyCluster:       "ingress-gateway",
 				ProxyID:            "ingress-gateway",
 				ProxySourceService: "ingress-gateway",
@@ -724,13 +779,13 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
 			Name:  "ingress-gateway-register-with-service-without-proxy-id",
 			Flags: []string{"-gateway", "ingress", "-register", "-service", "my-gateway", "-address", "127.0.0.1:7777"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion:       defaultEnvoyVersion,
 				ProxyCluster:       "my-gateway",
 				ProxyID:            "my-gateway",
 				ProxySourceService: "my-gateway",
@@ -742,13 +797,13 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
 			Name:  "ingress-gateway-register-with-service-and-proxy-id",
 			Flags: []string{"-gateway", "ingress", "-register", "-service", "my-gateway", "-proxy-id", "my-gateway-123", "-address", "127.0.0.1:7777"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion:       defaultEnvoyVersion,
 				ProxyCluster:       "my-gateway",
 				ProxyID:            "my-gateway-123",
 				ProxySourceService: "my-gateway",
@@ -760,13 +815,13 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
 			Name:  "ingress-gateway-no-auto-register",
 			Flags: []string{"-gateway", "ingress", "-address", "127.0.0.1:7777"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion:       defaultEnvoyVersion,
 				ProxyCluster:       "ingress-gateway",
 				ProxyID:            "ingress-gateway",
 				ProxySourceService: "ingress-gateway",
@@ -778,6 +833,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 	}
@@ -794,59 +850,59 @@ func TestGenerateConfig(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require := require.New(t)
 
 			testDir := testutil.TempDir(t, "envoytest")
 
 			if len(tc.Files) > 0 {
 				for fn, fv := range tc.Files {
 					fullname := filepath.Join(testDir, fn)
-					require.NoError(ioutil.WriteFile(fullname, []byte(fv), 0600))
+					require.NoError(t, ioutil.WriteFile(fullname, []byte(fv), 0600))
 				}
 			}
 
 			// Run a mock agent API that just always returns the proxy config in the
 			// test.
-			srv := httptest.NewServer(testMockAgent(tc.ProxyConfig, tc.GRPCPort, tc.NamespacesEnabled))
+			var srv *httptest.Server
+			if tc.TLSServer {
+				srv = httptest.NewTLSServer(testMockAgent(tc))
+			} else {
+				srv = httptest.NewServer(testMockAgent(tc))
+			}
 			defer srv.Close()
-			client, err := api.NewClient(&api.Config{Address: srv.URL})
-			require.NoError(err)
 
 			testDirPrefix := testDir + string(filepath.Separator)
 			myEnv := copyAndReplaceAll(tc.Env, "@@TEMPDIR@@", testDirPrefix)
 			defer testSetAndResetEnv(t, myEnv)()
+
+			client, err := api.NewClient(&api.Config{Address: srv.URL, TLSConfig: api.TLSConfig{InsecureSkipVerify: true}})
+			require.NoError(t, err)
 
 			ui := cli.NewMockUi()
 			c := New(ui)
 			// explicitly set the client to one which can connect to the httptest.Server
 			c.client = client
 
-			var outBuf bytes.Buffer
-			// Capture output since it clutters test output and we can assert on what
-			// was actually printed this way.
-			c.directOut = &outBuf
-
 			// Run the command
 			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
 			args := append([]string{"-bootstrap"}, myFlags...)
 
-			require.NoError(c.flags.Parse(args))
+			require.NoError(t, c.flags.Parse(args))
 			code := c.run(c.flags.Args())
 			if tc.WantErr == "" {
-				require.Equal(0, code, ui.ErrorWriter.String())
+				require.Equal(t, 0, code, ui.ErrorWriter.String())
 			} else {
-				require.Equal(1, code, ui.ErrorWriter.String())
-				require.Contains(ui.ErrorWriter.String(), tc.WantErr)
+				require.Equal(t, 1, code, ui.ErrorWriter.String())
+				require.Contains(t, ui.ErrorWriter.String(), tc.WantErr)
 				return
 			}
 
 			// Verify we handled the env and flags right first to get correct template
 			// args.
 			got, err := c.templateArgs()
-			require.NoError(err) // Error cases should have returned above
-			require.Equal(&tc.WantArgs, got)
+			require.NoError(t, err) // Error cases should have returned above
+			require.Equal(t, &tc.WantArgs, got)
 
-			actual := outBuf.Bytes()
+			actual := ui.OutputWriter.Bytes()
 
 			// If we got the arg handling write, verify output
 			golden := filepath.Join("testdata", tc.Name+".golden")
@@ -855,8 +911,8 @@ func TestGenerateConfig(t *testing.T) {
 			}
 
 			expected, err := ioutil.ReadFile(golden)
-			require.NoError(err)
-			require.Equal(string(expected), string(actual))
+			require.NoError(t, err)
+			require.Equal(t, string(expected), string(actual))
 		})
 	}
 }
@@ -957,29 +1013,23 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 // testMockAgent combines testMockAgentProxyConfig and testMockAgentSelf,
 // routing /agent/service/... requests to testMockAgentProxyConfig and
 // routing /agent/self requests to testMockAgentSelf.
-func testMockAgent(agentCfg map[string]interface{}, grpcPort int, namespacesEnabled bool) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "/agent/services") {
-			testMockAgentGatewayConfig(namespacesEnabled)(w, r)
-			return
+func testMockAgent(tc generateConfigTestCase) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.Contains(r.URL.Path, "/agent/services"):
+			testMockAgentGatewayConfig(tc.NamespacesEnabled)(w, r)
+		case strings.Contains(r.URL.Path, "/agent/service"):
+			testMockAgentProxyConfig(tc.ProxyConfig, tc.NamespacesEnabled)(w, r)
+		case strings.Contains(r.URL.Path, "/agent/self"):
+			testMockAgentSelf(tc.XDSPort, tc.AgentSelf110)(w, r)
+		default:
+			http.NotFound(w, r)
 		}
-
-		if strings.Contains(r.URL.Path, "/agent/service") {
-			testMockAgentProxyConfig(agentCfg, namespacesEnabled)(w, r)
-			return
-		}
-
-		if strings.Contains(r.URL.Path, "/agent/self") {
-			testMockAgentSelf(grpcPort)(w, r)
-			return
-		}
-
-		http.NotFound(w, r)
-	})
+	}
 }
 
 func testMockAgentGatewayConfig(namespacesEnabled bool) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse the proxy-id from the end of the URL (blindly assuming it's correct
 		// format)
 		params := r.URL.Query()
@@ -1004,6 +1054,7 @@ func testMockAgentGatewayConfig(namespacesEnabled bool) http.HandlerFunc {
 
 		if namespacesEnabled {
 			svc[string(kind)].Namespace = namespaceFromQuery(r)
+			svc[string(kind)].Partition = partitionFromQuery(r)
 		}
 
 		cfgJSON, err := json.Marshal(svc)
@@ -1013,7 +1064,7 @@ func testMockAgentGatewayConfig(namespacesEnabled bool) http.HandlerFunc {
 			return
 		}
 		w.Write(cfgJSON)
-	})
+	}
 }
 
 func namespaceFromQuery(r *http.Request) string {
@@ -1025,8 +1076,17 @@ func namespaceFromQuery(r *http.Request) string {
 	return "default"
 }
 
+func partitionFromQuery(r *http.Request) string {
+	// Use the partition in the request if there is one, otherwise
+	// use-default.
+	if queryAP := r.URL.Query().Get("partition"); queryAP != "" {
+		return queryAP
+	}
+	return "default"
+}
+
 func testMockAgentProxyConfig(cfg map[string]interface{}, namespacesEnabled bool) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse the proxy-id from the end of the URL (blindly assuming it's correct
 		// format)
 		proxyID := strings.TrimPrefix(r.URL.Path, "/v1/agent/service/")
@@ -1046,6 +1106,7 @@ func testMockAgentProxyConfig(cfg map[string]interface{}, namespacesEnabled bool
 
 		if namespacesEnabled {
 			svc.Namespace = namespaceFromQuery(r)
+			svc.Partition = partitionFromQuery(r)
 		}
 
 		cfgJSON, err := json.Marshal(svc)
@@ -1055,7 +1116,7 @@ func testMockAgentProxyConfig(cfg map[string]interface{}, namespacesEnabled bool
 			return
 		}
 		w.Write(cfgJSON)
-	})
+	}
 }
 
 func TestEnvoyCommand_canBindInternal(t *testing.T) {
@@ -1155,16 +1216,21 @@ func TestEnvoyCommand_canBindInternal(t *testing.T) {
 }
 
 // testMockAgentSelf returns an empty /v1/agent/self response except GRPC
-// port is filled in to match the given wantGRPCPort argument.
-func testMockAgentSelf(wantGRPCPort int) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// port is filled in to match the given wantXDSPort argument.
+func testMockAgentSelf(wantXDSPort int, agentSelf110 bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		resp := agent.Self{
 			Config: map[string]interface{}{
 				"Datacenter": "dc1",
 			},
-			DebugConfig: map[string]interface{}{
-				"GRPCPort": wantGRPCPort,
-			},
+		}
+
+		if agentSelf110 {
+			resp.DebugConfig = map[string]interface{}{
+				"GRPCPort": wantXDSPort,
+			}
+		} else {
+			resp.XDS = &agent.XDSSelf{Port: wantXDSPort}
 		}
 
 		selfJSON, err := json.Marshal(resp)
@@ -1174,5 +1240,5 @@ func testMockAgentSelf(wantGRPCPort int) http.HandlerFunc {
 			return
 		}
 		w.Write(selfJSON)
-	})
+	}
 }

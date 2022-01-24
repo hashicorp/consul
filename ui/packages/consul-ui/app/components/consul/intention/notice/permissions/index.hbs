@@ -3,12 +3,14 @@
 as |notice|>
   <notice.Body>
     <p>
-      Permissions are L7 attributes. If any of the following permissions match the request, the Intention will apply. Requests that fail to match any of the provided routes will do the opposite of the allow/deny action above.
+      {{t "components.consul.intention.notice.permissions.body"}}
     </p>
   </notice.Body>
   <notice.Footer>
     <p>
-      <a href="{{env 'CONSUL_DOCS_URL'}}/connect/intentions" target="_blank" rel="noopener noreferrer">Learn more about permissions</a>
+      <a href="{{env 'CONSUL_DOCS_URL'}}/connect/intentions" target="_blank" rel="noopener noreferrer">
+        {{t "components.consul.intention.notice.permissions.footer"}}
+      </a>
     </p>
   </notice.Footer>
 </Notice>

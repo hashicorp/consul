@@ -2,13 +2,15 @@ package api
 
 import (
 	"github.com/hashicorp/serf/coordinate"
+	"net/url"
 )
 
 // CoordinateEntry represents a node and its associated network coordinate.
 type CoordinateEntry struct {
-	Node    string
-	Segment string
-	Coord   *coordinate.Coordinate
+	Node      string
+	Segment   string
+	Partition string `json:",omitempty"`
+	Coord     *coordinate.Coordinate
 }
 
 // CoordinateDatacenterMap has the coordinates for servers in a given datacenter
@@ -33,11 +35,14 @@ func (c *Client) Coordinate() *Coordinate {
 // pool.
 func (c *Coordinate) Datacenters() ([]*CoordinateDatacenterMap, error) {
 	r := c.c.newRequest("GET", "/v1/coordinate/datacenters")
-	_, resp, err := requireOK(c.c.doRequest(r))
+	_, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	var out []*CoordinateDatacenterMap
 	if err := decodeBody(resp, &out); err != nil {
@@ -50,11 +55,14 @@ func (c *Coordinate) Datacenters() ([]*CoordinateDatacenterMap, error) {
 func (c *Coordinate) Nodes(q *QueryOptions) ([]*CoordinateEntry, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/coordinate/nodes")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -72,11 +80,14 @@ func (c *Coordinate) Update(coord *CoordinateEntry, q *WriteOptions) (*WriteMeta
 	r := c.c.newRequest("PUT", "/v1/coordinate/update")
 	r.setWriteOptions(q)
 	r.obj = coord
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt
@@ -86,13 +97,16 @@ func (c *Coordinate) Update(coord *CoordinateEntry, q *WriteOptions) (*WriteMeta
 
 // Node is used to return the coordinates of a single node in the LAN pool.
 func (c *Coordinate) Node(node string, q *QueryOptions) ([]*CoordinateEntry, *QueryMeta, error) {
-	r := c.c.newRequest("GET", "/v1/coordinate/node/"+node)
+	r := c.c.newRequest("GET", "/v1/coordinate/node/"+url.PathEscape(node))
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

@@ -1,7 +1,7 @@
 import { moduleFor, test } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 
-moduleFor('service:repository/discovery-chain', 'Integration | Repository | discovery-chain', {
+moduleFor('service:repository/discovery-chain', 'Integration | Service | discovery-chain', {
   // Specify the other units that are required for this test.
   integration: true,
 });
@@ -26,7 +26,7 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
           {},
           {
             Datacenter: dc,
-            uid: `["default","${dc}","${id}"]`,
+            uid: `["default","default","${dc}","${id}"]`,
             meta: {
               cacheControl: undefined,
               cursor: undefined,

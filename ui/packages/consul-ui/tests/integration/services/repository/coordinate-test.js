@@ -9,6 +9,7 @@ moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
 
 const dc = 'dc-1';
 const nspace = 'default';
+const partition = 'default';
 const now = new Date().getTime();
 test('findAllByDatacenter returns the correct data for list endpoint', function(assert) {
   get(this.subject(), 'store').serializerFor(NAME).timestamp = function() {
@@ -19,12 +20,17 @@ test('findAllByDatacenter returns the correct data for list endpoint', function(
     'findAllByDatacenter',
     this.subject(),
     function retrieveStub(stub) {
-      return stub(`/v1/coordinate/nodes?dc=${dc}`, {
-        CONSUL_NODE_COUNT: '100',
-      });
+      return stub(
+        `/v1/coordinate/nodes?dc=${dc}${
+          typeof partition !== 'undefined' ? `&partition=${partition}` : ``
+        }`,
+        {
+          CONSUL_NODE_COUNT: '100',
+        }
+      );
     },
     function performTest(service) {
-      return service.findAllByDatacenter({ dc });
+      return service.findAllByDatacenter({ dc, partition });
     },
     function performAssertion(actual, expected) {
       assert.deepEqual(
@@ -34,9 +40,10 @@ test('findAllByDatacenter returns the correct data for list endpoint', function(
             Object.assign({}, item, {
               SyncTime: now,
               Datacenter: dc,
+              Partition: partition,
               // TODO: nspace isn't required here, once we've
               // refactored out our Serializer this can go
-              uid: `["${nspace}","${dc}","${item.Node}"]`,
+              uid: `["${partition}","${nspace}","${dc}","${item.Node}"]`,
             })
           );
         })

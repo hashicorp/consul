@@ -50,6 +50,9 @@ func (f *prettyFormatter) FormatBindingRule(rule *api.ACLBindingRule) (string, e
 	var buffer bytes.Buffer
 
 	buffer.WriteString(fmt.Sprintf("ID:           %s\n", rule.ID))
+	if rule.Partition != "" {
+		buffer.WriteString(fmt.Sprintf("Partition:    %s\n", rule.Partition))
+	}
 	if rule.Namespace != "" {
 		buffer.WriteString(fmt.Sprintf("Namespace:    %s\n", rule.Namespace))
 	}
@@ -80,6 +83,9 @@ func (f *prettyFormatter) formatBindingRuleListEntry(rule *api.ACLBindingRule) s
 	var buffer bytes.Buffer
 
 	buffer.WriteString(fmt.Sprintf("%s:\n", rule.ID))
+	if rule.Partition != "" {
+		buffer.WriteString(fmt.Sprintf("   Partition:    %s\n", rule.Partition))
+	}
 	if rule.Namespace != "" {
 		buffer.WriteString(fmt.Sprintf("   Namespace:    %s\n", rule.Namespace))
 	}

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/hashicorp/consul/agent/consul"
+
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 
@@ -15,7 +17,7 @@ type Source interface {
 	// Source returns an identifier for the Source that can be used in error message
 	Source() string
 	// Parse a configuration and return the result.
-	Parse() (Config, mapstructure.Metadata, error)
+	Parse() (Config, Metadata, error)
 }
 
 // ErrNoData indicates to Builder.Build that the source contained no data, and
@@ -34,9 +36,10 @@ func (f FileSource) Source() string {
 }
 
 // Parse a config file in either JSON or HCL format.
-func (f FileSource) Parse() (Config, mapstructure.Metadata, error) {
+func (f FileSource) Parse() (Config, Metadata, error) {
+	m := Metadata{}
 	if f.Name == "" || f.Data == "" {
-		return Config{}, mapstructure.Metadata{}, ErrNoData
+		return Config{}, m, ErrNoData
 	}
 
 	var raw map[string]interface{}
@@ -51,10 +54,10 @@ func (f FileSource) Parse() (Config, mapstructure.Metadata, error) {
 		err = fmt.Errorf("invalid format: %s", f.Format)
 	}
 	if err != nil {
-		return Config{}, md, err
+		return Config{}, m, err
 	}
 
-	var c Config
+	var target decodeTarget
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			// decode.HookWeakDecodeFromSlice is only necessary when reading from
@@ -66,16 +69,30 @@ func (f FileSource) Parse() (Config, mapstructure.Metadata, error) {
 			decode.HookTranslateKeys,
 		),
 		Metadata: &md,
-		Result:   &c,
+		Result:   &target,
 	})
 	if err != nil {
-		return Config{}, md, err
+		return Config{}, m, err
 	}
 	if err := d.Decode(raw); err != nil {
-		return Config{}, md, err
+		return Config{}, m, err
 	}
 
-	return c, md, nil
+	c, warns := applyDeprecatedConfig(&target)
+	m.Unused = md.Unused
+	m.Keys = md.Keys
+	m.Warnings = warns
+	return c, m, nil
+}
+
+// Metadata created by Source.Parse
+type Metadata struct {
+	// Keys used in the config file.
+	Keys []string
+	// Unused keys that did not match any struct fields.
+	Unused []string
+	// Warnings caused by deprecated fields
+	Warnings []string
 }
 
 // LiteralSource implements Source and returns an existing Config struct.
@@ -88,8 +105,13 @@ func (l LiteralSource) Source() string {
 	return l.Name
 }
 
-func (l LiteralSource) Parse() (Config, mapstructure.Metadata, error) {
-	return l.Config, mapstructure.Metadata{}, nil
+func (l LiteralSource) Parse() (Config, Metadata, error) {
+	return l.Config, Metadata{}, nil
+}
+
+type decodeTarget struct {
+	DeprecatedConfig `mapstructure:",squash"`
+	Config           `mapstructure:",squash"`
 }
 
 // Cache configuration for the agent/cache.
@@ -110,26 +132,6 @@ type Cache struct {
 // configuration it should be treated as an external API which cannot be
 // changed and refactored at will since this will break existing setups.
 type Config struct {
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLAgentMasterToken *string `mapstructure:"acl_agent_master_token"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLAgentToken *string `mapstructure:"acl_agent_token"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved to "primary_datacenter"
-	ACLDatacenter *string `mapstructure:"acl_datacenter"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLDefaultPolicy *string `mapstructure:"acl_default_policy"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLDownPolicy *string `mapstructure:"acl_down_policy"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLEnableKeyListPolicy *bool `mapstructure:"acl_enable_key_list_policy"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLMasterToken *string `mapstructure:"acl_master_token"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLReplicationToken *string `mapstructure:"acl_replication_token"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLTTL *string `mapstructure:"acl_ttl"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLToken                         *string             `mapstructure:"acl_token"`
 	ACL                              ACL                 `mapstructure:"acl"`
 	Addresses                        Addresses           `mapstructure:"addresses"`
 	AdvertiseAddrLAN                 *string             `mapstructure:"advertise_addr"`
@@ -137,7 +139,7 @@ type Config struct {
 	AdvertiseAddrLANIPv6             *string             `mapstructure:"advertise_addr_ipv6"`
 	AdvertiseAddrWAN                 *string             `mapstructure:"advertise_addr_wan"`
 	AdvertiseAddrWANIPv4             *string             `mapstructure:"advertise_addr_wan_ipv4"`
-	AdvertiseAddrWANIPv6             *string             `mapstructure:"advertise_addr_ipv6"`
+	AdvertiseAddrWANIPv6             *string             `mapstructure:"advertise_addr_wan_ipv6"`
 	AdvertiseReconnectTimeout        *string             `mapstructure:"advertise_reconnect_timeout"`
 	AutoConfig                       AutoConfigRaw       `mapstructure:"auto_config"`
 	Autopilot                        Autopilot           `mapstructure:"autopilot"`
@@ -172,7 +174,6 @@ type Config struct {
 	DisableUpdateCheck               *bool               `mapstructure:"disable_update_check"`
 	DiscardCheckOutput               *bool               `mapstructure:"discard_check_output"`
 	DiscoveryMaxStale                *string             `mapstructure:"discovery_max_stale"`
-	EnableACLReplication             *bool               `mapstructure:"enable_acl_replication"`
 	EnableAgentTLSForChecks          *bool               `mapstructure:"enable_agent_tls_for_checks"`
 	EnableCentralServiceConfig       *bool               `mapstructure:"enable_central_service_config"`
 	EnableDebug                      *bool               `mapstructure:"enable_debug"`
@@ -187,6 +188,7 @@ type Config struct {
 	HTTPConfig                       HTTPConfig          `mapstructure:"http_config"`
 	KeyFile                          *string             `mapstructure:"key_file"`
 	LeaveOnTerm                      *bool               `mapstructure:"leave_on_terminate"`
+	LicensePath                      *string             `mapstructure:"license_path"`
 	Limits                           Limits              `mapstructure:"limits"`
 	LogLevel                         *string             `mapstructure:"log_level"`
 	LogJSON                          *bool               `mapstructure:"log_json"`
@@ -256,6 +258,8 @@ type Config struct {
 
 	RPC RPC `mapstructure:"rpc"`
 
+	RaftBoltDBConfig *consul.RaftBoltDBConfig `mapstructure:"raft_boltdb"`
+
 	// UseStreamingBackend instead of blocking queries for service health and
 	// any other endpoints which support streaming.
 	UseStreamingBackend *bool `mapstructure:"use_streaming_backend"`
@@ -267,8 +271,6 @@ type Config struct {
 	SnapshotAgent map[string]interface{} `mapstructure:"snapshot_agent"`
 
 	// non-user configurable values
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLDisabledTTL             *string  `mapstructure:"acl_disabled_ttl"`
 	AEInterval                 *string  `mapstructure:"ae_interval"`
 	CheckDeregisterIntervalMin *string  `mapstructure:"check_deregister_interval_min"`
 	CheckReapInterval          *string  `mapstructure:"check_reap_interval"`
@@ -282,13 +284,21 @@ type Config struct {
 	VersionPrerelease          *string  `mapstructure:"version_prerelease"`
 
 	// Enterprise Only
-	Audit *Audit `mapstructure:"audit"`
+	Audit Audit `mapstructure:"audit"`
 	// Enterprise Only
 	ReadReplica *bool `mapstructure:"read_replica" alias:"non_voting_server"`
 	// Enterprise Only
 	SegmentName *string `mapstructure:"segment"`
 	// Enterprise Only
 	Segments []Segment `mapstructure:"segments"`
+	// Enterprise Only
+	Partition *string `mapstructure:"partition"`
+
+	// Enterprise Only - not user configurable
+	LicensePollBaseTime   *string `mapstructure:"license_poll_base_time"`
+	LicensePollMaxTime    *string `mapstructure:"license_poll_max_time"`
+	LicenseUpdateBaseTime *string `mapstructure:"license_update_base_time"`
+	LicenseUpdateMaxTime  *string `mapstructure:"license_update_max_time"`
 }
 
 type GossipLANConfig struct {
@@ -375,6 +385,7 @@ type ServiceDefinition struct {
 	TaggedAddresses   map[string]ServiceAddress `mapstructure:"tagged_addresses"`
 	Meta              map[string]string         `mapstructure:"meta"`
 	Port              *int                      `mapstructure:"port"`
+	SocketPath        *string                   `mapstructure:"socket_path"`
 	Check             *CheckDefinition          `mapstructure:"check"`
 	Checks            []CheckDefinition         `mapstructure:"checks"`
 	Token             *string                   `mapstructure:"token"`
@@ -405,12 +416,16 @@ type CheckDefinition struct {
 	Shell                          *string             `mapstructure:"shell"`
 	GRPC                           *string             `mapstructure:"grpc"`
 	GRPCUseTLS                     *bool               `mapstructure:"grpc_use_tls"`
+	TLSServerName                  *string             `mapstructure:"tls_server_name"`
 	TLSSkipVerify                  *bool               `mapstructure:"tls_skip_verify" alias:"tlsskipverify"`
 	AliasNode                      *string             `mapstructure:"alias_node"`
 	AliasService                   *string             `mapstructure:"alias_service"`
 	Timeout                        *string             `mapstructure:"timeout"`
 	TTL                            *string             `mapstructure:"ttl"`
+	H2PING                         *string             `mapstructure:"h2ping"`
+	H2PingUseTLS                   *bool               `mapstructure:"h2ping_use_tls"`
 	SuccessBeforePassing           *int                `mapstructure:"success_before_passing"`
+	FailuresBeforeWarning          *int                `mapstructure:"failures_before_warning"`
 	FailuresBeforeCritical         *int                `mapstructure:"failures_before_critical"`
 	DeregisterCriticalServiceAfter *string             `mapstructure:"deregister_critical_service_after" alias:"deregistercriticalserviceafter"`
 
@@ -459,6 +474,16 @@ type ServiceProxy struct {
 	// (DestinationServiceID is set) but otherwise will be ignored.
 	LocalServicePort *int `mapstructure:"local_service_port"`
 
+	// LocalServiceSocketPath is the socket of the local service instance. It is optional
+	// and should only be specified for "side-car" style proxies.
+	LocalServiceSocketPath string `mapstructure:"local_service_socket_path"`
+
+	// TransparentProxy configuration.
+	TransparentProxy *TransparentProxyConfig `mapstructure:"transparent_proxy"`
+
+	// Mode represents how the proxy's inbound and upstream listeners are dialed.
+	Mode *string `mapstructure:"mode"`
+
 	// Config is the arbitrary configuration data provided with the proxy
 	// registration.
 	Config map[string]interface{} `mapstructure:"config"`
@@ -488,6 +513,7 @@ type Upstream struct {
 	// on service definitions in various places.
 	DestinationType      *string `mapstructure:"destination_type"`
 	DestinationNamespace *string `mapstructure:"destination_namespace"`
+	DestinationPartition *string `mapstructure:"destination_partition"`
 	DestinationName      *string `mapstructure:"destination_name"`
 
 	// Datacenter that the service discovery request should be run against. Note
@@ -495,13 +521,20 @@ type Upstream struct {
 	// datacenter.
 	Datacenter *string `mapstructure:"datacenter"`
 
+	// It would be worth thinking about a separate structure for these four items,
+	// unifying under address as something like "unix:/tmp/foo", "tcp:localhost:80" could make sense
 	// LocalBindAddress is the ip address a side-car proxy should listen on for
-	// traffic destined for this upstream service. Default if empty is 127.0.0.1.
+	// traffic destined for this upstream service. Default if empty and local bind socket
+	// is not present is 127.0.0.1.
 	LocalBindAddress *string `mapstructure:"local_bind_address"`
 
 	// LocalBindPort is the ip address a side-car proxy should listen on for traffic
 	// destined for this upstream service. Required.
 	LocalBindPort *int `mapstructure:"local_bind_port"`
+
+	// These are exclusive with LocalBindAddress/LocalBindPort. These are created under our control.
+	LocalBindSocketPath *string `mapstructure:"local_bind_socket_path"`
+	LocalBindSocketMode *string `mapstructure:"local_bind_socket_mode"`
 
 	// Config is an opaque config that is specific to the proxy process being run.
 	// It can be used to pass arbitrary configuration for this specific upstream
@@ -515,6 +548,16 @@ type Upstream struct {
 type MeshGatewayConfig struct {
 	// Mesh Gateway Mode
 	Mode *string `mapstructure:"mode"`
+}
+
+type TransparentProxyConfig struct {
+	// The port of the listener where outbound application traffic is being redirected to.
+	OutboundListenerPort *int `mapstructure:"outbound_listener_port"`
+
+	// DialedDirectly indicates whether transparent proxies can dial this proxy instance directly.
+	// The discovery chain is not considered when dialing a service instance directly.
+	// This setting is useful when addressing stateful services, such as a database cluster with a leader node.
+	DialedDirectly *bool `mapstructure:"dialed_directly"`
 }
 
 // ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.
@@ -592,6 +635,7 @@ type DNS struct {
 	MaxStale           *string           `mapstructure:"max_stale"`
 	NodeTTL            *string           `mapstructure:"node_ttl"`
 	OnlyPassing        *bool             `mapstructure:"only_passing"`
+	RecursorStrategy   *string           `mapstructure:"recursor_strategy"`
 	RecursorTimeout    *string           `mapstructure:"recursor_timeout"`
 	ServiceTTL         map[string]string `mapstructure:"service_ttl"`
 	UDPAnswerLimit     *int              `mapstructure:"udp_answer_limit"`
@@ -695,7 +739,6 @@ type ACL struct {
 	DefaultPolicy          *string `mapstructure:"default_policy"`
 	EnableKeyListPolicy    *bool   `mapstructure:"enable_key_list_policy"`
 	Tokens                 Tokens  `mapstructure:"tokens"`
-	DisabledTTL            *string `mapstructure:"disabled_ttl"`
 	EnableTokenPersistence *bool   `mapstructure:"enable_token_persistence"`
 
 	// Enterprise Only
@@ -703,14 +746,23 @@ type ACL struct {
 }
 
 type Tokens struct {
-	Master      *string `mapstructure:"master"`
-	Replication *string `mapstructure:"replication"`
-	AgentMaster *string `mapstructure:"agent_master"`
-	Default     *string `mapstructure:"default"`
-	Agent       *string `mapstructure:"agent"`
+	InitialManagement *string `mapstructure:"initial_management"`
+	Replication       *string `mapstructure:"replication"`
+	AgentRecovery     *string `mapstructure:"agent_recovery"`
+	Default           *string `mapstructure:"default"`
+	Agent             *string `mapstructure:"agent"`
 
 	// Enterprise Only
 	ManagedServiceProvider []ServiceProviderToken `mapstructure:"managed_service_provider"`
+
+	DeprecatedTokens `mapstructure:",squash"`
+}
+
+type DeprecatedTokens struct {
+	// DEPRECATED (ACL) - renamed to "initial_management"
+	Master *string `mapstructure:"master"`
+	// DEPRECATED (ACL) - renamed to "agent_recovery"
+	AgentMaster *string `mapstructure:"agent_master"`
 }
 
 // ServiceProviderToken groups an accessor and secret for a service provider token. Enterprise Only
@@ -736,11 +788,11 @@ type Audit struct {
 
 // AuditSink can be provided multiple times to define pipelines for auditing
 type AuditSink struct {
-	Name              *string `mapstructure:"name"`
 	Type              *string `mapstructure:"type"`
 	Format            *string `mapstructure:"format"`
 	Path              *string `mapstructure:"path"`
 	DeliveryGuarantee *string `mapstructure:"delivery_guarantee"`
+	Mode              *string `mapstructure:"mode"`
 	RotateBytes       *int    `mapstructure:"rotate_bytes"`
 	RotateDuration    *string `mapstructure:"rotate_duration"`
 	RotateMaxFiles    *int    `mapstructure:"rotate_max_files"`

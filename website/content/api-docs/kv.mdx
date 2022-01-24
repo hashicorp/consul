@@ -1,7 +1,6 @@
 ---
 layout: api
 page_title: KV Store - HTTP API
-sidebar_title: KV Store
 description: |-
   The /kv endpoints access Consul's simple key/value store, useful for storing
   service configuration or other metadata.
@@ -19,14 +18,16 @@ replication between datacenters, please view the
 
 ~> Values in the KV store cannot be larger than 512kb.
 
-For multi-key updates, please consider using [transaction](/api/txn).
+In order to perform atomic operations on multiple KV pairs (up to a limit of 64)
+please consider using [transactions](/api/txn) instead.
 
 ## Read Key
 
 This endpoint returns the specified key. If no key exists at the given path, a
 404 is returned instead of a 200 response.
 
-For multi-key reads, please consider using [transaction](/api/txn).
+For multi-key reads (up to a limit of 64 KV operations) please consider using
+[transactions](/api/txn) instead.
 
 | Method | Path       | Produces           |
 | ------ | ---------- | ------------------ |
@@ -41,6 +42,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `key:read`   |
+
+The corresponding CLI command is [`consul kv get`](/commands/kv/get).
 
 ### Parameters
 
@@ -70,7 +73,7 @@ The table below shows this endpoint's support for
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to query.
   If not provided, the namespace will be inferred from the request's ACL token,
   or will default to the `default` namespace. This is specified as part of the
-  This is specified as part of the URL as a query parameter.
+  URL as a query parameter.
   For recursive lookups, the namespace may be specified as '\*' and then results
   will be returned for all namespaces. Added in Consul 1.7.0.
 
@@ -137,7 +140,7 @@ flags or want to implement a key-space explorer.
 #### Raw Response
 
 When using the `?raw` endpoint, the response is not `application/json`, but
-rather the content type of the uploaded content.
+is instead `text/plain`.
 
 ```
 )k������z^�-�ɑj�q����#u�-R�r��T�D��٬�Y��l,�ιK��Fm��}�#e��
@@ -145,6 +148,10 @@ rather the content type of the uploaded content.
 
 (Yes, that is intentionally a bunch of gibberish characters to showcase the
 response)
+
+!> **Warning:** Consul versions before 1.9.5, 1.8.10 and 1.7.14 detected the content-type
+of the raw KV data which could be used for cross-site scripting (XSS) attacks. This is 
+identified publicly as CVE-2020-25864.
 
 ## Create/Update Key
 
@@ -167,6 +174,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `key:write`  |
+
+The corresponding CLI command is [`consul kv put`](/commands/kv/put).
 
 ### Parameters
 
@@ -253,6 +262,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `key:write`  |
+
+The corresponding CLI command is [`consul kv delete`](/commands/kv/delete).
 
 ### Parameters
 

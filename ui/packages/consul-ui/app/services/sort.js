@@ -2,7 +2,6 @@ import Service from '@ember/service';
 import service from 'consul-ui/sort/comparators/service';
 import serviceInstance from 'consul-ui/sort/comparators/service-instance';
 import upstreamInstance from 'consul-ui/sort/comparators/upstream-instance';
-import acl from 'consul-ui/sort/comparators/acl';
 import kv from 'consul-ui/sort/comparators/kv';
 import healthCheck from 'consul-ui/sort/comparators/health-check';
 import intention from 'consul-ui/sort/comparators/intention';
@@ -34,7 +33,6 @@ const comparators = {
   ['upstream-instance']: upstreamInstance(options),
   ['health-check']: healthCheck(options),
   ['auth-method']: authMethod(options),
-  acl: acl(options),
   kv: kv(options),
   intention: intention(options),
   token: token(options),

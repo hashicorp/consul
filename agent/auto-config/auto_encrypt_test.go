@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"fmt"
 	"net"
 	"net/url"
@@ -45,16 +44,7 @@ func TestAutoEncrypt_generateCSR(t *testing.T) {
 				AutoEncryptTLS:   true,
 				AutoEncryptIPSAN: []net.IP{net.IPv4(198, 18, 0, 1), net.IPv4(198, 18, 0, 2)},
 			},
-			expectedSubject: pkix.Name{
-				CommonName: connect.AgentCN("test-node", unknownTrustDomain),
-				Names: []pkix.AttributeTypeAndValue{
-					{
-						// 2,5,4,3 is the CommonName type ASN1 identifier
-						Type:  asn1.ObjectIdentifier{2, 5, 4, 3},
-						Value: "testnode.agnt.unknown.consul",
-					},
-				},
-			},
+			expectedSubject:  pkix.Name{},
 			expectedSigAlg:   x509.ECDSAWithSHA256,
 			expectedPubAlg:   x509.ECDSA,
 			expectedDNSNames: defaultDNSSANs,
@@ -77,16 +67,7 @@ func TestAutoEncrypt_generateCSR(t *testing.T) {
 				AutoEncryptTLS:    true,
 				AutoEncryptDNSSAN: []string{"foo.local", "bar.local"},
 			},
-			expectedSubject: pkix.Name{
-				CommonName: connect.AgentCN("test-node", unknownTrustDomain),
-				Names: []pkix.AttributeTypeAndValue{
-					{
-						// 2,5,4,3 is the CommonName type ASN1 identifier
-						Type:  asn1.ObjectIdentifier{2, 5, 4, 3},
-						Value: "testnode.agnt.unknown.consul",
-					},
-				},
-			},
+			expectedSubject:  pkix.Name{},
 			expectedSigAlg:   x509.ECDSAWithSHA256,
 			expectedPubAlg:   x509.ECDSA,
 			expectedDNSNames: append(defaultDNSSANs, "foo.local", "bar.local"),
@@ -182,7 +163,7 @@ func TestAutoEncrypt_hosts(t *testing.T) {
 				},
 			}
 
-			hosts, err := ac.autoEncryptHosts()
+			hosts, err := ac.joinHosts()
 			if tcase.err != "" {
 				testutil.RequireErrorContains(t, err, tcase.err)
 			} else {
@@ -406,7 +387,9 @@ func TestAutoEncrypt_RootsUpdate(t *testing.T) {
 	})
 
 	// when a cache event comes in we end up recalculating the fallback timer which requires this call
-	testAC.mcfg.tlsCfg.On("AutoEncryptCertNotAfter").Return(time.Now().Add(10 * time.Minute)).Once()
+	testAC.mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{
+		NotAfter: time.Now().Add(10 * time.Minute),
+	}).Once()
 
 	req := structs.DCSpecificRequest{Datacenter: "dc1"}
 	require.True(t, testAC.mcfg.cache.sendNotification(context.Background(), req.CacheInfo().Key, cache.UpdateEvent{
@@ -433,7 +416,9 @@ func TestAutoEncrypt_CertUpdate(t *testing.T) {
 	})
 
 	// when a cache event comes in we end up recalculating the fallback timer which requires this call
-	testAC.mcfg.tlsCfg.On("AutoEncryptCertNotAfter").Return(secondCert.ValidBefore).Once()
+	testAC.mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{
+		NotAfter: secondCert.ValidBefore,
+	}).Once()
 
 	req := cachetype.ConnectCALeafRequest{
 		Datacenter: "dc1",
@@ -484,8 +469,9 @@ func TestAutoEncrypt_Fallback(t *testing.T) {
 	})
 
 	// when a cache event comes in we end up recalculating the fallback timer which requires this call
-	testAC.mcfg.tlsCfg.On("AutoEncryptCertNotAfter").Return(secondCert.ValidBefore).Once()
-	testAC.mcfg.tlsCfg.On("AutoEncryptCertExpired").Return(true).Once()
+	testAC.mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{
+		NotAfter: secondCert.ValidBefore,
+	}).Times(2)
 
 	fallbackCtx, fallbackCancel := context.WithCancel(context.Background())
 
@@ -536,7 +522,9 @@ func TestAutoEncrypt_Fallback(t *testing.T) {
 	testAC.mcfg.expectInitialTLS(t, "autoconf", "dc1", testAC.originalToken, secondCA, &secondRoots, thirdCert, testAC.extraCerts)
 
 	// after the second RPC we now will use the new certs validity period in the next run loop iteration
-	testAC.mcfg.tlsCfg.On("AutoEncryptCertNotAfter").Return(time.Now().Add(10 * time.Minute)).Once()
+	testAC.mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{
+		NotAfter: time.Now().Add(10 * time.Minute),
+	}).Once()
 
 	// now that all the mocks are set up we can trigger the whole thing by sending the second expired cert
 	// as a cache update event.

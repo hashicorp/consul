@@ -14,6 +14,7 @@ import (
 const (
 	expectedSelfAdminCluster = `{
   "name": "self_admin",
+  "ignore_health_on_host_removal": false,
   "connect_timeout": "5s",
   "type": "STATIC",
   "http_protocol_options": {},
@@ -37,64 +38,232 @@ const (
     ]
   }
 }`
-	expectedPromListener = `{
-  "name": "envoy_prometheus_metrics_listener",
-  "address": {
-    "socket_address": {
-      "address": "0.0.0.0",
-      "port_value": 9000
-    }
-  },
-  "filter_chains": [
-    {
-      "filters": [
-        {
-          "name": "envoy.filters.network.http_connection_manager",
-          "typedConfig": {
-            "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
-            "stat_prefix": "envoy_prometheus_metrics",
-            "codec_type": "HTTP1",
-            "route_config": {
-              "name": "self_admin_route",
-              "virtual_hosts": [
-                {
-                  "name": "self_admin",
-                  "domains": [
-                    "*"
-                  ],
-                  "routes": [
-                    {
-                      "match": {
-                        "path": "/metrics"
-                      },
-                      "route": {
-                        "cluster": "self_admin",
-                        "prefix_rewrite": "/stats/prometheus"
-                      }
-                    },
-                    {
-                      "match": {
-                        "prefix": "/"
-                      },
-                      "direct_response": {
-                        "status": 404
-                      }
-                    }
-                  ]
+	expectedSelfAdminClusterNonLoopbackIP = `{
+  "name": "self_admin",
+  "ignore_health_on_host_removal": false,
+  "connect_timeout": "5s",
+  "type": "STATIC",
+  "http_protocol_options": {},
+  "loadAssignment": {
+    "clusterName": "self_admin",
+    "endpoints": [
+      {
+        "lbEndpoints": [
+          {
+            "endpoint": {
+              "address": {
+                "socket_address": {
+                  "address": "192.0.2.10",
+                  "port_value": 19002
                 }
-              ]
-            },
-            "http_filters": [
-              {
-                "name": "envoy.filters.http.router"
               }
-            ]
+            }
           }
-        }
-      ]
-    }
-  ]
+        ]
+      }
+    ]
+  }
 }`
+	expectedPrometheusBackendCluster = `{
+  "name": "prometheus_backend",
+  "ignore_health_on_host_removal": false,
+  "connect_timeout": "5s",
+  "type": "STATIC",
+  "http_protocol_options": {},
+  "loadAssignment": {
+    "clusterName": "prometheus_backend",
+    "endpoints": [
+      {
+        "lbEndpoints": [
+          {
+            "endpoint": {
+              "address": {
+                "socket_address": {
+                  "address": "127.0.0.1",
+                  "port_value": 20100
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}`
+	expectedPromListener = `{
+	"name": "envoy_prometheus_metrics_listener",
+	"address": {
+	  "socket_address": {
+		"address": "0.0.0.0",
+		"port_value": 9000
+	  }
+	},
+	"filter_chains": [
+	  {
+		"filters": [
+		  {
+			"name": "envoy.filters.network.http_connection_manager",
+			"typedConfig": {
+			  "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+			  "stat_prefix": "envoy_prometheus_metrics",
+			  "codec_type": "HTTP1",
+			  "route_config": {
+				"name": "self_admin_route",
+				"virtual_hosts": [
+				  {
+					"name": "self_admin",
+					"domains": [
+					  "*"
+					],
+					"routes": [
+					  {
+						"match": {
+						  "path": "/metrics"
+						},
+						"route": {
+						  "cluster": "self_admin",
+						  "prefix_rewrite": "/stats/prometheus"
+						}
+					  },
+					  {
+						"match": {
+						  "prefix": "/"
+						},
+						"direct_response": {
+						  "status": 404
+						}
+					  }
+					]
+				  }
+				]
+			  },
+			  "http_filters": [
+				{
+				  "name": "envoy.filters.http.router"
+				}
+			  ]
+			}
+		  }
+		]
+	  }
+	]
+  }`
+	expectedPromListenerCustomScrapePath = `{
+	"name": "envoy_prometheus_metrics_listener",
+	"address": {
+	  "socket_address": {
+		"address": "0.0.0.0",
+		"port_value": 9000
+	  }
+	},
+	"filter_chains": [
+	  {
+		"filters": [
+		  {
+			"name": "envoy.filters.network.http_connection_manager",
+			"typedConfig": {
+			  "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+			  "stat_prefix": "envoy_prometheus_metrics",
+			  "codec_type": "HTTP1",
+			  "route_config": {
+				"name": "self_admin_route",
+				"virtual_hosts": [
+				  {
+					"name": "self_admin",
+					"domains": [
+					  "*"
+					],
+					"routes": [
+					  {
+						"match": {
+						  "path": "/scrape-path"
+						},
+						"route": {
+						  "cluster": "self_admin",
+						  "prefix_rewrite": "/stats/prometheus"
+						}
+					  },
+					  {
+						"match": {
+						  "prefix": "/"
+						},
+						"direct_response": {
+						  "status": 404
+						}
+					  }
+					]
+				  }
+				]
+			  },
+			  "http_filters": [
+				{
+				  "name": "envoy.filters.http.router"
+				}
+			  ]
+			}
+		  }
+		]
+	  }
+	]
+  }`
+	expectedPromListenerWithPrometheusBackendCluster = `{
+	"name": "envoy_prometheus_metrics_listener",
+	"address": {
+	  "socket_address": {
+		"address": "0.0.0.0",
+		"port_value": 9000
+	  }
+	},
+	"filter_chains": [
+	  {
+		"filters": [
+		  {
+			"name": "envoy.filters.network.http_connection_manager",
+			"typedConfig": {
+			  "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+			  "stat_prefix": "envoy_prometheus_metrics",
+			  "codec_type": "HTTP1",
+			  "route_config": {
+				"name": "self_admin_route",
+				"virtual_hosts": [
+				  {
+					"name": "self_admin",
+					"domains": [
+					  "*"
+					],
+					"routes": [
+					  {
+						"match": {
+						  "path": "/metrics"
+						},
+						"route": {
+						  "cluster": "prometheus_backend",
+						  "prefix_rewrite": "/stats/prometheus"
+						}
+					  },
+					  {
+						"match": {
+						  "prefix": "/"
+						},
+						"direct_response": {
+						  "status": 404
+						}
+					  }
+					]
+				  }
+				]
+			  },
+			  "http_filters": [
+				{
+				  "name": "envoy.filters.http.router"
+				}
+			  ]
+			}
+		  }
+		]
+	  }
+	]
+  }`
 	expectedStatsListener = `{
   "name": "envoy_metrics_listener",
   "address": {
@@ -109,7 +278,7 @@ const (
         {
           "name": "envoy.filters.network.http_connection_manager",
           "typedConfig": {
-            "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
             "stat_prefix": "envoy_metrics",
             "codec_type": "HTTP1",
             "route_config": {
@@ -167,7 +336,7 @@ const (
         {
           "name": "envoy.filters.network.http_connection_manager",
           "typedConfig": {
-            "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
             "stat_prefix": "envoy_ready",
             "codec_type": "HTTP1",
             "route_config": {
@@ -273,7 +442,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v2.StatsdSink",
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",
@@ -301,7 +470,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v2.StatsdSink",
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",
@@ -330,7 +499,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v2.StatsdSink",
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",
@@ -343,6 +512,40 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "simple-statsd-sink-inline-env-allowed",
+			input: BootstrapConfig{
+				StatsdURL: "udp://$HOST_IP:9125",
+			},
+			env: []string{"HOST_IP=127.0.0.1"},
+			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON: defaultStatsConfigJSON,
+				StatsSinksJSON: `[{
+					"name": "envoy.stat_sinks.statsd",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
+						"address": {
+							"socket_address": {
+								"address": "127.0.0.1",
+								"port_value": 9125
+							}
+						}
+					}
+				}]`,
+			},
+			wantErr: false,
+		},
+		{
+			name: "simple-statsd-sink-inline-env-disallowed",
+			input: BootstrapConfig{
+				StatsdURL: "udp://$HOST_ADDRESS:9125",
+			},
+			env: []string{"HOST_ADDRESS=127.0.0.1"},
+			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON: defaultStatsConfigJSON,
+			},
+			wantErr: true,
+		},
+		{
 			name: "simple-dogstatsd-sink",
 			input: BootstrapConfig{
 				DogstatsdURL: "udp://127.0.0.1:9125",
@@ -352,7 +555,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.dog_statsd",
 					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v2.DogStatsdSink",
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",
@@ -374,7 +577,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.dog_statsd",
 					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v2.DogStatsdSink",
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
 						"address": {
 							"pipe": {
 								"path": "/var/run/dogstatsd.sock"
@@ -397,7 +600,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.dog_statsd",
 					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v2.DogStatsdSink",
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",
@@ -456,8 +659,9 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				PrometheusBindAddr: "0.0.0.0:9000",
 			},
 			baseArgs: BootstrapTplArgs{
-				AdminBindAddress: "127.0.0.1",
-				AdminBindPort:    "19000",
+				AdminBindAddress:     "127.0.0.1",
+				AdminBindPort:        "19000",
+				PrometheusScrapePath: "/metrics",
 			},
 			wantArgs: BootstrapTplArgs{
 				AdminBindAddress: "127.0.0.1",
@@ -465,8 +669,31 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				// Should add a static cluster for the self-proxy to admin
 				StaticClustersJSON: expectedSelfAdminCluster,
 				// Should add a static http listener too
-				StaticListenersJSON: expectedPromListener,
-				StatsConfigJSON:     defaultStatsConfigJSON,
+				StaticListenersJSON:  expectedPromListener,
+				StatsConfigJSON:      defaultStatsConfigJSON,
+				PrometheusScrapePath: "/metrics",
+			},
+			wantErr: false,
+		},
+		{
+			name: "prometheus-bind-addr-non-loopback-ip",
+			input: BootstrapConfig{
+				PrometheusBindAddr: "0.0.0.0:9000",
+			},
+			baseArgs: BootstrapTplArgs{
+				AdminBindAddress:     "192.0.2.10",
+				AdminBindPort:        "19002",
+				PrometheusScrapePath: "/metrics",
+			},
+			wantArgs: BootstrapTplArgs{
+				AdminBindAddress: "192.0.2.10",
+				AdminBindPort:    "19002",
+				// Should add a static cluster for the self-proxy to admin
+				StaticClustersJSON: expectedSelfAdminClusterNonLoopbackIP,
+				// Should add a static http listener too
+				StaticListenersJSON:  expectedPromListener,
+				StatsConfigJSON:      defaultStatsConfigJSON,
+				PrometheusScrapePath: "/metrics",
 			},
 			wantErr: false,
 		},
@@ -478,8 +705,9 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StaticListenersJSON: `{"baz":"qux"}`,
 			},
 			baseArgs: BootstrapTplArgs{
-				AdminBindAddress: "127.0.0.1",
-				AdminBindPort:    "19000",
+				AdminBindAddress:     "127.0.0.1",
+				AdminBindPort:        "19000",
+				PrometheusScrapePath: "/scrape-path",
 			},
 			wantArgs: BootstrapTplArgs{
 				AdminBindAddress: "127.0.0.1",
@@ -487,8 +715,33 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				// Should add a static cluster for the self-proxy to admin
 				StaticClustersJSON: `{"foo":"bar"},` + expectedSelfAdminCluster,
 				// Should add a static http listener too
-				StaticListenersJSON: `{"baz":"qux"},` + expectedPromListener,
-				StatsConfigJSON:     defaultStatsConfigJSON,
+				StaticListenersJSON:  `{"baz":"qux"},` + expectedPromListenerCustomScrapePath,
+				StatsConfigJSON:      defaultStatsConfigJSON,
+				PrometheusScrapePath: "/scrape-path",
+			},
+			wantErr: false,
+		},
+		{
+			name: "prometheus-bind-addr-with-prometheus-backend",
+			input: BootstrapConfig{
+				PrometheusBindAddr: "0.0.0.0:9000",
+			},
+			baseArgs: BootstrapTplArgs{
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				PrometheusBackendPort: "20100",
+				PrometheusScrapePath:  "/metrics",
+			},
+			wantArgs: BootstrapTplArgs{
+				AdminBindAddress: "127.0.0.1",
+				AdminBindPort:    "19000",
+				// Should use the "prometheus_backend" cluster instead, which
+				// uses the PrometheusBackendPort rather than Envoy admin port
+				StaticClustersJSON:    expectedPrometheusBackendCluster,
+				StaticListenersJSON:   expectedPromListenerWithPrometheusBackendCluster,
+				StatsConfigJSON:       defaultStatsConfigJSON,
+				PrometheusBackendPort: "20100",
+				PrometheusScrapePath:  "/metrics",
 			},
 			wantErr: false,
 		},
@@ -634,8 +887,9 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsBindAddr:      "0.0.0.0:9000",
 			},
 			baseArgs: BootstrapTplArgs{
-				AdminBindAddress: "127.0.0.1",
-				AdminBindPort:    "19000",
+				AdminBindAddress:     "127.0.0.1",
+				AdminBindPort:        "19000",
+				PrometheusScrapePath: "/metrics",
 			},
 			wantArgs: BootstrapTplArgs{
 				AdminBindAddress: "127.0.0.1",
@@ -647,7 +901,8 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 					[]string{expectedPromListener, expectedStatsListener, expectedReadyListener},
 					", ",
 				),
-				StatsConfigJSON: defaultStatsConfigJSON,
+				StatsConfigJSON:      defaultStatsConfigJSON,
+				PrometheusScrapePath: "/metrics",
 			},
 			wantErr: false,
 		},
@@ -659,8 +914,9 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsBindAddr:      "0.0.0.0:9000",
 			},
 			baseArgs: BootstrapTplArgs{
-				AdminBindAddress: "127.0.0.1",
-				AdminBindPort:    "19000",
+				AdminBindAddress:     "127.0.0.1",
+				AdminBindPort:        "19000",
+				PrometheusScrapePath: "/metrics",
 			},
 			omitDeprecatedTags: true,
 			wantArgs: BootstrapTplArgs{
@@ -672,7 +928,8 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 					", ",
 				),
 				// Should not have default stats config JSON when deprecated tags are omitted
-				StatsConfigJSON: updatedStatsConfigJSON,
+				StatsConfigJSON:      updatedStatsConfigJSON,
+				PrometheusScrapePath: "/metrics",
 			},
 			wantErr: false,
 		},
@@ -769,6 +1026,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 				"consul.destination.datacenter":     {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "dc2"},
 				"consul.destination.full_target":    {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648"},
 				"consul.destination.namespace":      {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.destination.partition":      {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
 				"consul.destination.routing_type":   {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "internal"},
 				"consul.destination.service":        {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
 				"consul.destination.service_subset": {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
@@ -787,6 +1045,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 				"consul.destination.datacenter":     {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "dc2"},
 				"consul.destination.full_target":    {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648"},
 				"consul.destination.namespace":      {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.destination.partition":      {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
 				"consul.destination.routing_type":   {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "internal"},
 				"consul.destination.service":        {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
 				"consul.destination.service_subset": {"pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
@@ -804,6 +1063,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 				"consul.destination.datacenter":     {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "dc2"},
 				"consul.destination.full_target":    {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648"},
 				"consul.destination.namespace":      {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.destination.partition":      {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
 				"consul.destination.routing_type":   {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "internal"},
 				"consul.destination.service":        {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
 				"consul.destination.service_subset": {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
@@ -822,6 +1082,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 				"consul.destination.datacenter":     {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "dc2"},
 				"consul.destination.full_target":    {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648"},
 				"consul.destination.namespace":      {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.destination.partition":      {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
 				"consul.destination.routing_type":   {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "internal"},
 				"consul.destination.service":        {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
 				"consul.destination.service_subset": {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
@@ -839,6 +1100,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 				"consul.destination.datacenter":     {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "dc2"},
 				"consul.destination.full_target":    {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648"},
 				"consul.destination.namespace":      {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.destination.partition":      {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
 				"consul.destination.routing_type":   {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "internal"},
 				"consul.destination.service":        {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
 				"consul.destination.service_subset": {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "v2"},
@@ -857,6 +1119,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 				"consul.destination.datacenter":     {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "dc2"},
 				"consul.destination.full_target":    {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648"},
 				"consul.destination.namespace":      {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.destination.partition":      {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
 				"consul.destination.routing_type":   {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "internal"},
 				"consul.destination.service":        {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
 				"consul.destination.service_subset": {"v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "v2"},
@@ -874,6 +1137,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 				"consul.destination.datacenter":     {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "dc2"},
 				"consul.destination.full_target":    {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648"},
 				"consul.destination.namespace":      {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.destination.partition":      {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
 				"consul.destination.routing_type":   {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "internal"},
 				"consul.destination.service":        {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
 				"consul.destination.service_subset": {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "v2"},
@@ -892,6 +1156,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 				"consul.destination.datacenter":     {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "dc2"},
 				"consul.destination.full_target":    {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648"},
 				"consul.destination.namespace":      {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.destination.partition":      {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
 				"consul.destination.routing_type":   {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "internal"},
 				"consul.destination.service":        {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
 				"consul.destination.service_subset": {"f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "v2"},
@@ -900,39 +1165,80 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
-			name: "tcp listener no namespace",
+			name: "cluster custom service subset non-default partition",
+			stat: "cluster.f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors",
+			expect: map[string][]string{
+				"consul.custom_hash":                {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8"},
+				"consul.datacenter":                 {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "dc2"},
+				"consul.destination.custom_hash":    {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8"},
+				"consul.destination.datacenter":     {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "dc2"},
+				"consul.destination.full_target":    {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648"},
+				"consul.destination.namespace":      {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.destination.partition":      {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "partA"},
+				"consul.destination.routing_type":   {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "internal-v1"},
+				"consul.destination.service":        {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
+				"consul.destination.service_subset": {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "v2"},
+				"consul.destination.target":         {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8~v2.pong.default.partA.dc2"},
+				"consul.destination.trust_domain":   {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "e5b08d03-bfc3-c870-1833-baddb116e648"},
+				"consul.full_target":                {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648"},
+				"consul.namespace":                  {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.routing_type":               {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "internal-v1"},
+				"consul.service":                    {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
+				"consul.service_subset":             {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "v2"},
+				"consul.target":                     {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8~v2.pong.default.partA.dc2"},
+				"consul.trust_domain":               {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "e5b08d03-bfc3-c870-1833-baddb116e648"},
+			},
+			expectNoDeprecated: map[string][]string{
+				"consul.destination.custom_hash":    {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8"},
+				"consul.destination.datacenter":     {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "dc2"},
+				"consul.destination.full_target":    {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648"},
+				"consul.destination.namespace":      {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.destination.partition":      {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "partA"},
+				"consul.destination.routing_type":   {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "internal-v1"},
+				"consul.destination.service":        {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
+				"consul.destination.service_subset": {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "v2"},
+				"consul.destination.target":         {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8~v2.pong.default.partA.dc2"},
+				"consul.destination.trust_domain":   {"f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "e5b08d03-bfc3-c870-1833-baddb116e648"},
+			},
+		},
+		{
+			name: "tcp listener no namespace or partition (OSS)",
 			stat: "tcp.upstream.db.dc1.downstream_cx_total",
 			expect: map[string][]string{
 				"consul.upstream.datacenter": {"db.dc1.", "dc1"},
 				"consul.upstream.namespace":  {"db.dc1.", ""},
+				"consul.upstream.partition":  {"db.dc1.", ""},
 				"consul.upstream.service":    {"db.dc1.", "db"},
 			},
 		},
 		{
-			name: "tcp listener with namespace",
-			stat: "tcp.upstream.db.default.dc1.downstream_cx_total",
+			name: "tcp listener with namespace and partition",
+			stat: "tcp.upstream.db.frontend.west.dc1.downstream_cx_total",
 			expect: map[string][]string{
-				"consul.upstream.datacenter": {"db.default.dc1.", "dc1"},
-				"consul.upstream.namespace":  {"db.default.dc1.", "default"},
-				"consul.upstream.service":    {"db.default.dc1.", "db"},
+				"consul.upstream.datacenter": {"db.frontend.west.dc1.", "dc1"},
+				"consul.upstream.namespace":  {"db.frontend.west.dc1.", "frontend"},
+				"consul.upstream.partition":  {"db.frontend.west.dc1.", "west"},
+				"consul.upstream.service":    {"db.frontend.west.dc1.", "db"},
 			},
 		},
 		{
-			name: "http listener no namespace",
+			name: "http listener no namespace or partition (OSS)",
 			stat: "http.upstream.web.dc1.downstream_cx_total",
 			expect: map[string][]string{
 				"consul.upstream.datacenter": {"web.dc1.", "dc1"},
 				"consul.upstream.namespace":  {"web.dc1.", ""},
+				"consul.upstream.partition":  {"web.dc1.", ""},
 				"consul.upstream.service":    {"web.dc1.", "web"},
 			},
 		},
 		{
-			name: "http listener with namespace",
-			stat: "http.upstream.web.default.dc1.downstream_cx_total",
+			name: "http listener with namespace and partition",
+			stat: "http.upstream.web.frontend.west.dc1.downstream_cx_total",
 			expect: map[string][]string{
-				"consul.upstream.datacenter": {"web.default.dc1.", "dc1"},
-				"consul.upstream.namespace":  {"web.default.dc1.", "default"},
-				"consul.upstream.service":    {"web.default.dc1.", "web"},
+				"consul.upstream.datacenter": {"web.frontend.west.dc1.", "dc1"},
+				"consul.upstream.namespace":  {"web.frontend.west.dc1.", "frontend"},
+				"consul.upstream.partition":  {"web.frontend.west.dc1.", "west"},
+				"consul.upstream.service":    {"web.frontend.west.dc1.", "web"},
 			},
 		},
 	}

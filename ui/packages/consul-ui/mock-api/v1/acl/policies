@@ -20,6 +20,9 @@ ${ env('CONSUL_ACLS_LEGACY', false) ? `rpc error making call: rpc: can't find me
 ${typeof location.search.ns !== 'undefined' ? `
               "Namespace": "${location.search.ns}",
 ` : ``}
+${typeof location.search.partition !== 'undefined' ? `
+            "Partition": "${location.search.partition}",
+` : ``}
               "Description": "Built-In Management Policy",
               "CreateIndex": 10,
               "ModifyIndex": 10
@@ -32,7 +35,10 @@ ${typeof location.search.ns !== 'undefined' ? `
             "Name": "${fake.hacker.noun()}-${i}",
 ${typeof location.search.ns !== 'undefined' ? `
             "Namespace": "${location.search.ns}",
-            ` : ``}
+` : ``}
+${typeof location.search.partition !== 'undefined' ? `
+            "Partition": "${location.search.partition}",
+` : ``}
             "Description": "${fake.lorem.sentence()}",
             "Datacenters": ${fake.helpers.randomize(['["aq west-5", "ch east-4"]'])},
             "CreateIndex": 10,

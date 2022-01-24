@@ -1,7 +1,6 @@
 ---
 layout: docs
 page_title: 'Configuration Entry Kind: Service Splitter'
-sidebar_title: Service Splitter
 description: >-
   The service-splitter config entry kind controls how to split incoming Connect
   requests across different subsets of a single service (like during staged
@@ -26,7 +25,7 @@ resolution stage.
 ## Interaction with other Config Entries
 
 - Service splitter config entries are a component of [L7 Traffic
-  Management](/docs/connect/l7-traffic-management).
+  Management](/docs/connect/l7-traffic).
 
 - Service splitter config entries are restricted to only services that define
   their protocol as http-based via a corresponding
@@ -40,14 +39,19 @@ resolution stage.
   to any configured
   [`service-resolver`](/docs/connect/config-entries/service-resolver).
 
+## UI 
+
+Once a `service-splitter` is successfully entered, you can view it in the UI. Service routers, service splitters, and service resolvers can all be viewed by clicking on your service then switching to the *routing* tab.
+
+![screenshot of service splitter in the UI](/img/l7-routing/Splitter.png)
+
 ## Sample Config Entries
 
 ### Two subsets of same service
 
-<Tabs>
-<Tab heading="HCL">
-
 Split traffic between two subsets of the same service:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-splitter"
@@ -64,11 +68,6 @@ Splits = [
 ]
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Split traffic between two subsets of the same service:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceSplitter
@@ -82,15 +81,30 @@ spec:
       serviceSubset: v2
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-splitter",
+  "Name": "web",
+  "Splits": [
+    {
+      "Weight": 90,
+      "ServiceSubset": "v1"
+    },
+    {
+      "Weight": 10,
+      "ServiceSubset": "v2"
+    }
+  ]
+}
+```
+
+</CodeTabs>
 
 ### Two different services
 
-<Tabs>
-<Tab heading="HCL">
-
 Split traffic between two services:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-splitter"
@@ -101,16 +115,11 @@ Splits = [
     # will default to service with same name as config entry ("web")
   },
   {
-    Weight  = 10
+    Weight  = 50
     Service = "web-rewrite"
   },
 ]
 ```
-
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Split traffic between two services:
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -121,12 +130,89 @@ spec:
   splits:
     - weight: 50
       # will default to service with same name as config entry ("web")
-    - weight: 10
+    - weight: 50
       service: web-rewrite
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-splitter",
+  "Name": "web",
+  "Splits": [
+    {
+      "Weight": 50
+    },
+    {
+      "Weight": 50,
+      "Service": "web-rewrite"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+
+### Set HTTP Headers
+
+Split traffic between two subsets with extra headers added so clients can tell
+which version (not yet supported in Kubernetes CRD):
+
+<CodeTabs tabs={[ "HCL", "JSON" ]}>
+
+```hcl
+Kind = "service-splitter"
+Name = "web"
+Splits = [
+  {
+    Weight        = 90
+    ServiceSubset = "v1"
+    ResponseHeaders {
+      Set {
+        "X-Web-Version": "v1"
+      }
+    }
+  },
+  {
+    Weight        = 10
+    ServiceSubset = "v2"
+    ResponseHeaders {
+      Set {
+        "X-Web-Version": "v2"
+      }
+    }
+  },
+]
+```
+
+```json
+{
+  "Kind": "service-splitter",
+  "Name": "web",
+  "Splits": [
+    {
+      "Weight": 90,
+      "ServiceSubset": "v1",
+      "ResponseHeaders": {
+        "Set": {
+          "X-Web-Version": "v1"
+        }
+      }
+    },
+    {
+      "Weight": 10,
+      "ServiceSubset": "v2",
+      "ResponseHeaders": {
+        "Set": {
+          "X-Web-Version": "v2"
+        }
+      }
+    }
+  ]
+}
+```
+
+</CodeTabs>
 
 ## Available Fields
 
@@ -154,7 +240,14 @@ spec:
       name: 'Namespace',
       type: `string: "default"`,
       enterprise: true,
-      description: 'Specifies the namespace the config entry will apply to.',
+      description: 'Specifies the namespace to which the configuration entry will apply.',
+      yaml: false,
+    },
+    {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description: 'Specifies the admin partition to which the configuration entry will apply.',
       yaml: false,
     },
     {
@@ -211,7 +304,30 @@ spec:
           enterprise: true,
           type: 'string: ""',
           description:
-            'The namespace to resolve the service from instead of the current namespace. If empty the current namespace is assumed.',
+            'The namespace to resolve the service from instead of the current namespace. If empty, the current namespace is used.',
+        },
+        {
+          name: 'Partition',
+          enterprise: true,
+          type: 'string: ""',
+          description:
+            'The admin partition to resolve the service from instead of the current partition. If empty, the current partition is used.',
+        },
+        {
+          yaml: false,
+          name: 'RequestHeaders',
+          type: 'HTTPHeaderModifiers: <optional>',
+          description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+          that will be applied to requests routed to this split.
+          This cannot be used with a \`tcp\` listener.`,
+        },
+        {
+          yaml: false,
+          name: 'ResponseHeaders',
+          type: 'HTTPHeaderModifiers: <optional>',
+          description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+          that will be applied to responses from this split.
+          This cannot be used with a \`tcp\` listener.`,
         },
       ],
     },

@@ -1,8 +1,9 @@
 <DataLoader
   @items={{item}}
   @src={{uri
-    '/${nspace}/${dc}/${type}/${src}'
+    '/${partition}/${nspace}/${dc}/${type}/${src}'
     (hash
+      partition=partition
       nspace=nspace
       dc=dc
       type=type
@@ -16,8 +17,9 @@
 
     <DataWriter
       @sink={{uri
-        '/${nspace}/${dc}/${type}'
+        '/${partition}/${nspace}/${dc}/${type}'
         (hash
+          partition=partition
           nspace=nspace
           dc=(or data.Datacenter dc)
           type=type

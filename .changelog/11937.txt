@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Fixes an issue saving intentions when editing per service intentions
+```

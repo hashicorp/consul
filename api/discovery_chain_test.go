@@ -32,21 +32,21 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				Namespace:   "default",
 				Datacenter:  "dc1",
 				Protocol:    "tcp",
-				StartNode:   "resolver:web.default.dc1",
+				StartNode:   "resolver:web.default.default.dc1",
 				Nodes: map[string]*DiscoveryGraphNode{
-					"resolver:web.default.dc1": {
+					"resolver:web.default.default.dc1": {
 						Type: DiscoveryGraphNodeTypeResolver,
-						Name: "web.default.dc1",
+						Name: "web.default.default.dc1",
 						Resolver: &DiscoveryResolver{
 							Default:        true,
 							ConnectTimeout: 5 * time.Second,
-							Target:         "web.default.dc1",
+							Target:         "web.default.default.dc1",
 						},
 					},
 				},
 				Targets: map[string]*DiscoveryTarget{
-					"web.default.dc1": {
-						ID:         "web.default.dc1",
+					"web.default.default.dc1": {
+						ID:         "web.default.default.dc1",
 						Service:    "web",
 						Namespace:  "default",
 						Datacenter: "dc1",
@@ -72,21 +72,21 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				Namespace:   "default",
 				Datacenter:  "dc2",
 				Protocol:    "tcp",
-				StartNode:   "resolver:web.default.dc2",
+				StartNode:   "resolver:web.default.default.dc2",
 				Nodes: map[string]*DiscoveryGraphNode{
-					"resolver:web.default.dc2": {
+					"resolver:web.default.default.dc2": {
 						Type: DiscoveryGraphNodeTypeResolver,
-						Name: "web.default.dc2",
+						Name: "web.default.default.dc2",
 						Resolver: &DiscoveryResolver{
 							Default:        true,
 							ConnectTimeout: 5 * time.Second,
-							Target:         "web.default.dc2",
+							Target:         "web.default.default.dc2",
 						},
 					},
 				},
 				Targets: map[string]*DiscoveryTarget{
-					"web.default.dc2": {
-						ID:         "web.default.dc2",
+					"web.default.default.dc2": {
+						ID:         "web.default.default.dc2",
 						Service:    "web",
 						Namespace:  "default",
 						Datacenter: "dc2",
@@ -119,20 +119,20 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				Namespace:   "default",
 				Datacenter:  "dc1",
 				Protocol:    "tcp",
-				StartNode:   "resolver:web.default.dc1",
+				StartNode:   "resolver:web.default.default.dc1",
 				Nodes: map[string]*DiscoveryGraphNode{
-					"resolver:web.default.dc1": {
+					"resolver:web.default.default.dc1": {
 						Type: DiscoveryGraphNodeTypeResolver,
-						Name: "web.default.dc1",
+						Name: "web.default.default.dc1",
 						Resolver: &DiscoveryResolver{
 							ConnectTimeout: 33 * time.Second,
-							Target:         "web.default.dc1",
+							Target:         "web.default.default.dc1",
 						},
 					},
 				},
 				Targets: map[string]*DiscoveryTarget{
-					"web.default.dc1": {
-						ID:         "web.default.dc1",
+					"web.default.default.dc1": {
+						ID:         "web.default.default.dc1",
 						Service:    "web",
 						Namespace:  "default",
 						Datacenter: "dc1",
@@ -164,20 +164,20 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				Datacenter:        "dc2",
 				Protocol:          "grpc",
 				CustomizationHash: "98809527",
-				StartNode:         "resolver:web.default.dc2",
+				StartNode:         "resolver:web.default.default.dc2",
 				Nodes: map[string]*DiscoveryGraphNode{
-					"resolver:web.default.dc2": {
+					"resolver:web.default.default.dc2": {
 						Type: DiscoveryGraphNodeTypeResolver,
-						Name: "web.default.dc2",
+						Name: "web.default.default.dc2",
 						Resolver: &DiscoveryResolver{
 							ConnectTimeout: 22 * time.Second,
-							Target:         "web.default.dc2",
+							Target:         "web.default.default.dc2",
 						},
 					},
 				},
 				Targets: map[string]*DiscoveryTarget{
-					"web.default.dc2": {
-						ID:         "web.default.dc2",
+					"web.default.default.dc2": {
+						ID:         "web.default.default.dc2",
 						Service:    "web",
 						Namespace:  "default",
 						Datacenter: "dc2",

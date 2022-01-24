@@ -3,12 +3,20 @@
   ...attributes
 >
 {{yield}}
+{{#if (not disabled)}}
   <YieldSlot @name="create">{{yield}}</YieldSlot>
   <label class="type-text">
     <span><YieldSlot @name="label">{{yield}}</YieldSlot></span>
     {{#if isOpen}}
       <DataSource
-        @src={{concat '/' (or nspace 'default') '/' dc '/' (pluralize type)}}
+        @src={{uri '/${partition}/${nspace}/${dc}/${type}'
+          (hash
+            partition=partition
+            nspace=nspace
+            dc=dc
+            type=(pluralize type)
+          )
+        }}
         @onchange={{action (mut allOptions) value="data"}}
       />
     {{/if}}
@@ -35,6 +43,7 @@
       </PowerSelect>
     </DataCollection>
   </label>
+{{/if}}
 {{#if (gt items.length 0)}}
   <YieldSlot @name="set">{{yield}}</YieldSlot>
 {{else}}

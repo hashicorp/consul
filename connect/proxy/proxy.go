@@ -3,10 +3,11 @@ package proxy
 import (
 	"crypto/x509"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-hclog"
 )
 
 // Proxy implements the built-in connect proxy.
@@ -102,6 +103,12 @@ func (p *Proxy) Serve() error {
 			// start one of each and stop/modify if changes occur.
 			for _, uc := range newCfg.Upstreams {
 				uc.applyDefaults()
+
+				if uc.LocalBindSocketPath != "" {
+					p.logger.Error("local_bind_socket_path is not supported with this proxy implementation. "+
+						"Can't start upstream.", "upstream", uc.String())
+					continue
+				}
 
 				if uc.LocalBindPort < 1 {
 					p.logger.Error("upstream has no local_bind_port. "+

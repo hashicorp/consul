@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package structs
@@ -13,6 +14,10 @@ var emptyEnterpriseMeta = EnterpriseMeta{}
 
 // EnterpriseMeta stub
 type EnterpriseMeta struct{}
+
+func (m *EnterpriseMeta) ToEnterprisePolicyMeta() *acl.EnterprisePolicyMeta {
+	return nil
+}
 
 func (m *EnterpriseMeta) estimateSize() int {
 	return 0
@@ -42,7 +47,28 @@ func (m *EnterpriseMeta) LessThan(_ *EnterpriseMeta) bool {
 	return false
 }
 
+func (m *EnterpriseMeta) WithWildcardNamespace() *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
+
+func (m *EnterpriseMeta) UnsetPartition() {
+	// do nothing
+}
+
+// TODO(partition): stop using this
+func NewEnterpriseMetaInDefaultPartition(_ string) EnterpriseMeta {
+	return emptyEnterpriseMeta
+}
+
+func NewEnterpriseMetaWithPartition(_, _ string) EnterpriseMeta {
+	return emptyEnterpriseMeta
+}
+
 func (m *EnterpriseMeta) NamespaceOrDefault() string {
+	return IntentionDefaultNamespace
+}
+
+func NamespaceOrDefault(_ string) string {
 	return IntentionDefaultNamespace
 }
 
@@ -50,8 +76,32 @@ func (m *EnterpriseMeta) NamespaceOrEmpty() string {
 	return ""
 }
 
-func NewEnterpriseMeta(_ string) EnterpriseMeta {
-	return emptyEnterpriseMeta
+func (m *EnterpriseMeta) InDefaultNamespace() bool {
+	return true
+}
+
+func (m *EnterpriseMeta) PartitionOrDefault() string {
+	return "default"
+}
+
+func EqualPartitions(_, _ string) bool {
+	return true
+}
+
+func IsDefaultPartition(partition string) bool {
+	return true
+}
+
+func PartitionOrDefault(_ string) string {
+	return "default"
+}
+
+func (m *EnterpriseMeta) PartitionOrEmpty() string {
+	return ""
+}
+
+func (m *EnterpriseMeta) InDefaultPartition() bool {
+	return true
 }
 
 // ReplicationEnterpriseMeta stub
@@ -59,25 +109,45 @@ func ReplicationEnterpriseMeta() *EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
 
-// DefaultEnterpriseMeta stub
-func DefaultEnterpriseMeta() *EnterpriseMeta {
+// TODO(partition): stop using this
+func DefaultEnterpriseMetaInDefaultPartition() *EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
 
-// WildcardEnterpriseMeta stub
-func WildcardEnterpriseMeta() *EnterpriseMeta {
+// DefaultEnterpriseMetaInPartition stub
+func DefaultEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
+
+func NodeEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
+
+// TODO(partition): stop using this
+func NodeEnterpriseMetaInDefaultPartition() *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
+
+// TODO(partition): stop using this
+func WildcardEnterpriseMetaInDefaultPartition() *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
+
+// WildcardEnterpriseMetaInPartition stub
+func WildcardEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
 
 // FillAuthzContext stub
 func (_ *EnterpriseMeta) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
-func (_ *EnterpriseMeta) Normalize() {}
+func (_ *Node) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
-// GetNamespace always returns the empty string.
-func (_ *EnterpriseMeta) GetNamespace() string {
-	return ""
-}
+func (_ *Coordinate) FillAuthzContext(_ *acl.AuthorizerContext) {}
+
+func (_ *NodeInfo) FillAuthzContext(_ *acl.AuthorizerContext) {}
+
+func (_ *EnterpriseMeta) Normalize() {}
 
 // FillAuthzContext stub
 func (_ *DirEntry) FillAuthzContext(_ *acl.AuthorizerContext) {}
@@ -98,12 +168,16 @@ func (_ *TxnServiceOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
 // OSS Stub
 func (_ *TxnCheckOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
+func NodeNameString(node string, _ *EnterpriseMeta) string {
+	return node
+}
+
 func ServiceIDString(id string, _ *EnterpriseMeta) string {
 	return id
 }
 
 func ParseServiceIDString(input string) (string, *EnterpriseMeta) {
-	return input, DefaultEnterpriseMeta()
+	return input, DefaultEnterpriseMetaInDefaultPartition()
 }
 
 func (sid ServiceID) String() string {
@@ -116,7 +190,7 @@ func ServiceIDFromString(input string) ServiceID {
 }
 
 func ParseServiceNameString(input string) (string, *EnterpriseMeta) {
-	return input, DefaultEnterpriseMeta()
+	return input, DefaultEnterpriseMetaInDefaultPartition()
 }
 
 func (n ServiceName) String() string {
@@ -154,4 +228,16 @@ func (s *Session) CheckIDs() []types.CheckID {
 		checks = append(checks, types.CheckID(c.ID))
 	}
 	return checks
+}
+
+func (t *Intention) HasWildcardSource() bool {
+	return t.SourceName == WildcardSpecifier
+}
+
+func (t *Intention) HasWildcardDestination() bool {
+	return t.DestinationName == WildcardSpecifier
+}
+
+func (s *ServiceNode) NodeIdentity() Identity {
+	return Identity{ID: s.Node}
 }

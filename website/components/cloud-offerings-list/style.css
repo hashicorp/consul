@@ -12,7 +12,7 @@ ul.g-cloud-offerings-list {
     flex-grow: 1;
     margin: 16px;
     background: var(--white);
-    border: 1px solid var(--gray-6);
+    border: 1px solid var(--gray-5);
     border-radius: 2px;
     text-align: center;
     transition: box-shadow 0.25s, transform 0.25s, -webkit-transform 0.25s;
@@ -38,7 +38,7 @@ ul.g-cloud-offerings-list {
       }
 
       & > span {
-        color: var(--gray-4);
+        color: var(--gray-3);
       }
 
       & > h4 {

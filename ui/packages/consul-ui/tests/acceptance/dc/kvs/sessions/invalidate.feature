@@ -24,9 +24,9 @@ Feature: dc / kvs / sessions / invalidate: Invalidate Lock Sessions
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class
   Scenario: Invalidating a lock session and receiving an error
-    Given the url "/v1/session/destroy/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter&ns=@!namespace" responds with a 500 status
+    Given the url "/v1/session/destroy/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter&ns=@namespace" responds with a 500 status
     And I click delete on the session
     And I click confirmDelete on the session
     Then the url should be /datacenter/kv/key/edit
-    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "error" class

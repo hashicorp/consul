@@ -1,7 +1,6 @@
 ---
 layout: docs
 page_title: Frequently Asked Questions
-sidebar_title: FAQ
 ---
 
 # Frequently Asked Questions
@@ -20,6 +19,36 @@ option for most teams. Consul supports [upgrading in place](/docs/k8s/upgrade).
 
 Non-production environments should be upgraded first. If upgrading
 a Consul version, Consul data should be [backed up](https://learn.hashicorp.com/tutorials/consul/kubernetes-disaster-recovery).
+
+### Q: How can I run tcpdump on Consul servers?
+
+First, add the following to your `values.yaml` file so you can `kubectl exec` into
+the Consul server containers as root:
+
+```yaml
+server:
+  securityContext:
+    runAsNonRoot: false
+    runAsGroup: 0
+    runAsUser: 0
+    fsGroup: 0
+```
+
+Run a `helm upgrade` (see [Upgrade Consul on Kubernetes](/docs/k8s/upgrade) for full upgrade instructions).
+
+Now, `kubectl exec` into a server pod:
+
+```shell-session
+$ kubectl exec -it consul-server-0 -- sh
+```
+
+Install `tcpdump`:
+
+```shell-session
+$ apk add --no-cache tcpdump
+$ which tcpdump
+/usr/bin/tcpdump
+```
 
 ## Generic Consul Questions
 
@@ -49,9 +78,9 @@ Consul has two important subsystems, the service catalog and the gossip
 protocol.
 The service catalog stores all the nodes, service instances, health check data,
 ACLs, and KV information. It is strongly consistent, and replicated
-using the [consensus protocol](/docs/internals/consensus).
+using the [consensus protocol](/docs/architecture/consensus).
 
-The [gossip protocol](/docs/internals/gossip) is used to track which
+The [gossip protocol](/docs/architecture/gossip) is used to track which
 nodes are part of the cluster and to detect a node or agent failure. This
 information is eventually consistent by nature. When the servers detects a
 change in membership, or receive a health update, they update the service
@@ -111,10 +140,13 @@ of any excessive resource utilization before arbitrarily increasing the limits.
 
 ### Q: What is the per-key value size limitation for Consul's key/value store?
 
-The limit on a key's value size is 512KB. This is strictly enforced and an
-HTTP 413 status will be returned to any client that attempts to store more
-than that limit in a value. It should be noted that the Consul key/value store
-is not designed to be used as a general purpose database. See
+The default recommended limit on a key's value size is 512KB. This is strictly
+enforced and an HTTP 413 status will be returned to any client that attempts to
+store more than that limit in a value. The limit can be increased by using the
+[`kv_max_value_size`](/docs/agent/options#kv_max_value_size) configuration option.
+
+It should be noted that the Consul key/value store is not designed to be used as
+a general purpose database. See
 [Server Performance](/docs/install/performance) for more details.
 
 ### Q: What data is replicated between Consul datacenters?
@@ -142,7 +174,7 @@ We recommend taking any precautions or remediation steps that you would
 normally do for individual processes, based on your operating system.
 
 Please see our
-[Security Model](/docs/internals/security) for more information.
+[Security Model](/docs/security) for more information.
 
 ### Q: Are the Consul Docker Images OCI Compliant?
 

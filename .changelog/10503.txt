@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Use the token's namespace instead of the default namespace when not
+specifying a namespace in the URL
+```

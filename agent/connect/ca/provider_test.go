@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestStructs_CAConfiguration_MsgpackEncodeDecode(t *testing.T) {
@@ -33,6 +34,7 @@ func TestStructs_CAConfiguration_MsgpackEncodeDecode(t *testing.T) {
 		CSRMaxConcurrent:    55,
 		PrivateKeyType:      "rsa",
 		PrivateKeyBits:      4096,
+		RootCertTTL:         10 * 24 * 365 * time.Hour,
 	}
 
 	cases := map[string]testcase{
@@ -51,7 +53,7 @@ func TestStructs_CAConfiguration_MsgpackEncodeDecode(t *testing.T) {
 				Config: map[string]interface{}{
 					"PrivateKey":          "key",
 					"RootCert":            "cert",
-					"RotationPeriod":      "5m",
+					"RotationPeriod":      "5m", // old unused field
 					"IntermediateCertTTL": "90h",
 					"DisableCrossSigning": true,
 				},
@@ -60,7 +62,6 @@ func TestStructs_CAConfiguration_MsgpackEncodeDecode(t *testing.T) {
 				CommonCAProviderConfig: *expectCommonBase,
 				PrivateKey:             "key",
 				RootCert:               "cert",
-				RotationPeriod:         5 * time.Minute,
 				DisableCrossSigning:    true,
 			},
 			parseFunc: func(t *testing.T, raw map[string]interface{}) interface{} {

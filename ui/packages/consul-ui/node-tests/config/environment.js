@@ -20,7 +20,9 @@ test(
           ACLsEnabled: true,
           NamespacesEnabled: false,
           SSOEnabled: false,
+          PartitionsEnabled: false,
           LocalDatacenter: 'dc1',
+          PrimaryDatacenter: 'dc1',
         }
       },
       {
@@ -33,7 +35,9 @@ test(
           ACLsEnabled: true,
           NamespacesEnabled: true,
           SSOEnabled: false,
+          PartitionsEnabled: false,
           LocalDatacenter: 'dc1',
+          PrimaryDatacenter: 'dc1',
         }
       },
       {
@@ -46,7 +50,9 @@ test(
           ACLsEnabled: true,
           NamespacesEnabled: false,
           SSOEnabled: true,
+          PartitionsEnabled: false,
           LocalDatacenter: 'dc1',
+          PrimaryDatacenter: 'dc1',
         }
       },
       {
@@ -56,7 +62,9 @@ test(
           ACLsEnabled: true,
           NamespacesEnabled: true,
           SSOEnabled: true,
+          PartitionsEnabled: true,
           LocalDatacenter: 'dc1',
+          PrimaryDatacenter: 'dc1',
         }
       }
     ].forEach(

@@ -1,0 +1,76 @@
+---
+class: css
+---
+# badge
+
+`%badge` is a slightly rounded pill (also `%badge-with-icon` for badges that need icons), made to easily fit inside a `%horizontal-kv-list` along with other key/values, or on its own as a single badge. Colors default to grays, but can be overridden via selectors.
+
+```hbs preview-template
+<figure>
+  <figcaption>Can be used as part of a horizontal-kv-list</figcaption>
+
+  <dl>
+    <dt class="kind-terminating-gateway">Kind</dt>
+    <dd>
+      Terminating Gateway
+    </dd>
+    <dt class="service-identity">
+      Service Identity
+    </dt>
+    <dd>service-0</dd>
+    <dt class>Something</dt>
+    <dd>else, here</dd>
+  </dl>
+
+</figure>
+<figure>
+  <figcaption>...or as a single `dl` element on its own</figcaption>
+
+  <dl class="kind-terminating-gateway">
+    <dt>Kind</dt>
+    <dd>
+      Terminating Gateway
+    </dd>
+  </dl><!--
+    Collapse the whitespace whilst maintaining indentation
+--><dl>
+    <dt
+      class="service-identity"
+    >
+      Service Identity
+    </dt>
+    <dd>service-0</dd>
+  </dl>
+</figure>
+```
+
+
+```css
+/* part of a kv list */
+dl {
+  @extend %horizontal-kv-list;
+}
+dt.service-identity {
+  @extend %badge;
+}
+dt.kind-terminating-gateway {
+  @extend %badge, %badge-with-icon;
+}
+dt.kind-terminating-gateway::before {
+  @extend %with-gateway-mask, %as-pseudo;
+}
+/* element on its own */
+dl.service-identity,
+dl.kind-terminating-gateway {
+  @extend %horizontal-kv-list;
+}
+dl.service-identity dt {
+  @extend %badge;
+}
+dl.kind-terminating-gateway dt {
+  @extend %badge, %badge-with-icon;
+}
+dl.kind-terminating-gateway dt::before {
+  @extend %with-gateway-mask, %as-pseudo;
+}
+```

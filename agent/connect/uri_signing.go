@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 // SpiffeIDSigning is the structure to represent the SPIFFE ID for a
@@ -16,7 +14,7 @@ type SpiffeIDSigning struct {
 }
 
 // URI returns the *url.URL for this SPIFFE ID.
-func (id *SpiffeIDSigning) URI() *url.URL {
+func (id SpiffeIDSigning) URI() *url.URL {
 	var result url.URL
 	result.Scheme = "spiffe"
 	result.Host = id.Host()
@@ -24,14 +22,8 @@ func (id *SpiffeIDSigning) URI() *url.URL {
 }
 
 // Host is the canonical representation as a DNS-compatible hostname.
-func (id *SpiffeIDSigning) Host() string {
+func (id SpiffeIDSigning) Host() string {
 	return strings.ToLower(fmt.Sprintf("%s.%s", id.ClusterID, id.Domain))
-}
-
-// CertURI impl.
-func (id *SpiffeIDSigning) Authorize(ixn *structs.Intention) (bool, bool) {
-	// Never authorize as a client.
-	return false, true
 }
 
 // CanSign takes any CertURI and returns whether or not this signing entity is
@@ -42,7 +34,7 @@ func (id *SpiffeIDSigning) Authorize(ixn *structs.Intention) (bool, bool) {
 // method on CertURI interface since we don't intend this to be extensible
 // outside and it's easier to reason about the security properties when they are
 // all in one place with "allowlist" semantics.
-func (id *SpiffeIDSigning) CanSign(cu CertURI) bool {
+func (id SpiffeIDSigning) CanSign(cu CertURI) bool {
 	switch other := cu.(type) {
 	case *SpiffeIDSigning:
 		// We can only sign other CA certificates for the same trust domain. Note
@@ -70,6 +62,6 @@ func (id *SpiffeIDSigning) CanSign(cu CertURI) bool {
 // break all certificate validation. That does mean that DNS prefix might not
 // match the identity URIs and so the trust domain might not actually resolve
 // which we would like but don't actually need.
-func SpiffeIDSigningForCluster(config *structs.CAConfiguration) *SpiffeIDSigning {
-	return &SpiffeIDSigning{ClusterID: config.ClusterID, Domain: "consul"}
+func SpiffeIDSigningForCluster(clusterID string) *SpiffeIDSigning {
+	return &SpiffeIDSigning{ClusterID: clusterID, Domain: "consul"}
 }

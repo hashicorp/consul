@@ -1,0 +1,4 @@
+```release-note:improvement
+ui: Add uri guard to prevent future URL encoding issues
+```
+

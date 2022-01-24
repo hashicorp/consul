@@ -1,0 +1,3 @@
+```release-note:bug
+tls: consider presented intermediates during server connection tls handshake.
+```

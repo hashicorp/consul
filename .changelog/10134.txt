@@ -1,0 +1,11 @@
+```release-note:feature
+cli: Add additional flags to the `consul connect redirect-traffic` command to allow excluding inbound and outbound ports,
+outbound CIDRs, and additional user IDs from traffic redirection.
+```
+```release-note:feature
+cli: Automatically exclude ports from `envoy_prometheus_bind_addr`, `envoy_stats_bind_addr`, and `ListenerPort` from `Expose` config
+from inbound traffic redirection rules if `proxy-id` flag is provided to the `consul connect redirect-traffic` command.
+```
+```release-note:feature
+sdk: Allow excluding inbound and outbound ports, outbound CIDRs, and additional user IDs from traffic redirection in the `iptables` package.
+```

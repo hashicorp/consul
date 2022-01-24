@@ -55,14 +55,14 @@ func (s *Store) txnKVS(tx WriteTxn, idx uint64, op *structs.TxnKVOp) (structs.Tx
 		}
 
 	case api.KVGet:
-		_, entry, err = kvsGetTxn(tx, nil, op.DirEnt.Key, &op.DirEnt.EnterpriseMeta)
+		_, entry, err = kvsGetTxn(tx, nil, op.DirEnt.Key, op.DirEnt.EnterpriseMeta)
 		if entry == nil && err == nil {
 			err = fmt.Errorf("key %q doesn't exist", op.DirEnt.Key)
 		}
 
 	case api.KVGetTree:
 		var entries structs.DirEntries
-		_, entries, err = s.kvsListTxn(tx, nil, op.DirEnt.Key, &op.DirEnt.EnterpriseMeta)
+		_, entries, err = s.kvsListTxn(tx, nil, op.DirEnt.Key, op.DirEnt.EnterpriseMeta)
 		if err == nil {
 			results := make(structs.TxnResults, 0, len(entries))
 			for _, e := range entries {
@@ -76,10 +76,10 @@ func (s *Store) txnKVS(tx WriteTxn, idx uint64, op *structs.TxnKVOp) (structs.Tx
 		entry, err = kvsCheckSessionTxn(tx, op.DirEnt.Key, op.DirEnt.Session, &op.DirEnt.EnterpriseMeta)
 
 	case api.KVCheckIndex:
-		entry, err = kvsCheckIndexTxn(tx, op.DirEnt.Key, op.DirEnt.ModifyIndex, &op.DirEnt.EnterpriseMeta)
+		entry, err = kvsCheckIndexTxn(tx, op.DirEnt.Key, op.DirEnt.ModifyIndex, op.DirEnt.EnterpriseMeta)
 
 	case api.KVCheckNotExists:
-		_, entry, err = kvsGetTxn(tx, nil, op.DirEnt.Key, &op.DirEnt.EnterpriseMeta)
+		_, entry, err = kvsGetTxn(tx, nil, op.DirEnt.Key, op.DirEnt.EnterpriseMeta)
 		if entry != nil && err == nil {
 			err = fmt.Errorf("key %q exists", op.DirEnt.Key)
 		}
@@ -149,11 +149,13 @@ func (s *Store) txnNode(tx WriteTxn, idx uint64, op *structs.TxnNodeOp) (structs
 	var entry *structs.Node
 	var err error
 
+	// TODO(partitions): change these errors to include node partitions when printing
+
 	getNode := func() (*structs.Node, error) {
 		if op.Node.ID != "" {
-			return getNodeIDTxn(tx, op.Node.ID)
+			return getNodeIDTxn(tx, op.Node.ID, op.Node.GetEnterpriseMeta())
 		} else {
-			return getNodeTxn(tx, op.Node.Node)
+			return getNodeTxn(tx, op.Node.Node, op.Node.GetEnterpriseMeta())
 		}
 	}
 
@@ -180,11 +182,11 @@ func (s *Store) txnNode(tx WriteTxn, idx uint64, op *structs.TxnNodeOp) (structs
 		entry, err = getNode()
 
 	case api.NodeDelete:
-		err = s.deleteNodeTxn(tx, idx, op.Node.Node)
+		err = s.deleteNodeTxn(tx, idx, op.Node.Node, op.Node.GetEnterpriseMeta())
 
 	case api.NodeDeleteCAS:
 		var ok bool
-		ok, err = s.deleteNodeCASTxn(tx, idx, op.Node.ModifyIndex, op.Node.Node)
+		ok, err = s.deleteNodeCASTxn(tx, idx, op.Node.ModifyIndex, op.Node.Node, op.Node.GetEnterpriseMeta())
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to delete node %q, index is stale", op.Node.Node)
 		}

@@ -1,0 +1,5 @@
+@import './skin';
+@import './layout';
+.tooltip-panel {
+  @extend %tooltip-panel;
+}

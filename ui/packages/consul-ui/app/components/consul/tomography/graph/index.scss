@@ -1,36 +1,36 @@
 .tomography-graph {
   .background {
-    fill: $gray-050;
+    fill: rgb(var(--tone-gray-050));
   }
   .axis {
     fill: none;
-    stroke: $gray-300;
+    stroke: rgb(var(--tone-gray-300));
     stroke-dasharray: 4 4;
   }
   .border {
     fill: none;
-    stroke: $gray-300;
+    stroke: rgb(var(--tone-gray-300));
   }
   .point {
-    stroke: $gray-400;
-    fill: $magenta-600;
+    stroke: rgb(var(--tone-gray-400));
+    fill: rgb(var(--tone-magenta-600));
   }
   .lines rect {
-    fill: $magenta-600;
+    fill: rgb(var(--tone-magenta-600));
     stroke: transparent;
     stroke-width: 5px;
   }
   .lines rect:hover {
-    fill: $gray-300;
+    fill: rgb(var(--tone-gray-300));
     height: 3px;
     y: -1px;
   }
   .tick line {
-    stroke: $gray-300;
+    stroke: rgb(var(--tone-gray-300));
   }
   .tick text {
-    font-size: $typo-size-600;
+    font-size: var(--typo-size-600);
     text-anchor: start;
-    color: $gray-900;
+    color: rgb(var(--tone-gray-900));
   }
 }

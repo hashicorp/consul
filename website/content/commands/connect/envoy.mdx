@@ -1,8 +1,8 @@
 ---
 layout: commands
-page_title: 'Commands: Connect Proxy'
+page_title: 'Commands: Connect Envoy'
 sidebar_title: envoy
-description: The connect proxy subcommand is used to run the Envoy proxy for Connect.
+description: The connect envoy subcommand is used to generate a bootstrap configuration for Envoy.
 ---
 
 # Consul Connect Envoy
@@ -22,7 +22,7 @@ build for other platforms currently.
 
 If the `-bootstrap` option is specified, the bootstrap config is generated in
 the same way and then printed to stdout. This allows it to be redirected to a
-file and used with `envoy -c bootstrap.json`. This works on all operating
+file and used with `envoy --config-path bootstrap.json`. This works on all operating
 systems allowing configuration to be generated on a host that Envoy doesn't
 build on but then used in a virtualized environment that can run Envoy.
 
@@ -54,7 +54,8 @@ proxy configuration needed.
 
 - `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration) ID.
   This service ID must already be registered with the local agent unless a gateway is being
-  registered with the `-register` flag.
+  registered with the `-register` flag. As of Consul 1.8.0, this can also be
+  specified via the `CONNECT_PROXY_ID` environment variable.
 
 - `-envoy-binary` - The full path to a specific Envoy binary to exec. By
   default the current `$PATH` is searched for `envoy`.
@@ -65,7 +66,7 @@ proxy configuration needed.
 
 - `-bootstrap` - If present, the command will simply output the generated
   bootstrap config to stdout in JSON protobuf form. This can be directed to a
-  file and used to start Envoy with `envoy -c bootstrap.json`.
+  file and used to start Envoy with `envoy --config-path bootstrap.json`.
 
   ~> **Security Note:** If ACLs are enabled the bootstrap JSON will contain the
   ACL token from `-token` or the environment and so should be handled as a secret.
@@ -74,13 +75,26 @@ proxy configuration needed.
   allowed to access by [Connect intentions](/docs/connect/intentions).
 
 - `-envoy-version` - The version of envoy that is being started. Default is
-  `1.16.2`. This is required so that the correct configuration can be generated.
+  `1.19.1`. This is required so that the correct configuration can be generated.
 
 - `-no-central-config` - By default the proxy's bootstrap configuration can be
   customized centrally. This requires that the command run on the same agent
   as the proxy will and that the agent is reachable when the command is run.
   In cases where either assumption is violated this flag will prevent the
   command attempting to resolve config from the local agent.
+
+- `-prometheus-backend-port` - Sets the backend port for the "prometheus_backend"
+  cluster that `envoy_prometheus_bind_addr` will point to. Without this flag,
+  `envoy_prometheus_bind_addr` would point to the "self_admin" cluster where Envoy metrics
+  are exposed. The metrics merging feature in consul-k8s uses this to point to the
+  merged metrics endpoint combining Envoy and service metrics.
+	Only applicable when `envoy_prometheus_bind_addr` is set in proxy config.
+
+- `-prometheus-scrape-path` - Sets the path where Envoy will expose metrics on the
+  `envoy_prometheus_bind_addr` listener. Default is `/metrics`. For example, if `envoy_prometheus_bind_addr`
+  is `0.0.0.0:20200`, and this flag is set to `/scrape-metrics`, prometheus metrics would
+  be scrapable at `0.0.0.0:20200/scrape-metrics`.
+	Only applicable when `envoy_prometheus_bind_addr` is set in proxy config.
 
 - `-- [pass-through options]` - Any options given after a double dash are passed
   directly through to the `envoy` invocation. See [Envoy's
@@ -97,6 +111,8 @@ proxy configuration needed.
   `proxy.destination_service_id` equal to the passed value must be present. If
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
+  As of Consul 1.8.0, this can also be specified via the `CONNECT_SIDECAR_FOR`
+  environment variable.
 
   -> **Note:** If ACLs are enabled, a token granting `service:write` for the
   _target_ service (configured in `proxy.destination_service_name`) must be
@@ -120,12 +136,25 @@ proxy configuration needed.
   `-register`. This takes the form of `<ip address>:<port>` but also supports go-sockaddr
   templates.
 
+  If Envoy is configured as a terminating or mesh gateway, traffic from services
+  within the mesh will be received at the specified IP and port.
+
+  If Envoy is configured as an ingress gateway, a `/ready` HTTP endpoint will be
+  instantiated at the specified IP and port. Consul uses `/ready` HTTP endpoints
+  to check gateway health. The specified IP will also be used by the ingress
+  gateway when instantiating user-defined listeners configured in the
+  [ingress gateway](/docs/connect/gateways/ingress-gateway) configuration entry.
+
+  ~> **Note**: Ensure that user-defined ingress gateway listeners use a
+     different port than the port specified in `-address` so that they do not
+     conflict with the health check endpoint.
+
 - `-admin-access-log-path` The path to write the access log for the administration
   server. If no access log is desired specify `/dev/null`. By default it will
   use `/dev/null`.
 
-- `-bind-address` - The bind address to use instead of the default binding rules
-  given as `<name>=<ip>:<port>` pairs. This flag may be specified multiple times
+- `-bind-address` - The bind address to use instead of the default binding rules.
+  Specified as `<name>=<ip>:<port>` pairs. This flag may be used multiple times
   to add multiple bind addresses.
 
 - `-expose-servers` - Expose the servers for WAN federation via this mesh
@@ -145,6 +174,8 @@ proxy configuration needed.
 #### Enterprise Options
 
 @include 'http_api_namespace_options.mdx'
+
+@include 'http_api_partition_options.mdx'
 
 ## Examples
 
@@ -178,7 +209,7 @@ To pass additional arguments directly to Envoy, for example output logging
 level, you can use:
 
 ```shell-session
-$ consul connect envoy -sidecar-for web -- -l debug
+$ consul connect envoy -sidecar-for web -- --log-level debug
 ```
 
 ### Multiple Proxy Instances

@@ -158,13 +158,19 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// Create and test the HTTP client
+	// Create and test that the API is accessible before starting a blocking
+	// loop for the watch.
+	//
+	// Consul does not have a /ping endpoint, so the /status/leader endpoint
+	// will be used as a substitute since it does not require an ACL token to
+	// query, and will always return a response to the client, unless there is a
+	// network communication error.
 	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
-	_, err = client.Agent().NodeName()
+	_, err = client.Status().Leader()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
 		return 1

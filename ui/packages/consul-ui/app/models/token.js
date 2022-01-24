@@ -11,6 +11,7 @@ export default class Token extends Model {
 
   @attr('string') Datacenter;
   @attr('string') Namespace;
+  @attr('string') Partition;
   @attr('string') IDPName;
   @attr('string') SecretID;
 
@@ -37,5 +38,10 @@ export default class Token extends Model {
   @computed('Policies.[]')
   get isGlobalManagement() {
     return (this.Policies || []).find(item => item.ID === MANAGEMENT_ID);
+  }
+
+  @computed('SecretID')
+  get hasSecretID() {
+    return this.SecretID !== '' && this.SecretID !== '<hidden>';
   }
 }

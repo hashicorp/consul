@@ -5,14 +5,15 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/hashicorp/consul/lib"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul/lib"
 )
 
 const (
-	DefaultCARotationPeriod    = "2160h"
 	DefaultLeafCertTTL         = "72h"
-	DefaultIntermediateCertTTL = "8760h" // 365 * 24h
+	DefaultIntermediateCertTTL = "8760h"  // ~ 1 year = 365 * 24h
+	DefaultRootCertTTL         = "87600h" // ~ 10 years = 365 * 24h * 10
 )
 
 // IndexedCARoots is the list of currently trusted CA Roots.
@@ -54,6 +55,15 @@ type IndexedCARoots struct {
 	QueryMeta `json:"-"`
 }
 
+func (r IndexedCARoots) Active() *CARoot {
+	for _, root := range r.Roots {
+		if root.ID == r.ActiveRootID {
+			return root
+		}
+	}
+	return nil
+}
+
 // CARoot represents a root CA certificate that is trusted.
 type CARoot struct {
 	// ID is a globally unique ID (UUID) representing this CA root.
@@ -85,11 +95,20 @@ type CARoot struct {
 	NotBefore time.Time
 	NotAfter  time.Time
 
-	// RootCert is the PEM-encoded public certificate.
+	// RootCert is the PEM-encoded public certificate for the root CA. The
+	// certificate is the same for all federated clusters.
 	RootCert string
 
 	// IntermediateCerts is a list of PEM-encoded intermediate certs to
-	// attach to any leaf certs signed by this CA.
+	// attach to any leaf certs signed by this CA. The list may include a
+	// certificate cross-signed by an old root CA, any subordinate CAs below the
+	// root CA, and the intermediate CA used to sign leaf certificates in the
+	// local Datacenter.
+	//
+	// If the provider which created this root uses an intermediate to sign
+	// leaf certificates (Vault provider), or this is a secondary Datacenter then
+	// the intermediate used to sign leaf certificates will be the last in the
+	// list.
 	IntermediateCerts []string
 
 	// SigningCert is the PEM-encoded signing certificate and SigningKey
@@ -134,6 +153,20 @@ func (c *CARoot) Clone() *CARoot {
 
 // CARoots is a list of CARoot structures.
 type CARoots []*CARoot
+
+// Active returns the single CARoot that is marked as active, or nil if there
+// is no active root (ex: when they are no roots).
+func (c CARoots) Active() *CARoot {
+	if c == nil {
+		return nil
+	}
+	for _, r := range c {
+		if r.Active {
+			return r
+		}
+	}
+	return nil
+}
 
 // CASignRequest is the request for signing a service certificate.
 type CASignRequest struct {
@@ -326,6 +359,7 @@ func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
 type CommonCAProviderConfig struct {
 	LeafCertTTL         time.Duration
 	IntermediateCertTTL time.Duration
+	RootCertTTL         time.Duration
 
 	SkipValidate bool
 
@@ -378,6 +412,12 @@ var IntermediateCertRenewInterval = time.Hour
 func (c CommonCAProviderConfig) Validate() error {
 	if c.SkipValidate {
 		return nil
+	}
+
+	// it's sufficient to check that the root cert ttl >= intermediate cert ttl
+	// since intermediate cert ttl >= 3* leaf cert ttl; so root cert ttl >= 3 * leaf cert ttl > leaf cert ttl
+	if c.RootCertTTL < c.IntermediateCertTTL {
+		return fmt.Errorf("root cert TTL is set and is not greater than intermediate cert ttl. root cert ttl: %s, intermediate cert ttl: %s", c.RootCertTTL, c.IntermediateCertTTL)
 	}
 
 	if c.LeafCertTTL < MinLeafCertTTL {
@@ -434,9 +474,8 @@ func (c CommonCAProviderConfig) Validate() error {
 type ConsulCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	PrivateKey     string
-	RootCert       string
-	RotationPeriod time.Duration
+	PrivateKey string
+	RootCert   string
 
 	// DisableCrossSigning is really only useful in test code to use the built in
 	// provider while exercising logic that depends on the CA provider ability to
@@ -466,6 +505,7 @@ type VaultCAProviderConfig struct {
 	Token               string
 	RootPKIPath         string
 	IntermediatePKIPath string
+	Namespace           string
 
 	CAFile        string
 	CAPath        string
@@ -473,6 +513,14 @@ type VaultCAProviderConfig struct {
 	KeyFile       string
 	TLSServerName string
 	TLSSkipVerify bool
+
+	AuthMethod *VaultAuthMethod `alias:"auth_method"`
+}
+
+type VaultAuthMethod struct {
+	Type      string
+	MountPath string `alias:"mount_path"`
+	Params    map[string]interface{}
 }
 
 type AWSCAProviderConfig struct {

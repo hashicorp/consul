@@ -81,7 +81,15 @@ as |key value|}}
           {{#each dcs as |dc|}}
             <Option @value={{dc.Name}} @selected={{contains dc.Name @filter.datacenter.value}}>{{dc.Name}}</Option>
           {{/each}}
-            <DataSource @src="/*/*/datacenters" @loading="lazy" @onchange={{action (mut this.dcs) value="data"}} />
+            <DataSource
+              @src={{uri "/${partition}/*/*/datacenters"
+                (hash
+                  partition=@partition
+                )
+              }}
+              @loading="lazy"
+              @onchange={{action (mut this.dcs) value="data"}}
+            />
       {{/let}}
         </BlockSlot>
       </search.Select>

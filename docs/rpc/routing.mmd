@@ -1,0 +1,33 @@
+graph LR
+
+    handleConn
+
+    handleConn -->|RPCConsul| handleConsulConn
+    handleConn -->|RPCRaft| raftLayer
+    handleConn -->|RPCTLS| handleConn
+    handleConn -->|RPCMultiplexV2| handleMultiplexV2
+    handleConn -->|RPCSnapshot| handleSnapshotConn
+    handleConn -->|RPCTLSInsecure| handleInsecureConn
+    handleConn -->|RPCGossip| handleGossipConn
+
+    handleConsulConn --> RPCServer
+    handleMultiplexV2 --> handleConsulConn
+
+    %% new after 1.6.9
+
+    handleConn -->|PeekForTLS| handleNativeTLS
+
+    handleNativeTLS -->|ALPN_RPCConsul| handleConsulConn
+    handleNativeTLS -->|ALPN_RPCRaft| raftLayer
+    handleNativeTLS -->|ALPN_RPCMultiplexV2| handleMultiplexV2
+    handleNativeTLS -->|ALPN_RPCSnapshot| handleSnapshotConn
+    handleNativeTLS -->|ALPN_RPCGRPC| grpcHandler
+    handleNativeTLS -->|ALPN_WANGossipPacket| handleWANGossipPacket
+    handleNativeTLS -->|ALPN_WANGossipStream | handleWANGossipStream
+    handleNativeTLS -->|ALPN_RPCGossip| handleGossipConn
+
+    handleMultiplexV2 -->|RPCGossip| handleGossipConn
+    handleConn -->|RPCGRPC| grpcHandler
+
+
+

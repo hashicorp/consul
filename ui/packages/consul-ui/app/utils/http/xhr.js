@@ -13,7 +13,11 @@ export default function(parseHeaders, XHR) {
         options.complete(this.status);
       }
     };
-    xhr.open(options.method, options.url, true);
+    let url = options.url;
+    if (url.endsWith('?')) {
+      url = url.substr(0, url.length - 1);
+    }
+    xhr.open(options.method, url, true);
     if (typeof options.headers === 'undefined') {
       options.headers = {};
     }

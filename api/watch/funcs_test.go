@@ -24,6 +24,12 @@ import (
 )
 
 func makeClient(t *testing.T) (*api.Client, *testutil.TestServer) {
+	// Skip test when -short flag provided; any tests that create a test server
+	// will take at least 100ms which is undesirable for -short
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// Make client config
 	conf := api.DefaultConfig()
 

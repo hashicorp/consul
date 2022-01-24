@@ -29,7 +29,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -97,8 +97,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Exports a tree from the KV store as JSON"
-const help = `
+const (
+	synopsis = "Exports a tree from the KV store as JSON"
+	help     = `
 Usage: consul kv export [KEY_OR_PREFIX]
 
   Retrieves key-value pairs for the given prefix from Consul's key-value store,
@@ -109,3 +110,4 @@ Usage: consul kv export [KEY_OR_PREFIX]
 
   For a full list of options and examples, please see the Consul documentation.
 `
+)

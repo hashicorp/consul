@@ -1,0 +1,3 @@
+```release-note:bug
+grpc: ensure that streaming gRPC requests work over mesh gateway based wan federation
+```

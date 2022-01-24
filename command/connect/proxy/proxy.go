@@ -315,9 +315,16 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 	for _, k := range upstreamKeys {
 		config := c.upstreams[k]
 
+		addr := config.LocalBindSocketPath
+		if addr == "" {
+			addr = fmt.Sprintf(
+				"%s:%d",
+				config.LocalBindAddress, config.LocalBindPort)
+		}
+
 		c.UI.Info(fmt.Sprintf(
-			"          Upstream: %s => %s:%d",
-			k, config.LocalBindAddress, config.LocalBindPort))
+			"          Upstream: %s => %s",
+			k, addr))
 		upstreams = append(upstreams, config)
 	}
 

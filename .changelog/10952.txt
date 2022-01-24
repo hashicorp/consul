@@ -1,0 +1,4 @@
+```release-note:bug
+api: Revert early out errors from license APIs to allow v1.10+ clients to
+manage licenses on older servers
+```

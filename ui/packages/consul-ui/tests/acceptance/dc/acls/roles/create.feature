@@ -17,10 +17,9 @@ Feature: dc / acls / roles / create
       Description: [Description]
     ---
     And I submit
-    Then a PUT request was made to "/v1/acl/role?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/role?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
-        Namespace: @namespace
         Name: my-role
         Description: [Description]
     ---

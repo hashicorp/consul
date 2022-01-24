@@ -8,13 +8,103 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	vaultapi "github.com/hashicorp/vault/api"
+	vaultconst "github.com/hashicorp/vault/sdk/helper/consts"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/go-hclog"
-	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/stretchr/testify/require"
 )
+
+func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
+	cases := map[string]struct {
+		rawConfig map[string]interface{}
+		expConfig *structs.VaultCAProviderConfig
+		expError  string
+	}{
+		"no token and no auth method provided": {
+			rawConfig: map[string]interface{}{},
+			expError:  "must provide a Vault token or configure a Vault auth method",
+		},
+		"both token and auth method provided": {
+			rawConfig: map[string]interface{}{"Token": "test", "AuthMethod": map[string]interface{}{"Type": "test"}},
+			expError:  "only one of Vault token or Vault auth method can be provided, but not both",
+		},
+		"no root PKI path": {
+			rawConfig: map[string]interface{}{"Token": "test"},
+			expError:  "must provide a valid path to a root PKI backend",
+		},
+		"no root intermediate path": {
+			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test"},
+			expError:  "must provide a valid path for the intermediate PKI backend",
+		},
+		"adds a slash to RootPKIPath and IntermediatePKIPath": {
+			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test"},
+			expConfig: &structs.VaultCAProviderConfig{
+				CommonCAProviderConfig: defaultCommonConfig(),
+				Token:                  "test",
+				RootPKIPath:            "test/",
+				IntermediatePKIPath:    "test/",
+			},
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			config, err := ParseVaultCAConfig(c.rawConfig)
+			if c.expError != "" {
+				require.EqualError(t, err, c.expError)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, c.expConfig, config)
+			}
+		})
+	}
+}
+
+func TestVaultCAProvider_configureVaultAuthMethod(t *testing.T) {
+	cases := map[string]struct {
+		expLoginPath string
+		params       map[string]interface{}
+		expError     string
+	}{
+		"alicloud":    {expLoginPath: "auth/alicloud/login"},
+		"approle":     {expLoginPath: "auth/approle/login"},
+		"aws":         {expLoginPath: "auth/aws/login"},
+		"azure":       {expLoginPath: "auth/azure/login"},
+		"cf":          {expLoginPath: "auth/cf/login"},
+		"github":      {expLoginPath: "auth/github/login"},
+		"gcp":         {expLoginPath: "auth/gcp/login"},
+		"jwt":         {expLoginPath: "auth/jwt/login"},
+		"kerberos":    {expLoginPath: "auth/kerberos/login"},
+		"kubernetes":  {expLoginPath: "auth/kubernetes/login", params: map[string]interface{}{"jwt": "fake"}},
+		"ldap":        {expLoginPath: "auth/ldap/login/foo", params: map[string]interface{}{"username": "foo"}},
+		"oci":         {expLoginPath: "auth/oci/login/foo", params: map[string]interface{}{"role": "foo"}},
+		"okta":        {expLoginPath: "auth/okta/login/foo", params: map[string]interface{}{"username": "foo"}},
+		"radius":      {expLoginPath: "auth/radius/login/foo", params: map[string]interface{}{"username": "foo"}},
+		"cert":        {expLoginPath: "auth/cert/login"},
+		"token":       {expError: "'token' auth method is not supported via auth method configuration; please provide the token with the 'token' parameter in the CA configuration"},
+		"userpass":    {expLoginPath: "auth/userpass/login/foo", params: map[string]interface{}{"username": "foo"}},
+		"unsupported": {expError: "auth method \"unsupported\" is not supported"},
+	}
+
+	for authMethodType, c := range cases {
+		t.Run(authMethodType, func(t *testing.T) {
+			loginPath, err := configureVaultAuthMethod(&structs.VaultAuthMethod{
+				Type:   authMethodType,
+				Params: c.params,
+			})
+			if c.expError == "" {
+				require.NoError(t, err)
+				require.Equal(t, c.expLoginPath, loginPath)
+			} else {
+				require.EqualError(t, err, c.expError)
+			}
+		})
+	}
+}
 
 func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 	config := &structs.VaultCAProviderConfig{
@@ -26,31 +116,68 @@ func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 		TLSSkipVerify: true,
 	}
 	tlsConfig := vaultTLSConfig(config)
-	require := require.New(t)
-	require.Equal(config.CAFile, tlsConfig.CACert)
-	require.Equal(config.CAPath, tlsConfig.CAPath)
-	require.Equal(config.CertFile, tlsConfig.ClientCert)
-	require.Equal(config.KeyFile, tlsConfig.ClientKey)
-	require.Equal(config.TLSServerName, tlsConfig.TLSServerName)
-	require.Equal(config.TLSSkipVerify, tlsConfig.Insecure)
+	require.Equal(t, config.CAFile, tlsConfig.CACert)
+	require.Equal(t, config.CAPath, tlsConfig.CAPath)
+	require.Equal(t, config.CertFile, tlsConfig.ClientCert)
+	require.Equal(t, config.KeyFile, tlsConfig.ClientKey)
+	require.Equal(t, config.TLSServerName, tlsConfig.TLSServerName)
+	require.Equal(t, config.TLSSkipVerify, tlsConfig.Insecure)
+}
+
+func TestVaultCAProvider_Configure(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+
+	testcases := []struct {
+		name          string
+		rawConfig     map[string]interface{}
+		expectedValue func(t *testing.T, v *VaultProvider)
+	}{
+		{
+			name:      "DefaultConfig",
+			rawConfig: map[string]interface{}{},
+			expectedValue: func(t *testing.T, v *VaultProvider) {
+				headers := v.client.Headers()
+				require.Equal(t, "", headers.Get(vaultconst.NamespaceHeaderName))
+				require.Equal(t, "pki-root/", v.config.RootPKIPath)
+				require.Equal(t, "pki-intermediate/", v.config.IntermediatePKIPath)
+			},
+		},
+		{
+			name:      "TestConfigWithNamespace",
+			rawConfig: map[string]interface{}{"namespace": "ns1"},
+			expectedValue: func(t *testing.T, v *VaultProvider) {
+
+				h := v.client.Headers()
+				require.Equal(t, "ns1", h.Get(vaultconst.NamespaceHeaderName))
+			},
+		},
+	}
+
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			provider, _ := testVaultProviderWithConfig(t, true, testcase.rawConfig)
+
+			testcase.expectedValue(t, provider)
+		})
+	}
+
+	return
 }
 
 func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
 	provider, testVault := testVaultProviderWithConfig(t, false, nil)
 	defer testVault.Stop()
-	require := require.New(t)
 
 	cert, err := provider.ActiveIntermediate()
-	require.Empty(cert)
-	require.NoError(err)
+	require.Empty(t, cert)
+	require.NoError(t, err)
 }
 
 func TestVaultCAProvider_RenewToken(t *testing.T) {
-	t.Parallel()
+
 	SkipIfVaultNotPresent(t)
 
 	testVault, err := runTestVault(t)
@@ -86,47 +213,76 @@ func TestVaultCAProvider_RenewToken(t *testing.T) {
 }
 
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
-	provider, testVault := testVaultProvider(t)
-	defer testVault.Stop()
-	client := testVault.client
+	providerWDefaultRootCertTtl, testvault1 := testVaultProviderWithConfig(t, true, map[string]interface{}{
+		"LeafCertTTL": "1h",
+	})
+	defer testvault1.Stop()
+	client1 := testvault1.client
 
-	require := require.New(t)
+	providerCustomRootCertTtl, testvault2 := testVaultProviderWithConfig(t, true, map[string]interface{}{
+		"LeafCertTTL": "1h",
+		"RootCertTTL": "8761h",
+	})
+	defer testvault2.Stop()
+	client2 := testvault2.client
 
 	cases := []struct {
-		certFunc    func() (string, error)
-		backendPath string
+		certFunc            func() (string, error)
+		backendPath         string
+		rootCaCreation      bool
+		provider            *VaultProvider
+		client              *vaultapi.Client
+		expectedRootCertTTL string
 	}{
 		{
-			certFunc:    provider.ActiveRoot,
-			backendPath: "pki-root/",
+			certFunc:            providerWDefaultRootCertTtl.ActiveRoot,
+			backendPath:         "pki-root/",
+			rootCaCreation:      true,
+			client:              client1,
+			provider:            providerWDefaultRootCertTtl,
+			expectedRootCertTTL: structs.DefaultRootCertTTL,
 		},
 		{
-			certFunc:    provider.ActiveIntermediate,
-			backendPath: "pki-intermediate/",
+			certFunc:            providerCustomRootCertTtl.ActiveIntermediate,
+			backendPath:         "pki-intermediate/",
+			rootCaCreation:      false,
+			provider:            providerCustomRootCertTtl,
+			client:              client2,
+			expectedRootCertTTL: "8761h",
 		},
 	}
 
 	// Verify the root and intermediate certs match the ones in the vault backends
 	for _, tc := range cases {
+		provider := tc.provider
+		client := tc.client
 		cert, err := tc.certFunc()
-		require.NoError(err)
+		require.NoError(t, err)
 		req := client.NewRequest("GET", "/v1/"+tc.backendPath+"ca/pem")
 		resp, err := client.RawRequest(req)
-		require.NoError(err)
+		require.NoError(t, err)
 		bytes, err := ioutil.ReadAll(resp.Body)
-		require.NoError(err)
-		require.Equal(cert, string(bytes))
+		require.NoError(t, err)
+		require.Equal(t, cert, string(bytes)+"\n")
 
 		// Should be a valid CA cert
 		parsed, err := connect.ParseCert(cert)
-		require.NoError(err)
-		require.True(parsed.IsCA)
-		require.Len(parsed.URIs, 1)
-		require.Equal(fmt.Sprintf("spiffe://%s.consul", provider.clusterID), parsed.URIs[0].String())
+		require.NoError(t, err)
+		require.True(t, parsed.IsCA)
+		require.Len(t, parsed.URIs, 1)
+		require.Equal(t, fmt.Sprintf("spiffe://%s.consul", provider.clusterID), parsed.URIs[0].String())
+
+		// test that the root cert ttl as applied
+		if tc.rootCaCreation {
+			rootCertTTL, err := time.ParseDuration(tc.expectedRootCertTTL)
+			require.NoError(t, err)
+			expectedNotAfter := time.Now().Add(rootCertTTL).UTC()
+
+			require.WithinDuration(t, expectedNotAfter, parsed.NotAfter, 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
+		}
 	}
 }
 
@@ -147,14 +303,12 @@ func assertCorrectKeyType(t *testing.T, want, certPEM string) {
 }
 
 func TestVaultCAProvider_SignLeaf(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
 	for _, tc := range KeyTestCases {
 		tc := tc
 		t.Run(tc.Desc, func(t *testing.T) {
-			require := require.New(t)
 			provider, testVault := testVaultProviderWithConfig(t, true, map[string]interface{}{
 				"LeafCertTTL":    "1h",
 				"PrivateKeyType": tc.KeyType,
@@ -170,11 +324,11 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 			}
 
 			rootPEM, err := provider.ActiveRoot()
-			require.NoError(err)
+			require.NoError(t, err)
 			assertCorrectKeyType(t, tc.KeyType, rootPEM)
 
 			intPEM, err := provider.ActiveIntermediate()
-			require.NoError(err)
+			require.NoError(t, err)
 			assertCorrectKeyType(t, tc.KeyType, intPEM)
 
 			// Generate a leaf cert for the service.
@@ -183,23 +337,24 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 				raw, _ := connect.TestCSR(t, spiffeService)
 
 				csr, err := connect.ParseCSR(raw)
-				require.NoError(err)
+				require.NoError(t, err)
 
 				cert, err := provider.Sign(csr)
-				require.NoError(err)
+				require.NoError(t, err)
 
 				parsed, err := connect.ParseCert(cert)
-				require.NoError(err)
-				require.Equal(parsed.URIs[0], spiffeService.URI())
+				require.NoError(t, err)
+				require.Equal(t, parsed.URIs[0], spiffeService.URI())
 				firstSerial = parsed.SerialNumber.Uint64()
 
 				// Ensure the cert is valid now and expires within the correct limit.
 				now := time.Now()
-				require.True(parsed.NotAfter.Sub(now) < time.Hour)
-				require.True(parsed.NotBefore.Before(now))
+				require.True(t, parsed.NotAfter.Sub(now) < time.Hour)
+				require.True(t, parsed.NotBefore.Before(now))
 
 				// Make sure we can validate the cert as expected.
-				require.NoError(connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
+				require.NoError(t, connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
+				requireTrailingNewline(t, cert)
 			}
 
 			// Generate a new cert for another service and make sure
@@ -209,29 +364,28 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 				raw, _ := connect.TestCSR(t, spiffeService)
 
 				csr, err := connect.ParseCSR(raw)
-				require.NoError(err)
+				require.NoError(t, err)
 
 				cert, err := provider.Sign(csr)
-				require.NoError(err)
+				require.NoError(t, err)
 
 				parsed, err := connect.ParseCert(cert)
-				require.NoError(err)
-				require.Equal(parsed.URIs[0], spiffeService.URI())
-				require.NotEqual(firstSerial, parsed.SerialNumber.Uint64())
+				require.NoError(t, err)
+				require.Equal(t, parsed.URIs[0], spiffeService.URI())
+				require.NotEqual(t, firstSerial, parsed.SerialNumber.Uint64())
 
 				// Ensure the cert is valid now and expires within the correct limit.
-				require.True(time.Until(parsed.NotAfter) < time.Hour)
-				require.True(parsed.NotBefore.Before(time.Now()))
+				require.True(t, time.Until(parsed.NotAfter) < time.Hour)
+				require.True(t, parsed.NotBefore.Before(time.Now()))
 
 				// Make sure we can validate the cert as expected.
-				require.NoError(connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
+				require.NoError(t, connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
 			}
 		})
 	}
 }
 
 func TestVaultCAProvider_CrossSignCA(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -240,7 +394,6 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.Desc, func(t *testing.T) {
-			require := require.New(t)
 
 			if tc.SigningKeyType != tc.CSRKeyType {
 				// See https://github.com/hashicorp/vault/issues/7709
@@ -255,11 +408,11 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 
 			{
 				rootPEM, err := provider1.ActiveRoot()
-				require.NoError(err)
+				require.NoError(t, err)
 				assertCorrectKeyType(t, tc.SigningKeyType, rootPEM)
 
 				intPEM, err := provider1.ActiveIntermediate()
-				require.NoError(err)
+				require.NoError(t, err)
 				assertCorrectKeyType(t, tc.SigningKeyType, intPEM)
 			}
 
@@ -272,11 +425,11 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 
 			{
 				rootPEM, err := provider2.ActiveRoot()
-				require.NoError(err)
+				require.NoError(t, err)
 				assertCorrectKeyType(t, tc.CSRKeyType, rootPEM)
 
 				intPEM, err := provider2.ActiveIntermediate()
-				require.NoError(err)
+				require.NoError(t, err)
 				assertCorrectKeyType(t, tc.CSRKeyType, intPEM)
 			}
 
@@ -286,7 +439,6 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 }
 
 func TestVaultProvider_SignIntermediate(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -315,7 +467,6 @@ func TestVaultProvider_SignIntermediate(t *testing.T) {
 }
 
 func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -360,7 +511,6 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 }
 
 func TestVaultProvider_Cleanup(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -439,6 +589,138 @@ func TestVaultProvider_Cleanup(t *testing.T) {
 	})
 }
 
+func TestVaultProvider_ConfigureWithAuthMethod(t *testing.T) {
+
+	SkipIfVaultNotPresent(t)
+
+	cases := []struct {
+		authMethodType          string
+		configureAuthMethodFunc func(t *testing.T, vaultClient *vaultapi.Client) map[string]interface{}
+	}{
+		{
+			authMethodType: "userpass",
+			configureAuthMethodFunc: func(t *testing.T, vaultClient *vaultapi.Client) map[string]interface{} {
+				_, err := vaultClient.Logical().Write("/auth/userpass/users/test",
+					map[string]interface{}{"password": "foo", "policies": "admins"})
+				require.NoError(t, err)
+				return map[string]interface{}{
+					"Type": "userpass",
+					"Params": map[string]interface{}{
+						"username": "test",
+						"password": "foo",
+					},
+				}
+			},
+		},
+		{
+			authMethodType: "approle",
+			configureAuthMethodFunc: func(t *testing.T, vaultClient *vaultapi.Client) map[string]interface{} {
+				_, err := vaultClient.Logical().Write("auth/approle/role/my-role", nil)
+				require.NoError(t, err)
+				resp, err := vaultClient.Logical().Read("auth/approle/role/my-role/role-id")
+				require.NoError(t, err)
+				roleID := resp.Data["role_id"]
+
+				resp, err = vaultClient.Logical().Write("auth/approle/role/my-role/secret-id", nil)
+				require.NoError(t, err)
+				secretID := resp.Data["secret_id"]
+
+				return map[string]interface{}{
+					"Type": "approle",
+					"Params": map[string]interface{}{
+						"role_id":   roleID,
+						"secret_id": secretID,
+					},
+				}
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.authMethodType, func(t *testing.T) {
+			testVault := NewTestVaultServer(t)
+
+			err := testVault.Client().Sys().EnableAuthWithOptions(c.authMethodType, &vaultapi.EnableAuthOptions{Type: c.authMethodType})
+			require.NoError(t, err)
+
+			authMethodConf := c.configureAuthMethodFunc(t, testVault.Client())
+
+			conf := map[string]interface{}{
+				"Address":             testVault.Addr,
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-intermediate/",
+				"AuthMethod":          authMethodConf,
+			}
+
+			provider := NewVaultProvider(hclog.New(nil))
+
+			cfg := ProviderConfig{
+				ClusterID:  connect.TestClusterID,
+				Datacenter: "dc1",
+				IsPrimary:  true,
+				RawConfig:  conf,
+			}
+			t.Cleanup(provider.Stop)
+			err = provider.Configure(cfg)
+			require.NoError(t, err)
+			require.NotEmpty(t, provider.client.Token())
+		})
+	}
+}
+
+func TestVaultProvider_RotateAuthMethodToken(t *testing.T) {
+
+	SkipIfVaultNotPresent(t)
+
+	testVault := NewTestVaultServer(t)
+
+	err := testVault.Client().Sys().EnableAuthWithOptions("approle", &vaultapi.EnableAuthOptions{Type: "approle"})
+	require.NoError(t, err)
+
+	_, err = testVault.Client().Logical().Write("auth/approle/role/my-role",
+		map[string]interface{}{"token_ttl": "2s", "token_explicit_max_ttl": "2s"})
+	require.NoError(t, err)
+	resp, err := testVault.Client().Logical().Read("auth/approle/role/my-role/role-id")
+	require.NoError(t, err)
+	roleID := resp.Data["role_id"]
+
+	resp, err = testVault.Client().Logical().Write("auth/approle/role/my-role/secret-id", nil)
+	require.NoError(t, err)
+	secretID := resp.Data["secret_id"]
+
+	conf := map[string]interface{}{
+		"Address":             testVault.Addr,
+		"RootPKIPath":         "pki-root/",
+		"IntermediatePKIPath": "pki-intermediate/",
+		"AuthMethod": map[string]interface{}{
+			"Type": "approle",
+			"Params": map[string]interface{}{
+				"role_id":   roleID,
+				"secret_id": secretID,
+			},
+		},
+	}
+
+	provider := NewVaultProvider(hclog.New(nil))
+
+	cfg := ProviderConfig{
+		ClusterID:  connect.TestClusterID,
+		Datacenter: "dc1",
+		IsPrimary:  true,
+		RawConfig:  conf,
+	}
+	t.Cleanup(provider.Stop)
+	err = provider.Configure(cfg)
+	require.NoError(t, err)
+	token := provider.client.Token()
+	require.NotEmpty(t, token)
+
+	// Check that the token is rotated after max_ttl time has passed.
+	require.Eventually(t, func() bool {
+		return provider.client.Token() != token
+	}, 10*time.Second, 100*time.Millisecond)
+}
+
 func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.Duration {
 	t.Helper()
 
@@ -456,10 +738,6 @@ func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.
 	dur, err := time.ParseDuration(ttlString)
 	require.NoError(t, err)
 	return dur
-}
-
-func testVaultProvider(t *testing.T) (*VaultProvider, *TestVaultServer) {
-	return testVaultProviderWithConfig(t, true, nil)
 }
 
 func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[string]interface{}) (*VaultProvider, *TestVaultServer) {
@@ -491,7 +769,7 @@ func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawCo
 		conf[k] = v
 	}
 
-	provider := NewVaultProvider()
+	provider := NewVaultProvider(hclog.New(nil))
 
 	cfg := ProviderConfig{
 		ClusterID:  connect.TestClusterID,
@@ -500,16 +778,12 @@ func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawCo
 		RawConfig:  conf,
 	}
 
-	logger := hclog.New(&hclog.LoggerOptions{
-		Output: ioutil.Discard,
-	})
-	provider.SetLogger(logger)
-
 	if !isPrimary {
 		cfg.IsPrimary = false
 		cfg.Datacenter = "dc2"
 	}
 
+	t.Cleanup(provider.Stop)
 	require.NoError(t, provider.Configure(cfg))
 	if isPrimary {
 		require.NoError(t, provider.GenerateRoot())

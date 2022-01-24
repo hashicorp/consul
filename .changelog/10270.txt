@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Create a collapsible notices component for the Topology tab
+```

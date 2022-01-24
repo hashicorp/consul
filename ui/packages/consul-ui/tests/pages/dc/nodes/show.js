@@ -2,13 +2,15 @@ export default function(
   visitable,
   deletable,
   clickable,
+  alias,
   attribute,
+  present,
   collection,
   tabs,
   text,
   healthChecks
 ) {
-  return {
+  const page = {
     visit: visitable('/:dc/nodes/:node'),
     tabs: tabs('tab', [
       'health-checks',
@@ -17,7 +19,7 @@ export default function(
       'lock-sessions',
       'metadata',
     ]),
-    healthChecks: healthChecks(),
+    healthChecks: alias('tabs.healthChecksTab.healthChecks'),
     services: collection('.consul-service-instance-list > ul > li:not(:first-child)', {
       name: text('[data-test-service-name]'),
       port: attribute('data-test-service-port', '[data-test-service-port]'),
@@ -31,4 +33,9 @@ export default function(
     }),
     metadata: collection('.consul-metadata-list [data-test-tabular-row]', {}),
   };
+  page.tabs.healthChecksTab = {
+    criticalSerfNotice: present('[data-test-critical-serf-notice]'),
+    healthChecks: healthChecks(),
+  };
+  return page;
 }

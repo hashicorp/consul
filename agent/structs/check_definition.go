@@ -24,6 +24,8 @@ type CheckDefinition struct {
 	//
 	ScriptArgs                     []string
 	HTTP                           string
+	H2PING                         string
+	H2PingUseTLS                   bool
 	Header                         map[string][]string
 	Method                         string
 	Body                           string
@@ -33,12 +35,14 @@ type CheckDefinition struct {
 	Shell                          string
 	GRPC                           string
 	GRPCUseTLS                     bool
+	TLSServerName                  string
 	TLSSkipVerify                  bool
 	AliasNode                      string
 	AliasService                   string
 	Timeout                        time.Duration
 	TTL                            time.Duration
 	SuccessBeforePassing           int
+	FailuresBeforeWarning          int
 	FailuresBeforeCritical         int
 	DeregisterCriticalServiceAfter time.Duration
 	OutputMaxSize                  int
@@ -62,14 +66,27 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 		ScriptArgsSnake                     []string    `json:"script_args"`
 		DeregisterCriticalServiceAfterSnake interface{} `json:"deregister_critical_service_after"`
 		DockerContainerIDSnake              string      `json:"docker_container_id"`
+		TLSServerNameSnake                  string      `json:"tls_server_name"`
 		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
 		GRPCUseTLSSnake                     bool        `json:"grpc_use_tls"`
 		ServiceIDSnake                      string      `json:"service_id"`
+		H2PingUseTLSSnake                   bool        `json:"h2ping_use_tls"`
 
 		*Alias
 	}{
 		Alias: (*Alias)(t),
 	}
+
+	// Preevaluate struct values to determine where to set defaults
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	// Set defaults
+	if aux.H2PING != "" {
+		aux.H2PingUseTLS = true
+		aux.H2PingUseTLSSnake = true
+	}
+
 	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
@@ -87,6 +104,9 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	if t.DockerContainerID == "" {
 		t.DockerContainerID = aux.DockerContainerIDSnake
 	}
+	if t.TLSServerName == "" {
+		t.TLSServerName = aux.TLSServerNameSnake
+	}
 	if aux.TLSSkipVerifySnake {
 		t.TLSSkipVerify = aux.TLSSkipVerifySnake
 	}
@@ -95,6 +115,10 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	}
 	if t.ServiceID == "" {
 		t.ServiceID = aux.ServiceIDSnake
+	}
+
+	if (aux.H2PING != "" && !aux.H2PingUseTLSSnake) || (aux.H2PING == "" && aux.H2PingUseTLSSnake) {
+		t.H2PingUseTLS = aux.H2PingUseTLSSnake
 	}
 
 	// Parse special values
@@ -150,6 +174,8 @@ func (c *CheckDefinition) HealthCheck(node string) *HealthCheck {
 		Status:         api.HealthCritical,
 		Notes:          c.Notes,
 		ServiceID:      c.ServiceID,
+		Interval:       c.Interval.String(),
+		Timeout:        c.Timeout.String(),
 		EnterpriseMeta: c.EnterpriseMeta,
 	}
 	if c.Status != "" {
@@ -172,6 +198,8 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		AliasNode:                      c.AliasNode,
 		AliasService:                   c.AliasService,
 		HTTP:                           c.HTTP,
+		H2PING:                         c.H2PING,
+		H2PingUseTLS:                   c.H2PingUseTLS,
 		GRPC:                           c.GRPC,
 		GRPCUseTLS:                     c.GRPCUseTLS,
 		Header:                         c.Header,
@@ -182,10 +210,12 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		Interval:                       c.Interval,
 		DockerContainerID:              c.DockerContainerID,
 		Shell:                          c.Shell,
+		TLSServerName:                  c.TLSServerName,
 		TLSSkipVerify:                  c.TLSSkipVerify,
 		Timeout:                        c.Timeout,
 		TTL:                            c.TTL,
 		SuccessBeforePassing:           c.SuccessBeforePassing,
+		FailuresBeforeWarning:          c.FailuresBeforeWarning,
 		FailuresBeforeCritical:         c.FailuresBeforeCritical,
 		DeregisterCriticalServiceAfter: c.DeregisterCriticalServiceAfter,
 	}

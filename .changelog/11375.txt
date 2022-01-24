@@ -1,0 +1,3 @@
+```release-note:bug
+raft: do not trigger an election if not part of the servers list.
+```

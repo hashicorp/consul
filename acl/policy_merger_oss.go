@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package acl
@@ -12,6 +13,6 @@ func (ctx *enterprisePolicyRulesMergeContext) merge(*EnterprisePolicyRules) {
 	// do nothing
 }
 
-func (ctx *enterprisePolicyRulesMergeContext) update(*EnterprisePolicyRules) {
+func (ctx *enterprisePolicyRulesMergeContext) fill(*EnterprisePolicyRules) {
 	// do nothing
 }

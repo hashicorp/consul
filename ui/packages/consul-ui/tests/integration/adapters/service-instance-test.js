@@ -13,10 +13,11 @@ module('Integration | Adapter | service-instance', function(hooks) {
     test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:service-instance');
       const client = this.owner.lookup('service:client/http');
+      const request = client.requestParams.bind(client);
       const expected = `GET /v1/health/service/${id}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQueryRecord(client.requestParams.bind(client), {
+      let actual = adapter.requestForQueryRecord(request, {
         dc: dc,
         id: id,
         ns: nspace,
@@ -27,8 +28,9 @@ module('Integration | Adapter | service-instance', function(hooks) {
   test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:service-instance');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     assert.throws(function() {
-      adapter.requestForQueryRecord(client.url, {
+      adapter.requestForQueryRecord(request, {
         dc: dc,
       });
     });

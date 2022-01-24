@@ -1,0 +1,10 @@
+package structs
+
+// Identity of some entity (ex: service, node, check).
+//
+// TODO: this type should replace ServiceID, ServiceName, and CheckID which all
+// have roughly identical implementations.
+type Identity struct {
+	ID string
+	EnterpriseMeta
+}

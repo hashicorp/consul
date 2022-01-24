@@ -2,43 +2,51 @@ package consul
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"net/url"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	uuid "github.com/hashicorp/go-uuid"
+	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/lib/semaphore"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-hclog"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/consul/lib/routine"
 )
 
 type caState string
 
 const (
 	caStateUninitialized     caState = "UNINITIALIZED"
-	caStateInitializing              = "INITIALIZING"
-	caStateInitialized               = "INITIALIZED"
-	caStateRenewIntermediate         = "RENEWING"
-	caStateReconfig                  = "RECONFIGURING"
+	caStateInitializing      caState = "INITIALIZING"
+	caStateInitialized       caState = "INITIALIZED"
+	caStateRenewIntermediate caState = "RENEWING"
+	caStateReconfig          caState = "RECONFIGURING"
 )
 
 // caServerDelegate is an interface for server operations for facilitating
 // easier testing.
 type caServerDelegate interface {
+	ca.ConsulProviderStateDelegate
+
 	State() *state.Store
 	IsLeader() bool
+	ApplyCALeafRequest() (uint64, error)
 
-	createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error)
 	forwardDC(method, dc string, args interface{}, reply interface{}) error
 	generateCASignRequest(csr string) *structs.CASignRequest
-	raftApply(t structs.MessageType, msg interface{}) (interface{}, error)
 
-	checkServersProvider
+	ServersSupportMultiDCConnectCA() error
 }
 
 // CAManager is a wrapper around CA operations such as updating roots, an intermediate
@@ -48,6 +56,8 @@ type CAManager struct {
 	delegate   caServerDelegate
 	serverConf *Config
 	logger     hclog.Logger
+	// rate limiter to use when signing leaf certificates
+	caLeafLimiter connectSignRateLimiter
 
 	providerLock sync.RWMutex
 	// provider is the current CA provider in use for Connect. This is
@@ -60,12 +70,16 @@ type CAManager struct {
 	providerRoot *structs.CARoot
 
 	// stateLock protects the internal state used for administrative CA tasks.
-	stateLock         sync.Mutex
-	state             caState
-	primaryRoots      structs.IndexedCARoots // The most recently seen state of the root CAs from the primary datacenter.
-	actingSecondaryCA bool                   // True if this datacenter has been initialized as a secondary CA.
+	stateLock    sync.Mutex
+	state        caState
+	primaryRoots structs.IndexedCARoots // The most recently seen state of the root CAs from the primary datacenter.
 
-	leaderRoutineManager *LeaderRoutineManager
+	leaderRoutineManager *routine.Manager
+	// providerShim is used to test CAManager with a fake provider.
+	providerShim ca.Provider
+
+	// shim time.Now for testing
+	timeNow func() time.Time
 }
 
 type caDelegateWithState struct {
@@ -76,27 +90,75 @@ func (c *caDelegateWithState) State() *state.Store {
 	return c.fsm.State()
 }
 
-func NewCAManager(delegate caServerDelegate, leaderRoutineManager *LeaderRoutineManager, logger hclog.Logger, config *Config) *CAManager {
+func (c *caDelegateWithState) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
+	return c.Server.raftApplyMsgpack(structs.ConnectCARequestType, req)
+}
+
+func (c *caDelegateWithState) ApplyCALeafRequest() (uint64, error) {
+	// TODO(banks): when we implement IssuedCerts table we can use the insert to
+	// that as the raft index to return in response.
+	//
+	// UPDATE(mkeeler): The original implementation relied on updating the CAConfig
+	// and using its index as the ModifyIndex for certs. This was buggy. The long
+	// term goal is still to insert some metadata into raft about the certificates
+	// and use that raft index for the ModifyIndex. This is a partial step in that
+	// direction except that we only are setting an index and not storing the
+	// metadata.
+	req := structs.CALeafRequest{
+		Op:         structs.CALeafOpIncrementIndex,
+		Datacenter: c.Server.config.Datacenter,
+	}
+	resp, err := c.Server.raftApplyMsgpack(structs.ConnectCALeafRequestType|structs.IgnoreUnknownTypeFlag, &req)
+	if err != nil {
+		return 0, err
+	}
+
+	modIdx, ok := resp.(uint64)
+	if !ok {
+		return 0, fmt.Errorf("Invalid response from updating the leaf cert index")
+	}
+	return modIdx, err
+}
+
+func (c *caDelegateWithState) generateCASignRequest(csr string) *structs.CASignRequest {
+	return &structs.CASignRequest{
+		Datacenter:   c.Server.config.PrimaryDatacenter,
+		CSR:          csr,
+		WriteRequest: structs.WriteRequest{Token: c.Server.tokens.ReplicationToken()},
+	}
+}
+
+func (c *caDelegateWithState) ServersSupportMultiDCConnectCA() error {
+	versionOk, primaryFound := ServersInDCMeetMinimumVersion(c.Server, c.Server.config.PrimaryDatacenter, minMultiDCConnectVersion)
+	if !primaryFound {
+		return fmt.Errorf("primary datacenter is unreachable")
+	}
+	if !versionOk {
+		return fmt.Errorf("all servers in the primary datacenter are not at the minimum version %v", minMultiDCConnectVersion)
+	}
+	return nil
+}
+
+func (c *caDelegateWithState) ProviderState(id string) (*structs.CAConsulProviderState, error) {
+	_, s, err := c.fsm.State().CAProviderState(id)
+	return s, err
+}
+
+func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manager, logger hclog.Logger, config *Config) *CAManager {
 	return &CAManager{
 		delegate:             delegate,
 		logger:               logger,
 		serverConf:           config,
 		state:                caStateUninitialized,
 		leaderRoutineManager: leaderRoutineManager,
+		timeNow:              time.Now,
 	}
-}
-
-func (c *CAManager) reset() {
-	c.state = caStateUninitialized
-	c.primaryRoots = structs.IndexedCARoots{}
-	c.actingSecondaryCA = false
-	c.setCAProvider(nil, nil)
 }
 
 // setState attempts to update the CA state to the given state.
 // Valid state transitions are:
 //
-// caStateInitialized -> <any state>
+// caStateInitialized -> <any state except caStateInitializing>
 // caStateUninitialized -> caStateInitializing
 // caStateUninitialized -> caStateReconfig
 //
@@ -109,30 +171,34 @@ func (c *CAManager) setState(newState caState, validateState bool) (caState, err
 	state := c.state
 
 	if !validateState ||
-		state == caStateInitialized ||
+		(state == caStateInitialized && newState != caStateInitializing) ||
 		(state == caStateUninitialized && newState == caStateInitializing) ||
 		(state == caStateUninitialized && newState == caStateReconfig) {
 		c.state = newState
 	} else {
-		return state, fmt.Errorf("CA is already in state %q", state)
+		return state, &caStateError{Current: state}
 	}
 	return state, nil
 }
 
-// setPrimaryRoots updates the most recently seen roots from the primary.
-func (c *CAManager) setPrimaryRoots(newRoots structs.IndexedCARoots) error {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
-
-	if c.state == caStateInitializing || c.state == caStateReconfig {
-		c.primaryRoots = newRoots
-	} else {
-		return fmt.Errorf("Cannot update primary roots in state %q", c.state)
-	}
-	return nil
+type caStateError struct {
+	Current caState
 }
 
-func (c *CAManager) getPrimaryRoots() structs.IndexedCARoots {
+func (e *caStateError) Error() string {
+	return fmt.Sprintf("CA is already in state %q", e.Current)
+}
+
+// secondarySetPrimaryRoots updates the most recently seen roots from the primary.
+func (c *CAManager) secondarySetPrimaryRoots(newRoots structs.IndexedCARoots) {
+	// TODO: this could be a different lock, as long as its the same lock in secondaryGetPrimaryRoots
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	c.primaryRoots = newRoots
+}
+
+func (c *CAManager) secondaryGetPrimaryRoots() structs.IndexedCARoots {
+	// TODO: this could be a different lock, as long as its the same lock in secondarySetPrimaryRoots
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 	return c.primaryRoots
@@ -142,14 +208,15 @@ func (c *CAManager) getPrimaryRoots() structs.IndexedCARoots {
 // when setting up the CA during establishLeadership. The state should be set to
 // non-ready before calling this.
 func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
-	state := c.delegate.State()
-	_, config, err := state.CAConfig(nil)
+	st := c.delegate.State()
+	_, config, err := st.CAConfig(nil)
 	if err != nil {
 		return nil, err
 	}
 	if config == nil {
 		config = c.serverConf.CAConfig
-		if config.ClusterID == "" {
+
+		if c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter && config.ClusterID == "" {
 			id, err := uuid.GenerateUUID()
 			if err != nil {
 				return nil, err
@@ -173,12 +240,9 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 		Op:     structs.CAOpSetConfig,
 		Config: config,
 	}
-	if resp, err := c.delegate.raftApply(structs.ConnectCARequestType, req); err != nil {
+	if _, err := c.delegate.ApplyCARequest(&req); err != nil {
 		return nil, err
-	} else if respErr, ok := resp.(error); ok {
-		return nil, respErr
 	}
-
 	return config, nil
 }
 
@@ -215,12 +279,10 @@ func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) 
 // as well as the active root.
 func (c *CAManager) getCAProvider() (ca.Provider, *structs.CARoot) {
 	retries := 0
-	var result ca.Provider
-	var resultRoot *structs.CARoot
-	for result == nil {
+	for {
 		c.providerLock.RLock()
-		result = c.provider
-		resultRoot = c.providerRoot
+		result := c.provider
+		resultRoot := c.providerRoot
 		c.providerLock.RUnlock()
 
 		// In cases where an agent is started with managed proxies, we may ask
@@ -232,10 +294,8 @@ func (c *CAManager) getCAProvider() (ca.Provider, *structs.CARoot) {
 			continue
 		}
 
-		break
+		return result, resultRoot
 	}
-
-	return result, resultRoot
 }
 
 // setCAProvider is being called while holding the stateLock
@@ -247,21 +307,21 @@ func (c *CAManager) setCAProvider(newProvider ca.Provider, root *structs.CARoot)
 	c.providerLock.Unlock()
 }
 
-func (c *CAManager) Start() {
+func (c *CAManager) Start(ctx context.Context) {
 	// Attempt to initialize the Connect CA now. This will
 	// happen during leader establishment and it would be great
 	// if the CA was ready to go once that process was finished.
-	if err := c.InitializeCA(); err != nil {
+	if err := c.Initialize(); err != nil {
 		c.logger.Error("Failed to initialize Connect CA", "error", err)
 
 		// we failed to fully initialize the CA so we need to spawn a
 		// go routine to retry this process until it succeeds or we lose
 		// leadership and the go routine gets stopped.
-		c.leaderRoutineManager.Start(backgroundCAInitializationRoutineName, c.backgroundCAInitialization)
+		c.leaderRoutineManager.Start(ctx, backgroundCAInitializationRoutineName, c.backgroundCAInitialization)
 	} else {
 		// We only start these if CA initialization was successful. If not the completion of the
 		// background CA initialization will start these routines.
-		c.startPostInitializeRoutines()
+		c.startPostInitializeRoutines(ctx)
 	}
 }
 
@@ -269,19 +329,29 @@ func (c *CAManager) Stop() {
 	c.leaderRoutineManager.Stop(secondaryCARootWatchRoutineName)
 	c.leaderRoutineManager.Stop(intermediateCertRenewWatchRoutineName)
 	c.leaderRoutineManager.Stop(backgroundCAInitializationRoutineName)
-}
 
-func (c *CAManager) startPostInitializeRoutines() {
-	// Start the Connect secondary DC actions if enabled.
-	if c.serverConf.Datacenter != c.serverConf.PrimaryDatacenter {
-		c.leaderRoutineManager.Start(secondaryCARootWatchRoutineName, c.secondaryCARootWatch)
+	if provider, _ := c.getCAProvider(); provider != nil {
+		if needsStop, ok := provider.(ca.NeedsStop); ok {
+			needsStop.Stop()
+		}
 	}
 
-	c.leaderRoutineManager.Start(intermediateCertRenewWatchRoutineName, c.intermediateCertRenewalWatch)
+	c.setState(caStateUninitialized, false)
+	c.primaryRoots = structs.IndexedCARoots{}
+	c.setCAProvider(nil, nil)
+}
+
+func (c *CAManager) startPostInitializeRoutines(ctx context.Context) {
+	// Start the Connect secondary DC actions if enabled.
+	if c.serverConf.Datacenter != c.serverConf.PrimaryDatacenter {
+		c.leaderRoutineManager.Start(ctx, secondaryCARootWatchRoutineName, c.secondaryCARootWatch)
+	}
+
+	c.leaderRoutineManager.Start(ctx, intermediateCertRenewWatchRoutineName, c.runRenewIntermediate)
 }
 
 func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
-	retryLoopBackoffAbortOnSuccess(ctx, c.InitializeCA, func(err error) {
+	retryLoopBackoffAbortOnSuccess(ctx, c.Initialize, func(err error) {
 		c.logger.Error("Failed to initialize Connect CA",
 			"routine", backgroundCAInitializationRoutineName,
 			"error", err,
@@ -294,26 +364,26 @@ func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
 
 	c.logger.Info("Successfully initialized the Connect CA")
 
-	c.startPostInitializeRoutines()
+	c.startPostInitializeRoutines(ctx)
 	return nil
 }
 
-// InitializeCA sets up the CA provider when gaining leadership, either bootstrapping
+// Initialize sets up the CA provider when gaining leadership, either bootstrapping
 // the CA if this is the primary DC or making a remote RPC for intermediate signing
 // if this is a secondary DC.
-func (c *CAManager) InitializeCA() (reterr error) {
+func (c *CAManager) Initialize() (reterr error) {
 	// Bail if connect isn't enabled.
 	if !c.serverConf.ConnectEnabled {
 		return nil
 	}
 
 	// Update the state before doing anything else.
-	oldState, err := c.setState(caStateInitializing, true)
-	// if we were already in the initialized state then there is nothing to be done.
-	if oldState == caStateInitialized {
+	_, err := c.setState(caStateInitializing, true)
+	var errCaState *caStateError
+	switch {
+	case errors.As(err, &errCaState) && errCaState.Current == caStateInitialized:
 		return nil
-	}
-	if err != nil {
+	case err != nil:
 		return err
 	}
 
@@ -334,30 +404,22 @@ func (c *CAManager) InitializeCA() (reterr error) {
 	if err != nil {
 		return err
 	}
-	provider, err := c.delegate.createCAProvider(conf)
+	provider, err := c.newProvider(conf)
 	if err != nil {
 		return err
 	}
 
 	c.setCAProvider(provider, nil)
 
-	// Run the root CA initialization if this is the primary DC.
 	if c.serverConf.PrimaryDatacenter == c.serverConf.Datacenter {
-		return c.initializeRootCA(provider, conf)
+		return c.primaryInitialize(provider, conf)
 	}
+	return c.secondaryInitialize(provider, conf)
+}
 
-	// If this isn't the primary DC, run the secondary DC routine if the primary has already been upgraded to at least 1.6.0
-	versionOk, foundPrimary := ServersInDCMeetMinimumVersion(c.delegate, c.serverConf.PrimaryDatacenter, minMultiDCConnectVersion)
-	if !foundPrimary {
-		c.logger.Warn("primary datacenter is configured but unreachable - deferring initialization of the secondary datacenter CA")
-		// return nil because we will initialize the secondary CA later
-		return nil
-	} else if !versionOk {
-		// return nil because we will initialize the secondary CA later
-		c.logger.Warn("servers in the primary datacenter are not at least at the minimum version - deferring initialization of the secondary datacenter CA",
-			"min_version", minMultiDCConnectVersion.String(),
-		)
-		return nil
+func (c *CAManager) secondaryInitialize(provider ca.Provider, conf *structs.CAConfiguration) error {
+	if err := c.delegate.ServersSupportMultiDCConnectCA(); err != nil {
+		return fmt.Errorf("initialization will be deferred: %w", err)
 	}
 
 	// Get the root CA to see if we need to refresh our intermediate.
@@ -368,15 +430,13 @@ func (c *CAManager) InitializeCA() (reterr error) {
 	if err := c.delegate.forwardDC("ConnectCA.Roots", c.serverConf.PrimaryDatacenter, &args, &roots); err != nil {
 		return err
 	}
-	if err := c.setPrimaryRoots(roots); err != nil {
-		return err
-	}
+	c.secondarySetPrimaryRoots(roots)
 
 	// Configure the CA provider and initialize the intermediate certificate if necessary.
-	if err := c.initializeSecondaryProvider(provider, roots); err != nil {
+	if err := c.secondaryInitializeProvider(provider, roots); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
-	if err := c.initializeSecondaryCA(provider, nil); err != nil {
+	if err := c.secondaryInitializeIntermediateCA(provider, nil); err != nil {
 		return err
 	}
 
@@ -384,9 +444,27 @@ func (c *CAManager) InitializeCA() (reterr error) {
 	return nil
 }
 
-// initializeRootCA runs the initialization logic for a root CA. It should only
+// createProvider returns a connect CA provider from the given config.
+func (c *CAManager) newProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
+	logger := c.logger.Named(conf.Provider)
+	switch conf.Provider {
+	case structs.ConsulCAProvider:
+		return ca.NewConsulProvider(c.delegate, logger), nil
+	case structs.VaultCAProvider:
+		return ca.NewVaultProvider(logger), nil
+	case structs.AWSCAProvider:
+		return ca.NewAWSProvider(logger), nil
+	default:
+		if c.providerShim != nil {
+			return c.providerShim, nil
+		}
+		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
+	}
+}
+
+// primaryInitialize runs the initialization logic for a root CA. It should only
 // be called while the state lock is held by setting the state to non-ready.
-func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfiguration) error {
+func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConfiguration) error {
 	pCfg := ca.ProviderConfig{
 		ClusterID:  conf.ClusterID,
 		Datacenter: c.serverConf.Datacenter,
@@ -434,17 +512,31 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 			Op:     structs.CAOpSetConfig,
 			Config: conf,
 		}
-		if _, err = c.delegate.raftApply(structs.ConnectCARequestType, req); err != nil {
+		if _, err = c.delegate.ApplyCARequest(&req); err != nil {
 			return fmt.Errorf("error persisting provider state: %v", err)
 		}
 	}
+
+	var rootUpdateRequired bool
 
 	// Versions prior to 1.9.3, 1.8.8, and 1.7.12 incorrectly used the primary
 	// rootCA's subjectKeyID here instead of the intermediate. For
 	// provider=consul this didn't matter since there are no intermediates in
 	// the primaryDC, but for vault it does matter.
 	expectedSigningKeyID := connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
-	needsSigningKeyUpdate := (rootCA.SigningKeyID != expectedSigningKeyID)
+	if rootCA.SigningKeyID != expectedSigningKeyID {
+		c.logger.Info("Correcting stored CARoot values",
+			"previous-signing-key", rootCA.SigningKeyID, "updated-signing-key", expectedSigningKeyID)
+		rootCA.SigningKeyID = expectedSigningKeyID
+		rootUpdateRequired = true
+	}
+
+	// Add the local leaf signing cert to the rootCA struct. This handles both
+	// upgrades of existing state, and new rootCA.
+	if c.getLeafSigningCertFromRoot(rootCA) != interPEM {
+		rootCA.IntermediateCerts = append(rootCA.IntermediateCerts, interPEM)
+		rootUpdateRequired = true
+	}
 
 	// Check if the CA root is already initialized and exit if it is,
 	// adding on any existing intermediate certs since they aren't directly
@@ -456,24 +548,19 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	if err != nil {
 		return err
 	}
-	if activeRoot != nil && needsSigningKeyUpdate {
-		c.logger.Info("Correcting stored SigningKeyID value", "previous", rootCA.SigningKeyID, "updated", expectedSigningKeyID)
-
-	} else if activeRoot != nil && !needsSigningKeyUpdate {
+	if activeRoot != nil && !rootUpdateRequired {
 		// This state shouldn't be possible to get into because we update the root and
 		// CA config in the same FSM operation.
 		if activeRoot.ID != rootCA.ID {
 			return fmt.Errorf("stored CA root %q is not the active root (%s)", rootCA.ID, activeRoot.ID)
 		}
 
+		// TODO: why doesn't this c.setCAProvider(provider, activeRoot) ?
 		rootCA.IntermediateCerts = activeRoot.IntermediateCerts
 		c.setCAProvider(provider, rootCA)
 
+		c.logger.Info("initialized primary datacenter CA from existing CARoot with provider", "provider", conf.Provider)
 		return nil
-	}
-
-	if needsSigningKeyUpdate {
-		rootCA.SigningKeyID = expectedSigningKeyID
 	}
 
 	// Get the highest index
@@ -483,17 +570,13 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	}
 
 	// Store the root cert in raft
-	resp, err := c.delegate.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+	_, err = c.delegate.ApplyCARequest(&structs.CARequest{
 		Op:    structs.CAOpSetRoots,
 		Index: idx,
 		Roots: []*structs.CARoot{rootCA},
 	})
 	if err != nil {
-		c.logger.Error("Raft apply failed", "error", err)
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
+		return fmt.Errorf("raft apply failed: %w", err)
 	}
 
 	c.setCAProvider(provider, rootCA)
@@ -503,11 +586,27 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	return nil
 }
 
-// initializeSecondaryCA runs the routine for generating an intermediate CA CSR and getting
+// getLeafSigningCertFromRoot returns the PEM encoded certificate that should be used to
+// sign leaf certificates in the local datacenter. The SubjectKeyId of the
+// returned cert should always match the SigningKeyID of the CARoot.
+//
+// TODO: fix the data model so that we don't need this complicated lookup to
+// find the leaf signing cert. See github.com/hashicorp/consul/issues/11347.
+func (c *CAManager) getLeafSigningCertFromRoot(root *structs.CARoot) string {
+	if !c.isIntermediateUsedToSignLeaf() {
+		return root.RootCert
+	}
+	if len(root.IntermediateCerts) == 0 {
+		return ""
+	}
+	return root.IntermediateCerts[len(root.IntermediateCerts)-1]
+}
+
+// secondaryInitializeIntermediateCA runs the routine for generating an intermediate CA CSR and getting
 // it signed by the primary DC if the root CA of the primary DC has changed since the last
 // intermediate. It should only be called while the state lock is held by setting the state
 // to non-ready.
-func (c *CAManager) initializeSecondaryCA(provider ca.Provider, config *structs.CAConfiguration) error {
+func (c *CAManager) secondaryInitializeIntermediateCA(provider ca.Provider, config *structs.CAConfiguration) error {
 	activeIntermediate, err := provider.ActiveIntermediate()
 	if err != nil {
 		return err
@@ -561,7 +660,7 @@ func (c *CAManager) initializeSecondaryCA(provider ca.Provider, config *structs.
 	// active one. We'll use this as a template to generate any new root
 	// representations meant for this secondary.
 	var newActiveRoot *structs.CARoot
-	primaryRoots := c.getPrimaryRoots()
+	primaryRoots := c.secondaryGetPrimaryRoots()
 	for _, root := range primaryRoots.Roots {
 		if root.ID == primaryRoots.ActiveRootID && root.Active {
 			newActiveRoot = root
@@ -587,7 +686,7 @@ func (c *CAManager) initializeSecondaryCA(provider ca.Provider, config *structs.
 
 	newIntermediate := false
 	if needsNewIntermediate {
-		if err := c.getIntermediateCASigned(provider, newActiveRoot); err != nil {
+		if err := c.secondaryRenewIntermediate(provider, newActiveRoot); err != nil {
 			return err
 		}
 		newIntermediate = true
@@ -674,7 +773,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		newRoot := *r
 		if newRoot.Active && newActiveRoot != nil {
 			newRoot.Active = false
-			newRoot.RotatedOutAt = time.Now()
+			newRoot.RotatedOutAt = c.timeNow()
 		}
 		if newRoot.ExternalTrustDomain == "" {
 			newRoot.ExternalTrustDomain = newConf.ClusterID
@@ -691,12 +790,9 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		Roots:  newRoots,
 		Config: &newConf,
 	}
-	resp, err := c.delegate.raftApply(structs.ConnectCARequestType, args)
+	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
 		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
 	}
 	if respOk, ok := resp.(bool); ok && !respOk {
 		return fmt.Errorf("could not atomically update roots and config")
@@ -724,7 +820,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		}
 	}()
 
-	// Attempt to initialize the config if we failed to do so in InitializeCA for some reason
+	// Attempt to initialize the config if we failed to do so in Initialize for some reason
 	_, err = c.initializeCAConfig()
 	if err != nil {
 		return err
@@ -732,7 +828,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 
 	// Exit early if it's a no-op change
 	state := c.delegate.State()
-	confIdx, config, err := state.CAConfig(nil)
+	_, config, err := state.CAConfig(nil)
 	if err != nil {
 		return err
 	}
@@ -764,7 +860,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	// and get the current active root CA. This acts as a good validation
 	// of the config and makes sure the provider is functioning correctly
 	// before we commit any changes to Raft.
-	newProvider, err := c.delegate.createCAProvider(args.Config)
+	newProvider, err := c.newProvider(args.Config)
 	if err != nil {
 		return fmt.Errorf("could not initialize provider: %v", err)
 	}
@@ -780,26 +876,29 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
 
-	// Set up a defer to clean up the new provider if we exit early due to an error.
-	cleanupNewProvider := true
-	defer func() {
-		if cleanupNewProvider {
-			if err := newProvider.Cleanup(args.Config.Provider != config.Provider, args.Config.Config); err != nil {
-				c.logger.Warn("failed to clean up CA provider while handling startup failure", "provider", newProvider, "error", err)
-			}
+	cleanupNewProvider := func() {
+		if err := newProvider.Cleanup(args.Config.Provider != config.Provider, args.Config.Config); err != nil {
+			c.logger.Warn("failed to clean up CA provider while handling startup failure", "provider", newProvider, "error", err)
 		}
-	}()
+	}
 
 	// If this is a secondary, just check if the intermediate needs to be regenerated.
 	if c.serverConf.Datacenter != c.serverConf.PrimaryDatacenter {
-		if err := c.initializeSecondaryCA(newProvider, args.Config); err != nil {
+		if err := c.secondaryInitializeIntermediateCA(newProvider, args.Config); err != nil {
+			cleanupNewProvider()
 			return fmt.Errorf("Error updating secondary datacenter CA config: %v", err)
 		}
-		cleanupNewProvider = false
 		c.logger.Info("Secondary CA provider config updated")
 		return nil
 	}
+	if err := c.primaryUpdateRootCA(newProvider, args, config); err != nil {
+		cleanupNewProvider()
+		return err
+	}
+	return nil
+}
 
+func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.CARequest, config *structs.CAConfiguration) error {
 	if err := newProvider.GenerateRoot(); err != nil {
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
@@ -821,6 +920,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	}
 	args.Config.State = pState
 
+	state := c.delegate.State()
 	// Compare the new provider's root CA ID to the current one. If they
 	// match, just update the existing provider with the new config.
 	// If they don't match, begin the root rotation process.
@@ -832,20 +932,14 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	// If the root didn't change, just update the config and return.
 	if root != nil && root.ID == newActiveRoot.ID {
 		args.Op = structs.CAOpSetConfig
-		resp, err := c.delegate.raftApply(structs.ConnectCARequestType, args)
+		_, err := c.delegate.ApplyCARequest(args)
 		if err != nil {
 			return err
 		}
-		if respErr, ok := resp.(error); ok {
-			return respErr
-		}
 
 		// If the config has been committed, update the local provider instance
-		cleanupNewProvider = false
 		c.setCAProvider(newProvider, newActiveRoot)
-
 		c.logger.Info("CA provider config updated")
-
 		return nil
 	}
 
@@ -887,12 +981,13 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 				"You can try again with ForceWithoutCrossSigningSet but this may cause " +
 				"disruption - see documentation for more.")
 		}
-		if !canXSign && args.Config.ForceWithoutCrossSigning {
-			c.logger.Warn("current CA doesn't support cross signing but " +
-				"CA reconfiguration forced anyway with ForceWithoutCrossSigning")
+		if args.Config.ForceWithoutCrossSigning {
+			c.logger.Warn("ForceWithoutCrossSigning set, CA reconfiguration skipping cross-signing")
 		}
 
-		if canXSign {
+		// If ForceWithoutCrossSigning wasn't set, attempt to have the old CA generate a
+		// cross-signed intermediate.
+		if canXSign && !args.Config.ForceWithoutCrossSigning {
 			// Have the old provider cross-sign the new root
 			xcCert, err := oldProvider.CrossSignCA(newRoot)
 			if err != nil {
@@ -910,7 +1005,9 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		return err
 	}
 	if intermediate != newRootPEM {
-		newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediate)
+		if err := setLeafSigningCert(newActiveRoot, intermediate); err != nil {
+			return err
+		}
 	}
 
 	// Update the roots and CA config in the state store at the same time
@@ -924,7 +1021,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		newRoot := *r
 		if newRoot.Active {
 			newRoot.Active = false
-			newRoot.RotatedOutAt = time.Now()
+			newRoot.RotatedOutAt = c.timeNow()
 		}
 		newRoots = append(newRoots, &newRoot)
 	}
@@ -932,14 +1029,11 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 
 	args.Op = structs.CAOpSetRootsAndConfig
 	args.Index = idx
-	args.Config.ModifyIndex = confIdx
+	args.Config.ModifyIndex = config.ModifyIndex
 	args.Roots = newRoots
-	resp, err := c.delegate.raftApply(structs.ConnectCARequestType, args)
+	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
 		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
 	}
 	if respOk, ok := resp.(bool); ok && !respOk {
 		return fmt.Errorf("could not atomically update roots and config")
@@ -947,7 +1041,6 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 
 	// If the config has been committed, update the local provider instance
 	// and call teardown on the old provider
-	cleanupNewProvider = false
 	c.setCAProvider(newProvider, newActiveRoot)
 
 	if err := oldProvider.Cleanup(args.Config.Provider != config.Provider, args.Config.Config); err != nil {
@@ -959,33 +1052,27 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	return nil
 }
 
-// getIntermediateCAPrimary regenerates the intermediate cert in the primary datacenter.
+// primaryRenewIntermediate regenerates the intermediate cert in the primary datacenter.
 // This is only run for CAs that require an intermediary in the primary DC, such as Vault.
-//  It should only be called while the state lock is held by setting the state to non-ready.
-func (c *CAManager) getIntermediateCAPrimary(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+// It should only be called while the state lock is held by setting the state to non-ready.
+func (c *CAManager) primaryRenewIntermediate(provider ca.Provider, newActiveRoot *structs.CARoot) error {
 	// Generate and sign an intermediate cert using the root CA.
 	intermediatePEM, err := provider.GenerateIntermediate()
 	if err != nil {
 		return fmt.Errorf("error generating new intermediate cert: %v", err)
 	}
 
-	intermediateCert, err := connect.ParseCert(intermediatePEM)
-	if err != nil {
-		return fmt.Errorf("error parsing intermediate cert: %v", err)
+	if err := setLeafSigningCert(newActiveRoot, intermediatePEM); err != nil {
+		return err
 	}
-
-	// Append the new intermediate to our local active root entry. This is
-	// where the root representations start to diverge.
-	newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediatePEM)
-	newActiveRoot.SigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
 
 	c.logger.Info("generated new intermediate certificate for primary datacenter")
 	return nil
 }
 
-// getIntermediateCASigned should only be called while the state lock is held by
+// secondaryRenewIntermediate should only be called while the state lock is held by
 // setting the state to non-ready.
-func (c *CAManager) getIntermediateCASigned(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+func (c *CAManager) secondaryRenewIntermediate(provider ca.Provider, newActiveRoot *structs.CARoot) error {
 	csr, err := provider.GenerateIntermediateCSR()
 	if err != nil {
 		return err
@@ -1002,22 +1089,30 @@ func (c *CAManager) getIntermediateCASigned(provider ca.Provider, newActiveRoot 
 		return fmt.Errorf("Failed to set the intermediate certificate with the CA provider: %v", err)
 	}
 
-	intermediateCert, err := connect.ParseCert(intermediatePEM)
-	if err != nil {
-		return fmt.Errorf("error parsing intermediate cert: %v", err)
+	if err := setLeafSigningCert(newActiveRoot, intermediatePEM); err != nil {
+		return err
 	}
-
-	// Append the new intermediate to our local active root entry. This is
-	// where the root representations start to diverge.
-	newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediatePEM)
-	newActiveRoot.SigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
 
 	c.logger.Info("received new intermediate certificate from primary datacenter")
 	return nil
 }
 
-// intermediateCertRenewalWatch periodically attempts to renew the intermediate cert.
-func (c *CAManager) intermediateCertRenewalWatch(ctx context.Context) error {
+// setLeafSigningCert updates the CARoot by appending the pem to the list of
+// intermediate certificates, and setting the SigningKeyID to the encoded
+// SubjectKeyId of the certificate.
+func setLeafSigningCert(caRoot *structs.CARoot, pem string) error {
+	cert, err := connect.ParseCert(pem)
+	if err != nil {
+		return fmt.Errorf("error parsing leaf signing cert: %w", err)
+	}
+
+	caRoot.IntermediateCerts = append(caRoot.IntermediateCerts, pem)
+	caRoot.SigningKeyID = connect.EncodeSigningKeyID(cert.SubjectKeyId)
+	return nil
+}
+
+// runRenewIntermediate periodically attempts to renew the intermediate cert.
+func (c *CAManager) runRenewIntermediate(ctx context.Context) error {
 	isPrimary := c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter
 
 	for {
@@ -1054,7 +1149,7 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 		return nil
 	}
 	// If this isn't the primary, make sure the CA has been initialized.
-	if !isPrimary && !c.configuredSecondaryCA() {
+	if !isPrimary && !c.secondaryHasProviderRoots() {
 		return fmt.Errorf("secondary CA is not yet configured.")
 	}
 
@@ -1067,15 +1162,8 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 
 	// If this is the primary, check if this is a provider that uses an intermediate cert. If
 	// it isn't, we don't need to check for a renewal.
-	if isPrimary {
-		_, config, err := state.CAConfig(nil)
-		if err != nil {
-			return err
-		}
-
-		if _, ok := ca.PrimaryIntermediateProviders[config.Provider]; !ok {
-			return nil
-		}
+	if isPrimary && !primaryUsesIntermediate(provider) {
+		return nil
 	}
 
 	activeIntermediate, err := provider.ActiveIntermediate()
@@ -1092,15 +1180,14 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 		return fmt.Errorf("error parsing active intermediate cert: %v", err)
 	}
 
-	if lessThanHalfTimePassed(time.Now(), intermediateCert.NotBefore.Add(ca.CertificateTimeDriftBuffer),
-		intermediateCert.NotAfter) {
+	if lessThanHalfTimePassed(c.timeNow(), intermediateCert.NotBefore, intermediateCert.NotAfter) {
 		return nil
 	}
 
 	// Enough time has passed, go ahead with getting a new intermediate.
-	renewalFunc := c.getIntermediateCAPrimary
+	renewalFunc := c.primaryRenewIntermediate
 	if !isPrimary {
-		renewalFunc = c.getIntermediateCASigned
+		renewalFunc = c.secondaryRenewIntermediate
 	}
 	errCh := make(chan error, 1)
 	go func() {
@@ -1153,7 +1240,7 @@ func (c *CAManager) secondaryCARootWatch(ctx context.Context) error {
 		}
 
 		// Attempt to update the roots using the returned data.
-		if err := c.UpdateRoots(roots); err != nil {
+		if err := c.secondaryUpdateRoots(roots); err != nil {
 			return err
 		}
 		args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, roots.QueryMeta.Index)
@@ -1168,9 +1255,9 @@ func (c *CAManager) secondaryCARootWatch(ctx context.Context) error {
 	return nil
 }
 
-// UpdateRoots updates the cached roots from the primary and regenerates the intermediate
+// secondaryUpdateRoots updates the cached roots from the primary and regenerates the intermediate
 // certificate if necessary.
-func (c *CAManager) UpdateRoots(roots structs.IndexedCARoots) error {
+func (c *CAManager) secondaryUpdateRoots(roots structs.IndexedCARoots) error {
 	// Update the state first to claim the 'lock'.
 	if _, err := c.setState(caStateReconfig, true); err != nil {
 		return err
@@ -1178,43 +1265,40 @@ func (c *CAManager) UpdateRoots(roots structs.IndexedCARoots) error {
 	defer c.setState(caStateInitialized, false)
 
 	// Update the cached primary roots now that the lock is held.
-	if err := c.setPrimaryRoots(roots); err != nil {
-		return err
-	}
+	c.secondarySetPrimaryRoots(roots)
 
-	// Check to see if the primary has been upgraded in case we're waiting to switch to
-	// secondary mode.
 	provider, _ := c.getCAProvider()
 	if provider == nil {
 		// this happens when leadership is being revoked and this go routine will be stopped
 		return nil
 	}
-	if !c.configuredSecondaryCA() {
-		versionOk, primaryFound := ServersInDCMeetMinimumVersion(c.delegate, c.serverConf.PrimaryDatacenter, minMultiDCConnectVersion)
-		if !primaryFound {
-			return fmt.Errorf("Primary datacenter is unreachable - deferring secondary CA initialization")
-		}
-
-		if versionOk {
-			if err := c.initializeSecondaryProvider(provider, roots); err != nil {
-				return fmt.Errorf("Failed to initialize secondary CA provider: %v", err)
-			}
-		}
-	}
 
 	// Run the secondary CA init routine to see if we need to request a new
 	// intermediate.
-	if c.configuredSecondaryCA() {
-		if err := c.initializeSecondaryCA(provider, nil); err != nil {
+	if c.secondaryHasProviderRoots() {
+		if err := c.secondaryInitializeIntermediateCA(provider, nil); err != nil {
 			return fmt.Errorf("Failed to initialize the secondary CA: %v", err)
 		}
+		return nil
 	}
 
+	// Attempt to initialize now that we have updated roots. This is an optimization
+	// so that we don't have to wait for the Initialize retry backoff if we were
+	// waiting on roots from the primary to be able to complete initialization.
+	if err := c.delegate.ServersSupportMultiDCConnectCA(); err != nil {
+		return fmt.Errorf("failed to initialize while updating primary roots: %w", err)
+	}
+	if err := c.secondaryInitializeProvider(provider, roots); err != nil {
+		return fmt.Errorf("Failed to initialize secondary CA provider: %v", err)
+	}
+	if err := c.secondaryInitializeIntermediateCA(provider, nil); err != nil {
+		return fmt.Errorf("Failed to initialize the secondary CA: %v", err)
+	}
 	return nil
 }
 
-// initializeSecondaryProvider configures the given provider for a secondary, non-root datacenter.
-func (c *CAManager) initializeSecondaryProvider(provider ca.Provider, roots structs.IndexedCARoots) error {
+// secondaryInitializeProvider configures the given provider for a secondary, non-root datacenter.
+func (c *CAManager) secondaryInitializeProvider(provider ca.Provider, roots structs.IndexedCARoots) error {
 	if roots.TrustDomain == "" {
 		return fmt.Errorf("trust domain from primary datacenter is not initialized")
 	}
@@ -1235,27 +1319,232 @@ func (c *CAManager) initializeSecondaryProvider(provider ca.Provider, roots stru
 	if err := provider.Configure(pCfg); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
-
-	return c.setSecondaryCA()
-}
-
-// setSecondaryCA sets the flag for acting as a secondary CA to true.
-func (c *CAManager) setSecondaryCA() error {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
-
-	if c.state == caStateInitializing || c.state == caStateReconfig {
-		c.actingSecondaryCA = true
-	} else {
-		return fmt.Errorf("Cannot update secondary CA flag in state %q", c.state)
-	}
-
 	return nil
 }
 
-// configuredSecondaryCA returns true if we have been initialized as a secondary datacenter's CA.
-func (c *CAManager) configuredSecondaryCA() bool {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
-	return c.actingSecondaryCA
+// secondaryHasProviderRoots returns true after providerRoot has been set. This
+// method is used to detect when the secondary has received the roots from the
+// primary DC.
+func (c *CAManager) secondaryHasProviderRoots() bool {
+	// TODO: this could potentially also use primaryRoots instead of providerRoot
+	c.providerLock.Lock()
+	defer c.providerLock.Unlock()
+	return c.providerRoot != nil
+}
+
+type connectSignRateLimiter struct {
+	// csrRateLimiter limits the rate of signing new certs if configured. Lazily
+	// initialized from current config to support dynamic changes.
+	// csrRateLimiterMu must be held while dereferencing the pointer or storing a
+	// new one, but methods can be called on the limiter object outside of the
+	// locked section. This is done only in the getCSRRateLimiterWithLimit method.
+	csrRateLimiter   *rate.Limiter
+	csrRateLimiterMu sync.RWMutex
+
+	// csrConcurrencyLimiter is a dynamically resizable semaphore used to limit
+	// Sign RPC concurrency if configured. The zero value is usable as soon as
+	// SetSize is called which we do dynamically in the RPC handler to avoid
+	// having to hook elaborate synchronization mechanisms through the CA config
+	// endpoint and config reload etc.
+	csrConcurrencyLimiter semaphore.Dynamic
+}
+
+// getCSRRateLimiterWithLimit returns a rate.Limiter with the desired limit set.
+// It uses the shared server-wide limiter unless the limit has been changed in
+// config or the limiter has not been setup yet in which case it just-in-time
+// configures the new limiter. We assume that limit changes are relatively rare
+// and that all callers (there is currently only one) use the same config value
+// as the limit. There might be some flapping if there are multiple concurrent
+// requests in flight at the time the config changes where A sees the new value
+// and updates, B sees the old but then gets this lock second and changes back.
+// Eventually though and very soon (once all current RPCs are complete) we are
+// guaranteed to have the correct limit set by the next RPC that comes in so I
+// assume this is fine. If we observe strange behavior because of it, we could
+// add hysteresis that prevents changes too soon after a previous change but
+// that seems unnecessary for now.
+func (l *connectSignRateLimiter) getCSRRateLimiterWithLimit(limit rate.Limit) *rate.Limiter {
+	l.csrRateLimiterMu.RLock()
+	lim := l.csrRateLimiter
+	l.csrRateLimiterMu.RUnlock()
+
+	// If there is a current limiter with the same limit, return it. This should
+	// be the common case.
+	if lim != nil && lim.Limit() == limit {
+		return lim
+	}
+
+	// Need to change limiter, get write lock
+	l.csrRateLimiterMu.Lock()
+	defer l.csrRateLimiterMu.Unlock()
+	// No limiter yet, or limit changed in CA config, reconfigure a new limiter.
+	// We use burst of 1 for a hard limit. Note that either bursting or waiting is
+	// necessary to get expected behavior in fact of random arrival times, but we
+	// don't need both and we use Wait with a small delay to smooth noise. See
+	// https://github.com/banks/sim-rate-limit-backoff/blob/master/README.md.
+	l.csrRateLimiter = rate.NewLimiter(limit, 1)
+	return l.csrRateLimiter
+}
+
+func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.CertURI) (*structs.IssuedCert, error) {
+	provider, caRoot := c.getCAProvider()
+	if provider == nil {
+		return nil, fmt.Errorf("CA is uninitialized and unable to sign certificates yet: provider is nil")
+	} else if caRoot == nil {
+		return nil, fmt.Errorf("CA is uninitialized and unable to sign certificates yet: no root certificate")
+	}
+
+	// Verify that the CSR entity is in the cluster's trust domain
+	state := c.delegate.State()
+	_, config, err := state.CAConfig(nil)
+	if err != nil {
+		return nil, err
+	}
+	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
+	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
+	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
+	if !isService && !isAgent {
+		return nil, fmt.Errorf("SPIFFE ID in CSR must be a service or agent ID")
+	}
+
+	var entMeta structs.EnterpriseMeta
+	if isService {
+		if !signingID.CanSign(spiffeID) {
+			return nil, fmt.Errorf("SPIFFE ID in CSR from a different trust domain: %s, "+
+				"we are %s", serviceID.Host, signingID.Host())
+		}
+		entMeta.Merge(serviceID.GetEnterpriseMeta())
+	} else {
+		// isAgent - if we support more ID types then this would need to be an else if
+		// here we are just automatically fixing the trust domain. For auto-encrypt and
+		// auto-config they make certificate requests before learning about the roots
+		// so they will have a dummy trust domain in the CSR.
+		trustDomain := signingID.Host()
+		if agentID.Host != trustDomain {
+			originalURI := agentID.URI()
+
+			agentID.Host = trustDomain
+
+			// recreate the URIs list
+			uris := make([]*url.URL, len(csr.URIs))
+			for i, uri := range csr.URIs {
+				if originalURI.String() == uri.String() {
+					uris[i] = agentID.URI()
+				} else {
+					uris[i] = uri
+				}
+			}
+
+			csr.URIs = uris
+		}
+		entMeta.Merge(agentID.GetEnterpriseMeta())
+	}
+
+	commonCfg, err := config.GetCommonConfig()
+	if err != nil {
+		return nil, err
+	}
+	if commonCfg.CSRMaxPerSecond > 0 {
+		lim := c.caLeafLimiter.getCSRRateLimiterWithLimit(rate.Limit(commonCfg.CSRMaxPerSecond))
+		// Wait up to the small threshold we allow for a token.
+		ctx, cancel := context.WithTimeout(context.Background(), csrLimitWait)
+		defer cancel()
+		if lim.Wait(ctx) != nil {
+			return nil, ErrRateLimited
+		}
+	} else if commonCfg.CSRMaxConcurrent > 0 {
+		c.caLeafLimiter.csrConcurrencyLimiter.SetSize(int64(commonCfg.CSRMaxConcurrent))
+		ctx, cancel := context.WithTimeout(context.Background(), csrLimitWait)
+		defer cancel()
+		if err := c.caLeafLimiter.csrConcurrencyLimiter.Acquire(ctx); err != nil {
+			return nil, ErrRateLimited
+		}
+		defer c.caLeafLimiter.csrConcurrencyLimiter.Release()
+	}
+
+	connect.HackSANExtensionForCSR(csr)
+
+	// Check if the root expired before using it to sign.
+	// TODO: we store NotBefore and NotAfter on this struct, so we could avoid
+	// parsing the cert here.
+	err = c.checkExpired(caRoot.RootCert)
+	if err != nil {
+		return nil, fmt.Errorf("root expired: %w", err)
+	}
+
+	if c.isIntermediateUsedToSignLeaf() && len(caRoot.IntermediateCerts) > 0 {
+		inter := caRoot.IntermediateCerts[len(caRoot.IntermediateCerts)-1]
+		if err := c.checkExpired(inter); err != nil {
+			return nil, fmt.Errorf("intermediate expired: %w", err)
+		}
+	}
+
+	// All seems to be in order, actually sign it.
+	pem, err := provider.Sign(csr)
+	if err == ca.ErrRateLimited {
+		return nil, ErrRateLimited
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Append any intermediates needed by this root.
+	for _, p := range caRoot.IntermediateCerts {
+		pem = pem + ca.EnsureTrailingNewline(p)
+	}
+
+	modIdx, err := c.delegate.ApplyCALeafRequest()
+	if err != nil {
+		return nil, err
+	}
+
+	cert, err := connect.ParseCert(pem)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the response
+	reply := structs.IssuedCert{
+		SerialNumber:   connect.EncodeSerialNumber(cert.SerialNumber),
+		CertPEM:        pem,
+		ValidAfter:     cert.NotBefore,
+		ValidBefore:    cert.NotAfter,
+		EnterpriseMeta: entMeta,
+		RaftIndex: structs.RaftIndex{
+			ModifyIndex: modIdx,
+			CreateIndex: modIdx,
+		},
+	}
+	if isService {
+		reply.Service = serviceID.Service
+		reply.ServiceURI = cert.URIs[0].String()
+	} else if isAgent {
+		reply.Agent = agentID.Agent
+		reply.AgentURI = cert.URIs[0].String()
+	}
+
+	return &reply, nil
+}
+
+func (c *CAManager) checkExpired(pem string) error {
+	cert, err := connect.ParseCert(pem)
+	if err != nil {
+		return err
+	}
+	if cert.NotAfter.Before(c.timeNow()) {
+		return fmt.Errorf("certificate expired, expiration date: %s ", cert.NotAfter.String())
+	}
+	return nil
+}
+
+func primaryUsesIntermediate(provider ca.Provider) bool {
+	_, ok := provider.(ca.PrimaryUsesIntermediate)
+	return ok
+}
+
+func (c *CAManager) isIntermediateUsedToSignLeaf() bool {
+	if c.serverConf.Datacenter != c.serverConf.PrimaryDatacenter {
+		return true
+	}
+	provider, _ := c.getCAProvider()
+	return primaryUsesIntermediate(provider)
 }

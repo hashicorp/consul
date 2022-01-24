@@ -14,11 +14,11 @@ export default function(scenario, assert, pauseUntil, find, currentURL, clipboar
         return retry();
       }, `Expected to see "${text}" in "${selector}"`);
     })
-    .then(['I see the text "$text" in "$selector"'], function(text, selector) {
-      const textContent = find(selector).textContent;
-      assert.ok(
+    .then([`I${dont} see the text "$text" in "$selector"`], function(negative, text, selector) {
+      const textContent = (find(selector) || { textContent: '' }).textContent;
+      assert[negative ? 'notOk' : 'ok'](
         textContent.indexOf(text) !== -1,
-        `Expected to see "${text}" in "${selector}", was "${textContent}"`
+        `Expected${negative ? ' not' : ''} to see "${text}" in "${selector}", was "${textContent}"`
       );
     })
     .then(['I copied "$text"'], function(text) {

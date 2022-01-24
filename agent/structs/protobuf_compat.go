@@ -44,6 +44,9 @@ type QueryMetaCompat interface {
 	SetIndex(uint64)
 	GetConsistencyLevel() string
 	SetConsistencyLevel(string)
+	GetBackend() QueryBackend
+	GetResultsFilteredByACLs() bool
+	SetResultsFilteredByACLs(bool)
 }
 
 // GetToken helps implement the QueryOptionsCompat interface
@@ -268,4 +271,20 @@ func (q *QueryMeta) SetIndex(index uint64) {
 // Copied from proto/pbcommon/common.go
 func (q *QueryMeta) SetConsistencyLevel(consistencyLevel string) {
 	q.ConsistencyLevel = consistencyLevel
+}
+
+func (q *QueryMeta) GetBackend() QueryBackend {
+	return q.Backend
+}
+
+// GetResultsFilteredByACLs is needed to implement the structs.QueryMetaCompat
+// interface.
+func (q *QueryMeta) GetResultsFilteredByACLs() bool {
+	return q.ResultsFilteredByACLs
+}
+
+// SetResultsFilteredByACLs is needed to implement the structs.QueryMetaCompat
+// interface.
+func (q *QueryMeta) SetResultsFilteredByACLs(v bool) {
+	q.ResultsFilteredByACLs = v
 }

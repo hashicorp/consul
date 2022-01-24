@@ -1,0 +1,5 @@
+@import './skin';
+@import './layout';
+.radio-card {
+  @extend %radio-card;
+}

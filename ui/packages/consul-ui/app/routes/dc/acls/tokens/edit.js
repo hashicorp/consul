@@ -1,30 +1,15 @@
 import { inject as service } from '@ember/service';
-import SingleRoute from 'consul-ui/routing/single';
-import { hash } from 'rsvp';
+import Route from 'consul-ui/routing/route';
 
-import WithTokenActions from 'consul-ui/mixins/token/with-actions';
+import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 
-export default class EditRoute extends SingleRoute.extend(WithTokenActions) {
-  @service('repository/token')
-  repo;
+export default class EditRoute extends Route.extend(WithBlockingActions) {
+  @service('repository/token') repo;
+  @service('settings') settings;
 
-  @service('settings')
-  settings;
-
-  model(params, transition) {
-    return super.model(...arguments).then(model => {
-      return hash({
-        ...model,
-        ...{
-          routeName: this.routeName,
-          token: this.settings.findBySlug('token'),
-        },
-      });
-    });
-  }
-
-  setupController(controller, model) {
-    super.setupController(...arguments);
-    controller.setProperties(model);
+  async model(params, transition) {
+    return {
+      token: await this.settings.findBySlug('token'),
+    };
   }
 }

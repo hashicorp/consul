@@ -2,7 +2,9 @@ package debug
 
 import (
 	"archive/tar"
+	"bufio"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -10,15 +12,18 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
-	"sync"
+	"syscall"
 	"time"
+
+	"github.com/hashicorp/go-multierror"
+	"github.com/mitchellh/cli"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	multierror "github.com/hashicorp/go-multierror"
-	"github.com/mitchellh/cli"
 )
 
 const (
@@ -51,7 +56,7 @@ const (
 	debugProtocolVersion = 1
 )
 
-func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
+func New(ui cli.Ui) *cmd {
 	ui = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
 		InfoPrefix:   "    ",
@@ -59,7 +64,7 @@ func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
 		Ui:           ui,
 	}
 
-	c := &cmd{UI: ui, shutdownCh: shutdownCh}
+	c := &cmd{UI: ui}
 	c.init()
 	return c
 }
@@ -69,8 +74,6 @@ type cmd struct {
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
 	help  string
-
-	shutdownCh <-chan struct{}
 
 	// flags
 	interval time.Duration
@@ -82,8 +85,9 @@ type cmd struct {
 	// validateTiming can be used to skip validation of interval, duration. This
 	// is primarily useful for testing
 	validateTiming bool
-
-	index *debugIndex
+	// timeNow is a shim for testing, it is used to generate the time used in
+	// file paths.
+	timeNow func() time.Time
 }
 
 // debugIndex is used to manage the summary of all data recorded
@@ -101,16 +105,22 @@ type debugIndex struct {
 	Targets []string
 }
 
+// timeDateformat is a modified version of time.RFC3339 which replaces colons with
+// hyphens. This is to make it more convenient to untar these files, because
+// tar assumes colons indicate the file is on a remote host, unless --force-local
+// is used.
+const timeDateFormat = "2006-01-02T15-04-05Z0700"
+
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
-	defaultFilename := fmt.Sprintf("consul-debug-%d", time.Now().Unix())
+	defaultFilename := fmt.Sprintf("consul-debug-%v", time.Now().Format(timeDateFormat))
 
 	c.flags.Var((*flags.AppendSliceValue)(&c.capture), "capture",
 		fmt.Sprintf("One or more types of information to capture. This can be used "+
 			"to capture a subset of information, and defaults to capturing "+
 			"everything available. Possible information for capture: %s. "+
-			"This can be repeated multiple times.", strings.Join(c.defaultTargets(), ", ")))
+			"This can be repeated multiple times.", strings.Join(defaultTargets, ", ")))
 	c.flags.DurationVar(&c.interval, "interval", debugInterval,
 		fmt.Sprintf("The interval in which to capture dynamic information such as "+
 			"telemetry, and profiling. Defaults to %s.", debugInterval))
@@ -129,9 +139,15 @@ func (c *cmd) init() {
 	c.help = flags.Usage(help, c.flags)
 
 	c.validateTiming = true
+	c.timeNow = func() time.Time {
+		return time.Now().UTC()
+	}
 }
 
 func (c *cmd) Run(args []string) int {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
 	if err := c.flags.Parse(args); err != nil {
 		c.UI.Error(fmt.Sprintf("Error parsing flags: %s", err))
 		return 1
@@ -171,15 +187,6 @@ func (c *cmd) Run(args []string) int {
 	c.UI.Info(fmt.Sprintf("        Output: '%s'", archiveName))
 	c.UI.Info(fmt.Sprintf("       Capture: '%s'", strings.Join(c.capture, ", ")))
 
-	// Record some information for the index at the root of the archive
-	index := &debugIndex{
-		Version:      debugProtocolVersion,
-		AgentVersion: version,
-		Interval:     c.interval.String(),
-		Duration:     c.duration.String(),
-		Targets:      c.capture,
-	}
-
 	// Add the extra grace period to ensure
 	// all intervals will be captured within the time allotted
 	c.duration = c.duration + debugDurationGrace
@@ -191,22 +198,29 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// Capture dynamic information from the target agent, blocking for duration
-	if c.configuredTarget("metrics") || c.configuredTarget("logs") || c.configuredTarget("pprof") {
-		err = c.captureDynamic()
+	if c.captureTarget(targetMetrics) || c.captureTarget(targetLogs) || c.captureTarget(targetProfiles) {
+		g := new(errgroup.Group)
+		g.Go(func() error {
+			return c.captureInterval(ctx)
+		})
+		g.Go(func() error {
+			return c.captureLongRunning(ctx)
+		})
+		err = g.Wait()
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error encountered during collection: %v", err))
 		}
 	}
 
-	// Write the index document
-	idxMarshalled, err := json.MarshalIndent(index, "", "\t")
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error marshalling index document: %v", err))
-		return 1
+	// Record some information for the index at the root of the archive
+	index := &debugIndex{
+		Version:      debugProtocolVersion,
+		AgentVersion: version,
+		Interval:     c.interval.String(),
+		Duration:     c.duration.String(),
+		Targets:      c.capture,
 	}
-
-	err = ioutil.WriteFile(fmt.Sprintf("%s/index.json", c.output), idxMarshalled, 0644)
-	if err != nil {
+	if err := writeJSONFile(filepath.Join(c.output, "index.json"), index); err != nil {
 		c.UI.Error(fmt.Sprintf("Error creating index document: %v", err))
 		return 1
 	}
@@ -254,30 +268,14 @@ func (c *cmd) prepare() (version string, err error) {
 		return "", fmt.Errorf("agent response did not contain version key")
 	}
 
-	debugEnabled, ok := self["DebugConfig"]["EnableDebug"].(bool)
-	if !ok {
-		return version, fmt.Errorf("agent response did not contain debug key")
-	}
-
 	// If none are specified we will collect information from
 	// all by default
 	if len(c.capture) == 0 {
-		c.capture = c.defaultTargets()
-	}
-
-	if !debugEnabled && c.configuredTarget("pprof") {
-		cs := c.capture
-		for i := 0; i < len(cs); i++ {
-			if cs[i] == "pprof" {
-				c.capture = append(cs[:i], cs[i+1:]...)
-				i--
-			}
-		}
-		c.UI.Warn("[WARN] Unable to capture pprof. Set enable_debug to true on target agent to enable profiling.")
+		c.capture = defaultTargets
 	}
 
 	for _, t := range c.capture {
-		if !c.allowedTarget(t) {
+		if !allowedTarget(t) {
 			return version, fmt.Errorf("target not found: %s", t)
 		}
 	}
@@ -297,265 +295,269 @@ func (c *cmd) prepare() (version string, err error) {
 // captureStatic captures static target information and writes it
 // to the output path
 func (c *cmd) captureStatic() error {
-	// Collect errors via multierror as we want to gracefully
-	// fail if an API is inacessible
-	var errors error
+	var errs error
 
-	// Collect the named outputs here
-	outputs := make(map[string]interface{})
-
-	// Capture host information
-	if c.configuredTarget("host") {
+	if c.captureTarget(targetHost) {
 		host, err := c.client.Agent().Host()
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
-		outputs["host"] = host
+		if err := writeJSONFile(filepath.Join(c.output, targetHost+".json"), host); err != nil {
+			errs = multierror.Append(errs, err)
+		}
 	}
 
-	// Capture agent information
-	if c.configuredTarget("agent") {
+	if c.captureTarget(targetAgent) {
 		agent, err := c.client.Agent().Self()
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
-		outputs["agent"] = agent
+		if err := writeJSONFile(filepath.Join(c.output, targetAgent+".json"), agent); err != nil {
+			errs = multierror.Append(errs, err)
+		}
 	}
 
-	// Capture cluster members information, including WAN
-	if c.configuredTarget("cluster") {
+	if c.captureTarget(targetMembers) {
 		members, err := c.client.Agent().Members(true)
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
-		outputs["cluster"] = members
-	}
-
-	// Write all outputs to disk as JSON
-	for output, v := range outputs {
-		marshaled, err := json.MarshalIndent(v, "", "\t")
-		if err != nil {
-			errors = multierror.Append(errors, err)
-		}
-
-		err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", c.output, output), marshaled, 0644)
-		if err != nil {
-			errors = multierror.Append(errors, err)
+		if err := writeJSONFile(filepath.Join(c.output, targetMembers+".json"), members); err != nil {
+			errs = multierror.Append(errs, err)
 		}
 	}
-
-	return errors
+	return errs
 }
 
-// captureDynamic blocks for the duration of the command
+func writeJSONFile(filename string, content interface{}) error {
+	marshaled, err := json.MarshalIndent(content, "", "\t")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filename, marshaled, 0644)
+}
+
+// captureInterval blocks for the duration of the command
 // specified by the duration flag, capturing the dynamic
 // targets at the interval specified
-func (c *cmd) captureDynamic() error {
-	successChan := make(chan int64)
-	errCh := make(chan error)
+func (c *cmd) captureInterval(ctx context.Context) error {
+	intervalChn := time.NewTicker(c.interval)
+	defer intervalChn.Stop()
 	durationChn := time.After(c.duration)
 	intervalCount := 0
 
-	c.UI.Output(fmt.Sprintf("Beginning capture interval %s (%d)", time.Now().Local().String(), intervalCount))
+	c.UI.Output(fmt.Sprintf("Beginning capture interval %s (%d)", time.Now().UTC(), intervalCount))
 
-	// We'll wait for all of the targets configured to be
-	// captured before continuing
-	var wg sync.WaitGroup
-
-	capture := func() {
-		timestamp := time.Now().Local().Unix()
-
-		// Make the directory that will store all captured data
-		// for this interval
-		timestampDir := fmt.Sprintf("%s/%d", c.output, timestamp)
-		err := os.MkdirAll(timestampDir, 0755)
-		if err != nil {
-			errCh <- err
-		}
-
-		// Capture metrics
-		if c.configuredTarget("metrics") {
-			wg.Add(1)
-
-			go func() {
-				metrics, err := c.client.Agent().Metrics()
-				if err != nil {
-					errCh <- err
-				}
-
-				marshaled, err := json.MarshalIndent(metrics, "", "\t")
-				if err != nil {
-					errCh <- err
-				}
-
-				err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0644)
-				if err != nil {
-					errCh <- err
-				}
-
-				// We need to sleep for the configured interval in the case
-				// of metrics being the only target captured. When it is,
-				// the waitgroup would return on Wait() and repeat without
-				// waiting for the interval.
-				time.Sleep(c.interval)
-
-				wg.Done()
-			}()
-		}
-
-		// Capture pprof
-		if c.configuredTarget("pprof") {
-			wg.Add(1)
-
-			go func() {
-				// We need to capture profiles and traces at the same time
-				// and block for both of them
-				var wgProf sync.WaitGroup
-
-				heap, err := c.client.Debug().Heap()
-				if err != nil {
-					errCh <- err
-				}
-
-				err = ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
-				if err != nil {
-					errCh <- err
-				}
-
-				// Capture a profile/trace with a minimum of 1s
-				s := c.interval.Seconds()
-				if s < 1 {
-					s = 1
-				}
-
-				wgProf.Add(1)
-				go func() {
-					prof, err := c.client.Debug().Profile(int(s))
-					if err != nil {
-						errCh <- err
-					}
-
-					err = ioutil.WriteFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
-					if err != nil {
-						errCh <- err
-					}
-
-					wgProf.Done()
-				}()
-
-				wgProf.Add(1)
-				go func() {
-					trace, err := c.client.Debug().Trace(int(s))
-					if err != nil {
-						errCh <- err
-					}
-
-					err = ioutil.WriteFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
-					if err != nil {
-						errCh <- err
-					}
-
-					wgProf.Done()
-				}()
-
-				gr, err := c.client.Debug().Goroutine()
-				if err != nil {
-					errCh <- err
-				}
-
-				err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
-				if err != nil {
-					errCh <- err
-				}
-
-				wgProf.Wait()
-
-				wg.Done()
-			}()
-		}
-
-		// Capture logs
-		if c.configuredTarget("logs") {
-			wg.Add(1)
-
-			go func() {
-				endLogChn := make(chan struct{})
-				logCh, err := c.client.Agent().Monitor("DEBUG", endLogChn, nil)
-				if err != nil {
-					errCh <- err
-				}
-				// Close the log stream
-				defer close(endLogChn)
-
-				// Create the log file for writing
-				f, err := os.Create(fmt.Sprintf("%s/%s", timestampDir, "consul.log"))
-				if err != nil {
-					errCh <- err
-				}
-				defer f.Close()
-
-				intervalChn := time.After(c.interval)
-
-			OUTER:
-
-				for {
-					select {
-					case log := <-logCh:
-						// Append the line to the file
-						if _, err = f.WriteString(log + "\n"); err != nil {
-							errCh <- err
-							break OUTER
-						}
-					// Stop collecting the logs after the interval specified
-					case <-intervalChn:
-						break OUTER
-					}
-				}
-
-				wg.Done()
-			}()
-		}
-
-		// Wait for all captures to complete
-		wg.Wait()
-
-		// Send down the timestamp for UI output
-		successChan <- timestamp
+	err := captureShortLived(c)
+	if err != nil {
+		return err
 	}
-
-	go capture()
-
+	c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", time.Now().UTC(), intervalCount))
 	for {
 		select {
-		case t := <-successChan:
+		case t := <-intervalChn.C:
 			intervalCount++
-			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", time.Unix(t, 0).Local().String(), intervalCount))
-			go capture()
-		case e := <-errCh:
-			c.UI.Error(fmt.Sprintf("Capture failure %s", e))
+			err := captureShortLived(c)
+			if err != nil {
+				return err
+			}
+			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", t.UTC(), intervalCount))
 		case <-durationChn:
+			intervalChn.Stop()
 			return nil
-		case <-c.shutdownCh:
+		case <-ctx.Done():
 			return errors.New("stopping collection due to shutdown signal")
 		}
 	}
 }
 
-// allowedTarget returns a boolean if the target is able to be captured
-func (c *cmd) allowedTarget(target string) bool {
-	for _, dt := range c.defaultTargets() {
+func captureShortLived(c *cmd) error {
+	g := new(errgroup.Group)
+
+	dir, err := makeIntervalDir(c.output, c.timeNow())
+	if err != nil {
+		return err
+	}
+	if c.captureTarget(targetProfiles) {
+		g.Go(func() error {
+			return c.captureHeap(dir)
+		})
+
+		g.Go(func() error {
+			return c.captureGoRoutines(dir)
+		})
+	}
+	return g.Wait()
+}
+
+func makeIntervalDir(base string, now time.Time) (string, error) {
+	dir := filepath.Join(base, now.Format(timeDateFormat))
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create output directory %v: %w", dir, err)
+	}
+	return dir, nil
+}
+
+func (c *cmd) captureLongRunning(ctx context.Context) error {
+	g := new(errgroup.Group)
+	// Capture a profile/trace with a minimum of 1s
+	s := c.duration.Seconds()
+	if s < 1 {
+		s = 1
+	}
+	if c.captureTarget(targetProfiles) {
+		g.Go(func() error {
+			// use ctx without a timeout to allow the profile to finish sending
+			return c.captureProfile(ctx, s)
+		})
+
+		g.Go(func() error {
+			// use ctx without a timeout to allow the trace to finish sending
+			return c.captureTrace(ctx, s)
+		})
+	}
+	if c.captureTarget(targetLogs) {
+		g.Go(func() error {
+			ctx, cancel := context.WithTimeout(ctx, c.duration)
+			defer cancel()
+			return c.captureLogs(ctx)
+		})
+	}
+	if c.captureTarget(targetMetrics) {
+		g.Go(func() error {
+			ctx, cancel := context.WithTimeout(ctx, c.duration)
+			defer cancel()
+			return c.captureMetrics(ctx)
+		})
+	}
+
+	return g.Wait()
+}
+
+func (c *cmd) captureGoRoutines(outputDir string) error {
+	gr, err := c.client.Debug().Goroutine()
+	if err != nil {
+		return fmt.Errorf("failed to collect goroutine profile: %w", err)
+	}
+
+	return ioutil.WriteFile(filepath.Join(outputDir, "goroutine.prof"), gr, 0644)
+}
+
+func (c *cmd) captureTrace(ctx context.Context, s float64) error {
+	prof, err := c.client.Debug().PProf(ctx, "trace", int(s))
+	if err != nil {
+		return fmt.Errorf("failed to collect cpu profile: %w", err)
+	}
+	defer prof.Close()
+
+	r := bufio.NewReader(prof)
+	fh, err := os.Create(filepath.Join(c.output, "trace.out"))
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+	_, err = r.WriteTo(fh)
+	return err
+}
+
+func (c *cmd) captureProfile(ctx context.Context, s float64) error {
+	prof, err := c.client.Debug().PProf(ctx, "profile", int(s))
+	if err != nil {
+		return fmt.Errorf("failed to collect cpu profile: %w", err)
+	}
+	defer prof.Close()
+
+	r := bufio.NewReader(prof)
+	fh, err := os.Create(filepath.Join(c.output, "profile.prof"))
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+	_, err = r.WriteTo(fh)
+	return err
+}
+
+func (c *cmd) captureHeap(outputDir string) error {
+	heap, err := c.client.Debug().Heap()
+	if err != nil {
+		return fmt.Errorf("failed to collect heap profile: %w", err)
+	}
+
+	return ioutil.WriteFile(filepath.Join(outputDir, "heap.prof"), heap, 0644)
+}
+
+func (c *cmd) captureLogs(ctx context.Context) error {
+	logCh, err := c.client.Agent().Monitor("DEBUG", ctx.Done(), nil)
+	if err != nil {
+		return err
+	}
+
+	// Create the log file for writing
+	f, err := os.Create(filepath.Join(c.output, "consul.log"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	for {
+		select {
+		case log := <-logCh:
+			if log == "" {
+				return nil
+			}
+			if _, err = f.WriteString(log + "\n"); err != nil {
+				return err
+			}
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (c *cmd) captureMetrics(ctx context.Context) error {
+	stream, err := c.client.Agent().MetricsStream(ctx)
+	if err != nil {
+		return err
+	}
+	defer stream.Close()
+
+	fh, err := os.Create(filepath.Join(c.output, "metrics.json"))
+	if err != nil {
+		return fmt.Errorf("failed to create metrics file: %w", err)
+	}
+	defer fh.Close()
+
+	b := bufio.NewReader(stream)
+	_, err = b.WriteTo(fh)
+	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("failed to copy metrics to file: %w", err)
+	}
+	return nil
+}
+
+// allowedTarget returns true if the target is a recognized name of a capture
+// target.
+func allowedTarget(target string) bool {
+	for _, dt := range defaultTargets {
 		if dt == target {
+			return true
+		}
+	}
+	for _, t := range deprecatedTargets {
+		if t == target {
 			return true
 		}
 	}
 	return false
 }
 
-// configuredTarget returns a boolean if the target is configured to be
-// captured in the command
-func (c *cmd) configuredTarget(target string) bool {
+// captureTarget returns true if the target capture type is enabled.
+func (c *cmd) captureTarget(target string) bool {
 	for _, dt := range c.capture {
 		if dt == target {
+			return true
+		}
+		if target == targetMembers && dt == targetCluster {
 			return true
 		}
 	}
@@ -650,9 +652,7 @@ func (c *cmd) createArchiveTemp(path string) (tempName string, err error) {
 			return fmt.Errorf("failed to copy files for archive: %s", err)
 		}
 
-		f.Close()
-
-		return nil
+		return f.Close()
 	})
 
 	if err != nil {
@@ -681,33 +681,37 @@ func (c *cmd) createArchiveTemp(path string) (tempName string, err error) {
 	return tempName, nil
 }
 
-// defaultTargets specifies the list of all targets that
-// will be captured by default
-func (c *cmd) defaultTargets() []string {
-	return append(c.dynamicTargets(), c.staticTargets()...)
+const (
+	targetMetrics  = "metrics"
+	targetLogs     = "logs"
+	targetProfiles = "pprof"
+	targetHost     = "host"
+	targetAgent    = "agent"
+	targetMembers  = "members"
+	// targetCluster is the now deprecated name for targetMembers
+	targetCluster = "cluster"
+)
+
+// defaultTargets specifies the list of targets that will be captured by default
+var defaultTargets = []string{
+	targetMetrics,
+	targetLogs,
+	targetProfiles,
+	targetHost,
+	targetAgent,
+	targetMembers,
 }
 
-// dynamicTargets returns all the supported targets
-// that are retrieved at the interval specified
-func (c *cmd) dynamicTargets() []string {
-	return []string{"metrics", "logs", "pprof"}
-}
-
-// staticTargets returns all the supported targets
-// that are retrieved at the start of the command execution
-func (c *cmd) staticTargets() []string {
-	return []string{"host", "agent", "cluster"}
-}
+var deprecatedTargets = []string{targetCluster}
 
 func (c *cmd) Synopsis() string {
-	return synopsis
+	return "Records a debugging archive for operators"
 }
 
 func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Records a debugging archive for operators"
 const help = `
 Usage: consul debug [options]
 

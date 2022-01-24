@@ -53,7 +53,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -153,24 +153,26 @@ func (c *cmd) ixnsFromArgs(args []string) ([]*api.Intention, error) {
 		return nil, fmt.Errorf("Must specify two arguments: source and destination")
 	}
 
-	srcName, srcNamespace, err := intention.ParseIntentionTarget(args[0])
+	srcName, srcNS, srcPart, err := intention.ParseIntentionTarget(args[0])
 	if err != nil {
 		return nil, fmt.Errorf("Invalid intention source: %v", err)
 	}
 
-	dstName, dstNamespace, err := intention.ParseIntentionTarget(args[1])
+	dstName, dstNS, dstPart, err := intention.ParseIntentionTarget(args[1])
 	if err != nil {
 		return nil, fmt.Errorf("Invalid intention destination: %v", err)
 	}
 
 	return []*api.Intention{{
-		SourceNS:        srcNamespace,
-		SourceName:      srcName,
-		DestinationNS:   dstNamespace,
-		DestinationName: dstName,
-		SourceType:      api.IntentionSourceConsul,
-		Action:          c.ixnAction(),
-		Meta:            c.flagMeta,
+		SourcePartition:      srcPart,
+		SourceNS:             srcNS,
+		SourceName:           srcName,
+		DestinationPartition: dstPart,
+		DestinationNS:        dstNS,
+		DestinationName:      dstName,
+		SourceType:           api.IntentionSourceConsul,
+		Action:               c.ixnAction(),
+		Meta:                 c.flagMeta,
 	}}, nil
 }
 
@@ -224,8 +226,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Create intentions for service connections."
-const help = `
+const (
+	synopsis = "Create intentions for service connections."
+	help     = `
 Usage: consul intention create [options] SRC DST
 Usage: consul intention create [options] -file FILE...
 
@@ -254,3 +257,4 @@ Usage: consul intention create [options] -file FILE...
 
   Additional flags and more advanced use cases are detailed below.
 `
+)

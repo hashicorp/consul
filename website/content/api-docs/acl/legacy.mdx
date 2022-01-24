@@ -1,19 +1,18 @@
 ---
 layout: api
 page_title: Legacy ACLs - HTTP API
-sidebar_title: Legacy Tokens
 description: >-
-  The /acl endpoints create, update, destroy, and query Legacy ACL tokens in
+  The legacy /acl endpoints to create, update, destroy, and query legacy ACL tokens in
   Consul.
 ---
 
 # ACL HTTP API
 
--> **Consul 1.4.0 deprecates the legacy ACL system completely.** It's _strongly_
-recommended you do not build anything using the legacy system and consider using
+-> **The legacy ACL system was deprecated in Consul 1.4.0 and removed in Consul 1.11.0.** It's _strongly_
+recommended you do not build anything using the legacy system and use
 the new ACL [Token](/api/acl/tokens) and [Policy](/api/acl/policies) APIs instead.
 
-The `/acl` endpoints create, update, destroy, and query ACL tokens in Consul.
+The legacy `/acl` endpoints to create, update, destroy, and query legacy ACL tokens in Consul.
 
 For more information about ACLs, please check the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
@@ -46,7 +45,7 @@ The table below shows this endpoint's support for
   are: `client` and `management`.
 
 - `Rules` `(string: "")` - Specifies rules for this ACL token. The format of the
-  `Rules` property is detailed in the [ACL Rule documentation](/docs/acl/acl-rules).
+  `Rules` property is detailed in the [ACL Rule documentation](/docs/security/acl/acl-rules).
 
 ### Sample Payload
 
@@ -297,4 +296,4 @@ $ curl \
 
 ## Check ACL Replication
 
-The check ACL replication endpoint has not changed between the legacy system and the new system. Review the [latest documentation](/api/acl/acl#check-acl-replication) to learn more about this endpoint.
+The check ACL replication endpoint has not changed between the legacy system and the new system. Review the [latest documentation](/api-docs/acl#check-acl-replication) to learn more about this endpoint.

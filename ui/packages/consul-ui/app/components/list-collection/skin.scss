@@ -1,0 +1,15 @@
+%list-collection > ul {
+  border-top: 1px solid;
+  border-color: rgb(var(--tone-gray-200));
+}
+%list-collection-partial-button {
+  cursor: pointer;
+  background-color: rgb(var(--tone-gray-050));
+  color: rgb(var(--tone-blue-500));
+}
+%list-collection-partial-button::after {
+  @extend %with-chevron-up-mask, %as-pseudo;
+}
+%list-collection-partial-button.closed::after {
+  @extend %with-chevron-down-mask;
+}

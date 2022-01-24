@@ -62,52 +62,55 @@ func (s *TestSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts)
 }
 
 func TestGenerateCA(t *testing.T) {
-	t.Parallel()
-	ca, pk, err := GenerateCA(CAOpts{Signer: &TestSigner{}})
-	require.Error(t, err)
-	require.Empty(t, ca)
-	require.Empty(t, pk)
+	t.Run("no signer", func(t *testing.T) {
+		ca, pk, err := GenerateCA(CAOpts{Signer: &TestSigner{}})
+		require.Error(t, err)
+		require.Empty(t, ca)
+		require.Empty(t, pk)
+	})
 
-	// test what happens with wrong key
-	ca, pk, err = GenerateCA(CAOpts{Signer: &TestSigner{public: &rsa.PublicKey{}}})
-	require.Error(t, err)
-	require.Empty(t, ca)
-	require.Empty(t, pk)
+	t.Run("wrong key", func(t *testing.T) {
+		ca, pk, err := GenerateCA(CAOpts{Signer: &TestSigner{public: &rsa.PublicKey{}}})
+		require.Error(t, err)
+		require.Empty(t, ca)
+		require.Empty(t, pk)
+	})
 
-	// test what happens with correct key
-	ca, pk, err = GenerateCA(CAOpts{})
-	require.Nil(t, err)
-	require.NotEmpty(t, ca)
-	require.NotEmpty(t, pk)
+	t.Run("valid key", func(t *testing.T) {
+		ca, pk, err := GenerateCA(CAOpts{})
+		require.Nil(t, err)
+		require.NotEmpty(t, ca)
+		require.NotEmpty(t, pk)
 
-	cert, err := parseCert(ca)
-	require.Nil(t, err)
-	require.True(t, strings.HasPrefix(cert.Subject.CommonName, "Consul Agent CA"))
-	require.Equal(t, true, cert.IsCA)
-	require.Equal(t, true, cert.BasicConstraintsValid)
+		cert, err := parseCert(ca)
+		require.Nil(t, err)
+		require.True(t, strings.HasPrefix(cert.Subject.CommonName, "Consul Agent CA"))
+		require.Equal(t, true, cert.IsCA)
+		require.Equal(t, true, cert.BasicConstraintsValid)
 
-	require.WithinDuration(t, cert.NotBefore, time.Now(), time.Minute)
-	require.WithinDuration(t, cert.NotAfter, time.Now().AddDate(0, 0, 365), time.Minute)
+		require.WithinDuration(t, cert.NotBefore, time.Now(), time.Minute)
+		require.WithinDuration(t, cert.NotAfter, time.Now().AddDate(0, 0, 365), time.Minute)
 
-	require.Equal(t, x509.KeyUsageCertSign|x509.KeyUsageCRLSign|x509.KeyUsageDigitalSignature, cert.KeyUsage)
+		require.Equal(t, x509.KeyUsageCertSign|x509.KeyUsageCRLSign|x509.KeyUsageDigitalSignature, cert.KeyUsage)
+	})
 
-	// Test what happens with a correct RSA Key
-	s, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.Nil(t, err)
-	ca, _, err = GenerateCA(CAOpts{Signer: &TestSigner{public: s.Public()}})
-	require.NoError(t, err)
-	require.NotEmpty(t, ca)
+	t.Run("RSA key", func(t *testing.T) {
+		ca, pk, err := GenerateCA(CAOpts{})
+		require.NoError(t, err)
+		require.NotEmpty(t, ca)
+		require.NotEmpty(t, pk)
 
-	cert, err = parseCert(ca)
-	require.NoError(t, err)
-	require.True(t, strings.HasPrefix(cert.Subject.CommonName, "Consul Agent CA"))
-	require.Equal(t, true, cert.IsCA)
-	require.Equal(t, true, cert.BasicConstraintsValid)
+		cert, err := parseCert(ca)
+		require.NoError(t, err)
+		require.True(t, strings.HasPrefix(cert.Subject.CommonName, "Consul Agent CA"))
+		require.Equal(t, true, cert.IsCA)
+		require.Equal(t, true, cert.BasicConstraintsValid)
 
-	require.WithinDuration(t, cert.NotBefore, time.Now(), time.Minute)
-	require.WithinDuration(t, cert.NotAfter, time.Now().AddDate(0, 0, 365), time.Minute)
+		require.WithinDuration(t, cert.NotBefore, time.Now(), time.Minute)
+		require.WithinDuration(t, cert.NotAfter, time.Now().AddDate(0, 0, 365), time.Minute)
 
-	require.Equal(t, x509.KeyUsageCertSign|x509.KeyUsageCRLSign|x509.KeyUsageDigitalSignature, cert.KeyUsage)
+		require.Equal(t, x509.KeyUsageCertSign|x509.KeyUsageCRLSign|x509.KeyUsageDigitalSignature, cert.KeyUsage)
+	})
 }
 
 func TestGenerateCert(t *testing.T) {
@@ -117,13 +120,14 @@ func TestGenerateCert(t *testing.T) {
 	ca, _, err := GenerateCA(CAOpts{Signer: signer})
 	require.Nil(t, err)
 
-	sn, err := GenerateSerialNumber()
-	require.Nil(t, err)
 	DNSNames := []string{"server.dc1.consul"}
 	IPAddresses := []net.IP{net.ParseIP("123.234.243.213")}
 	extKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 	name := "Cert Name"
-	certificate, pk, err := GenerateCert(signer, ca, sn, name, 365, DNSNames, IPAddresses, extKeyUsage)
+	certificate, pk, err := GenerateCert(CertOpts{
+		Signer: signer, CA: ca, Name: name, Days: 365,
+		DNSNames: DNSNames, IPAddresses: IPAddresses, ExtKeyUsage: extKeyUsage,
+	})
 	require.Nil(t, err)
 	require.NotEmpty(t, certificate)
 	require.NotEmpty(t, pk)

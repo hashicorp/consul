@@ -1,27 +1,96 @@
 ${
-	[1].map(() => {
+	[1].map(i => {
     const type = `${fake.helpers.randomize(['kubernetes', 'jwt', 'oidc'])}`;
-    const fakeIP = `${fake.internet.ip()}`;
+    const cert = `-----BEGIN CERTIFICATE-----
+MIIH/TCCBeWgAwIBAgIQaBYE3/M08XHYCnNVmcFBcjANBgkqhkiG9w0BAQsFADBy
+MQswCQYDVQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0b24x
+ETAPBgNVBAoMCFNTTCBDb3JwMS4wLAYDVQQDDCVTU0wuY29tIEVWIFNTTCBJbnRl
+cm1lZGlhdGUgQ0EgUlNBIFIzMB4XDTIwMDQwMTAwNTgzM1oXDTIxMDcxNjAwNTgz
+M1owgb0xCzAJBgNVBAYTAlVTMQ4wDAYDVQQIDAVUZXhhczEQMA4GA1UEBwwHSG91
+c3RvbjERMA8GA1UECgwIU1NMIENvcnAxFjAUBgNVBAUTDU5WMjAwODE2MTQyNDMx
+FDASBgNVBAMMC3d3dy5zc2wuY29tMR0wGwYDVQQPDBRQcml2YXRlIE9yZ2FuaXph
+dGlvbjEXMBUGCysGAQQBgjc8AgECDAZOZXZhZGExEzARBgsrBgEEAYI3PAIBAxMC
+VVMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDHheRkbb1FCc7xRKst
+wK0JIGaKY8t7JbS2bQ2b6YIJDgnHuIYHqBrCUV79oelikkokRkFvcvpaKinFHDQH
+UpWEI6RUERYmSCg3O8Wi42uOcV2B5ZabmXCkwdxY5Ecl51BbM8UnGdoAGbdNmiRm
+SmTjcs+lhMxg4fFY6lBpiEVFiGUjGRR+61R67Lz6U4KJeLNcCm07QwFYKBmpi08g
+-----END CERTIFICATE-----`;
+    let sourceType;
+
+    if (type !== 'kubernetes') {
+      sourceType = `${fake.helpers.randomize(['JWTValidationPubKeys', 'JWKSURL', 'OIDCDiscoveryURL'])}`;
+    }
+
+    const claimMappings = {
+      "http://example.com/example-1": `${fake.hacker.noun()}`,
+      "http://example.com/example-2": `${fake.hacker.noun()}`
+    }
+    const listClaimMappings = {
+      "http://example.com/example-1": `${fake.hacker.noun()}`
+    }
+    const namespaceRules = `[
+      {
+          "Selector": "${fake.hacker.noun()} in list.group",
+          "BindNamespace": "dc-1"
+      },
+      {
+          "Selector": "serviceaccount.namespace!=${fake.hacker.noun()}",
+          "BindNamespace": "dc-2"
+      },
+      {
+          "Selector": "serviceaccount.namespace==${fake.hacker.noun()}",
+          "BindNamespace": "dc-3"
+      }
+    ]`;
+
     let config = {};
     switch(type) {
       case 'kubernetes':
         config = {
           Host: `https://${fake.internet.ip()}:8443`,
-          CACert: `-----BEGIN CERTIFICATE-----${fake.internet.password(1357)}-----END CERTIFICATE-----`,
+          CACert: cert,
           ServiceAccountJWT: `eyJhbGciOiJ${fake.internet.password(25)}.eyJ${fake.internet.password(61)}.${fake.internet.password(32)}`
         };
         break;
       case 'oidc':
         config = {
           OIDCDiscoveryURL: `https://${fake.internet.ip()}:8443`,
+          OIDCDiscoveryCACert: cert,
+          OIDCClientID: `${fake.hacker.noun()}-ID`,
+          OIDCClientSecret: `${fake.hacker.noun()}-secret`,
+          BoundAudiences: ["aud_example_0", "aud_example_1"],
+          OIDCScopes: ["scope_01", "scope_02", "scope_03"],
+          JWTSupportedAlgs: ["RS256", "RS257"],
+          VerboseOIDCLogging: true,
+          AllowedRedirectURIs: ["http://example.com/example-1", "http://example.com/example-2", "http://example.com/example-3"],
+          ClaimMappings: claimMappings,
+          ListClaimMappings: listClaimMappings
         };
         break;
       case 'jwt':
         config = {
-          JWTValidationPubKeys: `-----BEGIN CERTIFICATE-----${fake.internet.password(1357)}-----END CERTIFICATE-----`,
-          JWKSURL: `https://${fake.internet.ip()}:8443`,
-          OIDCDiscoveryURL: `https://${fake.internet.ip()}:8443`,
+          JWTSupportedAlgs: ["RS256", "RS257"],
+          BoundAudiences: ["aud_example_0", "aud_example_1"],
+          BoundIssuer: `${fake.hacker.noun()}-issuer`,
+          ExpirationLeeway: `${fake.random.number({min: 0, max: 60})}`,
+          NotBeforeLeeway: `${fake.random.number({min: 0, max: 60})}`,
+          ClockSkewLeeway: `${fake.random.number({min: 0, max: 60})}`,
+          ClaimMappings: claimMappings,
+          ListClaimMappings: listClaimMappings
         };
+        break;
+    }
+
+    switch(sourceType) {
+      case 'JWTValidationPubKeys':
+        config.JWTValidationPubKeys = cert;
+        break;
+      case 'JWKSURL':
+        config.JWKSURL = `https://${fake.internet.ip()}:8443`;
+        config.JWKSCACert = cert;
+        break;
+      case 'OIDCDiscoveryURL':
+        config.OIDCDiscoveryURL = `https://${fake.internet.ip()}:8443`;
         break;
     }
 
@@ -36,6 +105,7 @@ ${
       "DisplayName": "${fake.hacker.noun()}",
       "MaxTokenTTL": "${fake.random.number({min: 0, max: 60})}m${fake.random.number({min: 0, max: 60})}s",
       "TokenLocality": "${fake.helpers.randomize(['local', 'global', ''])}",
+      "NamespaceRules": ${namespaceRules},
       "Config": ${JSON.stringify(config)},
       "CreateIndex": ${fake.random.number()},
       "ModifyIndex": 10

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func (s *Server) reapExpiredTokens(ctx context.Context) error {
@@ -21,7 +22,7 @@ func (s *Server) reapExpiredTokens(ctx context.Context) error {
 				s.logger.Error("error reaping expired local ACL tokens", "error", err)
 			}
 		}
-		if s.InACLDatacenter() {
+		if s.InPrimaryDatacenter() {
 			if _, err := s.reapExpiredGlobalACLTokens(); err != nil {
 				s.logger.Error("error reaping expired global ACL tokens", "error", err)
 			}
@@ -29,18 +30,18 @@ func (s *Server) reapExpiredTokens(ctx context.Context) error {
 	}
 }
 
-func (s *Server) startACLTokenReaping() {
+func (s *Server) startACLTokenReaping(ctx context.Context) {
 	// Do a quick check for config settings that would imply the goroutine
 	// below will just spin forever.
 	//
 	// We can only check the config settings here that cannot change without a
 	// restart, so we omit the check for a non-empty replication token as that
 	// can be changed at runtime.
-	if !s.InACLDatacenter() && !s.config.ACLTokenReplication {
+	if !s.InPrimaryDatacenter() && !s.config.ACLTokenReplication {
 		return
 	}
 
-	s.leaderRoutineManager.Start(aclTokenReapingRoutineName, s.reapExpiredTokens)
+	s.leaderRoutineManager.Start(ctx, aclTokenReapingRoutineName, s.reapExpiredTokens)
 }
 
 func (s *Server) stopACLTokenReaping() {
@@ -55,9 +56,6 @@ func (s *Server) reapExpiredLocalACLTokens() (int, error) {
 }
 func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 	if !s.config.ACLsEnabled {
-		return 0, nil
-	}
-	if s.UseLegacyACLs() {
 		return 0, nil
 	}
 	if local == global {
@@ -102,7 +100,7 @@ func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 		"amount", len(req.TokenIDs),
 		"locality", locality,
 	)
-	resp, err := s.raftApply(structs.ACLTokenDeleteRequestType, &req)
+	_, err = s.raftApply(structs.ACLTokenDeleteRequestType, &req)
 	if err != nil {
 		return 0, fmt.Errorf("Failed to apply token expiration deletions: %v", err)
 	}
@@ -110,10 +108,6 @@ func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 	// Purge the identities from the cache
 	for _, secretID := range secretIDs {
 		s.acls.cache.RemoveIdentity(tokenSecretCacheID(secretID))
-	}
-
-	if respErr, ok := resp.(error); ok {
-		return 0, respErr
 	}
 
 	return len(req.TokenIDs), nil

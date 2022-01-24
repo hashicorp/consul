@@ -1,0 +1,79 @@
+---
+layout: docs
+page_title: Consul Enterprise License
+description: Consul Enterprise License Overview.
+---
+
+# Consul Enterprise License
+
+## Licensing
+
+All Consul Enterprise agents must be licensed when they are started. Where that license comes from will depend
+on which binary is in use, whether the agent is a server, client or snapshot agent and whether ACLs have been
+enabled for the cluster.
+
+-> ** Consul Enterprise 1.10.0 removed temporary licensing.** In previous versions Consul Enterprise
+agents could start without a license and then have a license applied to them later on via the CLI
+or API. That functionality has been removed and replaced with the ability to load licenses from the
+agent's configuration or environment. Also prior to 1.10.0 server agents would automatically propagate
+the license between themselves. This no longer occurs and the license must be present on each server
+when they are started.
+
+-> Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
+
+### Binaries with Built In Licenses
+
+If you are downloading Consul from Amazon S3, then the license is included
+in the binary and you do not need to take further action. This is the
+most common use case.
+
+In the S3 bucket you will find three Enterprise zip packages. The packages with `+pro` and
+`+prem` in the name, are the binaries that include the license. The package
+with `+ent` in the name does not include the license.
+
+When using these binaries no further action is necessary to configure the license.
+
+### Binaries Without Built In Licenses
+
+For Consul Enterprise 1.10.0 or greater, binaries that do not include built in licenses a license must be available at the time the agent starts.
+For server agents this means that they must either have the [`license_path`](/docs/agent/options#license_path)
+configuration set or have a license configured in the servers environment with the `CONSUL_LICENSE` or
+`CONSUL_LICENSE_PATH` environment variables. Both the configuration item and the `CONSUL_LICENSE_PATH`
+environment variable point to a file containing the license whereas the `CONSUL_LICENSE` environment
+variable should contain the license as the value. If multiple of these are set the order of precedence is:
+
+1. `CONSUL_LICENSE` environment variable
+2. `CONSUL_LICENSE_PATH` environment variable
+3. `license_path` configuration item.
+
+Both client agents and the snapshot agent may also be licensed in the very same manner. However to prevent
+the need to configure the license on many client agents and snapshot agents those agents have the capability
+to retrieve the license automatically under specific circumstances.
+
+#### Client Agent License Retrieval
+
+When a client agent starts without a license in its configuration or environment, it will try to retrieve the
+license from the servers via RPCs. That RPC always requires a valid non-anonymous ACL token to authorize the
+request but the token doesn't need any particular permissions. As the license is required before the client
+actually joins the cluster, where to make those RPC requests to is inferred from the [`start_join`](/docs/agent/options#start_join)
+or [`retry_join`](/docs/agent/options#retry_join) configurations. If those are both unset or no
+[`agent` token](/docs/agent/options#acl_tokens_agent) is set then the client agent will immediately shut itself down.
+
+If all preliminary checks pass the client agent will attempt to reach out to any server on its RPC port to
+request the license. These requests will be retried for up to 5 minutes and if it is unable to retrieve a
+license within that time frame it will shut itself down.
+
+If ACLs are disabled then the license must be provided to the client agent through one of the three methods listed below.
+Failure in providing the client agent with a licence will prevent the client agent from joining the cluster.
+
+1. `CONSUL_LICENSE` environment variable
+2. `CONSUL_LICENSE_PATH` environment variable
+3. `license_path` configuration item.
+
+#### Snapshot Agent License Retrieval
+
+The snapshot agent has similar functionality to the client agent for automatically retrieving the license. However,
+instead of requiring a server agent to talk to, the snapshot agent can request the license from the server or
+client agent it would use for all other operations. It still requires an ACL token to authorize the request. Also
+like client agents, the snapshot agent will shut itself down after being unable to retrieve the license for 5
+minutes.

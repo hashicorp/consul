@@ -1,7 +1,6 @@
 ---
 layout: commands
 page_title: 'Commands: Snapshot Inspect'
-sidebar_title: inspect
 ---
 
 # Consul Snapshot Inspect
@@ -12,6 +11,15 @@ The `snapshot inspect` command is used to inspect an atomic, point-in-time
 snapshot of the state of the Consul servers which includes key/value entries,
 service catalog, prepared queries, sessions, and ACLs. The snapshot is read
 from the given file.
+
+-> Typically this is used with Consul self-contained Snapshot files obtained
+using the [`consul snapshot`](/commands/snapshot) command or [Snapshot
+API](/api-docs/snapshot#generate-snapshot). If the file provided is named
+`state.bin` however, the command will assume it is a raw raft snapshot in a
+Consul server data directory and will attempt to read it directly. The
+`state.bin` file must still be in the same directory as it's associated
+`meta.json` file. This is useful for debugging data on live servers without
+making a complete new snapshot via the CLI or API first.
 
 The following fields are displayed when inspecting a snapshot:
 
@@ -106,6 +114,29 @@ $ consul snapshot inspect -kvdetails -kvdepth 3 -kvfilter vault/core backup.snap
 
 Please see the [HTTP API](/api/snapshot) documentation for
 more details about snapshot internals.
+
+To inspect an internal snapshot directly from a Consul server data directory:
+
+```shell-session
+$ consul snapshot inspect /opt/consul/raft/snapshots/9-4600669-1618935304715/state.bin
+ ID           9-4600669-1618935304715
+ Size         4625420898
+ Index        4600669
+ Term         9
+ Version      1
+
+ Type                       Count        Size
+ ----                       ----         ----
+ KVS                        4089785      4.3GB
+ Register                   9            5.2KB
+ CoordinateBatchUpdate      3            465B
+ Index                      8            224B
+ Autopilot                  1            199B
+ FederationState            1            139B
+ ChunkingState              1            12B
+ ----                       ----         ----
+ Total                                   4.3GB
+```
 
 #### Command Options
 

@@ -44,6 +44,8 @@ Feature: dc / services / show-routing: Show Routing for Service
     ---
     And I don't see routing on the tabs
     And I don't see the "[data-test-error]" element
+    # Not entirely sure if having one dc not having connect
+    # and another having connect ever actually happen
     And I visit the service page for yaml
     ---
       dc: dc2

@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 )
@@ -33,6 +32,7 @@ type Server struct {
 	SegmentAddrs map[string]string
 	SegmentPorts map[string]int
 	WanJoinPort  int
+	LanJoinPort  int
 	Bootstrap    bool
 	Expect       int
 	Build        version.Version
@@ -41,7 +41,6 @@ type Server struct {
 	Addr         net.Addr
 	Status       serf.MemberStatus
 	ReadReplica  bool
-	ACLs         structs.ACLMode
 	FeatureFlags map[string]int
 
 	// If true, use TLS when connecting to this server
@@ -96,13 +95,6 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		return false, nil
 	}
 
-	var acls structs.ACLMode
-	if aclMode, ok := m.Tags["acls"]; ok {
-		acls = structs.ACLMode(aclMode)
-	} else {
-		acls = structs.ACLModeUnknown
-	}
-
 	segmentAddrs := make(map[string]string)
 	segmentPorts := make(map[string]int)
 	featureFlags := make(map[string]int)
@@ -120,8 +112,8 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 			segmentName := strings.TrimPrefix(name, "sl_")
 			segmentAddrs[segmentName] = addr
 			segmentPorts[segmentName] = segmentPort
-		} else if strings.HasPrefix(name, "ft_") {
-			featureName := strings.TrimPrefix(name, "ft_")
+		} else if strings.HasPrefix(name, featureFlagPrefix) {
+			featureName := strings.TrimPrefix(name, featureFlagPrefix)
 			featureState, err := strconv.Atoi(value)
 			if err != nil {
 				return false, nil
@@ -177,6 +169,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		SegmentAddrs: segmentAddrs,
 		SegmentPorts: segmentPorts,
 		WanJoinPort:  wanJoinPort,
+		LanJoinPort:  int(m.Port),
 		Bootstrap:    bootstrap,
 		Expect:       expect,
 		Addr:         addr,
@@ -187,8 +180,21 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		UseTLS:       useTLS,
 		// DEPRECATED - remove nonVoter check once support for that tag is removed
 		ReadReplica:  nonVoter || readReplica,
-		ACLs:         acls,
 		FeatureFlags: featureFlags,
 	}
 	return true, parts
+}
+
+// TODO(ACL-Legacy-Compat): remove in phase 2
+const TagACLs = "acls"
+
+const featureFlagPrefix = "ft_"
+
+// AddFeatureFlags to the tags. The tags map is expected to be a serf.Config.Tags.
+// The feature flags are encoded in the tags so that IsConsulServer can decode them
+// and populate the Server.FeatureFlags map.
+func AddFeatureFlags(tags map[string]string, flags ...string) {
+	for _, flag := range flags {
+		tags[featureFlagPrefix+flag] = "1"
+	}
 }

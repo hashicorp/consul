@@ -15,8 +15,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect"
 	"net/url"
+
+	"github.com/hashicorp/consul/agent/connect"
 )
 
 // GenerateSerialNumber returns random bigint generated with crypto/rand
@@ -42,6 +43,18 @@ type CAOpts struct {
 	PermittedDNSDomains []string
 	Domain              string
 	Name                string
+}
+
+type CertOpts struct {
+	Signer      crypto.Signer
+	CA          string
+	Serial      *big.Int
+	Name        string
+	Days        int
+	DNSNames    []string
+	IPAddresses []net.IP
+	ExtKeyUsage []x509.ExtKeyUsage
+	IsCA        bool
 }
 
 // GenerateCA generates a new CA for agent TLS (not to be confused with Connect TLS)
@@ -127,39 +140,52 @@ func GenerateCA(opts CAOpts) (string, string, error) {
 }
 
 // GenerateCert generates a new certificate for agent TLS (not to be confused with Connect TLS)
-func GenerateCert(signer crypto.Signer, ca string, sn *big.Int, name string, days int, DNSNames []string, IPAddresses []net.IP, extKeyUsage []x509.ExtKeyUsage) (string, string, error) {
-	parent, err := parseCert(ca)
+func GenerateCert(opts CertOpts) (string, string, error) {
+	parent, err := parseCert(opts.CA)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to parse CA: %w", err)
 	}
 
 	signee, pk, err := GeneratePrivateKey()
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to generate private key: %w", err)
 	}
 
 	id, err := keyID(signee.Public())
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to get keyID from public key: %w", err)
+	}
+
+	sn := opts.Serial
+	if sn == nil {
+		var err error
+		sn, err = GenerateSerialNumber()
+		if err != nil {
+			return "", "", err
+		}
 	}
 
 	template := x509.Certificate{
 		SerialNumber:          sn,
-		Subject:               pkix.Name{CommonName: name},
+		Subject:               pkix.Name{CommonName: opts.Name},
 		BasicConstraintsValid: true,
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage:           extKeyUsage,
+		ExtKeyUsage:           opts.ExtKeyUsage,
 		IsCA:                  false,
-		NotAfter:              time.Now().AddDate(0, 0, days),
+		NotAfter:              time.Now().AddDate(0, 0, opts.Days),
 		NotBefore:             time.Now(),
 		SubjectKeyId:          id,
-		DNSNames:              DNSNames,
-		IPAddresses:           IPAddresses,
+		DNSNames:              opts.DNSNames,
+		IPAddresses:           opts.IPAddresses,
+	}
+	if opts.IsCA {
+		template.IsCA = true
+		template.KeyUsage = x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature
 	}
 
-	bs, err := x509.CreateCertificate(rand.Reader, &template, parent, signee.Public(), signer)
+	bs, err := x509.CreateCertificate(rand.Reader, &template, parent, signee.Public(), opts.Signer)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to create certificate: %w", err)
 	}
 
 	var buf bytes.Buffer

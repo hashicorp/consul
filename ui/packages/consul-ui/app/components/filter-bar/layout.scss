@@ -16,7 +16,6 @@
   .popover-menu > [type='checkbox'] + label button {
     padding-left: 1.5rem !important;
     padding-right: 1.5rem !important;
-
   }
   .popover-menu [role='menuitem'] {
     justify-content: normal !important;
@@ -32,13 +31,14 @@
       position: relative;
       z-index: 4;
       width: 100%;
-      margin-bottom: .3rem;
+      margin-bottom: 0.3rem;
     }
   }
 }
 @media #{$--lt-horizontal-selects} {
   .filter-bar {
-    .filters, .sort {
+    .filters,
+    .sort {
       display: none;
     }
   }

@@ -1,0 +1,38 @@
+<Route
+  @name={{routeName}}
+as |route|>
+<div
+  style="width: 50%;margin: 0 auto;"
+>
+  <h1><route.Title @title="Mock OAuth Provider" /></h1>
+  <main>
+    <form
+      method="GET"
+      action={{redirect_uri}}
+    >
+{{#let (hash
+  state="state-123456789/abcdefghijklmnopqrstuvwxyz"
+  code="code-abcdefghijklmnopqrstuvwxyz/123456789"
+) as |item|}}
+      <TextInput
+        @name="state"
+        @label="State"
+        @item={{item}}
+        @help="The OIDC state value that will get passed through to Consul"
+      />
+      <TextInput
+        @name="code"
+        @label="Code"
+        @item={{item}}
+        @help="The OIDC code value that will get passed through to Consul"
+      />
+{{/let}}
+      <Action
+        @type="submit"
+      >
+        Login
+      </Action>
+    </form>
+  </main>
+</div>
+</Route>

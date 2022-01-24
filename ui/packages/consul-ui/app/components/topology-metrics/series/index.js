@@ -101,6 +101,10 @@ export default Component.extend({
     // Use the grey/red we prefer by default but have more colors available in
     // case user adds extra series with a custom provider.
     let colorScheme = ['#DCE0E6', '#C73445'].concat(schemeTableau10);
+
+    if (keys.includes('Outbound')) {
+      colorScheme = ['#DCE0E6', '#0E40A3'].concat(schemeTableau10);
+    }
     let color = scaleOrdinal(colorScheme).domain(keys);
 
     svg

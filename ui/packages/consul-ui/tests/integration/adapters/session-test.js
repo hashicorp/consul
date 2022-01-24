@@ -13,11 +13,12 @@ module('Integration | Adapter | session', function(hooks) {
     test(`requestForQuery returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:session');
       const client = this.owner.lookup('service:client/http');
+      const request = client.requestParams.bind(client);
       const node = 'node-id';
       const expected = `GET /v1/session/node/${node}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQuery(client.requestParams.bind(client), {
+      let actual = adapter.requestForQuery(request, {
         dc: dc,
         id: node,
         ns: nspace,
@@ -27,10 +28,11 @@ module('Integration | Adapter | session', function(hooks) {
     test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:session');
       const client = this.owner.lookup('service:client/http');
+      const request = client.requestParams.bind(client);
       const expected = `GET /v1/session/info/${id}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQueryRecord(client.requestParams.bind(client), {
+      let actual = adapter.requestForQueryRecord(request, {
         dc: dc,
         id: id,
         ns: nspace,
@@ -40,12 +42,13 @@ module('Integration | Adapter | session', function(hooks) {
     test(`requestForDeleteRecord returns the correct url/method when the nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:session');
       const client = this.owner.lookup('service:client/http');
+      const request = client.url.bind(client);
       const expected = `PUT /v1/session/destroy/${id}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       const actual = adapter
         .requestForDeleteRecord(
-          client.url,
+          request,
           {},
           {
             Datacenter: dc,
@@ -61,8 +64,9 @@ module('Integration | Adapter | session', function(hooks) {
   test("requestForQuery throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:session');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     assert.throws(function() {
-      adapter.requestForQuery(client.url, {
+      adapter.requestForQuery(request, {
         dc: dc,
       });
     });
@@ -70,8 +74,9 @@ module('Integration | Adapter | session', function(hooks) {
   test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:session');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     assert.throws(function() {
-      adapter.requestForQueryRecord(client.url, {
+      adapter.requestForQueryRecord(request, {
         dc: dc,
       });
     });

@@ -1,4 +1,4 @@
 module.exports = {
-  ...require('@hashicorp/nextjs-scripts/.eslintrc.js'),
+  ...require('@hashicorp/platform-cli/config/.eslintrc'),
   ignorePatterns: ['public/'],
 }

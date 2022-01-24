@@ -1,7 +1,6 @@
 ---
 layout: docs
 page_title: 'Configuration Entry Kind: Terminating Gateway'
-sidebar_title: Terminating Gateway
 description: >-
   The `terminating-gateway` config entry kind allows for configuring terminating gateways
   to proxy traffic from services in the Consul service mesh to services outside the mesh.
@@ -9,7 +8,7 @@ description: >-
 
 # Terminating Gateway
 
--> **v1.8.4+:** On Kubernetes, the `ServiceSplitter` custom resource is supported in Consul versions 1.8.4+.<br />
+-> **v1.8.4+:** On Kubernetes, the `TerminatingGateway` custom resource is supported in Consul versions 1.8.4+.<br />
 **v1.8.0+:** On other platforms, this config entry is supported in Consul versions 1.8.0+.
 
 The `terminating-gateway` config entry kind (`TerminatingGateway` on Kubernetes) allows you to configure terminating gateways
@@ -21,7 +20,7 @@ and will apply to all instances of the gateway with that name.
 across all federated Consul datacenters. If terminating gateways in different Consul datacenters need to route to different
 sets of services within their datacenter then the terminating gateways **must** be registered with different names.
 
-See [Terminating Gateway](/docs/connect/terminating-gateway) for more information.
+See [Terminating Gateway](/docs/connect/gateways/terminating-gateway) for more information.
 
 ## TLS Origination
 
@@ -45,12 +44,16 @@ traffic from the mesh to those services will be evenly load-balanced between the
 
 ## Sample Config Entries
 
-<Tabs>
-<Tab heading="HCL">
+### Access an external service
+
 <Tabs>
 <Tab heading="Consul OSS">
 
-Link gateway named "us-west-gateway" with the billing service:
+Link gateway named "us-west-gateway" with the billing service.
+
+Connections to the external service will be unencrypted.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "terminating-gateway"
@@ -63,10 +66,38 @@ Services = [
 ]
 ```
 
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: us-west-gateway
+spec:
+  services:
+    - name: billing
+```
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Services": [
+    {
+      "Name": "billing"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
 </Tab>
 <Tab heading="Consul Enterprise">
 
-Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace:
+Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace.
+
+Connections to the external service will be unencrypted.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "terminating-gateway"
@@ -81,30 +112,6 @@ Services = [
 ]
 ```
 
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="Kubernetes YAML">
-<Tabs>
-<Tab heading="Consul OSS">
-
-Link gateway named "us-west-gateway" with the billing service:
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: TerminatingGateway
-metadata:
-  name: us-west-gateway
-spec:
-  services:
-    - name: billing
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: TerminatingGateway
@@ -115,32 +122,6 @@ spec:
     - name: billing
       namespace: finance
 ```
-
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="JSON">
-<Tabs>
-<Tab heading="Consul OSS">
-
-Link gateway named "us-west-gateway" with the billing service:
-
-```json
-{
-  "Kind": "terminating-gateway",
-  "Name": "us-west-gateway",
-  "Services": [
-    {
-      "Name": "billing"
-    }
-  ]
-}
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace:
 
 ```json
 {
@@ -156,17 +137,23 @@ Link gateway named "us-west-gateway" in the default namespace with the billing s
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
+
 </Tab>
 </Tabs>
 
-<Tabs>
-<Tab heading="HCL">
+### Access an external service over TLS
+
 <Tabs>
 <Tab heading="Consul OSS">
 
-Link gateway named "us-west-gateway" with the billing service and specify a CA file for one-way TLS authentication:
+Link gateway named "us-west-gateway" with the billing service, and specify a CA
+file to be used for one-way TLS authentication.
+
+-> **Note**: The `CAFile` parameter must be specified _and_ point to a valid CA
+bundle in order to properly initiate a TLS connection to the destination service.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "terminating-gateway"
@@ -180,11 +167,42 @@ Services = [
 ]
 ```
 
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: us-west-gateway
+spec:
+  services:
+    - name: billing
+      caFile: /etc/certs/ca-chain.cert.pem
+```
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Services": [
+    {
+      "Name": "billing",
+      "CAFile": "/etc/certs/ca-chain.cert.pem"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
 </Tab>
 <Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace,
-and specify a CA file for one-way TLS authentication:
+and specify a CA file to be used for one-way TLS authentication.
+
+-> **Note**: The `CAFile` parameter must be specified _and_ point to a valid CA
+bundle in order to properly initiate a TLS connection to the destination service.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "terminating-gateway"
@@ -200,32 +218,6 @@ Services = [
 ]
 ```
 
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="Kubernetes YAML">
-<Tabs>
-<Tab heading="Consul OSS">
-
-Link gateway named "us-west-gateway" with the billing service and specify a CA file for one-way TLS authentication:
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: TerminatingGateway
-metadata:
-  name: us-west-gateway
-spec:
-  services:
-    - name: billing
-      caFile: /etc/certs/ca-chain.cert.pem
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace,
-and specify a CA file for one-way TLS authentication:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: TerminatingGateway
@@ -237,34 +229,6 @@ spec:
       namespace: finance
       caFile: /etc/certs/ca-chain.cert.pem
 ```
-
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="JSON">
-<Tabs>
-<Tab heading="Consul OSS">
-
-Link gateway named "us-west-gateway" with the billing service and specify a CA file for one-way TLS authentication:
-
-```json
-{
-  "Kind": "terminating-gateway",
-  "Name": "us-west-gateway",
-  "Services": [
-    {
-      "Name": "billing",
-      "CAFile": "/etc/certs/ca-chain.cert.pem"
-    }
-  ]
-}
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace,
-and specify a CA file for one-way TLS authentication:
 
 ```json
 {
@@ -281,17 +245,23 @@ and specify a CA file for one-way TLS authentication:
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
+
 </Tab>
 </Tabs>
 
-<Tabs>
-<Tab heading="HCL">
+### Access an external service over mutual TLS
+
 <Tabs>
 <Tab heading="Consul OSS">
 
-Link gateway named "us-west-gateway" with the payments service and specify a CA file, key file, and cert file for mutual TLS authentication:
+Link gateway named "us-west-gateway" with the billing service, and specify a CA
+file, key file, and cert file to be used for mutual TLS authentication.
+
+-> **Note**: The `CAFile` parameter must be specified _and_ point to a valid CA
+bundle in order to properly initiate a TLS connection to the destination service.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "terminating-gateway"
@@ -307,11 +277,46 @@ Services = [
 ]
 ```
 
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: us-west-gateway
+spec:
+  services:
+    - name: billing
+      caFile: /etc/certs/ca-chain.cert.pem
+      keyFile: /etc/certs/gateway.key.pem
+      certFile: /etc/certs/gateway.cert.pem
+```
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Services": [
+    {
+      "Name": "billing",
+      "CAFile": "/etc/certs/ca-chain.cert.pem",
+      "KeyFile": "/etc/certs/gateway.key.pem",
+      "CertFile": "/etc/certs/gateway.cert.pem"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
 </Tab>
 <Tab heading="Consul Enterprise">
 
-Link gateway named "us-west-gateway" in the default namespace with the payments service in the finance namespace.
-Also specify a CA file, key file, and cert file for mutual TLS authentication:
+Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace.
+Also specify a CA file, key file, and cert file to be used for mutual TLS authentication.
+
+-> **Note**: The `CAFile` parameter must be specified _and_ point to a valid CA
+bundle in order to properly initiate a TLS connection to the destination service.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "terminating-gateway"
@@ -329,34 +334,6 @@ Services = [
 ]
 ```
 
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="Kubernetes YAML">
-<Tabs>
-<Tab heading="Consul OSS">
-
-Link gateway named "us-west-gateway" with the payments service and specify a CA file, key file, and cert file for mutual TLS authentication:
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: TerminatingGateway
-metadata:
-  name: us-west-gateway
-spec:
-  services:
-    - name: billing
-      caFile: /etc/certs/ca-chain.cert.pem
-      keyFile: /etc/certs/gateway.key.pem
-      certFile: /etc/certs/gateway.cert.pem
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Link gateway named "us-west-gateway" in the default namespace with the payments service in the finance namespace.
-Also specify a CA file, key file, and cert file for mutual TLS authentication:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: TerminatingGateway
@@ -370,36 +347,6 @@ spec:
       keyFile: /etc/certs/gateway.key.pem
       certFile: /etc/certs/gateway.cert.pem
 ```
-
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="JSON">
-<Tabs>
-<Tab heading="Consul OSS">
-
-Link gateway named "us-west-gateway" with the payments service and specify a CA file, key file, and cert file for mutual TLS authentication:
-
-```json
-{
-  "Kind": "terminating-gateway",
-  "Name": "us-west-gateway",
-  "Services": [
-    {
-      "Name": "billing",
-      "CAFile": "/etc/certs/ca-chain.cert.pem",
-      "KeyFile": "/etc/certs/gateway.key.pem",
-      "CertFile": "/etc/certs/gateway.cert.pem"
-    }
-  ]
-}
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Link gateway named "us-west-gateway" in the default namespace with the payments service in the finance namespace.
-Also specify a CA file, key file, and cert file for mutual TLS authentication:
 
 ```json
 {
@@ -418,18 +365,23 @@ Also specify a CA file, key file, and cert file for mutual TLS authentication:
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
+
 </Tab>
 </Tabs>
 
-<Tabs>
-<Tab heading="HCL">
+### Override connection parameters for a specific service
+
 <Tabs>
 <Tab heading="Consul OSS">
 
 Link gateway named "us-west-gateway" with all services in the datacenter, and configure default certificates for mutual TLS.
-Also override the SNI and CA file used for connections to the billing service:
+
+Override the SNI and CA file used for connections to the billing service.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+<CodeBlockConfig highlight="11-15">
 
 ```hcl
 Kind = "terminating-gateway"
@@ -450,11 +402,65 @@ Services = [
 ]
 ```
 
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="11-13">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: us-west-gateway
+spec:
+  services:
+    - name: '*'
+      caFile: /etc/common-certs/ca-chain.cert.pem
+      keyFile: /etc/common-certs/gateway.key.pem
+      certFile: /etc/common-certs/gateway.cert.pem
+    - name: billing
+      caFile: /etc/billing-ca/ca-chain.cert.pem
+      sni: billing.service.com
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="11-15">
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Services": [
+    {
+      "Name": "*",
+      "CAFile": "/etc/common-certs/ca-chain.cert.pem",
+      "KeyFile": "/etc/common-certs/gateway.key.pem",
+      "CertFile": "/etc/common-certs/gateway.cert.pem"
+    },
+    {
+      "Name": "billing",
+      "CAFile": "/etc/billing-ca/ca-chain.cert.pem",
+      "SNI": "billing.service.com"
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
 </Tab>
 <Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with all services in the finance namespace,
-and configure default certificates for mutual TLS. Also override the SNI and CA file used for connections to the billing service:
+and configure default certificates for mutual TLS.
+
+Override the SNI and CA file used for connections to the billing service:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+<CodeBlockConfig highlight="13-18">
 
 ```hcl
 Kind = "terminating-gateway"
@@ -472,43 +478,15 @@ Services = [
   {
     Namespace = "finance"
     Name      = "billing"
-    CAFile    = "/etc/billing-ca/ca-chain.cert.pem",
+    CAFile    = "/etc/billing-ca/ca-chain.cert.pem"
     SNI       =  "billing.service.com"
   }
 ]
 ```
 
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="Kubernetes YAML">
-<Tabs>
-<Tab heading="Consul OSS">
+</CodeBlockConfig>
 
-Link gateway named "us-west-gateway" with all services in the datacenter, and configure default certificates for mutual TLS.
-Also override the SNI and CA file used for connections to the billing service:
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: TerminatingGateway
-metadata:
-  name: us-west-gateway
-spec:
-  services:
-    - name: '*'
-      caFile: /etc/common-certs/ca-chain.cert.pem
-      keyFile: /etc/common-certs/gateway.key.pem
-      certFile: /etc/common-certs/gateway.cert.pem
-    - name: billing
-      caFile: /etc/billing-ca/ca-chain.cert.pem
-      sni: billing.service.com
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Link gateway named "us-west-gateway" in the default namespace with all services in the finance namespace,
-and configure default certificates for mutual TLS. Also override the SNI and CA file used for connections to the billing service:
+<CodeBlockConfig highlight="12-15">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -528,42 +506,9 @@ spec:
       sni: billing.service.com
 ```
 
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="JSON">
-<Tabs>
-<Tab heading="Consul OSS">
+</CodeBlockConfig>
 
-Link gateway named "us-west-gateway" with all services in the datacenter, and configure default certificates for mutual TLS.
-Also override the SNI and CA file used for connections to the billing service:
-
-```json
-{
-  "Kind": "terminating-gateway",
-  "Name": "us-west-gateway",
-  "Services": [
-    {
-      "Name": "*",
-      "CAFile": "/etc/billing-ca/ca-chain.cert.pem",
-      "KeyFile": "/etc/certs/gateway.key.pem",
-      "CertFile": "/etc/certs/gateway.cert.pem",
-      "SNI": "billing.service.com"
-    },
-    {
-      "Name": "billing",
-      "CAFile": "/etc/billing-ca/ca-chain.cert.pem",
-      "SNI": "billing.service.com"
-    }
-  ]
-}
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Link gateway named "us-west-gateway" in the default namespace with all services in the finance namespace,
-and configure default certificates for mutual TLS. Also override the SNI and CA file used for connections to the billing service:
+<CodeBlockConfig highlight="13-18">
 
 ```json
 {
@@ -574,10 +519,9 @@ and configure default certificates for mutual TLS. Also override the SNI and CA 
     {
       "Namespace": "finance",
       "Name": "*",
-      "CAFile": "/etc/billing-ca/ca-chain.cert.pem",
-      "KeyFile": "/etc/certs/gateway.key.pem",
-      "CertFile": "/etc/certs/gateway.cert.pem",
-      "SNI": "billing.service.com"
+      "CAFile": "/etc/common-certs/ca-chain.cert.pem",
+      "KeyFile": "/etc/common-certs/gateway.key.pem",
+      "CertFile": "/etc/common-certs/gateway.cert.pem"
     },
     {
       "Namespace": "finance",
@@ -589,8 +533,10 @@ and configure default certificates for mutual TLS. Also override the SNI and CA 
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeBlockConfig>
+
+</CodeTabs>
+
 </Tab>
 </Tabs>
 
@@ -621,9 +567,19 @@ and configure default certificates for mutual TLS. Also override the SNI and CA 
       type: `string: "default"`,
       enterprise: true,
       description:
-        'Specifies the namespace the config entry will apply to. This must be the namespace the gateway is registered in.' +
+        'Specifies the namespace to which the configuration entry will apply. This must match the namespace in which the gateway is registered.' +
         ' If omitted, the namespace will be inherited from [the request](/api/config#ns)' +
         ' or will default to the `default` namespace.',
+      yaml: false,
+    },
+    {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        'Specifies the admin partition to which the configuration entry will apply. This must match the partition in which the gateway is registered.' +
+        ' If omitted, the partition will be inherited from [the request](/api/config)' +
+        ' or will default to the `default` partition.',
       yaml: false,
     },
     {
@@ -654,7 +610,8 @@ and configure default certificates for mutual TLS. Also override the SNI and CA 
       description: `A list of services to link
                       with the gateway. The gateway will proxy traffic to these services. These linked services
                       must be registered with Consul for the gateway to discover their addresses. They must also
-                      be registered in the same Consul datacenter as the terminating gateway.`,
+                      be registered in the same Consul datacenter as the terminating gateway. If Consul ACLs are
+                      enabled, the Terminating Gateway's ACL token must grant <code>service:write</code> for all linked services.`,
       children: [
         {
           name: 'Name',

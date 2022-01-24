@@ -1,0 +1,5 @@
+@import './skin';
+@import './layout';
+.definition-table {
+  @extend %definition-table;
+}

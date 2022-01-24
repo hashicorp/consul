@@ -1,0 +1,9 @@
+```release-note:bug
+memberlist: fixes a couple bugs which allowed malformed input to cause a crash in a Consul
+client or server.
+```
+
+```release-note:bug
+telemetry: fixes a bug with Prometheus metrics where Gauges and Summaries were incorrectly
+being expired.
+```

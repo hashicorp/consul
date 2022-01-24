@@ -1,0 +1,16 @@
+%tooltip-panel dt {
+  cursor: pointer;
+}
+/* This is the top chevron */
+%tooltip-panel dd > div::before {
+  @extend %as-pseudo;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-top: 1px solid rgb(var(--tone-gray-300));
+  border-right: 1px solid rgb(var(--tone-gray-300));
+  transform: rotate(-45deg);
+  position: absolute;
+  left: 16px;
+  top: -7px;
+}

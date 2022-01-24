@@ -1,0 +1,23 @@
+%auth-form {
+  width: 320px;
+  margin: 0 25px;
+  margin-top: -20px;
+}
+%auth-form em {
+  display: inline-block;
+  margin-top: 1em;
+}
+%auth-form form,
+%auth-form .oidc-select {
+  padding-top: 1em;
+}
+%auth-form form {
+  margin-bottom: 0 !important;
+}
+%auth-form .ember-basic-dropdown-trigger,
+%auth-form button:not(.reset) {
+  width: 100%;
+}
+%auth-form .progress {
+  margin: 0 auto;
+}

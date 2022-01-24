@@ -1,6 +1,13 @@
 package state
 
-import "github.com/hashicorp/go-memdb"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
+)
 
 const (
 	tableConfigEntries = "config-entries"
@@ -20,26 +27,10 @@ func configTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Kind",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "Name",
-							Lowercase: true,
-						},
-					},
-				},
-			},
-			indexKind: {
-				Name:         indexKind,
-				AllowMissing: false,
-				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Kind",
-					Lowercase: true,
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   indexFromConfigEntryKindName,
+					writeIndex:  indexFromConfigEntry,
+					prefixIndex: indexFromConfigEntryKindName,
 				},
 			},
 			indexLink: {
@@ -62,4 +53,37 @@ func configTableSchema() *memdb.TableSchema {
 			},
 		},
 	}
+}
+
+func indexFromConfigEntry(raw interface{}) ([]byte, error) {
+	c, ok := raw.(structs.ConfigEntry)
+	if !ok {
+		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
+	}
+
+	if c.GetName() == "" || c.GetKind() == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(c.GetKind()))
+	b.String(strings.ToLower(c.GetName()))
+	return b.Bytes(), nil
+}
+
+// indexKindFromConfigEntry indexes kinds without a namespace for any config
+// entries that span all namespaces.
+func indexKindFromConfigEntry(raw interface{}) ([]byte, error) {
+	c, ok := raw.(structs.ConfigEntry)
+	if !ok {
+		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
+	}
+
+	if c.GetKind() == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(c.GetKind()))
+	return b.Bytes(), nil
 }

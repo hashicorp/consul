@@ -51,7 +51,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			},
 			token: "foo",
 			wantNS: &structs.NodeService{
-				EnterpriseMeta:             *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				Kind:                       structs.ServiceKindConnectProxy,
 				ID:                         "web1-sidecar-proxy",
 				Service:                    "web-sidecar-proxy",
@@ -111,7 +111,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			},
 			token: "foo",
 			wantNS: &structs.NodeService{
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				Kind:           structs.ServiceKindConnectProxy,
 				ID:             "web1-sidecar-proxy",
 				Service:        "motorbike1",
@@ -129,7 +129,8 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 					LocalServiceAddress:    "127.0.127.0",
 					LocalServicePort:       9999,
 					Config:                 map[string]interface{}{"baz": "qux"},
-					Upstreams:              structs.TestAddDefaultsToUpstreams(t, structs.TestUpstreams(t)),
+					Upstreams: structs.TestAddDefaultsToUpstreams(t, structs.TestUpstreams(t),
+						*structs.DefaultEnterpriseMetaInDefaultPartition()),
 				},
 			},
 			wantChecks: []*structs.CheckType{
@@ -189,7 +190,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				},
 			},
 			wantNS: &structs.NodeService{
-				EnterpriseMeta:             *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				Kind:                       structs.ServiceKindConnectProxy,
 				ID:                         "web1-sidecar-proxy",
 				Service:                    "web-sidecar-proxy",
@@ -279,7 +280,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			},
 			token: "foo",
 			wantNS: &structs.NodeService{
-				EnterpriseMeta:             *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				Kind:                       structs.ServiceKindConnectProxy,
 				ID:                         "web1-sidecar-proxy",
 				Service:                    "web-sidecar-proxy",
@@ -308,7 +309,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set port range to be tiny (one availabl) to test consuming all of it.
+			// Set port range to be tiny (one available) to test consuming all of it.
 			// This allows a single assigned port at 2222 thanks to being inclusive at
 			// both ends.
 			if tt.maxPort == 0 {
@@ -329,30 +330,29 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				`
 			}
 
-			require := require.New(t)
 			a := StartTestAgent(t, TestAgent{Name: "jones", HCL: hcl})
 			defer a.Shutdown()
 
 			if tt.preRegister != nil {
 				err := a.addServiceFromSource(tt.preRegister.NodeService(), nil, false, "", ConfigSourceLocal)
-				require.NoError(err)
+				require.NoError(t, err)
 			}
 
 			ns := tt.sd.NodeService()
 			err := ns.Validate()
-			require.NoError(err, "Invalid test case - NodeService must validate")
+			require.NoError(t, err, "Invalid test case - NodeService must validate")
 
 			gotNS, gotChecks, gotToken, err := a.sidecarServiceFromNodeService(ns, tt.token)
 			if tt.wantErr != "" {
-				require.Error(err)
-				require.Contains(err.Error(), tt.wantErr)
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.wantErr)
 				return
 			}
 
-			require.NoError(err)
-			require.Equal(tt.wantNS, gotNS)
-			require.Equal(tt.wantChecks, gotChecks)
-			require.Equal(tt.wantToken, gotToken)
+			require.NoError(t, err)
+			require.Equal(t, tt.wantNS, gotNS)
+			require.Equal(t, tt.wantChecks, gotChecks)
+			require.Equal(t, tt.wantToken, gotToken)
 		})
 	}
 }

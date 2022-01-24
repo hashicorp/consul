@@ -1,7 +1,6 @@
 ---
 layout: docs
 page_title: Consul Core Security Model
-sidebar_title: Core
 description: >-
   Security model including requirements, recommendations, and threats for the core Consul product.
 ---
@@ -81,7 +80,7 @@ environment and adapt these configurations accordingly.
     to true to require clients to provide a valid TLS certificate when the Consul HTTPS API is enabled. TLS for the API
     may be not be necessary if it is exclusively served over a loopback interface such as `localhost`.
 
-  - [`verifing_incoming_rpc`](/docs/agent/options#verify_incoming_rpc) - By default this is false, and should almost
+  - [`verify_incoming_rpc`](/docs/agent/options#verify_incoming_rpc) - By default this is false, and should almost
     always be set to true to require clients to provide a valid TLS certificate for Consul agent RPCs.
 
   - [`verify_outgoing`](/docs/agent/options#verify_outgoing) - By default this is false, and should be set to true to
@@ -112,7 +111,7 @@ environment and adapt these configurations accordingly.
     - [`allow_tls`](/docs/agent/options#allow_tls) - By default this is false, and should be set to true on server
       agents to allow certificates to be automatically generated and distributed from the Connect CA to client agents.
 
-    - [`tls`](/docs/agent/options#tls) - By default this false, and should be set to true on client agents to
+    - [`tls`](/docs/agent/options#tls) - By default this is false, and should be set to true on client agents to
       automatically request a client TLS certificate from the server's Connect CA.
 
     **Example Server Agent TLS Configuration**
@@ -155,7 +154,7 @@ environment and adapt these configurations accordingly.
   capabilities tied to an individual human, or machine operator identity. To ultimately secure the ACL system,
   administrators should configure the [`default_policy`](/docs/agent/options#acl_default_policy) to "deny".
 
-  The [system](/docs/acl/acl-system) is comprised of five major components:
+  The [system](/docs/security/acl/acl-system) is comprised of five major components:
 
   - **🗝 Token** - API key associated with policies, roles, or service identities.
 
@@ -208,7 +207,7 @@ environment and adapt these configurations accordingly.
 - **Rotate Credentials** - Using short-lived credentials and rotating them frequently is highly recommended for
   production environments to limit the blast radius from potentially compromised secrets, and enabling basic auditing.
 
-  - **ACL Tokens** - Consul API’s require an ACL token to authorize actions within a cluster.
+  - **ACL Tokens** - Consul APIs require an ACL token to authorize actions within a cluster.
 
   - **X.509 Certificates** - Rotate certificates used by the Consul agent; e.g. integrate with Vault's PKI secret engine
     to automatically generate and renew dynamic, unique X.509 certificates for each Consul node with a short TTL. Client
@@ -236,11 +235,11 @@ environment and adapt these configurations accordingly.
 
 - **Customize HTTP Response Headers** - Additional security headers, such as
   [`X-XSS-Protection`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection), can be
-  [configured](https://www.consul.io/docs/agent/options#response_headers) for HTTP API responses.
+  [configured](/docs/agent/options#response_headers) for HTTP API responses.
 
   ```hcl
   http_config {
-    reponse_headers {
+    response_headers {
         "X-Frame-Options" = "DENY"
     }
   }
@@ -276,16 +275,22 @@ environment and adapt these configurations accordingly.
 - **Secure UI Access** - Access to Consul’s builtin UI can be secured in various ways:
 
   - **mTLS** - Enabling the HTTPS with mutual TLS authentication is recommended, but requires extra tooling to terminate
-    the mTLS connection, preferably on an operator's local machine using a proxy script.
+    the mTLS connection, preferably on an operator's local machine using a proxy script. To do this, follow the tutorial on
+    [Configuring the Consul UI for HTTPS](https://learn.hashicorp.com/tutorials/consul/tls-encryption-openssl-secure#configure-the-consul-ui-for-https)
+    and in Step 2 use "Option 1: add a client certificate to your browser".
 
   - **TLS** - Enabling the HTTPS is recommended where mTLS may not be required for UI access, such as when ACLs are
-    configured with a default deny.
+    configured with a default deny. To do this, follow the tutorial on
+    [Configuring the Consul UI for HTTPS](https://learn.hashicorp.com/tutorials/consul/tls-encryption-openssl-secure#configure-the-consul-ui-for-https)
+    and in Step 2 use "Option 2: verify_incoming_rpc".
 
   - **ACL** - ACLs with a default deny policy enables safer UI access by preventing unauthorized access to sensitive
-    components within the cluster.
+    components within the cluster. To do this, follow the tutorial on
+    [Securing Consul with Access Control Lists (ACLs)](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production),
+    which includes a section on [creating ACL tokens that provide a desired level UI access](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production#consul-ui-token).
 
-  - **Restrict HTTP Writes** - Using the allow_write_http_from configuration option enables agent endpoints restricting
-    write capabilities to a list of CIDRs.
+  - **Restrict HTTP Writes** - Using the [`allow_write_http_from`](/docs/agent/options#allow_write_http_from)
+    configuration option to restrict write access for agent endpoints to hosts on the specified list of CIDRs.
 
     **Example Agent Configuration**
 
@@ -375,7 +380,7 @@ The following are not part of the threat model for client agents:
   to your cluster in certain situations, especially in multi-team deployments. They may accidentally or intentionally
   abuse access to Consul components which can help be protected against using Namespace, and Sentinel policies.
 
-- **Application** - A malicious internal application, suchs as a compromised third-party dependency with access to a
+- **Application** - A malicious internal application, such as a compromised third-party dependency with access to a
   Consul agent, along with the TLS certificate or ACL token used by the local agent, could effectively do anything the
   token permits. Consider enabling HTTPS for the local Consul agent API, enforcing full mutual TLS verification,
   segmenting services using namespaces, as well as configuring OS users, groups, and file permissions to build a defense-in-depth approach.
@@ -406,6 +411,6 @@ The following are not part of the threat model for client agents:
 - **Gateways** - Consul supports a variety of [gateways](/docs/connect/gateways) to allow traffic in-and-out of the
   service mesh to support a variety of workloads. When using an internet-exposed gateway, you should be sure to harden
   your Consul agent and host configurations. In most configurations, ACLS, gossip encryption, and mTLS should be
-  enforced. If an [escape hatch override](https://www.consul.io/docs/connect/proxies/envoy#escape-hatch-overrides) is
+  enforced. If an [escape hatch override](/docs/connect/proxies/envoy#escape-hatch-overrides) is
   required, the proxy configuration should be audited to ensure security configurations remain intact, and do not
   violate Consul’s security model.

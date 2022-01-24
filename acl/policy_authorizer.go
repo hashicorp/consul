@@ -40,6 +40,9 @@ type policyAuthorizer struct {
 	// operatorRule contains the operator policies.
 	operatorRule *policyAuthorizerRule
 
+	// meshRule contains the mesh policies.
+	meshRule *policyAuthorizerRule
+
 	// embedded enterprise policy authorizer
 	enterprisePolicyAuthorizer
 }
@@ -310,16 +313,25 @@ func (p *policyAuthorizer) loadRules(policy *PolicyRules) error {
 		p.operatorRule = &policyAuthorizerRule{access: access}
 	}
 
+	// Load the mesh policy
+	if policy.Mesh != "" {
+		access, err := AccessLevelFromString(policy.Mesh)
+		if err != nil {
+			return err
+		}
+		p.meshRule = &policyAuthorizerRule{access: access}
+	}
+
 	return nil
 }
 
-func newPolicyAuthorizer(policies []*Policy, ent *Config) (Authorizer, error) {
+func newPolicyAuthorizer(policies []*Policy, ent *Config) (*policyAuthorizer, error) {
 	policy := MergePolicies(policies)
 
 	return newPolicyAuthorizerFromRules(&policy.PolicyRules, ent)
 }
 
-func newPolicyAuthorizerFromRules(rules *PolicyRules, ent *Config) (Authorizer, error) {
+func newPolicyAuthorizerFromRules(rules *PolicyRules, ent *Config) (*policyAuthorizer, error) {
 	p := &policyAuthorizer{
 		agentRules:         radix.New(),
 		intentionRules:     radix.New(),
@@ -661,6 +673,25 @@ func (p *policyAuthorizer) KeyringWrite(*AuthorizerContext) EnforcementDecision 
 	return Default
 }
 
+// MeshRead determines if the read-only mesh functions are allowed.
+func (p *policyAuthorizer) MeshRead(ctx *AuthorizerContext) EnforcementDecision {
+	if p.meshRule != nil {
+		return enforce(p.meshRule.access, AccessRead)
+	}
+	// default to OperatorRead access
+	return p.OperatorRead(ctx)
+}
+
+// MeshWrite determines if the state-changing mesh functions are
+// allowed.
+func (p *policyAuthorizer) MeshWrite(ctx *AuthorizerContext) EnforcementDecision {
+	if p.meshRule != nil {
+		return enforce(p.meshRule.access, AccessWrite)
+	}
+	// default to OperatorWrite access
+	return p.OperatorWrite(ctx)
+}
+
 // OperatorRead determines if the read-only operator functions are allowed.
 func (p *policyAuthorizer) OperatorRead(*AuthorizerContext) EnforcementDecision {
 	if p.operatorRule != nil {
@@ -734,6 +765,10 @@ func (p *policyAuthorizer) ServiceWrite(name string, _ *AuthorizerContext) Enfor
 		return enforce(rule.access, AccessWrite)
 	}
 	return Default
+}
+
+func (p *policyAuthorizer) serviceWriteAny(_ *AuthorizerContext) EnforcementDecision {
+	return p.anyAllowed(p.serviceRules, AccessWrite)
 }
 
 // SessionRead checks for permission to read sessions for a given node.

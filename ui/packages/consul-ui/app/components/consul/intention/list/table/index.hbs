@@ -24,8 +24,16 @@ as |item index|>
             {{else}}
               {{item.SourceName}}
             {{/if}}
+            {{#if (or (can 'use nspaces') (can 'use partitions'))}}
             {{! TODO: slugify }}
-            <em class={{concat 'nspace-' (or item.SourceNS 'default')}}>{{or item.SourceNS 'default'}}</em>
+            <em>
+              <span
+                class={{concat 'partition-' (or item.SourcePartition 'default')}}
+              >{{or item.SourcePartition 'default'}}</span> / <span
+                class={{concat 'nspace-' (or item.SourceNS 'default')}}
+              >{{or item.SourceNS 'default'}}</span>
+            </em>
+            {{/if}}
           </a>
         </td>
         <td class="intent intent-{{slugify item.Action}}" data-test-intention-action={{item.Action}}>
@@ -38,8 +46,16 @@ as |item index|>
             {{else}}
               {{item.DestinationName}}
             {{/if}}
+            {{#if (or (can 'use nspaces') (can 'use partitions'))}}
             {{! TODO: slugify }}
-            <em class={{concat 'nspace-' (or item.DestinationNS 'default')}}>{{or item.DestinationNS 'default'}}</em>
+            <em>
+              <span
+                class={{concat 'partition-' (or item.DestinationPartition 'default')}}
+              >{{or item.DestinationPartition 'default'}}</span> / <span
+                class={{concat 'nspace-' (or item.DestinationNS 'default')}}
+              >{{or item.DestinationNS 'default'}}</span>
+            </em>
+            {{/if}}
           </span>
         </td>
         <td class="permissions">
@@ -53,8 +69,12 @@ as |item index|>
         {{/if}}
         </td>
     </BlockSlot>
+{{#if (and (or (can "write intention" item=item) (can "view CRD intention" item=item)) (not-eq item.Meta.external-source 'consul-api-gateway'))}}
     <BlockSlot @name="actions" as |index change checked|>
-      <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
+      <PopoverMenu
+        @expanded={{if (eq checked index) true false}}
+        @onchange={{action change index}} @keyboardAccess={{false}}
+      >
         <BlockSlot @name="trigger">
           More
         </BlockSlot>
@@ -98,12 +118,44 @@ as |item index|>
                 </InformedAction>
               </div>
             </li>
-          {{else}}
+          {{else if (can "view CRD intention" item=item)}}
             <li role="none">
-              <a role="menuitem" tabindex="-1" href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}>View</a>
+              <div role="menu">
+                <InformedAction
+                  class="info kubernetes"
+                >
+                  <:header>
+                    Managed by CRD
+                  </:header>
+                  <:body>
+                    <p>
+                      This intention is being managed through an Intention Custom Resource in your Kubernetes cluster. It is view only in the UI.
+                    </p>
+                  </:body>
+                  <:actions as |Actions|>
+                    <Actions.Action>
+                      <Action
+                        tabindex="-1"
+                        class="action"
+                        @href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}
+                      >
+                        View
+                      </Action>
+                    </Actions.Action>
+                    <Actions.Action>
+                      <Action
+                        @onclick={{action change}}
+                      >
+                        Cancel
+                      </Action>
+                    </Actions.Action>
+                  </:actions>
+                </InformedAction>
+              </div>
             </li>
           {{/if}}
         </BlockSlot>
       </PopoverMenu>
     </BlockSlot>
+{{/if}}
 </TabularCollection>

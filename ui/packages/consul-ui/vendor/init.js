@@ -1,4 +1,22 @@
 (function(doc, appName) {
+  const fs = new Map(
+    Object.entries(JSON.parse(doc.querySelector(`[data-${appName}-fs]`).textContent))
+  );
+  const appendScript = function(src) {
+    var $script = doc.createElement('script');
+    $script.src = src;
+    doc.body.appendChild($script);
+  };
+
+  // polyfills
+  if (!('TextDecoder' in window)) {
+    appendScript(fs.get(`${['text-encoding', 'encoding-indexes'].join('/')}.js`));
+    appendScript(fs.get(`${['text-encoding', 'encoding'].join('/')}.js`));
+  }
+  if (!(window.CSS && window.CSS.escape)) {
+    appendScript(fs.get(`${['css.escape', 'css.escape'].join('/')}.js`));
+  }
+
   try {
     const $appMeta = doc.querySelector(`[name="${appName}/config/environment"]`);
     // pick out the operatorConfig from our application/json script tag

@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package config
@@ -25,6 +26,9 @@ func validateEnterpriseConfigKeys(config *Config) []error {
 	if len(config.Segments) > 0 {
 		add("segments")
 	}
+	if stringVal(config.Partition) != "" {
+		add("partition")
+	}
 	if stringVal(config.Autopilot.RedundancyZoneTag) != "" {
 		add("autopilot.redundancy_zone_tag")
 	}
@@ -46,9 +50,12 @@ func validateEnterpriseConfigKeys(config *Config) []error {
 		add("acl.tokens.managed_service_provider")
 		config.ACL.Tokens.ManagedServiceProvider = nil
 	}
-	if config.Audit != nil {
+	if boolVal(config.Audit.Enabled) || len(config.Audit.Sinks) > 0 {
 		add("audit")
-		config.Audit = nil
+	}
+	if config.LicensePath != nil {
+		add("license_path")
+		config.LicensePath = nil
 	}
 
 	return result

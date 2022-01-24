@@ -4,12 +4,18 @@ import flat from 'flat';
 import { createMachine, interpret } from '@xstate/fsm';
 
 export default class StateService extends Service {
-  @service('logger')
-  logger;
+
+  stateCharts = {};
+
+  @service('logger') logger;
 
   // @xstate/fsm
   log(chart, state) {
     // this.logger.execute(`${chart.id} > ${state.value}`);
+  }
+
+  stateChart(name) {
+    return this.stateCharts[name];
   }
 
   addGuards(chart, options) {

@@ -1,0 +1,63 @@
+<ListCollection
+  class="consul-partition-list"
+  ...attributes
+  @items={{@items}}
+  @linkable="linkable partition"
+as |item|>
+    <BlockSlot @name="header">
+{{#if item.DeletedAt}}
+    <p>
+      Deleting {{item.Name}}...
+    </p>
+{{else}}
+      <a data-test-partition={{item.Name}} href={{href-to 'dc.partitions.edit' item.Name}}>{{item.Name}}</a>
+{{/if}}
+    </BlockSlot>
+    <BlockSlot @name="details">
+{{#if item.Description}}
+      <dl>
+        <dt>Description</dt>
+        <dd data-test-description>
+          {{item.Description}}
+        </dd>
+      </dl>
+{{/if}}
+    </BlockSlot>
+    <BlockSlot @name="actions" as |Actions|>
+{{#if (not item.DeletedAt)}}
+      <Actions as |Action|>
+        <Action data-test-edit-action @href={{href-to 'dc.partitions.edit' item.Name}}>
+          <BlockSlot @name="label">
+{{#if (can "write partition" item=item)}}
+            Edit
+{{else}}
+            View
+{{/if}}
+          </BlockSlot>
+        </Action>
+      {{#if (can "delete partition" item=item)}}
+        <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
+          <BlockSlot @name="label">
+            Delete
+          </BlockSlot>
+          <BlockSlot @name="confirmation" as |Confirmation|>
+            <Confirmation class="warning">
+              <BlockSlot @name="header">
+                Confirm delete
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  Are you sure you want to delete this partition?
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="confirm" as |Confirm|>
+                <Confirm>Delete</Confirm>
+              </BlockSlot>
+            </Confirmation>
+          </BlockSlot>
+        </Action>
+      {{/if}}
+      </Actions>
+{{/if}}
+    </BlockSlot>
+</ListCollection>

@@ -1,12 +1,16 @@
-{{#if @noMetricsReason}}
-  <span class="topology-metrics-error">
-    Unable to load metrics
-    <span>
-      <Tooltip>{{@noMetricsReason}}</Tooltip>
-    </span>
+{{#if (or @noMetricsReason @error)}}
+  <span data-test-topology-metrics-status class="topology-metrics-status-error">
+    {{#if (eq @noMetricsReason 'ingress-gateway')}}
+      {{t "components.consul.topology-metrics.status.ingress-gateway"}}
+    {{else if (eq @noMetricsReason 'remote-dc')}}
+      {{t "components.consul.topology-metrics.status.error"}}
+      <span
+        {{tooltip (t "components.consul.topology-metrics.status.remote-dc")}}
+      />
+    {{else if @error}}
+      {{t "components.consul.topology-metrics.status.error"}}
+    {{/if}}
   </span>
-{{else if @error}}
-  <span class="topology-metrics-error">Unable to load metrics</span>
 {{else}}
-  <span class="topology-metrics-loader">Loading Metrics</span>
+  <span class="topology-metrics-status-loader">{{t "components.consul.topology-metrics.status.loading"}}</span>
 {{/if}}

@@ -7,11 +7,17 @@ export default function(scenario, create, set, win = window, doc = document) {
       return create(number, model);
     })
     .given(['$number $model model[s]? with the value "$value"'], function(number, model, value) {
+      if (model === 'dc') {
+        doc.cookie = `CONSUL_DATACENTER_LOCAL=${value}`;
+      }
       return create(number, model, value);
     })
     .given(
       ['$number $model model[s]? from yaml\n$yaml', '$number $model model[s]? from json\n$json'],
       function(number, model, data) {
+        if (model === 'dc') {
+          doc.cookie = `CONSUL_DATACENTER_LOCAL=${data[0]}`;
+        }
         return create(number, model, data);
       }
     )
@@ -28,6 +34,24 @@ export default function(scenario, create, set, win = window, doc = document) {
     })
     .given(['the local datacenter is "$value"'], function(value) {
       doc.cookie = `CONSUL_DATACENTER_LOCAL=${value}`;
+    })
+    .given(['ACLs are disabled'], function() {
+      doc.cookie = `CONSUL_ACLS_ENABLE=0`;
+    })
+    .given(['SSO is enabled'], function() {
+      doc.cookie = `CONSUL_SSO_ENABLE=1`;
+      set('CONSUL_SSO_ENABLE', 1);
+    })
+    .given(['partitions are enabled'], function() {
+      doc.cookie = `CONSUL_PARTITIONS_ENABLE=1`;
+      set('CONSUL_PARTITIONS_ENABLE', 1);
+    })
+    .given(['the default ACL policy is "$policy"'], function(policy) {
+      set('CONSUL_ACL_POLICY', policy);
+    })
+    .given(['a "$value" metrics provider'], function(value) {
+      doc.cookie = `CONSUL_METRICS_PROXY_ENABLE=1`;
+      doc.cookie = `CONSUL_METRICS_PROVIDER=${value}`;
     })
     .given(['permissions from yaml\n$yaml'], function(data) {
       Object.entries(data).forEach(([key, value]) => {

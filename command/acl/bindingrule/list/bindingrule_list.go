@@ -56,7 +56,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -103,8 +103,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Lists ACL binding rules"
-const help = `
+const (
+	synopsis = "Lists ACL binding rules"
+	help     = `
 Usage: consul acl binding-rule list [options]
 
   Lists all the ACL binding rules.
@@ -117,3 +118,4 @@ Usage: consul acl binding-rule list [options]
 
     $ consul acl binding-rule list -method="my-method"
 `
+)

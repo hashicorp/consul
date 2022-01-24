@@ -14,14 +14,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/consul/wanfed"
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logging"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
@@ -30,6 +22,16 @@ import (
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/yamux"
+	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/wanfed"
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 )
 
 var RPCCounters = []prometheus.CounterDefinition{
@@ -55,7 +57,7 @@ var RPCCounters = []prometheus.CounterDefinition{
 	},
 	{
 		Name: []string{"rpc", "query"},
-		Help: "Increments when a server receives a new blocking RPC request, indicating the rate of new blocking query calls.",
+		Help: "Increments when a server receives a read request, indicating the rate of new read queries.",
 	},
 }
 
@@ -74,12 +76,6 @@ var RPCSummaries = []prometheus.SummaryDefinition{
 }
 
 const (
-	// jitterFraction is a the limit to the amount of jitter we apply
-	// to a user specified MaxQueryTime. We divide the specified time by
-	// the fraction. So 16 == 6.25% limit of jitter. This same fraction
-	// is applied to the RPCHoldTimeout
-	jitterFraction = 16
-
 	// Warn if the Raft command is larger than this.
 	// If it's over 1MB something is probably being abusive.
 	raftWarnSize = 1024 * 1024
@@ -91,9 +87,20 @@ const (
 	enqueueLimit = 30 * time.Second
 )
 
-var (
-	ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
-)
+var ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
+
+// partitionUnsetter is used to describe requests values that can unset their
+// EnterpriseMeta.Partition value.
+type partitionUnsetter interface {
+	// UnsetPartition is used to strip a Partition value from the request before
+	// it is forwarded to a remote datacenter. By unsetting the value, the server
+	// that handles the request can decide which partition should be used (or do nothing).
+	// This ensures that servers that are Partition-enabled (pre-1.11, or non-Enterprise)
+	// don't inadvertently cause servers that are not Partition-enabled (<= 1.10 or non-Enterprise)
+	// to filter their responses by Partition. In other words, this ensures upgraded servers
+	// remain compatible with non-upgraded servers.
+	UnsetPartition()
+}
 
 func (s *Server) rpcLogger() hclog.Logger {
 	return s.loggers.Named(logging.RPC)
@@ -201,8 +208,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.handleConsulConn(conn)
 
 	case pool.RPCRaft:
-		metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
-		s.raftLayer.Handoff(conn)
+		s.handleRaftRPC(conn)
 
 	case pool.RPCTLS:
 		// Don't allow malicious client to create TLS-in-TLS for ever.
@@ -290,8 +296,7 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 		s.handleConsulConn(tlsConn)
 
 	case pool.ALPN_RPCRaft:
-		metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
-		s.raftLayer.Handoff(tlsConn)
+		s.handleRaftRPC(tlsConn)
 
 	case pool.ALPN_RPCMultiplexV2:
 		s.handleMultiplexV2(tlsConn)
@@ -300,7 +305,7 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 		s.handleSnapshotConn(tlsConn)
 
 	case pool.ALPN_RPCGRPC:
-		s.grpcHandler.Handle(conn)
+		s.grpcHandler.Handle(tlsConn)
 
 	case pool.ALPN_WANGossipPacket:
 		if err := s.handleALPN_WANGossipPacketStream(tlsConn); err != nil && err != io.EOF {
@@ -380,7 +385,7 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 		}
 		sub = peeked
 		switch first {
-		case pool.RPCGossip:
+		case byte(pool.RPCGossip):
 			buf := make([]byte, 1)
 			sub.Read(buf)
 			go func() {
@@ -462,6 +467,20 @@ func (s *Server) handleSnapshotConn(conn net.Conn) {
 	}()
 }
 
+func (s *Server) handleRaftRPC(conn net.Conn) {
+	if tlsConn, ok := conn.(*tls.Conn); ok {
+		err := s.tlsConfigurator.AuthorizeServerConn(s.config.Datacenter, tlsConn)
+		if err != nil {
+			s.rpcLogger().Warn(err.Error(), "from", conn.RemoteAddr(), "operation", "raft RPC")
+			conn.Close()
+			return
+		}
+	}
+
+	metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
+	s.raftLayer.Handoff(conn)
+}
+
 func (s *Server) handleALPN_WANGossipPacketStream(conn net.Conn) error {
 	defer conn.Close()
 
@@ -526,37 +545,112 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 	return c.lr.Read(b)
 }
 
-// canRetry returns true if the given situation is safe for a retry.
-func canRetry(args interface{}, err error) bool {
+// canRetry returns true if the request and error indicate that a retry is safe.
+func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) bool {
+	if info != nil && info.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime) {
+		// RPCInfo timeout may include extra time for MaxQueryTime
+		return false
+	} else if info == nil && time.Since(start) > config.RPCHoldTimeout {
+		// When not RPCInfo, timeout is only RPCHoldTimeout
+		return false
+	}
 	// No leader errors are always safe to retry since no state could have
 	// been changed.
 	if structs.IsErrNoLeader(err) {
 		return true
 	}
 
-	// If we are chunking and it doesn't seem to have completed, try again
-	intErr, ok := args.(error)
-	if ok && strings.Contains(intErr.Error(), ErrChunkingResubmit.Error()) {
+	// If we are chunking and it doesn't seem to have completed, try again.
+	if err != nil && strings.Contains(err.Error(), ErrChunkingResubmit.Error()) {
 		return true
 	}
 
 	// Reads are safe to retry for stream errors, such as if a server was
 	// being shut down.
-	info, ok := args.(structs.RPCInfo)
-	if ok && info.IsRead() && lib.IsErrEOF(err) {
-		return true
-	}
-
-	return false
+	return info != nil && info.IsRead() && lib.IsErrEOF(err)
 }
 
-// ForwardRPC is used to forward an RPC request to a remote DC or to the local leader
-// Returns a bool of if forwarding was performed, as well as any error
-func (s *Server) ForwardRPC(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
-	var firstCheck time.Time
+// ForwardRPC is used to potentially forward an RPC request to a remote DC or
+// to the local leader depending upon the request.
+//
+// Returns a bool of if forwarding was performed, as well as any error. If
+// false is returned (with no error) it is assumed that the current server
+// should handle the request.
+func (s *Server) ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error) {
+	forwardToDC := func(dc string) error {
+		return s.forwardDC(method, dc, info, reply)
+	}
+	forwardToLeader := func(leader *metadata.Server) error {
+		return s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
+			method, info, reply)
+	}
+	return s.forwardRPC(info, forwardToDC, forwardToLeader)
+}
 
+// ForwardGRPC is used to potentially forward an RPC request to a remote DC or
+// to the local leader depending upon the request.
+//
+// Returns a bool of if forwarding was performed, as well as any error. If
+// false is returned (with no error) it is assumed that the current server
+// should handle the request.
+func (s *Server) ForwardGRPC(connPool GRPCClientConner, info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error) {
+	forwardToDC := func(dc string) error {
+		conn, err := connPool.ClientConn(dc)
+		if err != nil {
+			return err
+		}
+		return f(conn)
+	}
+	forwardToLeader := func(leader *metadata.Server) error {
+		conn, err := connPool.ClientConnLeader()
+		if err != nil {
+			return err
+		}
+		return f(conn)
+	}
+	return s.forwardRPC(info, forwardToDC, forwardToLeader)
+}
+
+// forwardRPC is used to potentially forward an RPC request to a remote DC or
+// to the local leader depending upon the request.
+//
+// If info.RequestDatacenter() does not match the local datacenter, then the
+// request will be forwarded to the DC using forwardToDC.
+//
+// Stale read requests will be handled locally if the current node has an
+// initialized raft database, otherwise requests will be forwarded to the local
+// leader using forwardToLeader.
+//
+// Returns a bool of if forwarding was performed, as well as any error. If
+// false is returned (with no error) it is assumed that the current server
+// should handle the request.
+func (s *Server) forwardRPC(
+	info structs.RPCInfo,
+	forwardToDC func(dc string) error,
+	forwardToLeader func(leader *metadata.Server) error,
+) (handled bool, err error) {
+	// Forward the request to the requested datacenter.
+	if handled, err := s.forwardRequestToOtherDatacenter(info, forwardToDC); handled || err != nil {
+		return handled, err
+	}
+
+	// See if we should let this server handle the read request without
+	// shipping the request to the leader.
+	if s.canServeReadRequest(info) {
+		return false, nil
+	}
+
+	return s.forwardRequestToLeader(info, forwardToLeader)
+}
+
+// forwardRequestToOtherDatacenter is an implementation detail of forwardRPC.
+// See the comment for forwardRPC for more details.
+func (s *Server) forwardRequestToOtherDatacenter(info structs.RPCInfo, forwardToDC func(dc string) error) (handled bool, err error) {
 	// Handle DC forwarding
 	dc := info.RequestDatacenter()
+	if dc == "" {
+		dc = s.config.Datacenter
+	}
 	if dc != s.config.Datacenter {
 		// Local tokens only work within the current datacenter. Check to see
 		// if we are attempting to forward one to a remote datacenter and strip
@@ -574,16 +668,32 @@ func (s *Server) ForwardRPC(method string, info structs.RPCInfo, args interface{
 				}
 			}
 		}
+		// In order to interoperate with servers that can interpret Partition, but
+		// may not handle it correctly (eg. 1.10 servers), we need to unset the value.
+		// Unsetting the Partition ensures that the server that handles the request
+		// uses its Partition, or an empty value (aka doing nothing).
+		// For requests that are not Partition-aware, this is a no-op.
+		if v, ok := info.(partitionUnsetter); ok {
+			v.UnsetPartition()
+		}
 
-		err := s.forwardDC(method, dc, args, reply)
-		return true, err
+		return true, forwardToDC(dc)
 	}
 
+	return false, nil
+}
+
+// canServeReadRequest determines if the request is a stale read request and
+// the current node can safely process that request.
+func (s *Server) canServeReadRequest(info structs.RPCInfo) bool {
 	// Check if we can allow a stale read, ensure our local DB is initialized
-	if info.IsRead() && info.AllowStaleRead() && !s.raft.LastContact().IsZero() {
-		return false, nil
-	}
+	return info.IsRead() && info.AllowStaleRead() && !s.raft.LastContact().IsZero()
+}
 
+// forwardRequestToLeader is an implementation detail of forwardRPC.
+// See the comment for forwardRPC for more details.
+func (s *Server) forwardRequestToLeader(info structs.RPCInfo, forwardToLeader func(leader *metadata.Server) error) (handled bool, err error) {
+	firstCheck := time.Now()
 CHECK_LEADER:
 	// Fail fast if we are in the process of leaving
 	select {
@@ -602,21 +712,15 @@ CHECK_LEADER:
 
 	// Handle the case of a known leader
 	if leader != nil {
-		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
-			method, args, reply)
-		if rpcErr != nil && canRetry(info, rpcErr) {
-			goto RETRY
+		rpcErr = forwardToLeader(leader)
+		if rpcErr == nil {
+			return true, nil
 		}
-		return true, rpcErr
 	}
 
-RETRY:
-	// Gate the request until there is a leader
-	if firstCheck.IsZero() {
-		firstCheck = time.Now()
-	}
-	if time.Since(firstCheck) < s.config.RPCHoldTimeout {
-		jitter := lib.RandomStagger(s.config.RPCHoldTimeout / jitterFraction)
+	if retry := canRetry(info, rpcErr, firstCheck, s.config); retry {
+		// Gate the request until there is a leader
+		jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
 		select {
 		case <-time.After(jitter):
 			goto CHECK_LEADER
@@ -729,28 +833,34 @@ func (s *Server) keyringRPCs(method string, args interface{}, dcs []string) (*st
 
 type raftEncoder func(structs.MessageType, interface{}) ([]byte, error)
 
-// raftApply is used to encode a message, run it through raft, and return
-// the FSM response along with any errors
+// raftApplyMsgpack encodes the msg using msgpack and calls raft.Apply. See
+// raftApplyWithEncoder.
+// Deprecated: use raftApplyMsgpack
 func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyMsgpack(t, msg)
 }
 
-// raftApplyMsgpack will msgpack encode the request and then run it through raft,
-// then return the FSM response along with any errors.
+// raftApplyMsgpack encodes the msg using msgpack and calls raft.Apply. See
+// raftApplyWithEncoder.
 func (s *Server) raftApplyMsgpack(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyWithEncoder(t, msg, structs.Encode)
 }
 
-// raftApplyProtobuf will protobuf encode the request and then run it through raft,
-// then return the FSM response along with any errors.
+// raftApplyProtobuf encodes the msg using protobuf and calls raft.Apply. See
+// raftApplyWithEncoder.
 func (s *Server) raftApplyProtobuf(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyWithEncoder(t, msg, structs.EncodeProtoInterface)
 }
 
-// raftApplyWithEncoder is used to encode a message, run it through raft,
-// and return the FSM response along with any errors. Unlike raftApply this
-// takes the encoder to use as an argument.
-func (s *Server) raftApplyWithEncoder(t structs.MessageType, msg interface{}, encoder raftEncoder) (interface{}, error) {
+// raftApplyWithEncoder encodes a message, and then calls raft.Apply with the
+// encoded message. Returns the FSM response along with any errors. If the
+// FSM.Apply response is an error it will be returned as the error return
+// value with a nil response.
+func (s *Server) raftApplyWithEncoder(
+	t structs.MessageType,
+	msg interface{},
+	encoder raftEncoder,
+) (response interface{}, err error) {
 	if encoder == nil {
 		return nil, fmt.Errorf("Failed to encode request: nil encoder")
 	}
@@ -784,22 +894,19 @@ func (s *Server) raftApplyWithEncoder(t structs.MessageType, msg interface{}, en
 		// In this case we didn't apply all chunks successfully, possibly due
 		// to a term change; resubmit
 		if resp == nil {
-			// This returns the error in the interface because the raft library
-			// returns errors from the FSM via the future, not via err from the
-			// apply function. Downstream client code expects to see any error
-			// from the FSM (as opposed to the apply itself) and decide whether
-			// it can retry in the future's response.
-			return ErrChunkingResubmit, nil
+			return nil, ErrChunkingResubmit
 		}
 		// We expect that this conversion should always work
 		chunkedSuccess, ok := resp.(raftchunking.ChunkingSuccess)
 		if !ok {
 			return nil, errors.New("unknown type of response back from chunking FSM")
 		}
-		// Return the inner wrapped response
-		return chunkedSuccess.Response, nil
+		resp = chunkedSuccess.Response
 	}
 
+	if err, ok := resp.(error); ok {
+		return nil, err
+	}
 	return resp, nil
 }
 
@@ -836,7 +943,7 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 	}
 
 	// Apply a small amount of jitter to the request.
-	queryTimeout += lib.RandomStagger(queryTimeout / jitterFraction)
+	queryTimeout += lib.RandomStagger(queryTimeout / structs.JitterFraction)
 
 	// wrap the base context with a deadline
 	ctx, cancel = context.WithDeadline(ctx, time.Now().Add(queryTimeout))
@@ -852,8 +959,6 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 
 RUN_QUERY:
 	// Setup blocking loop
-	// Update the query metadata.
-	s.setQueryMeta(queryMeta)
 
 	// Validate
 	// If the read must be consistent we verify that we are still the leader.
@@ -882,6 +987,10 @@ RUN_QUERY:
 
 	// Execute the queryFn
 	err := fn(ws, state)
+
+	// Update the query metadata.
+	s.setQueryMeta(queryMeta, queryOpts.GetToken())
+
 	// Note we check queryOpts.MinQueryIndex is greater than zero to determine if
 	// blocking was requested by client, NOT meta.Index since the state function
 	// might return zero if something is not initialized and care wasn't taken to
@@ -915,7 +1024,9 @@ RUN_QUERY:
 }
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
-func (s *Server) setQueryMeta(m structs.QueryMetaCompat) {
+//
+// Note: This method must be called *after* filtering query results with ACLs.
+func (s *Server) setQueryMeta(m structs.QueryMetaCompat, token string) {
 	if s.IsLeader() {
 		m.SetLastContact(0)
 		m.SetKnownLeader(true)
@@ -923,6 +1034,7 @@ func (s *Server) setQueryMeta(m structs.QueryMetaCompat) {
 		m.SetLastContact(time.Since(s.raft.LastContact()))
 		m.SetKnownLeader(s.raft.Leader() != "")
 	}
+	maskResultsFilteredByACLs(token, m)
 }
 
 // consistentRead is used to ensure we do not perform a stale
@@ -937,7 +1049,7 @@ func (s *Server) consistentRead() error {
 	if s.isReadyForConsistentReads() {
 		return nil
 	}
-	jitter := lib.RandomStagger(s.config.RPCHoldTimeout / jitterFraction)
+	jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
 	deadline := time.Now().Add(s.config.RPCHoldTimeout)
 
 	for time.Now().Before(deadline) {
@@ -956,4 +1068,32 @@ func (s *Server) consistentRead() error {
 	}
 
 	return structs.ErrNotReadyForConsistentReads
+}
+
+// maskResultsFilteredByACLs blanks out the ResultsFilteredByACLs flag if the
+// request is unauthenticated, to limit information leaking.
+//
+// Endpoints that support bexpr filtering could be used in combination with
+// this flag/header to discover the existence of resources to which the user
+// does not have access, therefore we only expose it when the user presents
+// a valid ACL token. This doesn't completely remove the risk (by nature the
+// purpose of this flag is to let the user know there are resources they can
+// not access) but it prevents completely unauthenticated users from doing so.
+//
+// Notes:
+//
+//	* The definition of "unauthenticated" here is incomplete, as it doesn't
+//	  account for the fact that operators can modify the anonymous token with
+//	  custom policies, or set namespace default policies. As these scenarios
+//	  are less common and this flag is a best-effort UX improvement, we think
+//	  the trade-off for reduced complexity is acceptable.
+//
+//	* This method assumes that the given token has already been validated (and
+//	  will only check whether it is blank or not). It's a safe assumption because
+//	  ResultsFilteredByACLs is only set to try when applying the already-resolved
+//	  token's policies.
+func maskResultsFilteredByACLs(token string, meta structs.QueryMetaCompat) {
+	if token == "" {
+		meta.SetResultsFilteredByACLs(false)
+	}
 }

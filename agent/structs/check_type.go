@@ -12,10 +12,10 @@ import (
 type CheckTypes []*CheckType
 
 // CheckType is used to create either the CheckMonitor or the CheckTTL.
-// The following types are supported: Script, HTTP, TCP, Docker, TTL, GRPC, Alias. Script,
-// HTTP, Docker, TCP and GRPC all require Interval. Only one of the types may
+// The following types are supported: Script, HTTP, TCP, Docker, TTL, GRPC, Alias, H2PING. Script,
+// HTTP, Docker, TCP, GRPC, and H2PING all require Interval. Only one of the types may
 // to be provided: TTL or Script/Interval or HTTP/Interval or TCP/Interval or
-// Docker/Interval or GRPC/Interval or AliasService.
+// Docker/Interval or GRPC/Interval or AliasService or H2PING/Interval.
 // Since types like CheckHTTP and CheckGRPC derive from CheckType, there are
 // helper conversion methods that do the reverse conversion. ie. checkHTTP.CheckType()
 type CheckType struct {
@@ -32,6 +32,8 @@ type CheckType struct {
 
 	ScriptArgs             []string
 	HTTP                   string
+	H2PING                 string
+	H2PingUseTLS           bool
 	Header                 map[string][]string
 	Method                 string
 	Body                   string
@@ -43,10 +45,12 @@ type CheckType struct {
 	Shell                  string
 	GRPC                   string
 	GRPCUseTLS             bool
+	TLSServerName          string
 	TLSSkipVerify          bool
 	Timeout                time.Duration
 	TTL                    time.Duration
 	SuccessBeforePassing   int
+	FailuresBeforeWarning  int
 	FailuresBeforeCritical int
 
 	// Definition fields used when exposing checks through a proxy
@@ -75,8 +79,10 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 		ScriptArgsSnake                     []string    `json:"script_args"`
 		DeregisterCriticalServiceAfterSnake interface{} `json:"deregister_critical_service_after"`
 		DockerContainerIDSnake              string      `json:"docker_container_id"`
+		TLSServerNameSnake                  string      `json:"tls_server_name"`
 		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
 		GRPCUseTLSSnake                     bool        `json:"grpc_use_tls"`
+		H2PingUseTLSSnake                   bool        `json:"h2ping_use_tls"`
 
 		// These are going to be ignored but since we are disallowing unknown fields
 		// during parsing we have to be explicit about parsing but not using these.
@@ -87,6 +93,17 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
+
+	// Preevaluate struct values to determine where to set defaults
+	if err = lib.UnmarshalJSON(data, aux); err != nil {
+		return err
+	}
+	// Set defaults
+	if aux.H2PING != "" {
+		aux.H2PingUseTLS = true
+		aux.H2PingUseTLSSnake = true
+	}
+
 	if err = lib.UnmarshalJSON(data, aux); err != nil {
 		return err
 	}
@@ -102,13 +119,15 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 	if t.DockerContainerID == "" {
 		t.DockerContainerID = aux.DockerContainerIDSnake
 	}
+	if t.TLSServerName == "" {
+		t.TLSServerName = aux.TLSServerNameSnake
+	}
 	if aux.TLSSkipVerifySnake {
 		t.TLSSkipVerify = aux.TLSSkipVerifySnake
 	}
 	if aux.GRPCUseTLSSnake {
 		t.GRPCUseTLS = aux.GRPCUseTLSSnake
 	}
-
 	if aux.Interval != nil {
 		switch v := aux.Interval.(type) {
 		case string:
@@ -149,6 +168,9 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 			t.DeregisterCriticalServiceAfter = time.Duration(v)
 		}
 	}
+	if (aux.H2PING != "" && !aux.H2PingUseTLSSnake) || (aux.H2PING == "" && aux.H2PingUseTLSSnake) {
+		t.H2PingUseTLS = aux.H2PingUseTLSSnake
+	}
 
 	return nil
 
@@ -156,13 +178,13 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 
 // Validate returns an error message if the check is invalid
 func (c *CheckType) Validate() error {
-	intervalCheck := c.IsScript() || c.HTTP != "" || c.TCP != "" || c.GRPC != ""
+	intervalCheck := c.IsScript() || c.HTTP != "" || c.TCP != "" || c.GRPC != "" || c.H2PING != ""
 
 	if c.Interval > 0 && c.TTL > 0 {
 		return fmt.Errorf("Interval and TTL cannot both be specified")
 	}
 	if intervalCheck && c.Interval <= 0 {
-		return fmt.Errorf("Interval must be > 0 for Script, HTTP, or TCP checks")
+		return fmt.Errorf("Interval must be > 0 for Script, HTTP, H2PING, or TCP checks")
 	}
 	if intervalCheck && c.IsAlias() {
 		return fmt.Errorf("Interval cannot be set for Alias checks")
@@ -176,6 +198,10 @@ func (c *CheckType) Validate() error {
 	if c.OutputMaxSize < 0 {
 		return fmt.Errorf("MaxOutputMaxSize must be positive")
 	}
+	if c.FailuresBeforeWarning > c.FailuresBeforeCritical {
+		return fmt.Errorf("FailuresBeforeWarning can't be higher than FailuresBeforeCritical")
+	}
+
 	return nil
 }
 
@@ -224,6 +250,11 @@ func (c *CheckType) IsGRPC() bool {
 	return c.GRPC != "" && c.Interval > 0
 }
 
+// IsH2PING checks if this is a H2PING type
+func (c *CheckType) IsH2PING() bool {
+	return c.H2PING != "" && c.Interval > 0
+}
+
 func (c *CheckType) Type() string {
 	switch {
 	case c.IsGRPC():
@@ -240,6 +271,8 @@ func (c *CheckType) Type() string {
 		return "docker"
 	case c.IsScript():
 		return "script"
+	case c.IsH2PING():
+		return "h2ping"
 	default:
 		return ""
 	}

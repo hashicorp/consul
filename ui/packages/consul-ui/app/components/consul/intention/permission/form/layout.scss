@@ -1,8 +1,8 @@
 .consul-intention-permission-form {
   h2 {
     padding-top: 1.4em;
-    margin-top: .2em;
-    margin-bottom: .6em;
+    margin-top: 0.2em;
+    margin-bottom: 0.6em;
   }
   .consul-intention-permission-header-form {
     margin-top: 10px;
@@ -18,5 +18,8 @@
   }
   .ember-basic-dropdown-trigger {
     padding: 5px;
+  }
+  .checkbox-group {
+    flex-direction: column;
   }
 }

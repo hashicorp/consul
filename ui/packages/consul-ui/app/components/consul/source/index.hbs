@@ -1,0 +1,25 @@
+<dl class="tooltip-panel">
+  <dt>
+    <span data-test-consul-source class="consul-source">
+      {{@source}}
+    </span>
+  </dt>
+  <dd>
+    <MenuPanel @position="left">
+      <BlockSlot @name="header">
+        {{t "components.consul.source.header"}}
+      </BlockSlot>
+      <BlockSlot @name="menu">
+        <li role="separator">
+          {{t "components.consul.source.menu-title"}}
+        </li>
+        <li role="none" class="docs-link">
+          <a tabindex="-1" role="menuitem" href="{{env 'CONSUL_DOCS_URL'}}/connect/l7-traffic" rel="noopener noreferrer" target="_blank">
+            {{t "components.consul.source.links.documentation"}}
+          </a>
+        </li>
+      </BlockSlot>
+    </MenuPanel>
+  </dd>
+</dl>
+

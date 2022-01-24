@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 // Assert io.Closer implementation
@@ -65,8 +66,6 @@ func testConnPipelineSetup(t *testing.T) (net.Conn, net.Conn, *Conn, func()) {
 }
 
 func TestConn(t *testing.T) {
-	t.Parallel()
-
 	src, dst, c, stop := testConnPipelineSetup(t)
 	defer stop()
 
@@ -124,8 +123,6 @@ func TestConn(t *testing.T) {
 }
 
 func TestConnSrcClosing(t *testing.T) {
-	t.Parallel()
-
 	src, dst, c, stop := testConnPipelineSetup(t)
 	defer stop()
 
@@ -164,8 +161,6 @@ func TestConnSrcClosing(t *testing.T) {
 }
 
 func TestConnDstClosing(t *testing.T) {
-	t.Parallel()
-
 	src, dst, c, stop := testConnPipelineSetup(t)
 	defer stop()
 

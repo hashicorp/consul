@@ -1,0 +1,3 @@
+```release-note:security
+Add content-type headers to raw KV responses to prevent XSS attacks [CVE-2020-25864](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-25864)
+```

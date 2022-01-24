@@ -1,0 +1,40 @@
+---
+title: Introduction
+---
+# Consul UI Engineering Docs
+
+Welcome to Consul UIs engineering documentation.
+
+## Environment Variables
+
+There are various environment variable you can use whilst running `make start` or `make test` to configure various features:
+
+| Variable | Default Value | Description |
+| -------- | ------------- | ----------- |
+| `TESTEM_AUTOLAUNCH` | Chrome | Controls which browser to open tests in. A setting of `""` means 'let me manually open the browser' |
+| `EMBER_TEST_REPORT` |  | Output a test report |
+| `CONSUL_DOCFY_CONFIG` |  | Define an additional `docfy-config.json` file to use |
+
+## Adding documentation
+
+Our documentation use [docfy](https://docfy.dev/docs) for rendering our markdown+glimmer-component documentation. In order to live render any code examples use the `preview-template` meta, for example:
+
+~~~md
+```hbs preview-template
+<YourComponent
+  @thing={{var}}
+/>
+```
+~~~
+
+The above will render the same code snippet in a box above the snippet.
+
+The location and name of markdown files within the project differs slightly depending on what you need to add documentation for:
+
+- **docs**: `docs/filename.mdx`
+- **styles**: `app/styles/*/*/README.mdx` (currently mostly in `app/styles/base`)
+- **components**: `app/components/your-component-name/README.mdx`
+- **helpers**: `app/helpers/your-helper-name.mdx`
+- **modifiers**: `app/modifiers/your-modifier-name.mdx`
+- **services**: `app/services/your-service-name.mdx` (eventually these will partly use jsdoc code style generation)
+

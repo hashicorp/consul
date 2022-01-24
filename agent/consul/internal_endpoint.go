@@ -3,14 +3,14 @@ package consul
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/structs"
 	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // Internal endpoint is used to query the miscellaneous info that
@@ -24,7 +24,7 @@ type Internal struct {
 // NodeInfo is used to retrieve information about a specific node.
 func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedNodeDump) error {
-	if done, err := m.srv.ForwardRPC("Internal.NodeInfo", args, args, reply); done {
+	if done, err := m.srv.ForwardRPC("Internal.NodeInfo", args, reply); done {
 		return err
 	}
 
@@ -50,7 +50,7 @@ func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 // NodeDump is used to generate information about all of the nodes.
 func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 	reply *structs.IndexedNodeDump) error {
-	if done, err := m.srv.ForwardRPC("Internal.NodeDump", args, args, reply); done {
+	if done, err := m.srv.ForwardRPC("Internal.NodeDump", args, reply); done {
 		return err
 	}
 
@@ -72,24 +72,27 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 			if err != nil {
 				return err
 			}
-
 			reply.Index, reply.Dump = index, dump
-			if err := m.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			raw, err := filter.Execute(reply.Dump)
 			if err != nil {
 				return err
 			}
-
 			reply.Dump = raw.(structs.NodeDump)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			return nil
 		})
 }
 
 func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.IndexedNodesWithGateways) error {
-	if done, err := m.srv.ForwardRPC("Internal.ServiceDump", args, args, reply); done {
+	if done, err := m.srv.ForwardRPC("Internal.ServiceDump", args, reply); done {
 		return err
 	}
 
@@ -114,10 +117,6 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Nodes = nodes
 
-			if err := m.srv.filterACL(args.Token, &reply.Nodes); err != nil {
-				return err
-			}
-
 			// Get, store, and filter gateway services
 			idx, gatewayServices, err := state.DumpGatewayServices(ws)
 			if err != nil {
@@ -130,22 +129,25 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Index = maxIdx
 
-			if err := m.srv.filterACL(args.Token, &reply.Gateways); err != nil {
-				return err
-			}
-
 			raw, err := filter.Execute(reply.Nodes)
 			if err != nil {
 				return err
 			}
-
 			reply.Nodes = raw.(structs.CheckServiceNodes)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			return nil
 		})
 }
 
 func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceTopology) error {
-	if done, err := m.srv.ForwardRPC("Internal.ServiceTopology", args, args, reply); done {
+	if done, err := m.srv.ForwardRPC("Internal.ServiceTopology", args, reply); done {
 		return err
 	}
 	if args.ServiceName == "" {
@@ -160,7 +162,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
-	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -168,10 +170,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			defaultAllow := acl.Allow
-			if authz != nil {
-				defaultAllow = authz.IntentionDefaultAllow(nil)
-			}
+			defaultAllow := authz.IntentionDefaultAllow(nil)
 
 			index, topology, err := state.ServiceTopology(ws, args.Datacenter, args.ServiceName, args.ServiceKind, defaultAllow, &args.EnterpriseMeta)
 			if err != nil {
@@ -188,9 +187,50 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 		})
 }
 
+// IntentionUpstreams returns the upstreams of a service. Upstreams are inferred from intentions.
+// If intentions allow a connection from the target to some candidate service, the candidate service is considered
+// an upstream of the target.
+func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceList) error {
+	// Exit early if Connect hasn't been enabled.
+	if !m.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide a service name")
+	}
+	if done, err := m.srv.ForwardRPC("Internal.IntentionUpstreams", args, reply); done {
+		return err
+	}
+
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			defaultDecision := authz.IntentionDefaultAllow(nil)
+
+			sn := structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)
+			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision)
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Services = index, services
+			m.srv.filterACLWithAuthorizer(authz, reply)
+			return nil
+		})
+}
+
 // GatewayServiceNodes returns all the nodes for services associated with a gateway along with their gateway config
 func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceDump) error {
-	if done, err := m.srv.ForwardRPC("Internal.GatewayServiceDump", args, args, reply); done {
+	if done, err := m.srv.ForwardRPC("Internal.GatewayServiceDump", args, reply); done {
 		return err
 	}
 
@@ -210,7 +250,7 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 	}
 
 	// We need read access to the gateway we're trying to find services for, so check that first.
-	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -269,7 +309,7 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 // Match returns the set of intentions that match the given source/destination.
 func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply *structs.IndexedIntentions) error {
 	// Forward if necessary
-	if done, err := m.srv.ForwardRPC("Internal.GatewayIntentions", args, args, reply); done {
+	if done, err := m.srv.ForwardRPC("Internal.GatewayIntentions", args, reply); done {
 		return err
 	}
 
@@ -294,7 +334,7 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 	}
 
 	// We need read access to the gateway we're trying to find intentions for, so check that first.
-	if authz != nil && authz.ServiceRead(args.Match.Entries[0].Name, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.Match.Entries[0].Name, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -318,6 +358,7 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 			for _, gs := range gatewayServices {
 				entry := structs.IntentionMatchEntry{
 					Namespace: gs.Service.NamespaceOrDefault(),
+					Partition: gs.Service.PartitionOrDefault(),
 					Name:      gs.Service.Name,
 				}
 				idx, intentions, err := state.IntentionMatchOne(ws, entry, structs.IntentionMatchDestination)
@@ -355,39 +396,30 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 // triggered in a remote DC.
 func (m *Internal) EventFire(args *structs.EventFireRequest,
 	reply *structs.EventFireResponse) error {
-	if done, err := m.srv.ForwardRPC("Internal.EventFire", args, args, reply); done {
+	if done, err := m.srv.ForwardRPC("Internal.EventFire", args, reply); done {
 		return err
 	}
 
 	// Check ACLs
-	rule, err := m.srv.ResolveToken(args.Token)
+	authz, err := m.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
 
-	if rule != nil && rule.EventWrite(args.Name, nil) != acl.Allow {
+	if authz.EventWrite(args.Name, nil) != acl.Allow {
 		accessorID := m.aclAccessorID(args.Token)
 		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
 		return acl.ErrPermissionDenied
 	}
 
 	// Set the query meta data
-	m.srv.setQueryMeta(&reply.QueryMeta)
+	m.srv.setQueryMeta(&reply.QueryMeta, args.Token)
 
 	// Add the consul prefix to the event name
 	eventName := userEventName(args.Name)
 
 	// Fire the event on all LAN segments
-	segments := m.srv.LANSegments()
-	var errs error
-	for name, segment := range segments {
-		err := segment.UserEvent(eventName, args.Payload, false)
-		if err != nil {
-			err = fmt.Errorf("error broadcasting event to segment %q: %v", name, err)
-			errs = multierror.Append(errs, err)
-		}
-	}
-	return errs
+	return m.srv.LANSendUserEvent(eventName, args.Payload, false)
 }
 
 // KeyringOperation will query the WAN and LAN gossip keyrings of all nodes.
@@ -401,30 +433,28 @@ func (m *Internal) KeyringOperation(
 	}
 
 	// Check ACLs
-	identity, rule, err := m.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := m.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
 	if err := m.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil {
-		switch args.Operation {
-		case structs.KeyringList:
-			if rule.KeyringRead(nil) != acl.Allow {
-				return fmt.Errorf("Reading keyring denied by ACLs")
-			}
-		case structs.KeyringInstall:
-			fallthrough
-		case structs.KeyringUse:
-			fallthrough
-		case structs.KeyringRemove:
-			if rule.KeyringWrite(nil) != acl.Allow {
-				return fmt.Errorf("Modifying keyring denied due to ACLs")
-			}
-		default:
-			panic("Invalid keyring operation")
+	switch args.Operation {
+	case structs.KeyringList:
+		if authz.KeyringRead(nil) != acl.Allow {
+			return fmt.Errorf("Reading keyring denied by ACLs")
 		}
+	case structs.KeyringInstall:
+		fallthrough
+	case structs.KeyringUse:
+		fallthrough
+	case structs.KeyringRemove:
+		if authz.KeyringWrite(nil) != acl.Allow {
+			return fmt.Errorf("Modifying keyring denied due to ACLs")
+		}
+	default:
+		panic("Invalid keyring operation")
 	}
 
 	if args.LocalOnly || args.Forwarded || m.srv.serfWAN == nil {
@@ -454,14 +484,18 @@ func (m *Internal) KeyringOperation(
 
 func (m *Internal) executeKeyringOpLAN(args *structs.KeyringRequest) []*structs.KeyringResponse {
 	responses := []*structs.KeyringResponse{}
-	segments := m.srv.LANSegments()
-	for name, segment := range segments {
-		mgr := segment.KeyManager()
+	_ = m.srv.DoWithLANSerfs(func(poolName, poolKind string, pool *serf.Serf) error {
+		mgr := pool.KeyManager()
 		serfResp, err := m.executeKeyringOpMgr(mgr, args)
 		resp := translateKeyResponseToKeyringResponse(serfResp, m.srv.config.Datacenter, err)
-		resp.Segment = name
+		if poolKind == PoolKindSegment {
+			resp.Segment = poolName
+		} else {
+			resp.Partition = poolName
+		}
 		responses = append(responses, &resp)
-	}
+		return nil
+	}, nil)
 	return responses
 }
 

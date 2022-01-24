@@ -1,0 +1,3 @@
+```release-note:improvement
+licensing: **(Enterprise Only)** Consul Enterprise has gained the ability update its license via a configuration reload. The same environment variables and configurations will be used to determine the new license.
+```

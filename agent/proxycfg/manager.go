@@ -4,11 +4,13 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-hclog"
 )
 
 var (
@@ -58,6 +60,8 @@ type ManagerConfig struct {
 	// Cache is the agent's cache instance that can be used to retrieve, store and
 	// monitor state for the proxies.
 	Cache *cache.Cache
+	// Health provides service health updates on a notification channel.
+	Health Health
 	// state is the agent's local state to be watched for new proxy registrations.
 	State *local.State
 	// source describes the current agent's identity, it's used directly for
@@ -70,6 +74,9 @@ type ManagerConfig struct {
 	// logger is the agent's logger to be used for logging logs.
 	Logger          hclog.Logger
 	TLSConfigurator *tlsutil.Configurator
+	// Tokens configured on the local agent. Used to look up the agent token if
+	// a service is registered without a token.
+	Tokens *token.Store
 
 	// IntentionDefaultAllow is set by the agent so that we can pass this
 	// information to proxies that need to make intention decisions on their
@@ -120,7 +127,7 @@ func (m *Manager) Run() error {
 	defer m.State.StopNotify(stateCh)
 
 	for {
-		m.syncState()
+		m.syncState(m.notifyBroadcast)
 
 		// Wait for a state change
 		_, ok := <-stateCh
@@ -133,12 +140,12 @@ func (m *Manager) Run() error {
 
 // syncState is called whenever the local state notifies a change. It holds the
 // lock while finding any new or updated proxies and removing deleted ones.
-func (m *Manager) syncState() {
+func (m *Manager) syncState(notifyBroadcast func(ch <-chan ConfigSnapshot)) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	// Traverse the local state and ensure all proxy services are registered
-	services := m.State.Services(structs.WildcardEnterpriseMeta())
+	services := m.State.AllServices()
 	for sid, svc := range services {
 		if svc.Kind != structs.ServiceKindConnectProxy &&
 			svc.Kind != structs.ServiceKindTerminatingGateway &&
@@ -153,7 +160,7 @@ func (m *Manager) syncState() {
 		// know that so we'd need to set it here if not during registration of the
 		// proxy service. Sidecar Service in the interim can do that, but we should
 		// validate more generally that that is always true.
-		err := m.ensureProxyServiceLocked(svc, m.State.ServiceToken(sid))
+		err := m.ensureProxyServiceLocked(svc, notifyBroadcast)
 		if err != nil {
 			m.Logger.Error("failed to watch proxy service",
 				"service", sid.String(),
@@ -172,10 +179,18 @@ func (m *Manager) syncState() {
 }
 
 // ensureProxyServiceLocked adds or changes the proxy to our state.
-func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string) error {
+func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, notifyBroadcast func(ch <-chan ConfigSnapshot)) error {
 	sid := ns.CompoundServiceID()
-	state, ok := m.proxies[sid]
 
+	// Retrieve the token used to register the service, or fallback to the
+	// default user token. This token is expected to match the token used in
+	// the xDS request for this data.
+	token := m.State.ServiceToken(sid)
+	if token == "" {
+		token = m.Tokens.UserToken()
+	}
+
+	state, ok := m.proxies[sid]
 	if ok {
 		if !state.Changed(ns, token) {
 			// No change
@@ -186,20 +201,23 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 		state.Close()
 	}
 
-	var err error
-	state, err = newState(ns, token)
-	if err != nil {
-		return err
+	// TODO: move to a function that translates ManagerConfig->stateConfig
+	stateConfig := stateConfig{
+		logger:                m.Logger.With("service_id", sid.String()),
+		cache:                 m.Cache,
+		health:                m.Health,
+		source:                m.Source,
+		dnsConfig:             m.DNSConfig,
+		intentionDefaultAllow: m.IntentionDefaultAllow,
+	}
+	if m.TLSConfigurator != nil {
+		stateConfig.serverSNIFn = m.TLSConfigurator.ServerSNI
 	}
 
-	// Set the necessary dependencies
-	state.logger = m.Logger.With("service_id", sid.String())
-	state.cache = m.Cache
-	state.source = m.Source
-	state.dnsConfig = m.DNSConfig
-	state.intentionDefaultAllow = m.IntentionDefaultAllow
-	if m.TLSConfigurator != nil {
-		state.serverSNIFn = m.TLSConfigurator.ServerSNI
+	var err error
+	state, err = newState(ns, token, stateConfig)
+	if err != nil {
+		return err
 	}
 
 	ch, err := state.Watch()
@@ -209,14 +227,16 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 	m.proxies[sid] = state
 
 	// Start a goroutine that will wait for changes and broadcast them to watchers.
-	go func(ch <-chan ConfigSnapshot) {
-		// Run until ch is closed
-		for snap := range ch {
-			m.notify(&snap)
-		}
-	}(ch)
+	go notifyBroadcast(ch)
 
 	return nil
+}
+
+func (m *Manager) notifyBroadcast(ch <-chan ConfigSnapshot) {
+	// Run until ch is closed
+	for snap := range ch {
+		m.notify(&snap)
+	}
 }
 
 // removeProxyService is called when a service deregisters and frees all

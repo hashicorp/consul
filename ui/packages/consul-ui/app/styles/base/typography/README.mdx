@@ -1,0 +1,143 @@
+# Typography
+
+Please prefer our Constructable `%placeholder` styles over singular CSS
+properties. If you need to drop back, to something not covered there then you
+can also use CSS properties directly. Our constructable `%placeholder` should be
+revisted every so often to re-evaluate any areas we we use CSS properties over
+constructables. Naming is mostly set out to allow for future scales that land
+'inbetween' currently scales to aid in continously re-evaluating without getting
+stuck having to change everything every time we need to.
+
+The `%placeholder`s are currently a little inconsistent and styled following
+past specifications. Moving forwards these will become more consistent.
+
+## Constructable %placeholders
+
+### %h000 (headers)
+
+When authoring headers in markup, the correct semantic HTML tag should be used taking into account page order. Following that the correct `%placeholder` can be used to make that header look how it should.
+
+```html
+<h2>H2 Level meaning that looks like a h3 visually</h2>
+```
+```css
+.top-level-selector h2 {
+  /* make the h2 look like a h3 */
+  @extend %h300;
+}
+```
+
+```hbs preview-template
+<ul
+>
+{{#each (array 'h000' 'h100' 'h200' 'h300' 'h400' 'h500' 'h600') as |prop|}}
+  <li>
+    <figure
+      {{with-copyable (concat "@extend %" prop ";")}}
+      class={{concat 'debug-' prop}}
+    >
+        Ab
+      <figcaption>%{{prop}}</figcaption>
+    </figure>
+  </li>
+{{/each}}
+</ul>
+```
+
+### %p (body copy)
+
+```hbs preview-template
+<ul
+>
+{{#each (array 'p' 'p1' 'p2' 'p3') as |prop|}}
+  <li>
+    <figure
+      {{with-copyable (concat "@extend %" prop ";")}}
+      class={{concat 'debug-' prop}}
+    >
+        Ab
+      <figcaption>%{{prop}}</figcaption>
+    </figure>
+  </li>
+{{/each}}
+</ul>
+```
+
+
+## CSS props
+
+
+### Font sizes
+
+```hbs preview-template
+<ul
+  {{css-props (set this 'sizes')
+    prefix='typo-size'
+    group='[-]'
+  }}
+>
+{{#each-in this.sizes as |prop value|}}
+    {{#each-in value as |prop value|}}
+  <li>
+    <figure
+      {{with-copyable (concat "var(" prop ");")}}
+      style={{concat "font-size: var(" prop ")"}}
+    >
+        Ab
+      <figcaption style="font-size: 12px !important;">{{prop}} ({{value}})</figcaption>
+    </figure>
+  </li>
+    {{/each-in}}
+{{/each-in}}
+</ul>
+```
+
+### Font weights
+
+```hbs preview-template
+<ul
+  {{css-props (set this 'weights')
+    prefix='typo-weight'
+    group='[-]'
+  }}
+>
+{{#each-in this.weights as |prop value|}}
+    {{#each-in value as |prop value|}}
+  <li>
+    <figure
+      {{with-copyable (concat "var(" prop ");")}}
+      style={{concat "font-weight: var(" prop ")"}}
+    >
+        Ab
+      <figcaption style="font-weight: normal !important;">{{prop}} ({{value}})</figcaption>
+    </figure>
+  </li>
+    {{/each-in}}
+{{/each-in}}
+</ul>
+```
+
+### Font families
+
+```hbs preview-template
+<ul
+  {{css-props (set this 'families')
+    prefix='typo-family'
+    group='[-]'
+  }}
+>
+{{#each-in this.families as |prop value|}}
+    {{#each-in value as |prop value|}}
+  <li>
+    <figure
+      {{with-copyable (concat "var(" prop ");")}}
+      style={{concat "font-family: var(" prop ")"}}
+    >
+        Ab
+      <figcaption style="font-family: monospace !important;">{{prop}} ({{value}})</figcaption>
+    </figure>
+  </li>
+    {{/each-in}}
+{{/each-in}}
+</ul>
+```

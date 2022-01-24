@@ -1,5 +1,10 @@
-<Outlet
+<Route
   @name={{routeName}}
-as |o|>
-  {{outlet}}
-</Outlet>
+as |route|>
+  <Outlet
+    @name={{routeName}}
+    @model={{route.model}}
+  as |o|>
+    {{outlet}}
+  </Outlet>
+</Route>

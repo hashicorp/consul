@@ -1,7 +1,6 @@
 ---
 layout: api
 page_title: Namespace - HTTP API
-sidebar_title: Namespaces
 description: The /namespace endpoints allow for managing Consul Enterprise Namespaces.
 ---
 
@@ -14,7 +13,7 @@ The functionality described here is available only in
 
 ## Create a Namespace
 
-This endpoint creates a new ACL token.
+This endpoint creates a new Namespace.
 
 | Method | Path         | Produces           |
 | ------ | ------------ | ------------------ |
@@ -29,6 +28,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
+
+The corresponding CLI command is [`consul namespace create`](/commands/namespace/create).
 
 ### Parameters
 
@@ -51,13 +52,17 @@ The table below shows this endpoint's support for
     that should be applied to all tokens created in this namespace. The ACLLink
     struct is an object with an "ID" and/or "Name" field to identify a policy.
     When a name is used instead of an ID, Consul will resolve the name to an ID
-    and store that internally.
+    and store that internally. The ACL token used in the API request
+    must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules)
+    to the linked policy.
 
   - `RoleDefaults` `(array<ACLLink>)` - This is the list of default roles
     that should be applied to all tokens created in this namespace. The ACLLink
     struct is an object with an "ID" and/or "Name" field to identify a policy.
     When a name is used instead of an ID, Consul will resolve the name to an ID
-    and store that internally.
+    and store that internally. The ACL token used in the API request
+    must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules)
+    access to the linked role.
 
 - `Meta` `(map<string|string>: <optional>)` - Specifies arbitrary KV metadata
   to associate with the namespace.
@@ -95,8 +100,8 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X PUT \
-   -H "X-Consul-Token: 5cdcae6c-0cce-4210-86fe-5dff3b984a6e" \
+$ curl --request PUT \
+   --header "X-Consul-Token: 5cdcae6c-0cce-4210-86fe-5dff3b984a6e" \
    --data @payload.json \
    http://127.0.0.1:8500/v1/namespace
 ```
@@ -158,6 +163,8 @@ The table below shows this endpoint's support for
 <sup>1</sup> Access can be granted to list the Namespace if the token used when making
 the request has been granted any access in the namespace (read, list or write).
 
+The corresponding CLI command is [`consul namespace read`](/commands/namespace/read).
+
 ### Parameters
 
 - `name` `(string: <required>)` - Specifies the namespace to read. This
@@ -166,7 +173,7 @@ the request has been granted any access in the namespace (read, list or write).
 ### Sample Request
 
 ```shell-session
-$ curl -H "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
+$ curl --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
    http://127.0.0.1:8500/v1/namespace/team-1
 ```
 
@@ -208,7 +215,7 @@ $ curl -H "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
 
 ## Update a Namespace
 
-This endpoint updates a new ACL token.
+This endpoint updates a Namespace.
 
 | Method | Path               | Produces           |
 | ------ | ------------------ | ------------------ |
@@ -223,6 +230,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
+
+The corresponding CLI command is [`consul namespace update`](/commands/namespace/update) or [`consul namespace write`](/commands/namespace/write).
 
 ### Parameters
 
@@ -246,13 +255,17 @@ The table below shows this endpoint's support for
     that should be applied to all tokens created in this namespace. The ACLLink
     struct is an object with an "ID" and/or "Name" field to identify a policy.
     When a name is used instead of an ID, Consul will resolve the name to an ID
-    and store that internally.
+    and store that internally. The ACL token used in the API request
+    must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules)
+    to the linked policy.
 
   - `RoleDefaults` `(array<ACLLink>)` - This is the list of default roles
     that should be applied to all tokens created in this namespace. The ACLLink
     struct is an object with an "ID" and/or "Name" field to identify a policy.
     When a name is used instead of an ID, Consul will resolve the name to an ID
-    and store that internally.
+    and store that internally. The ACL token used in the API request
+    must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules)
+    to the linked role.
 
 - `Meta` `(map<string|string>: <optional>)` - Specifies arbitrary KV metadata
   to associate with the namespace.
@@ -289,8 +302,8 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X PUT \
-   -H "X-Consul-Token: 5cdcae6c-0cce-4210-86fe-5dff3b984a6e" \
+$ curl --request PUT \
+   --header "X-Consul-Token: 5cdcae6c-0cce-4210-86fe-5dff3b984a6e" \
    --data @payload.json \
    http://127.0.0.1:8500/v1/namespace/team-1
 ```
@@ -357,6 +370,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
+The corresponding CLI command is [`consul namespace delete`](/commands/namespace/delete).
+
 ### Parameters
 
 - `name` `(string: <required>)` - Specifies the namespace to delete. This
@@ -365,8 +380,8 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X DELETE \
-   -H "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
+$ curl --request DELETE \
+   --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
    http://127.0.0.1:8500/v1/namespace/team-1
 ```
 
@@ -429,10 +444,12 @@ The table below shows this endpoint's support for
 <sup>1</sup> Access can be granted to list the Namespace if the token used when making
 the request has been granted any access in the namespace (read, list or write).
 
+The corresponding CLI command is [`consul namespace list`](/commands/namespace/list).
+
 ### Sample Request
 
 ```shell-session
-$ curl -H "X-Consul-Token: 0137db51-5895-4c25-b6cd-d9ed992f4a52" \
+$ curl --header "X-Consul-Token: 0137db51-5895-4c25-b6cd-d9ed992f4a52" \
    http://127.0.0.1:8500/v1/namespaces
 ```
 

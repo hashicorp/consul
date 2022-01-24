@@ -1,0 +1,32 @@
+%radio-card {
+  border: var(--decor-border-100);
+  border-radius: var(--decor-radius-100);
+  border-color: rgb(var(--tone-gray-200));
+  box-shadow: var(--decor-elevation-400);
+  color: rgb(var(--tone-gray-500));
+  cursor: pointer;
+}
+%radio-card.checked {
+  border-color: rgb(var(--tone-blue-500));
+}
+%radio-card > :first-child {
+  background-color: rgb(var(--tone-gray-050));
+}
+%radio-card.checked > :first-child {
+  background-color: rgb(var(--tone-blue-050));
+}
+%radio-card header {
+  margin-bottom: 0.5em;
+}
+%radio-card header {
+  color: rgb(var(--tone-gray-999));
+}
+%radio-card-with-icon > :last-child {
+  padding-left: 47px;
+  position: relative;
+}
+%radio-card-with-icon > :last-child::before {
+  position: absolute;
+  left: 14px;
+  font-size: 1rem;
+}

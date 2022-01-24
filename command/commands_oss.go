@@ -41,6 +41,7 @@ import (
 	catlistdc "github.com/hashicorp/consul/command/catalog/list/dc"
 	catlistnodes "github.com/hashicorp/consul/command/catalog/list/nodes"
 	catlistsvc "github.com/hashicorp/consul/command/catalog/list/services"
+	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/config"
 	configdelete "github.com/hashicorp/consul/command/config/delete"
 	configlist "github.com/hashicorp/consul/command/config/list"
@@ -54,6 +55,7 @@ import (
 	pipebootstrap "github.com/hashicorp/consul/command/connect/envoy/pipe-bootstrap"
 	"github.com/hashicorp/consul/command/connect/expose"
 	"github.com/hashicorp/consul/command/connect/proxy"
+	"github.com/hashicorp/consul/command/connect/redirecttraffic"
 	"github.com/hashicorp/consul/command/debug"
 	"github.com/hashicorp/consul/command/event"
 	"github.com/hashicorp/consul/command/exec"
@@ -77,8 +79,8 @@ import (
 	kvput "github.com/hashicorp/consul/command/kv/put"
 	"github.com/hashicorp/consul/command/leave"
 	"github.com/hashicorp/consul/command/lock"
-	login "github.com/hashicorp/consul/command/login"
-	logout "github.com/hashicorp/consul/command/logout"
+	"github.com/hashicorp/consul/command/login"
+	"github.com/hashicorp/consul/command/logout"
 	"github.com/hashicorp/consul/command/maint"
 	"github.com/hashicorp/consul/command/members"
 	"github.com/hashicorp/consul/command/monitor"
@@ -107,17 +109,9 @@ import (
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/command/version"
 	"github.com/hashicorp/consul/command/watch"
-	consulversion "github.com/hashicorp/consul/version"
-
-	"github.com/mitchellh/cli"
 )
 
 func init() {
-	rev := consulversion.GitCommit
-	ver := consulversion.Version
-	verPre := consulversion.VersionPrerelease
-	verHuman := consulversion.GetHumanVersion()
-
 	Register("acl", func(cli.Ui) (cli.Command, error) { return acl.New(), nil })
 	Register("acl bootstrap", func(ui cli.Ui) (cli.Command, error) { return aclbootstrap.New(ui), nil })
 	Register("acl policy", func(cli.Ui) (cli.Command, error) { return aclpolicy.New(), nil })
@@ -153,9 +147,7 @@ func init() {
 	Register("acl binding-rule read", func(ui cli.Ui) (cli.Command, error) { return aclbrread.New(ui), nil })
 	Register("acl binding-rule update", func(ui cli.Ui) (cli.Command, error) { return aclbrupdate.New(ui), nil })
 	Register("acl binding-rule delete", func(ui cli.Ui) (cli.Command, error) { return aclbrdelete.New(ui), nil })
-	Register("agent", func(ui cli.Ui) (cli.Command, error) {
-		return agent.New(ui, rev, ver, verPre, verHuman, make(chan struct{})), nil
-	})
+	Register("agent", func(ui cli.Ui) (cli.Command, error) { return agent.New(ui), nil })
 	Register("catalog", func(cli.Ui) (cli.Command, error) { return catalog.New(), nil })
 	Register("catalog datacenters", func(ui cli.Ui) (cli.Command, error) { return catlistdc.New(ui), nil })
 	Register("catalog nodes", func(ui cli.Ui) (cli.Command, error) { return catlistnodes.New(ui), nil })
@@ -173,7 +165,8 @@ func init() {
 	Register("connect envoy", func(ui cli.Ui) (cli.Command, error) { return envoy.New(ui), nil })
 	Register("connect envoy pipe-bootstrap", func(ui cli.Ui) (cli.Command, error) { return pipebootstrap.New(ui), nil })
 	Register("connect expose", func(ui cli.Ui) (cli.Command, error) { return expose.New(ui), nil })
-	Register("debug", func(ui cli.Ui) (cli.Command, error) { return debug.New(ui, MakeShutdownCh()), nil })
+	Register("connect redirect-traffic", func(ui cli.Ui) (cli.Command, error) { return redirecttraffic.New(ui), nil })
+	Register("debug", func(ui cli.Ui) (cli.Command, error) { return debug.New(ui), nil })
 	Register("event", func(ui cli.Ui) (cli.Command, error) { return event.New(ui), nil })
 	Register("exec", func(ui cli.Ui) (cli.Command, error) { return exec.New(ui, MakeShutdownCh()), nil })
 	Register("force-leave", func(ui cli.Ui) (cli.Command, error) { return forceleave.New(ui), nil })

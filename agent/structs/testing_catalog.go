@@ -40,11 +40,15 @@ func TestRegisterIngressGateway(t testing.T) *RegisterRequest {
 	}
 }
 
-// TestNodeService returns a *NodeService representing a valid regular service.
+// TestNodeService returns a *NodeService representing a valid regular service: "web".
 func TestNodeService(t testing.T) *NodeService {
+	return TestNodeServiceWithName(t, "web")
+}
+
+func TestNodeServiceWithName(t testing.T, name string) *NodeService {
 	return &NodeService{
 		Kind:    ServiceKindTypical,
-		Service: "web",
+		Service: name,
 		Port:    8080,
 	}
 }
@@ -52,12 +56,18 @@ func TestNodeService(t testing.T) *NodeService {
 // TestNodeServiceProxy returns a *NodeService representing a valid
 // Connect proxy.
 func TestNodeServiceProxy(t testing.T) *NodeService {
+	return TestNodeServiceProxyInPartition(t, "")
+}
+
+func TestNodeServiceProxyInPartition(t testing.T, partition string) *NodeService {
+	entMeta := DefaultEnterpriseMetaInPartition(partition)
 	return &NodeService{
-		Kind:    ServiceKindConnectProxy,
-		Service: "web-proxy",
-		Address: "127.0.0.2",
-		Port:    2222,
-		Proxy:   TestConnectProxyConfig(t),
+		Kind:           ServiceKindConnectProxy,
+		Service:        "web-proxy",
+		Address:        "127.0.0.2",
+		Port:           2222,
+		Proxy:          TestConnectProxyConfig(t),
+		EnterpriseMeta: *entMeta,
 	}
 }
 
@@ -119,6 +129,9 @@ func TestNodeServiceMeshGatewayWithAddrs(t testing.T, address string, port int, 
 		TaggedAddresses: map[string]ServiceAddress{
 			TaggedAddressLAN: lanAddr,
 			TaggedAddressWAN: wanAddr,
+		},
+		RaftIndex: RaftIndex{
+			ModifyIndex: 1,
 		},
 	}
 }

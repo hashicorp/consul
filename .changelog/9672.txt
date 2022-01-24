@@ -1,0 +1,4 @@
+```release-note:improvement
+cli: added a `-force-without-cross-signing` flag to the `ca set-config` command.
+connect/ca: The ForceWithoutCrossSigning field will now work as expected for CA providers that support cross signing.
+```

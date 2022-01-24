@@ -1,7 +1,6 @@
 ---
 layout: docs
 page_title: Consul Clients Outside of Kubernetes - Kubernetes
-sidebar_title: Consul Clients Outside Kubernetes
 description: >-
   Consul clients running on non-Kubernetes nodes can join a Consul cluster
   running within Kubernetes.
@@ -27,7 +26,7 @@ with the server pod or host IP addresses.
 
 ## Auto-join
 The recommended way to join a cluster running within Kubernetes is to
-use the ["k8s" cloud auto-join provider](/docs/agent/cloud-auto-join#kubernetes-k8s).
+use the ["k8s" cloud auto-join provider](/docs/install/cloud-auto-join#kubernetes-k8s).
 
 The auto-join provider dynamically discovers IP addresses to join using
 the Kubernetes API. It authenticates with Kubernetes using a standard
@@ -79,7 +78,7 @@ Given you have the [official Helm chart](/docs/k8s/helm) installed with the defa
   ```bash
   consul agent \
     -advertise="$ADVERTISE_IP" \
-    -retry-join='provider=k8s label_selector="app=consul,component=server"'
+    -retry-join='provider=k8s label_selector="app=consul,component=server"' \
     -bind=0.0.0.0 \
     -hcl='leave_on_terminate = true' \
     -hcl='ports { grpc = 8502 }' \
@@ -154,10 +153,10 @@ option to expose the clients and server ports on the host IP instead.
 If you are unable to use auto-join, you can also follow the instructions in
 either of the auto-join sections but instead of using a `provider` key in the
 `-retry-join` flag, you would need to pass the address of at least one
-consul server, e.g: `-retry-join=$CONSUL_SERVER_IP:$SERVER_SERFLAN_PORT`.
+consul server, e.g: `-retry-join=$CONSUL_SERVER_IP:$SERVER_SERFLAN_PORT`. A
+`kubeconfig` file is not required when using manual join.
 
 However, rather than hardcoding the IP, it's recommended to set up a DNS entry
 that would resolve to the consul servers' pod IPs (if using the pod network) or
 host IPs that the server pods are running on (if using host ports).
-
 

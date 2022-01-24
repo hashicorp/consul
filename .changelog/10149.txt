@@ -1,0 +1,3 @@
+```release-note:improvement
+streaming: change `use_streaming_backend` to default to true so that streaming is used by default when it is supported.
+```

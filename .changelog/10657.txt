@@ -1,0 +1,3 @@
+```release-note:bug
+ca: report an error when setting the ca config fail because of an index check.
+```

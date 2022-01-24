@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Ensure dc selector correctly shows the currently selected dc 
+```

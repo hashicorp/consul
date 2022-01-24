@@ -1,7 +1,7 @@
 export default function(
   visitable,
   clickable,
-  isPresent,
+  isVisible,
   submitable,
   deletable,
   cancelable,
@@ -10,7 +10,12 @@ export default function(
 ) {
   return {
     scope: 'main',
-    visit: visitable(['/:dc/intentions/:intention', '/:dc/intentions/create']),
+    visit: visitable([
+      '/:dc/intentions/:intention',
+      '/:dc/services/:service/intentions/:intention',
+      '/:dc/services/:service/intentions/create',
+      '/:dc/intentions/create',
+    ]),
     permissions: {
       create: {
         scope: '[data-test-create-permission]',
@@ -22,7 +27,7 @@ export default function(
     warning: {
       scope: '[data-test-action-warning]',
       resetScope: true,
-      present: isPresent(),
+      see: isVisible(),
       confirm: {
         scope: '[data-test-action-warning-confirm]',
         click: clickable(),

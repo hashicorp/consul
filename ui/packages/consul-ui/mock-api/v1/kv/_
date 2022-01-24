@@ -39,6 +39,9 @@ ${
 ${typeof location.search.ns !== 'undefined' ? `
         "Namespace": "${location.search.ns}",
 ` : ``}
+${typeof location.search.partition !== 'undefined' ? `
+        "Partition": "${location.search.partition}",
+` : ``}
         "Flags":0,
         "Value":"VHVlIEZlYiAgNiAxMzoxOToyMiBVVEMgMjAxOA==",
         "CreateIndex":467034,

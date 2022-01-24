@@ -81,7 +81,7 @@ func (s *Store) FederationStateSet(idx uint64, config *structs.FederationState) 
 }
 
 // federationStateSetTxn upserts a federation state inside of a transaction.
-func federationStateSetTxn(tx *txn, idx uint64, config *structs.FederationState) error {
+func federationStateSetTxn(tx WriteTxn, idx uint64, config *structs.FederationState) error {
 	if config.Datacenter == "" {
 		return fmt.Errorf("missing datacenter on federation state")
 	}
@@ -117,7 +117,7 @@ func federationStateSetTxn(tx *txn, idx uint64, config *structs.FederationState)
 	if err := tx.Insert(tableFederationStates, config); err != nil {
 		return fmt.Errorf("failed inserting federation state: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{tableFederationStates, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableFederationStates, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %v", err)
 	}
 
@@ -202,7 +202,7 @@ func (s *Store) FederationStateBatchDelete(idx uint64, datacenters []string) err
 	return tx.Commit()
 }
 
-func federationStateDeleteTxn(tx *txn, idx uint64, datacenter string) error {
+func federationStateDeleteTxn(tx WriteTxn, idx uint64, datacenter string) error {
 	// Try to retrieve the existing federation state.
 	existing, err := tx.First(tableFederationStates, "id", datacenter)
 	if err != nil {
@@ -216,7 +216,7 @@ func federationStateDeleteTxn(tx *txn, idx uint64, datacenter string) error {
 	if err := tx.Delete(tableFederationStates, existing); err != nil {
 		return fmt.Errorf("failed removing federation state: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{tableFederationStates, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableFederationStates, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	return nil

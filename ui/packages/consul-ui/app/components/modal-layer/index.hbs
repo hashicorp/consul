@@ -1,4 +1,6 @@
-<div>
-  <span><input id="modal_close" type="radio" name="modal" onchange={{action 'change'}} /></span>
+<div
+  class="modal-layer"
+  ...attributes
+>
   <PortalTarget @name="modal" @multiple={{true}} />
 </div>

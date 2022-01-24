@@ -7,14 +7,15 @@ import (
 	"net/rpc"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/types"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/types"
 )
 
 func waitForLeader(servers ...*Server) error {
@@ -86,11 +87,19 @@ func wantRaft(servers []*Server) error {
 
 // joinAddrLAN returns the address other servers can
 // use to join the cluster on the LAN interface.
-func joinAddrLAN(s *Server) string {
+func joinAddrLAN(s clientOrServer) string {
 	if s == nil {
-		panic("no server")
+		panic("no client or server")
 	}
-	port := s.config.SerfLANConfig.MemberlistConfig.BindPort
+	var port int
+	switch x := s.(type) {
+	case *Server:
+		port = x.config.SerfLANConfig.MemberlistConfig.BindPort
+	case *Client:
+		port = x.config.SerfLANConfig.MemberlistConfig.BindPort
+	default:
+		panic(fmt.Sprintf("unhandled type %T", s))
+	}
 	return fmt.Sprintf("127.0.0.1:%d", port)
 }
 
@@ -107,8 +116,10 @@ func joinAddrWAN(s *Server) string {
 }
 
 type clientOrServer interface {
-	JoinLAN(addrs []string) (int, error)
-	LANMembers() []serf.Member
+	JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, error)
+	LANMembersInAgentPartition() []serf.Member
+	AgentEnterpriseMeta() *structs.EnterpriseMeta
+	agentSegmentName() string
 }
 
 // joinLAN is a convenience function for
@@ -116,27 +127,54 @@ type clientOrServer interface {
 //   member.JoinLAN("127.0.0.1:"+leader.config.SerfLANConfig.MemberlistConfig.BindPort)
 func joinLAN(t *testing.T, member clientOrServer, leader *Server) {
 	t.Helper()
+	joinLANWithOptions(t, member, leader, true)
+}
+func joinLANWithNoMembershipChecks(t *testing.T, member clientOrServer, leader *Server) {
+	t.Helper()
+	joinLANWithOptions(t, member, leader, false)
+}
+func joinLANWithOptions(t *testing.T, member clientOrServer, leader *Server, doMembershipChecks bool) {
+	t.Helper()
 
 	if member == nil || leader == nil {
 		panic("no server")
 	}
-	var memberAddr string
-	switch x := member.(type) {
-	case *Server:
-		memberAddr = joinAddrLAN(x)
-	case *Client:
-		memberAddr = fmt.Sprintf("127.0.0.1:%d", x.config.SerfLANConfig.MemberlistConfig.BindPort)
-	}
+	memberAddr := joinAddrLAN(member)
+
+	var (
+		memberEntMeta   = member.AgentEnterpriseMeta()
+		memberPartition = memberEntMeta.PartitionOrDefault()
+		memberSegment   = member.agentSegmentName()
+	)
+
 	leaderAddr := joinAddrLAN(leader)
-	if _, err := member.JoinLAN([]string{leaderAddr}); err != nil {
+	if memberSegment != "" {
+		leaderAddr = leader.LANSegmentAddr(memberSegment)
+	}
+	if _, err := member.JoinLAN([]string{leaderAddr}, memberEntMeta); err != nil {
 		t.Fatal(err)
 	}
+
+	if !doMembershipChecks {
+		return
+	}
+
+	f := LANMemberFilter{
+		Partition: memberPartition,
+		Segment:   memberSegment,
+	}
 	retry.Run(t, func(r *retry.R) {
-		if !seeEachOther(leader.LANMembers(), member.LANMembers(), leaderAddr, memberAddr) {
+		leaderView, err := leader.LANMembers(f)
+		require.NoError(r, err)
+
+		if !seeEachOther(leaderView, member.LANMembersInAgentPartition(), leaderAddr, memberAddr) {
 			r.Fatalf("leader and member cannot see each other on LAN")
 		}
 	})
-	if !seeEachOther(leader.LANMembers(), member.LANMembers(), leaderAddr, memberAddr) {
+
+	leaderView, err := leader.LANMembers(f)
+	require.NoError(t, err)
+	if !seeEachOther(leaderView, member.LANMembersInAgentPartition(), leaderAddr, memberAddr) {
 		t.Fatalf("leader and member cannot see each other on LAN")
 	}
 }
@@ -146,6 +184,14 @@ func joinLAN(t *testing.T, member clientOrServer, leader *Server) {
 //   member.JoinWAN("127.0.0.1:"+leader.config.SerfWANConfig.MemberlistConfig.BindPort)
 func joinWAN(t *testing.T, member, leader *Server) {
 	t.Helper()
+	joinWANWithOptions(t, member, leader, true)
+}
+func joinWANWithNoMembershipChecks(t *testing.T, member, leader *Server) {
+	t.Helper()
+	joinWANWithOptions(t, member, leader, false)
+}
+func joinWANWithOptions(t *testing.T, member, leader *Server, doMembershipChecks bool) {
+	t.Helper()
 
 	if member == nil || leader == nil {
 		panic("no server")
@@ -154,6 +200,11 @@ func joinWAN(t *testing.T, member, leader *Server) {
 	if _, err := member.JoinWAN([]string{leaderAddr}); err != nil {
 		t.Fatal(err)
 	}
+
+	if !doMembershipChecks {
+		return
+	}
+
 	retry.Run(t, func(r *retry.R) {
 		if !seeEachOther(leader.WANMembers(), member.WANMembers(), leaderAddr, memberAddr) {
 			r.Fatalf("leader and member cannot see each other on WAN")
@@ -162,16 +213,6 @@ func joinWAN(t *testing.T, member, leader *Server) {
 	if !seeEachOther(leader.WANMembers(), member.WANMembers(), leaderAddr, memberAddr) {
 		t.Fatalf("leader and member cannot see each other on WAN")
 	}
-}
-
-func waitForNewACLs(t *testing.T, server *Server) {
-	t.Helper()
-
-	retry.Run(t, func(r *retry.R) {
-		require.False(r, server.UseLegacyACLs(), "Server cannot use new ACLs")
-	})
-
-	require.False(t, server.UseLegacyACLs(), "Server cannot use new ACLs")
 }
 
 func waitForNewACLReplication(t *testing.T, server *Server, expectedReplicationType structs.ACLReplicationType, minPolicyIndex, minTokenIndex, minRoleIndex uint64) {
@@ -573,11 +614,50 @@ func registerTestCatalogEntriesMap(t *testing.T, codec rpc.ClientCodec, registra
 func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token string) {
 	t.Helper()
 
-	// api and api-proxy on node foo - upstream: web
+	// ingress-gateway on node edge - upstream: api
+	// api and api-proxy on node foo - transparent proxy
 	// web and web-proxy on node bar - upstream: redis
-	// web and web-proxy on node baz - upstream: redis
+	// web and web-proxy on node baz - transparent proxy
 	// redis and redis-proxy on node zip
 	registrations := map[string]*structs.RegisterRequest{
+		"Node edge": {
+			Datacenter: "dc1",
+			Node:       "edge",
+			ID:         types.NodeID("8e3481c0-760e-4b5f-a3b8-6c8c559e8a15"),
+			Address:    "127.0.0.1",
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:    "edge",
+					CheckID: "edge:alive",
+					Name:    "edge-liveness",
+					Status:  api.HealthPassing,
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service ingress on edge": {
+			Datacenter:     "dc1",
+			Node:           "edge",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindIngressGateway,
+				ID:      "ingress",
+				Service: "ingress",
+				Port:    8443,
+				Address: "198.18.1.1",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "edge",
+					CheckID:     "edge:ingress",
+					Name:        "ingress-liveness",
+					Status:      api.HealthPassing,
+					ServiceID:   "ingress",
+					ServiceName: "ingress",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
 		"Node foo": {
 			Datacenter: "dc1",
 			Node:       "foo",
@@ -627,13 +707,8 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 				Port:    8443,
 				Address: "198.18.1.2",
 				Proxy: structs.ConnectProxyConfig{
+					Mode:                   structs.ProxyModeTransparent,
 					DestinationServiceName: "api",
-					Upstreams: structs.Upstreams{
-						{
-							DestinationName: "web",
-							LocalBindPort:   8080,
-						},
-					},
 				},
 			},
 			Checks: structs.HealthChecks{
@@ -767,13 +842,8 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 				Port:    8443,
 				Address: "198.18.1.40",
 				Proxy: structs.ConnectProxyConfig{
+					Mode:                   structs.ProxyModeTransparent,
 					DestinationServiceName: "web",
-					Upstreams: structs.Upstreams{
-						{
-							DestinationName: "redis",
-							LocalBindPort:   123,
-						},
-					},
 				},
 			},
 			Checks: structs.HealthChecks{
@@ -855,7 +925,10 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 	}
 	registerTestCatalogEntriesMap(t, codec, registrations)
 
-	// Add intentions: deny all, web -> redis with L7 perms, but omit intention for api -> web
+	// ingress -> api gateway config entry (but no intention)
+	// wildcard deny intention
+	// api -> web exact intention
+	// web -> redis exact intention
 	entries := []structs.ConfigEntryRequest{
 		{
 			Datacenter: "dc1",
@@ -864,6 +937,39 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.IngressGatewayConfigEntry{
+				Kind: structs.IngressGateway,
+				Name: "ingress",
+				Listeners: []structs.IngressListener{
+					{
+						Port:     8443,
+						Protocol: "http",
+						Services: []structs.IngressService{
+							{
+								Name: "api",
+							},
+						},
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "web",
+				Sources: []*structs.SourceIntention{
+					{
+						Action: structs.IntentionActionAllow,
+						Name:   "api",
+					},
 				},
 			},
 			WriteRequest: structs.WriteRequest{Token: token},
@@ -895,6 +1001,331 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 				Kind: structs.ServiceIntentions,
 				Name: "*",
 				Meta: map[string]string{structs.MetaExternalSource: "nomad"},
+				Sources: []*structs.SourceIntention{
+					{
+						Name:   "*",
+						Action: structs.IntentionActionDeny,
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+	}
+	for _, req := range entries {
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+	}
+}
+
+func registerTestRoutingConfigTopologyEntries(t *testing.T, codec rpc.ClientCodec) {
+	registrations := map[string]*structs.RegisterRequest{
+		"Service dashboard": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "dashboard",
+				Service: "dashboard",
+				Port:    9002,
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:dashboard",
+					Status:      api.HealthPassing,
+					ServiceID:   "dashboard",
+					ServiceName: "dashboard",
+				},
+			},
+		},
+		"Service dashboard-proxy": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "dashboard-sidecar-proxy",
+				Service: "dashboard-sidecar-proxy",
+				Port:    5000,
+				Address: "198.18.1.0",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "dashboard",
+					DestinationServiceID:   "dashboard",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       9002,
+					Upstreams: []structs.Upstream{
+						{
+							DestinationType: "service",
+							DestinationName: "routing-config",
+							LocalBindPort:   5000,
+						},
+					},
+				},
+				LocallyRegisteredAsSidecar: true,
+			},
+		},
+		"Service counting": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "counting",
+				Service: "counting",
+				Port:    9003,
+				Address: "198.18.1.1",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:api",
+					Status:      api.HealthPassing,
+					ServiceID:   "counting",
+					ServiceName: "counting",
+				},
+			},
+		},
+		"Service counting-proxy": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "counting-proxy",
+				Service: "counting-proxy",
+				Port:    5001,
+				Address: "198.18.1.1",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "counting",
+				},
+				LocallyRegisteredAsSidecar: true,
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:counting-proxy",
+					Status:      api.HealthPassing,
+					ServiceID:   "counting-proxy",
+					ServiceName: "counting-proxy",
+				},
+			},
+		},
+		"Service counting-v2": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "counting-v2",
+				Service: "counting-v2",
+				Port:    9004,
+				Address: "198.18.1.2",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:api",
+					Status:      api.HealthPassing,
+					ServiceID:   "counting-v2",
+					ServiceName: "counting-v2",
+				},
+			},
+		},
+		"Service counting-v2-proxy": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "counting-v2-proxy",
+				Service: "counting-v2-proxy",
+				Port:    5002,
+				Address: "198.18.1.2",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "counting-v2",
+				},
+				LocallyRegisteredAsSidecar: true,
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:counting-v2-proxy",
+					Status:      api.HealthPassing,
+					ServiceID:   "counting-v2-proxy",
+					ServiceName: "counting-v2-proxy",
+				},
+			},
+		},
+	}
+	registerTestCatalogEntriesMap(t, codec, registrations)
+
+	entries := []structs.ConfigEntryRequest{
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceRouterConfigEntry{
+				Kind: structs.ServiceRouter,
+				Name: "routing-config",
+				Routes: []structs.ServiceRoute{
+					{
+						Match: &structs.ServiceRouteMatch{
+							HTTP: &structs.ServiceRouteHTTPMatch{
+								PathPrefix: "/v2",
+							},
+						},
+						Destination: &structs.ServiceRouteDestination{
+							Service: "counting-v2",
+						},
+					},
+					{
+						Match: &structs.ServiceRouteMatch{
+							HTTP: &structs.ServiceRouteHTTPMatch{
+								PathPrefix: "/",
+							},
+						},
+						Destination: &structs.ServiceRouteDestination{
+							Service: "counting",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, req := range entries {
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+	}
+}
+
+func registerIntentionUpstreamEntries(t *testing.T, codec rpc.ClientCodec, token string) {
+	t.Helper()
+
+	// api and api-proxy on node foo
+	// web and web-proxy on node foo
+	// redis and redis-proxy on node foo
+	// * -> * (deny) intention
+	// web -> api (allow)
+	registrations := map[string]*structs.RegisterRequest{
+		"Node foo": {
+			Datacenter:   "dc1",
+			Node:         "foo",
+			ID:           types.NodeID("e0155642-135d-4739-9853-a1ee6c9f945b"),
+			Address:      "127.0.0.2",
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service api on foo": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "api",
+				Service: "api",
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service api-proxy": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "api-proxy",
+				Service: "api-proxy",
+				Port:    8443,
+				Address: "198.18.1.2",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "api",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service web on foo": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "web",
+				Service: "web",
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service web-proxy on foo": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "web-proxy",
+				Service: "web-proxy",
+				Port:    8080,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service redis on foo": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "redis",
+				Service: "redis",
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service redis-proxy on foo": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "redis-proxy",
+				Service: "redis-proxy",
+				Port:    1234,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "redis",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+	}
+	registerTestCatalogEntriesMap(t, codec, registrations)
+
+	// Add intentions: deny all and web -> api
+	entries := []structs.ConfigEntryRequest{
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "api",
+				Sources: []*structs.SourceIntention{
+					{
+						Name:   "web",
+						Action: structs.IntentionActionAllow,
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "*",
 				Sources: []*structs.SourceIntention{
 					{
 						Name:   "*",

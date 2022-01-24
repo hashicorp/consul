@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"time"
 )
 
@@ -26,7 +27,7 @@ func (d *DiscoveryChain) Get(name string, opts *DiscoveryChainOptions, q *QueryO
 		method = "POST"
 	}
 
-	r := d.c.newRequest(method, fmt.Sprintf("/v1/discovery-chain/%s", name))
+	r := d.c.newRequest(method, fmt.Sprintf("/v1/discovery-chain/%s", url.PathEscape(name)))
 	r.setQueryOptions(q)
 
 	if opts != nil {
@@ -38,12 +39,14 @@ func (d *DiscoveryChain) Get(name string, opts *DiscoveryChainOptions, q *QueryO
 	if method == "POST" {
 		r.obj = opts
 	}
-
-	rtt, resp, err := requireOK(d.c.doRequest(r))
+	rtt, resp, err := d.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

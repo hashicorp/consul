@@ -6,6 +6,16 @@
 
 module.exports = [
   {
+    source: '/home',
+    destination: '/',
+    permanent: true,
+  },
+  {
+    source: '/trial',
+    destination: 'https://www.hashicorp.com/products/consul/trial',
+    permanent: true,
+  },
+  {
     source: '/discovery',
     destination: '/use-cases/service-discovery-and-health-checking',
     permanent: true,
@@ -18,6 +28,11 @@ module.exports = [
   {
     source: '/segmentation',
     destination: '/use-cases/multi-platform-service-mesh',
+    permanent: true,
+  },
+  {
+    source: '/use-cases/service-discovery-and-health-checking',
+    destination: '/',
     permanent: true,
   },
   {
@@ -52,6 +67,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/api-docs/acl-legacy',
+    destination: '/api-docs/acl/legacy',
+    permanent: true,
+  },
+  {
     source: '/docs/guides/acl-migrate-tokens',
     destination: '/docs/security/acl/acl-migrate-tokens',
     permanent: true,
@@ -77,6 +97,16 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/connect/config-entries/partition-exports',
+    destination: '/docs/connect/config-entries/exported-services',
+    permanent: true,
+  },
+  {
+    source: '/docs/enterprise/license',
+    destination: '/docs/enterprise/license/overview',
+    permanent: true,
+  },
+  {
     source: '/docs/enterprise/connect-multi-datacenter',
     destination: '/docs/enterprise',
     permanent: true,
@@ -84,11 +114,23 @@ module.exports = [
   { source: '/configuration', destination: '/', permanent: true },
   {
     source: '/docs/connect/mesh(_|-)gateway',
-    destination: '/docs/connect/gateways/mesh-gateway',
+    destination:
+      '/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
+    permanent: true,
+  },
+  {
+    source: '/docs/connect/gateways/mesh-gateway(s?)',
+    destination:
+      '/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
     permanent: true,
   },
   {
     source: '/docs/connect/ingress(_|-)gateway',
+    destination: '/docs/connect/gateways/ingress-gateway',
+    permanent: true,
+  },
+  {
+    source: '/docs/connect/ingress-gateways',
     destination: '/docs/connect/gateways/ingress-gateway',
     permanent: true,
   },
@@ -165,12 +207,7 @@ module.exports = [
   },
   {
     source: '/docs/k8s/operations/uninstalling',
-    destination: '/docs/k8s/uninstall',
-    permanent: true,
-  },
-  {
-    source: '/docs/k8s/operations/tls-on-existing-cluster',
-    destination: '/docs/k8s/tls-on-existing-cluster',
+    destination: '/docs/k8s/operations/uninstall',
     permanent: true,
   },
   {
@@ -229,11 +266,6 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/docs/connect/gateways/mesh-gateways',
-    destination: '/docs/connect/gateways/mesh-gateway',
-    permanent: true,
-  },
-  {
     source: '/docs/faq',
     destination: '/docs/troubleshoot/faq',
     permanent: true,
@@ -245,11 +277,6 @@ module.exports = [
   },
   { source: '/intro', destination: '/docs/intro', permanent: true },
   { source: '/intro/vs', destination: '/docs/intro/vs', permanent: true },
-  {
-    source: '/intro/vs/zookeeper',
-    destination: '/docs/intro/vs/zookeeper',
-    permanent: true,
-  },
   {
     source: '/intro/vs/chef-puppet',
     destination: '/docs/intro/vs/chef-puppet',
@@ -296,28 +323,15 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/download-tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/downloads_tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/download_tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/downloads_tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
     source: '/docs/k8s/ambassador',
-    destination: '/docs/k8s/connect/ambassador',
+    destination:
+      'https://learn.hashicorp.com/tutorials/consul/service-mesh-gateway-ambassador',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/connect/ambassador',
+    destination:
+      'https://learn.hashicorp.com/tutorials/consul/service-mesh-gateway-ambassador',
     permanent: true,
   },
   {
@@ -1079,6 +1093,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/commands/acl/role',
+    destination: '/commands/acl/role',
+    permanent: true,
+  },
+  {
     source: '/docs/commands/acl/role/create',
     destination: '/commands/acl/role/create',
     permanent: true,
@@ -1154,7 +1173,7 @@ module.exports = [
   },
   {
     source: '/docs/platform/k8s/upgrading',
-    destination: '/docs/k8s/operations/upgrading',
+    destination: '/docs/k8s/upgrade',
     permanent: true,
   },
   {
@@ -1164,7 +1183,7 @@ module.exports = [
   },
   {
     source: '/docs/platform/k8s/uninstalling',
-    destination: '/docs/k8s/operations/upgrading',
+    destination: '/docs/k8s/operations/uninstall',
     permanent: true,
   },
   {
@@ -1178,33 +1197,28 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/nia/api/api-overview',
+    destination: '/docs/nia/api',
+    permanent: true,
+  },
+  {
+    source: '/docs/nia/cli/cli-overview',
+    destination: '/docs/nia/cli',
+    permanent: true,
+  },
+  {
     source: '/use-cases/network-middleware-automation',
     destination: '/use-cases/network-infrastructure-automation',
     permanent: true,
   },
   {
-    source: '/(/downloads?[-_]tools)',
+    source: '/download(s?[-_])tools',
     destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/docs/k8s/ambassador',
-    destination: '/docs/k8s/connect/ambassador',
     permanent: true,
   },
   {
     source: '/docs/agent/config-entries/:path',
     destination: '/docs/connect/config-entries/:path*',
-    permanent: true,
-  },
-  {
-    source: '/docs/partnerships',
-    destination: '/docs/integrate/partnerships',
-    permanent: true,
-  },
-  {
-    source: '/docs/k8s/installation/overview',
-    destination: '/docs/k8s/installation/install',
     permanent: true,
   },
   {

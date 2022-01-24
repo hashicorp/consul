@@ -66,6 +66,9 @@ type ConsulResolver struct {
 	// Namespace of the query target.
 	Namespace string
 
+	// Partition of the query target.
+	Partition string
+
 	// Name of the query target.
 	Name string
 
@@ -155,6 +158,7 @@ func (cr *ConsulResolver) resolveServiceEntry(entry *api.ServiceEntry) (string, 
 		Namespace:  "default",
 		Datacenter: entry.Node.Datacenter,
 		Service:    service,
+		// NOTE: this only handles the default implicit partition currently.
 	}
 
 	return ipaddr.FormatAddressPort(addr, port), certURI, nil

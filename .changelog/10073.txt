@@ -1,0 +1,3 @@
+```release-note:improvement
+telemetry: Add new metrics for status of secondary datacenter replication.
+```

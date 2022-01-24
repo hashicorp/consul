@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mitchellh/cli"
+	"github.com/rboyer/safeio"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/snapshot"
-	"github.com/mitchellh/cli"
-	"github.com/rboyer/safeio"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -71,7 +72,7 @@ func (c *cmd) Run(args []string) int {
 
 	// Save the file first.
 	unverifiedFile := file + ".unverified"
-	if _, err := safeio.WriteToFile(snap, unverifiedFile, 0666); err != nil {
+	if _, err := safeio.WriteToFile(snap, unverifiedFile, 0600); err != nil {
 		c.UI.Error(fmt.Sprintf("Error writing unverified snapshot file: %s", err))
 		return 1
 	}

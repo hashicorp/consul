@@ -1,10 +1,9 @@
 {
   "ID": "${location.pathname.get(3)}",
   "Name": "${fake.hacker.noun() + '-role'}",
-  "Namespace": "${
-    typeof location.search.ns !== 'undefined' ? location.search.ns :
-      typeof http.body.Namespace !== 'undefined' ? http.body.Namespace : 'default'
-  }",
+${typeof location.search.ns !== 'undefined' ? `
+  "Namespace": "${location.search.ns}",
+` : ``}
   "Description": "${fake.lorem.sentence()}",
   "Policies": [
     ${
@@ -50,7 +49,7 @@
           return `
             {
               "NodeName": "${fake.hacker.noun()}",
-              "Datacenter":"${fake.address.countryCode().toLowerCase()} ${ i % 2 ? "west" : "east"}-${i}" 
+              "Datacenter":"${fake.address.countryCode().toLowerCase()} ${ i % 2 ? "west" : "east"}-${i}"
             }
           `;
         }

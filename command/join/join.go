@@ -4,8 +4,9 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/consul/command/flags"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -29,6 +30,7 @@ func (c *cmd) init() {
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.PartitionFlag())
 	c.help = flags.Usage(help, c.flags)
 }
 

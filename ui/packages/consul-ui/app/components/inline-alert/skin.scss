@@ -1,0 +1,42 @@
+%inline-alert {
+  font-style: normal;
+  font-weight: normal;
+}
+%inline-alert-success,
+%inline-alert-info,
+%inline-alert-error,
+%inline-alert-warning {
+  @extend %inline-alert;
+}
+%inline-alert {
+  color: inherit;
+}
+%inline-alert-error {
+  color: rgb(var(--color-failure));
+}
+%inline-alert::before {
+  font-size: 14px;
+}
+%inline-alert::before {
+  @extend %as-pseudo;
+}
+%inline-alert-success::before {
+  @extend %with-check-circle-fill-mask;
+  color: rgb(var(--tone-green-500));
+}
+%inline-alert-error::before {
+  @extend %with-cancel-square-fill-mask;
+  color: rgb(var(--tone-red-500));
+}
+%inline-alert-warning::before {
+  @extend %with-alert-triangle-mask;
+  color: rgb(var(--tone-orange-500));
+  /* the warning triangle always looks */
+  /* too low just because its a triangle */
+  /* this tweak make it look better */
+  margin-top: -9px;
+}
+%inline-alert-info::before {
+  @extend %with-info-circle-fill-mask;
+  color: rgb(var(--tone-blue-500));
+}

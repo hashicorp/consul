@@ -28,6 +28,7 @@ type cmd struct {
 	flagName            string
 	flagAddress         string
 	flagPort            int
+	flagSocketPath      string
 	flagTags            []string
 	flagMeta            map[string]string
 	flagTaggedAddresses map[string]string
@@ -44,6 +45,8 @@ func (c *cmd) init() {
 		"Address of the service to register for arg-based registration.")
 	c.flags.IntVar(&c.flagPort, "port", 0,
 		"Port of the service to register for arg-based registration.")
+	c.flags.StringVar(&c.flagSocketPath, "socket", "",
+		"Path to the Unix domain socket to register for arg-based registration (conflicts with address and port).")
 	c.flags.Var((*flags.FlagMapValue)(&c.flagMeta), "meta",
 		"Metadata to set on the service, formatted as key=value. This flag "+
 			"may be specified multiple times to set multiple meta fields.")
@@ -58,7 +61,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -86,6 +89,7 @@ func (c *cmd) Run(args []string) int {
 		Name:            c.flagName,
 		Address:         c.flagAddress,
 		Port:            c.flagPort,
+		SocketPath:      c.flagSocketPath,
 		Tags:            c.flagTags,
 		Meta:            c.flagMeta,
 		TaggedAddresses: taggedAddrs,
@@ -139,8 +143,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Register services with the local agent"
-const help = `
+const (
+	synopsis = "Register services with the local agent"
+	help     = `
 Usage: consul services register [options] [FILE...]
 
   Register one or more services using the local agent API. Services can
@@ -153,3 +158,4 @@ Usage: consul services register [options] [FILE...]
 
   Additional flags and more advanced use cases are detailed below.
 `
+)

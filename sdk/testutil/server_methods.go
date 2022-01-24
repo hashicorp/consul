@@ -24,32 +24,32 @@ const (
 )
 
 // JoinLAN is used to join local datacenters together.
-func (s *TestServer) JoinLAN(t *testing.T, addr string) {
+func (s *TestServer) JoinLAN(t testing.TB, addr string) {
 	resp := s.put(t, "/v1/agent/join/"+addr, nil)
 	defer resp.Body.Close()
 }
 
 // JoinWAN is used to join remote datacenters together.
-func (s *TestServer) JoinWAN(t *testing.T, addr string) {
+func (s *TestServer) JoinWAN(t testing.TB, addr string) {
 	resp := s.put(t, "/v1/agent/join/"+addr+"?wan=1", nil)
 	resp.Body.Close()
 }
 
 // SetKV sets an individual key in the K/V store.
-func (s *TestServer) SetKV(t *testing.T, key string, val []byte) {
+func (s *TestServer) SetKV(t testing.TB, key string, val []byte) {
 	resp := s.put(t, "/v1/kv/"+key, bytes.NewBuffer(val))
 	resp.Body.Close()
 }
 
 // SetKVString sets an individual key in the K/V store, but accepts a string
 // instead of []byte.
-func (s *TestServer) SetKVString(t *testing.T, key string, val string) {
+func (s *TestServer) SetKVString(t testing.TB, key string, val string) {
 	resp := s.put(t, "/v1/kv/"+key, bytes.NewBufferString(val))
 	resp.Body.Close()
 }
 
 // GetKV retrieves a single key and returns its value
-func (s *TestServer) GetKV(t *testing.T, key string) []byte {
+func (s *TestServer) GetKV(t testing.TB, key string) []byte {
 	resp := s.get(t, "/v1/kv/"+key)
 	defer resp.Body.Close()
 
@@ -76,12 +76,12 @@ func (s *TestServer) GetKV(t *testing.T, key string) []byte {
 
 // GetKVString retrieves a value from the store, but returns as a string instead
 // of []byte.
-func (s *TestServer) GetKVString(t *testing.T, key string) string {
+func (s *TestServer) GetKVString(t testing.TB, key string) string {
 	return string(s.GetKV(t, key))
 }
 
 // PopulateKV fills the Consul KV with data from a generic map.
-func (s *TestServer) PopulateKV(t *testing.T, data map[string][]byte) {
+func (s *TestServer) PopulateKV(t testing.TB, data map[string][]byte) {
 	for k, v := range data {
 		s.SetKV(t, k, v)
 	}
@@ -89,7 +89,7 @@ func (s *TestServer) PopulateKV(t *testing.T, data map[string][]byte) {
 
 // ListKV returns a list of keys present in the KV store. This will list all
 // keys under the given prefix recursively and return them as a slice.
-func (s *TestServer) ListKV(t *testing.T, prefix string) []string {
+func (s *TestServer) ListKV(t testing.TB, prefix string) []string {
 	resp := s.get(t, "/v1/kv/"+prefix+"?keys")
 	defer resp.Body.Close()
 
@@ -108,7 +108,7 @@ func (s *TestServer) ListKV(t *testing.T, prefix string) []string {
 // AddService adds a new service to the Consul instance. It also
 // automatically adds a health check with the given status, which
 // can be one of "passing", "warning", or "critical".
-func (s *TestServer) AddService(t *testing.T, name, status string, tags []string) {
+func (s *TestServer) AddService(t testing.TB, name, status string, tags []string) {
 	s.AddAddressableService(t, name, status, "", 0, tags) // set empty address and 0 as port for non-accessible service
 }
 
@@ -117,7 +117,7 @@ func (s *TestServer) AddService(t *testing.T, name, status string, tags []string
 // that maybe accessed with in target source code.
 // It also automatically adds a health check with the given status, which
 // can be one of "passing", "warning", or "critical", just like `AddService` does.
-func (s *TestServer) AddAddressableService(t *testing.T, name, status, address string, port int, tags []string) {
+func (s *TestServer) AddAddressableService(t testing.TB, name, status, address string, port int, tags []string) {
 	svc := &TestService{
 		Name:    name,
 		Tags:    tags,
@@ -157,7 +157,7 @@ func (s *TestServer) AddAddressableService(t *testing.T, name, status, address s
 // AddCheck adds a check to the Consul instance. If the serviceID is
 // left empty (""), then the check will be associated with the node.
 // The check status may be "passing", "warning", or "critical".
-func (s *TestServer) AddCheck(t *testing.T, name, serviceID, status string) {
+func (s *TestServer) AddCheck(t testing.TB, name, serviceID, status string) {
 	chk := &TestCheck{
 		ID:   name,
 		Name: name,
@@ -186,7 +186,7 @@ func (s *TestServer) AddCheck(t *testing.T, name, serviceID, status string) {
 }
 
 // put performs a new HTTP PUT request.
-func (s *TestServer) put(t *testing.T, path string, body io.Reader) *http.Response {
+func (s *TestServer) put(t testing.TB, path string, body io.Reader) *http.Response {
 	req, err := http.NewRequest("PUT", s.url(path), body)
 	if err != nil {
 		t.Fatalf("failed to create PUT request: %s", err)
@@ -203,7 +203,7 @@ func (s *TestServer) put(t *testing.T, path string, body io.Reader) *http.Respon
 }
 
 // get performs a new HTTP GET request.
-func (s *TestServer) get(t *testing.T, path string) *http.Response {
+func (s *TestServer) get(t testing.TB, path string) *http.Response {
 	resp, err := s.HTTPClient.Get(s.url(path))
 	if err != nil {
 		t.Fatalf("failed to create GET request: %s", err)

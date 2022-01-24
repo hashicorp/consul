@@ -1,10 +1,13 @@
+//go:build linux || darwin
 // +build linux darwin
 
 package envoy
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -102,7 +105,6 @@ func TestExecEnvoy(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require := require.New(t)
 
 			args := append([]string{"exec-fake-envoy"}, tc.Args...)
 			cmd, destroy := helperProcess(args...)
@@ -110,10 +112,10 @@ func TestExecEnvoy(t *testing.T) {
 
 			cmd.Stderr = os.Stderr
 			outBytes, err := cmd.Output()
-			require.NoError(err)
+			require.NoError(t, err)
 
 			var got FakeEnvoyExecData
-			require.NoError(json.Unmarshal(outBytes, &got))
+			require.NoError(t, json.Unmarshal(outBytes, &got))
 
 			expectConfigData := fakeEnvoyTestData
 
@@ -123,11 +125,11 @@ func TestExecEnvoy(t *testing.T) {
 					"{{ got.ConfigPath }}", got.ConfigPath, 1)
 			}
 
-			require.Equal(tc.WantArgs, got.Args)
-			require.Equal(expectConfigData, got.ConfigData)
+			require.Equal(t, tc.WantArgs, got.Args)
+			require.Equal(t, expectConfigData, got.ConfigData)
 			// Sanity check the config path in a non-brittle way since we used it to
 			// generate expectation for the args.
-			require.Regexp(`-bootstrap.json$`, got.ConfigPath)
+			require.Regexp(t, `-bootstrap.json$`, got.ConfigPath)
 		})
 	}
 }
@@ -189,11 +191,7 @@ func TestHelperProcess(t *testing.T) {
 
 		limitProcessLifetime(2 * time.Minute)
 
-		// This is another level of gross - we are relying on `consul` being on path
-		// and being the correct version but in general that is true under `make
-		// test`. We already make the same assumption for API package tests.
-		testSelfExecOverride = "consul"
-
+		patchExecArgs(t)
 		err := execEnvoy(
 			os.Args[0],
 			[]string{
@@ -263,4 +261,38 @@ func limitProcessLifetime(dur time.Duration) {
 	go time.AfterFunc(dur, func() {
 		os.Exit(99)
 	})
+}
+
+// patchExecArgs to use a version that will execute the commands using 'go run'.
+// Also sets up a cleanup function to revert the patch when the test exits.
+func patchExecArgs(t *testing.T) {
+	orig := execArgs
+	// go run will run the consul source from the root of the repo. The relative
+	// path is necessary because `go test` always sets the working directory to
+	// the directory of the package being tested.
+	execArgs = func(args ...string) (string, []string, error) {
+		args = append([]string{"run", "../../.."}, args...)
+		return "go", args, nil
+	}
+	t.Cleanup(func() {
+		execArgs = orig
+	})
+}
+
+func TestMakeBootstrapPipe_DoesNotBlockOnAFullPipe(t *testing.T) {
+	// A named pipe can buffer up to 64k, use a value larger than that
+	bootstrap := bytes.Repeat([]byte("a"), 66000)
+
+	patchExecArgs(t)
+	pipe, err := makeBootstrapPipe(bootstrap)
+	require.NoError(t, err)
+
+	// Read everything from the named pipe, to allow the sub-process to exit
+	f, err := os.Open(pipe)
+	require.NoError(t, err)
+
+	var buf bytes.Buffer
+	_, err = io.Copy(&buf, f)
+	require.NoError(t, err)
+	require.Equal(t, bootstrap, buf.Bytes())
 }

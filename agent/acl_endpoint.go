@@ -2,9 +2,7 @@ package agent
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
@@ -18,67 +16,42 @@ type aclBootstrapResponse struct {
 	structs.ACLToken
 }
 
+var aclDisabled = UnauthorizedError{Reason: "ACL support disabled"}
+
 // checkACLDisabled will return a standard response if ACLs are disabled. This
 // returns true if they are disabled and we should not continue.
-func (s *HTTPHandlers) checkACLDisabled(resp http.ResponseWriter, _req *http.Request) bool {
+func (s *HTTPHandlers) checkACLDisabled() bool {
 	if s.agent.config.ACLsEnabled {
 		return false
 	}
-
-	resp.WriteHeader(http.StatusUnauthorized)
-	fmt.Fprint(resp, "ACL support disabled")
 	return true
 }
 
 // ACLBootstrap is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.
 func (s *HTTPHandlers) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	args := structs.DCSpecificRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
-
-	legacy := false
-	legacyStr := req.URL.Query().Get("legacy")
-	if legacyStr != "" {
-		legacy, _ = strconv.ParseBool(legacyStr)
-	}
-
-	if legacy && s.agent.delegate.UseLegacyACLs() {
-		var out structs.ACL
-		err := s.agent.RPC("ACL.Bootstrap", &args, &out)
-		if err != nil {
-			if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
-				resp.WriteHeader(http.StatusForbidden)
-				fmt.Fprint(resp, acl.PermissionDeniedError{Cause: err.Error()}.Error())
-				return nil, nil
-			} else {
-				return nil, err
-			}
+	var out structs.ACLToken
+	err := s.agent.RPC("ACL.BootstrapTokens", &args, &out)
+	if err != nil {
+		if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
+			return nil, acl.PermissionDeniedError{Cause: err.Error()}
+		} else {
+			return nil, err
 		}
-		return &aclBootstrapResponse{ID: out.ID}, nil
-	} else {
-		var out structs.ACLToken
-		err := s.agent.RPC("ACL.BootstrapTokens", &args, &out)
-		if err != nil {
-			if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
-				resp.WriteHeader(http.StatusForbidden)
-				fmt.Fprint(resp, acl.PermissionDeniedError{Cause: err.Error()}.Error())
-				return nil, nil
-			} else {
-				return nil, err
-			}
-		}
-		return &aclBootstrapResponse{ID: out.SecretID, ACLToken: out}, nil
 	}
+	return &aclBootstrapResponse{ID: out.SecretID, ACLToken: out}, nil
 }
 
 func (s *HTTPHandlers) ACLReplicationStatus(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	// Note that we do not forward to the ACL DC here. This is a query for
@@ -97,89 +70,9 @@ func (s *HTTPHandlers) ACLReplicationStatus(resp http.ResponseWriter, req *http.
 	return out, nil
 }
 
-func (s *HTTPHandlers) ACLRulesTranslate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
-	}
-
-	var token string
-	s.parseToken(req, &token)
-	rule, err := s.agent.resolveToken(token)
-	if err != nil {
-		return nil, err
-	}
-	// Should this require lesser permissions? Really the only reason to require authorization at all is
-	// to prevent external entities from DoS Consul with repeated rule translation requests
-	if rule != nil && rule.ACLRead(nil) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
-	}
-
-	policyBytes, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to read body: %v", err)}
-	}
-
-	translated, err := acl.TranslateLegacyRules(policyBytes)
-	if err != nil {
-		return nil, BadRequestError{Reason: err.Error()}
-	}
-
-	resp.Write(translated)
-	return nil, nil
-}
-
-func (s *HTTPHandlers) ACLRulesTranslateLegacyToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
-	}
-
-	tokenID := strings.TrimPrefix(req.URL.Path, "/v1/acl/rules/translate/")
-	if tokenID == "" {
-		return nil, BadRequestError{Reason: "Missing token ID"}
-	}
-
-	args := structs.ACLTokenGetRequest{
-		Datacenter:  s.agent.config.Datacenter,
-		TokenID:     tokenID,
-		TokenIDType: structs.ACLTokenAccessor,
-	}
-	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-		return nil, nil
-	}
-
-	if args.Datacenter == "" {
-		args.Datacenter = s.agent.config.Datacenter
-	}
-
-	// Do not allow blocking
-	args.QueryOptions.MinQueryIndex = 0
-
-	var out structs.ACLTokenResponse
-	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.TokenRead", &args, &out); err != nil {
-		return nil, err
-	}
-
-	if out.Token == nil {
-		return nil, acl.ErrNotFound
-	}
-
-	if out.Token.Rules == "" {
-		return nil, fmt.Errorf("The specified token does not have any rules set")
-	}
-
-	translated, err := acl.TranslateLegacyRules([]byte(out.Token.Rules))
-	if err != nil {
-		return nil, fmt.Errorf("Failed to parse legacy rules: %v", err)
-	}
-
-	resp.Write(translated)
-	return nil, nil
-}
-
 func (s *HTTPHandlers) ACLPolicyList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	var args structs.ACLPolicyListRequest
@@ -209,8 +102,8 @@ func (s *HTTPHandlers) ACLPolicyList(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPHandlers) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	var fn func(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error)
@@ -229,7 +122,10 @@ func (s *HTTPHandlers) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	policyID := strings.TrimPrefix(req.URL.Path, "/v1/acl/policy/")
+	policyID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/policy/")
+	if err != nil {
+		return nil, err
+	}
 	if policyID == "" && req.Method != "PUT" {
 		return nil, BadRequestError{Reason: "Missing policy ID"}
 	}
@@ -270,11 +166,14 @@ func (s *HTTPHandlers) ACLPolicyRead(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPHandlers) ACLPolicyReadByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
-	policyName := strings.TrimPrefix(req.URL.Path, "/v1/acl/policy/name/")
+	policyName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/policy/name/")
+	if err != nil {
+		return nil, err
+	}
 	if policyName == "" {
 		return nil, BadRequestError{Reason: "Missing policy Name"}
 	}
@@ -287,8 +186,8 @@ func (s *HTTPHandlers) ACLPolicyReadByID(resp http.ResponseWriter, req *http.Req
 }
 
 func (s *HTTPHandlers) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	return s.aclPolicyWriteInternal(resp, req, "", true)
@@ -352,8 +251,8 @@ func (s *HTTPHandlers) ACLPolicyDelete(resp http.ResponseWriter, req *http.Reque
 }
 
 func (s *HTTPHandlers) ACLTokenList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	args := &structs.ACLTokenListRequest{
@@ -389,8 +288,8 @@ func (s *HTTPHandlers) ACLTokenList(resp http.ResponseWriter, req *http.Request)
 }
 
 func (s *HTTPHandlers) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	var fn func(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error)
@@ -409,7 +308,10 @@ func (s *HTTPHandlers) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request)
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	tokenID := strings.TrimPrefix(req.URL.Path, "/v1/acl/token/")
+	tokenID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/token/")
+	if err != nil {
+		return nil, err
+	}
 	if strings.HasSuffix(tokenID, "/clone") && req.Method == "PUT" {
 		tokenID = tokenID[:len(tokenID)-6]
 		fn = s.ACLTokenClone
@@ -422,8 +324,8 @@ func (s *HTTPHandlers) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request)
 }
 
 func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	args := structs.ACLTokenGetRequest{
@@ -455,11 +357,11 @@ func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request)
 }
 
 func (s *HTTPHandlers) ACLTokenCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
-	return s.aclTokenSetInternal(resp, req, "", true)
+	return s.aclTokenSetInternal(req, "", true)
 }
 
 func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
@@ -494,11 +396,11 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 	return out.Token, nil
 }
 
-func (s *HTTPHandlers) ACLTokenSet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
-	return s.aclTokenSetInternal(resp, req, tokenID, false)
+func (s *HTTPHandlers) ACLTokenSet(_ http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
+	return s.aclTokenSetInternal(req, tokenID, false)
 }
 
-func (s *HTTPHandlers) aclTokenSetInternal(_resp http.ResponseWriter, req *http.Request, tokenID string, create bool) (interface{}, error) {
+func (s *HTTPHandlers) aclTokenSetInternal(req *http.Request, tokenID string, create bool) (interface{}, error) {
 	args := structs.ACLTokenSetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		Create:     create,
@@ -546,8 +448,8 @@ func (s *HTTPHandlers) ACLTokenDelete(resp http.ResponseWriter, req *http.Reques
 }
 
 func (s *HTTPHandlers) ACLTokenClone(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	args := structs.ACLTokenSetRequest{
@@ -575,8 +477,8 @@ func (s *HTTPHandlers) ACLTokenClone(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPHandlers) ACLRoleList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	var args structs.ACLRoleListRequest
@@ -608,8 +510,8 @@ func (s *HTTPHandlers) ACLRoleList(resp http.ResponseWriter, req *http.Request) 
 }
 
 func (s *HTTPHandlers) ACLRoleCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	var fn func(resp http.ResponseWriter, req *http.Request, roleID string) (interface{}, error)
@@ -628,7 +530,10 @@ func (s *HTTPHandlers) ACLRoleCRUD(resp http.ResponseWriter, req *http.Request) 
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	roleID := strings.TrimPrefix(req.URL.Path, "/v1/acl/role/")
+	roleID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/role/")
+	if err != nil {
+		return nil, err
+	}
 	if roleID == "" && req.Method != "PUT" {
 		return nil, BadRequestError{Reason: "Missing role ID"}
 	}
@@ -637,11 +542,14 @@ func (s *HTTPHandlers) ACLRoleCRUD(resp http.ResponseWriter, req *http.Request) 
 }
 
 func (s *HTTPHandlers) ACLRoleReadByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
-	roleName := strings.TrimPrefix(req.URL.Path, "/v1/acl/role/name/")
+	roleName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/role/name/")
+	if err != nil {
+		return nil, err
+	}
 	if roleName == "" {
 		return nil, BadRequestError{Reason: "Missing role Name"}
 	}
@@ -685,8 +593,8 @@ func (s *HTTPHandlers) ACLRoleRead(resp http.ResponseWriter, req *http.Request, 
 }
 
 func (s *HTTPHandlers) ACLRoleCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	return s.ACLRoleWrite(resp, req, "")
@@ -738,8 +646,8 @@ func (s *HTTPHandlers) ACLRoleDelete(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPHandlers) ACLBindingRuleList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	var args structs.ACLBindingRuleListRequest
@@ -772,8 +680,8 @@ func (s *HTTPHandlers) ACLBindingRuleList(resp http.ResponseWriter, req *http.Re
 }
 
 func (s *HTTPHandlers) ACLBindingRuleCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	var fn func(resp http.ResponseWriter, req *http.Request, bindingRuleID string) (interface{}, error)
@@ -792,7 +700,10 @@ func (s *HTTPHandlers) ACLBindingRuleCRUD(resp http.ResponseWriter, req *http.Re
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	bindingRuleID := strings.TrimPrefix(req.URL.Path, "/v1/acl/binding-rule/")
+	bindingRuleID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/binding-rule/")
+	if err != nil {
+		return nil, err
+	}
 	if bindingRuleID == "" && req.Method != "PUT" {
 		return nil, BadRequestError{Reason: "Missing binding rule ID"}
 	}
@@ -832,8 +743,8 @@ func (s *HTTPHandlers) ACLBindingRuleRead(resp http.ResponseWriter, req *http.Re
 }
 
 func (s *HTTPHandlers) ACLBindingRuleCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	return s.ACLBindingRuleWrite(resp, req, "")
@@ -885,8 +796,8 @@ func (s *HTTPHandlers) ACLBindingRuleDelete(resp http.ResponseWriter, req *http.
 }
 
 func (s *HTTPHandlers) ACLAuthMethodList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	var args structs.ACLAuthMethodListRequest
@@ -916,8 +827,8 @@ func (s *HTTPHandlers) ACLAuthMethodList(resp http.ResponseWriter, req *http.Req
 }
 
 func (s *HTTPHandlers) ACLAuthMethodCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	var fn func(resp http.ResponseWriter, req *http.Request, methodName string) (interface{}, error)
@@ -936,7 +847,10 @@ func (s *HTTPHandlers) ACLAuthMethodCRUD(resp http.ResponseWriter, req *http.Req
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	methodName := strings.TrimPrefix(req.URL.Path, "/v1/acl/auth-method/")
+	methodName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/auth-method/")
+	if err != nil {
+		return nil, err
+	}
 	if methodName == "" && req.Method != "PUT" {
 		return nil, BadRequestError{Reason: "Missing auth method name"}
 	}
@@ -976,8 +890,8 @@ func (s *HTTPHandlers) ACLAuthMethodRead(resp http.ResponseWriter, req *http.Req
 }
 
 func (s *HTTPHandlers) ACLAuthMethodCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	return s.ACLAuthMethodWrite(resp, req, "")
@@ -1032,8 +946,8 @@ func (s *HTTPHandlers) ACLAuthMethodDelete(resp http.ResponseWriter, req *http.R
 }
 
 func (s *HTTPHandlers) ACLLogin(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	args := &structs.ACLLoginRequest{
@@ -1058,8 +972,8 @@ func (s *HTTPHandlers) ACLLogin(resp http.ResponseWriter, req *http.Request) (in
 }
 
 func (s *HTTPHandlers) ACLLogout(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	args := structs.ACLLogoutRequest{
@@ -1118,8 +1032,8 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 	//    policy.
 	const maxRequests = 64
 
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
 	}
 
 	request := structs.RemoteACLAuthorizationRequest{
@@ -1153,11 +1067,9 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 			return nil, err
 		}
 	} else {
-		authz, err := s.agent.resolveToken(request.Token)
+		authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(request.Token, nil, nil)
 		if err != nil {
 			return nil, err
-		} else if authz == nil {
-			return nil, fmt.Errorf("Failed to initialize authorizer")
 		}
 
 		responses, err = structs.CreateACLAuthorizationResponses(authz, request.Requests)

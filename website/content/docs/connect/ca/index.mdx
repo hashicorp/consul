@@ -1,7 +1,6 @@
 ---
 layout: docs
 page_title: Connect - Certificate Management
-sidebar_title: Certificate Management
 description: An overview of the Connect Certificate Authority mechanisms.
 ---
 
@@ -17,16 +16,33 @@ The CA provider abstraction enables Consul to support multiple systems for
 storing and signing certificates. Consul ships with a
 [built-in CA](/docs/connect/ca/consul) which generates and stores the
 root certificate and private key on the Consul servers. Consul also has
-built-in support for
+support for using
 [Vault as a CA](/docs/connect/ca/vault). With Vault, the root certificate
 and private key material remain with the Vault cluster.
+
+### CA and Certificate relationship
+
+This diagram shows the relationship between the CA certificates in a Consul primary datacenter and a
+secondary Consul datacenter.
+
+![CA relationship](/img/cert-relationship.svg)
+
+Leaf certificates are created for two purposes:
+- the Leaf Cert Service is used by envoy proxies in the mesh to perform mTLS with other
+services.
+- the Leaf Cert Client Agent is created by auto-encrypt and auto-config. It is used by
+client agents for HTTP API TLS, and for mTLS for RPC requests to servers.
+
+Any secondary datacenters receive an intermediate certificate, signed by the Primary Root
+CA, which is used as the CA certificate to sign leaf certificates in the secondary
+datacenter.
 
 ## CA Bootstrapping
 
 CA initialization happens automatically when a new Consul leader is elected
 as long as
-[Connect is enabled](/docs/connect/configuration#agent-configuration)
-and the CA system hasn't already been initialized. This initialization process
+[Connect is enabled](/docs/connect/configuration#agent-configuration),
+and the CA system has not already been initialized. This initialization process
 will generate the initial root certificates and setup the internal Consul server
 state.
 
@@ -90,7 +106,6 @@ $ curl http://localhost:8500/v1/connect/ca/configuration
     "Provider": "consul",
     "Config": {
         "LeafCertTTL": "72h",
-        "RotationPeriod": "2160h",
         "IntermediateCertTTL": "8760h"
     },
     "CreateIndex": 5,

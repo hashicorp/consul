@@ -1,0 +1,19 @@
+%crumbs {
+  color: rgb(var(--tone-gray-500));
+  text-decoration: none;
+}
+%crumbs:hover {
+  color: rgb(var(--tone-blue-500));
+  text-decoration: underline;
+}
+%crumbs::before {
+  text-decoration: none;
+}
+%breadcrumb-milestone::before {
+  @extend %with-chevron-left-mask, %as-pseudo;
+  background-color: rgb(var(--tone-gray-500));
+}
+%breadcrumb::before {
+  content: '/';
+  color: rgb(var(--tone-gray-500));
+}

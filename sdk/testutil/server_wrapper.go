@@ -4,7 +4,7 @@ import "testing"
 
 type WrappedServer struct {
 	s *TestServer
-	t *testing.T
+	t testing.TB
 }
 
 // Wrap wraps the test server in a `testing.t` for convenience.
@@ -16,7 +16,7 @@ type WrappedServer struct {
 //
 // This is useful when you are calling multiple functions and save the wrapped
 // value as another variable to reduce the inclusion of "t".
-func (s *TestServer) Wrap(t *testing.T) *WrappedServer {
+func (s *TestServer) Wrap(t testing.TB) *WrappedServer {
 	return &WrappedServer{s, t}
 }
 

@@ -1,7 +1,7 @@
 on:
   pull_request:
     branches:
-      - master
+      - main
     types: [labeled]
 
 jobs:
@@ -16,9 +16,9 @@ jobs:
       - name: Trigger CircleCI Load Test Pipeline
         run: |
           # build json payload to trigger CircleCI Load Test Pipeline
-          # This only runs the load test pipeline on the 'master' branch
+          # This only runs the load test pipeline on the 'main' branch
           jsonData=$(jq --null-input -r --arg commit ${{ github.event.pull_request.head.sha }} \
-            '{branch:"master", parameters: {"commit": $commit, "trigger-load-test": true}}')
+            '{branch:"main", parameters: {"commit": $commit, "trigger-load-test": true}}')
           echo "Passing JSON data to CircleCI API: $jsonData"
           load_test_pipeline_id=$(curl -X POST \
                -H "Circle-Token: ${{ secrets.CIRCLE_TOKEN }}" \

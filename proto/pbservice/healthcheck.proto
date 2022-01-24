@@ -41,6 +41,12 @@ message HealthCheck {
 
     // mog: func-to=EnterpriseMetaToStructs func-from=NewEnterpriseMetaFromStructs
     common.EnterpriseMeta EnterpriseMeta = 13  [(gogoproto.nullable) = false];
+
+    // mog: func-to=int func-from=int32
+    int32 ExposedPort = 14;
+
+    string Interval = 15;
+    string Timeout = 16;
 }
 
 message HeaderValue {
@@ -56,6 +62,7 @@ message HeaderValue {
 // name=Structs
 message HealthCheckDefinition {
     string HTTP = 1;
+    string TLSServerName = 19;
     bool TLSSkipVerify = 2;
 
     // mog: func-to=MapHeadersToStructs func-from=NewMapHeadersFromStructs
@@ -75,6 +82,8 @@ message HealthCheckDefinition {
     repeated string ScriptArgs = 10;
     string DockerContainerID = 11;
     string Shell = 12;
+    string H2PING = 20;
+    bool H2PingUseTLS = 21;
     string GRPC = 13;
     bool GRPCUseTLS = 14;
     string AliasNode = 15;
@@ -85,10 +94,10 @@ message HealthCheckDefinition {
 
 // CheckType is used to create either the CheckMonitor or the CheckTTL.
 // The following types are supported: Script, HTTP, TCP, Docker, TTL, GRPC,
-// Alias. Script,
-// HTTP, Docker, TCP and GRPC all require Interval. Only one of the types may
+// Alias. Script, H2PING,
+// HTTP, Docker, TCP, H2PING and GRPC all require Interval. Only one of the types may
 // to be provided: TTL or Script/Interval or HTTP/Interval or TCP/Interval or
-// Docker/Interval or GRPC/Interval or AliasService.
+// Docker/Interval or GRPC/Interval or H2PING/Interval or AliasService.
 //
 // mog annotation:
 //
@@ -115,8 +124,11 @@ message CheckType {
     string AliasService = 11;
     string DockerContainerID = 12;
     string Shell = 13;
+    string H2PING = 28;
+    bool H2PingUseTLS = 30;
     string GRPC = 14;
     bool GRPCUseTLS = 15;
+    string TLSServerName = 27;
     bool TLSSkipVerify = 16;
     google.protobuf.Duration Timeout = 17
     [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
@@ -125,6 +137,8 @@ message CheckType {
 
     // mog: func-to=int func-from=int32
     int32 SuccessBeforePassing = 21;
+    // mog: func-to=int func-from=int32
+    int32 FailuresBeforeWarning = 29;
     // mog: func-to=int func-from=int32
     int32 FailuresBeforeCritical = 22;
 

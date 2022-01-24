@@ -66,7 +66,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -154,8 +154,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Create an ACL policy"
-const help = `
+const (
+	synopsis = "Create an ACL policy"
+	help     = `
 Usage: consul acl policy create -name NAME [options]
 
     Both the -rules and -from-token option values allow loading the value
@@ -177,3 +178,4 @@ Usage: consul acl policy create -name NAME [options]
                                    -description "Token Converted to policy" \
                                    -from-token "c1e34113-e7ab-4451-b1a6-336ddcc58fc6"
 `
+)

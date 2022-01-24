@@ -18,11 +18,14 @@ func (s *Status) LeaderWithQueryOptions(q *QueryOptions) (string, error) {
 		r.setQueryOptions(q)
 	}
 
-	_, resp, err := requireOK(s.c.doRequest(r))
+	_, resp, err := s.c.doRequest(r)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return "", err
+	}
 
 	var leader string
 	if err := decodeBody(resp, &leader); err != nil {
@@ -43,11 +46,14 @@ func (s *Status) PeersWithQueryOptions(q *QueryOptions) ([]string, error) {
 		r.setQueryOptions(q)
 	}
 
-	_, resp, err := requireOK(s.c.doRequest(r))
+	_, resp, err := s.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	var peers []string
 	if err := decodeBody(resp, &peers); err != nil {

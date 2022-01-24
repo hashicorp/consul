@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
 pushd $(dirname ${BASH_SOURCE[0]}) > /dev/null
 SCRIPT_DIR=$(pwd)
@@ -74,6 +74,7 @@ function main {
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/struct.proto=github.com/gogo/protobuf/types"
+   gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/wrappers.proto=github.com/gogo/protobuf/types"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/api/annotations.proto=github.com/gogo/googleapis/google/api"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/field_mask.proto=github.com/gogo/protobuf/types"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types"

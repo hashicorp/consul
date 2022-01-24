@@ -1,0 +1,6 @@
+```release-note:improvement
+xds: default to speaking xDS v3, but allow for v2 to be spoken upon request
+```
+```release-note:improvement
+xds: add support for envoy 1.17.0
+```

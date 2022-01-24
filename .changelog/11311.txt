@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Ensure we filter tokens by policy when showing which tokens use a certain
+policy whilst editing a policy
+```

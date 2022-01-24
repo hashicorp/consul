@@ -11,7 +11,7 @@
   }
 
   & .g-type-body-large {
-    color: var(--gray-3);
+    color: var(--gray-2);
     margin: 0 auto 0 auto;
     text-align: center;
     max-width: 40em;
@@ -50,7 +50,7 @@
     justify-content: center;
     margin-top: 32px;
     & a {
-      color: var(--gray-3);
+      color: var(--gray-2);
     }
     & svg * {
       stroke: var(--gray-2) !important;
@@ -59,7 +59,7 @@
 
   &.has-background {
     background-repeat: no-repeat;
-    background-color: var(--gray-7);
+    background-color: var(--gray-6);
     background-image: url(/img/hero/pattern-desktop.svg);
     width: 100%;
     background-size: cover;
@@ -70,7 +70,7 @@
     }
 
     & .g-btn {
-      background: var(--gray-7);
+      background: var(--gray-6);
     }
   }
 }

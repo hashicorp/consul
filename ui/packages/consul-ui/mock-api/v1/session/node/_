@@ -19,7 +19,8 @@ ${typeof location.search.ns !== 'undefined' ? `
                 "Namespace": "${location.search.ns}",
 ` : ``}
                 "Node":"${location.pathname.get(3)}",
-                "Checks":["serfHealth"],
+                "NodeChecks":["serfHealth"],
+                "ServiceChecks": ["${fake.hacker.noun()}Health"],
                 "LockDelay":15000000000,
                 "Behavior":"${fake.helpers.randomize(['release', 'delete'])}",
                 "TTL":"",

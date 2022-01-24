@@ -2,7 +2,7 @@
  * Simple replacing decorator, with the primary usecase for avoiding null API
  * errors by decorating model attributes: @replace(null, []) @attr() Tags;
  */
-const replace = (find, replace) => (target, propertyKey, desc) => {
+export const replace = (find, replace) => (target, propertyKey, desc) => {
   return {
     get: function() {
       const value = desc.get.apply(this, arguments);

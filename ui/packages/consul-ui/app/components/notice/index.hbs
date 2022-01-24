@@ -1,5 +1,5 @@
 <div
-  class="notice {{@type}}"
+  class="notice {{or @type 'info'}}"
   ...attributes
 >
 {{yield (hash

@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func generateUUID() (ret string) {
@@ -44,7 +45,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 		generateUUID(),
 	}
 
-	defaultMeta := DefaultEnterpriseMeta()
+	defaultMeta := DefaultEnterpriseMetaInDefaultPartition()
 
 	fooName := NewServiceName("foo", defaultMeta)
 
@@ -1295,6 +1296,7 @@ func TestMigrateIntentions(t *testing.T) {
 	}
 
 	anyTime := time.Now().UTC()
+	entMeta := DefaultEnterpriseMetaInDefaultPartition()
 
 	cases := map[string]testcase{
 		"nil": {},
@@ -1317,15 +1319,17 @@ func TestMigrateIntentions(t *testing.T) {
 			},
 			expect: []*ServiceIntentionsConfigEntry{
 				{
-					Kind: ServiceIntentions,
-					Name: "bar",
+					Kind:           ServiceIntentions,
+					Name:           "bar",
+					EnterpriseMeta: *entMeta,
 					Sources: []*SourceIntention{
 						{
-							LegacyID:    legacyIDs[0],
-							Description: "desc",
-							Name:        "foo",
-							Type:        IntentionSourceConsul,
-							Action:      IntentionActionAllow,
+							LegacyID:       legacyIDs[0],
+							Description:    "desc",
+							Name:           "foo",
+							EnterpriseMeta: *entMeta,
+							Type:           IntentionSourceConsul,
+							Action:         IntentionActionAllow,
 							LegacyMeta: map[string]string{
 								"key1": "val1",
 							},
@@ -1369,15 +1373,17 @@ func TestMigrateIntentions(t *testing.T) {
 			},
 			expect: []*ServiceIntentionsConfigEntry{
 				{
-					Kind: ServiceIntentions,
-					Name: "bar",
+					Kind:           ServiceIntentions,
+					Name:           "bar",
+					EnterpriseMeta: *entMeta,
 					Sources: []*SourceIntention{
 						{
-							LegacyID:    legacyIDs[0],
-							Description: "desc",
-							Name:        "foo",
-							Type:        IntentionSourceConsul,
-							Action:      IntentionActionAllow,
+							LegacyID:       legacyIDs[0],
+							Description:    "desc",
+							Name:           "foo",
+							EnterpriseMeta: *entMeta,
+							Type:           IntentionSourceConsul,
+							Action:         IntentionActionAllow,
 							LegacyMeta: map[string]string{
 								"key1": "val1",
 							},
@@ -1385,11 +1391,12 @@ func TestMigrateIntentions(t *testing.T) {
 							LegacyUpdateTime: &anyTime,
 						},
 						{
-							LegacyID:    legacyIDs[1],
-							Description: "desc2",
-							Name:        "*",
-							Type:        IntentionSourceConsul,
-							Action:      IntentionActionDeny,
+							LegacyID:       legacyIDs[1],
+							Description:    "desc2",
+							Name:           "*",
+							EnterpriseMeta: *entMeta,
+							Type:           IntentionSourceConsul,
+							Action:         IntentionActionDeny,
 							LegacyMeta: map[string]string{
 								"key2": "val2",
 							},
@@ -1433,15 +1440,17 @@ func TestMigrateIntentions(t *testing.T) {
 			},
 			expect: []*ServiceIntentionsConfigEntry{
 				{
-					Kind: ServiceIntentions,
-					Name: "bar",
+					Kind:           ServiceIntentions,
+					Name:           "bar",
+					EnterpriseMeta: *entMeta,
 					Sources: []*SourceIntention{
 						{
-							LegacyID:    legacyIDs[0],
-							Description: "desc",
-							Name:        "foo",
-							Type:        IntentionSourceConsul,
-							Action:      IntentionActionAllow,
+							LegacyID:       legacyIDs[0],
+							Description:    "desc",
+							Name:           "foo",
+							EnterpriseMeta: *entMeta,
+							Type:           IntentionSourceConsul,
+							Action:         IntentionActionAllow,
 							LegacyMeta: map[string]string{
 								"key1": "val1",
 							},
@@ -1451,15 +1460,17 @@ func TestMigrateIntentions(t *testing.T) {
 					},
 				},
 				{
-					Kind: ServiceIntentions,
-					Name: "bar2",
+					Kind:           ServiceIntentions,
+					Name:           "bar2",
+					EnterpriseMeta: *entMeta,
 					Sources: []*SourceIntention{
 						{
-							LegacyID:    legacyIDs[1],
-							Description: "desc2",
-							Name:        "*",
-							Type:        IntentionSourceConsul,
-							Action:      IntentionActionDeny,
+							LegacyID:       legacyIDs[1],
+							Description:    "desc2",
+							Name:           "*",
+							EnterpriseMeta: *entMeta,
+							Type:           IntentionSourceConsul,
+							Action:         IntentionActionDeny,
 							LegacyMeta: map[string]string{
 								"key2": "val2",
 							},
@@ -1476,7 +1487,7 @@ func TestMigrateIntentions(t *testing.T) {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 			got := MigrateIntentions(tc.in)
-			require.ElementsMatch(t, tc.expect, got)
+			require.Equal(t, tc.expect, got)
 		})
 	}
 }

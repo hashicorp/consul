@@ -89,12 +89,20 @@ type BootstrapTplArgs struct {
 	// as registered with the Consul agent.
 	Namespace string
 
+	// Partition is the Consul Enterprise Partition of the proxy service instance
+	// as registered with the Consul agent.
+	Partition string
+
 	// Datacenter is the datacenter where the proxy service instance is registered.
 	Datacenter string
 
-	// EnvoyVersion is the envoy version, which is necessary to generate the
-	// correct configuration.
-	EnvoyVersion string
+	// PrometheusBackendPort will configure a "prometheus_backend" cluster which
+	// envoy_prometheus_bind_addr will point to.
+	PrometheusBackendPort string
+
+	// PrometheusScrapePath will configure the path where metrics are exposed on
+	// the envoy_prometheus_bind_addr listener.
+	PrometheusScrapePath string
 }
 
 // GRPC settings used in the bootstrap template.
@@ -116,6 +124,8 @@ type GRPC struct {
 	AgentSocket string
 }
 
+// bootstrapTemplate sets '"ignore_health_on_host_removal": false' JUST to force this to be detected as a v3 bootstrap
+// config.
 const bootstrapTemplate = `{
   "admin": {
     "access_log_path": "{{ .AdminAccessLogPath }}",
@@ -131,27 +141,28 @@ const bootstrapTemplate = `{
     "id": "{{ .ProxyID }}",
     "metadata": {
       "namespace": "{{if ne .Namespace ""}}{{ .Namespace }}{{else}}default{{end}}",
-      "envoy_version": "{{ .EnvoyVersion }}"
+      "partition": "{{if ne .Partition ""}}{{ .Partition }}{{else}}default{{end}}"
     }
   },
   "static_resources": {
     "clusters": [
       {
         "name": "{{ .LocalAgentClusterName }}",
+        "ignore_health_on_host_removal": false,
         "connect_timeout": "1s",
         "type": "STATIC",
         {{- if .AgentTLS -}}
         "transport_socket": {
           "name": "tls",
           "typed_config": {
-            "@type": "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
+            "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
             "common_tls_context": {
               "validation_context": {
                 "trusted_ca": {
                   "inline_string": "{{ .AgentCAPEM }}"
                 }
-               }
-             }
+              }
+            }
           }
         },
         {{- end }}
@@ -178,7 +189,7 @@ const bootstrapTemplate = `{
                   }
                 }
               ]
-             }
+            }
           ]
         }
       }
@@ -206,10 +217,17 @@ const bootstrapTemplate = `{
   "tracing": {{ .TracingConfigJSON }},
   {{- end }}
   "dynamic_resources": {
-    "lds_config": { "ads": {} },
-    "cds_config": { "ads": {} },
+    "lds_config": {
+      "ads": {},
+      "resource_api_version": "V3"
+    },
+    "cds_config": {
+      "ads": {},
+      "resource_api_version": "V3"
+    },
     "ads_config": {
-      "api_type": "GRPC",
+      "api_type": "DELTA_GRPC",
+      "transport_api_version": "V3",
       "grpc_services": {
         "initial_metadata": [
           {

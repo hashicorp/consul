@@ -6,8 +6,7 @@ import (
 	"testing"
 	"time"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 
 	"github.com/golang/protobuf/ptypes"
 	testinf "github.com/mitchellh/go-testing-interface"
@@ -155,6 +154,30 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						},
 					},
 				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "http", Port: 8080}: {
+						Port: 8080,
+						Services: []structs.IngressService{
+							{
+								Name: "foo",
+							},
+							{
+								Name: "bar",
+							},
+						},
+					},
+					{Protocol: "http", Port: 443}: {
+						Port: 443,
+						Services: []structs.IngressService{
+							{
+								Name: "baz",
+							},
+							{
+								Name: "qux",
+							},
+						},
+					},
+				}
 
 				// We do not add baz/qux here so that we test the chain.IsDefault() case
 				entries := []structs.ConfigEntry{
@@ -176,18 +199,84 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						ConnectTimeout: 22 * time.Second,
 					},
 				}
-				fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-				barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-				bazChain := discoverychain.TestCompileConfigEntries(t, "baz", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-				quxChain := discoverychain.TestCompileConfigEntries(t, "qux", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
+				fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+				barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+				bazChain := discoverychain.TestCompileConfigEntries(t, "baz", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+				quxChain := discoverychain.TestCompileConfigEntries(t, "qux", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 
-				snap.IngressGateway.DiscoveryChain = map[string]*structs.CompiledDiscoveryChain{
-					"foo": fooChain,
-					"bar": barChain,
-					"baz": bazChain,
-					"qux": quxChain,
+				snap.IngressGateway.DiscoveryChain = map[proxycfg.UpstreamID]*structs.CompiledDiscoveryChain{
+					UID("foo"): fooChain,
+					UID("bar"): barChain,
+					UID("baz"): bazChain,
+					UID("qux"): quxChain,
 				}
 			},
+		},
+		{
+			name:   "ingress-with-chain-and-router-header-manip",
+			create: proxycfg.TestConfigSnapshotIngressWithRouter,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				k := proxycfg.IngressListenerKey{Port: 9191, Protocol: "http"}
+				l := snap.IngressGateway.Listeners[k]
+				l.Services[0].RequestHeaders = &structs.HTTPHeaderModifiers{
+					Add: map[string]string{
+						"foo": "bar",
+					},
+					Set: map[string]string{
+						"bar": "baz",
+					},
+					Remove: []string{"qux"},
+				}
+				l.Services[0].ResponseHeaders = &structs.HTTPHeaderModifiers{
+					Add: map[string]string{
+						"foo": "bar",
+					},
+					Set: map[string]string{
+						"bar": "baz",
+					},
+					Remove: []string{"qux"},
+				}
+				snap.IngressGateway.Listeners[k] = l
+			},
+		},
+		{
+			name:   "ingress-with-sds-listener-level",
+			create: proxycfg.TestConfigSnapshotIngressWithRouter,
+			setup: setupIngressWithTwoHTTPServices(t, ingressSDSOpts{
+				// Listener-level SDS means all services share the default route.
+				listenerSDS: true,
+			}),
+		},
+		{
+			name:   "ingress-with-sds-listener-level-wildcard",
+			create: proxycfg.TestConfigSnapshotIngressWithRouter,
+			setup: setupIngressWithTwoHTTPServices(t, ingressSDSOpts{
+				// Listener-level SDS means all services share the default route.
+				listenerSDS: true,
+				wildcard:    true,
+			}),
+		},
+		{
+			name:   "ingress-with-sds-service-level",
+			create: proxycfg.TestConfigSnapshotIngressWithRouter,
+			setup: setupIngressWithTwoHTTPServices(t, ingressSDSOpts{
+				listenerSDS: false,
+				// Services should get separate routes and no default since they all
+				// have custom certs.
+				webSDS: true,
+				fooSDS: true,
+			}),
+		},
+		{
+			name:   "ingress-with-sds-service-level-mixed-tls",
+			create: proxycfg.TestConfigSnapshotIngressWithRouter,
+			setup: setupIngressWithTwoHTTPServices(t, ingressSDSOpts{
+				listenerSDS: false,
+				// Web needs a separate route as it has custom filter chain but foo
+				// should use default route for listener.
+				webSDS: true,
+				fooSDS: false,
+			}),
 		},
 		{
 			name:   "terminating-gateway-lb-config",
@@ -238,14 +327,13 @@ func TestRoutesFromSnapshot(t *testing.T) {
 		},
 	}
 
+	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
 	for _, envoyVersion := range proxysupport.EnvoyVersions {
 		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {
-					require := require.New(t)
-
 					// Sanity check default with no overrides first
 					snap := tt.create(t)
 
@@ -258,27 +346,28 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						tt.setup(snap)
 					}
 
-					s := Server{Logger: testutil.Logger(t)}
-					cInfo := connectionInfo{
-						Token:         "my-token",
-						ProxyFeatures: sf,
-					}
-					routes, err := s.routesFromSnapshot(cInfo, snap)
-					require.NoError(err)
+					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
+					g.ProxyFeatures = sf
+
+					routes, err := g.routesFromSnapshot(snap)
+					require.NoError(t, err)
+
 					sort.Slice(routes, func(i, j int) bool {
-						return routes[i].(*envoy.RouteConfiguration).Name < routes[j].(*envoy.RouteConfiguration).Name
+						return routes[i].(*envoy_route_v3.RouteConfiguration).Name < routes[j].(*envoy_route_v3.RouteConfiguration).Name
 					})
 					r, err := createResponse(RouteType, "00000001", "00000001", routes)
-					require.NoError(err)
+					require.NoError(t, err)
 
-					gotJSON := responseToJSON(t, r)
+					t.Run("current", func(t *testing.T) {
+						gotJSON := protoToJSON(t, r)
 
-					gName := tt.name
-					if tt.overrideGoldenName != "" {
-						gName = tt.overrideGoldenName
-					}
+						gName := tt.name
+						if tt.overrideGoldenName != "" {
+							gName = tt.overrideGoldenName
+						}
 
-					require.JSONEq(goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, gotJSON), gotJSON)
+						require.JSONEq(t, goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
+					})
 				})
 			}
 		})
@@ -289,7 +378,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 	var tests = []struct {
 		name     string
 		lb       *structs.LoadBalancer
-		expected *envoyroute.RouteAction
+		expected *envoy_route_v3.RouteAction
 	}{
 		{
 			name: "empty",
@@ -297,7 +386,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 				Policy: "",
 			},
 			// we only modify route actions for hash-based LB policies
-			expected: &envoyroute.RouteAction{},
+			expected: &envoy_route_v3.RouteAction{},
 		},
 		{
 			name: "least request",
@@ -308,7 +397,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 				},
 			},
 			// we only modify route actions for hash-based LB policies
-			expected: &envoyroute.RouteAction{},
+			expected: &envoy_route_v3.RouteAction{},
 		},
 		{
 			name: "headers",
@@ -326,11 +415,11 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: &envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+			expected: &envoy_route_v3.RouteAction{
+				HashPolicy: []*envoy_route_v3.RouteAction_HashPolicy{
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
-							Header: &envoyroute.RouteAction_HashPolicy_Header{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Header_{
+							Header: &envoy_route_v3.RouteAction_HashPolicy_Header{
 								HeaderName: "x-route-key",
 							},
 						},
@@ -355,19 +444,19 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: &envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+			expected: &envoy_route_v3.RouteAction{
+				HashPolicy: []*envoy_route_v3.RouteAction_HashPolicy{
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "red-velvet",
 							},
 						},
 						Terminal: true,
 					},
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "oatmeal",
 							},
 						},
@@ -390,11 +479,11 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: &envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+			expected: &envoy_route_v3.RouteAction{
+				HashPolicy: []*envoy_route_v3.RouteAction_HashPolicy{
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "oatmeal",
 								Ttl:  ptypes.DurationProto(0 * time.Second),
 							},
@@ -417,11 +506,11 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: &envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+			expected: &envoy_route_v3.RouteAction{
+				HashPolicy: []*envoy_route_v3.RouteAction_HashPolicy{
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "oatmeal",
 								Path: "/oven",
 								Ttl:  nil,
@@ -442,11 +531,11 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: &envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+			expected: &envoy_route_v3.RouteAction{
+				HashPolicy: []*envoy_route_v3.RouteAction_HashPolicy{
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
-							ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_ConnectionProperties_{
+							ConnectionProperties: &envoy_route_v3.RouteAction_HashPolicy_ConnectionProperties{
 								SourceIp: true,
 							},
 						},
@@ -487,19 +576,19 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: &envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+			expected: &envoy_route_v3.RouteAction{
+				HashPolicy: []*envoy_route_v3.RouteAction_HashPolicy{
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
-							ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_ConnectionProperties_{
+							ConnectionProperties: &envoy_route_v3.RouteAction_HashPolicy_ConnectionProperties{
 								SourceIp: true,
 							},
 						},
 						Terminal: true,
 					},
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "oatmeal",
 								Ttl:  ptypes.DurationProto(10 * time.Second),
 								Path: "/oven",
@@ -507,8 +596,8 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						},
 					},
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "chocolate-chip",
 								Ttl:  ptypes.DurationProto(0 * time.Second),
 								Path: "/oven",
@@ -516,8 +605,8 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						},
 					},
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
-							Header: &envoyroute.RouteAction_HashPolicy_Header{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Header_{
+							Header: &envoy_route_v3.RouteAction_HashPolicy_Header{
 								HeaderName: "special-header",
 							},
 						},
@@ -530,11 +619,166 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			var ra envoyroute.RouteAction
+			var ra envoy_route_v3.RouteAction
 			err := injectLBToRouteAction(tc.lb, &ra)
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expected, &ra)
 		})
+	}
+}
+
+type ingressSDSOpts struct {
+	listenerSDS, webSDS, fooSDS, wildcard bool
+	entMetas                              map[string]*structs.EnterpriseMeta
+}
+
+// setupIngressWithTwoHTTPServices can be used with
+// proxycfg.TestConfigSnapshotIngressWithRouter to generate a setup func for an
+// ingress listener with multiple HTTP services and varying SDS configurations
+// since those affect how we generate routes.
+func setupIngressWithTwoHTTPServices(t *testing.T, o ingressSDSOpts) func(snap *proxycfg.ConfigSnapshot) {
+	return func(snap *proxycfg.ConfigSnapshot) {
+
+		snap.IngressGateway.TLSConfig.SDS = nil
+
+		webUpstream := structs.Upstream{
+			DestinationName: "web",
+			// We use empty not default here because of the way upstream identifiers
+			// vary between OSS and Enterprise currently causing test conflicts. In
+			// real life `proxycfg` always sets ingress upstream namespaces to
+			// `NamespaceOrDefault` which shouldn't matter because we should be
+			// consistent within a single binary it's just inconvenient if OSS and
+			// enterprise tests generate different output.
+			DestinationNamespace: o.entMetas["web"].NamespaceOrEmpty(),
+			DestinationPartition: o.entMetas["web"].PartitionOrEmpty(),
+			LocalBindPort:        9191,
+			IngressHosts: []string{
+				"www.example.com",
+			},
+		}
+		fooUpstream := structs.Upstream{
+			DestinationName:      "foo",
+			DestinationNamespace: o.entMetas["foo"].NamespaceOrEmpty(),
+			DestinationPartition: o.entMetas["foo"].PartitionOrEmpty(),
+			LocalBindPort:        9191,
+			IngressHosts: []string{
+				"foo.example.com",
+			},
+		}
+
+		webUID := proxycfg.NewUpstreamID(&webUpstream)
+		fooUID := proxycfg.NewUpstreamID(&fooUpstream)
+
+		// Setup additional HTTP service on same listener with default router
+		snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+			{Protocol: "http", Port: 9191}: {webUpstream, fooUpstream},
+		}
+		il := structs.IngressListener{
+			Port: 9191,
+			Services: []structs.IngressService{
+				{
+					Name:  "web",
+					Hosts: []string{"www.example.com"},
+				},
+				{
+					Name:  "foo",
+					Hosts: []string{"foo.example.com"},
+				},
+			},
+		}
+		for i, svc := range il.Services {
+			if em, ok := o.entMetas[svc.Name]; ok && em != nil {
+				il.Services[i].EnterpriseMeta = *em
+			}
+		}
+
+		// Now set the appropriate SDS configs
+		if o.listenerSDS {
+			il.TLS = &structs.GatewayTLSConfig{
+				SDS: &structs.GatewayTLSSDSConfig{
+					ClusterName:  "listener-cluster",
+					CertResource: "listener-cert",
+				},
+			}
+		}
+		if o.webSDS {
+			il.Services[0].TLS = &structs.GatewayServiceTLSConfig{
+				SDS: &structs.GatewayTLSSDSConfig{
+					ClusterName:  "web-cluster",
+					CertResource: "www-cert",
+				},
+			}
+		}
+		if o.fooSDS {
+			il.Services[1].TLS = &structs.GatewayServiceTLSConfig{
+				SDS: &structs.GatewayTLSSDSConfig{
+					ClusterName:  "foo-cluster",
+					CertResource: "foo-cert",
+				},
+			}
+		}
+
+		if o.wildcard {
+			// undo all that and set just a single wildcard config with no TLS to test
+			// the lookup path where we have to compare an actual resolved upstream to
+			// a wildcard config.
+			il.Services = []structs.IngressService{
+				{
+					Name: "*",
+				},
+			}
+			// We also don't support user-specified hosts with wildcard so remove
+			// those from the upstreams.
+			ups := snap.IngressGateway.Upstreams[proxycfg.IngressListenerKey{Protocol: "http", Port: 9191}]
+			for i := range ups {
+				ups[i].IngressHosts = nil
+			}
+			snap.IngressGateway.Upstreams[proxycfg.IngressListenerKey{Protocol: "http", Port: 9191}] = ups
+		}
+
+		snap.IngressGateway.Listeners[proxycfg.IngressListenerKey{Protocol: "http", Port: 9191}] = il
+
+		entries := []structs.ConfigEntry{
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "web",
+				ConnectTimeout: 22 * time.Second,
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "foo",
+				ConnectTimeout: 22 * time.Second,
+			},
+		}
+		for i, e := range entries {
+			switch v := e.(type) {
+			// Add other Service types here if we ever need them above
+			case *structs.ServiceResolverConfigEntry:
+				if em, ok := o.entMetas[v.Name]; ok && em != nil {
+					v.EnterpriseMeta = *em
+					entries[i] = v
+				}
+			}
+		}
+
+		webChain := discoverychain.TestCompileConfigEntries(t, "web",
+			o.entMetas["web"].NamespaceOrDefault(),
+			o.entMetas["web"].PartitionOrDefault(), "dc1",
+			connect.TestClusterID+".consul", nil, entries...)
+		fooChain := discoverychain.TestCompileConfigEntries(t, "foo",
+			o.entMetas["foo"].NamespaceOrDefault(),
+			o.entMetas["web"].PartitionOrDefault(), "dc1",
+			connect.TestClusterID+".consul", nil, entries...)
+
+		snap.IngressGateway.DiscoveryChain[webUID] = webChain
+		snap.IngressGateway.DiscoveryChain[fooUID] = fooChain
 	}
 }

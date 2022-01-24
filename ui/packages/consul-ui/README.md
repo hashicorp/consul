@@ -3,13 +3,13 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Yarn Commands](#yarn-commands)
 - [Running / Development](#running--development)
-  - [Browser 'Environment' Variables](#browser-environment-variables)
-  - [Browser 'Debug Utility' Functions](#browser-debug-utility-functions)
+  - [Environment Variables](#environment-variables)
+  - [Contributing/Engineering Documentation](#contributingengineering-documentation)
+  - [Browser 'Debug Utility' Functions and 'Environment' Variables](#browser-debug-utility-functions-and-environment-variables)
   - [Code Generators](#code-generators)
   - [Running Tests](#running-tests)
   - [Linting](#linting)
@@ -33,8 +33,23 @@ You will need the following things properly installed on your computer.
 
 * `git clone https://github.com/hashicorp/consul.git` this repository
 * `cd ui/packages/consul-ui`
-* `make start` or `yarn && yarn start`
 
+then:
+
+**To run the UI**
+
+From within `ui/packages/consul-ui` directory run:
+
+* `make start`
+
+**To run tests**
+
+From within `ui/packages/consul-ui` directory run:
+
+* `make test-oss-view` which will run the tests in Chrome
+
+(see below and/or the [testing section of the engineering docs](./docs/testing.mdx) for
+further detail)
 
 ## Yarn Commands
 
@@ -82,68 +97,38 @@ respect the `CONSUL_HTTP_ADDR` environment variable to locate the Consul
 installation.
 * Visit your app at [http://localhost:4200](http://localhost:4200).
 
-Example: 
+Example:
 
 ```bash
 CONSUL_HTTP_ADDR=http://10.0.0.1:8500 make start-consul
 ```
 
+### Environment Variables
 
-### Browser 'Environment' Variables
+See [./docs/index.mdx](./docs/index.mdx#environment-variables)
 
-In order to configure different configurations of Consul you can use Web
-Inspector in your browser to set various cookie which to emulate different
-configurations whislt using the mock API.
+### Branching
 
-For example: to enable ACLs, use Web Inspector to set a cookie as follows:
+Follow a `ui/**/**` branch naming pattern. This branch naming pattern allows front-end focused builds, such as FE tests, to run automatically in Pull Requests. It also adds the `theme/ui` label to Pull Requests.
 
-```bash
-CONSUL_ACLS_ENABLE=1
-```
+Examples:
+- `ui/feature/add...`
+- `ui/bugfix/fix...`
+- `ui/enhancement/update...`
 
-This will enable the ACLs login page, to which you can login with any ACL
-token/secret.
+### Contributing/Engineering Documentation
 
-| Variable | Default Value | Description |
-| -------- | ------------- | ----------- |
-| `CONSUL_ACLS_ENABLE` | false | Enable/disable ACLs support. |
-| `CONSUL_ACLS_LEGACY` | false | Enable/disable legacy ACLs support. |
-| `CONSUL_NSPACES_ENABLE` | false | Enable/disable Namespace support. |
-| `CONSUL_SSO_ENABLE` | false | Enable/disable SSO support. |
-| `CONSUL_OIDC_PROVIDER_URL` | undefined | Provide a OIDC provider URL for SSO. |
-| `CONSUL_LATENCY` | 0 | Add a latency to network requests (milliseconds) |
-| `CONSUL_METRICS_POLL_INTERVAL` | 10000 | Change the interval between requests to the metrics provider (milliseconds) |
-| `CONSUL_METRICS_PROXY_ENABLE` | false | Enable/disable the metrics proxy |
-| `CONSUL_METRICS_PROVIDER` | | Set the metrics provider to use for the Topology Tab |
-| `CONSUL_SERVICE_DASHBOARD_URL` | | Set the template URL to use for Service Dashboard links |
-| `CONSUL_UI_CONFIG` | | Set the entire `ui_config` for the UI as JSON if you don't want to use the above singular variables |
-| `CONSUL_SERVICE_COUNT` | (random) | Configure the number of services that the API returns. |
-| `CONSUL_NODE_COUNT` | (random) | Configure the number of nodes that the API returns. |
-| `CONSUL_KV_COUNT` | (random) | Configure the number of KV entires that the API returns. |
-| `CONSUL_INTENTION_COUNT` | (random) | Configure the number of intentions that the API returns. |
-| `CONSUL_POLICY_COUNT` | (random) | Configure the number of policies that the API returns. |
-| `CONSUL_ROLE_COUNT` | (random) | Configure the number of roles that the API returns. |
-| `CONSUL_NSPACE_COUNT` | (random) | Configure the number of namespaces that the API returns. |
-| `CONSUL_UPSTREAM_COUNT` | (random) | Configure the number of upstreams that the API returns. |
-| `CONSUL_EXPOSED_COUNT` | (random) | Configure the number of exposed paths that the API returns. |
-| `CONSUL_CHECK_COUNT` | (random) | Configure the number of health checks that the API returns. |
-| `CONSUL_OIDC_PROVIDER_COUNT` | (random) | Configure the number of OIDC providers that the API returns. |
-| `CONSUL_RESOURCE_<singular-resource-name>_<access-type>` | true | Configure permissions e.g `CONSUL_RESOURCE_INTENTION_WRITE=false`. |
-| `DEBUG_ROUTES_ENDPOINT` | undefined | When using the window.Routes() debug utility ([see utility functions](#browser-debug-utility-functions)), use a URL to pass the route DSL to. %s in the URL will be replaced with the route DSL - http://url.com?routes=%s  |
+We have an in-app (only during development) component storybook and
+documentation site which can be visited using the [Eng
+Docs](http://localhost:4200/ui/docs) link in the top navigation of the UI.
+Alternatively all of these docs are also readable via GitHub's UI, so folks can
+use whatever works best for them.
 
-See `./mock-api` for more details.
+### Browser 'Debug Utility' Functions and 'Environment' Variables
 
-### Browser 'Debug Utility' Functions
-
-We currently have one 'debug utility', that only exists during development (they
-are removed from the production build using Embers `runInDebug`). You can call
-these either straight from the console in WebInspector, or by using javascript
-URLs i.e. `javascript:Routes()`
-
-| Variable | Arguments | Description |
-| -------- | --------- | ----------- |
-| `Routes(url)` | url: The url to pass the DSL to, if left `undefined` just use a blank tab | Provides a way to easily print out Embers Route DSL for the application or to pass it straight to any third party utility such as ember-diagonal |
-| `Scenario(str)` | str: 'Cookie formatted' string, if left `undefined` open a new tab with a link/bookmarklet to the current Scenario | Provides a way to easily save and reload scenarios of configurations via URLs or bookmarklets |
+Run `make start` then visit http://localhost:4200/ui/docs/bookmarklets for a
+list of debug/engineering utilities you can use to help development of the UI
+under certain scenarios.
 
 ### Code Generators
 
@@ -151,10 +136,14 @@ Many classes used in the UI can be generated with ember generators, try `ember h
 
 ### Running Tests
 
-Tests use the mock api (see ./mock-api for details)
+Tests use the mock api (see ./mock-api for details), the mock-api runs
+automatically during testing, you don't need to run anything separately from
+the below commands in order for the tests to use the mock-api.
 
 * `make test` or `yarn run test`
 * `make test-view` or `yarn run test:view` to view the tests running in Chrome
+
+For more guidance on running tests, see the [testing section of the engineering docs](./docs/testing.mdx).
 
 OSS only tests can also be run using:
 
@@ -175,6 +164,9 @@ See `.eslintrc.js` and `.eslintignore` for specific configuration.
 Static files are built into ./dist
 
 #### Running Tests in Parallel
+
+You probably don't need to understand this if you are simply running some
+tests locally.
 
 Alternatively, `ember-exam` can be used to split the tests across multiple browser instances for faster results. Most options are the same as `ember test`. To see a full list of options, run `ember exam --help`.
 

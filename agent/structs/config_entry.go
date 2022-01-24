@@ -26,8 +26,11 @@ const (
 	IngressGateway     string = "ingress-gateway"
 	TerminatingGateway string = "terminating-gateway"
 	ServiceIntentions  string = "service-intentions"
+	MeshConfig         string = "mesh"
+	ExportedServices   string = "exported-services"
 
 	ProxyConfigGlobal string = "global"
+	MeshConfigMesh    string = "mesh"
 
 	DefaultServiceProtocol = "tcp"
 )
@@ -41,6 +44,8 @@ var AllConfigEntryKinds = []string{
 	IngressGateway,
 	TerminatingGateway,
 	ServiceIntentions,
+	MeshConfig,
+	ExportedServices,
 }
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
@@ -79,19 +84,15 @@ type UpdatableConfigEntry interface {
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
-	Kind        string
-	Name        string
-	Protocol    string
-	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
-	Expose      ExposeConfig      `json:",omitempty"`
-
-	ExternalSNI string `json:",omitempty" alias:"external_sni"`
-
-	// TODO(banks): enable this once we have upstreams supported too. Enabling
-	// sidecars actually makes no sense and adds complications when you don't
-	// allow upstreams to be specified centrally too.
-	//
-	// Connect ConnectConfiguration
+	Kind             string
+	Name             string
+	Protocol         string
+	Mode             ProxyMode              `json:",omitempty"`
+	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig           `json:",omitempty"`
+	ExternalSNI      string                 `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig   *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
 
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -101,6 +102,7 @@ type ServiceConfigEntry struct {
 func (e *ServiceConfigEntry) Clone() *ServiceConfigEntry {
 	e2 := *e
 	e2.Expose = e.Expose.Clone()
+	e2.UpstreamConfig = e.UpstreamConfig.Clone()
 	return &e2
 }
 
@@ -130,14 +132,55 @@ func (e *ServiceConfigEntry) Normalize() error {
 
 	e.Kind = ServiceDefaults
 	e.Protocol = strings.ToLower(e.Protocol)
-
 	e.EnterpriseMeta.Normalize()
 
-	return nil
+	var validationErr error
+
+	if e.UpstreamConfig != nil {
+		for _, override := range e.UpstreamConfig.Overrides {
+			err := override.NormalizeWithName(&e.EnterpriseMeta)
+			if err != nil {
+				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.ServiceName(), err))
+			}
+		}
+
+		if e.UpstreamConfig.Defaults != nil {
+			err := e.UpstreamConfig.Defaults.NormalizeWithoutName()
+			if err != nil {
+				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream defaults: %v", err))
+			}
+		}
+	}
+
+	return validationErr
 }
 
 func (e *ServiceConfigEntry) Validate() error {
-	return validateConfigEntryMeta(e.Meta)
+	if e.Name == "" {
+		return fmt.Errorf("Name is required")
+	}
+	if e.Name == WildcardSpecifier {
+		return fmt.Errorf("service-defaults name must be the name of a service, and not a wildcard")
+	}
+
+	validationErr := validateConfigEntryMeta(e.Meta)
+
+	if e.UpstreamConfig != nil {
+		for _, override := range e.UpstreamConfig.Overrides {
+			err := override.ValidateWithName()
+			if err != nil {
+				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.ServiceName(), err))
+			}
+		}
+
+		if e.UpstreamConfig.Defaults != nil {
+			if err := e.UpstreamConfig.Defaults.ValidateWithoutName(); err != nil {
+				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream defaults: %v", err))
+			}
+		}
+	}
+
+	return validationErr
 }
 
 func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) bool {
@@ -168,17 +211,47 @@ func (e *ServiceConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
-type ConnectConfiguration struct {
-	SidecarProxy bool
+type UpstreamConfiguration struct {
+	// Overrides is a slice of per-service configuration. The name field is
+	// required.
+	Overrides []*UpstreamConfig `json:",omitempty"`
+
+	// Defaults contains default configuration for all upstreams of a given
+	// service. The name field must be empty.
+	Defaults *UpstreamConfig `json:",omitempty"`
+}
+
+func (c *UpstreamConfiguration) Clone() *UpstreamConfiguration {
+	if c == nil {
+		return nil
+	}
+
+	var c2 UpstreamConfiguration
+	if len(c.Overrides) > 0 {
+		c2.Overrides = make([]*UpstreamConfig, 0, len(c.Overrides))
+		for _, o := range c.Overrides {
+			dup := o.Clone()
+			c2.Overrides = append(c2.Overrides, &dup)
+		}
+	}
+
+	if c.Defaults != nil {
+		def2 := c.Defaults.Clone()
+		c2.Defaults = &def2
+	}
+
+	return &c2
 }
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
 type ProxyConfigEntry struct {
-	Kind        string
-	Name        string
-	Config      map[string]interface{}
-	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
-	Expose      ExposeConfig      `json:",omitempty"`
+	Kind             string
+	Name             string
+	Config           map[string]interface{}
+	Mode             ProxyMode              `json:",omitempty"`
+	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig           `json:",omitempty"`
 
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -240,7 +313,7 @@ func (e *ProxyConfigEntry) CanRead(authz acl.Authorizer) bool {
 func (e *ProxyConfigEntry) CanWrite(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.OperatorWrite(&authzContext) == acl.Allow
+	return authz.MeshWrite(&authzContext) == acl.Allow
 }
 
 func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
@@ -372,6 +445,7 @@ const (
 	ConfigEntryUpsert    ConfigEntryOp = "upsert"
 	ConfigEntryUpsertCAS ConfigEntryOp = "upsert-cas"
 	ConfigEntryDelete    ConfigEntryOp = "delete"
+	ConfigEntryDeleteCAS ConfigEntryOp = "delete-cas"
 )
 
 // ConfigEntryRequest is used when creating/updating/deleting a ConfigEntry.
@@ -457,23 +531,12 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &TerminatingGatewayConfigEntry{Name: name}, nil
 	case ServiceIntentions:
 		return &ServiceIntentionsConfigEntry{Name: name}, nil
+	case MeshConfig:
+		return &MeshConfigEntry{}, nil
+	case ExportedServices:
+		return &ExportedServicesConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
-	}
-}
-
-func ValidateConfigEntryKind(kind string) bool {
-	switch kind {
-	case ServiceDefaults, ProxyDefaults:
-		return true
-	case ServiceRouter, ServiceSplitter, ServiceResolver:
-		return true
-	case IngressGateway, TerminatingGateway:
-		return true
-	case ServiceIntentions:
-		return true
-	default:
-		return false
 	}
 }
 
@@ -542,12 +605,20 @@ func (r *ConfigEntryListAllRequest) RequestDatacenter() string {
 type ServiceConfigRequest struct {
 	Name       string
 	Datacenter string
+
+	// MeshGateway contains the mesh gateway configuration from the requesting proxy's registration
+	MeshGateway MeshGatewayConfig
+
+	// Mode indicates how the requesting proxy's listeners are dialed
+	Mode ProxyMode
+
+	UpstreamIDs []ServiceID
+
 	// DEPRECATED
 	// Upstreams is a list of upstream service names to use for resolving the service config
 	// UpstreamIDs should be used instead which can encode more than just the name to
 	// uniquely identify a service.
-	Upstreams   []string
-	UpstreamIDs []ServiceID
+	Upstreams []string
 
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
@@ -573,13 +644,21 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 	// the slice would affect cache keys if we ever persist between agent restarts
 	// and change it.
 	v, err := hashstructure.Hash(struct {
-		Name           string
-		EnterpriseMeta EnterpriseMeta
-		Upstreams      []string `hash:"set"`
+		Name              string
+		EnterpriseMeta    EnterpriseMeta
+		Upstreams         []string    `hash:"set"`
+		UpstreamIDs       []ServiceID `hash:"set"`
+		MeshGatewayConfig MeshGatewayConfig
+		ProxyMode         ProxyMode
+		Filter            string
 	}{
-		Name:           r.Name,
-		EnterpriseMeta: r.EnterpriseMeta,
-		Upstreams:      r.Upstreams,
+		Name:              r.Name,
+		EnterpriseMeta:    r.EnterpriseMeta,
+		Upstreams:         r.Upstreams,
+		UpstreamIDs:       r.UpstreamIDs,
+		ProxyMode:         r.Mode,
+		MeshGatewayConfig: r.MeshGateway,
+		Filter:            r.QueryOptions.Filter,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -592,13 +671,303 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 }
 
 type UpstreamConfig struct {
+	// Name is only accepted within a service-defaults config entry.
+	Name string `json:",omitempty"`
+	// EnterpriseMeta is only accepted within a service-defaults config entry.
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+
+	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
+	// listener.
+	//
+	// Note: This escape hatch is NOT compatible with the discovery chain and
+	// will be ignored if a discovery chain is active.
+	EnvoyListenerJSON string `json:",omitempty" alias:"envoy_listener_json"`
+
+	// EnvoyClusterJSON is a complete override ("escape hatch") for the upstream's
+	// cluster. The Connect client TLS certificate and context will be injected
+	// overriding any TLS settings present.
+	//
+	// Note: This escape hatch is NOT compatible with the discovery chain and
+	// will be ignored if a discovery chain is active.
+	EnvoyClusterJSON string `json:",omitempty" alias:"envoy_cluster_json"`
+
+	// Protocol describes the upstream's service protocol. Valid values are "tcp",
+	// "http" and "grpc". Anything else is treated as tcp. The enables protocol
+	// aware features like per-request metrics and connection pooling, tracing,
+	// routing etc.
+	Protocol string `json:",omitempty"`
+
+	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
+	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
+	ConnectTimeoutMs int `json:",omitempty" alias:"connect_timeout_ms"`
+
+	// Limits are the set of limits that are applied to the proxy for a specific upstream of a
+	// service instance.
+	Limits *UpstreamLimits `json:",omitempty"`
+
+	// PassiveHealthCheck configuration determines how upstream proxy instances will
+	// be monitored for removal from the load balancing pool.
+	PassiveHealthCheck *PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
+
+	// MeshGatewayConfig controls how Mesh Gateways are configured and used
+	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
+}
+
+func (cfg UpstreamConfig) Clone() UpstreamConfig {
+	cfg2 := cfg
+
+	cfg2.Limits = cfg.Limits.Clone()
+	cfg2.PassiveHealthCheck = cfg.PassiveHealthCheck.Clone()
+
+	return cfg2
+}
+
+func (cfg *UpstreamConfig) ServiceID() ServiceID {
+	if cfg.Name == "" {
+		return ServiceID{}
+	}
+	return NewServiceID(cfg.Name, &cfg.EnterpriseMeta)
+}
+
+func (cfg *UpstreamConfig) ServiceName() ServiceName {
+	if cfg.Name == "" {
+		return ServiceName{}
+	}
+	return NewServiceName(cfg.Name, &cfg.EnterpriseMeta)
+}
+
+func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
+	// Avoid storing empty values in the map, since these can act as overrides
+	if cfg.EnvoyListenerJSON != "" {
+		dst["envoy_listener_json"] = cfg.EnvoyListenerJSON
+	}
+	if cfg.EnvoyClusterJSON != "" {
+		dst["envoy_cluster_json"] = cfg.EnvoyClusterJSON
+	}
+	if cfg.Protocol != "" {
+		dst["protocol"] = cfg.Protocol
+	}
+	if cfg.ConnectTimeoutMs != 0 {
+		dst["connect_timeout_ms"] = cfg.ConnectTimeoutMs
+	}
+	if !cfg.MeshGateway.IsZero() {
+		dst["mesh_gateway"] = cfg.MeshGateway
+	}
+	if cfg.Limits != nil {
+		dst["limits"] = cfg.Limits
+	}
+	if cfg.PassiveHealthCheck != nil {
+		dst["passive_health_check"] = cfg.PassiveHealthCheck
+	}
+}
+
+func (cfg *UpstreamConfig) NormalizeWithoutName() error {
+	return cfg.normalize(false, nil)
+}
+func (cfg *UpstreamConfig) NormalizeWithName(entMeta *EnterpriseMeta) error {
+	return cfg.normalize(true, entMeta)
+}
+func (cfg *UpstreamConfig) normalize(named bool, entMeta *EnterpriseMeta) error {
+	if named {
+		// If the upstream namespace is omitted it inherits that of the enclosing
+		// config entry.
+		cfg.EnterpriseMeta.MergeNoWildcard(entMeta)
+		cfg.EnterpriseMeta.Normalize()
+	}
+
+	cfg.Protocol = strings.ToLower(cfg.Protocol)
+
+	if cfg.ConnectTimeoutMs < 0 {
+		cfg.ConnectTimeoutMs = 0
+	}
+	return nil
+}
+
+func (cfg UpstreamConfig) ValidateWithoutName() error {
+	return cfg.validate(false)
+}
+func (cfg UpstreamConfig) ValidateWithName() error {
+	return cfg.validate(true)
+}
+func (cfg UpstreamConfig) validate(named bool) error {
+	if named {
+		if cfg.Name == "" {
+			return fmt.Errorf("Name is required")
+		}
+		if cfg.Name == WildcardSpecifier {
+			return fmt.Errorf("Wildcard name is not supported")
+		}
+		if cfg.EnterpriseMeta.NamespaceOrDefault() == WildcardSpecifier {
+			return fmt.Errorf("Wildcard namespace is not supported")
+		}
+	} else {
+		if cfg.Name != "" {
+			return fmt.Errorf("Name must be empty")
+		}
+		if cfg.EnterpriseMeta.NamespaceOrEmpty() != "" {
+			return fmt.Errorf("Namespace must be empty")
+		}
+		if cfg.EnterpriseMeta.PartitionOrEmpty() != "" {
+			return fmt.Errorf("Partition must be empty")
+		}
+	}
+
+	var validationErr error
+
+	if cfg.PassiveHealthCheck != nil {
+		err := cfg.PassiveHealthCheck.Validate()
+		if err != nil {
+			validationErr = multierror.Append(validationErr, err)
+		}
+	}
+
+	if cfg.Limits != nil {
+		err := cfg.Limits.Validate()
+		if err != nil {
+			validationErr = multierror.Append(validationErr, err)
+		}
+	}
+
+	return validationErr
+}
+
+func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, error) {
+	var cfg UpstreamConfig
+	config := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+			mapstructure.StringToTimeDurationHookFunc(),
+		),
+		Result:           &cfg,
+		WeaklyTypedInput: true,
+	}
+
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return cfg, err
+	}
+
+	if err := decoder.Decode(m); err != nil {
+		return cfg, err
+	}
+
+	err = cfg.NormalizeWithoutName()
+
+	return cfg, err
+}
+
+// ParseUpstreamConfig returns the UpstreamConfig parsed from an opaque map.
+// If an error occurs during parsing it is returned along with the default
+// config this allows caller to choose whether and how to report the error.
+func ParseUpstreamConfig(m map[string]interface{}) (UpstreamConfig, error) {
+	cfg, err := ParseUpstreamConfigNoDefaults(m)
+
+	// Set default (even if error is returned)
+	if cfg.Protocol == "" {
+		cfg.Protocol = "tcp"
+	}
+	if cfg.ConnectTimeoutMs == 0 {
+		cfg.ConnectTimeoutMs = 5000
+	}
+
+	return cfg, err
+}
+
+type PassiveHealthCheck struct {
+	// Interval between health check analysis sweeps. Each sweep may remove
+	// hosts or return hosts to the pool.
+	Interval time.Duration `json:",omitempty"`
+
+	// MaxFailures is the count of consecutive failures that results in a host
+	// being removed from the pool.
+	MaxFailures uint32 `json:",omitempty" alias:"max_failures"`
+}
+
+func (chk *PassiveHealthCheck) Clone() *PassiveHealthCheck {
+	if chk == nil {
+		return nil
+	}
+	chk2 := *chk
+	return &chk2
+}
+
+func (chk *PassiveHealthCheck) IsZero() bool {
+	zeroVal := PassiveHealthCheck{}
+	return *chk == zeroVal
+}
+
+func (chk PassiveHealthCheck) Validate() error {
+	if chk.Interval < 0*time.Second {
+		return fmt.Errorf("passive health check interval cannot be negative")
+	}
+	return nil
+}
+
+// UpstreamLimits describes the limits that are associated with a specific
+// upstream of a service instance.
+type UpstreamLimits struct {
+	// MaxConnections is the maximum number of connections the local proxy can
+	// make to the upstream service.
+	MaxConnections *int `json:",omitempty" alias:"max_connections"`
+
+	// MaxPendingRequests is the maximum number of requests that will be queued
+	// waiting for an available connection. This is mostly applicable to HTTP/1.1
+	// clusters since all HTTP/2 requests are streamed over a single
+	// connection.
+	MaxPendingRequests *int `json:",omitempty" alias:"max_pending_requests"`
+
+	// MaxConcurrentRequests is the maximum number of in-flight requests that will be allowed
+	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
+	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
+	MaxConcurrentRequests *int `json:",omitempty" alias:"max_concurrent_requests"`
+}
+
+func (ul *UpstreamLimits) Clone() *UpstreamLimits {
+	if ul == nil {
+		return nil
+	}
+	return &UpstreamLimits{
+		MaxConnections:        intPointerCopy(ul.MaxConnections),
+		MaxPendingRequests:    intPointerCopy(ul.MaxPendingRequests),
+		MaxConcurrentRequests: intPointerCopy(ul.MaxConcurrentRequests),
+	}
+}
+
+func intPointerCopy(v *int) *int {
+	if v == nil {
+		return nil
+	}
+	v2 := *v
+	return &v2
+}
+
+func (ul *UpstreamLimits) IsZero() bool {
+	zeroVal := UpstreamLimits{}
+	return *ul == zeroVal
+}
+
+func (ul UpstreamLimits) Validate() error {
+	if ul.MaxConnections != nil && *ul.MaxConnections < 0 {
+		return fmt.Errorf("max connections cannot be negative")
+	}
+	if ul.MaxPendingRequests != nil && *ul.MaxPendingRequests < 0 {
+		return fmt.Errorf("max pending requests cannot be negative")
+	}
+	if ul.MaxConcurrentRequests != nil && *ul.MaxConcurrentRequests < 0 {
+		return fmt.Errorf("max concurrent requests cannot be negative")
+	}
+	return nil
+}
+
+type OpaqueUpstreamConfig struct {
 	Upstream ServiceID
 	Config   map[string]interface{}
 }
 
-type UpstreamConfigs []UpstreamConfig
+type OpaqueUpstreamConfigs []OpaqueUpstreamConfig
 
-func (configs UpstreamConfigs) GetUpstreamConfig(sid ServiceID) (config map[string]interface{}, found bool) {
+func (configs OpaqueUpstreamConfigs) GetUpstreamConfig(sid ServiceID) (config map[string]interface{}, found bool) {
 	for _, usconf := range configs {
 		if usconf.Upstream.Matches(sid) {
 			return usconf.Config, true
@@ -611,16 +980,12 @@ func (configs UpstreamConfigs) GetUpstreamConfig(sid ServiceID) (config map[stri
 type ServiceConfigResponse struct {
 	ProxyConfig       map[string]interface{}
 	UpstreamConfigs   map[string]map[string]interface{}
-	UpstreamIDConfigs UpstreamConfigs
-	MeshGateway       MeshGatewayConfig `json:",omitempty"`
-	Expose            ExposeConfig      `json:",omitempty"`
+	UpstreamIDConfigs OpaqueUpstreamConfigs
+	MeshGateway       MeshGatewayConfig      `json:",omitempty"`
+	Expose            ExposeConfig           `json:",omitempty"`
+	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
+	Mode              ProxyMode              `json:",omitempty"`
 	QueryMeta
-}
-
-func (r *ServiceConfigResponse) Reset() {
-	r.ProxyConfig = nil
-	r.UpstreamConfigs = nil
-	r.MeshGateway = MeshGatewayConfig{}
 }
 
 // MarshalBinary writes ServiceConfigResponse as msgpack encoded. It's only here
@@ -739,30 +1104,6 @@ func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// ConfigEntryKindName is a value type useful for maps. You can use:
-//     map[ConfigEntryKindName]Payload
-// instead of:
-//     map[string]map[string]Payload
-type ConfigEntryKindName struct {
-	Kind string
-	Name string
-	EnterpriseMeta
-}
-
-func NewConfigEntryKindName(kind, name string, entMeta *EnterpriseMeta) ConfigEntryKindName {
-	ret := ConfigEntryKindName{
-		Kind: kind,
-		Name: name,
-	}
-	if entMeta == nil {
-		entMeta = DefaultEnterpriseMeta()
-	}
-
-	ret.EnterpriseMeta = *entMeta
-	ret.EnterpriseMeta.Normalize()
-	return ret
-}
-
 func validateConfigEntryMeta(meta map[string]string) error {
 	var err error
 	if len(meta) > metaMaxKeyPairs {
@@ -780,4 +1121,8 @@ func validateConfigEntryMeta(meta map[string]string) error {
 		}
 	}
 	return err
+}
+
+type ConfigEntryDeleteResponse struct {
+	Deleted bool
 }

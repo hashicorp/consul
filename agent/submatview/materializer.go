@@ -10,7 +10,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
@@ -32,7 +31,7 @@ type View interface {
 	// separately and passed in in case the return type needs an Index field
 	// populating. This allows implementations to not worry about maintaining
 	// indexes seen during Update.
-	Result(index uint64) (interface{}, error)
+	Result(index uint64) interface{}
 
 	// Reset the view to the zero state, done in preparation for receiving a new
 	// snapshot.
@@ -79,6 +78,18 @@ func NewMaterializer(deps Deps) *Materializer {
 		view:        deps.View,
 		retryWaiter: deps.Waiter,
 		updateCh:    make(chan struct{}),
+	}
+	if v.retryWaiter == nil {
+		v.retryWaiter = &retry.Waiter{
+			MinFailures: 1,
+			// Start backing off with small increments (200-400ms) which will double
+			// each attempt. (200-400, 400-800, 800-1600, 1600-3200, 3200-6000, 6000
+			// after that). (retry.Wait applies Max limit after jitter right now).
+			Factor:  200 * time.Millisecond,
+			MinWait: 0,
+			MaxWait: 60 * time.Second,
+			Jitter:  retry.NewJitter(100),
+		}
 	}
 	return v
 }
@@ -204,81 +215,66 @@ func (m *Materializer) notifyUpdateLocked(err error) {
 	m.updateCh = make(chan struct{})
 }
 
-// Fetch implements the logic a StreamingCacheType will need during it's Fetch
-// call. Cache types that use streaming should just be able to proxy to this
-// once they have a subscription object and return it's results directly.
-func (m *Materializer) Fetch(done <-chan struct{}, opts cache.FetchOptions) (cache.FetchResult, error) {
-	var result cache.FetchResult
+// Result returned from the View.
+type Result struct {
+	Index uint64
+	Value interface{}
+	// Cached is true if the requested value was already available locally. If
+	// the value is false, it indicates that getFromView had to wait for an update,
+	Cached bool
+}
 
-	// Get current view Result and index
+// getFromView blocks until the index of the View is greater than opts.MinIndex,
+//or the context is cancelled.
+func (m *Materializer) getFromView(ctx context.Context, minIndex uint64) (Result, error) {
 	m.lock.Lock()
-	index := m.index
-	val, err := m.view.Result(m.index)
+
+	result := Result{
+		Index: m.index,
+		Value: m.view.Result(m.index),
+	}
+
 	updateCh := m.updateCh
 	m.lock.Unlock()
 
-	if err != nil {
-		return result, err
-	}
-
-	result.Index = index
-	result.Value = val
-
 	// If our index is > req.Index return right away. If index is zero then we
 	// haven't loaded a snapshot at all yet which means we should wait for one on
-	// the update chan. Note it's opts.MinIndex that the cache is using here the
-	// request min index might be different and from initial user request.
-	if index > 0 && index > opts.MinIndex {
+	// the update chan.
+	if result.Index > 0 && result.Index > minIndex {
+		result.Cached = true
 		return result, nil
 	}
 
-	// Watch for timeout of the Fetch. Note it's opts.Timeout not req.Timeout
-	// since that is the timeout the client requested from the cache Get while the
-	// options one is the internal "background refresh" timeout which is what the
-	// Fetch call should be using.
-	timeoutCh := time.After(opts.Timeout)
 	for {
 		select {
 		case <-updateCh:
 			// View updated, return the new result
 			m.lock.Lock()
 			result.Index = m.index
-			// Grab the new updateCh in case we need to keep waiting for the next
-			// update.
-			updateCh = m.updateCh
-			fetchErr := m.err
-			if fetchErr == nil {
-				// Only generate a new result if there was no error to avoid pointless
-				// work potentially shuffling the same data around.
-				result.Value, err = m.view.Result(m.index)
-			}
-			m.lock.Unlock()
 
-			// If there was a non-transient error return it
-			if fetchErr != nil {
-				return result, fetchErr
-			}
-			if err != nil {
+			switch {
+			case m.err != nil:
+				err := m.err
+				m.lock.Unlock()
 				return result, err
-			}
-
-			// Sanity check the update is actually later than the one the user
-			// requested.
-			if result.Index <= opts.MinIndex {
-				// The result is still older/same as the requested index, continue to
-				// wait for further updates.
+			case result.Index <= minIndex:
+				// get a reference to the new updateCh, the previous one was closed
+				updateCh = m.updateCh
+				m.lock.Unlock()
 				continue
 			}
 
-			// Return the updated result
+			result.Value = m.view.Result(m.index)
+			m.lock.Unlock()
 			return result, nil
 
-		case <-timeoutCh:
-			// Just return whatever we got originally, might still be empty
-			return result, nil
-
-		case <-done:
-			return result, context.Canceled
+		case <-ctx.Done():
+			// Update the result value to the latest because callers may still
+			// use the value when the error is context.DeadlineExceeded
+			m.lock.Lock()
+			result.Value = m.view.Result(m.index)
+			m.lock.Unlock()
+			return result, ctx.Err()
 		}
 	}
 }

@@ -58,6 +58,23 @@ type AutopilotConfiguration struct {
 	ModifyIndex uint64
 }
 
+// Defines default values for the AutopilotConfiguration type, consistent with
+// https://www.consul.io/api-docs/operator/autopilot#parameters-1
+func NewAutopilotConfiguration() AutopilotConfiguration {
+	cfg := AutopilotConfiguration{
+		CleanupDeadServers:      true,
+		LastContactThreshold:    NewReadableDuration(200 * time.Millisecond),
+		MaxTrailingLogs:         250,
+		MinQuorum:               0,
+		ServerStabilizationTime: NewReadableDuration(10 * time.Second),
+		RedundancyZoneTag:       "",
+		DisableUpgradeMigration: false,
+		UpgradeVersionTag:       "",
+	}
+
+	return cfg
+}
+
 // ServerHealth is the health (from the leader's point of view) of a server.
 type ServerHealth struct {
 	// ID is the raft ID of the server.
@@ -280,11 +297,14 @@ func (d *ReadableDuration) UnmarshalJSON(raw []byte) (err error) {
 func (op *Operator) AutopilotGetConfiguration(q *QueryOptions) (*AutopilotConfiguration, error) {
 	r := op.c.newRequest("GET", "/v1/operator/autopilot/configuration")
 	r.setQueryOptions(q)
-	_, resp, err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	var out AutopilotConfiguration
 	if err := decodeBody(resp, &out); err != nil {
@@ -299,11 +319,14 @@ func (op *Operator) AutopilotSetConfiguration(conf *AutopilotConfiguration, q *W
 	r := op.c.newRequest("PUT", "/v1/operator/autopilot/configuration")
 	r.setWriteOptions(q)
 	r.obj = conf
-	_, resp, err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -315,11 +338,14 @@ func (op *Operator) AutopilotCASConfiguration(conf *AutopilotConfiguration, q *W
 	r.setWriteOptions(q)
 	r.params.Set("cas", strconv.FormatUint(conf.ModifyIndex, 10))
 	r.obj = conf
-	_, resp, err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
 		return false, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return false, err
+	}
 
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, resp.Body); err != nil {
@@ -334,11 +360,18 @@ func (op *Operator) AutopilotCASConfiguration(conf *AutopilotConfiguration, q *W
 func (op *Operator) AutopilotServerHealth(q *QueryOptions) (*OperatorHealthReply, error) {
 	r := op.c.newRequest("GET", "/v1/operator/autopilot/health")
 	r.setQueryOptions(q)
-	_, resp, err := requireOK(op.c.doRequest(r))
+
+	// we use 429 status to indicate unhealthiness
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	err = requireHttpCodes(resp, 200, 429)
+	if err != nil {
+		return nil, err
+	}
+	defer closeResponseBody(resp)
 
 	var out OperatorHealthReply
 	if err := decodeBody(resp, &out); err != nil {
@@ -350,11 +383,14 @@ func (op *Operator) AutopilotServerHealth(q *QueryOptions) (*OperatorHealthReply
 func (op *Operator) AutopilotState(q *QueryOptions) (*AutopilotState, error) {
 	r := op.c.newRequest("GET", "/v1/operator/autopilot/state")
 	r.setQueryOptions(q)
-	_, resp, err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	var out AutopilotState
 	if err := decodeBody(resp, &out); err != nil {

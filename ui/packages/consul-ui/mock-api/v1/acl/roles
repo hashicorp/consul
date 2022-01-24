@@ -19,6 +19,9 @@ ${ env('CONSUL_ACLS_LEGACY', false) ? `rpc error making call: rpc: can't find me
 ${typeof location.search.ns !== 'undefined' ? `
             "Namespace": "${location.search.ns}",
 ` : ``}
+${typeof location.search.partition !== 'undefined' ? `
+            "Partition": "${location.search.partition}",
+` : ``}
             "Description": "${fake.lorem.sentence()}",
             "Policies": [
               ${

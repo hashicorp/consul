@@ -100,7 +100,13 @@ function is_set {
 
 function get_cert {
   local HOSTPORT=$1
-  CERT=$(openssl s_client -connect $HOSTPORT -showcerts </dev/null)
+  local SERVER_NAME=$2
+  local CA_FILE=$3
+  local SNI_FLAG=""
+  if [ -n "$SERVER_NAME" ]; then
+    SNI_FLAG="-servername $SERVER_NAME"
+  fi
+  CERT=$(openssl s_client -connect $HOSTPORT $SNI_FLAG -showcerts </dev/null)
   openssl x509 -noout -text <<< "$CERT"
 }
 
@@ -109,27 +115,50 @@ function assert_proxy_presents_cert_uri {
   local SERVICENAME=$2
   local DC=${3:-primary}
   local NS=${4:-default}
+  local PARTITION=${5:default}
 
   CERT=$(retry_default get_cert $HOSTPORT)
 
-  echo "WANT SERVICE: ${NS}/${SERVICENAME}"
+  echo "WANT SERVICE: ${PARTITION}/${NS}/${SERVICENAME}"
   echo "GOT CERT:"
   echo "$CERT"
 
-  echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
+  if [[ -z $PARTITION ]] || [[ $PARTITION = "default" ]]; then
+    echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
+  else
+    echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ap/${PARTITION}/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
+  fi
 }
 
 function assert_dnssan_in_cert {
   local HOSTPORT=$1
   local DNSSAN=$2
+  local SERVER_NAME=${3:-$DNSSAN}
 
-  CERT=$(retry_default get_cert $HOSTPORT)
+  CERT=$(retry_default get_cert $HOSTPORT $SERVER_NAME)
 
-  echo "WANT DNSSAN: ${DNSSAN}"
+  echo "WANT DNSSAN: ${DNSSAN} (SNI: ${SERVER_NAME})"
   echo "GOT CERT:"
   echo "$CERT"
 
   echo "$CERT" | grep -Eo "DNS:${DNSSAN}"
+}
+
+function assert_cert_signed_by_ca {
+  local CA_FILE=$1
+  local HOSTPORT=$2
+  local DNSSAN=$3
+  local SERVER_NAME=${4:-$DNSSAN}
+  local SNI_FLAG=""
+  if [ -n "$SERVER_NAME" ]; then
+    SNI_FLAG="-servername $SERVER_NAME"
+  fi
+  CERT=$(openssl s_client -connect $HOSTPORT $SNI_FLAG -CAfile $CA_FILE -showcerts </dev/null)
+
+  echo "GOT CERT:"
+  echo "$CERT"
+
+  echo "$CERT" | grep 'Verify return code: 0 (ok)'
 }
 
 function assert_envoy_version {
@@ -229,6 +258,33 @@ function get_envoy_http_filters {
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.filters.network.http_connection_manager") | .typed_config.http_filters | map(.name) | join(","))"'
+}
+
+function get_envoy_dynamic_cluster_once {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  run curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output ".configs[] | select (.[\"@type\"] == \"type.googleapis.com/envoy.admin.v3.ClustersConfigDump\") | .dynamic_active_clusters[] | select(.cluster.name | startswith(\"${NAME_PREFIX}\"))"
+}
+
+function assert_envoy_dynamic_cluster_exists_once {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  local EXPECT_SNI=$3
+  BODY="$(get_envoy_dynamic_cluster_once $HOSTPORT $NAME_PREFIX)"
+  [ -n "$BODY" ]
+
+  SNI="$(echo "$BODY" | jq --raw-output ".cluster.transport_socket.typed_config.sni | select(. | startswith(\"${EXPECT_SNI}\"))")"
+  [ -n "$SNI" ]
+}
+
+function assert_envoy_dynamic_cluster_exists {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  local EXPECT_SNI=$3
+  run retry_long assert_envoy_dynamic_cluster_exists_once $HOSTPORT $NAME_PREFIX $EXPECT_SNI
+  [ "$status" -eq 0 ]
 }
 
 function get_envoy_cluster_config {
@@ -489,6 +545,13 @@ function docker_consul {
   docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
 }
 
+function docker_consul_for_proxy_bootstrap {
+  local DC=$1
+  shift 1
+
+  docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
+}
+
 function docker_wget {
   local DC=$1
   shift 1
@@ -515,26 +578,11 @@ function docker_consul_exec {
   docker_exec envoy_consul-${DC}_1 "$@"
 }
 
-function get_envoy_pid {
-  local BOOTSTRAP_NAME=$1
-  local DC=${2:-primary}
-  run ps aux
-  [ "$status" == 0 ]
-  echo "$output" 1>&2
-  PID="$(echo "$output" | grep "envoy -c /workdir/$DC/envoy/${BOOTSTRAP_NAME}-bootstrap.json" | awk '{print $1}')"
-  [ -n "$PID" ]
-
-  echo "$PID"
-}
-
 function kill_envoy {
   local BOOTSTRAP_NAME=$1
   local DC=${2:-primary}
 
-  PID="$(get_envoy_pid $BOOTSTRAP_NAME "$DC")"
-  echo "PID = $PID"
-
-  kill -TERM $PID
+  pkill -TERM -f "envoy -c /workdir/$DC/envoy/${BOOTSTRAP_NAME}-bootstrap.json"
 }
 
 function must_match_in_statsd_logs {
@@ -696,7 +744,7 @@ function gen_envoy_bootstrap {
     PROXY_ID="$SERVICE-sidecar-proxy"
   fi
 
-  if output=$(docker_consul "$DC" connect envoy -bootstrap \
+  if output=$(docker_consul_for_proxy_bootstrap "$DC" connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
     -envoy-version "$ENVOY_VERSION" \
     -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
@@ -798,8 +846,25 @@ function get_upstream_fortio_name {
   if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
       extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
   fi
-  run retry_default curl -v -s -f -H"Host: ${HOST}" $extra_args \
-      "localhost:${PORT}${PREFIX}/debug?env=dump"
+  # split proto if https:// is at the front of the host since the --resolve
+  # string needs just a bare host.
+  local PROTO=""
+  local CA_FILE=""
+  if [ "${HOST:0:8}" = "https://" ]; then
+    HOST="${HOST:8}"
+    PROTO="https://"
+    extra_args="${extra_args} --cacert /workdir/test-sds-server/certs/ca-root.crt"
+  fi
+  # We use --resolve instead of setting a Host header since we need the right
+  # name to be sent for SNI in some cases too.
+  run retry_default curl -v -s -f --resolve "${HOST}:${PORT}:127.0.0.1" $extra_args \
+      "${PROTO}${HOST}:${PORT}${PREFIX}/debug?env=dump"
+
+  # Useful Debugging but breaks the expectation that the value output is just
+  # the grep output when things don't fail
+  if [ "$status" != 0 ]; then
+    echo "GOT FORTIO OUTPUT: $output"
+  fi
   [ "$status" == 0 ]
   echo "$output" | grep -E "^FORTIO_NAME="
 }
@@ -811,12 +876,12 @@ function assert_expected_fortio_name {
   local URL_PREFIX=${4:-""}
   local DEBUG_HEADER_VALUE="${5:-""}"
 
-  GOT=$(get_upstream_fortio_name ${HOST} ${PORT} "${URL_PREFIX}" "${DEBUG_HEADER_VALUE}")
+  run get_upstream_fortio_name ${HOST} ${PORT} "${URL_PREFIX}" "${DEBUG_HEADER_VALUE}"
 
-  if [ "$GOT" != "FORTIO_NAME=${EXPECT_NAME}" ]; then
-    echo "expected name: $EXPECT_NAME, actual name: $GOT" 1>&2
-    return 1
-  fi
+  echo "GOT: $output"
+
+  [ "$status" == 0 ]
+  [ "$output" == "FORTIO_NAME=${EXPECT_NAME}" ]
 }
 
 function assert_expected_fortio_name_pattern {
@@ -832,6 +897,36 @@ function assert_expected_fortio_name_pattern {
       :
   else
     echo "expected name pattern: $EXPECT_NAME_PATTERN, actual name: $GOT" 1>&2
+    return 1
+  fi
+}
+
+function get_upstream_fortio_host_header {
+  local HOST=$1
+  local PORT=$2
+  local PREFIX=$3
+  local DEBUG_HEADER_VALUE="${4:-""}"
+  local extra_args
+  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
+      extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
+  fi
+  run retry_default curl -v -s -f -H"Host: ${HOST}" $extra_args \
+      "localhost:${PORT}${PREFIX}/debug"
+  [ "$status" == 0 ]
+  echo "$output" | grep -E "^Host: "
+}
+
+function assert_expected_fortio_host_header {
+  local EXPECT_HOST=$1
+  local HOST=${2:-"localhost"}
+  local PORT=${3:-5000}
+  local URL_PREFIX=${4:-""}
+  local DEBUG_HEADER_VALUE="${5:-""}"
+
+  GOT=$(get_upstream_fortio_host_header ${HOST} ${PORT} "${URL_PREFIX}" "${DEBUG_HEADER_VALUE}")
+
+  if [ "$GOT" != "Host: ${EXPECT_HOST}" ]; then
+    echo "expected Host header: $EXPECT_HOST, actual Host header: $GOT" 1>&2
     return 1
   fi
 }

@@ -1,13 +1,14 @@
 {{#if (not @noMetricsReason)}}
   <DataSource
     @src={{uri
-      '/${nspace}/${dc}/metrics/${endpoint}/${service}/${protocol}'
+      '/${partition}/${nspace}/${dc}/metrics/${endpoint}/${service}/${protocol}'
       (hash
         nspace=@nspace
+        partition=@partition
         dc=@dc
         endpoint=@endpoint
         service=@service
-        protocol=@protocol
+        protocol=(or @protocol '')
       )
     }}
     @onchange={{action 'statsUpdate'}}
@@ -15,7 +16,7 @@
   />
 {{/if}}
 
-<div class="stats">
+<div ...attributes class="topology-metrics-stats" data-test-topology-metrics-stats>
   {{#if hasLoaded }}
     {{#each stats as |stat|}}
     <dl {{tooltip

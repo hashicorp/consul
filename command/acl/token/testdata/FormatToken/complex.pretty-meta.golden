@@ -3,7 +3,7 @@ SecretID:         869c6e91-4de9-4dab-b56e-87548435f9c6
 Namespace:        foo
 Description:      test token
 Local:            false
-Auth Method:      bar
+Auth Method:      bar (Namespace: baz)
 Create Time:      2020-05-22 18:52:31 +0000 UTC
 Expiration Time:  2020-05-22 19:52:31 +0000 UTC
 Hash:             6162636465666768

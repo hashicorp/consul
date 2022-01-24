@@ -21,3 +21,18 @@
   transition-timing-function: cubic-bezier(0.1, 0.1, 0.25, 0.9);
   transition-duration: 0.1s;
 }
+%animation-pushover {
+  animation-timing-function: cubic-bezier(0.1, 0.1, 0.25, 0.9);
+  animation-duration: 0.1s;
+}
+%animation-remove-from-flow {
+  animation-name: remove-from-flow;
+  animation-fill-mode: forwards;
+}
+@keyframes remove-from-flow {
+  100% {
+    visibility: hidden;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}

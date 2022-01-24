@@ -22,10 +22,12 @@ ${legacy ? `
             "Action": "${fake.helpers.randomize(['allow', 'deny'])}",
 `:``}
             "Description": "${fake.lorem.sentence()}",
-            "SourceNS": "default",
             "SourceName": "${fake.hacker.noun()}-${i}",
-            "DestinationNS": "default",
             "DestinationName": "${fake.hacker.noun()}",
+            "SourceNS": "default",
+            "DestinationNS": "default",
+            "SourcePartition": "default",
+            "DestinationPartition": "default",
             "SourceType": "${fake.helpers.randomize(['consul', 'externaluri'])}",
 ${!legacy ? `
             "Permissions": [
@@ -94,7 +96,7 @@ ${fake.helpers.randomize([
             "Precedence": ${i + 1},
 ${ fake.random.number({min: 1, max: 10}) > 2 ? `
             "Meta": {
-              "external-source": "${fake.helpers.randomize(['kubernetes'])}"
+              "external-source": "${fake.helpers.randomize(['kubernetes', 'consul-api-gateway'])}"
             },
 ` : `` }
             "CreatedAt": "2018-05-21T16:41:27.977155457Z",

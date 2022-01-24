@@ -11,6 +11,21 @@ Feature: dc / acls / tokens / index: ACL Token List
     Then the url should be /dc-1/acls/tokens
     And the title should be "Tokens - Consul"
     Then I see 3 token models
+  Scenario: Viewing tokens with no write access
+    Given 1 datacenter model with the value "dc-1"
+    And 3 token models
+    And permissions from yaml
+    ---
+    acl:
+      write: false
+    ---
+    When I visit the tokens page for yaml
+    ---
+      dc: dc-1
+    ---
+    Then the url should be /dc-1/acls/tokens
+    And I don't see create
+
   Scenario: Searching the tokens
     Given 1 datacenter model with the value "dc-1"
     And 4 token models from yaml

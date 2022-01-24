@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package structs
@@ -55,19 +56,19 @@ func (_ *ACLAuthMethodEnterpriseMeta) FillWithEnterpriseMeta(_ *EnterpriseMeta) 
 }
 
 func (_ *ACLAuthMethodEnterpriseMeta) ToEnterpriseMeta() *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 func aclServiceIdentityRules(svc string, _ *EnterpriseMeta) string {
 	return fmt.Sprintf(aclPolicyTemplateServiceIdentity, svc)
 }
 
-func (p *ACLPolicy) EnterprisePolicyMeta() *acl.EnterprisePolicyMeta {
-	return nil
+func aclNodeIdentityRules(node string, _ *EnterpriseMeta) string {
+	return fmt.Sprintf(aclPolicyTemplateNodeIdentity, node)
 }
 
-func (m *ACLAuthMethod) TargetEnterpriseMeta(_ *EnterpriseMeta) *EnterpriseMeta {
-	return &m.EnterpriseMeta
+func (p *ACLPolicy) EnterprisePolicyMeta() *acl.EnterprisePolicyMeta {
+	return nil
 }
 
 func (t *ACLToken) NodeIdentityList() []*ACLNodeIdentity {
@@ -92,4 +93,8 @@ func (r *ACLRole) NodeIdentityList() []*ACLNodeIdentity {
 		out = append(out, n.Clone())
 	}
 	return out
+}
+
+func IsValidPartitionAndDatacenter(meta EnterpriseMeta, datacenters []string, primaryDatacenter string) bool {
+	return true
 }

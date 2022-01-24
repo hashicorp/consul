@@ -11,17 +11,11 @@
   .radio-card header > * {
     display: inline;
   }
-  .value-allow > :last-child::before {
-    @extend %with-arrow-right-color-icon, %as-pseudo;
-  }
-  .value-deny > :last-child::before {
-    @extend %with-deny-color-icon, %as-pseudo;
-  }
   .permissions > button {
     @extend %anchor, %p2;
     float: right;
   }
 }
-.consul-intention-permission-modal [role="dialog"] > div > div {
+.consul-intention-permission-modal [role='dialog'] {
   width: 100%;
 }

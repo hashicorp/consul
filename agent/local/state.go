@@ -58,6 +58,7 @@ type Config struct {
 	DiscardCheckOutput  bool
 	NodeID              types.NodeID
 	NodeName            string
+	Partition           string // this defaults if empty
 	TaggedAddresses     map[string]string
 }
 
@@ -176,6 +177,8 @@ type State struct {
 	// Config is the agent config
 	config Config
 
+	agentEnterpriseMeta structs.EnterpriseMeta
+
 	// nodeInfoInSync tracks whether the server has our correct top-level
 	// node information in sync
 	nodeInfoInSync bool
@@ -208,14 +211,15 @@ type State struct {
 // NewState creates a new local state for the agent.
 func NewState(c Config, logger hclog.Logger, tokens *token.Store) *State {
 	l := &State{
-		config:         c,
-		logger:         logger,
-		services:       make(map[structs.ServiceID]*ServiceState),
-		checks:         make(map[structs.CheckID]*CheckState),
-		checkAliases:   make(map[structs.ServiceID]map[structs.CheckID]chan<- struct{}),
-		metadata:       make(map[string]string),
-		tokens:         tokens,
-		notifyHandlers: make(map[chan<- struct{}]struct{}),
+		config:              c,
+		logger:              logger,
+		services:            make(map[structs.ServiceID]*ServiceState),
+		checks:              make(map[structs.CheckID]*CheckState),
+		checkAliases:        make(map[structs.ServiceID]map[structs.CheckID]chan<- struct{}),
+		metadata:            make(map[string]string),
+		tokens:              tokens,
+		notifyHandlers:      make(map[chan<- struct{}]struct{}),
+		agentEnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(c.Partition),
 	}
 	l.SetDiscardCheckOutput(c.DiscardCheckOutput)
 	return l
@@ -227,25 +231,25 @@ func (l *State) SetDiscardCheckOutput(b bool) {
 	l.discardCheckOutput.Store(b)
 }
 
-// ServiceToken returns the configured ACL token for the given
-// service ID. If none is present, the agent's token is returned.
+// ServiceToken returns the ACL token associated with the service. If the service is
+// not found, or does not have a token, the empty string is returned.
 func (l *State) ServiceToken(id structs.ServiceID) string {
 	l.RLock()
 	defer l.RUnlock()
-	return l.serviceToken(id)
+	if s := l.services[id]; s != nil {
+		return s.Token
+	}
+	return ""
 }
 
-// serviceToken returns an ACL token associated with a service.
+// aclTokenForServiceSync returns an ACL token associated with a service. If there is
+// no ACL token associated with the service, fallback is used to return a value.
 // This method is not synchronized and the lock must already be held.
-func (l *State) serviceToken(id structs.ServiceID) string {
-	var token string
-	if s := l.services[id]; s != nil {
-		token = s.Token
+func (l *State) aclTokenForServiceSync(id structs.ServiceID, fallback func() string) string {
+	if s := l.services[id]; s != nil && s.Token != "" {
+		return s.Token
 	}
-	if token == "" {
-		token = l.tokens.AgentToken()
-	}
-	return token
+	return fallback()
 }
 
 // AddService is used to add a service entry to the local state.
@@ -265,6 +269,10 @@ func (l *State) addServiceLocked(service *structs.NodeService, token string) err
 	// use the service name as id if the id was omitted
 	if service.ID == "" {
 		service.ID = service.Service
+	}
+
+	if l.agentEnterpriseMeta.PartitionOrDefault() != service.PartitionOrDefault() {
+		return fmt.Errorf("cannot add service ID %q to node in partition %q", service.CompoundServiceID(), l.config.Partition)
 	}
 
 	l.setServiceStateLocked(&ServiceState{
@@ -320,7 +328,14 @@ func (l *State) RemoveServiceWithChecks(serviceID structs.ServiceID, checkIDs []
 func (l *State) removeServiceLocked(id structs.ServiceID) error {
 	s := l.services[id]
 	if s == nil || s.Deleted {
-		return fmt.Errorf("Service %q does not exist", id)
+		// Take care if modifying this error message.
+		// deleteService assumes the Catalog.Deregister RPC call will include "Unknown service"
+		// in the error if deregistration fails due to a service with that ID not existing.
+
+		// When the service register endpoint is called, this error message is also typically
+		// shadowed by vetServiceUpdateWithAuthorizer, which checks for the existence of the
+		// service and, if none is found, returns an error before this function is ever called.
+		return fmt.Errorf("Unknown service ID %q. Ensure that the service ID is passed, not the service name.", id)
 	}
 
 	// To remove the service on the server we need the token.
@@ -340,8 +355,8 @@ func (l *State) removeServiceLocked(id structs.ServiceID) error {
 	return nil
 }
 
-// Service returns the locally registered service that the
-// agent is aware of and are being kept in sync with the server
+// Service returns the locally registered service that the agent is aware of
+// with this ID and are being kept in sync with the server.
 func (l *State) Service(id structs.ServiceID) *structs.NodeService {
 	l.RLock()
 	defer l.RUnlock()
@@ -353,9 +368,43 @@ func (l *State) Service(id structs.ServiceID) *structs.NodeService {
 	return s.Service
 }
 
-// Services returns the locally registered services that the
+// ServicesByName returns all the locally registered service instances that the
+// agent is aware of with this name and are being kept in sync with the server
+func (l *State) ServicesByName(sn structs.ServiceName) []*structs.NodeService {
+	l.RLock()
+	defer l.RUnlock()
+
+	var found []*structs.NodeService
+	for id, s := range l.services {
+		if s.Deleted {
+			continue
+		}
+
+		if !sn.EnterpriseMeta.Matches(&id.EnterpriseMeta) {
+			continue
+		}
+		if s.Service.Service == sn.Name {
+			found = append(found, s.Service)
+		}
+	}
+	return found
+}
+
+// AllServices returns the locally registered services that the
 // agent is aware of and are being kept in sync with the server
+func (l *State) AllServices() map[structs.ServiceID]*structs.NodeService {
+	return l.listServices(false, nil)
+}
+
+// Services returns the locally registered services that the agent is aware of
+// and are being kept in sync with the server
+//
+// Results are scoped to the provided namespace and partition.
 func (l *State) Services(entMeta *structs.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService {
+	return l.listServices(true, entMeta)
+}
+
+func (l *State) listServices(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -365,7 +414,7 @@ func (l *State) Services(entMeta *structs.EnterpriseMeta) map[structs.ServiceID]
 			continue
 		}
 
-		if !entMeta.Matches(&id.EnterpriseMeta) {
+		if filtered && !entMeta.Matches(&id.EnterpriseMeta) {
 			continue
 		}
 		m[id] = s.Service
@@ -394,6 +443,10 @@ func (l *State) ServiceState(id structs.ServiceID) *ServiceState {
 func (l *State) SetServiceState(s *ServiceState) {
 	l.Lock()
 	defer l.Unlock()
+
+	if l.agentEnterpriseMeta.PartitionOrDefault() != s.Service.PartitionOrDefault() {
+		return
+	}
 
 	l.setServiceStateLocked(s)
 }
@@ -440,26 +493,25 @@ func (l *State) ServiceStates(entMeta *structs.EnterpriseMeta) map[structs.Servi
 	return m
 }
 
-// CheckToken is used to return the configured health check token for a
-// Check, or if none is configured, the default agent ACL token.
-func (l *State) CheckToken(checkID structs.CheckID) string {
+// CheckToken returns the ACL token associated with the check. If the check is
+// not found, or does not have a token, the empty string is returned.
+func (l *State) CheckToken(id structs.CheckID) string {
 	l.RLock()
 	defer l.RUnlock()
-	return l.checkToken(checkID)
+	if c := l.checks[id]; c != nil {
+		return c.Token
+	}
+	return ""
 }
 
-// checkToken returns an ACL token associated with a check.
+// aclTokenForCheckSync returns an ACL token associated with a check. If there is
+// no ACL token associated with the check, the callback is used to return a value.
 // This method is not synchronized and the lock must already be held.
-func (l *State) checkToken(id structs.CheckID) string {
-	var token string
-	c := l.checks[id]
-	if c != nil {
-		token = c.Token
+func (l *State) aclTokenForCheckSync(id structs.CheckID, fallback func() string) string {
+	if c := l.checks[id]; c != nil && c.Token != "" {
+		return c.Token
 	}
-	if token == "" {
-		token = l.tokens.AgentToken()
-	}
-	return token
+	return fallback()
 }
 
 // AddCheck is used to add a health check to the local state.
@@ -484,14 +536,18 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 		check.Output = ""
 	}
 
+	// hard-set the node name and partition
+	check.Node = l.config.NodeName
+	check.EnterpriseMeta = structs.NewEnterpriseMetaWithPartition(
+		l.agentEnterpriseMeta.PartitionOrEmpty(),
+		check.NamespaceOrEmpty(),
+	)
+
 	// if there is a serviceID associated with the check, make sure it exists before adding it
 	// NOTE - This logic may be moved to be handled within the Agent's Addcheck method after a refactor
 	if _, ok := l.services[check.CompoundServiceID()]; check.ServiceID != "" && !ok {
-		return fmt.Errorf("Check %q refers to non-existent service %q", check.CheckID, check.ServiceID)
+		return fmt.Errorf("Check ID %q refers to non-existent service ID %q", check.CheckID, check.ServiceID)
 	}
-
-	// hard-set the node name
-	check.Node = l.config.NodeName
 
 	l.setCheckStateLocked(&CheckState{
 		Check: check,
@@ -510,6 +566,13 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 func (l *State) AddAliasCheck(checkID structs.CheckID, srcServiceID structs.ServiceID, notifyCh chan<- struct{}) error {
 	l.Lock()
 	defer l.Unlock()
+
+	if l.agentEnterpriseMeta.PartitionOrDefault() != checkID.PartitionOrDefault() {
+		return fmt.Errorf("cannot add alias check ID %q to node in partition %q", checkID.String(), l.config.Partition)
+	}
+	if l.agentEnterpriseMeta.PartitionOrDefault() != srcServiceID.PartitionOrDefault() {
+		return fmt.Errorf("cannot add alias check for %q to node in partition %q", srcServiceID.String(), l.config.Partition)
+	}
 
 	m, ok := l.checkAliases[srcServiceID]
 	if !ok {
@@ -556,7 +619,7 @@ func (l *State) RemoveCheck(id structs.CheckID) error {
 func (l *State) removeCheckLocked(id structs.CheckID) error {
 	c := l.checks[id]
 	if c == nil || c.Deleted {
-		return fmt.Errorf("Check %q does not exist", id)
+		return fmt.Errorf("Check ID %q does not exist", id)
 	}
 
 	// If this is a check for an aliased service, then notify the waiters.
@@ -664,11 +727,23 @@ func (l *State) Check(id structs.CheckID) *structs.HealthCheck {
 	return c.Check
 }
 
+// AllChecks returns the locally registered checks that the
+// agent is aware of and are being kept in sync with the server
+func (l *State) AllChecks() map[structs.CheckID]*structs.HealthCheck {
+	return l.listChecks(false, nil)
+}
+
 // Checks returns the locally registered checks that the
 // agent is aware of and are being kept in sync with the server
+//
+// Results are scoped to the provided namespace and partition.
 func (l *State) Checks(entMeta *structs.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
+	return l.listChecks(true, entMeta)
+}
+
+func (l *State) listChecks(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
 	m := make(map[structs.CheckID]*structs.HealthCheck)
-	for id, c := range l.CheckStates(entMeta) {
+	for id, c := range l.listCheckStates(filtered, entMeta) {
 		m[id] = c.Check
 	}
 	return m
@@ -720,6 +795,10 @@ func (l *State) SetCheckState(c *CheckState) {
 	l.Lock()
 	defer l.Unlock()
 
+	if l.agentEnterpriseMeta.PartitionOrDefault() != c.Check.PartitionOrDefault() {
+		return
+	}
+
 	l.setCheckStateLocked(c)
 }
 
@@ -738,11 +817,25 @@ func (l *State) setCheckStateLocked(c *CheckState) {
 	l.TriggerSyncChanges()
 }
 
+// AllCheckStates returns a shallow copy of all health check state records.
+// The map contains a shallow copy of the current check states.
+//
+// The defer timers still point to the original values and must not be modified.
+func (l *State) AllCheckStates() map[structs.CheckID]*CheckState {
+	return l.listCheckStates(false, nil)
+}
+
 // CheckStates returns a shallow copy of all health check state records.
 // The map contains a shallow copy of the current check states.
 //
 // The defer timers still point to the original values and must not be modified.
+//
+// Results are scoped to the provided namespace and partition.
 func (l *State) CheckStates(entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
+	return l.listCheckStates(true, entMeta)
+}
+
+func (l *State) listCheckStates(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -751,7 +844,7 @@ func (l *State) CheckStates(entMeta *structs.EnterpriseMeta) map[structs.CheckID
 		if c.Deleted {
 			continue
 		}
-		if !entMeta.Matches(&id.EnterpriseMeta) {
+		if filtered && !entMeta.Matches(&id.EnterpriseMeta) {
 			continue
 		}
 		m[id] = c.Clone()
@@ -759,12 +852,27 @@ func (l *State) CheckStates(entMeta *structs.EnterpriseMeta) map[structs.CheckID
 	return m
 }
 
+// AllCriticalCheckStates returns the locally registered checks that the
+// agent is aware of and are being kept in sync with the server.
+// The map contains a shallow copy of the current check states.
+//
+// The defer timers still point to the original values and must not be modified.
+func (l *State) AllCriticalCheckStates() map[structs.CheckID]*CheckState {
+	return l.listCriticalCheckStates(false, nil)
+}
+
 // CriticalCheckStates returns the locally registered checks that the
 // agent is aware of and are being kept in sync with the server.
 // The map contains a shallow copy of the current check states.
 //
 // The defer timers still point to the original values and must not be modified.
+//
+// Results are scoped to the provided namespace and partition.
 func (l *State) CriticalCheckStates(entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
+	return l.listCriticalCheckStates(true, entMeta)
+}
+
+func (l *State) listCriticalCheckStates(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -773,7 +881,7 @@ func (l *State) CriticalCheckStates(entMeta *structs.EnterpriseMeta) map[structs
 		if c.Deleted || !c.Critical() {
 			continue
 		}
-		if !entMeta.Matches(&id.EnterpriseMeta) {
+		if filtered && !entMeta.Matches(&id.EnterpriseMeta) {
 			continue
 		}
 		m[id] = c.Clone()
@@ -888,7 +996,7 @@ func (l *State) updateSyncState() error {
 			AllowStale:       true,
 			MaxStaleDuration: fullSyncReadMaxStale,
 		},
-		EnterpriseMeta: *structs.WildcardEnterpriseMeta(),
+		EnterpriseMeta: *l.agentEnterpriseMeta.WithWildcardNamespace(),
 	}
 
 	var out1 structs.IndexedNodeServiceList
@@ -959,7 +1067,7 @@ func (l *State) updateSyncState() error {
 		if ls == nil {
 			// The consul service is managed automatically and does
 			// not need to be deregistered
-			if id == structs.ConsulCompoundServiceID {
+			if structs.IsConsulServiceID(id) {
 				continue
 			}
 
@@ -978,8 +1086,26 @@ func (l *State) updateSyncState() error {
 		// copy so that we don't retain a pointer to any actual state
 		// store info for in-memory RPCs.
 		if ls.Service.EnableTagOverride {
-			ls.Service.Tags = make([]string, len(rs.Tags))
-			copy(ls.Service.Tags, rs.Tags)
+			tags := make([]string, len(rs.Tags))
+			copy(tags, rs.Tags)
+			ls.Service.Tags = tags
+		}
+
+		// Merge any tagged addresses with the consul- prefix (set by the server)
+		// back into the local state.
+		if !reflect.DeepEqual(ls.Service.TaggedAddresses, rs.TaggedAddresses) {
+			// Make a copy of TaggedAddresses to prevent races when writing
+			// since other goroutines may be reading from the map
+			m := make(map[string]structs.ServiceAddress)
+			for k, v := range ls.Service.TaggedAddresses {
+				m[k] = v
+			}
+			for k, v := range rs.TaggedAddresses {
+				if strings.HasPrefix(k, structs.MetaKeyReservedPrefix) {
+					m[k] = v
+				}
+			}
+			ls.Service.TaggedAddresses = m
 		}
 		ls.InSync = ls.Service.IsSame(rs)
 	}
@@ -1003,7 +1129,7 @@ func (l *State) updateSyncState() error {
 		if lc == nil {
 			// The Serf check is created automatically and does not
 			// need to be deregistered.
-			if id == structs.SerfCompoundCheckID {
+			if structs.IsSerfCheckID(id) {
 				l.logger.Debug("Skipping remote check since it is managed automatically", "check", structs.SerfCheckID)
 				continue
 			}
@@ -1074,6 +1200,9 @@ func (l *State) SyncChanges() error {
 	defer l.Unlock()
 
 	// Sync the node level info if we need to.
+	// At the start to guarantee sync even if services or checks fail,
+	// which is more likely because there are more syncs happening for them.
+
 	if l.nodeInfoInSync {
 		l.logger.Debug("Node info in sync")
 	} else {
@@ -1081,10 +1210,6 @@ func (l *State) SyncChanges() error {
 			return err
 		}
 	}
-
-	// We will do node-level info syncing at the end, since it will get
-	// updated by a service or check sync anyway, given how the register
-	// API works.
 
 	// Sync the services
 	// (logging happens in the helper methods)
@@ -1132,8 +1257,7 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		return fmt.Errorf("ServiceID missing")
 	}
 
-	st := l.serviceToken(key)
-
+	st := l.aclTokenForServiceSync(key, l.tokens.AgentToken)
 	req := structs.DeregisterRequest{
 		Datacenter:     l.config.Datacenter,
 		Node:           l.config.NodeName,
@@ -1182,7 +1306,7 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		return fmt.Errorf("CheckID missing")
 	}
 
-	ct := l.checkToken(key)
+	ct := l.aclTokenForCheckSync(key, l.tokens.AgentToken)
 	req := structs.DeregisterRequest{
 		Datacenter:     l.config.Datacenter,
 		Node:           l.config.NodeName,
@@ -1226,7 +1350,7 @@ func (l *State) pruneCheck(id structs.CheckID) {
 
 // syncService is used to sync a service to the server
 func (l *State) syncService(key structs.ServiceID) error {
-	st := l.serviceToken(key)
+	st := l.aclTokenForServiceSync(key, l.tokens.UserToken)
 
 	// If the service has associated checks that are out of sync,
 	// piggyback them on the service sync so they are part of the
@@ -1242,7 +1366,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 		if !key.Matches(c.Check.CompoundServiceID()) {
 			continue
 		}
-		if st != l.checkToken(checkKey) {
+		if st != l.aclTokenForCheckSync(checkKey, l.tokens.UserToken) {
 			continue
 		}
 		checks = append(checks, c.Check)
@@ -1308,7 +1432,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 // syncCheck is used to sync a check to the server
 func (l *State) syncCheck(key structs.CheckID) error {
 	c := l.checks[key]
-	ct := l.checkToken(key)
+	ct := l.aclTokenForCheckSync(key, l.tokens.UserToken)
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
 		ID:              l.config.NodeID,
@@ -1368,6 +1492,7 @@ func (l *State) syncNodeInfo() error {
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
 		NodeMeta:        l.metadata,
+		EnterpriseMeta:  l.agentEnterpriseMeta,
 		WriteRequest:    structs.WriteRequest{Token: at},
 	}
 	var out struct{}

@@ -27,3 +27,9 @@ func TestStructs_PreparedQuery_GetACLPrefix(t *testing.T) {
 		t.Fatalf("bad: ok=%v prefix=%#v", ok, prefix)
 	}
 }
+
+func TestPreparedQueryExecuteRequest_CacheInfoKey(t *testing.T) {
+	// TODO: should these fields be included in the key?
+	ignored := []string{"Agent", "QueryOptions"}
+	assertCacheInfoKeyIsComplete(t, &PreparedQueryExecuteRequest{}, ignored...)
+}

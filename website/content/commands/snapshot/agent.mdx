@@ -1,7 +1,6 @@
 ---
 layout: commands
 page_title: 'Commands: Snapshot Agent'
-sidebar_title: agent
 ---
 
 # Consul Snapshot Agent
@@ -34,7 +33,7 @@ leader and starting saving snapshots.
 
 As snapshots are saved, they will be reported in the log produced by the agent:
 
-```text
+```log
 2016/11/16 21:21:13 [INFO] Snapshot agent running
 2016/11/16 21:21:13 [INFO] Waiting to obtain leadership...
 2016/11/16 21:21:13 [INFO] Obtained leadership
@@ -52,6 +51,8 @@ Snapshots can be restored using the
 [`consul snapshot restore`](/commands/snapshot/restore) command, or
 the [HTTP API](/api/snapshot).
 
+## ACL permissions
+
 If ACLs are enabled the following privileges are required:
 
 | Resource  | Segment          | Permission | Explanation                                                                                                                                                   |
@@ -60,6 +61,58 @@ If ACLs are enabled the following privileges are required:
 | `key`     | `<lock key>`     | `write`    | The lock key (which defaults to `consul-snapshot/lock`) is used during snapshot agent leader election.                                                        |
 | `session` | `<agent name>`   | `write`    | The session used for locking during leader election is created against the agent name of the Consul agent that the Snapshot agent is registering itself with. |
 | `service` | `<service name>` | `write`    | The Snapshot agent registers itself with the local Consul agent and must have write privileges on its service name which is configured with `-service`.       |
+
+### Example ACL policy
+
+The following is a example least privilege policy which allows the snapshot agent
+to run on a node named `server-1234`.
+
+<CodeTabs>
+
+```hcl
+# Required to read and snapshot ACL data
+acl = "write"
+# Allow the snapshot agent to create the key consul-snapshot/lock which will
+# serve as a leader election lock when multiple snapshot agents are running in
+# an environment
+key "consul-snapshot/lock" {
+  policy = "write"
+}
+# Allow the snapshot agent to create sessions on the specified node
+session "server-1234" {
+  policy = "write"
+}
+# Allow the snapshot agent to register itself into the catalog
+service "consul-snapshot" {
+  policy = "write"
+}
+```
+
+```json
+{
+  "acl": "write",
+  "key": {
+    "consul-snapshot/lock": {
+      "policy": "write"
+    }
+  },
+  "session": {
+    "server-1234": {
+      "policy": "write"
+    }
+  },
+  "service": {
+    "consul-snapshot": {
+      "policy": "write"
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+Additional `session` rules should be created, or `session_prefix` used, if the
+snapshot agent is deployed across more than one host.
 
 ## Usage
 
@@ -92,6 +145,7 @@ Usage: `consul snapshot agent [options]`
     "ca_path": "",
     "cert_file": "",
     "key_file": "",
+    "license_path": "",
     "tls_server_name": "",
     "log": {
       "level": "INFO",
@@ -222,7 +276,7 @@ Note that despite the AWS references, any S3-compatible endpoint can be specifie
 
 - `-aws-s3-server-side-encryption` - Enables saving snapshots to S3 using server side encryption with [Amazon S3-Managed Encryption Keys](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html)
 
-- `-aws-s3-static-snapshot-name` - If this is given, all snapshots are saved with the same file name. The agent will not rotate or versionize snapshots, and will save them with the same name each time.
+- `-aws-s3-static-snapshot-name` - If this is given, all snapshots are saved with the same file name. The agent will not rotate or version snapshots, and will save them with the same name each time.
   Use this if you want to rely on [S3's versioning capabilities](http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html) instead of the agent handling it for you.
 
 - `-aws-s3-enable-kms` - Enables using [Amazon KMS](https://aws.amazon.com/kms/) for encrypting snapshots.
@@ -320,3 +374,21 @@ $ consul snapshot agent -interval=0
 
 Please see the [HTTP API](/api/snapshot) documentation for
 more details about snapshot internals.
+
+## Licensing
+
+The snapshot agent requires a license when it starts before it will perform any other
+actions. This can be provided using the `license_path` configuration item, the
+`CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE` environment variable.
+The `license_path` configuration and `CONSUL_LICENSE_PATH` variable should point to
+files that contain the license whereas the `CONSUL_LICENSE` variable value should be
+the contents of the license itself. If a license is present in multiple ways the
+then the order of precedence is as follows:
+
+1. `CONSUL_LICENSE` variable
+2. `CONSUL_LICENSE_PATH` variable
+3. `license_path` configuration.
+
+The ability to load licenses from the configuration or environment was added in v1.10.0, 
+v1.9.7 and v1.8.13. See the [licensing documentation](/docs/enterprise/license/overview) for 
+more information about Consul Enterprise license management.

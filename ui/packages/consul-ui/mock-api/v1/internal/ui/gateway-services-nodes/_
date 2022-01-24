@@ -17,6 +17,9 @@ ${i === 1 ? `
 ` : `
       "Namespace": "${fake.hacker.noun()}-ns-${i}",
 `}
+${typeof location.search.partition !== 'undefined' ? `
+      "Partition": "${fake.helpers.randomize([env('CONSUL_PARTITION_EXPORTER', location.search.partition), location.search.partition])}",
+` : ``}
     "Tags": [
       ${
         range(env('CONSUL_TAG_COUNT', fake.random.number(10))).map(
@@ -47,7 +50,7 @@ ${ fake.random.number({min: 1, max: 10}) > 2 ? `
         range(fake.random.number({min: 1, max: 1})).map(
           function(item, i)
           {
-            return `"${fake.helpers.randomize(['consul', 'nomad', 'terraform', 'kubernetes', 'aws', ''])}"`;
+            return `"${fake.helpers.randomize(['vault', 'consul', 'nomad', 'terraform', 'kubernetes', 'aws', ''])}"`;
           }
         )
       }
@@ -56,7 +59,7 @@ ${ fake.random.number({min: 1, max: 10}) > 2 ? `
     "GatewayConfig": {
       "Addresses": [
         ${
-          range(fake.random.number(6)).map(
+          range(fake.random.number({min: 1, max: 7})).map(
             function(item, i)
             {
               return `"${fake.random.number({min: 1, max: 10}) > 8 ? `*.`: ``}${fake.internet.domainName()}:${fake.random.number({min: 0, max: 65535})}"`;

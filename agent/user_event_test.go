@@ -4,6 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -205,21 +208,7 @@ func TestUserEventToken(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	// Create an ACL token
-	args := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testEventPolicy,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var token string
-	if err := a.RPC("ACL.Apply", &args, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	token := createToken(t, a, testEventPolicy)
 
 	type tcase struct {
 		name   string
@@ -239,6 +228,40 @@ func TestUserEventToken(t *testing.T) {
 			t.Fatalf("bad: %#v result: %v", c, allowed)
 		}
 	}
+}
+
+type RPC interface {
+	RPC(method string, args interface{}, reply interface{}) error
+}
+
+func createToken(t *testing.T, rpc RPC, policyRules string) string {
+	t.Helper()
+
+	reqPolicy := structs.ACLPolicySetRequest{
+		Datacenter: "dc1",
+		Policy: structs.ACLPolicy{
+			Name:  "the-policy",
+			Rules: policyRules,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	err := rpc.RPC("ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
+	require.NoError(t, err)
+
+	token, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	reqToken := structs.ACLTokenSetRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			SecretID: token,
+			Policies: []structs.ACLTokenPolicyLink{{Name: "the-policy"}},
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	err = rpc.RPC("ACL.TokenSet", &reqToken, &structs.ACLToken{})
+	require.NoError(t, err)
+	return token
 }
 
 const testEventPolicy = `

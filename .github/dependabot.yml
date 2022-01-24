@@ -1,0 +1,30 @@
+version: 2
+updates:
+- package-ecosystem: gomod
+  open-pull-requests-limit: 10
+  directory: "/"
+  labels:
+    - "go"
+    - "dependencies"
+    - "pr/no-changelog"
+  schedule:
+    interval: daily
+- package-ecosystem: npm 
+  open-pull-requests-limit: 5
+  directory: "/website"
+  labels:
+    - "javascript"
+    - "dependencies"
+    - "type/docs-cherrypick"
+    - "pr/no-changelog"
+  schedule:
+    interval: daily
+- package-ecosystem: github-actions
+  open-pull-requests-limit: 5
+  directory: /
+  labels:
+    - "github_actions"
+    - "dependencies"
+    - "pr/no-changelog"
+  schedule:
+    interval: daily

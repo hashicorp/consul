@@ -32,20 +32,31 @@ func TestUpstreams(t testing.T) Upstreams {
 			LocalBindPort:    8181,
 			LocalBindAddress: "127.10.10.10",
 		},
+		{
+			DestinationName:     "upstream_socket",
+			LocalBindSocketPath: "/tmp/upstream.sock",
+			LocalBindSocketMode: "0700",
+		},
 	}
 }
 
 // TestAddDefaultsToUpstreams takes an array of upstreams (such as that from
 // TestUpstreams) and adds default values that are populated during
-// refigistration. Use this for generating the expected Upstreams value after
+// registration. Use this for generating the expected Upstreams value after
 // registration.
-func TestAddDefaultsToUpstreams(t testing.T, upstreams []Upstream) Upstreams {
+func TestAddDefaultsToUpstreams(t testing.T, upstreams []Upstream, entMeta EnterpriseMeta) Upstreams {
 	ups := make([]Upstream, len(upstreams))
 	for i := range upstreams {
 		ups[i] = upstreams[i]
 		// Fill in default fields we expect to have back explicitly in a response
 		if ups[i].DestinationType == "" {
 			ups[i].DestinationType = UpstreamDestTypeService
+		}
+		if ups[i].DestinationNamespace == "" {
+			ups[i].DestinationNamespace = entMeta.NamespaceOrEmpty()
+		}
+		if ups[i].DestinationPartition == "" {
+			ups[i].DestinationPartition = entMeta.PartitionOrEmpty()
 		}
 	}
 	return ups

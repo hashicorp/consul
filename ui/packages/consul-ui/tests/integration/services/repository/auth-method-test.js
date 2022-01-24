@@ -10,6 +10,8 @@ moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
 const dc = 'dc-1';
 const id = 'auth-method-name';
 const undefinedNspace = 'default';
+const undefinedPartition = 'default';
+const partition = 'default';
 [undefinedNspace, 'team-1', undefined].forEach(nspace => {
   test(`findAllByDatacenter returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
     return repo(
@@ -18,7 +20,9 @@ const undefinedNspace = 'default';
       this.subject(),
       function retrieveStub(stub) {
         return stub(
-          `/v1/acl/auth-methods?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}`,
+          `/v1/acl/auth-methods?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}${
+            typeof partition !== 'undefined' ? `&partition=${partition}` : ``
+          }`,
           {
             CONSUL_AUTH_METHOD_COUNT: '3',
           }
@@ -28,6 +32,7 @@ const undefinedNspace = 'default';
         return service.findAllByDatacenter({
           dc: dc,
           nspace: nspace || undefinedNspace,
+          partition: partition || undefinedPartition,
         });
       },
       function performAssertion(actual, expected) {
@@ -38,7 +43,9 @@ const undefinedNspace = 'default';
               return Object.assign({}, item, {
                 Datacenter: dc,
                 Namespace: item.Namespace || undefinedNspace,
-                uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.Name}"]`,
+                Partition: item.Partition || undefinedPartition,
+                uid: `["${item.Partition || undefinedPartition}","${item.Namespace ||
+                  undefinedNspace}","${dc}","${item.Name}"]`,
               });
             });
           })

@@ -1,21 +1,46 @@
 {{#if @item}}
   {{#let (service/external-source @item) as |externalSource|}}
-    {{#if externalSource}}
-      <span
-        data-test-external-source={{externalSource}}
-        class="consul-external-source {{externalSource}}"
-        ...attributes
-      >
-        {{#if @label}}
-          {{@label}}
-        {{else}}
-          {{#if (eq externalSource 'aws')}}
-            Registered via {{uppercase externalSource}}
-          {{else}}
-            Registered via {{capitalize externalSource}}
-          {{/if}}
-        {{/if}}
-      </span>
-    {{/if}}
+  {{#if (and @withInfo (eq externalSource 'consul-api-gateway'))}}
+        <dl class="tooltip-panel">
+          <dt>
+            <span
+              data-test-external-source={{externalSource}}
+              class="consul-external-source {{externalSource}}"
+              ...attributes
+            >
+              Registered via {{t (concat "common.brand." externalSource)}}
+            </span>
+          </dt>
+          <dd>
+            <MenuPanel @position="left" @menu={{false}}>
+              <BlockSlot @name="header">
+                API Gateways manage north-south traffic from external services to services in the Datacenter. For more information, read our documentation.
+              </BlockSlot>
+              <BlockSlot @name="menu">
+                <li role="separator">
+                  About {{t (concat "common.brand." externalSource)}}
+                </li>
+                <li role="none" class="learn-link">
+                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_LEARN_URL')}} rel="noopener noreferrer" target="_blank">
+                    Learn guides
+                  </a>
+                </li>
+              </BlockSlot>
+            </MenuPanel>
+          </dd>
+        </dl>
+  {{else if externalSource}}
+    <span
+      data-test-external-source={{externalSource}}
+      class="consul-external-source {{externalSource}}"
+      ...attributes
+    >
+      {{#if @label}}
+        {{@label}}
+      {{else}}
+        Registered via {{t (concat "common.brand." externalSource)}}
+      {{/if}}
+    </span>
+  {{/if}}
   {{/let}}
 {{/if}}

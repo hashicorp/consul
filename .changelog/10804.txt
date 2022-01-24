@@ -1,0 +1,3 @@
+```release-note:improvement
+debug: rename cluster capture target to members, to be more consistent with the terms used by the API.
+```

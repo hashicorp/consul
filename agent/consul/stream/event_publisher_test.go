@@ -70,7 +70,7 @@ type simplePayload struct {
 	noReadPerm bool
 }
 
-func (p simplePayload) MatchesKey(key, _ string) bool {
+func (p simplePayload) MatchesKey(key, _, _ string) bool {
 	if key == "" {
 		return true
 	}

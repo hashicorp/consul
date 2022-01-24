@@ -1,0 +1,3 @@
+```release-note:bug
+config: correct config key from `advertise_addr_ipv6` to `advertise_addr_wan_ipv6`
+```

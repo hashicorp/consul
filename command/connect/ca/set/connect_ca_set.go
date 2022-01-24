@@ -24,13 +24,20 @@ type cmd struct {
 	help  string
 
 	// flags
-	configFile flags.StringValue
+	configFile               flags.StringValue
+	forceWithoutCrossSigning bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.Var(&c.configFile, "config-file",
 		"The path to the config file to use.")
+	c.flags.BoolVar(&c.forceWithoutCrossSigning, "force-without-cross-signing", false,
+		"Indicates that the CA reconfiguration should go ahead even if the current "+
+			"CA is unable to cross sign certificates. This risks temporary connection "+
+			"failures during the rollout as new leafs will be rejected by proxies that "+
+			"have not yet observed the new root cert but is the only option if a CA that "+
+			"doesn't support cross signing needs to be reconfigured or mirated away from.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -70,6 +77,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error parsing config file: %s", err))
 		return 1
 	}
+	config.ForceWithoutCrossSigning = c.forceWithoutCrossSigning
 
 	// Set the new configuration.
 	if _, err := client.Connect().CASetConfig(&config, nil); err != nil {

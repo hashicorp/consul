@@ -3,18 +3,18 @@ package consul
 import (
 	"bytes"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/require"
 )
 
 var testTxnRules = `
@@ -233,7 +233,7 @@ func TestTxn_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 
-	_, n, err := state.GetNode("foo")
+	_, n, err := state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -314,13 +314,11 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -333,37 +331,21 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 		Key:   "nope",
 		Value: []byte("hello"),
 	}
-	require.NoError(state.KVSSet(1, d))
+	require.NoError(t, state.KVSSet(1, d))
 
 	node := &structs.Node{
 		ID:   types.NodeID(testNodeID),
 		Node: "nope",
 	}
-	require.NoError(state.EnsureNode(2, node))
+	require.NoError(t, state.EnsureNode(2, node))
 
 	svc := structs.NodeService{ID: "nope", Service: "nope", Address: "127.0.0.1"}
-	require.NoError(state.EnsureService(3, "nope", &svc))
+	require.NoError(t, state.EnsureService(3, "nope", &svc))
 
 	check := structs.HealthCheck{Node: "nope", CheckID: types.CheckID("nope")}
 	state.EnsureCheck(4, &check)
 
-	// Create the ACL.
-	var id string
-	{
-		arg := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: testTxnRules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	id := createToken(t, rpcClient(t, s1), testTxnRules)
 
 	// Set up a transaction where every operation should get blocked due to
 	// ACLs.
@@ -622,7 +604,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 		}
 	}
 
-	require.Equal(expected, out)
+	require.Equal(t, expected, out)
 }
 
 func TestTxn_Apply_LockDelay(t *testing.T) {
@@ -723,8 +705,6 @@ func TestTxn_Read(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -748,20 +728,20 @@ func TestTxn_Read(t *testing.T) {
 		ID:   types.NodeID(testNodeID),
 		Node: "foo",
 	}
-	require.NoError(state.EnsureNode(2, node))
+	require.NoError(t, state.EnsureNode(2, node))
 
 	svc := structs.NodeService{
 		ID:             "svc-foo",
 		Service:        "svc-foo",
 		Address:        "127.0.0.1",
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	require.NoError(state.EnsureService(3, "foo", &svc))
+	require.NoError(t, state.EnsureService(3, "foo", &svc))
 
 	check := structs.HealthCheck{
 		Node:           "foo",
 		CheckID:        types.CheckID("check-foo"),
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	state.EnsureCheck(4, &check)
 
@@ -839,7 +819,7 @@ func TestTxn_Read(t *testing.T) {
 			KnownLeader: true,
 		},
 	}
-	require.Equal(expected, out)
+	require.Equal(t, expected, out)
 }
 
 func TestTxn_Read_ACLDeny(t *testing.T) {
@@ -849,13 +829,11 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -879,153 +857,79 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 		ID:   types.NodeID(testNodeID),
 		Node: "nope",
 	}
-	require.NoError(state.EnsureNode(2, node))
+	require.NoError(t, state.EnsureNode(2, node))
 
 	svc := structs.NodeService{ID: "nope", Service: "nope", Address: "127.0.0.1"}
-	require.NoError(state.EnsureService(3, "nope", &svc))
+	require.NoError(t, state.EnsureService(3, "nope", &svc))
 
 	check := structs.HealthCheck{Node: "nope", CheckID: types.CheckID("nope")}
 	state.EnsureCheck(4, &check)
 
-	// Create the ACL.
-	var id string
-	{
-		arg := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: testTxnRules,
+	id := createToken(t, codec, testTxnRules)
+
+	t.Run("simple read operations (results get filtered out)", func(t *testing.T) {
+		arg := structs.TxnReadRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: id},
+			Ops: structs.TxnOps{
+				{
+					KV: &structs.TxnKVOp{
+						Verb: api.KVGet,
+						DirEnt: structs.DirEntry{
+							Key: "nope",
+						},
+					},
+				},
+				{
+					KV: &structs.TxnKVOp{
+						Verb: api.KVGetTree,
+						DirEnt: structs.DirEntry{
+							Key: "nope",
+						},
+					},
+				},
 			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-			t.Fatalf("err: %v", err)
+
+		var out structs.TxnReadResponse
+		err := msgpackrpc.CallWithCodec(codec, "Txn.Read", &arg, &out)
+		require.NoError(t, err)
+		require.Empty(t, out.Results)
+		require.Empty(t, out.Errors)
+		require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("complex operations (return permission denied errors)", func(t *testing.T) {
+		arg := structs.TxnReadRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: id},
+			Ops: structs.TxnOps{
+				{
+					KV: &structs.TxnKVOp{
+						Verb: api.KVCheckSession,
+						DirEnt: structs.DirEntry{
+							Key: "nope",
+						},
+					},
+				},
+				{
+					KV: &structs.TxnKVOp{
+						Verb: api.KVCheckIndex,
+						DirEnt: structs.DirEntry{
+							Key: "nope",
+						},
+					},
+				},
+			},
 		}
-	}
 
-	// Set up a transaction where every operation should get blocked due to
-	// ACLs.
-	arg := structs.TxnReadRequest{
-		Datacenter: "dc1",
-		Ops: structs.TxnOps{
-			&structs.TxnOp{
-				KV: &structs.TxnKVOp{
-					Verb: api.KVGet,
-					DirEnt: structs.DirEntry{
-						Key: "nope",
-					},
-				},
-			},
-			&structs.TxnOp{
-				KV: &structs.TxnKVOp{
-					Verb: api.KVGetTree,
-					DirEnt: structs.DirEntry{
-						Key: "nope",
-					},
-				},
-			},
-			&structs.TxnOp{
-				KV: &structs.TxnKVOp{
-					Verb: api.KVCheckSession,
-					DirEnt: structs.DirEntry{
-						Key: "nope",
-					},
-				},
-			},
-			&structs.TxnOp{
-				KV: &structs.TxnKVOp{
-					Verb: api.KVCheckIndex,
-					DirEnt: structs.DirEntry{
-						Key: "nope",
-					},
-				},
-			},
-			&structs.TxnOp{
-				Node: &structs.TxnNodeOp{
-					Verb: api.NodeGet,
-					Node: structs.Node{ID: node.ID, Node: node.Node},
-				},
-			},
-			&structs.TxnOp{
-				Service: &structs.TxnServiceOp{
-					Verb:    api.ServiceGet,
-					Node:    "foo",
-					Service: svc,
-				},
-			},
-			&structs.TxnOp{
-				Check: &structs.TxnCheckOp{
-					Verb:  api.CheckGet,
-					Check: check,
-				},
-			},
-		},
-		QueryOptions: structs.QueryOptions{
-			Token: id,
-		},
-	}
-	var out structs.TxnReadResponse
-	if err := msgpackrpc.CallWithCodec(codec, "Txn.Read", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Verify the transaction's return value.
-	expected := structs.TxnReadResponse{
-		QueryMeta: structs.QueryMeta{
-			KnownLeader: true,
-		},
-	}
-	for i, op := range arg.Ops {
-		switch {
-		case op.KV != nil:
-			switch op.KV.Verb {
-			case api.KVGet, api.KVGetTree:
-				// These get filtered but won't result in an error.
-
-			default:
-				expected.Errors = append(expected.Errors, &structs.TxnError{
-					OpIndex: i,
-					What:    acl.ErrPermissionDenied.Error(),
-				})
-			}
-		case op.Node != nil:
-			switch op.Node.Verb {
-			case api.NodeGet:
-				// These get filtered but won't result in an error.
-
-			default:
-				expected.Errors = append(expected.Errors, &structs.TxnError{
-					OpIndex: i,
-					What:    acl.ErrPermissionDenied.Error(),
-				})
-			}
-		case op.Service != nil:
-			switch op.Service.Verb {
-			case api.ServiceGet:
-				// These get filtered but won't result in an error.
-
-			default:
-				expected.Errors = append(expected.Errors, &structs.TxnError{
-					OpIndex: i,
-					What:    acl.ErrPermissionDenied.Error(),
-				})
-			}
-		case op.Check != nil:
-			switch op.Check.Verb {
-			case api.CheckGet:
-				// These get filtered but won't result in an error.
-
-			default:
-				expected.Errors = append(expected.Errors, &structs.TxnError{
-					OpIndex: i,
-					What:    acl.ErrPermissionDenied.Error(),
-				})
-			}
-		}
-	}
-	if !reflect.DeepEqual(out, expected) {
-		t.Fatalf("bad %v", out)
-	}
+		var out structs.TxnReadResponse
+		err := msgpackrpc.CallWithCodec(codec, "Txn.Read", &arg, &out)
+		require.NoError(t, err)
+		require.Equal(t, structs.TxnErrors{
+			{OpIndex: 0, What: acl.ErrPermissionDenied.Error()},
+			{OpIndex: 1, What: acl.ErrPermissionDenied.Error()},
+		}, out.Errors)
+		require.Empty(t, out.Results)
+	})
 }

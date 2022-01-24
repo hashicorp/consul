@@ -154,13 +154,9 @@ func (r *FederationStateReplicator) PerformDeletions(ctx context.Context, deleti
 			State:      state,
 		}
 
-		resp, err := r.srv.raftApply(structs.FederationStateRequestType, &req)
+		_, err := r.srv.raftApply(structs.FederationStateRequestType, &req)
 		if err != nil {
 			return false, err
-		}
-
-		if respErr, ok := resp.(error); ok {
-			return false, respErr
 		}
 
 		if i < len(deletions)-1 {
@@ -199,13 +195,9 @@ func (r *FederationStateReplicator) PerformUpdates(ctx context.Context, updatesR
 			State:      state2,
 		}
 
-		resp, err := r.srv.raftApply(structs.FederationStateRequestType, &req)
+		_, err := r.srv.raftApply(structs.FederationStateRequestType, &req)
 		if err != nil {
 			return false, err
-		}
-
-		if respErr, ok := resp.(error); ok {
-			return false, respErr
 		}
 
 		if i < len(updates)-1 {

@@ -1,0 +1,4 @@
+```release-note:improvement
+ui: Removed informational panel from the namespace selector menu when editing
+namespaces
+```

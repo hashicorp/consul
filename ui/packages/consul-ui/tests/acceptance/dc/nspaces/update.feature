@@ -15,14 +15,14 @@ Feature: dc / nspaces / update: Nspace Update
       namespace: namespace
     ---
     Then the url should be /datacenter/namespaces/namespace
-    And the title should be "Edit Namespace - Consul"
+    And the title should be "Edit namespace - Consul"
   Scenario: Update to [Description]
     Then I fill in with yaml
     ---
       Description: [Description]
     ---
     And I submit
-    Then a PUT request was made to "/v1/namespace/namespace" from yaml
+    Then a PUT request was made to "/v1/namespace/namespace?dc=datacenter" from yaml
     ---
       body:
         Description: [Description]
@@ -37,7 +37,7 @@ Feature: dc / nspaces / update: Nspace Update
       | description with spaces |
       ---------------------------
   Scenario: There was an error saving the key
-    Given the url "/v1/namespace/namespace" responds with a 500 status
+    Given the url "/v1/namespace/namespace?dc=datacenter" responds with a 500 status
     And I submit
     Then the url should be /datacenter/namespaces/namespace
     Then "[data-notification]" has the "notification-update" class

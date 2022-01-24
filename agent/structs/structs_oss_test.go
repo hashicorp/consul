@@ -1,3 +1,6 @@
+//go:build !consulent
+// +build !consulent
+
 package structs
 
 import (
@@ -39,5 +42,37 @@ func TestServiceName_String(t *testing.T) {
 	t.Run("pointer", func(t *testing.T) {
 		sn := NewServiceName("the-id", &EnterpriseMeta{})
 		require.Equal(t, "the-id", fmt.Sprintf("%v", &sn))
+	})
+}
+
+func TestIntention_HasWildcardSource(t *testing.T) {
+	t.Run("true", func(t *testing.T) {
+		ixn := Intention{
+			SourceName: WildcardSpecifier,
+		}
+		require.True(t, ixn.HasWildcardSource())
+	})
+
+	t.Run("false", func(t *testing.T) {
+		ixn := Intention{
+			SourceName: "web",
+		}
+		require.False(t, ixn.HasWildcardSource())
+	})
+}
+
+func TestIntention_HasWildcardDestination(t *testing.T) {
+	t.Run("true", func(t *testing.T) {
+		ixn := Intention{
+			DestinationName: WildcardSpecifier,
+		}
+		require.True(t, ixn.HasWildcardDestination())
+	})
+
+	t.Run("false", func(t *testing.T) {
+		ixn := Intention{
+			DestinationName: "web",
+		}
+		require.False(t, ixn.HasWildcardDestination())
 	})
 }

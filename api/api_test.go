@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -15,10 +16,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 type configCallback func(c *Config)
@@ -38,7 +40,7 @@ func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
 		clientConfig.Token = "root"
 	}, func(serverConfig *testutil.TestServerConfig) {
 		serverConfig.PrimaryDatacenter = "dc1"
-		serverConfig.ACL.Tokens.Master = "root"
+		serverConfig.ACL.Tokens.InitialManagement = "root"
 		serverConfig.ACL.Tokens.Agent = "root"
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
@@ -49,6 +51,11 @@ func makeClientWithConfig(
 	t *testing.T,
 	cb1 configCallback,
 	cb2 testutil.ServerConfigCallback) (*Client, *testutil.TestServer) {
+	// Skip test when -short flag provided; any tests that create a test
+	// server will take at least 100ms which is undesirable for -short
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
 
 	// Make client config
 	conf := DefaultConfig()
@@ -399,6 +406,8 @@ func TestAPI_DefaultConfig_env(t *testing.T) {
 	// (environment) which has non-deterministic effects on the other tests
 	// which derive their default configuration from the environment
 
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	addr := "1.2.3.4:5678"
 	token := "abcd1234"
 	auth := "username:password"
@@ -480,6 +489,8 @@ func TestAPI_DefaultConfig_env(t *testing.T) {
 }
 
 func TestAPI_SetupTLSConfig(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	t.Parallel()
 	// A default config should result in a clean default client config.
 	tlsConfig := &TLSConfig{}
@@ -727,11 +738,10 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	assert := assert.New(t)
-
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &QueryOptions{
 		Namespace:         "operator",
+		Partition:         "asdf",
 		Datacenter:        "foo",
 		AllowStale:        true,
 		RequireConsistent: true,
@@ -744,6 +754,9 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	r.setQueryOptions(q)
 
 	if r.params.Get("ns") != "operator" {
+		t.Fatalf("bad: %v", r.params)
+	}
+	if r.params.Get("partition") != "asdf" {
 		t.Fatalf("bad: %v", r.params)
 	}
 	if r.params.Get("dc") != "foo" {
@@ -770,7 +783,7 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	if r.params.Get("local-only") != "true" {
 		t.Fatalf("bad: %v", r.params)
 	}
-	assert.Equal("", r.header.Get("Cache-Control"))
+	assert.Equal(t, "", r.header.Get("Cache-Control"))
 
 	r = c.newRequest("GET", "/v1/kv/foo")
 	q = &QueryOptions{
@@ -781,8 +794,8 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	r.setQueryOptions(q)
 
 	_, ok := r.params["cached"]
-	assert.True(ok)
-	assert.Equal("max-age=30, stale-if-error=346", r.header.Get("Cache-Control"))
+	assert.True(t, ok)
+	assert.Equal(t, "max-age=30, stale-if-error=346", r.header.Get("Cache-Control"))
 }
 
 func TestAPI_SetWriteOptions(t *testing.T) {
@@ -793,11 +806,15 @@ func TestAPI_SetWriteOptions(t *testing.T) {
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &WriteOptions{
 		Namespace:  "operator",
+		Partition:  "asdf",
 		Datacenter: "foo",
 		Token:      "23456",
 	}
 	r.setWriteOptions(q)
 	if r.params.Get("ns") != "operator" {
+		t.Fatalf("bad: %v", r.params)
+	}
+	if r.params.Get("partition") != "asdf" {
 		t.Fatalf("bad: %v", r.params)
 	}
 	if r.params.Get("dc") != "foo" {
@@ -810,7 +827,17 @@ func TestAPI_SetWriteOptions(t *testing.T) {
 
 func TestAPI_Headers(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+
+	var request *http.Request
+	c, s := makeClientWithConfig(t, func(c *Config) {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.Proxy = func(r *http.Request) (*url.URL, error) {
+			// Keep track of the last request sent
+			request = r
+			return nil, nil
+		}
+		c.Transport = transport
+	}, nil)
 	defer s.Stop()
 
 	if len(c.Headers()) != 0 {
@@ -836,6 +863,39 @@ func TestAPI_Headers(t *testing.T) {
 	if r.header.Get("Auth") != "Token" {
 		t.Fatalf("Auth header not set: %v", r.header)
 	}
+
+	kv := c.KV()
+	_, err := kv.Put(&KVPair{Key: "test-headers", Value: []byte("foo")}, nil)
+	require.NoError(t, err)
+	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
+
+	_, _, err = kv.Get("test-headers", nil)
+	require.NoError(t, err)
+	require.Equal(t, "", request.Header.Get("Content-Type"))
+
+	_, err = kv.Delete("test-headers", nil)
+	require.NoError(t, err)
+	require.Equal(t, "", request.Header.Get("Content-Type"))
+
+	err = c.Snapshot().Restore(nil, strings.NewReader("foo"))
+	require.Error(t, err)
+	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
+
+	_, err = c.ACL().RulesTranslate(strings.NewReader(`
+	agent "" {
+	  policy = "read"
+	}
+	`))
+	// ACL support is disabled
+	require.Error(t, err)
+	require.Equal(t, "text/plain", request.Header.Get("Content-Type"))
+
+	_, _, err = c.Event().Fire(&UserEvent{
+		Name:    "test",
+		Payload: []byte("foo"),
+	}, nil)
+	require.NoError(t, err)
+	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
 }
 
 func TestAPI_RequestToHTTP(t *testing.T) {
@@ -871,6 +931,7 @@ func TestAPI_ParseQueryMeta(t *testing.T) {
 	resp.Header.Set("X-Consul-KnownLeader", "true")
 	resp.Header.Set("X-Consul-Translate-Addresses", "true")
 	resp.Header.Set("X-Consul-Default-ACL-Policy", "deny")
+	resp.Header.Set("X-Consul-Results-Filtered-By-ACLs", "true")
 
 	qm := &QueryMeta{}
 	if err := parseQueryMeta(resp, qm); err != nil {
@@ -890,6 +951,9 @@ func TestAPI_ParseQueryMeta(t *testing.T) {
 		t.Fatalf("Bad: %v", qm)
 	}
 	if qm.DefaultACLPolicy != "deny" {
+		t.Fatalf("Bad: %v", qm)
+	}
+	if !qm.ResultsFilteredByACLs {
 		t.Fatalf("Bad: %v", qm)
 	}
 }

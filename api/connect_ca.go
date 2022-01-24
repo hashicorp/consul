@@ -23,6 +23,14 @@ type CAConfig struct {
 	// configuration is an error.
 	State map[string]string
 
+	// ForceWithoutCrossSigning indicates that the CA reconfiguration should go
+	// ahead even if the current CA is unable to cross sign certificates. This
+	// risks temporary connection failures during the rollout as new leafs will be
+	// rejected by proxies that have not yet observed the new root cert but is the
+	// only option if a CA that doesn't support cross signing needs to be
+	// reconfigured or mirated away from.
+	ForceWithoutCrossSigning bool
+
 	CreateIndex uint64
 	ModifyIndex uint64
 }
@@ -30,6 +38,7 @@ type CAConfig struct {
 // CommonCAProviderConfig is the common options available to all CA providers.
 type CommonCAProviderConfig struct {
 	LeafCertTTL      time.Duration
+	RootCertTTL      time.Duration
 	SkipValidate     bool
 	CSRMaxPerSecond  float32
 	CSRMaxConcurrent int
@@ -41,7 +50,6 @@ type ConsulCAProviderConfig struct {
 
 	PrivateKey          string
 	RootCert            string
-	RotationPeriod      time.Duration
 	IntermediateCertTTL time.Duration
 }
 
@@ -126,11 +134,14 @@ type LeafCert struct {
 func (h *Connect) CARoots(q *QueryOptions) (*CARootList, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/connect/ca/roots")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(h.c.doRequest(r))
+	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -147,11 +158,14 @@ func (h *Connect) CARoots(q *QueryOptions) (*CARootList, *QueryMeta, error) {
 func (h *Connect) CAGetConfig(q *QueryOptions) (*CAConfig, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/connect/ca/configuration")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(h.c.doRequest(r))
+	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -169,11 +183,14 @@ func (h *Connect) CASetConfig(conf *CAConfig, q *WriteOptions) (*WriteMeta, erro
 	r := h.c.newRequest("PUT", "/v1/connect/ca/configuration")
 	r.setWriteOptions(q)
 	r.obj = conf
-	rtt, resp, err := requireOK(h.c.doRequest(r))
+	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt

@@ -1,0 +1,79 @@
+# with-copyable
+
+Modifier for adding copy-to-clipboard functionality to any component to allow
+the user to easily copy specified text to their clipboard by clicking on
+something. Mainly an Ember flavoured wrapper for
+[Clipboard.js](https://clipboardjs.com/) which the modifier uses for all its
+functionality.
+
+You can either explicitly specify the content to be copied to the users
+clipboard using the first (and only) parameter but if this is omitted it will
+use the content (`innerText`) of the DOM element it is attached to.
+
+Usually you will want to provide a `success` and `error` callback which you
+can provide with named parameters. An escape hatch through to Clipboard.js
+options is also provided via the `options` named parameter.
+
+
+```hbs preview-template
+<figure>
+  <figcaption>Explicitly specifying the text to be copied as the first parameter</figcaption>
+  <button
+    {{with-copyable "Copied text"
+      success=(action (mut this.copied) value="text")
+      error=(noop)
+    }}
+    type="button"
+  >Click me</button>
+
+  <pre>Clipboard Contents:
+{{this.copied}}</pre>
+</figure>
+```
+
+```hbs preview-template
+<figure>
+  <figcaption>Defaulting to the innerText of the DOM element</figcaption>
+  <button
+    {{with-copyable success=(action (mut this.copied) value="text")}}
+    type="button"
+  >Click <span><br />me</span></button>
+
+  <pre>Clipboard Contents:
+{{this.copied}}</pre>
+</figure>
+```
+
+The Clipboard.js class is provided via a `clipboard/os` Service, also includes
+a `clipboard/local-storage` Service that automatically replaces the OS based
+clipboard during testing to enable you to assert for text that would be copied
+to the clipboard. During acceptance testing there is a specific step
+specifically for this so you don't have to think about it:
+
+```gherkin acceptance-test
+Scenario:
+  When I click copyButton
+  Then I copied "stringToCopy"
+```
+
+## Positional Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `value` | `String` | The `innerText` of the element | The string to be copied to the clipboard on click |
+
+## Named Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `success` | `Function` | `(e) => {}` | A function to be called when the text has been successfully copied to the users clipboard |
+| `error` | `Function` | `(e) => {}` | A function to be called when there was an error copying text to the users clipboard |
+| `options` | `Object` | `{}` | An object containing any documented Clipboard.js options |
+
+
+
+## See
+
+- [Modifier Source Code](./index.js)
+
+---

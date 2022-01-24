@@ -9,7 +9,7 @@ export default {
     node: (item, value) => item.Kind === value,
   },
   check: {
-    serf: (item, value) => item.Type === '',
+    serf: (item, value) => item.Type === value,
     script: (item, value) => item.Type === value,
     http: (item, value) => item.Type === value,
     tcp: (item, value) => item.Type === value,

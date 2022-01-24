@@ -1,39 +1,13 @@
 import Service, { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 import { getOwner } from '@ember/application';
 import { match } from 'consul-ui/decorators/data-source';
-import { singularize } from 'ember-inflector';
 
 export default class HttpService extends Service {
-  @service('repository/dc') datacenters;
-  @service('repository/node') leader;
-  @service('repository/service') gateways;
-  @service('repository/service-instance') 'proxy-service-instance';
-  @service('repository/proxy') 'proxy-instance';
-  @service('repository/nspace') namespaces;
-  @service('repository/metrics') metrics;
-  @service('repository/oidc-provider') oidc;
-
   @service('data-source/protocols/http/blocking') type;
 
   source(src, configuration) {
-    const [, , , model] = src.split('/');
-    const owner = getOwner(this);
     const route = match(src);
-    const find = route.cb(route.params, owner);
-
-    const repo = this[model] || owner.lookup(`service:repository/${singularize(model)}`);
-    configuration.createEvent = function(result = {}, configuration) {
-      const event = {
-        type: 'message',
-        data: result,
-      };
-      const meta = get(event, 'data.meta') || {};
-      if (typeof meta.range === 'undefined') {
-        repo.reconcile(meta);
-      }
-      return event;
-    };
+    const find = route.cb(route.params, getOwner(this));
     return this.type.source(find, configuration);
   }
 }

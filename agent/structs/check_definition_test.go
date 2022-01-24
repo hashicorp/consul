@@ -85,6 +85,7 @@ func TestCheckDefinitionToCheckType(t *testing.T) {
 		Token:                          "tok",
 		ScriptArgs:                     []string{"/bin/foo"},
 		HTTP:                           "someurl",
+		H2PING:                         "somehttp2url",
 		TCP:                            "host:port",
 		Interval:                       1 * time.Second,
 		DockerContainerID:              "abc123",
@@ -102,6 +103,7 @@ func TestCheckDefinitionToCheckType(t *testing.T) {
 
 		ScriptArgs:                     []string{"/bin/foo"},
 		HTTP:                           "someurl",
+		H2PING:                         "somehttp2url",
 		TCP:                            "host:port",
 		Interval:                       1 * time.Second,
 		DockerContainerID:              "abc123",

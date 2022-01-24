@@ -128,7 +128,7 @@ func setupConfigFiles(t *testing.T) []string {
 	}
 }
 
-func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
+func TestLoad_NodeName(t *testing.T) {
 	type testCase struct {
 		name         string
 		nodeName     string
@@ -136,18 +136,17 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 	}
 
 	fn := func(t *testing.T, tc testCase) {
-		b, err := newBuilder(LoadOpts{
+		opts := LoadOpts{
 			FlagValues: Config{
 				NodeName: pString(tc.nodeName),
 				DataDir:  pString("dir"),
 			},
-		})
-		patchLoadOptsShims(&b.opts)
+		}
+		patchLoadOptsShims(&opts)
+		result, err := Load(opts)
 		require.NoError(t, err)
-		_, err = b.BuildAndValidate()
-		require.NoError(t, err)
-		require.Len(t, b.Warnings, 1)
-		require.Contains(t, b.Warnings[0], tc.expectedWarn)
+		require.Len(t, result.Warnings, 1)
+		require.Contains(t, result.Warnings[0], tc.expectedWarn)
 	}
 
 	var testCases = []testCase{
@@ -173,6 +172,30 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 			fn(t, tc)
 		})
 	}
+}
+
+func TestBuilder_unixPermissionsVal(t *testing.T) {
+
+	b, _ := newBuilder(LoadOpts{
+		FlagValues: Config{
+			NodeName: pString("foo"),
+			DataDir:  pString("dir"),
+		},
+	})
+
+	goodmode := "666"
+	badmode := "9666"
+
+	patchLoadOptsShims(&b.opts)
+	require.NoError(t, b.err)
+	_ = b.unixPermissionsVal("local_bind_socket_mode", &goodmode)
+	require.NoError(t, b.err)
+	require.Len(t, b.Warnings, 0)
+
+	_ = b.unixPermissionsVal("local_bind_socket_mode", &badmode)
+	require.NotNil(t, b.err)
+	require.Contains(t, b.err.Error(), "local_bind_socket_mode: invalid mode")
+	require.Len(t, b.Warnings, 0)
 }
 
 func patchLoadOptsShims(opts *LoadOpts) {
@@ -223,4 +246,84 @@ func TestLoad_HTTPMaxConnsPerClientExceedsRLimit(t *testing.T) {
 	_, err := Load(opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "but limits.http_max_conns_per_client: 16777217 needs at least 16777237")
+}
+
+func TestLoad_EmptyClientAddr(t *testing.T) {
+
+	type testCase struct {
+		name                   string
+		clientAddr             *string
+		expectedWarningMessage *string
+	}
+
+	fn := func(t *testing.T, tc testCase) {
+		opts := LoadOpts{
+			FlagValues: Config{
+				ClientAddr: tc.clientAddr,
+				DataDir:    pString("dir"),
+			},
+		}
+		patchLoadOptsShims(&opts)
+		result, err := Load(opts)
+		require.NoError(t, err)
+		if tc.expectedWarningMessage != nil {
+			require.Len(t, result.Warnings, 1)
+			require.Contains(t, result.Warnings[0], *tc.expectedWarningMessage)
+		}
+	}
+
+	var testCases = []testCase{
+		{
+			name:                   "empty string",
+			clientAddr:             pString(""),
+			expectedWarningMessage: pString("client_addr is empty, client services (DNS, HTTP, HTTPS, GRPC) will not be listening for connections"),
+		},
+		{
+			name:                   "nil pointer",
+			clientAddr:             nil, // defaults to 127.0.0.1
+			expectedWarningMessage: nil, // expecting no warnings
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fn(t, tc)
+		})
+	}
+}
+
+func TestBuilder_DurationVal_InvalidDuration(t *testing.T) {
+	b := builder{}
+	badDuration1 := "not-a-duration"
+	badDuration2 := "also-not"
+	b.durationVal("field1", &badDuration1)
+	b.durationVal("field1", &badDuration2)
+
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "2 errors")
+	require.Contains(t, b.err.Error(), badDuration1)
+	require.Contains(t, b.err.Error(), badDuration2)
+}
+
+func TestBuilder_ServiceVal_MultiError(t *testing.T) {
+	b := builder{}
+	b.serviceVal(&ServiceDefinition{
+		Meta:       map[string]string{"": "empty-key"},
+		Port:       intPtr(12345),
+		SocketPath: strPtr("/var/run/socket.sock"),
+		Checks: []CheckDefinition{
+			{Interval: strPtr("bad-interval")},
+		},
+		Weights: &ServiceWeights{Passing: intPtr(-1)},
+	})
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "4 errors")
+	require.Contains(t, b.err.Error(), "bad-interval")
+	require.Contains(t, b.err.Error(), "Key cannot be blank")
+	require.Contains(t, b.err.Error(), "Invalid weight")
+	require.Contains(t, b.err.Error(), "cannot have both socket path")
+}
+
+func intPtr(v int) *int {
+	return &v
 }

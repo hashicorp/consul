@@ -1,0 +1,4 @@
+```release-note:improvement
+cli: snapshot inspect command can now inspect raw snapshots from a server's data
+dir.
+```

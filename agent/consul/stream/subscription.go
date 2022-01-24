@@ -62,6 +62,9 @@ type SubscribeRequest struct {
 	// Namespace used to filter events in the topic. Only events matching the
 	// namespace will be returned by the subscription.
 	Namespace string
+	// Partition used to filter events in the topic. Only events matching the
+	// partition will be returned by the subscription.
+	Partition string // TODO(partitions): make this work
 	// Token that was used to authenticate the request. If any ACL policy
 	// changes impact the token the subscription will be forcefully closed.
 	Token string
@@ -102,7 +105,7 @@ func (s *Subscription) Next(ctx context.Context) (Event, error) {
 			continue
 		}
 		event := newEventFromBatch(s.req, next.Events)
-		if !event.Payload.MatchesKey(s.req.Key, s.req.Namespace) {
+		if !event.Payload.MatchesKey(s.req.Key, s.req.Namespace, s.req.Partition) {
 			continue
 		}
 		return event, nil

@@ -9,8 +9,9 @@ module('Integration | Adapter | policy', function(hooks) {
   skip('urlForTranslateRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:policy');
     const client = this.owner.lookup('service:client/http');
+    const request = client.id.bind(client);
     const expected = `GET /v1/acl/policy/translate`;
-    const actual = adapter.requestForTranslateRecord(client.id, {});
+    const actual = adapter.requestForTranslateRecord(request, {});
     assert.equal(actual, expected);
   });
   const dc = 'dc-1';
@@ -20,10 +21,11 @@ module('Integration | Adapter | policy', function(hooks) {
     test(`requestForQuery returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:policy');
       const client = this.owner.lookup('service:client/http');
+      const request = client.requestParams.bind(client);
       const expected = `GET /v1/acl/policies?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQuery(client.requestParams.bind(client), {
+      let actual = adapter.requestForQuery(request, {
         dc: dc,
         ns: nspace,
       });
@@ -32,10 +34,11 @@ module('Integration | Adapter | policy', function(hooks) {
     test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:policy');
       const client = this.owner.lookup('service:client/http');
+      const request = client.requestParams.bind(client);
       const expected = `GET /v1/acl/policy/${id}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQueryRecord(client.requestParams.bind(client), {
+      let actual = adapter.requestForQueryRecord(request, {
         dc: dc,
         id: id,
         ns: nspace,
@@ -45,10 +48,13 @@ module('Integration | Adapter | policy', function(hooks) {
     test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:policy');
       const client = this.owner.lookup('service:client/http');
-      const expected = `PUT /v1/acl/policy?dc=${dc}`;
+      const request = client.url.bind(client);
+      const expected = `PUT /v1/acl/policy?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
       const actual = adapter
         .requestForCreateRecord(
-          client.url,
+          request,
           {},
           {
             Datacenter: dc,
@@ -62,10 +68,13 @@ module('Integration | Adapter | policy', function(hooks) {
     test(`requestForUpdateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:policy');
       const client = this.owner.lookup('service:client/http');
-      const expected = `PUT /v1/acl/policy/${id}?dc=${dc}`;
+      const request = client.url.bind(client);
+      const expected = `PUT /v1/acl/policy/${id}?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
       const actual = adapter
         .requestForUpdateRecord(
-          client.url,
+          request,
           {},
           {
             Datacenter: dc,
@@ -80,12 +89,13 @@ module('Integration | Adapter | policy', function(hooks) {
     test(`requestForDeleteRecord returns the correct url/method when the nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:policy');
       const client = this.owner.lookup('service:client/http');
+      const request = client.url.bind(client);
       const expected = `DELETE /v1/acl/policy/${id}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       const actual = adapter
         .requestForDeleteRecord(
-          client.url,
+          request,
           {},
           {
             Datacenter: dc,
@@ -101,8 +111,9 @@ module('Integration | Adapter | policy', function(hooks) {
   test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:policy');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     assert.throws(function() {
-      adapter.requestForQueryRecord(client.url, {
+      adapter.requestForQueryRecord(request, {
         dc: dc,
       });
     });

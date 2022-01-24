@@ -1,0 +1,73 @@
+# DataLoader
+
+`<DataLoader />` works similarly to, and uses, `<DataSource />` but additionally
+exposes various common states based on the status of the loading of the data.
+These states are exposed as slots to enable you to easily render different
+elements based on the state of the data.
+
+
+Use the `@dataSource` decorator in your repositories to define URI to async
+method mapping.
+
+```javascript
+class SomethingRepository extends Service {
+  @dataSource('/:partition/:nspace/:dc/services')
+  async youCouldCallItAnythingTodoWithGettingServices(params) {
+    console.log(params);
+    // {partition: "partition", nspace: "nspace", dc: "dc"}
+    return getTheThing(params);
+  }
+}
+```
+
+```hbs preview-template
+<DataLoader
+  @src="/partition/nspace/dc/services"
+as |loader|>
+  <BlockSlot @name="loading">
+    Loading...
+  </BlockSlot>
+  <BlockSlot @name="error">
+    Error {{loader.error.status}}
+  </BlockSlot>
+  <BlockSlot @name="disconnected">
+    Whilst we could load the initial data, something happened subsequently that
+    meant we could load longer load updates to the data.
+  </BlockSlot>
+  <BlockSlot @name="loaded">
+    {{#each loader.data as |service|}}
+    {{service.Name}}<br />
+    {{/each}}
+  </BlockSlot>
+</DataLoader>
+```
+
+## Attributes
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `src` | `String` | | The source to subscribe to updates to, this should map to a string based URI |
+
+## Exports
+
+| Name    |  Description |
+| ---     | --- |
+| `data`  | The loaded dataset once any data has been loaded successfully |
+| `error` | The error thrown if an error is encountered whilst loading data |
+
+## Slots
+
+| Name           | Description |
+| ---            | --- |
+| `loading`      | Rendered whilst waiting for the initial data to load. |
+| `error`        | If there is an error only whilst waiting for the initial data to load, this slot is rendered. |
+| `disconnected` | Rendered when the initial data has already loaded, but a subsequent set of loaded data causes an error to be thrown.|
+| `loaded`       | Rendered once the initial data is loaded and on subsequent successful loads of data. |
+
+## See
+
+- [DataSource](../data-source/README.mdx)
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

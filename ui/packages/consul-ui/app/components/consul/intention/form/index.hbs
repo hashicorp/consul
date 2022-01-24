@@ -4,8 +4,9 @@
 >
 <DataForm
   @type="intention"
-  @dc={{@dc}}
+  @dc={{@dc.Name}}
   @nspace={{@nspace}}
+  @partition={{@partition}}
   @autofill={{@autofill}}
   @item={{@item}}
   @src={{@src}}
@@ -13,34 +14,63 @@
   @onsubmit={{action this.onsubmit}}
 as |api|>
 
-    <BlockSlot @name="error" as |Notification|>
-      <Notification>
-        <p data-notification role="alert" class="error notification-update">
-  {{#if (string-starts-with api.error.detail 'duplicate intention found:')}}
-          <strong>Intention exists</strong>
-          An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
-  {{else}}
+    <BlockSlot @name="error" as |after|>
+{{#if (string-starts-with api.error.detail 'duplicate intention found:')}}
+      <Notice
+        {{notification
+          after=(action after)
+        }}
+        class="notification-update"
+        @type="error"
+      as |notice|>
+        <notice.Header>
+          <strong>Intention exists!</strong>
+        </notice.Header>
+        <notice.Body>
+          <p>
+            An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
+          </p>
+        </notice.Body>
+      </Notice>
+{{else}}
+      <Notice
+        {{notification
+          after=(action after)
+        }}
+        class="notification-update"
+        @type="error"
+      as |notice|>
+        <notice.Header>
           <strong>Error!</strong>
-          There was an error saving your intention.
-        {{#if (and api.error.status api.error.detail)}}
-          <br />{{api.error.status}}: {{api.error.detail}}
-        {{/if}}
+        </notice.Header>
+        <notice.Body>
+          <p>
+            There was an error saving your intention.
+          {{#if (and api.error.status api.error.detail)}}
+            <br />{{api.error.status}}: {{api.error.detail}}
+          {{/if}}
+          </p>
+        </notice.Body>
+      </Notice>
   {{/if}}
-        </p>
-      </Notification>
     </BlockSlot>
 
     <BlockSlot @name="form">
-{{#let api.data as |item|}}
-{{#if (can 'write intention' item=item)}}
+{{#let
+  api.data
+  (not (can 'write intention' item=api.data))
+as |item readonly|}}
+{{#if (not readonly)}}
 
-{{#if this.warn}}
   {{#let (changeset-get item 'Action') as |newAction|}}
       <ModalDialog
         class="consul-intention-action-warn-modal warning"
         data-test-action-warning
-        @onclose={{action (mut this.warn) false}}
-      >
+        @aria={{hash
+          label=(concat "Set intention to " newAction)
+        }}
+      as |modal|>
+        <Ref @target={{this}} @name="modal" @value={{modal}} />
         <BlockSlot @name="header">
           <h2>Set intention to {{newAction}}?</h2>
         </BlockSlot>
@@ -69,31 +99,75 @@ as |api|>
         </BlockSlot>
       </ModalDialog>
   {{/let}}
-{{/if}}
 
       <DataSource
-        @src={{concat '/*/' @dc '/services'}}
+        @src={{uri '/${partition}/*/${dc}/services'
+          (hash
+            partition=@partition
+            dc=@dc.Name
+          )
+        }}
         @onchange={{action this.createServices item}}
       />
-    {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+
+    {{#if (can 'use nspaces')}}
         <DataSource
-          @src="/*/*/namespaces"
+          @src={{uri '/${partition}/*/${dc}/namespaces'
+            (hash
+              partition=@partition
+              dc=@dc.Name
+            )
+          }}
           @onchange={{action this.createNspaces item}}
         />
     {{/if}}
-    {{#if (and api.isCreate this.isManagedByCRDs)}}
+
+    {{#if (can 'use partitions')}}
+        <DataSource
+          @src={{uri '/*/*/${dc}/partitions'
+            (hash
+              dc=@dc.Name
+            )
+          }}
+          @onchange={{action this.createPartitions item}}
+        />
+    {{/if}}
+
+    {{#if api.isCreate}}
+      {{#if (and (can 'use partitions') (not (can 'choose partitions' dc=@dc)))}}
+        <Notice
+          @type="info"
+        as |notice|>
+          <notice.Header>
+            <h3>
+              Cross-partition communication not supported
+            </h3>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              Cross-partition communication is not supported outside of the primary datacenter. You will only be able to select namespaces for source and destination services.
+            </p>
+          </notice.Body>
+        </Notice>
+      {{/if}}
+      {{#if this.isManagedByCRDs}}
         <Consul::Intention::Notice::CustomResource @type="warning" />
+      {{/if}}
     {{/if}}
       <form
         {{on 'submit' (fn this.submit item api.submit)}}
       >
         <Consul::Intention::Form::Fieldsets
           @nspaces={{this.nspaces}}
+          @dc={{@dc}}
+          @partitions={{this.partitions}}
           @services={{this.services}}
           @SourceName={{this.SourceName}}
           @SourceNS={{this.SourceNS}}
+          @SourcePartition={{this.SourcePartition}}
           @DestinationName={{this.DestinationName}}
           @DestinationNS={{this.DestinationNS}}
+          @DestinationPartition={{this.DestinationPartition}}
           @item={{item}}
           @disabled={{api.disabled}}
           @create={{api.isCreate}}
@@ -140,6 +214,7 @@ as |api|>
         </div>
       </form>
   {{else}}
+
     {{#if item.IsManagedByCRD}}
       <Notice
         class="crd"
@@ -162,8 +237,10 @@ as |api|>
         </notice.Footer>
       </Notice>
     {{/if}}
+
     <Consul::Intention::View
       @item={{item}}
+      data-test-readonly
     />
   {{/if}}
 {{/let}}

@@ -32,11 +32,12 @@
   &.has-background {
     &::after {
       content: '';
-      background: var(--gray-7);
+      background: var(--gray-6);
     }
 
     & .background-section {
-      background: var(--gray-7);
+      background: var(--gray-6);
+      padding-bottom: 64px;
     }
   }
 
@@ -142,7 +143,7 @@
     }
 
     &:disabled svg path {
-      stroke: var(--gray-5);
+      stroke: var(--gray-4);
     }
   }
 
@@ -156,7 +157,7 @@
 
     @media (max-width: 800px) {
       box-shadow: none;
-      border: 1px solid var(--gray-6);
+      border: 1px solid var(--gray-5);
       padding: 48px;
     }
 
@@ -231,6 +232,8 @@
       }
 
       & .person-name {
+        padding-right: 16px;
+
         & h5 {
           margin: 0;
 
@@ -257,7 +260,7 @@
     }
 
     & .case {
-      color: var(--gray-5);
+      color: var(--gray-4);
       font-size: 24px;
       line-height: 31px; /* Called for within the design, no custom property seemed appropriate */
     }

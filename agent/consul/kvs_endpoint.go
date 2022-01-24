@@ -7,12 +7,13 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 )
 
 var KVSummaries = []prometheus.SummaryDefinition{
@@ -38,37 +39,35 @@ func kvsPreApply(logger hclog.Logger, srv *Server, authz acl.Authorizer, op api.
 	}
 
 	// Apply the ACL policy if any.
-	if authz != nil {
-		switch op {
-		case api.KVDeleteTree:
-			var authzContext acl.AuthorizerContext
-			dirEnt.FillAuthzContext(&authzContext)
+	switch op {
+	case api.KVDeleteTree:
+		var authzContext acl.AuthorizerContext
+		dirEnt.FillAuthzContext(&authzContext)
 
-			if authz.KeyWritePrefix(dirEnt.Key, &authzContext) != acl.Allow {
-				return false, acl.ErrPermissionDenied
-			}
+		if authz.KeyWritePrefix(dirEnt.Key, &authzContext) != acl.Allow {
+			return false, acl.ErrPermissionDenied
+		}
 
-		case api.KVGet, api.KVGetTree:
-			// Filtering for GETs is done on the output side.
+	case api.KVGet, api.KVGetTree:
+		// Filtering for GETs is done on the output side.
 
-		case api.KVCheckSession, api.KVCheckIndex:
-			// These could reveal information based on the outcome
-			// of the transaction, and they operate on individual
-			// keys so we check them here.
-			var authzContext acl.AuthorizerContext
-			dirEnt.FillAuthzContext(&authzContext)
+	case api.KVCheckSession, api.KVCheckIndex:
+		// These could reveal information based on the outcome
+		// of the transaction, and they operate on individual
+		// keys so we check them here.
+		var authzContext acl.AuthorizerContext
+		dirEnt.FillAuthzContext(&authzContext)
 
-			if authz.KeyRead(dirEnt.Key, &authzContext) != acl.Allow {
-				return false, acl.ErrPermissionDenied
-			}
+		if authz.KeyRead(dirEnt.Key, &authzContext) != acl.Allow {
+			return false, acl.ErrPermissionDenied
+		}
 
-		default:
-			var authzContext acl.AuthorizerContext
-			dirEnt.FillAuthzContext(&authzContext)
+	default:
+		var authzContext acl.AuthorizerContext
+		dirEnt.FillAuthzContext(&authzContext)
 
-			if authz.KeyWrite(dirEnt.Key, &authzContext) != acl.Allow {
-				return false, acl.ErrPermissionDenied
-			}
+		if authz.KeyWrite(dirEnt.Key, &authzContext) != acl.Allow {
+			return false, acl.ErrPermissionDenied
 		}
 	}
 
@@ -95,7 +94,7 @@ func kvsPreApply(logger hclog.Logger, srv *Server, authz acl.Authorizer, op api.
 
 // Apply is used to apply a KVS update request to the data store.
 func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
-	if done, err := k.srv.ForwardRPC("KVS.Apply", args, args, reply); done {
+	if done, err := k.srv.ForwardRPC("KVS.Apply", args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"kvs", "apply"}, time.Now())
@@ -122,11 +121,7 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 	// Apply the update.
 	resp, err := k.srv.raftApply(structs.KVSRequestType, args)
 	if err != nil {
-		k.logger.Error("Raft apply failed", "error", err)
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
+		return fmt.Errorf("raft apply failed: %w", err)
 	}
 
 	// Check if the return type is a bool.
@@ -138,7 +133,7 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 
 // Get is used to lookup a single key.
 func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) error {
-	if done, err := k.srv.ForwardRPC("KVS.Get", args, args, reply); done {
+	if done, err := k.srv.ForwardRPC("KVS.Get", args, reply); done {
 		return err
 	}
 
@@ -160,7 +155,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 			if err != nil {
 				return err
 			}
-			if authz != nil && authz.KeyRead(args.Key, &authzContext) != acl.Allow {
+			if authz.KeyRead(args.Key, &authzContext) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 
@@ -183,7 +178,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 
 // List is used to list all keys with a given prefix.
 func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) error {
-	if done, err := k.srv.ForwardRPC("KVS.List", args, args, reply); done {
+	if done, err := k.srv.ForwardRPC("KVS.List", args, reply); done {
 		return err
 	}
 
@@ -197,7 +192,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 		return err
 	}
 
-	if authz != nil && k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Key, &authzContext) != acl.Allow {
+	if k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Key, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -209,9 +204,10 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 			if err != nil {
 				return err
 			}
-			if authz != nil {
-				ent = FilterDirEnt(authz, ent)
-			}
+
+			total := len(ent)
+			ent = FilterDirEnt(authz, ent)
+			reply.QueryMeta.ResultsFilteredByACLs = total != len(ent)
 
 			if len(ent) == 0 {
 				// Must provide non-zero index to prevent blocking
@@ -235,7 +231,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 // of the response so that only a subset of the prefix is returned. In this
 // mode, the keys which are omitted are still counted in the returned index.
 func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyList) error {
-	if done, err := k.srv.ForwardRPC("KVS.ListKeys", args, args, reply); done {
+	if done, err := k.srv.ForwardRPC("KVS.ListKeys", args, reply); done {
 		return err
 	}
 
@@ -249,7 +245,7 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 		return err
 	}
 
-	if authz != nil && k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Prefix, &authzContext) != acl.Allow {
+	if k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Prefix, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -270,9 +266,9 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 				reply.Index = index
 			}
 
-			if authz != nil {
-				entries = FilterDirEnt(authz, entries)
-			}
+			total := len(entries)
+			entries = FilterDirEnt(authz, entries)
+			reply.QueryMeta.ResultsFilteredByACLs = total != len(entries)
 
 			// Collect the keys from the filtered entries
 			prefixLen := len(args.Prefix)

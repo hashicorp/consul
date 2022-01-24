@@ -6,6 +6,7 @@ import {
   collection,
   text,
   isPresent,
+  isVisible,
 } from 'ember-cli-page-object';
 
 import { alias } from 'ember-cli-page-object/macros';
@@ -51,6 +52,7 @@ import consulKvListFactory from 'consul-ui/components/consul/kv/list/pageobject'
 import index from 'consul-ui/tests/pages/index';
 import dcs from 'consul-ui/tests/pages/dc';
 import settings from 'consul-ui/tests/pages/settings';
+import routingConfig from 'consul-ui/tests/pages/dc/routing-config';
 import services from 'consul-ui/tests/pages/dc/services/index';
 import service from 'consul-ui/tests/pages/dc/services/show';
 import instance from 'consul-ui/tests/pages/dc/services/instance';
@@ -92,7 +94,7 @@ const emptyState = emptyStateFactory(isPresent);
 
 const consulHealthCheckList = consulHealthCheckListFactory(collection, text);
 const consulUpstreamInstanceList = consulUpstreamInstanceListFactory(collection, text);
-const consulAuthMethodList = consulAuthMethodListFactory(collection, text);
+const consulAuthMethodList = consulAuthMethodListFactory(collection, clickable, text);
 const consulIntentionList = consulIntentionListFactory(
   collection,
   clickable,
@@ -156,13 +158,23 @@ export default {
     )
   ),
   service: create(
-    service(visitable, clickable, attribute, collection, text, consulIntentionList, tabgroup)
+    service(
+      visitable,
+      clickable,
+      attribute,
+      isPresent,
+      collection,
+      text,
+      consulIntentionList,
+      tabgroup
+    )
   ),
   instance: create(
     instance(
       visitable,
       alias,
       attribute,
+      isPresent,
       collection,
       text,
       tabgroup,
@@ -176,7 +188,9 @@ export default {
       visitable,
       deletable,
       clickable,
+      alias,
       attribute,
+      isPresent,
       collection,
       tabgroup,
       text,
@@ -204,7 +218,7 @@ export default {
     intention(
       visitable,
       clickable,
-      isPresent,
+      isVisible,
       submitable,
       deletable,
       cancelable,
@@ -217,4 +231,5 @@ export default {
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
   ),
   settings: create(settings(visitable, submitable, isPresent)),
+  routingConfig: create(routingConfig(visitable, text)),
 };

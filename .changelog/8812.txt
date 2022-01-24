@@ -1,0 +1,3 @@
+```release-note:bug
+api: include the default value of raft settings in the output of /v1/agent/self
+```

@@ -35,14 +35,14 @@ as |item|>
       <Actions as |Action|>
         <Action data-test-edit-action @href={{href-to 'dc.acls.policies.edit' item.ID}}>
           <BlockSlot @name="label">
-{{#if (eq (policy/typeof item) 'policy-management')}}
-            View
-{{else}}
+{{#if (can "write policy" item=item)}}
             Edit
+{{else}}
+            View
 {{/if}}
           </BlockSlot>
         </Action>
-{{#if (not-eq (policy/typeof item) 'policy-management')}}
+{{#if (can "delete policy" item=item)}}
         <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
           <BlockSlot @name="label">
             Delete

@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -54,13 +55,6 @@ type RuntimeConfig struct {
 	ConsulRaftLeaderLeaseTimeout     time.Duration
 	ConsulServerHealthInterval       time.Duration
 
-	// ACLDisabledTTL is used by agents to determine how long they will
-	// wait to check again with the servers if they discover ACLs are not
-	// enabled. (not user configurable)
-	//
-	// hcl: acl.disabled_ttl = "duration"
-	ACLDisabledTTL time.Duration
-
 	// ACLsEnabled is used to determine whether ACLs should be enabled
 	//
 	// hcl: acl.enabled = boolean
@@ -68,35 +62,7 @@ type RuntimeConfig struct {
 
 	ACLTokens token.Config
 
-	// ACLDatacenter is the central datacenter that holds authoritative
-	// ACL records. This must be the same for the entire cluster.
-	// If this is not set, ACLs are not enabled. Off by default.
-	//
-	// hcl: acl_datacenter = string
-	ACLDatacenter string
-
-	// ACLDefaultPolicy is used to control the ACL interaction when
-	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to deny-list, or "deny" which means ACLs are
-	// allow-lists.
-	//
-	// hcl: acl.default_policy = ("allow"|"deny")
-	ACLDefaultPolicy string
-
-	// ACLDownPolicy is used to control the ACL interaction when we cannot
-	// reach the ACLDatacenter and the token is not in the cache.
-	// There are the following modes:
-	//   * allow - Allow all requests
-	//   * deny - Deny all requests
-	//   * extend-cache - Ignore the cache expiration, and allow cached
-	//                    ACL's to be used to service requests. This
-	//                    is the default. If the ACL is not in the cache,
-	//                    this acts like deny.
-	//   * async-cache - Same behavior as extend-cache, but perform ACL
-	//                   Lookups asynchronously when cache TTL is expired.
-	//
-	// hcl: acl.down_policy = ("allow"|"deny"|"extend-cache"|"async-cache")
-	ACLDownPolicy string
+	ACLResolverSettings consul.ACLResolverSettings
 
 	// ACLEnableKeyListPolicy is used to opt-in to the "list" policy added to
 	// KV ACLs in Consul 1.0.
@@ -107,36 +73,18 @@ type RuntimeConfig struct {
 	// hcl: acl.enable_key_list_policy = (true|false)
 	ACLEnableKeyListPolicy bool
 
-	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
-	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
-	// that the Master token is available. This provides the initial token.
+	// ACLInitialManagementToken is used to bootstrap the ACL system. It should be specified
+	// on the servers in the PrimaryDatacenter. When the leader comes online, it ensures
+	// that the initial management token is available. This provides the initial token.
 	//
-	// hcl: acl.tokens.master = string
-	ACLMasterToken string
+	// hcl: acl.tokens.initial_management = string
+	ACLInitialManagementToken string
 
 	// ACLtokenReplication is used to indicate that both tokens and policies
 	// should be replicated instead of just policies
 	//
 	// hcl: acl.token_replication = boolean
 	ACLTokenReplication bool
-
-	// ACLTokenTTL is used to control the time-to-live of cached ACL tokens. This has
-	// a major impact on performance. By default, it is set to 30 seconds.
-	//
-	// hcl: acl.policy_ttl = "duration"
-	ACLTokenTTL time.Duration
-
-	// ACLPolicyTTL is used to control the time-to-live of cached ACL policies. This has
-	// a major impact on performance. By default, it is set to 30 seconds.
-	//
-	// hcl: acl.token_ttl = "duration"
-	ACLPolicyTTL time.Duration
-
-	// ACLRoleTTL is used to control the time-to-live of cached ACL roles. This has
-	// a major impact on performance. By default, it is set to 30 seconds.
-	//
-	// hcl: acl.role_ttl = "duration"
-	ACLRoleTTL time.Duration
 
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.
@@ -269,6 +217,15 @@ type RuntimeConfig struct {
 	//
 	// hcl: dns_config { only_passing = (true|false) }
 	DNSOnlyPassing bool
+
+	// DNSRecursorStrategy controls the order in which DNS recursors are queried.
+	// 'sequential' queries recursors in the order they are listed under `recursors`.
+	// 'random' causes random selection of recursors which has the effect of
+	// spreading the query load among all listed servers, rather than having
+	// client agents try the first server in the list every time.
+	//
+	// hcl: dns_config { recursor_strategy = "(random|sequential)" }
+	DNSRecursorStrategy dns.RecursorStrategy
 
 	// DNSRecursorTimeout specifies the timeout in seconds
 	// for Consul's internal dns client used for recursion.
@@ -470,12 +427,16 @@ type RuntimeConfig struct {
 	//     header = map[string][]string
 	//     method = string
 	//     tcp = string
+	//     h2ping = string
 	//     interval = string
 	//     docker_container_id = string
 	//     shell = string
 	//     tls_skip_verify = (true|false)
 	//     timeout = "duration"
 	//     ttl = "duration"
+	//     success_before_passing = int
+	//     failures_before_warning = int
+	//     failures_before_critical = int
 	//     deregister_critical_service_after = "duration"
 	//   },
 	//   ...
@@ -981,6 +942,8 @@ type RuntimeConfig struct {
 	//
 	// hcl: raft_trailing_logs = int
 	RaftTrailingLogs int
+
+	RaftBoltDBConfig consul.RaftBoltDBConfig
 
 	// ReconnectTimeoutLAN specifies the amount of time to wait to reconnect with
 	// another agent before deciding it's permanently gone. This can be used to
@@ -1660,9 +1623,9 @@ func (c *RuntimeConfig) ConnectCAConfiguration() (*structs.CAConfiguration, erro
 	ca := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"RotationPeriod":      structs.DefaultCARotationPeriod,
 			"LeafCertTTL":         structs.DefaultLeafCertTTL,
 			"IntermediateCertTTL": structs.DefaultIntermediateCertTTL,
+			"RootCertTTL":         structs.DefaultRootCertTTL,
 		},
 	}
 
@@ -1919,4 +1882,17 @@ func isUint(t reflect.Type) bool {
 func isFloat(t reflect.Type) bool { return t.Kind() == reflect.Float32 || t.Kind() == reflect.Float64 }
 func isComplex(t reflect.Type) bool {
 	return t.Kind() == reflect.Complex64 || t.Kind() == reflect.Complex128
+}
+
+// ApplyDefaultQueryOptions returns a function which will set default values on
+// the options based on the configuration. The RuntimeConfig must not be nil.
+func ApplyDefaultQueryOptions(config *RuntimeConfig) func(options *structs.QueryOptions) {
+	return func(options *structs.QueryOptions) {
+		switch {
+		case options.MaxQueryTime > config.MaxQueryTime:
+			options.MaxQueryTime = config.MaxQueryTime
+		case options.MaxQueryTime == 0:
+			options.MaxQueryTime = config.DefaultQueryTime
+		}
+	}
 }

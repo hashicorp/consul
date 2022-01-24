@@ -1,6 +1,13 @@
-.hashicorp-consul {
-  [role="banner"] a svg {
-    fill: var(--brand-600);
+%hashicorp-consul {
+  [role='banner'] nav .dcs {
+    @extend %main-nav-vertical-hoisted;
+    left: 100px;
+  }
+  [role='banner'] nav .dcs .popover-menu[aria-label]::before {
+    display: none;
+  }
+  [role='banner'] a svg {
+    fill: rgb(var(--tone-brand-600));
   }
   .docs-link a::after {
     @extend %with-docs-mask, %as-pseudo;
@@ -11,4 +18,15 @@
   .feedback-link a::after {
     @extend %with-logo-github-monochrome-mask, %as-pseudo;
   }
+  .acls-separator span {
+    @extend %led-icon;
+    color: rgb(var(--tone-red-500));
+    display: inline-block;
+    position: relative;
+    top: 2px;
+    margin-left: 2px;
+  }
+}
+.hashicorp-consul {
+  @extend %hashicorp-consul;
 }

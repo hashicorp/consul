@@ -1,7 +1,6 @@
 ---
 layout: docs
 page_title: 'Consul vs. Nagios'
-sidebar_title: 'Nagios'
 description: >-
   Nagios is a tool built for monitoring. It is used to quickly
   notify operators when an issue occurs.
@@ -37,7 +36,7 @@ allowing the system to be much more scalable.
 An astute reader may notice that if a Consul agent dies, then no edge triggered
 updates will occur. From the perspective of other nodes, all checks will appear
 to be in a steady state. However, Consul guards against this as well. The
-[gossip protocol](/docs/internals/gossip) used between clients and servers
+[gossip protocol](/docs/architecture/gossip) used between clients and servers
 integrates a distributed failure detector. This means that if a Consul agent fails,
 the failure will be detected, and thus all checks being run by that node can be
 assumed failed. This failure detector distributes the work among the entire cluster

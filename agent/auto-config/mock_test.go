@@ -2,10 +2,12 @@ package autoconf
 
 import (
 	"context"
+	"crypto/x509"
 	"net"
 	"sync"
 	"testing"
-	"time"
+
+	"github.com/stretchr/testify/mock"
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -15,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/mock"
 )
 
 type mockDirectRPC struct {
@@ -72,6 +73,7 @@ func (m *mockTLSConfigurator) UpdateAutoTLSCA(pems []string) error {
 	ret := m.Called(pems)
 	return ret.Error(0)
 }
+
 func (m *mockTLSConfigurator) UpdateAutoTLSCert(pub, priv string) error {
 	if priv != "" {
 		priv = "redacted"
@@ -79,15 +81,11 @@ func (m *mockTLSConfigurator) UpdateAutoTLSCert(pub, priv string) error {
 	ret := m.Called(pub, priv)
 	return ret.Error(0)
 }
-func (m *mockTLSConfigurator) AutoEncryptCertNotAfter() time.Time {
-	ret := m.Called()
-	ts, _ := ret.Get(0).(time.Time)
 
-	return ts
-}
-func (m *mockTLSConfigurator) AutoEncryptCertExpired() bool {
+func (m *mockTLSConfigurator) AutoEncryptCert() *x509.Certificate {
 	ret := m.Called()
-	return ret.Bool(0)
+	cert, _ := ret.Get(0).(*x509.Certificate)
+	return cert
 }
 
 type mockServerProvider struct {
@@ -218,19 +216,24 @@ func (m *mockTokenStore) StopNotify(notifier token.Notifier) {
 type mockedConfig struct {
 	Config
 
-	directRPC      *mockDirectRPC
-	serverProvider *mockServerProvider
-	cache          *mockCache
-	tokens         *mockTokenStore
-	tlsCfg         *mockTLSConfigurator
+	loader           *configLoader
+	directRPC        *mockDirectRPC
+	serverProvider   *mockServerProvider
+	cache            *mockCache
+	tokens           *mockTokenStore
+	tlsCfg           *mockTLSConfigurator
+	enterpriseConfig *mockedEnterpriseConfig
 }
 
 func newMockedConfig(t *testing.T) *mockedConfig {
+	loader := setupRuntimeConfig(t)
 	directRPC := newMockDirectRPC(t)
 	serverProvider := newMockServerProvider(t)
 	mcache := newMockCache(t)
 	tokens := newMockTokenStore(t)
 	tlsCfg := newMockTLSConfigurator(t)
+
+	entConfig := newMockedEnterpriseConfig(t)
 
 	// I am not sure it is well defined behavior but in testing it
 	// out it does appear like Cleanup functions can fail tests
@@ -248,18 +251,23 @@ func newMockedConfig(t *testing.T) *mockedConfig {
 
 	return &mockedConfig{
 		Config: Config{
-			DirectRPC:       directRPC,
-			ServerProvider:  serverProvider,
-			Cache:           mcache,
-			Tokens:          tokens,
-			TLSConfigurator: tlsCfg,
-			Logger:          testutil.Logger(t),
+			Loader:           loader.Load,
+			DirectRPC:        directRPC,
+			ServerProvider:   serverProvider,
+			Cache:            mcache,
+			Tokens:           tokens,
+			TLSConfigurator:  tlsCfg,
+			Logger:           testutil.Logger(t),
+			EnterpriseConfig: entConfig.EnterpriseConfig,
 		},
+		loader:         loader,
 		directRPC:      directRPC,
 		serverProvider: serverProvider,
 		cache:          mcache,
 		tokens:         tokens,
 		tlsCfg:         tlsCfg,
+
+		enterpriseConfig: entConfig,
 	}
 }
 

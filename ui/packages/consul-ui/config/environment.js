@@ -1,3 +1,7 @@
+// All of the configuration here is shared between buildtime and runtime and
+// is therefore added to ember's <meta> tag in the actual app, if the
+// configuration is for buildtime only you should probably just use
+// ember-cli-build to prevent values being outputted in the meta tag
 'use strict';
 const path = require('path');
 const utils = require('./utils');
@@ -9,40 +13,21 @@ const repositorySHA = utils.repositorySHA;
 const binaryVersion = utils.binaryVersion(repositoryRoot);
 
 module.exports = function(environment, $ = process.env) {
+  // available environments
+  // ['production', 'development', 'staging', 'test'];
+  const env = utils.env($);
   // basic 'get env var with fallback' accessor
-  const env = function(flag, fallback) {
-    // a fallback value MUST be set
-    if (typeof fallback === 'undefined') {
-      throw new Error(`Please provide a fallback value for $${flag}`);
-    }
-    // return the env var if set
-    if (typeof $[flag] !== 'undefined') {
-      if (typeof fallback === 'boolean') {
-        // if we are expecting a boolean JSON parse strings to numbers/booleans
-        return !!JSON.parse($[flag]);
-      }
-      return $[flag];
-    }
-    // If the fallback is a function call it and return the result.
-    // Lazily calling the function means binaries used for fallback don't need
-    // to be available if we are sure the environment variables will be set
-    if (typeof fallback === 'function') {
-      return fallback();
-    }
-    // just return the fallback value
-    return fallback;
-  };
 
   let ENV = {
     modulePrefix: 'consul-ui',
     environment,
     rootURL: '/ui/',
-    locationType: 'auto',
+    locationType: 'fsm-with-optional',
+    historySupportMiddleware: true,
 
-    // We use a complete dynamically (from Consul) configured torii provider.
-    // We provide this object here to prevent ember from giving a log message
-    // when starting ember up
-    torii: {},
+    torii: {
+      disableRedirectInitializer: false
+    },
 
     EmberENV: {
       FEATURES: {
@@ -97,7 +82,9 @@ module.exports = function(environment, $ = process.env) {
       ACLsEnabled: false,
       NamespacesEnabled: false,
       SSOEnabled: false,
+      PartitionsEnabled: false,
       LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
+      PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
     },
 
     // Static variables used in multiple places throughout the UI
@@ -111,14 +98,16 @@ module.exports = function(environment, $ = process.env) {
   switch (true) {
     case environment === 'test':
       ENV = Object.assign({}, ENV, {
-        locationType: 'none',
+        locationType: 'fsm-with-optional-test',
 
         // During testing ACLs default to being turned on
         operatorConfig: {
           ACLsEnabled: env('CONSUL_ACLS_ENABLED', true),
           NamespacesEnabled: env('CONSUL_NSPACES_ENABLED', false),
           SSOEnabled: env('CONSUL_SSO_ENABLED', false),
+          PartitionsEnabled: env('CONSUL_PARTITIONS_ENABLED', false),
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
+          PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
         },
 
         '@hashicorp/ember-cli-api-double': {
@@ -142,17 +131,32 @@ module.exports = function(environment, $ = process.env) {
         }),
       });
       break;
+    case environment === 'development':
+      ENV = Object.assign({}, ENV, {
+        torii: {
+          disableRedirectInitializer: true
+        },
+      });
+      break;
     case environment === 'staging':
       ENV = Object.assign({}, ENV, {
+        torii: {
+          disableRedirectInitializer: true
+        },
         // On staging sites everything defaults to being turned on by
         // different staging sites can be built with certain features disabled
         // by setting an environment variable to 0 during building (e.g.
         // CONSUL_NSPACES_ENABLED=0 make build)
+
+        // TODO: We should be able to remove this now we can link to different
+        // scenarios in staging
         operatorConfig: {
           ACLsEnabled: env('CONSUL_ACLS_ENABLED', true),
           NamespacesEnabled: env('CONSUL_NSPACES_ENABLED', true),
           SSOEnabled: env('CONSUL_SSO_ENABLED', true),
+          PartitionsEnabled: env('CONSUL_PARTITIONS_ENABLED', true),
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
+          PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
         },
 
         '@hashicorp/ember-cli-api-double': {

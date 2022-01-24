@@ -1,0 +1,3 @@
+```release-note:feature
+connect: add support for unix domain sockets addresses for service upstreams and downstreams
+```

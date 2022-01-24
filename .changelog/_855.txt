@@ -1,0 +1,3 @@
+```release-note:bug
+areas: Fixes a bug which would prevent newer servers in a network areas from connecting to servers running a version of Consul prior to 1.7.3.
+```

@@ -1,4 +1,4 @@
-.tippy-box[data-theme~=tooltip] {
+.tippy-box[data-theme~='tooltip'] {
   & {
     @extend %tooltip-bubble;
   }
@@ -8,42 +8,42 @@
   .tippy-arrow {
     @extend %tooltip-tail;
   }
-  &[data-placement^=bottom] > .tippy-arrow {
+  &[data-placement^='bottom'] > .tippy-arrow {
     @extend %tooltip-tail-bottom;
   }
-  &[data-placement^=top] > .tippy-arrow {
+  &[data-placement^='top'] > .tippy-arrow {
     @extend %tooltip-tail-top;
   }
-  &[data-placement^=left] > .tippy-arrow {
+  &[data-placement^='left'] > .tippy-arrow {
     @extend %tooltip-tail-left;
   }
-  &[data-placement^=right] > .tippy-arrow {
+  &[data-placement^='right'] > .tippy-arrow {
     @extend %tooltip-tail-right;
   }
 }
 %tooltip-content {
   @extend %p3;
   padding: 12px;
-  max-width: 192px;
+  max-width: 224px;
   position: relative;
   z-index: 1;
 }
 
 %tooltip-bubble {
   & {
-    background-color: $gray-700;
-    color: $white;
+    background-color: rgb(var(--tone-gray-700));
+    color: rgb(var(--tone-gray-000));
   }
 }
 %tooltip-tail {
   --size: 5px;
   & {
-    color: $gray-700;
+    color: rgb(var(--tone-gray-700));
     width: calc(var(--size) * 2);
     height: calc(var(--size) * 2);
   }
   &::before {
-    border-color: $transparent;
+    border-color: var(--transparent);
     border-style: solid;
   }
 }

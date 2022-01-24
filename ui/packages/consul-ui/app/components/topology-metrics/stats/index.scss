@@ -1,12 +1,13 @@
-.stats {
+.topology-metrics-stats {
   padding: 12px 12px 0 12px;
   display: flex;
   flex-flow: row wrap;
   justify-content: space-between;
   align-items: stretch;
   width: 100%;
+  border-top: 1px solid rgb(var(--tone-gray-200));
   dl {
-    display:flex;
+    display: flex;
     padding-bottom: 12px;
   }
   dt {
@@ -14,7 +15,7 @@
     line-height: 1.5em !important;
   }
   dd {
-    color: $gray-400 !important;
+    color: rgb(var(--tone-gray-400)) !important;
   }
   span {
     padding-bottom: 12px;

@@ -5,9 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func TestIntention_ACLs(t *testing.T) {
@@ -116,7 +117,7 @@ func TestIntention_ACLs(t *testing.T) {
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			authz, err := acl.NewAuthorizerFromRules("", 0, tcase.rules, acl.SyntaxCurrent, &config, nil)
+			authz, err := acl.NewAuthorizerFromRules(tcase.rules, acl.SyntaxCurrent, &config, nil)
 			require.NoError(t, err)
 
 			require.Equal(t, tcase.read, tcase.intention.CanRead(authz))
@@ -226,17 +227,16 @@ func TestIntentionValidate(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			assert := assert.New(t)
 			ixn := TestIntention(t)
 			tc.Modify(ixn)
 
 			err := ixn.Validate()
-			assert.Equal(err != nil, tc.Err != "", err)
+			assert.Equal(t, err != nil, tc.Err != "", err)
 			if err == nil {
 				return
 			}
 
-			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 		})
 	}
 }
@@ -300,7 +300,6 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			assert := assert.New(t)
 
 			var input Intentions
 			for _, v := range tc.Input {
@@ -330,7 +329,7 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 					v.DestinationName,
 				})
 			}
-			assert.Equal(tc.Expected, actual)
+			assert.Equal(t, tc.Expected, actual)
 		})
 	}
 }
@@ -368,6 +367,11 @@ func TestIntention_String(t *testing.T) {
 
 	testID := generateUUID()
 
+	partitionPrefix := DefaultEnterpriseMetaInDefaultPartition().PartitionOrEmpty()
+	if partitionPrefix != "" {
+		partitionPrefix += "/"
+	}
+
 	cases := map[string]testcase{
 		"legacy allow": {
 			&Intention{
@@ -376,7 +380,7 @@ func TestIntention_String(t *testing.T) {
 				DestinationName: "bar",
 				Action:          IntentionActionAllow,
 			},
-			`default/foo => default/bar (ID: ` + testID + `, Precedence: 9, Action: ALLOW)`,
+			partitionPrefix + `default/foo => ` + partitionPrefix + `default/bar (ID: ` + testID + `, Precedence: 9, Action: ALLOW)`,
 		},
 		"legacy deny": {
 			&Intention{
@@ -385,7 +389,7 @@ func TestIntention_String(t *testing.T) {
 				DestinationName: "bar",
 				Action:          IntentionActionDeny,
 			},
-			`default/foo => default/bar (ID: ` + testID + `, Precedence: 9, Action: DENY)`,
+			partitionPrefix + `default/foo => ` + partitionPrefix + `default/bar (ID: ` + testID + `, Precedence: 9, Action: DENY)`,
 		},
 		"L4 allow": {
 			&Intention{
@@ -393,7 +397,7 @@ func TestIntention_String(t *testing.T) {
 				DestinationName: "bar",
 				Action:          IntentionActionAllow,
 			},
-			`default/foo => default/bar (Precedence: 9, Action: ALLOW)`,
+			partitionPrefix + `default/foo => ` + partitionPrefix + `default/bar (Precedence: 9, Action: ALLOW)`,
 		},
 		"L4 deny": {
 			&Intention{
@@ -401,7 +405,7 @@ func TestIntention_String(t *testing.T) {
 				DestinationName: "bar",
 				Action:          IntentionActionDeny,
 			},
-			`default/foo => default/bar (Precedence: 9, Action: DENY)`,
+			partitionPrefix + `default/foo => ` + partitionPrefix + `default/bar (Precedence: 9, Action: DENY)`,
 		},
 		"L7 one perm": {
 			&Intention{
@@ -416,7 +420,7 @@ func TestIntention_String(t *testing.T) {
 					},
 				},
 			},
-			`default/foo => default/bar (Precedence: 9, Permissions: 1)`,
+			partitionPrefix + `default/foo => ` + partitionPrefix + `default/bar (Precedence: 9, Permissions: 1)`,
 		},
 		"L7 two perms": {
 			&Intention{
@@ -437,14 +441,14 @@ func TestIntention_String(t *testing.T) {
 					},
 				},
 			},
-			`default/foo => default/bar (Precedence: 9, Permissions: 2)`,
+			partitionPrefix + `default/foo => ` + partitionPrefix + `default/bar (Precedence: 9, Permissions: 2)`,
 		},
 	}
 
 	for name, tc := range cases {
 		tc := tc
 		// Add a bunch of required fields.
-		tc.ixn.DefaultNamespaces(DefaultEnterpriseMeta())
+		tc.ixn.FillPartitionAndNamespace(DefaultEnterpriseMetaInDefaultPartition(), true)
 		tc.ixn.UpdatePrecedence()
 
 		t.Run(name, func(t *testing.T) {
@@ -452,4 +456,8 @@ func TestIntention_String(t *testing.T) {
 			require.Equal(t, tc.expect, got)
 		})
 	}
+}
+
+func TestIntentionQueryRequest_CacheInfoKey(t *testing.T) {
+	assertCacheInfoKeyIsComplete(t, &IntentionQueryRequest{})
 }

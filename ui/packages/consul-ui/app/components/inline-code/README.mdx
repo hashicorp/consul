@@ -1,0 +1,38 @@
+---
+class: css
+---
+# inline-code
+
+All `p code` within `main` and any `ModalLayer`s default to use the following
+inline code CSS component.
+
+```hbs preview-template
+<p>
+  This is so we can highlight code <code>inline</code> in paragraphs and such-like.
+</p>
+```
+
+It can also be added to any additional elements using the following
+placeholder.
+
+```css
+p code {
+  @extend %inline-code;
+}
+```
+
+We also have a `%block-code` that is currently contained in the same CSS files here as it shares so much of this (this should potentially be thought about and reorganized at some stage)
+
+At the time of writing we only use this in the docs for all `<pre><code>`s.
+
+```hbs preview-template
+<pre><code>{
+  "Code": true
+}</code></pre>
+```
+
+```css
+pre code {
+  @extend %block-code;
+}
+```

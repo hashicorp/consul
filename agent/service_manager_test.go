@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mitchellh/copystructure"
+
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -19,8 +22,6 @@ func TestServiceManager_RegisterService(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	require := require.New(t)
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -46,14 +47,14 @@ func TestServiceManager_RegisterService(t *testing.T) {
 		ID:             "redis",
 		Service:        "redis",
 		Port:           8000,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify both the service and sidecar.
 	redisService := a.State.Service(structs.NewServiceID("redis", nil))
-	require.NotNil(redisService)
-	require.Equal(&structs.NodeService{
+	require.NotNil(t, redisService)
+	require.Equal(t, &structs.NodeService{
 		ID:              "redis",
 		Service:         "redis",
 		Port:            8000,
@@ -62,7 +63,7 @@ func TestServiceManager_RegisterService(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}, redisService)
 }
 
@@ -70,8 +71,6 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	require := require.New(t)
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -112,19 +111,21 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 			LocalServicePort:       8000,
 			Upstreams: structs.Upstreams{
 				{
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					DestinationPartition: "default",
+					LocalBindPort:        5000,
 				},
 			},
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify sidecar got global config loaded
 	sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
-	require.NotNil(sidecarService)
-	require.Equal(&structs.NodeService{
+	require.NotNil(t, sidecarService)
+	require.Equal(t, &structs.NodeService{
 		Kind:            structs.ServiceKindConnectProxy,
 		ID:              "web-sidecar-proxy",
 		Service:         "web-sidecar-proxy",
@@ -141,8 +142,10 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 			},
 			Upstreams: structs.Upstreams{
 				{
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					DestinationPartition: "default",
+					LocalBindPort:        5000,
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -153,7 +156,7 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}, sidecarService)
 }
 
@@ -161,8 +164,6 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	require := require.New(t)
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -189,15 +190,15 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 		ID:             "mesh-gateway",
 		Service:        "mesh-gateway",
 		Port:           443,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
-	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify gateway got global config loaded
 	gateway := a.State.Service(structs.NewServiceID("mesh-gateway", nil))
-	require.NotNil(gateway)
-	require.Equal(&structs.NodeService{
+	require.NotNil(t, gateway)
+	require.Equal(t, &structs.NodeService{
 		Kind:            structs.ServiceKindMeshGateway,
 		ID:              "mesh-gateway",
 		Service:         "mesh-gateway",
@@ -213,7 +214,7 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}, gateway)
 }
 
@@ -221,8 +222,6 @@ func TestServiceManager_RegisterTerminatingGateway(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	require := require.New(t)
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -249,15 +248,15 @@ func TestServiceManager_RegisterTerminatingGateway(t *testing.T) {
 		ID:             "terminating-gateway",
 		Service:        "terminating-gateway",
 		Port:           443,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
-	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify gateway got global config loaded
 	gateway := a.State.Service(structs.NewServiceID("terminating-gateway", nil))
-	require.NotNil(gateway)
-	require.Equal(&structs.NodeService{
+	require.NotNil(t, gateway)
+	require.Equal(t, &structs.NodeService{
 		Kind:            structs.ServiceKindTerminatingGateway,
 		ID:              "terminating-gateway",
 		Service:         "terminating-gateway",
@@ -273,7 +272,7 @@ func TestServiceManager_RegisterTerminatingGateway(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}, gateway)
 }
 
@@ -285,8 +284,6 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	// This is the ServiceManager version of TestAgent_PersistService  and
 	// TestAgent_PurgeService.
 	t.Parallel()
-
-	require := require.New(t)
 
 	// Launch a server to manage the config entries.
 	serverAgent := NewTestAgent(t, "")
@@ -323,30 +320,33 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	// Join first
 	_, err := a.JoinLAN([]string{
 		fmt.Sprintf("127.0.0.1:%d", serverAgent.Config.SerfPortLAN),
-	})
-	require.NoError(err)
+	}, nil)
+	require.NoError(t, err)
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Now register a sidecar proxy via the API.
-	svc := &structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Port:    21000,
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceName: "web",
-			DestinationServiceID:   "web",
-			LocalServiceAddress:    "127.0.0.1",
-			LocalServicePort:       8000,
-			Upstreams: structs.Upstreams{
-				{
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+	newNodeService := func() *structs.NodeService {
+		return &structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			ID:      "web-sidecar-proxy",
+			Service: "web-sidecar-proxy",
+			Port:    21000,
+			Proxy: structs.ConnectProxyConfig{
+				DestinationServiceName: "web",
+				DestinationServiceID:   "web",
+				LocalServiceAddress:    "127.0.0.1",
+				LocalServicePort:       8000,
+				Upstreams: structs.Upstreams{
+					{
+						DestinationName:      "redis",
+						DestinationNamespace: "default",
+						DestinationPartition: "default",
+						LocalBindPort:        5000,
+					},
 				},
 			},
-		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		}
 	}
 
 	expectState := &structs.NodeService{
@@ -366,8 +366,10 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 			},
 			Upstreams: structs.Upstreams{
 				{
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					DestinationPartition: "default",
+					LocalBindPort:        5000,
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -378,17 +380,18 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
+	svc := newNodeService()
 	svcID := svc.CompoundServiceID()
 
-	svcFile := filepath.Join(a.Config.DataDir, servicesDir, svcID.StringHash())
-	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, svcID.StringHash())
+	svcFile := filepath.Join(a.Config.DataDir, servicesDir, svcID.StringHashSHA256())
+	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, svcID.StringHashSHA256())
 
 	// Service is not persisted unless requested, but we always persist service configs.
 	err = a.AddService(AddServiceRequest{Service: svc, Source: ConfigSourceRemote})
-	require.NoError(err)
+	require.NoError(t, err)
 	requireFileIsAbsent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
@@ -399,18 +402,18 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 		token:   "mytoken",
 		Source:  ConfigSourceRemote,
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 	requireFileIsPresent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
-	// Service definition file is sane.
+	// Service definition file is reasonable.
 	expectJSONFile(t, svcFile, persistedService{
 		Token:   "mytoken",
 		Service: svc,
 		Source:  "remote",
 	}, nil)
 
-	// Service config file is sane.
+	// Service config file is reasonable.
 	pcfg := persistedServiceConfig{
 		ServiceID: "web-sidecar-proxy",
 		Defaults: &structs.ServiceConfigResponse{
@@ -418,8 +421,8 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamIDConfigs: structs.UpstreamConfigs{
-				structs.UpstreamConfig{
+			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				structs.OpaqueUpstreamConfig{
 					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
@@ -427,20 +430,27 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				},
 			},
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	expectJSONFile(t, configFile, pcfg, resetDefaultsQueryMeta)
 
 	// Verify in memory state.
 	{
 		sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
-		require.NotNil(sidecarService)
-		require.Equal(expectState, sidecarService)
+		require.NotNil(t, sidecarService)
+		require.Equal(t, expectState, sidecarService)
 	}
 
 	// Updates service definition on disk
+	svc = newNodeService()
 	svc.Proxy.LocalServicePort = 8001
-	require.NoError(a.addServiceFromSource(svc, nil, true, "mytoken", ConfigSourceRemote))
+	err = a.AddService(AddServiceRequest{
+		Service: svc,
+		persist: true,
+		token:   "mytoken",
+		Source:  ConfigSourceRemote,
+	})
+	require.NoError(t, err)
 	requireFileIsPresent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
@@ -459,8 +469,8 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamIDConfigs: structs.UpstreamConfigs{
-				structs.UpstreamConfig{
+			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				structs.OpaqueUpstreamConfig{
 					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
@@ -468,7 +478,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				},
 			},
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	expectJSONFile(t, configFile, pcfg, resetDefaultsQueryMeta)
 
@@ -476,8 +486,8 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	expectState.Proxy.LocalServicePort = 8001
 	{
 		sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
-		require.NotNil(sidecarService)
-		require.Equal(expectState, sidecarService)
+		require.NotNil(t, sidecarService)
+		require.Equal(t, expectState, sidecarService)
 	}
 
 	// Kill the agent to restart it.
@@ -492,12 +502,12 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 
 	{
 		restored := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
-		require.NotNil(restored)
-		require.Equal(expectState, restored)
+		require.NotNil(t, restored)
+		require.Equal(t, expectState, restored)
 	}
 
 	// Now remove it.
-	require.NoError(a2.RemoveService(structs.NewServiceID("web-sidecar-proxy", nil)))
+	require.NoError(t, a2.RemoveService(structs.NewServiceID("web-sidecar-proxy", nil)))
 	requireFileIsAbsent(t, svcFile)
 	requireFileIsAbsent(t, configFile)
 }
@@ -550,6 +560,8 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			local_service_port       = 8000
 			upstreams = [{
 			  destination_name = "redis"
+			  destination_namespace = "default"
+              destination_partition = "default"
 			  local_bind_port  = 5000
 			}]
 		  }
@@ -567,7 +579,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 	// Join first
 	_, err := a.JoinLAN([]string{
 		fmt.Sprintf("127.0.0.1:%d", serverAgent.Config.SerfPortLAN),
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -592,9 +604,11 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			},
 			Upstreams: structs.Upstreams{
 				{
-					DestinationType: "service",
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationType:      "service",
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					DestinationPartition: "default",
+					LocalBindPort:        5000,
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -605,7 +619,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// Now wait until we've re-registered using central config updated data.
@@ -619,14 +633,14 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 		require.Equal(r, expectState, current)
 	})
 
-	svcFile := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svcID))
-	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, stringHash(svcID))
+	svcFile := filepath.Join(a.Config.DataDir, servicesDir, stringHashSHA256(svcID))
+	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, stringHashSHA256(svcID))
 
 	// Service is never persisted, but we always persist service configs.
 	requireFileIsAbsent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
-	// Service config file is sane.
+	// Service config file is reasonable.
 	expectJSONFile(t, configFile, persistedServiceConfig{
 		ServiceID: "web-sidecar-proxy",
 		Defaults: &structs.ServiceConfigResponse{
@@ -634,8 +648,8 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamIDConfigs: structs.UpstreamConfigs{
-				structs.UpstreamConfig{
+			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				structs.OpaqueUpstreamConfig{
 					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
@@ -643,7 +657,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 				},
 			},
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}, resetDefaultsQueryMeta)
 
 	// Verify in memory state.
@@ -679,8 +693,6 @@ func TestServiceManager_Disabled(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	require := require.New(t)
 
 	a := NewTestAgent(t, "enable_central_service_config = false")
 	defer a.Shutdown()
@@ -726,14 +738,14 @@ func TestServiceManager_Disabled(t *testing.T) {
 				},
 			},
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify sidecar got global config loaded
 	sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
-	require.NotNil(sidecarService)
-	require.Equal(&structs.NodeService{
+	require.NotNil(t, sidecarService)
+	require.Equal(t, &structs.NodeService{
 		Kind:            structs.ServiceKindConnectProxy,
 		ID:              "web-sidecar-proxy",
 		Service:         "web-sidecar-proxy",
@@ -757,7 +769,7 @@ func TestServiceManager_Disabled(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}, sidecarService)
 }
 
@@ -847,4 +859,452 @@ func convertToMap(v interface{}) (map[string]interface{}, error) {
 	}
 
 	return raw, nil
+}
+
+func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
+	type args struct {
+		defaults *structs.ServiceConfigResponse
+		service  *structs.NodeService
+	}
+	tests := []struct {
+		name string
+		args args
+		want *structs.NodeService
+	}{
+		{
+			name: "new config fields",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+							},
+							Config: map[string]interface{}{
+								"passive_health_check": map[string]interface{}{
+									"Interval":    int64(10),
+									"MaxFailures": int64(2),
+								},
+								"mesh_gateway": map[string]interface{}{
+									"Mode": "local",
+								},
+								"protocol": "grpc",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationNamespace: "default",
+								DestinationPartition: "default",
+								DestinationName:      "zap",
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationPartition: "default",
+							DestinationName:      "zap",
+							Config: map[string]interface{}{
+								"passive_health_check": map[string]interface{}{
+									"Interval":    int64(10),
+									"MaxFailures": int64(2),
+								},
+								"protocol": "grpc",
+							},
+							MeshGateway: structs.MeshGatewayConfig{
+								Mode: structs.MeshGatewayModeLocal,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "remote upstream config expands local upstream list in transparent mode",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+							},
+							Config: map[string]interface{}{
+								"protocol": "grpc",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						Mode:                   structs.ProxyModeTransparent,
+						TransparentProxy: structs.TransparentProxyConfig{
+							OutboundListenerPort: 10101,
+							DialedDirectly:       true,
+						},
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationNamespace: "default",
+								DestinationPartition: "default",
+								DestinationName:      "zip",
+								LocalBindPort:        8080,
+								Config: map[string]interface{}{
+									"protocol": "http",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					Mode:                   structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
+					},
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationPartition: "default",
+							DestinationName:      "zip",
+							LocalBindPort:        8080,
+							Config: map[string]interface{}{
+								"protocol": "http",
+							},
+						},
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationPartition: "default",
+							DestinationName:      "zap",
+							Config: map[string]interface{}{
+								"protocol": "grpc",
+							},
+							CentrallyConfigured: true,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "remote upstream config not added to local upstream list outside of transparent mode",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+							},
+							Config: map[string]interface{}{
+								"protocol": "grpc",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						Mode:                   structs.ProxyModeDirect,
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationNamespace: "default",
+								DestinationPartition: "default",
+								DestinationName:      "zip",
+								LocalBindPort:        8080,
+								Config: map[string]interface{}{
+									"protocol": "http",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					Mode:                   structs.ProxyModeDirect,
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationPartition: "default",
+							DestinationName:      "zip",
+							LocalBindPort:        8080,
+							Config: map[string]interface{}{
+								"protocol": "http",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "upstream mode from remote defaults overrides local default",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+							},
+							Config: map[string]interface{}{
+								"mesh_gateway": map[string]interface{}{
+									"Mode": "local",
+								},
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeRemote,
+						},
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationNamespace: "default",
+								DestinationPartition: "default",
+								DestinationName:      "zap",
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					MeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeRemote,
+					},
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationPartition: "default",
+							DestinationName:      "zap",
+							Config:               map[string]interface{}{},
+							MeshGateway: structs.MeshGatewayConfig{
+								Mode: structs.MeshGatewayModeLocal,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "mode in local upstream config overrides all",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+							},
+							Config: map[string]interface{}{
+								"mesh_gateway": map[string]interface{}{
+									"Mode": "local",
+								},
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeRemote,
+						},
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationNamespace: "default",
+								DestinationPartition: "default",
+								DestinationName:      "zap",
+								MeshGateway: structs.MeshGatewayConfig{
+									Mode: structs.MeshGatewayModeNone,
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					MeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeRemote,
+					},
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationPartition: "default",
+							DestinationName:      "zap",
+							Config:               map[string]interface{}{},
+							MeshGateway: structs.MeshGatewayConfig{
+								Mode: structs.MeshGatewayModeNone,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defaultsCopy, err := copystructure.Copy(tt.args.defaults)
+			require.NoError(t, err)
+
+			got, err := mergeServiceConfig(tt.args.defaults, tt.args.service)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+
+			// The input defaults must not be modified by the merge.
+			// See PR #10647
+			assert.Equal(t, tt.args.defaults, defaultsCopy)
+		})
+	}
+}
+
+func Test_mergeServiceConfig_TransparentProxy(t *testing.T) {
+	type args struct {
+		defaults *structs.ServiceConfigResponse
+		service  *structs.NodeService
+	}
+	tests := []struct {
+		name string
+		args args
+		want *structs.NodeService
+	}{
+		{
+			name: "inherit transparent proxy settings",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						Mode:                   structs.ProxyModeDefault,
+						TransparentProxy:       structs.TransparentProxyConfig{},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					Mode:                   structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
+					},
+				},
+			},
+		},
+		{
+			name: "override transparent proxy settings",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       false,
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						Mode:                   structs.ProxyModeDirect,
+						TransparentProxy: structs.TransparentProxyConfig{
+							OutboundListenerPort: 808,
+							DialedDirectly:       true,
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					Mode:                   structs.ProxyModeDirect,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 808,
+						DialedDirectly:       true,
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defaultsCopy, err := copystructure.Copy(tt.args.defaults)
+			require.NoError(t, err)
+
+			got, err := mergeServiceConfig(tt.args.defaults, tt.args.service)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+
+			// The input defaults must not be modified by the merge.
+			// See PR #10647
+			assert.Equal(t, tt.args.defaults, defaultsCopy)
+		})
+	}
 }

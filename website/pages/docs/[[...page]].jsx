@@ -1,37 +1,42 @@
 import { productName, productSlug } from 'data/metadata'
-import order from 'data/docs-navigation.js'
 import DocsPage from '@hashicorp/react-docs-page'
-import {
-  generateStaticPaths,
-  generateStaticProps,
-} from '@hashicorp/react-docs-page/server'
 import ConfigEntryReference from 'components/config-entry-reference'
+// Imports below are only used server-side
+import { getStaticGenerationFunctions } from '@hashicorp/react-docs-page/server'
 
-const subpath = 'docs'
+//  Configure the docs path
 const additionalComponents = { ConfigEntryReference }
+const baseRoute = 'docs'
+const navDataFile = `data/${baseRoute}-nav-data.json`
+const localContentDir = `content/${baseRoute}`
+const product = { name: productName, slug: productSlug }
 
 export default function DocsLayout(props) {
   return (
     <DocsPage
-      product={{ name: productName, slug: productSlug }}
-      subpath={subpath}
-      order={order}
-      staticProps={props}
-      mainBranch="master"
       additionalComponents={additionalComponents}
+      baseRoute={baseRoute}
+      product={product}
+      staticProps={props}
     />
   )
 }
 
-export async function getStaticPaths() {
-  return generateStaticPaths(subpath)
-}
+const { getStaticPaths, getStaticProps } = getStaticGenerationFunctions(
+  process.env.ENABLE_VERSIONED_DOCS === 'true'
+    ? {
+        strategy: 'remote',
+        basePath: baseRoute,
+        fallback: 'blocking',
+        revalidate: 360, // 1 hour
+        product: productSlug,
+      }
+    : {
+        strategy: 'fs',
+        localContentDir: localContentDir,
+        navDataFile: navDataFile,
+        product: productSlug,
+      }
+)
 
-export async function getStaticProps({ params }) {
-  return generateStaticProps({
-    subpath,
-    productName,
-    params,
-    additionalComponents,
-  })
-}
+export { getStaticPaths, getStaticProps }

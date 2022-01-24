@@ -1,0 +1,16 @@
+:root {
+  --csv-list-separator: ',';
+}
+%csv-list {
+  // mainly used for block elements, you may need to overwrite this with an
+  // inline-flex to keep any inline-ness
+  display: flex;
+}
+%csv-list > * {
+  @extend %csv;
+}
+%csv:not(:last-child)::after {
+  display: inline;
+  content: var(--csv-list-separator);
+  margin-right: 0.3em;
+}

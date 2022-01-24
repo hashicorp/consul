@@ -6,13 +6,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 )
 
 // Coordinate manages queries and updates for network coordinates.
@@ -23,8 +24,9 @@ type Coordinate struct {
 	logger hclog.Logger
 
 	// updates holds pending coordinate updates for the given nodes. This is
-	// keyed by node:segment so we can get a coordinate for each segment for
-	// servers, and we only track the latest update per node:segment.
+	// keyed by partition/node:segment so we can get a coordinate for each
+	// segment for servers, and we only track the latest update per
+	// partition/node:segment.
 	updates map[string]*structs.CoordinateUpdateRequest
 
 	// updatesLock synchronizes access to the updates map.
@@ -85,10 +87,13 @@ func (c *Coordinate) batchApplyUpdates() error {
 			break
 		}
 
+		update.EnterpriseMeta.Normalize()
+
 		updates[i] = &structs.Coordinate{
-			Node:    update.Node,
-			Segment: update.Segment,
-			Coord:   update.Coord,
+			Node:      update.Node,
+			Segment:   update.Segment,
+			Coord:     update.Coord,
+			Partition: update.PartitionOrEmpty(),
 		}
 		i++
 	}
@@ -105,12 +110,9 @@ func (c *Coordinate) batchApplyUpdates() error {
 		t := structs.CoordinateBatchUpdateType | structs.IgnoreUnknownTypeFlag
 
 		slice := updates[start:end]
-		resp, err := c.srv.raftApply(t, slice)
+		_, err := c.srv.raftApply(t, slice)
 		if err != nil {
 			return err
-		}
-		if respErr, ok := resp.(error); ok {
-			return respErr
 		}
 	}
 	return nil
@@ -118,7 +120,7 @@ func (c *Coordinate) batchApplyUpdates() error {
 
 // Update inserts or updates the LAN coordinate of a node.
 func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct{}) (err error) {
-	if done, err := c.srv.ForwardRPC("Coordinate.Update", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Coordinate.Update", args, reply); done {
 		return err
 	}
 
@@ -131,7 +133,7 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 
 	// Since this is a coordinate coming from some place else we harden this
 	// and look for dimensionality problems proactively.
-	coord, err := c.srv.serfLAN.GetCoordinate()
+	coord, err := c.srv.GetMatchingLANCoordinate(args.PartitionOrDefault(), args.Segment)
 	if err != nil {
 		return err
 	}
@@ -140,20 +142,22 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-	authz, err := c.srv.ResolveToken(args.Token)
+	var authzContext acl.AuthorizerContext
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
 	}
-	if authz != nil {
-		var authzContext acl.AuthorizerContext
-		structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
-		if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
-		}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
 	}
 
 	// Add the coordinate to the map of pending updates.
-	key := fmt.Sprintf("%s:%s", args.Node, args.Segment)
+	key := fmt.Sprintf("%s/%s:%s", args.PartitionOrDefault(), args.Node, args.Segment)
 	c.updatesLock.Lock()
 	c.updates[key] = args
 	c.updatesLock.Unlock()
@@ -194,14 +198,23 @@ func (c *Coordinate) ListDatacenters(args *struct{}, reply *[]structs.Datacenter
 // ListNodes returns the list of nodes with their raw network coordinates (if no
 // coordinates are available for a node it won't appear in this list).
 func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.IndexedCoordinates) error {
-	if done, err := c.srv.ForwardRPC("Coordinate.ListNodes", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Coordinate.ListNodes", args, reply); done {
+		return err
+	}
+
+	_, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
 	return c.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, coords, err := state.Coordinates(ws)
+			index, coords, err := state.Coordinates(ws, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -217,28 +230,29 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 
 // Node returns the raw coordinates for a single node.
 func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.IndexedCoordinates) error {
-	if done, err := c.srv.ForwardRPC("Coordinate.Node", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Coordinate.Node", args, reply); done {
 		return err
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-
-	authz, err := c.srv.ResolveToken(args.Token)
+	var authzContext acl.AuthorizerContext
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
 	}
-	if authz != nil {
-		var authzContext acl.AuthorizerContext
-		structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
-		if authz.NodeRead(args.Node, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
-		}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	if authz.NodeRead(args.Node, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
 	}
 
 	return c.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, nodeCoords, err := state.Coordinate(args.Node, ws)
+			index, nodeCoords, err := state.Coordinate(ws, args.Node, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -246,9 +260,10 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 			var coords structs.Coordinates
 			for segment, coord := range nodeCoords {
 				coords = append(coords, &structs.Coordinate{
-					Node:    args.Node,
-					Segment: segment,
-					Coord:   coord,
+					Node:      args.Node,
+					Segment:   segment,
+					Partition: args.PartitionOrEmpty(),
+					Coord:     coord,
 				})
 			}
 			reply.Index, reply.Coordinates = index, coords

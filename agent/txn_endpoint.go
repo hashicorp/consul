@@ -152,11 +152,14 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 				KV: &structs.TxnKVOp{
 					Verb: verb,
 					DirEnt: structs.DirEntry{
-						Key:            in.KV.Key,
-						Value:          in.KV.Value,
-						Flags:          in.KV.Flags,
-						Session:        in.KV.Session,
-						EnterpriseMeta: structs.NewEnterpriseMeta(in.KV.Namespace),
+						Key:     in.KV.Key,
+						Value:   in.KV.Value,
+						Flags:   in.KV.Flags,
+						Session: in.KV.Session,
+						EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+							in.KV.Partition,
+							in.KV.Namespace,
+						),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: in.KV.Index,
 						},
@@ -182,6 +185,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 					Node: structs.Node{
 						ID:              types.NodeID(node.ID),
 						Node:            node.Node,
+						Partition:       node.Partition,
 						Address:         node.Address,
 						Datacenter:      node.Datacenter,
 						TaggedAddresses: node.TaggedAddresses,
@@ -216,7 +220,10 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							Warning: svc.Weights.Warning,
 						},
 						EnableTagOverride: svc.EnableTagOverride,
-						EnterpriseMeta:    structs.NewEnterpriseMeta(svc.Namespace),
+						EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+							svc.Partition,
+							svc.Namespace,
+						),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: svc.ModifyIndex,
 						},
@@ -264,16 +271,22 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 						ServiceTags: check.ServiceTags,
 						Definition: structs.HealthCheckDefinition{
 							HTTP:                           check.Definition.HTTP,
+							TLSServerName:                  check.Definition.TLSServerName,
 							TLSSkipVerify:                  check.Definition.TLSSkipVerify,
 							Header:                         check.Definition.Header,
 							Method:                         check.Definition.Method,
 							Body:                           check.Definition.Body,
 							TCP:                            check.Definition.TCP,
+							GRPC:                           check.Definition.GRPC,
+							GRPCUseTLS:                     check.Definition.GRPCUseTLS,
 							Interval:                       interval,
 							Timeout:                        timeout,
 							DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
 						},
-						EnterpriseMeta: structs.NewEnterpriseMeta(check.Namespace),
+						EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+							check.Partition,
+							check.Namespace,
+						),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: check.ModifyIndex,
 						},

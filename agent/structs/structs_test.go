@@ -64,7 +64,6 @@ func TestStructs_Implements(t *testing.T) {
 		_ RPCInfo          = &SessionRequest{}
 		_ RPCInfo          = &SessionSpecificRequest{}
 		_ RPCInfo          = &EventFireRequest{}
-		_ RPCInfo          = &ACLPolicyResolveLegacyRequest{}
 		_ RPCInfo          = &ACLPolicyBatchGetRequest{}
 		_ RPCInfo          = &ACLPolicyGetRequest{}
 		_ RPCInfo          = &ACLTokenGetRequest{}
@@ -574,38 +573,38 @@ func TestStructs_NodeService_ValidateExposeConfig(t *testing.T) {
 	}
 	cases := map[string]testCase{
 		"valid": {
-			func(x *NodeService) {},
-			"",
+			Modify: func(x *NodeService) {},
+			Err:    "",
 		},
 		"empty path": {
-			func(x *NodeService) { x.Proxy.Expose.Paths[0].Path = "" },
-			"empty path exposed",
+			Modify: func(x *NodeService) { x.Proxy.Expose.Paths[0].Path = "" },
+			Err:    "empty path exposed",
 		},
 		"invalid port negative": {
-			func(x *NodeService) { x.Proxy.Expose.Paths[0].ListenerPort = -1 },
-			"invalid listener port",
+			Modify: func(x *NodeService) { x.Proxy.Expose.Paths[0].ListenerPort = -1 },
+			Err:    "invalid listener port",
 		},
 		"invalid port too large": {
-			func(x *NodeService) { x.Proxy.Expose.Paths[0].ListenerPort = 65536 },
-			"invalid listener port",
+			Modify: func(x *NodeService) { x.Proxy.Expose.Paths[0].ListenerPort = 65536 },
+			Err:    "invalid listener port",
 		},
-		"duplicate paths": {
-			func(x *NodeService) {
-				x.Proxy.Expose.Paths[0].Path = "/metrics"
-				x.Proxy.Expose.Paths[1].Path = "/metrics"
+		"duplicate paths are allowed": {
+			Modify: func(x *NodeService) {
+				x.Proxy.Expose.Paths[0].Path = "/healthz"
+				x.Proxy.Expose.Paths[1].Path = "/healthz"
 			},
-			"duplicate paths exposed",
+			Err: "",
 		},
-		"duplicate ports": {
-			func(x *NodeService) {
+		"duplicate listener ports are not allowed": {
+			Modify: func(x *NodeService) {
 				x.Proxy.Expose.Paths[0].ListenerPort = 21600
 				x.Proxy.Expose.Paths[1].ListenerPort = 21600
 			},
-			"duplicate listener ports exposed",
+			Err: "duplicate listener ports exposed",
 		},
 		"protocol not supported": {
-			func(x *NodeService) { x.Proxy.Expose.Paths[0].Protocol = "foo" },
-			"protocol 'foo' not supported for path",
+			Modify: func(x *NodeService) { x.Proxy.Expose.Paths[0].Protocol = "foo" },
+			Err:    "protocol 'foo' not supported for path",
 		},
 	}
 
@@ -649,6 +648,12 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 		},
 
 		{
+			"connect-proxy: wildcard Proxy.DestinationServiceName",
+			func(x *NodeService) { x.Proxy.DestinationServiceName = "*" },
+			"Proxy.DestinationServiceName must not be",
+		},
+
+		{
 			"connect-proxy: valid Proxy.DestinationServiceName",
 			func(x *NodeService) { x.Proxy.DestinationServiceName = "hello" },
 			"",
@@ -657,7 +662,7 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 		{
 			"connect-proxy: no port set",
 			func(x *NodeService) { x.Port = 0 },
-			"Port must",
+			"port or socketpath must",
 		},
 
 		{
@@ -698,6 +703,28 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 			"upstream destination name cannot be empty",
 		},
 		{
+			"connect-proxy: upstream wildcard name",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{{
+					DestinationType: UpstreamDestTypeService,
+					DestinationName: WildcardSpecifier,
+					LocalBindPort:   5000,
+				}}
+			},
+			"upstream destination name cannot be a wildcard",
+		},
+		{
+			"connect-proxy: upstream can have wildcard name when centrally configured",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{{
+					DestinationType:     UpstreamDestTypeService,
+					DestinationName:     WildcardSpecifier,
+					CentrallyConfigured: true,
+				}}
+			},
+			"",
+		},
+		{
 			"connect-proxy: upstream empty bind port",
 			func(x *NodeService) {
 				x.Proxy.Upstreams = Upstreams{{
@@ -706,7 +733,19 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 					LocalBindPort:   0,
 				}}
 			},
-			"upstream local bind port cannot be zero",
+			"upstream local bind port or local socket path must be defined and nonzero",
+		},
+		{
+			"connect-proxy: upstream bind port and path defined",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{{
+					DestinationType:     UpstreamDestTypeService,
+					DestinationName:     "foo",
+					LocalBindPort:       1,
+					LocalBindSocketPath: "/tmp/socket",
+				}}
+			},
+			"only one of upstream local bind port or local socket path can be defined and nonzero",
 		},
 		{
 			"connect-proxy: Upstreams almost-but-not-quite-duplicated in various ways",
@@ -751,6 +790,21 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 			"",
 		},
 		{
+			"connect-proxy: Upstreams non default partition another dc",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{ // baseline
+						DestinationType:      UpstreamDestTypeService,
+						DestinationName:      "foo",
+						DestinationPartition: "foo",
+						Datacenter:           "dc1",
+						LocalBindPort:        5000,
+					},
+				}
+			},
+			"upstreams cannot target another datacenter in non default partition",
+		},
+		{
 			"connect-proxy: Upstreams duplicated by port",
 			func(x *NodeService) {
 				x.Proxy.Upstreams = Upstreams{
@@ -767,6 +821,24 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 				}
 			},
 			"upstreams cannot contain duplicates",
+		},
+		{
+			"connect-proxy: Centrally configured upstreams can have duplicate ip/port",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{
+						DestinationType:     UpstreamDestTypeService,
+						DestinationName:     "foo",
+						CentrallyConfigured: true,
+					},
+					{
+						DestinationType:     UpstreamDestTypeService,
+						DestinationName:     "bar",
+						CentrallyConfigured: true,
+					},
+				}
+			},
+			"",
 		},
 		{
 			"connect-proxy: Upstreams duplicated by ip and port",
@@ -869,17 +941,74 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			assert := assert.New(t)
 			ns := TestNodeServiceProxy(t)
 			tc.Modify(ns)
 
 			err := ns.Validate()
-			assert.Equal(err != nil, tc.Err != "", err)
+			assert.Equal(t, err != nil, tc.Err != "", err)
 			if err == nil {
 				return
 			}
 
-			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+		})
+	}
+}
+
+func TestStructs_NodeService_ValidateConnectProxy_In_Partition(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Modify func(*NodeService)
+		Err    string
+	}{
+		{
+			"valid",
+			func(x *NodeService) {},
+			"",
+		},
+		{
+			"connect-proxy: Upstreams non default partition another dc",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{ // baseline
+						DestinationType:      UpstreamDestTypeService,
+						DestinationName:      "foo",
+						DestinationPartition: "foo",
+						Datacenter:           "dc1",
+						LocalBindPort:        5000,
+					},
+				}
+			},
+			"upstreams cannot target another datacenter in non default partition",
+		},
+		{
+			"connect-proxy: Upstreams non default partition same dc",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{ // baseline
+						DestinationType:      UpstreamDestTypeService,
+						DestinationName:      "foo",
+						DestinationPartition: "foo",
+						LocalBindPort:        5000,
+					},
+				}
+			},
+			"",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			ns := TestNodeServiceProxyInPartition(t, "bar")
+			tc.Modify(ns)
+
+			err := ns.Validate()
+			assert.Equal(t, err != nil, tc.Err != "", err)
+			if err == nil {
+				return
+			}
+
+			assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 		})
 	}
 }
@@ -915,17 +1044,16 @@ func TestStructs_NodeService_ValidateSidecarService(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			assert := assert.New(t)
 			ns := TestNodeServiceSidecar(t)
 			tc.Modify(ns)
 
 			err := ns.Validate()
-			assert.Equal(err != nil, tc.Err != "", err)
+			assert.Equal(t, err != nil, tc.Err != "", err)
 			if err == nil {
 				return
 			}
 
-			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 		})
 	}
 }
@@ -1430,7 +1558,7 @@ func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
 		},
 		"reserved key prefix denied": {
 			map[string]string{
-				metaKeyReservedPrefix + "key": "value1",
+				MetaKeyReservedPrefix + "key": "value1",
 			},
 			false,
 			"reserved for internal use",
@@ -1439,7 +1567,7 @@ func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
 		},
 		"reserved key prefix allowed": {
 			map[string]string{
-				metaKeyReservedPrefix + "key": "value1",
+				MetaKeyReservedPrefix + "key": "value1",
 			},
 			true,
 			"",
@@ -1509,13 +1637,13 @@ func TestStructs_validateMetaPair(t *testing.T) {
 		// key too long
 		{longKey, "value", "Key is too long", false, nil},
 		// reserved prefix
-		{metaKeyReservedPrefix + "key", "value", "reserved for internal use", false, nil},
+		{MetaKeyReservedPrefix + "key", "value", "reserved for internal use", false, nil},
 		// reserved prefix, allowed
-		{metaKeyReservedPrefix + "key", "value", "", true, nil},
+		{MetaKeyReservedPrefix + "key", "value", "", true, nil},
 		// reserved prefix, not allowed via an allowlist
-		{metaKeyReservedPrefix + "bad", "value", "reserved for internal use", false, map[string]struct{}{metaKeyReservedPrefix + "good": {}}},
+		{MetaKeyReservedPrefix + "bad", "value", "reserved for internal use", false, map[string]struct{}{MetaKeyReservedPrefix + "good": {}}},
 		// reserved prefix, allowed via an allowlist
-		{metaKeyReservedPrefix + "good", "value", "", true, map[string]struct{}{metaKeyReservedPrefix + "good": {}}},
+		{MetaKeyReservedPrefix + "good", "value", "", true, map[string]struct{}{MetaKeyReservedPrefix + "good": {}}},
 		// value too long
 		{"key", longValue, "Value is too long", false, nil},
 	}
@@ -1530,30 +1658,21 @@ func TestStructs_validateMetaPair(t *testing.T) {
 	}
 }
 
-func TestDCSpecificRequestCacheInfoKey(t *testing.T) {
-	assertCacheInfoKeyIsComplete(t, &DCSpecificRequest{}, nil)
+func TestDCSpecificRequest_CacheInfoKey(t *testing.T) {
+	assertCacheInfoKeyIsComplete(t, &DCSpecificRequest{})
 }
 
-func TestNodeSpecificRequestCacheInfoKey(t *testing.T) {
-	assertCacheInfoKeyIsComplete(t, &NodeSpecificRequest{}, nil)
+func TestNodeSpecificRequest_CacheInfoKey(t *testing.T) {
+	assertCacheInfoKeyIsComplete(t, &NodeSpecificRequest{})
 }
 
-func TestServiceSpecificRequestCacheInfoKey(t *testing.T) {
-	ignoredFields := map[string]bool{
-		// TODO: should this filed be included?
-		"ServiceKind": true,
-	}
-
-	assertCacheInfoKeyIsComplete(t, &ServiceSpecificRequest{}, ignoredFields)
+func TestServiceSpecificRequest_CacheInfoKey(t *testing.T) {
+	assertCacheInfoKeyIsComplete(t, &ServiceSpecificRequest{})
 }
 
-func TestServiceDumpRequestCacheInfoKey(t *testing.T) {
-	ignoredFields := map[string]bool{
-		// ServiceKind is only included when UseServiceKind=true
-		"ServiceKind": true,
-	}
-
-	assertCacheInfoKeyIsComplete(t, &ServiceDumpRequest{}, ignoredFields)
+func TestServiceDumpRequest_CacheInfoKey(t *testing.T) {
+	// ServiceKind is only included when UseServiceKind=true
+	assertCacheInfoKeyIsComplete(t, &ServiceDumpRequest{}, "ServiceKind")
 }
 
 // cacheInfoIgnoredFields are fields that can be ignored in all cache.Request types
@@ -1563,14 +1682,26 @@ func TestServiceDumpRequestCacheInfoKey(t *testing.T) {
 var cacheInfoIgnoredFields = map[string]bool{
 	// Datacenter is part of the cache key added by the cache itself.
 	"Datacenter": true,
-	// QuerySource is always the same for every request a single agent, so it
+	// QuerySource is always the same for every request from a single agent, so it
 	// is excluded from the key.
 	"Source": true,
 	// EnterpriseMeta is an empty struct, so can not be included.
 	enterpriseMetaField: true,
 }
 
-func assertCacheInfoKeyIsComplete(t *testing.T, request cache.Request, ignoredFields map[string]bool) {
+// assertCacheInfoKeyIsComplete is an assertion to verify that all fields on a request
+// struct are considered as part of the cache key. It is used to prevent regressions
+// when new fields are added to the struct. If a field is not included in the cache
+// key it can lead to API requests or DNS requests returning the wrong value
+// because a request matches the wrong entry in the agent/cache.Cache.
+func assertCacheInfoKeyIsComplete(t *testing.T, request cache.Request, ignoredFields ...string) {
+	t.Helper()
+
+	ignored := make(map[string]bool, len(ignoredFields))
+	for _, f := range ignoredFields {
+		ignored[f] = true
+	}
+
 	fuzzer := fuzz.NewWithSeed(time.Now().UnixNano())
 	fuzzer.Funcs(randQueryOptions)
 	fuzzer.Fuzz(request)
@@ -1582,7 +1713,7 @@ func assertCacheInfoKeyIsComplete(t *testing.T, request cache.Request, ignoredFi
 		fieldName := requestValue.Type().Field(i).Name
 		originalValue := field.Interface()
 
-		if cacheInfoIgnoredFields[fieldName] || ignoredFields[fieldName] {
+		if cacheInfoIgnoredFields[fieldName] || ignored[fieldName] {
 			continue
 		}
 
@@ -1592,10 +1723,11 @@ func assertCacheInfoKeyIsComplete(t *testing.T, request cache.Request, ignoredFi
 
 		key := request.CacheInfo().Key
 		if originalKey == key {
-			t.Fatalf("expected field %v to be represented in the CacheInfo.Key, %v change to %v",
+			t.Fatalf("expected field %v to be represented in the CacheInfo.Key, %v change to %v (key: %v)",
 				fieldName,
 				originalValue,
-				field.Interface())
+				field.Interface(),
+				key)
 		}
 	}
 }
@@ -2314,10 +2446,11 @@ func TestSnapshotRequestResponse_MsgpackEncodeDecode(t *testing.T) {
 		in := &SnapshotResponse{
 			Error: "blah",
 			QueryMeta: QueryMeta{
-				Index:            3,
-				LastContact:      5 * time.Second,
-				KnownLeader:      true,
-				ConsistencyLevel: "default",
+				Index:                 3,
+				LastContact:           5 * time.Second,
+				KnownLeader:           true,
+				ConsistencyLevel:      "default",
+				ResultsFilteredByACLs: true,
 			},
 		}
 		TestMsgpackEncodeDecode(t, in, true)

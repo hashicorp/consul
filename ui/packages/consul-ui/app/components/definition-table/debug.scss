@@ -1,0 +1,5 @@
+[id^='docfy-demo-preview-definition-table'] {
+  .definition-table {
+    @extend %definition-table;
+  }
+}

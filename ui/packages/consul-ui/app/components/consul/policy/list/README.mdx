@@ -1,10 +1,10 @@
-## ConsulPolicyList
+# Consul::Policy::List
 
-```
-<ConsulPolicyList
-  @items={{items}}
-  @ondelete={{action 'delete'}}
-/>
+```hbs
+  <Consul::Policy::List
+    @items={{items}}
+    @ondelete={{action (noop)}}
+  />
 ```
 
 A presentational component for rendering Consul ACL policies

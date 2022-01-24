@@ -115,6 +115,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 						CheckServiceNode: &pbservice.CheckServiceNode{
 							Node: &pbservice.Node{
 								Node:       "node1",
+								Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 								Datacenter: "dc1",
 								Address:    "3.4.5.6",
 								RaftIndex:  raftIndex(ids, "reg2", "reg2"),
@@ -145,6 +146,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 						CheckServiceNode: &pbservice.CheckServiceNode{
 							Node: &pbservice.Node{
 								Node:       "node2",
+								Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 								Datacenter: "dc1",
 								Address:    "1.2.3.4",
 								RaftIndex:  raftIndex(ids, "reg3", "reg3"),
@@ -194,6 +196,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 					CheckServiceNode: &pbservice.CheckServiceNode{
 						Node: &pbservice.Node{
 							Node:       "node2",
+							Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 							Datacenter: "dc1",
 							Address:    "1.2.3.4",
 							RaftIndex:  raftIndex(ids, "reg3", "reg3"),
@@ -277,19 +280,19 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 
 type testBackend struct {
 	store       *state.Store
-	authorizer  func(token string) acl.Authorizer
+	authorizer  func(token string, entMeta *structs.EnterpriseMeta) acl.Authorizer
 	forwardConn *gogrpc.ClientConn
 }
 
 func (b testBackend) ResolveTokenAndDefaultMeta(
 	token string,
-	_ *structs.EnterpriseMeta,
+	entMeta *structs.EnterpriseMeta,
 	_ *acl.AuthorizerContext,
 ) (acl.Authorizer, error) {
-	return b.authorizer(token), nil
+	return b.authorizer(token, entMeta), nil
 }
 
-func (b testBackend) Forward(_ string, fn func(*gogrpc.ClientConn) error) (handled bool, err error) {
+func (b testBackend) Forward(_ structs.RPCInfo, fn func(*gogrpc.ClientConn) error) (handled bool, err error) {
 	if b.forwardConn != nil {
 		return true, fn(b.forwardConn)
 	}
@@ -306,7 +309,7 @@ func newTestBackend() (*testBackend, error) {
 		return nil, err
 	}
 	store := state.NewStateStoreWithEventPublisher(gc)
-	allowAll := func(_ string) acl.Authorizer {
+	allowAll := func(string, *structs.EnterpriseMeta) acl.Authorizer {
 		return acl.AllowAll()
 	}
 	return &testBackend{store: store, authorizer: allowAll}, nil
@@ -317,7 +320,7 @@ var _ Backend = (*testBackend)(nil)
 func runTestServer(t *testing.T, server *Server) net.Addr {
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
 	var grpcServer *gogrpc.Server
-	handler := grpc.NewHandler(addr, func(srv *gogrpc.Server) {
+	handler := grpc.NewHandler(hclog.New(nil), addr, func(srv *gogrpc.Server) {
 		grpcServer = srv
 		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, server)
 	})
@@ -465,6 +468,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 						CheckServiceNode: &pbservice.CheckServiceNode{
 							Node: &pbservice.Node{
 								Node:       "node1",
+								Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 								Datacenter: "dc2",
 								Address:    "3.4.5.6",
 								RaftIndex:  raftIndex(ids, "reg2", "reg2"),
@@ -495,6 +499,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 						CheckServiceNode: &pbservice.CheckServiceNode{
 							Node: &pbservice.Node{
 								Node:       "node2",
+								Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 								Datacenter: "dc2",
 								Address:    "1.2.3.4",
 								RaftIndex:  raftIndex(ids, "reg3", "reg3"),
@@ -544,6 +549,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 					CheckServiceNode: &pbservice.CheckServiceNode{
 						Node: &pbservice.Node{
 							Node:       "node2",
+							Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 							Datacenter: "dc2",
 							Address:    "1.2.3.4",
 							RaftIndex:  raftIndex(ids, "reg3", "reg3"),
@@ -606,13 +612,13 @@ node "node1" {
 }
 `
 		cfg := &acl.Config{WildcardName: structs.WildcardSpecifier}
-		authorizer, err := acl.NewAuthorizerFromRules("1", 0, rules, acl.SyntaxCurrent, cfg, nil)
+		authorizer, err := acl.NewAuthorizerFromRules(rules, acl.SyntaxCurrent, cfg, nil)
 		require.NoError(t, err)
 		authorizer = acl.NewChainedAuthorizer([]acl.Authorizer{authorizer, acl.DenyAll()})
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
 
 		// TODO: is there any easy way to do this with the acl package?
-		backend.authorizer = func(tok string) acl.Authorizer {
+		backend.authorizer = func(tok string, _ *structs.EnterpriseMeta) acl.Authorizer {
 			if tok == token {
 				return authorizer
 			}
@@ -802,16 +808,13 @@ node "node1" {
 	policy = "write"
 }
 `
-		authorizer, err := acl.NewAuthorizerFromRules(
-			"1", 0, rules, acl.SyntaxCurrent,
-			&acl.Config{WildcardName: structs.WildcardSpecifier},
-			nil)
+		authorizer, err := acl.NewAuthorizerFromRules(rules, acl.SyntaxCurrent, &acl.Config{WildcardName: structs.WildcardSpecifier}, nil)
 		require.NoError(t, err)
 		authorizer = acl.NewChainedAuthorizer([]acl.Authorizer{authorizer, acl.DenyAll()})
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
 
 		// TODO: is there any easy way to do this with the acl package?
-		backend.authorizer = func(tok string) acl.Authorizer {
+		backend.authorizer = func(tok string, _ *structs.EnterpriseMeta) acl.Authorizer {
 			if tok == token {
 				return authorizer
 			}
@@ -851,7 +854,7 @@ node "node1" {
 			SecretID:   token,
 			Rules:      "",
 		}
-		require.NoError(t, backend.store.ACLTokenSet(ids.Next("update"), aclToken, false))
+		require.NoError(t, backend.store.ACLTokenSet(ids.Next("update"), aclToken))
 
 		select {
 		case item := <-chEvents:

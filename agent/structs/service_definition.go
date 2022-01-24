@@ -1,8 +1,11 @@
 package structs
 
 import (
-	"github.com/hashicorp/consul/lib"
+	"fmt"
+
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/lib"
 )
 
 // ServiceDefinition is used to JSON decode the Service definitions. For
@@ -16,6 +19,7 @@ type ServiceDefinition struct {
 	TaggedAddresses   map[string]ServiceAddress
 	Meta              map[string]string
 	Port              int
+	SocketPath        string
 	Check             CheckType
 	Checks            CheckTypes
 	Weights           *Weights
@@ -67,6 +71,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		Address:           s.Address,
 		Meta:              s.Meta,
 		Port:              s.Port,
+		SocketPath:        s.SocketPath,
 		Weights:           s.Weights,
 		EnableTagOverride: s.EnableTagOverride,
 		EnterpriseMeta:    s.EnterpriseMeta,
@@ -78,10 +83,19 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 	}
 	if s.Proxy != nil {
 		ns.Proxy = *s.Proxy
-		// Ensure the Upstream type is defaulted
 		for i := range ns.Proxy.Upstreams {
+			// Ensure the Upstream type is defaulted
 			if ns.Proxy.Upstreams[i].DestinationType == "" {
 				ns.Proxy.Upstreams[i].DestinationType = UpstreamDestTypeService
+			}
+
+			// If a proxy's namespace is not defined, inherit the proxied service's namespace.
+			// Applicable only to Consul Enterprise.
+			if ns.Proxy.Upstreams[i].DestinationNamespace == "" {
+				ns.Proxy.Upstreams[i].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrEmpty()
+			}
+			if ns.Proxy.Upstreams[i].DestinationPartition == "" {
+				ns.Proxy.Upstreams[i].DestinationPartition = ns.EnterpriseMeta.PartitionOrEmpty()
 			}
 		}
 		ns.Proxy.Expose = s.Proxy.Expose
@@ -112,7 +126,11 @@ func (s *ServiceDefinition) Validate() error {
 	if err := s.NodeService().Validate(); err != nil {
 		result = multierror.Append(result, err)
 	}
-
+	for _, c := range s.Checks {
+		if err := c.Validate(); err != nil {
+			return fmt.Errorf("check %q: %s", c.Name, err)
+		}
+	}
 	return result
 }
 

@@ -6,12 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestLeader_ReplicateIntentions(t *testing.T) {
@@ -25,10 +27,10 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.Build = "1.6.0"
 		c.OverrideInitialSerfTags = func(tags map[string]string) {
 			tags["ft_si"] = "0"
@@ -60,9 +62,9 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 	// dc2 as a secondary DC
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.ACLTokenReplication = false
 		c.Build = "1.6.0"
 		c.OverrideInitialSerfTags = func(tags map[string]string) {
@@ -106,14 +108,8 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 		if req.Op != structs.IntentionOpDelete {
 			req2.Intention.Hash = req.Intention.Hash // not part of Clone
 		}
-		resp, err := s.raftApply(structs.IntentionRequestType, req2)
-		if err != nil {
-			return err
-		}
-		if respErr, ok := resp.(error); ok {
-			return respErr
-		}
-		return nil
+		_, err := s.raftApply(structs.IntentionRequestType, req2)
+		return err
 	}
 
 	// Directly insert legacy intentions into raft in dc1.
@@ -221,7 +217,6 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 func TestLeader_batchLegacyIntentionUpdates(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
 	ixn1 := structs.TestIntention(t)
 	ixn1.ID = "ixn1"
 	ixn2 := structs.TestIntention(t)
@@ -360,7 +355,7 @@ func TestLeader_batchLegacyIntentionUpdates(t *testing.T) {
 
 	for _, tc := range cases {
 		actual := batchLegacyIntentionUpdates(tc.deletes, tc.updates)
-		assert.Equal(tc.expected, actual)
+		assert.Equal(t, tc.expected, actual)
 	}
 }
 
@@ -440,14 +435,11 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 	var retained []*structs.Intention
 	for _, ixn := range ixns {
 		ixn2 := *ixn
-		resp, err := s1pre.raftApply(structs.IntentionRequestType, &structs.IntentionRequest{
+		_, err := s1pre.raftApply(structs.IntentionRequestType, &structs.IntentionRequest{
 			Op:        structs.IntentionOpCreate,
 			Intention: &ixn2,
 		})
 		require.NoError(t, err)
-		if respErr, ok := resp.(error); ok {
-			t.Fatalf("respErr: %v", respErr)
-		}
 
 		if _, present := ixn.Meta["unit-test-discarded"]; !present {
 			retained = append(retained, ixn)
@@ -464,7 +456,7 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 
 	checkIntentions := func(t *testing.T, srv *Server, legacyOnly bool, expect map[string]*structs.Intention) {
 		t.Helper()
-		wildMeta := structs.WildcardEnterpriseMeta()
+		wildMeta := structs.WildcardEnterpriseMetaInDefaultPartition()
 		retry.Run(t, func(r *retry.R) {
 			var (
 				got structs.Intentions
@@ -543,17 +535,17 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 		checkIntentions(t, s1, true, map[string]*structs.Intention{})
 	}))
 
-	mapifyConfigs := func(entries interface{}) map[structs.ConfigEntryKindName]*structs.ServiceIntentionsConfigEntry {
-		m := make(map[structs.ConfigEntryKindName]*structs.ServiceIntentionsConfigEntry)
+	mapifyConfigs := func(entries interface{}) map[state.ConfigEntryKindName]*structs.ServiceIntentionsConfigEntry {
+		m := make(map[state.ConfigEntryKindName]*structs.ServiceIntentionsConfigEntry)
 		switch v := entries.(type) {
 		case []*structs.ServiceIntentionsConfigEntry:
 			for _, entry := range v {
-				kn := structs.NewConfigEntryKindName(entry.Kind, entry.Name, &entry.EnterpriseMeta)
+				kn := state.NewConfigEntryKindName(entry.Kind, entry.Name, &entry.EnterpriseMeta)
 				m[kn] = entry
 			}
 		case []structs.ConfigEntry:
 			for _, entry := range v {
-				kn := structs.NewConfigEntryKindName(entry.GetKind(), entry.GetName(), entry.GetEnterpriseMeta())
+				kn := state.NewConfigEntryKindName(entry.GetKind(), entry.GetName(), entry.GetEnterpriseMeta())
 				m[kn] = entry.(*structs.ServiceIntentionsConfigEntry)
 			}
 		default:
@@ -563,7 +555,7 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 	}
 
 	// also check config entries
-	_, gotConfigs, err := s1.fsm.State().ConfigEntriesByKind(nil, structs.ServiceIntentions, structs.WildcardEnterpriseMeta())
+	_, gotConfigs, err := s1.fsm.State().ConfigEntriesByKind(nil, structs.ServiceIntentions, structs.WildcardEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	gotConfigsM := mapifyConfigs(gotConfigs)
 

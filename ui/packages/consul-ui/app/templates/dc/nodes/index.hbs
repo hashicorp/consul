@@ -1,74 +1,119 @@
-{{page-title 'Nodes'}}
-<EventSource @src={{items}} />
-<EventSource @src={{leader}} />
-{{#let
+<Route
+  @name={{routeName}}
+as |route|>
 
-  (hash
-    value=(or sortBy "Status:asc")
-    change=(action (mut sortBy) value="target.selected")
-  )
-
-  (hash
-    status=(hash
-      value=(if status (split status ',') undefined)
-      change=(action (mut status) value="target.selectedItems")
+  <DataSource @src={{
+    uri '/${partition}/${nspace}/${dc}/leader'
+    (hash
+      partition=route.params.partition
+      nspace=route.params.nspace
+      dc=route.params.dc
     )
-    searchproperty=(hash
-      value=(if (not-eq searchproperty undefined)
-        (split searchproperty ',')
-        searchProperties
+  }} as |leader|>
+
+    <DataLoader
+      @src={{uri '/${partition}/${nspace}/${dc}/nodes'
+          (hash
+            partition=route.params.partition
+            nspace=route.params.nspace
+            dc=route.params.dc
+          )
+      }}
+    as |api|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{api.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+  {{#let
+
+    (hash
+      value=(or sortBy "Status:asc")
+      change=(action (mut sortBy) value="target.selected")
+    )
+
+    (hash
+      status=(hash
+        value=(if status (split status ',') undefined)
+        change=(action (mut status) value="target.selectedItems")
       )
-      change=(action (mut searchproperty) value="target.selectedItems")
-      default=searchProperties
+      searchproperty=(hash
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          searchProperties
+        )
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=searchProperties
+      )
     )
-  )
 
-  items
+    api.data
 
-as |sort filters items|}}
-  <AppView>
-    <BlockSlot @name="header">
-      <h1>
-        Nodes <em>{{format-number items.length}} total</em>
-      </h1>
-      <label for="toolbar-toggle"></label>
-    </BlockSlot>
-    <BlockSlot @name="toolbar">
-    {{#if (gt items.length 0) }}
-        <Consul::Node::SearchBar
-          @search={{search}}
-          @onsearch={{action (mut search) value="target.value"}}
+    leader.data
 
-          @sort={{sort}}
+  as |sort filters items leader|}}
+    <AppView>
+      <BlockSlot @name="header">
+        <h1>
+          <route.Title @title="Nodes" /> <em>{{format-number items.length}} total</em>
+        </h1>
+        <label for="toolbar-toggle"></label>
+      </BlockSlot>
+      <BlockSlot @name="toolbar">
+      {{#if (gt items.length 0) }}
+          <Consul::Node::SearchBar
+            @search={{search}}
+            @onsearch={{action (mut search) value="target.value"}}
 
-          @filter={{filters}}
-        />
-    {{/if}}
-    </BlockSlot>
-    <BlockSlot @name="content">
-      <DataCollection
-        @type="node"
-        @sort={{sort.value}}
-        @filters={{filters}}
-        @search={{search}}
-        @items={{items}}
-      as |collection|>
-        <collection.Collection>
-          <Consul::Node::List
-            @items={{collection.items}}
-            @leader={{leader}}
+            @sort={{sort}}
+
+            @filter={{filters}}
           />
-        </collection.Collection>
-        <collection.Empty>
-          <EmptyState>
-            <BlockSlot @name="body">
-              <p>
-                There don't seem to be any registered nodes, or you may not have access to view nodes yet.
-              </p>
-            </BlockSlot>
-          </EmptyState>
-        </collection.Empty>
-      </DataCollection>
+      {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="content">
+        <DataCollection
+          @type="node"
+          @sort={{sort.value}}
+          @filters={{filters}}
+          @search={{search}}
+          @items={{items}}
+        as |collection|>
+          <collection.Collection>
+            <Consul::Node::List
+              @items={{collection.items}}
+              @leader={{leader}}
+            />
+          </collection.Collection>
+          <collection.Empty>
+            <EmptyState
+              @login={{route.model.app.login.open}}
+            >
+              <BlockSlot @name="header">
+                <h2>
+                  {{#if (gt items.length 0)}}
+                    No nodes found
+                  {{else}}
+                    Welcome to Nodes
+                  {{/if}}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  There don't seem to be any registered nodes, or you may not have access to view nodes yet.
+                </p>
+              </BlockSlot>
+            </EmptyState>
+          </collection.Empty>
+        </DataCollection>
+      </BlockSlot>
+    </AppView>
+  {{/let}}
     </BlockSlot>
-  </AppView>
-{{/let}}
+    </DataLoader>
+  </DataSource>
+  </Route>

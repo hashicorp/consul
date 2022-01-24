@@ -42,7 +42,7 @@ export default (collection, clickable, attribute, is, authForm, emptyState) => s
       status: attribute('data-test-status', '[data-test-status]'),
     },
   };
-  page.navigation.login = clickable('[data-test-main-nav-auth] label');
+  page.navigation.login = clickable('[data-test-main-nav-auth] button');
   page.navigation.dc = clickable('[data-test-datacenter-menu] button');
   page.navigation.nspace = clickable('[data-test-nspace-menu] button');
   page.navigation.manageNspaces = clickable('[data-test-main-nav-nspaces] a');

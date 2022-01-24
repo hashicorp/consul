@@ -50,10 +50,12 @@ export default utils => (annotations, nspace, dict = new Yadda.Dictionary()) => 
       // mainly for DELETEs
       if (env('CONSUL_NSPACES_ENABLED')) {
         val = val.replace(/ns=@!namespace/g, `ns=${nspace || 'default'}`);
+        val = val.replace(/Namespace: @!namespace/g, `Namespace: ${nspace || 'default'}`);
       } else {
         val = val.replace(/&ns=@!namespace/g, '');
         val = val.replace(/&ns=\*/g, '');
         val = val.replace(/- \/v1\/namespaces/g, '');
+        val = val.replace(/Namespace: @!namespace/g, '');
       }
       if (typeof nspace === 'undefined' || nspace === '') {
         val = val.replace(/Namespace: @namespace/g, '').replace(/&ns=@namespace/g, '');
@@ -63,7 +65,7 @@ export default utils => (annotations, nspace, dict = new Yadda.Dictionary()) => 
         /@namespace/g,
         typeof nspace === 'undefined' || nspace === '' ? 'default' : nspace
       );
-      cb(null, YAML.safeLoad(val));
+      cb(null, YAML.load(val));
     })
     .define('endpoint', /([^\u0000]*)/, function(val, cb) {
       // if is @namespace is !important, always replace with namespace

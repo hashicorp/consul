@@ -19,9 +19,14 @@ as |item|>
       <Actions as |Action|>
         <Action data-test-edit-action @href={{href-to 'dc.acls.roles.edit' item.ID}}>
           <BlockSlot @name="label">
+{{#if (can "write role" item=item)}}
             Edit
+{{else}}
+            View
+{{/if}}
           </BlockSlot>
         </Action>
+{{#if (can "delete role" item=item)}}
         <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
           <BlockSlot @name="label">
             Delete
@@ -42,6 +47,7 @@ as |item|>
             </Confirmation>
           </BlockSlot>
         </Action>
+{{/if}}
       </Actions>
     </BlockSlot>
 </ListCollection>

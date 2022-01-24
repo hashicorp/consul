@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"sort"
-	"strings"
+
+	"github.com/hashicorp/consul/command/catalog"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
@@ -54,6 +54,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.http.PartitionFlag())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -141,62 +142,22 @@ func (c *cmd) Run(args []string) int {
 // format about the nodes.
 func printNodes(nodes []*api.Node, detailed bool) (string, error) {
 	var result []string
-	if detailed {
-		result = detailedNodes(nodes)
-	} else {
-		result = simpleNodes(nodes)
-	}
+
+	result = detailedNodes(nodes, detailed)
 
 	return columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})}), nil
 }
 
-func detailedNodes(nodes []*api.Node) []string {
+func detailedNodes(nodes []*api.Node, detailed bool) []string {
 	result := make([]string, 0, len(nodes)+1)
-	header := "Node\x1fID\x1fAddress\x1fDC\x1fTaggedAddresses\x1fMeta"
+	header := catalog.NodesHeader(detailed)
 	result = append(result, header)
 
 	for _, node := range nodes {
-		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s",
-			node.Node, node.ID, node.Address, node.Datacenter,
-			mapToKV(node.TaggedAddresses, ", "), mapToKV(node.Meta, ", ")))
+		result = append(result, catalog.NodeRow(node, detailed))
 	}
 
 	return result
-}
-
-func simpleNodes(nodes []*api.Node) []string {
-	result := make([]string, 0, len(nodes)+1)
-	header := "Node\x1fID\x1fAddress\x1fDC"
-	result = append(result, header)
-
-	for _, node := range nodes {
-		// Shorten the ID in non-detailed mode to just the first octet.
-		id := node.ID
-		idx := strings.Index(id, "-")
-		if idx > 0 {
-			id = id[0:idx]
-		}
-		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s",
-			node.Node, id, node.Address, node.Datacenter))
-	}
-
-	return result
-}
-
-// mapToKV converts a map[string]string into a human-friendly key=value list,
-// sorted by name.
-func mapToKV(m map[string]string, joiner string) string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	r := make([]string, len(keys))
-	for i, k := range keys {
-		r[i] = fmt.Sprintf("%s=%s", k, m[k])
-	}
-	return strings.Join(r, joiner)
 }
 
 func (c *cmd) Synopsis() string {

@@ -1,20 +1,20 @@
 ---
 layout: docs
 page_title: Self Hosted Kubernetes
-sidebar_title: Self Hosted Kubernetes
 description: Installing Consul on Self Hosted Kubernetes
 ---
 
 # Self Hosted Kubernetes
 
-Except for creating persistent volumes (see below), installing Consul on your
+Except for creating persistent volumes and ensuring there is a storage class
+configured (see below), installing Consul on your
 self-hosted Kubernetes cluster is the same process as installing Consul on a
 cloud-hosted Kubernetes cluster. See the [Installation Overview](/docs/k8s/installation/install)
 for install instructions.
 
 ## Predefined Persistent Volume Claims (PVCs)
 
-If running a self-hosted Kubernetes installation, you mean need to pre-create
+If running a self-hosted Kubernetes installation, you may need to pre-create
 the persistent volumes for the stateful set that the Consul servers run in.
 
 The only way to use a pre-created PVC is to name them in the format Kubernetes expects:
@@ -36,3 +36,16 @@ data-vault-consul-consul-server-2
 data-vault-consul-consul-server-3
 data-vault-consul-consul-server-4
 ```
+
+## Storage Class
+
+Your Kubernetes installation must either have a default storage class specified
+(see https://kubernetes.io/docs/concepts/storage/storage-classes/ and https://kubernetes.io/docs/tasks/administer-cluster/change-default-storage-class/)
+or you must specify the storage class for the Consul servers:
+
+```yaml
+server:
+  storageClass: your-class
+```
+
+See the [Helm reference](/docs/k8s/helm#v-server-storageclass) for that setting for more information.

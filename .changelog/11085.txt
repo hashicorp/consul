@@ -1,0 +1,3 @@
+```release-note:bug
+xds: ensure the active streams counters are 64 bit aligned on 32 bit systems
+```

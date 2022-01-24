@@ -1,0 +1,3 @@
+```release-note:bug
+ui: hide create button for policies/roles/namespace if users token has no write permissions to those areas
+```

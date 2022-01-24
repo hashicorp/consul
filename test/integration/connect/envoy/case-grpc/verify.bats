@@ -37,7 +37,13 @@ load helpers
 }
 
 @test "s1 proxy should be sending gRPC metrics to statsd" {
-  run retry_default must_match_in_statsd_logs 'envoy.cluster.grpc.PingServer.total.*[#,]local_cluster:s1(,|$)'
+  # in envoy 1.18.x the format of the emitted grpc metrics changed slightly
+  metrics_query='envoy.cluster.grpc.fgrpc.PingServer.Ping.total.*[#,]local_cluster:s1(,|$)'
+  if [[ "${ENVOY_VERSION}" =~ ^1\.1[567]\. ]]; then
+    metrics_query='envoy.cluster.grpc.PingServer.total.*[#,]local_cluster:s1(,|$)'
+  fi
+
+  run retry_default must_match_in_statsd_logs "${metrics_query}"
   echo "OUTPUT: $output"
 
   [ "$status" == 0 ]

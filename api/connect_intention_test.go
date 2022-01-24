@@ -33,6 +33,8 @@ func TestAPI_ConnectIntentionCreateListGetUpdateDelete(t *testing.T) {
 	ixn.UpdatedAt = actual.UpdatedAt
 	ixn.CreateIndex = actual.CreateIndex
 	ixn.ModifyIndex = actual.ModifyIndex
+	ixn.SourcePartition = actual.SourcePartition
+	ixn.DestinationPartition = actual.DestinationPartition
 	ixn.Hash = actual.Hash
 	require.Equal(t, ixn, actual)
 

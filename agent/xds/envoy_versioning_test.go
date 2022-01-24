@@ -3,8 +3,8 @@ package xds
 import (
 	"testing"
 
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoytype "github.com/envoyproxy/go-control-plane/envoy/type"
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
@@ -14,19 +14,19 @@ import (
 
 func TestDetermineEnvoyVersionFromNode(t *testing.T) {
 	cases := map[string]struct {
-		node   *envoycore.Node
+		node   *envoy_core_v3.Node
 		expect *version.Version
 	}{
 		"empty": {
-			node:   &envoycore.Node{},
+			node:   &envoy_core_v3.Node{},
 			expect: nil,
 		},
 		"user agent build version but no user agent": {
-			node: &envoycore.Node{
+			node: &envoy_core_v3.Node{
 				UserAgentName: "",
-				UserAgentVersionType: &envoycore.Node_UserAgentBuildVersion{
-					UserAgentBuildVersion: &envoycore.BuildVersion{
-						Version: &envoytype.SemanticVersion{
+				UserAgentVersionType: &envoy_core_v3.Node_UserAgentBuildVersion{
+					UserAgentBuildVersion: &envoy_core_v3.BuildVersion{
+						Version: &envoy_type_v3.SemanticVersion{
 							MajorNumber: 1,
 							MinorNumber: 14,
 							Patch:       4,
@@ -37,11 +37,11 @@ func TestDetermineEnvoyVersionFromNode(t *testing.T) {
 			expect: nil,
 		},
 		"user agent build version with user agent": {
-			node: &envoycore.Node{
+			node: &envoy_core_v3.Node{
 				UserAgentName: "envoy",
-				UserAgentVersionType: &envoycore.Node_UserAgentBuildVersion{
-					UserAgentBuildVersion: &envoycore.BuildVersion{
-						Version: &envoytype.SemanticVersion{
+				UserAgentVersionType: &envoy_core_v3.Node_UserAgentBuildVersion{
+					UserAgentBuildVersion: &envoy_core_v3.BuildVersion{
+						Version: &envoy_type_v3.SemanticVersion{
 							MajorNumber: 1,
 							MinorNumber: 14,
 							Patch:       4,
@@ -98,13 +98,35 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 		"1.13.5": {expectErr: "Envoy 1.13.5 " + errTooOld},
 		"1.13.6": {expectErr: "Envoy 1.13.6 " + errTooOld},
 		"1.13.7": {expectErr: "Envoy 1.13.7 " + errTooOld},
+		"1.14.0": {expectErr: "Envoy 1.14.0 " + errTooOld},
+		"1.14.1": {expectErr: "Envoy 1.14.1 " + errTooOld},
+		"1.14.2": {expectErr: "Envoy 1.14.2 " + errTooOld},
+		"1.14.3": {expectErr: "Envoy 1.14.3 " + errTooOld},
+		"1.14.4": {expectErr: "Envoy 1.14.4 " + errTooOld},
+		"1.14.5": {expectErr: "Envoy 1.14.5 " + errTooOld},
+		"1.14.6": {expectErr: "Envoy 1.14.6 " + errTooOld},
+		"1.14.7": {expectErr: "Envoy 1.14.7 " + errTooOld},
+		"1.15.0": {expectErr: "Envoy 1.15.0 " + errTooOld},
+		"1.15.1": {expectErr: "Envoy 1.15.1 " + errTooOld},
+		"1.15.2": {expectErr: "Envoy 1.15.2 " + errTooOld},
+		"1.15.3": {expectErr: "Envoy 1.15.3 " + errTooOld},
+		"1.15.4": {expectErr: "Envoy 1.15.4 " + errTooOld},
+		"1.15.5": {expectErr: "Envoy 1.15.5 " + errTooOld},
+		"1.16.1": {expectErr: "Envoy 1.16.1 " + errTooOld},
+		"1.16.2": {expectErr: "Envoy 1.16.2 " + errTooOld},
+		"1.16.3": {expectErr: "Envoy 1.16.3 " + errTooOld},
+		"1.16.4": {expectErr: "Envoy 1.16.4 " + errTooOld},
+		"1.16.5": {expectErr: "Envoy 1.16.5 " + errTooOld},
+		"1.16.6": {expectErr: "Envoy 1.16.6 " + errTooOld},
 	}
 
 	// Insert a bunch of valid versions.
+	// Populate feature flags here when appropriate. See consul 1.10.x for reference.
 	for _, v := range []string{
-		"1.14.1", "1.14.2", "1.14.3", "1.14.4", "1.14.5", "1.14.6",
-		"1.15.0", "1.15.1", "1.15.2", "1.15.3",
-		"1.16.0", "1.16.1", "1.16.2",
+		"1.17.0", "1.17.1", "1.17.2", "1.17.3", "1.17.4",
+		"1.18.0", "1.18.1", "1.18.2", "1.18.3", "1.18.4",
+		"1.19.0", "1.19.1",
+		"1.20.0", "1.20.1",
 	} {
 		cases[v] = testcase{expect: supportedProxyFeatures{}}
 	}

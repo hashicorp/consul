@@ -1,0 +1,22 @@
+%dom-recycling-table {
+  position: relative;
+}
+%dom-recycling-table tr {
+  display: flex;
+}
+%dom-recycling-table tr > * {
+  flex: 1 0 auto;
+  /* this means no simple CSS driven tooltips in dom-recycling tables */
+  /* ideally the thing inside the td should be overflow hidden */
+  overflow: hidden;
+}
+%dom-recycling-table tbody {
+  /* important required as ember-collection will inline an overflow: visible*/
+  overflow-x: hidden !important;
+}
+%dom-recycling-table dd {
+  flex-wrap: nowrap;
+}
+%dom-recycling-table dd > * {
+  margin-bottom: 0;
+}

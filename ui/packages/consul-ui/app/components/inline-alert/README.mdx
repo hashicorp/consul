@@ -1,0 +1,48 @@
+---
+class: css
+state: needs-love
+---
+# inline-alert
+
+CSS component for giving inline feedback to the user, generally used for form
+element feedback like errors and suchlike.
+
+Potentially an improvement here could be that this could make use of `%horizontal-kv-list`, and do we really need a placeholder per state, can we just use a class?
+
+```hbs preview-template
+  <label class="type-text">
+    <span>Input some text</span>
+    <input type="text" />
+    <strong class={{or this.type "info"}}>{{capitalize (or this.type "info")}}</strong>
+  </label>
+
+  <figure>
+    <figcaption>Provide a widget to change the <code>class</code></figcaption>
+
+    <select
+      onchange={{action (mut this.type) value="target.value"}}
+    >
+      <option>info</option>
+      <option>success</option>
+      <option>warning</option>
+      <option>error</option>
+    </select>
+
+  </figure>
+```
+
+
+```css
+strong.info {
+  @extend %inline-alert-info;
+}
+strong.success {
+  @extend %inline-alert-success;
+}
+strong.warning {
+  @extend %inline-alert-warning;
+}
+strong.error {
+  @extend %inline-alert-error;
+}
+```

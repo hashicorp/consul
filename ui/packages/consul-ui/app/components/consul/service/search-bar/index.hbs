@@ -140,11 +140,33 @@ as |key value|}}
         </BlockSlot>
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
+{{#let
+  (reject-by 'Partition' @partition @partitions)
+as |nonDefaultPartitions|}}
+{{#if (gt nonDefaultPartitions.length 0)}}
+    <Optgroup
+      @label={{t 'common.brand.consul'}}
+    >
+    {{#each @partitions as |partition|}}
+      <Option class="partition" @value={{partition}} @selected={{contains partition @filter.source.value}}>
+        {{partition}}
+      </Option>
+    {{/each}}
+    </Optgroup>
+{{/if}}
+{{/let}}
+
+{{#if (gt @sources.length 0)}}
+    <Optgroup
+      @label={{t 'common.search.integrations'}}
+    >
     {{#each @sources as |source|}}
           <Option class={{source}} @value={{source}} @selected={{contains source @filter.source.value}}>
             {{t (concat "common.brand." source)}}
           </Option>
     {{/each}}
+    </Optgroup>
+{{/if}}
   {{/let}}
         </BlockSlot>
       </search.Select>

@@ -156,6 +156,20 @@ func (s *staticAuthorizer) NodeWrite(string, *AuthorizerContext) EnforcementDeci
 	return Deny
 }
 
+func (s *staticAuthorizer) MeshRead(*AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) MeshWrite(*AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
 func (s *staticAuthorizer) OperatorRead(*AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
@@ -241,7 +255,11 @@ func ManageAll() Authorizer {
 	return manageAll
 }
 
-// RootAuthorizer returns a possible Authorizer if the ID matches a root policy
+// RootAuthorizer returns a possible Authorizer if the ID matches a root policy.
+//
+// TODO: rename this function. While the returned authorizer is used as a root
+// authorizer in some cases, in others it is not. A more appropriate name might
+// be NewAuthorizerFromPolicyName.
 func RootAuthorizer(id string) Authorizer {
 	switch id {
 	case "allow":

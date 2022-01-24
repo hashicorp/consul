@@ -47,7 +47,7 @@ module.exports = function(/* environment */) {
      * @type {Boolean}
      * @default "false"
      */
-    wrapTranslationsWithNamespace: false,
+    wrapTranslationsWithNamespace: true,
 
     /**
      * Cause a build error if ICU argument mismatches are detected between translations

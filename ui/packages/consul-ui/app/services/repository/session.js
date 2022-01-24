@@ -11,7 +11,7 @@ export default class SessionService extends RepositoryService {
     return modelName;
   }
 
-  @dataSource('/:ns/:dc/sessions/for-node/:id')
+  @dataSource('/:partition/:ns/:dc/sessions/for-node/:id')
   findByNode(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
@@ -21,7 +21,7 @@ export default class SessionService extends RepositoryService {
   }
 
   // TODO: Why Key? Probably should be findBySlug like the others
-  @dataSource('/:ns/:dc/sessions/for-key/:id')
+  @dataSource('/:partition/:ns/:dc/sessions/for-key/:id')
   findByKey(params, configuration = {}) {
     return this.findBySlug(...arguments);
   }

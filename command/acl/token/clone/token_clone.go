@@ -44,7 +44,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -101,8 +101,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Clone an ACL token"
-const help = `
+const (
+	synopsis = "Clone an ACL token"
+	help     = `
 Usage: consul acl token clone [options]
 
     This command will clone a token. When cloning an alternate description may be given
@@ -112,3 +113,4 @@ Usage: consul acl token clone [options]
 
         $ consul acl token clone -id abcd -description "replication"
 `
+)

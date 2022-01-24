@@ -66,17 +66,18 @@ func TestFormatToken(t *testing.T) {
 		},
 		"complex": {
 			token: api.ACLToken{
-				AccessorID:     "fbd2447f-7479-4329-ad13-b021d74f86ba",
-				SecretID:       "869c6e91-4de9-4dab-b56e-87548435f9c6",
-				Namespace:      "foo",
-				Description:    "test token",
-				Local:          false,
-				AuthMethod:     "bar",
-				CreateTime:     time.Date(2020, 5, 22, 18, 52, 31, 0, time.UTC),
-				ExpirationTime: timeRef(time.Date(2020, 5, 22, 19, 52, 31, 0, time.UTC)),
-				Hash:           []byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'},
-				CreateIndex:    5,
-				ModifyIndex:    10,
+				AccessorID:          "fbd2447f-7479-4329-ad13-b021d74f86ba",
+				SecretID:            "869c6e91-4de9-4dab-b56e-87548435f9c6",
+				Namespace:           "foo",
+				Description:         "test token",
+				Local:               false,
+				AuthMethod:          "bar",
+				AuthMethodNamespace: "baz",
+				CreateTime:          time.Date(2020, 5, 22, 18, 52, 31, 0, time.UTC),
+				ExpirationTime:      timeRef(time.Date(2020, 5, 22, 19, 52, 31, 0, time.UTC)),
+				Hash:                []byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'},
+				CreateIndex:         5,
+				ModifyIndex:         10,
 				Policies: []*api.ACLLink{
 					{
 						ID:   "beb04680-815b-4d7c-9e33-3d707c24672c",
@@ -155,6 +156,7 @@ func TestFormatTokenList(t *testing.T) {
 			tokens: []*api.ACLTokenListEntry{
 				{
 					AccessorID:  "fbd2447f-7479-4329-ad13-b021d74f86ba",
+					SecretID:    "257ade69-748c-4022-bafd-76d27d9143f8",
 					Description: "test token",
 					Local:       false,
 					CreateTime:  time.Date(2020, 5, 22, 18, 52, 31, 0, time.UTC),
@@ -168,6 +170,7 @@ func TestFormatTokenList(t *testing.T) {
 			tokens: []*api.ACLTokenListEntry{
 				{
 					AccessorID:  "8acc7486-ca54-4d3c-9aed-5cd85651b0ee",
+					SecretID:    "257ade69-748c-4022-bafd-76d27d9143f8",
 					Description: "legacy",
 					Legacy:      true,
 				},
@@ -176,16 +179,18 @@ func TestFormatTokenList(t *testing.T) {
 		"complex": {
 			tokens: []*api.ACLTokenListEntry{
 				{
-					AccessorID:     "fbd2447f-7479-4329-ad13-b021d74f86ba",
-					Namespace:      "foo",
-					Description:    "test token",
-					Local:          false,
-					AuthMethod:     "bar",
-					CreateTime:     time.Date(2020, 5, 22, 18, 52, 31, 0, time.UTC),
-					ExpirationTime: timeRef(time.Date(2020, 5, 22, 19, 52, 31, 0, time.UTC)),
-					Hash:           []byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'},
-					CreateIndex:    5,
-					ModifyIndex:    10,
+					AccessorID:          "fbd2447f-7479-4329-ad13-b021d74f86ba",
+					SecretID:            "257ade69-748c-4022-bafd-76d27d9143f8",
+					Namespace:           "foo",
+					Description:         "test token",
+					Local:               false,
+					AuthMethod:          "bar",
+					AuthMethodNamespace: "baz",
+					CreateTime:          time.Date(2020, 5, 22, 18, 52, 31, 0, time.UTC),
+					ExpirationTime:      timeRef(time.Date(2020, 5, 22, 19, 52, 31, 0, time.UTC)),
+					Hash:                []byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'},
+					CreateIndex:         5,
+					ModifyIndex:         10,
 					Policies: []*api.ACLLink{
 						{
 							ID:   "beb04680-815b-4d7c-9e33-3d707c24672c",

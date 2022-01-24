@@ -1,15 +1,13 @@
 import RepositoryService from 'consul-ui/services/repository';
 import { get } from '@ember/object';
-import statusFactory from 'consul-ui/utils/acls-status';
-import isValidServerErrorFactory from 'consul-ui/utils/http/acl/is-valid-server-error';
+import { inject as service } from '@ember/service';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/policy';
 import dataSource from 'consul-ui/decorators/data-source';
 
-const isValidServerError = isValidServerErrorFactory();
-const status = statusFactory(isValidServerError, Promise);
 const MODEL_NAME = 'policy';
 
 export default class PolicyService extends RepositoryService {
+  @service('form') form;
   getModelName() {
     return MODEL_NAME;
   }
@@ -22,18 +20,27 @@ export default class PolicyService extends RepositoryService {
     return SLUG_KEY;
   }
 
-  @dataSource('/:ns/:dc/policies')
+  @dataSource('/:partition/:ns/:dc/policies')
   async findAllByDatacenter() {
     return super.findAllByDatacenter(...arguments);
   }
 
-  @dataSource('/:ns/:dc/policy/:id')
-  async findBySlug() {
-    return super.findBySlug(...arguments);
-  }
-
-  status(obj) {
-    return status(obj);
+  @dataSource('/:partition/:ns/:dc/policy/:id')
+  async findBySlug(params) {
+    let item;
+    if (params.id === '') {
+      item = await this.create({
+        Datacenter: params.dc,
+        Partition: params.partition,
+        Namespace: params.ns,
+      });
+    } else {
+      item = await super.findBySlug(...arguments);
+    }
+    return this.form
+      .form(this.getModelName())
+      .setData(item)
+      .getData();
   }
 
   persist(item) {

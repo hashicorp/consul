@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Fixed styling of Role remove dialog on the Token edit page
+```

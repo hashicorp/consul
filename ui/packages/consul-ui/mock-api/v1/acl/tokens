@@ -15,14 +15,18 @@ ${ env('CONSUL_ACLS_LEGACY', false) ? `rpc error making call: rpc: can't find me
         return `
           {
             "AccessorID": "${i === 1 ? '00000000-0000-0000-0000-000000000002' : fake.random.uuid()}",
+            "SecretID": "${fake.helpers.randomize([fake.random.uuid(), '<hidden>', ''])}",
             "Name": "token-${i}",
 ${typeof location.search.ns !== 'undefined' ? `
             "Namespace": "${location.search.ns}",
 ` : ``}
+${typeof location.search.partition !== 'undefined' ? `
+            "Partition": "${location.search.partition}",
+` : ``}
             "IDPName": "${fake.hacker.noun()}",
             "Policies": [
               ${
-                range(env('CONSUL_POLICY_COUNT', 10)).map(
+                range(env('CONSUL_POLICY_COUNT', 3)).map(
                   function(item, j) {
                     if(i == 1 && j == 0) {
                       return `
@@ -44,7 +48,7 @@ ${typeof location.search.ns !== 'undefined' ? `
             ],
             "Roles": [
               ${
-                range(env('CONSUL_ROLE_COUNT', 10)).map(
+                range(env('CONSUL_ROLE_COUNT', 3)).map(
                   function(item, j) {
                     return `
                       {

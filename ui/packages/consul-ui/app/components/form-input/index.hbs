@@ -1,0 +1,25 @@
+<label
+  class={{concat 'form-input' (if (get @chart.state.context.errors @name) ' has-error')}}
+  ...attributes
+>
+  <span>
+    {{yield to='label'}}
+  </span>
+  {{yield to='input'}}
+{{#let
+  (or @validations.help @help)
+as |help|}}
+  {{#if help}}
+    {{!- add an optional slot here called <:help>?-}}
+    <em>
+      {{help}}
+    </em>
+  {{/if}}
+{{/let}}
+  <State @state={{@chart.state}} @matches="error">
+    {{!- add an optional slot here called <:alert/error/success>?-}}
+    <strong
+      role="alert"
+    >{{get (get @chart.state.context.errors @name) 'message'}}</strong>
+  </State>
+</label>

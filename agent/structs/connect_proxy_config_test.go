@@ -46,6 +46,10 @@ func TestConnectProxyConfig_ToAPI(t *testing.T) {
 						LocalBindAddress: "127.10.10.10",
 					},
 				},
+				Mode: ProxyModeTransparent,
+				TransparentProxy: TransparentProxyConfig{
+					OutboundListenerPort: 808,
+				},
 			},
 			want: &api.AgentServiceConnectProxyConfig{
 				DestinationServiceName: "web",
@@ -76,12 +80,130 @@ func TestConnectProxyConfig_ToAPI(t *testing.T) {
 						LocalBindAddress: "127.10.10.10",
 					},
 				},
+				Mode: api.ProxyModeTransparent,
+				TransparentProxy: &api.TransparentProxyConfig{
+					OutboundListenerPort: 808,
+				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require.Equal(t, tt.want, tt.in.ToAPI())
+		})
+	}
+}
+
+func TestConnectProxyConfig_MarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		in      ConnectProxyConfig
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "direct proxy",
+			in: ConnectProxyConfig{
+				DestinationServiceName: "api",
+				DestinationServiceID:   "api-1",
+				LocalServiceAddress:    "127.0.0.1",
+				LocalServicePort:       8080,
+				Mode:                   ProxyModeDirect,
+				Config: map[string]interface{}{
+					"connect_timeout_ms": 5000,
+				},
+				Upstreams: Upstreams{
+					Upstream{
+						DestinationType: UpstreamDestTypeService,
+						DestinationName: "db",
+						Datacenter:      "dc1",
+						LocalBindPort:   1234,
+					},
+				},
+				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeLocal},
+				Expose:      ExposeConfig{Checks: true},
+
+				// No transparent proxy config, since proxy is set to "direct" mode.
+				// Field should be omitted from json output.
+				// TransparentProxy: TransparentProxyConfig{},
+			},
+			want: `{
+				"DestinationServiceName": "api",
+				"DestinationServiceID": "api-1",
+				"LocalServiceAddress": "127.0.0.1",
+				"LocalServicePort": 8080,
+				"Mode": "direct",
+				"Config": {
+					"connect_timeout_ms": 5000
+				},
+				"Upstreams": [
+					{
+						"DestinationType": "service",
+						"DestinationName": "db",
+						"Datacenter": "dc1",
+						"LocalBindPort": 1234,
+						"MeshGateway": {}
+					}
+				],
+				"MeshGateway": {
+					"Mode": "local"
+				},
+				"Expose": {
+					"Checks": true
+				}
+			}`,
+			wantErr: false,
+		},
+		{
+			name: "transparent proxy",
+			in: ConnectProxyConfig{
+				DestinationServiceName: "billing",
+				DestinationServiceID:   "billing-1",
+				LocalServiceAddress:    "127.0.0.1",
+				LocalServicePort:       8080,
+				Mode:                   ProxyModeTransparent,
+				Config: map[string]interface{}{
+					"connect_timeout_ms": 5000,
+				},
+				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeLocal},
+				Expose:      ExposeConfig{Checks: true},
+				TransparentProxy: TransparentProxyConfig{
+					DialedDirectly:       true,
+					OutboundListenerPort: 16001,
+				},
+			},
+			want: `{
+				"DestinationServiceName": "billing",
+				"DestinationServiceID": "billing-1",
+				"LocalServiceAddress": "127.0.0.1",
+				"LocalServicePort": 8080,
+				"Mode": "transparent",
+				"Config": {
+					"connect_timeout_ms": 5000
+				},
+				"TransparentProxy": {
+					"DialedDirectly": true,
+					"OutboundListenerPort": 16001
+				},
+				"MeshGateway": {
+					"Mode": "local"
+				},
+				"Expose": {
+					"Checks": true
+				}
+			}`,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.in.MarshalJSON()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.JSONEq(t, tt.want, string(got))
 		})
 	}
 }
@@ -132,14 +254,13 @@ func TestUpstream_MarshalJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
 			got, err := json.Marshal(tt.in)
 			if tt.wantErr {
-				require.Error(err)
+				require.Error(t, err)
 				return
 			}
-			require.NoError(err)
-			require.JSONEq(tt.want, string(got))
+			require.NoError(t, err)
+			require.JSONEq(t, tt.want, string(got))
 		})
 	}
 }
@@ -563,6 +684,40 @@ func TestValidateMeshGatewayMode(t *testing.T) {
 		})
 		t.Run(tc.modeExplicit+" (explicit)", func(t *testing.T) {
 			got, err := ValidateMeshGatewayMode(tc.modeExplicit)
+			if tc.ok {
+				require.NoError(t, err)
+				require.Equal(t, tc.expect, got)
+			} else {
+				require.Error(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateProxyMode(t *testing.T) {
+	for _, tc := range []struct {
+		modeConstant string
+		modeExplicit string
+		expect       ProxyMode
+		ok           bool
+	}{
+		{string(ProxyModeDefault), "", ProxyModeDefault, true},
+		{string(ProxyModeDirect), "direct", ProxyModeDirect, true},
+		{string(ProxyModeTransparent), "transparent", ProxyModeTransparent, true},
+	} {
+		tc := tc
+
+		t.Run(tc.modeConstant+" (constant)", func(t *testing.T) {
+			got, err := ValidateProxyMode(tc.modeConstant)
+			if tc.ok {
+				require.NoError(t, err)
+				require.Equal(t, tc.expect, got)
+			} else {
+				require.Error(t, err)
+			}
+		})
+		t.Run(tc.modeExplicit+" (explicit)", func(t *testing.T) {
+			got, err := ValidateProxyMode(tc.modeExplicit)
 			if tc.ok {
 				require.NoError(t, err)
 				require.Equal(t, tc.expect, got)

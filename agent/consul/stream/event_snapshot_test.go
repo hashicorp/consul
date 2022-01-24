@@ -95,7 +95,7 @@ func TestEventSnapshot(t *testing.T) {
 			// be appended before the snapshot fn executes in another goroutine since
 			// it's operating an a possible stale "snapshot". This is the same as
 			// reality with the state store where updates that occur after the
-			// snapshot is taken but while the SnapFnis still running must be captured
+			// snapshot is taken but while the SnapFn is still running must be captured
 			// correctly.
 			for i := 0; i < tc.updatesAfterSnap; i++ {
 				index := snapIndex + 1 + uint64(i)

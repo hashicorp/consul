@@ -1,52 +1,59 @@
-{{on-window 'resize' (action "resize") }}
-<Portal @target="modal">
-  {{yield}}
-  <div
-    class="modal-dialog"
-    {{ref this 'modal'}}
-    ...attributes
-  >
-    <input
-      class="modal-dialog-control"
-      id={{name}}
-      type="radio"
-      name="modal"
-      data-checked="{{checked}}"
-      checked={{checked}}
-      onchange={{action 'change'}}
-    />
+{{#let (hash
+  labelledby=(unique-id)
+) as |aria|}}
+  <Portal @target="modal">
+    {{yield}}
     <div
-      class="modal-dialog-modal"
-      role="dialog"
-      aria-modal="true"
+      class="modal-dialog"
+      aria-hidden="true"
+      ...attributes
+      {{did-insert (action "connect")}}
+      {{will-destroy (action "disconnect")}}
     >
-      <label for="modal_close"></label>
-      <div>
-        <div class="modal-dialog-window">
+      <div tabindex="-1" data-a11y-dialog-hide></div>
+      <div
+        class="modal-dialog-modal"
+        role="dialog"
+        aria-label={{@aria.label}}
+      >
+        <div
+          role="document"
+        >
           <header class="modal-dialog-header">
-            <label for="modal_close"></label>
+            <button
+              type="button"
+              data-a11y-dialog-hide
+              aria-label="Close dialog"
+            >
+            </button>
             <YieldSlot @name="header">
               {{yield (hash
+                open=(action "open")
                 close=(action "close")
+                aria=aria
               )}}
             </YieldSlot>
           </header>
           <div class="modal-dialog-body">
             <YieldSlot @name="body">
               {{yield (hash
+                open=(action "open")
                 close=(action "close")
+                aria=aria
               )}}
             </YieldSlot>
           </div>
           <footer class="modal-dialog-footer">
             <YieldSlot @name="actions" @params={{block-params (action "close")}}>
               {{yield (hash
+                open=(action "open")
                 close=(action "close")
+                aria=aria
               )}}
             </YieldSlot>
           </footer>
         </div>
       </div>
     </div>
-  </div>
-</Portal>
+  </Portal>
+{{/let}}

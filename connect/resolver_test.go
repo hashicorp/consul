@@ -32,10 +32,9 @@ func TestStaticResolver_Resolve(t *testing.T) {
 				CertURI: tt.fields.CertURI,
 			}
 			addr, certURI, err := sr.Resolve(context.Background())
-			require := require.New(t)
-			require.Nil(err)
-			require.Equal(sr.Addr, addr)
-			require.Equal(sr.CertURI, certURI)
+			require.Nil(t, err)
+			require.Equal(t, sr.Addr, addr)
+			require.Equal(t, sr.CertURI, certURI)
 		})
 	}
 }
@@ -201,7 +200,6 @@ func TestConsulResolver_Resolve(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
 			cr := &ConsulResolver{
 				Client:     client,
 				Namespace:  tt.fields.Namespace,
@@ -218,14 +216,14 @@ func TestConsulResolver_Resolve(t *testing.T) {
 			defer cancel()
 			gotAddr, gotCertURI, err := cr.Resolve(ctx)
 			if tt.wantErr {
-				require.NotNil(err)
+				require.NotNil(t, err)
 				return
 			}
 
-			require.Nil(err)
-			require.Equal(tt.wantCertURI, gotCertURI)
+			require.Nil(t, err)
+			require.Equal(t, tt.wantCertURI, gotCertURI)
 			if len(tt.addrs) > 0 {
-				require.Contains(tt.addrs, gotAddr)
+				require.Contains(t, tt.addrs, gotAddr)
 			}
 		})
 	}
@@ -323,16 +321,15 @@ func TestConsulResolverFromAddrFunc(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
 
 			fn := ConsulResolverFromAddrFunc(client)
 			got, gotErr := fn(tt.addr)
 			if tt.wantErr != "" {
-				require.Error(gotErr)
-				require.Contains(gotErr.Error(), tt.wantErr)
+				require.Error(t, gotErr)
+				require.Contains(t, gotErr.Error(), tt.wantErr)
 			} else {
-				require.NoError(gotErr)
-				require.Equal(tt.want, got)
+				require.NoError(t, gotErr)
+				require.Equal(t, tt.want, got)
 			}
 		})
 	}

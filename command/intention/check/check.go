@@ -31,7 +31,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -81,8 +81,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Check whether a connection between two services is allowed."
-const help = `
+const (
+	synopsis = "Check whether a connection between two services is allowed."
+	help     = `
 Usage: consul intention check [options] SRC DST
 
   Check whether a connection between SRC and DST would be allowed by
@@ -91,3 +92,4 @@ Usage: consul intention check [options] SRC DST
       $ consul intention check web db
 
 `
+)

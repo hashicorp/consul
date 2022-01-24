@@ -1,9 +1,9 @@
 export default {
-  Name: (item, value) => item.Name,
-  Description: (item, value) => item.Description,
-  AccessorID: (item, value) => item.AccessorID,
-  Role: (item, value) => (item.Roles || []).map(item => item.Name),
-  Policy: (item, value) => {
+  Name: item => item.Name,
+  Description: item => item.Description,
+  AccessorID: item => item.AccessorID,
+  Role: item => (item.Roles || []).map(item => item.Name),
+  Policy: item => {
     return (item.Policies || [])
       .map(item => item.Name)
       .concat((item.ServiceIdentities || []).map(item => item.ServiceName))
