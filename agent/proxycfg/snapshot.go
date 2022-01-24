@@ -373,7 +373,7 @@ type configSnapshotIngressGateway struct {
 	// in order to cancel any watches when the ingress gateway configuration is
 	// changed. Ingress gateways need this because discovery chain watches are
 	// added and removed through the lifecycle of single proxycfg.state instance.
-	WatchedDiscoveryChains map[string]context.CancelFunc
+	WatchedDiscoveryChains map[UpstreamID]context.CancelFunc
 
 	// Upstreams is a list of upstreams this ingress gateway should serve traffic
 	// to. This is constructed from the ingress-gateway config entry, and uses

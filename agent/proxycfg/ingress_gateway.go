@@ -82,6 +82,8 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 
 		snap.IngressGateway.GatewayConfigLoaded = true
 		snap.IngressGateway.TLSConfig = gatewayConf.TLS
+		snap.IngressGateway.TracingStrategy = gatewayConf.TracingStrategy
+		snap.IngressGateway.TracingPercentage = gatewayConf.TracingPercentage
 
 		// Load each listener's config from the config entry so we don't have to
 		// pass listener config through "upstreams" types as that grows.
