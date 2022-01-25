@@ -982,24 +982,24 @@ You can specify the following parameters to configure ingress gateway configurat
         {
           name: 'TLSMinVersion',
           type: 'string: ""',
-          description: "Set the minimum TLS version supported for the gateway's listeners. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.",
+          description: "Set the default minimum TLS version supported for the gateway's listeners. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.",
         },
         {
           name: 'TLSMaxVersion',
           type: 'string: ""',
           description: {
             hcl:
-              "Set the maximum TLS version supported for the gateway's listeners. Must be greater than or equal to `TLSMinVersion`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`." ,
+              "Set the default maximum TLS version supported for the gateway's listeners. Must be greater than or equal to `TLSMinVersion`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`." ,
             yaml:
-              "Set the maximum TLS version supported for the gateway's listeners. Must be greater than or equal to `tls_min_version`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`." ,
+              "Set the default maximum TLS version supported for the gateway's listeners. Must be greater than or equal to `tls_min_version`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`." ,
           },
         },
         {
           name: 'CipherSuites',
           type: 'array<string>: <optional>',
-          description: `A list of TLS cipher suites to support when negotiating
-                        connections using TLS 1.2 or earlier. If unspecified,
-                        Envoy will use a
+          description: `Set the default list of TLS cipher suites for the gateway's
+                        listeners to support when negotiating connections using
+                        TLS 1.2 or earlier. If unspecified, Envoy will use a
                         [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites).
                         The list of supported cipher suites can seen in
                         [\`consul/types/tls.go\`](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169)
@@ -1171,7 +1171,7 @@ You can specify the following parameters to configure ingress gateway configurat
             {
               name: 'TLSMinVersion',
               type: 'string: ""',
-              description: "Set the minimum TLS version supported for this listener. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`.",
+              description: "Set the minimum TLS version supported for this listener. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.",
             },
             {
               name: 'TLSMaxVersion',
@@ -1186,7 +1186,7 @@ You can specify the following parameters to configure ingress gateway configurat
             {
               name: 'CipherSuites',
               type: 'array<string>: <optional>',
-              description: `A list of TLS cipher suites to support when negotiating
+              description: `Set the list of TLS cipher suites to support when negotiating
                             connections using TLS 1.2 or earlier. If unspecified,
                             Envoy will use a
                             [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites).
