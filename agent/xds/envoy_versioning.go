@@ -26,11 +26,6 @@ type unsupportedVersion struct {
 }
 
 type supportedProxyFeatures struct {
-	// add version dependent feature flags here
-
-	// GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS is needed to paper
-	// over some weird envoy behavior.
-	//
 	// For some reason Envoy versions prior to 1.16.0 when sent an empty CDS
 	// list via the incremental xDS protocol will correctly ack the message and
 	// just never request LDS resources.
@@ -45,6 +40,19 @@ type supportedProxyFeatures struct {
 	// issue: https://github.com/envoyproxy/envoy/issues/11877
 	// PR:    https://github.com/envoyproxy/envoy/pull/12069
 	IncrementalXDSUpdatesMustBeSerial bool
+
+	// Older versions of Envoy incorrectly exploded a wildcard subscription for
+	// LDS and CDS into specific line items on incremental xDS reconnect. They
+	// would populate both InitialResourceVersions and ResourceNamesSubscribe
+	// when they SHOULD have left ResourceNamesSubscribe empty (or used an
+	// explicit "*" in later Envoy versions) to imply wildcard mode. On
+	// reconnect, Consul interpreted the lack of the wildcard attribute as
+	// implying that the Envoy instance should not receive updates for any
+	// newly created listeners and clusters for the remaining life of that
+	// Envoy sidecar process.
+	// see: https://github.com/envoyproxy/envoy/issues/16063
+	// see: https://github.com/envoyproxy/envoy/pull/16153
+	ForceLDSandCDSToAlwaysUseWildcardsOnReconnect bool
 }
 
 func determineSupportedProxyFeatures(node *envoy_core_v3.Node) (supportedProxyFeatures, error) {
@@ -89,6 +97,9 @@ func determineSupportedProxyFeaturesFromVersion(version *version.Version) (suppo
 	if version.LessThan(minVersionAllowingMultipleIncrementalXDSChanges) {
 		sf.IncrementalXDSUpdatesMustBeSerial = true
 	}
+
+	// All envoy versions available in Consul 1.10.x need this fix.
+	sf.ForceLDSandCDSToAlwaysUseWildcardsOnReconnect = true
 
 	return sf, nil
 }

@@ -115,6 +115,7 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 		cases[v] = testcase{expect: supportedProxyFeatures{
 			GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS: true,
 			IncrementalXDSUpdatesMustBeSerial:                  true,
+			ForceLDSandCDSToAlwaysUseWildcardsOnReconnect:      true,
 		}}
 	}
 	for _, v := range []string{
@@ -122,7 +123,9 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 		"1.17.0", "1.17.1", "1.17.2", "1.17.3", "1.17.4",
 		"1.18.0", "1.18.1", "1.18.2", "1.18.3", "1.18.4",
 	} {
-		cases[v] = testcase{expect: supportedProxyFeatures{}}
+		cases[v] = testcase{expect: supportedProxyFeatures{
+			ForceLDSandCDSToAlwaysUseWildcardsOnReconnect: true,
+		}}
 	}
 
 	for name, tc := range cases {
