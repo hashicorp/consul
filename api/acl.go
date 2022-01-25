@@ -552,7 +552,7 @@ func (a *ACL) Update(acl *ACLEntry, q *WriteOptions) (*WriteMeta, error) {
 //
 // Deprecated: Use TokenDelete instead.
 func (a *ACL) Destroy(id string, q *WriteOptions) (*WriteMeta, error) {
-	r := a.c.newRequest("PUT", "/v1/acl/destroy/"+id)
+	r := a.c.newRequest("PUT", "/v1/acl/destroy/"+url.PathEscape(id))
 	r.setWriteOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -571,7 +571,7 @@ func (a *ACL) Destroy(id string, q *WriteOptions) (*WriteMeta, error) {
 //
 // Deprecated: Use TokenClone instead.
 func (a *ACL) Clone(id string, q *WriteOptions) (string, *WriteMeta, error) {
-	r := a.c.newRequest("PUT", "/v1/acl/clone/"+id)
+	r := a.c.newRequest("PUT", "/v1/acl/clone/"+url.PathEscape(id))
 	r.setWriteOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -594,7 +594,7 @@ func (a *ACL) Clone(id string, q *WriteOptions) (string, *WriteMeta, error) {
 //
 // Deprecated: Use TokenRead instead.
 func (a *ACL) Info(id string, q *QueryOptions) (*ACLEntry, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/acl/info/"+id)
+	r := a.c.newRequest("GET", "/v1/acl/info/"+url.PathEscape(id))
 	r.setQueryOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -696,7 +696,7 @@ func (a *ACL) TokenUpdate(token *ACLToken, q *WriteOptions) (*ACLToken, *WriteMe
 	if token.AccessorID == "" {
 		return nil, nil, fmt.Errorf("Must specify an AccessorID for Token Updating")
 	}
-	r := a.c.newRequest("PUT", "/v1/acl/token/"+token.AccessorID)
+	r := a.c.newRequest("PUT", "/v1/acl/token/"+url.PathEscape(token.AccessorID))
 	r.setWriteOptions(q)
 	r.obj = token
 	rtt, resp, err := a.c.doRequest(r)
@@ -725,7 +725,7 @@ func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*
 		return nil, nil, fmt.Errorf("Must specify a tokenID for Token Cloning")
 	}
 
-	r := a.c.newRequest("PUT", "/v1/acl/token/"+tokenID+"/clone")
+	r := a.c.newRequest("PUT", "/v1/acl/token/"+url.PathEscape(tokenID)+"/clone")
 	r.setWriteOptions(q)
 	r.obj = struct{ Description string }{description}
 	rtt, resp, err := a.c.doRequest(r)
@@ -748,7 +748,7 @@ func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*
 // TokenDelete removes a single ACL token. The tokenID parameter must be a valid
 // Accessor ID of an existing token.
 func (a *ACL) TokenDelete(tokenID string, q *WriteOptions) (*WriteMeta, error) {
-	r := a.c.newRequest("DELETE", "/v1/acl/token/"+tokenID)
+	r := a.c.newRequest("DELETE", "/v1/acl/token/"+url.PathEscape(tokenID))
 	r.setWriteOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -766,7 +766,7 @@ func (a *ACL) TokenDelete(tokenID string, q *WriteOptions) (*WriteMeta, error) {
 // TokenRead retrieves the full token details. The tokenID parameter must be a valid
 // Accessor ID of an existing token.
 func (a *ACL) TokenRead(tokenID string, q *QueryOptions) (*ACLToken, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/acl/token/"+tokenID)
+	r := a.c.newRequest("GET", "/v1/acl/token/"+url.PathEscape(tokenID))
 	r.setQueryOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -871,7 +871,7 @@ func (a *ACL) PolicyUpdate(policy *ACLPolicy, q *WriteOptions) (*ACLPolicy, *Wri
 		return nil, nil, fmt.Errorf("Must specify an ID in Policy Update")
 	}
 
-	r := a.c.newRequest("PUT", "/v1/acl/policy/"+policy.ID)
+	r := a.c.newRequest("PUT", "/v1/acl/policy/"+url.PathEscape(policy.ID))
 	r.setWriteOptions(q)
 	r.obj = policy
 	rtt, resp, err := a.c.doRequest(r)
@@ -893,7 +893,7 @@ func (a *ACL) PolicyUpdate(policy *ACLPolicy, q *WriteOptions) (*ACLPolicy, *Wri
 
 // PolicyDelete deletes a policy given its ID.
 func (a *ACL) PolicyDelete(policyID string, q *WriteOptions) (*WriteMeta, error) {
-	r := a.c.newRequest("DELETE", "/v1/acl/policy/"+policyID)
+	r := a.c.newRequest("DELETE", "/v1/acl/policy/"+url.PathEscape(policyID))
 	r.setWriteOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -910,7 +910,7 @@ func (a *ACL) PolicyDelete(policyID string, q *WriteOptions) (*WriteMeta, error)
 
 // PolicyRead retrieves the policy details including the rule set.
 func (a *ACL) PolicyRead(policyID string, q *QueryOptions) (*ACLPolicy, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/acl/policy/"+policyID)
+	r := a.c.newRequest("GET", "/v1/acl/policy/"+url.PathEscape(policyID))
 	r.setQueryOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -1021,7 +1021,7 @@ func (a *ACL) RulesTranslate(rules io.Reader) (string, error) {
 // Deprecated: Support for the legacy syntax translation will be removed
 // when legacy ACL support is removed.
 func (a *ACL) RulesTranslateToken(tokenID string) (string, error) {
-	r := a.c.newRequest("GET", "/v1/acl/rules/translate/"+tokenID)
+	r := a.c.newRequest("GET", "/v1/acl/rules/translate/"+url.PathEscape(tokenID))
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return "", err
@@ -1076,7 +1076,7 @@ func (a *ACL) RoleUpdate(role *ACLRole, q *WriteOptions) (*ACLRole, *WriteMeta, 
 		return nil, nil, fmt.Errorf("Must specify an ID in Role Update")
 	}
 
-	r := a.c.newRequest("PUT", "/v1/acl/role/"+role.ID)
+	r := a.c.newRequest("PUT", "/v1/acl/role/"+url.PathEscape(role.ID))
 	r.setWriteOptions(q)
 	r.obj = role
 	rtt, resp, err := a.c.doRequest(r)
@@ -1098,7 +1098,7 @@ func (a *ACL) RoleUpdate(role *ACLRole, q *WriteOptions) (*ACLRole, *WriteMeta, 
 
 // RoleDelete deletes a role given its ID.
 func (a *ACL) RoleDelete(roleID string, q *WriteOptions) (*WriteMeta, error) {
-	r := a.c.newRequest("DELETE", "/v1/acl/role/"+roleID)
+	r := a.c.newRequest("DELETE", "/v1/acl/role/"+url.PathEscape(roleID))
 	r.setWriteOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -1115,7 +1115,7 @@ func (a *ACL) RoleDelete(roleID string, q *WriteOptions) (*WriteMeta, error) {
 
 // RoleRead retrieves the role details (by ID). Returns nil if not found.
 func (a *ACL) RoleRead(roleID string, q *QueryOptions) (*ACLRole, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/acl/role/"+roleID)
+	r := a.c.newRequest("GET", "/v1/acl/role/"+url.PathEscape(roleID))
 	r.setQueryOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -1365,7 +1365,7 @@ func (a *ACL) BindingRuleUpdate(rule *ACLBindingRule, q *WriteOptions) (*ACLBind
 		return nil, nil, fmt.Errorf("Must specify an ID in Binding Rule Update")
 	}
 
-	r := a.c.newRequest("PUT", "/v1/acl/binding-rule/"+rule.ID)
+	r := a.c.newRequest("PUT", "/v1/acl/binding-rule/"+url.PathEscape(rule.ID))
 	r.setWriteOptions(q)
 	r.obj = rule
 	rtt, resp, err := a.c.doRequest(r)
@@ -1387,7 +1387,7 @@ func (a *ACL) BindingRuleUpdate(rule *ACLBindingRule, q *WriteOptions) (*ACLBind
 
 // BindingRuleDelete deletes a binding rule given its ID.
 func (a *ACL) BindingRuleDelete(bindingRuleID string, q *WriteOptions) (*WriteMeta, error) {
-	r := a.c.newRequest("DELETE", "/v1/acl/binding-rule/"+bindingRuleID)
+	r := a.c.newRequest("DELETE", "/v1/acl/binding-rule/"+url.PathEscape(bindingRuleID))
 	r.setWriteOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -1404,7 +1404,7 @@ func (a *ACL) BindingRuleDelete(bindingRuleID string, q *WriteOptions) (*WriteMe
 
 // BindingRuleRead retrieves the binding rule details. Returns nil if not found.
 func (a *ACL) BindingRuleRead(bindingRuleID string, q *QueryOptions) (*ACLBindingRule, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/acl/binding-rule/"+bindingRuleID)
+	r := a.c.newRequest("GET", "/v1/acl/binding-rule/"+url.PathEscape(bindingRuleID))
 	r.setQueryOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
