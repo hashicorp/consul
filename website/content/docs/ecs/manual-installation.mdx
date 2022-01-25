@@ -52,10 +52,10 @@ during task startup.
 
 | Field name             | Type   | Description                                                                                                        |
 | ---------------------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
-| `family`               | string | The task family name. This is used as the Consul service name by default.                                         |
+| `family`               | string | The task family name. This is used as the Consul service name by default.                                          |
 | `networkMode`          | string | Must be `awsvpc`, which is the only network mode supported by Consul on ECS.                                       |
-| `volumes`              | list   | Must be defined as shown above. Volumes are used to share configuration between containers for intial task setup. |
-| `containerDefinitions` | list   | The list of containers to run in this task (see below).                                                            |
+| `volumes`              | list   | Must be defined as shown above. Volumes are used to share configuration between containers for intial task setup.  |
+| `containerDefinitions` | list   | The list of containers to run in this task (see [Application container](#application-container)).                  |
 
 ## Application container
 
@@ -218,16 +218,17 @@ Each task must include a Consul client container in order for the task to join y
 
 </CodeBlockConfig>
 
-| Field name    | Type    | Description                                                                                                         |
-| ------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
-| `name`        | string  | The container name, which should always be `consul-client`.                                                         |
-| `image`       | string  | The Consul image. Use our public AWS registry, `public.ecr.aws/hashicorp/consul`, to avoid rate limits.             |
-| `mountPoints` | list    | Must be set as shown above. Volumes are mounted to share information with other containers for task setup.          |
-| `entrypoint`  | list    | Must be set to a plain shell so that the startup `command` works properly.                                          |
-| `command`     | list    | The startup command. See below for details.                                                                         |
+| Field name    | Type    | Description                                                                                                                       |
+| ------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | string  | The container name, which should always be `consul-client`.                                                                       |
+| `image`       | string  | The Consul image. Use our public AWS registry, `public.ecr.aws/hashicorp/consul`, to avoid rate limits.                           |
+| `mountPoints` | list    | Must be set as shown above. Volumes are mounted to share information with other containers for task setup.                        |
+| `entrypoint`  | list    | Must be set to a plain shell so that the startup `command` works properly.                                                        |
+| `command`     | list    | Specifies the contents of the [startup script](#consul-client-startup-script). Copy the script and format it into a JSON string.  |
 
-The following is the recommended `command` script for the Consul agent.
-This is the same as the above `command` field, but is unescaped and has comments added.
+### Consul client startup script
+
+The following script is used to start the Consul client for Consul on ECS.
 
 ```shell
 # Copy the consul binary to a shared volume for `consul-ecs-mesh-init` to use to generate Envoy configuration.
@@ -271,7 +272,7 @@ The following table describes the values that you should use to configure the `c
 | -------------------- | ------- | ------------------------------------------------------------------------------------------------------------ |
 | `addresses.*`        | strings | Set the DNS, GRPC, and HTTP addresses to `127.0.0.1` to ensure these are not accessible outside of the task. |
 | `advertise_addr`     | string  | Must be set to the task IP address so that other Consul agents know how to reach this agent.                 |
-| `client_addr`        | string  | Must be set to an interface reacable by other Consul agents.                                                 |
+| `client_addr`        | string  | Must be set to an interface reachable by other Consul agents.                                                |
 | `datacenter`         | string  | Must be set to the Consul datacenter this task will join.                                                    |
 | `leave_on_terminate` | boolean | Must be set to `true` so that the Consul agent leaves the cluster gracefully before exiting.                 |
 | `retry_join`         | string  | Must be set to your Consul server location(s) so this agent can join the Consul cluster.                     |
