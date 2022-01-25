@@ -163,6 +163,11 @@ use in binding rule selectors and bind name interpolation.
 
 By default, tokens created by the Kubernetes Auth Method will have local scope
 and will therefore only be valid for the datacenter in which they were created.
+On the other hand, by using [`-token-locality=global`](/commands/acl/auth-method/create#token-locality),
+tokens created by the Auth Method will be replicated to all other datacenters.
+
+
+
 For cases requiring global token scope, the primary Consul datacenter must have
 access to all Kubernetes clusters in order for tokens to be validated. This
 property is often prohibitive so using [`-token-locality=global`](/commands/acl/auth-method/create#token-locality)
