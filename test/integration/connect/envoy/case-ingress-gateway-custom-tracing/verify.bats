@@ -18,9 +18,9 @@ load helpers
   retry_default curl -f -s localhost:20003/stats -o /dev/null
 }
 
-@test "proxy admin endpoint is up on :19000" {
-  retry_default curl -f -s localhost:19000/stats -o /dev/null
-}
+# @test "proxy admin endpoint is up on :19000" {
+#   retry_default curl -f -s localhost:19000/stats -o /dev/null
+# }
 
 @test "random sampling with 100% should send traces to zipkin/jaeger" {
   run curl -s -f localhost:9991
