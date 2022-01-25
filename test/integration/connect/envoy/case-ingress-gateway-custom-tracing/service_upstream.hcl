@@ -1,6 +1,6 @@
 services {
-  name = "s1"
-  port = 8080
+  name = "upstream"
+  port = 8079
   connect {
     sidecar_service {
       proxy {

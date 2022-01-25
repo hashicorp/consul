@@ -1,5 +1,10 @@
 config_entries {
   bootstrap {
+    kind     = "service-defaults"
+    name     = "upstream"
+    protocol = "http"
+  }
+  bootstrap {
     kind               = "ingress-gateway"
     name               = "ingress-gateway-random-sampling-0"
     tracing_strategy   = "random_sampling"
@@ -8,7 +13,8 @@ config_entries {
       port     = 9990
       protocol = "http"
       services = [{
-        name = "*"
+        name = "upstream"
+        hosts = ["localhost:9990"]
       }]
     }]
   }
@@ -22,7 +28,8 @@ config_entries {
       port     = 9991
       protocol = "http"
       services = [{
-        name = "*"
+        name = "upstream"
+        hosts = ["localhost:9991"]
       }]
     }]
   }
@@ -36,7 +43,8 @@ config_entries {
       port     = 9992
       protocol = "http"
       services = [{
-        name = "*"
+        name = "upstream"
+        hosts = ["localhost:9992"]
       }]
     }]
   }
@@ -50,7 +58,8 @@ config_entries {
       port     = 9993
       protocol = "http"
       services = [{
-        name = "*"
+        name = "upstream"
+        hosts = ["localhost:9993"]
       }]
     }]
   }

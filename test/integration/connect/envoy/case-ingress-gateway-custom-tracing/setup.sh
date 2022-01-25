@@ -14,4 +14,5 @@ gen_envoy_bootstrap ingress-gateway-random-sampling-100 20001 primary true
 gen_envoy_bootstrap ingress-gateway-client-sampling-0 20002 primary true
 gen_envoy_bootstrap ingress-gateway-client-sampling-100 20003 primary true
 
-gen_envoy_bootstrap s1 19000
+# gen_envoy_bootstrap s1 19000
+# gen_envoy_bootstrap s2 19001
