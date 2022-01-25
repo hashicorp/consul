@@ -652,6 +652,10 @@
       {
         "title": "Consul Enterprise",
         "path": "ecs/enterprise"
+      },
+      {
+        "title": "Configuration Reference",
+        "path": "ecs/configuration-reference"
       }
     ]
   },
