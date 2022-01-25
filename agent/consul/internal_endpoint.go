@@ -6,7 +6,6 @@ import (
 	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
@@ -73,18 +72,21 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 			if err != nil {
 				return err
 			}
-
 			reply.Index, reply.Dump = index, dump
-			if err := m.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			raw, err := filter.Execute(reply.Dump)
 			if err != nil {
 				return err
 			}
-
 			reply.Dump = raw.(structs.NodeDump)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			return nil
 		})
 }
@@ -115,10 +117,6 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Nodes = nodes
 
-			if err := m.srv.filterACL(args.Token, &reply.Nodes); err != nil {
-				return err
-			}
-
 			// Get, store, and filter gateway services
 			idx, gatewayServices, err := state.DumpGatewayServices(ws)
 			if err != nil {
@@ -131,16 +129,19 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Index = maxIdx
 
-			if err := m.srv.filterACL(args.Token, &reply.Gateways); err != nil {
-				return err
-			}
-
 			raw, err := filter.Execute(reply.Nodes)
 			if err != nil {
 				return err
 			}
-
 			reply.Nodes = raw.(structs.CheckServiceNodes)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			return nil
 		})
 }
@@ -412,22 +413,13 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	}
 
 	// Set the query meta data
-	m.srv.setQueryMeta(&reply.QueryMeta)
+	m.srv.setQueryMeta(&reply.QueryMeta, args.Token)
 
 	// Add the consul prefix to the event name
 	eventName := userEventName(args.Name)
 
 	// Fire the event on all LAN segments
-	segments := m.srv.LANSegments()
-	var errs error
-	for name, segment := range segments {
-		err := segment.UserEvent(eventName, args.Payload, false)
-		if err != nil {
-			err = fmt.Errorf("error broadcasting event to segment %q: %v", name, err)
-			errs = multierror.Append(errs, err)
-		}
-	}
-	return errs
+	return m.srv.LANSendUserEvent(eventName, args.Payload, false)
 }
 
 // KeyringOperation will query the WAN and LAN gossip keyrings of all nodes.
@@ -492,14 +484,18 @@ func (m *Internal) KeyringOperation(
 
 func (m *Internal) executeKeyringOpLAN(args *structs.KeyringRequest) []*structs.KeyringResponse {
 	responses := []*structs.KeyringResponse{}
-	segments := m.srv.LANSegments()
-	for name, segment := range segments {
-		mgr := segment.KeyManager()
+	_ = m.srv.DoWithLANSerfs(func(poolName, poolKind string, pool *serf.Serf) error {
+		mgr := pool.KeyManager()
 		serfResp, err := m.executeKeyringOpMgr(mgr, args)
 		resp := translateKeyResponseToKeyringResponse(serfResp, m.srv.config.Datacenter, err)
-		resp.Segment = name
+		if poolKind == PoolKindSegment {
+			resp.Segment = poolName
+		} else {
+			resp.Partition = poolName
+		}
 		responses = append(responses, &resp)
-	}
+		return nil
+	}, nil)
 	return responses
 }
 

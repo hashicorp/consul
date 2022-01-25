@@ -552,6 +552,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	// determine client addresses
 	clientAddrs := b.expandIPs("client_addr", c.ClientAddr)
+	if len(clientAddrs) == 0 {
+		b.warn("client_addr is empty, client services (DNS, HTTP, HTTPS, GRPC) will not be listening for connections")
+	}
 	dnsAddrs := b.makeAddrs(b.expandAddrs("addresses.dns", c.Addresses.DNS), clientAddrs, dnsPort)
 	httpAddrs := b.makeAddrs(b.expandAddrs("addresses.http", c.Addresses.HTTP), clientAddrs, httpPort)
 	httpsAddrs := b.makeAddrs(b.expandAddrs("addresses.https", c.Addresses.HTTPS), clientAddrs, httpsPort)
@@ -724,6 +727,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			"csr_max_concurrent": "CSRMaxConcurrent",
 			"private_key_type":   "PrivateKeyType",
 			"private_key_bits":   "PrivateKeyBits",
+			"root_cert_ttl":      "RootCertTTL",
 		})
 	}
 
@@ -813,7 +817,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		CheckDeregisterIntervalMin: b.durationVal("check_deregister_interval_min", c.CheckDeregisterIntervalMin),
 		CheckReapInterval:          b.durationVal("check_reap_interval", c.CheckReapInterval),
 		Revision:                   stringVal(c.Revision),
-		SegmentLimit:               intVal(c.SegmentLimit),
 		SegmentNameLimit:           intVal(c.SegmentNameLimit),
 		SyncCoordinateIntervalMin:  b.durationVal("sync_coordinate_interval_min", c.SyncCoordinateIntervalMin),
 		SyncCoordinateRateTarget:   float64Val(c.SyncCoordinateRateTarget),
@@ -856,18 +859,18 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			ACLDefaultPolicy: stringVal(c.ACL.DefaultPolicy),
 		},
 
-		ACLEnableKeyListPolicy: boolVal(c.ACL.EnableKeyListPolicy),
-		ACLMasterToken:         stringVal(c.ACL.Tokens.Master),
+		ACLEnableKeyListPolicy:    boolVal(c.ACL.EnableKeyListPolicy),
+		ACLInitialManagementToken: stringVal(c.ACL.Tokens.InitialManagement),
 
 		ACLTokenReplication: boolVal(c.ACL.TokenReplication),
 
 		ACLTokens: token.Config{
-			DataDir:             dataDir,
-			EnablePersistence:   boolValWithDefault(c.ACL.EnableTokenPersistence, false),
-			ACLDefaultToken:     stringVal(c.ACL.Tokens.Default),
-			ACLAgentToken:       stringVal(c.ACL.Tokens.Agent),
-			ACLAgentMasterToken: stringVal(c.ACL.Tokens.AgentMaster),
-			ACLReplicationToken: stringVal(c.ACL.Tokens.Replication),
+			DataDir:               dataDir,
+			EnablePersistence:     boolValWithDefault(c.ACL.EnableTokenPersistence, false),
+			ACLDefaultToken:       stringVal(c.ACL.Tokens.Default),
+			ACLAgentToken:         stringVal(c.ACL.Tokens.Agent),
+			ACLAgentRecoveryToken: stringVal(c.ACL.Tokens.AgentRecovery),
+			ACLReplicationToken:   stringVal(c.ACL.Tokens.Replication),
 		},
 
 		// Autopilot
@@ -1054,6 +1057,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RetryJoinWAN:                b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
 		SegmentName:                 stringVal(c.SegmentName),
 		Segments:                    segments,
+		SegmentLimit:                intVal(c.SegmentLimit),
 		SerfAdvertiseAddrLAN:        serfAdvertiseAddrLAN,
 		SerfAdvertiseAddrWAN:        serfAdvertiseAddrWAN,
 		SerfAllowedCIDRsLAN:         serfAllowedCIDRSLAN,
@@ -1089,6 +1093,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 
 	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
+
+	if c.RaftBoltDBConfig != nil {
+		rt.RaftBoltDBConfig = *c.RaftBoltDBConfig
+	}
 
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
@@ -1542,6 +1550,13 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		return nil
 	}
 
+	var H2PingUseTLSVal bool
+	if stringVal(v.H2PING) != "" {
+		H2PingUseTLSVal = boolValWithDefault(v.H2PingUseTLS, true)
+	} else {
+		H2PingUseTLSVal = boolVal(v.H2PingUseTLS)
+	}
+
 	id := types.CheckID(stringVal(v.ID))
 
 	return &structs.CheckDefinition{
@@ -1572,6 +1587,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		FailuresBeforeCritical:         intVal(v.FailuresBeforeCritical),
 		FailuresBeforeWarning:          intValWithDefault(v.FailuresBeforeWarning, intVal(v.FailuresBeforeCritical)),
 		H2PING:                         stringVal(v.H2PING),
+		H2PingUseTLS:                   H2PingUseTLSVal,
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),
@@ -1615,7 +1631,7 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 
 	meta := make(map[string]string)
 	if err := structs.ValidateServiceMetadata(kind, v.Meta, false); err != nil {
-		b.err = multierror.Append(fmt.Errorf("invalid meta for service %s: %v", stringVal(v.Name), err))
+		b.err = multierror.Append(b.err, fmt.Errorf("invalid meta for service %s: %v", stringVal(v.Name), err))
 	} else {
 		meta = v.Meta
 	}
@@ -1630,13 +1646,13 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	}
 
 	if err := structs.ValidateWeights(serviceWeights); err != nil {
-		b.err = multierror.Append(fmt.Errorf("Invalid weight definition for service %s: %s", stringVal(v.Name), err))
+		b.err = multierror.Append(b.err, fmt.Errorf("Invalid weight definition for service %s: %s", stringVal(v.Name), err))
 	}
 
 	if (v.Port != nil || v.Address != nil) && (v.SocketPath != nil) {
-		b.err = multierror.Append(
+		b.err = multierror.Append(b.err,
 			fmt.Errorf("service %s cannot have both socket path %s and address/port",
-				stringVal(v.Name), stringVal(v.SocketPath)), b.err)
+				stringVal(v.Name), stringVal(v.SocketPath)))
 	}
 
 	return &structs.ServiceDefinition{
@@ -1874,7 +1890,7 @@ func (b *builder) durationValWithDefault(name string, v *string, defaultVal time
 	}
 	d, err := time.ParseDuration(*v)
 	if err != nil {
-		b.err = multierror.Append(fmt.Errorf("%s: invalid duration: %q: %s", name, *v, err))
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid duration: %q: %s", name, *v, err))
 	}
 	return d
 }
@@ -2362,8 +2378,9 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	// create a blank identity for use to validate the claim assertions.
 	blankID := validator.NewIdentity()
 	varMap := map[string]string{
-		"node":    "fake",
-		"segment": "fake",
+		"node":      "fake",
+		"segment":   "fake",
+		"partition": "fake",
 	}
 
 	// validate all the claim assertions

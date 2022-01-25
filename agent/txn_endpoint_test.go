@@ -495,7 +495,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 		if resp.Code != 409 {
 			t.Fatalf("expected 409, got %d", resp.Code)
 		}
-		if !bytes.Contains(resp.Body.Bytes(), []byte("failed session lookup")) {
+		if !bytes.Contains(resp.Body.Bytes(), []byte("invalid session")) {
 			t.Fatalf("bad: %s", resp.Body.String())
 		}
 	})

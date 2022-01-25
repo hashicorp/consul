@@ -1,0 +1,3 @@
+```release-note:improvement
+sdk: Add support for iptable rules that allow DNS lookup redirection to Consul DNS.
+```

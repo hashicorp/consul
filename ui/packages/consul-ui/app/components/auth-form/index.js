@@ -1,29 +1,23 @@
-import Component from '@ember/component';
-import { computed } from '@ember/object';
-import Ember from 'ember';
+import Component from '@glimmer/component';
+import { action } from '@ember/object';
 
 import chart from './chart.xstate';
+import tabs from './tabs.xstate';
 
-export default Component.extend({
-  tagName: '',
-  onsubmit: function(e) {},
-  onchange: function(e) {},
-  // Blink/Webkit based seem to leak password inputs
-  // this will only occur during acceptance testing so
-  // turn them into text inputs during acceptance testing
-  inputType: computed(function() {
-    return Ember.testing ? 'text' : 'password';
-  }),
-  init: function() {
-    this._super(...arguments);
+export default class AuthForm extends Component {
+  constructor() {
+    super(...arguments);
     this.chart = chart;
-  },
-  actions: {
-    hasValue: function(context, event, meta) {
-      return this.value !== '' && typeof this.value !== 'undefined';
-    },
-    focus: function() {
-      this.input.focus();
-    },
-  },
-});
+    this.tabsChart = tabs;
+  }
+
+  @action
+  hasValue(context, event, meta) {
+    return this.value !== '' && typeof this.value !== 'undefined';
+  }
+
+  @action
+  focus() {
+    this.input.focus();
+  }
+}

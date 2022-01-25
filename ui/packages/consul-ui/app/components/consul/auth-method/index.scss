@@ -27,7 +27,7 @@
       tbody {
         td {
           font-size: var(--typo-size-600);
-          color: var(--black);
+          color: rgb(var(--tone-gray-999));
         }
         tr {
           cursor: default;
@@ -74,7 +74,7 @@
   tbody {
     td {
       font-size: var(--typo-size-600);
-      color: var(--black);
+      color: rgb(var(--tone-gray-999));
     }
     tr {
       cursor: default;

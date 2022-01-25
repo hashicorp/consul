@@ -54,6 +54,11 @@ module.exports = {
       environment: config.environment,
       rootURL: config.environment === 'production' ? '{{.ContentPath}}' : config.rootURL,
       config: config,
+      env: function(key) {
+        if (process.env[key]) {
+          return process.env[key];
+        }
+      },
     };
     switch (type) {
       case 'head':

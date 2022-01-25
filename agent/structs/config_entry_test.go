@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestConfigEntries_ACLs(t *testing.T) {
@@ -23,7 +24,7 @@ func TestConfigEntries_ACLs(t *testing.T) {
 	type testcase = configEntryACLTestCase
 
 	newAuthz := func(t *testing.T, src string) acl.Authorizer {
-		policy, err := acl.NewPolicyFromSource("", 0, src, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(src, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1107,6 +1108,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			// TODO(rb): test SDS stuff here in both places (global/service)
 			name: "ingress-gateway: kitchen sink",
 			snake: `
 				kind = "ingress-gateway"
@@ -1118,6 +1120,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 
 				tls {
 					enabled = true
+					tls_min_version = "TLSv1_1"
+					tls_max_version = "TLSv1_2"
+					cipher_suites = [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
 				}
 
 				listeners = [
@@ -1181,6 +1189,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 				TLS {
 					Enabled = true
+					TLSMinVersion = "TLSv1_1"
+					TLSMaxVersion = "TLSv1_2"
+					CipherSuites = [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
 				}
 				Listeners = [
 					{
@@ -1242,7 +1256,13 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir": "zim",
 				},
 				TLS: GatewayTLSConfig{
-					Enabled: true,
+					Enabled:       true,
+					TLSMinVersion: types.TLSv1_1,
+					TLSMaxVersion: types.TLSv1_2,
+					CipherSuites: []types.TLSCipherSuite{
+						types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+						types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+					},
 				},
 				Listeners: []IngressListener{
 					{
@@ -1665,10 +1685,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "service-exports",
+			name: "exported-services",
 			snake: `
-				kind = "service-exports"
-				partition = "foo"
+				kind = "exported-services"
+				name = "foo"
 				meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -1698,8 +1718,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 				]
 			`,
 			camel: `
-				Kind = "service-exports"
-				Partition = "foo"
+				Kind = "exported-services"
+				Name = "foo"
 				Meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -1728,8 +1748,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 					}
 				]
 			`,
-			expect: &ServiceExportsConfigEntry{
-				Partition: "foo",
+			expect: &ExportedServicesConfigEntry{
+				Name: "foo",
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",
@@ -1757,7 +1777,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						},
 					},
 				},
-				EnterpriseMeta: NewEnterpriseMetaWithPartition("foo", ""),
 			},
 		},
 	} {

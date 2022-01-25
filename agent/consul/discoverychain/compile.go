@@ -18,7 +18,6 @@ type CompileRequest struct {
 	EvaluateInPartition   string
 	EvaluateInDatacenter  string
 	EvaluateInTrustDomain string
-	UseInDatacenter       string // where the results will be used from
 
 	// OverrideMeshGateway allows for the setting to be overridden for any
 	// resolver in the compiled chain.
@@ -62,7 +61,6 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		evaluateInPartition   = req.EvaluateInPartition
 		evaluateInDatacenter  = req.EvaluateInDatacenter
 		evaluateInTrustDomain = req.EvaluateInTrustDomain
-		useInDatacenter       = req.UseInDatacenter
 		entries               = req.Entries
 	)
 	if serviceName == "" {
@@ -80,9 +78,6 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 	if evaluateInTrustDomain == "" {
 		return nil, fmt.Errorf("evaluateInTrustDomain is required")
 	}
-	if useInDatacenter == "" {
-		return nil, fmt.Errorf("useInDatacenter is required")
-	}
 	if entries == nil {
 		return nil, fmt.Errorf("entries is required")
 	}
@@ -93,7 +88,6 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		evaluateInNamespace:    evaluateInNamespace,
 		evaluateInDatacenter:   evaluateInDatacenter,
 		evaluateInTrustDomain:  evaluateInTrustDomain,
-		useInDatacenter:        useInDatacenter,
 		overrideMeshGateway:    req.OverrideMeshGateway,
 		overrideProtocol:       req.OverrideProtocol,
 		overrideConnectTimeout: req.OverrideConnectTimeout,
@@ -130,7 +124,6 @@ type compiler struct {
 	evaluateInPartition    string
 	evaluateInDatacenter   string
 	evaluateInTrustDomain  string
-	useInDatacenter        string
 	overrideMeshGateway    structs.MeshGatewayConfig
 	overrideProtocol       string
 	overrideConnectTimeout time.Duration
@@ -192,7 +185,7 @@ type customizationMarkers struct {
 // the String() method on the type itself. It is this way to be more
 // consistent with other string ids within the discovery chain.
 func serviceIDString(sid structs.ServiceID) string {
-	return fmt.Sprintf("%s.%s", sid.ID, sid.NamespaceOrDefault())
+	return fmt.Sprintf("%s.%s.%s", sid.ID, sid.NamespaceOrDefault(), sid.PartitionOrDefault())
 }
 
 func (m *customizationMarkers) IsZero() bool {
@@ -220,10 +213,10 @@ func (c *compiler) recordServiceProtocol(sid structs.ServiceID) error {
 	if serviceDefault := c.entries.GetService(sid); serviceDefault != nil {
 		return c.recordProtocol(sid, serviceDefault.Protocol)
 	}
-	if c.entries.GlobalProxy != nil {
+	if proxyDefault := c.entries.GetProxyDefaults(sid.PartitionOrDefault()); proxyDefault != nil {
 		var cfg proxyConfig
 		// Ignore errors and fallback on defaults if it does happen.
-		_ = mapstructure.WeakDecode(c.entries.GlobalProxy.Config, &cfg)
+		_ = mapstructure.WeakDecode(proxyDefault.Config, &cfg)
 		if cfg.Protocol != "" {
 			return c.recordProtocol(sid, cfg.Protocol)
 		}
@@ -574,11 +567,12 @@ func (c *compiler) assembleChain() error {
 			dest = &structs.ServiceRouteDestination{
 				Service:   c.serviceName,
 				Namespace: router.NamespaceOrDefault(),
+				Partition: router.PartitionOrDefault(),
 			}
 		}
 		svc := defaultIfEmpty(dest.Service, c.serviceName)
 		destNamespace := defaultIfEmpty(dest.Namespace, router.NamespaceOrDefault())
-		destPartition := router.PartitionOrDefault()
+		destPartition := defaultIfEmpty(dest.Partition, router.PartitionOrDefault())
 
 		// Check to see if the destination is eligible for splitting.
 		var (
@@ -609,7 +603,7 @@ func (c *compiler) assembleChain() error {
 	}
 
 	defaultRoute := &structs.DiscoveryRoute{
-		Definition: newDefaultServiceRoute(router.Name, router.NamespaceOrDefault()),
+		Definition: newDefaultServiceRoute(router.Name, router.NamespaceOrDefault(), router.PartitionOrDefault()),
 		NextNode:   defaultDestinationNode.MapKey(),
 	}
 	routeNode.Routes = append(routeNode.Routes, defaultRoute)
@@ -620,7 +614,7 @@ func (c *compiler) assembleChain() error {
 	return nil
 }
 
-func newDefaultServiceRoute(serviceName string, namespace string) *structs.ServiceRoute {
+func newDefaultServiceRoute(serviceName, namespace, partition string) *structs.ServiceRoute {
 	return &structs.ServiceRoute{
 		Match: &structs.ServiceRouteMatch{
 			HTTP: &structs.ServiceRouteHTTPMatch{
@@ -630,6 +624,7 @@ func newDefaultServiceRoute(serviceName string, namespace string) *structs.Servi
 		Destination: &structs.ServiceRouteDestination{
 			Service:   serviceName,
 			Namespace: namespace,
+			Partition: partition,
 		},
 	}
 }
@@ -843,7 +838,7 @@ RESOLVE_AGAIN:
 			target,
 			redirect.Service,
 			redirect.ServiceSubset,
-			target.Partition,
+			redirect.Partition,
 			redirect.Namespace,
 			redirect.Datacenter,
 		)
@@ -936,10 +931,10 @@ RESOLVE_AGAIN:
 		}
 	}
 
-	// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
-	if target.Datacenter == c.useInDatacenter {
-		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
-	} else if target.External {
+	// TODO(partitions): Document this change in behavior. Discovery chain targets will now return a mesh gateway
+	// 					 mode as long as they are not external. Regardless of the datacenter/partition where
+	// 					 the chain will be used.
+	if target.External {
 		// Bypass mesh gateways if it is an external service.
 		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
 	} else {
@@ -947,9 +942,9 @@ RESOLVE_AGAIN:
 		if serviceDefault := c.entries.GetService(targetID); serviceDefault != nil {
 			target.MeshGateway = serviceDefault.MeshGateway
 		}
-
-		if c.entries.GlobalProxy != nil && target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
-			target.MeshGateway.Mode = c.entries.GlobalProxy.MeshGateway.Mode
+		proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
+		if proxyDefault != nil && target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+			target.MeshGateway.Mode = proxyDefault.MeshGateway.Mode
 		}
 
 		if c.overrideMeshGateway.Mode != structs.MeshGatewayModeDefault {

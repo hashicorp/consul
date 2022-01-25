@@ -46,6 +46,9 @@ ${[0].map(
 ${typeof location.search.ns !== 'undefined' ? `
             "Namespace": "${location.search.ns}",
 ` : ``}
+${typeof location.search.partition !== 'undefined' ? `
+            "Partition": "${fake.helpers.randomize([env('CONSUL_PARTITION_EXPORTER', location.search.partition), location.search.partition])}",
+` : ``}
             "Tags": [
                 ${
                     range(
@@ -82,7 +85,7 @@ ${ fake.random.number({min: 1, max: 10}) > 2 ? `
                     range(fake.random.number({min: 1, max: 1})).map(
                         function(item, i)
                         {
-                            return `"${fake.helpers.randomize(['vault', 'nomad', 'terraform', 'kubernetes', 'aws', ''])}"`;
+                            return `"${fake.helpers.randomize(['consul-api-gateway', 'vault', 'nomad', 'terraform', 'kubernetes', 'aws', ''])}"`;
                         }
                     )
                 }

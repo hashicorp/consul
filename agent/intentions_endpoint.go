@@ -46,7 +46,8 @@ func (s *HTTPHandlers) IntentionList(resp http.ResponseWriter, req *http.Request
 	return reply.Intentions, nil
 }
 
-// POST /v1/connect/intentions
+// IntentionCreate is used to create legacy intentions.
+// Deprecated: use IntentionPutExact.
 func (s *HTTPHandlers) IntentionCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in IntentionEndpoint
 
@@ -258,6 +259,20 @@ func (s *HTTPHandlers) IntentionCheck(resp http.ResponseWriter, req *http.Reques
 	return &reply, nil
 }
 
+// IntentionExact handles the endpoint for /v1/connect/intentions/exact
+func (s *HTTPHandlers) IntentionExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	switch req.Method {
+	case "GET":
+		return s.IntentionGetExact(resp, req)
+	case "PUT":
+		return s.IntentionPutExact(resp, req)
+	case "DELETE":
+		return s.IntentionDeleteExact(resp, req)
+	default:
+		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
+	}
+}
+
 // GET /v1/connect/intentions/exact
 func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var entMeta structs.EnterpriseMeta
@@ -334,123 +349,6 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 	return reply.Intentions[0], nil
 }
 
-// IntentionExact handles the endpoint for /v1/connect/intentions/exact
-func (s *HTTPHandlers) IntentionExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	switch req.Method {
-	case "GET":
-		return s.IntentionGetExact(resp, req)
-	case "PUT":
-		return s.IntentionPutExact(resp, req)
-	case "DELETE":
-		return s.IntentionDeleteExact(resp, req)
-	default:
-		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
-	}
-}
-
-// IntentionSpecific handles the endpoint for /v1/connect/intentions/:id
-func (s *HTTPHandlers) IntentionSpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	id := strings.TrimPrefix(req.URL.Path, "/v1/connect/intentions/")
-
-	switch req.Method {
-	case "GET":
-		return s.IntentionSpecificGet(id, resp, req)
-
-	case "PUT":
-		return s.IntentionSpecificUpdate(id, resp, req)
-
-	case "DELETE":
-		return s.IntentionSpecificDelete(id, resp, req)
-
-	default:
-		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
-	}
-}
-
-// GET /v1/connect/intentions/:id
-func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Method is tested in IntentionEndpoint
-
-	args := structs.IntentionQueryRequest{
-		IntentionID: id,
-	}
-	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-		return nil, nil
-	}
-
-	var reply structs.IndexedIntentions
-	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
-		// We have to check the string since the RPC sheds the error type
-		if err.Error() == consul.ErrIntentionNotFound.Error() {
-			resp.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(resp, err.Error())
-			return nil, nil
-		}
-
-		// Not ideal, but there are a number of error scenarios that are not
-		// user error (400). We look for a specific case of invalid UUID
-		// to detect a parameter error and return a 400 response. The error
-		// is not a constant type or message, so we have to use strings.Contains
-		if strings.Contains(err.Error(), "UUID") {
-			return nil, BadRequestError{Reason: err.Error()}
-		}
-
-		return nil, err
-	}
-
-	// This shouldn't happen since the called API documents it shouldn't,
-	// but we check since the alternative if it happens is a panic.
-	if len(reply.Intentions) == 0 {
-		resp.WriteHeader(http.StatusNotFound)
-		return nil, nil
-	}
-
-	return reply.Intentions[0], nil
-}
-
-// PUT /v1/connect/intentions/:id
-func (s *HTTPHandlers) IntentionSpecificUpdate(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Method is tested in IntentionEndpoint
-
-	var entMeta structs.EnterpriseMeta
-	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
-		return nil, err
-	}
-	if entMeta.PartitionOrDefault() != structs.PartitionOrDefault("") {
-		return nil, BadRequestError{Reason: "Cannot use a partition with this endpoint"}
-	}
-
-	args := structs.IntentionRequest{
-		Op: structs.IntentionOpUpdate,
-	}
-	s.parseDC(req, &args.Datacenter)
-	s.parseToken(req, &args.Token)
-	if err := decodeBody(req.Body, &args.Intention); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
-	}
-
-	if args.Intention.DestinationPartition != "" && args.Intention.DestinationPartition != "default" {
-		return nil, BadRequestError{Reason: "Cannot specify a destination partition with this endpoint"}
-	}
-	if args.Intention.SourcePartition != "" && args.Intention.SourcePartition != "default" {
-		return nil, BadRequestError{Reason: "Cannot specify a source partition with this endpoint"}
-	}
-
-	args.Intention.FillPartitionAndNamespace(&entMeta, false)
-
-	// Use the ID from the URL
-	args.Intention.ID = id
-
-	var reply string
-	if err := s.agent.RPC("Intention.Apply", &args, &reply); err != nil {
-		return nil, err
-	}
-
-	// Update uses the same create response
-	return intentionCreateResponse{reply}, nil
-
-}
-
 // PUT /v1/connect/intentions/exact
 func (s *HTTPHandlers) IntentionPutExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var entMeta structs.EnterpriseMeta
@@ -487,25 +385,6 @@ func (s *HTTPHandlers) IntentionPutExact(resp http.ResponseWriter, req *http.Req
 
 	var ignored string
 	if err := s.agent.RPC("Intention.Apply", &args, &ignored); err != nil {
-		return nil, err
-	}
-
-	return true, nil
-}
-
-// DELETE /v1/connect/intentions/:id
-func (s *HTTPHandlers) IntentionSpecificDelete(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Method is tested in IntentionEndpoint
-
-	args := structs.IntentionRequest{
-		Op:        structs.IntentionOpDelete,
-		Intention: &structs.Intention{ID: id},
-	}
-	s.parseDC(req, &args.Datacenter)
-	s.parseToken(req, &args.Token)
-
-	var reply string
-	if err := s.agent.RPC("Intention.Apply", &args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -602,4 +481,126 @@ func parseIntentionStringComponent(input string, entMeta *structs.EnterpriseMeta
 	default:
 		return "", "", "", fmt.Errorf("input can contain at most two '/'")
 	}
+}
+
+// IntentionSpecific handles the endpoint for /v1/connect/intentions/:id.
+// Deprecated: use IntentionExact.
+func (s *HTTPHandlers) IntentionSpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	id := strings.TrimPrefix(req.URL.Path, "/v1/connect/intentions/")
+
+	switch req.Method {
+	case "GET":
+		return s.IntentionSpecificGet(id, resp, req)
+
+	case "PUT":
+		return s.IntentionSpecificUpdate(id, resp, req)
+
+	case "DELETE":
+		return s.IntentionSpecificDelete(id, resp, req)
+
+	default:
+		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
+	}
+}
+
+// Deprecated: use IntentionGetExact.
+func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Method is tested in IntentionEndpoint
+
+	args := structs.IntentionQueryRequest{
+		IntentionID: id,
+	}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var reply structs.IndexedIntentions
+	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
+		// We have to check the string since the RPC sheds the error type
+		if err.Error() == consul.ErrIntentionNotFound.Error() {
+			resp.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(resp, err.Error())
+			return nil, nil
+		}
+
+		// Not ideal, but there are a number of error scenarios that are not
+		// user error (400). We look for a specific case of invalid UUID
+		// to detect a parameter error and return a 400 response. The error
+		// is not a constant type or message, so we have to use strings.Contains
+		if strings.Contains(err.Error(), "UUID") {
+			return nil, BadRequestError{Reason: err.Error()}
+		}
+
+		return nil, err
+	}
+
+	// This shouldn't happen since the called API documents it shouldn't,
+	// but we check since the alternative if it happens is a panic.
+	if len(reply.Intentions) == 0 {
+		resp.WriteHeader(http.StatusNotFound)
+		return nil, nil
+	}
+
+	return reply.Intentions[0], nil
+}
+
+// Deprecated: use IntentionPutExact.
+func (s *HTTPHandlers) IntentionSpecificUpdate(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Method is tested in IntentionEndpoint
+
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+	if entMeta.PartitionOrDefault() != structs.PartitionOrDefault("") {
+		return nil, BadRequestError{Reason: "Cannot use a partition with this endpoint"}
+	}
+
+	args := structs.IntentionRequest{
+		Op: structs.IntentionOpUpdate,
+	}
+	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
+	if err := decodeBody(req.Body, &args.Intention); err != nil {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+	}
+
+	if args.Intention.DestinationPartition != "" && args.Intention.DestinationPartition != "default" {
+		return nil, BadRequestError{Reason: "Cannot specify a destination partition with this endpoint"}
+	}
+	if args.Intention.SourcePartition != "" && args.Intention.SourcePartition != "default" {
+		return nil, BadRequestError{Reason: "Cannot specify a source partition with this endpoint"}
+	}
+
+	args.Intention.FillPartitionAndNamespace(&entMeta, false)
+
+	// Use the ID from the URL
+	args.Intention.ID = id
+
+	var reply string
+	if err := s.agent.RPC("Intention.Apply", &args, &reply); err != nil {
+		return nil, err
+	}
+
+	// Update uses the same create response
+	return intentionCreateResponse{reply}, nil
+}
+
+// Deprecated: use IntentionDeleteExact.
+func (s *HTTPHandlers) IntentionSpecificDelete(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Method is tested in IntentionEndpoint
+
+	args := structs.IntentionRequest{
+		Op:        structs.IntentionOpDelete,
+		Intention: &structs.Intention{ID: id},
+	}
+	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
+
+	var reply string
+	if err := s.agent.RPC("Intention.Apply", &args, &reply); err != nil {
+		return nil, err
+	}
+
+	return true, nil
 }

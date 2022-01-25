@@ -144,7 +144,20 @@ type delegate interface {
 	// This is limited to segments and partitions that the node is a member of.
 	LANMembers(f consul.LANMemberFilter) ([]serf.Member, error)
 
-	// GetLANCoordinate returns the coordinate of the node in the LAN gossip pool.
+	// GetLANCoordinate returns the coordinate of the node in the LAN gossip
+	// pool.
+	//
+	// - Clients return a single coordinate for the single gossip pool they are
+	//   in (default, segment, or partition).
+	//
+	// - Servers return one coordinate for their canonical gossip pool (i.e.
+	//   default partition/segment) and one per segment they are also ancillary
+	//   members of.
+	//
+	// NOTE: servers do not emit coordinates for partitioned gossip pools they
+	// are ancillary members of.
+	//
+	// NOTE: This assumes coordinates are enabled, so check that before calling.
 	GetLANCoordinate() (lib.CoordinateSet, error)
 
 	// JoinLAN is used to have Consul join the inner-DC pool The target address
@@ -195,9 +208,6 @@ type Agent struct {
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
 	delegate delegate
-
-	// aclMasterAuthorizer is an object that helps manage local ACL enforcement.
-	aclMasterAuthorizer acl.Authorizer
 
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
@@ -667,7 +677,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	if a.tlsConfigurator.Cert() != nil {
-		m := consul.AgentTLSCertExpirationMonitor(a.tlsConfigurator, a.logger, a.config.Datacenter)
+		m := tlsCertExpirationMonitor(a.tlsConfigurator, a.logger)
 		go m.Monitor(&lib.StopChannelContext{StopCh: a.shutdownCh})
 	}
 
@@ -1140,8 +1150,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.RaftTrailingLogs != 0 {
 		cfg.RaftConfig.TrailingLogs = uint64(runtimeCfg.RaftTrailingLogs)
 	}
-	if runtimeCfg.ACLMasterToken != "" {
-		cfg.ACLMasterToken = runtimeCfg.ACLMasterToken
+	if runtimeCfg.ACLInitialManagementToken != "" {
+		cfg.ACLInitialManagementToken = runtimeCfg.ACLInitialManagementToken
 	}
 	cfg.ACLTokenReplication = runtimeCfg.ACLTokenReplication
 	cfg.ACLsEnabled = runtimeCfg.ACLsEnabled
@@ -1250,6 +1260,11 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	}
 
 	cfg.ConfigEntryBootstrap = runtimeCfg.ConfigEntryBootstrap
+	cfg.RaftBoltDBConfig = runtimeCfg.RaftBoltDBConfig
+
+	// Duplicate our own serf config once to make sure that the duplication
+	// function does not drift.
+	cfg.SerfLANConfig = consul.CloneSerfLANConfig(cfg.SerfLANConfig)
 
 	enterpriseConsulConfig(cfg, runtimeCfg)
 	return cfg, nil
@@ -1260,12 +1275,14 @@ func segmentConfig(config *config.RuntimeConfig) ([]consul.NetworkSegment, error
 	var segments []consul.NetworkSegment
 
 	for _, s := range config.Segments {
+		// TODO: use consul.CloneSerfLANConfig(config.SerfLANConfig) here?
 		serfConf := consul.DefaultConfig().SerfLANConfig
 
 		serfConf.MemberlistConfig.BindAddr = s.Bind.IP.String()
 		serfConf.MemberlistConfig.BindPort = s.Bind.Port
 		serfConf.MemberlistConfig.AdvertiseAddr = s.Advertise.IP.String()
 		serfConf.MemberlistConfig.AdvertisePort = s.Advertise.Port
+		serfConf.MemberlistConfig.CIDRsAllowed = config.SerfAllowedCIDRsLAN
 
 		if config.ReconnectTimeoutLAN != 0 {
 			serfConf.ReconnectTimeout = config.ReconnectTimeoutLAN
@@ -1534,15 +1551,31 @@ func (a *Agent) RefreshPrimaryGatewayFallbackAddresses(addrs []string) error {
 }
 
 // ForceLeave is used to remove a failed node from the cluster
-func (a *Agent) ForceLeave(node string, prune bool, entMeta *structs.EnterpriseMeta) (err error) {
+func (a *Agent) ForceLeave(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
 	a.logger.Info("Force leaving node", "node", node)
-	// TODO(partitions): merge IsMember into the RemoveFailedNode call.
-	if ok := a.IsMember(node); !ok {
-		return fmt.Errorf("agent: No node found with name '%s'", node)
-	}
-	err = a.delegate.RemoveFailedNode(node, prune, entMeta)
+
+	err := a.delegate.RemoveFailedNode(node, prune, entMeta)
 	if err != nil {
 		a.logger.Warn("Failed to remove node",
+			"node", node,
+			"error", err,
+		)
+	}
+	return err
+}
+
+// ForceLeaveWAN is used to remove a failed node from the WAN cluster
+func (a *Agent) ForceLeaveWAN(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+	a.logger.Info("(WAN) Force leaving node", "node", node)
+
+	srv, ok := a.delegate.(*consul.Server)
+	if !ok {
+		return fmt.Errorf("Must be a server to force-leave a node from the WAN cluster")
+	}
+
+	err := srv.RemoveFailedNodeWAN(node, prune, entMeta)
+	if err != nil {
+		a.logger.Warn("(WAN) Failed to remove node",
 			"node", node,
 			"error", err,
 		)
@@ -1561,24 +1594,23 @@ func (a *Agent) LANMembersInAgentPartition() []serf.Member {
 	return a.delegate.LANMembersInAgentPartition()
 }
 
+// LANMembers returns the LAN members for one of:
+//
+// - the requested partition
+// - the requested segment
+// - all segments
+//
+// This is limited to segments and partitions that the node is a member of.
+func (a *Agent) LANMembers(f consul.LANMemberFilter) ([]serf.Member, error) {
+	return a.delegate.LANMembers(f)
+}
+
 // WANMembers is used to retrieve the WAN members
 func (a *Agent) WANMembers() []serf.Member {
 	if srv, ok := a.delegate.(*consul.Server); ok {
 		return srv.WANMembers()
 	}
 	return nil
-}
-
-// IsMember is used to check if a node with the given nodeName
-// is a member
-func (a *Agent) IsMember(nodeName string) bool {
-	for _, m := range a.LANMembersInAgentPartition() {
-		if m.Name == nodeName {
-			return true
-		}
-	}
-
-	return false
 }
 
 // StartSync is called once Services and Checks are registered.
@@ -1771,10 +1803,14 @@ type persistedService struct {
 	LocallyRegisteredAsSidecar bool `json:",omitempty"`
 }
 
+func (a *Agent) makeServiceFilePath(svcID structs.ServiceID) string {
+	return filepath.Join(a.config.DataDir, servicesDir, svcID.StringHashSHA256())
+}
+
 // persistService saves a service definition to a JSON file in the data dir
 func (a *Agent) persistService(service *structs.NodeService, source configSource) error {
 	svcID := service.CompoundServiceID()
-	svcPath := filepath.Join(a.config.DataDir, servicesDir, svcID.StringHash())
+	svcPath := a.makeServiceFilePath(svcID)
 
 	wrapped := persistedService{
 		Token:                      a.State.ServiceToken(service.CompoundServiceID()),
@@ -1792,7 +1828,7 @@ func (a *Agent) persistService(service *structs.NodeService, source configSource
 
 // purgeService removes a persisted service definition file from the data dir
 func (a *Agent) purgeService(serviceID structs.ServiceID) error {
-	svcPath := filepath.Join(a.config.DataDir, servicesDir, serviceID.StringHash())
+	svcPath := a.makeServiceFilePath(serviceID)
 	if _, err := os.Stat(svcPath); err == nil {
 		return os.Remove(svcPath)
 	}
@@ -1802,7 +1838,7 @@ func (a *Agent) purgeService(serviceID structs.ServiceID) error {
 // persistCheck saves a check definition to the local agent's state directory
 func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *structs.CheckType, source configSource) error {
 	cid := check.CompoundCheckID()
-	checkPath := filepath.Join(a.config.DataDir, checksDir, cid.StringHash())
+	checkPath := filepath.Join(a.config.DataDir, checksDir, cid.StringHashSHA256())
 
 	// Create the persisted check
 	wrapped := persistedCheck{
@@ -1822,7 +1858,7 @@ func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *structs.CheckT
 
 // purgeCheck removes a persisted check definition file from the data dir
 func (a *Agent) purgeCheck(checkID structs.CheckID) error {
-	checkPath := filepath.Join(a.config.DataDir, checksDir, checkID.StringHash())
+	checkPath := filepath.Join(a.config.DataDir, checksDir, checkID.StringHashSHA256())
 	if _, err := os.Stat(checkPath); err == nil {
 		return os.Remove(checkPath)
 	}
@@ -1836,6 +1872,10 @@ type persistedServiceConfig struct {
 	ServiceID string
 	Defaults  *structs.ServiceConfigResponse
 	structs.EnterpriseMeta
+}
+
+func (a *Agent) makeServiceConfigFilePath(serviceID structs.ServiceID) string {
+	return filepath.Join(a.config.DataDir, serviceConfigDir, serviceID.StringHashSHA256())
 }
 
 func (a *Agent) persistServiceConfig(serviceID structs.ServiceID, defaults *structs.ServiceConfigResponse) error {
@@ -1852,7 +1892,7 @@ func (a *Agent) persistServiceConfig(serviceID structs.ServiceID, defaults *stru
 	}
 
 	dir := filepath.Join(a.config.DataDir, serviceConfigDir)
-	configPath := filepath.Join(dir, serviceID.StringHash())
+	configPath := a.makeServiceConfigFilePath(serviceID)
 
 	// Create the config dir if it doesn't exist
 	if err := os.MkdirAll(dir, 0700); err != nil {
@@ -1863,7 +1903,7 @@ func (a *Agent) persistServiceConfig(serviceID structs.ServiceID, defaults *stru
 }
 
 func (a *Agent) purgeServiceConfig(serviceID structs.ServiceID) error {
-	configPath := filepath.Join(a.config.DataDir, serviceConfigDir, serviceID.StringHash())
+	configPath := a.makeServiceConfigFilePath(serviceID)
 	if _, err := os.Stat(configPath); err == nil {
 		return os.Remove(configPath)
 	}
@@ -1898,7 +1938,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 		file := filepath.Join(configDir, fi.Name())
 		buf, err := ioutil.ReadFile(file)
 		if err != nil {
-			return nil, fmt.Errorf("failed reading service config file %q: %s", file, err)
+			return nil, fmt.Errorf("failed reading service config file %q: %w", file, err)
 		}
 
 		// Try decoding the service config definition
@@ -1910,7 +1950,36 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 			)
 			continue
 		}
-		out[structs.NewServiceID(p.ServiceID, &p.EnterpriseMeta)] = p.Defaults
+
+		serviceID := structs.NewServiceID(p.ServiceID, &p.EnterpriseMeta)
+
+		// Rename files that used the old md5 hash to the new sha256 name; only needed when upgrading from 1.10 and before.
+		newPath := a.makeServiceConfigFilePath(serviceID)
+		if file != newPath {
+			if err := os.Rename(file, newPath); err != nil {
+				a.logger.Error("Failed renaming service config file",
+					"file", file,
+					"targetFile", newPath,
+					"error", err,
+				)
+			}
+		}
+
+		if !structs.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
+			a.logger.Info("Purging service config file in wrong partition",
+				"file", file,
+				"partition", p.PartitionOrDefault(),
+			)
+			if err := os.Remove(file); err != nil {
+				a.logger.Error("Failed purging service config file",
+					"file", file,
+					"error", err,
+				)
+			}
+			continue
+		}
+
+		out[serviceID] = p.Defaults
 	}
 
 	return out, nil
@@ -2730,9 +2799,11 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				)
 				chkType.Interval = checks.MinInterval
 			}
-
-			tlsClientConfig := a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)
-			tlsClientConfig.NextProtos = []string{http2.NextProtoTLS}
+			var tlsClientConfig *tls.Config
+			if chkType.H2PingUseTLS {
+				tlsClientConfig = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)
+				tlsClientConfig.NextProtos = []string{http2.NextProtoTLS}
+			}
 
 			h2ping := &checks.CheckH2PING{
 				CheckID:         cid,
@@ -2977,7 +3048,7 @@ func (a *Agent) persistCheckState(check *checks.CheckTTL, status, output string)
 	}
 
 	// Write the state to the file
-	file := filepath.Join(dir, check.CheckID.StringHash())
+	file := filepath.Join(dir, check.CheckID.StringHashSHA256())
 
 	// Create temp file in same dir, to make more likely atomic
 	tempFile := file + ".tmp"
@@ -2997,13 +3068,30 @@ func (a *Agent) persistCheckState(check *checks.CheckTTL, status, output string)
 func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 	cid := check.CompoundCheckID()
 	// Try to read the persisted state for this check
-	file := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHash())
+	file := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHashSHA256())
 	buf, err := ioutil.ReadFile(file)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil
+			// try the md5 based name. This can be removed once we no longer support upgrades from versions that use MD5 hashing
+			oldFile := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHashMD5())
+			buf, err = ioutil.ReadFile(oldFile)
+			if err != nil {
+				if os.IsNotExist(err) {
+					return nil
+				} else {
+					return fmt.Errorf("failed reading check state %q: %w", file, err)
+				}
+			}
+			if err := os.Rename(oldFile, file); err != nil {
+				a.logger.Error("Failed renaming check state",
+					"file", oldFile,
+					"targetFile", file,
+					"error", err,
+				)
+			}
+		} else {
+			return fmt.Errorf("failed reading file %q: %w", file, err)
 		}
-		return fmt.Errorf("failed reading file %q: %s", file, err)
 	}
 
 	// Decode the state data
@@ -3027,7 +3115,7 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 
 // purgeCheckState is used to purge the state of a check from the data dir
 func (a *Agent) purgeCheckState(checkID structs.CheckID) error {
-	file := filepath.Join(a.config.DataDir, checkStateDir, checkID.StringHash())
+	file := filepath.Join(a.config.DataDir, checkStateDir, checkID.StringHashSHA256())
 	err := os.Remove(file)
 	if os.IsNotExist(err) {
 		return nil
@@ -3192,7 +3280,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("Failed reading services dir %q: %s", svcDir, err)
+		return fmt.Errorf("Failed reading services dir %q: %w", svcDir, err)
 	}
 	for _, fi := range files {
 		// Skip all dirs
@@ -3210,7 +3298,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		file := filepath.Join(svcDir, fi.Name())
 		buf, err := ioutil.ReadFile(file)
 		if err != nil {
-			return fmt.Errorf("failed reading service file %q: %s", file, err)
+			return fmt.Errorf("failed reading service file %q: %w", file, err)
 		}
 
 		// Try decoding the service definition
@@ -3226,6 +3314,32 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			}
 		}
 
+		// Rename files that used the old md5 hash to the new sha256 name; only needed when upgrading from 1.10 and before.
+		newPath := a.makeServiceFilePath(p.Service.CompoundServiceID())
+		if file != newPath {
+			if err := os.Rename(file, newPath); err != nil {
+				a.logger.Error("Failed renaming service file",
+					"file", file,
+					"targetFile", newPath,
+					"error", err,
+				)
+			}
+		}
+
+		if !structs.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
+			a.logger.Info("Purging service file in wrong partition",
+				"file", file,
+				"partition", p.Service.EnterpriseMeta.PartitionOrDefault(),
+			)
+			if err := os.Remove(file); err != nil {
+				a.logger.Error("Failed purging service file",
+					"file", file,
+					"error", err,
+				)
+			}
+			continue
+		}
+
 		// Restore LocallyRegisteredAsSidecar, see persistedService.LocallyRegisteredAsSidecar
 		p.Service.LocallyRegisteredAsSidecar = p.LocallyRegisteredAsSidecar
 
@@ -3238,10 +3352,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				"source", p.Source,
 			)
 			if err := a.purgeService(serviceID); err != nil {
-				return fmt.Errorf("failed purging service %q: %s", serviceID, err)
+				return fmt.Errorf("failed purging service %q: %w", serviceID, err)
 			}
 			if err := a.purgeServiceConfig(serviceID); err != nil {
-				return fmt.Errorf("failed purging service config %q: %s", serviceID, err)
+				return fmt.Errorf("failed purging service config %q: %w", serviceID, err)
 			}
 			continue
 		}
@@ -3254,10 +3368,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				"file", file,
 			)
 			if err := a.purgeService(serviceID); err != nil {
-				return fmt.Errorf("failed purging service %q: %s", serviceID.String(), err)
+				return fmt.Errorf("failed purging service %q: %w", serviceID.String(), err)
 			}
 			if err := a.purgeServiceConfig(serviceID); err != nil {
-				return fmt.Errorf("failed purging service config %q: %s", serviceID.String(), err)
+				return fmt.Errorf("failed purging service config %q: %w", serviceID.String(), err)
 			}
 		} else {
 			a.logger.Debug("restored service definition from file",
@@ -3278,7 +3392,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				checkStateSnapshot:   snap,
 			})
 			if err != nil {
-				return fmt.Errorf("failed adding service %q: %s", serviceID, err)
+				return fmt.Errorf("failed adding service %q: %w", serviceID, err)
 			}
 		}
 	}
@@ -3287,7 +3401,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		if a.State.Service(serviceID) == nil {
 			// This can be cleaned up now.
 			if err := a.purgeServiceConfig(serviceID); err != nil {
-				return fmt.Errorf("failed purging service config %q: %s", serviceID, err)
+				return fmt.Errorf("failed purging service config %q: %w", serviceID, err)
 			}
 		}
 	}
@@ -3330,7 +3444,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("Failed reading checks dir %q: %s", checkDir, err)
+		return fmt.Errorf("Failed reading checks dir %q: %w", checkDir, err)
 	}
 	for _, fi := range files {
 		// Ignore dirs - we only care about the check definition files
@@ -3342,7 +3456,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 		file := filepath.Join(checkDir, fi.Name())
 		buf, err := ioutil.ReadFile(file)
 		if err != nil {
-			return fmt.Errorf("failed reading check file %q: %s", file, err)
+			return fmt.Errorf("failed reading check file %q: %w", file, err)
 		}
 
 		// Decode the check
@@ -3356,6 +3470,29 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 		}
 		checkID := p.Check.CompoundCheckID()
 
+		// Rename files that used the old md5 hash to the new sha256 name; only needed when upgrading from 1.10 and before.
+		newPath := filepath.Join(a.config.DataDir, checksDir, checkID.StringHashSHA256())
+		if file != newPath {
+			if err := os.Rename(file, newPath); err != nil {
+				a.logger.Error("Failed renaming check file",
+					"file", file,
+					"targetFile", newPath,
+					"error", err,
+				)
+			}
+		}
+
+		if !structs.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Check.PartitionOrDefault()) {
+			a.logger.Info("Purging check file in wrong partition",
+				"file", file,
+				"partition", p.Check.PartitionOrDefault(),
+			)
+			if err := os.Remove(file); err != nil {
+				return fmt.Errorf("failed purging check %q: %w", checkID, err)
+			}
+			continue
+		}
+
 		source, ok := ConfigSourceFromName(p.Source)
 		if !ok {
 			a.logger.Warn("check exists with invalid source, purging",
@@ -3363,7 +3500,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 				"source", p.Source,
 			)
 			if err := a.purgeCheck(checkID); err != nil {
-				return fmt.Errorf("failed purging check %q: %s", checkID, err)
+				return fmt.Errorf("failed purging check %q: %w", checkID, err)
 			}
 			continue
 		}
@@ -3376,7 +3513,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 				"file", file,
 			)
 			if err := a.purgeCheck(checkID); err != nil {
-				return fmt.Errorf("Failed purging check %q: %s", checkID, err)
+				return fmt.Errorf("Failed purging check %q: %w", checkID, err)
 			}
 		} else {
 			// Default check to critical to avoid placing potentially unhealthy
@@ -3396,7 +3533,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 					"error", err,
 				)
 				if err := a.purgeCheck(checkID); err != nil {
-					return fmt.Errorf("Failed purging check %q: %s", checkID, err)
+					return fmt.Errorf("Failed purging check %q: %w", checkID, err)
 				}
 			}
 			a.logger.Debug("restored health check from file",
@@ -3786,6 +3923,8 @@ func (a *Agent) registerCache() {
 
 	a.cache.RegisterType(cachetype.FederationStateListMeshGatewaysName,
 		&cachetype.FederationStateListMeshGateways{RPC: a})
+
+	a.registerEntCache()
 }
 
 // LocalState returns the agent's local state

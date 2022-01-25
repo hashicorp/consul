@@ -28,6 +28,9 @@ type Namespace struct {
 	// This is nullable so that we can omit if empty when encoding in JSON
 	DeletedAt *time.Time `json:"DeletedAt,omitempty" alias:"deleted_at"`
 
+	// Partition which contains the Namespace.
+	Partition string `json:"Partition,omitempty"`
+
 	// CreateIndex is the Raft index at which the Namespace was created
 	CreateIndex uint64 `json:"CreateIndex,omitempty"`
 
@@ -63,11 +66,14 @@ func (n *Namespaces) Create(ns *Namespace, q *WriteOptions) (*Namespace, *WriteM
 	r := n.c.newRequest("PUT", "/v1/namespace")
 	r.setWriteOptions(q)
 	r.obj = ns
-	rtt, resp, err := requireOK(n.c.doRequest(r))
+	rtt, resp, err := n.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out Namespace
@@ -86,11 +92,14 @@ func (n *Namespaces) Update(ns *Namespace, q *WriteOptions) (*Namespace, *WriteM
 	r := n.c.newRequest("PUT", "/v1/namespace/"+ns.Name)
 	r.setWriteOptions(q)
 	r.obj = ns
-	rtt, resp, err := requireOK(n.c.doRequest(r))
+	rtt, resp, err := n.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out Namespace
@@ -105,11 +114,15 @@ func (n *Namespaces) Read(name string, q *QueryOptions) (*Namespace, *QueryMeta,
 	var out Namespace
 	r := n.c.newRequest("GET", "/v1/namespace/"+name)
 	r.setQueryOptions(q)
-	found, rtt, resp, err := requireNotFoundOrOK(n.c.doRequest(r))
+	rtt, resp, err := n.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	found, resp, err := requireNotFoundOrOK(resp)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -128,11 +141,14 @@ func (n *Namespaces) Read(name string, q *QueryOptions) (*Namespace, *QueryMeta,
 func (n *Namespaces) Delete(name string, q *WriteOptions) (*WriteMeta, error) {
 	r := n.c.newRequest("DELETE", "/v1/namespace/"+name)
 	r.setWriteOptions(q)
-	rtt, resp, err := requireOK(n.c.doRequest(r))
+	rtt, resp, err := n.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	wm := &WriteMeta{RequestTime: rtt}
 	return wm, nil
@@ -142,11 +158,14 @@ func (n *Namespaces) List(q *QueryOptions) ([]*Namespace, *QueryMeta, error) {
 	var out []*Namespace
 	r := n.c.newRequest("GET", "/v1/namespaces")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(n.c.doRequest(r))
+	rtt, resp, err := n.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

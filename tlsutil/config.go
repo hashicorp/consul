@@ -904,10 +904,10 @@ type TLSConn interface {
 // presented is signed by the Agent TLS CA, and has a DNSName that matches the
 // local ServerSNI name.
 //
-// Note this check is only performed if VerifyServerHostname is enabled, otherwise
-// it does no authorization.
+// Note this check is only performed if VerifyServerHostname and VerifyIncomingRPC
+// are both enabled, otherwise it does no authorization.
 func (c *Configurator) AuthorizeServerConn(dc string, conn TLSConn) error {
-	if !c.VerifyServerHostname() {
+	if !c.VerifyIncomingRPC() || !c.VerifyServerHostname() {
 		return nil
 	}
 
@@ -936,6 +936,9 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn TLSConn) error {
 			return nil
 		}
 		errs = multierror.Append(errs, err)
+	}
+	if errs == nil {
+		errs = fmt.Errorf("no verified chains")
 	}
 	return fmt.Errorf("AuthorizeServerConn failed certificate validation for certificate with a SAN.DNSName of %v: %w", expected, errs)
 

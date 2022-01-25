@@ -2,133 +2,147 @@
   class="topology-metrics-popover {{@type}}"
   ...attributes
 >
-
-{{#if (eq @type 'deny')}}
-  <InformedAction
-    class="dangerous"
-    {{did-insert (set this 'popover')}}
-  >
-    <:header>
-      <h3>
-        {{t "components.consul.topology-metrics.popover.deny.header"}}
-      </h3>
-    </:header>
-    <:body>
-      <p>
-        {{#if @item.Intention.HasExact}}
-          {{t "components.consul.topology-metrics.popover.deny.body.isExact"}}
-        {{else}}
-          {{t "components.consul.topology-metrics.popover.deny.body.notExact"}}
-        {{/if}}
-      </p>
-    </:body>
-    <:actions as |Actions|>
-      <Actions.Action class="action">
-        <button
-          {{on "click" @oncreate}}
-          data-test-confirm
-          type="button"
-        >
-          {{#if @item.Intention.HasExact}}
-            {{t "components.consul.topology-metrics.popover.deny.action.isExact"}}
-          {{else}}
-            {{t "components.consul.topology-metrics.popover.deny.action.notExact"}}
-          {{/if}}
-        </button>
-      </Actions.Action>
-      <Actions.Action>
-        <button
-          {{on 'click' (fn (optional this.popoverController.hide))}}
-          class="cancel"
-          type="button"
-        >
-          Cancel
-        </button>
-      </Actions.Action>
-    </:actions>
-  </InformedAction>
-{{else if (eq @type 'not-defined')}}
-  <InformedAction
-    class="warning documentation"
-    {{did-insert (set this 'popover')}}
-  >
-    <:header>
-      <h3>
-        {{t "components.consul.topology-metrics.popover.not-defined.header"}}
-      </h3>
-    </:header>
-    <:body>
-      <p>
-        {{t "components.consul.topology-metrics.popover.not-defined.body" downstream=@item.Name upstream=@service.Name }}
-      </p>
-    </:body>
-    <:actions as |Actions|>
-      <Actions.Action class="action">
-        <a href="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstreams" rel="noopener noreferrer" target="_blank">
-          {{t "components.consul.topology-metrics.popover.not-defined.action"}}
-        </a>
-      </Actions.Action>
-      <Actions.Action>
-        <button
-          {{on 'click' (fn (optional this.popoverController.hide))}}
-          class="cancel"
-          type="button"
-        >
-          Close
-        </button>
-      </Actions.Action>
-    </:actions>
-  </InformedAction>
-{{else}}
-  <InformedAction
-    class="info"
-    {{did-insert (set this 'popover')}}
-  >
-    <:header>
-      <h3>
-        {{t "components.consul.topology-metrics.popover.l7.header"}}
-      </h3>
-    </:header>
-    <:body>
-      <p>
-        {{t "components.consul.topology-metrics.popover.l7.body"}}
-      </p>
-    </:body>
-    <:actions as |Actions|>
-      <Actions.Action class="action">
-        <a href={{href-to 'dc.services.show.intentions.edit' (concat @item.Intention.ID)}}>
-          {{t "components.consul.topology-metrics.popover.l7.action"}}
-        </a>
-      </Actions.Action>
-      <Actions.Action>
-        <button
-          {{on 'click' (fn (optional this.popoverController.hide))}}
-          class="cancel"
-          type="button"
-        >
-          Close
-        </button>
-      </Actions.Action>
-    </:actions>
-  </InformedAction>
-{{/if}}
-  <button
-    {{with-overlay
-      this.popover
-      options=(hash
-        theme="square-tail"
-        placement="bottom-start"
-      )
-      returns=(set this 'popoverController')
-    }}
-    {{on 'click' (fn (optional this.popoverController.show))}}
-    {{disabled (cannot 'update intention' item=item.Intention)}}
-    type="button"
-    style={{{concat 'top:' @position.y 'px;left:' @position.x 'px;'}}}
-    aria-label={{if (eq @type 'deny') 'Add intention' 'View intention'}}
-    data-test-action
-  >
-  </button>
+{{#let
+  (concat 'top:' @position.y 'px;left:' @position.x 'px;')
+  (if (eq @type 'deny') 'Add intention' 'View intention')
+as |style label|}}
+  {{#if (not @disabled)}}
+    {{#if (eq @type 'deny')}}
+      <InformedAction
+        class="dangerous"
+        {{did-insert (set this 'popover')}}
+      >
+        <:header>
+          <h3>
+            {{t "components.consul.topology-metrics.popover.deny.header"}}
+          </h3>
+        </:header>
+        <:body>
+          <p>
+            {{#if @item.Intention.HasExact}}
+              {{t "components.consul.topology-metrics.popover.deny.body.isExact"}}
+            {{else}}
+              {{t "components.consul.topology-metrics.popover.deny.body.notExact"}}
+            {{/if}}
+          </p>
+        </:body>
+        <:actions as |Actions|>
+          <Actions.Action class="action">
+            <button
+              {{on "click" @oncreate}}
+              data-test-confirm
+              type="button"
+            >
+              {{#if @item.Intention.HasExact}}
+                {{t "components.consul.topology-metrics.popover.deny.action.isExact"}}
+              {{else}}
+                {{t "components.consul.topology-metrics.popover.deny.action.notExact"}}
+              {{/if}}
+            </button>
+          </Actions.Action>
+          <Actions.Action>
+            <button
+              {{on 'click' (fn (optional this.popoverController.hide))}}
+              class="cancel"
+              type="button"
+            >
+              Cancel
+            </button>
+          </Actions.Action>
+        </:actions>
+      </InformedAction>
+    {{else if (eq @type 'not-defined')}}
+      <InformedAction
+        class="warning documentation"
+        {{did-insert (set this 'popover')}}
+      >
+        <:header>
+          <h3>
+            {{t "components.consul.topology-metrics.popover.not-defined.header"}}
+          </h3>
+        </:header>
+        <:body>
+          <p>
+            {{t "components.consul.topology-metrics.popover.not-defined.body" downstream=@item.Name upstream=@service.Name }}
+          </p>
+        </:body>
+        <:actions as |Actions|>
+          <Actions.Action class="action">
+            <a href="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstreams" rel="noopener noreferrer" target="_blank">
+              {{t "components.consul.topology-metrics.popover.not-defined.action"}}
+            </a>
+          </Actions.Action>
+          <Actions.Action>
+            <button
+              {{on 'click' (fn (optional this.popoverController.hide))}}
+              class="cancel"
+              type="button"
+            >
+              Close
+            </button>
+          </Actions.Action>
+        </:actions>
+      </InformedAction>
+    {{else}}
+      <InformedAction
+        class="info"
+        {{did-insert (set this 'popover')}}
+      >
+        <:header>
+          <h3>
+            {{t "components.consul.topology-metrics.popover.l7.header"}}
+          </h3>
+        </:header>
+        <:body>
+          <p>
+            {{t "components.consul.topology-metrics.popover.l7.body"}}
+          </p>
+        </:body>
+        <:actions as |Actions|>
+          <Actions.Action class="action">
+            <a href={{href-to 'dc.services.show.intentions.edit' (concat @item.Intention.ID)}}>
+              {{t "components.consul.topology-metrics.popover.l7.action"}}
+            </a>
+          </Actions.Action>
+          <Actions.Action>
+            <button
+              {{on 'click' (fn (optional this.popoverController.hide))}}
+              class="cancel"
+              type="button"
+            >
+              Close
+            </button>
+          </Actions.Action>
+        </:actions>
+      </InformedAction>
+    {{/if}}
+    {{! TODO: Once we can conditionally add a modifier these two buttons }}
+    {{! should be replaced with a conditional modifer instead }}
+    <button
+      {{with-overlay
+        this.popover
+        options=(hash
+          theme="square-tail"
+          placement="bottom-start"
+        )
+        returns=(set this 'popoverController')
+      }}
+      {{on 'click' (fn (optional this.popoverController.show))}}
+      type="button"
+      style={{{style}}}
+      aria-label={{label}}
+      data-test-action
+    >
+    </button>
+  {{else}}
+    <button
+      {{disabled true}}
+      type="button"
+      style={{{style}}}
+      aria-label={{label}}
+      data-test-action
+    >
+    </button>
+  {{/if}}
+{{/let}}
 </div>
-
-

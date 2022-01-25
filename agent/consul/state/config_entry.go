@@ -242,6 +242,41 @@ func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry)
 	return err == nil, err
 }
 
+// DeleteConfigEntryCAS performs a check-and-set deletion of a config entry
+// with the given raft index. If the index is not specified, or is not equal
+// to the entry's current ModifyIndex then the call is a noop, otherwise the
+// normal deletion is performed.
+func (s *Store) DeleteConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry) (bool, error) {
+	tx := s.db.WriteTxn(idx)
+	defer tx.Abort()
+
+	existing, err := tx.First(tableConfigEntries, indexID, newConfigEntryQuery(conf))
+	if err != nil {
+		return false, fmt.Errorf("failed config entry lookup: %s", err)
+	}
+
+	if existing == nil {
+		return false, nil
+	}
+
+	if existing.(structs.ConfigEntry).GetRaftIndex().ModifyIndex != cidx {
+		return false, nil
+	}
+
+	if err := deleteConfigEntryTxn(
+		tx,
+		idx,
+		conf.GetKind(),
+		conf.GetName(),
+		conf.GetEnterpriseMeta(),
+	); err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	return err == nil, err
+}
+
 func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *structs.EnterpriseMeta) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
@@ -360,7 +395,7 @@ func validateProposedConfigEntryInGraph(
 		}
 	case structs.ServiceIntentions:
 	case structs.MeshConfig:
-	case structs.ServiceExports:
+	case structs.ExportedServices:
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
@@ -394,7 +429,6 @@ func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, serv
 		EvaluateInNamespace:  source.NamespaceOrDefault(),
 		EvaluateInPartition:  source.PartitionOrDefault(),
 		EvaluateInDatacenter: dc,
-		UseInDatacenter:      dc,
 	}
 	idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, source.Name, entMeta, req)
 	if err != nil {
@@ -452,7 +486,6 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 			EvaluateInNamespace:  sn.NamespaceOrDefault(),
 			EvaluateInPartition:  sn.PartitionOrDefault(),
 			EvaluateInDatacenter: dc,
-			UseInDatacenter:      dc,
 		}
 		idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, req)
 		if err != nil {
@@ -723,7 +756,6 @@ func testCompileDiscoveryChain(
 		EvaluateInPartition:   entMeta.PartitionOrDefault(),
 		EvaluateInDatacenter:  "dc1",
 		EvaluateInTrustDomain: "b6fc9da3-03d4-4b5a-9134-c045e9b20152.consul",
-		UseInDatacenter:       "dc1",
 		Entries:               speculativeEntries,
 	}
 	chain, err := discoverychain.Compile(req)
@@ -768,7 +800,7 @@ func (s *Store) serviceDiscoveryChainTxn(
 	}
 
 	// Build TrustDomain based on the ClusterID stored.
-	signingID := connect.SpiffeIDSigningForCluster(config)
+	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
 	if signingID == nil {
 		// If CA is bootstrapped at all then this should never happen but be
 		// defensive.
@@ -848,23 +880,20 @@ func readDiscoveryChainConfigEntriesTxn(
 
 	sid := structs.NewServiceID(serviceName, entMeta)
 
-	// Grab the proxy defaults if they exist.
-	idx, proxy, err := getProxyConfigEntryTxn(tx, ws, structs.ProxyConfigGlobal, overrides, entMeta)
-	if err != nil {
-		return 0, nil, err
-	} else if proxy != nil {
-		res.GlobalProxy = proxy
-	}
-
-	// At every step we'll need service defaults.
+	// At every step we'll need service and proxy defaults.
 	todoDefaults[sid] = struct{}{}
 
+	var maxIdx uint64
+
 	// first fetch the router, of which we only collect 1 per chain eval
-	_, router, err := getRouterConfigEntryTxn(tx, ws, serviceName, overrides, entMeta)
+	idx, router, err := getRouterConfigEntryTxn(tx, ws, serviceName, overrides, entMeta)
 	if err != nil {
 		return 0, nil, err
 	} else if router != nil {
 		res.Routers[sid] = router
+	}
+	if idx > maxIdx {
+		maxIdx = idx
 	}
 
 	if router != nil {
@@ -890,9 +919,12 @@ func readDiscoveryChainConfigEntriesTxn(
 		// Yes, even for splitters.
 		todoDefaults[splitID] = struct{}{}
 
-		_, splitter, err := getSplitterConfigEntryTxn(tx, ws, splitID.ID, overrides, &splitID.EnterpriseMeta)
+		idx, splitter, err := getSplitterConfigEntryTxn(tx, ws, splitID.ID, overrides, &splitID.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
 		}
 
 		if splitter == nil {
@@ -927,9 +959,12 @@ func readDiscoveryChainConfigEntriesTxn(
 		// And resolvers, too.
 		todoDefaults[resolverID] = struct{}{}
 
-		_, resolver, err := getResolverConfigEntryTxn(tx, ws, resolverID.ID, overrides, &resolverID.EnterpriseMeta)
+		idx, resolver, err := getResolverConfigEntryTxn(tx, ws, resolverID.ID, overrides, &resolverID.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
 		}
 
 		if resolver == nil {
@@ -955,16 +990,31 @@ func readDiscoveryChainConfigEntriesTxn(
 			continue // already fetched
 		}
 
-		_, entry, err := getServiceConfigEntryTxn(tx, ws, svcID.ID, overrides, &svcID.EnterpriseMeta)
+		if _, ok := res.ProxyDefaults[svcID.PartitionOrDefault()]; !ok {
+			idx, proxy, err := getProxyConfigEntryTxn(tx, ws, structs.ProxyConfigGlobal, overrides, &svcID.EnterpriseMeta)
+			if err != nil {
+				return 0, nil, err
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+			if proxy != nil {
+				res.ProxyDefaults[proxy.PartitionOrDefault()] = proxy
+			}
+		}
+
+		idx, entry, err := getServiceConfigEntryTxn(tx, ws, svcID.ID, overrides, &svcID.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
 		}
 
 		if entry == nil {
 			res.Services[svcID] = nil
 			continue
 		}
-
 		res.Services[svcID] = entry
 	}
 
@@ -990,7 +1040,7 @@ func readDiscoveryChainConfigEntriesTxn(
 		}
 	}
 
-	return idx, res, nil
+	return maxIdx, res, nil
 }
 
 // anyKey returns any key from the provided map if any exist. Useful for using
@@ -1208,7 +1258,6 @@ func protocolForService(
 		EvaluateInDatacenter: "dc1",
 		// Use a dummy trust domain since that won't affect the protocol here.
 		EvaluateInTrustDomain: "b6fc9da3-03d4-4b5a-9134-c045e9b20152.consul",
-		UseInDatacenter:       "dc1",
 		Entries:               entries,
 	}
 	chain, err := discoverychain.Compile(req)

@@ -7,6 +7,11 @@ export default {
         target: 'idle',
       },
     ],
+    ERROR: [
+      {
+        target: 'error',
+      },
+    ],
   },
   states: {
     idle: {
@@ -23,15 +28,7 @@ export default {
         ],
       },
     },
-    loading: {
-      on: {
-        ERROR: [
-          {
-            target: 'error',
-          },
-        ],
-      },
-    },
+    loading: {},
     error: {
       exit: ['clearError'],
       on: {

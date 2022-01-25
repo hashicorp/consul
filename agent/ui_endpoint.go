@@ -631,9 +631,10 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	//
 	// In enterprise it requires this _in all namespaces_ too.
 	//
-	// TODO(partitions,acls): need to revisit this
+	// In enterprise it requires this _in all namespaces and partitions_ too.
 	var authzContext acl.AuthorizerContext
-	entMeta.WithWildcardNamespace().FillAuthzContext(&authzContext)
+	wildcardEntMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
+	wildcardEntMeta.FillAuthzContext(&authzContext)
 
 	if authz.NodeReadAll(&authzContext) != acl.Allow || authz.ServiceReadAll(&authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied

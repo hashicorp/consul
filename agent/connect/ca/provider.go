@@ -84,38 +84,12 @@ type Provider interface {
 	// in the Provider struct so it won't change after being returned.
 	State() (map[string]string, error)
 
-	// GenerateRoot causes the creation of a new root certificate for this provider.
-	// This can also be a no-op if a root certificate already exists for the given
-	// config. If IsPrimary is false, calling this method is an error.
-	GenerateRoot() error
-
-	// ActiveRoot returns the currently active root CA for this
-	// provider. This should be a parent of the certificate returned by
-	// ActiveIntermediate()
-	ActiveRoot() (string, error)
-
-	// GenerateIntermediateCSR generates a CSR for an intermediate CA
-	// certificate, to be signed by the root of another datacenter. If IsPrimary was
-	// set to true with Configure(), calling this is an error.
-	GenerateIntermediateCSR() (string, error)
-
-	// SetIntermediate sets the provider to use the given intermediate certificate
-	// as well as the root it was signed by. This completes the initialization for
-	// a provider where IsPrimary was set to false in Configure().
-	SetIntermediate(intermediatePEM, rootPEM string) error
-
 	// ActiveIntermediate returns the current signing cert used by this provider
 	// for generating SPIFFE leaf certs. Note that this must not change except
 	// when Consul requests the change via GenerateIntermediate. Changing the
 	// signing cert will break Consul's assumptions about which validation paths
 	// are active.
 	ActiveIntermediate() (string, error)
-
-	// GenerateIntermediate returns a new intermediate signing cert and sets it to
-	// the active intermediate. If multiple intermediates are needed to complete
-	// the chain from the signing certificate back to the active root, they should
-	// all by bundled here.
-	GenerateIntermediate() (string, error)
 
 	// Sign signs a leaf certificate used by Connect proxies from a CSR. The PEM
 	// returned should include only the leaf certificate as all Intermediates
@@ -125,6 +99,42 @@ type Provider interface {
 	// operation due to upstream rate limiting so that clients can intelligently
 	// backoff.
 	Sign(*x509.CertificateRequest) (string, error)
+
+	// Cleanup performs any necessary cleanup that should happen when the provider
+	// is shut down permanently, such as removing a temporary PKI backend in Vault
+	// created for an intermediate CA. Whether the CA provider type is changing
+	// and the other providers raw configuration is passed along so that the provider
+	// instance can determine which cleanup steps to perform. For example, when the
+	// Vault provider is in use and there is no type change occuring, the Vault
+	// provider should check if the intermediate PKI path is changing. If it is not
+	// changing then the provider should not remove that path from Vault.
+	Cleanup(providerTypeChange bool, otherConfig map[string]interface{}) error
+
+	// TODO: when CAManager has separate types for primary/secondary invert this
+	// relationship so that PrimaryProvider/SecondaryProvider embed Provider
+
+	PrimaryProvider
+	SecondaryProvider
+}
+
+type PrimaryProvider interface {
+	// GenerateRoot causes the creation of a new root certificate for this provider.
+	// This can also be a no-op if a root certificate already exists for the given
+	// config. If IsPrimary is false, calling this method is an error.
+	GenerateRoot() error
+
+	// ActiveRoot returns the currently active root CA for this
+	// provider. This should be a parent of the certificate returned by
+	// ActiveIntermediate()
+	//
+	// TODO: currently called from secondaries, but shouldn't be so is on PrimaryProvider
+	ActiveRoot() (string, error)
+
+	// GenerateIntermediate returns a new intermediate signing cert and sets it to
+	// the active intermediate. If multiple intermediates are needed to complete
+	// the chain from the signing certificate back to the active root, they should
+	// all by bundled here.
+	GenerateIntermediate() (string, error)
 
 	// SignIntermediate will validate the CSR to ensure the trust domain in the
 	// URI SAN matches the local one and that basic constraints for a CA
@@ -157,16 +167,18 @@ type Provider interface {
 	// provider is the current CA as the upgrade may cause interruptions to
 	// connectivity during the rollout.
 	SupportsCrossSigning() (bool, error)
+}
 
-	// Cleanup performs any necessary cleanup that should happen when the provider
-	// is shut down permanently, such as removing a temporary PKI backend in Vault
-	// created for an intermediate CA. Whether the CA provider type is changing
-	// and the other providers raw configuration is passed along so that the provider
-	// instance can determine which cleanup steps to perform. For example, when the
-	// Vault provider is in use and there is no type change occuring, the Vault
-	// provider should check if the intermediate PKI path is changing. If it is not
-	// changing then the provider should not remove that path from Vault.
-	Cleanup(providerTypeChange bool, otherConfig map[string]interface{}) error
+type SecondaryProvider interface {
+	// GenerateIntermediateCSR generates a CSR for an intermediate CA
+	// certificate, to be signed by the root of another datacenter. If IsPrimary was
+	// set to true with Configure(), calling this is an error.
+	GenerateIntermediateCSR() (string, error)
+
+	// SetIntermediate sets the provider to use the given intermediate certificate
+	// as well as the root it was signed by. This completes the initialization for
+	// a provider where IsPrimary was set to false in Configure().
+	SetIntermediate(intermediatePEM, rootPEM string) error
 }
 
 // NeedsStop is an optional interface that allows a CA to define a function

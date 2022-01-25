@@ -1,11 +1,37 @@
-<IvyCodemirror @value={{value}} @name={{name}} @class={{class}} @options={{options}} @valueUpdated={{action onkeyup}} />
-<pre><code>{{yield}}</code></pre>
-{{#if (and (not readonly) (not syntax))}}
-  <PowerSelect
-      @onChange={{action "change"}}
-      @selected={{mode}}
-      @searchEnabled={{false}}
-      @options={{modes}} as |mode|>
-    {{mode.name}}
-  </PowerSelect>
-{{/if}}
+<div class="toolbar-container">
+  <div class="toolbar">
+    <label class="title">
+      {{#if (has-block "label")}}
+        {{yield to="label"}}
+      {{/if}}
+    </label>
+    <div class="tools">
+      {{#if (has-block "tools")}}
+        {{yield to="tools"}}
+      {{else}}
+        {{#if (and (not readonly) (not syntax))}}
+          <PowerSelect
+              @onChange={{action "change"}}
+              @selected={{mode}}
+              @searchEnabled={{false}}
+              @options={{modes}} as |mode|>
+            {{mode.name}}
+          </PowerSelect>
+          <div class="toolbar-separator"></div>
+          <CopyButton
+            @value={{value}}
+            @name="value"
+          />
+        {{/if}}
+      {{/if}}
+    </div>
+  </div>
+</div>
+<IvyCodemirror
+  @value={{value}}
+  @name={{name}}
+  @class={{class}}
+  @options={{options}}
+  @valueUpdated={{action onkeyup}}
+/>
+<pre><code>{{#if (has-block "content")}}{{yield to="content"}}{{else}}{{value}}{{/if}}</code></pre>

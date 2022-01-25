@@ -1,4 +1,5 @@
 @import './app';
+@import './base/icons/debug';
 @import 'prism-coldark-dark';
 
 // temporary component debugging setup
@@ -9,6 +10,91 @@
 @import 'consul-ui/components/icon-definition/debug';
 @import 'consul-ui/components/inline-alert/debug';
 @import 'consul-ui/components/definition-table/debug';
+
+%debug-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+%debug-grid li {
+  margin-right: 20px;
+  margin-bottom: 20px;
+}
+%debug-grid figure {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: 140px;
+}
+%debug-grid figcaption {
+  @extend %p3;
+  text-align: center;
+}
+[id^='docfy-demo-preview-color'] ul,
+[id^='docfy-demo-preview-typography'] ul,
+[id^='docfy-demo-preview-icons'] ul {
+  @extend %debug-grid;
+}
+
+[id^='docfy-demo-preview-typography'] figure,
+[id^='docfy-demo-preview-icons'] figure {
+  border: var(--decor-border-100);
+  border-color: rgb(var(--tone-gray-300));
+  height: 80px;
+}
+[id^='docfy-demo-preview-icons'] figure::before {
+  position: relative;
+  top: 20px;
+}
+
+[id^='docfy-demo-preview-color'] figure {
+  height: 40px;
+}
+#docfy-demo-preview-color0 {
+  @extend %theme-light;
+  background-color: rgb(var(--white));
+}
+#docfy-demo-preview-color1 {
+  background-color: rgb(var(--black));
+  @extend %theme-dark;
+}
+
+[id^='docfy-demo-preview-typography'] {
+  .debug-h000 {
+    @extend %h000;
+  }
+  .debug-h100 {
+    @extend %h100;
+  }
+  .debug-h200 {
+    @extend %h200;
+  }
+  .debug-h300 {
+    @extend %h300;
+  }
+  .debug-h400 {
+    @extend %h400;
+  }
+  .debug-h500 {
+    @extend %h500;
+  }
+  .debug-h600 {
+    @extend %h600;
+  }
+  .debug-p {
+    @extend %p;
+  }
+  .debug-p1 {
+    @extend %p1;
+  }
+  .debug-p2 {
+    @extend %p2;
+  }
+  .debug-p3 {
+    @extend %p3;
+  }
+}
 
 html.is-debug body > .brand-loader {
   display: none !important;
@@ -49,6 +135,9 @@ html.with-route-announcer .route-title {
   display: none;
 }
 .docs {
+  & {
+    background-color: rgb(var(--tone-gray-000));
+  }
   .tabular-collection,
   .list-collection {
     height: 300px !important;
@@ -78,7 +167,6 @@ html.with-route-announcer .route-title {
   }
   main {
     & {
-      background-color: white;
       margin-bottom: 2rem;
     }
     > ol,
@@ -159,6 +247,9 @@ html.with-route-announcer .route-title {
       }
       figcaption code {
         @extend %inline-code;
+      }
+      pre code {
+        @extend %block-code;
       }
       figure > [type='text'] {
         border: 1px solid rgb(var(--tone-gray-999));

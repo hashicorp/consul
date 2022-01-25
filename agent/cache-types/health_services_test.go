@@ -11,7 +11,6 @@ import (
 )
 
 func TestHealthServices(t *testing.T) {
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 	typ := &HealthServices{RPC: rpc}
@@ -22,10 +21,10 @@ func TestHealthServices(t *testing.T) {
 	rpc.On("RPC", "Health.ServiceNodes", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			req := args.Get(1).(*structs.ServiceSpecificRequest)
-			require.Equal(uint64(24), req.QueryOptions.MinQueryIndex)
-			require.Equal(1*time.Second, req.QueryOptions.MaxQueryTime)
-			require.Equal("web", req.ServiceName)
-			require.True(req.AllowStale)
+			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
+			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
+			require.Equal(t, "web", req.ServiceName)
+			require.True(t, req.AllowStale)
 
 			reply := args.Get(2).(*structs.IndexedCheckServiceNodes)
 			reply.Nodes = []structs.CheckServiceNode{
@@ -44,15 +43,14 @@ func TestHealthServices(t *testing.T) {
 		ServiceName: "web",
 		ServiceTags: []string{"tag1", "tag2"},
 	})
-	require.NoError(err)
-	require.Equal(cache.FetchResult{
+	require.NoError(t, err)
+	require.Equal(t, cache.FetchResult{
 		Value: resp,
 		Index: 48,
 	}, resultA)
 }
 
 func TestHealthServices_badReqType(t *testing.T) {
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 	typ := &HealthServices{RPC: rpc}
@@ -60,7 +58,7 @@ func TestHealthServices_badReqType(t *testing.T) {
 	// Fetch
 	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
-	require.Error(err)
-	require.Contains(err.Error(), "wrong type")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "wrong type")
 
 }

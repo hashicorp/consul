@@ -1,13 +1,22 @@
 package members
 
 import (
+	"encoding/csv"
 	"fmt"
+	"math/rand"
+	"sort"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent"
+	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 )
+
+// TODO(partitions): split these tests
 
 func TestMembersCommand_noTabs(t *testing.T) {
 	t.Parallel()
@@ -164,5 +173,94 @@ func TestMembersCommand_verticalBar(t *testing.T) {
 	// Check for nodeName presense because it should not be parsed by columnize
 	if !strings.Contains(ui.OutputWriter.String(), nodeName) {
 		t.Fatalf("bad: %#v", ui.OutputWriter.String())
+	}
+}
+
+func decodeOutput(t *testing.T, data string) []map[string]string {
+	r := csv.NewReader(strings.NewReader(data))
+	r.Comma = ' '
+	r.TrimLeadingSpace = true
+
+	lines, err := r.ReadAll()
+	require.NoError(t, err)
+	if len(lines) < 2 {
+		return nil
+	}
+
+	var out []map[string]string
+	for i := 1; i < len(lines); i++ {
+		m := zip(t, lines[0], lines[i])
+		out = append(out, m)
+	}
+	return out
+}
+
+func zip(t *testing.T, k, v []string) map[string]string {
+	require.Equal(t, len(k), len(v))
+
+	m := make(map[string]string)
+	for i := 0; i < len(k); i++ {
+		m[k[i]] = v[i]
+	}
+	return m
+}
+
+func TestSortByMemberNamePartitionAndSegment(t *testing.T) {
+	lib.SeedMathRand()
+
+	// For the test data we'll give them names that would sort them backwards
+	// if we only sorted by name.
+	newData := func() []*consulapi.AgentMember {
+		// NOTE: This should be sorted for assertions.
+		return []*consulapi.AgentMember{
+			// servers
+			{Name: "p-betty", Tags: map[string]string{"role": "consul"}},
+			{Name: "q-bob", Tags: map[string]string{"role": "consul"}},
+			{Name: "r-bonnie", Tags: map[string]string{"role": "consul"}},
+			// default clients
+			{Name: "m-betty", Tags: map[string]string{}},
+			{Name: "n-bob", Tags: map[string]string{}},
+			{Name: "o-bonnie", Tags: map[string]string{}},
+			// segment 1 clients
+			{Name: "j-betty", Tags: map[string]string{"segment": "alpha"}},
+			{Name: "k-bob", Tags: map[string]string{"segment": "alpha"}},
+			{Name: "l-bonnie", Tags: map[string]string{"segment": "alpha"}},
+			// segment 2 clients
+			{Name: "g-betty", Tags: map[string]string{"segment": "beta"}},
+			{Name: "h-bob", Tags: map[string]string{"segment": "beta"}},
+			{Name: "i-bonnie", Tags: map[string]string{"segment": "beta"}},
+			// partition 1 clients
+			{Name: "d-betty", Tags: map[string]string{"ap": "part1"}},
+			{Name: "e-bob", Tags: map[string]string{"ap": "part1"}},
+			{Name: "f-bonnie", Tags: map[string]string{"ap": "part1"}},
+			// partition 2 clients
+			{Name: "a-betty", Tags: map[string]string{"ap": "part2"}},
+			{Name: "b-bob", Tags: map[string]string{"ap": "part2"}},
+			{Name: "c-bonnie", Tags: map[string]string{"ap": "part2"}},
+		}
+	}
+
+	stringify := func(data []*consulapi.AgentMember) []string {
+		var out []string
+		for _, m := range data {
+			out = append(out, fmt.Sprintf("<%s, %s, %s, %s>",
+				m.Tags["role"],
+				m.Tags["ap"],
+				m.Tags["segment"],
+				m.Name))
+		}
+		return out
+	}
+
+	expect := newData()
+	for i := 0; i < 10; i++ {
+		data := newData()
+		rand.Shuffle(len(data), func(i, j int) {
+			data[i], data[j] = data[j], data[i]
+		})
+
+		sort.Sort(ByMemberNamePartitionAndSegment(data))
+
+		require.Equal(t, stringify(expect), stringify(data), "iteration #%d", i)
 	}
 }

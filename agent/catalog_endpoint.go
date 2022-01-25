@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
@@ -362,7 +361,11 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 	}
 
 	// Pull out the service name
-	args.ServiceName = strings.TrimPrefix(req.URL.Path, pathPrefix)
+	var err error
+	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, pathPrefix)
+	if err != nil {
+		return nil, err
+	}
 	if args.ServiceName == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing service name")
@@ -435,7 +438,11 @@ func (s *HTTPHandlers) CatalogNodeServices(resp http.ResponseWriter, req *http.R
 	}
 
 	// Pull out the node name
-	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/catalog/node/")
+	var err error
+	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/catalog/node/")
+	if err != nil {
+		return nil, err
+	}
 	if args.Node == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing node name")
@@ -498,7 +505,11 @@ func (s *HTTPHandlers) CatalogNodeServiceList(resp http.ResponseWriter, req *htt
 	}
 
 	// Pull out the node name
-	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/catalog/node-services/")
+	var err error
+	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/catalog/node-services/")
+	if err != nil {
+		return nil, err
+	}
 	if args.Node == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing node name")
@@ -547,7 +558,11 @@ func (s *HTTPHandlers) CatalogGatewayServices(resp http.ResponseWriter, req *htt
 	}
 
 	// Pull out the gateway's service name
-	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/catalog/gateway-services/")
+	var err error
+	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, "/v1/catalog/gateway-services/")
+	if err != nil {
+		return nil, err
+	}
 	if args.ServiceName == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing gateway name")

@@ -34,6 +34,8 @@ func testGRPCStreamingWorking(t *testing.T, config string) {
 }
 
 func TestGRPCWithTLSConfigs(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	t.Parallel()
 	testCases := []struct {
 		name   string

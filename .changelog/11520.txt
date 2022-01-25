@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Revert to depending on the backend, 'post-user-action', to report
+permissions errors rather than using UI capabilities 'pre-user-action'
+```

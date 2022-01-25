@@ -27,7 +27,7 @@ const (
 	TerminatingGateway string = "terminating-gateway"
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
-	ServiceExports     string = "service-exports"
+	ExportedServices   string = "exported-services"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -45,7 +45,7 @@ var AllConfigEntryKinds = []string{
 	TerminatingGateway,
 	ServiceIntentions,
 	MeshConfig,
-	ServiceExports,
+	ExportedServices,
 }
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
@@ -445,6 +445,7 @@ const (
 	ConfigEntryUpsert    ConfigEntryOp = "upsert"
 	ConfigEntryUpsertCAS ConfigEntryOp = "upsert-cas"
 	ConfigEntryDelete    ConfigEntryOp = "delete"
+	ConfigEntryDeleteCAS ConfigEntryOp = "delete-cas"
 )
 
 // ConfigEntryRequest is used when creating/updating/deleting a ConfigEntry.
@@ -532,8 +533,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ServiceIntentionsConfigEntry{Name: name}, nil
 	case MeshConfig:
 		return &MeshConfigEntry{}, nil
-	case ServiceExports:
-		return &ServiceExportsConfigEntry{Partition: name}, nil
+	case ExportedServices:
+		return &ExportedServicesConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -1120,4 +1121,8 @@ func validateConfigEntryMeta(meta map[string]string) error {
 		}
 	}
 	return err
+}
+
+type ConfigEntryDeleteResponse struct {
+	Deleted bool
 }

@@ -38,12 +38,14 @@ func (d *DiscoveryChain) Get(name string, opts *DiscoveryChainOptions, q *QueryO
 	if method == "POST" {
 		r.obj = opts
 	}
-
-	rtt, resp, err := requireOK(d.c.doRequest(r))
+	rtt, resp, err := d.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

@@ -43,6 +43,13 @@ type GatewayTLSConfig struct {
 
 	// SDS allows configuring TLS certificate from an SDS service.
 	SDS *GatewayTLSSDSConfig `json:",omitempty"`
+
+	TLSMinVersion string `json:",omitempty" alias:"tls_min_version"`
+	TLSMaxVersion string `json:",omitempty" alias:"tls_max_version"`
+
+	// Define a subset of cipher suites to restrict
+	// Only applicable to connections negotiated via TLS 1.2 or earlier
+	CipherSuites []string `json:",omitempty" alias:"cipher_suites"`
 }
 
 type GatewayServiceTLSConfig struct {
@@ -103,11 +110,13 @@ type IngressService struct {
 	// using a "tcp" listener.
 	Hosts []string
 
-	// Referencing other partitions is not supported.
-
 	// Namespace is the namespace where the service is located.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition where the service is located.
+	// Partitioning is a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
 
 	// TLS allows specifying some TLS configuration per listener.
 	TLS *GatewayServiceTLSConfig `json:",omitempty"`

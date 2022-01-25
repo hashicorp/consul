@@ -32,26 +32,30 @@ The proxy must accept TLS connections on some port to accept inbound connections
 
 Call the [`/v1/agent/connect/ca/leaf/`] API endpoint to obtain the client certificate, e.g.:
 
-```shell-session
+<CodeBlockConfig language="shell-session">
 
-curl http://<host-ip>:8500/v1/agent/connect/ca/leaf/<service-name>
-
+```shell
+$ curl http://<host-ip>:8500/v1/agent/connect/ca/leaf/<service-name>
 ```
+
+</CodeBlockConfig>
 
 The client certificate from the inbound connection must be validated against the Connect CA root certificates. Call the [`/v1/agent/connect/ca/roots`] endpoint to obtain the root certificates from the Connect CA, e.g.:
 
-```shell-session
+<CodeBlockConfig language="shell-session">
 
-curl http://<host-ip>:8500/v1/agent/connect/ca/roots
-
+```shell
+$ curl http://<host-ip>:8500/v1/agent/connect/ca/roots
 ```
+
+</CodeBlockConfig>
 
 ### Authorizing the connection
 
 After validating the client certificate from the caller, the proxy can authorize the entire connection (L4) or each request (L7). Depending upon the [protocol] of the proxied service, authorization is performed either on a per-connection (L4) or per-request (L7) basis. Authentication is based on "service identity" (TLS), and is implemented at the
 transport layer.
 
--> **Note:** Some features, such as (local) rate limiting or max connections, are expected to be proxy-level configurations enforced separately when authorization calls are made. Proxies can enforce the configurations based on information about request rates and other states that should already be availabe.
+-> **Note:** Some features, such as (local) rate limiting or max connections, are expected to be proxy-level configurations enforced separately when authorization calls are made. Proxies can enforce the configurations based on information about request rates and other states that should already be available.
 
 The proxy can authorize the connection by either calling the [`/v1/agent/connect/authorize`](/api/agent/connect) API endpoint or by querying the [intention match API](/api/connect/intentions#list-matching-intentions) endpoint.
 
@@ -123,7 +127,7 @@ If you are only implementing L4 support in your proxy, set the
 fetching the discovery chain so that L7 features, such as HTTP routing rules, are
 not returned.
 
-For each [target](/docs/internals/discovery-chain#targets) in the resulting
+For each [target](/docs/connect/l7-traffic/discovery-chain#targets) in the resulting
 discovery chain, a list of healthy, Connect-capable endpoints may be fetched
 from the [`/v1/health/connect/:service_id`] API endpoint as described in the [Service
 Discovery](#service-discovery) section.
@@ -169,16 +173,41 @@ to read configurations for that service. If you use the Go [`api` package], then
 the environment variables will be read and the client configured for you
 automatically.
 
+Alternatively, you may also use the flags `-token` or `-token-file` to provide the Consul ACL token.
+
+
+<CodeTabs heading="Providing a Consul ACL Token" tabs={[ "Envoy", "Proxy" ]}>
+<CodeBlockConfig language="shell-session">
+
+```shell
+$ consul connect envoy -sidecar-for "web" -token-file=/etc/consul.d/consul.token
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig >
+
+```shell
+$ consul connect proxy -sidecar-for "web" -token-file=/etc/consul.d/consul.token
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+
 If TLS is enabled on Consul, you will also need to add the following environment variables _prior_ to starting the proxy:
 
 - [`CONSUL_CACERT`](/commands#consul_cacert)
 - [`CONSUL_CLIENT_CERT`](/commands#consul_client_cert)
 - [`CONSUL_CLIENT_KEY`](/commands#consul_client_key)
 
+The `CONSUL_CACERT`, `CONSUL_CLIENT_CERT` and `CONSUL_CLIENT_KEY` can also be provided as CLI flags. Refer to the [`consul connect proxy` documentation](/commands/connect/proxy) for details.
+
 The proxy service ID comes from the user. See [`consul connect envoy`](/commands/connect/envoy#examples) for an example. You can use the `-proxy-id` flag to specify the ID of the proxy service you have already registered with the local agent.
 
 Alternatively, you can start the service using the `-sidecar-for=<service>` option. This option queries Consul for a proxy that is registered as a sidecar for the specified `<service>`. If exactly one service associated with the proxy is returned, the ID will be used to start the proxy. Your controller only needs to accept `-proxy-id` as an argument; the Consul CLI will resolve the
 ID for the name specified in `-sidecar-for` flag.
+
 
 
 [`/v1/agent/connect/ca/leaf/`]: /api/agent/connect#service-leaf-certificate

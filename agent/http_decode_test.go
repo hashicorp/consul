@@ -285,6 +285,7 @@ var translateCheckTypeTCs = [][]translateKeyTestCase{
 	translateDockerTCs,
 	translateGRPCUseTLSTCs,
 	translateTLSServerNameTCs,
+	translateH2PingUseTLS,
 	translateTLSSkipVerifyTCs,
 	translateServiceIDTCs,
 }
@@ -677,6 +678,62 @@ var translateGRPCUseTLSTCs = []translateKeyTestCase{
 	},
 }
 
+func h2pingUseTLSEqFn(out interface{}, want interface{}) error {
+	var got interface{}
+	switch v := out.(type) {
+	case structs.CheckDefinition:
+		got = v.H2PingUseTLS
+	case *structs.CheckDefinition:
+		got = v.H2PingUseTLS
+	case structs.CheckType:
+		got = v.H2PingUseTLS
+	case *structs.CheckType:
+		got = v.H2PingUseTLS
+	case structs.HealthCheckDefinition:
+		got = v.H2PingUseTLS
+	case *structs.HealthCheckDefinition:
+		got = v.H2PingUseTLS
+	default:
+		panic(fmt.Sprintf("unexpected type %T", out))
+	}
+	if got != want {
+		return fmt.Errorf("expected H2PingUseTLS to be %v, got %v", want, got)
+	}
+	return nil
+}
+
+var h2pingUseTLSFields = []string{`"H2PING": "testing"`, `"H2PingUseTLS": %s`, `"h2ping_use_tls": %s`}
+var translateH2PingUseTLS = []translateKeyTestCase{
+	{
+		desc:       "H2PingUseTLS: both set",
+		in:         []interface{}{"false", "true"},
+		want:       false,
+		jsonFmtStr: "{" + strings.Join(h2pingUseTLSFields, ",") + "}",
+		equalityFn: h2pingUseTLSEqFn,
+	},
+	{
+		desc:       "H2PingUseTLS:: first set",
+		in:         []interface{}{`false`},
+		want:       false,
+		jsonFmtStr: "{" + strings.Join(h2pingUseTLSFields[0:2], ",") + "}",
+		equalityFn: h2pingUseTLSEqFn,
+	},
+	{
+		desc:       "H2PingUseTLS: second set",
+		in:         []interface{}{`false`},
+		want:       false,
+		jsonFmtStr: "{" + h2pingUseTLSFields[0] + "," + h2pingUseTLSFields[2] + "}",
+		equalityFn: h2pingUseTLSEqFn,
+	},
+	{
+		desc:       "H2PingUseTLS: neither set",
+		in:         []interface{}{},
+		want:       true, // zero value
+		jsonFmtStr: "{" + h2pingUseTLSFields[0] + "}",
+		equalityFn: h2pingUseTLSEqFn,
+	},
+}
+
 // ServiceID: string
 func serviceIDEqFn(out interface{}, want interface{}) error {
 	var got interface{}
@@ -935,6 +992,8 @@ func TestDecodeACLRoleWrite(t *testing.T) {
 // Shell	string
 // GRPC	string
 // GRPCUseTLS	bool
+// H2PING	string
+// H2PingUseTLS	bool
 // TLSServerName	string
 // TLSSkipVerify	bool
 // AliasNode	string

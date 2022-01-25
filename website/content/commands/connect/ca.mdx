@@ -42,7 +42,17 @@ Subcommands:
 
 This command displays the current CA configuration.
 
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
+
 Usage: `consul connect ca get-config [options]`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/connect/ca/configuration](/api-docs/connect/ca#get-ca-configuration)
 
 #### API Options
 
@@ -67,7 +77,17 @@ Modifies the current CA configuration. If this results in a new root certificate
 being used, the [Root Rotation](/docs/connect/ca#root-certificate-rotation) process
 will be triggered.
 
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
+
 Usage: `consul connect ca set-config [options]`
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/connect/ca/configuration](/api-docs/connect/ca#update-ca-configuration)
 
 #### API Options
 

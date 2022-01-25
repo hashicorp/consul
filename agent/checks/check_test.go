@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	http2 "golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 func uniqueID() string {
@@ -1254,6 +1255,64 @@ func TestCheckH2PINGInvalidListener(t *testing.T) {
 		}
 
 	})
+}
+
+func TestCheckH2CPING(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		desc        string
+		passing     bool
+		timeout     time.Duration
+		connTimeout time.Duration
+	}{
+		{desc: "passing", passing: true, timeout: 1 * time.Second, connTimeout: 1 * time.Second},
+		{desc: "failing because of time out", passing: false, timeout: 1 * time.Nanosecond, connTimeout: 1 * time.Second},
+		{desc: "failing because of closed connection", passing: false, timeout: 1 * time.Nanosecond, connTimeout: 1 * time.Millisecond},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+			h2chandler := h2c.NewHandler(handler, &http2.Server{})
+			server := httptest.NewUnstartedServer(h2chandler)
+			server.Config.ReadTimeout = tt.connTimeout
+			server.Start()
+			defer server.Close()
+			serverAddress := server.Listener.Addr()
+			target := serverAddress.String()
+
+			notif := mock.NewNotify()
+			logger := testutil.Logger(t)
+			statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
+			cid := structs.NewCheckID("foo", nil)
+			check := &CheckH2PING{
+				CheckID:         cid,
+				H2PING:          target,
+				Interval:        5 * time.Second,
+				Timeout:         tt.timeout,
+				Logger:          logger,
+				TLSClientConfig: nil,
+				StatusHandler:   statusHandler,
+			}
+
+			check.Start()
+			defer check.Stop()
+			if tt.passing {
+				retry.Run(t, func(r *retry.R) {
+					if got, want := notif.State(cid), api.HealthPassing; got != want {
+						r.Fatalf("got state %q want %q", got, want)
+					}
+				})
+			} else {
+				retry.Run(t, func(r *retry.R) {
+					if got, want := notif.State(cid), api.HealthCritical; got != want {
+						r.Fatalf("got state %q want %q", got, want)
+					}
+				})
+			}
+		})
+	}
 }
 
 func TestCheck_Docker(t *testing.T) {

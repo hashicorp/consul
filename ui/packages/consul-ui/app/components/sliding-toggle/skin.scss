@@ -18,7 +18,7 @@
   color: rgb(var(--tone-gray-900));
 }
 %sliding-toggle label span::after {
-  background-color: rgb(var(--white));
+  background-color: rgb(var(--tone-gray-000));
 }
 %sliding-toggle label input:checked + span::before,
 %sliding-toggle-negative label input + span::before {

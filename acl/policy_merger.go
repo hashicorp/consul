@@ -1,13 +1,5 @@
 package acl
 
-import (
-	"encoding/binary"
-	"fmt"
-	"hash"
-
-	"golang.org/x/crypto/blake2b"
-)
-
 type policyRulesMergeContext struct {
 	aclRule                  string
 	agentRules               map[string]*AgentRule
@@ -317,43 +309,23 @@ func (p *policyRulesMergeContext) fill(merged *PolicyRules) {
 }
 
 type PolicyMerger struct {
-	idHasher hash.Hash
 	policyRulesMergeContext
 	enterprisePolicyRulesMergeContext
 }
 
-func NewPolicyMerger() *PolicyMerger {
-	merger := &PolicyMerger{}
-	merger.init()
-	return merger
-}
-
 func (m *PolicyMerger) init() {
-	var err error
-	m.idHasher, err = blake2b.New256(nil)
-	if err != nil {
-		panic(err)
-	}
-
 	m.policyRulesMergeContext.init()
 	m.enterprisePolicyRulesMergeContext.init()
 }
 
 func (m *PolicyMerger) Merge(policy *Policy) {
-	// This is part of calculating the merged policies ID
-	m.idHasher.Write([]byte(policy.ID))
-	binary.Write(m.idHasher, binary.BigEndian, policy.Revision)
-
 	m.policyRulesMergeContext.merge(&policy.PolicyRules)
 	m.enterprisePolicyRulesMergeContext.merge(&policy.EnterprisePolicyRules)
 }
 
 // Policy outputs the merged policy
 func (m *PolicyMerger) Policy() *Policy {
-	merged := &Policy{
-		ID: fmt.Sprintf("%x", m.idHasher.Sum(nil)),
-	}
-
+	merged := &Policy{}
 	m.policyRulesMergeContext.fill(&merged.PolicyRules)
 	m.enterprisePolicyRulesMergeContext.fill(&merged.EnterprisePolicyRules)
 

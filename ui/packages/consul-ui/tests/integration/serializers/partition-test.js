@@ -13,12 +13,12 @@ module('Integration | Serializer | partition', function(hooks) {
       url: `/v1/partitions?dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
-      const expected = payload.Partitions.map(item =>
+      const expected = payload.map(item =>
         Object.assign({}, item, {
           Datacenter: dc,
-          Namespace: '',
-          Partition: item.Name,
-          uid: `["${item.Name}","","${dc}","${item.Name}"]`,
+          Namespace: '*',
+          Partition: '*',
+          uid: `["*","*","${dc}","${item.Name}"]`,
         })
       );
       const actual = serializer.respondForQuery(

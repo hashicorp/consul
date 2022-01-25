@@ -95,9 +95,39 @@ func TestUpstreamSNI(t *testing.T) {
 	})
 }
 
-func TestDatacenterSNI(t *testing.T) {
-	require.Equal(t, "foo."+testTrustDomainSuffix1, DatacenterSNI("foo", testTrustDomain1))
-	require.Equal(t, "bar."+testTrustDomainSuffix2, DatacenterSNI("bar", testTrustDomain2))
+func TestGatewaySNI(t *testing.T) {
+	type testCase struct {
+		name        string
+		dc          string
+		trustDomain string
+		expect      string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		got := GatewaySNI(tc.dc, "", tc.trustDomain)
+		require.Equal(t, tc.expect, got)
+	}
+
+	cases := []testCase{
+		{
+			name:        "foo in domain1",
+			dc:          "foo",
+			trustDomain: "domain1",
+			expect:      "foo.internal.domain1",
+		},
+		{
+			name:        "bar in domain2",
+			dc:          "bar",
+			trustDomain: "domain2",
+			expect:      "bar.internal.domain2",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			run(t, c)
+		})
+	}
 }
 
 func TestServiceSNI(t *testing.T) {

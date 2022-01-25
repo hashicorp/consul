@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package consul
@@ -12,16 +13,16 @@ func (c *Client) initEnterprise(_ Deps) error {
 	return nil
 }
 
+func enterpriseModifyClientSerfConfigLAN(_ *Config, _ *serf.Config) {
+	// nothing
+}
+
 func (c *Client) startEnterprise() error {
 	return nil
 }
 
 func (c *Client) handleEnterpriseUserEvents(event serf.UserEvent) bool {
 	return false
-}
-
-func (_ *Client) addEnterpriseSerfTags(_ map[string]string) {
-	// do nothing
 }
 
 func (c *Client) enterpriseStats() map[string]map[string]string {

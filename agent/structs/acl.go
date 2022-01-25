@@ -725,7 +725,7 @@ func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.Conf
 			continue
 		}
 
-		p, err := acl.NewPolicyFromSource(policy.ID, policy.ModifyIndex, policy.Rules, policy.Syntax, entConf, policy.EnterprisePolicyMeta())
+		p, err := acl.NewPolicyFromSource(policy.Rules, policy.Syntax, entConf, policy.EnterprisePolicyMeta())
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse %q: %v", policy.Name, err)
 		}
@@ -1728,50 +1728,50 @@ func CreateACLAuthorizationResponses(authz acl.Authorizer, requests []ACLAuthori
 	return responses, nil
 }
 
-type AgentMasterTokenIdentity struct {
+type AgentRecoveryTokenIdentity struct {
 	agent    string
 	secretID string
 }
 
-func NewAgentMasterTokenIdentity(agent string, secretID string) *AgentMasterTokenIdentity {
-	return &AgentMasterTokenIdentity{
+func NewAgentRecoveryTokenIdentity(agent string, secretID string) *AgentRecoveryTokenIdentity {
+	return &AgentRecoveryTokenIdentity{
 		agent:    agent,
 		secretID: secretID,
 	}
 }
 
-func (id *AgentMasterTokenIdentity) ID() string {
-	return fmt.Sprintf("agent-master:%s", id.agent)
+func (id *AgentRecoveryTokenIdentity) ID() string {
+	return fmt.Sprintf("agent-recovery:%s", id.agent)
 }
 
-func (id *AgentMasterTokenIdentity) SecretToken() string {
+func (id *AgentRecoveryTokenIdentity) SecretToken() string {
 	return id.secretID
 }
 
-func (id *AgentMasterTokenIdentity) PolicyIDs() []string {
+func (id *AgentRecoveryTokenIdentity) PolicyIDs() []string {
 	return nil
 }
 
-func (id *AgentMasterTokenIdentity) RoleIDs() []string {
+func (id *AgentRecoveryTokenIdentity) RoleIDs() []string {
 	return nil
 }
 
-func (id *AgentMasterTokenIdentity) ServiceIdentityList() []*ACLServiceIdentity {
+func (id *AgentRecoveryTokenIdentity) ServiceIdentityList() []*ACLServiceIdentity {
 	return nil
 }
 
-func (id *AgentMasterTokenIdentity) NodeIdentityList() []*ACLNodeIdentity {
+func (id *AgentRecoveryTokenIdentity) NodeIdentityList() []*ACLNodeIdentity {
 	return nil
 }
 
-func (id *AgentMasterTokenIdentity) IsExpired(asOf time.Time) bool {
+func (id *AgentRecoveryTokenIdentity) IsExpired(asOf time.Time) bool {
 	return false
 }
 
-func (id *AgentMasterTokenIdentity) IsLocal() bool {
+func (id *AgentRecoveryTokenIdentity) IsLocal() bool {
 	return true
 }
 
-func (id *AgentMasterTokenIdentity) EnterpriseMetadata() *EnterpriseMeta {
+func (id *AgentRecoveryTokenIdentity) EnterpriseMetadata() *EnterpriseMeta {
 	return nil
 }

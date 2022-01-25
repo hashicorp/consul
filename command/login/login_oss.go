@@ -1,4 +1,5 @@
-//+build !consulent
+//go:build !consulent
+// +build !consulent
 
 package login
 

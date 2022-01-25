@@ -1,0 +1,30 @@
+# Consul::Nspace::List
+
+A presentational component for rendering Consul Namespaces
+
+Please note: 
+
+- For the moment, make sure you have enabled nspaces using developer debug
+  cookies.
+
+```hbs preview-template
+<DataSource @src={{uri '/partition/default/dc-1/namespaces'}} as |source|>
+  <Consul::Nspace::List
+    @items={{source.data}}
+    @ondelete={{noop}}
+  />
+</DataSource>
+```
+
+## Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `items` | `array` |  | An array of Namespaces |
+| `ondelete` | `function` |  | An action to execute when the `Delete` action is clicked |
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

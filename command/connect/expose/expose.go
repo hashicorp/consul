@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/intention"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -36,12 +36,12 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.ingressGateway, "ingress-gateway", "",
-		"(Required) The name of the ingress gateway service to use. A namespace "+
-			"can optionally be specified as a prefix via the 'namespace/service' format.")
+		"(Required) The name of the ingress gateway service to use. Namespace and partition "+
+			"can optionally be specified as a prefix via the 'partition/namespace/service' format.")
 
 	c.flags.StringVar(&c.service, "service", "",
-		"(Required) The name of destination service to expose. A namespace "+
-			"can optionally be specified as a prefix via the 'namespace/service' format.")
+		"(Required) The name of destination service to expose. Namespace and partition "+
+			"can optionally be specified as a prefix via the 'partition/namespace/service' format.")
 
 	c.flags.IntVar(&c.port, "port", 0,
 		"(Required) The listener port to use for the service on the Ingress gateway.")
@@ -79,7 +79,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("A service name must be given via the -service flag.")
 		return 1
 	}
-	svc, svcNamespace, err := intention.ParseIntentionTarget(c.service)
+	svc, svcNS, svcPart, err := intention.ParseIntentionTarget(c.service)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Invalid service name: %s", err))
 		return 1
@@ -89,7 +89,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("An ingress gateway service must be given via the -ingress-gateway flag.")
 		return 1
 	}
-	gateway, gatewayNamespace, err := intention.ParseIntentionTarget(c.ingressGateway)
+	gateway, gatewayNS, gatewayPart, err := intention.ParseIntentionTarget(c.ingressGateway)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Invalid ingress gateway name: %s", err))
 		return 1
@@ -102,7 +102,9 @@ func (c *cmd) Run(args []string) int {
 
 	// First get the config entry for the ingress gateway, if it exists. Don't error if it's a 404 as that
 	// just means we'll need to create a new config entry.
-	conf, _, err := client.ConfigEntries().Get(api.IngressGateway, gateway, nil)
+	conf, _, err := client.ConfigEntries().Get(
+		api.IngressGateway, gateway, &api.QueryOptions{Partition: gatewayPart, Namespace: gatewayNS},
+	)
 	if err != nil && !strings.Contains(err.Error(), agent.ConfigEntryNotFoundErr) {
 		c.UI.Error(fmt.Sprintf("Error fetching existing ingress gateway configuration: %s", err))
 		return 1
@@ -111,7 +113,8 @@ func (c *cmd) Run(args []string) int {
 		conf = &api.IngressGatewayConfigEntry{
 			Kind:      api.IngressGateway,
 			Name:      gateway,
-			Namespace: gatewayNamespace,
+			Namespace: gatewayNS,
+			Partition: gatewayPart,
 		}
 	}
 
@@ -127,7 +130,8 @@ func (c *cmd) Run(args []string) int {
 	serviceIdx := -1
 	newService := api.IngressService{
 		Name:      svc,
-		Namespace: svcNamespace,
+		Namespace: svcNS,
+		Partition: svcPart,
 		Hosts:     c.hosts,
 	}
 	for i, listener := range ingressConf.Listeners {
@@ -145,7 +149,7 @@ func (c *cmd) Run(args []string) int {
 
 		// Make sure the service isn't already exposed in this gateway
 		for j, service := range listener.Services {
-			if service.Name == svc && namespaceMatch(service.Namespace, svcNamespace) {
+			if service.Name == svc && entMetaMatch(service.Namespace, service.Partition, svcNS, svcPart) {
 				serviceIdx = j
 				c.UI.Output(fmt.Sprintf("Updating service definition for %q on listener with port %d", c.service, listener.Port))
 				break
@@ -170,7 +174,7 @@ func (c *cmd) Run(args []string) int {
 
 	// Write the updated config entry using a check-and-set, so it fails if the entry
 	// has been changed since we looked it up.
-	succeeded, _, err := client.ConfigEntries().CAS(ingressConf, ingressConf.GetModifyIndex(), nil)
+	succeeded, _, err := client.ConfigEntries().CAS(ingressConf, ingressConf.GetModifyIndex(), &api.WriteOptions{Partition: gatewayPart, Namespace: gatewayNS})
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error writing ingress config entry: %v", err))
 		return 1
@@ -194,12 +198,14 @@ func (c *cmd) Run(args []string) int {
 
 	// Add the intention between the gateway service and the destination.
 	ixn := &api.Intention{
-		SourceName:      gateway,
-		SourceNS:        gatewayNamespace,
-		DestinationName: svc,
-		DestinationNS:   svcNamespace,
-		SourceType:      api.IntentionSourceConsul,
-		Action:          api.IntentionActionAllow,
+		SourceName:           gateway,
+		SourceNS:             gatewayNS,
+		SourcePartition:      gatewayPart,
+		DestinationName:      svc,
+		DestinationNS:        svcNS,
+		DestinationPartition: svcPart,
+		SourceType:           api.IntentionSourceConsul,
+		Action:               api.IntentionActionAllow,
 	}
 	if _, err = client.Connect().IntentionUpsert(ixn, nil); err != nil {
 		c.UI.Error(fmt.Sprintf("Error upserting intention: %s", err))
@@ -210,17 +216,21 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func namespaceMatch(a, b string) bool {
-	namespaceA := a
-	namespaceB := b
-	if namespaceA == "" {
-		namespaceA = structs.IntentionDefaultNamespace
+func entMetaMatch(nsA, partitionA, nsB, partitionB string) bool {
+	if nsA == "" {
+		nsA = api.IntentionDefaultNamespace
 	}
-	if namespaceB == "" {
-		namespaceB = structs.IntentionDefaultNamespace
+	if partitionA == "" {
+		partitionA = api.PartitionDefaultName
+	}
+	if nsB == "" {
+		nsB = api.IntentionDefaultNamespace
+	}
+	if partitionB == "" {
+		partitionB = api.PartitionDefaultName
 	}
 
-	return namespaceA == namespaceB
+	return strings.EqualFold(partitionA, partitionB) && strings.EqualFold(nsA, nsB)
 }
 
 func (c *cmd) Synopsis() string {

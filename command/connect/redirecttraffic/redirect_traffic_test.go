@@ -128,6 +128,35 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			},
 		},
 		{
+			name: "proxyID with Consul DNS IP provided",
+			command: func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyID = "test-proxy-id"
+				c.consulDNSIP = "10.0.34.16"
+				return c
+			},
+			consulServices: []api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "1.1.1.1",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+					},
+				},
+			},
+			expCfg: iptables.Config{
+				ConsulDNSIP:       "10.0.34.16",
+				ProxyUserID:       "1234",
+				ProxyInboundPort:  20000,
+				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+			},
+		},
+		{
 			name: "proxyID with bind_port(string) provided",
 			command: func() cmd {
 				var c cmd

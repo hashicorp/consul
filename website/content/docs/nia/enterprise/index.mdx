@@ -7,8 +7,21 @@ description: >-
 
 # Consul-Terraform-Sync Enterprise
 
-Consul-Terraform-Sync Enterprise features address organization complexities of collaboration, operations, scale, and governance. Please see the sidebar navigation on the left to view all enterprise features.
+Consul-Terraform-Sync (CTS) Enterprise is available with [Consul Enterprise](https://www.hashicorp.com/products/consul) and requires a Consul [license](/docs/nia/enterprise/license) to be applied.
 
-Enterprise features require a Consul [license](/docs/nia/enterprise/license) to be applied.
+Enterprise features of CTS address organization complexities of collaboration, operations, scale, and governance. CTS Enterprise supports an official integration with [Terraform Cloud](https://www.terraform.io/cloud) and [Terraform Enterprise](https://www.terraform.io/enterprise), the self-hosted distribution, to extend insight into dynamic updates of your network infrastructure.
 
-These features are part of Consul-Terraform-Sync Enterprise which is part of [Consul Enterprise](https://www.hashicorp.com/products/consul).
+| Features | Open Source | Enterprise |
+|----------|-------------|------------|
+| Consul Namespace | Default namespace only | Filter task triggers by any namespace |
+| Automation Driver | Terraform OSS | Terraform OSS, Terraform Cloud, or Terraform Enterprise |
+| Terraform Workspaces | Local | Local workspaces with the Terraform driver or [remote workspaces](https://www.terraform.io/cloud-docs/workspaces) with the Terraform Cloud driver |
+| Terraform Backend Options | [azurerm](https://www.terraform.io/docs/backends/types/azurerm.html), [consul](https://www.terraform.io/docs/backends/types/consul.html), [cos](https://www.terraform.io/docs/backends/types/cos.html), [gcs](https://www.terraform.io/docs/backends/types/gcs.html), [kubernetes](https://www.terraform.io/docs/backends/types/kubernetes.html), [local](https://www.terraform.io/docs/backends/types/local.html), [manta](https://www.terraform.io/docs/backends/types/manta.html), [pg](https://www.terraform.io/docs/backends/types/pg.html), and [s3](https://www.terraform.io/docs/backends/types/s3.html) with the Terraform driver | The supported backends for CTS with the Terraform driver or Terraform Cloud with the Terraform Cloud driver |
+| Terraform Version | One Terraform version for all tasks | Optional Terraform version per task when using the Terraform Cloud driver |
+| Terraform Run Output | CTS logs | CTS logs or Terraform output organized by Terraform Cloud remote workspaces |
+| Credentials and secrets | On disk as `.tfvars` files or in shell environment | Secured variables stored in remote workspace |
+| Audit | | Terraform audit logs ([Terraform Cloud](https://www.terraform.io/cloud-docs/api-docs/audit-trails) or [Terraform Enterprise](https://www.terraform.io/enterprise/admin/infrastructure/logging)) |
+| Collaboration | | Run [history](https://www.terraform.io/docs/cloud/run/manage.html), [triggers](https://www.terraform.io/docs/cloud/workspaces/run-triggers.html), and [notifications](https://www.terraform.io/docs/cloud/workspaces/notifications.html) supported on Terraform Cloud |
+| Governance | | [Sentinel](https://www.terraform.io/docs/cloud/sentinel/index.html) to enforce governance policies as code |
+
+The [Terraform Cloud driver](/docs/nia/configuration#terraform-cloud-driver) enables CTS Enterprise to integrate with Terraform Cloud or Terraform Enterprise. The [Terraform Cloud driver](/docs/nia/network-drivers/terraform-cloud) page provides an overview of how the integration works within CTS.

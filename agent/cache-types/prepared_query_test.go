@@ -10,7 +10,6 @@ import (
 )
 
 func TestPreparedQuery(t *testing.T) {
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 	typ := &PreparedQuery{RPC: rpc}
@@ -21,9 +20,9 @@ func TestPreparedQuery(t *testing.T) {
 	rpc.On("RPC", "PreparedQuery.Execute", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			req := args.Get(1).(*structs.PreparedQueryExecuteRequest)
-			require.Equal("geo-db", req.QueryIDOrName)
-			require.Equal(10, req.Limit)
-			require.True(req.AllowStale)
+			require.Equal(t, "geo-db", req.QueryIDOrName)
+			require.Equal(t, 10, req.Limit)
+			require.True(t, req.AllowStale)
 
 			reply := args.Get(2).(*structs.PreparedQueryExecuteResponse)
 			reply.QueryMeta.Index = 48
@@ -36,15 +35,14 @@ func TestPreparedQuery(t *testing.T) {
 		QueryIDOrName: "geo-db",
 		Limit:         10,
 	})
-	require.NoError(err)
-	require.Equal(cache.FetchResult{
+	require.NoError(t, err)
+	require.Equal(t, cache.FetchResult{
 		Value: resp,
 		Index: 48,
 	}, result)
 }
 
 func TestPreparedQuery_badReqType(t *testing.T) {
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 	typ := &PreparedQuery{RPC: rpc}
@@ -52,6 +50,6 @@ func TestPreparedQuery_badReqType(t *testing.T) {
 	// Fetch
 	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
-	require.Error(err)
-	require.Contains(err.Error(), "wrong type")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "wrong type")
 }

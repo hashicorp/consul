@@ -1,10 +1,11 @@
 package router
 
 import (
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/types"
 )
 
 // routerFn selects one of the router operations to map to incoming Serf events.
@@ -50,7 +51,18 @@ func handleMemberEvent(logger hclog.Logger, fn routerFn, areaID types.AreaID, e 
 // HandleSerfEvents is a long-running goroutine that pushes incoming events from
 // a Serf manager's channel into the given router. This will return when the
 // shutdown channel is closed.
-func HandleSerfEvents(logger hclog.Logger, router *Router, areaID types.AreaID, shutdownCh <-chan struct{}, eventCh <-chan serf.Event) {
+//
+// If membershipNotifyCh is non-nil, it must be a buffered channel of size one
+// with one consumer. That consumer will be notified when
+// Join/Leave/Failed/Update occur on this serf pool.
+func HandleSerfEvents(
+	logger hclog.Logger,
+	router *Router,
+	areaID types.AreaID,
+	shutdownCh <-chan struct{},
+	eventCh <-chan serf.Event,
+	membershipNotifyCh chan<- struct{},
+) {
 	for {
 		select {
 		case <-shutdownCh:
@@ -60,15 +72,19 @@ func HandleSerfEvents(logger hclog.Logger, router *Router, areaID types.AreaID, 
 			switch e.EventType() {
 			case serf.EventMemberJoin:
 				handleMemberEvent(logger, router.AddServer, areaID, e)
+				notifyMembershipPossibleChange(membershipNotifyCh)
 
 			case serf.EventMemberLeave, serf.EventMemberReap:
 				handleMemberEvent(logger, router.RemoveServer, areaID, e)
+				notifyMembershipPossibleChange(membershipNotifyCh)
 
 			case serf.EventMemberFailed:
 				handleMemberEvent(logger, router.FailServer, areaID, e)
+				notifyMembershipPossibleChange(membershipNotifyCh)
 
 			case serf.EventMemberUpdate:
 				handleMemberEvent(logger, router.AddServer, areaID, e)
+				notifyMembershipPossibleChange(membershipNotifyCh)
 
 			// All of these event types are ignored.
 			case serf.EventUser:
@@ -78,5 +94,17 @@ func HandleSerfEvents(logger hclog.Logger, router *Router, areaID types.AreaID, 
 				logger.Warn("Unhandled Serf Event", "event", e)
 			}
 		}
+	}
+}
+
+func notifyMembershipPossibleChange(membershipNotifyCh chan<- struct{}) {
+	if membershipNotifyCh == nil {
+		return
+	}
+
+	// Notify if not already notified.
+	select {
+	case membershipNotifyCh <- struct{}{}:
+	default:
 	}
 }

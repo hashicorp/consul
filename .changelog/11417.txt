@@ -1,0 +1,9 @@
+```release-note:improvement
+ci: Artifact builds will now only run on merges to the release branches or to `main`
+```
+```release-note:improvement
+ci: The Linux packages are now available for all supported Linux architectures including arm, arm64, 386, and amd64
+```
+```release-note:improvement
+ci: The Linux packaging service configs and pre/post install scripts are now available under  [.release/linux]
+```

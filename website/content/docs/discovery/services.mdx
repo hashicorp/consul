@@ -32,7 +32,91 @@ Send a `SIGHUP` to the running agent or use [`consul reload`](/commands/reload) 
 update existing services. Alternatively, the service can be [registered dynamically](/api-docs/agent/service#register-service)
 using the [HTTP API](/api).
 
-A service definition contains a set of parameters that specify various aspects of the service, including how it is discovered by other services in the network. All possible parameters are included in the following example, but only the top-level `service` parameter and its `name` parameter child are required by default.
+A service definition contains a set of parameters that specify various aspects of the service, including how it is discovered by other services in the network.
+All possible parameters are included in the following example, but only the top-level `service` parameter and its `name` parameter child are required by default.
+
+<CodeTabs heading="Service Definition">
+
+```hcl
+service {
+  name = "redis"
+  id   = "redis"
+  port = 80
+  tags = ["primary"]
+
+  meta = {
+    custom_meta_key = "custom_meta_value"
+  }
+
+  tagged_addresses = {
+    lan = {
+      address = "192.168.0.55"
+      port    = 8000
+    }
+
+    wan = {
+      address = "198.18.0.23"
+      port    = 80
+    }
+  }
+
+  port                = 8000
+  socket_path         = "/tmp/redis.sock"
+  enable_tag_override = false
+
+  checks = [
+    {
+      args     = ["/usr/local/bin/check_redis.py"]
+      interval = "10s"
+    }
+  ]
+
+  kind              = "connect-proxy"
+  proxy_destination = "redis"
+
+  proxy = {
+    destination_service_name  = "redis"
+    destination_service_id    = "redis1"
+    local_service_address     = "127.0.0.1"
+    local_service_port        = 9090
+    local_service_socket_path = "/tmp/redis.sock"
+    mode                      = "transparent"
+
+    transparent_proxy {
+      outbound_listener_port = 22500
+    }
+
+    mesh_gateway = {
+      mode = "local"
+    }
+
+    expose = {
+      checks = true
+
+      paths = [
+        {
+          path            = "/healthz"
+          local_path_port = 8080
+          listener_port   = 21500
+          protocol        = "http2"
+        }
+      ]
+    }
+  }
+
+  connect = {
+    native = false
+  }
+
+  weights = {
+    passing = 5
+    warning = 1
+  }
+
+  token     = "233b604b-b92e-48c8-a253-5f11514e4b50"
+  namespace = "foo"
+}
+```
 
 ```json
 {
@@ -110,6 +194,8 @@ A service definition contains a set of parameters that specify various aspects o
 }
 ```
 
+</CodeTabs>
+
 The following table describes the available parameters for service definitions.
 
 ### `service`
@@ -126,7 +212,7 @@ This is the root-level parameter that defines the service. You can specify the p
 | `tagged_addresses`    | Tagged addresses are additional addresses that may be defined for a node or service. See [Tagged Addresses](#tagged-addresses) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | None                          | Optional                     |
 | `port`                | Integer value that specifies a service-specific port number. The port number should be specified when the `address` parameter is defined to improve service discoverability.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Optional                      |
 | `socket_path`         | String value that specifies the path to the service socket. <br/>Specify this parameter to expose the service to the mesh if the service listens on a Unix Domain socket.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | None                          | Optional                     |
-| `enable_tag_override` | Boolean value that determines if the anti-entropy feature for the service is enabled. <br/> If set to `true`, then external agents can update this service in the catalog and modify the tags.<br/> Subsequent local sync operations by this agent will ignore the updated tags. <br/> This parameter only applies to the locally-registered service. If multiple nodes register the same service, the `enable_tag_override` configuration, and all other service configuration items, operate independently. <br/>Updating the tags for services registered on one node is independent from the same service (by name) registered on another node. <br/> See [anti-entropy syncs](/docs/internals/anti-entropy) for additional information.<br/> | False                         | Optional                     |
+| `enable_tag_override` | Boolean value that determines if the anti-entropy feature for the service is enabled. <br/> If set to `true`, then external agents can update this service in the catalog and modify the tags.<br/> Subsequent local sync operations by this agent will ignore the updated tags. <br/> This parameter only applies to the locally-registered service. If multiple nodes register the same service, the `enable_tag_override` configuration, and all other service configuration items, operate independently. <br/>Updating the tags for services registered on one node is independent from the same service (by name) registered on another node. <br/> See [anti-entropy syncs](/docs/architecture/anti-entropy) for additional information.<br/> | False                         | Optional                     |
 | `checks`              | Array of objects that define health checks for the service. See [Health Checks](#health-checks) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | None                          | Optional                     |
 | `kind`                | String value that identifies the service as a Connect proxy. See [Connect](#connect) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | None                          | Optional                     |
 | `proxy_destination`   | String value that specifies the _name_ of the destination service that the service currently being configured proxies to. <br/>This parameter is deprecated. Use `proxy.destination_service` instead. <br/>See [Connect](#connect) for additional information.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | None                          | Optional                     |
@@ -147,7 +233,7 @@ You can add semantic meta data to the service using the `meta` parameter. This p
 ### Security Configurations
 
 If the ACL system is enabled, specify a value for the `token` parameter to provide an ACL token. This token is
-used for any interaction with the catalog for the service, including [anti-entropy syncs](/docs/internals/anti-entropy) and deregistration.
+used for any interaction with the catalog for the service, including [anti-entropy syncs](/docs/architecture/anti-entropy) and deregistration.
 
 Services registered in Consul clusters where both [Consul Namespaces](/docs/enterprise/namespaces)<EnterpriseAlert inline />
 and the ACL system are enabled can be registered to specific namespaces that are associated with
@@ -166,7 +252,7 @@ The health check name is automatically generated as `service:<service-id>`. If t
 registered, the ID will be generated as `service:<service-id>:<num>` where
 `<num>` is an incrementing number starting from `1`.
 
-Consul includes several check types with different options. Refer to the [health checks documentation](/docs/agent/checks) for details.
+Consul includes several check types with different options. Refer to the [health checks documentation](/docs/discovery/checks) for details.
 
 ### Proxy
 
@@ -233,7 +319,7 @@ is present in the agent DNS configuration or the `passing` query parameter is us
 
 Services may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the service, including
-[anti-entropy syncs](/docs/internals/anti-entropy) and deregistration.
+[anti-entropy syncs](/docs/architecture/anti-entropy) and deregistration.
 
 You can optionally disable the anti-entropy feature for this service using the
 `enable_tag_override` flag. External agents can modify tags on services in the
@@ -250,7 +336,7 @@ configuration items are independent of one another. Updating the tags
 for the service registered on one node is independent of the same
 service (by name) registered on another node. If `enable_tag_override` is
 not specified the default value is false. See [anti-entropy
-syncs](/docs/internals/anti-entropy) for more info.
+syncs](/docs/architecture/anti-entropy) for more info.
 
 For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
 supports both `enable_tag_override` and `enableTagOverride` but the latter is
@@ -504,6 +590,51 @@ Multiple services definitions can be provided at once when registering services
 via the agent configuration by using the plural `services` key (registering
 multiple services in this manner is not supported using the HTTP API).
 
+<CodeTabs heading="Multiple Service Definitions">
+
+<CodeBlockConfig filename="redis-services.hcl">
+
+```hcl
+services {
+  id = "red0"
+  name = "redis"
+  tags = [
+    "primary"
+  ]
+  address = ""
+  port = 6000
+  checks = [
+    {
+      args = ["/bin/check_redis", "-p", "6000"]
+      interval = "5s"
+      timeout = "20s"
+    }
+  ]
+}
+services {
+  id = "red1"
+  name = "redis"
+  tags = [
+    "delayed",
+    "secondary"
+  ]
+  address = ""
+  port = 7000
+  checks = [
+    {
+      args = ["/bin/check_redis", "-p", "7000"]
+      interval = "30s"
+      timeout = "60s"
+    }
+  ]
+}
+
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="redis-services.json">
+
 ```json
 {
   "services": [
@@ -545,43 +676,8 @@ multiple services in this manner is not supported using the HTTP API).
 }
 ```
 
-In HCL you can specify the plural `services` key (although not `service`) multiple times:
-
-```hcl
-services {
-  id = "red0"
-  name = "redis"
-  tags = [
-    "primary"
-  ]
-  address = ""
-  port = 6000
-  checks = [
-    {
-      args = ["/bin/check_redis", "-p", "6000"]
-      interval = "5s"
-      timeout = "20s"
-    }
-  ]
-}
-services {
-  id = "red1"
-  name = "redis"
-  tags = [
-    "delayed",
-    "secondary"
-  ]
-  address = ""
-  port = 7000
-  checks = [
-    {
-      args = ["/bin/check_redis", "-p", "7000"]
-      interval = "30s"
-      timeout = "60s"
-    }
-  ]
-}
-```
+</CodeBlockConfig>
+</CodeTabs>
 
 ## Service and Tag Names with DNS
 

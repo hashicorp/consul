@@ -1,0 +1,27 @@
+.container {
+  composes: g-grid-container from global;
+}
+
+/*
+ * Use cases
+ */
+
+.useCases {
+  margin-bottom: 64px;
+
+  @media (--medium-up) {
+    margin-bottom: 128px;
+  }
+}
+
+/*
+ * Tutorials
+ */
+
+.tutorials {
+  margin-bottom: 64px;
+
+  @media (--medium-up) {
+    margin-bottom: 128px;
+  }
+}

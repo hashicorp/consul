@@ -1,8 +1,11 @@
+//go:build !consulent
 // +build !consulent
 
 package state
 
 import (
+	"net"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 )
@@ -381,6 +384,67 @@ func testIndexerTableServices() map[string]indexerTestCase {
 						expected: []byte("\x00"),
 					},
 				},
+			},
+		},
+	}
+}
+
+func testIndexerTableServiceVirtualIPs() map[string]indexerTestCase {
+	obj := ServiceVirtualIP{
+		Service: structs.ServiceName{
+			Name: "foo",
+		},
+		IP: net.ParseIP("127.0.0.1"),
+	}
+
+	return map[string]indexerTestCase{
+		indexID: {
+			read: indexValue{
+				source: structs.ServiceName{
+					Name: "foo",
+				},
+				expected: []byte("foo\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("foo\x00"),
+			},
+		},
+	}
+}
+
+func testIndexerTableKindServiceNames() map[string]indexerTestCase {
+	obj := &KindServiceName{
+		Service: structs.ServiceName{
+			Name: "web-sidecar-proxy",
+		},
+		Kind: structs.ServiceKindConnectProxy,
+	}
+
+	return map[string]indexerTestCase{
+		indexID: {
+			read: indexValue{
+				source: &KindServiceName{
+					Service: structs.ServiceName{
+						Name: "web-sidecar-proxy",
+					},
+					Kind: structs.ServiceKindConnectProxy,
+				},
+				expected: []byte("connect-proxy\x00web-sidecar-proxy\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("connect-proxy\x00web-sidecar-proxy\x00"),
+			},
+		},
+		indexKind: {
+			read: indexValue{
+				source:   structs.ServiceKindConnectProxy,
+				expected: []byte("connect-proxy\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("connect-proxy\x00"),
 			},
 		},
 	}

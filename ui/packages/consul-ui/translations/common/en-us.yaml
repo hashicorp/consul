@@ -1,5 +1,6 @@
 brand:
   consul: Consul
+  consul-api-gateway: Consul API Gateway
   terraform: Terraform
   nomad: Nomad
   vault: Vault
@@ -29,6 +30,8 @@ consul:
   terminating-gateway: Terminating Gateway
   mesh-gateway: Mesh Gateway
   status: Health Status
+  service.meta: Service Meta
+  node.meta: Node Meta
   service-name: Service Name
   node-name: Node Name
   accessorid: AccessorID
@@ -45,6 +48,7 @@ search:
   critical: Failing
   in-mesh: In service mesh
   not-in-mesh: Not in service mesh
+  integrations: Integrations
 sort:
   alpha:
     asc: A to Z

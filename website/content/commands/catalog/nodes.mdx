@@ -7,9 +7,19 @@ page_title: 'Commands: Catalog List Nodes'
 
 Command: `consul catalog nodes`
 
+Corresponding HTTP API Endpoint: [\[GET\] /v1/catalog/nodes](/api-docs/catalog#list-nodes)
+
 The `catalog nodes` command prints all known nodes and metadata about them.
 It can also query for nodes that match a particular metadata or provide a
 particular service.
+
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `node:read`  |
 
 ## Examples
 
@@ -76,3 +86,7 @@ Usage: `consul catalog nodes [options]`
   via stdin by using `-` for the value or from a file by passing `@<file path>`.
   See the [`/catalog/nodes` API documentation](/api/catalog#filtering) for a
   description of what is filterable.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'

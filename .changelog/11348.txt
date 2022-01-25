@@ -1,0 +1,3 @@
+```release-note:bug
+dns: Fixed an issue where on DNS requests made with .alt_domain response was returned as .domain
+```

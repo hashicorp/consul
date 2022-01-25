@@ -1,11 +1,15 @@
 @import './skin';
 @import './layout';
-.oidc-select {
-  @extend %oidc-select;
-}
 %oidc-select label {
   @extend %form-element;
 }
-%oidc-select button {
-  @extend %secondary-button;
+%oidc-select button:not(.reset) {
+  @extend %primary-button;
+}
+%oidc-select button.reset {
+  @extend %anchor;
+  @extend %p3;
+}
+.oidc-select {
+  @extend %oidc-select;
 }

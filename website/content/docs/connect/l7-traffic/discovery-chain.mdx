@@ -110,6 +110,7 @@ nodes can be resolved by name using the [`Nodes`](#nodes) field. Targets can be
 resolved by name using the [`Targets`](#targets) field.
 
 - `ServiceName` `(string)` - The requested service.
+- `Partition` `(string)` - The requested partition.
 - `Namespace` `(string)` - The requested namespace.
 - `Datacenter` `(string)` - The requested datacenter.
 
@@ -200,6 +201,8 @@ A single node in the compiled discovery chain.
   [subset](/docs/connect/config-entries/service-resolver#service-subsets) of
   the service to resolve.
 
+- `Partition` `(string)` - The partition to use when resolving a list of service instances.
+
 - `Namespace` `(string)` - The namespace to use when resolving a list of service instances.
 
 - `Datacenter` `(string)` - The datacenter to use when resolving a list of service instances.
@@ -221,7 +224,7 @@ A single node in the compiled discovery chain.
     be considered healthy.
 
 - `MeshGateway` `(MeshGatewayConfig)` - The [mesh gateway
-  configuration](/docs/connect/mesh-gateway#connect-proxy-configuration)
+  configuration](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#connect-proxy-configuration)
   to use when connecting to this target's service instances.
 
   - `Mode` `(string: "")` - One of `none`, `local`, or `remote`.

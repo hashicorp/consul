@@ -27,7 +27,7 @@ func TestAutoConfigBackend_DatacenterJoinAddresses(t *testing.T) {
 	}
 
 	backend := autoConfigBackend{Server: nodes.Servers[0]}
-	actual, err := backend.DatacenterJoinAddresses("")
+	actual, err := backend.DatacenterJoinAddresses("", "")
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, actual)
 }
@@ -41,7 +41,7 @@ func TestAutoConfigBackend_CreateACLToken(t *testing.T) {
 
 	waitForLeaderEstablishment(t, srv)
 
-	r1, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+	r1, err := upsertTestRole(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
 	t.Run("predefined-ids", func(t *testing.T) {

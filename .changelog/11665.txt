@@ -1,0 +1,3 @@
+```release-note:deprecation
+config: `acl.tokens.master` has been renamed to `acl.tokens.initial_management`, and `acl.tokens.agent_master` has been renamed to `acl.tokens.agent_recovery` - the old field names are now deprecated and will be removed in a future major release
+```

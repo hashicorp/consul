@@ -718,15 +718,6 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 
 					require.JSONEq(t, goldenSimple(t, filepath.Join("rbac", name), gotJSON), gotJSON)
 				})
-
-				t.Run("v2-compat", func(t *testing.T) {
-					filterV2, err := convertNetFilterToV2(filter)
-					require.NoError(t, err)
-
-					gotJSON := protoToJSON(t, filterV2)
-
-					require.JSONEq(t, goldenSimple(t, filepath.Join("rbac", name+".v2compat"), gotJSON), gotJSON)
-				})
 			})
 			t.Run("http filter", func(t *testing.T) {
 				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow)
@@ -736,15 +727,6 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 					gotJSON := protoToJSON(t, filter)
 
 					require.JSONEq(t, goldenSimple(t, filepath.Join("rbac", name+"--httpfilter"), gotJSON), gotJSON)
-				})
-
-				t.Run("v2-compat", func(t *testing.T) {
-					filterV2, err := convertHttpFilterToV2(filter)
-					require.NoError(t, err)
-
-					gotJSON := protoToJSON(t, filterV2)
-
-					require.JSONEq(t, goldenSimple(t, filepath.Join("rbac", name+"--httpfilter.v2compat"), gotJSON), gotJSON)
 				})
 			})
 		})

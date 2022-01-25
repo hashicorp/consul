@@ -285,7 +285,10 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 		if len(resp.Nodes) > 0 {
 			snap.TerminatingGateway.ServiceGroups[sn] = resp.Nodes
 			snap.TerminatingGateway.HostnameServices[sn] = hostnameEndpoints(
-				s.logger, snap.Datacenter, resp.Nodes)
+				s.logger,
+				snap.Locality,
+				resp.Nodes,
+			)
 		}
 
 	// Store leaf cert for watched service

@@ -1,0 +1,3 @@
+```release-note:improvement
+http: when a URL path is not found, include a message with the 404 status code to help the user understand why (e.g., HTTP API endpoint path not prefixed with /v1/)
+```

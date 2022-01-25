@@ -42,10 +42,35 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
-		svc := strings.TrimPrefix(u.CorrelationID, "discovery-chain:")
-		upstreamsSnapshot.DiscoveryChain[svc] = resp.Chain
+		uidString := strings.TrimPrefix(u.CorrelationID, "discovery-chain:")
+		uid := UpstreamIDFromString(uidString)
 
-		if err := s.resetWatchesFromChain(ctx, svc, resp.Chain, upstreamsSnapshot); err != nil {
+		switch snap.Kind {
+		case structs.ServiceKindIngressGateway:
+			if _, ok := snap.IngressGateway.UpstreamsSet[uid]; !ok {
+				// Discovery chain is not associated with a known explicit or implicit upstream so it is purged/skipped.
+				// The associated watch was likely cancelled.
+				delete(upstreamsSnapshot.DiscoveryChain, uid)
+				s.logger.Trace("discovery-chain watch fired for unknown upstream", "upstream", uid)
+				return nil
+			}
+
+		case structs.ServiceKindConnectProxy:
+			explicit := snap.ConnectProxy.UpstreamConfig[uid].HasLocalPortOrSocket()
+			if _, implicit := snap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+				// Discovery chain is not associated with a known explicit or implicit upstream so it is purged/skipped.
+				// The associated watch was likely cancelled.
+				delete(upstreamsSnapshot.DiscoveryChain, uid)
+				s.logger.Trace("discovery-chain watch fired for unknown upstream", "upstream", uid)
+				return nil
+			}
+		default:
+			return fmt.Errorf("discovery-chain watch fired for unsupported kind: %s", snap.Kind)
+		}
+
+		upstreamsSnapshot.DiscoveryChain[uid] = resp.Chain
+
+		if err := s.resetWatchesFromChain(ctx, uid, resp.Chain, upstreamsSnapshot); err != nil {
 			return err
 		}
 
@@ -55,15 +80,17 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		correlationID := strings.TrimPrefix(u.CorrelationID, "upstream-target:")
-		targetID, svc, ok := removeColonPrefix(correlationID)
+		targetID, uidString, ok := removeColonPrefix(correlationID)
 		if !ok {
 			return fmt.Errorf("invalid correlation id %q", u.CorrelationID)
 		}
 
-		if _, ok := upstreamsSnapshot.WatchedUpstreamEndpoints[svc]; !ok {
-			upstreamsSnapshot.WatchedUpstreamEndpoints[svc] = make(map[string]structs.CheckServiceNodes)
+		uid := UpstreamIDFromString(uidString)
+
+		if _, ok := upstreamsSnapshot.WatchedUpstreamEndpoints[uid]; !ok {
+			upstreamsSnapshot.WatchedUpstreamEndpoints[uid] = make(map[string]structs.CheckServiceNodes)
 		}
-		upstreamsSnapshot.WatchedUpstreamEndpoints[svc][targetID] = resp.Nodes
+		upstreamsSnapshot.WatchedUpstreamEndpoints[uid][targetID] = resp.Nodes
 
 		var passthroughAddrs map[string]ServicePassthroughAddrs
 
@@ -97,8 +124,9 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 					Service:    svc.Name,
 				}
 
-				if _, ok := upstreamsSnapshot.PassthroughUpstreams[svc.String()]; !ok {
-					upstreamsSnapshot.PassthroughUpstreams[svc.String()] = ServicePassthroughAddrs{
+				svcUID := NewUpstreamIDFromServiceName(svc)
+				if _, ok := upstreamsSnapshot.PassthroughUpstreams[svcUID]; !ok {
+					upstreamsSnapshot.PassthroughUpstreams[svcUID] = ServicePassthroughAddrs{
 						SNI:      sni,
 						SpiffeID: spiffeID,
 
@@ -107,8 +135,12 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 						Addrs: make(map[string]struct{}),
 					}
 				}
-				addr, _ := node.BestAddress(false)
-				upstreamsSnapshot.PassthroughUpstreams[svc.String()].Addrs[addr] = struct{}{}
+
+				// Make sure to use an external address when crossing partitions.
+				isRemote := !structs.EqualPartitions(svc.PartitionOrDefault(), s.proxyID.PartitionOrDefault())
+				addr, _ := node.BestAddress(isRemote)
+
+				upstreamsSnapshot.PassthroughUpstreams[NewUpstreamIDFromServiceName(svc)].Addrs[addr] = struct{}{}
 			}
 		}
 
@@ -118,14 +150,17 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		correlationID := strings.TrimPrefix(u.CorrelationID, "mesh-gateway:")
-		dc, svc, ok := removeColonPrefix(correlationID)
+		key, uidString, ok := removeColonPrefix(correlationID)
 		if !ok {
 			return fmt.Errorf("invalid correlation id %q", u.CorrelationID)
 		}
-		if _, ok = upstreamsSnapshot.WatchedGatewayEndpoints[svc]; !ok {
-			upstreamsSnapshot.WatchedGatewayEndpoints[svc] = make(map[string]structs.CheckServiceNodes)
+		uid := UpstreamIDFromString(uidString)
+
+		if _, ok = upstreamsSnapshot.WatchedGatewayEndpoints[uid]; !ok {
+			upstreamsSnapshot.WatchedGatewayEndpoints[uid] = make(map[string]structs.CheckServiceNodes)
 		}
-		upstreamsSnapshot.WatchedGatewayEndpoints[svc][dc] = resp.Nodes
+		upstreamsSnapshot.WatchedGatewayEndpoints[uid][key] = resp.Nodes
+
 	default:
 		return fmt.Errorf("unknown correlation ID: %s", u.CorrelationID)
 	}
@@ -142,27 +177,27 @@ func removeColonPrefix(s string) (string, string, bool) {
 
 func (s *handlerUpstreams) resetWatchesFromChain(
 	ctx context.Context,
-	id string,
+	uid UpstreamID,
 	chain *structs.CompiledDiscoveryChain,
 	snap *ConfigSnapshotUpstreams,
 ) error {
-	s.logger.Trace("resetting watches for discovery chain", "id", id)
+	s.logger.Trace("resetting watches for discovery chain", "id", uid)
 	if chain == nil {
 		return fmt.Errorf("not possible to arrive here with no discovery chain")
 	}
 
 	// Initialize relevant sub maps.
-	if _, ok := snap.WatchedUpstreams[id]; !ok {
-		snap.WatchedUpstreams[id] = make(map[string]context.CancelFunc)
+	if _, ok := snap.WatchedUpstreams[uid]; !ok {
+		snap.WatchedUpstreams[uid] = make(map[string]context.CancelFunc)
 	}
-	if _, ok := snap.WatchedUpstreamEndpoints[id]; !ok {
-		snap.WatchedUpstreamEndpoints[id] = make(map[string]structs.CheckServiceNodes)
+	if _, ok := snap.WatchedUpstreamEndpoints[uid]; !ok {
+		snap.WatchedUpstreamEndpoints[uid] = make(map[string]structs.CheckServiceNodes)
 	}
-	if _, ok := snap.WatchedGateways[id]; !ok {
-		snap.WatchedGateways[id] = make(map[string]context.CancelFunc)
+	if _, ok := snap.WatchedGateways[uid]; !ok {
+		snap.WatchedGateways[uid] = make(map[string]context.CancelFunc)
 	}
-	if _, ok := snap.WatchedGatewayEndpoints[id]; !ok {
-		snap.WatchedGatewayEndpoints[id] = make(map[string]structs.CheckServiceNodes)
+	if _, ok := snap.WatchedGatewayEndpoints[uid]; !ok {
+		snap.WatchedGatewayEndpoints[uid] = make(map[string]structs.CheckServiceNodes)
 	}
 
 	// We could invalidate this selectively based on a hash of the relevant
@@ -170,14 +205,14 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 	// upstream when the chain changes in any way.
 	//
 	// TODO(rb): content hash based add/remove
-	for targetID, cancelFn := range snap.WatchedUpstreams[id] {
+	for targetID, cancelFn := range snap.WatchedUpstreams[uid] {
 		s.logger.Trace("stopping watch of target",
-			"upstream", id,
+			"upstream", uid,
 			"chain", chain.ServiceName,
 			"target", targetID,
 		)
-		delete(snap.WatchedUpstreams[id], targetID)
-		delete(snap.WatchedUpstreamEndpoints[id], targetID)
+		delete(snap.WatchedUpstreams[uid], targetID)
+		delete(snap.WatchedUpstreamEndpoints[uid], targetID)
 		cancelFn()
 	}
 
@@ -193,7 +228,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 		}
 
 		opts := targetWatchOpts{
-			upstreamID: id,
+			upstreamID: uid,
 			chainID:    target.ID,
 			service:    target.Service,
 			filter:     target.Subset.Filter,
@@ -202,16 +237,27 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 		}
 		err := s.watchUpstreamTarget(ctx, snap, opts)
 		if err != nil {
-			return fmt.Errorf("failed to watch target %q for upstream %q", target.ID, id)
+			return fmt.Errorf("failed to watch target %q for upstream %q", target.ID, uid)
 		}
 
 		// We'll get endpoints from the gateway query, but the health still has
 		// to come from the backing service query.
+		var gk GatewayKey
+
 		switch target.MeshGateway.Mode {
 		case structs.MeshGatewayModeRemote:
-			needGateways[target.Datacenter] = struct{}{}
+			gk = GatewayKey{
+				Partition:  target.Partition,
+				Datacenter: target.Datacenter,
+			}
 		case structs.MeshGatewayModeLocal:
-			needGateways[s.source.Datacenter] = struct{}{}
+			gk = GatewayKey{
+				Partition:  s.source.NodePartitionOrDefault(),
+				Datacenter: s.source.Datacenter,
+			}
+		}
+		if s.source.Datacenter != target.Datacenter || s.proxyID.PartitionOrDefault() != target.Partition {
+			needGateways[gk.String()] = struct{}{}
 		}
 	}
 
@@ -227,7 +273,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 		chainEntMeta := structs.NewEnterpriseMetaWithPartition(chain.Partition, chain.Namespace)
 
 		opts := targetWatchOpts{
-			upstreamID: id,
+			upstreamID: uid,
 			chainID:    chainID,
 			service:    chain.ServiceName,
 			filter:     "",
@@ -236,42 +282,55 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 		}
 		err := s.watchUpstreamTarget(ctx, snap, opts)
 		if err != nil {
-			return fmt.Errorf("failed to watch target %q for upstream %q", chainID, id)
+			return fmt.Errorf("failed to watch target %q for upstream %q", chainID, uid)
 		}
 	}
 
-	for dc := range needGateways {
-		if _, ok := snap.WatchedGateways[id][dc]; ok {
+	for key := range needGateways {
+		if _, ok := snap.WatchedGateways[uid][key]; ok {
 			continue
 		}
+		gwKey := gatewayKeyFromString(key)
 
-		s.logger.Trace("initializing watch of mesh gateway in datacenter",
-			"upstream", id,
+		s.logger.Trace("initializing watch of mesh gateway",
+			"upstream", uid,
 			"chain", chain.ServiceName,
-			"datacenter", dc,
+			"datacenter", gwKey.Datacenter,
+			"partition", gwKey.Partition,
 		)
 
 		ctx, cancel := context.WithCancel(ctx)
-		err := s.watchMeshGateway(ctx, dc, id)
+		opts := gatewayWatchOpts{
+			notifier:   s.cache,
+			notifyCh:   s.ch,
+			source:     *s.source,
+			token:      s.token,
+			key:        gwKey,
+			upstreamID: uid,
+		}
+		err := watchMeshGateway(ctx, opts)
 		if err != nil {
 			cancel()
 			return err
 		}
 
-		snap.WatchedGateways[id][dc] = cancel
+		snap.WatchedGateways[uid][key] = cancel
 	}
 
-	for dc, cancelFn := range snap.WatchedGateways[id] {
-		if _, ok := needGateways[dc]; ok {
+	for key, cancelFn := range snap.WatchedGateways[uid] {
+		if _, ok := needGateways[key]; ok {
 			continue
 		}
-		s.logger.Trace("stopping watch of mesh gateway in datacenter",
-			"upstream", id,
+		gwKey := gatewayKeyFromString(key)
+
+		s.logger.Trace("stopping watch of mesh gateway",
+			"upstream", uid,
 			"chain", chain.ServiceName,
-			"datacenter", dc,
+			"datacenter", gwKey.Datacenter,
+			"partition", gwKey.Partition,
 		)
-		delete(snap.WatchedGateways[id], dc)
-		delete(snap.WatchedGatewayEndpoints[id], dc)
+		delete(snap.WatchedGateways[uid], key)
+		delete(snap.WatchedGatewayEndpoints[uid], key)
 		cancelFn()
 	}
 
@@ -279,23 +338,12 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 }
 
 type targetWatchOpts struct {
-	upstreamID string
+	upstreamID UpstreamID
 	chainID    string
 	service    string
 	filter     string
 	datacenter string
 	entMeta    *structs.EnterpriseMeta
-}
-
-func (s *handlerUpstreams) watchMeshGateway(ctx context.Context, dc string, upstreamID string) error {
-	return s.cache.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
-		Datacenter:     dc,
-		QueryOptions:   structs.QueryOptions{Token: s.token},
-		ServiceKind:    structs.ServiceKindMeshGateway,
-		UseServiceKind: true,
-		Source:         *s.source,
-		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-	}, "mesh-gateway:"+dc+":"+upstreamID, s.ch)
 }
 
 func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *ConfigSnapshotUpstreams, opts targetWatchOpts) error {
@@ -308,7 +356,7 @@ func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *Config
 	var finalMeta structs.EnterpriseMeta
 	finalMeta.Merge(opts.entMeta)
 
-	correlationID := "upstream-target:" + opts.chainID + ":" + opts.upstreamID
+	correlationID := "upstream-target:" + opts.chainID + ":" + opts.upstreamID.String()
 
 	ctx, cancel := context.WithCancel(ctx)
 	err := s.health.Notify(ctx, structs.ServiceSpecificRequest{
@@ -336,7 +384,7 @@ func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *Config
 }
 
 type discoveryChainWatchOpts struct {
-	id          string
+	id          UpstreamID
 	name        string
 	namespace   string
 	partition   string
@@ -361,7 +409,7 @@ func (s *handlerUpstreams) watchDiscoveryChain(ctx context.Context, snap *Config
 		OverrideProtocol:       opts.cfg.Protocol,
 		OverrideConnectTimeout: opts.cfg.ConnectTimeout(),
 		OverrideMeshGateway:    opts.meshGateway,
-	}, "discovery-chain:"+opts.id, s.ch)
+	}, "discovery-chain:"+opts.id.String(), s.ch)
 	if err != nil {
 		cancel()
 		return err

@@ -73,12 +73,12 @@ type RuntimeConfig struct {
 	// hcl: acl.enable_key_list_policy = (true|false)
 	ACLEnableKeyListPolicy bool
 
-	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
+	// ACLInitialManagementToken is used to bootstrap the ACL system. It should be specified
 	// on the servers in the PrimaryDatacenter. When the leader comes online, it ensures
-	// that the Master token is available. This provides the initial token.
+	// that the initial management token is available. This provides the initial token.
 	//
-	// hcl: acl.tokens.master = string
-	ACLMasterToken string
+	// hcl: acl.tokens.initial_management = string
+	ACLInitialManagementToken string
 
 	// ACLtokenReplication is used to indicate that both tokens and policies
 	// should be replicated instead of just policies
@@ -943,6 +943,8 @@ type RuntimeConfig struct {
 	// hcl: raft_trailing_logs = int
 	RaftTrailingLogs int
 
+	RaftBoltDBConfig consul.RaftBoltDBConfig
+
 	// ReconnectTimeoutLAN specifies the amount of time to wait to reconnect with
 	// another agent before deciding it's permanently gone. This can be used to
 	// control the time it takes to reap failed nodes from the cluster.
@@ -1623,6 +1625,7 @@ func (c *RuntimeConfig) ConnectCAConfiguration() (*structs.CAConfiguration, erro
 		Config: map[string]interface{}{
 			"LeafCertTTL":         structs.DefaultLeafCertTTL,
 			"IntermediateCertTTL": structs.DefaultIntermediateCertTTL,
+			"RootCertTTL":         structs.DefaultRootCertTTL,
 		},
 	}
 

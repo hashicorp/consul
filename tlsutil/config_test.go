@@ -72,6 +72,8 @@ func startTLSServer(config *Config, alpnProtos []string, doAlpnVariant bool) (ne
 }
 
 func TestConfigurator_outgoingWrapper_OK(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	config := Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Alice.crt",
@@ -103,6 +105,8 @@ func TestConfigurator_outgoingWrapper_OK(t *testing.T) {
 }
 
 func TestConfigurator_outgoingWrapper_noverify_OK(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	config := Config{
 		VerifyOutgoing: true,
 		CAFile:         "../test/hostname/CertAuth.crt",
@@ -133,6 +137,8 @@ func TestConfigurator_outgoingWrapper_noverify_OK(t *testing.T) {
 }
 
 func TestConfigurator_outgoingWrapper_BadDC(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	config := Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Alice.crt",
@@ -194,6 +200,8 @@ func TestConfigurator_outgoingWrapper_BadCert(t *testing.T) {
 }
 
 func TestConfigurator_outgoingWrapperALPN_OK(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	config := Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Bob.crt",
@@ -226,6 +234,8 @@ func TestConfigurator_outgoingWrapperALPN_OK(t *testing.T) {
 }
 
 func TestConfigurator_outgoingWrapperALPN_serverHasNoNodeNameInSAN(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	srvConfig := Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Alice.crt",
@@ -264,6 +274,8 @@ func TestConfigurator_outgoingWrapperALPN_serverHasNoNodeNameInSAN(t *testing.T)
 }
 
 func TestConfigurator_outgoingWrapperALPN_BadDC(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	config := Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Bob.crt",
@@ -761,6 +773,8 @@ func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 }
 
 func TestConfigurator_MutualTLSCapable(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	t.Run("no ca", func(t *testing.T) {
 		config := Config{
 			Domain: "consul",
@@ -1271,7 +1285,7 @@ func TestConfigurator_AutoEncryptCert(t *testing.T) {
 	require.Equal(t, int64(4679716209), c.AutoEncryptCert().NotAfter.Unix())
 }
 
-func TestConfigurator_AuthorizeServerConn_Error(t *testing.T) {
+func TestConfigurator_AuthorizeServerConn(t *testing.T) {
 	caPEM, caPK, err := GenerateCA(CAOpts{Days: 5, Domain: "consul"})
 	require.NoError(t, err)
 
@@ -1280,10 +1294,28 @@ func TestConfigurator_AuthorizeServerConn_Error(t *testing.T) {
 	err = ioutil.WriteFile(caPath, []byte(caPEM), 0600)
 	require.NoError(t, err)
 
+	// Cert and key are not used, but required to get past validateConfig
+	signer, err := ParseSigner(caPK)
+	require.NoError(t, err)
+	pub, pk, err := GenerateCert(CertOpts{
+		Signer: signer,
+		CA:     caPEM,
+	})
+	require.NoError(t, err)
+	certFile := filepath.Join("cert.pem")
+	err = ioutil.WriteFile(certFile, []byte(pub), 0600)
+	require.NoError(t, err)
+	keyFile := filepath.Join("cert.key")
+	err = ioutil.WriteFile(keyFile, []byte(pk), 0600)
+	require.NoError(t, err)
+
 	cfg := Config{
 		VerifyServerHostname: true,
+		VerifyIncomingRPC:    true,
 		Domain:               "consul",
 		CAFile:               caPath,
+		CertFile:             certFile,
+		KeyFile:              keyFile,
 	}
 	c, err := NewConfigurator(cfg, hclog.New(nil))
 	require.NoError(t, err)
@@ -1367,6 +1399,22 @@ func TestConfigurator_AuthorizeServerConn_Error(t *testing.T) {
 		err = c.AuthorizeServerConn("dc1", s)
 		testutil.RequireErrorContains(t, err, "certificate specifies an incompatible key usage")
 	})
+
+	t.Run("disabled by verify_incoming_rpc", func(t *testing.T) {
+		cfg := Config{
+			VerifyServerHostname: true,
+			VerifyIncomingRPC:    false,
+			Domain:               "consul",
+			CAFile:               caPath,
+		}
+		c, err := NewConfigurator(cfg, hclog.New(nil))
+		require.NoError(t, err)
+
+		s := fakeTLSConn{}
+		err = c.AuthorizeServerConn("dc1", s)
+		require.NoError(t, err)
+	})
+
 }
 
 type fakeTLSConn struct {

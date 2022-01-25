@@ -345,69 +345,84 @@ func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
 		// Cluster metrics are prefixed by consul.destination
 		//
 		// Cluster metric name format:
-		// <subset>.<service>.<namespace>.<datacenter>.<internal|external>.<trustdomain>.consul
+		// <subset>.<service>.<namespace>.<partition>.<datacenter>.<internal|internal-<version>|external>.<trustdomain>.consul
 		//
 		// Examples:
+		// (default partition)
 		// - cluster.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
 		// - cluster.f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
 		// - cluster.v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
 		// - cluster.f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
 		// - cluster.passthrough~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+		// (non-default partition)
+		// - cluster.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+		// - cluster.f8f8f8f8~pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+		// - cluster.v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+		// - cluster.f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+		// - cluster.passthrough~pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
 		{"consul.destination.custom_hash",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:(%s)~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:(%s)~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.service_subset",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:(%s)\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:(%s)\.)?%s\.%s\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.service",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?(%s)\.%s\.%s\.%s\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?(%s)\.%s\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.namespace",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.(%s)\.%s\.%s\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.(%s)\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+		{"consul.destination.partition",
+			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:(%s)\.)?%s\.%s\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.datacenter",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(%s)\.%s\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?(%s)\.%s\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.routing_type",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.%s\.(%s)\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.(%s)\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.trust_domain",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.(%s)\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.%s\.(%s)\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.target",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?(((?:%s~)?(?:%s\.)?%s\.%s\.%s)\.%s\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:passthrough~)?(((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s)\.%s\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.full_target",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?(((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s)\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:passthrough~)?(((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.%s\.%s)\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		// Upstream listener metrics are prefixed by consul.upstream
 		//
 		// Listener metric name format:
-		// <tcp|http>.upstream.<service>.<namespace>.<datacenter>
+		// <tcp|http>.upstream.<service>.<namespace>.<partition>.<datacenter>
 		//
 		// Examples:
 		// - tcp.upstream.db.dc1.downstream_cx_total: 0
-		// - http.upstream.web.default.dc1.downstream_cx_total: 0
+		// - http.upstream.web.frontend.west.dc1.downstream_cx_total: 0
 		{"consul.upstream.service",
-			fmt.Sprintf(`^(?:tcp|http)\.upstream\.((%s)(?:\.%s)?\.%s\.)`,
-				reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^(?:tcp|http)\.upstream\.((%s)(?:\.%s)?(?:\.%s)?\.%s\.)`,
+				reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.upstream.datacenter",
-			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.%s)?\.(%s)\.)`,
-				reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.%s)?(?:\.%s)?\.(%s)\.)`,
+				reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.upstream.namespace",
-			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.(%s))?\.%s\.)`,
-				reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.(%s))?(?:\.%s)?\.%s\.)`,
+				reSegment, reSegment, reSegment, reSegment)},
+
+		{"consul.upstream.partition",
+			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.%s)?(?:\.(%s))?\.%s\.)`,
+				reSegment, reSegment, reSegment, reSegment)},
 	}
 
 	// These tags were deprecated in Consul 1.9.0
@@ -415,40 +430,40 @@ func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
 	if !omitDeprecatedTags {
 		deprecatedRules := [][]string{
 			{"consul.custom_hash",
-				fmt.Sprintf(`^cluster\.((?:(%s)~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`,
-					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+				fmt.Sprintf(`^cluster\.((?:(%s)~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 			{"consul.service_subset",
-				fmt.Sprintf(`^cluster\.((?:%s~)?(?:(%s)\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`,
-					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+				fmt.Sprintf(`^cluster\.((?:%s~)?(?:(%s)\.)?%s\.%s\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 			{"consul.service",
-				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?(%s)\.%s\.%s\.%s\.%s\.consul\.)`,
-					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?(%s)\.%s\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 			{"consul.namespace",
-				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.(%s)\.%s\.%s\.%s\.consul\.)`,
-					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.(%s)\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 			{"consul.datacenter",
-				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(%s)\.%s\.%s\.consul\.)`,
-					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?(%s)\.%s\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 			{"consul.routing_type",
-				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.(%s)\.%s\.consul\.)`,
-					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.(%s)\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 			{"consul.trust_domain",
-				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.(%s)\.consul\.)`,
-					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.%s\.(%s)\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 			{"consul.target",
-				fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s)\.%s\.%s\.consul\.)`,
-					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+				fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s)\.%s\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 			{"consul.full_target",
-				fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s)\.consul\.)`,
-					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+				fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.%s\.%s)\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 		}
 		rules = append(rules, deprecatedRules...)
 	}

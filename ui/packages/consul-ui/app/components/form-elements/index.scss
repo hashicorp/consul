@@ -60,8 +60,7 @@ span.label {
 }
 %form table,
 %radio-group,
-%checkbox-group,
-%main-content form dl {
+%checkbox-group {
   @extend %form-row;
 }
 %radio-group label,

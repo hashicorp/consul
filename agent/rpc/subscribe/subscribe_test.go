@@ -320,7 +320,7 @@ var _ Backend = (*testBackend)(nil)
 func runTestServer(t *testing.T, server *Server) net.Addr {
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
 	var grpcServer *gogrpc.Server
-	handler := grpc.NewHandler(addr, func(srv *gogrpc.Server) {
+	handler := grpc.NewHandler(hclog.New(nil), addr, func(srv *gogrpc.Server) {
 		grpcServer = srv
 		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, server)
 	})
@@ -612,7 +612,7 @@ node "node1" {
 }
 `
 		cfg := &acl.Config{WildcardName: structs.WildcardSpecifier}
-		authorizer, err := acl.NewAuthorizerFromRules("1", 0, rules, acl.SyntaxCurrent, cfg, nil)
+		authorizer, err := acl.NewAuthorizerFromRules(rules, acl.SyntaxCurrent, cfg, nil)
 		require.NoError(t, err)
 		authorizer = acl.NewChainedAuthorizer([]acl.Authorizer{authorizer, acl.DenyAll()})
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
@@ -808,10 +808,7 @@ node "node1" {
 	policy = "write"
 }
 `
-		authorizer, err := acl.NewAuthorizerFromRules(
-			"1", 0, rules, acl.SyntaxCurrent,
-			&acl.Config{WildcardName: structs.WildcardSpecifier},
-			nil)
+		authorizer, err := acl.NewAuthorizerFromRules(rules, acl.SyntaxCurrent, &acl.Config{WildcardName: structs.WildcardSpecifier}, nil)
 		require.NoError(t, err)
 		authorizer = acl.NewChainedAuthorizer([]acl.Authorizer{authorizer, acl.DenyAll()})
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))

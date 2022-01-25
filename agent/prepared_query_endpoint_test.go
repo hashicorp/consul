@@ -663,15 +663,14 @@ func TestPreparedQuery_ExecuteCached(t *testing.T) {
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.PreparedQuerySpecific(resp, req)
 
-		require := require.New(t)
-		require.NoError(err)
-		require.Equal(200, resp.Code)
+		require.NoError(t, err)
+		require.Equal(t, 200, resp.Code)
 
 		r, ok := obj.(structs.PreparedQueryExecuteResponse)
-		require.True(ok)
-		require.Equal(expectFailovers, r.Failovers)
+		require.True(t, ok)
+		require.Equal(t, expectFailovers, r.Failovers)
 
-		require.Equal(expectCache, resp.Header().Get("X-Cache"))
+		require.Equal(t, expectCache, resp.Header().Get("X-Cache"))
 	}
 
 	// Should be a miss at first
@@ -770,22 +769,21 @@ func TestPreparedQuery_Explain(t *testing.T) {
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
 		defer a.Shutdown()
-		require := require.New(t)
 
 		m := MockPreparedQuery{
 			executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-				require.True(args.Connect)
+				require.True(t, args.Connect)
 				return nil
 			},
 		}
-		require.NoError(a.registerEndpoint("PreparedQuery", &m))
+		require.NoError(t, a.registerEndpoint("PreparedQuery", &m))
 
 		body := bytes.NewBuffer(nil)
 		req, _ := http.NewRequest("GET", "/v1/query/my-id/execute?connect=true", body)
 		resp := httptest.NewRecorder()
 		_, err := a.srv.PreparedQuerySpecific(resp, req)
-		require.NoError(err)
-		require.Equal(200, resp.Code)
+		require.NoError(t, err)
+		require.Equal(t, 200, resp.Code)
 	})
 }
 

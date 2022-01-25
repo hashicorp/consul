@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: add variation of force-leave that exclusively works on the WAN
+```

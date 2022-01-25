@@ -32,6 +32,7 @@ type Server struct {
 	SegmentAddrs map[string]string
 	SegmentPorts map[string]int
 	WanJoinPort  int
+	LanJoinPort  int
 	Bootstrap    bool
 	Expect       int
 	Build        version.Version
@@ -168,6 +169,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		SegmentAddrs: segmentAddrs,
 		SegmentPorts: segmentPorts,
 		WanJoinPort:  wanJoinPort,
+		LanJoinPort:  int(m.Port),
 		Bootstrap:    bootstrap,
 		Expect:       expect,
 		Addr:         addr,

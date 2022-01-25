@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"bytes"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -32,12 +31,11 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	TestDefaultMasterToken = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
+	TestDefaultInitialManagementToken = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
 )
 
 // testTLSCertificates Generates a TLS CA and server key/cert and returns them
@@ -68,21 +66,12 @@ func testTLSCertificates(serverName string) (cert string, key string, cacert str
 	return cert, privateKey, ca, nil
 }
 
-// testServerACLConfig wraps another arbitrary Config altering callback
-// to setup some common ACL configurations. A new callback func will
-// be returned that has the original callback invoked after setting
-// up all of the ACL configurations (so they can still be overridden)
-func testServerACLConfig(cb func(*Config)) func(*Config) {
-	return func(c *Config) {
-		c.PrimaryDatacenter = "dc1"
-		c.ACLsEnabled = true
-		c.ACLMasterToken = TestDefaultMasterToken
-		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
-
-		if cb != nil {
-			cb(c)
-		}
-	}
+// testServerACLConfig setup some common ACL configurations.
+func testServerACLConfig(c *Config) {
+	c.PrimaryDatacenter = "dc1"
+	c.ACLsEnabled = true
+	c.ACLInitialManagementToken = TestDefaultInitialManagementToken
+	c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 }
 
 func configureTLS(config *Config) {
@@ -117,11 +106,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports := freeport.MustTake(3)
-	t.Cleanup(func() {
-		freeport.Return(ports)
-	})
-
+	ports := freeport.GetN(t, 3)
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
@@ -170,8 +155,6 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.ServerHealthInterval = 50 * time.Millisecond
 	config.AutopilotInterval = 100 * time.Millisecond
 
-	config.Build = "1.7.2"
-
 	config.CoordinateUpdatePeriod = 100 * time.Millisecond
 	config.LeaveDrainTime = 1 * time.Millisecond
 
@@ -193,14 +176,12 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	return dir, config
 }
 
+// Deprecated: use testServerWithConfig instead. It does the same thing and more.
 func testServer(t *testing.T) (string, *Server) {
-	return testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc1"
-		c.PrimaryDatacenter = "dc1"
-		c.Bootstrap = true
-	})
+	return testServerWithConfig(t)
 }
 
+// Deprecated: use testServerWithConfig
 func testServerDC(t *testing.T, dc string) (string, *Server) {
 	return testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = dc
@@ -208,6 +189,7 @@ func testServerDC(t *testing.T, dc string) (string, *Server) {
 	})
 }
 
+// Deprecated: use testServerWithConfig
 func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Server) {
 	return testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = dc
@@ -216,6 +198,7 @@ func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Se
 	})
 }
 
+// Deprecated: use testServerWithConfig
 func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
 	return testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = dc
@@ -224,16 +207,7 @@ func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
 	})
 }
 
-func testServerDCExpectNonVoter(t *testing.T, dc string, expect int) (string, *Server) {
-	return testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = dc
-		c.Bootstrap = false
-		c.BootstrapExpect = expect
-		c.ReadReplica = true
-	})
-}
-
-func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
+func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *Server) {
 	var dir string
 	var srv *Server
 
@@ -241,8 +215,8 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		var config *Config
 		dir, config = testServerConfig(t)
-		if cb != nil {
-			cb(config)
+		for _, fn := range configOpts {
+			fn(config)
 		}
 
 		// Apply config to copied fields because many tests only set the old
@@ -263,16 +237,18 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 
 // cb is a function that can alter the test servers configuration prior to the server starting.
 func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToken bool) (string, *Server, rpc.ClientCodec) {
-	dir, srv := testServerWithConfig(t, testServerACLConfig(cb))
-	t.Cleanup(func() { srv.Shutdown() })
+	opts := []func(*Config){testServerACLConfig}
+	if cb != nil {
+		opts = append(opts, cb)
+	}
+	dir, srv := testServerWithConfig(t, opts...)
 
 	if initReplicationToken {
 		// setup some tokens here so we get less warnings in the logs
-		srv.tokens.UpdateReplicationToken(TestDefaultMasterToken, token.TokenSourceConfig)
+		srv.tokens.UpdateReplicationToken(TestDefaultInitialManagementToken, token.TokenSourceConfig)
 	}
 
 	codec := rpcClient(t, srv)
-	t.Cleanup(func() { codec.Close() })
 	return dir, srv, codec
 }
 
@@ -291,6 +267,7 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { srv.Shutdown() })
 
 	// wait until after listen
 	<-up
@@ -389,35 +366,38 @@ func TestServer_JoinLAN(t *testing.T) {
 	})
 }
 
-// TestServer_JoinLAN_SerfAllowedCIDRs test that IPs might be blocked
-// with Serf.
-// To run properly, this test requires to be able to bind and have access
-// on 127.0.1.1 which is the case for most Linux machines and Windows,
-// so Unit test will run in the CI.
-// To run it on Mac OS, please run this commandd first, otherwise the
-// test will be skipped: `sudo ifconfig lo0 alias 127.0.1.1 up`
+// TestServer_JoinLAN_SerfAllowedCIDRs test that IPs might be blocked with
+// Serf.
+//
+// To run properly, this test requires to be able to bind and have access on
+// 127.0.1.1 which is the case for most Linux machines and Windows, so Unit
+// test will run in the CI.
+//
+// To run it on Mac OS, please run this command first, otherwise the test will
+// be skipped: `sudo ifconfig lo0 alias 127.0.1.1 up`
 func TestServer_JoinLAN_SerfAllowedCIDRs(t *testing.T) {
 	t.Parallel()
+
+	const targetAddr = "127.0.1.1"
+
+	skipIfCannotBindToIP(t, targetAddr)
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.BootstrapExpect = 1
 		lan, err := memberlist.ParseCIDRs([]string{"127.0.0.1/32"})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		c.SerfLANConfig.MemberlistConfig.CIDRsAllowed = lan
 		wan, err := memberlist.ParseCIDRs([]string{"127.0.0.0/24", "::1/128"})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		c.SerfWANConfig.MemberlistConfig.CIDRsAllowed = wan
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	targetAddr := "127.0.1.1"
-	dir2, a2, err := testClientWithConfigWithErr(t, func(c *Config) {
+	dir2, a2 := testClientWithConfig(t, func(c *Config) {
 		c.SerfLANConfig.MemberlistConfig.BindAddr = targetAddr
 	})
 	defer os.RemoveAll(dir2)
-	if err != nil {
-		t.Skipf("Cannot bind on %s, to run on Mac OS: `sudo ifconfig lo0 alias 127.0.1.1 up`", targetAddr)
-	}
 	defer a2.Shutdown()
 
 	dir3, rs3 := testServerWithConfig(t, func(c *Config) {
@@ -449,6 +429,76 @@ func TestServer_JoinLAN_SerfAllowedCIDRs(t *testing.T) {
 			r.Fatalf("got %d rs3 WAN members want %d", got, want)
 		}
 	})
+}
+
+// TestServer_JoinWAN_SerfAllowedCIDRs test that IPs might be
+// blocked with Serf.
+//
+// To run properly, this test requires to be able to bind and have access on
+// 127.0.1.1 which is the case for most Linux machines and Windows, so Unit
+// test will run in the CI.
+//
+// To run it on Mac OS, please run this command first, otherwise the test will
+// be skipped: `sudo ifconfig lo0 alias 127.0.1.1 up`
+func TestServer_JoinWAN_SerfAllowedCIDRs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	const targetAddr = "127.0.1.1"
+
+	skipIfCannotBindToIP(t, targetAddr)
+
+	wanCIDRs, err := memberlist.ParseCIDRs([]string{"127.0.0.1/32"})
+	require.NoError(t, err)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = true
+		c.BootstrapExpect = 1
+		c.Datacenter = "dc1"
+		c.SerfWANConfig.MemberlistConfig.CIDRsAllowed = wanCIDRs
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	waitForLeaderEstablishment(t, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = true
+		c.BootstrapExpect = 1
+		c.PrimaryDatacenter = "dc1"
+		c.Datacenter = "dc2"
+		c.SerfWANConfig.MemberlistConfig.BindAddr = targetAddr
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	waitForLeaderEstablishment(t, s2)
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+
+	// Joining should be fine
+	joinWANWithNoMembershipChecks(t, s2, s1)
+
+	// But membership is blocked if you go and take a peek on the server.
+	t.Run("LAN membership should only show each other", func(t *testing.T) {
+		require.Len(t, s1.LANMembersInAgentPartition(), 1)
+		require.Len(t, s2.LANMembersInAgentPartition(), 1)
+	})
+	t.Run("WAN membership in the primary should not show the secondary", func(t *testing.T) {
+		require.Len(t, s1.WANMembers(), 1)
+	})
+	t.Run("WAN membership in the secondary can show the primary", func(t *testing.T) {
+		require.Len(t, s2.WANMembers(), 2)
+	})
+}
+
+func skipIfCannotBindToIP(t *testing.T, ip string) {
+	l, err := net.Listen("tcp", net.JoinHostPort(ip, "0"))
+	if err != nil {
+		t.Skipf("Cannot bind on %s, to run on Mac OS: `sudo ifconfig lo0 alias %s up`", ip, ip)
+	}
+	l.Close()
 }
 
 func TestServer_LANReap(t *testing.T) {
@@ -641,15 +691,16 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 
 // This is a mirror of a similar test in agent/agent_test.go
 func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
 
-	gwPort := freeport.MustTake(1)
-	defer freeport.Return(gwPort)
-	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", gwPort[0])
+	port := freeport.GetOne(t)
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", port)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.TLSConfig.Domain = "consul"
@@ -735,7 +786,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 				ID:      "mesh-gateway",
 				Service: "mesh-gateway",
 				Meta:    map[string]string{structs.MetaWANFederationKey: "1"},
-				Port:    gwPort[0],
+				Port:    port,
 			},
 		}
 
@@ -790,7 +841,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 				ID:      "mesh-gateway",
 				Service: "mesh-gateway",
 				Meta:    map[string]string{structs.MetaWANFederationKey: "1"},
-				Port:    gwPort[0],
+				Port:    port,
 			},
 		}
 
@@ -807,7 +858,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 				ID:      "mesh-gateway",
 				Service: "mesh-gateway",
 				Meta:    map[string]string{structs.MetaWANFederationKey: "1"},
-				Port:    gwPort[0],
+				Port:    port,
 			},
 		}
 
@@ -1215,7 +1266,11 @@ func TestServer_Expect_NonVoters(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerDCExpectNonVoter(t, "dc1", 2)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.BootstrapExpect = 2
+		c.ReadReplica = true
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
@@ -1632,35 +1687,4 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 	})
-}
-
-func TestServer_CALogging(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, conf1 := testServerConfig(t)
-
-	// Setup dummy logger to catch output
-	var buf bytes.Buffer
-	logger := testutil.LoggerWithOutput(t, &buf)
-
-	deps := newDefaultDeps(t, conf1)
-	deps.Logger = logger
-
-	s1, err := NewServer(conf1, deps)
-	require.NoError(t, err)
-	defer s1.Shutdown()
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	// Wait til CA root is setup
-	retry.Run(t, func(r *retry.R) {
-		var out structs.IndexedCARoots
-		r.Check(s1.RPC("ConnectCA.Roots", structs.DCSpecificRequest{
-			Datacenter: conf1.Datacenter,
-		}, &out))
-	})
-
-	require.Contains(t, buf.String(), "consul CA provider configured")
 }

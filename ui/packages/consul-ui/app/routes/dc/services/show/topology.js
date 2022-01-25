@@ -11,7 +11,7 @@ export default class TopologyRoute extends Route {
   async createIntention(source, destination) {
     // begin with a create action as it makes more sense if the we can't even
     // get a list of intentions
-    let notification = this.feedback.notification('create');
+    let notification = this.feedback.notification('create', 'intention');
     try {
       // intentions will be a proxy object
       let intentions = await this.intentions;
@@ -34,7 +34,7 @@ export default class TopologyRoute extends Route {
         });
       } else {
         // we found an intention in the find higher up, so we are updating
-        notification = this.feedback.notification('update');
+        notification = this.feedback.notification('update', 'intention');
       }
       set(intention, 'Action', 'allow');
       await this.repo.persist(intention);

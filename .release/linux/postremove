@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [ "$1" = "purge" ]
+then
+  userdel consul
+fi
+
+if [ "$1" == "upgrade" ] && [ -d /run/systemd/system ]; then
+  systemctl --system daemon-reload >/dev/null || true
+  systemctl restart consul >/dev/null || true
+fi
+
+exit 0
+

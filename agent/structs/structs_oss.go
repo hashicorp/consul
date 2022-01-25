@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package structs
@@ -13,6 +14,10 @@ var emptyEnterpriseMeta = EnterpriseMeta{}
 
 // EnterpriseMeta stub
 type EnterpriseMeta struct{}
+
+func (m *EnterpriseMeta) ToEnterprisePolicyMeta() *acl.EnterprisePolicyMeta {
+	return nil
+}
 
 func (m *EnterpriseMeta) estimateSize() int {
 	return 0
@@ -44,6 +49,10 @@ func (m *EnterpriseMeta) LessThan(_ *EnterpriseMeta) bool {
 
 func (m *EnterpriseMeta) WithWildcardNamespace() *EnterpriseMeta {
 	return &emptyEnterpriseMeta
+}
+
+func (m *EnterpriseMeta) UnsetPartition() {
+	// do nothing
 }
 
 // TODO(partition): stop using this

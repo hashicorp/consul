@@ -1,0 +1,5 @@
+```release-note:improvement
+connect: Support Vault auth methods for the Connect CA Vault provider. Currently, we support any non-deprecated auth methods
+the latest version of Vault supports (v1.8.5), which include AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud,
+JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password.
+```

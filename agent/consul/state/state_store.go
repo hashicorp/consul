@@ -203,6 +203,28 @@ func (s *Store) Snapshot() *Snapshot {
 	return &Snapshot{s, tx, idx}
 }
 
+// WalkAllTables basically lets you dump memdb generically and exists primarily
+// for very specific types of unit tests and should not be executed in
+// production code.
+func (s *Store) WalkAllTables(fn func(table string, item interface{}) bool) error {
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	for name := range s.schema.Tables {
+		iter, err := snap.tx.Get(name, indexID)
+		if err != nil {
+			return fmt.Errorf("error walking table %q: %w", name, err)
+		}
+		for item := iter.Next(); item != nil; item = iter.Next() {
+			if keepGoing := fn(name, item); !keepGoing {
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // LastIndex returns that last index that affects the snapshotted data.
 func (s *Snapshot) LastIndex() uint64 {
 	return s.lastIndex

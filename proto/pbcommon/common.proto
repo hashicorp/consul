@@ -150,6 +150,14 @@ message QueryMeta  {
    // Having `discovery_max_stale` on the agent can affect whether
    // the request was served by a leader.
    string ConsistencyLevel = 4;
+
+   // Reserved for NotModified and Backend.
+   reserved 5, 6;
+
+   // ResultsFilteredByACLs is true when some of the query's results were
+   // filtered out by enforcing ACLs. It may be false because nothing was
+   // removed, or because the endpoint does not yet support this flag.
+   bool ResultsFilteredByACLs = 7;
 }
 
 // EnterpriseMeta contains metadata that is only used by the Enterprise version

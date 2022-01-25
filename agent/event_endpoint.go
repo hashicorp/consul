@@ -127,17 +127,6 @@ RUN_QUERY:
 	// Get the recent events
 	events := s.agent.UserEvents()
 
-	// Filter the events using the ACL, if present
-	for i := 0; i < len(events); i++ {
-		name := events[i].Name
-		if authz.EventRead(name, nil) == acl.Allow {
-			continue
-		}
-		s.agent.logger.Debug("dropping event from result due to ACLs", "event", name)
-		events = append(events[:i], events[i+1:]...)
-		i--
-	}
-
 	// Filter the events if requested
 	if nameFilter != "" {
 		for i := 0; i < len(events); i++ {
@@ -146,6 +135,36 @@ RUN_QUERY:
 				i--
 			}
 		}
+	}
+
+	// Filter the events using the ACL, if present
+	//
+	// Note: we filter the results with ACLs *after* applying the user-supplied
+	// name filter, to ensure the filtered-by-acls header we set below does not
+	// include results that would be filtered out even if the user did have
+	// permission.
+	var removed bool
+	for i := 0; i < len(events); i++ {
+		name := events[i].Name
+		if authz.EventRead(name, nil) == acl.Allow {
+			continue
+		}
+		s.agent.logger.Debug("dropping event from result due to ACLs", "event", name)
+		removed = true
+		events = append(events[:i], events[i+1:]...)
+		i--
+	}
+
+	// Set the X-Consul-Results-Filtered-By-ACLs header, but only if the user is
+	// authenticated (to prevent information leaking).
+	//
+	// This is done automatically for HTTP endpoints that proxy to an RPC endpoint
+	// that sets QueryMeta.ResultsFilteredByACLs, but must be done manually for
+	// agent-local endpoints.
+	//
+	// For more information see the comment on: Server.maskResultsFilteredByACLs.
+	if token != "" {
+		setResultsFilteredByACLs(resp, removed)
 	}
 
 	// Determine the index

@@ -89,6 +89,19 @@ const (
 
 var ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
 
+// partitionUnsetter is used to describe requests values that can unset their
+// EnterpriseMeta.Partition value.
+type partitionUnsetter interface {
+	// UnsetPartition is used to strip a Partition value from the request before
+	// it is forwarded to a remote datacenter. By unsetting the value, the server
+	// that handles the request can decide which partition should be used (or do nothing).
+	// This ensures that servers that are Partition-enabled (pre-1.11, or non-Enterprise)
+	// don't inadvertently cause servers that are not Partition-enabled (<= 1.10 or non-Enterprise)
+	// to filter their responses by Partition. In other words, this ensures upgraded servers
+	// remain compatible with non-upgraded servers.
+	UnsetPartition()
+}
+
 func (s *Server) rpcLogger() hclog.Logger {
 	return s.loggers.Named(logging.RPC)
 }
@@ -655,6 +668,14 @@ func (s *Server) forwardRequestToOtherDatacenter(info structs.RPCInfo, forwardTo
 				}
 			}
 		}
+		// In order to interoperate with servers that can interpret Partition, but
+		// may not handle it correctly (eg. 1.10 servers), we need to unset the value.
+		// Unsetting the Partition ensures that the server that handles the request
+		// uses its Partition, or an empty value (aka doing nothing).
+		// For requests that are not Partition-aware, this is a no-op.
+		if v, ok := info.(partitionUnsetter); ok {
+			v.UnsetPartition()
+		}
 
 		return true, forwardToDC(dc)
 	}
@@ -938,8 +959,6 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 
 RUN_QUERY:
 	// Setup blocking loop
-	// Update the query metadata.
-	s.setQueryMeta(queryMeta)
 
 	// Validate
 	// If the read must be consistent we verify that we are still the leader.
@@ -968,6 +987,10 @@ RUN_QUERY:
 
 	// Execute the queryFn
 	err := fn(ws, state)
+
+	// Update the query metadata.
+	s.setQueryMeta(queryMeta, queryOpts.GetToken())
+
 	// Note we check queryOpts.MinQueryIndex is greater than zero to determine if
 	// blocking was requested by client, NOT meta.Index since the state function
 	// might return zero if something is not initialized and care wasn't taken to
@@ -1001,7 +1024,9 @@ RUN_QUERY:
 }
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
-func (s *Server) setQueryMeta(m structs.QueryMetaCompat) {
+//
+// Note: This method must be called *after* filtering query results with ACLs.
+func (s *Server) setQueryMeta(m structs.QueryMetaCompat, token string) {
 	if s.IsLeader() {
 		m.SetLastContact(0)
 		m.SetKnownLeader(true)
@@ -1009,6 +1034,7 @@ func (s *Server) setQueryMeta(m structs.QueryMetaCompat) {
 		m.SetLastContact(time.Since(s.raft.LastContact()))
 		m.SetKnownLeader(s.raft.Leader() != "")
 	}
+	maskResultsFilteredByACLs(token, m)
 }
 
 // consistentRead is used to ensure we do not perform a stale
@@ -1042,4 +1068,32 @@ func (s *Server) consistentRead() error {
 	}
 
 	return structs.ErrNotReadyForConsistentReads
+}
+
+// maskResultsFilteredByACLs blanks out the ResultsFilteredByACLs flag if the
+// request is unauthenticated, to limit information leaking.
+//
+// Endpoints that support bexpr filtering could be used in combination with
+// this flag/header to discover the existence of resources to which the user
+// does not have access, therefore we only expose it when the user presents
+// a valid ACL token. This doesn't completely remove the risk (by nature the
+// purpose of this flag is to let the user know there are resources they can
+// not access) but it prevents completely unauthenticated users from doing so.
+//
+// Notes:
+//
+//	* The definition of "unauthenticated" here is incomplete, as it doesn't
+//	  account for the fact that operators can modify the anonymous token with
+//	  custom policies, or set namespace default policies. As these scenarios
+//	  are less common and this flag is a best-effort UX improvement, we think
+//	  the trade-off for reduced complexity is acceptable.
+//
+//	* This method assumes that the given token has already been validated (and
+//	  will only check whether it is blank or not). It's a safe assumption because
+//	  ResultsFilteredByACLs is only set to try when applying the already-resolved
+//	  token's policies.
+func maskResultsFilteredByACLs(token string, meta structs.QueryMetaCompat) {
+	if token == "" {
+		meta.SetResultsFilteredByACLs(false)
+	}
 }

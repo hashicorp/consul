@@ -3,6 +3,20 @@
 %copy-button {
   @extend %button;
 }
+/* Temporary tweak for copy-buttons in kv-lists */
+/* once someone gets round to re-doing copy buttons */
+/* hopefully this little tweak can go */
+%horizontal-kv-list .copy-button {
+  margin-top: 0 !important;
+}
+%horizontal-kv-list .copy-btn {
+  top: 0 !important;
+}
+%horizontal-kv-list .copy-btn:empty::before {
+  left: 0 !important;
+}
+/**/
+
 .copy-button button {
   @extend %copy-button;
 }

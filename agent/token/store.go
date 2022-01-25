@@ -17,7 +17,7 @@ type TokenKind int
 
 const (
 	TokenKindAgent TokenKind = iota
-	TokenKindAgentMaster
+	TokenKindAgentRecovery
 	TokenKindUser
 	TokenKindReplication
 )
@@ -59,13 +59,13 @@ type Store struct {
 	// agentTokenSource indicates where this token originated from
 	agentTokenSource TokenSource
 
-	// agentMasterToken is a special token that's only used locally for
+	// agentRecoveryToken is a special token that's only used locally for
 	// access to the /v1/agent utility operations if the servers aren't
 	// available.
-	agentMasterToken string
+	agentRecoveryToken string
 
-	// agentMasterTokenSource indicates where this token originated from
-	agentMasterTokenSource TokenSource
+	// agentRecoveryTokenSource indicates where this token originated from
+	agentRecoveryTokenSource TokenSource
 
 	// replicationToken is a special token that's used by servers to
 	// replicate data from the primary datacenter.
@@ -188,15 +188,15 @@ func (t *Store) UpdateAgentToken(token string, source TokenSource) bool {
 	return changed
 }
 
-// UpdateAgentMasterToken replaces the current agent master token in the store.
+// UpdateAgentRecoveryToken replaces the current agent recovery token in the store.
 // Returns true if it was changed.
-func (t *Store) UpdateAgentMasterToken(token string, source TokenSource) bool {
+func (t *Store) UpdateAgentRecoveryToken(token string, source TokenSource) bool {
 	t.l.Lock()
-	changed := t.agentMasterToken != token || t.agentMasterTokenSource != source
-	t.agentMasterToken = token
-	t.agentMasterTokenSource = source
+	changed := t.agentRecoveryToken != token || t.agentRecoveryTokenSource != source
+	t.agentRecoveryToken = token
+	t.agentRecoveryTokenSource = source
 	if changed {
-		t.sendNotificationLocked(TokenKindAgentMaster)
+		t.sendNotificationLocked(TokenKindAgentRecovery)
 	}
 	t.l.Unlock()
 	return changed
@@ -239,11 +239,11 @@ func (t *Store) AgentToken() string {
 	return t.userToken
 }
 
-func (t *Store) AgentMasterToken() string {
+func (t *Store) AgentRecoveryToken() string {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
-	return t.agentMasterToken
+	return t.agentRecoveryToken
 }
 
 // ReplicationToken returns the replication token.
@@ -270,11 +270,11 @@ func (t *Store) AgentTokenAndSource() (string, TokenSource) {
 	return t.agentToken, t.agentTokenSource
 }
 
-func (t *Store) AgentMasterTokenAndSource() (string, TokenSource) {
+func (t *Store) AgentRecoveryTokenAndSource() (string, TokenSource) {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
-	return t.agentMasterToken, t.agentMasterTokenSource
+	return t.agentRecoveryToken, t.agentRecoveryTokenSource
 }
 
 // ReplicationToken returns the replication token.
@@ -285,11 +285,11 @@ func (t *Store) ReplicationTokenAndSource() (string, TokenSource) {
 	return t.replicationToken, t.replicationTokenSource
 }
 
-// IsAgentMasterToken checks to see if a given token is the agent master token.
+// IsAgentRecoveryToken checks to see if a given token is the agent recovery token.
 // This will never match an empty token for safety.
-func (t *Store) IsAgentMasterToken(token string) bool {
+func (t *Store) IsAgentRecoveryToken(token string) bool {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
-	return (token != "") && (subtle.ConstantTimeCompare([]byte(token), []byte(t.agentMasterToken)) == 1)
+	return (token != "") && (subtle.ConstantTimeCompare([]byte(token), []byte(t.agentRecoveryToken)) == 1)
 }

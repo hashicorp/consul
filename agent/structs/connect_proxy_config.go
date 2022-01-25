@@ -314,15 +314,6 @@ func (us Upstreams) ToAPI() []api.Upstream {
 	return a
 }
 
-func (us Upstreams) ToMap() map[string]*Upstream {
-	upstreamMap := make(map[string]*Upstream)
-
-	for i := range us {
-		upstreamMap[us[i].Identifier()] = &us[i]
-	}
-	return upstreamMap
-}
-
 // UpstreamsFromAPI is a helper for converting api.Upstream to Upstream.
 func UpstreamsFromAPI(us []api.Upstream) Upstreams {
 	a := make([]Upstream, len(us))
@@ -503,15 +494,24 @@ func (u *Upstream) ToKey() UpstreamKey {
 	}
 }
 
-func (u Upstream) HasLocalPortOrSocket() bool {
+func (u *Upstream) HasLocalPortOrSocket() bool {
+	if u == nil {
+		return false
+	}
 	return (u.LocalBindPort != 0 || u.LocalBindSocketPath != "")
 }
 
-func (u Upstream) UpstreamIsUnixSocket() bool {
+func (u *Upstream) UpstreamIsUnixSocket() bool {
+	if u == nil {
+		return false
+	}
 	return (u.LocalBindPort == 0 && u.LocalBindAddress == "" && u.LocalBindSocketPath != "")
 }
 
-func (u Upstream) UpstreamAddressToString() string {
+func (u *Upstream) UpstreamAddressToString() string {
+	if u == nil {
+		return ""
+	}
 	if u.UpstreamIsUnixSocket() {
 		return u.LocalBindSocketPath
 	}
@@ -542,9 +542,21 @@ func (k UpstreamKey) String() string {
 	)
 }
 
-// String implements Stringer by returning the Identifier.
-func (u *Upstream) String() string {
-	return u.Identifier()
+// String returns a representation of this upstream suitable for debugging
+// purposes but nothing relies upon this format.
+func (us *Upstream) String() string {
+	name := us.enterpriseStringPrefix() + us.DestinationName
+	typ := us.DestinationType
+
+	if us.Datacenter != "" {
+		name += "?dc=" + us.Datacenter
+	}
+
+	// Service is default type so never prefix it.
+	if typ == "" || typ == UpstreamDestTypeService {
+		return name
+	}
+	return typ + ":" + name
 }
 
 // UpstreamFromAPI is a helper for converting api.Upstream to Upstream.

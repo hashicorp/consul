@@ -1,9 +1,11 @@
+//go:build !consulent
 // +build !consulent
 
 package state
 
 import (
 	"fmt"
+	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
 
@@ -17,13 +19,7 @@ func serviceIndexName(name string, _ *structs.EnterpriseMeta) string {
 }
 
 func serviceKindIndexName(kind structs.ServiceKind, _ *structs.EnterpriseMeta) string {
-	switch kind {
-	case structs.ServiceKindTypical:
-		// needs a special case here
-		return "service_kind.typical"
-	default:
-		return "service_kind." + string(kind)
-	}
+	return "service_kind." + kind.Normalized()
 }
 
 func catalogUpdateNodesIndexes(tx WriteTxn, idx uint64, entMeta *structs.EnterpriseMeta) error {
@@ -190,4 +186,23 @@ func validateRegisterRequestTxn(_ ReadTxn, _ *structs.RegisterRequest, _ bool) (
 
 func (s *Store) ValidateRegisterRequest(_ *structs.RegisterRequest) (*structs.EnterpriseMeta, error) {
 	return nil, nil
+}
+
+func indexFromKindServiceName(arg interface{}) ([]byte, error) {
+	var b indexBuilder
+
+	switch n := arg.(type) {
+	case KindServiceNameQuery:
+		b.String(strings.ToLower(string(n.Kind)))
+		b.String(strings.ToLower(n.Name))
+		return b.Bytes(), nil
+
+	case *KindServiceName:
+		b.String(strings.ToLower(string(n.Kind)))
+		b.String(strings.ToLower(n.Service.Name))
+		return b.Bytes(), nil
+
+	default:
+		return nil, fmt.Errorf("type must be KindServiceNameQuery or *KindServiceName: %T", arg)
+	}
 }

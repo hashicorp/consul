@@ -7,6 +7,8 @@ page_title: 'Commands: Intention Check'
 
 Command: `consul intention check`
 
+Corresponding HTTP API Endpoint: [\[GET\] /v1/connect/intentions/check](/api-docs/connect/intentions#check-intention-result)
+
 The `intention check` command checks whether a connection attempt between
 two services would be authorized given the current set of intentions and
 Consul configuration.
@@ -21,6 +23,23 @@ intention read permissions and don't evaluate the result.
 defined as _deny_ intentions during evaluation, as this endpoint is only suited
 for networking layer 4 (e.g. TCP) integration.
 
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required                  |
+| ----------------------------- |
+| `intentions:read`<sup>1</sup> |
+
+<p>
+  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
+  <code>service</code> rule. See{' '}
+  <a href="/docs/connect/intentions#intention-management-permissions">
+    Intention Management Permissions
+  </a>{' '}
+  for more details.
+</p>
+
 ## Usage
 
 Usage: `consul intention check [options] SRC DST`
@@ -34,6 +53,8 @@ Usage: `consul intention check [options] SRC DST`
 #### Enterprise Options
 
 @include 'http_api_namespace_options.mdx'
+
+@include 'http_api_partition_options.mdx'
 
 ## Examples
 

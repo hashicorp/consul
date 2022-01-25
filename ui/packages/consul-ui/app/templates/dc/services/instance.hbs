@@ -21,28 +21,58 @@ as |route|>
       />
     </BlockSlot>
 
-    <BlockSlot @name="disconnected" as |Notification|>
+    <BlockSlot @name="disconnected" as |after|>
       {{#if (eq loader.error.status "404")}}
-        <Notification @sticky={{true}}>
-          <p data-notification role="alert" class="warning notification-update">
+        <Notice
+          {{notification
+            sticky=true
+          }}
+          class="notification-update"
+          @type="warning"
+        as |notice|>
+          <notice.Header>
             <strong>Warning!</strong>
-            This service has been deregistered and no longer exists in the catalog.
-          </p>
-        </Notification>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              This service has been deregistered and no longer exists in the catalog.
+            </p>
+          </notice.Body>
+        </Notice>
       {{else if (eq loader.error.status "403")}}
-        <Notification @sticky={{true}}>
-          <p data-notification role="alert" class="error notification-update">
+        <Notice
+          {{notification
+            sticky=true
+          }}
+          class="notification-update"
+          @type="error"
+        as |notice|>
+          <notice.Header>
             <strong>Error!</strong>
-            You no longer have access to this service
-          </p>
-        </Notification>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              You no longer have access to this service
+            </p>
+          </notice.Body>
+        </Notice>
       {{else}}
-        <Notification @sticky={{true}}>
-          <p data-notification role="alert" class="warning notification-update">
+        <Notice
+          {{notification
+            sticky=true
+          }}
+          class="notification-update"
+          @type="error"
+        as |notice|>
+          <notice.Header>
             <strong>Warning!</strong>
-            An error was returned whilst loading this data, refresh to try again.
-          </p>
-        </Notification>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              An error was returned whilst loading this data, refresh to try again.
+            </p>
+          </notice.Body>
+        </Notice>
       {{/if}}
     </BlockSlot>
 
@@ -64,6 +94,7 @@ as |item|}}
               name=route.params.name
             )
           }}
+          @onchange={{action (mut meta) value="data"}}
         as |meta|>
           {{! We only really need meta to get the correct ServiceID }}
           {{! but we may as well use the NodeName and ServiceName }}
@@ -71,8 +102,13 @@ as |item|}}
           {{! so if we can ever get ServiceID from elsewhere we could save }}
           {{! a HTTP request/long poll here }}
           {{#if meta.data.ServiceID}}
+          {{! if we have a proxy then get the additional instance information }}
+          {{! for the proxy itself so if the service is called `backend` }}
+          {{! its likely to have a proxy service called `backend-sidecar-proxy` }}
+          {{! and this second request get the info for that instance and saves }}
+          {{! it into the `proxy` variable }}
             <DataSource
-              @src={{uri '/${partition}/${nspace}/${dc}/proxy-service-instance/${id}/${node}/${name}'
+              @src={{uri '/${partition}/${nspace}/${dc}/service-instance/${id}/${node}/${name}'
                 (hash
                   partition=route.params.partition
                   nspace=route.params.nspace
@@ -82,7 +118,8 @@ as |item|}}
                   name=meta.data.ServiceName
                 )
               }}
-              @onchange={{action (mut proxy) value="data"}}/>
+              @onchange={{action (mut proxy) value="data"}}
+            />
           {{/if}}
         </DataSource>
       {{/if}}
@@ -97,9 +134,11 @@ as |item|}}
             <h1>
               <route.Title @title={{item.Service.ID}} />
             </h1>
-            <Consul::ExternalSource @item={{item}} />
+            <Consul::ExternalSource @item={{item}} @withInfo={{true}} />
             <Consul::Kind @item={{item}} @withInfo={{true}} />
-            {{#if (eq proxy.ServiceProxy.Mode 'transparent')}}
+            {{! TODO: Looks like we can get this straight from item.Proxy.Mode }}
+            {{! the less we need `proxy` and `meta` the better }}
+            {{#if (eq meta.ServiceProxy.Mode 'transparent')}}
               <Consul::TransparentProxy />
             {{/if}}
           </BlockSlot>
@@ -119,27 +158,22 @@ as |item|}}
             {{/let}}
           </BlockSlot>
           <BlockSlot @name="content">
-              <TabNav @items={{
-                compact
-                    (array
-                            (hash label="Health Checks" href=(href-to "dc.services.instance.healthchecks") selected=(is-href "dc.services.instance.healthchecks"))
-      (if
-        (eq item.Service.Kind 'mesh-gateway')
-                            (hash label="Addresses" href=(href-to "dc.services.instance.addresses") selected=(is-href "dc.services.instance.addresses")) ""
-      )
-      (if proxy
-                            (hash label="Upstreams" href=(href-to "dc.services.instance.upstreams") selected=(is-href "dc.services.instance.upstreams"))
-      )
-      (if proxy
-                            (hash label="Exposed Paths" href=(href-to "dc.services.instance.exposedpaths") selected=(is-href "dc.services.instance.exposedpaths"))
-      )
-                            (hash label="Tags & Meta" href=(href-to "dc.services.instance.metadata") selected=(is-href "dc.services.instance.metadata"))
-                    )
-              }}/>
+            <TabNav @items={{
+              compact
+                  (array
+                                          (hash label="Health Checks" href=(href-to "dc.services.instance.healthchecks") selected=(is-href "dc.services.instance.healthchecks"))
+(if (eq item.Service.Kind 'mesh-gateway') (hash label="Addresses" href=(href-to "dc.services.instance.addresses") selected=(is-href "dc.services.instance.addresses")))
+                                (if proxy (hash label="Upstreams" href=(href-to "dc.services.instance.upstreams") selected=(is-href "dc.services.instance.upstreams")))
+                                (if proxy (hash label="Exposed Paths" href=(href-to "dc.services.instance.exposedpaths") selected=(is-href "dc.services.instance.exposedpaths")))
+                                          (hash label="Tags & Meta" href=(href-to "dc.services.instance.metadata") selected=(is-href "dc.services.instance.metadata"))
+                  )
+              }}
+            />
             <Outlet
               @name={{routeName}}
               @model={{assign (hash
                 proxy=proxy
+                meta=meta
                 item=item
               ) route.model}}
             as |o|>

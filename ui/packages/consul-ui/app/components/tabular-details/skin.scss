@@ -14,7 +14,7 @@
 %tabular-detail::before,
 %tabular-detail > div,
 %tabular-detail > label {
-  background-color: rgb(var(--white));
+  background-color: rgb(var(--tone-gray-000));
 }
 %tabular-detail > label::before {
   transform: rotate(180deg);

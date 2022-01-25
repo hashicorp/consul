@@ -204,7 +204,7 @@ Because transparent proxy is enabled by default,
 we use Kubernetes DNS to connect to our desired upstream.
 
 ```shell-session
-$ kubectl exec deploy/static-client -- curl -s http://static-server/
+$ kubectl exec deploy/static-client -- curl --silent http://static-server/
 "hello world"
 ```
 
@@ -216,7 +216,7 @@ without updating either of the running pods. You can then remove this
 intention to allow connections again.
 
 ```shell-session
-$ kubectl exec deploy/static-client -- curl -s http://static-server/
+$ kubectl exec deploy/static-client -- curl --silent http://static-server/
 command terminated with exit code 52
 ```
 
@@ -551,7 +551,7 @@ application.
 To verify the installation, run the
 ["Accepting Inbound Connections"](/docs/k8s/connect#accepting-inbound-connections)
 example from the "Usage" section above. After running this example, run
-`kubectl get pod static-server -o yaml`. In the raw YAML output, you should
+`kubectl get pod static-server --output yaml`. In the raw YAML output, you should
 see injected Connect containers and an annotation
 `consul.hashicorp.com/connect-inject-status` set to `injected`. This
 confirms that injection is working properly.

@@ -1,0 +1,3 @@
+```release-note:bug
+areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time.
+```

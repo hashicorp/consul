@@ -2549,7 +2549,7 @@ func TestACL_ReadAll(t *testing.T) {
 	body := func(t *testing.T, rules string, defaultPolicy Authorizer, check func(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext)) {
 		t.Helper()
 
-		policy, err := NewPolicyFromSource("", 0, rules, SyntaxCurrent, nil, nil)
+		policy, err := NewPolicyFromSource(rules, SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		acl, err := NewPolicyAuthorizerWithDefaults(defaultPolicy, []*Policy{policy}, nil)

@@ -33,9 +33,14 @@ func init() {
 	registerRestorer(structs.ACLAuthMethodSetRequestType, restoreAuthMethod)
 	registerRestorer(structs.FederationStateRequestType, restoreFederationState)
 	registerRestorer(structs.SystemMetadataRequestType, restoreSystemMetadata)
+	registerRestorer(structs.ServiceVirtualIPRequestType, restoreServiceVirtualIP)
+	registerRestorer(structs.FreeVirtualIPRequestType, restoreFreeVirtualIP)
 }
 
 func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	if err := s.persistVirtualIPs(sink, encoder); err != nil {
+		return err
+	}
 	if err := s.persistNodes(sink, encoder); err != nil {
 		return err
 	}
@@ -510,6 +515,38 @@ func (s *snapshot) persistIndex(sink raft.SnapshotSink, encoder *codec.Encoder) 
 	return nil
 }
 
+func (s *snapshot) persistVirtualIPs(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	serviceVIPs, err := s.state.ServiceVirtualIPs()
+	if err != nil {
+		return err
+	}
+
+	for entry := serviceVIPs.Next(); entry != nil; entry = serviceVIPs.Next() {
+		if _, err := sink.Write([]byte{byte(structs.ServiceVirtualIPRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry.(state.ServiceVirtualIP)); err != nil {
+			return err
+		}
+	}
+
+	freeVIPs, err := s.state.FreeVirtualIPs()
+	if err != nil {
+		return err
+	}
+
+	for entry := freeVIPs.Next(); entry != nil; entry = freeVIPs.Next() {
+		if _, err := sink.Write([]byte{byte(structs.FreeVirtualIPRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry.(state.FreeVirtualIP)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func restoreRegistration(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.RegisterRequest
 	if err := decoder.Decode(&req); err != nil {
@@ -789,4 +826,26 @@ func restoreSystemMetadata(header *SnapshotHeader, restore *state.Restore, decod
 		return err
 	}
 	return restore.SystemMetadataEntry(&req)
+}
+
+func restoreServiceVirtualIP(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req state.ServiceVirtualIP
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	if err := restore.ServiceVirtualIP(req); err != nil {
+		return err
+	}
+	return nil
+}
+
+func restoreFreeVirtualIP(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req state.FreeVirtualIP
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	if err := restore.FreeVirtualIP(req); err != nil {
+		return err
+	}
+	return nil
 }

@@ -42,20 +42,21 @@ as |route|>
   as |sort filters items|}}
 
     <AppView>
-      <BlockSlot @name="notification" as |status type item error|>
-        <Consul::Partition::Notifications
-          @type={{type}}
-          @status={{status}}
-          @error={{error}}
-        />
-      </BlockSlot>
       <BlockSlot @name="header">
         <h1>
           <route.Title @title="Admin Partitions" />
         </h1>
       </BlockSlot>
       <BlockSlot @name="actions">
-          <a data-test-create href="{{href-to 'dc.partitions.create'}}" class="type-create">Create</a>
+{{#if (can 'create partitions')}}
+        <a 
+          data-test-create 
+          class="type-create"
+          href="{{href-to 'dc.partitions.create'}}"
+        >
+          Create
+        </a>
+{{/if}}
       </BlockSlot>
       <BlockSlot @name="toolbar">
       {{#if (gt items.length 0)}}
@@ -79,8 +80,17 @@ as |route|>
             )
           }}
           @type="partition"
+          @label="Partition"
           @ondelete={{refresh-route}}
         as |writer|>
+          <BlockSlot @name="removed" as |after|>
+            <Consul::Partition::Notifications 
+              {{notification
+                after=(action after)
+              }}
+              @type="remove"
+            />
+          </BlockSlot>
           <BlockSlot @name="content">
         <DataCollection
           @type="nspace"
@@ -119,10 +129,12 @@ as |route|>
               </BlockSlot>
               <BlockSlot @name="actions">
                 <li class="docs-link">
-                  <a href="{{env 'CONSUL_DOCS_URL'}}/commands/FIXME" rel="noopener noreferrer" target="_blank">Documentation on partitions</a>
-                </li>
-                <li class="learn-link">
-                  <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/FIXME" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                  <Action
+                    @href="{{env 'CONSUL_DOCS_URL'}}/enterprise/admin-partitions"
+                    @external={{true}}
+                  >
+                    Documentation on Admin Partitions
+                  </Action>
                 </li>
               </BlockSlot>
             </EmptyState>

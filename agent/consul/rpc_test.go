@@ -36,6 +36,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -232,9 +233,6 @@ func TestRPC_blockingQuery(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer s.Shutdown()
 
-	require := require.New(t)
-	assert := assert.New(t)
-
 	// Perform a non-blocking query. Note that it's significant that the meta has
 	// a zero index in response - the implied opts.MinQueryIndex is also zero but
 	// this should not block still.
@@ -310,9 +308,9 @@ func TestRPC_blockingQuery(t *testing.T) {
 			calls++
 			return nil
 		}
-		require.NoError(s.blockingQuery(&opts, &meta, fn))
-		assert.Equal(1, calls)
-		assert.Equal(uint64(1), meta.Index,
+		require.NoError(t, s.blockingQuery(&opts, &meta, fn))
+		assert.Equal(t, 1, calls)
+		assert.Equal(t, uint64(1), meta.Index,
 			"expect fake index of 1 to force client to block on next update")
 
 		// Simulate client making next request
@@ -321,12 +319,12 @@ func TestRPC_blockingQuery(t *testing.T) {
 
 		// This time we should block even though the func returns index 0 still
 		t0 := time.Now()
-		require.NoError(s.blockingQuery(&opts, &meta, fn))
+		require.NoError(t, s.blockingQuery(&opts, &meta, fn))
 		t1 := time.Now()
-		assert.Equal(2, calls)
-		assert.Equal(uint64(1), meta.Index,
+		assert.Equal(t, 2, calls)
+		assert.Equal(t, uint64(1), meta.Index,
 			"expect fake index of 1 to force client to block on next update")
-		assert.True(t1.Sub(t0) > 20*time.Millisecond,
+		assert.True(t, t1.Sub(t0) > 20*time.Millisecond,
 			"should have actually blocked waiting for timeout")
 
 	}
@@ -369,6 +367,39 @@ func TestRPC_blockingQuery(t *testing.T) {
 			t.Fatalf("bad: %d", calls)
 		}
 	}
+
+	t.Run("ResultsFilteredByACLs is reset for unauthenticated calls", func(t *testing.T) {
+		opts := structs.QueryOptions{
+			Token: "",
+		}
+		var meta structs.QueryMeta
+		fn := func(_ memdb.WatchSet, _ *state.Store) error {
+			meta.ResultsFilteredByACLs = true
+			return nil
+		}
+
+		err := s.blockingQuery(&opts, &meta, fn)
+		require.NoError(t, err)
+		require.False(t, meta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be reset for unauthenticated calls")
+	})
+
+	t.Run("ResultsFilteredByACLs is honored for authenticated calls", func(t *testing.T) {
+		token, err := lib.GenerateUUID(nil)
+		require.NoError(t, err)
+
+		opts := structs.QueryOptions{
+			Token: token,
+		}
+		var meta structs.QueryMeta
+		fn := func(_ memdb.WatchSet, _ *state.Store) error {
+			meta.ResultsFilteredByACLs = true
+			return nil
+		}
+
+		err = s.blockingQuery(&opts, &meta, fn)
+		require.NoError(t, err)
+		require.True(t, meta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be honored for authenticated calls")
+	})
 }
 
 func TestRPC_ReadyForConsistentReads(t *testing.T) {
@@ -448,6 +479,8 @@ func TestRPC_MagicByteTimeout(t *testing.T) {
 }
 
 func TestRPC_TLSHandshakeTimeout(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -684,6 +717,8 @@ func connectClient(t *testing.T, s1 *Server, mb pool.RPCType, useTLS, wantOpen b
 }
 
 func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -844,7 +879,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -972,7 +1007,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.RPCConfig.EnableStreaming = true
 	})
 	s1.tokens.UpdateAgentToken("root", tokenStore.TokenSourceConfig)

@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/mitchellh/copystructure"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -15,42 +17,78 @@ import (
 // A shared data structure that contains information about discovered upstreams
 type ConfigSnapshotUpstreams struct {
 	Leaf *structs.IssuedCert
-	// DiscoveryChain is a map of upstream.Identifier() ->
-	// CompiledDiscoveryChain's, and is used to determine what services could be
-	// targeted by this upstream. We then instantiate watches for those targets.
-	DiscoveryChain map[string]*structs.CompiledDiscoveryChain
 
-	// WatchedDiscoveryChains is a map of upstream.Identifier() -> CancelFunc's
+	// DiscoveryChain is a map of UpstreamID -> CompiledDiscoveryChain's, and
+	// is used to determine what services could be targeted by this upstream.
+	// We then instantiate watches for those targets.
+	DiscoveryChain map[UpstreamID]*structs.CompiledDiscoveryChain
+
+	// WatchedDiscoveryChains is a map of UpstreamID -> CancelFunc's
 	// in order to cancel any watches when the proxy's configuration is
 	// changed. Ingress gateways and transparent proxies need this because
 	// discovery chain watches are added and removed through the lifecycle
 	// of a single proxycfg state instance.
-	WatchedDiscoveryChains map[string]context.CancelFunc
+	WatchedDiscoveryChains map[UpstreamID]context.CancelFunc
 
-	// WatchedUpstreams is a map of upstream.Identifier() -> (map of TargetID ->
+	// WatchedUpstreams is a map of UpstreamID -> (map of TargetID ->
 	// CancelFunc's) in order to cancel any watches when the configuration is
 	// changed.
-	WatchedUpstreams map[string]map[string]context.CancelFunc
+	WatchedUpstreams map[UpstreamID]map[string]context.CancelFunc
 
-	// WatchedUpstreamEndpoints is a map of upstream.Identifier() -> (map of
+	// WatchedUpstreamEndpoints is a map of UpstreamID -> (map of
 	// TargetID -> CheckServiceNodes) and is used to determine the backing
 	// endpoints of an upstream.
-	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
+	WatchedUpstreamEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
 
-	// WatchedGateways is a map of upstream.Identifier() -> (map of
-	// TargetID -> CancelFunc) in order to cancel watches for mesh gateways
-	WatchedGateways map[string]map[string]context.CancelFunc
+	// WatchedGateways is a map of UpstreamID -> (map of GatewayKey.String() ->
+	// CancelFunc) in order to cancel watches for mesh gateways
+	WatchedGateways map[UpstreamID]map[string]context.CancelFunc
 
-	// WatchedGatewayEndpoints is a map of upstream.Identifier() -> (map of
-	// TargetID -> CheckServiceNodes) and is used to determine the backing
-	// endpoints of a mesh gateway.
-	WatchedGatewayEndpoints map[string]map[string]structs.CheckServiceNodes
+	// WatchedGatewayEndpoints is a map of UpstreamID -> (map of
+	// GatewayKey.String() -> CheckServiceNodes) and is used to determine the
+	// backing endpoints of a mesh gateway.
+	WatchedGatewayEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
 
 	// UpstreamConfig is a map to an upstream's configuration.
-	UpstreamConfig map[string]*structs.Upstream
+	UpstreamConfig map[UpstreamID]*structs.Upstream
 
-	// PassthroughEndpoints is a map of: ServiceName -> ServicePassthroughAddrs.
-	PassthroughUpstreams map[string]ServicePassthroughAddrs
+	// PassthroughEndpoints is a map of: UpstreamID -> ServicePassthroughAddrs.
+	PassthroughUpstreams map[UpstreamID]ServicePassthroughAddrs
+
+	// IntentionUpstreams is a set of upstreams inferred from intentions.
+	//
+	// This list only applies to proxies registered in 'transparent' mode.
+	IntentionUpstreams map[UpstreamID]struct{}
+}
+
+type GatewayKey struct {
+	Datacenter string
+	Partition  string
+}
+
+func (k GatewayKey) String() string {
+	resp := k.Datacenter
+	if !structs.IsDefaultPartition(k.Partition) {
+		resp = k.Partition + "." + resp
+	}
+	return resp
+}
+
+func (k GatewayKey) IsEmpty() bool {
+	return k.Partition == "" && k.Datacenter == ""
+}
+
+func (k GatewayKey) Matches(dc, partition string) bool {
+	return structs.EqualPartitions(k.Partition, partition) && k.Datacenter == dc
+}
+
+func gatewayKeyFromString(s string) GatewayKey {
+	split := strings.SplitN(s, ".", 2)
+
+	if len(split) == 1 {
+		return GatewayKey{Datacenter: split[0], Partition: acl.DefaultPartitionName}
+	}
+	return GatewayKey{Partition: split[0], Datacenter: split[1]}
 }
 
 // ServicePassthroughAddrs contains the LAN addrs
@@ -69,7 +107,7 @@ type configSnapshotConnectProxy struct {
 	ConfigSnapshotUpstreams
 
 	WatchedServiceChecks   map[structs.ServiceID][]structs.CheckType // TODO: missing garbage collection
-	PreparedQueryEndpoints map[string]structs.CheckServiceNodes      // DEPRECATED:see:WatchedUpstreamEndpoints
+	PreparedQueryEndpoints map[UpstreamID]structs.CheckServiceNodes  // DEPRECATED:see:WatchedUpstreamEndpoints
 
 	// NOTE: Intentions stores a list of lists as returned by the Intentions
 	// Match RPC. So far we only use the first list as the list of matching
@@ -97,6 +135,7 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 		len(c.PreparedQueryEndpoints) == 0 &&
 		len(c.UpstreamConfig) == 0 &&
 		len(c.PassthroughUpstreams) == 0 &&
+		len(c.IntentionUpstreams) == 0 &&
 		!c.MeshConfigSet
 }
 
@@ -234,10 +273,10 @@ type configSnapshotMeshGateway struct {
 	// health check to pass.
 	WatchedServicesSet bool
 
-	// WatchedDatacenters is a map of datacenter name to a cancel function.
+	// WatchedGateways is a map of GatewayKeys to a cancel function.
 	// This cancel function is tied to the watch of mesh-gateway services in
-	// that datacenter.
-	WatchedDatacenters map[string]context.CancelFunc
+	// that datacenter/partition.
+	WatchedGateways map[string]context.CancelFunc
 
 	// ServiceGroups is a map of service name to the service instances of that
 	// service in the local datacenter.
@@ -263,7 +302,7 @@ type configSnapshotMeshGateway struct {
 	HostnameDatacenters map[string]structs.CheckServiceNodes
 }
 
-func (c *configSnapshotMeshGateway) Datacenters() []string {
+func (c *configSnapshotMeshGateway) GatewayKeys() []GatewayKey {
 	sz1, sz2 := len(c.GatewayGroups), len(c.FedStateGateways)
 
 	sz := sz1
@@ -271,20 +310,26 @@ func (c *configSnapshotMeshGateway) Datacenters() []string {
 		sz = sz2
 	}
 
-	dcs := make([]string, 0, sz)
-	for dc := range c.GatewayGroups {
-		dcs = append(dcs, dc)
+	keys := make([]GatewayKey, 0, sz)
+	for key := range c.FedStateGateways {
+		keys = append(keys, gatewayKeyFromString(key))
 	}
-	for dc := range c.FedStateGateways {
-		if _, ok := c.GatewayGroups[dc]; !ok {
-			dcs = append(dcs, dc)
+	for key := range c.GatewayGroups {
+		gk := gatewayKeyFromString(key)
+		if _, ok := c.FedStateGateways[gk.Datacenter]; !ok {
+			keys = append(keys, gk)
 		}
 	}
 
 	// Always sort the results to ensure we generate deterministic things over
 	// xDS, such as mesh-gateway listener filter chains.
-	sort.Strings(dcs)
-	return dcs
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].Datacenter != keys[j].Datacenter {
+			return keys[i].Datacenter < keys[j].Datacenter
+		}
+		return keys[i].Partition < keys[j].Partition
+	})
+	return keys
 }
 
 func (c *configSnapshotMeshGateway) IsEmpty() bool {
@@ -293,7 +338,7 @@ func (c *configSnapshotMeshGateway) IsEmpty() bool {
 	}
 	return len(c.WatchedServices) == 0 &&
 		!c.WatchedServicesSet &&
-		len(c.WatchedDatacenters) == 0 &&
+		len(c.WatchedGateways) == 0 &&
 		len(c.ServiceGroups) == 0 &&
 		len(c.ServiceResolvers) == 0 &&
 		len(c.GatewayGroups) == 0 &&
@@ -326,6 +371,9 @@ type configSnapshotIngressGateway struct {
 	// the GatewayServices RPC to retrieve them.
 	Upstreams map[IngressListenerKey]structs.Upstreams
 
+	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
+	UpstreamsSet map[UpstreamID]struct{}
+
 	// Listeners is the original listener config from the ingress-gateway config
 	// entry to save us trying to pass fields through Upstreams
 	Listeners map[IngressListenerKey]structs.IngressListener
@@ -336,6 +384,7 @@ func (c *configSnapshotIngressGateway) IsEmpty() bool {
 		return true
 	}
 	return len(c.Upstreams) == 0 &&
+		len(c.UpstreamsSet) == 0 &&
 		len(c.DiscoveryChain) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0
@@ -372,6 +421,7 @@ type ConfigSnapshot struct {
 	Proxy                 structs.ConnectProxyConfig
 	Datacenter            string
 	IntentionDefaultAllow bool
+	Locality              GatewayKey
 
 	ServerSNIFn ServerSNIFunc
 	Roots       *structs.IndexedCARoots
@@ -444,7 +494,7 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.TerminatingGateway.WatchedConfigs = nil
 		snap.TerminatingGateway.WatchedResolvers = nil
 	case structs.ServiceKindMeshGateway:
-		snap.MeshGateway.WatchedDatacenters = nil
+		snap.MeshGateway.WatchedGateways = nil
 		snap.MeshGateway.WatchedServices = nil
 	case structs.ServiceKindIngressGateway:
 		snap.IngressGateway.WatchedUpstreams = nil

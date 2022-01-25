@@ -14,5 +14,5 @@
 %expanded-single-select input[type='radio']:checked + *,
 %expanded-single-select input[type='radio']:hover + *,
 %expanded-single-select input[type='radio']:focus + * {
-  background-color: rgb(var(--white));
+  background-color: rgb(var(--tone-gray-000));
 }

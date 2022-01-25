@@ -14,26 +14,53 @@
   @onsubmit={{action this.onsubmit}}
 as |api|>
 
-    <BlockSlot @name="error" as |Notification|>
-      <Notification>
-        <p data-notification role="alert" class="error notification-update">
-  {{#if (string-starts-with api.error.detail 'duplicate intention found:')}}
-          <strong>Intention exists</strong>
-          An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
-  {{else}}
+    <BlockSlot @name="error" as |after|>
+{{#if (string-starts-with api.error.detail 'duplicate intention found:')}}
+      <Notice
+        {{notification
+          after=(action after)
+        }}
+        class="notification-update"
+        @type="error"
+      as |notice|>
+        <notice.Header>
+          <strong>Intention exists!</strong>
+        </notice.Header>
+        <notice.Body>
+          <p>
+            An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
+          </p>
+        </notice.Body>
+      </Notice>
+{{else}}
+      <Notice
+        {{notification
+          after=(action after)
+        }}
+        class="notification-update"
+        @type="error"
+      as |notice|>
+        <notice.Header>
           <strong>Error!</strong>
-          There was an error saving your intention.
-        {{#if (and api.error.status api.error.detail)}}
-          <br />{{api.error.status}}: {{api.error.detail}}
-        {{/if}}
+        </notice.Header>
+        <notice.Body>
+          <p>
+            There was an error saving your intention.
+          {{#if (and api.error.status api.error.detail)}}
+            <br />{{api.error.status}}: {{api.error.detail}}
+          {{/if}}
+          </p>
+        </notice.Body>
+      </Notice>
   {{/if}}
-        </p>
-      </Notification>
     </BlockSlot>
 
     <BlockSlot @name="form">
-{{#let api.data as |item|}}
-{{#if (can 'write intention' item=item)}}
+{{#let
+  api.data
+  (not (can 'write intention' item=api.data))
+as |item readonly|}}
+{{#if (not readonly)}}
 
   {{#let (changeset-get item 'Action') as |newAction|}}
       <ModalDialog
@@ -106,8 +133,26 @@ as |api|>
         />
     {{/if}}
 
-    {{#if (and api.isCreate this.isManagedByCRDs)}}
+    {{#if api.isCreate}}
+      {{#if (and (can 'use partitions') (not (can 'choose partitions' dc=@dc)))}}
+        <Notice
+          @type="info"
+        as |notice|>
+          <notice.Header>
+            <h3>
+              Cross-partition communication not supported
+            </h3>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              Cross-partition communication is not supported outside of the primary datacenter. You will only be able to select namespaces for source and destination services.
+            </p>
+          </notice.Body>
+        </Notice>
+      {{/if}}
+      {{#if this.isManagedByCRDs}}
         <Consul::Intention::Notice::CustomResource @type="warning" />
+      {{/if}}
     {{/if}}
       <form
         {{on 'submit' (fn this.submit item api.submit)}}
@@ -169,6 +214,7 @@ as |api|>
         </div>
       </form>
   {{else}}
+
     {{#if item.IsManagedByCRD}}
       <Notice
         class="crd"
@@ -191,8 +237,10 @@ as |api|>
         </notice.Footer>
       </Notice>
     {{/if}}
+
     <Consul::Intention::View
       @item={{item}}
+      data-test-readonly
     />
   {{/if}}
 {{/let}}

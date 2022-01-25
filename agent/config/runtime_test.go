@@ -23,6 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
@@ -2376,6 +2377,42 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
+		desc: "h2ping check without h2ping_use_tls set",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "h2ping": "localhost:55555", "interval": "5s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a" h2ping = "localhost:55555" interval = "5s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a", H2PING: "localhost:55555", H2PingUseTLS: true, OutputMaxSize: checks.DefaultBufSize, Interval: 5 * time.Second},
+			}
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "h2ping check with h2ping_use_tls set to false",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "h2ping": "localhost:55555", "h2ping_use_tls": false, "interval": "5s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a" h2ping = "localhost:55555" h2ping_use_tls = false interval = "5s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a", H2PING: "localhost:55555", H2PingUseTLS: false, OutputMaxSize: checks.DefaultBufSize, Interval: 5 * time.Second},
+			}
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
 		desc: "alias check with no node",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -3122,6 +3159,65 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				"TLSSkipVerify":       true,
 				"Token":               "abc",
 				"RootPKIPath":         "consul-vault",
+				"IntermediatePKIPath": "connect-intermediate",
+			}
+		},
+	})
+	run(t, testCase{
+		desc: "test connect vault provider configuration with root cert ttl",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+				"connect": {
+					"enabled": true,
+					"ca_provider": "vault",
+					"ca_config": {
+						"ca_file": "/capath/ca.pem",
+						"ca_path": "/capath/",
+						"cert_file": "/certpath/cert.pem",
+						"key_file": "/certpath/key.pem",
+						"tls_server_name": "server.name",
+						"tls_skip_verify": true,
+						"token": "abc",
+						"root_pki_path": "consul-vault",
+						"root_cert_ttl": "96360h",
+						"intermediate_pki_path": "connect-intermediate"
+					}
+				}
+			}`},
+		hcl: []string{`
+			  connect {
+					enabled = true
+					ca_provider = "vault"
+					ca_config {
+						ca_file = "/capath/ca.pem"
+						ca_path = "/capath/"
+						cert_file = "/certpath/cert.pem"
+						key_file = "/certpath/key.pem"
+						tls_server_name = "server.name"
+						tls_skip_verify = true
+						root_pki_path = "consul-vault"
+						token = "abc"
+						intermediate_pki_path = "connect-intermediate"
+						root_cert_ttl = "96360h"
+					}
+				}
+			`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.ConnectEnabled = true
+			rt.ConnectCAProvider = "vault"
+			rt.ConnectCAConfig = map[string]interface{}{
+				"CAFile":              "/capath/ca.pem",
+				"CAPath":              "/capath/",
+				"CertFile":            "/certpath/cert.pem",
+				"KeyFile":             "/certpath/key.pem",
+				"TLSServerName":       "server.name",
+				"TLSSkipVerify":       true,
+				"Token":               "abc",
+				"RootPKIPath":         "consul-vault",
+				"RootCertTTL":         "96360h",
 				"IntermediatePKIPath": "connect-intermediate",
 			}
 		},
@@ -3990,6 +4086,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								Service:               "carrot",
 								ServiceSubset:         "kale",
 								Namespace:             "leek",
+								Partition:             acl.DefaultPartitionName,
 								PrefixRewrite:         "/alternate",
 								RequestTimeout:        99 * time.Second,
 								NumRetries:            12345,
@@ -4319,6 +4416,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
+			rt.SegmentLimit = 64
 		},
 	})
 
@@ -5211,7 +5309,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		AEInterval:                 time.Minute,
 		CheckDeregisterIntervalMin: time.Minute,
 		CheckReapInterval:          30 * time.Second,
-		SegmentLimit:               64,
 		SegmentNameLimit:           64,
 		SyncCoordinateIntervalMin:  15 * time.Second,
 		SyncCoordinateRateTarget:   64,
@@ -5244,12 +5341,12 @@ func TestLoad_FullConfig(t *testing.T) {
 		// user configurable values
 
 		ACLTokens: token.Config{
-			EnablePersistence:   true,
-			DataDir:             dataDir,
-			ACLDefaultToken:     "418fdff1",
-			ACLAgentToken:       "bed2377c",
-			ACLAgentMasterToken: "64fd0e08",
-			ACLReplicationToken: "5795983a",
+			EnablePersistence:     true,
+			DataDir:               dataDir,
+			ACLDefaultToken:       "418fdff1",
+			ACLAgentToken:         "bed2377c",
+			ACLAgentRecoveryToken: "1dba6aba",
+			ACLReplicationToken:   "5795983a",
 		},
 
 		ACLsEnabled:       true,
@@ -5266,7 +5363,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			ACLRoleTTL:       9876 * time.Second,
 		},
 		ACLEnableKeyListPolicy:           true,
-		ACLMasterToken:                   "8a19ac27",
+		ACLInitialManagementToken:        "3820e09a",
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
 		AdvertiseAddrWAN:                 ipAddr("78.63.37.19"),
@@ -5307,6 +5404,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				Body:                           "wSjTy7dg",
 				TCP:                            "RJQND605",
 				H2PING:                         "9N1cSb5B",
+				H2PingUseTLS:                   false,
 				Interval:                       22164 * time.Second,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				DockerContainerID:              "ipgdFtjd",
@@ -5334,6 +5432,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "4jG5casb",
 				H2PING:                         "HCHU7gEb",
+				H2PingUseTLS:                   false,
 				Interval:                       28767 * time.Second,
 				DockerContainerID:              "THW6u7rL",
 				Shell:                          "C1Zt3Zwh",
@@ -5360,6 +5459,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "JY6fTTcw",
 				H2PING:                         "rQ8eyCSF",
+				H2PingUseTLS:                   false,
 				Interval:                       18714 * time.Second,
 				DockerContainerID:              "qF66POS9",
 				Shell:                          "sOnDy228",
@@ -5433,6 +5533,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		ConnectCAConfig: map[string]interface{}{
 			"IntermediateCertTTL": "8760h",
 			"LeafCertTTL":         "1h",
+			"RootCertTTL":         "96360h",
 			"CSRMaxPerSecond":     float64(100),
 			"CSRMaxConcurrent":    float64(2),
 		},
@@ -5530,6 +5631,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		RetryJoinMaxAttemptsWAN: 23160,
 		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER"},
 		RPCConfig:               consul.RPCConfig{EnableStreaming: true},
+		SegmentLimit:            123,
 		SerfPortLAN:             8301,
 		SerfPortWAN:             8302,
 		ServerMode:              true,
@@ -5565,6 +5667,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "ICbxkpSF",
 						H2PING:                         "7s7BbMyb",
+						H2PingUseTLS:                   false,
 						Interval:                       24392 * time.Second,
 						DockerContainerID:              "ZKXr68Yb",
 						Shell:                          "CEfzx0Fo",
@@ -5616,6 +5719,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "MN3oA9D2",
 						H2PING:                         "OV6Q2XEg",
+						H2PingUseTLS:                   false,
 						Interval:                       32718 * time.Second,
 						DockerContainerID:              "cU15LMet",
 						Shell:                          "nEz9qz2l",
@@ -5759,6 +5863,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "bNnNfx2A",
 						H2PING:                         "qC1pidiW",
+						H2PingUseTLS:                   false,
 						Interval:                       22224 * time.Second,
 						DockerContainerID:              "ipgdFtjd",
 						Shell:                          "omVZq7Sz",
@@ -5783,6 +5888,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "FfvCwlqH",
 						H2PING:                         "spI3muI3",
+						H2PingUseTLS:                   false,
 						Interval:                       12356 * time.Second,
 						DockerContainerID:              "HBndBU6R",
 						Shell:                          "hVI33JjA",
@@ -5807,6 +5913,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "fjiLFqVd",
 						H2PING:                         "5NbNWhan",
+						H2PingUseTLS:                   false,
 						Interval:                       23926 * time.Second,
 						DockerContainerID:              "dO5TtRHk",
 						Shell:                          "e6q2ttES",
@@ -5911,15 +6018,18 @@ func TestLoad_FullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
+		RaftBoltDBConfig: consul.RaftBoltDBConfig{NoFreelistSync: true},
 	}
 	entFullRuntimeConfig(expected)
 
 	expectedWarns := []string{
 		deprecationWarning("acl_datacenter", "primary_datacenter"),
-		deprecationWarning("acl_agent_master_token", "acl.tokens.agent_master"),
+		deprecationWarning("acl_agent_master_token", "acl.tokens.agent_recovery"),
+		deprecationWarning("acl.tokens.agent_master", "acl.tokens.agent_recovery"),
 		deprecationWarning("acl_agent_token", "acl.tokens.agent"),
 		deprecationWarning("acl_token", "acl.tokens.default"),
-		deprecationWarning("acl_master_token", "acl.tokens.master"),
+		deprecationWarning("acl_master_token", "acl.tokens.initial_management"),
+		deprecationWarning("acl.tokens.master", "acl.tokens.initial_management"),
 		deprecationWarning("acl_replication_token", "acl.tokens.replication"),
 		deprecationWarning("enable_acl_replication", "acl.enable_token_replication"),
 		deprecationWarning("acl_default_policy", "acl.default_policy"),
@@ -6607,7 +6717,8 @@ func TestConnectCAConfiguration(t *testing.T) {
 				Provider: "consul",
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"IntermediateCertTTL": "8760h",  // 365 * 24h
+					"RootCertTTL":         "87600h", // 365 * 10 * 24h
 				},
 			},
 		},
@@ -6623,7 +6734,8 @@ func TestConnectCAConfiguration(t *testing.T) {
 				ClusterID: "adfe7697-09b4-413a-ac0a-fa81ed3a3001",
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"IntermediateCertTTL": "8760h",  // 365 * 24h
+					"RootCertTTL":         "87600h", // 365 * 10 * 24h
 					"cluster_id":          "adfe7697-09b4-413a-ac0a-fa81ed3a3001",
 				},
 			},
@@ -6646,7 +6758,8 @@ func TestConnectCAConfiguration(t *testing.T) {
 				Provider: "vault",
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"IntermediateCertTTL": "8760h",  // 365 * 24h
+					"RootCertTTL":         "87600h", // 365 * 10 * 24h
 				},
 			},
 		},
@@ -6654,7 +6767,8 @@ func TestConnectCAConfiguration(t *testing.T) {
 			config: RuntimeConfig{
 				ConnectEnabled: true,
 				ConnectCAConfig: map[string]interface{}{
-					"foo": "bar",
+					"foo":         "bar",
+					"RootCertTTL": "8761h", // 365 * 24h + 1
 				},
 			},
 			expected: &structs.CAConfiguration{
@@ -6662,6 +6776,7 @@ func TestConnectCAConfiguration(t *testing.T) {
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
 					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"RootCertTTL":         "8761h", // 365 * 24h + 1
 					"foo":                 "bar",
 				},
 			},

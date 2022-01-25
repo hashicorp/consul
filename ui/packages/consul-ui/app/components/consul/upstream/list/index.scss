@@ -1,0 +1,8 @@
+%consul-upstream-list {
+  dl.partition dt::before {
+    @extend %with-user-team-mask, %as-pseudo;
+  }
+}
+.consul-upstream-list {
+  @extend %consul-upstream-list;
+}

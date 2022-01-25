@@ -1,15 +1,16 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
 )
 
-// ServiceExportsConfigEntry is the top-level struct for exporting a service to be exposed
+// ExportedServicesConfigEntry is the top-level struct for exporting a service to be exposed
 // across other admin partitions.
-type ServiceExportsConfigEntry struct {
-	Partition string
+type ExportedServicesConfigEntry struct {
+	Name string
 
 	// Services is a list of services to be exported and the list of partitions
 	// to expose them to.
@@ -39,7 +40,24 @@ type ServiceConsumer struct {
 	Partition string
 }
 
-func (e *ServiceExportsConfigEntry) Clone() *ServiceExportsConfigEntry {
+func (e *ExportedServicesConfigEntry) ToMap() map[string]map[string][]string {
+	resp := make(map[string]map[string][]string)
+	for _, svc := range e.Services {
+		if _, ok := resp[svc.Namespace]; !ok {
+			resp[svc.Namespace] = make(map[string][]string)
+		}
+		if _, ok := resp[svc.Namespace][svc.Name]; !ok {
+			consumers := make([]string, 0, len(svc.Consumers))
+			for _, c := range svc.Consumers {
+				consumers = append(consumers, c.Partition)
+			}
+			resp[svc.Namespace][svc.Name] = consumers
+		}
+	}
+	return resp
+}
+
+func (e *ExportedServicesConfigEntry) Clone() *ExportedServicesConfigEntry {
 	e2 := *e
 	e2.Services = make([]ExportedService, len(e.Services))
 	for _, svc := range e.Services {
@@ -54,32 +72,30 @@ func (e *ServiceExportsConfigEntry) Clone() *ServiceExportsConfigEntry {
 	return &e2
 }
 
-func (e *ServiceExportsConfigEntry) GetKind() string {
-	return ServiceExports
+func (e *ExportedServicesConfigEntry) GetKind() string {
+	return ExportedServices
 }
 
-func (e *ServiceExportsConfigEntry) GetName() string {
+func (e *ExportedServicesConfigEntry) GetName() string {
 	if e == nil {
 		return ""
 	}
 
-	return e.Partition
+	return e.Name
 }
 
-func (e *ServiceExportsConfigEntry) GetMeta() map[string]string {
+func (e *ExportedServicesConfigEntry) GetMeta() map[string]string {
 	if e == nil {
 		return nil
 	}
 	return e.Meta
 }
 
-func (e *ServiceExportsConfigEntry) Normalize() error {
+func (e *ExportedServicesConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
 	}
-
-	meta := DefaultEnterpriseMetaInPartition(e.Partition)
-	e.EnterpriseMeta.Merge(meta)
+	e.EnterpriseMeta = *DefaultEnterpriseMetaInPartition(e.Name)
 	e.EnterpriseMeta.Normalize()
 
 	for i := range e.Services {
@@ -89,15 +105,20 @@ func (e *ServiceExportsConfigEntry) Normalize() error {
 	return nil
 }
 
-func (e *ServiceExportsConfigEntry) Validate() error {
-	if e.Partition == "" {
-		return fmt.Errorf("Partition is required")
+func (e *ExportedServicesConfigEntry) Validate() error {
+	if e.Name == "" {
+		return fmt.Errorf("Name is required")
 	}
-	if e.Partition == WildcardSpecifier {
-		return fmt.Errorf("service-exports Partition must be the name of a partition, and not a wildcard")
+	if e.Name == WildcardSpecifier {
+		return fmt.Errorf("exported-services Name must be the name of a partition, and not a wildcard")
 	}
 
-	validationErr := validateConfigEntryMeta(e.Meta)
+	if err := requireEnterprise(e.GetKind()); err != nil {
+		return err
+	}
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
 
 	for _, svc := range e.Services {
 		if svc.Name == "" {
@@ -112,23 +133,22 @@ func (e *ServiceExportsConfigEntry) Validate() error {
 			}
 		}
 	}
-
-	return validationErr
+	return nil
 }
 
-func (e *ServiceExportsConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ExportedServicesConfigEntry) CanRead(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.MeshRead(&authzContext) == acl.Allow
 }
 
-func (e *ServiceExportsConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ExportedServicesConfigEntry) CanWrite(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.MeshWrite(&authzContext) == acl.Allow
 }
 
-func (e *ServiceExportsConfigEntry) GetRaftIndex() *RaftIndex {
+func (e *ExportedServicesConfigEntry) GetRaftIndex() *RaftIndex {
 	if e == nil {
 		return &RaftIndex{}
 	}
@@ -136,10 +156,26 @@ func (e *ServiceExportsConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ServiceExportsConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ExportedServicesConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
 
 	return &e.EnterpriseMeta
+}
+
+// MarshalJSON adds the Kind field so that the JSON can be decoded back into the
+// correct type.
+// This method is implemented on the structs type (as apposed to the api type)
+// because that is what the API currently uses to return a response.
+func (e *ExportedServicesConfigEntry) MarshalJSON() ([]byte, error) {
+	type Alias ExportedServicesConfigEntry
+	source := &struct {
+		Kind string
+		*Alias
+	}{
+		Kind:  ExportedServices,
+		Alias: (*Alias)(e),
+	}
+	return json.Marshal(source)
 }

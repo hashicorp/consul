@@ -51,6 +51,12 @@ module.exports = {
       urlPrefix: 'docs',
     },
     {
+      root: path.resolve(__dirname, 'app/styles'),
+      pattern: '**/*.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/styles',
+    },
+    {
       root: path.resolve(__dirname, 'app/modifiers'),
       pattern: '**/*.mdx',
       urlSchema: 'auto',
@@ -81,10 +87,22 @@ module.exports = {
       urlPrefix: 'docs/consul',
     },
     {
+      root: `${path.dirname(require.resolve('consul-acls/package.json'))}/app/components`,
+      pattern: '**/README.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/consul-acls',
+    },
+    {
       root: `${path.dirname(require.resolve('consul-partitions/package.json'))}/app/components`,
       pattern: '**/README.mdx',
       urlSchema: 'auto',
       urlPrefix: 'docs/consul-partitions',
+    },
+    {
+      root: `${path.dirname(require.resolve('consul-nspaces/package.json'))}/app/components`,
+      pattern: '**/README.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/consul-nspaces',
     }
   ].concat(user.sources),
   labels: {

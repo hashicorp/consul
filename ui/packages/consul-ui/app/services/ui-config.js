@@ -18,7 +18,7 @@ export default class UiConfigService extends Service {
         case item.startsWith('~'):
           prev.nspace = item.substr(1);
           break;
-        case item.startsWith('-'):
+        case item.startsWith('_'):
           prev.partition = item.substr(1);
           break;
         case typeof prev.dc === 'undefined':

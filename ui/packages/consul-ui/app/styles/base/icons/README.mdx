@@ -1,0 +1,74 @@
+# Iconography
+
+Please prefer our Constructable `%placeholder` styles over singular CSS
+properties. If you need to drop back, to something not covered there then you
+can also use CSS properties directly.
+
+All icons use a `%with-` prefix for example `%with-alert-circle-fill-icon` or
+`%with-alert-circle-fill-mask`. We mostly use the `-mask` suffix and also use
+the `%as-pseudo` placeholder to tell CSS that we are using the background on a
+pseudo element:
+
+```css
+.selector::before {
+  @extend %with-alert-circle-fill-mask, %as-pseudo;
+}
+```
+
+If you are not using a pseudo element for whatever reason, then you do not need
+to use `%as-pseudo`.
+
+When using `-mask` icons, color will use the `currentColor` of the element. If
+you need the color of the icon to be different to the text you can define the
+color of the icon itself via the `color` CSS property (preferred) but you can
+also use `background-color`.
+
+```css
+.selector::before {
+  @extend %with-alert-circle-fill-mask, %as-pseudo;
+  color: rgb(var(--tone-strawberry-500));
+}
+```
+
+If you need to use a colored icon (usually an existing brand icon) then don't
+use `-mask`, use `-icon` instead:
+
+```css
+.selector::before {
+  @extend %with-logo-consul-color-icon, %as-pseudo;
+}
+```
+
+## Structure Icons + Consul Specific Icons
+
+```hbs preview-template
+<ul>
+{{#each (icons-debug 'structure') as |prop|}}
+  <li>
+    <figure
+      {{with-copyable (concat "@extend %" prop.placeholder ", %as-pseudo;")}}
+      class={{concat 'debug-' prop.placeholder '-before'}}
+    >
+      <figcaption>{{prop.name}}</figcaption>
+    </figure>
+  </li>
+{{/each}}
+</ul>
+```
+
+## Flight Icons
+
+```hbs preview-template
+<ul>
+{{#each (icons-debug 'flight') as |prop|}}
+  <li>
+    <figure
+      {{with-copyable (concat "@extend %" prop.placeholder ", %as-pseudo;")}}
+      class={{concat 'debug-' prop.placeholder '-before'}}
+    >
+      <figcaption>{{prop.name}}</figcaption>
+    </figure>
+  </li>
+{{/each}}
+</ul>
+```

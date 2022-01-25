@@ -61,6 +61,10 @@
     ]
   },
   {
+    "title": "Admin Partitions",
+    "path": "admin-partitions"
+  },
+  {
     "title": "Agent",
     "routes": [
       {
