@@ -15,8 +15,60 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
+
+func TestOperator_RaftLeaderTransfer(t *testing.T) {
+	conf := testClusterConfig{
+		Datacenter: "dc1",
+		Servers:    3,
+		ServerConf: func(config *Config) {
+			config.RaftConfig.HeartbeatTimeout = 2 * time.Second
+			config.RaftConfig.ElectionTimeout = 2 * time.Second
+			config.RaftConfig.LeaderLeaseTimeout = 1 * time.Second
+		},
+	}
+
+	nodes := newTestCluster(t, &conf)
+	s1 := nodes.Servers[0]
+	// Make sure a leader is elected
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	retry.Run(t, func(r *retry.R) {
+		beforeLeader := s1.raft.Leader()
+		require.NotEmpty(r, beforeLeader)
+	})
+	beforeLeader := s1.raft.Leader()
+	require.NotEmpty(t, beforeLeader)
+
+	var reply structs.LeadershipTransferResponse
+	arg := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+
+	if err := msgpackrpc.CallWithCodec(codec, "Operator.RaftLeaderTransfer", &arg, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	require.True(t, reply.Success)
+
+	time.Sleep(1 * time.Second)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	retry.Run(t, func(r *retry.R) {
+		afterLeader := s1.raft.Leader()
+		require.NotEmpty(r, afterLeader)
+	})
+	afterLeader := s1.raft.Leader()
+	require.NotEmpty(t, afterLeader)
+	if afterLeader == beforeLeader {
+		t.Fatalf("leader should have changed %s == %s", afterLeader, beforeLeader)
+	}
+
+}
 
 func TestOperator_RaftGetConfiguration(t *testing.T) {
 	if testing.Short() {
