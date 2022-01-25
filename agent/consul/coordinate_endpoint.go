@@ -267,6 +267,7 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 				})
 			}
 			reply.Index, reply.Coordinates = index, coords
+
 			return nil
 		})
 }
