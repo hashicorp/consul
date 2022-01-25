@@ -52,6 +52,8 @@ type HealthCheckDefinition struct {
 	Method                                 string
 	TLSSkipVerify                          bool
 	TCP                                    string
+	GRPC                                   string
+	GRPCUseTLS                             bool
 	IntervalDuration                       time.Duration `json:"-"`
 	TimeoutDuration                        time.Duration `json:"-"`
 	DeregisterCriticalServiceAfterDuration time.Duration `json:"-"`

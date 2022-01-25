@@ -239,6 +239,8 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 							Header:                         check.Definition.Header,
 							Method:                         check.Definition.Method,
 							TCP:                            check.Definition.TCP,
+							GRPC:                           check.Definition.GRPC,
+							GRPCUseTLS:                     check.Definition.GRPCUseTLS,
 							Interval:                       interval,
 							Timeout:                        timeout,
 							DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
