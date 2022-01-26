@@ -2,22 +2,24 @@
 layout: docs
 page_title: CTS v0.5.0
 description: >-
-  Consul-Terraform-Sync Configuration Deprecations for v0.5.0
+  Consul-Terraform-Sync release notes for v0.5.0
 ---
+
+-> The release notes for v0.5.0 focus on a subset of configuration deprecations
 
 # Configuration Deprecations in v0.5
 
-We introduced a number of configuration deprecations in Consul-Terraform-Sync (CTS) v0.5. Many of these deprecations are part of an effort to streamline CTS task configuration and reduce the inconsistencies. As CTS supported more use-cases, the inconsistencies grew and required a lot of documentation to explain.
+We introduced a number of configuration deprecations in Consul-Terraform-Sync (CTS) v0.5. Many of these deprecations are part of an effort to streamline CTS task configuration and reduce the inconsistencies. As CTS support for more use-cases increased,  inconsistencies arose and required a lot of documentation to explain.
 
-This documentation outlines these deprecations and examples on how to upgrade your configuration for v0.5. The deprecated configurations will not be removed until v0.7 and later. We plan to also release a tool to automate upgrading your configuration to hopefully make the upgrade quicker and smoother.
+This documentation outlines the deprecations and examples on how to upgrade your configuration for v0.5. The deprecated configurations will not be removed until v0.7 and later. We plan to also release a tool to automate upgrading your configurations to make the upgrade quicker and smoother.
 
 ## Overview of Deprecations
 
-The deprecations attempt to address two major inconsistencies. First is the use of the terminology "source" in various configuration blocks and fields. The second is the exception to configuring a task condition or module input using the `services` field and related its `service` block
+The deprecations address two major inconsistencies. First is the use of the terminology "source" in various configuration blocks and fields. The second is the exception to configuring a task condition or a task module input by using the `services` field and its related `service` block.
 
 ### Address "source" terminology
 
-The term "source" is used frequently in the task configuration. "Source" commonly refers to the Terraform module though it is not immediately clear and requires additional documentation to explain.
+The word "source" is used in the name of a number of task configurations. "Source" in the configuration name commonly refers to the Terraform module though it is not immediately clear and requires additional documentation to explain.
 
 We deprecated all configuration with the term "source" and replaced it with "module" in the task configuration:
 
@@ -40,7 +42,7 @@ The `services` field and its associated `service` block are frequently an except
 
 The `services` field is the only task condition that is not configured through the `condition` block. It is also the only additional module input that is not configured through a `module_input` block. This leads to a lot of inconsistent relationships with other `condition` and `module_input` blocks.
 
-We deprecated `services` field and its associated `service` filter to remove these exceptions and complicated relationship with other `condition` and `module_input` blocks:
+We deprecated the `services` field and its associated `service` filter to remove these exceptions and complicated relationship with other `condition` and `module_input` blocks:
 
 | Deprecated Config | Replacement Config | Description |
 | --- | --- | --- |
