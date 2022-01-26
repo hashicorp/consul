@@ -142,6 +142,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	}
 
 	for {
+	WAIT:
 		select {
 		case <-authTimer:
 			// It's been too long since a Discovery{Request,Response} so recheck ACLs.
@@ -175,8 +176,13 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 
 			if handler, ok := handlers[req.TypeUrl]; ok {
-				if handler.Recv(req, generator.ProxyFeatures) {
+				newSub, nack := handler.Recv(req, generator.ProxyFeatures)
+				if newSub {
 					generator.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
+				}
+				if nack {
+					generator.Logger.Trace("got nack response for type", "typeUrl", req.TypeUrl)
+					goto WAIT
 				}
 			}
 
@@ -434,9 +440,9 @@ func newDeltaType(
 // Recv handles new discovery requests from envoy.
 //
 // Returns true the first time a type receives a request.
-func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf supportedProxyFeatures) bool {
+func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf supportedProxyFeatures) (newSubscription, nack bool) {
 	if t == nil {
-		return false // not something we care about
+		return false, false // not something we care about
 	}
 	logger := t.generator.Logger.With("typeUrl", t.typeURL)
 
@@ -491,6 +497,7 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf su
 			logger.Error("got error response from envoy proxy", "nonce", req.ResponseNonce,
 				"error", status.ErrorProto(req.ErrorDetail))
 			t.nack(req.ResponseNonce)
+			return registeredThisTime, true
 		}
 	}
 
@@ -561,7 +568,7 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf su
 		}
 	}
 
-	return registeredThisTime
+	return registeredThisTime, false
 }
 
 func (t *xDSDeltaType) ack(nonce string) {
