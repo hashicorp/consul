@@ -112,11 +112,11 @@ this task and the service mesh.
 }
 ```
 
-| Field name  | Type    | Description                                                                                                                      |
-| ----------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `name`      | string  | The name of your application container.                                                                                          |
-| `image`     | string  | The container image used to run your application.                                                                                |
-| `essential` | boolean | Must be `true` to ensure your application container ties into the health of the task.                                            |
+| Field name  | Type    | Description                                                                                                                       |
+| ----------- | ------- | --------------------------------------------------------------------------------------------------------------------------------  |
+| `name`      | string  | The name of your application container.                                                                                           |
+| `image`     | string  | The container image used to run your application.                                                                                 |
+| `essential` | boolean | Must be `true` to ensure the health of your application container affects the health status of the task.                          |
 | `dependsOn` | list    | Must be set as shown above. Container dependencies ensure your application container starts after service mesh setup is complete. |
 
 See the [ECS Task Definition](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html) documentation for a complete reference.
@@ -185,7 +185,7 @@ The following table describes the necessary configuration settings.
 | ------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name`        | string  | The container name, which must be `sidecar-proxy`.                                                                                                         |
 | `image`       | string  | The Envoy image. This must be a [supported version of Envoy](/docs/connect/proxies/envoy#supported-versions).                                              |
-| `dependsOn`   | list    | Must be set as shown above to ensure Envoy starts after the `consul-ecs-mesh-init` has written the `envoy-bootstrap.json` config file for Envoy.           |
+| `dependsOn`   | list    | Must be set as shown above to ensure Envoy starts after the `consul-ecs-mesh-init` container has written the `envoy-bootstrap.json` config file for Envoy. |
 | `healthCheck` | list    | Must be set as shown above to monitor the health of Envoy's primary listener port, which ties into container dependencies and startup ordering.            |
 | `mountPoints` | list    | Must be set as shown above to access the files shared in the `/consul` directory, like the Envoy bootstrap configuration file and the `consul-ecs` binary. |
 | `ulimits`     | list    | The `nofile` ulimit must be raised to a sufficiently high value so that Envoy does not fail to open sockets.                                               |
@@ -400,7 +400,7 @@ the `consul-ecs-health-sync` container.
 
 | Field name             | Type    | Description                                                                                                                                     |
 | ---------------------- | ------  | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bootstrapDir`         | string  | This is the path of a  shared volume the is mounted to other containers, where `consul-ecs-mesh-init` will write out Envoy configuration.       |
+| `bootstrapDir`         | string  | This is the path of a  shared volume that is mounted to other containers, where `consul-ecs-mesh-init` will write out Envoy configuration.      |
 | `healthSyncContainers` | list    | Used for [health status syncing](/docs/ecs/manual-installation#consul-ecs-health-sync-container) from ECS to Consul. See below for details.     |
 | `proxy.upstreams`      | list    | The upstream services that your application calls over the service mesh, if any. The `destinationName` and `localBindPort` fields are required. |
 | `service.name`         | string  | The name used to register this service into the Consul service catalog.                                                                         |
