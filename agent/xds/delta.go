@@ -182,6 +182,8 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				}
 				if nack {
 					generator.Logger.Trace("got nack response for type", "typeUrl", req.TypeUrl)
+					// There is no reason to believe that generating new xDS resources from the same snapshot
+					// would lead to an ACK from Envoy. So instead we skip to waiting for a new request or snapshot.
 					goto WAIT
 				}
 			}
