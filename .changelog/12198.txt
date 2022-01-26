@@ -1,0 +1,3 @@
+```release-note:improvement
+telemetry: Pulling in v2.2.1 of github.com/hashicorp/raft-boltdb so that Consul will emit the consul.raft.boltdb.writeCapacity metric.
+```
