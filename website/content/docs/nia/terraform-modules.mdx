@@ -31,13 +31,13 @@ See below sections for more information on [defining source input](#source-input
 
 ### Source Input
 
-CTS monitors defined objects to provide source input to a task. This source input satisfies the requirements defined by the task's Terraform Module's [input variables](https://www.terraform.io/docs/language/values/variables.html).
+A task monitors Consul objects that are defined by the task's configuration. The Consul objects can be used for the source input that satisfies the requirements defined by the task's Terraform module's [input variables](https://www.terraform.io/docs/language/values/variables.html).
 
 A task's source input is slightly different from the task's condition, even though both monitor defined objects. The task's condition monitors defined objects with a configured criteria. When this criteria is satisfied, the task will trigger.
 
 The source input, however, monitors defined objects with the intent of providing values or metadata about these objects to the Terraform module. The monitored source input and condition objects can be the same object, such as a task configured with a `condition "services"` block and `source_includes_var` set to `true`. The source input and condition can also be different objects and configured separately, such as a task configured with a `condition "catalog-services` and `source_input "consul-kv"` block. As a result, the monitored source input is decoupled from the provided condition in order to satisfy the Terraform module.
 
-Each type of monitored object can only be defined through one configuration definiton of a task. For example, if a task monitors services, the task cannot have both `condition "services"` and `source_input "services"` configured. See [Task Source Input configuration](/docs/nia/configuration#task-source-input) for more details.
+Each type of object that CTS monitors can only be defined through one configuration within a task definition. For example, if a task monitors services, the task cannot have both `condition "services"` and `source_input "services"` configured. See [Task Source Input configuration](/docs/nia/configuration#task-source-input) for more details.
 
 There are a few ways that a source input can be defined:
 
