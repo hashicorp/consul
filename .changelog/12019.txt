@@ -1,0 +1,4 @@
+```release-note:improvement
+docs: Describe token locality for auth methods
+```
+
