@@ -5,7 +5,6 @@ on:
     # Sequence of patterns matched against refs/heads
     branches: [ 
       "main",
-      "fix-broken-dockerfile", // just needed for testing, remove before merge
     ]
 
 env:
