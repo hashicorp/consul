@@ -143,7 +143,7 @@ By default, Auth Methods create ACL tokens with _local_ scope. ACL tokens with
 local scope are only valid in the local datacenter where they were created.
 Auth Methods created in the primary datacenter can be configured to create ACL
 tokens that have global scope; however, there are limitations depending on the
-type of the Auth Method being used. For all all methods, setting
+type of the Auth Method being used. For all auth methods, setting
 [`-token-locality=global`](/commands/acl/auth-method/create#token-locality) for
 requests to secondary datacenters will fail. 
 
