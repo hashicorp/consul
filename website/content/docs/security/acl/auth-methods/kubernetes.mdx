@@ -165,11 +165,13 @@ By default, tokens created by the Kubernetes Auth Method will have local scope
 and will therefore only be valid for the datacenter in which they were created.
 On the other hand, by using [`-token-locality=global`](/commands/acl/auth-method/create#token-locality),
 tokens created by the Auth Method will be replicated to all other datacenters.
-
-
-
-For cases requiring global token scope, the primary Consul datacenter must have
-access to all Kubernetes clusters in order for tokens to be validated. This
-property is often prohibitive so using [`-token-locality=global`](/commands/acl/auth-method/create#token-locality)
-with the Kubernetes Auth method is not recommended. As an alternative, configuring
-the anonymous token policy to allow specific cross-datacenter access is recommended.
+What this means is that by using `global` locality, there are implications on
+the Consul servers' access to associated Kubernetes clusters. This may come as
+a limitation to the given Consul deployment so using
+[`-token-locality=global`](/commands/acl/auth-method/create#token-locality) is
+typically discouraged. In general, it's simpler to ensure the configuration
+for a local Auth Method corresponds to the access defined in the given
+[`-kubernetes-host`](/commands/acl/auth-method/create#kubernetes-host),
+[`-kubernetes-ca-cert`](/commands/acl/auth-method/create#kubernetes-ca-cert), and
+[`-kubernetes-service-account-jwt`](/commands/acl/auth-method/create#kubernetes-service-account-jwt)
+settings provided.
