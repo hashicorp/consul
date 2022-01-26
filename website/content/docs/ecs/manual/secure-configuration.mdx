@@ -14,7 +14,7 @@ A secure Consul cluster should include the following:
 1. [Gossip Encryption](/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
 1. [Access Control (ACLs)](/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
 
--> **NOTE:** This page assumes that you have already configured your Consul server with the above features.
+-> **NOTE:** In this topic, we assume that you have already configured your Consul server with the security-related features.
 
 ## Prerequisites
 
@@ -175,7 +175,7 @@ EOF
 
 </CodeBlockConfig>
 
-The following are the additional fields that must be included in the Consul client configuration file.
+The following table describes the additional fields that must be included in the Consul client configuration file.
 
 | Field name                                                 | Type    | Description                                                                          |
 | ---------------------------------------------------------  | ------- | ------------------------------------------------------------------------------------ |

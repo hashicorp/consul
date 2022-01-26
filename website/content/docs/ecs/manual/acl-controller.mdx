@@ -16,7 +16,7 @@ If you are using Terraform, refer to the [Terraform Secure Configuration](/docs/
 Refer to the [Task Tags](/docs/ecs/manual/install#task-tags) section of the installation page.
 * You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the following [Learn Guides](https://learn.hashicorp.com/collections/consul/security) for an introduction and the [ACL system](/docs/security/acl) documentation for more information.
 
-## Setup AWS Secrets Manager
+## Set Up Secrets
 
 The ACL controller supports managing secrets in AWS Secrets Manager.
 
@@ -38,7 +38,7 @@ The ACL controller requires that the secrets it reads and writes are named with 
 in the [Task Role Policy](/docs/ecs/manual/acl-controller#task-role-policy) to limit the ACL controller's access within
 AWS Secrets Manager to only those secrets strictly needed by the ACL controller.
 
-The name prefix should be unique among secrets your AWS account. We recommend a short (8 character) random
+The name prefix should be unique among secrets in your AWS account. We recommend using a short (8 character) random
 string for the prefix.
 
 -> **NOTE:** If you are using the ACL controller with multiple ECS clusters, each cluster requires
@@ -55,7 +55,7 @@ The following example shows how the task definition should be configured for the
 
 ```json
 {
-  "family": "my-consul-acl-controller".
+  "family": "my-consul-acl-controller",
   "networkMode": "awsvpc",
   "containerDefinitions": [
     {
@@ -102,7 +102,7 @@ In the `containerDefinitions` list, include one container with the following fie
 | `name`        | string  | The container name, which should be `acl-controller`                                                                             |
 | `image`       | string  | The `consul-ecs` image. Use our public AWS registry, `public.ecr.aws/hashicorp/consul-ecs`, to avoid rate limits.                |
 | `command`     | list    | Must be set as shown. The startup command for the ACL controller.                                                                |
-| `essential`   | boolean | Must be `true` to ensure the container health ties into the health of the task.                                                  |
+| `essential`   | boolean | Must be `true` to ensure the health of your application container affects the health status of the task.                         |
 | `secrets`     | list    | Must have `CONSUL_HTTP_TOKEN` set to the ACL bootstrap token and `CONSUL_CACERT_PEM` set to the Consul server CA certificate.    |
 | `environment` | string  | Must set the `CONSUL_HTTP_ADDR` environment variable to the address of the HTTP API of your Consul servers.                      |
 
@@ -135,7 +135,7 @@ to complete the remaining details for your use case.
 | Field name       | Type    | Description                                                                                                      |
 | ---------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
 | `cluster`        | string  | Set to your ECS cluster name or ARN. This must be the same ECS cluster where your service mesh applications run. |
-| `desiredCount`   | integer | Must be 1. Only one instance of the ACL controller should run per ECS cluster.                                   |
+| `desiredCount`   | integer | Must be `1`. Only one instance of the ACL controller should run per ECS cluster.                                   |
 | `launchType`     | string  | Consul on ECS supports both the `FARGATE` and `EC2` launch types.                                                |
 | `serviceName`    | string  | The service name of your choice.                                                                                 |
 | `taskDefinition` | string  | Must be set to the ACL controller [task definition](/docs/ecs/manual/acl-controller#task-definition).            |
