@@ -3,16 +3,17 @@ layout: docs
 page_title: API Gateway
 description: Using Consul API gateway functionality
 ---
+
 # Consul API Gateway
 
-The Consul API Gateway add-on module helps users control access to services running within a Consul service mesh. Using the API Gateway, applications and services running in a Consul datacenter can be accessed by network clients residing outside of the datacenter. This type of network traffic is commonly referred to as "north-south" network traffic as it refers to the flow of data into and out of a specific environment. Requests from clients can also be forwarded based on path or request protocol. 
+This topic describes how to use the Consul API Gateway add-on module, which helps users control access to services running within a Consul service mesh. The API gateway enables external network clients to access applications and services running in a Consul datacenter. This type of network traffic is commonly referred to as "north-south" network traffic as it refers to the flow of data into and out of a specific environment. Requests from clients can also be forwarded based on path or request protocol.
 
 ## Introduction
 
-Consul API Gateway is an implementation of the Kubernetes Gateway [API Specification](https://gateway-api.sigs.k8s.io/). This specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes based on the path or protocol of a client request. The Consul API gateway solves for two primary use cases:
+Consul API Gateway is an implementation of the Kubernetes Gateway [API Specification](https://gateway-api.sigs.k8s.io/). This specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes based on the path or protocol of a client request. Consul API Gateway solves two primary use cases:
 
-* **Controlling access at the point entry** - The Consul API Gateway allows users to set the protocols of external connection requests and provide clients with TLS certificates from trusted providers (e.g. VeriSign, Let’sEncrypt). 
-* **Simplifying traffic management** - The Consul API Gateway can be used to load balance requests across services and route traffic to the appropriate service based on matching one or more criteria such as hostname, path, header presence or value, and HTTP Method type (e.g. Get, Post, Patch).
+- **Controlling access at the point entry**: Consul API Gateway allows users to set the protocols of external connection requests and provide clients with TLS certificates from trusted providers (e.g., VeriSign, Let’sEncrypt).
+- **Simplifying traffic management**: The Consul API Gateway can load balance requests across services and route traffic to the appropriate service based on matching one or more criteria, such as hostname, path, header presence or value, and HTTP Method type (e.g., GET, POST, PATCH).
 
 ## Requirements
 
@@ -47,7 +48,11 @@ controller:
 $ helm install consul hashicorp/consul --version 0.39.0 --values values.yaml
 ```
 
-The following components will be installed: - Gateway controller - CRDs required by the Kubernetes Gateway API specification - `kustomize` manifests for completing the installation
+The following components will be installed:
+
+- Gateway controller
+- CRDs required by the Kubernetes Gateway API specification
+- `kustomize` manifests for completing the installation
 
 1. After `helm` installs Consul API Gateway packages, issue the following commands to apply the API gateway to your Kubernetes cluster.
 
@@ -66,6 +71,8 @@ $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config?ref=
 ```shell-session
 $ kubectl apply --values gateway-configuration.yaml
 ```
+
+<!--- Commented out per https://github.com/hashicorp/consul/pull/11951/files#r791204596
 
 ### Using the Consul API Gateway Binary
 
@@ -112,22 +119,27 @@ You can also issue the `version` command to print the Consul API Gateway version
 $ ./consul-api-gateway version
 consul-api-gateway 0.1.0
 ```
+--->
 
 ## Configuration
 
-Create the following artifacts to configure the API Gateway:
+Configure the following artifacts to facilitate ingress into your Consul service mesh:
 
-- [Gateway](#gateway): Defines the gateway properties, including listeners.
+- [Gateway](#gateway): Defines the main infrastructure resource that links API gateway components. It specifies the name of the `GatewayClass` and one or more `listeners`.
+- [GatewayClass](#gatewayclass): Defines a class of gateway resources that you can use as a template for creating gateways.
+- [GatewayClassConfig](#gatewayclassconfig): Describes additional Consul API Gatway-related configuration parameters for the `GatewayClass` resource.
 - [Listeners](#listeners): Defines listener properties, such as protocol, port, and namespace.
 - [Routes](#routes): Specifies the path from the client to the listener.
 
 ### Gateway
 
-The gateway object contains gateway listeners.
-Add the `kind: Gateway` option to the configuration file to declare a gateway.
-The following example creates a gateway called `example-gateway` that includes a listener called `https` (see [Listeners](#listeners) for details about the `listener` configuration).
+The gateway configuration is the main infrastructure resource that links API gateway components. It specifies the name of the `GatewayClass` and one or more `listeners`.
 
-<CodeBlockConfig lineNumbers highlight="2,4,9,13">
+Add the `kind: Gateway` option to the configuration file to declare a gateway.
+The following example creates a gateway called `example-gateway`.
+The gateway is based on the `test-gateway-class` and includes a listener called `https` (see [Listeners](#listeners) for details about the `listener` configuration).
+
+<CodeBlockConfig filename="gateway.yaml" lineNumbers highlight="2,4,8,9,13">
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1alpha2
@@ -137,7 +149,7 @@ metadata:
   annotations:
     'external-dns.alpha.kubernetes.io/hostname': DNS_HOSTNAME
 spec:
-  gatewayClassName: default-consul-gateway-class
+  gatewayClassName: test-gateway-class
   listeners:
     - protocol: HTTPS
       hostname: DNS_HOSTNAME
@@ -155,6 +167,83 @@ spec:
 
 Refer to the Kubernetes Gateway API documentation for details about configuring gateways:
 <https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Gateway>
+
+### GatewayClass
+
+The `GatewayClass` resource is used as a template for creating `Gateway` resources.
+The specification includes the name of the controller (`controllerName`) and an API object containing controller-specific configuration resource within the cluster (`parametersRef`).
+
+When gateways are created from a `GatewayClass`, they use the parameters specified in the `GatewayClass` at the time of instantiation.
+If you want to propagate changes made to the `GatewayClass` after gateways have been created, then the implementation must document this behavior.
+The `gateway-exists-finalizer.gateway.networking.k8s.io` finalizer must also be added to a `GatewayClass` to ensure that a `GatewayClass` associated with a `Gateway` is not deleted while in use.
+
+Add the `kind: GatewayClass` option to the the gateway values file to declare a gateway class.
+The following example creates a gateway class called `test-gateway-class`.
+
+<CodeBlockConfig filename="gateway.yaml">
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: GatewayClass
+metadata:
+  name: test-gateway-class
+spec:
+  controllerName: 'hashicorp.com/consul-api-gateway-controller'
+  parametersRef:
+    group: api-gateway.consul.hashicorp.com
+    kind: GatewayClassConfig
+    name: test-gateway-class-config
+```
+
+</CodeBlockConfig>
+
+Refer to the Kubernetes Gateway API documentation for details about configuring gateway classes:
+<https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.GatewayClass>
+
+### GatewayClassConfig
+
+The `GatewayClassConfig` object describes additional Consul API Gateway-related configuration parameters for the `GatewayClass`.
+
+Add the `kind: GatewayClassConfig` option to the gateway values file to declare a gateway class.
+The following example creates a gateway class called `test-gateway-class-config`.
+
+<CodeBlockConfig filename="gateway.yaml">
+
+```yaml
+apiVersion: api-gateway.consul.hashicorp.com/v1alpha1
+kind: GatewayClassConfig
+metadata:
+  name: test-gateway-class-config
+spec:
+  useHostPorts: true
+  logLevel: trace
+  consul:
+    scheme: https
+    caSecret: consul-ca-cert
+    ports:
+      http: 8501
+      grpc: 8502
+```
+
+</CodeBlockConfig>
+
+The following table describes the required parameters for the `spec` array:
+
+| Parameter      | Description                                                                                                                                          | Type    | Default |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------- |
+| `useHostPorts` | Enables the gateway to use the host ports                                                                                                            | Boolean | `true`  |
+| `logLevel`     | Specifies the error reporting level for logs. You can specify the following values: `FATAL`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`, `ALL`, `OFF` | String  | `trace` |
+| `consul`       | Specifies ingress properties for Consul. See [Consul Configuration](#consul-configuration)                                                           | Array   | N/A     |
+
+#### Consul Configuration
+
+The following table describes the parameters available for the `consul` element of the `GatewayClassConfiguration`:
+
+| Parameter  | Description                                                   | Type   | Default                         |
+| ---------- | ------------------------------------------------------------- | ------ | ------------------------------- |
+| `scheme`   | Specifies the message protocol.                               | String | `http`                          |
+| `caSecret` | Specifies the name of the CA secret.                          | String | none                            |
+| `ports`    | Specifies which ports to use for API and application traffic. | Array  | `http: 8501` <br/> `grpc: 8502` |
 
 ### Listeners
 
