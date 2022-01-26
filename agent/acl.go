@@ -171,7 +171,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 		if authz.NodeRead(node, &authzContext) == acl.Allow {
 			continue
 		}
-		accessorID := a.aclAccessorID(token)
+		accessorID := authz.AccessorID()
 		a.logger.Debug("dropping node from result due to ACLs", "node", node, "accessorID", accessorID)
 		m = append(m[:i], m[i+1:]...)
 		i--
