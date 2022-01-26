@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -20,7 +19,11 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	// Pull out the key name, validation left to each sub-handler
-	args.Key = strings.TrimPrefix(req.URL.Path, "/v1/kv/")
+	var err error
+	args.Key, err = getPathSuffixUnescaped(req.URL.Path, "/v1/kv/")
+	if err != nil {
+		return nil, err
+	}
 
 	// Check for a key list
 	keyList := false
