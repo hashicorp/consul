@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
@@ -19,15 +20,12 @@ func (s *HTTPHandlers) EventFire(resp http.ResponseWriter, req *http.Request) (i
 	var dc string
 	s.parseDC(req, &dc)
 
-	var err error
 	event := &UserEvent{}
-
-	event.Name, err = getPathSuffixUnescaped(req.URL.Path, "/v1/event/fire/")
-	if err != nil {
-		return nil, err
-	}
+	event.Name = strings.TrimPrefix(req.URL.Path, "/v1/event/fire/")
 	if event.Name == "" {
-		return nil, BadRequestError{Reason: "Missing name"}
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing name")
+		return nil, nil
 	}
 
 	// Get the ACL token
