@@ -28,27 +28,27 @@ Your datacenter must meet the following requirements prior to configuring the Co
 
   <CodeBlockConfig hideClipboard filename="values.yaml">
 
-```yaml
-global:
-  name: consul
-  image: 'hashicorp/consul:1.11.2'
-  tls:
+  ```yaml
+  global:
+    name: consul
+    image: 'hashicorp/consul:1.11.2'
+    tls:
+      enabled: true
+  connectInject:
     enabled: true
-connectInject:
-  enabled: true
-controller:
-  enabled: true
-```
+  controller:
+    enabled: true
+  ```
 
   </CodeBlockConfig>
 
 1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file.
 
-```shell-session
-$ helm install consul hashicorp/consul --version 0.39.0 --values values.yaml
-```
+  ```shell-session
+  $ helm install consul hashicorp/consul --version 0.39.0 --values values.yaml
+  ```
 
-The following components will be installed:
+  The following components will be installed:
 
     - Gateway controller
     - CRDs required by the Kubernetes Gateway API specification
