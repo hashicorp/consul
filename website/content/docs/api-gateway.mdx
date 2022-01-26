@@ -10,9 +10,9 @@ This topic describes how to use the Consul API Gateway add-on module, which help
 
 ## Introduction
 
-Consul API Gateway is an implementation of the Kubernetes Gateway [API Specification](https://gateway-api.sigs.k8s.io/). This specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes based on the path or protocol of a client request. Consul API Gateway solves two primary use cases:
+Consul API Gateway is an implementation of the Kubernetes [Gateway API Specification](https://gateway-api.sigs.k8s.io/). This specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes based on the path or protocol of a client request. Consul API Gateway solves two primary use cases:
 
-- **Controlling access at the point entry**: Consul API Gateway allows users to set the protocols of external connection requests and provide clients with TLS certificates from trusted providers (e.g., VeriSign, Let’sEncrypt).
+- **Controlling access at the point of entry**: Consul API Gateway allows users to set the protocols of external connection requests and provide clients with TLS certificates from trusted providers (e.g., VeriSign, Let’sEncrypt).
 - **Simplifying traffic management**: The Consul API Gateway can load balance requests across services and route traffic to the appropriate service based on matching one or more criteria, such as hostname, path, header presence or value, and HTTP Method type (e.g., GET, POST, PATCH).
 
 ## Requirements
@@ -137,8 +137,6 @@ The specification includes the name of the controller (`controllerName`) and an 
 The value of the `controllerName` field must be set to `hashicorp.com/consul-api-gateway-controller`.
 
 When gateways are created from a `GatewayClass`, they use the parameters specified in the `GatewayClass` at the time of instantiation.
-If you want to propagate changes made to the `GatewayClass` after gateways have been created, then the implementation must document this behavior.
-The `gateway-exists-finalizer.gateway.networking.k8s.io` finalizer must also be added to a `GatewayClass` to ensure that a `GatewayClass` associated with a `Gateway` is not deleted while in use.
 
 Add the `kind: GatewayClass` option to the the gateway values file to declare a gateway class.
 The following example creates a gateway class called `test-gateway-class`.
@@ -258,6 +256,13 @@ Add the `listener` object to the `gateway` configuration and specify the followi
 - `hostname`: Hostname specifies the virtual hostname to match for protocol types.
 - `port`: Specifies the network port.
 - `protocol`: Specifies the network protocol expected by the listener.
+- `tls` [`GatewayTLSConfig`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.GatewayTLSConfig)
+  - `mode` [`TLSModeType`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.TLSModeType): Defaults to `Terminate` if unspecified, `Passthrough` is not yet supported.
+  - `certificateRefs` [`[]*SecretObjectReference`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.SecretObjectReference): Used for Envoy SDS (Secret Discovery Service) to support terminating TLS.
+  - `options`:  Key/value pairs to enable implementation-specific extended TLS configuration. Consul API Gateway supports the following options:
+    - `"api-gateway.consul.hashicorp.com/tls_min_version"`: Set the minimum TLS version supported for this listener. Allowed values are `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, `TLSv1_3`. If unspecified, Consul API Gateway will default to TLS 1.2.
+    - `"api-gateway.consul.hashicorp.com/tls_max_version"`: Set the maximum TLS version supported for this listener. Must be greater than or equal to `TLSMinVersion`. Allowed values are `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Consul API Gateway will use Envoy's current default of TLS 1.3.
+    - `"api-gateway.consul.hashicorp.com/tls_cipher_suites"`: Set the list of TLS cipher suites to support when negotiating connections using TLS 1.2 or earlier. If unspecified, Consul API Gateway will set a [more secure set of cipher suites](https://github.com/hashicorp/consul-api-gateway/blob/main/internal/common/tls.go#L3-L10) than Envoy's current [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites). The full list of supported cipher suites can seen in [`internal/common/tls.go`](https://github.com/hashicorp/consul-api-gateway/blob/main/internal/common/tls.go) and is dependent on underlying support in Envoy. Future releases of Envoy may remove currently-supported but insecure cipher suites, and future releases of Consul API Gateway may add new supported cipher suites if any are added to Envoy.
 
 Refer to the Kubernetes Gateway API documentation for details about configuring listeners:
 <https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Listener>
