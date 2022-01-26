@@ -715,7 +715,7 @@ func newTestACLResolver(t *testing.T, delegate *ACLResolverTestDelegate, cb func
 			Roles:          4,
 		},
 		DisableDuration: aclClientDisabledTTL,
-		Delegate:        delegate,
+		Backend:         delegate,
 	}
 
 	if cb != nil {
