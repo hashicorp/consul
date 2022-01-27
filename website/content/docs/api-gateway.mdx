@@ -31,27 +31,28 @@ $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?
 ```
 
 1. Create a values file for your Consul server agents that contains the following parameters:
-   <CodeBlockConfig hideClipboard filename="values.yaml">
 
-```yaml
-global:
-  name: consul
-  image: 'hashicorp/consul:1.11.2'
-  tls:
-    enabled: true
-connectInject:
-  enabled: true
-controller:
-  enabled: true
-```
+    <CodeBlockConfig hideClipboard filename="values.yaml">
 
-  </CodeBlockConfig>
+   ```yaml
+   global:
+     name: consul
+     image: 'hashicorp/consul:1.11.2'
+     tls:
+       enabled: true
+   connectInject:
+     enabled: true
+   controller:
+     enabled: true
+   ```
+
+````
+</CodeBlockConfig>
 
 1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file.
-
 ```shell-session
 $ helm install consul hashicorp/consul --version 0.40.0 --values values.yaml
-```
+````
 
 ## Usage
 
@@ -252,7 +253,7 @@ Add the `listener` object to the `gateway` configuration and specify the followi
 | `tls.certificateRefs`           | Specifies the name of secret object used for Envoy SDS (Secret Discovery Service) to support terminating TLS. Refer to the [`[]*SecretObjectReference` documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.SecretObjectReference) for additional information.                                                                                                                                                                                                                                                                                                                                                                                                                        | String  | N/A             |
 | `tls.options`                   | Specifies key/value pairs to enable extended TLS configuration specific to an implementation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Object  | N/A             |
 | `tls.options.tls_min_version`   | Specifies the minimum TLS version supported for the listener. The following values are supported: `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, `TLSv1_3`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | String  | `TLS 1.2`       |
-| `tls.options.tls_max_version"`  | Specifies the maximum TLS version supported for the listener. The specified version must be greater than or equal to `TLSMinVersion`. The following values are supported: `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, `TLSv1_3`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | String  | `TLS 1.3`       |
+| `tls.options.tls_max_version`   | Specifies the maximum TLS version supported for the listener. The specified version must be greater than or equal to `TLSMinVersion`. The following values are supported: `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, `TLSv1_3`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | String  | `TLS 1.3`       |
 | `tls.options.tls_cipher_suites` | Specifies the list of TLS cipher suites to support when negotiating connections using TLS 1.2 or earlier. <br/>If unspecified, a [more secure set of cipher suites](https://github.com/hashicorp/consul-api-gateway/blob/main/internal/common/tls.go#L3-L10) than Envoy's current [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites) will be used. <br/>The full list of supported cipher suites can seen in [`internal/common/tls.go`](https://github.com/hashicorp/consul-api-gateway/blob/main/internal/common/tls.go) and is dependent on underlying support in Envoy. | String  | See description |
 
 Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Listener) for details about configuring listeners.
