@@ -13,7 +13,9 @@ export default class OnOutsideModifier extends Modifier {
     await new Promise(resolve => setTimeout(resolve, 0));
     try {
       this.doc.addEventListener(params[0], this.listen);
-    } catch (e) {}
+    } catch (e) {
+      // continue
+    }
   }
 
   @action
