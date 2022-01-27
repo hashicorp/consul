@@ -19,15 +19,16 @@ The following diagram shows the main components of the Consul architecture when 
    1. **Sidecar proxy:** The sidecar proxy container runs [Envoy](https://envoyproxy.io/). All requests
       to and from the application container(s) run through the sidecar proxy. This communication
       is called _data plane_ communication.
+1. **Mesh Init:** Each task runs a short-lived container, called `mesh-init`, which sets up initial configuration
+   for Consul and Envoy.
+1. **Health Syncing:** Optionally, an additional `health-sync` container can be included in a task to sync health statuses
+   from ECS into Consul.
 1. **ACL Controller:** Automatically provisions Consul ACL tokens for Consul clients and service mesh services
    in an ECS Cluster.
 
 For more information about how Consul works in general, see Consul's [Architecture Overview](/docs/architecture).
 
-In addition to the long-running Consul client and sidecar proxy containers, the `mesh-init` container runs
-at startup and sets up initial configuration for Consul and Envoy.
-
-### Task Startup
+## Task Startup
 
 This diagram shows the timeline of a task starting up and all its containers:
 
@@ -44,7 +45,7 @@ This diagram shows the timeline of a task starting up and all its containers:
   - If applicable, the `health-sync` container syncs health checks from ECS to Consul (see [ECS Health Check Syncing](#ecs-health-check-syncing)).
 - **T2:** The `sidecar-proxy` container is marked as healthy by ECS. It uses a health check that detects if its public listener port is open. At this time, your application containers are started since all Consul machinery is ready to service requests. The only running containers are `consul-client`, `sidecar-proxy`, and your application container(s).
 
-### Task Shutdown
+## Task Shutdown
 
 This diagram shows an example timeline of a task shutting down:
 
@@ -64,7 +65,7 @@ This diagram shows an example timeline of a task shutting down:
   - Updates about this task have reached the rest of the Consul cluster, so downstream proxies have been updated to stopped sending traffic to this task.
 - **T4**: At this point task shutdown should be complete. Otherwise, ECS will send a KILL signal to any containers still running. The KILL signal cannot be ignored and will forcefully stop containers. This will interrupt in-progress operations and possibly cause errors.
 
-### Automatic ACL Token Provisioning
+## Automatic ACL Token Provisioning
 
 Consul ACL tokens secure communication between agents and services.
 The following containers in a task require an ACL token:
@@ -83,13 +84,13 @@ token does not yet exist.
 The ACL controller stores all ACL tokens in AWS Secrets Manager, and tasks are configured to pull these
 tokens from AWS Secrets Manager when they start.
 
-### ECS Health Check Syncing
+## ECS Health Check Syncing
 
 If the following conditions apply, ECS health checks automatically sync with Consul health checks for all application containers:
 
-* marked as `essential` 
-* have ECS `healthChecks` 
-* are not configured with native Consul health checks 
+* marked as `essential`
+* have ECS `healthChecks`
+* are not configured with native Consul health checks
 
 The `mesh-init` container creates a TTL health check for
 every container that fits these criteria and the `health-sync` container ensures

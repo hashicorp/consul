@@ -1,0 +1,147 @@
+---
+layout: docs
+page_title: AWS ECS
+description: >-
+  Configuration Reference for Consul on AWS ECS (Elastic Container Service).
+  Do not modify by hand! This is automatically generated documentation.
+---
+
+# Configuration Reference
+
+This pages details the configuration options for the JSON config format used
+by the `consul-ecs` binary. This configuration is passed to the `consul-ecs`
+binary as a string using the `CONSUL_ECS_CONFIG_JSON` environment variable.
+
+This configuration format follows a [JSON schema](https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json)
+that can be used for validation.
+
+## Terraform Mesh Task Module Configuration
+
+The `mesh-task` Terraform module provides input variables for commonly used fields.
+The following table shows which Terraform input variables correspond to each field
+of the Consul ECS configuration. Refer to the
+[Terraform registry documentation](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task?tab=inputs)
+for a complete reference of supported input variables for the `mesh-task` module.
+
+| Terraform Input Variable | Consul ECS Config Field               |
+| ------------------------ | ------------------------------------- |
+| `upstreams`              | [`proxy.upstreams`](#proxy-upstreams) |
+| `checks`                 | [`service.checks`](#service-checks)   |
+| `consul_service_name`    | [`service.name`](#service)            |
+| `consul_service_tags`    | [`service.tags`](#service)            |
+| `consul_service_meta`    | [`service.meta`](#service)            |
+| `consul_namespace`       | [`service.namespace`](#service)       |
+| `consul_partition`       | [`service.partition`](#service)       |
+
+Each of these Terraform input variables follow the Consul ECS config schema.
+The remaining fields of the Consul ECS configuration not listed in this table can be passed
+using the `consul_ecs_config` input variable.
+
+# Top-level fields
+
+These are the top-level fields for the Consul ECS configuration format.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `bootstrapDir` | `string` | required | The directory at which to mount the shared volume where Envoy bootstrap configuration is written by `consul-ecs mesh-init`.  |
+| `healthSyncContainers` | `array` | optional | The names of containers that will have health check status synced from ECS into Consul. Cannot be specified with `service.checks`.  |
+| [`proxy`](#proxy) | `object` | optional | Configuration for the sidecar proxy registration with Consul.  |
+| [`service`](#service) | `object` | required | Configuration for Consul service registration.  |
+
+# `service`
+
+Configuration for Consul service registration.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| [`checks`](#service-checks) | `array` | optional | The list of Consul checks for the service. Cannot be specified with `healthSyncContainers`.  |
+| `enableTagOverride` | `boolean` | optional | Determines if the anti-entropy feature for the service is enabled  |
+| `meta` | `object` | optional | Key-value pairs of metadata to include for the Consul service.  |
+| `name` | `string` | optional | The name the service will be registered as in Consul. Defaults to the Task family name if empty or null.  |
+| `namespace` | `string` | optional | The Consul namespace where the service will be registered [Consul Enterprise].  |
+| `partition` | `string` | optional | The Consul admin partition where the service will be registered [Consul Enterprise].  |
+| `port` | `integer` | required | Port the application listens on, if any.  |
+| `tags` | `array` | optional | List of string values that can be used to add service-level labels.  |
+| [`weights`](#service-weights) | `object` | optional | Configures the weight of the service in terms of its DNS service (SRV) response.  |
+
+# `service.checks`
+
+Defines the Consul checks for the service. Each check may contain these fields.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `aliasNode` | `string` | optional | Specifies the ID of the node for an alias check.  |
+| `aliasService` | `string` | optional | Specifies the ID of a service for an alias check.  |
+| `args` | `array` | optional | Command arguments to run to update the status of the check.  |
+| `body` | `string` | optional | Specifies a body that should be sent with `HTTP` checks.  |
+| `checkId` | `string` | optional | The unique ID for this check on the node. Defaults to the check `name`.  |
+| `failuresBeforeCritical` | `integer` | optional | Specifies the number of consecutive unsuccessful results required before check status transitions to critical.  |
+| `grpc` | `string` | optional | Specifies a `gRPC` check. Must be an endpoint that supports the [standard gRPC health checking protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md). The endpoint will be probed every `interval`.  |
+| `grpcUseTls` | `boolean` | optional | Specifies whether to use TLS for this gRPC health check.  |
+| `h2ping` | `string` | optional | Specifies this is an h2ping check. Must be an address, which will be pinged every `interval`.  |
+| `h2pingUseTls` | `boolean` | optional | Specifies whether TLS is used for an h2ping check.  |
+| `header` | `object` | optional | Specifies a set of headers that should be set for HTTP checks. Each header can have multiple values.  |
+| `http` | `string` | optional | Specifies this is an HTTP check. Must be a URL against which request is performed every `interval`.  |
+| `interval` | `string` | optional | Specifies the frequency at which to run this check. Required for HTTP and TCP checks.  |
+| `method` | `string` | optional | Specifies the HTTP method to be used for an HTTP check. When no value is specified, `GET` is used.  |
+| `name` | `string` | optional | The name of the check.  |
+| `notes` | `string` | optional | Specifies arbitrary information for humans. This is not used by Consul internally.  |
+| `status` | `string` | optional | Specifies the initial status the health check. Must be one of `passing`, `warning`, `critical`, `maintenance`, or`null`. |
+| `successBeforePassing` | `integer` | optional | Specifies the number of consecutive successful results required before check status transitions to passing.  |
+| `tcp` | `string` | optional | Specifies this is a TCP check. Must be an IP/hostname plus port to which a TCP connection is made every `interval`.  |
+| `timeout` | `string` | optional | Specifies a timeout for outgoing connections in the case of a Script, HTTP, TCP, or gRPC check. Must be a duration string, such as `10s` or `5m`.  |
+| `tlsServerName` | `string` | optional | Specifies an optional string used to set the SNI host when connecting via TLS.  |
+| `tlsSkipVerify` | `boolean` | optional | Specifies if the certificate for an HTTPS check should not be verified.  |
+| `ttl` | `string` | optional | Specifies this is a TTL check. Must be a duration string, such as `10s` or `5m`.  |
+
+# `service.weights`
+
+Configures the weight of the service in terms of its DNS service (SRV) response.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `passing` | `integer` | required | Weight for the service when its health checks are passing.  |
+| `warning` | `integer` | required | Weight for the service when it has health checks in `warning` status.  |
+
+# `proxy`
+
+Configuration for the sidecar proxy registration with Consul.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `config` | `object` | optional | Object value that specifies an opaque JSON configuration. The JSON is stored and returned along with the service instance when called from the API.  |
+| [`meshGateway`](#proxy-meshgateway) | `object` | optional | Specifies the mesh gateway configuration for the proxy.  |
+| [`upstreams`](#proxy-upstreams) | `array` | optional | The list of the upstream services that the proxy should create listeners for.  |
+
+# `proxy.upstreams`
+
+The list of the upstream services that the proxy should create listeners for. Each upstream may contain these fields.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `config` | `object` | optional | Specifies opaque configuration options that will be provided to the proxy instance for the upstream.  |
+| `datacenter` | `string` | optional | Specifies the datacenter to issue the discovery query to.  |
+| `destinationName` | `string` | required | Specifies the name of the upstream service or prepared query to route the service mesh to.  |
+| `destinationNamespace` | `string` | optional | Specifies the namespace containing the upstream service [Consul Enterprise].  |
+| `destinationPartition` | `string` | optional | Specifies the name of the admin partition containing the upstream service [Consul Enterprise].  |
+| `destinationType` | `string` | optional | Specifies the type of discovery query the proxy should use for finding service mesh instances. Must be one of `service`, `prepared_query`, or`null`. |
+| `localBindAddress` | `string` | optional | Specifies the address to bind a local listener to.  |
+| `localBindPort` | `integer` | required | Specifies the port to bind a local listener to. The application will make outbound connections to the upstream from the local port.  |
+| [`meshGateway`](#proxy-upstreams-meshgateway) | `object` | optional | Specifies the mesh gateway configuration for the proxy for this upstream.  |
+
+## `proxy.upstreams.meshGateway`
+
+Specifies the mesh gateway configuration for the proxy for this upstream.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `mode` | `string` | required | Specifies how the upstream with a remote destination datacenter gets resolved. Must be one of `none`, `local`, or`remote`. |
+
+# `proxy.meshGateway`
+
+Specifies the mesh gateway configuration for the proxy.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `mode` | `string` | required | Specifies how upstreams with a remote destination datacenter get resolved. Must be one of `none`, `local`, or`remote`. |
+
