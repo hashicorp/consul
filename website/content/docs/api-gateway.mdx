@@ -23,6 +23,7 @@ Your datacenter must meet the following requirements prior to configuring the Co
 
 - A Kubernetes cluster must be running
 - Consul 1.11.2+
+- HashiCorp Helm chart 0.40.0+
 
 ## Installation
 
@@ -50,6 +51,9 @@ Your datacenter must meet the following requirements prior to configuring the Co
      enabled: true
    controller:
      enabled: true
+   apiGateway:
+     enabled: true
+     image: hashicorp/consul-api-gateway:0.1.0-beta
    ```
 
    </CodeBlockConfig>
