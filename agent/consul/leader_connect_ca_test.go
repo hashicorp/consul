@@ -499,6 +499,7 @@ func getLeafCert(t *testing.T, codec rpc.ClientCodec, trustDomain string, dc str
 		Host:       trustDomain,
 		Service:    "srv1",
 		Datacenter: dc,
+		Namespace:  "default",
 	}
 	cn, err := connect.CNForCertURI(spiffeID)
 	require.NoError(t, err)
