@@ -879,22 +879,33 @@ func (c *Client) doRequest(r *request) (time.Duration, *http.Response, error) {
 // and deserialize the response into an interface using
 // standard Consul conventions.
 func (c *Client) query(endpoint string, out interface{}, q *QueryOptions) (*QueryMeta, error) {
-	r := c.newRequest("GET", endpoint)
-	r.setQueryOptions(q)
-	rtt, resp, err := c.doRequest(r)
+	resp, qm, err := c.queryRaw(endpoint, q)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	if err := decodeBody(resp, out); err != nil {
+		return nil, err
+	}
+	return qm, nil
+}
+
+// QueryRaw is used to do a GET request against an endpoint
+// without deserializing the response. The caller is responsible to close
+// response body.
+func (c *Client) queryRaw(endpoint string, q *QueryOptions) (*http.Response, *QueryMeta, error) {
+	r := c.newRequest("GET", endpoint)
+	r.setQueryOptions(q)
+	rtt, resp, err := c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	if err := decodeBody(resp, out); err != nil {
-		return nil, err
-	}
-	return qm, nil
+	return resp, qm, nil
 }
 
 // write is used to do a PUT request against an endpoint

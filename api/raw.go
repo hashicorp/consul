@@ -1,5 +1,7 @@
 package api
 
+import "net/http"
+
 // Raw can be used to do raw queries against custom endpoints
 type Raw struct {
 	c *Client
@@ -15,6 +17,13 @@ func (c *Client) Raw() *Raw {
 // standard Consul conventions.
 func (raw *Raw) Query(endpoint string, out interface{}, q *QueryOptions) (*QueryMeta, error) {
 	return raw.c.query(endpoint, out, q)
+}
+
+// QueryRaw is used to do a GET request against an endpoint
+// without deserializing the response. The caller is responsible to close
+// response body.
+func (raw *Raw) QueryRaw(endpoint string, q *QueryOptions) (*http.Response, *QueryMeta, error) {
+	return raw.c.queryRaw(endpoint, q)
 }
 
 // Write is used to do a PUT request against an endpoint
