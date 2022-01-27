@@ -5989,13 +5989,13 @@
 }
 
 %with-logo-consul-color-icon {
-  @extend %with-icon, %logo-consul-color-svg-prop;
-  background-image: var(--logo-consul-color-svg);
+  @extend %with-icon, %consul-color-24-svg-prop;
+  background-image: var(--consul-color-24-svg);
 }
 %with-logo-consul-color-mask {
-  @extend %with-mask, %logo-consul-color-svg-prop;
-  -webkit-mask-image: var(--logo-consul-color-svg);
-  mask-image: var(--logo-consul-color-svg);
+  @extend %with-mask, %consul-color-24-svg-prop;
+  -webkit-mask-image: var(--consul-color-24-svg);
+  mask-image: var(--consul-color-24-svg);
 }
 
 %with-logo-ember-circle-color-icon {
@@ -6149,13 +6149,13 @@
 }
 
 %with-logo-nomad-color-icon {
-  @extend %with-icon, %logo-nomad-color-svg-prop;
-  background-image: var(--logo-nomad-color-svg);
+  @extend %with-icon, %nomad-color-24-svg-prop;
+  background-image: var(--nomad-color-24-svg);
 }
 %with-logo-nomad-color-mask {
-  @extend %with-mask, %logo-nomad-color-svg-prop;
-  -webkit-mask-image: var(--logo-nomad-color-svg);
-  mask-image: var(--logo-nomad-color-svg);
+  @extend %with-mask, %nomad-color-24-svg-prop;
+  -webkit-mask-image: var(--nomad-color-24-svg);
+  mask-image: var(--nomad-color-24-svg);
 }
 
 %with-logo-oidc-color-icon {
@@ -6219,13 +6219,13 @@
 }
 
 %with-logo-terraform-color-icon {
-  @extend %with-icon, %logo-terraform-color-svg-prop;
-  background-image: var(--logo-terraform-color-svg);
+  @extend %with-icon, %terraform-color-24-svg-prop;
+  background-image: var(--terraform-color-24-svg);
 }
 %with-logo-terraform-color-mask {
-  @extend %with-mask, %logo-terraform-color-svg-prop;
-  -webkit-mask-image: var(--logo-terraform-color-svg);
-  mask-image: var(--logo-terraform-color-svg);
+  @extend %with-mask, %terraform-color-24-svg-prop;
+  -webkit-mask-image: var(--terraform-color-24-svg);
+  mask-image: var(--terraform-color-24-svg);
 }
 
 %with-logo-vault-color-icon {
