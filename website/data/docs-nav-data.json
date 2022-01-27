@@ -608,23 +608,40 @@
         "path": "ecs"
       },
       {
-        "title": "Get Started",
+        "title": "Requirements",
+        "path": "ecs/requirements"
+      },
+      {
+        "title": "Install with Terraform",
         "routes": [
           {
-            "title": "Requirements",
-            "path": "ecs/get-started/requirements"
-          },
-          {
             "title": "Installation",
-            "path": "ecs/get-started/install"
+            "path": "ecs/terraform/install"
           },
           {
-            "title": "Production Installation",
-            "path": "ecs/get-started/production-installation"
+            "title": "Secure Configuration",
+            "path": "ecs/terraform/secure-configuration"
           },
           {
             "title": "Migrate Existing Tasks",
-            "path": "ecs/get-started/migrate-existing-tasks"
+            "path": "ecs/terraform/migrate-existing-tasks"
+          }
+        ]
+      },
+      {
+        "title": "Install Manually",
+        "routes": [
+          {
+            "title": "Installation",
+            "path": "ecs/manual/install"
+          },
+          {
+            "title": "Secure Configuration",
+            "path": "ecs/manual/secure-configuration"
+          },
+          {
+            "title": "ACL Controller",
+            "path": "ecs/manual/acl-controller"
           }
         ]
       },
@@ -635,6 +652,10 @@
       {
         "title": "Consul Enterprise",
         "path": "ecs/enterprise"
+      },
+      {
+        "title": "Configuration Reference",
+        "path": "ecs/configuration-reference"
       }
     ]
   },
