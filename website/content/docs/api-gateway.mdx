@@ -28,27 +28,27 @@ Your datacenter must meet the following requirements prior to configuring the Co
 
   <CodeBlockConfig hideClipboard filename="values.yaml">
 
-  ```yaml
-  global:
-    name: consul
-    image: 'hashicorp/consul:1.11.2'
-    tls:
-      enabled: true
-  connectInject:
+```yaml
+global:
+  name: consul
+  image: 'hashicorp/consul:1.11.2'
+  tls:
     enabled: true
-  controller:
-    enabled: true
-  ```
+connectInject:
+  enabled: true
+controller:
+  enabled: true
+```
 
   </CodeBlockConfig>
 
 1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file.
 
-  ```shell-session
-  $ helm install consul hashicorp/consul --version 0.39.0 --values values.yaml
-  ```
+```shell-session
+$ helm install consul hashicorp/consul --version 0.39.0 --values values.yaml
+```
 
-  The following components will be installed:
+The following components will be installed:
 
      - Gateway controller
      - CRDs required by the Kubernetes Gateway API specification
@@ -56,10 +56,10 @@ Your datacenter must meet the following requirements prior to configuring the Co
 
 1. After `helm` installs Consul API Gateway packages, issue the following commands to apply the API gateway to your Kubernetes cluster:
 
-  ```shell-session
-  $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.1.0-beta"
-  $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config?ref=v0.1.0-beta"
-  ```
+```shell-session
+$ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.1.0-beta"
+$ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config?ref=v0.1.0-beta"
+```
 
 ## Usage
 
@@ -68,9 +68,9 @@ Your datacenter must meet the following requirements prior to configuring the Co
 1. Configure the gateway, listener(s), and route(s) as described in [Configuration](#configuration).
 1. Issue the `kubectl apply` command to implement the configurations, e.g.:
 
-  ```shell-session
-  $ kubectl apply --values gateway-configuration.yaml
-  ```
+```shell-session
+$ kubectl apply --values gateway-configuration.yaml
+```
 
 <!--- Commented out per https://github.com/hashicorp/consul/pull/11951/files#r791204596
 
@@ -158,8 +158,7 @@ spec:
 
 </CodeBlockConfig>
 
-Refer to the Kubernetes Gateway API documentation for details about configuring gateway classes:
-<https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.GatewayClass>
+Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.GatewayClass) for details about configuring gateway classes.
 
 ### GatewayClassConfig
 
@@ -190,26 +189,25 @@ spec:
 
 The following table describes the required parameters for the `spec` array:
 
-| Parameter                         | Description                                                                                                                                                                                                                                                                                                               | Type    | Default                                          |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------ |
-| `consul.address`                  | Specifies the address of the Consul server to communicate with in the gateway pod. If unspecified, the pod will attempt to use a local agent on the host on which the pod is running.                                                                                                                                     | String  | N/A                                              |
-| `consul.authentication.account`   | Specifies the Kubernetes service account to use for authentication.                                                                                                                                                                                                                                                       | String  | N/A                                              |
-| `consul.authentication.managed`   | Set to `true` to enable deployments to run with managed service accounts created by the gateway controller. The `consul.authentication.account` field is ignored when this option is enabled.                                                                                                                             | Boolean | `false`                                          |
-| `consul.authentication.method`    | Specifies the Consul auth method used for initial authentication by Consul API Gateway.                                                                                                                                                                                                                                   | String  | N/A                                              |
-| `consul.authentication.namespace` | Specifies the Consul namespace to use for authentication.                                                                                                                                                                                                                                                                 | String  | N/A                                              |
-| `consul.ports.grpc`               | Specifies the gRPC port for Consul's xDS server.                                                                                                                                                                                                                                                                          | Integer | `8502`                                           |
-| `consul.ports.http`               | Specifies the port for Consul's HTTP server.                                                                                                                                                                                                                                                                              | Integer | `8500`                                           |
-| `consul.scheme`                   | Specifies the scheme to use for connecting to Consul. The supported values are `"http"` and `"https"`.                                                                                                                                                                                                                    | String  | `"http"`                                         |
-| `copyAnnotations.service`         | List of annotations to copy to the gateway service.                                                                                                                                                                                                                                                                       | Array   | `["external-dns.alpha.kubernetes.io/hostname"]`  |
-| `image.consulAPIGateway`          | The image to use for consul-api-gateway.                                                                                                                                                                                                                                                                                  | String  | `"hashicorp/consul-api-gateway:RELEASE_VERSION"` |
-| `image.envoy`                     | Specifies the container image to use for Envoy.                                                                                                                                                                                                                                                                           | String  | `"envoyproxy/envoy:v1.19-latest"`                |
-| `logLevel`                        | Specifies the error reporting level for logs. You can specify the following values: `FATAL`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`, `ALL`, `OFF`.                                                                                                                                                                      | String  | `"info"`                                         |
-| `nodeSelector`                    | Specifies a set of parameters that constrain the nodes on which the pod can run. Defining nodes with the `nodeSelector` enables the pod to fit on a node. The selector must match a node's labels for the pod to be scheduled on that node. More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ | Object  | N/A                                              |
-| `serviceType`                     | Specifies the ingress methods for a service. The following values are supported: <br/>`ClusterIP` <br/>`NodePort` <br/>`LoadBalancer`.                                                                                                                                                                                     | String  | N/A                                              |
-| `useHostPorts`                    | If set to `true`, then the Envoy container ports are mapped to host ports.                                                                                                                                                                                                                                                | Boolean | `false`                                          |
+| Parameter                         | Description                                                                                                                                                                                                                                                                                                                                                                         | Type    | Default                                          |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------ |
+| `consul.address`                  | Specifies the address of the Consul server to communicate with in the gateway pod. If unspecified, the pod will attempt to use a local agent on the host on which the pod is running.                                                                                                                                                                                               | String  | N/A                                              |
+| `consul.authentication.account`   | Specifies the Kubernetes service account to use for authentication.                                                                                                                                                                                                                                                                                                                 | String  | N/A                                              |
+| `consul.authentication.managed`   | Set to `true` to enable deployments to run with managed service accounts created by the gateway controller. The `consul.authentication.account` field is ignored when this option is enabled.                                                                                                                                                                                       | Boolean | `false`                                          |
+| `consul.authentication.method`    | Specifies the Consul auth method used for initial authentication by Consul API Gateway.                                                                                                                                                                                                                                                                                             | String  | N/A                                              |
+| `consul.authentication.namespace` | Specifies the Consul namespace to use for authentication.                                                                                                                                                                                                                                                                                                                           | String  | N/A                                              |
+| `consul.ports.grpc`               | Specifies the gRPC port for Consul's xDS server.                                                                                                                                                                                                                                                                                                                                    | Integer | `8502`                                           |
+| `consul.ports.http`               | Specifies the port for Consul's HTTP server.                                                                                                                                                                                                                                                                                                                                        | Integer | `8500`                                           |
+| `consul.scheme`                   | Specifies the scheme to use for connecting to Consul. The supported values are `"http"` and `"https"`.                                                                                                                                                                                                                                                                              | String  | `"http"`                                         |
+| `copyAnnotations.service`         | List of annotations to copy to the gateway service.                                                                                                                                                                                                                                                                                                                                 | Array   | `["external-dns.alpha.kubernetes.io/hostname"]`  |
+| `image.consulAPIGateway`          | The image to use for consul-api-gateway.                                                                                                                                                                                                                                                                                                                                            | String  | `"hashicorp/consul-api-gateway:RELEASE_VERSION"` |
+| `image.envoy`                     | Specifies the container image to use for Envoy.                                                                                                                                                                                                                                                                                                                                     | String  | `"envoyproxy/envoy:v1.19-latest"`                |
+| `logLevel`                        | Specifies the error reporting level for logs. You can specify the following values: `fatal`, `error`, `warning`, `info`, `debug`, `trace`.                                                                                                                                                                                                                                          | String  | `"info"`                                         |
+| `nodeSelector`                    | Specifies a set of parameters that constrain the nodes on which the pod can run. Defining nodes with the `nodeSelector` enables the pod to fit on a node. The selector must match a node's labels for the pod to be scheduled on that node. Refer to the [Kubernetes documentation](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for additional information. | Object  | N/A                                              |
+| `serviceType`                     | Specifies the ingress methods for a service. The following values are supported: <br/>`ClusterIP` <br/>`NodePort` <br/>`LoadBalancer`.                                                                                                                                                                                                                                              | String  | N/A                                              |
+| `useHostPorts`                    | If set to `true`, then the Envoy container ports are mapped to host ports.                                                                                                                                                                                                                                                                                                          | Boolean | `false`                                          |
 
-Refer to the Consul API Gateway repository for the complete specification:
-<https://github.com/hashicorp/consul-api-gateway/blob/main/config/crd/bases/api-gateway.consul.hashicorp.com_gatewayclassconfigs.yaml>
+Refer to the [Consul API Gateway repository](https://github.com/hashicorp/consul-api-gateway/blob/main/config/crd/bases/api-gateway.consul.hashicorp.com_gatewayclassconfigs.yaml) for the complete specification.
 
 ### Gateway
 
@@ -245,8 +243,7 @@ spec:
 
 </CodeBlockConfig>
 
-Refer to the Kubernetes Gateway API documentation for details about configuring gateways:
-<https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Gateway>
+Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Gateway) for details about configuring gateways:
 
 #### Listeners
 
@@ -266,14 +263,17 @@ Add the `listener` object to the `gateway` configuration and specify the followi
 | `tls.options.tls_max_version"`  | Specifies the maximum TLS version supported for the listener. The specified version must be greater than or equal to `TLSMinVersion`. The following values are supported: `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, `TLSv1_3`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | String  | `TLS 1.3`       |
 | `tls.options.tls_cipher_suites` | Specifies the list of TLS cipher suites to support when negotiating connections using TLS 1.2 or earlier. <br/>If unspecified, a [more secure set of cipher suites](https://github.com/hashicorp/consul-api-gateway/blob/main/internal/common/tls.go#L3-L10) than Envoy's current [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites) will be used. <br/>The full list of supported cipher suites can seen in [`internal/common/tls.go`](https://github.com/hashicorp/consul-api-gateway/blob/main/internal/common/tls.go) and is dependent on underlying support in Envoy. | String  | See description |
 
-Refer to the Kubernetes Gateway API documentation for details about configuring listeners:
-<https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Listener>
+Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Listener) for details about configuring listeners.
 
 ### Route
 
 Routes are independent configuration objects that are associated with specific listeners.
 
-Use the `kind: HTTPRoute` option to declare a route and use the `spec` option to specify the route details.
+Declare a route with either `kind: HTTPRoute` or `kind: TCPRoute` and configure the route parameters in the `spec` block.
+Refer to the Kubernetes Gateway API documentation for each object type for details:
+
+- [HTTPRoute](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.HTTPRoute)
+- [TCPRoute](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.TCPRoute)
 
 The following example creates a route named `example-route` associated with a listener defined in `example-gateway`.
 
