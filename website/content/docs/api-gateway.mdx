@@ -12,8 +12,8 @@ This topic describes how to use the Consul API Gateway add-on module, which help
 
 Consul API Gateway is an implementation of the Kubernetes [Gateway API Specification](https://gateway-api.sigs.k8s.io/). This specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes based on the path or protocol of a client request. Consul API Gateway solves two primary use cases:
 
-- **Controlling access at the point of entry**: Consul API Gateway allows users to set the protocols of external connection requests and provide clients with TLS certificates from trusted providers (e.g., VeriSign, Let’sEncrypt).
-- **Simplifying traffic management**: The Consul API Gateway can load balance requests across services and route traffic to the appropriate service based on matching one or more criteria, such as hostname, path, header presence or value, and HTTP Method type (e.g., GET, POST, PATCH).
+- **Controlling access at the point of entry**: Consul API Gateway allows users to set the protocols of external connection requests and provide clients with TLS certificates from trusted providers (e.g., Verisign, Let’s Encrypt).
+- **Simplifying traffic management**: The Consul API Gateway can load balance requests across services and route traffic to the appropriate service by matching one or more criteria, such as hostname, path, header presence or value, and HTTP Method type (e.g., GET, POST, PATCH).
 
 ## Requirements
 
@@ -54,7 +54,7 @@ The following components will be installed:
     - CRDs required by the Kubernetes Gateway API specification
     - `kustomize` manifests for completing the installation
 
-1. After `helm` installs Consul API Gateway packages, issue the following commands to apply the API gateway to your Kubernetes cluster.
+1. After `helm` installs Consul API Gateway packages, issue the following commands to apply the API gateway to your Kubernetes cluster:
 
 ```shell-session
 $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.1.0-beta"
@@ -65,7 +65,7 @@ $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config?ref=
 
 1. Verify that the [requirements](#requirements) have been met.
 1. Verify that the Consul API Gateway software has been installed and applied (see [Installation](#installation)).
-1. Configure the gateway, listener(s), and route(s) as described in [Configuration](#configuration)
+1. Configure the gateway, listener(s), and route(s) as described in [Configuration](#configuration).
 1. Issue the `kubectl apply` command to implement the configurations, e.g.:
 
 ```shell-session
@@ -125,7 +125,7 @@ consul-api-gateway 0.1.0
 
 Configure the following artifacts to facilitate ingress into your Consul service mesh:
 
-- [GatewayClassConfig](#gatewayclassconfig): Describes additional Consul API Gatway-related configuration parameters for the `GatewayClass` resource.
+- [GatewayClassConfig](#gatewayclassconfig): Describes additional Consul API Gateway-related configuration parameters for the `GatewayClass` resource.
 - [GatewayClass](#gatewayclass): Defines a class of gateway resources that you can use as a template for creating gateways.
 - [Gateway](#gateway): Defines the main infrastructure resource that links API gateway components. It specifies the name of the `GatewayClass` and one or more `listeners` (see [Listeners](#listeners)), which specify the logical endpoints bound to the gateway's addresses.
 - [Routes](#routes): Specifies the path from the client to the listener.
@@ -133,13 +133,13 @@ Configure the following artifacts to facilitate ingress into your Consul service
 ### GatewayClass
 
 The `GatewayClass` resource is used as a template for creating `Gateway` resources.
-The specification includes the name of the controller (`controllerName`) and an API object containing controller-specific configuration resource within the cluster (`parametersRef`).
+The specification includes the name of the controller (`controllerName`) and an API object containing controller-specific configuration resources within the cluster (`parametersRef`).
 The value of the `controllerName` field must be set to `hashicorp.com/consul-api-gateway-controller`.
 
 When gateways are created from a `GatewayClass`, they use the parameters specified in the `GatewayClass` at the time of instantiation.
 
 Add the `kind: GatewayClass` option to the the gateway values file to declare a gateway class.
-The following example creates a gateway class called `test-gateway-class`.
+The following example creates a gateway class called `test-gateway-class`:
 
 <CodeBlockConfig filename="gateway.yaml">
 
@@ -166,7 +166,7 @@ Refer to the Kubernetes Gateway API documentation for details about configuring 
 The `GatewayClassConfig` object describes additional Consul API Gateway-related configuration parameters for the `GatewayClass`.
 
 Add the `kind: GatewayClassConfig` option to the gateway values file to declare a gateway class.
-The following example creates a gateway class called `test-gateway-class-config`.
+The following example creates a gateway class called `test-gateway-class-config`:
 
 <CodeBlockConfig filename="gateway.yaml">
 
@@ -203,9 +203,9 @@ The following table describes the required parameters for the `spec` array:
 | `copyAnnotations.service`         | List of annotations to copy to the gateway service.                                                                                                                                                                                                                                                                       | Array   | `["external-dns.alpha.kubernetes.io/hostname"]`  |
 | `image.consulAPIGateway`          | The image to use for consul-api-gateway.                                                                                                                                                                                                                                                                                  | String  | `"hashicorp/consul-api-gateway:RELEASE_VERSION"` |
 | `image.envoy`                     | Specifies the container image to use for Envoy.                                                                                                                                                                                                                                                                           | String  | `"envoyproxy/envoy:v1.19-latest"`                |
-| `logLevel`                        | Specifies the error reporting level for logs. You can specify the following values: `FATAL`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`, `ALL`, `OFF`                                                                                                                                                                      | String  | `"info"`                                         |
+| `logLevel`                        | Specifies the error reporting level for logs. You can specify the following values: `FATAL`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`, `ALL`, `OFF`.                                                                                                                                                                      | String  | `"info"`                                         |
 | `nodeSelector`                    | Specifies a set of parameters that constrain the nodes on which the pod can run. Defining nodes with the `nodeSelector` enables the pod to fit on a node. The selector must match a node's labels for the pod to be scheduled on that node. More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ | Object  | N/A                                              |
-| `serviceType`                     | Sepcifies the ingress methods for a service. The following values are supported: <br/>`ClusterIP` <br/>`NodePort` <br/>`LoadBalancer`                                                                                                                                                                                     | String  | N/A                                              |
+| `serviceType`                     | Specifies the ingress methods for a service. The following values are supported: <br/>`ClusterIP` <br/>`NodePort` <br/>`LoadBalancer`.                                                                                                                                                                                     | String  | N/A                                              |
 | `useHostPorts`                    | If set to `true`, then the Envoy container ports are mapped to host ports.                                                                                                                                                                                                                                                | Boolean | `false`                                          |
 
 Refer to the Consul API Gateway repository for the complete specification:
