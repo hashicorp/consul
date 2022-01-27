@@ -69,7 +69,7 @@ func testTLSCertificates(serverName string) (cert string, key string, cacert str
 
 // testServerACLConfig setup some common ACL configurations.
 func testServerACLConfig(c *Config) {
-	c.PrimaryDatacenter = "dc1"
+	c.ACLDatacenter = "dc1"
 	c.ACLsEnabled = true
 	c.ACLMasterToken = TestDefaultMasterToken
 	c.ACLDefaultPolicy = "deny"
