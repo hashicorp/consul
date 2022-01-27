@@ -10,7 +10,7 @@ This topic describes how to use the Consul API Gateway add-on module, which help
 
 ## Introduction
 
-Consul API Gateway is an implementation of the Kubernetes [Gateway API Specification](https://gateway-api.sigs.k8s.io/). This specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes based on the path or protocol of a client request. Consul API Gateway solves two primary use cases:
+Consul API Gateway implements the Kubernetes [Gateway API Specification](https://gateway-api.sigs.k8s.io/). This specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes based on the path or protocol of a client request. Consul API Gateway solves two primary use cases:
 
 - **Controlling access at the point of entry**: Consul API Gateway allows users to set the protocols of external connection requests and provide clients with TLS certificates from trusted providers (e.g., Verisign, Let’s Encrypt).
 - **Simplifying traffic management**: The Consul API Gateway can load balance requests across services and route traffic to the appropriate service by matching one or more criteria, such as hostname, path, header presence or value, and HTTP Method type (e.g., GET, POST, PATCH).
@@ -26,9 +26,13 @@ Your datacenter must meet the following requirements prior to configuring the Co
 
 1. Issue the following command to install the Consul API Gateway controller:
 
+  <CodeBlockConfig>
+
 ```shell-session
 $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.1.0-beta"
 ```
+
+  </CodeBlockConfig>
 
 1. Create a values file for your Consul server agents that contains the following parameters:
 
@@ -50,9 +54,13 @@ $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?
 
 1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file.
 
+  <CodeBlockConfig>
+
 ```shell-session
 $ helm install consul hashicorp/consul --version 0.40.0 --values values.yaml
 ```
+
+  </CodeBlockConfig>
 
 ## Usage
 
@@ -61,9 +69,13 @@ $ helm install consul hashicorp/consul --version 0.40.0 --values values.yaml
 1. Configure the artifacts described in [Configuration](#configuration).
 1. Issue the `kubectl apply` command to implement the configurations, e.g.:
 
+  <CodeBlockConfig>
+
 ```shell-session
 $ kubectl apply --values gateway-configuration.yaml
 ```
+
+  </CodeBlockConfig>
 
 <!--- Commented out per https://github.com/hashicorp/consul/pull/11951/files#r791204596
 
