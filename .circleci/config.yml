@@ -690,9 +690,14 @@ jobs:
               git config --local user.email "github-team-consul-core@hashicorp.com"
               git config --local user.name "hc-github-team-consul-core"
               
+              # stash newly built bindata_assetfs.go
+              git stash push
+              
               # checkout the CI branch and merge latest from main
               git checkout ci/main-assetfs-build
               git merge --no-edit main
+            
+              git stash pop
             
               short_sha=$(git rev-parse --short HEAD)
               git add agent/uiserver/bindata_assetfs.go
