@@ -1580,7 +1580,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 
 	meta := make(map[string]string)
 	if err := structs.ValidateServiceMetadata(kind, v.Meta, false); err != nil {
-		b.err = multierror.Append(fmt.Errorf("invalid meta for service %s: %v", stringVal(v.Name), err))
+		b.err = multierror.Append(b.err, fmt.Errorf("invalid meta for service %s: %v", stringVal(v.Name), err))
 	} else {
 		meta = v.Meta
 	}
@@ -1595,8 +1595,9 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	}
 
 	if err := structs.ValidateWeights(serviceWeights); err != nil {
-		b.err = multierror.Append(fmt.Errorf("Invalid weight definition for service %s: %s", stringVal(v.Name), err))
+		b.err = multierror.Append(b.err, fmt.Errorf("Invalid weight definition for service %s: %s", stringVal(v.Name), err))
 	}
+
 	return &structs.ServiceDefinition{
 		Kind:              kind,
 		ID:                stringVal(v.ID),
@@ -1788,7 +1789,7 @@ func (b *Builder) durationValWithDefault(name string, v *string, defaultVal time
 	}
 	d, err := time.ParseDuration(*v)
 	if err != nil {
-		b.err = multierror.Append(fmt.Errorf("%s: invalid duration: %q: %s", name, *v, err))
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid duration: %q: %s", name, *v, err))
 	}
 	return d
 }
