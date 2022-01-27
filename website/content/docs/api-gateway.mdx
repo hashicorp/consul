@@ -26,40 +26,40 @@ Your datacenter must meet the following requirements prior to configuring the Co
 
 1. Create a values file for your Consul server agents that contains the following parameters:
 
-<CodeBlockConfig hideClipboard filename="values.yaml">
+  <CodeBlockConfig hideClipboard filename="values.yaml">
 
-```yaml
-global:
-  name: consul
-  image: 'hashicorp/consul:1.11.2'
-  tls:
+  ```yaml
+  global:
+    name: consul
+    image: 'hashicorp/consul:1.11.2'
+    tls:
+      enabled: true
+  connectInject:
     enabled: true
-connectInject:
-  enabled: true
-controller:
-  enabled: true
-```
+  controller:
+    enabled: true
+  ```
 
-</CodeBlockConfig>
+  </CodeBlockConfig>
 
 1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file.
 
-```shell-session
-$ helm install consul hashicorp/consul --version 0.39.0 --values values.yaml
-```
+  ```shell-session
+  $ helm install consul hashicorp/consul --version 0.39.0 --values values.yaml
+  ```
 
-The following components will be installed:
+  The following components will be installed:
 
-    - Gateway controller
-    - CRDs required by the Kubernetes Gateway API specification
-    - `kustomize` manifests for completing the installation
+     - Gateway controller
+     - CRDs required by the Kubernetes Gateway API specification
+     - `kustomize` manifests for completing the installation
 
 1. After `helm` installs Consul API Gateway packages, issue the following commands to apply the API gateway to your Kubernetes cluster:
 
-```shell-session
-$ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.1.0-beta"
-$ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config?ref=v0.1.0-beta"
-```
+  ```shell-session
+  $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.1.0-beta"
+  $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config?ref=v0.1.0-beta"
+  ```
 
 ## Usage
 
@@ -68,9 +68,9 @@ $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config?ref=
 1. Configure the gateway, listener(s), and route(s) as described in [Configuration](#configuration).
 1. Issue the `kubectl apply` command to implement the configurations, e.g.:
 
-```shell-session
-$ kubectl apply --values gateway-configuration.yaml
-```
+  ```shell-session
+  $ kubectl apply --values gateway-configuration.yaml
+  ```
 
 <!--- Commented out per https://github.com/hashicorp/consul/pull/11951/files#r791204596
 
