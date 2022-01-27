@@ -76,9 +76,14 @@ type CARoot struct {
 	// SerialNumber is the x509 serial number of the certificate.
 	SerialNumber uint64
 
-	// SigningKeyID is the ID of the public key that corresponds to the private
-	// key used to sign leaf certificates. Is is the HexString format of the
-	// raw AuthorityKeyID bytes.
+	// SigningKeyID is the connect.HexString encoded id of the public key that
+	// corresponds to the private key used to sign leaf certificates in the
+	// local datacenter.
+	//
+	// The value comes from x509.Certificate.SubjectKeyId of the local leaf
+	// signing cert.
+	//
+	// See https://www.rfc-editor.org/rfc/rfc3280#section-4.2.1.1 for more detail.
 	SigningKeyID string
 
 	// ExternalTrustDomain is the trust domain this root was generated under. It
@@ -192,10 +197,14 @@ type IssuedCert struct {
 	// This is encoded in standard hex separated by :.
 	SerialNumber string
 
-	// CertPEM and PrivateKeyPEM are the PEM-encoded certificate and private
-	// key for that cert, respectively. This should not be stored in the
-	// state store, but is present in the sign API response.
-	CertPEM       string `json:",omitempty"`
+	// CertPEM is a PEM encoded bundle of a leaf certificate, optionally followed
+	// by one or more intermediate certificates that will form a chain of trust
+	// back to a root CA.
+	//
+	// This field is not persisted in the state store, but is present in the
+	// sign API response.
+	CertPEM string `json:",omitempty"`
+	// PrivateKeyPEM is the PEM encoded private key associated with CertPEM.
 	PrivateKeyPEM string `json:",omitempty"`
 
 	// Service is the name of the service for which the cert was issued.
