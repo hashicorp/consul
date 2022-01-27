@@ -59,7 +59,7 @@ The `source` field in the task configuration is deprecated and can be directly r
 
 Example:
 
-<CodeTabs heading="Deprecate `source` field" tabs={["Deprecated", "New"]}>
+<CodeTabs heading="Deprecate source field" tabs={["Deprecated", "New"]}>
 
 <CodeBlockConfig highlight="4">
 
@@ -92,7 +92,7 @@ task {
 The `source_input` block in the task configuration is deprecated and can be directly renamed to `module_input`.
 
 Example:
-<CodeTabs heading="Deprecate `source_input` block" tabs={["Deprecated", "New"]}>
+<CodeTabs heading="Deprecate source_input block" tabs={["Deprecated", "New"]}>
 
 <CodeBlockConfig highlight="7">
 
@@ -136,7 +136,7 @@ task {
 The `condition` block's `source_includes_var` field is deprecated for all types of conditions and can be directly renamed to `use_as_module_input`.
 
 Example:
-<CodeTabs heading="Deprecate `source_includes_var` field" tabs={["Deprecated", "New"]}>
+<CodeTabs heading="Deprecate source_includes_var field" tabs={["Deprecated", "New"]}>
 
 <CodeBlockConfig highlight="6">
 
@@ -183,7 +183,7 @@ The `services` field can be replaced depending on the role it has for the task.
 When the `services` field behaves as a condition, it can be replaced with a `condition "services"` block with the `names` field set to the list of the services.
 
 Example:
-<CodeTabs heading="Deprecate `services` field as a condition" tabs={["Deprecated", "New"]}>
+<CodeTabs heading="Deprecate services field as a condition" tabs={["Deprecated", "New"]}>
 
 <CodeBlockConfig highlight="4">
 
@@ -218,7 +218,7 @@ task {
 When the `services` field only provides module input, it can be replaced with a `module_input "services"` block with the `names` field set to the list of the services.
 
 Example:
-<CodeTabs heading="Deprecate `services` field as a module input" tabs={["Deprecated", "New"]}>
+<CodeTabs heading="Deprecate services field as a module input" tabs={["Deprecated", "New"]}>
 
 <CodeBlockConfig highlight="7">
 
@@ -261,7 +261,7 @@ The `service` block is a configuration block outside of the task block. The fiel
 Once the `services` field is upgraded to a `condition` or `module_input` block, as described in the section above, the deprecated `service` block's fields can be moved to the new `condition` or `module_input` block.
 
 Example:
-<CodeTabs heading="Deprecate `service` block" tabs={["Deprecated", "New"]}>
+<CodeTabs heading="Deprecate service block" tabs={["Deprecated", "New"]}>
 
 <CodeBlockConfig highlight="9,10,11,12,13">
 
@@ -305,7 +305,7 @@ There is an edge-case that requires a more complicated deprecation upgrade. Some
 
 Example:
 
-<CodeTabs heading="Deprecate `service` block edge-case" tabs={["Deprecated", "New"]}>
+<CodeTabs heading="Deprecate service block edge-case" tabs={["Deprecated", "New"]}>
 
 <CodeBlockConfig highlight="2,4,7,8,9,10,11,12,13,14,15">
 
