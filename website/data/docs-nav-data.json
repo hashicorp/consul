@@ -361,6 +361,10 @@
     ]
   },
   {
+    "title": "Consul API Gateway <sup>BETA</sup>",
+    "path": "api-gateway"
+  },
+  {
     "title": "Kubernetes",
     "routes": [
       {
