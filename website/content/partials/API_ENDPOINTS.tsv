@@ -40,14 +40,14 @@ Apply Configuration	/v1/config	PUT	https://www.consul.io/api-docs/config#apply-c
 Get CA Configuration	/v1/connect/ca/configuration	GET	https://www.consul.io/api-docs/connect/ca#get-ca-configuration	consul connect ca get-config	https://www.consul.io/commands/connect/ca#get-config	operator:write		Used to require operator:read
 Update CA Configuration	/v1/connect/ca/configuration	PUT	https://www.consul.io/api-docs/connect/ca#update-ca-configuration	consul connect ca set-config	https://www.consul.io/commands/connect/ca#set-config	operator:write		
 Consul Connect Envoy	None	None	None	consul connect envoy	https://www.consul.io/commands/connect/envoy	??		
-Consul Connect Expose	None	None	None	consul connect expose	https://www.consul.io/commands/connect/expose	??		
-Consul Connect Proxy	None	None	None	consul connect proxy	https://www.consul.io/commands/connect/proxy	??		
-Consul Connect Redirect-Traffic	None	None	None	consul connect redirect-traffic	https://www.consul.io/commands/connect/redirect-traffic	??		
-Consul Debug	None	None	None	consul debug	https://www.consul.io/commands/debug	??		
+Consul Connect Expose	None	None	None	consul connect expose	https://www.consul.io/commands/connect/expose	intention:write		
+Consul Connect Proxy	None	None	None	consul connect proxy	https://www.consul.io/commands/connect/proxy	service:write		
+Consul Connect Redirect-Traffic	None	None	None	consul connect redirect-traffic	https://www.consul.io/commands/connect/redirect-traffic	service:read,node:read		
+Consul Debug	None	None	None	consul debug	https://www.consul.io/commands/debug	operator:read		
 Fire Event	/v1/event/fire/:name	PUT	https://www.consul.io/api-docs/event#fire-event	consul event	https://www.consul.io/commands/event#consul-event	event:write		
-Consul Exec	None	None	None	consul exec	https://www.consul.io/commands/exec	??		
+Consul Exec	None	None	None	consul exec	https://www.consul.io/commands/exec	operator:read, key:write, event:write		
 Force Leave and Shutdown	/v1/agent/force-leave/:node	PUT	https://www.consul.io/api-docs/agent#force-leave-and-shutdown	consul force-leave	https://www.consul.io/commands/force-leave#consul-force-leave	operator:write		
-Consul Info	None	None	None	consul info	https://www.consul.io/commands/info	??		
+Consul Info	None	None	None	consul info	https://www.consul.io/commands/info	agent:read		
 Check Intention Result	/v1/connect/intentions/check	GET	https://www.consul.io/api-docs/connect/intentions#check-intention-result	consul intention check	https://www.consul.io/commands/intention/check#consul-intention-check			
 Create Intention with ID	/v1/connect/intentions	POST	https://www.consul.io/api-docs/connect/intentions#create-intention-with-id	consul intention create	https://www.consul.io/commands/intention/create#consul-intention-create	intentions:write		
 Upsert Intention by Name	/v1/connect/intentions/exact	PUT	https://www.consul.io/api-docs/connect/intentions#upsert-intention-by-name	consul intention create -replace	https://www.consul.io/commands/intention/create#consul-intention-create	intentions:write		

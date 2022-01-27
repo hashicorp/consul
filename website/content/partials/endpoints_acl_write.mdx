@@ -2,18 +2,32 @@
 | -------------------- | ---------------------- | -------------- | ------ |
 Create an Auth Method|[[PUT] /v1/acl/auth-method](https://www.consul.io/api-docs/acl/auth-methods#create-an-auth-method)|acl:write|
 Delete an Auth Method|[[DELETE] /v1/acl/auth-method/:name](https://www.consul.io/api-docs/acl/auth-methods#delete-an-auth-method)|acl:write|
+List Auth Methods|[[GET] /v1/acl/auth-methods](https://www.consul.io/api-docs/acl/auth-methods#list-auth-methods)|acl:read|
+Read an Auth Method|[[GET] /v1/acl/auth-method/:name](https://www.consul.io/api-docs/acl/auth-methods#read-an-auth-method)|acl:read|
 Update an Auth Method|[[PUT] /v1/acl/auth-method/:name](https://www.consul.io/api-docs/acl/auth-methods#update-an-auth-method)|acl:write|
 Create a Binding Rule|[[PUT] /v1/acl/binding-rule](https://www.consul.io/api-docs/acl/binding-rules#create-a-binding-rule)|acl:write|
 Delete a Binding Rule|[[DELETE] /v1/acl/binding-rule/:id](https://www.consul.io/api-docs/acl/binding-rules#delete-a-binding-rule)|acl:write|
+List Binding Rules|[[GET] /v1/acl/binding-rules](https://www.consul.io/api-docs/acl/binding-rules#list-binding-rules)|acl:read|
+Read a Binding Rule|[[GET] /v1/acl/binding-rule/:id](https://www.consul.io/api-docs/acl/binding-rules#read-a-binding-rule)|acl:read|
 Update a Binding Rule|[[PUT] /v1/acl/binding-rule/:id](https://www.consul.io/api-docs/acl/binding-rules#update-a-binding-rule)|acl:write|
 Create a Policy|[[PUT] /v1/acl/policy](https://www.consul.io/api-docs/acl/policies#create-a-policy)|acl:write|
 Delete a Policy|[[DELETE] /v1/acl/policy/:id](https://www.consul.io/api-docs/acl/policies#delete-a-policy)|acl:write|
+List Policies|[[GET] /v1/acl/policies](https://www.consul.io/api-docs/acl/policies#list-policies)|acl:read|
+Read a Policy|[[GET] /v1/acl/policy/:id](https://www.consul.io/api-docs/acl/policies#read-a-policy)|acl:read|
+Read a Policy|[[GET] /v1/acl/policy/name/:name](https://www.consul.io/api-docs/acl/policies#read-a-policy-by-name)|acl:read|
 Update a Policy|[[PUT] /v1/acl/policy/:id](https://www.consul.io/api-docs/acl/policies#update-a-policy)|acl:write|
 Create a Role|[[PUT] /v1/acl/role](https://www.consul.io/api-docs/acl/roles#create-a-role)|acl:write|
 Delete a Role|[[DELETE] /v1/acl/role/:id](https://www.consul.io/api-docs/acl/roles#delete-a-role)|acl:write|
+List Roles|[[GET] /v1/acl/roles](https://www.consul.io/api-docs/acl/roles#list-roles)|acl:read|
+Read a Role|[[GET] /v1/acl/role/:id](https://www.consul.io/api-docs/acl/roles#read-a-role)|acl:read|
+Read a Role by Name|[[GET] /v1/acl/role/name/:name](https://www.consul.io/api-docs/acl/roles#read-a-role-by-name)|acl:read|
 Update a Role|[[PUT] /v1/acl/role/:id](https://www.consul.io/api-docs/acl/roles#update-a-role)|acl:write|
 Update ACL Tokens|[[PUT] /v1/agent/token/:type](https://www.consul.io/api-docs/agent#update-acl-tokens)|acl:write|
 Clone a Token|[[PUT] /v1/acl/token/:AccessorID/clone](https://www.consul.io/api-docs/acl/tokens#clone-a-token)|acl:write|
 Create a Token|[[PUT] /v1/acl/token](https://www.consul.io/api-docs/acl/tokens#create-a-token)|acl:write|
 Delete a Token|[[DELETE] /v1/acl/token/:AccessorID](https://www.consul.io/api-docs/acl/tokens#delete-a-token)|acl:write|
+List Tokens|[[GET] /v1/acl/tokens](https://www.consul.io/api-docs/acl/tokens#list-tokens)|acl:read|
+Read a Token|[[GET] /v1/acl/token/:AccessorID](https://www.consul.io/api-docs/acl/tokens#read-a-token)|acl:read|
 Update a Token|[[PUT] /v1/acl/token/:AccessorID](https://www.consul.io/api-docs/acl/tokens#update-a-token)|acl:write|
+Translate a Legacy Token's Rules|[[GET] /v1/acl/rules/translate/:accessor_id](https://www.consul.io/api-docs/acl#translate-a-legacy-token-s-rules)|acl:read|
+Translate Rules|[[POST] /v1/acl/rules/translate](https://www.consul.io/api-docs/acl#translate-rules)|acl:read|

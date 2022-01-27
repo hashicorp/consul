@@ -2,4 +2,7 @@
 | -------------------- | ---------------------- | -------------- | ------ |
 Create Session|[[PUT] /v1/session/create](https://www.consul.io/api-docs/session#create-session)|session:write|
 Delete Session|[[PUT] /v1/session/destroy/:uuid](https://www.consul.io/api-docs/session#delete-session)|session:write|
+Read Session|[[GET] /v1/session/info/:uuid](https://www.consul.io/api-docs/session#read-session)|session:read|
+List Sessions for Node|[[GET] /v1/session/node/:node](https://www.consul.io/api-docs/session#list-sessions-for-node)|session:read|
+List Sessions|[[GET] /v1/session/list](https://www.consul.io/api-docs/session#list-sessions)|session:read|
 Renew Session|[[PUT] /v1/session/renew/:uuid](https://www.consul.io/api-docs/session#renew-session)|session:write|

@@ -1,0 +1,13 @@
+| Endpoint Action      | API Endpoint           | Access Level   | Note   |
+| -------------------- | ---------------------- | -------------- | ------ |
+Bootstrap ACLs|[[PUT] /v1/acl/bootstrap](https://www.consul.io/api-docs/acl#bootstrap-acls)|none|Full management token on first call; 403 error after first call
+List Datacenters|[[GET] /v1/catalog/datacenters](https://www.consul.io/api-docs/catalog#list-datacenters)|none|list of names of DCs
+Getting the Consul License|[[GET] /v1/operator/license](https://www.consul.io/api-docs/operator/license#getting-the-consul-license)|none|license timing, package/feature availability, license and customer id
+Login to Auth Method|[[POST] /v1/acl/login](https://www.consul.io/api-docs/acl#login-to-auth-method)|none|Returns all token info if bearer token known
+Logout from Auth Method|[[POST] /v1/acl/logout](https://www.consul.io/api-docs/acl#logout-from-auth-method)|none|No return value (deletes a token if the bearer token is known)
+List Raft Peers|[[GET] /v1/status/peers](https://www.consul.io/api-docs/status#list-raft-peers)|none|IP address + port of Raft members (servers)
+Read WAN Coordinates|[[GET] /v1/coordinate/datacenters](https://www.consul.io/api-docs/coordinate#read-wan-coordinates)|none|Consul datacenter names, server node names, and their network coordinates
+Check ACL Replication|[[GET] /v1/acl/replication](https://www.consul.io/api-docs/acl#check-acl-replication)|none|Whether replication is enabled and its status
+OIDC Authorization URL Request|[[POST] /v1/oidc/auth-url](https://www.consul.io/api-docs/acl#oidc-authorization-url-request)|none|Obtain an auth URL to start the OIDC login flow
+OIDC Callback|[[POST] /v1/oidc/callback](https://www.consul.io/api-docs/acl#oidc-callback)|none|Nothing that isn't already known
+Read Self Token|[[GET] /v1/acl/token/self](https://www.consul.io/api-docs/acl/tokens#read-self-token)|none|Returns all token info if token secret ID known
