@@ -149,29 +149,18 @@ func (c *ConsulProvider) State() (map[string]string, error) {
 	return c.testState, nil
 }
 
-// ActiveRoot returns the active root CA certificate.
-func (c *ConsulProvider) ActiveRoot() (string, error) {
+// GenerateRoot initializes a new root certificate and private key if needed.
+func (c *ConsulProvider) GenerateRoot() (RootResult, error) {
 	providerState, err := c.getState()
 	if err != nil {
-		return "", err
-	}
-
-	return providerState.RootCert, nil
-}
-
-// GenerateRoot initializes a new root certificate and private key
-// if needed.
-func (c *ConsulProvider) GenerateRoot() error {
-	providerState, err := c.getState()
-	if err != nil {
-		return err
+		return RootResult{}, err
 	}
 
 	if !c.isPrimary {
-		return fmt.Errorf("provider is not the root certificate authority")
+		return RootResult{}, fmt.Errorf("provider is not the root certificate authority")
 	}
 	if providerState.RootCert != "" {
-		return nil
+		return RootResult{PEM: providerState.RootCert}, nil
 	}
 
 	// Generate a private key if needed
@@ -179,7 +168,7 @@ func (c *ConsulProvider) GenerateRoot() error {
 	if c.config.PrivateKey == "" {
 		_, pk, err := connect.GeneratePrivateKeyWithConfig(c.config.PrivateKeyType, c.config.PrivateKeyBits)
 		if err != nil {
-			return err
+			return RootResult{}, err
 		}
 		newState.PrivateKey = pk
 	} else {
@@ -190,12 +179,12 @@ func (c *ConsulProvider) GenerateRoot() error {
 	if c.config.RootCert == "" {
 		nextSerial, err := c.incrementAndGetNextSerialNumber()
 		if err != nil {
-			return fmt.Errorf("error computing next serial number: %v", err)
+			return RootResult{}, fmt.Errorf("error computing next serial number: %v", err)
 		}
 
 		ca, err := c.generateCA(newState.PrivateKey, nextSerial, c.config.RootCertTTL)
 		if err != nil {
-			return fmt.Errorf("error generating CA: %v", err)
+			return RootResult{}, fmt.Errorf("error generating CA: %v", err)
 		}
 		newState.RootCert = ca
 	} else {
@@ -208,10 +197,10 @@ func (c *ConsulProvider) GenerateRoot() error {
 		ProviderState: &newState,
 	}
 	if _, err := c.Delegate.ApplyCARequest(args); err != nil {
-		return err
+		return RootResult{}, err
 	}
 
-	return nil
+	return RootResult{PEM: newState.RootCert}, nil
 }
 
 // GenerateIntermediateCSR creates a private key and generates a CSR
@@ -288,18 +277,15 @@ func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 	return nil
 }
 
-// We aren't maintaining separate root/intermediate CAs for the builtin
-// provider, so just return the root.
 func (c *ConsulProvider) ActiveIntermediate() (string, error) {
-	if c.isPrimary {
-		return c.ActiveRoot()
-	}
-
 	providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
 
+	if c.isPrimary {
+		return providerState.RootCert, nil
+	}
 	return providerState.IntermediateCert, nil
 }
 

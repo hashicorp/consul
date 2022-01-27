@@ -242,7 +242,10 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 		expectedRootCertTTL string
 	}{
 		{
-			certFunc:            providerWDefaultRootCertTtl.ActiveRoot,
+			certFunc: func() (string, error) {
+				root, err := providerWDefaultRootCertTtl.GenerateRoot()
+				return root.PEM, err
+			},
 			backendPath:         "pki-root/",
 			rootCaCreation:      true,
 			client:              client1,
@@ -328,8 +331,9 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 				Service:    "foo",
 			}
 
-			rootPEM, err := provider.ActiveRoot()
+			root, err := provider.GenerateRoot()
 			require.NoError(err)
+			rootPEM := root.PEM
 			assertCorrectKeyType(t, tc.KeyType, rootPEM)
 
 			intPEM, err := provider.ActiveIntermediate()
@@ -413,9 +417,9 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 			defer testVault1.Stop()
 
 			{
-				rootPEM, err := provider1.ActiveRoot()
+				root, err := provider1.GenerateRoot()
 				require.NoError(err)
-				assertCorrectKeyType(t, tc.SigningKeyType, rootPEM)
+				assertCorrectKeyType(t, tc.SigningKeyType, root.PEM)
 
 				intPEM, err := provider1.ActiveIntermediate()
 				require.NoError(err)
@@ -430,9 +434,9 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 			defer testVault2.Stop()
 
 			{
-				rootPEM, err := provider2.ActiveRoot()
+				root, err := provider2.GenerateRoot()
 				require.NoError(err)
-				assertCorrectKeyType(t, tc.CSRKeyType, rootPEM)
+				assertCorrectKeyType(t, tc.CSRKeyType, root.PEM)
 
 				intPEM, err := provider2.ActiveIntermediate()
 				require.NoError(err)
@@ -498,7 +502,8 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 		delegate := newMockDelegate(t, conf)
 		provider1 := TestConsulProvider(t, delegate)
 		require.NoError(t, provider1.Configure(testProviderConfig(conf)))
-		require.NoError(t, provider1.GenerateRoot())
+		_, err := provider1.GenerateRoot()
+		require.NoError(t, err)
 
 		// Ensure that we don't configure vault to try and mint leafs that
 		// outlive their CA during the test (which hard fails in vault).
@@ -792,8 +797,9 @@ func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawCo
 	t.Cleanup(provider.Stop)
 	require.NoError(t, provider.Configure(cfg))
 	if isPrimary {
-		require.NoError(t, provider.GenerateRoot())
-		_, err := provider.GenerateIntermediate()
+		_, err := provider.GenerateRoot()
+		require.NoError(t, err)
+		_, err = provider.GenerateIntermediate()
 		require.NoError(t, err)
 	}
 
