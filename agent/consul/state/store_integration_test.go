@@ -422,12 +422,12 @@ type nodePayload struct {
 	node *structs.ServiceNode
 }
 
-func (p nodePayload) MatchesKey(key, _ string) bool {
-	return p.key == key
-}
-
 func (p nodePayload) HasReadPermission(acl.Authorizer) bool {
 	return true
+}
+
+func (p nodePayload) Subject() stream.Subject {
+	return stream.Subject(p.node.NamespaceOrDefault() + "/" + p.key)
 }
 
 func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLToken {

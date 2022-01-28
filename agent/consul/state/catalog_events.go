@@ -31,25 +31,20 @@ func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bo
 	return e.Value.CanRead(authz) == acl.Allow
 }
 
-func (e EventPayloadCheckServiceNode) MatchesKey(key, namespace string) bool {
-	if key == "" && namespace == "" {
-		return true
-	}
-
-	if e.Value.Service == nil {
-		return false
-	}
-
-	name := e.Value.Service.Service
-	if e.overrideKey != "" {
-		name = e.overrideKey
-	}
-	ns := e.Value.Service.EnterpriseMeta.NamespaceOrDefault()
+func (e EventPayloadCheckServiceNode) Subject() stream.Subject {
+	namespace := e.Value.Service.NamespaceOrDefault()
 	if e.overrideNamespace != "" {
-		ns = e.overrideNamespace
+		namespace = e.overrideNamespace
 	}
-	return (key == "" || strings.EqualFold(key, name)) &&
-		(namespace == "" || strings.EqualFold(namespace, ns))
+	namespace = strings.ToLower(namespace)
+
+	key := e.Value.Service.Service
+	if e.overrideKey != "" {
+		key = e.overrideKey
+	}
+	key = strings.ToLower(key)
+
+	return stream.Subject(namespace + "/" + key)
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
@@ -60,8 +55,7 @@ func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 		defer tx.Abort()
 
 		connect := topic == topicServiceHealthConnect
-		entMeta := structs.NewEnterpriseMeta(req.Namespace)
-		idx, nodes, err := checkServiceNodesTxn(tx, nil, req.Key, connect, &entMeta)
+		idx, nodes, err := checkServiceNodesTxn(tx, nil, req.Key, connect, &req.EnterpriseMeta)
 		if err != nil {
 			return 0, err
 		}
