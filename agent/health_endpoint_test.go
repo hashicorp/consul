@@ -1,14 +1,13 @@
 package agent
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -1241,18 +1240,12 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	t.Run("passing_bad", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/health/service/consul?passing=nope-nope-nope", nil)
 		resp := httptest.NewRecorder()
-		a.srv.HealthServiceNodes(resp, req)
-
-		if code := resp.Code; code != 400 {
-			t.Errorf("bad response code %d, expected %d", code, 400)
+		_, err := a.srv.HealthServiceNodes(resp, req)
+		if _, ok := err.(BadRequestError); !ok {
+			t.Fatalf("Expected bad request error but got %v", err)
 		}
-
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Contains(body, []byte("Invalid value for ?passing")) {
-			t.Errorf("bad %s", body)
+		if !strings.Contains(err.Error(), "Invalid value for ?passing") {
+			t.Errorf("bad %s", err.Error())
 		}
 	})
 }
@@ -1654,12 +1647,12 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
 			"/v1/health/connect/%s?passing=nope-nope", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
-		a.srv.HealthConnectServiceNodes(resp, req)
-		assert.Equal(t, 400, resp.Code)
+		_, err := a.srv.HealthConnectServiceNodes(resp, req)
+		assert.NotNil(t, err)
+		_, ok := err.(BadRequestError)
+		assert.True(t, ok)
 
-		body, err := ioutil.ReadAll(resp.Body)
-		assert.Nil(t, err)
-		assert.True(t, bytes.Contains(body, []byte("Invalid value for ?passing")))
+		assert.True(t, strings.Contains(err.Error(), "Invalid value for ?passing"))
 	})
 }
 
