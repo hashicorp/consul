@@ -359,17 +359,27 @@ task {
 
 You can optionally add one or more `source_input` blocks to the `task` block. A `source_input` block specifies a Consul object containing values or metadata to be provided to the Terraform Module. Both scheduled and dynamic tasks can be configured with `source_input` blocks.
 
-There are some limitations to the type of `source_input` blocks that can be configured for a task given the task's `condition` block and `services` field. This is because a task cannot have multiple configurations defining the same type of monitored variable:
-- A task cannot be configured with a `condition` and `source_input` block of the same type. For example, configuring `condition "consul-kv"` and `source_input "consul-kv"` will error because both configure the `consul_kv` variable.
-- A task cannot be configured with two or more `source_input` blocks of the same type. For example, configuring two `source_input "catalog-services"` within a task will return an error because they define multiple configurations for the `catalog_services` variable.
-- A task that monitors services can only contain one of the following configurations:
-  - `condition "services"` block
-  - `source_input "services"` block
-  - `services` list
+The example below shows an outline of `source_input` within a task configuration:
 
-  All of the listed configurations define the `services` variable and including more than one configuration will return an error.
+```hcl
+task {
+  name     = "task_a"
+  source   = "path/to/module"
+  services = ["api"]
 
-The following section describes the source input types that CTS supports.
+  condition "<condition-type>" {
+    // ...
+  }
+
+  source_input "<input-type>" {
+    // ...
+  }
+}
+```
+
+~> The type of the `source_input` block that can be configured depends on the `condition` block type and `services` field. See [Task Source Input Restrictions](/docs/nia/configuration#task-source-input-restrictions) for more details.
+
+The following sections describe the source input types that CTS supports.
 
 #### Services Source Input
 
@@ -439,6 +449,18 @@ task {
   }
 }
 ```
+
+#### Task Source Input Restrictions
+
+There are some limitations to the type of `source_input` blocks that can be configured for a task given the task's `condition` block and `services` field. This is because a task cannot have multiple configurations defining the same type of monitored variable:
+- A task cannot be configured with a `condition` and `source_input` block of the same type. For example, configuring `condition "consul-kv"` and `source_input "consul-kv"` will error because both configure the `consul_kv` variable.
+- A task cannot be configured with two or more `source_input` blocks of the same type. For example, configuring two `source_input "catalog-services"` within a task will return an error because they define multiple configurations for the `catalog_services` variable.
+- A task that monitors services can only contain one of the following configurations:
+  - `condition "services"` block
+  - `source_input "services"` block
+  - `services` list
+
+  All of the listed configurations define the `services` variable and including more than one configuration will return an error.
 
 ## Network Drivers
 
