@@ -99,10 +99,11 @@ func (e CodeWithPayloadError) Error() string {
 }
 
 type ForbiddenError struct {
+	Reason string
 }
 
 func (e ForbiddenError) Error() string {
-	return "Access is restricted"
+	return e.Reason
 }
 
 // HTTPHandlers provides an HTTP api for an agent.
@@ -1152,7 +1153,7 @@ func (s *HTTPHandlers) checkWriteAccess(req *http.Request) error {
 		}
 	}
 
-	return ForbiddenError{}
+	return ForbiddenError{Reason: "Access is restricted"}
 }
 
 func (s *HTTPHandlers) parseFilter(req *http.Request, filter *string) {

@@ -620,11 +620,9 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		body := bytes.NewBuffer(nil)
 		req, _ := http.NewRequest("GET", "/v1/query/not-there/execute", body)
 		resp := httptest.NewRecorder()
-		if _, err := a.srv.PreparedQuerySpecific(resp, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if resp.Code != 404 {
-			t.Fatalf("bad code: %d", resp.Code)
+		_, err := a.srv.PreparedQuerySpecific(resp, req)
+		if err, ok := err.(NotFoundError); !ok {
+			t.Fatalf("Expected not found error but got %v", err)
 		}
 	})
 }
@@ -757,11 +755,9 @@ func TestPreparedQuery_Explain(t *testing.T) {
 		body := bytes.NewBuffer(nil)
 		req, _ := http.NewRequest("GET", "/v1/query/not-there/explain", body)
 		resp := httptest.NewRecorder()
-		if _, err := a.srv.PreparedQuerySpecific(resp, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if resp.Code != 404 {
-			t.Fatalf("bad code: %d", resp.Code)
+		_, err := a.srv.PreparedQuerySpecific(resp, req)
+		if err, ok := err.(NotFoundError); !ok {
+			t.Fatalf("Expected not found error but got %v", err)
 		}
 	})
 
@@ -848,11 +844,9 @@ func TestPreparedQuery_Get(t *testing.T) {
 		body := bytes.NewBuffer(nil)
 		req, _ := http.NewRequest("GET", "/v1/query/f004177f-2c28-83b7-4229-eacc25fe55d1", body)
 		resp := httptest.NewRecorder()
-		if _, err := a.srv.PreparedQuerySpecific(resp, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if resp.Code != 404 {
-			t.Fatalf("bad code: %d", resp.Code)
+		_, err := a.srv.PreparedQuerySpecific(resp, req)
+		if err, ok := err.(NotFoundError); !ok {
+			t.Fatalf("Expected not found error but got %v", err)
 		}
 	})
 }
