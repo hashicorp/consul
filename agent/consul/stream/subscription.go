@@ -76,8 +76,8 @@ type SubscribeRequest struct {
 
 func (req SubscribeRequest) Subject() Subject {
 	var (
-		partition = strings.ToLower(req.EnterpriseMeta.PartitionOrDefault())
-		namespace = strings.ToLower(req.EnterpriseMeta.NamespaceOrDefault())
+		partition = req.EnterpriseMeta.PartitionOrDefault()
+		namespace = req.EnterpriseMeta.NamespaceOrDefault()
 		key       = strings.ToLower(req.Key)
 	)
 	return Subject(partition + "/" + namespace + "/" + key)
