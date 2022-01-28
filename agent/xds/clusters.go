@@ -907,7 +907,7 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 		fallback *envoy_endpoint_v3.LbEndpoint
 	)
 	for i, e := range opts.hostnameEndpoints {
-		addr, port := e.BestAddress(opts.isRemote)
+		_, addr, port := e.BestAddress(opts.isRemote)
 		uniqueHostnames[addr] = true
 
 		health, weight := calculateEndpointHealthAndWeight(e, opts.onlyPassing)

@@ -1741,7 +1741,7 @@ type CheckServiceNode struct {
 	Checks  HealthChecks
 }
 
-func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
+func (csn *CheckServiceNode) BestAddress(wan bool) (uint64, string, int) {
 	// TODO (mesh-gateway) needs a test
 	// best address
 	// wan
@@ -1754,12 +1754,14 @@ func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
 	//   node addr
 
 	addr, port := csn.Service.BestAddress(wan)
+	idx := csn.Service.ModifyIndex
 
 	if addr == "" {
 		addr = csn.Node.BestAddress(wan)
+		idx = csn.Node.ModifyIndex
 	}
 
-	return addr, port
+	return idx, addr, port
 }
 
 func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecision {

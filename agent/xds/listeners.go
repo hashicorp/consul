@@ -218,20 +218,14 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// as opposed to via a virtual IP.
 		var passthroughChains []*envoy_listener_v3.FilterChain
 
-		for _, target := range cfgSnap.ConnectProxy.PassthroughUpstreams {
-			for tid, addrs := range target {
+		for _, targets := range cfgSnap.ConnectProxy.PassthroughUpstreams {
+			for tid, addrs := range targets {
 				uid := proxycfg.NewUpstreamIDFromTargetID(tid)
 
 				sni := connect.ServiceSNI(
 					uid.Name, "", uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-				u := structs.Upstream{
-					DestinationName:      uid.Name,
-					DestinationNamespace: uid.NamespaceOrDefault(),
-					DestinationPartition: uid.PartitionOrDefault(),
-				}
-
-				filterName := fmt.Sprintf("%s.%s.%s.%s", u.DestinationName, u.DestinationNamespace, u.DestinationPartition, cfgSnap.Datacenter)
+				filterName := fmt.Sprintf("%s.%s.%s.%s", uid.Name, uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter)
 
 				filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 					clusterName: "passthrough~" + sni,

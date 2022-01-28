@@ -52,13 +52,28 @@ type ConfigSnapshotUpstreams struct {
 	UpstreamConfig map[UpstreamID]*structs.Upstream
 
 	// PassthroughEndpoints is a map of: UpstreamID -> (map of TargetID ->
-	// (set of IP addresses)).
+	// (set of IP addresses)). It contains the upstream endpoints that
+	// can be dialed directly by a transparent proxy.
 	PassthroughUpstreams map[UpstreamID]map[string]map[string]struct{}
+
+	// PassthroughIndices is a map of: address -> indexedTarget.
+	// It is used to track the modify index associated with a passthrough address.
+	// Tracking this index helps break ties when a single address is shared by
+	// more than one upstream due to a race.
+	PassthroughIndices map[string]indexedTarget
 
 	// IntentionUpstreams is a set of upstreams inferred from intentions.
 	//
 	// This list only applies to proxies registered in 'transparent' mode.
 	IntentionUpstreams map[UpstreamID]struct{}
+}
+
+// indexedTarget is used to associate the Raft modify index of a resource
+// with the corresponding upstream target.
+type indexedTarget struct {
+	upstreamID UpstreamID
+	targetID   string
+	idx        uint64
 }
 
 type GatewayKey struct {

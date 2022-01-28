@@ -28,6 +28,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	snap.ConnectProxy.PreparedQueryEndpoints = make(map[UpstreamID]structs.CheckServiceNodes)
 	snap.ConnectProxy.UpstreamConfig = make(map[UpstreamID]*structs.Upstream)
 	snap.ConnectProxy.PassthroughUpstreams = make(map[UpstreamID]map[string]map[string]struct{})
+	snap.ConnectProxy.PassthroughIndices = make(map[string]indexedTarget)
 
 	// Watch for root changes
 	err := s.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
@@ -326,9 +327,14 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				delete(snap.ConnectProxy.WatchedDiscoveryChains, uid)
 			}
 		}
-		for uid, _ := range snap.ConnectProxy.PassthroughUpstreams {
+		for uid := range snap.ConnectProxy.PassthroughUpstreams {
 			if _, ok := seenUpstreams[uid]; !ok {
 				delete(snap.ConnectProxy.PassthroughUpstreams, uid)
+			}
+		}
+		for addr, indexed := range snap.ConnectProxy.PassthroughIndices {
+			if _, ok := seenUpstreams[indexed.upstreamID]; !ok {
+				delete(snap.ConnectProxy.PassthroughIndices, addr)
 			}
 		}
 

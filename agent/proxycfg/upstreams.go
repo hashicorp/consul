@@ -94,10 +94,17 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 			return nil
 		}
 
-		if _, ok := upstreamsSnapshot.PassthroughUpstreams[uid]; !ok {
-			upstreamsSnapshot.PassthroughUpstreams[uid] = make(map[string]map[string]struct{})
+		// Clear out this target's existing passthrough upstreams and indices so that they can be repopulated below.
+		if _, ok := upstreamsSnapshot.PassthroughUpstreams[uid]; ok {
+			for addr := range upstreamsSnapshot.PassthroughUpstreams[uid][targetID] {
+				if indexed := upstreamsSnapshot.PassthroughIndices[addr]; indexed.targetID == targetID && indexed.upstreamID == uid {
+					delete(upstreamsSnapshot.PassthroughIndices, addr)
+				}
+			}
+			upstreamsSnapshot.PassthroughUpstreams[uid][targetID] = make(map[string]struct{})
 		}
-		upstreamsSnapshot.PassthroughUpstreams[uid][targetID] = make(map[string]struct{})
+
+		passthroughs := make(map[string]struct{})
 
 		for _, node := range resp.Nodes {
 			if !node.Service.Proxy.TransparentProxy.DialedDirectly {
@@ -107,8 +114,31 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 			// Make sure to use an external address when crossing partitions.
 			// Datacenter is not considered because transparent proxies cannot dial other datacenters.
 			isRemote := !structs.EqualPartitions(node.Node.PartitionOrDefault(), s.proxyID.PartitionOrDefault())
-			addr, _ := node.BestAddress(isRemote)
-			upstreamsSnapshot.PassthroughUpstreams[uid][targetID][addr] = struct{}{}
+			csnIdx, addr, _ := node.BestAddress(isRemote)
+
+			existing := upstreamsSnapshot.PassthroughIndices[addr]
+			if existing.idx > csnIdx {
+				// The last known instance with this address had a higher index so it takes precedence.
+				continue
+			}
+
+			// The current instance has a higher Raft index so we ensure the passthrough address is only
+			// associated with this upstream target. Older associations are cleaned up as needed.
+			delete(upstreamsSnapshot.PassthroughUpstreams[existing.upstreamID][existing.targetID], addr)
+			if len(upstreamsSnapshot.PassthroughUpstreams[existing.upstreamID][existing.targetID]) == 0 {
+				delete(upstreamsSnapshot.PassthroughUpstreams[existing.upstreamID], existing.targetID)
+			}
+			if len(upstreamsSnapshot.PassthroughUpstreams[existing.upstreamID]) == 0 {
+				delete(upstreamsSnapshot.PassthroughUpstreams, existing.upstreamID)
+			}
+
+			upstreamsSnapshot.PassthroughIndices[addr] = indexedTarget{idx: csnIdx, upstreamID: uid, targetID: targetID}
+			passthroughs[addr] = struct{}{}
+		}
+		if len(passthroughs) > 0 {
+			upstreamsSnapshot.PassthroughUpstreams[uid] = map[string]map[string]struct{}{
+				targetID: passthroughs,
+			}
 		}
 
 	case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
