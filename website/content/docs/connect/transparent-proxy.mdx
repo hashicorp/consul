@@ -10,7 +10,7 @@ description: |-
 # Transparent Proxy
 
 Transparent proxy allows applications to communicate through the mesh without changing their configuration.
-It also hardens application security by preventing direct inbound connections that bypass the mesh.
+Transparent proxy also hardens application security by preventing direct inbound connections that bypass the mesh.
 
 #### Without Transparent Proxy
 
@@ -31,8 +31,8 @@ With transparent proxy:
 
 1. Upstreams are inferred from service intentions, so no explicit configuration
    is needed.
-1. Outbound connections to KubeDNS names "just work" — rules redirect them
-   through the proxy.
+1. Outbound connections pointing to a KubeDNS name "just work" — network rules
+   redirect them through the proxy.
 1. Inbound traffic is forced to go through the proxy to prevent unauthorized
    direct access to the application.
 
