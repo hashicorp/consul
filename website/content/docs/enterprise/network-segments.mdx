@@ -52,8 +52,7 @@ in their local cluster through the gossip mechanism and make RPC requests to
 them. LAN Gossip (OSS) is an open intra-cluster networking model, and Network
 Segments (Enterprise) creates multiple segments within one cluster.
 
-**Federated Cluster:** A cluster of clusters with a Consul server group per
-cluster each set per "datacenter". These Consul servers are federated together
+**Federated Cluster:** A set of connected clusters, each representing a unique Consul “datacenter”. These Consul servers are federated together
 over the WAN. Consul clients make use of resources in federated clusters by
 forwarding RPCs through the Consul servers in their local cluster, but they
 never interact with remote Consul servers directly. There are currently two
