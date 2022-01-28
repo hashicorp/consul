@@ -11,5 +11,7 @@
 @import 'layout';
 /* pinpoint individual overwrites for those 'just on this page' problems */
 @import 'routes';
+/* more semantically (for our project) named icons  */
+@import 'icons';
 /* global control of themeable components */
 @import 'themes';

@@ -1,0 +1,31 @@
+graph TD
+ 
+    ExternalRootCA["External RootCA (optional)"]
+
+    subgraph "Consul Primary"
+        PrimaryRootCA["Primary Root CA"]
+        PrimarySigningCA["Primary Signing CA (conditional)"]
+    end
+
+    subgraph "Consul Secondary"
+        SeconarySigningCA["Seconary Signing CA"]
+    end
+
+    LeafCertAgentPrimary[Leaf Cert Client Agent]
+    LeafCertServicePrimary[Leaf Cert Service]
+
+    LeafCertAgentSecondary[Leaf Cert Client Agent]
+    LeafCertServiceSecondary[Leaf Cert Service]
+
+
+    ExternalRootCA -.-> PrimaryRootCA
+    PrimaryRootCA -.-> PrimarySigningCA
+
+    PrimaryRootCA --> SeconarySigningCA
+
+    PrimarySigningCA --> LeafCertAgentPrimary
+    PrimarySigningCA --> LeafCertServicePrimary
+
+    SeconarySigningCA --> LeafCertAgentSecondary
+    SeconarySigningCA --> LeafCertServiceSecondary
+

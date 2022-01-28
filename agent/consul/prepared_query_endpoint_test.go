@@ -222,7 +222,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
-			Name: "redis-master",
+			Name: "redis-primary",
 			Service: structs.ServiceQuery{
 				Service: "the-redis",
 			},
@@ -503,7 +503,7 @@ func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
 			Address:    "127.0.0.1",
 			Service: &structs.NodeService{
 				Service: "redis",
-				Tags:    []string{"master"},
+				Tags:    []string{"primary"},
 				Port:    8000,
 			},
 		}
@@ -853,7 +853,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
-			Name: "redis-master",
+			Name: "redis-primary",
 			Service: structs.ServiceQuery{
 				Service: "the-redis",
 			},
@@ -1242,7 +1242,7 @@ func TestPreparedQuery_List(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
-			Name:  "redis-master",
+			Name:  "redis-primary",
 			Token: "le-token",
 			Service: structs.ServiceQuery{
 				Service: "the-redis",
@@ -2480,7 +2480,7 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 			Address:    "127.0.0.1",
 			Service: &structs.NodeService{
 				Service: "redis",
-				Tags:    []string{"master"},
+				Tags:    []string{"primary"},
 				Port:    8000,
 			},
 		}
@@ -2580,7 +2580,6 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2616,7 +2615,7 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		}
 
 		var reply struct{}
-		require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply))
 	}
 
 	// The query, start with connect disabled
@@ -2633,7 +2632,7 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(msgpackrpc.CallWithCodec(
+	require.NoError(t, msgpackrpc.CallWithCodec(
 		codec, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// In the future we'll run updates
@@ -2647,15 +2646,15 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(msgpackrpc.CallWithCodec(
+		require.NoError(t, msgpackrpc.CallWithCodec(
 			codec, "PreparedQuery.Execute", &req, &reply))
 
 		// Result should have two because it omits the proxy whose name
 		// doesn't match the query.
-		require.Len(reply.Nodes, 2)
-		require.Equal(query.Query.Service.Service, reply.Service)
-		require.Equal(query.Query.DNS, reply.DNS)
-		require.True(reply.QueryMeta.KnownLeader, "queried leader")
+		require.Len(t, reply.Nodes, 2)
+		require.Equal(t, query.Query.Service.Service, reply.Service)
+		require.Equal(t, query.Query.DNS, reply.DNS)
+		require.True(t, reply.QueryMeta.KnownLeader, "queried leader")
 	}
 
 	// Run with the Connect setting specified on the request
@@ -2667,31 +2666,31 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(msgpackrpc.CallWithCodec(
+		require.NoError(t, msgpackrpc.CallWithCodec(
 			codec, "PreparedQuery.Execute", &req, &reply))
 
 		// Result should have two because we should get the native AND
 		// the proxy (since the destination matches our service name).
-		require.Len(reply.Nodes, 2)
-		require.Equal(query.Query.Service.Service, reply.Service)
-		require.Equal(query.Query.DNS, reply.DNS)
-		require.True(reply.QueryMeta.KnownLeader, "queried leader")
+		require.Len(t, reply.Nodes, 2)
+		require.Equal(t, query.Query.Service.Service, reply.Service)
+		require.Equal(t, query.Query.DNS, reply.DNS)
+		require.True(t, reply.QueryMeta.KnownLeader, "queried leader")
 
 		// Make sure the native is the first one
 		if !reply.Nodes[0].Service.Connect.Native {
 			reply.Nodes[0], reply.Nodes[1] = reply.Nodes[1], reply.Nodes[0]
 		}
 
-		require.True(reply.Nodes[0].Service.Connect.Native, "native")
-		require.Equal(reply.Service, reply.Nodes[0].Service.Service)
+		require.True(t, reply.Nodes[0].Service.Connect.Native, "native")
+		require.Equal(t, reply.Service, reply.Nodes[0].Service.Service)
 
-		require.Equal(structs.ServiceKindConnectProxy, reply.Nodes[1].Service.Kind)
-		require.Equal(reply.Service, reply.Nodes[1].Service.Proxy.DestinationServiceName)
+		require.Equal(t, structs.ServiceKindConnectProxy, reply.Nodes[1].Service.Kind)
+		require.Equal(t, reply.Service, reply.Nodes[1].Service.Proxy.DestinationServiceName)
 	}
 
 	// Update the query
 	query.Query.Service.Connect = true
-	require.NoError(msgpackrpc.CallWithCodec(
+	require.NoError(t, msgpackrpc.CallWithCodec(
 		codec, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// Run the registered query.
@@ -2702,31 +2701,31 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(msgpackrpc.CallWithCodec(
+		require.NoError(t, msgpackrpc.CallWithCodec(
 			codec, "PreparedQuery.Execute", &req, &reply))
 
 		// Result should have two because we should get the native AND
 		// the proxy (since the destination matches our service name).
-		require.Len(reply.Nodes, 2)
-		require.Equal(query.Query.Service.Service, reply.Service)
-		require.Equal(query.Query.DNS, reply.DNS)
-		require.True(reply.QueryMeta.KnownLeader, "queried leader")
+		require.Len(t, reply.Nodes, 2)
+		require.Equal(t, query.Query.Service.Service, reply.Service)
+		require.Equal(t, query.Query.DNS, reply.DNS)
+		require.True(t, reply.QueryMeta.KnownLeader, "queried leader")
 
 		// Make sure the native is the first one
 		if !reply.Nodes[0].Service.Connect.Native {
 			reply.Nodes[0], reply.Nodes[1] = reply.Nodes[1], reply.Nodes[0]
 		}
 
-		require.True(reply.Nodes[0].Service.Connect.Native, "native")
-		require.Equal(reply.Service, reply.Nodes[0].Service.Service)
+		require.True(t, reply.Nodes[0].Service.Connect.Native, "native")
+		require.Equal(t, reply.Service, reply.Nodes[0].Service.Service)
 
-		require.Equal(structs.ServiceKindConnectProxy, reply.Nodes[1].Service.Kind)
-		require.Equal(reply.Service, reply.Nodes[1].Service.Proxy.DestinationServiceName)
+		require.Equal(t, structs.ServiceKindConnectProxy, reply.Nodes[1].Service.Kind)
+		require.Equal(t, reply.Service, reply.Nodes[1].Service.Proxy.DestinationServiceName)
 	}
 
 	// Unset the query
 	query.Query.Service.Connect = false
-	require.NoError(msgpackrpc.CallWithCodec(
+	require.NoError(t, msgpackrpc.CallWithCodec(
 		codec, "PreparedQuery.Apply", &query, &query.Query.ID))
 }
 

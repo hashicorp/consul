@@ -124,7 +124,6 @@ func TestTokenCreateCommand_JSON(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -148,7 +147,7 @@ func TestTokenCreateCommand_JSON(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// create with policy by name
 	{
@@ -161,11 +160,11 @@ func TestTokenCreateCommand_JSON(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(code, 0)
-		require.Empty(ui.ErrorWriter.String())
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
 
 		var jsonOutput json.RawMessage
 		err = json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
-		require.NoError(err, "token unmarshalling error")
+		require.NoError(t, err, "token unmarshalling error")
 	}
 }

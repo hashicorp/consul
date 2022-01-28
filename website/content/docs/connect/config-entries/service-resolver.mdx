@@ -21,9 +21,9 @@ and discovery terminates.
 ## Interaction with other Config Entries
 
 - Service resolver config entries are a component of [L7 Traffic
-  Management](/docs/connect/l7-traffic-management).
+  Management](/docs/connect/l7-traffic).
 
-## UI 
+## UI
 
 Once a `service-resolver` is successfully entered, you can view it in the UI. Service routers, service splitters, and service resolvers can all be viewed by clicking on your service then switching to the *routing* tab.
 
@@ -350,7 +350,16 @@ spec:
       name: 'Namespace',
       type: `string: "default"`,
       enterprise: true,
-      description: 'Specifies the namespace the config entry will apply to.',
+      description:
+        'Specifies the namespace in which the configuration entry will apply.',
+      yaml: false,
+    },
+    {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        'Specifies the admin partition in which the configuration entry will apply.',
       yaml: false,
     },
     {
@@ -452,13 +461,20 @@ spec:
           enterprise: true,
           type: 'string: ""',
           description:
-            'The namespace to resolve the service from instead of the current one.',
+            'Specifies the destination namespace to resolve the service from.',
+        },
+        {
+          name: 'Partition',
+          enterprise: true,
+          type: 'string: ""',
+          description:
+            'Specifies the destination admin partition to resolve the service from.',
         },
         {
           name: 'Datacenter',
           type: 'string: ""',
           description:
-            'The datacenter to resolve the service from instead of the current one.',
+            'Specifies the destination datacenter to resolve the service from.',
         },
       ],
     },
@@ -530,13 +546,13 @@ spec:
           description: 'Configuration for the `ring_hash` policy type.',
           children: [
             {
-              name: 'MinimumRingRize',
+              name: 'MinimumRingSize',
               type: 'int: 1024',
               description:
                 'Determines the minimum number of entries in the hash ring.',
             },
             {
-              name: 'MaximumRingRize',
+              name: 'MaximumRingSize',
               type: 'int: 8192',
               description:
                 'Determines the maximum number of entries in the hash ring.',

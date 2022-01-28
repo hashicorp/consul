@@ -26,7 +26,6 @@ func TestTokenDeleteCommand(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -50,7 +49,7 @@ func TestTokenDeleteCommand(t *testing.T) {
 		&api.ACLToken{Description: "test"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(err)
+	assert.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -59,16 +58,16 @@ func TestTokenDeleteCommand(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
-	assert.Contains(output, fmt.Sprintf("deleted successfully"))
-	assert.Contains(output, token.AccessorID)
+	assert.Contains(t, output, fmt.Sprintf("deleted successfully"))
+	assert.Contains(t, output, token.AccessorID)
 
 	_, _, err = client.ACL().TokenRead(
 		token.AccessorID,
 		&api.QueryOptions{Token: "root"},
 	)
-	assert.EqualError(err, "Unexpected response code: 403 (ACL not found)")
+	assert.EqualError(t, err, "Unexpected response code: 403 (ACL not found)")
 }

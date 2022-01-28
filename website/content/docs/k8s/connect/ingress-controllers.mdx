@@ -38,7 +38,7 @@ these annotations to the *pods* of your *ingress controller*.
        consul.hashicorp.com/connect-inject: "true"
        # Add the container ports used by your ingress controller
        consul.hashicorp.com/transparent-proxy-exclude-inbound-ports: "80,8000,9000,8443"
-       # And the CIDR of your Kubernetes API: `kubectl get svc kubernetes -o jsonpath='{.spec.clusterIP}'
+       # And the CIDR of your Kubernetes API: `kubectl get svc kubernetes --output jsonpath='{.spec.clusterIP}'
        consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs: "10.108.0.1/32"
    ```
 

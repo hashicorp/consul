@@ -15,7 +15,7 @@ service deregistration. This command simplifies service registration from
 scripts, in dev mode, etc.
 
 This is just one method of service registration. Services can also be
-registered by placing a [service definition](/docs/agent/services)
+registered by placing a [service definition](/docs/discovery/services)
 in the Consul agent configuration directory and issuing a
 [reload](/commands/reload). This approach is easiest for
 configuration management systems that other systems that have access to
@@ -74,7 +74,7 @@ arguments are given, the flags below can be used to register a single
 service.
 
 Note that the behavior of each of the fields below is exactly the same
-as when constructing a standard [service definition](/docs/agent/services).
+as when constructing a standard [service definition](/docs/discovery/services).
 Please refer to that documentation for full details.
 
 - `-id` - The ID of the service. This will default to `-name` if not set.
