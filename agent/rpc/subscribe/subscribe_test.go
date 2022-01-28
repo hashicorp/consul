@@ -31,10 +31,8 @@ import (
 )
 
 func TestServer_Subscribe_KeyIsRequired(t *testing.T) {
-	require := require.New(t)
-
 	backend, err := newTestBackend()
-	require.NoError(err)
+	require.NoError(t, err)
 
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
 
@@ -42,7 +40,7 @@ func TestServer_Subscribe_KeyIsRequired(t *testing.T) {
 	t.Cleanup(cancel)
 
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
-	require.NoError(err)
+	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
 
 	client := pbsubscribe.NewStateChangeSubscriptionClient(conn)
@@ -51,12 +49,12 @@ func TestServer_Subscribe_KeyIsRequired(t *testing.T) {
 		Topic: pbsubscribe.Topic_ServiceHealth,
 		Key:   "",
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 
 	_, err = stream.Recv()
-	require.Error(err)
-	require.Equal(codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(err.Error(), "Key is required")
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.Contains(t, err.Error(), "Key is required")
 }
 
 func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
