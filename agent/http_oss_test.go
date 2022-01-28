@@ -18,6 +18,7 @@ import (
 var extraTestEndpoints = map[string][]string{
 	"/v1/query":             {"GET", "POST"},
 	"/v1/query/":            {"GET", "PUT", "DELETE"},
+	"/v1/query/exact-name/": {"GET"},
 	"/v1/query/xxx/execute": {"GET"},
 	"/v1/query/xxx/explain": {"GET"},
 }
@@ -26,7 +27,7 @@ var extraTestEndpoints = map[string][]string{
 var ignoredEndpoints = []string{"/v1/status/peers", "/v1/agent/monitor", "/v1/agent/reload"}
 
 // These have custom logic
-var customEndpoints = []string{"/v1/query", "/v1/query/"}
+var customEndpoints = []string{"/v1/query", "/v1/query/", "/v1/query/exact-name/"}
 
 // includePathInTest returns whether this path should be ignored for the purpose of testing its response code
 func includePathInTest(path string) bool {
