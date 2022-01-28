@@ -2041,6 +2041,80 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Contains(t, snap.ConnectProxy.WatchedUpstreams[dbUID], "mysql.default.default.dc1")
 					},
 				},
+				{
+					// Receive a new upstream target event without proxy1.
+					events: []cache.UpdateEvent{
+						{
+							CorrelationID: "upstream-target:db.default.default.dc1:" + dbUID.String(),
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Node:    "node2",
+											Address: "10.0.0.2",
+										},
+										Service: &structs.NodeService{
+											Kind:    structs.ServiceKindConnectProxy,
+											ID:      "db-sidecar-proxy2",
+											Service: "db-sidecar-proxy",
+											Proxy: structs.ConnectProxyConfig{
+												DestinationServiceName: "db",
+												TransparentProxy: structs.TransparentProxyConfig{
+													DialedDirectly: true,
+												},
+											},
+										},
+									},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 1)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints, dbUID)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbUID], 1)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbUID], "db.default.default.dc1")
+
+						// THe endpoint and passthrough address for proxy1 should be gone.
+						require.Equal(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc1"],
+							structs.CheckServiceNodes{
+								{
+									Node: &structs.Node{
+										Node:    "node2",
+										Address: "10.0.0.2",
+									},
+									Service: &structs.NodeService{
+										Kind:    structs.ServiceKindConnectProxy,
+										ID:      "db-sidecar-proxy2",
+										Service: "db-sidecar-proxy",
+										Proxy: structs.ConnectProxyConfig{
+											DestinationServiceName: "db",
+											TransparentProxy: structs.TransparentProxyConfig{
+												DialedDirectly: true,
+											},
+										},
+									},
+								},
+							},
+						)
+						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[UpstreamID]ServicePassthroughAddrs{
+							dbUID: {
+								SNI: connect.ServiceSNI("db", "", structs.IntentionDefaultNamespace, "", snap.Datacenter, snap.Roots.TrustDomain),
+								SpiffeID: connect.SpiffeIDService{
+									Host:       snap.Roots.TrustDomain,
+									Namespace:  db.NamespaceOrDefault(),
+									Partition:  db.PartitionOrDefault(),
+									Datacenter: snap.Datacenter,
+									Service:    "db",
+								},
+								Addrs: map[string]struct{}{
+									"10.0.0.2": {},
+								},
+							},
+						})
+					},
+				},
 				// Empty list of upstreams should clean everything up
 				{
 					requiredWatches: map[string]verifyWatchRequest{
@@ -2070,6 +2144,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Empty(t, snap.ConnectProxy.WatchedGatewayEndpoints)
 						require.Empty(t, snap.ConnectProxy.DiscoveryChain)
 						require.Empty(t, snap.ConnectProxy.IntentionUpstreams)
+						require.Empty(t, snap.ConnectProxy.PassthroughUpstreams)
 					},
 				},
 			},
