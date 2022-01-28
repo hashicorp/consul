@@ -26,8 +26,8 @@ We deprecated all configuration with the term "source" and replaced it with "mod
 | Deprecated Config | Replacement Config | Description |
 | --- | --- | --- |
 | `source` field | `module` field | The path to the Terraform module |
-| `source_input` block | `module_input` block | The configuration block for additional module input for the Terraform module |
-| `source_includes_var` field | `use_as_module_input` field | The field on a `condition` block to indicate whether the condition object should be used as module input |
+| `source_input` block | `module_input` block | The configuration block to define the values for additional Terraform input variables for the Terraform module |
+| `source_includes_var` field | `use_as_module_input` field | The field on the `condition` block to indicate whether the values of the condition object should also be used as module input |
 
 Removal date:
 - `source`: future major release after v0.7
