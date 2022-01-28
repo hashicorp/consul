@@ -171,36 +171,51 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 		})
 	}
 
-	for _, passthrough := range cfgSnap.ConnectProxy.PassthroughUpstreams {
-		// Prefixed with passthrough to distinguish from non-passthrough clusters for the same upstream.
-		name := "passthrough~" + passthrough.SNI
+	for _, target := range cfgSnap.ConnectProxy.PassthroughUpstreams {
+		for tid := range target {
+			uid := proxycfg.NewUpstreamIDFromTargetID(tid)
 
-		c := envoy_cluster_v3.Cluster{
-			Name: name,
-			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
-				Type: envoy_cluster_v3.Cluster_ORIGINAL_DST,
-			},
-			LbPolicy: envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
+			sni := connect.ServiceSNI(
+				uid.Name, "", uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-			// TODO(tproxy) This should use the connection timeout configured on the upstream's config entry
-			ConnectTimeout: ptypes.DurationProto(5 * time.Second),
-		}
+			// Prefixed with passthrough to distinguish from non-passthrough clusters for the same upstream.
+			name := "passthrough~" + sni
 
-		commonTLSContext := makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf())
-		err := injectSANMatcher(commonTLSContext, passthrough.SpiffeID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", passthrough.SNI, err)
+			c := envoy_cluster_v3.Cluster{
+				Name: name,
+				ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
+					Type: envoy_cluster_v3.Cluster_ORIGINAL_DST,
+				},
+				LbPolicy: envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
+
+				// TODO(tproxy) This should use the connection timeout configured on the upstream's config entry
+				ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+			}
+
+			spiffeID := connect.SpiffeIDService{
+				Host:       cfgSnap.Roots.TrustDomain,
+				Partition:  uid.PartitionOrDefault(),
+				Namespace:  uid.NamespaceOrDefault(),
+				Datacenter: cfgSnap.Datacenter,
+				Service:    uid.Name,
+			}
+
+			commonTLSContext := makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf())
+			err := injectSANMatcher(commonTLSContext, spiffeID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
+			}
+			tlsContext := envoy_tls_v3.UpstreamTlsContext{
+				CommonTlsContext: commonTLSContext,
+				Sni:              sni,
+			}
+			transportSocket, err := makeUpstreamTLSTransportSocket(&tlsContext)
+			if err != nil {
+				return nil, err
+			}
+			c.TransportSocket = transportSocket
+			clusters = append(clusters, &c)
 		}
-		tlsContext := envoy_tls_v3.UpstreamTlsContext{
-			CommonTlsContext: commonTLSContext,
-			Sni:              passthrough.SNI,
-		}
-		transportSocket, err := makeUpstreamTLSTransportSocket(&tlsContext)
-		if err != nil {
-			return nil, err
-		}
-		c.TransportSocket = transportSocket
-		clusters = append(clusters, &c)
 	}
 
 	return clusters, nil

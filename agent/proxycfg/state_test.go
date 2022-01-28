@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
@@ -1985,17 +1984,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						// The LAN service address is used below because transparent proxying
 						// does not support querying service nodes in other DCs, and the WAN address
 						// should not be used in DC-local calls.
-						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[UpstreamID]ServicePassthroughAddrs{
+						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[UpstreamID]map[string]map[string]struct{}{
 							dbUID: {
-								SNI: connect.ServiceSNI("db", "", structs.IntentionDefaultNamespace, "", snap.Datacenter, snap.Roots.TrustDomain),
-								SpiffeID: connect.SpiffeIDService{
-									Host:       snap.Roots.TrustDomain,
-									Namespace:  db.NamespaceOrDefault(),
-									Partition:  db.PartitionOrDefault(),
-									Datacenter: snap.Datacenter,
-									Service:    "db",
-								},
-								Addrs: map[string]struct{}{
+								"db.default.default.dc1": map[string]struct{}{
 									"10.10.10.10": {},
 									"10.0.0.2":    {},
 								},
@@ -2098,17 +2089,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								},
 							},
 						)
-						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[UpstreamID]ServicePassthroughAddrs{
+						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[UpstreamID]map[string]map[string]struct{}{
 							dbUID: {
-								SNI: connect.ServiceSNI("db", "", structs.IntentionDefaultNamespace, "", snap.Datacenter, snap.Roots.TrustDomain),
-								SpiffeID: connect.SpiffeIDService{
-									Host:       snap.Roots.TrustDomain,
-									Namespace:  db.NamespaceOrDefault(),
-									Partition:  db.PartitionOrDefault(),
-									Datacenter: snap.Datacenter,
-									Service:    "db",
-								},
-								Addrs: map[string]struct{}{
+								"db.default.default.dc1": map[string]struct{}{
 									"10.0.0.2": {},
 								},
 							},

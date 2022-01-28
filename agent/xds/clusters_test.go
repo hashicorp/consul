@@ -678,28 +678,14 @@ func TestClustersFromSnapshot(t *testing.T) {
 				}
 
 				// We add a passthrough cluster for each upstream service name
-				snap.ConnectProxy.PassthroughUpstreams = map[proxycfg.UpstreamID]proxycfg.ServicePassthroughAddrs{
+				snap.ConnectProxy.PassthroughUpstreams = map[proxycfg.UpstreamID]map[string]map[string]struct{}{
 					kafkaUID: {
-						SNI: "kafka.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
-						SpiffeID: connect.SpiffeIDService{
-							Host:       "e5b08d03-bfc3-c870-1833-baddb116e648.consul",
-							Namespace:  "default",
-							Datacenter: "dc1",
-							Service:    "kafka",
-						},
-						Addrs: map[string]struct{}{
+						"kafka.default.default.dc1": map[string]struct{}{
 							"9.9.9.9": {},
 						},
 					},
 					mongoUID: {
-						SNI: "mongo.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
-						SpiffeID: connect.SpiffeIDService{
-							Host:       "e5b08d03-bfc3-c870-1833-baddb116e648.consul",
-							Namespace:  "default",
-							Datacenter: "dc1",
-							Service:    "mongo",
-						},
-						Addrs: map[string]struct{}{
+						"mongo.default.default.dc1": map[string]struct{}{
 							"10.10.10.10": {},
 							"10.10.10.12": {},
 						},

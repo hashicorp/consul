@@ -9,8 +9,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/agent/connect"
-
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -92,56 +90,25 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 		}
 		upstreamsSnapshot.WatchedUpstreamEndpoints[uid][targetID] = resp.Nodes
 
-		var passthroughAddrs map[string]ServicePassthroughAddrs
+		if s.kind != structs.ServiceKindConnectProxy || s.proxyCfg.Mode != structs.ProxyModeTransparent {
+			return nil
+		}
+
+		if _, ok := upstreamsSnapshot.PassthroughUpstreams[uid]; !ok {
+			upstreamsSnapshot.PassthroughUpstreams[uid] = make(map[string]map[string]struct{})
+		}
+		upstreamsSnapshot.PassthroughUpstreams[uid][targetID] = make(map[string]struct{})
 
 		for _, node := range resp.Nodes {
-			if snap.Proxy.Mode == structs.ProxyModeTransparent && node.Service.Proxy.TransparentProxy.DialedDirectly {
-				if passthroughAddrs == nil {
-					passthroughAddrs = make(map[string]ServicePassthroughAddrs)
-				}
-
-				svc := node.Service.CompoundServiceName()
-
-				// Overwrite the name if it's a connect proxy (as opposed to Connect native).
-				// We don't reference the proxy name directly for things like SNI, but rather the name
-				// of the destination. The enterprise meta of a proxy will always be the same as that of
-				// the destination service, so that remains intact.
-				if node.Service.Kind == structs.ServiceKindConnectProxy {
-					dst := node.Service.Proxy.DestinationServiceName
-					if dst == "" {
-						dst = node.Service.Proxy.DestinationServiceID
-					}
-					svc.Name = dst
-				}
-
-				sni := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), snap.Datacenter, snap.Roots.TrustDomain)
-
-				spiffeID := connect.SpiffeIDService{
-					Host:       snap.Roots.TrustDomain,
-					Partition:  svc.PartitionOrDefault(),
-					Namespace:  svc.NamespaceOrDefault(),
-					Datacenter: snap.Datacenter,
-					Service:    svc.Name,
-				}
-
-				svcUID := NewUpstreamIDFromServiceName(svc)
-				if _, ok := upstreamsSnapshot.PassthroughUpstreams[svcUID]; !ok {
-					upstreamsSnapshot.PassthroughUpstreams[svcUID] = ServicePassthroughAddrs{
-						SNI:      sni,
-						SpiffeID: spiffeID,
-
-						// Stored in a set because it's possible for these to be duplicated
-						// when the upstream-target is targeted by multiple discovery chains.
-						Addrs: make(map[string]struct{}),
-					}
-				}
-
-				// Make sure to use an external address when crossing partitions.
-				isRemote := !structs.EqualPartitions(svc.PartitionOrDefault(), s.proxyID.PartitionOrDefault())
-				addr, _ := node.BestAddress(isRemote)
-
-				upstreamsSnapshot.PassthroughUpstreams[NewUpstreamIDFromServiceName(svc)].Addrs[addr] = struct{}{}
+			if !node.Service.Proxy.TransparentProxy.DialedDirectly {
+				continue
 			}
+
+			// Make sure to use an external address when crossing partitions.
+			// Datacenter is not considered because transparent proxies cannot dial other datacenters.
+			isRemote := !structs.EqualPartitions(node.Node.PartitionOrDefault(), s.proxyID.PartitionOrDefault())
+			addr, _ := node.BestAddress(isRemote)
+			upstreamsSnapshot.PassthroughUpstreams[uid][targetID][addr] = struct{}{}
 		}
 
 	case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):

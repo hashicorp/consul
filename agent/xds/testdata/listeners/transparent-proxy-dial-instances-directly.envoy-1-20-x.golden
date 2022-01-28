@@ -55,7 +55,7 @@
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "upstream.mongo.default.default.dc1",
-                "cluster": "passthrough~mongo.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul"
+                "cluster": "passthrough~mongo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -95,7 +95,7 @@
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "upstream.kafka.default.default.dc1",
-                "cluster": "passthrough~kafka.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul"
+                "cluster": "passthrough~kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]

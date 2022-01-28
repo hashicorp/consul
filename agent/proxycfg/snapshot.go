@@ -9,7 +9,6 @@ import (
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -52,8 +51,9 @@ type ConfigSnapshotUpstreams struct {
 	// UpstreamConfig is a map to an upstream's configuration.
 	UpstreamConfig map[UpstreamID]*structs.Upstream
 
-	// PassthroughEndpoints is a map of: UpstreamID -> ServicePassthroughAddrs.
-	PassthroughUpstreams map[UpstreamID]ServicePassthroughAddrs
+	// PassthroughEndpoints is a map of: UpstreamID -> (map of TargetID ->
+	// (set of IP addresses)).
+	PassthroughUpstreams map[UpstreamID]map[string]map[string]struct{}
 
 	// IntentionUpstreams is a set of upstreams inferred from intentions.
 	//
@@ -89,18 +89,6 @@ func gatewayKeyFromString(s string) GatewayKey {
 		return GatewayKey{Datacenter: split[0], Partition: acl.DefaultPartitionName}
 	}
 	return GatewayKey{Partition: split[0], Datacenter: split[1]}
-}
-
-// ServicePassthroughAddrs contains the LAN addrs
-type ServicePassthroughAddrs struct {
-	// SNI is the Service SNI of the upstream.
-	SNI string
-
-	// SpiffeID is the SPIFFE ID to use for upstream SAN validation.
-	SpiffeID connect.SpiffeIDService
-
-	// Addrs is a set of the best LAN addresses for the instances of the upstream.
-	Addrs map[string]struct{}
 }
 
 type configSnapshotConnectProxy struct {
