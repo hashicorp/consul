@@ -203,37 +203,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
-	runStep(t, "simulate envoy NACKing an endpoint update", func(t *testing.T) {
-		// Trigger only an EDS update.
-		snap = newTestSnapshot(t, snap, "")
-		deleteAllButOneEndpoint(snap, UID("db"), "db.default.default.dc1")
-		mgr.DeliverConfig(t, sid, snap)
-
-		// Send envoy an EDS update.
-		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-			TypeUrl: EndpointType,
-			Nonce:   hexString(6),
-			Resources: makeTestResources(t,
-				makeTestEndpoints(t, snap, "tcp:db[0]"),
-			),
-		})
-
-		envoy.SendDeltaReqNACK(t, EndpointType, 6, &rpcstatus.Status{})
-
-		// Send it again.
-		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-			TypeUrl: EndpointType,
-			Nonce:   hexString(7),
-			Resources: makeTestResources(t,
-				makeTestEndpoints(t, snap, "tcp:db[0]"),
-			),
-		})
-
-		envoy.SendDeltaReqACK(t, EndpointType, 7)
-
-		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-	})
-
 	// NOTE: this has to be the last subtest since it kills the stream
 	runStep(t, "simulate an envoy error sending an update to envoy", func(t *testing.T) {
 		// Force sends to fail
@@ -250,11 +219,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	envoy.Close()
 	select {
 	case err := <-errCh:
-		// Envoy died.
-		expect := status.Errorf(codes.Unavailable,
-			"failed to send upsert reply for type %q: test error",
-			EndpointType)
-		require.EqualError(t, err, expect.Error())
+		require.NoError(t, err)
 	case <-time.After(50 * time.Millisecond):
 		t.Fatalf("timed out waiting for handler to finish")
 	}
@@ -359,7 +324,7 @@ func TestServer_DeltaAggregatedResources_v3_NackLoop(t *testing.T) {
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
-	runStep(t, "simulate envoy NACKing an endpoint update", func(t *testing.T) {
+	runStep(t, "simulate envoy NACKing a listener update", func(t *testing.T) {
 		// Correct the port and deliver a new snapshot
 		snap.Port = 9999
 		mgr.DeliverConfig(t, sid, snap)
