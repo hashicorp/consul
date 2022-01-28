@@ -220,14 +220,15 @@ When the `services` field only provides module input, it can be replaced with a 
 Example:
 <CodeTabs heading="Deprecate services field as a module input" tabs={["Deprecated", "New"]}>
 
-<CodeBlockConfig highlight="7">
+<CodeBlockConfig highlight="8">
 
 ```hcl
 task {
   name   = "services_module_input_task"
   module = "path/to/module"
   condition "consul-kv" {
-    path = "my_key"
+    path                = "my_key"
+    source_includes_var = true
   }
   services = ["api", "web"]
 }
@@ -235,14 +236,15 @@ task {
 
 </CodeBlockConfig>
 
-<CodeBlockConfig highlight="7,8,9">
+<CodeBlockConfig highlight="8,9,10">
 
 ```hcl
 task {
   name   = "services_module_input_task"
   module = "path/to/module"
   condition "consul-kv" {
-    path = "my_key"
+    path                = "my_key"
+    use_as_module_input = true
   }
   module_input "services" {
     names = ["api", "web"]
@@ -253,6 +255,8 @@ task {
 </CodeBlockConfig>
 
 </CodeTabs>
+
+-> Note: `use_as_module_input` was updated in v0.5 so that it will default to `true` when unconfigured. In the new configuration, the line to set `use_as_module_input = true` is no longer necessary
 
 ### Deprecate service block
 
