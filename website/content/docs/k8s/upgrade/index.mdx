@@ -183,7 +183,7 @@ $ helm diff upgrade consul hashicorp/consul --version 0.24.1 --values /path/to/y
   grep "has changed"
 ```
 
-1. Take specific note if `consul, DaemonSet` or `consul-server, StatefulSet` are listed.
+1. Take specific note if `consul-client, DaemonSet` or `consul-server, StatefulSet` are listed.
    This means that your Consul client daemonset or Consul server statefulset (or both) will be redeployed.
 
 If either is being redeployed, we will follow the same pattern for upgrades as

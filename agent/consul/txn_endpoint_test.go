@@ -817,6 +817,7 @@ func TestTxn_Read(t *testing.T) {
 		},
 		QueryMeta: structs.QueryMeta{
 			KnownLeader: true,
+			Index:       1,
 		},
 	}
 	require.Equal(t, expected, out)

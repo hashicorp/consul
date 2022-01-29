@@ -236,7 +236,7 @@ func TestRPC_blockingQuery(t *testing.T) {
 	// Perform a non-blocking query. Note that it's significant that the meta has
 	// a zero index in response - the implied opts.MinQueryIndex is also zero but
 	// this should not block still.
-	{
+	t.Run("non-blocking query", func(t *testing.T) {
 		var opts structs.QueryOptions
 		var meta structs.QueryMeta
 		var calls int
@@ -244,16 +244,13 @@ func TestRPC_blockingQuery(t *testing.T) {
 			calls++
 			return nil
 		}
-		if err := s.blockingQuery(&opts, &meta, fn); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if calls != 1 {
-			t.Fatalf("bad: %d", calls)
-		}
-	}
+		err := s.blockingQuery(&opts, &meta, fn)
+		require.NoError(t, err)
+		require.Equal(t, 1, calls)
+	})
 
 	// Perform a blocking query that gets woken up and loops around once.
-	{
+	t.Run("blocking query - single loop", func(t *testing.T) {
 		opts := structs.QueryOptions{
 			MinQueryIndex: 3,
 		}
@@ -272,13 +269,10 @@ func TestRPC_blockingQuery(t *testing.T) {
 			calls++
 			return nil
 		}
-		if err := s.blockingQuery(&opts, &meta, fn); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if calls != 2 {
-			t.Fatalf("bad: %d", calls)
-		}
-	}
+		err := s.blockingQuery(&opts, &meta, fn)
+		require.NoError(t, err)
+		require.Equal(t, 2, calls)
+	})
 
 	// Perform a blocking query that returns a zero index from blocking func (e.g.
 	// no state yet). This should still return an empty response immediately, but
@@ -289,7 +283,7 @@ func TestRPC_blockingQuery(t *testing.T) {
 	// covered by tests but eventually when hit in the wild causes blocking
 	// clients to busy loop and burn CPU. This test ensure that blockingQuery
 	// systematically does the right thing to prevent future bugs like that.
-	{
+	t.Run("blocking query with 0 modifyIndex from state func", func(t *testing.T) {
 		opts := structs.QueryOptions{
 			MinQueryIndex: 0,
 		}
@@ -327,11 +321,11 @@ func TestRPC_blockingQuery(t *testing.T) {
 		assert.True(t, t1.Sub(t0) > 20*time.Millisecond,
 			"should have actually blocked waiting for timeout")
 
-	}
+	})
 
 	// Perform a query that blocks and gets interrupted when the state store
 	// is abandoned.
-	{
+	t.Run("blocking query interrupted by abandonCh", func(t *testing.T) {
 		opts := structs.QueryOptions{
 			MinQueryIndex: 3,
 		}
@@ -360,13 +354,10 @@ func TestRPC_blockingQuery(t *testing.T) {
 			calls++
 			return nil
 		}
-		if err := s.blockingQuery(&opts, &meta, fn); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if calls != 1 {
-			t.Fatalf("bad: %d", calls)
-		}
-	}
+		err := s.blockingQuery(&opts, &meta, fn)
+		require.NoError(t, err)
+		require.Equal(t, 1, calls)
+	})
 
 	t.Run("ResultsFilteredByACLs is reset for unauthenticated calls", func(t *testing.T) {
 		opts := structs.QueryOptions{

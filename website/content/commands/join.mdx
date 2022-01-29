@@ -34,9 +34,9 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul join [options] address ...`
 
-You may call join with multiple addresses if you want to try to join
-multiple clusters. Consul will attempt to join all addresses, and the join
-command will fail only if Consul was unable to join with any.
+You may call `join` with multiple addresses if you want attempt to join the cluster
+through multiple nodes. Consul will attempt to join all addresses. The join
+command will fail only if Consul was unable to join any of the specified addresses.
 
 #### API Options
 

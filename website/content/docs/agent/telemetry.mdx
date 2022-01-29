@@ -269,6 +269,60 @@ resources will still work.
 This metric should be monitored to ensure that the license doesn't expire to prevent degradation of functionality.
 
 
+### Bolt DB Performance
+
+| Metric Name                       | Description                                                      | Unit  | Type  |
+| :-------------------------------- | :--------------------------------------------------------------- | :---- | :---- |
+| `consul.raft.boltdb.freelistBytes`                  | Represents the number of bytes necessary to encode the freelist metadata. When [`raft_boltdb.NoFreelistSync`](/docs/agent/options#NoFreelistSync) is set to `false` these metadata bytes must also be written to disk for each committed log. | bytes | gauge   |
+| `consul.raft.boltdb.logsPerBatch`                   | Measures the number of logs being written per batch to the db. | logs | sample |
+| `consul.raft.boltdb.storeLogs`                      | Measures the amount of time spent writing logs to the db. | ms | timer |
+
+
+** Requirements: **
+* Consul 1.11.0+
+
+**Why they're important:**
+
+The `consul.raft.boltdb.storeLogs` metric is a direct indicator of disk write performance of a Consul server. If there are issues with the disk or
+performance degradations related to Bolt DB, these metrics will show the issue and potentially the cause as well.
+
+**What to look for:**
+
+The primary thing to look for are increases in the `consul.raft.boltdb.storeLogs` times. Its value will directly govern an 
+upper limit to the throughput of write operations within Consul.
+
+In Consul each write operation will turn into a single Raft log to be committed. Raft will process these
+logs and store them within Bolt DB in batches. Each call to store logs within Bolt DB is measured to record how long
+it took as well as how many logs were contained in the batch. Writing logs is this fashion is serialized so that
+a subsequent log storage operation can only be started after the previous one completed. Therefore the maximum number
+of log storage operations that can be performed each second can be calculated with the following equation: 
+`(1000 ms) / (consul.raft.boltdb.storeLogs ms/op)`. From there we can extrapolate the maximum number of Consul writes
+per second by multiplying that value by the `consul.raft.boltdb.logsPerBatch` metric's value. When log storage 
+operations are becoming slower you may not see an immediate decrease in write throughput to Consul due to increased 
+batch sizes of the each operation. However, the max batch size allowed is 64 logs. Therefore if the `logsPerBatch`
+metric is near 64 and the `storeLogs` metric is seeing increased time to write each batch to disk, then it is likely 
+that increased write latencies and other errors may occur.
+
+There can be a number of potential issues that can cause this. Often times it could be performance of the underlying
+disks that is the issue. Other times it may be caused by Bolt DB behavior. Bolt DB keeps track of free space within
+the `raft.db` file. When needing to allocate data it will use existing free space first before further expanding the
+file. By default, Bolt DB will write a data structure containing metadata about free pages within the DB to disk for
+every log storage operation. Therefore if the free space within the database grows excessively large, such as after
+a large spike in writes beyond the normal steady state and a subsequent slow down in the write rate, then Bolt DB
+could end up writing a large amount of extra data to disk for each log storage operation. This has the potential
+to drastically increase disk write throughput, potentially beyond what the underlying disks can keep up with. To
+detect this situation you can look at the `consul.raft.boltdb.freelistBytes` metric. This metric is a count of
+the extra bytes that are being written for each log storage operation beyond the log data itself. While not a clear
+indicator of an actual issue, this metric can be used to diagnose why the `consul.raft.boltdb.storeLogs` metric
+is high. 
+
+If Bolt DB log storage performance becomes an issue and is caused by free list management then setting
+[`raft_boltdb.NoFreelistSync`](/docs/agent/options#NoFreelistSync) to `true` in the server's configuration
+may help to reduce disk IO and log storage operation times. Disabling free list syncing will however increase
+the startup time for a server as it must scan the raft.db file for free space instead of loading the already
+populated free list structure.
+
+
 ## Metrics Reference
 
 This is a full list of metrics emitted by Consul.
@@ -344,7 +398,7 @@ These metrics are used to monitor the health of the Consul servers.
 | `consul.raft.applied_index`                         | Represents the raft applied index.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | index                             | gauge   |
 | `consul.raft.apply`                                 | Counts the number of Raft transactions occurring over the interval, which is a general indicator of the write load on the Consul servers.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | raft transactions / interval      | counter |
 | `consul.raft.barrier`                               | Counts the number of times the agent has started the barrier i.e the number of times it has issued a blocking call, to ensure that the agent has all the pending operations that were queued, to be applied to the agent's FSM.                                                                                                                                                                                                                                                                                                                                                                                                                               | blocks / interval                 | counter |
-| `consul.raft.boltdb.freelistBytes`                  | Represents the number of bytes necessary to encode the freelist metadata. When `raft_boltdb.NoFreelistSync` is set to `false` these metadata bytes must also be written to disk for each committed log. | bytes | gauge   |
+| `consul.raft.boltdb.freelistBytes`                  | Represents the number of bytes necessary to encode the freelist metadata. When [`raft_boltdb.NoFreelistSync`](/docs/agent/options#NoFreelistSync) is set to `false` these metadata bytes must also be written to disk for each committed log. | bytes | gauge   |
 | `consul.raft.boltdb.freePageBytes`                  | Represents the number of bytes of free space within the raft.db file. | bytes | gauge |
 | `consul.raft.boltdb.getLog`                         | Measures the amount of time spent reading logs from the db. | ms | timer |
 | `consul.raft.boltdb.logBatchSize`                   | Measures the total size in bytes of logs being written to the db in a single batch. | bytes | sample |

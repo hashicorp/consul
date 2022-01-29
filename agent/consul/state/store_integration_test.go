@@ -419,24 +419,12 @@ type nodePayload struct {
 	node *structs.ServiceNode
 }
 
-func (p nodePayload) MatchesKey(key, _, partition string) bool {
-	if key == "" && partition == "" {
-		return true
-	}
-
-	if p.node == nil {
-		return false
-	}
-
-	if structs.PartitionOrDefault(partition) != p.node.PartitionOrDefault() {
-		return false
-	}
-
-	return p.key == key
-}
-
 func (p nodePayload) HasReadPermission(acl.Authorizer) bool {
 	return true
+}
+
+func (p nodePayload) Subject() stream.Subject {
+	return stream.Subject(p.node.PartitionOrDefault() + "/" + p.node.NamespaceOrDefault() + "/" + p.key)
 }
 
 func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLToken {

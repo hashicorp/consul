@@ -165,18 +165,18 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
 			}
 
-			if handler, ok := handlers[req.TypeUrl]; ok {
-				if handler.Recv(req) {
-					generator.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
-				}
-			}
-
 			if node == nil && req.Node != nil {
 				node = req.Node
 				var err error
 				generator.ProxyFeatures, err = determineSupportedProxyFeatures(req.Node)
 				if err != nil {
 					return status.Errorf(codes.InvalidArgument, err.Error())
+				}
+			}
+
+			if handler, ok := handlers[req.TypeUrl]; ok {
+				if handler.Recv(req, generator.ProxyFeatures) {
+					generator.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
 				}
 			}
 
@@ -434,7 +434,7 @@ func newDeltaType(
 // Recv handles new discovery requests from envoy.
 //
 // Returns true the first time a type receives a request.
-func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool {
+func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf supportedProxyFeatures) bool {
 	if t == nil {
 		return false // not something we care about
 	}
@@ -447,6 +447,16 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool 
 		t.wildcard = len(req.ResourceNamesSubscribe) == 0
 		t.registered = true
 		registeredThisTime = true
+
+		if sf.ForceLDSandCDSToAlwaysUseWildcardsOnReconnect {
+			switch t.typeURL {
+			case ListenerType, ClusterType:
+				if !t.wildcard {
+					t.wildcard = true
+					logger.Trace("fixing Envoy bug fixed in 1.19.0 by inferring wildcard mode for type")
+				}
+			}
+		}
 	}
 
 	/*

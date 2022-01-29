@@ -238,3 +238,25 @@ config to take effect.
    Envoy not yet having support.
 
 1. Tracing is only supported with Envoy proxies, not the built-in proxy.
+
+1. When configuring the Zipkin tracer in `envoy_tracing_json`, set [`trace_id_128bit`](https://www.envoyproxy.io/docs/envoy/v1.21.0/api-v3/config/trace/v3/zipkin.proto#envoy-v3-api-field-config-trace-v3-zipkinconfig-trace-id-128bit) to  `true` if your application is configured to generate 128-bit trace IDs. For example:
+
+   <CodeBlockConfig highlight="10">
+
+   ```json
+   {
+     "http": {
+       "name": "envoy.tracers.zipkin",
+       "typedConfig": {
+         "@type": "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
+         "collector_cluster": "zipkin",
+         "collector_endpoint_version": "HTTP_JSON",
+         "collector_endpoint": "/api/v2/spans",
+         "shared_span_context": false,
+         "trace_id_128bit": true
+       }
+     }
+   }
+   ```
+
+   </CodeBlockConfig>

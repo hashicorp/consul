@@ -100,9 +100,14 @@ func (s *Server) LocalTokensEnabled() bool {
 	return true
 }
 
-func (s *Server) ACLDatacenter() string {
-	// For resolution running on servers the only option
-	// is to contact the configured ACL Datacenter
+type serverACLResolverBackend struct {
+	// TODO: un-embed
+	*Server
+}
+
+func (s *serverACLResolverBackend) ACLDatacenter() string {
+	// For resolution running on servers the only option is to contact the
+	// configured ACL Datacenter
 	if s.config.PrimaryDatacenter != "" {
 		return s.config.PrimaryDatacenter
 	}
@@ -114,6 +119,7 @@ func (s *Server) ACLDatacenter() string {
 }
 
 // ResolveIdentityFromToken retrieves a token's full identity given its secretID.
+// TODO: why does some code call this directly instead of using ACLResolver.ResolveTokenToIdentity ?
 func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
 	// only allow remote RPC resolution when token replication is off and
 	// when not in the ACL datacenter
@@ -131,7 +137,7 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 	return s.InPrimaryDatacenter() || index > 0, nil, acl.ErrNotFound
 }
 
-func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {
+func (s *serverACLResolverBackend) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {
 	index, policy, err := s.fsm.State().ACLPolicyGetByID(nil, policyID, nil)
 	if err != nil {
 		return true, nil, err
@@ -145,7 +151,7 @@ func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy,
 	return s.InPrimaryDatacenter() || index > 0, policy, acl.ErrNotFound
 }
 
-func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
+func (s *serverACLResolverBackend) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
 	index, role, err := s.fsm.State().ACLRoleGetByID(nil, roleID, nil)
 	if err != nil {
 		return true, nil, err
