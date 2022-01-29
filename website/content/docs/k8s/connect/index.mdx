@@ -231,29 +231,29 @@ Pod annotations can be used to configure the injection behavior.
   injector's configuration if desired.
 
 - `consul.hashicorp.com/transparent-proxy` - If this is "true", this Pod
-   will run with transparent proxy enabled. This means you can use Kubernetes
-   DNS to access upstream services and all inbound and outbound traffic within
-   the pod is redirected to go through the proxy.
+  will run with transparent proxy enabled. This means you can use Kubernetes
+  DNS to access upstream services and all inbound and outbound traffic within
+  the pod is redirected to go through the proxy.
 
 - `consul.hashicorp.com/transparent-proxy-overwrite-probes` - If this is "true"
-   and transparent proxy is enabled, the Connect injector will overwrite Kubernetes
-   HTTP probes to point to the Envoy proxy.
+  and transparent proxy is enabled, the Connect injector will overwrite Kubernetes
+  HTTP probes to point to the Envoy proxy.
 
 - `consul.hashicorp.com/transparent-proxy-exclude-inbound-ports` - A comma-separated
-   list of inbound ports to exclude from traffic redirection when running in transparent proxy
-   mode.
+  list of inbound ports to exclude from traffic redirection when running in transparent proxy
+  mode.
 
 - `consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs` - A comma-separated
-   list of outbound CIDRs to exclude from traffic redirection when running in transparent proxy
-   mode.
+  list of outbound CIDRs to exclude from traffic redirection when running in transparent proxy
+  mode.
 
 - `consul.hashicorp.com/transparent-proxy-exclude-outbound-ports` - A comma-separated
-   list of outbound ports to exclude from traffic redirection when running in transparent proxy
-   mode.
+  list of outbound ports to exclude from traffic redirection when running in transparent proxy
+  mode.
 
 - `consul.hashicorp.com/transparent-proxy-exclude-uids` - A comma-separated
-   list of additional user IDs to exclude from traffic redirection when running in transparent proxy
-   mode.
+  list of additional user IDs to exclude from traffic redirection when running in transparent proxy
+  mode.
 
 - `consul.hashicorp.com/connect-service` - For pods that accept inbound
   connections, this specifies the name of the service that is being
@@ -337,6 +337,9 @@ Pod annotations can be used to configure the injection behavior.
   annotations:
     consul.hashicorp.com/service-tags: foo,bar,baz
   ```
+
+  If you need your tag to have a comma in it you can escape the comma with `\,`. For example,
+  `consul.hashicorp.com/service-tags: foo\,bar\,baz` will become the single tag `foo,bar,baz`.
 
 - `consul.hashicorp.com/service-meta-<YOUR_KEY>` - Set Consul meta key/value
   pairs that will be applied to the Consul service and its sidecar.
