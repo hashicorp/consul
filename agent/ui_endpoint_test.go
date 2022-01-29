@@ -1411,13 +1411,13 @@ func TestUIServiceTopology(t *testing.T) {
 			obj, err := a.srv.UIServiceTopology(resp, tc.httpReq)
 
 			if tc.wantErr != "" {
-				assert.NotNil(t, err)
+				assert.NotNil(r, err)
 				assert.Nil(r, tc.want) // should not define a non-nil want
 				require.Contains(r, err.Error(), tc.wantErr)
 				require.Nil(r, obj)
 				return
 			}
-			assert.Nil(t, err)
+			assert.Nil(r, err)
 
 			require.NoError(r, checkIndex(resp))
 			require.NotNil(r, obj)
