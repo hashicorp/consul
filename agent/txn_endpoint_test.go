@@ -30,7 +30,7 @@ func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 	buf := bytes.NewBuffer([]byte("{"))
 	req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 	resp := httptest.NewRecorder()
-	_, err := a.srv.Txn(resp, req);
+	_, err := a.srv.Txn(resp, req)
 	err, ok := err.(BadRequestError)
 	if !ok {
 		t.Fatalf("expected bad request error but got %v", err)
@@ -62,7 +62,7 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
  `, value)))
 		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 		resp := httptest.NewRecorder()
-		_, err := agent.srv.Txn(resp, req);
+		_, err := agent.srv.Txn(resp, req)
 		if err, ok := err.(EntityTooLargeError); !ok && !wantPass {
 			t.Fatalf("expected too large error but got %v", err)
 		}
@@ -137,7 +137,7 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
  `, value, value, value)))
 		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 		resp := httptest.NewRecorder()
-		_, err := agent.srv.Txn(resp, req);
+		_, err := agent.srv.Txn(resp, req)
 		if err, ok := err.(EntityTooLargeError); !ok && !wantPass {
 			t.Fatalf("expected too large error but got %v", err)
 		}
@@ -204,7 +204,7 @@ func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
  `, strings.Repeat(`{ "KV": { "Verb": "get", "Key": "key" } },`, 2*maxTxnOps))))
 	req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 	resp := httptest.NewRecorder()
-	_, err := a.srv.Txn(resp, req);
+	_, err := a.srv.Txn(resp, req)
 	if err, ok := err.(EntityTooLargeError); !ok {
 		t.Fatalf("expected too large error but got %v", err)
 	}
