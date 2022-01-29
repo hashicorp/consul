@@ -504,7 +504,7 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				fmt.Fprint(resp, err.Error())
 			case isEntityToLarge(err):
 				resp.WriteHeader(http.StatusRequestEntityTooLarge)
-				fmt.Fprintf(resp, err.Error())
+				fmt.Fprint(resp, err.Error())
 			default:
 				resp.WriteHeader(http.StatusInternalServerError)
 				fmt.Fprint(resp, err.Error())
