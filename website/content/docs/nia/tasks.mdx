@@ -76,14 +76,15 @@ task {
 
   condition "services" {
     regexp              = "^web.*"
-    source_includes_var = false
+    use_as_module_input = false
   }
 }
 ```
 
 The services condition can provide input for the [`services` input variable](/docs/nia/terraform-modules#services-variable) that is required for each CTS module. This can be provided depending on how the services condition is configured:
-1. task's `services` field (deprecated): services object is automatically passed as module input
-1. task's `condition "services"` block: users can configure the `source_includes_var` field to optionally use the condition's services object as module input
+- task's `services` field (deprecated): services object is automatically passed as module input
+- task's `condition "services"` block: users can configure the `use_as_module_input` field to optionally use the condition's services object as module input
+  - Field was previously named `source_includes_var` (deprecated)
 
 ### Catalog-Services Condition
 
@@ -102,7 +103,7 @@ task {
   condition "catalog-services" {
     datacenter          = "dc1"
     regexp              = "web.*"
-    source_includes_var = false
+    use_as_module_input = false
   }
 
   source_input "services" {
@@ -112,7 +113,7 @@ task {
 }
 ```
 
-Using the condition block's `source_includes_var` field, users can configure CTS to use the condition's object as module input for the [`catalog_services` input variable](/docs/nia/terraform-modules#catalog-services-variable). Users can refer to the configured module's documentation on how to set `source_includes_var`.
+Using the condition block's `use_as_module_input` field, users can configure CTS to use the condition's object as module input for the [`catalog_services` input variable](/docs/nia/terraform-modules#catalog-services-variable). Users can refer to the configured module's documentation on how to set `use_as_module_input`.
 
 See the [Catalog-Services Condition](/docs/nia/configuration#catalog-services-condition) configuration section for further details and additional configuration options.
 
@@ -134,12 +135,12 @@ task {
     recurse             = true
     datacenter          = "dc1"
     namespace           = "default"
-    source_includes_var = true
+    use_as_module_input = true
   }
 }
 ```
 
-Using the condition block's `source_includes_var` field, users can configure CTS to use the condition's object as module input for the [`consul_kv` input variable](/docs/nia/terraform-modules#consul-kv-variable). Users can refer to the configured module's documentation on how to set `source_includes_var`.
+Using the condition block's `use_as_module_input` field, users can configure CTS to use the condition's object as module input for the [`consul_kv` input variable](/docs/nia/terraform-modules#consul-kv-variable). Users can refer to the configured module's documentation on how to set `use_as_module_input`.
 
 See the [Consul-KV Condition](/docs/nia/configuration#consul-kv-condition) configuration section for more details and additional configuration options.
 

@@ -258,7 +258,9 @@ task {
 | `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | string | Expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
 | `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
-| `source_includes_var` | Optional | boolean | Whether or not to use this `condition` block's services object as input for the module's [`services` variable](/docs/nia/terraform-modules#services-variable) | true |
+| `source_includes_var` | Optional | boolean | **Deprecated in CTS 0.5.0 and will be removed in 0.8.0. See the `use_as_module_input` field instead.** | true |
+| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`services` variable](/docs/nia/terraform-modules#services-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
+
 
 #### Catalog-Services Condition
 
@@ -277,7 +279,7 @@ task {
     datacenter          = "dc1"
     namespace           = "default"
     regexp              = "web.*"
-    source_includes_var = true
+    use_as_module_input = true
     node_meta {
       key = "value"
     }
@@ -291,7 +293,8 @@ task {
 | `datacenter` | Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `node_meta`  | Optional | map[string] | Node metadata key/value pairs to use to filter services. Only services registered at a node with the specified key/value pairs are used by the task.  | none |
-| `source_includes_var` | Optional | boolean | Whether or not the module configured at [`task.source`](#source) includes the [`catalog_services` variable](/docs/nia/terraform-modules#catalog-services-variable) <br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
+| `source_includes_var` | Optional | boolean | **Deprecated in CTS 0.5.0 and will be removed in 0.8.0. See the `use_as_module_input` field instead.** | true |
+| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`catalog_services` variable](/docs/nia/terraform-modules#catalog-services-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
 
 #### Consul KV Condition
 
@@ -314,7 +317,7 @@ task {
     recurse             = false
     datacenter          = "dc1"
     namespace           = "default"
-    source_includes_var = true
+    use_as_module_input = true
   }
 }
 ```
@@ -325,7 +328,9 @@ task {
 | `recurse` |  Optional | boolean | Enables CTS to treat the path as a prefix. If set to `false`, the path will be treated as a literal match. | `false` |
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
-| `source_includes_var` | Optional | boolean | Whether or not the module configured at [`task.source`](#source) includes the [`consul_kv` variable](/docs/nia/terraform-modules#consul-kv-variable) <br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
+| `source_includes_var` | Optional | boolean | **Deprecated in CTS 0.5.0 and will be removed in 0.8.0. See the `use_as_module_input` field instead.** | true |
+| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`consul_kv` variable](/docs/nia/terraform-modules#consul-kv-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
+
 
 #### Schedule Condition
 

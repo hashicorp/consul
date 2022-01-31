@@ -35,19 +35,20 @@ A task monitors [Consul objects](/docs/nia#consul-objects) that are defined by t
 
 A task's source input is slightly different from the task's condition, even though both monitor defined objects. The task's condition monitors defined objects with a configured criteria. When this criteria is satisfied, the task will trigger.
 
-The source input, however, monitors defined objects with the intent of providing values or metadata about these objects to the Terraform module. The monitored source input and condition objects can be the same object, such as a task configured with a `condition "services"` block and `source_includes_var` set to `true`. The source input and condition can also be different objects and configured separately, such as a task configured with a `condition "catalog-services` and `source_input "consul-kv"` block. As a result, the monitored source input is decoupled from the provided condition in order to satisfy the Terraform module.
+The source input, however, monitors defined objects with the intent of providing values or metadata about these objects to the Terraform module. The monitored source input and condition objects can be the same object, such as a task configured with a `condition "services"` block and `use_as_module_input` set to `true`. The source input and condition can also be different objects and configured separately, such as a task configured with a `condition "catalog-services` and `source_input "consul-kv"` block. As a result, the monitored source input is decoupled from the provided condition in order to satisfy the Terraform module.
 
 Each type of object that CTS monitors can only be defined through one configuration within a task definition. For example, if a task monitors services, the task cannot have both `condition "services"` and `source_input "services"` configured. See [Task Source Input configuration](/docs/nia/configuration#task-source-input) for more details.
 
 There are a few ways that a source input can be defined:
 
 - [**`services` list**](/docs/nia/configuration#services) (deprecated) - The list of services to use as source input.
-- **`condition` block's `source_includes_var` field** - When set to true, the condition's objects are used as source input.
+- **`condition` block's `use_as_module_input` field** - When set to true, the condition's objects are used as source input.
+  - Field was previously named `source_includes_var` (deprecated)
 - [**`source_input` blocks**](/docs/nia/configuration#source-input) - This block can be configured multiple times to define objects to use as source input.
 
 Multiple ways of defining a source input adds configuration flexibility, and allows for optional additional input variables to be supported by CTS alongside the `services` input variable.
 
-Additional optional input variable types include:
+Additional optional input variable types:
 
 - [**`catalog_services` variable**](#catalog-services-variable)
 - [**`consul_kv` variable**](#consul-kv-variable)
@@ -94,7 +95,8 @@ services = {
 In order to configure a task with the services source input, the list of services that will be used for the input must be configured in one of the following ways:
 
 - the task's [`services`](/docs/nia/configuration#services) (deprecated)
-- a [`condition "services"` block](/docs/nia/configuration#services-condition) configured with `source_includes_var` set to true
+- a [`condition "services"` block](/docs/nia/configuration#services-condition) configured with `use_as_module_input` field set to true
+  - Field was previously named `source_includes_var` (deprecated)
 - a [`source_input "services"` block](/docs/nia/configuration#services-source-input)
 
 The services source input operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) and provides the latest service information to the input variables. A complete list of service information that would be provided to the module is expanded below:
@@ -151,7 +153,8 @@ consul_kv = {
 
 To configure a task with the Consul KV source input, the KVs which will be used for the input must be configured in one of the following ways:
 
-- a [`condition "consul-kv"` block](/docs/nia/configuration#consul-kv-condition) configured with the `source_includes_var` set to true.
+- a [`condition "consul-kv"` block](/docs/nia/configuration#consul-kv-condition) configured with the `use_as_module_input` field set to true.
+  - Field was previously named `source_includes_var` (deprecated)
 - a [`source_input "consul-kv"` block](/docs/nia/configuration#consul-kv-source-input).
 
 Below is a similar example to the one provided in the [Consul KV Condition](/docs/nia/tasks#consul-kv-condition) section. However, the difference in this example is that instead of triggering based on a change to Consul KV, this task will instead execute on a schedule. Once execution is triggered, Consul KV information is then provided to the task's module.
@@ -195,11 +198,12 @@ catalog_services = {
 
 To configure a task with the Catalog Services source input, the catalog services which will be used for the input must be configured in one of the following ways:
 
-- a [`condition "catalog-services"` block](/docs/nia/configuration#consul-kv-condition) configured with `source_includes_var` set to true.
+- a [`condition "catalog-services"` block](/docs/nia/configuration#consul-kv-condition) configured with `use_as_module_input` field.
+  - Field was previously named `source_includes_var` (deprecated)
 
 -> **Note:** Currently there is no support for a `source_input "catalog-services"` block.
 
-Example of a catalog-services condition which supports source input through `source_includes_var`:
+Example of a catalog-services condition which supports source input through `use_as_module_input`:
 
 ```hcl
 task {
@@ -211,7 +215,7 @@ task {
     datacenter          = "dc1"
     namespace           = "default"
     regexp              = "web.*"
-    source_includes_var = true
+    use_as_module_input = true
     node_meta {
       key = "value"
     }
@@ -243,7 +247,7 @@ resource "local_file" "consul_services" {
 
 </CodeBlockConfig>
 
-Something important to consider before authoring your module is deciding the [condition under which it will execute](/docs/nia/tasks#task-execution). This will allow you to potentially include other types of CTS provided input variables in your module. It will also help inform your documentation and how users should configure their task for your module.
+Something important to consider before authoring your module is deciding the [condition under which it will execute](/docs/nia/tasks#task-execution). This will allow you to potentially use other types of CTS provided input variables in your module. It will also help inform your documentation and how users should configure their task for your module.
 
 ### Services Variable
 
@@ -323,7 +327,7 @@ The keys of the `catalog_services` map are the names of the services that are re
 
 We recommend that if you make a module with with a catalog-services condition, that you document this in the README. This way, users that want to configure a task with your module will know to configure a catalog-services [condition](/docs/nia/configuration#condition) block.
 
-Similarly, if you include the `catalog_services` variable in your module, we recommend that you also document this usage in the README. Users of your module will then know to set the catalog-services condition [`source_includes_var`](/docs/nia/configuration#source_includes_var) configuration to be true. When this field is set to true, CTS will declare the `catalog_services` variable in the generated root module, and pass the variable to a child module. Therefore, if this field is configured inconsistently, CTS will error and exit.
+Similarly, if you use the `catalog_services` variable in your module, we recommend that you also document this usage in the README. Users of your module will then know to set the catalog-services condition [`use_as_module_input`](/docs/nia/configuration#catalog-services-condition) configuration to be true. When this field is set to true, CTS will declare the `catalog_services` variable in the generated root module, and pass the variable to a child module. Therefore, if this field is configured inconsistently, CTS will error and exit.
 
 ### Consul KV Variable
 
@@ -340,7 +344,7 @@ variable "consul_kv" {
 
 </CodeBlockConfig>
 
-If your module contains the `consul_kv` variable, we recommend documenting the usage in the README file so that users know to set the [`source_includes_var`](/docs/nia/configuration#source_includes_var-1) configuration to `true` in the `consul-kv` condition. Setting the field to `true` instructs CTS to declare the `consul_kv` variable in the generated root module and pass the variable to a child module. Therefore, if this field is configured inconsistently, CTS will error and exit.
+If your module contains the `consul_kv` variable, we recommend documenting the usage in the README file so that users know to set the [`use_as_module_input`](/docs/nia/configuration#consul-kv-condition) configuration to `true` in the `consul-kv` condition. Setting the field to `true` instructs CTS to declare the `consul_kv` variable in the generated root module and pass the variable to a child module. Therefore, if this field is configured inconsistently, CTS will error and exit.
 
 ### Module Input Variables
 

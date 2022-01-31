@@ -35,7 +35,12 @@ CTS executes one or more automation tasks with the most recent service variable 
 
   -> **Note:** The terminology "tasks" used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
 
-- `Source Input` - A source input defines objects that provide values or metadata to the Terraform module. See [source input](/docs/nia/terraform-modules#source-input) for the supported metadata and values. For example, a user can configure a Consul KV source input to provide KV pairs as variables to their respective Terraform Module. The source input can be included in two ways. It can be specified as a parameter in a condition using `source_includes_var` and also by using the `source_input` block.
+- `Source Input` - A source input defines objects that provide values or metadata to the Terraform module. See [source input](/docs/nia/terraform-modules#source-input) for the supported metadata and values. For example, a user can configure a Consul KV source input to provide KV pairs as variables to their respective Terraform Module.
+
+  The source input can be configured in a couple of ways:
+  - Setting the `condition` block's `use_as_module_input` field to true
+    - Field was previously named `source_includes_var` (deprecated)
+  - Configuring `source_input` block(s)
 
 - `Network Infrastructure Automation (NIA)` - Enables dynamic updates to network infrastructure devices triggered when specific conditions, such as service changes and registration, are met.
 
