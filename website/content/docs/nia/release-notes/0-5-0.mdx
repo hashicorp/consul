@@ -278,7 +278,7 @@ task {
   }
 }
 
-services {
+service {
  name       = "api"
  datacenter = "dc2"
  namespace  = "ns"
@@ -320,12 +320,12 @@ task {
   services = ["api", "web"]
 }
 
-services {
+service {
   name       = "api"
   datacenter = "api_dc"
 }
 
-services {
+service {
   name       = "web"
   datacenter = "web_dc"
 }
