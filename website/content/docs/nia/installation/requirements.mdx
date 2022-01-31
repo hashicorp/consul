@@ -54,7 +54,7 @@ $ echo '{
 $ curl --request PUT --data @payload.json http://localhost:8500/v1/agent/service/register
 ```
 
-The above example registers a service named "web" with your Consul agent. This represents a non-existent web service running at 10.10.10.10:8000. Your web service is now available for CTS to consume. In CTS, you can optionally configure the web service with a [service block](/docs/nia/configuration#service) if it has any non-default values. You can also have CTS monitor the web service to execute a task and update network device(s) by configuring "web" in [`condition "services"`](/docs/nia/configuration#services-condition) of a task block.
+The above example registers a service named "web" with your Consul agent. This represents a non-existent web service running at 10.10.10.10:8000. Your web service is now available for CTS to consume. You can have CTS monitor the web service to execute a task and update network device(s) by configuring "web" in [`condition "services"`](/docs/nia/configuration#services-condition) of a task block. If the web service has any non-default values, it can also be configured in `condition "services"`.
 
 For more details on registering a service by HTTP API request, refer to the [register service API docs](https://www.consul.io/api-docs/agent/service#register-service).
 

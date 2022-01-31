@@ -103,6 +103,8 @@ consul {
 
 ## Service
 
+~> Deprecated in CTS 0.5.0 and will be removed in a future major release. `service` blocks are used to define the `task` block's `services` fields, which were also deprecated and replaced with [Services Condition](/docs/nia/configuration#services-condition) and [Services Source Input](/docs/nia/configuration#services-source-input). `service` block configuration can be replaced by configuring the equivalent fields of the corresponding Services Condition and Services Source Input. See [0.5.0 release notes](/docs/nia/release-notes/0-5-0#deprecate-service-block) for examples.
+
 A `service` block is an optional block to explicitly define the services configured in the `task` block's `services` field (deprecated). `service` blocks do not define services configured in the `task` block's `condition "services"` or `source_input "services` blocks.
 
 A `service` block is only necessary for services that have non-default values e.g. custom datacenter. Services that do not have a `service` block configured will assume default values. To configure multiple services, specify multiple `service` blocks. If a `service` block is configured, the service can be referred in `task.services` by service name or ID. If a `service` block is not configured, it can only be referred to by service name.
@@ -127,7 +129,7 @@ service {
 
 ## Task
 
-A `task` block configures which task to execute in automation. When the task should execute can be determined by the `service` block and `condition` block. The `task` block may be specified multiple times to configure multiple tasks.
+A `task` block configures which task to execute in automation. When the task should execute can be determined by the `service` block (deprecated) and `condition` block. The `task` block may be specified multiple times to configure multiple tasks.
 
 ```hcl
 task {
