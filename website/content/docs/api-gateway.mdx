@@ -21,10 +21,10 @@ Consul API Gateway implements the Kubernetes [Gateway API Specification](https:/
 
 Your datacenter must meet the following requirements prior to configuring the Consul API Gateway:
 
-- A Kubernetes cluster must be running
+- Kubernetes 1.21+ 
 - `kubectl` 1.21+
 - Consul 1.11.2+
-- HashiCorp Helm chart 0.40.0+
+- HashiCorp Consul Helm chart 0.40.0+
 
 ## Installation
 
@@ -38,7 +38,7 @@ Your datacenter must meet the following requirements prior to configuring the Co
 
    </CodeBlockConfig>
 
-1. Create a values file for your Consul server agents that contains the following parameters:
+1. Create a `values.yaml` file for your Consul API Gateway deployment. Copy the content below into the `values.yaml` file. The `values.yaml` will be used by the Consul Helm chart. See [Helm Chart Configuration - apigateway](https://www.consul.io/docs/k8s/helm#apigateway) for more available options on how to configure your Consul API Gateway deployment via the Helm chart. 
 
    <CodeBlockConfig hideClipboard filename="values.yaml">
 
