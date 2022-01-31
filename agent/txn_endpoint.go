@@ -88,8 +88,8 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 	// Check Content-Length first before decoding to return early
 	if req.ContentLength > maxTxnLen {
 		return nil, 0, EntityTooLargeError{
-			Reason: fmt.Sprintf("Request body too large, max size: %d bytes. See %s.",
-				maxTxnLen, "https://www.consul.io/docs/agent/options.html#txn_max_req_len"),
+			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
+				req.ContentLength, maxTxnLen, "https://www.consul.io/docs/agent/options.html#txn_max_req_len"),
 		}
 	}
 
