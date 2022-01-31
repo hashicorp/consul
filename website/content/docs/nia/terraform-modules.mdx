@@ -41,7 +41,7 @@ Each type of object that CTS monitors can only be defined through one configurat
 
 There are a few ways that a source input can be defined:
 
-- [**`services` list**](/docs/nia/configuration#services) - The list of services to use as source input.
+- [**`services` list**](/docs/nia/configuration#services) (deprecated) - The list of services to use as source input.
 - **`condition` block's `source_includes_var` field** - When set to true, the condition's objects are used as source input.
 - [**`source_input` blocks**](/docs/nia/configuration#source-input) - This block can be configured multiple times to define objects to use as source input.
 
@@ -93,7 +93,7 @@ services = {
 
 In order to configure a task with the services source input, the list of services that will be used for the input must be configured in one of the following ways:
 
-- the task's [`services`](/docs/nia/configuration#services)
+- the task's [`services`](/docs/nia/configuration#services) (deprecated)
 - a [`condition "services"` block](/docs/nia/configuration#services-condition) configured with `source_includes_var` set to true
 - a [`source_input "services"` block](/docs/nia/configuration#services-source-input)
 
@@ -154,14 +154,12 @@ To configure a task with the Consul KV source input, the KVs which will be used 
 - a [`condition "consul-kv"` block](/docs/nia/configuration#consul-kv-condition) configured with the `source_includes_var` set to true.
 - a [`source_input "consul-kv"` block](/docs/nia/configuration#consul-kv-source-input).
 
-Below is a similar example to the one provided in the [Consul KV Condition](/docs/nia/tasks#consul-kv-condition) section. However, the difference in this example is that instead of triggering based on a change to Consul KV, this task will instead execute on a schedule. Once execution is triggered, Consul KV information is then provided to the task’s module.
+Below is a similar example to the one provided in the [Consul KV Condition](/docs/nia/tasks#consul-kv-condition) section. However, the difference in this example is that instead of triggering based on a change to Consul KV, this task will instead execute on a schedule. Once execution is triggered, Consul KV information is then provided to the task's module.
 
 ```hcl
 task {
   name        = "consul_kv_schedule_task"
   description = "executes on Monday monitoring Consul KV"
-  providers   = ["my-provider"]
-  services    = ["web-api"]
   source      = "path/to/consul-kv-module"
 
   condition "schedule" {
@@ -199,7 +197,7 @@ To configure a task with the Catalog Services source input, the catalog services
 
 - a [`condition "catalog-services"` block](/docs/nia/configuration#consul-kv-condition) configured with `source_includes_var` set to true.
 
--> **Note:** Currently there is no support for a `source_input “catalog-services”` block.
+-> **Note:** Currently there is no support for a `source_input "catalog-services"` block.
 
 Example of a catalog-services condition which supports source input through `source_includes_var`:
 
@@ -208,7 +206,6 @@ task {
   name        = "catalog_services_condition_task"
   description = "execute on registration/deregistration of services"
   providers   = ["my-provider"]
-  services    = ["web-api"]
   source      = "path/to/catalog-services-module"
   condition "catalog-services" {
     datacenter          = "dc1"

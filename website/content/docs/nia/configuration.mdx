@@ -103,7 +103,9 @@ consul {
 
 ## Service
 
-A `service` block is an optional block to explicitly define configuration of services that CTS monitors. A `service` block is only necessary for services that have non-default values e.g. custom datacenter. Services that do not have a `service` block configured will assume default values. To configure multiple services, specify multiple `service` blocks. For services to be included in task automation, the service must be included in the `task.services` field of a [`task` block](#task). If a `service` block is configured, the service can be referred in `task.services` by service name or ID. If a `service` block is not configured, it can only be referred to by service name.
+A `service` block is an optional block to explicitly define the services configured in the `task` block's `services` field (deprecated). `service` blocks do not define services configured in the `task` block's `condition "services"` or `source_input "services` blocks.
+
+A `service` block is only necessary for services that have non-default values e.g. custom datacenter. Services that do not have a `service` block configured will assume default values. To configure multiple services, specify multiple `service` blocks. If a `service` block is configured, the service can be referred in `task.services` by service name or ID. If a `service` block is not configured, it can only be referred to by service name.
 
 ```hcl
 service {
@@ -133,12 +135,11 @@ task {
   description    = ""
   enabled        = true,
   providers      = []
-  services       = ["web", "api"]
   source         = "org/example/module"
   version        = "1.0.0"
   variable_files = []
-  condition "catalog-services" {
-    regexp = ".*"
+  condition "services" {
+    names = ["web", "api"]
   }
 }
 ```
@@ -147,7 +148,7 @@ task {
 - `name` - (string: required) Name is the unique name of the task (required). A task name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes.
 - `enabled` - (bool: true) Enable or disable a task from running and managing resources.
 - `providers` - (list[string]) Providers is the list of provider names the task is dependent on. This is used to map [Terraform provider configuration](#terraform-provider) to the task.
-- `services` - (list[string]) Specifies an optional list of logical service names or service IDs that the task monitors for changes in the Consul catalog. The `services` can act in different ways depending on the configuration of the task's `condition` block:
+- `services` - (list[string]) **Deprecated in CTS 0.5.0 and will be removed in a future major release. Use [Services Condition](/docs/nia/configuration#services-condition) or [Services Source Input](/docs/nia/configuration#services-source-input) instead. See [0.5.0 release notes](/docs/nia/release-notes/0-5-0#deprecate-services-field) for examples** Specifies an optional list of logical service names or service IDs that the task monitors for changes in the Consul catalog. The `services` can act in different ways depending on the configuration of the task's `condition` block:
   - no `condition` block configured: `services` will act as the task's condition and provide the services information as source input
   - the `condition` block configured for type `services`: `services` is incompatible with this type of `condition` because both configure the services source input. CTS will return an error.
   - the `condition` block configured for all other types: `services` will act only to provide services source input.
@@ -190,8 +191,8 @@ task {
   - `enabled` - (bool) Enable or disable buffer periods for this task. Specifying `min` will also enable it.
   - `min` - (string: "5s") The minimum period of time to wait after changes are detected before triggering related tasks.
   - `max` - (string: "20s") The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
-- `condition` - (obj) The requirement that, when met, triggers CTS to execute the task. When unconfigured, the default condition is to trigger the task on changes in the services configured in [`services`](#services). Only one `condition` may be configured per task. CTS supports different types of conditions, which each have their own configuration options. See [Task Condition](#task-condition) configuration for full details on configuration options for each condition type.
-- `source_input` - (obj) Specifies a Consul object containing values or metadata to be provided to the Terraform Module. The `source_input` block defines any extra source inputs needed for task execution.  This is in addition to any source input provided by the `condition` block or `services` list. Multiple `source_input` blocks can be configured per task. [Task Source Input](#task-source-input) configuration for full details on usage and restrictions.
+- `condition` - (obj: required) The requirement that, when met, triggers CTS to execute the task. Only one `condition` may be configured per task. CTS supports different types of conditions, which each have their own configuration options. See [Task Condition](#task-condition) configuration for full details on configuration options for each condition type.
+- `source_input` - (obj) Specifies a Consul object containing values or metadata to be provided to the Terraform Module. The `source_input` block defines any extra source inputs needed for task execution.  This is in addition to any source input provided by the `condition` block or `services` field (deprecated). Multiple `source_input` blocks can be configured per task. [Task Source Input](#task-source-input) configuration for full details on usage and restrictions.
 - `terraform_version` - (string) <EnterpriseAlert inline /> The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization. This option is only available when used with the [Terraform Cloud driver](#terraform-cloud-driver); otherwise, set the version within the [Terraform driver](#terraform-driver).
 
 ### Task Condition
@@ -203,7 +204,7 @@ A `task` block can be optionally configured with a `condition` block to set the 
 This condition will trigger the task on services that match the regular expression configured in `regexp` or services listed by name in `names`. Either `regexp` or `names` must be configured, but not both.
 
 When a `condition "services"` block is configured for a task, then the following restrictions become applicable:
-- the task cannot be configured with the `services` list field
+- the task cannot be configured with the `services` field (deprecated)
 - the task cannot be configure with a `source_input "services"` block
 
 These restrictions are due to the fact that the monitored services information for a task can only be set through one configuration option. Any services source input that the task needs should be configured solely through the `condition` block.
@@ -249,7 +250,7 @@ task {
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
-| `regexp` |  Required if `names` is not configured | string | Regular expression used to match the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) list must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
+| `regexp` |  Required if `names` is not configured | string | Regular expression used to match the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
 | `names` |  Required if `regexp` is not configured | list[string] | Names of Consul services to monitor. Only services that have their name listed in `names` are used by the task. | none |
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
@@ -269,10 +270,6 @@ task {
   description = "execute on service de/registrations with name matching 'web.*'"
   source      = "path/to/catalog-services-module"
   providers   = ["my-provider"]
-
-  // configure depending on module. provides detailed information for these
-  // services but does not execute task. refer to module docs on how to configure.
-  services = ["web-api"]
 
   condition "catalog-services" {
     datacenter          = "dc1"
@@ -309,7 +306,6 @@ task {
   description = "execute on changes to Consul KV entry"
   source      = "path/to/consul-kv-module"
   providers   = ["my-provider"]
-  services    = ["web-api"]
 
   condition "consul-kv" {
     path                = "my-key"
@@ -333,7 +329,7 @@ task {
 
 A scheduled task has a schedule condition block, which defines the schedule for executing the task. Unlike a dynamic task, a scheduled task does not dynamically trigger on changes in Consul.
 
-Schedule tasks also rely on additional task configuration, separate from the condition block to determine the source input information to provide to the task module. See [`task.services`](#services) or [`source_input`](#source_input) block configuration for details on how to configure source input.
+Schedule tasks also rely on additional task configuration, separate from the condition block to determine the source input information to provide to the task module. See [`source_input`](#source_input) block configuration for details on how to configure source input.
 
 See [Task Execution: Schedule Condition](/docs/nia/tasks#schedule-condition) for more information on how tasks are triggered with schedule conditions.
 
@@ -343,10 +339,14 @@ See [Terraform Module: Source Input](/docs/nia/terraform-modules#source-input) f
 task {
   name        = "scheduled_task"
   description = "execute every Monday using service information from web and db"
-  services    = ["web", "db"]
   source      = "path/to/module"
+
   condition "schedule" {
     cron = "* * * * Mon"
+  }
+
+  source_input "services" {
+    names = ["web", "db"]
   }
 }
 ```
@@ -365,7 +365,7 @@ The example below shows an outline of `source_input` within a task configuration
 task {
   name     = "task_a"
   source   = "path/to/module"
-  services = ["api"]
+  services = ["api"] // (deprecated)
 
   condition "<condition-type>" {
     // ...
@@ -377,7 +377,7 @@ task {
 }
 ```
 
-~> The type of the `source_input` block that can be configured depends on the `condition` block type and `services` field. See [Task Source Input Restrictions](/docs/nia/configuration#task-source-input-restrictions) for more details.
+~> The type of the `source_input` block that can be configured depends on the `condition` block type and the `services` field (deprecated). See [Task Source Input Restrictions](/docs/nia/configuration#task-source-input-restrictions) for more details.
 
 The following sections describe the source input types that CTS supports.
 
@@ -387,7 +387,7 @@ This `services` source input object defines services registered to Consul whose 
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
-| `regexp` |  Required if `names` is not configured | string | Regular expression used to match the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) list must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
+| `regexp` |  Required if `names` is not configured | string | Regular expression used to match the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
 | `names` |  Required if `regexp` is not configured | list[string] | Names of Consul services to monitor. Only services that have their name listed in `names` are used by the task. | none |
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace` | Optional | string |<EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
@@ -452,13 +452,13 @@ task {
 
 #### Task Source Input Restrictions
 
-There are some limitations to the type of `source_input` blocks that can be configured for a task given the task's `condition` block and `services` field. This is because a task cannot have multiple configurations defining the same type of monitored variable:
+There are some limitations to the type of `source_input` blocks that can be configured for a task given the task's `condition` block and `services` field (deprecated). This is because a task cannot have multiple configurations defining the same type of monitored variable:
 - A task cannot be configured with a `condition` and `source_input` block of the same type. For example, configuring `condition "consul-kv"` and `source_input "consul-kv"` will error because both configure the `consul_kv` variable.
 - A task cannot be configured with two or more `source_input` blocks of the same type. For example, configuring two `source_input "catalog-services"` within a task will return an error because they define multiple configurations for the `catalog_services` variable.
 - A task that monitors services can only contain one of the following configurations:
   - `condition "services"` block
   - `source_input "services"` block
-  - `services` list
+  - `services` field (deprecated)
 
   All of the listed configurations define the `services` variable and including more than one configuration will return an error.
 
@@ -595,7 +595,9 @@ terraform_provider "aws" {
 task {
   source    = "some/source"
   providers = ["aws"]
-  services  = ["web", "api"]
+  condition "services" {
+    names = ["web", "api"]
+  }
 }
 ```
 

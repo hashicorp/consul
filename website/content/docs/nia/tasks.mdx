@@ -16,13 +16,15 @@ task {
   name        = "frontend-firewall-policies"
   description = "Add firewall policy rules for frontend services"
   providers   = ["fake-firewall", "null"]
-  services    = ["web", "image"]
   source      = "example/firewall-policy/module"
   version     = "1.0.0"
+  condition "services" {
+    names = ["web", "image"]
+  }
 }
 ```
 
-In the example task above, the "fake-firewall" and "null" providers, listed in the `providers` field, are used. These providers themselves should be configured in their own separate [`terraform_provider` blocks](/docs/nia/configuration#terraform-provider). These providers are used in the Terraform module "example/firewall-policy/module", configured in the `source` field, to create, update, and destroy resources. This module may do something like use the providers to create and destroy firewall policy objects based on IP addresses. The IP addresses come from the "web" and "image" service instances configured in the `services` field. This service-level information is retrieved by CTS which watches Consul catalog for changes.
+In the example task above, the "fake-firewall" and "null" providers, listed in the `providers` field, are used. These providers themselves should be configured in their own separate [`terraform_provider` blocks](/docs/nia/configuration#terraform-provider). These providers are used in the Terraform module "example/firewall-policy/module", configured in the `source` field, to create, update, and destroy resources. This module may do something like use the providers to create and destroy firewall policy objects based on IP addresses. The IP addresses come from the "web" and "image" service instances configured in the `condition "services"` block. This service-level information is retrieved by CTS which watches Consul catalog for changes.
 
 See [task configuration](/docs/nia/configuration#task) for more details on how to configure a task.
 
@@ -41,7 +43,7 @@ All configured monitored information, regardless if it's used for execution or n
 Tasks with the services condition monitor and execute on either changes to a list of configured services or changes to any services that match a given regex.
 
 There are two ways to configure a task with a services condition. Only one of the two options below can be configured for a single task:
-1. Configure a task's [`services`](/docs/nia/configuration#services) field to specify the list of services to trigger the task
+1. Configure a task's [`services`](/docs/nia/configuration#services) field (deprecated) to specify the list of services to trigger the task
 1. Configure a task's `condition` block with the [services condition](/docs/nia/configuration#services-condition) type to specify services to trigger the task.
 
 The services condition operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) and executing the task on any change of information for services configured. These changes include one or more changes to service values, like IP address, added or removed service instance, or tags. A complete list of values that would cause a task to run are expanded below:
@@ -80,7 +82,7 @@ task {
 ```
 
 The services condition can provide input for the [`services` input variable](/docs/nia/terraform-modules#services-variable) that is required for each CTS module. This can be provided depending on how the services condition is configured:
-1. task's `services` field: services object is automatically passed as module input
+1. task's `services` field (deprecated): services object is automatically passed as module input
 1. task's `condition "services"` block: users can configure the `source_includes_var` field to optionally use the condition's services object as module input
 
 ### Catalog-Services Condition
@@ -96,18 +98,17 @@ task {
   name      = "catalog_service_condition_task"
   source    = "path/to/catalog-services-module"
   providers = ["my-provider"]
-  services  = ["web-api"]
 
   condition "catalog-services" {
     datacenter          = "dc1"
     regexp              = "web.*"
     source_includes_var = false
   }
-}
 
-service {
-  name       = "web-api"
-  datacenter = "dc2"
+  source_input "services" {
+    names = ["web-api"]
+    datacenter = "dc2"
+  }
 }
 ```
 
@@ -127,7 +128,6 @@ task {
   description = "execute on changes to Consul KV entry"
   source      = "path/to/consul-kv-module"
   providers   = ["my-provider"]
-  services    = ["web-api"]
 
   condition "consul-kv" {
     path                = "my-key"
@@ -145,26 +145,28 @@ See the [Consul-KV Condition](/docs/nia/configuration#consul-kv-condition) confi
 
 ### Schedule Condition
 
-All scheduled tasks must be configured with a schedule condition. The schedule condition sets the cadence to trigger a task with a [`cron`](/docs/nia/configuration#cron) configuration. The schedule condition block does not support parameters to configure source input. As a result, inputs must be configured separately. You can configure [`task.services`](/docs/nia/configuration#services) or a [`source_input` block](/docs/nia/configuration#source_input) to set the source input.
+All scheduled tasks must be configured with a schedule condition. The schedule condition sets the cadence to trigger a task with a [`cron`](/docs/nia/configuration#cron) configuration. The schedule condition block does not support parameters to configure source input. As a result, inputs must be configured separately. You can configure a [`source_input` block](/docs/nia/configuration#source_input) to set the source input.
 
-Below is an example configuration for a task that will execute every Monday, which is set by the schedule condition’s [`cron`](/docs/nia/configuration#cron) configuration. The source input is defined by the `task.services` configuration. When the task is triggered on Monday, it will retrieve the latest information on "web" and "db" from Consul and provide this to the module’s input variables.
+Below is an example configuration for a task that will execute every Monday, which is set by the schedule condition's [`cron`](/docs/nia/configuration#cron) configuration. The source input is defined by the `source_input` block. When the task is triggered on Monday, it will retrieve the latest information on "web" and "db" from Consul and provide this to the module's input variables.
 
 ```hcl
 task {
   name        = "scheduled_task"
   description = "execute every Monday using service information from web and db"
-  services    = ["web", "db"]
   source      = "path/to/module"
 
   condition "schedule" {
     cron = "* * * * Mon"
+  }
+  source_input "services" {
+    names = ["web", "db"]
   }
 }
 ```
 
 Below are the available options for source input types and how to configure them:
 
-- [Services source input](/docs/nia/terraform-modules/#services-source-input): configure through [`task.services`](/docs/nia/configuration#services) or [`source_input "services"`](/docs/nia/configuration#services-source-input)
+- [Services source input](/docs/nia/terraform-modules/#services-source-input): configure through [`task.services`](/docs/nia/configuration#services) (deprecated) or [`source_input "services"`](/docs/nia/configuration#services-source-input)
 - [Consul KV source input](/docs/nia/terraform-modules/#consul-kv-source-input): configure through [`source_input "consul-kv"`](/docs/nia/configuration#consul-kv-source-input)
 
 #### Running Behavior
