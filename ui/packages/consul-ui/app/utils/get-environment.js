@@ -23,9 +23,33 @@ export default function(config = {}, win = window, doc = document) {
             .startsWith('CONSUL_')
         );
     };
-    win.Scenario = function(str = '') {
+    win['Scenario'] = function(str = '') {
       if (str.length > 0) {
-        cookies(str).forEach(item => (doc.cookie = `${item};Path=/`));
+        cookies(str).forEach(item => {
+          // this current outlier is the only one that
+          // 1. Toggles
+          // 2. Uses localStorage
+          // Once we have a user facing widget to do this, it can all go
+          if (item.startsWith('CONSUL_COLOR_SCHEME=')) {
+            const [, value] = item.split('=');
+            let current;
+            try {
+              current = JSON.parse(win.localStorage.getItem('consul:theme'));
+            } catch (e) {
+              current = {
+                'color-scheme': 'light',
+              };
+            }
+            win.localStorage.setItem(
+              'consul:theme',
+              `{"color-scheme": "${
+                value === '!' ? (current['color-scheme'] === 'light' ? 'dark' : 'light') : value
+              }"}`
+            );
+          } else {
+            doc.cookie = `${item};Path=/`;
+          }
+        });
         win.location.hash = '';
         location.reload();
       } else {
@@ -41,7 +65,7 @@ export default function(config = {}, win = window, doc = document) {
       typeof win.location.hash === 'string' &&
       win.location.hash.length > 0
     ) {
-      win.Scenario(win.location.hash.substr(1));
+      win['Scenario'](win.location.hash.substr(1));
     }
   });
   const dev = function(str = doc.cookie) {
@@ -70,9 +94,7 @@ export default function(config = {}, win = window, doc = document) {
   };
   const operatorConfig = {
     ...config.operatorConfig,
-    ...JSON.parse(
-      doc.querySelector(`[data-${config.modulePrefix}-config]`).textContent
-    )
+    ...JSON.parse(doc.querySelector(`[data-${config.modulePrefix}-config]`).textContent),
   };
   const ui_config = operatorConfig.UIConfig || {};
   const scripts = doc.getElementsByTagName('script');
@@ -107,7 +129,9 @@ export default function(config = {}, win = window, doc = document) {
       case 'CONSUL_DATACENTER_PRIMARY':
         return operatorConfig.PrimaryDatacenter;
       case 'CONSUL_UI_CONFIG':
-        dashboards = {};
+        dashboards = {
+          service: undefined
+        };
         provider = env('CONSUL_METRICS_PROVIDER');
         proxy = env('CONSUL_METRICS_PROXY_ENABLED');
         dashboards.service = env('CONSUL_SERVICE_DASHBOARD_URL');

@@ -38,6 +38,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `none`       |
 
+The corresponding CLI command is [`consul acl bootstrap`](/commands/acl/bootstrap).
+
 ### Sample Request
 
 ```shell-session
@@ -206,6 +208,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:read`   |
 
+The corresponding CLI command is [`consul acl translate-rules`](/commands/acl/translate-rules).
+
 ### Sample Payload
 
 ```hcl
@@ -253,6 +257,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:read`   |
 
+The corresponding CLI command is [`consul acl translate-rules`](/commands/acl/translate-rules).
+
 ### Sample Request
 
 ```shell-session
@@ -270,7 +276,7 @@ agent_prefix "" {
 ## Login to Auth Method
 
 This endpoint was added in Consul 1.5.0 and is used to exchange an [auth
-method](/docs/acl/auth-methods) bearer token for a newly-created
+method](/docs/security/acl/auth-methods) bearer token for a newly-created
 Consul ACL token.
 
 | Method | Path         | Produces           |
@@ -293,6 +299,8 @@ replication](/docs/agent/options#acl_enable_token_replication) must be
 enabled. Login requires the ability to create local tokens which is restricted
 to the primary datacenter and any secondary datacenters with ACL token
 replication enabled.
+
+The corresponding CLI command is [`consul login`](/commands/login).
 
 ### Parameters
 
@@ -380,6 +388,8 @@ The table below shows this endpoint's support for
 -> **Note** - This endpoint requires no specific privileges as it is just
 deleting a token for which you already must possess its secret.
 
+The corresponding CLI command is [`consul logout`](/commands/logout).
+
 ### Sample Request
 
 ```shell-session
@@ -397,7 +407,7 @@ $ curl \
 </EnterpriseAlert>
 
 This endpoint was added in Consul 1.8.0 and is used to obtain an authorization
-URL from Consul to start an [OIDC login flow](/docs/acl/auth-methods/oidc).
+URL from Consul to start an [OIDC login flow](/docs/security/acl/auth-methods/oidc).
 
 | Method | Path                 | Produces           |
 | ------ | -------------------- | ------------------ |
@@ -423,10 +433,10 @@ replication enabled.
 ### Parameters
 
 - `AuthMethod` `(string: <required>)` - The name of the auth method to use for
-  login. This must be of type [`oidc`](/docs/acl/auth-methods/oidc).
+  login. This must be of type [`oidc`](/docs/security/acl/auth-methods/oidc).
 
 - `RedirectURI` `(string: <required>)` - See [Redirect
-  URIs](/docs/acl/auth-methods/oidc#redirect-uris) for more information.
+  URIs](/docs/security/acl/auth-methods/oidc#redirect-uris) for more information.
 
 - `ClientNonce` `(string: "")` - Optional client-provided nonce that must match
   during callback, if present.
@@ -503,7 +513,7 @@ replication enabled.
 ### Parameters
 
 - `AuthMethod` `(string: <required>)` - The name of the auth method to use for
-  login. This must be of type [`oidc`](/docs/acl/auth-methods/oidc).
+  login. This must be of type [`oidc`](/docs/security/acl/auth-methods/oidc).
 
 - `State` `(string: <required>)` - Opaque state ID that is part of the
   Authorization URL and will be included in the the redirect following

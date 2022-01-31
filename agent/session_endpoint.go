@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -72,7 +71,11 @@ func (s *HTTPHandlers) SessionDestroy(resp http.ResponseWriter, req *http.Reques
 	}
 
 	// Pull out the session id
-	args.Session.ID = strings.TrimPrefix(req.URL.Path, "/v1/session/destroy/")
+	var err error
+	args.Session.ID, err = getPathSuffixUnescaped(req.URL.Path, "/v1/session/destroy/")
+	if err != nil {
+		return nil, err
+	}
 	if args.Session.ID == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing session")
@@ -97,7 +100,11 @@ func (s *HTTPHandlers) SessionRenew(resp http.ResponseWriter, req *http.Request)
 	}
 
 	// Pull out the session id
-	args.SessionID = strings.TrimPrefix(req.URL.Path, "/v1/session/renew/")
+	var err error
+	args.SessionID, err = getPathSuffixUnescaped(req.URL.Path, "/v1/session/renew/")
+	if err != nil {
+		return nil, err
+	}
 	args.Session = args.SessionID
 	if args.SessionID == "" {
 		resp.WriteHeader(http.StatusBadRequest)
@@ -128,7 +135,11 @@ func (s *HTTPHandlers) SessionGet(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	// Pull out the session id
-	args.SessionID = strings.TrimPrefix(req.URL.Path, "/v1/session/info/")
+	var err error
+	args.SessionID, err = getPathSuffixUnescaped(req.URL.Path, "/v1/session/info/")
+	if err != nil {
+		return nil, err
+	}
 	args.Session = args.SessionID
 	if args.SessionID == "" {
 		resp.WriteHeader(http.StatusBadRequest)
@@ -183,7 +194,11 @@ func (s *HTTPHandlers) SessionsForNode(resp http.ResponseWriter, req *http.Reque
 	}
 
 	// Pull out the node name
-	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/session/node/")
+	var err error
+	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/session/node/")
+	if err != nil {
+		return nil, err
+	}
 	if args.Node == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing node name")

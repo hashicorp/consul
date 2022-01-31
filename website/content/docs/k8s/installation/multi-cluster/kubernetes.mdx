@@ -9,7 +9,7 @@ description: >-
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and higher
 
-~> This topic requires familiarity with [Mesh Gateways](/docs/connect/mesh-gateway) and [WAN Federation Via Mesh Gateways](/docs/connect/gateways/wan-federation-via-mesh-gateways).
+~> This topic requires familiarity with [Mesh Gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters) and [WAN Federation Via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
 -> Looking for a step-by-step guide? Please follow our Learn tutorial: [Secure and Route Service Mesh Communication Across Kubernetes](https://learn.hashicorp.com/tutorials/consul/kubernetes-mesh-gateways).
 
@@ -163,7 +163,7 @@ If you've set `enableAutoEncrypt: true`, this is also supported.
    creates a Kubernetes Load Balancer service. If you wish to customize the
    mesh gateway, see the [Helm reference](/docs/k8s/helm#v-meshgateway) for that setting.
 
-With the above settings added to your existing config, follow the [Upgrading](/docs/k8s/operations/upgrading)
+With the above settings added to your existing config, follow the [Upgrading](/docs/k8s/upgrade)
 guide to upgrade your cluster and then come back to the [Federation Secret](#federation-secret) section.
 
 -> **NOTE:** You must be using consul-helm 0.21.0+.

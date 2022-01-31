@@ -34,34 +34,13 @@ func (_m *MockProvider) ActiveIntermediate() (string, error) {
 	return r0, r1
 }
 
-// ActiveRoot provides a mock function with given fields:
-func (_m *MockProvider) ActiveRoot() (string, error) {
-	ret := _m.Called()
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func() string); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// Cleanup provides a mock function with given fields: providerTypeChange, config
-func (_m *MockProvider) Cleanup(providerTypeChange bool, config map[string]interface{}) error {
-	ret := _m.Called(providerTypeChange, config)
+// Cleanup provides a mock function with given fields: providerTypeChange, otherConfig
+func (_m *MockProvider) Cleanup(providerTypeChange bool, otherConfig map[string]interface{}) error {
+	ret := _m.Called(providerTypeChange, otherConfig)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(bool, map[string]interface{}) error); ok {
-		r0 = rf(providerTypeChange, config)
+		r0 = rf(providerTypeChange, otherConfig)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -147,17 +126,24 @@ func (_m *MockProvider) GenerateIntermediateCSR() (string, error) {
 }
 
 // GenerateRoot provides a mock function with given fields:
-func (_m *MockProvider) GenerateRoot() error {
+func (_m *MockProvider) GenerateRoot() (RootResult, error) {
 	ret := _m.Called()
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
+	var r0 RootResult
+	if rf, ok := ret.Get(0).(func() RootResult); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(RootResult)
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // SetIntermediate provides a mock function with given fields: intermediatePEM, rootPEM

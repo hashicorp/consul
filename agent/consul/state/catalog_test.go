@@ -1515,7 +1515,6 @@ func TestStateStore_EnsureService(t *testing.T) {
 }
 
 func TestStateStore_EnsureService_connectProxy(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Create the service registration.
@@ -1535,21 +1534,20 @@ func TestStateStore_EnsureService_connectProxy(t *testing.T) {
 
 	// Service successfully registers into the state store.
 	testRegisterNode(t, s, 0, "node1")
-	assert.Nil(s.EnsureService(10, "node1", ns1))
+	assert.Nil(t, s.EnsureService(10, "node1", ns1))
 
 	// Retrieve and verify
 	_, out, err := s.NodeServices(nil, "node1", nil)
-	assert.Nil(err)
-	assert.NotNil(out)
-	assert.Len(out.Services, 1)
+	assert.Nil(t, err)
+	assert.NotNil(t, out)
+	assert.Len(t, out.Services, 1)
 
 	expect1 := *ns1
 	expect1.CreateIndex, expect1.ModifyIndex = 10, 10
-	assert.Equal(&expect1, out.Services["connect-proxy"])
+	assert.Equal(t, &expect1, out.Services["connect-proxy"])
 }
 
 func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 	setVirtualIPFlags(t, s)
 
@@ -1575,17 +1573,17 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	// Make sure there's a virtual IP for the foo service.
 	vip, err := s.VirtualIPForService(structs.ServiceName{Name: "foo"})
 	require.NoError(t, err)
-	assert.Equal("240.0.0.1", vip)
+	assert.Equal(t, "240.0.0.1", vip)
 
 	// Retrieve and verify
 	_, out, err := s.NodeServices(nil, "node1", nil)
 	require.NoError(t, err)
-	assert.NotNil(out)
-	assert.Len(out.Services, 1)
+	assert.NotNil(t, out)
+	assert.Len(t, out.Services, 1)
 
 	taggedAddress := out.Services["foo"].TaggedAddresses[structs.TaggedAddressVirtualIP]
-	assert.Equal(vip, taggedAddress.Address)
-	assert.Equal(ns1.Port, taggedAddress.Port)
+	assert.Equal(t, vip, taggedAddress.Address)
+	assert.Equal(t, ns1.Port, taggedAddress.Port)
 
 	// Create the service registration.
 	ns2 := &structs.NodeService{
@@ -1606,23 +1604,23 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	// Make sure the virtual IP has been incremented for the redis service.
 	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
 	require.NoError(t, err)
-	assert.Equal("240.0.0.2", vip)
+	assert.Equal(t, "240.0.0.2", vip)
 
 	// Retrieve and verify
 	_, out, err = s.NodeServices(nil, "node1", nil)
-	assert.Nil(err)
-	assert.NotNil(out)
-	assert.Len(out.Services, 2)
+	assert.Nil(t, err)
+	assert.NotNil(t, out)
+	assert.Len(t, out.Services, 2)
 
 	taggedAddress = out.Services["redis-proxy"].TaggedAddresses[structs.TaggedAddressVirtualIP]
-	assert.Equal(vip, taggedAddress.Address)
-	assert.Equal(ns2.Port, taggedAddress.Port)
+	assert.Equal(t, vip, taggedAddress.Address)
+	assert.Equal(t, ns2.Port, taggedAddress.Port)
 
 	// Delete the first service and make sure it no longer has a virtual IP assigned.
 	require.NoError(t, s.DeleteService(12, "node1", "foo", entMeta))
 	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "connect-proxy"})
 	require.NoError(t, err)
-	assert.Equal("", vip)
+	assert.Equal(t, "", vip)
 
 	// Register another instance of redis-proxy and make sure the virtual IP is unchanged.
 	ns3 := &structs.NodeService{
@@ -1643,14 +1641,14 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	// Make sure the virtual IP is unchanged for the redis service.
 	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
 	require.NoError(t, err)
-	assert.Equal("240.0.0.2", vip)
+	assert.Equal(t, "240.0.0.2", vip)
 
 	// Make sure the new instance has the same virtual IP.
 	_, out, err = s.NodeServices(nil, "node1", nil)
 	require.NoError(t, err)
 	taggedAddress = out.Services["redis-proxy2"].TaggedAddresses[structs.TaggedAddressVirtualIP]
-	assert.Equal(vip, taggedAddress.Address)
-	assert.Equal(ns3.Port, taggedAddress.Port)
+	assert.Equal(t, vip, taggedAddress.Address)
+	assert.Equal(t, ns3.Port, taggedAddress.Port)
 
 	// Register another service to take its virtual IP.
 	ns4 := &structs.NodeService{
@@ -1671,18 +1669,17 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	// Make sure the virtual IP has allocated from the previously freed service.
 	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "web"})
 	require.NoError(t, err)
-	assert.Equal("240.0.0.1", vip)
+	assert.Equal(t, "240.0.0.1", vip)
 
 	// Retrieve and verify
 	_, out, err = s.NodeServices(nil, "node1", nil)
 	require.NoError(t, err)
 	taggedAddress = out.Services["web-proxy"].TaggedAddresses[structs.TaggedAddressVirtualIP]
-	assert.Equal(vip, taggedAddress.Address)
-	assert.Equal(ns4.Port, taggedAddress.Port)
+	assert.Equal(t, vip, taggedAddress.Address)
+	assert.Equal(t, ns4.Port, taggedAddress.Port)
 }
 
 func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 	setVirtualIPFlags(t, s)
 
@@ -1708,16 +1705,16 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 	// Make sure there's a virtual IP for the foo service.
 	vip, err := s.VirtualIPForService(structs.ServiceName{Name: "foo"})
 	require.NoError(t, err)
-	assert.Equal("240.0.0.1", vip)
+	assert.Equal(t, "240.0.0.1", vip)
 
 	// Retrieve and verify
 	_, out, err := s.NodeServices(nil, "node1", nil)
 	require.NoError(t, err)
-	assert.NotNil(out)
+	assert.NotNil(t, out)
 
 	taggedAddress := out.Services["foo"].TaggedAddresses[structs.TaggedAddressVirtualIP]
-	assert.Equal(vip, taggedAddress.Address)
-	assert.Equal(ns1.Port, taggedAddress.Port)
+	assert.Equal(t, vip, taggedAddress.Address)
+	assert.Equal(t, ns1.Port, taggedAddress.Port)
 
 	// Create the service registration.
 	ns2 := &structs.NodeService{
@@ -1738,22 +1735,22 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 	// Make sure the virtual IP has been incremented for the redis service.
 	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
 	require.NoError(t, err)
-	assert.Equal("240.0.0.2", vip)
+	assert.Equal(t, "240.0.0.2", vip)
 
 	// Retrieve and verify
 	_, out, err = s.NodeServices(nil, "node1", nil)
-	assert.Nil(err)
-	assert.NotNil(out)
+	assert.Nil(t, err)
+	assert.NotNil(t, out)
 
 	taggedAddress = out.Services["redis"].TaggedAddresses[structs.TaggedAddressVirtualIP]
-	assert.Equal(vip, taggedAddress.Address)
-	assert.Equal(ns2.Port, taggedAddress.Port)
+	assert.Equal(t, vip, taggedAddress.Address)
+	assert.Equal(t, ns2.Port, taggedAddress.Port)
 
 	// Delete the last  service and make sure it no longer has a virtual IP assigned.
 	require.NoError(t, s.DeleteService(12, "node1", "redis", entMeta))
 	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
 	require.NoError(t, err)
-	assert.Equal("", vip)
+	assert.Equal(t, "", vip)
 
 	// Register a new service, should end up with the freed 240.0.0.2 address.
 	ns3 := &structs.NodeService{
@@ -1773,16 +1770,16 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 
 	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "backend"})
 	require.NoError(t, err)
-	assert.Equal("240.0.0.2", vip)
+	assert.Equal(t, "240.0.0.2", vip)
 
 	// Retrieve and verify
 	_, out, err = s.NodeServices(nil, "node1", nil)
-	assert.Nil(err)
-	assert.NotNil(out)
+	assert.Nil(t, err)
+	assert.NotNil(t, out)
 
 	taggedAddress = out.Services["backend"].TaggedAddresses[structs.TaggedAddressVirtualIP]
-	assert.Equal(vip, taggedAddress.Address)
-	assert.Equal(ns3.Port, taggedAddress.Port)
+	assert.Equal(t, vip, taggedAddress.Address)
+	assert.Equal(t, ns3.Port, taggedAddress.Port)
 
 	// Create a new service, no more freed VIPs so it should go back to using the counter.
 	ns4 := &structs.NodeService{
@@ -1803,16 +1800,16 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 	// Make sure the virtual IP has been incremented for the frontend service.
 	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "frontend"})
 	require.NoError(t, err)
-	assert.Equal("240.0.0.3", vip)
+	assert.Equal(t, "240.0.0.3", vip)
 
 	// Retrieve and verify
 	_, out, err = s.NodeServices(nil, "node1", nil)
-	assert.Nil(err)
-	assert.NotNil(out)
+	assert.Nil(t, err)
+	assert.NotNil(t, out)
 
 	taggedAddress = out.Services["frontend"].TaggedAddresses[structs.TaggedAddressVirtualIP]
-	assert.Equal(vip, taggedAddress.Address)
-	assert.Equal(ns4.Port, taggedAddress.Port)
+	assert.Equal(t, vip, taggedAddress.Address)
+	assert.Equal(t, ns4.Port, taggedAddress.Port)
 }
 
 func TestStateStore_Services(t *testing.T) {
@@ -2360,83 +2357,80 @@ func TestStateStore_DeleteService(t *testing.T) {
 }
 
 func TestStateStore_ConnectServiceNodes(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
 	idx, nodes, err := s.ConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(0))
-	assert.Len(nodes, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
 
 	// Create some nodes and services.
-	assert.Nil(s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
-	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
-	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
-	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
-	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "native-db", Service: "db", Connect: structs.ServiceConnect{Native: true}}))
-	assert.Nil(s.EnsureService(17, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
-	assert.True(watchFired(ws))
+	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(t, s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+	assert.Nil(t, s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
+	assert.Nil(t, s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
+	assert.Nil(t, s.EnsureService(16, "bar", &structs.NodeService{ID: "native-db", Service: "db", Connect: structs.ServiceConnect{Native: true}}))
+	assert.Nil(t, s.EnsureService(17, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
+	assert.True(t, watchFired(ws))
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.ConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(17))
-	assert.Len(nodes, 3)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(17))
+	assert.Len(t, nodes, 3)
 
 	for _, n := range nodes {
-		assert.True(
-			n.ServiceKind == structs.ServiceKindConnectProxy ||
-				n.ServiceConnect.Native,
+		assert.True(t, n.ServiceKind == structs.ServiceKindConnectProxy ||
+			n.ServiceConnect.Native,
 			"either proxy or connect native")
 	}
 
 	// Registering some unrelated node should not fire the watch.
 	testRegisterNode(t, s, 17, "nope")
-	assert.False(watchFired(ws))
+	assert.False(t, watchFired(ws))
 
 	// But removing a node with the "db" service should fire the watch.
-	assert.Nil(s.DeleteNode(18, "bar", nil))
-	assert.True(watchFired(ws))
+	assert.Nil(t, s.DeleteNode(18, "bar", nil))
+	assert.True(t, watchFired(ws))
 }
 
 func TestStateStore_ConnectServiceNodes_Gateways(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
 	idx, nodes, err := s.ConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(0))
-	assert.Len(nodes, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
 
 	// Create some nodes and services.
-	assert.Nil(s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
-	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(t, s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
 
 	// Typical services
-	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(14, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
-	assert.False(watchFired(ws))
+	assert.Nil(t, s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(14, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
+	assert.False(t, watchFired(ws))
 
 	// Register a sidecar for db
-	assert.Nil(s.EnsureService(15, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
-	assert.True(watchFired(ws))
+	assert.Nil(t, s.EnsureService(15, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
+	assert.True(t, watchFired(ws))
 
 	// Reset WatchSet to ensure watch fires when associating db with gateway
 	ws = memdb.NewWatchSet()
 	_, _, err = s.ConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
+	assert.Nil(t, err)
 
 	// Associate gateway with db
-	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
-	assert.Nil(s.EnsureConfigEntry(17, &structs.TerminatingGatewayConfigEntry{
+	assert.Nil(t, s.EnsureService(16, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
+	assert.Nil(t, s.EnsureConfigEntry(17, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "gateway",
 		Services: []structs.LinkedService{
@@ -2445,71 +2439,71 @@ func TestStateStore_ConnectServiceNodes_Gateways(t *testing.T) {
 			},
 		},
 	}))
-	assert.True(watchFired(ws))
+	assert.True(t, watchFired(ws))
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.ConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(17))
-	assert.Len(nodes, 2)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(17))
+	assert.Len(t, nodes, 2)
 
 	// Check sidecar
-	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
-	assert.Equal("foo", nodes[0].Node)
-	assert.Equal("proxy", nodes[0].ServiceName)
-	assert.Equal("proxy", nodes[0].ServiceID)
-	assert.Equal("db", nodes[0].ServiceProxy.DestinationServiceName)
-	assert.Equal(8000, nodes[0].ServicePort)
+	assert.Equal(t, structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
+	assert.Equal(t, "foo", nodes[0].Node)
+	assert.Equal(t, "proxy", nodes[0].ServiceName)
+	assert.Equal(t, "proxy", nodes[0].ServiceID)
+	assert.Equal(t, "db", nodes[0].ServiceProxy.DestinationServiceName)
+	assert.Equal(t, 8000, nodes[0].ServicePort)
 
 	// Check gateway
-	assert.Equal(structs.ServiceKindTerminatingGateway, nodes[1].ServiceKind)
-	assert.Equal("bar", nodes[1].Node)
-	assert.Equal("gateway", nodes[1].ServiceName)
-	assert.Equal("gateway", nodes[1].ServiceID)
-	assert.Equal(443, nodes[1].ServicePort)
+	assert.Equal(t, structs.ServiceKindTerminatingGateway, nodes[1].ServiceKind)
+	assert.Equal(t, "bar", nodes[1].Node)
+	assert.Equal(t, "gateway", nodes[1].ServiceName)
+	assert.Equal(t, "gateway", nodes[1].ServiceID)
+	assert.Equal(t, 443, nodes[1].ServicePort)
 
 	// Watch should fire when another gateway instance is registered
-	assert.Nil(s.EnsureService(18, "foo", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway-2", Service: "gateway", Port: 443}))
-	assert.True(watchFired(ws))
+	assert.Nil(t, s.EnsureService(18, "foo", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway-2", Service: "gateway", Port: 443}))
+	assert.True(t, watchFired(ws))
 
 	// Reset WatchSet to ensure watch fires when deregistering gateway
 	ws = memdb.NewWatchSet()
 	_, _, err = s.ConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
+	assert.Nil(t, err)
 
 	// Watch should fire when a gateway instance is deregistered
-	assert.Nil(s.DeleteService(19, "bar", "gateway", nil))
-	assert.True(watchFired(ws))
+	assert.Nil(t, s.DeleteService(19, "bar", "gateway", nil))
+	assert.True(t, watchFired(ws))
 
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.ConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(19))
-	assert.Len(nodes, 2)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(19))
+	assert.Len(t, nodes, 2)
 
 	// Check the new gateway
-	assert.Equal(structs.ServiceKindTerminatingGateway, nodes[1].ServiceKind)
-	assert.Equal("foo", nodes[1].Node)
-	assert.Equal("gateway", nodes[1].ServiceName)
-	assert.Equal("gateway-2", nodes[1].ServiceID)
-	assert.Equal(443, nodes[1].ServicePort)
+	assert.Equal(t, structs.ServiceKindTerminatingGateway, nodes[1].ServiceKind)
+	assert.Equal(t, "foo", nodes[1].Node)
+	assert.Equal(t, "gateway", nodes[1].ServiceName)
+	assert.Equal(t, "gateway-2", nodes[1].ServiceID)
+	assert.Equal(t, 443, nodes[1].ServicePort)
 
 	// Index should not slide back after deleting all instances of the gateway
-	assert.Nil(s.DeleteService(20, "foo", "gateway-2", nil))
-	assert.True(watchFired(ws))
+	assert.Nil(t, s.DeleteService(20, "foo", "gateway-2", nil))
+	assert.True(t, watchFired(ws))
 
 	idx, nodes, err = s.ConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(20))
-	assert.Len(nodes, 1)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(20))
+	assert.Len(t, nodes, 1)
 
 	// Ensure that remaining node is the proxy and not a gateway
-	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
-	assert.Equal("foo", nodes[0].Node)
-	assert.Equal("proxy", nodes[0].ServiceName)
-	assert.Equal("proxy", nodes[0].ServiceID)
-	assert.Equal(8000, nodes[0].ServicePort)
+	assert.Equal(t, structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
+	assert.Equal(t, "foo", nodes[0].Node)
+	assert.Equal(t, "proxy", nodes[0].ServiceName)
+	assert.Equal(t, "proxy", nodes[0].ServiceID)
+	assert.Equal(t, 8000, nodes[0].ServicePort)
 }
 
 func TestStateStore_Service_Snapshot(t *testing.T) {
@@ -3680,14 +3674,12 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 				tt.setupFn(s)
 			}
 
-			require := require.New(t)
-
 			// Run the query
 			ws := memdb.NewWatchSet()
 			_, res, err := s.CheckConnectServiceNodes(ws, tt.svc, nil)
-			require.NoError(err)
-			require.Len(res, tt.wantBeforeResLen)
-			require.Len(ws, tt.wantBeforeWatchSetSize)
+			require.NoError(t, err)
+			require.Len(t, res, tt.wantBeforeResLen)
+			require.Len(t, ws, tt.wantBeforeWatchSetSize)
 
 			// Mutate the state store
 			if tt.updateFn != nil {
@@ -3696,18 +3688,18 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 
 			fired := watchFired(ws)
 			if tt.shouldFire {
-				require.True(fired, "WatchSet should have fired")
+				require.True(t, fired, "WatchSet should have fired")
 			} else {
-				require.False(fired, "WatchSet should not have fired")
+				require.False(t, fired, "WatchSet should not have fired")
 			}
 
 			// Re-query the same result. Should return the desired index and len
 			ws = memdb.NewWatchSet()
 			idx, res, err := s.CheckConnectServiceNodes(ws, tt.svc, nil)
-			require.NoError(err)
-			require.Len(res, tt.wantAfterResLen)
-			require.Equal(tt.wantAfterIndex, idx)
-			require.Len(ws, tt.wantAfterWatchSetSize)
+			require.NoError(t, err)
+			require.Len(t, res, tt.wantAfterResLen)
+			require.Equal(t, tt.wantAfterIndex, idx)
+			require.Len(t, ws, tt.wantAfterWatchSetSize)
 		})
 	}
 }
@@ -3829,25 +3821,24 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 }
 
 func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
 	idx, nodes, err := s.CheckConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(0))
-	assert.Len(nodes, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
 
 	// Create some nodes and services.
-	assert.Nil(s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
-	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
-	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
-	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
-	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
-	assert.True(watchFired(ws))
+	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(t, s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+	assert.Nil(t, s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
+	assert.Nil(t, s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
+	assert.Nil(t, s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
+	assert.True(t, watchFired(ws))
 
 	// Register node checks
 	testRegisterCheck(t, s, 17, "foo", "", "check1", api.HealthPassing)
@@ -3860,13 +3851,13 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 	// Read everything back.
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(20))
-	assert.Len(nodes, 2)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(20))
+	assert.Len(t, nodes, 2)
 
 	for _, n := range nodes {
-		assert.Equal(structs.ServiceKindConnectProxy, n.Service.Kind)
-		assert.Equal("db", n.Service.Proxy.DestinationServiceName)
+		assert.Equal(t, structs.ServiceKindConnectProxy, n.Service.Kind)
+		assert.Equal(t, "db", n.Service.Proxy.DestinationServiceName)
 	}
 }
 
@@ -3875,34 +3866,33 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
 	idx, nodes, err := s.CheckConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(0))
-	assert.Len(nodes, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
 
 	// Create some nodes and services.
-	assert.Nil(s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
-	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(t, s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
 
 	// Typical services
-	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(14, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
-	assert.False(watchFired(ws))
+	assert.Nil(t, s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(14, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
+	assert.False(t, watchFired(ws))
 
 	// Register node and service checks
 	testRegisterCheck(t, s, 15, "foo", "", "check1", api.HealthPassing)
 	testRegisterCheck(t, s, 16, "bar", "", "check2", api.HealthPassing)
 	testRegisterCheck(t, s, 17, "foo", "db", "check3", api.HealthPassing)
-	assert.False(watchFired(ws))
+	assert.False(t, watchFired(ws))
 
 	// Watch should fire when a gateway is associated with the service, even if the gateway doesn't exist yet
-	assert.Nil(s.EnsureConfigEntry(18, &structs.TerminatingGatewayConfigEntry{
+	assert.Nil(t, s.EnsureConfigEntry(18, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "gateway",
 		Services: []structs.LinkedService{
@@ -3911,90 +3901,90 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 			},
 		},
 	}))
-	assert.True(watchFired(ws))
+	assert.True(t, watchFired(ws))
 
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(18))
-	assert.Len(nodes, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(18))
+	assert.Len(t, nodes, 0)
 
 	// Watch should fire when a gateway is added
-	assert.Nil(s.EnsureService(19, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
-	assert.True(watchFired(ws))
+	assert.Nil(t, s.EnsureService(19, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
+	assert.True(t, watchFired(ws))
 
 	// Watch should fire when a check is added to the gateway
 	testRegisterCheck(t, s, 20, "bar", "gateway", "check4", api.HealthPassing)
-	assert.True(watchFired(ws))
+	assert.True(t, watchFired(ws))
 
 	// Watch should fire when a different connect service is registered for db
-	assert.Nil(s.EnsureService(21, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
-	assert.True(watchFired(ws))
+	assert.Nil(t, s.EnsureService(21, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
+	assert.True(t, watchFired(ws))
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(21))
-	assert.Len(nodes, 2)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(21))
+	assert.Len(t, nodes, 2)
 
 	// Check sidecar
-	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].Service.Kind)
-	assert.Equal("foo", nodes[0].Node.Node)
-	assert.Equal("proxy", nodes[0].Service.Service)
-	assert.Equal("proxy", nodes[0].Service.ID)
-	assert.Equal("db", nodes[0].Service.Proxy.DestinationServiceName)
-	assert.Equal(8000, nodes[0].Service.Port)
+	assert.Equal(t, structs.ServiceKindConnectProxy, nodes[0].Service.Kind)
+	assert.Equal(t, "foo", nodes[0].Node.Node)
+	assert.Equal(t, "proxy", nodes[0].Service.Service)
+	assert.Equal(t, "proxy", nodes[0].Service.ID)
+	assert.Equal(t, "db", nodes[0].Service.Proxy.DestinationServiceName)
+	assert.Equal(t, 8000, nodes[0].Service.Port)
 
 	// Check gateway
-	assert.Equal(structs.ServiceKindTerminatingGateway, nodes[1].Service.Kind)
-	assert.Equal("bar", nodes[1].Node.Node)
-	assert.Equal("gateway", nodes[1].Service.Service)
-	assert.Equal("gateway", nodes[1].Service.ID)
-	assert.Equal(443, nodes[1].Service.Port)
+	assert.Equal(t, structs.ServiceKindTerminatingGateway, nodes[1].Service.Kind)
+	assert.Equal(t, "bar", nodes[1].Node.Node)
+	assert.Equal(t, "gateway", nodes[1].Service.Service)
+	assert.Equal(t, "gateway", nodes[1].Service.ID)
+	assert.Equal(t, 443, nodes[1].Service.Port)
 
 	// Watch should fire when another gateway instance is registered
-	assert.Nil(s.EnsureService(22, "foo", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway-2", Service: "gateway", Port: 443}))
-	assert.True(watchFired(ws))
+	assert.Nil(t, s.EnsureService(22, "foo", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway-2", Service: "gateway", Port: 443}))
+	assert.True(t, watchFired(ws))
 
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(22))
-	assert.Len(nodes, 3)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(22))
+	assert.Len(t, nodes, 3)
 
 	// Watch should fire when a gateway instance is deregistered
-	assert.Nil(s.DeleteService(23, "bar", "gateway", nil))
-	assert.True(watchFired(ws))
+	assert.Nil(t, s.DeleteService(23, "bar", "gateway", nil))
+	assert.True(t, watchFired(ws))
 
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(23))
-	assert.Len(nodes, 2)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(23))
+	assert.Len(t, nodes, 2)
 
 	// Check new gateway
-	assert.Equal(structs.ServiceKindTerminatingGateway, nodes[1].Service.Kind)
-	assert.Equal("foo", nodes[1].Node.Node)
-	assert.Equal("gateway", nodes[1].Service.Service)
-	assert.Equal("gateway-2", nodes[1].Service.ID)
-	assert.Equal(443, nodes[1].Service.Port)
+	assert.Equal(t, structs.ServiceKindTerminatingGateway, nodes[1].Service.Kind)
+	assert.Equal(t, "foo", nodes[1].Node.Node)
+	assert.Equal(t, "gateway", nodes[1].Service.Service)
+	assert.Equal(t, "gateway-2", nodes[1].Service.ID)
+	assert.Equal(t, 443, nodes[1].Service.Port)
 
 	// Index should not slide back after deleting all instances of the gateway
-	assert.Nil(s.DeleteService(24, "foo", "gateway-2", nil))
-	assert.True(watchFired(ws))
+	assert.Nil(t, s.DeleteService(24, "foo", "gateway-2", nil))
+	assert.True(t, watchFired(ws))
 
 	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(24))
-	assert.Len(nodes, 1)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(24))
+	assert.Len(t, nodes, 1)
 
 	// Ensure that remaining node is the proxy and not a gateway
-	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].Service.Kind)
-	assert.Equal("foo", nodes[0].Node.Node)
-	assert.Equal("proxy", nodes[0].Service.Service)
-	assert.Equal("proxy", nodes[0].Service.ID)
-	assert.Equal(8000, nodes[0].Service.Port)
+	assert.Equal(t, structs.ServiceKindConnectProxy, nodes[0].Service.Kind)
+	assert.Equal(t, "foo", nodes[0].Node.Node)
+	assert.Equal(t, "proxy", nodes[0].Service.Service)
+	assert.Equal(t, "proxy", nodes[0].Service.ID)
+	assert.Equal(t, 8000, nodes[0].Service.Port)
 }
 
 func BenchmarkCheckServiceNodes(b *testing.B) {
@@ -5255,14 +5245,13 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 	s := testStateStore(t)
 	ws := setupIngressState(t, s)
-	require := require.New(t)
 
 	t.Run("check service1 ingress gateway", func(t *testing.T) {
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service1", nil)
-		require.NoError(err)
-		require.Equal(uint64(15), idx)
+		require.NoError(t, err)
+		require.Equal(t, uint64(15), idx)
 		// Multiple instances of the ingress2 service
-		require.Len(results, 4)
+		require.Len(t, results, 4)
 
 		ids := make(map[string]struct{})
 		for _, n := range results {
@@ -5273,14 +5262,14 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 			"ingress2":        {},
 			"wildcardIngress": {},
 		}
-		require.Equal(expectedIds, ids)
+		require.Equal(t, expectedIds, ids)
 	})
 
 	t.Run("check service2 ingress gateway", func(t *testing.T) {
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service2", nil)
-		require.NoError(err)
-		require.Equal(uint64(15), idx)
-		require.Len(results, 2)
+		require.NoError(t, err)
+		require.Equal(t, uint64(15), idx)
+		require.Len(t, results, 2)
 
 		ids := make(map[string]struct{})
 		for _, n := range results {
@@ -5290,38 +5279,38 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 			"ingress1":        {},
 			"wildcardIngress": {},
 		}
-		require.Equal(expectedIds, ids)
+		require.Equal(t, expectedIds, ids)
 	})
 
 	t.Run("check service3 ingress gateway", func(t *testing.T) {
 		ws := memdb.NewWatchSet()
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service3", nil)
-		require.NoError(err)
-		require.Equal(uint64(15), idx)
-		require.Len(results, 1)
-		require.Equal("wildcardIngress", results[0].Service.ID)
+		require.NoError(t, err)
+		require.Equal(t, uint64(15), idx)
+		require.Len(t, results, 1)
+		require.Equal(t, "wildcardIngress", results[0].Service.ID)
 	})
 
 	t.Run("delete a wildcard entry", func(t *testing.T) {
-		require.Nil(s.DeleteConfigEntry(19, "ingress-gateway", "wildcardIngress", nil))
-		require.True(watchFired(ws))
+		require.Nil(t, s.DeleteConfigEntry(19, "ingress-gateway", "wildcardIngress", nil))
+		require.True(t, watchFired(ws))
 
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service1", nil)
-		require.NoError(err)
-		require.Equal(uint64(15), idx)
-		require.Len(results, 3)
+		require.NoError(t, err)
+		require.Equal(t, uint64(15), idx)
+		require.Len(t, results, 3)
 
 		idx, results, err = s.CheckIngressServiceNodes(ws, "service2", nil)
-		require.NoError(err)
-		require.Equal(uint64(15), idx)
-		require.Len(results, 1)
+		require.NoError(t, err)
+		require.Equal(t, uint64(15), idx)
+		require.Len(t, results, 1)
 
 		idx, results, err = s.CheckIngressServiceNodes(ws, "service3", nil)
-		require.NoError(err)
-		require.Equal(uint64(15), idx)
+		require.NoError(t, err)
+		require.Equal(t, uint64(15), idx)
 		// TODO(ingress): index goes backward when deleting last config entry
-		// require.Equal(uint64(11), idx)
-		require.Len(results, 0)
+		// require.Equal(t,uint64(11), idx)
+		require.Len(t, results, 0)
 	})
 }
 
@@ -5629,56 +5618,55 @@ func TestStateStore_GatewayServices_WildcardAssociation(t *testing.T) {
 
 	s := testStateStore(t)
 	setupIngressState(t, s)
-	require := require.New(t)
 	ws := memdb.NewWatchSet()
 
 	t.Run("base case for wildcard", func(t *testing.T) {
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
-		require.NoError(err)
-		require.Equal(uint64(16), idx)
-		require.Len(results, 3)
+		require.NoError(t, err)
+		require.Equal(t, uint64(16), idx)
+		require.Len(t, results, 3)
 	})
 
 	t.Run("do not associate ingress services with gateway", func(t *testing.T) {
 		testRegisterIngressService(t, s, 17, "node1", "testIngress")
-		require.False(watchFired(ws))
+		require.False(t, watchFired(ws))
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
-		require.NoError(err)
-		require.Equal(uint64(16), idx)
-		require.Len(results, 3)
+		require.NoError(t, err)
+		require.Equal(t, uint64(16), idx)
+		require.Len(t, results, 3)
 	})
 
 	t.Run("do not associate terminating-gateway services with gateway", func(t *testing.T) {
-		require.Nil(s.EnsureService(18, "node1",
+		require.Nil(t, s.EnsureService(18, "node1",
 			&structs.NodeService{
 				Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443,
 			},
 		))
-		require.False(watchFired(ws))
+		require.False(t, watchFired(ws))
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
-		require.NoError(err)
-		require.Equal(uint64(16), idx)
-		require.Len(results, 3)
+		require.NoError(t, err)
+		require.Equal(t, uint64(16), idx)
+		require.Len(t, results, 3)
 	})
 
 	t.Run("do not associate connect-proxy services with gateway", func(t *testing.T) {
 		testRegisterSidecarProxy(t, s, 19, "node1", "web")
-		require.False(watchFired(ws))
+		require.False(t, watchFired(ws))
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
-		require.NoError(err)
-		require.Equal(uint64(16), idx)
-		require.Len(results, 3)
+		require.NoError(t, err)
+		require.Equal(t, uint64(16), idx)
+		require.Len(t, results, 3)
 	})
 
 	t.Run("do not associate consul services with gateway", func(t *testing.T) {
-		require.Nil(s.EnsureService(20, "node1",
+		require.Nil(t, s.EnsureService(20, "node1",
 			&structs.NodeService{ID: "consul", Service: "consul", Tags: nil},
 		))
-		require.False(watchFired(ws))
+		require.False(t, watchFired(ws))
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
-		require.NoError(err)
-		require.Equal(uint64(16), idx)
-		require.Len(results, 3)
+		require.NoError(t, err)
+		require.Equal(t, uint64(16), idx)
+		require.Len(t, results, 3)
 	})
 }
 
@@ -5709,15 +5697,13 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 	})
 
 	t.Run("no services from default tcp protocol", func(t *testing.T) {
-		require := require.New(t)
 		idx, results, err := s.GatewayServices(nil, "ingress1", nil)
-		require.NoError(err)
-		require.Equal(uint64(4), idx)
-		require.Len(results, 0)
+		require.NoError(t, err)
+		require.Equal(t, uint64(4), idx)
+		require.Len(t, results, 0)
 	})
 
 	t.Run("service-defaults", func(t *testing.T) {
-		require := require.New(t)
 		expected := structs.GatewayServices{
 			{
 				Gateway:      structs.NewServiceName("ingress1", nil),
@@ -5740,13 +5726,12 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 		}
 		assert.NoError(t, s.EnsureConfigEntry(5, svcDefaults))
 		idx, results, err := s.GatewayServices(nil, "ingress1", nil)
-		require.NoError(err)
-		require.Equal(uint64(5), idx)
-		require.ElementsMatch(results, expected)
+		require.NoError(t, err)
+		require.Equal(t, uint64(5), idx)
+		require.ElementsMatch(t, results, expected)
 	})
 
 	t.Run("proxy-defaults", func(t *testing.T) {
-		require := require.New(t)
 		expected := structs.GatewayServices{
 			{
 				Gateway:      structs.NewServiceName("ingress1", nil),
@@ -5784,13 +5769,12 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 		assert.NoError(t, s.EnsureConfigEntry(6, proxyDefaults))
 
 		idx, results, err := s.GatewayServices(nil, "ingress1", nil)
-		require.NoError(err)
-		require.Equal(uint64(6), idx)
-		require.ElementsMatch(results, expected)
+		require.NoError(t, err)
+		require.Equal(t, uint64(6), idx)
+		require.ElementsMatch(t, results, expected)
 	})
 
 	t.Run("service-defaults overrides proxy-defaults", func(t *testing.T) {
-		require := require.New(t)
 		expected := structs.GatewayServices{
 			{
 				Gateway:      structs.NewServiceName("ingress1", nil),
@@ -5814,13 +5798,12 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 		assert.NoError(t, s.EnsureConfigEntry(7, svcDefaults))
 
 		idx, results, err := s.GatewayServices(nil, "ingress1", nil)
-		require.NoError(err)
-		require.Equal(uint64(7), idx)
-		require.ElementsMatch(results, expected)
+		require.NoError(t, err)
+		require.Equal(t, uint64(7), idx)
+		require.ElementsMatch(t, results, expected)
 	})
 
 	t.Run("change listener protocol and expect different filter", func(t *testing.T) {
-		require := require.New(t)
 		expected := structs.GatewayServices{
 			{
 				Gateway:      structs.NewServiceName("ingress1", nil),
@@ -5854,9 +5837,9 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 		assert.NoError(t, s.EnsureConfigEntry(8, ingress1))
 
 		idx, results, err := s.GatewayServices(nil, "ingress1", nil)
-		require.NoError(err)
-		require.Equal(uint64(8), idx)
-		require.ElementsMatch(results, expected)
+		require.NoError(t, err)
+		require.Equal(t, uint64(8), idx)
+		require.ElementsMatch(t, results, expected)
 	})
 }
 

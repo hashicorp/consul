@@ -8,7 +8,7 @@ description: Rotate the Gossip Encryption Key on Kubernetes Cluster safely
 
 The following instructions provides a step-by-step manual process for rotating [gossip encryption](/docs/security/encryption#gossip-encryption) keys on Consul clusters that are deployed onto a Kubernetes cluster with Consul on Kubernetes.
 
-The following steps should only be performed in the *primary datacenter* if your Consul clusters are [federated](https://www.consul.io/docs/k8s/installation/multi-cluster/kubernetes). Rotating the gossip encryption in the primary datacenter will automatically rotate the gossip encryption in the secondary datacenters.
+The following steps should only be performed in the *primary datacenter* if your Consul clusters are [federated](/docs/k8s/installation/multi-cluster/kubernetes). Rotating the gossip encryption in the primary datacenter will automatically rotate the gossip encryption in the secondary datacenters.
 
 -> **Note:** Careful precaution should be taken to prohibit new clients from joining during the gossip encryption rotation process, otherwise the new clients will join the gossip pool without knowledge of the new primary gossip encryption key. In addition, deletion of a gossip encryption key from the keyring should occur only after clients have safely migrated to utilizing the new gossip encryption key for communication.
 

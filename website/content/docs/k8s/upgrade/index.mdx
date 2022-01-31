@@ -125,6 +125,7 @@ to update to the new version.
    global:
      image: consul:1.8.3
    ```
+
    </CodeBlockConfig>
 
 1. Determine your current installed chart version:
@@ -182,7 +183,7 @@ $ helm diff upgrade consul hashicorp/consul --version 0.24.1 --values /path/to/y
   grep "has changed"
 ```
 
-1. Take specific note if `consul, DaemonSet` or `consul-server, StatefulSet` are listed.
+1. Take specific note if `consul-client, DaemonSet` or `consul-server, StatefulSet` are listed.
    This means that your Consul client daemonset or Consul server statefulset (or both) will be redeployed.
 
 If either is being redeployed, we will follow the same pattern for upgrades as
@@ -220,9 +221,8 @@ the following will occur:
    of time, however, it's important for the local Consul client to be restarted
    as quickly as possible.
 
-Once the local Consul client pod restarts, each service pod needs to re-register
-itself with the client. This is done automatically by the `consul-connect-lifecycle-sidecar`
-sidecar container that is injected alongside each service.
+Once the local Consul client pod restarts, each service pod needs to be re-registered
+with its local Consul client. This is done automatically by the connect inject controller.
 
 Because service mesh pods are briefly deregistered during a Consul client restart,
 it's **important that you do not restart all Consul clients at once**. Otherwise
@@ -323,4 +323,4 @@ Consul clients.
 If you already have a Consul cluster deployed on Kubernetes and
 would like to turn on TLS for internal Consul communication,
 please see
-[Configuring TLS on an Existing Cluster](/docs/k8s/tls-on-existing-cluster).
+[Configuring TLS on an Existing Cluster](/docs/k8s/operations/tls-on-existing-cluster).

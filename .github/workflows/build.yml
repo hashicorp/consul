@@ -218,7 +218,7 @@ jobs:
           GOLDFLAGS: "${{ needs.get-product-version.outputs.shared-ldflags }}"
         run: |
           mkdir dist out
-          go build -ldflags="$GOLDFLAGS" -o dist/ .
+          go build -ldflags="$GOLDFLAGS" -tags netcgo -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@v2
@@ -253,4 +253,4 @@ jobs:
           arch: ${{matrix.arch}}
           tags: |
             docker.io/hashicorp/${{env.repo}}:${{env.version}}
-            ecr.public.aws/hashicorp/${{env.repo}}:${{env.version}}
+            public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}

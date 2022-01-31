@@ -239,7 +239,7 @@ CONSUL_GRPC_ADDR=unix://var/run/consul_grpc.sock
 ```
 
 If the agent is [configured with TLS
-certificates](/docs/agent/encryption#rpc-encryption-with-tls), then the
+certificates](/docs/security/encryption#rpc-encryption-with-tls), then the
 gRPC listener will require TLS and present the same certificate as the https
 listener. As with `CONSUL_HTTP_ADDR`, if TLS is enabled either the `https://`
 scheme should be used, or `CONSUL_HTTP_SSL` set.

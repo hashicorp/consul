@@ -56,10 +56,10 @@ func TestFoo_bar(t *testing.T) {
 	})
 
 	// Create a service
-	srv1.AddService(t, "redis", structs.HealthPassing, []string{"master"})
+	srv1.AddService(t, "redis", structs.HealthPassing, []string{"primary"})
 
 	// Create a service that will be accessed in target source code
-	srv1.AddAccessibleService("redis", structs.HealthPassing, "127.0.0.1", 6379, []string{"master"})
+	srv1.AddAccessibleService("redis", structs.HealthPassing, "127.0.0.1", 6379, []string{"primary"})
 
 	// Create a service check
 	srv1.AddCheck(t, "service:redis", "redis", structs.HealthPassing)

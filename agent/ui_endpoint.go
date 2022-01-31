@@ -133,7 +133,11 @@ func (s *HTTPHandlers) UINodeInfo(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	// Verify we have some DC, or use the default
-	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/node/")
+	var err error
+	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/internal/ui/node/")
+	if err != nil {
+		return nil, err
+	}
 	if args.Node == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing node name")
@@ -245,7 +249,11 @@ func (s *HTTPHandlers) UIGatewayServicesNodes(resp http.ResponseWriter, req *htt
 	}
 
 	// Pull out the service name
-	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/gateway-services-nodes/")
+	var err error
+	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, "/v1/internal/ui/gateway-services-nodes/")
+	if err != nil {
+		return nil, err
+	}
 	if args.ServiceName == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing gateway name")
@@ -287,7 +295,11 @@ func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Req
 		return nil, err
 	}
 
-	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/service-topology/")
+	var err error
+	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, "/v1/internal/ui/service-topology/")
+	if err != nil {
+		return nil, err
+	}
 	if args.ServiceName == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing service name")
@@ -566,7 +578,11 @@ func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.R
 	}
 
 	// Pull out the service name
-	name := strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/gateway-intentions/")
+	var err error
+	name, err := getPathSuffixUnescaped(req.URL.Path, "/v1/internal/ui/gateway-intentions/")
+	if err != nil {
+		return nil, err
+	}
 	if name == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing gateway name")
@@ -647,7 +663,10 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// here.
 
 	// Replace prefix in the path
-	subPath := strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/metrics-proxy")
+	subPath, err := getPathSuffixUnescaped(req.URL.Path, "/v1/internal/ui/metrics-proxy")
+	if err != nil {
+		return nil, err
+	}
 
 	// Append that to the BaseURL (which might contain a path prefix component)
 	newURL := cfg.BaseURL + subPath

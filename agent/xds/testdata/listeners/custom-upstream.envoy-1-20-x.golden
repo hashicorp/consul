@@ -27,11 +27,11 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "prepared_query:geo-cache:custom-upstream",
+      "name": "prepared_query:geo-cache:127.10.10.10:8181",
       "address": {
         "socketAddress": {
-          "address": "11.11.11.11",
-          "portValue": 11111
+          "address": "127.10.10.10",
+          "portValue": 8181
         }
       },
       "filterChains": [
@@ -41,13 +41,14 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "foo-stats",
-                "cluster": "random-cluster"
+                "statPrefix": "upstream.prepared_query_geo-cache",
+                "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
         }
-      ]
+      ],
+      "trafficDirection": "OUTBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",

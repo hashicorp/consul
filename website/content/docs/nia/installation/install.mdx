@@ -14,18 +14,19 @@ Refer to the [introduction](https://learn.hashicorp.com/tutorials/consul/consul-
 <Tabs>
 <Tab heading="Pre-compiled binary">
 
-To install Consul-Terraform-Sync, find the [appropriate package](https://releases.hashicorp.com/consul-terraform-sync/) for your system and download it as a zip archive. For the CTS Enterprise binary, download a zip archive with the `+ent` metadata. [CTS Enterprise requires a Consul Enterpise license](/docs/nia/enterprise/license) to run.
+To install Consul-Terraform-Sync, find the [appropriate package](https://releases.hashicorp.com/consul-terraform-sync/) for your system and download it as a zip archive. For the CTS Enterprise binary, download a zip archive with the `+ent` metadata. [CTS Enterprise requires a Consul Enterprise license](/docs/nia/enterprise/license) to run.
 
 Unzip the package to extract the binary named `consul-terraform-sync`. Move the `consul-terraform-sync` binary to a location available on your `PATH`.
 
 Example:
+
 ```shell-session
 $ echo $PATH
 /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 $ mv ./consul-terraform-sync /usr/local/bin/consul-terraform-sync
 ```
 
-Once installed, verify the installation works by prompting the `-version` or `-help` option. The version outputed for the CTS Enterpise binary includes the `+ent` metadata.
+Once installed, verify the installation works by prompting the `-version` or `-help` option. The version outputted for the CTS Enterprise binary includes the `+ent` metadata.
 
 ```shell-session
 $ consul-terraform-sync -version
@@ -42,7 +43,7 @@ For the CTS Enterprise, use the Docker image [`hashicorp/consul-terraform-sync-e
 $ docker pull hashicorp/consul-terraform-sync
 ```
 
-Once installed, verify the installation works by prompting the `-version` or `-help` option. The version outputed for the CTS Enterpise image includes the `+ent` metadata.
+Once installed, verify the installation works by prompting the `-version` or `-help` option. The version outputted for the CTS Enterprise image includes the `+ent` metadata.
 
 ```shell-session
 $ docker run --rm hashicorp/consul-terraform-sync -version

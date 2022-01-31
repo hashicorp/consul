@@ -43,6 +43,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `key:read`   |
 
+The corresponding CLI command is [`consul kv get`](/commands/kv/get).
+
 ### Parameters
 
 - `key` `(string: "")` - Specifies the path of the key to read.
@@ -173,6 +175,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `key:write`  |
 
+The corresponding CLI command is [`consul kv put`](/commands/kv/put).
+
 ### Parameters
 
 - `key` `(string: "")` - Specifies the path of the key.
@@ -258,6 +262,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `key:write`  |
+
+The corresponding CLI command is [`consul kv delete`](/commands/kv/delete).
 
 ### Parameters
 

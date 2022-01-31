@@ -10,11 +10,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/raft"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/raft"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestTxnEndpoint_Bad_JSON(t *testing.T) {
@@ -385,6 +386,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 				},
 				QueryMeta: structs.QueryMeta{
 					KnownLeader: true,
+					Index:       1,
 				},
 			}
 			assert.Equal(t, expected, txnResp)

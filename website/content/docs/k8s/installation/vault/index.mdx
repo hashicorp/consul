@@ -27,11 +27,17 @@ At a high level, there are two points of integration with Vault:
 
 ### Vault Helm Config
 
-A minimal valid installation of Vault must include the Agent Injector:
+A minimal valid installation of Vault Kubernetes must include the Agent Injector which is utilized for accessing secrets from Vault. Vault servers could be deployed
+external to Vault on Kubernetes as described via the [`externalvaultaddr`](https://www.vaultproject.io/docs/platform/k8s/helm/configuration#externalvaultaddr) value in the Vault Helm Configuration 
+
+<CodeBlockConfig filename="values.yaml">
+
 ```yaml
 injector:
   enabled: "true"
 ```
+
+</CodeBlockConfig>
 
 ### Vault Kubernetes Auth Method
 
@@ -60,7 +66,7 @@ $ vault secrets enable -path=consul kv-v2
 
 ### Vault PKI Engine
 
-The Vault PKI Engine must be enabled in order to leverage Vault for issuiing Consul Server TLS certificates. More details for configuring the PKI Engine is found in [Bootstrapping the PKI Engine](https://www.consul.io/docs/k8s/installation/vault/server-tls#bootstrapping-the-pki-engine) under the Server TLS section. 
+The Vault PKI Engine must be enabled in order to leverage Vault for issuing Consul Server TLS certificates. More details for configuring the PKI Engine is found in [Bootstrapping the PKI Engine](/docs/k8s/installation/vault/server-tls#bootstrapping-the-pki-engine) under the Server TLS section.
 
 ```shell-session
 $ vault secrets enable pki
@@ -83,7 +89,7 @@ which bootstrap Vault Auth roles and Policies for Consul to use. For the support
 guides and ensure to, when combining the secrets, append the Vault Policies to your Vault Kube Auth Roles via a comma separated value (i.e. `policies=gossip-policy,consul-ca,consul-server,custom-policy`).
 Ex:
 ```shell-session
-vault write auth/kubernetes/role/consul-server \
+$ vault write auth/kubernetes/role/consul-server \
     bound_service_account_names=<Consul server service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
     policies=gossip-policy,consul-ca,consul-server \

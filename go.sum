@@ -303,8 +303,9 @@ github.com/hashicorp/raft-boltdb v0.0.0-20211202195631-7d34b9fb3f42 h1:Ye8SofeDH
 github.com/hashicorp/raft-boltdb v0.0.0-20211202195631-7d34b9fb3f42/go.mod h1:wcXL8otVu5cpJVLjcmq7pmfdRCdaP+xnvu7WQcKJAhs=
 github.com/hashicorp/raft-boltdb/v2 v2.2.0 h1:/CVN9LSAcH50L3yp2TsPFIpeyHn1m3VF6kiutlDE3Nw=
 github.com/hashicorp/raft-boltdb/v2 v2.2.0/go.mod h1:SgPUD5TP20z/bswEr210SnkUFvQP/YjKV95aaiTbeMQ=
-github.com/hashicorp/serf v0.9.6 h1:uuEX1kLR6aoda1TBttmJQKDLZE1Ob7KN0NPdE7EtCDc=
 github.com/hashicorp/serf v0.9.6/go.mod h1:TXZNMjZQijwlDvp+r0b63xZ45H7JmCmgg4gpTwn9UV4=
+github.com/hashicorp/serf v0.9.7 h1:hkdgbqizGQHuU5IPqYM1JdSMV8nKfpuOnZYXssk9muY=
+github.com/hashicorp/serf v0.9.7/go.mod h1:TXZNMjZQijwlDvp+r0b63xZ45H7JmCmgg4gpTwn9UV4=
 github.com/hashicorp/vault/api v1.0.5-0.20200717191844-f687267c8086 h1:OKsyxKi2sNmqm1Gv93adf2AID2FOBFdCbbZn9fGtIdg=
 github.com/hashicorp/vault/api v1.0.5-0.20200717191844-f687267c8086/go.mod h1:R3Umvhlxi2TN7Ex2hzOowyeNb+SfbVWI973N+ctaFMk=
 github.com/hashicorp/vault/sdk v0.1.14-0.20200519221838-e0cfd64bc267 h1:e1ok06zGrWJW91rzRroyl5nRNqraaBe4d5hiKcVZuHM=

@@ -33,6 +33,8 @@ Before beginning the installation process, verify that `kubectl` is already conf
 
 The [Homebrew](https://brew.sh) package manager is required to complete the following installation instructions.
 
+-> ** NOTE:** To deploy a previous version of Consul on Kubernetes via the CLI, you will need to first download the specific version of the CLI that matches the version of the control plane that you would like to deploy. Please follow [Install a specific version of Consul K8s CLI](/docs/k8s/installation/install-cli#install-a-specific-version-of-the-cli).
+
 1. Install the HashiCorp `tap`, which is a repository of all Homebrew packages for HashiCorp:
    ```shell-session
    $ brew tap hashicorp/tap
@@ -96,7 +98,7 @@ cluster with default configurations. We strongly recommend [learning about the c
 of Consul. This provides a less complicated out-of-box experience for new users,
 but is not appropriate for a production setup. We strongly recommend using
 a properly-secured Kubernetes cluster or making sure that you understand and enable
-the [recommended security features](/docs/internals/security). Currently,
+the [recommended security features](/docs/security). Currently,
 some of these features are not supported in the Helm chart and require additional
 manual configuration.
 
@@ -178,7 +180,7 @@ NAME: consul
 ```
 
 If you've already installed Consul and want to make changes, you'll need to run
-`helm upgrade`. See [Upgrading](/docs/k8s/operations/upgrading) for more details.
+`helm upgrade`. See [Upgrading](/docs/k8s/upgrade) for more details.
 
 ## Viewing the Consul UI
 

@@ -102,7 +102,7 @@ A service lookup is used to query for service providers. Service queries support
 two lookup methods: standard and strict [RFC 2782](https://tools.ietf.org/html/rfc2782).
 
 By default, SRV weights are all set at 1, but changing weights is supported using the
-`Weights` attribute of the [service definition](/docs/agent/services).
+`Weights` attribute of the [service definition](/docs/discovery/services).
 
 Note that DNS is limited in size per request, even when performing DNS TCP
 queries.
@@ -207,6 +207,122 @@ rabbitmq.node1.dc1.consul.	0	IN	A	10.1.11.20
 
 Again, note that the SRV record returns the port of the service as well as its IP.
 
+#### SRV response for hosts in the .addr subdomain
+
+If a service registered to Consul has an explicit IP [`address`](/api-docs/agent/service#address)
+or tagged address(es) defined on the service registration, the hostname returned
+in the target field of the answer section for the DNS SRV query for the service
+will be in the format of `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
+
+<Tabs>
+
+<Tab heading="IPv4">
+
+In the example below, the `rabbitmq` service has been registered with an explicit
+IPv4 address of `192.0.2.10`.
+
+<CodeTabs heading="Service defined with explicit IPv4 address in agent config" filename="agent-config.hcl">
+
+```hcl
+node_name = "node1"
+
+services {
+  name = "rabbitmq"
+  address = "192.0.2.10"
+  port = 5672
+}
+```
+
+```json
+{
+  "node_name": "node1",
+  "services": [
+    {
+      "name": "rabbitmq",
+      "address": "192.0.2.10",
+      "port": 5672
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+When performing an SRV query for this service, the SRV response contains a single
+record with a hostname in the format of `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 -t srv _rabbitmq._tcp.service.consul +short
+1 1 5672 c000020a.addr.dc1.consul.
+```
+
+In this example, the hex-encoded IP from the returned hostname is `c000020a`.
+Converting each hex octet to decimal reveals the IP address that was specified
+in the service registration.
+
+```shell-session
+$ echo -n "c000020a" | perl -ne 'printf("%vd\n", pack("H*", $_))'
+192.0.2.10
+```
+
+</Tab>
+
+<Tab heading="IPv6">
+
+In the example below, the `rabbitmq` service has been registered with an explicit
+IPv6 address of `2001:db8:1:2:cafe::1337`.
+
+<CodeTabs heading="Service defined with explicit IPv6 address in agent config" filename="agent-config.hcl">
+
+```hcl
+node_name = "node1"
+
+services {
+  name = "rabbitmq"
+  address = "2001:db8:1:2:cafe::1337"
+  port = 5672
+}
+```
+
+```json
+{
+  "node_name": "node1",
+  "services": [
+    {
+      "name": "rabbitmq",
+      "address": "2001:db8:1:2:cafe::1337",
+      "port": 5672
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+When performing an SRV query for this servie, the SRV response contains a single
+record with a hostname in the format of `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 -t srv _rabbitmq._tcp.service.consul +short
+1 1 5672 20010db800010002cafe000000001337.addr.dc1.consul.
+```
+
+In this example, the hex-encoded IP from the returned hostname is
+`20010db800010002cafe000000001337`. This is the fully expanded IPv6 address with
+colon separators removed.
+
+The following command re-adds the colon separators to display the fully expanded
+IPv6 address that was specified in the service registration.
+
+```shell-session
+$ echo -n "20010db800010002cafe000000001337" | perl -ne 'printf join(":", unpack("(A4)*", $_))."\n"'
+2001:0db8:0001:0002:cafe:0000:0000:1337
+```
+
+</Tab>
+
+</Tabs>
+
 ### Prepared Query Lookups
 
 The format of a prepared query lookup is:
@@ -278,7 +394,7 @@ To find ingress-enabled services:
 <service>.ingress.<domain>
 ```
 
-This will find all [ingress gateway](/docs/connect/ingress-gateway)
+This will find all [ingress gateway](/docs/connect/gateways/ingress-gateway)
 endpoints for the given `service`.
 
 This endpoint currently only finds services within the same datacenter

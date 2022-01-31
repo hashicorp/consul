@@ -9,7 +9,7 @@ description: >-
 
 # Server Performance
 
-Since Consul servers run a [consensus protocol](/docs/internals/consensus) to
+Since Consul servers run a [consensus protocol](/docs/architecture/consensus) to
 process all write operations and are contacted on nearly all read operations, server
 performance is critical for overall throughput and health of a Consul cluster. Servers
 are generally I/O bound for writes because the underlying Raft log store performs a sync
