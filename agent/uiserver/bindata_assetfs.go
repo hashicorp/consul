@@ -867,66 +867,66 @@ type bintree struct {
 }
 
 var _bintree = &bintree{nil, map[string]*bintree{
-	"web_ui": {nil, map[string]*bintree{
-		"assets": {nil, map[string]*bintree{
-			"apple-touch-icon-01cd4680782fbb5bc02301347df9903d.png": {web_uiAssetsAppleTouchIcon01cd4680782fbb5bc02301347df9903dPng, map[string]*bintree{}},
-			"codemirror": {nil, map[string]*bintree{
-				"mode": {nil, map[string]*bintree{
-					"javascript": {nil, map[string]*bintree{
-						"javascript-77218cd1268ea6df75775114ae086566.js": {web_uiAssetsCodemirrorModeJavascriptJavascript77218cd1268ea6df75775114ae086566Js, map[string]*bintree{}},
+	"web_ui": &bintree{nil, map[string]*bintree{
+		"assets": &bintree{nil, map[string]*bintree{
+			"apple-touch-icon-01cd4680782fbb5bc02301347df9903d.png": &bintree{web_uiAssetsAppleTouchIcon01cd4680782fbb5bc02301347df9903dPng, map[string]*bintree{}},
+			"codemirror": &bintree{nil, map[string]*bintree{
+				"mode": &bintree{nil, map[string]*bintree{
+					"javascript": &bintree{nil, map[string]*bintree{
+						"javascript-77218cd1268ea6df75775114ae086566.js": &bintree{web_uiAssetsCodemirrorModeJavascriptJavascript77218cd1268ea6df75775114ae086566Js, map[string]*bintree{}},
 					}},
-					"ruby": {nil, map[string]*bintree{
-						"ruby-ea43ca3a3bdd63a52811e8464d66134b.js": {web_uiAssetsCodemirrorModeRubyRubyEa43ca3a3bdd63a52811e8464d66134bJs, map[string]*bintree{}},
+					"ruby": &bintree{nil, map[string]*bintree{
+						"ruby-ea43ca3a3bdd63a52811e8464d66134b.js": &bintree{web_uiAssetsCodemirrorModeRubyRubyEa43ca3a3bdd63a52811e8464d66134bJs, map[string]*bintree{}},
 					}},
-					"xml": {nil, map[string]*bintree{
-						"xml-10ec8b8cc61ef0fbd25b27a599fdcd60.js": {web_uiAssetsCodemirrorModeXmlXml10ec8b8cc61ef0fbd25b27a599fdcd60Js, map[string]*bintree{}},
+					"xml": &bintree{nil, map[string]*bintree{
+						"xml-10ec8b8cc61ef0fbd25b27a599fdcd60.js": &bintree{web_uiAssetsCodemirrorModeXmlXml10ec8b8cc61ef0fbd25b27a599fdcd60Js, map[string]*bintree{}},
 					}},
-					"yaml": {nil, map[string]*bintree{
-						"yaml-3f129a000349e3075be0f65719884b61.js": {web_uiAssetsCodemirrorModeYamlYaml3f129a000349e3075be0f65719884b61Js, map[string]*bintree{}},
+					"yaml": &bintree{nil, map[string]*bintree{
+						"yaml-3f129a000349e3075be0f65719884b61.js": &bintree{web_uiAssetsCodemirrorModeYamlYaml3f129a000349e3075be0f65719884b61Js, map[string]*bintree{}},
 					}},
 				}},
 			}},
-			"consul-acls": {nil, map[string]*bintree{
-				"routes-75a2ac7d38caf09cfee2a4e2bc49dcf7.js":   {web_uiAssetsConsulAclsRoutes75a2ac7d38caf09cfee2a4e2bc49dcf7Js, map[string]*bintree{}},
-				"services-8b6b2b2bea3add7709b8075a5ed5652b.js": {web_uiAssetsConsulAclsServices8b6b2b2bea3add7709b8075a5ed5652bJs, map[string]*bintree{}},
+			"consul-acls": &bintree{nil, map[string]*bintree{
+				"routes-75a2ac7d38caf09cfee2a4e2bc49dcf7.js":   &bintree{web_uiAssetsConsulAclsRoutes75a2ac7d38caf09cfee2a4e2bc49dcf7Js, map[string]*bintree{}},
+				"services-8b6b2b2bea3add7709b8075a5ed5652b.js": &bintree{web_uiAssetsConsulAclsServices8b6b2b2bea3add7709b8075a5ed5652bJs, map[string]*bintree{}},
 			}},
-			"consul-nspaces": {nil, map[string]*bintree{
-				"routes-f939ed42e9b83f9d1bbc5256be68e77c.js":   {web_uiAssetsConsulNspacesRoutesF939ed42e9b83f9d1bbc5256be68e77cJs, map[string]*bintree{}},
-				"services-8b6b2b2bea3add7709b8075a5ed5652b.js": {web_uiAssetsConsulNspacesServices8b6b2b2bea3add7709b8075a5ed5652bJs, map[string]*bintree{}},
+			"consul-nspaces": &bintree{nil, map[string]*bintree{
+				"routes-f939ed42e9b83f9d1bbc5256be68e77c.js":   &bintree{web_uiAssetsConsulNspacesRoutesF939ed42e9b83f9d1bbc5256be68e77cJs, map[string]*bintree{}},
+				"services-8b6b2b2bea3add7709b8075a5ed5652b.js": &bintree{web_uiAssetsConsulNspacesServices8b6b2b2bea3add7709b8075a5ed5652bJs, map[string]*bintree{}},
 			}},
-			"consul-partitions": {nil, map[string]*bintree{
-				"routes-cba490481425519435d142c743bbc3d3.js":   {web_uiAssetsConsulPartitionsRoutesCba490481425519435d142c743bbc3d3Js, map[string]*bintree{}},
-				"services-85621f245f195fe1ce177064bfb04504.js": {web_uiAssetsConsulPartitionsServices85621f245f195fe1ce177064bfb04504Js, map[string]*bintree{}},
+			"consul-partitions": &bintree{nil, map[string]*bintree{
+				"routes-cba490481425519435d142c743bbc3d3.js":   &bintree{web_uiAssetsConsulPartitionsRoutesCba490481425519435d142c743bbc3d3Js, map[string]*bintree{}},
+				"services-85621f245f195fe1ce177064bfb04504.js": &bintree{web_uiAssetsConsulPartitionsServices85621f245f195fe1ce177064bfb04504Js, map[string]*bintree{}},
 			}},
-			"consul-ui": {nil, map[string]*bintree{
-				"routes-7726cc49168b83dcd93c923c97ebe93d.js":         {web_uiAssetsConsulUiRoutes7726cc49168b83dcd93c923c97ebe93dJs, map[string]*bintree{}},
-				"routes-debug-8f884a3e3f7105d43b7b4024db9b4c99.js":   {web_uiAssetsConsulUiRoutesDebug8f884a3e3f7105d43b7b4024db9b4c99Js, map[string]*bintree{}},
-				"services-a17470cdfbd4a4096117ac0103802226.js":       {web_uiAssetsConsulUiServicesA17470cdfbd4a4096117ac0103802226Js, map[string]*bintree{}},
-				"services-debug-5a3f1d2e3954a05aa8383f02db31b8e6.js": {web_uiAssetsConsulUiServicesDebug5a3f1d2e3954a05aa8383f02db31b8e6Js, map[string]*bintree{}},
+			"consul-ui": &bintree{nil, map[string]*bintree{
+				"routes-7726cc49168b83dcd93c923c97ebe93d.js":         &bintree{web_uiAssetsConsulUiRoutes7726cc49168b83dcd93c923c97ebe93dJs, map[string]*bintree{}},
+				"routes-debug-8f884a3e3f7105d43b7b4024db9b4c99.js":   &bintree{web_uiAssetsConsulUiRoutesDebug8f884a3e3f7105d43b7b4024db9b4c99Js, map[string]*bintree{}},
+				"services-a17470cdfbd4a4096117ac0103802226.js":       &bintree{web_uiAssetsConsulUiServicesA17470cdfbd4a4096117ac0103802226Js, map[string]*bintree{}},
+				"services-debug-5a3f1d2e3954a05aa8383f02db31b8e6.js": &bintree{web_uiAssetsConsulUiServicesDebug5a3f1d2e3954a05aa8383f02db31b8e6Js, map[string]*bintree{}},
 			}},
-			"consul-ui-0211f3a94fa457c0e5017b752330823c.css":       {web_uiAssetsConsulUi0211f3a94fa457c0e5017b752330823cCss, map[string]*bintree{}},
-			"consul-ui-7e65bd2d836bd4fb61149d78e6516029.js":        {web_uiAssetsConsulUi7e65bd2d836bd4fb61149d78e6516029Js, map[string]*bintree{}},
-			"css.escape-851839b3ea1d0b4eb4c7089446df5e9f.js":       {web_uiAssetsCssEscape851839b3ea1d0b4eb4c7089446df5e9fJs, map[string]*bintree{}},
-			"encoding-cdb50fbdab6d4d3fdf574dd784f77d27.js":         {web_uiAssetsEncodingCdb50fbdab6d4d3fdf574dd784f77d27Js, map[string]*bintree{}},
-			"encoding-indexes-75eea16b259716db4fd162ee283d2ae5.js": {web_uiAssetsEncodingIndexes75eea16b259716db4fd162ee283d2ae5Js, map[string]*bintree{}},
-			"favicon.ico": {web_uiAssetsFaviconIco, map[string]*bintree{}},
-			"favicon.svg": {web_uiAssetsFaviconSvg, map[string]*bintree{}},
-			"init-21ea65714d133467454b601efc15e2dd.js": {web_uiAssetsInit21ea65714d133467454b601efc15e2ddJs, map[string]*bintree{}},
-			"loading-cylon-pink.svg":                   {web_uiAssetsLoadingCylonPinkSvg, map[string]*bintree{}},
-			"metrics-providers": {nil, map[string]*bintree{
-				"consul-31d7e3b0ef7c58d62338c7d7aeaaf545.js":     {web_uiAssetsMetricsProvidersConsul31d7e3b0ef7c58d62338c7d7aeaaf545Js, map[string]*bintree{}},
-				"prometheus-5f31ba3b7ffd850fa916a0a76933e968.js": {web_uiAssetsMetricsProvidersPrometheus5f31ba3b7ffd850fa916a0a76933e968Js, map[string]*bintree{}},
+			"consul-ui-0211f3a94fa457c0e5017b752330823c.css":       &bintree{web_uiAssetsConsulUi0211f3a94fa457c0e5017b752330823cCss, map[string]*bintree{}},
+			"consul-ui-7e65bd2d836bd4fb61149d78e6516029.js":        &bintree{web_uiAssetsConsulUi7e65bd2d836bd4fb61149d78e6516029Js, map[string]*bintree{}},
+			"css.escape-851839b3ea1d0b4eb4c7089446df5e9f.js":       &bintree{web_uiAssetsCssEscape851839b3ea1d0b4eb4c7089446df5e9fJs, map[string]*bintree{}},
+			"encoding-cdb50fbdab6d4d3fdf574dd784f77d27.js":         &bintree{web_uiAssetsEncodingCdb50fbdab6d4d3fdf574dd784f77d27Js, map[string]*bintree{}},
+			"encoding-indexes-75eea16b259716db4fd162ee283d2ae5.js": &bintree{web_uiAssetsEncodingIndexes75eea16b259716db4fd162ee283d2ae5Js, map[string]*bintree{}},
+			"favicon.ico": &bintree{web_uiAssetsFaviconIco, map[string]*bintree{}},
+			"favicon.svg": &bintree{web_uiAssetsFaviconSvg, map[string]*bintree{}},
+			"init-21ea65714d133467454b601efc15e2dd.js": &bintree{web_uiAssetsInit21ea65714d133467454b601efc15e2ddJs, map[string]*bintree{}},
+			"loading-cylon-pink.svg":                   &bintree{web_uiAssetsLoadingCylonPinkSvg, map[string]*bintree{}},
+			"metrics-providers": &bintree{nil, map[string]*bintree{
+				"consul-31d7e3b0ef7c58d62338c7d7aeaaf545.js":     &bintree{web_uiAssetsMetricsProvidersConsul31d7e3b0ef7c58d62338c7d7aeaaf545Js, map[string]*bintree{}},
+				"prometheus-5f31ba3b7ffd850fa916a0a76933e968.js": &bintree{web_uiAssetsMetricsProvidersPrometheus5f31ba3b7ffd850fa916a0a76933e968Js, map[string]*bintree{}},
 			}},
-			"vendor-69ef69e98b7d14d1513f8056b6c6b48d.css": {web_uiAssetsVendor69ef69e98b7d14d1513f8056b6c6b48dCss, map[string]*bintree{}},
-			"vendor-a399e58c4944c43ad173eca58b0156b9.js":  {web_uiAssetsVendorA399e58c4944c43ad173eca58b0156b9Js, map[string]*bintree{}},
+			"vendor-69ef69e98b7d14d1513f8056b6c6b48d.css": &bintree{web_uiAssetsVendor69ef69e98b7d14d1513f8056b6c6b48dCss, map[string]*bintree{}},
+			"vendor-a399e58c4944c43ad173eca58b0156b9.js":  &bintree{web_uiAssetsVendorA399e58c4944c43ad173eca58b0156b9Js, map[string]*bintree{}},
 		}},
-		"index.html": {web_uiIndexHtml, map[string]*bintree{}},
-		"oidc": {nil, map[string]*bintree{
-			"callback": {web_uiOidcCallback, map[string]*bintree{}},
+		"index.html": &bintree{web_uiIndexHtml, map[string]*bintree{}},
+		"oidc": &bintree{nil, map[string]*bintree{
+			"callback": &bintree{web_uiOidcCallback, map[string]*bintree{}},
 		}},
-		"robots.txt": {web_uiRobotsTxt, map[string]*bintree{}},
-		"torii": {nil, map[string]*bintree{
-			"redirect.html": {web_uiToriiRedirectHtml, map[string]*bintree{}},
+		"robots.txt": &bintree{web_uiRobotsTxt, map[string]*bintree{}},
+		"torii": &bintree{nil, map[string]*bintree{
+			"redirect.html": &bintree{web_uiToriiRedirectHtml, map[string]*bintree{}},
 		}},
 	}},
 }}
