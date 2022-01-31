@@ -289,11 +289,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			generator.Logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
 
-			sentType := make(map[string]struct{}) // use this to only do one kind of mutation per type per execution
 			for _, op := range xDSUpdateOrder {
-				if _, sent := sentType[op.TypeUrl]; sent {
-					continue
-				}
 				err, sent := handlers[op.TypeUrl].SendIfNew(
 					cfgSnap.Kind,
 					currentVersions[op.TypeUrl],
@@ -309,7 +305,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 						op.TypeUrl, err)
 				}
 				if sent {
-					sentType[op.TypeUrl] = struct{}{}
+					break // wait until we get an ACK to do more
 				}
 			}
 		}
