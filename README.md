@@ -1,10 +1,19 @@
-# Consul [![CircleCI](https://circleci.com/gh/hashicorp/consul/tree/main.svg?style=svg)](https://circleci.com/gh/hashicorp/consul/tree/main) [![Discuss](https://img.shields.io/badge/discuss-consul-ca2171.svg?style=flat)](https://discuss.hashicorp.com/c/consul)
+# Consul
+
+<p>
+  <a href="https://consul.io" title="Consul website">
+    <img src="./website/public/img/logo-hashicorp.svg" alt="HashiCorp Consul logo" width="200px">
+  </a>
+</p>
+
+[![Docker Pulls](https://img.shields.io/docker/pulls/_/consul.svg)](https://hub.docker.com/_/consul)
+[![Go Report Card](https://goreportcard.com/badge/github.com/hashicorp/consul)](https://goreportcard.com/report/github.com/hashicorp/consul)
+
+Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure.
 
 * Website: https://www.consul.io
 * Tutorials: [HashiCorp Learn](https://learn.hashicorp.com/consul)
 * Forum: [Discuss](https://discuss.hashicorp.com/c/consul)
-
-Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure.
 
 Consul provides several key features:
 
