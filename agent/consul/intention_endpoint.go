@@ -100,7 +100,7 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 	}
 
 	// Get the ACL token for the request for the checks below.
-	identity, authz, err := s.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := s.srv.ACLResolver.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}

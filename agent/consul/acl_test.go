@@ -4065,7 +4065,7 @@ func TestACLResolver_ResolveTokenToIdentityAndAuthorizer_UpdatesPurgeTheCache(t 
 	require.NoError(t, err)
 
 	runStep(t, "first resolve", func(t *testing.T) {
-		_, authz, err := srv.acls.ResolveTokenToIdentityAndAuthorizer(token)
+		_, authz, err := srv.ACLResolver.ResolveTokenToIdentityAndAuthorizer(token)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
@@ -4084,7 +4084,7 @@ func TestACLResolver_ResolveTokenToIdentityAndAuthorizer_UpdatesPurgeTheCache(t 
 		err := msgpackrpc.CallWithCodec(codec, "ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
 		require.NoError(t, err)
 
-		_, authz, err := srv.acls.ResolveTokenToIdentityAndAuthorizer(token)
+		_, authz, err := srv.ACLResolver.ResolveTokenToIdentityAndAuthorizer(token)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Deny, authz.KeyRead("foo", nil))
@@ -4100,7 +4100,7 @@ func TestACLResolver_ResolveTokenToIdentityAndAuthorizer_UpdatesPurgeTheCache(t 
 		err := msgpackrpc.CallWithCodec(codec, "ACL.TokenDelete", &req, &resp)
 		require.NoError(t, err)
 
-		_, _, err = srv.acls.ResolveTokenToIdentityAndAuthorizer(token)
+		_, _, err = srv.ACLResolver.ResolveTokenToIdentityAndAuthorizer(token)
 		require.True(t, acl.IsErrNotFound(err), "Error %v is not acl.ErrNotFound", err)
 	})
 }

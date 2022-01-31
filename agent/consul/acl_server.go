@@ -166,46 +166,16 @@ func (s *serverACLResolverBackend) ResolveRoleFromID(roleID string) (bool, *stru
 }
 
 func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
-	_, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
+	_, authz, err := s.ACLResolver.ResolveTokenToIdentityAndAuthorizer(token)
 	return authz, err
-}
-
-func (s *Server) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
-	// not using ResolveTokenToIdentityAndAuthorizer because in this case we don't
-	// need to resolve the roles, policies and namespace but just want the identity
-	// information such as accessor id.
-	return s.acls.ResolveTokenToIdentity(token)
 }
 
 // TODO: Client has an identical implementation, remove duplication
-func (s *Server) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
-	identity, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
-	if err != nil {
-		return nil, err
-	}
-
-	if entMeta == nil {
-		entMeta = &structs.EnterpriseMeta{}
-	}
-
-	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
-	// in the case of unknown identity
-	if identity != nil {
-		entMeta.Merge(identity.EnterpriseMetadata())
-	} else {
-		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
-	}
-
-	// Use the meta to fill in the ACL authorization context
-	entMeta.FillAuthzContext(authzContext)
-
-	return authz, err
-}
 
 func (s *Server) filterACL(token string, subj interface{}) error {
-	return filterACL(s.acls, token, subj)
+	return filterACL(s.ACLResolver, token, subj)
 }
 
 func (s *Server) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) {
-	filterACLWithAuthorizer(s.acls.logger, authorizer, subj)
+	filterACLWithAuthorizer(s.ACLResolver.logger, authorizer, subj)
 }

@@ -17,7 +17,7 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 	}
 
 	// This action requires operator read access.
-	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := op.srv.ACLResolver.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 	}
 
 	// This action requires operator write access.
-	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := op.srv.ACLResolver.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 	}
 
 	// This action requires operator read access.
-	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := op.srv.ACLResolver.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func (op *Operator) AutopilotState(args *structs.DCSpecificRequest, reply *autop
 	}
 
 	// This action requires operator read access.
-	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := op.srv.ACLResolver.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
