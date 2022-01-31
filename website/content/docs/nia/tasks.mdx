@@ -106,7 +106,7 @@ task {
     use_as_module_input = false
   }
 
-  source_input "services" {
+  module_input "services" {
     names = ["web-api"]
     datacenter = "dc2"
   }
@@ -146,9 +146,9 @@ See the [Consul-KV Condition](/docs/nia/configuration#consul-kv-condition) confi
 
 ### Schedule Condition
 
-All scheduled tasks must be configured with a schedule condition. The schedule condition sets the cadence to trigger a task with a [`cron`](/docs/nia/configuration#cron) configuration. The schedule condition block does not support parameters to configure source input. As a result, inputs must be configured separately. You can configure a [`source_input` block](/docs/nia/configuration#source_input) to set the source input.
+All scheduled tasks must be configured with a schedule condition. The schedule condition sets the cadence to trigger a task with a [`cron`](/docs/nia/configuration#cron) configuration. The schedule condition block does not support parameters to configure module input. As a result, inputs must be configured separately. You can configure [`module_input` blocks](/docs/nia/configuration#module_input) to define the module inputs.
 
-Below is an example configuration for a task that will execute every Monday, which is set by the schedule condition's [`cron`](/docs/nia/configuration#cron) configuration. The source input is defined by the `source_input` block. When the task is triggered on Monday, it will retrieve the latest information on "web" and "db" from Consul and provide this to the module's input variables.
+Below is an example configuration for a task that will execute every Monday, which is set by the schedule condition's [`cron`](/docs/nia/configuration#cron) configuration. The module input is defined by the `module_input` block. When the task is triggered on Monday, it will retrieve the latest information on "web" and "db" from Consul and provide this to the module's input variables.
 
 ```hcl
 task {
@@ -159,16 +159,22 @@ task {
   condition "schedule" {
     cron = "* * * * Mon"
   }
-  source_input "services" {
+  module_input "services" {
     names = ["web", "db"]
   }
 }
 ```
 
-Below are the available options for source input types and how to configure them:
+Below are the available options for module input types and how to configure them:
 
-- [Services source input](/docs/nia/terraform-modules/#services-source-input): configure through [`task.services`](/docs/nia/configuration#services) (deprecated) or [`source_input "services"`](/docs/nia/configuration#services-source-input)
-- [Consul KV source input](/docs/nia/terraform-modules/#consul-kv-source-input): configure through [`source_input "consul-kv"`](/docs/nia/configuration#consul-kv-source-input)
+- [Services module input](/docs/nia/terraform-modules/#services-module-input):
+  - [`task.services`](/docs/nia/configuration#services) field (deprecated)
+  - [`module_input "services"`](/docs/nia/configuration#services-configure-input) block
+  - [`module_input "services"`](/docs/nia/configuration#services-configure-input) block
+    - Block was previously named `source_input "services"` (deprecated)
+- [Consul KV module input](/docs/nia/terraform-modules/#consul-kv-module-input):
+  - [`module_input "consul-kv"`](/docs/nia/configuration#consul-kv-module-input)
+    - Block was previously named `source_input "consul-kv"` (deprecated)
 
 #### Running Behavior
 
@@ -208,7 +214,7 @@ These three levels form a hierarchy where each level of data informs the one hig
 
 ### Event
 
-When a task is triggered, CTS takes a series of steps in order to update the network infrastructure. These steps consist of fetching the latest data from Consul for the task's source inputs and then updating the network infrastructure accordingly. An event captures information across this process. It stores information to help understand if the update to network infrastructure was successful or not and any errors that may have occurred.
+When a task is triggered, CTS takes a series of steps in order to update the network infrastructure. These steps consist of fetching the latest data from Consul for the task's module inputs and then updating the network infrastructure accordingly. An event captures information across this process. It stores information to help understand if the update to network infrastructure was successful or not and any errors that may have occurred.
 
 A dynamic task will store an event when it is triggered by a change in Consul. A scheduled task will store an event when it is triggered on schedule, regardless if there is a change in Consul. A disabled task does not update network infrastructures, so it will not store events until until re-enabled.
 

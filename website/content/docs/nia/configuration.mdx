@@ -103,9 +103,9 @@ consul {
 
 ## Service
 
-~> Deprecated in CTS 0.5.0 and will be removed in a future major release. `service` blocks are used to define the `task` block's `services` fields, which were also deprecated and replaced with [Services Condition](/docs/nia/configuration#services-condition) and [Services Source Input](/docs/nia/configuration#services-source-input). `service` block configuration can be replaced by configuring the equivalent fields of the corresponding Services Condition and Services Source Input. See [0.5.0 release notes](/docs/nia/release-notes/0-5-0#deprecate-service-block) for examples.
+~> Deprecated in CTS 0.5.0 and will be removed in a future major release. `service` blocks are used to define the `task` block's `services` fields, which were also deprecated and replaced with [Services Condition](/docs/nia/configuration#services-condition) and [Services Module Input](/docs/nia/configuration#services-module-input). `service` block configuration can be replaced by configuring the equivalent fields of the corresponding Services Condition and Services Module Input. See [0.5.0 release notes](/docs/nia/release-notes/0-5-0#deprecate-service-block) for examples.
 
-A `service` block is an optional block to explicitly define the services configured in the `task` block's `services` field (deprecated). `service` blocks do not define services configured in the `task` block's `condition "services"` or `source_input "services` blocks.
+A `service` block is an optional block to explicitly define the services configured in the `task` block's `services` field (deprecated). `service` blocks do not define services configured in the `task` block's `condition "services"` or `module_input "services` blocks.
 
 A `service` block is only necessary for services that have non-default values e.g. custom datacenter. Services that do not have a `service` block configured will assume default values. To configure multiple services, specify multiple `service` blocks. If a `service` block is configured, the service can be referred in `task.services` by service name or ID. If a `service` block is not configured, it can only be referred to by service name.
 
@@ -125,7 +125,7 @@ service {
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace`  | Optional | string |<EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | string | Expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
-| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. <br/><br/> If multiple tasks depend on the same service but require different metadata, you can declare different sets of metadata for the same service. Define multiple service blocks for the service with unique IDs (and identical names) for those blocks. The metadata can then be separated per task based on the service IDs. | none|
+| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/docs/nia/terraform-modules#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. <br/><br/> If multiple tasks depend on the same service but require different metadata, you can declare different sets of metadata for the same service. Define multiple service blocks for the service with unique IDs (and identical names) for those blocks. The metadata can then be separated per task based on the service IDs. | none|
 
 ## Task
 
@@ -150,10 +150,10 @@ task {
 - `name` - (string: required) Name is the unique name of the task (required). A task name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes.
 - `enabled` - (bool: true) Enable or disable a task from running and managing resources.
 - `providers` - (list[string]) Providers is the list of provider names the task is dependent on. This is used to map [Terraform provider configuration](#terraform-provider) to the task.
-- `services` - (list[string]) **Deprecated in CTS 0.5.0 and will be removed in a future major release. Use [Services Condition](/docs/nia/configuration#services-condition) or [Services Source Input](/docs/nia/configuration#services-source-input) instead. See [0.5.0 release notes](/docs/nia/release-notes/0-5-0#deprecate-services-field) for examples** Specifies an optional list of logical service names or service IDs that the task monitors for changes in the Consul catalog. The `services` can act in different ways depending on the configuration of the task's `condition` block:
-  - no `condition` block configured: `services` will act as the task's condition and provide the services information as source input
-  - the `condition` block configured for type `services`: `services` is incompatible with this type of `condition` because both configure the services source input. CTS will return an error.
-  - the `condition` block configured for all other types: `services` will act only to provide services source input.
+- `services` - (list[string]) **Deprecated in CTS 0.5.0 and will be removed in a future major release. Use [Services Condition](/docs/nia/configuration#services-condition) or [Services Module Input](/docs/nia/configuration#services-module-input) instead. See [0.5.0 release notes](/docs/nia/release-notes/0-5-0#deprecate-services-field) for examples.** Specifies an optional list of logical service names or service IDs that the task monitors for changes in the Consul catalog. The `services` can act in different ways depending on the configuration of the task's `condition` block:
+  - no `condition` block configured: `services` will act as the task's condition and provide the services information as module input
+  - the `condition` block configured for type `services`: `services` is incompatible with this type of `condition` because both configure the services module input. CTS will return an error.
+  - the `condition` block configured for all other types: `services` will act only to provide services module input.
 
   Service values that are not explicitly defined by a `service` block that have a matching ID are assumed to be logical service names in the `default` namespace.
 - `source` - (string: required) Source is the location the driver uses to discover the Terraform module used for automation. The source is the module path which can be local or remote on the [Terraform Registry](https://registry.terraform.io/) or private module registry. Read more on [Terraform module source and other supported types here](https://www.terraform.io/docs/modules/sources.html).
@@ -194,7 +194,8 @@ task {
   - `min` - (string: "5s") The minimum period of time to wait after changes are detected before triggering related tasks.
   - `max` - (string: "20s") The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
 - `condition` - (obj: required) The requirement that, when met, triggers CTS to execute the task. Only one `condition` may be configured per task. CTS supports different types of conditions, which each have their own configuration options. See [Task Condition](#task-condition) configuration for full details on configuration options for each condition type.
-- `source_input` - (obj) Specifies a Consul object containing values or metadata to be provided to the Terraform Module. The `source_input` block defines any extra source inputs needed for task execution.  This is in addition to any source input provided by the `condition` block or `services` field (deprecated). Multiple `source_input` blocks can be configured per task. [Task Source Input](#task-source-input) configuration for full details on usage and restrictions.
+- `source_input` - (obj) **Deprecated in CTS 0.5.0 and will be removed in 0.8.0. See the `module_input` block instead.**
+- `module_input` - (obj) Specifies a Consul object containing values or metadata to be provided to the Terraform Module. The `module_input` block defines any extra module inputs needed for task execution.  This is in addition to any module input provided by the `condition` block or `services` field (deprecated). Multiple `module_input` blocks can be configured per task. [Task Module Input](#task-module-input) configuration for full details on usage and restrictions.
 - `terraform_version` - (string) <EnterpriseAlert inline /> The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization. This option is only available when used with the [Terraform Cloud driver](#terraform-cloud-driver); otherwise, set the version within the [Terraform driver](#terraform-driver).
 
 ### Task Condition
@@ -207,9 +208,9 @@ This condition will trigger the task on services that match the regular expressi
 
 When a `condition "services"` block is configured for a task, then the following restrictions become applicable:
 - the task cannot be configured with the `services` field (deprecated)
-- the task cannot be configure with a `source_input "services"` block
+- the task cannot be configure with a `module_input "services"` or `source_input "services"` (deprecated) block
 
-These restrictions are due to the fact that the monitored services information for a task can only be set through one configuration option. Any services source input that the task needs should be configured solely through the `condition` block.
+These restrictions are due to the fact that the monitored services information for a task can only be set through one configuration option. Any services module input that the task needs should be configured solely through the `condition` block.
 
 See [Task Execution: Services Condition](/docs/nia/tasks#services-condition) for more details on how tasks are triggered with a services condition.
 
@@ -257,7 +258,7 @@ task {
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | string | Expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
-| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
+| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/docs/nia/terraform-modules#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
 | `source_includes_var` | Optional | boolean | **Deprecated in CTS 0.5.0 and will be removed in 0.8.0. See the `use_as_module_input` field instead.** | true |
 | `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`services` variable](/docs/nia/terraform-modules#services-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
 
@@ -300,7 +301,7 @@ task {
 
 A `condition "consul-kv"` block configures a task to only execute on changes to a Consul KV entry. The condition can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path.
 
-When a `condition "consul-kv"` block is configured for a task, the task cannot be configured with a `source_input "consul-kv"` block. The monitored consul-kv information for a task can only be set through one configuration option. Any consul-kv source input that the task needs should be configured solely through the `condition` block.
+When a `condition "consul-kv"` block is configured for a task, the task cannot be configured with a `module_input "consul-kv"` or `source_input "consul-kv"` (deprecated) block. The monitored consul-kv information for a task can only be set through one configuration option. Any consul-kv module input that the task needs should be configured solely through the `condition` block.
 
 
 See [Task Execution: Consul KV Condition](/docs/nia/tasks#consul-kv-condition) for more information on how tasks are triggered with a consul-kv condition.
@@ -336,11 +337,11 @@ task {
 
 A scheduled task has a schedule condition block, which defines the schedule for executing the task. Unlike a dynamic task, a scheduled task does not dynamically trigger on changes in Consul.
 
-Schedule tasks also rely on additional task configuration, separate from the condition block to determine the source input information to provide to the task module. See [`source_input`](#source_input) block configuration for details on how to configure source input.
+Schedule tasks also rely on additional task configuration, separate from the condition block to determine the module input information to provide to the task module. See [`module_input`](#module_input) block configuration for details on how to configure module input.
 
 See [Task Execution: Schedule Condition](/docs/nia/tasks#schedule-condition) for more information on how tasks are triggered with schedule conditions.
 
-See [Terraform Module: Source Input](/docs/nia/terraform-modules#source-input) for more information on source input options for a scheduled task.
+See [Terraform Module: Module Input](/docs/nia/terraform-modules#module-input) for more information on module input options for a scheduled task.
 
 ```hcl
 task {
@@ -352,7 +353,7 @@ task {
     cron = "* * * * Mon"
   }
 
-  source_input "services" {
+  module_input "services" {
     names = ["web", "db"]
   }
 }
@@ -362,11 +363,13 @@ task {
 | --------- | -------- | ---- | ----------- | ------- |
 | `cron` |  Required | string | The CRON expression that dictates the schedule to trigger the task. For more information on CRON expressions, see the [cronexpr parsing library](https://github.com/hashicorp/cronexpr). | none |
 
-### Task Source Input
+### Task Module Input ((#task-source-input))
 
-You can optionally add one or more `source_input` blocks to the `task` block. A `source_input` block specifies a Consul object containing values or metadata to be provided to the Terraform Module. Both scheduled and dynamic tasks can be configured with `source_input` blocks.
+~> `module_input` was renamed from `source_input` in CTS 0.5.0. Documentation for the `module_input` block also applies to the `source_input` block.
 
-The example below shows an outline of `source_input` within a task configuration:
+You can optionally add one or more `module_input` blocks to the `task` block. A `module_input` block specifies a Consul object containing values or metadata to be provided to the Terraform Module. Both scheduled and dynamic tasks can be configured with `module_input` blocks.
+
+The example below shows an outline of `module_input` within a task configuration:
 
 ```hcl
 task {
@@ -378,19 +381,19 @@ task {
     // ...
   }
 
-  source_input "<input-type>" {
+  module_input "<input-type>" {
     // ...
   }
 }
 ```
 
-~> The type of the `source_input` block that can be configured depends on the `condition` block type and the `services` field (deprecated). See [Task Source Input Restrictions](/docs/nia/configuration#task-source-input-restrictions) for more details.
+~> The type of the `module_input` block that can be configured depends on the `condition` block type and the `services` field (deprecated). See [Task Module Input Restrictions](/docs/nia/configuration#task-module-input-restrictions) for more details.
 
-The following sections describe the source input types that CTS supports.
+The following sections describe the module input types that CTS supports.
 
-#### Services Source Input
+#### Services Module Input ((#services-source-input))
 
-This `services` source input object defines services registered to Consul whose metadata will be used as [services source input to the Terraform Module](/docs/nia/terraform-modules/#services-source-input). The following parameters are supported:
+This `services` module input object defines services registered to Consul whose metadata will be used as [services module input to the Terraform Module](/docs/nia/terraform-modules/#services-module-input). The following parameters are supported:
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
@@ -399,7 +402,7 @@ This `services` source input object defines services registered to Consul whose 
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace` | Optional | string |<EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | string | Expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/api-docs/health#filtering-2) and section about [how to write filter expressions](/api-docs/features/filtering#creating-expressions) for additional information. | none |
-| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/docs/nia/terraform-modules#services-source-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
+| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/docs/nia/terraform-modules#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
 
 In the following example, the scheduled task queries all Consul services with `web` as the suffix. The metadata of matching services are provided to the Terraform module.
 
@@ -413,7 +416,7 @@ task {
     cron = "* * * * Mon"
   }
 
-  source_input “services” {
+  module_input “services” {
     regexp = "^web.*"
     datacenter = "dc1"
     namespace  = "default"
@@ -425,9 +428,9 @@ task {
 }
 ```
 
-#### Consul KV Source Input
+#### Consul KV Module Input ((#consul-kv-source-input))
 
-A Consul KV source input block defines changes to Consul KV that will be monitored. These changes will then be provided as [Consul KV source input to the Terraform Module](/docs/nia/terraform-modules/#consul-kv-source-input). The source input can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path. The following parameters are supported:
+A Consul KV module input block defines changes to Consul KV that will be monitored. These changes will then be provided as [Consul KV module input to the Terraform Module](/docs/nia/terraform-modules/#consul-kv-module-input). The module input can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path. The following parameters are supported:
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
@@ -448,7 +451,7 @@ task {
     cron = "* * * * Mon"
   }
 
-  source_input "consul-kv" {
+  module_input "consul-kv" {
     path       = "my-key"
     recurse    = false
     datacenter = "dc1"
@@ -457,14 +460,15 @@ task {
 }
 ```
 
-#### Task Source Input Restrictions
+#### Task Module Input Restrictions
 
-There are some limitations to the type of `source_input` blocks that can be configured for a task given the task's `condition` block and `services` field (deprecated). This is because a task cannot have multiple configurations defining the same type of monitored variable:
-- A task cannot be configured with a `condition` and `source_input` block of the same type. For example, configuring `condition "consul-kv"` and `source_input "consul-kv"` will error because both configure the `consul_kv` variable.
-- A task cannot be configured with two or more `source_input` blocks of the same type. For example, configuring two `source_input "catalog-services"` within a task will return an error because they define multiple configurations for the `catalog_services` variable.
+There are some limitations to the type of `module_input` blocks that can be configured for a task given the task's `condition` block and `services` field (deprecated). This is because a task cannot have multiple configurations defining the same type of monitored variable:
+- A task cannot be configured with a `condition` and `module_input` block of the same type. For example, configuring `condition "consul-kv"` and `module_input "consul-kv"` will error because both configure the `consul_kv` variable.
+- A task cannot be configured with two or more `module_input` blocks of the same type. For example, configuring two `module_input "catalog-services"` within a task will return an error because they define multiple configurations for the `catalog_services` variable.
 - A task that monitors services can only contain one of the following configurations:
   - `condition "services"` block
-  - `source_input "services"` block
+  - `module_input "services"` block
+    - Block was previously named `source_input "services"` (deprecated)
   - `services` field (deprecated)
 
   All of the listed configurations define the `services` variable and including more than one configuration will return an error.

@@ -19,9 +19,9 @@ CTS executes one or more automation tasks with the most recent service variable 
 
 ## Glossary
 
-- `Condition` - A task-level defined environmental requirement. When a task's condition is met, CTS executes that task to update network infrastructure. Depending on the condition type, the condition definition may also define and enable the source input that the task provides to the configured Terraform Module.
+- `Condition` - A task-level defined environmental requirement. When a task's condition is met, CTS executes that task to update network infrastructure. Depending on the condition type, the condition definition may also define and enable the module input that the task provides to the configured Terraform Module.
 
-- `Consul objects` - Consul objects are the response request objects returned from the Consul API that CTS monitor for changes. Examples of Consul objects can be service instance information, Consul key-value pairs, and service registration. The Consul objects are used to inform a task's condition and/or source input.
+- `Consul objects` - Consul objects are the response request objects returned from the Consul API that CTS monitor for changes. Examples of Consul objects can be service instance information, Consul key-value pairs, and service registration. The Consul objects are used to inform a task's condition and/or module input.
 
 - `Consul-Terraform-Sync (CTS)` - [GitHub repo](https://github.com/hashicorp/consul-terraform-sync) and binary/CLI name for the project that is used to perform Network Infrastructure Automation.
 
@@ -35,12 +35,15 @@ CTS executes one or more automation tasks with the most recent service variable 
 
   -> **Note:** The terminology "tasks" used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
 
-- `Source Input` - A source input defines objects that provide values or metadata to the Terraform module. See [source input](/docs/nia/terraform-modules#source-input) for the supported metadata and values. For example, a user can configure a Consul KV source input to provide KV pairs as variables to their respective Terraform Module.
+- `Module Input` - A module input defines objects that provide values or metadata to the Terraform module. See [module input](/docs/nia/terraform-modules#module-input) for the supported metadata and values. For example, a user can configure a Consul KV module input to provide KV pairs as variables to their respective Terraform Module.
 
-  The source input can be configured in a couple of ways:
+  The module input can be configured in a couple of ways:
   - Setting the `condition` block's `use_as_module_input` field to true
     - Field was previously named `source_includes_var` (deprecated)
-  - Configuring `source_input` block(s)
+  - Configuring `module_input` block(s)
+    - Block was previously named `source_input` (deprecated)
+
+  ~> "Module input" was renamed from "source input" in CTS 0.5.0 due to updates to the configuration names seen above.
 
 - `Network Infrastructure Automation (NIA)` - Enables dynamic updates to network infrastructure devices triggered when specific conditions, such as service changes and registration, are met.
 
