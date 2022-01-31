@@ -90,16 +90,12 @@ func (s *HTTPHandlers) configDelete(resp http.ResponseWriter, req *http.Request)
 	pathArgs := strings.SplitN(kindAndName, "/", 2)
 
 	if len(pathArgs) != 2 {
-		resp.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(resp, "Must provide both a kind and name to delete")
-		return nil, nil
+		return nil, NotFoundError{Reason: "Must provide both a kind and name to delete"}
 	}
 
 	entry, err := structs.MakeConfigEntry(pathArgs[0], pathArgs[1])
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "%v", err)
-		return nil, nil
+		return nil, BadRequestError{Reason: err.Error()}
 	}
 	args.Entry = entry
 	// Parse enterprise meta.

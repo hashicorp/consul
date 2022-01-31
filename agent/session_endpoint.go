@@ -40,9 +40,7 @@ func (s *HTTPHandlers) SessionCreate(resp http.ResponseWriter, req *http.Request
 	// Handle optional request body
 	if req.ContentLength > 0 {
 		if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.Session)); err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(resp, "Request decode failed: %v", err)
-			return nil, nil
+			return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 		}
 	}
 
@@ -77,9 +75,7 @@ func (s *HTTPHandlers) SessionDestroy(resp http.ResponseWriter, req *http.Reques
 		return nil, err
 	}
 	if args.Session.ID == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing session")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing session"}
 	}
 
 	var out string
@@ -107,18 +103,14 @@ func (s *HTTPHandlers) SessionRenew(resp http.ResponseWriter, req *http.Request)
 	}
 	args.Session = args.SessionID
 	if args.SessionID == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing session")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing session"}
 	}
 
 	var out structs.IndexedSessions
 	if err := s.agent.RPC("Session.Renew", &args, &out); err != nil {
 		return nil, err
 	} else if out.Sessions == nil {
-		resp.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(resp, "Session id '%s' not found", args.SessionID)
-		return nil, nil
+		return nil, NotFoundError{Reason: fmt.Sprintf("Session id '%s' not found", args.SessionID)}
 	}
 
 	return out.Sessions, nil
@@ -142,9 +134,7 @@ func (s *HTTPHandlers) SessionGet(resp http.ResponseWriter, req *http.Request) (
 	}
 	args.Session = args.SessionID
 	if args.SessionID == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing session")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing session"}
 	}
 
 	var out structs.IndexedSessions
@@ -200,9 +190,7 @@ func (s *HTTPHandlers) SessionsForNode(resp http.ResponseWriter, req *http.Reque
 		return nil, err
 	}
 	if args.Node == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing node name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing node name"}
 	}
 
 	var out structs.IndexedSessions

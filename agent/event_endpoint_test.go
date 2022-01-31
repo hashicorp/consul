@@ -88,13 +88,11 @@ func TestEventFire_token(t *testing.T) {
 		url := fmt.Sprintf("/v1/event/fire/%s?token=%s", c.event, token)
 		req, _ := http.NewRequest("PUT", url, nil)
 		resp := httptest.NewRecorder()
-		if _, err := a.srv.EventFire(resp, req); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		_, err := a.srv.EventFire(resp, req)
 
 		// Check the result
-		body := resp.Body.String()
 		if c.allowed {
+			body := resp.Body.String()
 			if acl.IsErrPermissionDenied(errors.New(body)) {
 				t.Fatalf("bad: %s", body)
 			}
@@ -102,11 +100,11 @@ func TestEventFire_token(t *testing.T) {
 				t.Fatalf("bad: %d", resp.Code)
 			}
 		} else {
-			if !acl.IsErrPermissionDenied(errors.New(body)) {
-				t.Fatalf("bad: %s", body)
+			if !acl.IsErrPermissionDenied(err) {
+				t.Fatalf("bad: %s", err.Error())
 			}
-			if resp.Code != 403 {
-				t.Fatalf("bad: %d", resp.Code)
+			if err, ok := err.(ForbiddenError); !ok {
+				t.Fatalf("Expected forbidden but got %v", err)
 			}
 		}
 	}
