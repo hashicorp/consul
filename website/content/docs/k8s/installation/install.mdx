@@ -27,7 +27,7 @@ mesh](https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?utm_sourc
 
 ## Consul K8s CLI Installation
 
-We recommend using the [Consul K8S CLI](/docs/k8s/k8s-cli) to install Consul on Kubernetes for single-cluster deployments. You can install Consul on Kubernetes using the Consul K8s CLI tool after installing the CLI.
+We recommend using the [Consul K8s CLI](/docs/k8s/k8s-cli) to install Consul on Kubernetes for single-cluster deployments. You can install Consul on Kubernetes using the Consul K8s CLI tool after installing the CLI.
 
 Before beginning the installation process, verify that `kubectl` is already configured to authenticate to the Kubernetes cluster using a valid `kubeconfig` file.
 
@@ -48,10 +48,14 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
 1. Issue the `install` subcommand to install Consul on Kubernetes:
 
    ```shell-session
-   consul-k8s install <OPTIONS>
+   $ consul-k8s install <OPTIONS>
    ```
 
-   Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli) for details about all commands and available options.
+   Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli) for details about all commands and available options. Without any additional options passed, the `consul-k8s` CLI will install Consul on Kubernetes with the the Helm chart default values. Below is an example that installs Consul on Kubernetes with Service Mesh and CRDs enabled. 
+   
+   ```shell-session
+   $ consul-k8s install -set connectInject.enabled=true -set controller.enabled=true
+   ```
 
    If you did not set the `-auto-approve` option to `true`, you will be prompted to proceed with the installation if the pre-install checks pass.
 
