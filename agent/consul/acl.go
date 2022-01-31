@@ -34,10 +34,6 @@ var ACLSummaries = []prometheus.SummaryDefinition{
 		Name: []string{"acl", "ResolveToken"},
 		Help: "This measures the time it takes to resolve an ACL token.",
 	},
-	{
-		Name: []string{"acl", "ResolveTokenToIdentity"},
-		Help: "This measures the time it takes to resolve an ACL token to an Identity.",
-	},
 }
 
 // These must be kept in sync with the constants in command/agent/acl.go.

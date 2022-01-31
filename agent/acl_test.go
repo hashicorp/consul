@@ -94,14 +94,6 @@ func (a *TestACLAgent) ResolveTokenToIdentityAndAuthorizer(secretID string) (str
 	return a.resolveAuthzFn(secretID)
 }
 
-func (a *TestACLAgent) ResolveTokenToIdentity(secretID string) (structs.ACLIdentity, error) {
-	if a.resolveIdentFn == nil {
-		return nil, fmt.Errorf("ResolveTokenToIdentity call is unexpected - no ident resolver callback set")
-	}
-
-	return a.resolveIdentFn(secretID)
-}
-
 func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
 	identity, authz, err := a.ResolveTokenToIdentityAndAuthorizer(secretID)
 	if err != nil {
