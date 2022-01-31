@@ -21,7 +21,9 @@ export default function Footer({ openConsentManager }) {
           <Link href="/security">
             <a>Security</a>
           </Link>
-          <a href="https://www.hashicorp.com/brand">Press Kit</a>
+          <Link href="https://www.hashicorp.com/brand">
+            <a>Press Kit</a>
+          </Link>
           <a onClick={openConsentManager}>Consent Manager</a>
         </div>
       </div>
