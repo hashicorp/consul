@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync/atomic"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 const (
@@ -59,9 +62,11 @@ type SubscribeRequest struct {
 	// be returned by the subscription. A blank key will return all events. Key
 	// is generally the name of the resource.
 	Key string
-	// Namespace used to filter events in the topic. Only events matching the
-	// namespace will be returned by the subscription.
-	Namespace string
+
+	// EnterpriseMeta is used to filter events in the topic. Only events matching
+	// the namespace will be returned by the subscription.
+	EnterpriseMeta structs.EnterpriseMeta
+
 	// Token that was used to authenticate the request. If any ACL policy
 	// changes impact the token the subscription will be forcefully closed.
 	Token string
@@ -69,6 +74,18 @@ type SubscribeRequest struct {
 	// subscription will be resumed from this index. If the index is out-of-date
 	// a NewSnapshotToFollow event will be sent.
 	Index uint64
+}
+
+func (req SubscribeRequest) Subject() Subject {
+	var (
+		namespace = req.EnterpriseMeta.NamespaceOrDefault()
+		key       = strings.ToLower(req.Key)
+	)
+	return Subject(namespace + "/" + key)
+}
+
+func (req SubscribeRequest) topicSubject() topicSubject {
+	return topicSubject{req.Topic, req.Subject()}
 }
 
 // newSubscription return a new subscription. The caller is responsible for
@@ -101,11 +118,7 @@ func (s *Subscription) Next(ctx context.Context) (Event, error) {
 		if len(next.Events) == 0 {
 			continue
 		}
-		event := newEventFromBatch(s.req, next.Events)
-		if !event.Payload.MatchesKey(s.req.Key, s.req.Namespace) {
-			continue
-		}
-		return event, nil
+		return newEventFromBatch(s.req, next.Events), nil
 	}
 }
 
