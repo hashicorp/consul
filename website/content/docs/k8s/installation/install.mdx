@@ -51,7 +51,7 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
    $ consul-k8s install <OPTIONS>
    ```
 
-   Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli) for details about all commands and available options. Without any additional options passed, the `consul-k8s` CLI will install Consul on Kubernetes with the the Helm chart default values. Below is an example that installs Consul on Kubernetes with Service Mesh and CRDs enabled. 
+   Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli) for details about all commands and available options. Without any additional options passed, the `consul-k8s` CLI will install Consul on Kubernetes by using the Consul Helm chart's default values. Below is an example that installs Consul on Kubernetes with Service Mesh and CRDs enabled. 
    
    ```shell-session
    $ consul-k8s install -set connectInject.enabled=true -set controller.enabled=true
