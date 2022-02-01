@@ -45,21 +45,13 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
    $ brew install hashicorp/tap/consul-k8s
    ```
 
-1. Issue the `install` subcommand to install Consul on Kubernetes:
+1. Issue the `install` subcommand to install Consul on Kubernetes. Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli) for details about all commands and available options. Without any additional options passed, the `consul-k8s` CLI will install Consul on Kubernetes by using the Consul Helm chart's default values. Below is an example that installs Consul on Kubernetes with Service Mesh and CRDs enabled. If you did not set the `-auto-approve` option to `true`, you will be prompted to proceed with the installation if the pre-install checks pass.
 
-   ```shell-session
-   $ consul-k8s install <OPTIONS>
-   ```
-
-   Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli) for details about all commands and available options. Without any additional options passed, the `consul-k8s` CLI will install Consul on Kubernetes by using the Consul Helm chart's default values. Below is an example that installs Consul on Kubernetes with Service Mesh and CRDs enabled. 
+-> The pre-install checks may fail if existing `PersistentVolumeClaims` (PVC) are detected. Refer to the [uninstall instructions](/docs/k8s/operations/uninstall#uninstall-consul) for information about removing PVCs.
    
    ```shell-session
    $ consul-k8s install -set connectInject.enabled=true -set controller.enabled=true
-   ```
 
-   If you did not set the `-auto-approve` option to `true`, you will be prompted to proceed with the installation if the pre-install checks pass.
-
-   ```shell-session
    ==> Pre-Install Checks
    No existing installations found.
     ✓ No previous persistent volume claims found
@@ -82,8 +74,6 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
      --> beginning wait for 45 resources with timeout of 10m0s
      ✓ Consul installed into namespace "consul"
    ```
-
-1. Enter `y` to proceed. The pre-install checks may fail if existing `PersistentVolumeClaims` (PVC) are detected. Refer to the [uninstall instructions](/docs/k8s/operations/uninstall#uninstall-consul) for information about removing PVCs.
 
 1. (Optional) Run `consul-k8s status` command to quickly glance at the status of the installed Consul cluster. 
 
