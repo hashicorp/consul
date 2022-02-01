@@ -1,4 +1,71 @@
+%with-vault-100 {
+  @extend %with-vault-16-mask, %as-pseudo;
+  color: rgb(var(--tone-vault-500));
+}
 %with-vault-300 {
   @extend %with-vault-16-mask, %as-pseudo;
   color: rgb(var(--tone-vault-500));
+}
+%with-aws-100,
+%with-aws-300 {
+  @extend %aws-color-16-svg-prop;
+  @extend %with-icon, %as-pseudo;
+
+  background-image: var(--theme-dark-none) var(--aws-color-16-svg);
+
+  -webkit-mask-image: var(--theme-light-none) var(--aws-color-16-svg);
+  -webkit-mask-repeat: var(--theme-light-none) no-repeat;
+  -webkit-mask-position: var(--theme-light-none) center;
+  mask-image: var(--theme-light-none) var(--aws-color-16-svg);
+  mask-repeat: var(--theme-light-none) no-repeat;
+  mask-position: var(--theme-light-none) center;
+  background-color: var(--theme-light-none) rgb(var(--white));
+}
+%with-allow-100,
+%with-aws-100,
+%with-deny-100,
+%with-l7-100,
+%with-vault-100 {
+  width: 0.75rem; /* 12px */
+  height: 0.75rem; /* 12px */
+}
+%with-allow-500,
+%with-deny-500,
+%with-l7-500 {
+  width: 1.25rem; /* 20px */
+  height: 1.25rem; /* 20px */
+}
+%with-allow-300,
+%with-allow-500 {
+  color: rgb(var(--tone-green-500));
+}
+%with-deny-300,
+%with-deny-500 {
+  color: rgb(var(--tone-red-500));
+}
+%with-allow-300,
+%with-allow-500,
+%with-deny-300,
+%with-deny-500,
+%with-l7-300,
+%with-l7-500 {
+  @extend %as-pseudo;
+}
+%with-allow-300 {
+  @extend %with-arrow-right-16-mask;
+}
+%with-allow-500 {
+  @extend %with-arrow-right-24-mask;
+}
+%with-deny-300 {
+  @extend %with-skip-16-mask;
+}
+%with-deny-500 {
+  @extend %with-skip-24-mask;
+}
+%with-l7-300 {
+  @extend %with-layers-16-mask;
+}
+%with-l7-500 {
+  @extend %with-layers-24-mask;
 }

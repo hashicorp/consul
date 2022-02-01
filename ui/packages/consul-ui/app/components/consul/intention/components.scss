@@ -1,9 +1,7 @@
 %pill-allow::before,
 %pill-deny::before,
 %pill-l7::before {
-  @extend %as-pseudo;
   margin-right: 5px;
-  font-size: 0.9em;
 }
 %pill-allow,
 %pill-deny,
@@ -24,11 +22,11 @@
   @extend %frame-gray-900;
 }
 %pill-allow::before {
-  @extend %with-arrow-right-mask;
+  @extend %with-allow-300;
 }
 %pill-deny::before {
-  @extend %with-deny-color-mask;
+  @extend %with-deny-300;
 }
 %pill-l7::before {
-  @extend %with-layers-mask;
+  @extend %with-l7-300;
 }
