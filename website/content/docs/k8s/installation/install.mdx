@@ -87,25 +87,25 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
 
 1. (Optional) Run `consul-k8s status` command to quickly glance at the status of the installed Consul cluster. 
 
-```shell-session
-❯ consul-k8s status
+  ```shell-session
+  ❯ consul-k8s status
 
-==> Consul-K8s Status Summary
-   NAME  | NAMESPACE |  STATUS  | CHARTVERSION | APPVERSION | REVISION |      LAST UPDATED
----------+-----------+----------+--------------+------------+----------+--------------------------
-  consul | consul    | deployed | 0.40.0       | 1.11.2     |        1 | 2022/01/31 16:58:51 PST
+  ==> Consul-K8s Status Summary
+     NAME  | NAMESPACE |  STATUS  | CHARTVERSION | APPVERSION | REVISION |      LAST UPDATED
+  ---------+-----------+----------+--------------+------------+----------+--------------------------
+    consul | consul    | deployed | 0.40.0       | 1.11.2     |        1 | 2022/01/31 16:58:51 PST
 
-==> Config:
-    connectInject:
-      enabled: true
-    controller:
-      enabled: true
-    global:
-      name: consul
+  ==> Config:
+      connectInject:
+        enabled: true
+      controller:
+        enabled: true
+      global:
+        name: consul
 
- ✓ Consul servers healthy (3/3)
- ✓ Consul clients healthy (3/3)
-```
+   ✓ Consul servers healthy (3/3)
+   ✓ Consul clients healthy (3/3)
+  ```
 
 ## Helm Chart Installation
 
