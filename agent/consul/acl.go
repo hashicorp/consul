@@ -34,10 +34,6 @@ var ACLSummaries = []prometheus.SummaryDefinition{
 		Name: []string{"acl", "ResolveToken"},
 		Help: "This measures the time it takes to resolve an ACL token.",
 	},
-	{
-		Name: []string{"acl", "ResolveTokenToIdentity"},
-		Help: "This measures the time it takes to resolve an ACL token to an Identity.",
-	},
 }
 
 // These must be kept in sync with the constants in command/agent/acl.go.
@@ -1117,31 +1113,17 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 	return identity, acl.NewChainedAuthorizer(chain), nil
 }
 
-// TODO: rename to AccessorIDFromToken. This method is only used to retrieve the
-// ACLIdentity.ID, so we don't need to return a full ACLIdentity. We could
-// return a much smaller type (instad of just a string) to allow for changes
-// in the future.
-func (r *ACLResolver) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
-	if !r.ACLsEnabled() {
-		return nil, nil
+type ACLResolveResult struct {
+	acl.Authorizer
+	// TODO: likely we can reduce this interface
+	structs.ACLIdentity
+}
+
+func (a ACLResolveResult) AccessorID() string {
+	if a.ACLIdentity == nil {
+		return ""
 	}
-
-	if acl.RootAuthorizer(token) != nil {
-		return nil, acl.ErrRootDenied
-	}
-
-	// handle the anonymous token
-	if token == "" {
-		token = anonymousToken
-	}
-
-	if ident, _, ok := r.resolveLocallyManagedToken(token); ok {
-		return ident, nil
-	}
-
-	defer metrics.MeasureSince([]string{"acl", "ResolveTokenToIdentity"}, time.Now())
-
-	return r.resolveIdentityFromToken(token)
+	return a.ACLIdentity.ID()
 }
 
 func (r *ACLResolver) ACLsEnabled() bool {
@@ -1160,10 +1142,10 @@ func (r *ACLResolver) ACLsEnabled() bool {
 	return true
 }
 
-func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
+func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (ACLResolveResult, error) {
 	identity, authz, err := r.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {
-		return nil, err
+		return ACLResolveResult{}, err
 	}
 
 	if entMeta == nil {
@@ -1181,7 +1163,7 @@ func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *structs.
 	// Use the meta to fill in the ACL authorization context
 	entMeta.FillAuthzContext(authzContext)
 
-	return authz, err
+	return ACLResolveResult{Authorizer: authz, ACLIdentity: identity}, err
 }
 
 // aclFilter is used to filter results from our state store based on ACL rules

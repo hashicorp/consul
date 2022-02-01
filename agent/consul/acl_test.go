@@ -1534,36 +1534,6 @@ func TestACLResolver_Client(t *testing.T) {
 		require.Equal(t, policyResolves, int32(3))
 	})
 
-	t.Run("Resolve-Identity", func(t *testing.T) {
-		t.Parallel()
-
-		delegate := &ACLResolverTestDelegate{
-			enabled:       true,
-			datacenter:    "dc1",
-			legacy:        false,
-			localTokens:   false,
-			localPolicies: false,
-		}
-
-		delegate.tokenReadFn = delegate.plainTokenReadFn
-		delegate.policyResolveFn = delegate.plainPolicyResolveFn
-		delegate.roleResolveFn = delegate.plainRoleResolveFn
-
-		r := newTestACLResolver(t, delegate, nil)
-
-		ident, err := r.ResolveTokenToIdentity("found-policy-and-role")
-		require.NoError(t, err)
-		require.NotNil(t, ident)
-		require.Equal(t, "5f57c1f6-6a89-4186-9445-531b316e01df", ident.ID())
-		require.EqualValues(t, 0, delegate.localTokenResolutions)
-		require.EqualValues(t, 1, delegate.remoteTokenResolutions)
-		require.EqualValues(t, 0, delegate.localPolicyResolutions)
-		require.EqualValues(t, 0, delegate.remotePolicyResolutions)
-		require.EqualValues(t, 0, delegate.localRoleResolutions)
-		require.EqualValues(t, 0, delegate.remoteRoleResolutions)
-		require.EqualValues(t, 0, delegate.remoteLegacyResolutions)
-	})
-
 	t.Run("Concurrent-Token-Resolve", func(t *testing.T) {
 		t.Parallel()
 

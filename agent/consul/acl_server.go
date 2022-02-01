@@ -165,12 +165,11 @@ func (s *serverACLResolverBackend) ResolveRoleFromID(roleID string) (bool, *stru
 	return s.InPrimaryDatacenter() || index > 0, role, acl.ErrNotFound
 }
 
+// TODO: remove
 func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
 	_, authz, err := s.ACLResolver.ResolveTokenToIdentityAndAuthorizer(token)
 	return authz, err
 }
-
-// TODO: Client has an identical implementation, remove duplication
 
 func (s *Server) filterACL(token string, subj interface{}) error {
 	return filterACL(s.ACLResolver, token, subj)
