@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"github.com/fsnotify/fsnotify"
+	"github.com/hashicorp/go-hclog"
 	"os"
 	"time"
 )
@@ -12,6 +13,7 @@ type Watcher struct {
 	watcher     *fsnotify.Watcher
 	configFiles map[string]string
 	reloadFunc  func() error
+	logger      hclog.Logger
 }
 
 func New(reloadFunc func() error) (*Watcher, error) {
@@ -20,7 +22,7 @@ func New(reloadFunc func() error) (*Watcher, error) {
 		return nil, err
 	}
 	cfgFiles := make(map[string]string)
-	return &Watcher{watcher: ws, configFiles: cfgFiles, reloadFunc: reloadFunc}, nil
+	return &Watcher{watcher: ws, configFiles: cfgFiles, reloadFunc: reloadFunc, logger: hclog.New(&hclog.LoggerOptions{})}, nil
 }
 
 func (w Watcher) Add(filename string) error {
@@ -55,16 +57,18 @@ func (w Watcher) watch() {
 		select {
 		case event, ok := <-w.watcher.Events:
 			if !ok {
-				// log not ok (channel closed)
+				w.logger.Error("watcher event channel is closed")
+				return
 			}
 			err := w.handleEvent(event)
 			if err != nil {
-				// log error
+				w.logger.Error("error handling watcher event", "error", err, "event", event)
 			}
 			timer.Reset(timeoutDuration)
 		case _, ok := <-w.watcher.Errors:
 			if !ok {
-				// log not ok (error channel closed)
+				w.logger.Error("watcher error channel is closed")
+				return
 			}
 			timer.Reset(timeoutDuration)
 		case <-timer.C:
@@ -82,7 +86,7 @@ func (w Watcher) handleEvent(event fsnotify.Event) error {
 	// If the file was removed, re-add the watch.
 	if isRemove(event) {
 		if err := w.watcher.Add(event.Name); err != nil {
-			//log.Error(err, "error re-watching file")
+			w.logger.Error("error re-watching file", "error", err)
 		}
 	}
 	return w.reloadFunc()
