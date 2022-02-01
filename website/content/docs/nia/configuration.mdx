@@ -156,7 +156,8 @@ task {
   - the `condition` block configured for all other types: `services` will act only to provide services module input.
 
   Service values that are not explicitly defined by a `service` block that have a matching ID are assumed to be logical service names in the `default` namespace.
-- `source` - (string: required) Source is the location the driver uses to discover the Terraform module used for automation. The source is the module path which can be local or remote on the [Terraform Registry](https://registry.terraform.io/) or private module registry. Read more on [Terraform module source and other supported types here](https://www.terraform.io/docs/modules/sources.html).
+- `source` - (string: required) **Deprecated in CTS 0.5.0 and will be removed in a future major release. See the `module` field instead.**
+- `module` - (string: required) Module is the location the driver uses to discover the Terraform module used for automation. The module's source can be local or remote on the [Terraform Registry](https://registry.terraform.io/) or private module registry. Read more on [Terraform module source and other supported types here](https://www.terraform.io/docs/modules/sources.html).
 
   - To use a private module with the [`terraform` driver](#terraform-driver), run the command [`terraform login [hostname]`](https://learn.hashicorp.com/tutorials/terraform/cloud-login) to authenticate the local Terraform CLI prior to starting CTS.
   - To use a private module with the [`terraform_cloud` driver](#terraform-cloud-driver), no extra steps are needed.
@@ -187,7 +188,7 @@ task {
 
     </CodeBlockConfig>
 
-- `version` - (string) The version of the provided source the task will use. For the [Terraform driver](#terraform-driver), this is the module version. The latest version will be used as the default if omitted.
+- `version` - (string) The version of the provided module the task will use. The latest version will be used as the default if omitted.
 - `working_dir` - (string) The working directory to manage generated artifacts by CTS for this task, including Terraform configuration files. By default, a working directory is created for each task as a subdirectory in the base [`working_dir`](#working_dir), e.g. `sync-tasks/task-name`.
 - `buffer_period` - Configures the buffer period for a dynamic task to dampen the effects of flapping services to downstream network devices. It defines the minimum and maximum amount of time to wait for the cluster to reach a consistent state and accumulate changes before triggering task execution. The default is inherited from the top level [`buffer_period` block](#global-config-options). If configured, these values will take precedence over the global buffer period. This is useful to enable for a task that is dependent on services that have a lot of flapping. Buffer periods do not apply to scheduled tasks.
   - `enabled` - (bool) Enable or disable buffer periods for this task. Specifying `min` will also enable it.
