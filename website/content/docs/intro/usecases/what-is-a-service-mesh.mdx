@@ -61,7 +61,7 @@ A service mesh can be connected to another service mesh in another data center o
 
 ## What Problems Does a Service Mesh Solve?
 
-Modern infrastructure is transitioning from primarily being static-based to dynamic in nature (ephemeral).
+Modern infrastructure is transitioning from being primarily static to dynamic in nature (ephemeral).
 This dynamic infrastructure has a short life cycle, meaning virtual machines (VM) and containers are frequently recycled.
 It's difficult for an organization to manage and keep track of application services that live on short-lived resources. A service mesh solves this problem by acting as a central registry of all registered services.
 As service instances, either VMs or containers, come up and down, the mesh is aware of their state and availability. The ability to conduct _service discovery_ is the foundation to the other problems a service mesh solves.
@@ -85,7 +85,7 @@ This shift from an IP address-based security model to a service-focused model re
 ## How Do You Implement a Service Mesh?
 
 Service meshes are commonly installed in Kubernetes clusters. There are also platform-agnostic service meshes available for non-Kubernetes-based workloads.
-For Kubernetes, most service mesh can be installed by operators through a [Helm chart](https://helm.sh/). Additionally, the service mesh may offer a CLI tool that supports the installation and maintenance of the service mesh.
+For Kubernetes, most service meshes can be installed by operators through a [Helm chart](https://helm.sh/). Additionally, the service mesh may offer a CLI tool that supports the installation and maintenance of the service mesh.
 Non-Kubernetes based service meshes can be installed through infrastructure as code (IaC) products such as [Terraform](https://www.terraform.io/), CloudFormation, ARM Templates, Puppet, Chef, etc.
 
 ## What is a Multi Platform Service Mesh?
