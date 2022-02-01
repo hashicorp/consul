@@ -46,10 +46,11 @@ type asyncResolutionResult struct {
 	err   error
 }
 
-func verifyAuthorizerChain(t *testing.T, expected acl.Authorizer, actual acl.Authorizer) {
-	expectedChainAuthz, ok := expected.(*acl.ChainedAuthorizer)
+func verifyAuthorizerChain(t *testing.T, expected ACLResolveResult, actual ACLResolveResult) {
+	t.Helper()
+	expectedChainAuthz, ok := expected.Authorizer.(*acl.ChainedAuthorizer)
 	require.True(t, ok, "expected Authorizer is not a ChainedAuthorizer")
-	actualChainAuthz, ok := actual.(*acl.ChainedAuthorizer)
+	actualChainAuthz, ok := actual.Authorizer.(*acl.ChainedAuthorizer)
 	require.True(t, ok, "actual Authorizer is not a ChainedAuthorizer")
 
 	expectedChain := expectedChainAuthz.AuthorizerChain()
@@ -65,19 +66,13 @@ func verifyAuthorizerChain(t *testing.T, expected acl.Authorizer, actual acl.Aut
 }
 
 func resolveTokenAsync(r *ACLResolver, token string, ch chan *asyncResolutionResult) {
-	_, authz, err := r.ResolveTokenToIdentityAndAuthorizer(token)
+	authz, err := r.ResolveToken(token)
 	ch <- &asyncResolutionResult{authz: authz, err: err}
-}
-
-// Deprecated: use resolveToken or ACLResolver.ResolveTokenToIdentityAndAuthorizer instead
-func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
-	_, authz, err := r.ResolveTokenToIdentityAndAuthorizer(token)
-	return authz, err
 }
 
 func resolveToken(t *testing.T, r *ACLResolver, token string) acl.Authorizer {
 	t.Helper()
-	_, authz, err := r.ResolveTokenToIdentityAndAuthorizer(token)
+	authz, err := r.ResolveToken(token)
 	require.NoError(t, err)
 	return authz
 }
@@ -739,7 +734,7 @@ func TestACLResolver_Disabled(t *testing.T) {
 	r := newTestACLResolver(t, delegate, nil)
 
 	authz, err := r.ResolveToken("does not exist")
-	require.Equal(t, acl.ManageAll(), authz)
+	require.Equal(t, ACLResolveResult{Authorizer: acl.ManageAll()}, authz)
 	require.Nil(t, err)
 }
 
@@ -753,22 +748,19 @@ func TestACLResolver_ResolveRootACL(t *testing.T) {
 	r := newTestACLResolver(t, delegate, nil)
 
 	t.Run("Allow", func(t *testing.T) {
-		authz, err := r.ResolveToken("allow")
-		require.Nil(t, authz)
+		_, err := r.ResolveToken("allow")
 		require.Error(t, err)
 		require.True(t, acl.IsErrRootDenied(err))
 	})
 
 	t.Run("Deny", func(t *testing.T) {
-		authz, err := r.ResolveToken("deny")
-		require.Nil(t, authz)
+		_, err := r.ResolveToken("deny")
 		require.Error(t, err)
 		require.True(t, acl.IsErrRootDenied(err))
 	})
 
 	t.Run("Manage", func(t *testing.T) {
-		authz, err := r.ResolveToken("manage")
-		require.Nil(t, authz)
+		_, err := r.ResolveToken("manage")
 		require.Error(t, err)
 		require.True(t, acl.IsErrRootDenied(err))
 	})
@@ -817,7 +809,11 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("foo")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.Equal(t, authz, acl.DenyAll())
+		expected := ACLResolveResult{
+			Authorizer:  acl.DenyAll(),
+			ACLIdentity: &missingIdentity{reason: "primary-dc-down", token: "foo"},
+		}
+		require.Equal(t, expected, authz)
 
 		requireIdentityCached(t, r, tokenSecretCacheID("foo"), false, "not present")
 	})
@@ -841,7 +837,11 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("foo")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.Equal(t, authz, acl.AllowAll())
+		expected := ACLResolveResult{
+			Authorizer:  acl.AllowAll(),
+			ACLIdentity: &missingIdentity{reason: "primary-dc-down", token: "foo"},
+		}
+		require.Equal(t, expected, authz)
 
 		requireIdentityCached(t, r, tokenSecretCacheID("foo"), false, "not present")
 	})
@@ -958,7 +958,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			config.Config.ACLDownPolicy = "extend-cache"
 		})
 
-		_, authz, err := r.ResolveTokenToIdentityAndAuthorizer("not-found")
+		authz, err := r.ResolveToken("not-found")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
@@ -1255,10 +1255,9 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 
 		// the go routine spawned will eventually return and this will be a not found error
 		retry.Run(t, func(t *retry.R) {
-			authz3, err := r.ResolveToken("found")
+			_, err := r.ResolveToken("found")
 			assert.Error(t, err)
 			assert.True(t, acl.IsErrNotFound(err))
-			assert.Nil(t, authz3)
 		})
 
 		requireIdentityCached(t, r, tokenSecretCacheID("found"), false, "no longer cached")
@@ -1526,7 +1525,6 @@ func TestACLResolver_Client(t *testing.T) {
 		// policies within the cache)
 		authz, err = r.ResolveToken("a1a54629-5050-4d17-8a4e-560d2423f835")
 		require.EqualError(t, err, acl.ErrNotFound.Error())
-		require.Nil(t, authz)
 
 		require.True(t, modified)
 		require.True(t, deleted)
@@ -1675,8 +1673,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 
 	runTwiceAndReset("Missing Identity", func(t *testing.T) {
 		delegate.UseTestLocalData(nil)
-		authz, err := r.ResolveToken("doesn't exist")
-		require.Nil(t, authz)
+		_, err := r.ResolveToken("doesn't exist")
 		require.Error(t, err)
 		require.True(t, acl.IsErrNotFound(err))
 	})
@@ -3929,12 +3926,12 @@ func TestACLResolver_AgentRecovery(t *testing.T) {
 
 	tokens.UpdateAgentRecoveryToken("9a184a11-5599-459e-b71a-550e5f9a5a23", token.TokenSourceConfig)
 
-	ident, authz, err := r.ResolveTokenToIdentityAndAuthorizer("9a184a11-5599-459e-b71a-550e5f9a5a23")
+	authz, err := r.ResolveToken("9a184a11-5599-459e-b71a-550e5f9a5a23")
 	require.NoError(t, err)
-	require.NotNil(t, ident)
-	require.Equal(t, "agent-recovery:foo", ident.ID())
-	require.NotNil(t, authz)
-	require.Equal(t, r.agentRecoveryAuthz, authz)
+	require.NotNil(t, authz.ACLIdentity)
+	require.Equal(t, "agent-recovery:foo", authz.ACLIdentity.ID())
+	require.NotNil(t, authz.Authorizer)
+	require.Equal(t, r.agentRecoveryAuthz, authz.Authorizer)
 	require.Equal(t, acl.Allow, authz.AgentWrite("foo", nil))
 	require.Equal(t, acl.Allow, authz.NodeRead("bar", nil))
 	require.Equal(t, acl.Deny, authz.NodeWrite("bar", nil))
@@ -3998,7 +3995,7 @@ func TestACLResolver_ACLsEnabled(t *testing.T) {
 
 }
 
-func TestACLResolver_ResolveTokenToIdentityAndAuthorizer_UpdatesPurgeTheCache(t *testing.T) {
+func TestACLResolver_ResolveToken_UpdatesPurgeTheCache(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -4035,7 +4032,7 @@ func TestACLResolver_ResolveTokenToIdentityAndAuthorizer_UpdatesPurgeTheCache(t 
 	require.NoError(t, err)
 
 	runStep(t, "first resolve", func(t *testing.T) {
-		_, authz, err := srv.ACLResolver.ResolveTokenToIdentityAndAuthorizer(token)
+		authz, err := srv.ACLResolver.ResolveToken(token)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
@@ -4054,7 +4051,7 @@ func TestACLResolver_ResolveTokenToIdentityAndAuthorizer_UpdatesPurgeTheCache(t 
 		err := msgpackrpc.CallWithCodec(codec, "ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
 		require.NoError(t, err)
 
-		_, authz, err := srv.ACLResolver.ResolveTokenToIdentityAndAuthorizer(token)
+		authz, err := srv.ACLResolver.ResolveToken(token)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Deny, authz.KeyRead("foo", nil))
@@ -4070,7 +4067,7 @@ func TestACLResolver_ResolveTokenToIdentityAndAuthorizer_UpdatesPurgeTheCache(t 
 		err := msgpackrpc.CallWithCodec(codec, "ACL.TokenDelete", &req, &resp)
 		require.NoError(t, err)
 
-		_, _, err = srv.ACLResolver.ResolveTokenToIdentityAndAuthorizer(token)
+		_, err = srv.ACLResolver.ResolveToken(token)
 		require.True(t, acl.IsErrNotFound(err), "Error %v is not acl.ErrNotFound", err)
 	})
 }
