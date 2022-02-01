@@ -3,7 +3,7 @@ name: build
 on:
   push:
     # Sequence of patterns matched against refs/heads
-    branches: [ 
+    branches: [
       "main"
     ]
 
@@ -145,6 +145,7 @@ jobs:
           config_dir: ".release/linux/package"
           preinstall: ".release/linux/preinstall"
           postinstall: ".release/linux/postinstall"
+          preremove: ".release/linux/preremove"
           postremove: ".release/linux/postremove"
 
       - name: Set Package Names
