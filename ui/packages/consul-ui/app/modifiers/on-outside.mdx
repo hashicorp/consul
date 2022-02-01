@@ -8,11 +8,7 @@ element.
 <button
   {{on-outside 'click' (set this 'clicked' 'outside clicked')}}
   {{on 'click' (set this 'clicked' 'inside clicked')}}
-  style={{style-map
-    (array 'background' 'red')
-    (array 'width' '100' 'px')
-    (array 'height' '100' 'px')
-  }}
+  style="background: red;width: 100px;height: 100px;"
 >
   {{or this.clicked "click me or outside of me"}}
 </button>
