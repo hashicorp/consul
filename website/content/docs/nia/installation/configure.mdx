@@ -21,7 +21,7 @@ Review the Terraform module to be used for network automation and identify the T
 task {
   name        = "website-x"
   description = "automate services for website-x"
-  source      = "namespace/example/module"
+  module      = "namespace/example/module"
   version     = "1.0.0"
   providers   = ["myprovider"]
   condition "services" {
@@ -77,7 +77,7 @@ consul {
 task {
   name        = "website-x"
   description = "automate services for website-x"
-  source      = "namespace/example/module"
+  module      = "namespace/example/module"
   version     = "1.0.0"
   providers   = ["myprovider"]
   condition "services" {

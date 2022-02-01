@@ -127,7 +127,7 @@ task {
   name        = "services_condition_task"
   description = "execute on changes to services whose name starts with web"
   providers   = ["my-provider"]
-  source      = "path/to/services-condition-module"
+  module      = "path/to/services-condition-module"
   condition "schedule" {
     cron = "* * * * Mon"
   }
@@ -166,7 +166,7 @@ Below is a similar example to the one provided in the [Consul KV Condition](/doc
 task {
   name        = "consul_kv_schedule_task"
   description = "executes on Monday monitoring Consul KV"
-  source      = "path/to/consul-kv-module"
+  module      = "path/to/consul-kv-module"
 
   condition "schedule" {
     cron = "* * * * Mon"
@@ -213,7 +213,7 @@ task {
   name        = "catalog_services_condition_task"
   description = "execute on registration/deregistration of services"
   providers   = ["my-provider"]
-  source      = "path/to/catalog-services-module"
+  module      = "path/to/catalog-services-module"
   condition "catalog-services" {
     datacenter          = "dc1"
     namespace           = "default"
