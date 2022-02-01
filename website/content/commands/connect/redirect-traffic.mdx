@@ -36,6 +36,8 @@ Usage: `consul connect redirect-traffic [options]`
 
 #### Options for Traffic Redirection Rules
 
+- `-consul-dns-ip` - IP used to reach Consul DNS. If provided, DNS queries will be redirected to Consul.
+
 - `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration) ID.
   This service ID must already be registered with the local agent.
 
@@ -47,13 +49,13 @@ Usage: `consul connect redirect-traffic [options]`
 
 - `-exclude-inbound-port` - Inbound port to exclude from traffic redirection. May be provided multiple times.
 
-- `exclude-outbound-cidr` -  Outbound CIDR to exclude from traffic redirection. May be provided multiple times.
+- `-exclude-outbound-cidr` -  Outbound CIDR to exclude from traffic redirection. May be provided multiple times.
 
-- `exclude-outbound-port` - Outbound port to exclude from traffic redirection. May be provided multiple times.
+- `-exclude-outbound-port` - Outbound port to exclude from traffic redirection. May be provided multiple times.
 
-- `exclude-uid` - Additional user ID to exclude from traffic redirection. May be provided multiple times.
+- `-exclude-uid` - Additional user ID to exclude from traffic redirection. May be provided multiple times.
 
-- `netns` - The Linux network namespace where traffic redirection rules should apply.
+- `-netns` - The Linux network namespace where traffic redirection rules should apply.
   This must be a path to the network namespace, e.g. /var/run/netns/foo.
 
 #### Enterprise Options
