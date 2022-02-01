@@ -47,7 +47,7 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
 
 1. Issue the `install` subcommand to install Consul on Kubernetes. Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli) for details about all commands and available options. Without any additional options passed, the `consul-k8s` CLI will install Consul on Kubernetes by using the Consul Helm chart's default values. Below is an example that installs Consul on Kubernetes with Service Mesh and CRDs enabled. If you did not set the `-auto-approve` option to `true`, you will be prompted to proceed with the installation if the pre-install checks pass.
 
--> The pre-install checks may fail if existing `PersistentVolumeClaims` (PVC) are detected. Refer to the [uninstall instructions](/docs/k8s/operations/uninstall#uninstall-consul) for information about removing PVCs.
+  -> The pre-install checks may fail if existing `PersistentVolumeClaims` (PVC) are detected. Refer to the [uninstall instructions](/docs/k8s/operations/uninstall#uninstall-consul) for information about removing PVCs.
   
   ```shell-session
   $ consul-k8s install -set connectInject.enabled=true -set controller.enabled=true
