@@ -4,7 +4,7 @@
 #
 # All non-dev targets have a VERSION argument that must be provided 
 # via --build-arg=VERSION=<version> when building. 
-# e.g. --build-arg=1.11.2
+# e.g. --build-arg VERSION=1.11.2
 #
 # `default` is the production docker image which cannot be built locally. 
 # For local dev and testing purposes, please build and use the `dev` docker image.
