@@ -12,17 +12,21 @@ import (
 type Watcher struct {
 	watcher     *fsnotify.Watcher
 	configFiles map[string]string
-	reloadFunc  func() error
+	handleFunc  func(event *WatcherEvent) error
 	logger      hclog.Logger
 }
 
-func New(reloadFunc func() error) (*Watcher, error) {
+type WatcherEvent struct {
+	Filename string
+}
+
+func New(handleFunc func(event *WatcherEvent) error) (*Watcher, error) {
 	ws, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
 	cfgFiles := make(map[string]string)
-	return &Watcher{watcher: ws, configFiles: cfgFiles, reloadFunc: reloadFunc, logger: hclog.New(&hclog.LoggerOptions{})}, nil
+	return &Watcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{})}, nil
 }
 
 func (w Watcher) Add(filename string) error {
@@ -45,8 +49,8 @@ func (w Watcher) hashFile(filename string) (string, error) {
 	}
 	hasher := sha256.New()
 
-	toString := hex.EncodeToString(hasher.Sum(file))
-	return toString, nil
+	hash := hex.EncodeToString(hasher.Sum(file))
+	return hash, nil
 }
 
 func (w Watcher) watch() {
@@ -89,7 +93,7 @@ func (w Watcher) handleEvent(event fsnotify.Event) error {
 			w.logger.Error("error re-watching file", "error", err)
 		}
 	}
-	return w.reloadFunc()
+	return w.handleFunc(&WatcherEvent{Filename: event.Name})
 }
 
 func (w Watcher) reconcile() {
@@ -99,7 +103,7 @@ func (w Watcher) reconcile() {
 			continue
 		}
 		if hash != newHash {
-			w.reloadFunc()
+			w.handleFunc(&WatcherEvent{Filename: filename})
 			return
 		}
 	}
