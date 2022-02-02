@@ -39,6 +39,12 @@ type TestACLAgent struct {
 func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzResolver, resolveIdent identResolver) *TestACLAgent {
 	t.Helper()
 
+	if resolveIdent == nil {
+		resolveIdent = func(s string) (structs.ACLIdentity, error) {
+			return nil, nil
+		}
+	}
+
 	a := &TestACLAgent{resolveAuthzFn: resolveAuthz, resolveIdentFn: resolveIdent}
 
 	dataDir := testutil.TempDir(t, "acl-agent")

@@ -1120,7 +1120,7 @@ func (r *ACLResolver) ResolveToken(token string) (ACLResolveResult, error) {
 type ACLResolveResult struct {
 	acl.Authorizer
 	// TODO: likely we can reduce this interface
-	structs.ACLIdentity
+	ACLIdentity structs.ACLIdentity
 }
 
 func (a ACLResolveResult) AccessorID() string {
@@ -1128,6 +1128,10 @@ func (a ACLResolveResult) AccessorID() string {
 		return ""
 	}
 	return a.ACLIdentity.ID()
+}
+
+func (a ACLResolveResult) Identity() structs.ACLIdentity {
+	return a.ACLIdentity
 }
 
 func (r *ACLResolver) ACLsEnabled() bool {
