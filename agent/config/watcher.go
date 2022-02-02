@@ -1,7 +1,6 @@
 package config
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"github.com/fsnotify/fsnotify"
@@ -17,9 +16,8 @@ type Watcher struct {
 	configFiles      map[string]*watchedFile
 	handleFunc       func(event *WatcherEvent) error
 	logger           hclog.Logger
-	ctx              context.Context
-	cancel           context.CancelFunc
 	reconcileTimeout time.Duration
+	done             chan interface{}
 }
 
 type watchedFile struct {
@@ -37,8 +35,7 @@ func New(handleFunc func(event *WatcherEvent) error) (*Watcher, error) {
 		return nil, err
 	}
 	cfgFiles := make(map[string]*watchedFile)
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	return &Watcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{}), ctx: ctx, cancel: cancelFunc, reconcileTimeout: timeoutDuration}, nil
+	return &Watcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{}), reconcileTimeout: timeoutDuration, done: make(chan interface{})}, nil
 }
 
 func (w Watcher) Add(filename string) error {
@@ -64,7 +61,7 @@ func (w Watcher) Remove(filename string) error {
 }
 
 func (w Watcher) Close() error {
-	w.cancel()
+	close(w.done)
 	err := w.watcher.Close()
 	if err != nil {
 		return err
@@ -108,7 +105,7 @@ func (w Watcher) watch() {
 		case <-timer.C:
 			w.reconcile()
 			timer.Reset(w.reconcileTimeout)
-		case <-w.ctx.Done():
+		case <-w.done:
 			return
 		}
 	}
