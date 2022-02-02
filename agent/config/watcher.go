@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"github.com/fsnotify/fsnotify"
@@ -9,11 +10,21 @@ import (
 	"time"
 )
 
+const timeoutDuration = 10 * time.Second
+
 type Watcher struct {
-	watcher     *fsnotify.Watcher
-	configFiles map[string]string
-	handleFunc  func(event *WatcherEvent) error
-	logger      hclog.Logger
+	watcher          *fsnotify.Watcher
+	configFiles      map[string]*watchedFile
+	handleFunc       func(event *WatcherEvent) error
+	logger           hclog.Logger
+	ctx              context.Context
+	cancel           context.CancelFunc
+	reconcileTimeout time.Duration
+}
+
+type watchedFile struct {
+	hash           string
+	isEventWatched bool
 }
 
 type WatcherEvent struct {
@@ -25,8 +36,9 @@ func New(handleFunc func(event *WatcherEvent) error) (*Watcher, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfgFiles := make(map[string]string)
-	return &Watcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{})}, nil
+	cfgFiles := make(map[string]*watchedFile)
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	return &Watcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{}), ctx: ctx, cancel: cancelFunc, reconcileTimeout: timeoutDuration}, nil
 }
 
 func (w Watcher) Add(filename string) error {
@@ -38,7 +50,25 @@ func (w Watcher) Add(filename string) error {
 	if err != nil {
 		return err
 	}
-	w.configFiles[filename] = hash
+	w.configFiles[filename] = &watchedFile{hash: hash, isEventWatched: true}
+	return nil
+}
+
+func (w Watcher) Remove(filename string) error {
+	err := w.watcher.Remove(filename)
+	if err != nil {
+		return err
+	}
+	delete(w.configFiles, filename)
+	return nil
+}
+
+func (w Watcher) Close() error {
+	w.cancel()
+	err := w.watcher.Close()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -54,8 +84,8 @@ func (w Watcher) hashFile(filename string) (string, error) {
 }
 
 func (w Watcher) watch() {
-	const timeoutDuration = 10 * time.Second
-	timer := time.NewTimer(timeoutDuration)
+
+	timer := time.NewTimer(w.reconcileTimeout)
 	defer timer.Stop()
 	for {
 		select {
@@ -68,45 +98,55 @@ func (w Watcher) watch() {
 			if err != nil {
 				w.logger.Error("error handling watcher event", "error", err, "event", event)
 			}
-			timer.Reset(timeoutDuration)
+			timer.Reset(w.reconcileTimeout)
 		case _, ok := <-w.watcher.Errors:
 			if !ok {
 				w.logger.Error("watcher error channel is closed")
 				return
 			}
-			timer.Reset(timeoutDuration)
+			timer.Reset(w.reconcileTimeout)
 		case <-timer.C:
 			w.reconcile()
-			timer.Reset(timeoutDuration)
+			timer.Reset(w.reconcileTimeout)
+		case <-w.ctx.Done():
+			return
 		}
 	}
 
 }
 
 func (w Watcher) handleEvent(event fsnotify.Event) error {
-	if !isWrite(event) || !isRemove(event) || !isCreate(event) {
+	if !isWrite(event) && !isRemove(event) && !isCreate(event) {
 		return nil
 	}
-	// If the file was removed, re-add the watch.
+	// If the file was removed, set it to be readded to watch when created
 	if isRemove(event) {
-		if err := w.watcher.Add(event.Name); err != nil {
-			w.logger.Error("error re-watching file", "error", err)
-		}
+		w.configFiles[event.Name].isEventWatched = false
 	}
 	return w.handleFunc(&WatcherEvent{Filename: event.Name})
 }
 
 func (w Watcher) reconcile() {
-	for filename, hash := range w.configFiles {
+	for filename, configFile := range w.configFiles {
 		newHash, err := w.hashFile(filename)
 		if err != nil {
 			continue
 		}
-		if hash != newHash {
+
+		if !configFile.isEventWatched {
+			err = w.watcher.Add(filename)
+			if err == nil {
+				configFile.isEventWatched = true
+			}
+		}
+		if configFile.hash != newHash {
 			w.handleFunc(&WatcherEvent{Filename: filename})
-			return
 		}
 	}
+}
+
+func (w Watcher) Start() {
+	go w.watch()
 }
 
 func isWrite(event fsnotify.Event) bool {
