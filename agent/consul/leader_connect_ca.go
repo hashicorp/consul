@@ -482,16 +482,12 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	if err := provider.Configure(pCfg); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
-	if err := provider.GenerateRoot(); err != nil {
+	root, err := provider.GenerateRoot()
+	if err != nil {
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
 
-	// Get the active root cert from the CA
-	rootPEM, err := provider.ActiveRoot()
-	if err != nil {
-		return fmt.Errorf("error getting root cert: %v", err)
-	}
-	rootCA, err := parseCARoot(rootPEM, conf.Provider, conf.ClusterID)
+	rootCA, err := parseCARoot(root.PEM, conf.Provider, conf.ClusterID)
 	if err != nil {
 		return err
 	}
@@ -863,15 +859,12 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 }
 
 func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.CARequest, config *structs.CAConfiguration) error {
-	if err := newProvider.GenerateRoot(); err != nil {
+	providerRoot, err := newProvider.GenerateRoot()
+	if err != nil {
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
 
-	newRootPEM, err := newProvider.ActiveRoot()
-	if err != nil {
-		return err
-	}
-
+	newRootPEM := providerRoot.PEM
 	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
 	if err != nil {
 		return err
@@ -925,6 +918,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 		// get a cross-signed certificate.
 		// 3. Take the active root for the new provider and append the intermediate from step 2
 		// to its list of intermediates.
+		// TODO: this cert is already parsed once in parseCARoot, could we remove the second parse?
 		newRoot, err := connect.ParseCert(newRootPEM)
 		if err != nil {
 			return err
