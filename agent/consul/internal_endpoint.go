@@ -437,7 +437,7 @@ func (m *Internal) KeyringOperation(
 	if err != nil {
 		return err
 	}
-	if err := m.srv.validateEnterpriseToken(authz.ACLIdentity); err != nil {
+	if err := m.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
 	switch args.Operation {

@@ -85,7 +85,7 @@ func (op *Operator) RaftRemovePeerByAddress(args *structs.RaftRemovePeerRequest,
 	if err != nil {
 		return err
 	}
-	if err := op.srv.validateEnterpriseToken(authz.ACLIdentity); err != nil {
+	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
 	if authz.OperatorWrite(nil) != acl.Allow {
@@ -138,7 +138,7 @@ func (op *Operator) RaftRemovePeerByID(args *structs.RaftRemovePeerRequest, repl
 	if err != nil {
 		return err
 	}
-	if err := op.srv.validateEnterpriseToken(authz.ACLIdentity); err != nil {
+	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
 	if authz.OperatorWrite(nil) != acl.Allow {

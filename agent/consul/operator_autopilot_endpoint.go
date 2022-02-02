@@ -21,7 +21,7 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 	if err != nil {
 		return err
 	}
-	if err := op.srv.validateEnterpriseToken(authz.ACLIdentity); err != nil {
+	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
 	if authz.OperatorRead(nil) != acl.Allow {
@@ -53,7 +53,7 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 	if err != nil {
 		return err
 	}
-	if err := op.srv.validateEnterpriseToken(authz.ACLIdentity); err != nil {
+	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
 	if authz.OperatorWrite(nil) != acl.Allow {
@@ -88,7 +88,7 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 	if err != nil {
 		return err
 	}
-	if err := op.srv.validateEnterpriseToken(authz.ACLIdentity); err != nil {
+	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
 	if authz.OperatorRead(nil) != acl.Allow {
@@ -155,7 +155,7 @@ func (op *Operator) AutopilotState(args *structs.DCSpecificRequest, reply *autop
 	if err != nil {
 		return err
 	}
-	if err := op.srv.validateEnterpriseToken(authz.ACLIdentity); err != nil {
+	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
 	if authz.OperatorRead(nil) != acl.Allow {
