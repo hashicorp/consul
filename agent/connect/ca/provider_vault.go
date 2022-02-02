@@ -157,19 +157,14 @@ func (v *VaultProvider) State() (map[string]string, error) {
 	return nil, nil
 }
 
-// ActiveRoot returns the active root CA certificate.
-func (v *VaultProvider) ActiveRoot() (string, error) {
-	return v.getCA(v.config.RootPKIPath)
-}
-
 // GenerateRoot mounts and initializes a new root PKI backend if needed.
-func (v *VaultProvider) GenerateRoot() error {
+func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 	if !v.isPrimary {
-		return fmt.Errorf("provider is not the root certificate authority")
+		return RootResult{}, fmt.Errorf("provider is not the root certificate authority")
 	}
 
 	// Set up the root PKI backend if necessary.
-	_, err := v.ActiveRoot()
+	rootPEM, err := v.getCA(v.config.RootPKIPath)
 	switch err {
 	case ErrBackendNotMounted:
 		err := v.client.Sys().Mount(v.config.RootPKIPath, &vaultapi.MountInput{
@@ -181,14 +176,14 @@ func (v *VaultProvider) GenerateRoot() error {
 		})
 
 		if err != nil {
-			return err
+			return RootResult{}, err
 		}
 
 		fallthrough
 	case ErrBackendNotInitialized:
 		uid, err := connect.CompactUID()
 		if err != nil {
-			return err
+			return RootResult{}, err
 		}
 		_, err = v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
@@ -197,15 +192,23 @@ func (v *VaultProvider) GenerateRoot() error {
 			"key_bits":    v.config.PrivateKeyBits,
 		})
 		if err != nil {
-			return err
+			return RootResult{}, err
 		}
+
+		// retrieve the newly generated cert so that we can return it
+		// TODO: is this already available from the Local().Write() above?
+		rootPEM, err = v.getCA(v.config.RootPKIPath)
+		if err != nil {
+			return RootResult{}, err
+		}
+
 	default:
 		if err != nil {
-			return err
+			return RootResult{}, err
 		}
 	}
 
-	return nil
+	return RootResult{PEM: rootPEM}, nil
 }
 
 // GenerateIntermediateCSR creates a private key and generates a CSR
@@ -481,7 +484,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
 // back to our active root.
 func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
-	rootPEM, err := v.ActiveRoot()
+	rootPEM, err := v.getCA(v.config.RootPKIPath)
 	if err != nil {
 		return "", err
 	}
