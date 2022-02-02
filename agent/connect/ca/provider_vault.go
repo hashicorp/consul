@@ -308,17 +308,14 @@ func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
 		return fmt.Errorf("cannot set an intermediate using another root in the primary datacenter")
 	}
 
-	err := validateSetIntermediate(
-		intermediatePEM, rootPEM,
-		"", // we don't have access to the private key directly
-		v.spiffeID,
-	)
+	// the private key is in vault, so we can't use it in this validation
+	err := validateSetIntermediate(intermediatePEM, rootPEM, "", v.spiffeID)
 	if err != nil {
 		return err
 	}
 
 	_, err = v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/set-signed", map[string]interface{}{
-		"certificate": fmt.Sprintf("%s\n%s", intermediatePEM, rootPEM),
+		"certificate": intermediatePEM,
 	})
 	if err != nil {
 		return err
