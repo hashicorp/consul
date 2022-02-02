@@ -7,9 +7,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/acmpca"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
 )
 
 // skipIfAWSNotConfigured skips the test unless ENABLE_AWS_PCA_TESTS=true.
@@ -43,12 +44,9 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 			provider := testAWSProvider(t, testProviderConfigPrimary(t, cfg))
 			defer provider.Cleanup(true, nil)
 
-			// Generate the root
-			require.NoError(provider.GenerateRoot())
-
-			// Fetch Active Root
-			rootPEM, err := provider.ActiveRoot()
+			root, err := provider.GenerateRoot()
 			require.NoError(err)
+			rootPEM := root.PEM
 
 			// Generate Intermediate (not actually needed for this provider for now
 			// but this simulates the calls in Server.initializeRoot).
@@ -93,8 +91,9 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 
 	p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 	defer p1.Cleanup(true, nil)
-	rootPEM, err := p1.ActiveRoot()
+	root, err := p1.GenerateRoot()
 	require.NoError(t, err)
+	rootPEM := root.PEM
 
 	p2 := testAWSProvider(t, testProviderConfigSecondary(t, nil))
 	defer p2.Cleanup(true, nil)
@@ -121,8 +120,9 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		cfg1 := testProviderConfigPrimary(t, nil)
 		cfg1.State = p1State
 		p1 = testAWSProvider(t, cfg1)
-		newRootPEM, err := p1.ActiveRoot()
+		root, err := p1.GenerateRoot()
 		require.NoError(t, err)
+		newRootPEM := root.PEM
 
 		cfg2 := testProviderConfigPrimary(t, nil)
 		cfg2.State = p2State
@@ -154,8 +154,9 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 			"ExistingARN": p1State[AWSStateCAARNKey],
 		})
 		p1 = testAWSProvider(t, cfg1)
-		newRootPEM, err := p1.ActiveRoot()
+		root, err := p1.GenerateRoot()
 		require.NoError(t, err)
+		newRootPEM := root.PEM
 
 		cfg2 := testProviderConfigPrimary(t, map[string]interface{}{
 			"ExistingARN": p2State[AWSStateCAARNKey],
@@ -191,7 +192,8 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 		p1 := TestConsulProvider(t, delegate)
 		cfg := testProviderConfig(conf)
 		require.NoError(t, p1.Configure(cfg))
-		require.NoError(t, p1.GenerateRoot())
+		_, err := p1.GenerateRoot()
+		require.NoError(t, err)
 
 		p2 := testAWSProvider(t, testProviderConfigSecondary(t, nil))
 		defer p2.Cleanup(true, nil)
@@ -202,7 +204,9 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 	t.Run("pri=aws,sec=consul", func(t *testing.T) {
 		p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 		defer p1.Cleanup(true, nil)
-		require.NoError(t, p1.GenerateRoot())
+
+		_, err := p1.GenerateRoot()
+		require.NoError(t, err)
 
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
@@ -263,11 +267,13 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 	}
 
 	requirePCADeleted := func(t *testing.T, provider *AWSProvider) {
+		t.Helper()
 		deleted, err := describeCA(t, provider)
 		require.True(t, err != nil || deleted, "The AWS PCA instance has not been deleted")
 	}
 
 	requirePCANotDeleted := func(t *testing.T, provider *AWSProvider) {
+		t.Helper()
 		deleted, err := describeCA(t, provider)
 		require.NoError(t, err)
 		require.False(t, deleted, "The AWS PCA instance should not have been deleted")

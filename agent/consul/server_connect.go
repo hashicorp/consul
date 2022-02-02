@@ -7,13 +7,14 @@ import (
 	"net/url"
 	"sync"
 
+	memdb "github.com/hashicorp/go-memdb"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/semaphore"
-	memdb "github.com/hashicorp/go-memdb"
-	"golang.org/x/time/rate"
 )
 
 type connectSignRateLimiter struct {
@@ -226,19 +227,6 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 	// Append any intermediates needed by this root.
 	for _, p := range caRoot.IntermediateCerts {
 		pem = pem + ca.EnsureTrailingNewline(p)
-	}
-
-	// Append our local CA's intermediate if there is one.
-	inter, err := provider.ActiveIntermediate()
-	if err != nil {
-		return nil, err
-	}
-	root, err := provider.ActiveRoot()
-	if err != nil {
-		return nil, err
-	}
-	if inter != root {
-		pem = pem + ca.EnsureTrailingNewline(inter)
 	}
 
 	// TODO(banks): when we implement IssuedCerts table we can use the insert to
