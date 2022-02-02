@@ -13,6 +13,9 @@ func TestNewWatcher(t *testing.T) {
 	w, err := New(func(event *WatcherEvent) error {
 		return nil
 	})
+	defer func() {
+		_ = w.Close()
+	}()
 	require.NoError(t, err)
 	require.NotNil(t, w)
 }
@@ -21,6 +24,9 @@ func TestWatcherAddRemoveExist(t *testing.T) {
 	w, err := New(func(event *WatcherEvent) error {
 		return nil
 	})
+	defer func() {
+		_ = w.Close()
+	}()
 	require.NoError(t, err)
 	file := testutil.TempFile(t, "temp_config")
 	_, err = file.Write([]byte("test config"))
@@ -31,7 +37,7 @@ func TestWatcherAddRemoveExist(t *testing.T) {
 	require.NoError(t, err)
 	h, ok := w.configFiles[file.Name()]
 	require.True(t, ok)
-	require.Equal(t, "7465737420636f6e666967e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", h)
+	require.Equal(t, "7465737420636f6e666967e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", h.hash)
 	err = w.Remove(file.Name())
 	require.NoError(t, err)
 	_, ok = w.configFiles[file.Name()]
@@ -42,6 +48,9 @@ func TestWatcherAddNotExist(t *testing.T) {
 	w, err := New(func(event *WatcherEvent) error {
 		return nil
 	})
+	defer func() {
+		_ = w.Close()
+	}()
 	require.NoError(t, err)
 	file := testutil.TempFile(t, "temp_config")
 	filename := file.Name() + randomString(16)
@@ -57,6 +66,9 @@ func TestEventWatcherWrite(t *testing.T) {
 		watcherCh <- event
 		return nil
 	})
+	defer func() {
+		_ = w.Close()
+	}()
 	require.NoError(t, err)
 	file := testutil.TempFile(t, "temp_config")
 	_, err = file.WriteString("test config")
@@ -80,6 +92,9 @@ func TestEventWatcherRead(t *testing.T) {
 		watcherCh <- event
 		return nil
 	})
+	defer func() {
+		_ = w.Close()
+	}()
 	require.NoError(t, err)
 	file := testutil.TempFile(t, "temp_config")
 	_, err = file.WriteString("test config")
@@ -101,6 +116,9 @@ func TestEventWatcherChmod(t *testing.T) {
 		watcherCh <- event
 		return nil
 	})
+	defer func() {
+		_ = w.Close()
+	}()
 	require.NoError(t, err)
 	file := testutil.TempFile(t, "temp_config")
 	_, err = file.WriteString("test config")
@@ -122,6 +140,9 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 		watcherCh <- event
 		return nil
 	})
+	defer func() {
+		_ = w.Close()
+	}()
 	require.NoError(t, err)
 	file := testutil.TempFile(t, "temp_config")
 	_, err = file.WriteString("test config")
@@ -148,25 +169,15 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	require.NoError(t, assertEvent(file.Name(), watcherCh))
 }
 
-func assertEvent(name string, watcherCh chan *WatcherEvent) error {
-	timeout := time.After(200 * time.Millisecond)
-	select {
-	case ev := <-watcherCh:
-		if ev.Filename != name {
-			return fmt.Errorf("filename do not match")
-		}
-		return nil
-	case <-timeout:
-		return fmt.Errorf("timedout waiting for event")
-	}
-}
-
 func TestEventReconcile(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
 	w, err := New(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
 	})
+	defer func() {
+		_ = w.Close()
+	}()
 	require.NoError(t, err)
 	file := testutil.TempFile(t, "temp_config")
 	_, err = file.WriteString("test config")
@@ -185,4 +196,17 @@ func TestEventReconcile(t *testing.T) {
 	err = file.Sync()
 	require.NoError(t, err)
 	require.NoError(t, assertEvent(file.Name(), watcherCh))
+}
+
+func assertEvent(name string, watcherCh chan *WatcherEvent) error {
+	timeout := time.After(200 * time.Millisecond)
+	select {
+	case ev := <-watcherCh:
+		if ev.Filename != name {
+			return fmt.Errorf("filename do not match")
+		}
+		return nil
+	case <-timeout:
+		return fmt.Errorf("timedout waiting for event")
+	}
 }
