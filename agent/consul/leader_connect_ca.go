@@ -654,7 +654,7 @@ func (c *CAManager) secondaryInitializeIntermediateCA(provider ca.Provider, conf
 	}
 
 	if needsNewIntermediate {
-		if err := c.secondaryRenewIntermediate(provider, newActiveRoot); err != nil {
+		if err := c.secondaryRequestNewSigningCert(provider, newActiveRoot); err != nil {
 			return err
 		}
 	} else {
@@ -1028,9 +1028,11 @@ func (c *CAManager) primaryRenewIntermediate(provider ca.Provider, newActiveRoot
 	return nil
 }
 
-// secondaryRenewIntermediate should only be called while the state lock is held by
-// setting the state to non-ready.
-func (c *CAManager) secondaryRenewIntermediate(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+// secondaryRequestNewSigningCert creates a Certificate Signing Request, sends
+// the request to the primary, and stores the received certificate in the
+// provider.
+// Should only be called while the state lock is held by setting the state to non-ready.
+func (c *CAManager) secondaryRequestNewSigningCert(provider ca.Provider, newActiveRoot *structs.CARoot) error {
 	csr, err := provider.GenerateIntermediateCSR()
 	if err != nil {
 		return err
@@ -1145,7 +1147,7 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 	// Enough time has passed, go ahead with getting a new intermediate.
 	renewalFunc := c.primaryRenewIntermediate
 	if !isPrimary {
-		renewalFunc = c.secondaryRenewIntermediate
+		renewalFunc = c.secondaryRequestNewSigningCert
 	}
 	errCh := make(chan error, 1)
 	go func() {
