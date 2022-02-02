@@ -153,9 +153,9 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
-	deleteAllButOneEndpoint := func(snap *proxycfg.ConfigSnapshot, svc, targetID string) {
-		snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[svc][targetID] =
-			snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[svc][targetID][0:1]
+	deleteAllButOneEndpoint := func(snap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID, targetID string) {
+		snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[uid][targetID] =
+			snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[uid][targetID][0:1]
 	}
 
 	runStep(t, "avoid sending config for unsubscribed resource", func(t *testing.T) {
@@ -169,7 +169,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 
 		// now reconfigure the snapshot and JUST edit the endpoints to strike one of the two current endpoints for DB
 		snap = newTestSnapshot(t, snap, "")
-		deleteAllButOneEndpoint(snap, "db", "db.default.default.dc1")
+		deleteAllButOneEndpoint(snap, UID("db"), "db.default.default.dc1")
 		mgr.DeliverConfig(t, sid, snap)
 
 		// We never send an EDS reply about this change.
@@ -206,7 +206,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	runStep(t, "simulate envoy NACKing an endpoint update", func(t *testing.T) {
 		// Trigger only an EDS update.
 		snap = newTestSnapshot(t, snap, "")
-		deleteAllButOneEndpoint(snap, "db", "db.default.default.dc1")
+		deleteAllButOneEndpoint(snap, UID("db"), "db.default.default.dc1")
 		mgr.DeliverConfig(t, sid, snap)
 
 		// Send envoy an EDS update.
@@ -543,6 +543,72 @@ func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T)
 		// It also (in parallel) issues the endpoint ACK
 		envoy.SendDeltaReqACK(t, EndpointType, 4)
 
+	})
+
+	envoy.Close()
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("timed out waiting for handler to finish")
+	}
+}
+
+func TestServer_DeltaAggregatedResources_v3_GetAllClusterAfterConsulRestarted(t *testing.T) {
+	// This illustrates a scenario related to https://github.com/hashicorp/consul/issues/11833
+
+	aclResolve := func(id string) (acl.Authorizer, error) {
+		// Allow all
+		return acl.RootAuthorizer("manage"), nil
+	}
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
+	_, mgr, errCh, envoy := scenario.server, scenario.mgr, scenario.errCh, scenario.envoy
+	envoy.EnvoyVersion = "1.18.0"
+
+	sid := structs.NewServiceID("web-sidecar-proxy", nil)
+
+	// Register the proxy to create state needed to Watch() on
+	mgr.RegisterProxy(t, sid)
+
+	var snap *proxycfg.ConfigSnapshot
+	runStep(t, "get into state after consul restarted", func(t *testing.T) {
+		snap = newTestSnapshot(t, nil, "")
+
+		// Send initial cluster discover.
+		// This is to simulate the discovery request call from envoy after disconnected from consul ads stream.
+		//
+		// We need to force it to be an older version of envoy so that the logic shifts.
+		envoy.SendDeltaReq(t, ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+			ResourceNamesSubscribe: []string{
+				"local_app",
+				"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			},
+			InitialResourceVersions: map[string]string{
+				"local_app": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+				"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+			},
+		})
+
+		// Check no response sent yet
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		requireProtocolVersionGauge(t, scenario, "v3", 1)
+
+		// Deliver a new snapshot
+		// the config contains 3 clusters: local_app, db, geo-cache.
+		// this is to simulate the fact that there is one additional (upstream) cluster gets added to the sidecar service
+		// during the time xds disconnected (consul restarted).
+		mgr.DeliverConfig(t, sid, snap)
+
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: ClusterType,
+			Nonce:   hexString(1),
+			Resources: makeTestResources(t,
+				makeTestCluster(t, snap, "tcp:local_app"),
+				makeTestCluster(t, snap, "tcp:db"),
+				makeTestCluster(t, snap, "tcp:geo-cache"),
+			),
+		})
 	})
 
 	envoy.Close()

@@ -1,0 +1,6 @@
+```release-note:bug
+config: include all config errors in the error message, previously some could be hidden.
+```
+```release-note:bug
+snapshot: the `snapshot save` command now saves the snapshot with read permission for only the current user.
+```

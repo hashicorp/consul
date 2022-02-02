@@ -4,9 +4,6 @@
 .app .notifications {
   @extend %app-notifications;
 }
-.app footer {
-  @extend %footer;
-}
 %app-notifications {
   display: flex;
   flex-direction: column;
@@ -31,6 +28,9 @@
   pointer-events: auto;
 }
 
+[role='contentinfo'] {
+  @extend %footer;
+}
 [role='banner'] {
   @extend %main-header-horizontal;
 }
@@ -68,7 +68,7 @@ main {
   @extend %transition-pushover;
 }
 %footer {
-  position: absolute;
+  position: fixed;
   z-index: 50;
 
   color: rgb(var(--tone-gray-400));
@@ -77,11 +77,11 @@ main {
   width: 250px;
   padding-left: 25px;
 }
-.app footer {
+%footer {
   top: calc(100vh - 42px);
   top: calc(max(100vh, 460px) - 42px);
 }
-html.has-partitions.has-nspaces .app footer {
+html.has-partitions.has-nspaces .app [role='contentinfo'] {
   top: calc(100vh - 42px);
   top: calc(max(100vh, 640px) - 42px);
 }

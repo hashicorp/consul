@@ -2,7 +2,6 @@ import OAuth2CodeProvider from 'torii/providers/oauth2-code';
 import { runInDebug } from '@ember/debug';
 
 export default class OAuth2CodeWithURLProvider extends OAuth2CodeProvider {
-
   name = 'oidc-with-url';
 
   buildUrl() {
@@ -23,7 +22,9 @@ export default class OAuth2CodeWithURLProvider extends OAuth2CodeProvider {
           authorizationCode: decodeURIComponent(authData[responseType]),
           provider: name,
         };
-        runInDebug(_ => console.log('Retrieved the following creds from the OAuth Provider', creds))
+        runInDebug(_ =>
+          console.info('Retrieved the following creds from the OAuth Provider', creds)
+        );
         return creds;
       });
   }
@@ -34,6 +35,4 @@ export default class OAuth2CodeWithURLProvider extends OAuth2CodeProvider {
       return popup.close();
     }
   }
-
 }
-

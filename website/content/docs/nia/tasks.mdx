@@ -36,7 +36,7 @@ A task can also monitor, but not execute on, other variables that provide additi
 
 A source input can be specified that implicitly includes variables to be provided to the task’s module. For example, a task can specify a Consul KV source input. The specified KV keys or key paths would be monitored for changes. Any changes detected would be included as input information for the modules. The module determines the details of what values are monitored and what values can execute the task.
 
-~> **The source input block is currently only supported when using a schedule condition.** Adding a source input block alongside any other type of condition will result in an error. To accomplish a similar behaviour with other condition blocks, use the `source_includes_var` field.
+~> **The source input block is currently only supported when using a schedule condition.** Adding a source input block alongside any other type of condition will result in an error. To accomplish a similar behavior with other condition blocks, use the `source_includes_var` field.
 
 Below are details on the types of execution conditions that Consul-Terraform-Sync supports.
 

@@ -1,3 +1,0 @@
-```release-note:improvement
-server: block enterprise-specific partition-exports config entry from being used in OSS Consul.
-```

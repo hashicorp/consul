@@ -100,9 +100,14 @@ func (s *Server) LocalTokensEnabled() bool {
 	return true
 }
 
-func (s *Server) ACLDatacenter() string {
-	// For resolution running on servers the only option
-	// is to contact the configured ACL Datacenter
+type serverACLResolverBackend struct {
+	// TODO: un-embed
+	*Server
+}
+
+func (s *serverACLResolverBackend) ACLDatacenter() string {
+	// For resolution running on servers the only option is to contact the
+	// configured ACL Datacenter
 	if s.config.PrimaryDatacenter != "" {
 		return s.config.PrimaryDatacenter
 	}
@@ -114,6 +119,7 @@ func (s *Server) ACLDatacenter() string {
 }
 
 // ResolveIdentityFromToken retrieves a token's full identity given its secretID.
+// TODO: why does some code call this directly instead of using ACLResolver.ResolveTokenToIdentity ?
 func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
 	// only allow remote RPC resolution when token replication is off and
 	// when not in the ACL datacenter
@@ -131,7 +137,7 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 	return s.InPrimaryDatacenter() || index > 0, nil, acl.ErrNotFound
 }
 
-func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {
+func (s *serverACLResolverBackend) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {
 	index, policy, err := s.fsm.State().ACLPolicyGetByID(nil, policyID, nil)
 	if err != nil {
 		return true, nil, err
@@ -145,7 +151,7 @@ func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy,
 	return s.InPrimaryDatacenter() || index > 0, policy, acl.ErrNotFound
 }
 
-func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
+func (s *serverACLResolverBackend) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
 	index, role, err := s.fsm.State().ACLRoleGetByID(nil, roleID, nil)
 	if err != nil {
 		return true, nil, err
@@ -159,47 +165,10 @@ func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error
 	return s.InPrimaryDatacenter() || index > 0, role, acl.ErrNotFound
 }
 
-func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
-	_, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
-	return authz, err
-}
-
-func (s *Server) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
-	// not using ResolveTokenToIdentityAndAuthorizer because in this case we don't
-	// need to resolve the roles, policies and namespace but just want the identity
-	// information such as accessor id.
-	return s.acls.ResolveTokenToIdentity(token)
-}
-
-// TODO: Client has an identical implementation, remove duplication
-func (s *Server) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
-	identity, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
-	if err != nil {
-		return nil, err
-	}
-
-	if entMeta == nil {
-		entMeta = &structs.EnterpriseMeta{}
-	}
-
-	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
-	// in the case of unknown identity
-	if identity != nil {
-		entMeta.Merge(identity.EnterpriseMetadata())
-	} else {
-		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
-	}
-
-	// Use the meta to fill in the ACL authorization context
-	entMeta.FillAuthzContext(authzContext)
-
-	return authz, err
-}
-
 func (s *Server) filterACL(token string, subj interface{}) error {
-	return filterACL(s.acls, token, subj)
+	return filterACL(s.ACLResolver, token, subj)
 }
 
 func (s *Server) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) {
-	filterACLWithAuthorizer(s.acls.logger, authorizer, subj)
+	filterACLWithAuthorizer(s.ACLResolver.logger, authorizer, subj)
 }

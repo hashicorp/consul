@@ -10,7 +10,12 @@ export default function(
 ) {
   return {
     scope: 'main',
-    visit: visitable(['/:dc/intentions/:intention', '/:dc/intentions/create']),
+    visit: visitable([
+      '/:dc/intentions/:intention',
+      '/:dc/services/:service/intentions/:intention',
+      '/:dc/services/:service/intentions/create',
+      '/:dc/intentions/create',
+    ]),
     permissions: {
       create: {
         scope: '[data-test-create-permission]',

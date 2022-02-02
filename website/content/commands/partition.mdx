@@ -11,7 +11,7 @@ Command: `consul partition`
 
 <EnterpriseAlert />
 
-The `partition` command enables you to create and manage Consul Enterprise administrative or admin partitions. Admin partitions are boundaries that allow multiple tenants to exist independently of each other on a shared set of Consul servers. This feature is currently in beta.
+The `partition` command enables you to create and manage Consul Enterprise administrative or admin partitions. Admin partitions are boundaries that allow multiple tenants to exist independently of each other on a shared set of Consul servers.
 
 If ACLs are enabled then a token with operator privileges may be required in order to use this command.
 
@@ -73,17 +73,17 @@ consul partition create <OPTIONS>
 
 The admin partition is created according to the values specified in the options. You can specify the following options:
 
-| Option | Description | Default | Required |
-| ---    | ---         | ---     | ---      |
-| `-name` | String value that specifies the name for the new partition. | none | Required |
-| `-description` &nbsp; &nbsp; &nbsp; &nbsp; | String value that specifies a description of the new partition. | none | Optional |
-| `-format` | Specifies how to format the output of the operation in the console. | none | Optional |
-| `-show-meta` | Prints the description and raft indices to the console in the response. <br/> This option does not take a value. Include the option when issuing the command to enable. | Disabled | Optional |
+| Option                                     | Description                                                                                                                                                             | Default  | Required |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| `-name`                                    | String value that specifies the name for the new partition.                                                                                                             | none     | Required |
+| `-description` &nbsp; &nbsp; &nbsp; &nbsp; | String value that specifies a description of the new partition.                                                                                                         | none     | Optional |
+| `-format`                                  | Specifies how to format the output of the operation in the console.                                                                                                     | none     | Optional |
+| `-show-meta`                               | Prints the description and raft indices to the console in the response. <br/> This option does not take a value. Include the option when issuing the command to enable. | Disabled | Optional |
 
 In the following example, a partition named `webdev` is created:
 
 ```shell-session
-consul partition create -name "webdev" -description "Partition for admin of webdev services" -format  json -show-meta
+$ consul partition create -name "webdev" -description "Partition for admin of webdev services" -format json -show-meta
 
 {
    "Name": "webdev",
@@ -109,19 +109,19 @@ Use the following syntax to write from `stdin`:
 consul partition write <OPTIONS> -
 ```
 
-The definition file or `stdin` values can be provided in JSON or HCL format. Refer to the  [Admin Partition Definition](#partition-definition) section for details about the supported parameters.
+The definition file or `stdin` values can be provided in JSON or HCL format. Refer to the [Admin Partition Definition](#partition-definition) section for details about the supported parameters.
 
 You can specify the following options:
 
-| Option | Description | Default | Required |
-| ---    | ---         | ---     | ---      |
-| `-format` | Specifies how to format the output of the operation in the console. | none | Optional |
+| Option                     | Description                                                                                                                                                             | Default  | Required |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| `-format`                  | Specifies how to format the output of the operation in the console.                                                                                                     | none     | Optional |
 | `-show-meta` &nbsp; &nbsp; | Prints the description and raft indices to the console in the response. <br/> This option does not take a value. Include the option when issuing the command to enable. | Disabled | Optional |
 
 In the following example, the `webdev-bu` partition is written using `stdin` values:
 
 ```shell-session
-consul partition write -format  json -show-meta - <<< 'name = "webdev-bu" description = "backup webdev partition"'
+$ consul partition write -format json -show-meta - <<< 'name = "webdev-bu" description = "backup webdev partition"'
 
 {
    "Name": "webdev-bu",
@@ -141,10 +141,10 @@ consul partition read <OPTIONS> <PARTITION_NAME>
 
 The admin partition is created according to the values specified in the options. You can specify the following options:
 
-| Option | Description | Default | Required |
-| ---    | ---         | ---     | ---      |
-| `-format` &nbsp; &nbsp; | Specifies how to format the output of the operation in the console. | none | Optional |
-| `-meta` | Prints the description and raft indices to the console in the response. <br/> This option does not take a value. Include the option when issuing the command to enable. | Disabled | Optional |
+| Option                  | Description                                                                                                                                                             | Default  | Required |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| `-format` &nbsp; &nbsp; | Specifies how to format the output of the operation in the console.                                                                                                     | none     | Optional |
+| `-meta`                 | Prints the description and raft indices to the console in the response. <br/> This option does not take a value. Include the option when issuing the command to enable. | Disabled | Optional |
 
 In the following example, the configuration for the `webdev` partition is read:
 
@@ -168,15 +168,15 @@ consul partition list <OPTIONS>
 
 The admin partition is created according to the values specified in the options. You can specify the following options:
 
-| Option | Description | Default | Required |
-| ---    | ---         | ---     | ---      |
-| `-format` | Specifies how to format the output of the operation in the console. | none | Optional |
+| Option       | Description                                                                                                                                                             | Default  | Required |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| `-format`    | Specifies how to format the output of the operation in the console.                                                                                                     | none     | Optional |
 | `-show-meta` | Prints the description and raft indices to the console in the response. <br/> This option does not take a value. Include the option when issuing the command to enable. | Disabled | Optional |
 
 The following example lists the admin partitions and their meta data in JSON format:
 
 ```shell-session
-consul partition list -format  json -show-meta
+$ consul partition list -format json -show-meta
 
 [
    {
@@ -204,8 +204,9 @@ consul partition list -format  json -show-meta
 The `delete` subcommand sends a request to the server to remove the specified partition.
 
 ```shell-session
-consul partition delete <PARTITION_NAME>
+$ consul partition delete <PARTITION_NAME>
 ```
+
 In the following example, the `webdev-bu` partition is deleted:
 
 ```shell-session
@@ -218,10 +219,10 @@ Admin partitions are managed exclusively through the HTTP API and the Consul CLI
 
 The following parameters are supported in admin partition definition files:
 
-| Option | Description | Default | Required |
-| ---    | ---         | ---     | ---      |
-| `Name` | String value that specifies the name of partition you are creating or writing. <br/> The value must be valid DNS hostname value. | none | Required |
-| `Description` | String value that specifies a description for the partition you are creating or writing. <br/> The value should provide human-readable information to help other users understand the purpose of the partition. | none | Optional |
+| Option        | Description                                                                                                                                                                                                     | Default | Required |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- |
+| `Name`        | String value that specifies the name of partition you are creating or writing. <br/> The value must be valid DNS hostname value.                                                                                | none    | Required |
+| `Description` | String value that specifies a description for the partition you are creating or writing. <br/> The value should provide human-readable information to help other users understand the purpose of the partition. | none    | Optional |
 
 ### Example Definition File
 
@@ -236,12 +237,12 @@ Description = "Partition for dev team"
 
 You can include the following options to interact with the HTTP API when using the `partition` command.
 
-| Option | Description | Default | Required |
-| ---    | ---         | ---     | ---      |
-| `-ca-file` | Specifies the path to a certificate authority (CA) file when TLS is enabled.<br/> You can also specify `CONSUL_CACERT` as the value if the environment variable is configured. | none | Required if TLS is enabled |
-| `-ca-path` | Specifies the path to a client certificate file when TLS is enabled. <br/> You can also specify `CONSUL_CAPATH` as the value if the environment variable is configured. | none | Required if TLS is enabled |
-| `-client-cert` | Specifies the path to a client certificate file when TLS and the `verify_incoming` option are enabled. <br/> You can also specify `CONSUL_CLIENT_CERT` as the value if the environment variable is configured. | none | Required if TLS and `verify_incoming` are enabled |
-| `-client-key` | Specifies the path to a client key file when TLS and the `verify_incoming` option are enabled. <br/> You can also specify `CONSUL_CLIENT_KEY` as the value if the environment variable is configured. | none | Required if TLS and `verify_incoming` are enabled |
-| `-datacenter` | Specifies the name of the datacenter to query. <br/> Non-default admin partitions are only supported in the primary datacenter. | Datacenter of the queried agent | Required if the agent is in a non-primary datacenter. |
-| `-http-addr` | Specifies the address and port number of the Consul HTTP agent. <br/>IP and DNS addresses are supported. The address must also include the port. <br/>You can also specify `CONSUL_HTTP_ADDR` if the environment variable is configured. <br/>To use an HTTPS address, set the `CONSUL_HTTP_SSL` environment variable to `true`. | `http://127.0.0.1:8500` | Optional |
-| `-stale` | Boolean value that enables any Consul server (non-leader) to respond to the request. <br/>This switch can lower latency and increase throughput, but may result in stale data. This option has no effect on non-read operations. | `false` | Optional |
+| Option         | Description                                                                                                                                                                                                                                                                                                                      | Default                         | Required                                              |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------- |
+| `-ca-file`     | Specifies the path to a certificate authority (CA) file when TLS is enabled.<br/> You can also specify `CONSUL_CACERT` as the value if the environment variable is configured.                                                                                                                                                   | none                            | Required if TLS is enabled                            |
+| `-ca-path`     | Specifies the path to a client certificate file when TLS is enabled. <br/> You can also specify `CONSUL_CAPATH` as the value if the environment variable is configured.                                                                                                                                                          | none                            | Required if TLS is enabled                            |
+| `-client-cert` | Specifies the path to a client certificate file when TLS and the `verify_incoming` option are enabled. <br/> You can also specify `CONSUL_CLIENT_CERT` as the value if the environment variable is configured.                                                                                                                   | none                            | Required if TLS and `verify_incoming` are enabled     |
+| `-client-key`  | Specifies the path to a client key file when TLS and the `verify_incoming` option are enabled. <br/> You can also specify `CONSUL_CLIENT_KEY` as the value if the environment variable is configured.                                                                                                                            | none                            | Required if TLS and `verify_incoming` are enabled     |
+| `-datacenter`  | Specifies the name of the datacenter to query. <br/> Non-default admin partitions are only supported in the primary datacenter.                                                                                                                                                                                                  | Datacenter of the queried agent | Required if the agent is in a non-primary datacenter. |
+| `-http-addr`   | Specifies the address and port number of the Consul HTTP agent. <br/>IP and DNS addresses are supported. The address must also include the port. <br/>You can also specify `CONSUL_HTTP_ADDR` if the environment variable is configured. <br/>To use an HTTPS address, set the `CONSUL_HTTP_SSL` environment variable to `true`. | `http://127.0.0.1:8500`         | Optional                                              |
+| `-stale`       | Boolean value that enables any Consul server (non-leader) to respond to the request. <br/>This switch can lower latency and increase throughput, but may result in stale data. This option has no effect on non-read operations.                                                                                                 | `false`                         | Optional                                              |

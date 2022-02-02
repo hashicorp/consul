@@ -1855,7 +1855,6 @@ func TestAgent_AddCheck_Alias(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -1869,19 +1868,19 @@ func TestAgent_AddCheck_Alias(t *testing.T) {
 		AliasService: "foo",
 	}
 	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Ensure we have a check mapping
 	sChk := requireCheckExists(t, a, "aliashealth")
-	require.Equal(api.HealthCritical, sChk.Status)
+	require.Equal(t, api.HealthCritical, sChk.Status)
 
 	chkImpl, ok := a.checkAliases[structs.NewCheckID("aliashealth", nil)]
-	require.True(ok, "missing aliashealth check")
-	require.Equal("", chkImpl.RPCReq.Token)
+	require.True(t, ok, "missing aliashealth check")
+	require.Equal(t, "", chkImpl.RPCReq.Token)
 
 	cs := a.State.CheckState(structs.NewCheckID("aliashealth", nil))
-	require.NotNil(cs)
-	require.Equal("", cs.Token)
+	require.NotNil(t, cs)
+	require.Equal(t, "", cs.Token)
 }
 
 func TestAgent_AddCheck_Alias_setToken(t *testing.T) {
@@ -1891,7 +1890,6 @@ func TestAgent_AddCheck_Alias_setToken(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -1905,15 +1903,15 @@ func TestAgent_AddCheck_Alias_setToken(t *testing.T) {
 		AliasService: "foo",
 	}
 	err := a.AddCheck(health, chk, false, "foo", ConfigSourceLocal)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	cs := a.State.CheckState(structs.NewCheckID("aliashealth", nil))
-	require.NotNil(cs)
-	require.Equal("foo", cs.Token)
+	require.NotNil(t, cs)
+	require.Equal(t, "foo", cs.Token)
 
 	chkImpl, ok := a.checkAliases[structs.NewCheckID("aliashealth", nil)]
-	require.True(ok, "missing aliashealth check")
-	require.Equal("foo", chkImpl.RPCReq.Token)
+	require.True(t, ok, "missing aliashealth check")
+	require.Equal(t, "foo", chkImpl.RPCReq.Token)
 }
 
 func TestAgent_AddCheck_Alias_userToken(t *testing.T) {
@@ -1923,7 +1921,6 @@ func TestAgent_AddCheck_Alias_userToken(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, `
 acl_token = "hello"
 	`)
@@ -1939,15 +1936,15 @@ acl_token = "hello"
 		AliasService: "foo",
 	}
 	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	cs := a.State.CheckState(structs.NewCheckID("aliashealth", nil))
-	require.NotNil(cs)
-	require.Equal("", cs.Token) // State token should still be empty
+	require.NotNil(t, cs)
+	require.Equal(t, "", cs.Token) // State token should still be empty
 
 	chkImpl, ok := a.checkAliases[structs.NewCheckID("aliashealth", nil)]
-	require.True(ok, "missing aliashealth check")
-	require.Equal("hello", chkImpl.RPCReq.Token) // Check should use the token
+	require.True(t, ok, "missing aliashealth check")
+	require.Equal(t, "hello", chkImpl.RPCReq.Token) // Check should use the token
 }
 
 func TestAgent_AddCheck_Alias_userAndSetToken(t *testing.T) {
@@ -1957,7 +1954,6 @@ func TestAgent_AddCheck_Alias_userAndSetToken(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, `
 acl_token = "hello"
 	`)
@@ -1973,15 +1969,15 @@ acl_token = "hello"
 		AliasService: "foo",
 	}
 	err := a.AddCheck(health, chk, false, "goodbye", ConfigSourceLocal)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	cs := a.State.CheckState(structs.NewCheckID("aliashealth", nil))
-	require.NotNil(cs)
-	require.Equal("goodbye", cs.Token)
+	require.NotNil(t, cs)
+	require.Equal(t, "goodbye", cs.Token)
 
 	chkImpl, ok := a.checkAliases[structs.NewCheckID("aliashealth", nil)]
-	require.True(ok, "missing aliashealth check")
-	require.Equal("goodbye", chkImpl.RPCReq.Token)
+	require.True(t, ok, "missing aliashealth check")
+	require.Equal(t, "goodbye", chkImpl.RPCReq.Token)
 }
 
 func TestAgent_RemoveCheck(t *testing.T) {

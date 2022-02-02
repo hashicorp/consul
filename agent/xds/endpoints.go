@@ -47,22 +47,22 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	resources := make([]proto.Message, 0,
 		len(cfgSnap.ConnectProxy.PreparedQueryEndpoints)+len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
 
-	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[id]
+	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
 		explicit := upstreamCfg.HasLocalPortOrSocket()
-		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[id]; !implicit && !explicit {
+		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
 
 		es := s.endpointsFromDiscoveryChain(
-			id,
+			uid,
 			chain,
 			cfgSnap.Locality,
 			upstreamCfg,
-			cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id],
-			cfgSnap.ConnectProxy.WatchedGatewayEndpoints[id],
+			cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid],
+			cfgSnap.ConnectProxy.WatchedGatewayEndpoints[uid],
 		)
 		resources = append(resources, es...)
 	}
@@ -72,7 +72,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
 			continue
 		}
-		id := u.Identifier()
+		uid := proxycfg.NewUpstreamID(&u)
 
 		dc := u.Datacenter
 		if dc == "" {
@@ -80,7 +80,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 		clusterName := connect.UpstreamSNI(&u, "", dc, cfgSnap.Roots.TrustDomain)
 
-		endpoints, ok := cfgSnap.ConnectProxy.PreparedQueryEndpoints[id]
+		endpoints, ok := cfgSnap.ConnectProxy.PreparedQueryEndpoints[uid]
 		if ok {
 			la := makeLoadAssignment(
 				clusterName,
@@ -318,27 +318,27 @@ func (s *ResourceGenerator) endpointsFromServicesAndResolvers(
 
 func (s *ResourceGenerator) endpointsFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
-	createdClusters := make(map[string]bool)
+	createdClusters := make(map[proxycfg.UpstreamID]bool)
 	for _, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		for _, u := range upstreams {
-			id := u.Identifier()
+			uid := proxycfg.NewUpstreamID(&u)
 
 			// If we've already created endpoints for this upstream, skip it. Multiple listeners may
 			// reference the same upstream, so we don't need to create duplicate endpoints in that case.
-			if createdClusters[id] {
+			if createdClusters[uid] {
 				continue
 			}
 
 			es := s.endpointsFromDiscoveryChain(
-				id,
-				cfgSnap.IngressGateway.DiscoveryChain[id],
+				uid,
+				cfgSnap.IngressGateway.DiscoveryChain[uid],
 				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: u.DestinationPartition},
 				&u,
-				cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id],
-				cfgSnap.IngressGateway.WatchedGatewayEndpoints[id],
+				cfgSnap.IngressGateway.WatchedUpstreamEndpoints[uid],
+				cfgSnap.IngressGateway.WatchedGatewayEndpoints[uid],
 			)
 			resources = append(resources, es...)
-			createdClusters[id] = true
+			createdClusters[uid] = true
 		}
 	}
 	return resources, nil
@@ -366,7 +366,7 @@ func makePipeEndpoint(path string) *envoy_endpoint_v3.LbEndpoint {
 }
 
 func (s *ResourceGenerator) endpointsFromDiscoveryChain(
-	id string,
+	uid proxycfg.UpstreamID,
 	chain *structs.CompiledDiscoveryChain,
 	gatewayKey proxycfg.GatewayKey,
 	upstream *structs.Upstream,
@@ -387,7 +387,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Warn("failed to parse", "upstream", id,
+		s.Logger.Warn("failed to parse", "upstream", uid,
 			"error", err)
 	}
 
@@ -402,7 +402,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			}
 		} else {
 			s.Logger.Warn("ignoring escape hatch setting, because a discovery chain is configued for",
-				"discovery chain", chain.ServiceName, "upstream", id,
+				"discovery chain", chain.ServiceName, "upstream", uid,
 				"envoy_cluster_json", chain.ServiceName)
 		}
 	}

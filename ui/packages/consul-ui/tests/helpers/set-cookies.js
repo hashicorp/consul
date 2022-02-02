@@ -43,6 +43,9 @@ export default function(type, value, doc = document) {
       case 'authMethod':
         key = 'CONSUL_AUTH_METHOD_COUNT';
         break;
+      case 'oidcProvider':
+        key = 'CONSUL_OIDC_PROVIDER_COUNT';
+        break;
       case 'nspace':
         key = 'CONSUL_NSPACE_COUNT';
         break;

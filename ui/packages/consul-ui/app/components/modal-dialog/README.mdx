@@ -3,30 +3,8 @@ class: ember
 ---
 # ModalDialog
 
-## Arguments
-
-| Argument | Type | Default | Description |
-| --- | --- | --- | --- |
-| `onopen` | `Function` | `undefined` | A function to call when the modal has opened |
-| `onclose` | `Function` | `undefined` | A function to call when the modal has closed |
-| `aria` | `Object` | `undefined` | A `hash` of aria properties used in the component, currently only label is supported |
-
-## Exports
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `open` | `Function` | Opens the modal dialog |
-| `close` | `Function` | Closes the modal dialog |
-
-Works in tandem with `<ModalLayer />` to render modals. First of all ensure
-you have a modal layer on the page (it doesn't have to be in the same
-template)
-
-```hbs
-<ModalLayer />
-```
-
-Then all modals will be rendered into the `<ModalLayer />` for example:
+Consul UIs modal component is a thin wrapper around the excellent `a11y-dialog`. The
+most common usage will be something like the below:
 
 ```hbs preview-template
 <ModalDialog
@@ -67,3 +45,30 @@ as |modal|>
 </button>
 
 ```
+All modals work in tandem with `<ModalLayer />` to render modals. First of all ensure
+you have a modal layer on the page (it doesn't have to be in the same
+template)
+
+```hbs
+<ModalLayer />
+```
+
+Then all modals will be rendered into the `<ModalLayer />`.
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `onopen` | `Function` | `undefined` | A function to call when the modal has opened |
+| `onclose` | `Function` | `undefined` | A function to call when the modal has closed |
+| `aria` | `Object` | `undefined` | A `hash` of aria properties used in the component, currently only label is supported |
+| `open` | `Boolean` | `false` | Whether the modal should be initialized in its 'open' state. Useful if the modal should be controlled via handlebars conditionals. Please note this argument it not yet reactive, i.e. it is only checked on component insert not attribute update. An improvement here would be to respect this value during the update of the attribute. |
+
+## Exports
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `open` | `Function` | Opens the modal dialog |
+| `close` | `Function` | Closes the modal dialog |
+
+

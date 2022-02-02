@@ -12,18 +12,18 @@ description: >-
 # Bootstrapping a Datacenter
 
 An agent can run in either client or server mode. Server nodes are responsible for running the
-[consensus protocol](/docs/internals/consensus) and storing the cluster state.
+[consensus protocol](/docs/architecture/consensus) and storing the cluster state.
 The client nodes are mostly stateless and rely heavily on the server nodes.
 
 Before a Consul cluster can begin to service requests,
 a server node must be elected leader. Bootstrapping is the process
 of joining these initial server nodes into a cluster. Read the
-[architecture documentation](/docs/internals/architecture) to learn more about
+[architecture documentation](/docs/architecture) to learn more about
 the internals of Consul.
 
 It is recommended to have three or five total servers per datacenter. A single server deployment is _highly_ discouraged
 as data loss is inevitable in a failure scenario. Please refer to the
-[deployment table](/docs/internals/consensus#deployment-table) for more detail.
+[deployment table](/docs/architecture/consensus#deployment-table) for more detail.
 
 ~> **Note**: In versions of Consul prior to 0.4, bootstrapping was a manual process. For details on using the `-bootstrap` flag directly, see the
 [manual bootstrapping documentation](/docs/install/bootstrapping#manually-join-the-servers).

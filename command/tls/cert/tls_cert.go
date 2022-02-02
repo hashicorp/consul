@@ -40,7 +40,7 @@ Usage: consul tls cert <subcommand> [options] [filename-prefix]
 
   Create a certificate with your own CA:
 
-    $ consul tls cert create -server -ca-file my-ca.pem -ca-key-file my-ca-key.pem
+    $ consul tls cert create -server -ca my-ca.pem -key my-ca-key.pem
     ==> saved dc1-server-consul.pem
     ==> saved dc1-server-consul-key.pem
 

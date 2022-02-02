@@ -1,0 +1,3 @@
+```release-note:improvement
+http: when a user attempts to access the UI but can't because it's disabled, explain this and how to fix it
+```

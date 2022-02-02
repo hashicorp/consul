@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/types"
 )
 
 // IngressGatewayConfigEntry manages the configuration for an ingress service
@@ -99,6 +100,13 @@ type GatewayTLSConfig struct {
 
 	// SDS allows configuring TLS certificate from an SDS service.
 	SDS *GatewayTLSSDSConfig `json:",omitempty"`
+
+	TLSMinVersion types.TLSVersion `json:",omitempty" alias:"tls_min_version"`
+	TLSMaxVersion types.TLSVersion `json:",omitempty" alias:"tls_max_version"`
+
+	// Define a subset of cipher suites to restrict
+	// Only applicable to connections negotiated via TLS 1.2 or earlier
+	CipherSuites []types.TLSCipherSuite `json:",omitempty" alias:"cipher_suites"`
 }
 
 type GatewayServiceTLSConfig struct {
@@ -231,8 +239,46 @@ func (e *IngressGatewayConfigEntry) validateServiceSDS(lis IngressListener, svc 
 	return nil
 }
 
+func validateGatewayTLSConfig(tlsCfg GatewayTLSConfig) error {
+	if tlsCfg.TLSMinVersion != types.TLSVersionUnspecified {
+		if err := types.ValidateTLSVersion(tlsCfg.TLSMinVersion); err != nil {
+			return err
+		}
+	}
+
+	if tlsCfg.TLSMaxVersion != types.TLSVersionUnspecified {
+		if err := types.ValidateTLSVersion(tlsCfg.TLSMaxVersion); err != nil {
+			return err
+		}
+
+		if tlsCfg.TLSMinVersion != types.TLSVersionUnspecified {
+			if err, maxLessThanMin := tlsCfg.TLSMaxVersion.LessThan(tlsCfg.TLSMinVersion); err == nil && maxLessThanMin {
+				return fmt.Errorf("configuring max version %s less than the configured min version %s is invalid", tlsCfg.TLSMaxVersion, tlsCfg.TLSMinVersion)
+			}
+		}
+	}
+
+	if len(tlsCfg.CipherSuites) != 0 {
+		if _, ok := types.TLSVersionsWithConfigurableCipherSuites[tlsCfg.TLSMinVersion]; !ok {
+			return fmt.Errorf("configuring CipherSuites is only applicable to conncetions negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s", tlsCfg.TLSMinVersion)
+		}
+
+		// NOTE: it would be nice to emit a warning but not return an error from
+		// here if TLSMaxVersion is unspecified, TLS_AUTO or TLSv1_3
+		if err := types.ValidateEnvoyCipherSuites(tlsCfg.CipherSuites); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (e *IngressGatewayConfigEntry) Validate() error {
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
+	if err := validateGatewayTLSConfig(e.TLS); err != nil {
 		return err
 	}
 
@@ -262,6 +308,12 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		if listener.Protocol != "http" && len(listener.Services) > 1 {
 			return fmt.Errorf("Multiple services per listener are only supported for protocol = 'http' (listener on port %d)",
 				listener.Port)
+		}
+
+		if listener.TLS != nil {
+			if err := validateGatewayTLSConfig(*listener.TLS); err != nil {
+				return err
+			}
 		}
 
 		declaredHosts := make(map[string]bool)

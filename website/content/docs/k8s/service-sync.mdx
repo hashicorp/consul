@@ -16,6 +16,8 @@ as first-class Kubernetes services. This functionality is provided by the
 automatically installed and configured using the
 [Consul Helm chart](/docs/k8s/installation/install).
 
+![screenshot of a Kubernetes service in the UI](/img/k8s-service.png)
+
 **Why sync Kubernetes services to Consul?** Kubernetes services synced to the
 Consul catalog enable Kubernetes services to be accessed by any node that
 is part of the Consul cluster, including other distinct Kubernetes clusters.
@@ -29,6 +31,8 @@ environment variables, etc. This makes it very easy to automate external
 service discovery, including hosted services like databases.
 
 ## Installation and Configuration
+
+~> Enabling both Service Mesh and Service Sync on the same Kubernetes services is not supported, as Service Mesh also registers Kubernetes service instances to Consul. Please ensure that Service Sync is only enabled for namespaces and services that are not injected with the Consul sidecar for Service Mesh as described in [Sync Enable/Disable](/docs/k8s/service-sync#sync-enable-disable).
 
 The service sync is done using an external long-running process in the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s). This process
@@ -90,9 +94,9 @@ then the sync program should work.
 
 For Consul, if ACLs are configured on the cluster, a Consul
 [ACL token](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production)
-will need to be provided. Review the [ACL rules](/docs/agent/acl-rules)
+will need to be provided. Review the [ACL rules](/docs/security/acl/acl-rules)
 when creating this token so that it only allows the necessary privileges. The catalog
-sync process accepts this token by using the [`CONSUL_HTTP_TOKEN`](/docs/commands#consul_http_token)
+sync process accepts this token by using the [`CONSUL_HTTP_TOKEN`](/commands#consul_http_token)
 environment variable. This token should be set as a
 [Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#creating-your-own-secrets)
 and referenced in the Helm chart.

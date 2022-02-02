@@ -1,9 +1,15 @@
 @import './base/color/ui/index';
 @import './base/color/magenta/index';
 @import './base/color/strawberry/index';
-:root {
+@import './base/color/vault/index';
+
+:root:not(.prefers-color-scheme-dark) {
   @extend %theme-light;
 }
+:root.prefers-color-scheme-dark {
+  @extend %theme-dark;
+}
+
 %main-header-horizontal,
 %main-nav-vertical,
 %main-nav-horizontal {

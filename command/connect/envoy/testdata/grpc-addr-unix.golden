@@ -88,16 +88,20 @@
         "tag_name": "consul.destination.full_target"
       },
       {
-        "regex": "^(?:tcp|http)\\.upstream\\.(([^.]+)(?:\\.[^.]+)?\\.[^.]+\\.)",
+        "regex": "^(?:tcp|http)\\.upstream\\.(([^.]+)(?:\\.[^.]+)?(?:\\.[^.]+)?\\.[^.]+\\.)",
         "tag_name": "consul.upstream.service"
       },
       {
-        "regex": "^(?:tcp|http)\\.upstream\\.([^.]+(?:\\.[^.]+)?\\.([^.]+)\\.)",
+        "regex": "^(?:tcp|http)\\.upstream\\.([^.]+(?:\\.[^.]+)?(?:\\.[^.]+)?\\.([^.]+)\\.)",
         "tag_name": "consul.upstream.datacenter"
       },
       {
-        "regex": "^(?:tcp|http)\\.upstream\\.([^.]+(?:\\.([^.]+))?\\.[^.]+\\.)",
+        "regex": "^(?:tcp|http)\\.upstream\\.([^.]+(?:\\.([^.]+))?(?:\\.[^.]+)?\\.[^.]+\\.)",
         "tag_name": "consul.upstream.namespace"
+      },
+      {
+        "regex": "^(?:tcp|http)\\.upstream\\.([^.]+(?:\\.[^.]+)?(?:\\.([^.]+))?\\.[^.]+\\.)",
+        "tag_name": "consul.upstream.partition"
       },
       {
         "regex": "^cluster\\.((?:([^.]+)~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",

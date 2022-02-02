@@ -270,6 +270,10 @@
         "path": "connect/connectivity-tasks"
       },
       {
+        "title": "Distributed Tracing",
+        "path": "connect/distributed-tracing"
+      },
+      {
         "title": "Gateways",
         "routes": [
           {
@@ -277,24 +281,28 @@
             "path": "connect/gateways"
           },
           {
-            "title": "Connect Datacenters - Mesh Gateways",
+            "title": "Mesh Gateways",
             "routes": [
-              {
-                "title": "Overview",
-                "path": "connect/gateways/mesh-gateway"
-              },
               {
                 "title": "WAN Federation",
                 "path": "connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways"
+              },
+              {
+                "title": "Enabling Service-to-service Traffic Across Datacenters",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-datacenters"
+              },
+              {
+                "title": "Enabling Service-to-service Traffic Across Admin Partitions",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-partitions"
               }
             ]
           },
           {
-            "title": "External <> Internal Services -  Ingress Gateways",
+            "title": "Ingress Gateways",
             "path": "connect/gateways/ingress-gateway"
           },
           {
-            "title": "Internal <> External Services - Terminating Gateways",
+            "title": "Terminating Gateways",
             "path": "connect/gateways/terminating-gateway"
           }
         ]
@@ -353,6 +361,10 @@
     ]
   },
   {
+    "title": "Consul API Gateway <sup>BETA</sup>",
+    "path": "api-gateway"
+  },
+  {
     "title": "Kubernetes",
     "routes": [
       {
@@ -365,6 +377,10 @@
           {
             "title": "Installing Consul on Kubernetes",
             "path": "k8s/installation/install"
+          },
+          {
+            "title": "Installing Consul K8s CLI",
+            "path": "k8s/installation/install-cli"
           },
           {
             "title": "Platform Guides",
@@ -436,6 +452,31 @@
                 "path": "k8s/installation/multi-cluster/vms-and-kubernetes"
               }
             ]
+          },
+          {
+            "title": "Vault as Secrets Backend",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "k8s/installation/vault"
+              },
+              {
+                "title": "Gossip Encryption Key",
+                "path": "k8s/installation/vault/gossip"
+              },
+              {
+                "title": "Server TLS",
+                "path": "k8s/installation/vault/server-tls"
+              },
+              {
+                "title": "Service Mesh Certificates",
+                "path": "k8s/installation/vault/connect-ca"
+              }
+            ]
+          },
+          {
+            "title": "Compatibility Matrix",
+            "path": "k8s/installation/compatibility"
           }
         ]
       },
@@ -510,12 +551,12 @@
         "title": "Upgrade",
         "routes": [
           {
-            "title": "Overview",
+            "title": "Upgrading Consul on Kubernetes",
             "path": "k8s/upgrade"
           },
           {
-            "title": "Compatibility Matrix",
-            "path": "k8s/upgrade/compatibility"
+            "title": "Upgrading Consul K8s CLI",
+            "path": "k8s/upgrade/upgrade-cli"
           }
         ]
       },
@@ -571,23 +612,40 @@
         "path": "ecs"
       },
       {
-        "title": "Get Started",
+        "title": "Requirements",
+        "path": "ecs/requirements"
+      },
+      {
+        "title": "Install with Terraform",
         "routes": [
           {
-            "title": "Requirements",
-            "path": "ecs/get-started/requirements"
-          },
-          {
             "title": "Installation",
-            "path": "ecs/get-started/install"
+            "path": "ecs/terraform/install"
           },
           {
-            "title": "Production Installation",
-            "path": "ecs/get-started/production-installation"
+            "title": "Secure Configuration",
+            "path": "ecs/terraform/secure-configuration"
           },
           {
             "title": "Migrate Existing Tasks",
-            "path": "ecs/get-started/migrate-existing-tasks"
+            "path": "ecs/terraform/migrate-existing-tasks"
+          }
+        ]
+      },
+      {
+        "title": "Install Manually",
+        "routes": [
+          {
+            "title": "Installation",
+            "path": "ecs/manual/install"
+          },
+          {
+            "title": "Secure Configuration",
+            "path": "ecs/manual/secure-configuration"
+          },
+          {
+            "title": "ACL Controller",
+            "path": "ecs/manual/acl-controller"
           }
         ]
       },
@@ -598,6 +656,10 @@
       {
         "title": "Consul Enterprise",
         "path": "ecs/enterprise"
+      },
+      {
+        "title": "Configuration Reference",
+        "path": "ecs/configuration-reference"
       }
     ]
   },
@@ -794,6 +856,10 @@
             "path": "security/acl/acl-migrate-tokens"
           },
           {
+            "title": "ACLs in Federated Datacenters",
+            "path": "security/acl/acl-federated-datacenters"
+          },
+          {
             "title": "Auth Methods",
             "routes": [
               {
@@ -847,7 +913,7 @@
         "path": "enterprise"
       },
       {
-        "title": "Admin Partitions <sup>BETA</sup>",
+        "title": "Admin Partitions",
         "path": "enterprise/admin-partitions"
       },
       {
@@ -1026,12 +1092,16 @@
     "title": "Release Notes",
     "routes": [
       {
-        "title": "1.9.0",
-        "path": "release-notes/1-9-0"
+        "title": "1.11.0",
+        "path": "release-notes/1-11-0"
       },
       {
         "title": "1.10.0",
         "path": "release-notes/1-10-0"
+      },
+      {
+        "title": "1.9.0",
+        "path": "release-notes/1-9-0"
       }
     ]
   },

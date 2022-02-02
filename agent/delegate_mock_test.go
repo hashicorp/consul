@@ -47,11 +47,6 @@ func (m *delegateMock) RemoveFailedNode(node string, prune bool, entMeta *struct
 	return m.Called(node, prune, entMeta).Error(0)
 }
 
-func (m *delegateMock) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
-	ret := m.Called(token)
-	return ret.Get(0).(structs.ACLIdentity), ret.Error(1)
-}
-
 func (m *delegateMock) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
 	ret := m.Called(token, entMeta, authzContext)
 	return ret.Get(0).(acl.Authorizer), ret.Error(1)

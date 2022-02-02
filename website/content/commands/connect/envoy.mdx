@@ -22,7 +22,7 @@ build for other platforms currently.
 
 If the `-bootstrap` option is specified, the bootstrap config is generated in
 the same way and then printed to stdout. This allows it to be redirected to a
-file and used with `envoy -c bootstrap.json`. This works on all operating
+file and used with `envoy --config-path bootstrap.json`. This works on all operating
 systems allowing configuration to be generated on a host that Envoy doesn't
 build on but then used in a virtualized environment that can run Envoy.
 
@@ -66,7 +66,7 @@ proxy configuration needed.
 
 - `-bootstrap` - If present, the command will simply output the generated
   bootstrap config to stdout in JSON protobuf form. This can be directed to a
-  file and used to start Envoy with `envoy -c bootstrap.json`.
+  file and used to start Envoy with `envoy --config-path bootstrap.json`.
 
   ~> **Security Note:** If ACLs are enabled the bootstrap JSON will contain the
   ACL token from `-token` or the environment and so should be handled as a secret.
@@ -175,6 +175,8 @@ proxy configuration needed.
 
 @include 'http_api_namespace_options.mdx'
 
+@include 'http_api_partition_options.mdx'
+
 ## Examples
 
 Assume a local service instance is registered on the local agent with a
@@ -207,7 +209,7 @@ To pass additional arguments directly to Envoy, for example output logging
 level, you can use:
 
 ```shell-session
-$ consul connect envoy -sidecar-for web -- -l debug
+$ consul connect envoy -sidecar-for web -- --log-level debug
 ```
 
 ### Multiple Proxy Instances

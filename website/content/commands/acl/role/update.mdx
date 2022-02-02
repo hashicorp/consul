@@ -7,11 +7,21 @@ page_title: 'Commands: ACL Role Update'
 
 Command: `consul acl role update`
 
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/role/:id](/api-docs/acl/roles#update-a-role)
+
 The `acl role update` command is used to update a role. The default operations is to merge the
 current role with those values provided to the command invocation. Therefore to
 update just one field, only the `-id` or `-name` options and the option to
 modify must be provided. Note that renaming roles requires both the `-id` and
 `-name` as the new name cannot yet be used to lookup the role.
+
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `acl:write`  |
 
 ## Usage
 
@@ -58,6 +68,8 @@ Usage: `consul acl role update [options] [args]`
 #### Enterprise Options
 
 @include 'http_api_namespace_options.mdx'
+
+@include 'http_api_partition_options.mdx'
 
 ## Examples
 

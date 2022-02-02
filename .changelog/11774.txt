@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Differentiate between Service Meta and Node Meta when choosing search fields
+in Service Instance listings
+```

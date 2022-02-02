@@ -1,3 +1,0 @@
-```release-note:bug
-acl: **(Enterprise only)** ensure that the agent recovery token is properly partitioned
-```

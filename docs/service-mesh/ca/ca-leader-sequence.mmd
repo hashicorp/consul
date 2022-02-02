@@ -1,0 +1,19 @@
+sequenceDiagram
+Participant Provider
+Participant PL As Primary Leader
+Participant SL As Secondary Leader
+Alt Primary don't have a valid CA
+PL->>Provider:initializeRootCA (fetch root and sign intermediate)
+Provider->>PL:root + intermediate
+PL->>PL:RPC ConnectCA.Roots (fetch primary root and store it)
+end
+SL->>PL: RPC ConnectCA.Roots (fetch primary root and store it)
+PL->>SL: Root + intermediate
+Alt Secondary needs a new intermediate (check if current intermediate is signed by primary root)
+SL->>Provider: Generate CSR
+Provider->>SL: CSR
+SL->>PL: ConnectCA.SignIntermediate (CSR)
+PL->>SL: Intermediate CA (secondary)
+SL->>Provider: Set Intermediate (secondary CA) + root (primary CA)
+SL->>SL: Store certs in RAFT (primary root + secondary intermediate)
+end
