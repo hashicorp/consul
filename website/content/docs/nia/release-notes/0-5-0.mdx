@@ -11,7 +11,7 @@ description: >-
 
 We introduced a number of configuration deprecations in Consul-Terraform-Sync (CTS) v0.5. Many of these deprecations are part of an effort to streamline CTS task configuration and reduce the inconsistencies. As CTS support for more use-cases increased,  inconsistencies arose and required a lot of documentation to explain.
 
-This documentation outlines the deprecations and examples on how to upgrade your configuration for v0.5. The deprecated configurations will not be removed until v0.7 and later. We plan to also release a tool to automate upgrading your configurations to make the upgrade quicker and smoother.
+This documentation outlines the deprecations and examples on how to upgrade your configuration for v0.5. The deprecated configurations will not be removed until v0.8 and later. We plan to also release a tool to automate upgrading your configurations to make the upgrade quicker and smoother.
 
 ## Overview of Deprecations
 
@@ -30,9 +30,9 @@ We deprecated all configuration with the term "source" and replaced it with "mod
 | `source_includes_var` field | `use_as_module_input` field | The field on the `condition` block to indicate whether the values of the condition object should also be used as module input |
 
 Removal date:
-- `source`: future major release after v0.7
-- `source_input`: v0.7
-- `source_includes_var`: v0.7
+- `source`: future major release after v0.8
+- `source_input`: v0.8
+- `source_includes_var`: v0.8
 
 The documentation below will refer to the deprecated configurations by their new name.
 
@@ -49,7 +49,7 @@ We deprecated the `services` field and its associated `service` filter to remove
 | `services` field | `condition "services"` or `module_input "services"` block | The services to provide module input and occasionally act as the task condition |
 | `service` block | fields moved into the `condition "services"` and `module_input "services"` block | The configuration block to provide additional filtering on the services in the `services` field |
 
-The `services` field and its associated `service` block will be removed in a future major release after v0.7.
+The `services` field and its associated `service` block will be removed in a future major release after v0.8.
 
 ## Further Details on Deprecations
 
