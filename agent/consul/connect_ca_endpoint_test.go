@@ -558,11 +558,8 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 	t.Parallel()
 
 	testVault := ca.NewTestVaultServer(t)
-	defer testVault.Stop()
 
 	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.6.0"
-		c.PrimaryDatacenter = "dc1"
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "vault",
 			Config: map[string]interface{}{
@@ -573,28 +570,16 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 			},
 		}
 	})
-	defer s1.Shutdown()
-
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-
-	// Capture the current root.
-	{
-		rootList, _, err := getTestRoots(s1, "dc1")
-		require.NoError(t, err)
-		require.Len(t, rootList.Roots, 1)
-	}
 
 	cases := []struct {
 		name      string
-		configFn  func() (*structs.CAConfiguration, error)
+		configFn  func() *structs.CAConfiguration
 		expectErr string
 	}{
 		{
 			name: "cannot edit key bits",
-			configFn: func() (*structs.CAConfiguration, error) {
+			configFn: func() *structs.CAConfiguration {
 				return &structs.CAConfiguration{
 					Provider: "vault",
 					Config: map[string]interface{}{
@@ -607,13 +592,13 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 						"PrivateKeyBits": 384,
 					},
 					ForceWithoutCrossSigning: true,
-				}, nil
+				}
 			},
 			expectErr: `error generating CA root certificate: cannot update the PrivateKeyBits field without choosing a new PKI mount for the root CA`,
 		},
 		{
 			name: "cannot edit key type",
-			configFn: func() (*structs.CAConfiguration, error) {
+			configFn: func() *structs.CAConfiguration {
 				return &structs.CAConfiguration{
 					Provider: "vault",
 					Config: map[string]interface{}{
@@ -626,7 +611,7 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 						"PrivateKeyBits": 4096,
 					},
 					ForceWithoutCrossSigning: true,
-				}, nil
+				}
 			},
 			expectErr: `error generating CA root certificate: cannot update the PrivateKeyType field without choosing a new PKI mount for the root CA`,
 		},
@@ -634,16 +619,14 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			newConfig, err := tc.configFn()
-			require.NoError(t, err)
-
 			args := &structs.CARequest{
 				Datacenter: "dc1",
-				Config:     newConfig,
+				Config:     tc.configFn(),
 			}
 			var reply interface{}
 
-			err = msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply)
+			codec := rpcClient(t, s1)
+			err := msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply)
 			if tc.expectErr == "" {
 				require.NoError(t, err)
 			} else {
