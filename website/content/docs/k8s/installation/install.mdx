@@ -175,8 +175,7 @@ create a `config.yaml` file to override the default settings.
 You can learn what settings are available by running `helm inspect values hashicorp/consul`
 or by reading the [Helm Chart Reference](/docs/k8s/helm).
 
-For example, if you want to enable the [Consul Connect](/docs/k8s/connect) feature,
-use the following config file:
+The minimal settings to enable [Consul Service Mesh]((/docs/k8s/connect)) would be captured in the following `vaules.yaml` config file:
 
 <CodeBlockConfig filename="config.yaml">
 
@@ -192,6 +191,40 @@ controller:
 </CodeBlockConfig>
 
 Once you've created your `config.yaml` file, run `helm install` with the `--values` flag:
+
+```shell-session
+$ helm install consul hashicorp/consul --create-namespace --namespace consul --values config.yaml
+NAME: consul
+...
+```
+
+By default, Consul Service Mesh is enabled by all namespaces on Kubernetes. However if you'd like to control which namespaces allow connect-inject to occur, you can alternatively use a label on a namespace to denote where to enable Consul Service Mesh. 
+
+<CodeBlockConfig filename="config.yaml">
+
+```yaml
+global:
+  name: consul
+connectInject:
+  enabled: true
+  default: true
+  namespaceSelector: |
+    matchLabels:
+      connect-inject : enabled
+controller:
+  enabled: true
+```
+  
+</CodeBlockConfig>
+
+Label the namespace(s), where you would like to enable Consul Service Mesh. 
+
+```shell-session
+$ kubectl create ns foo 
+$ kubectl label namespace foo connect-inject=enabled
+```
+
+Next, run `helm install` with the `--values` flag:
 
 ```shell-session
 $ helm install consul hashicorp/consul --create-namespace --namespace consul --values config.yaml
