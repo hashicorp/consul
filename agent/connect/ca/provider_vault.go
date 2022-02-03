@@ -163,11 +163,11 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 func (v *VaultProvider) ValidateConfigUpdate(prevRaw, nextRaw map[string]interface{}) error {
 	prev, err := ParseVaultCAConfig(prevRaw)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse existing CA config: %w", err)
 	}
 	next, err := ParseVaultCAConfig(nextRaw)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse new CA config: %w", err)
 	}
 
 	if prev.RootPKIPath != next.RootPKIPath {

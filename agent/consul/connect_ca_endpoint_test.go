@@ -559,20 +559,26 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 
 	testVault := ca.NewTestVaultServer(t)
 
+	newConfig := func(keyType string, keyBits int) map[string]interface{} {
+		return map[string]interface{}{
+			"Address":             testVault.Addr,
+			"Token":               testVault.RootToken,
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+			"PrivateKeyType":      keyType,
+			"PrivateKeyBits":      keyBits,
+		}
+	}
+
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "vault",
-			Config: map[string]interface{}{
-				"Address":             testVault.Addr,
-				"Token":               testVault.RootToken,
-				"RootPKIPath":         "pki-root/",
-				"IntermediatePKIPath": "pki-intermediate/",
-			},
+			Config:   newConfig(connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits),
 		}
 	})
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-	// note: unlikely many table tests, the ordering of these cases does matter
+	// note: unlike many table tests, the ordering of these cases does matter
 	// because any non-errored case will modify the CA config, and any subsequent
 	// tests will use the same agent with that new CA config.
 	testSteps := []struct {
@@ -584,16 +590,8 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 			name: "allow modifying key type and bits from default",
 			configFn: func() *structs.CAConfiguration {
 				return &structs.CAConfiguration{
-					Provider: "vault",
-					Config: map[string]interface{}{
-						"Address":             testVault.Addr,
-						"Token":               testVault.RootToken,
-						"RootPKIPath":         "pki-root/",
-						"IntermediatePKIPath": "pki-intermediate/",
-						//
-						"PrivateKeyType": "rsa",
-						"PrivateKeyBits": 4096,
-					},
+					Provider:                 "vault",
+					Config:                   newConfig("rsa", 4096),
 					ForceWithoutCrossSigning: true,
 				}
 			},
@@ -602,16 +600,8 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 			name: "error when trying to modify key bits",
 			configFn: func() *structs.CAConfiguration {
 				return &structs.CAConfiguration{
-					Provider: "vault",
-					Config: map[string]interface{}{
-						"Address":             testVault.Addr,
-						"Token":               testVault.RootToken,
-						"RootPKIPath":         "pki-root/",
-						"IntermediatePKIPath": "pki-intermediate/",
-						//
-						"PrivateKeyType": "rsa",
-						"PrivateKeyBits": 2048,
-					},
+					Provider:                 "vault",
+					Config:                   newConfig("rsa", 2048),
 					ForceWithoutCrossSigning: true,
 				}
 			},
@@ -621,16 +611,8 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 			name: "error when trying to modify key type",
 			configFn: func() *structs.CAConfiguration {
 				return &structs.CAConfiguration{
-					Provider: "vault",
-					Config: map[string]interface{}{
-						"Address":             testVault.Addr,
-						"Token":               testVault.RootToken,
-						"RootPKIPath":         "pki-root/",
-						"IntermediatePKIPath": "pki-intermediate/",
-						//
-						"PrivateKeyType": "ec",
-						"PrivateKeyBits": 256,
-					},
+					Provider:                 "vault",
+					Config:                   newConfig("ec", 256),
 					ForceWithoutCrossSigning: true,
 				}
 			},
@@ -640,16 +622,8 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 			name: "allow update that does not change key type or bits",
 			configFn: func() *structs.CAConfiguration {
 				return &structs.CAConfiguration{
-					Provider: "vault",
-					Config: map[string]interface{}{
-						"Address":             testVault.Addr,
-						"Token":               testVault.RootToken,
-						"RootPKIPath":         "pki-root/",
-						"IntermediatePKIPath": "pki-intermediate/",
-						//
-						"PrivateKeyType": "rsa",
-						"PrivateKeyBits": 4096,
-					},
+					Provider:                 "vault",
+					Config:                   newConfig("rsa", 4096),
 					ForceWithoutCrossSigning: true,
 				}
 			},
