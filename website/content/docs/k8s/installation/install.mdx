@@ -175,7 +175,7 @@ create a `config.yaml` file to override the default settings.
 You can learn what settings are available by running `helm inspect values hashicorp/consul`
 or by reading the [Helm Chart Reference](/docs/k8s/helm).
 
-#### Minimal `values.yaml` for Service Mesh
+#### Minimal `values.yaml` for Consul Service Mesh
 
 The minimal settings to enable [Consul Service Mesh]((/docs/k8s/connect)) would be captured in the following `vaules.yaml` config file:
 
@@ -235,6 +235,8 @@ $ helm install consul hashicorp/consul --create-namespace --namespace consul --v
 NAME: consul
 ...
 ```
+
+### Making changes to your Consul on Kubernetes deployment 
 
 If you've already installed Consul and want to make changes, you'll need to run
 `helm upgrade`. See [Upgrading](/docs/k8s/upgrade) for more details.
