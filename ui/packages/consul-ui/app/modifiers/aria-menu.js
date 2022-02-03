@@ -3,9 +3,7 @@ import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
 
 const TAB = 9;
-const ENTER = 13;
 const ESC = 27;
-const SPACE = 32;
 const END = 35;
 const HOME = 36;
 const ARROW_UP = 38;
