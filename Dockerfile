@@ -13,7 +13,7 @@
 # Official docker image that includes binaries from releases.hashicorp.com. This
 # downloads the release from releases.hashicorp.com and therefore requires that
 # the release is published before building the Docker image.
-FROM alpine:3.13 as official
+FROM docker.mirror.hashicorp.services/alpine:3.13 as official
 
 # This is the release of Consul to pull in.
 ARG VERSION
@@ -108,7 +108,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Production docker image that uses CI built binaries.
 # Remember, this image cannot be built locally.
-FROM alpine:3.13 as default
+FROM docker.mirror.hashicorp.services/alpine:3.13 as default
 
 ARG VERSION
 ARG BIN_NAME
