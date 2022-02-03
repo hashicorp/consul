@@ -202,7 +202,8 @@ NAME: consul
 
 #### Enable Consul Service Mesh on select namespaces
 
-By default, Consul Service Mesh is enabled on almost all namespaces within a Kubernetes cluster. You can restrict this to a subset of namespaces by specifying a `namespaceSelector` that matches a label attached to each namespace denoting whether to enable Consul service mesh.
+By default, Consul Service Mesh is enabled on almost all namespaces (with the exception of `kube-system` and `local-path-storage`) within a Kubernetes cluster. You can restrict this to a subset of namespaces by specifying a `namespaceSelector` that matches a label attached to each namespace denoting whether to enable Consul service mesh. In order to default to injecting select namespaces by label, the `connectInject.default` value must be set to `true`.
+
 <CodeBlockConfig filename="config.yaml">
 
 ```yaml
