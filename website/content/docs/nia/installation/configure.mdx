@@ -13,7 +13,7 @@ The page will cover the main components for configuring your Network Infrastruct
 
 A task captures a network automation process by defining which network resources to update on a given condition. Configure CTS with one or more tasks that contain a list of Consul services, a Terraform module, and various Terraform providers.
 
-Within the [`task` block](/docs/nia/configuration#task), the list of services for a task represents the service layer that drives network automation. The `source` is the discovery location of the Terraform module that defines the network automation process for the task. The `condition`, not shown below, defaults to the services condition when unconfigured such that network resources are updated on changes to the list of services over time.
+Within the [`task` block](/docs/nia/configuration#task), the list of services for a task represents the service layer that drives network automation. The `module` is the discovery location of the Terraform module that defines the network automation process for the task. The `condition`, not shown below, defaults to the services condition when unconfigured such that network resources are updated on changes to the list of services over time.
 
 Review the Terraform module to be used for network automation and identify the Terraform providers required by the module. If the module depends on a set of providers, include the list of provider names in the `providers` field to associate the corresponding provider configuration with the task. These providers will need to be configured later in a separate block.
 
@@ -21,7 +21,7 @@ Review the Terraform module to be used for network automation and identify the T
 task {
   name        = "website-x"
   description = "automate services for website-x"
-  source      = "namespace/example/module"
+  module      = "namespace/example/module"
   version     = "1.0.0"
   providers   = ["myprovider"]
   condition "services" {
@@ -77,7 +77,7 @@ consul {
 task {
   name        = "website-x"
   description = "automate services for website-x"
-  source      = "namespace/example/module"
+  module      = "namespace/example/module"
   version     = "1.0.0"
   providers   = ["myprovider"]
   condition "services" {
