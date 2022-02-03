@@ -7,7 +7,7 @@ you want to contruct your own trigger, disclosure has all the properties to
 enable you to do so.
 
 You should make use of the `disclosure.panel` property in order to 'tag' the
-discloure panel you are using.
+disclosure panel you are using.
 
 Clicking outside will not close the disclosure by default, if you require this
 functionality please combine with our `{{on-outside 'click'}}` modifier (see example).
@@ -36,7 +36,7 @@ functionality please combine with our `{{on-outside 'click'}}` modifier (see exa
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `Action` | `Function` | A contextual '<Action /' component with aria attributes correctly applied, please note you still need to add an 'on' modifier here so you can control whether it opens on click/hover etc |
+| `Action` | `GlimmerComponent` | A contextual '<Action />' component with aria attributes correctly applied, please note you still need to add an 'on' modifier here so you can control whether it opens on click/hover etc |
 | `open` | `Function` | Open the disclosure if its not already open |
 | `close` | `Function` | Close the disclosure if its not already closed |
 | `toggle` | `Function` | Toggle the open/close state of the disclosure |
