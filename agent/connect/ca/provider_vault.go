@@ -160,6 +160,34 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	return nil
 }
 
+func (v *VaultProvider) ValidateConfigUpdate(prevRaw, nextRaw map[string]interface{}) error {
+	prev, err := ParseVaultCAConfig(prevRaw)
+	if err != nil {
+		return err
+	}
+	next, err := ParseVaultCAConfig(nextRaw)
+	if err != nil {
+		return err
+	}
+
+	if prev.RootPKIPath != next.RootPKIPath {
+		return nil
+	}
+
+	if prev.PrivateKeyType != "" && prev.PrivateKeyType != connect.DefaultPrivateKeyType {
+		if prev.PrivateKeyType != next.PrivateKeyType {
+			return fmt.Errorf("cannot update the PrivateKeyType field without changing RootPKIPath")
+		}
+	}
+
+	if prev.PrivateKeyBits != 0 && prev.PrivateKeyBits != connect.DefaultPrivateKeyBits {
+		if prev.PrivateKeyBits != next.PrivateKeyBits {
+			return fmt.Errorf("cannot update the PrivateKeyBits field without changing RootPKIPath")
+		}
+	}
+	return nil
+}
+
 // renewToken uses a vaultapi.LifetimeWatcher to repeatedly renew our token's lease.
 // If the token can no longer be renewed and auth method is set,
 // it will re-authenticate to Vault using the auth method and restart the renewer with the new token.
@@ -271,31 +299,6 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 	default:
 		if err != nil {
 			return RootResult{}, err
-		}
-
-		if rootPEM != "" {
-			rootCert, err := connect.ParseCert(rootPEM)
-			if err != nil {
-				return RootResult{}, err
-			}
-
-			// Vault PKI doesn't allow in-place cert/key regeneration. That
-			// means if you need to change either the key type or key bits then
-			// you also need to provide new mount points.
-			// https://www.vaultproject.io/api-docs/secret/pki#generate-root
-			//
-			// A separate bug in vault likely also requires that you use the
-			// ForceWithoutCrossSigning option when changing key types.
-			foundKeyType, foundKeyBits, err := connect.KeyInfoFromCert(rootCert)
-			if err != nil {
-				return RootResult{}, err
-			}
-			if v.config.PrivateKeyType != foundKeyType {
-				return RootResult{}, fmt.Errorf("cannot update the PrivateKeyType field without choosing a new PKI mount for the root CA")
-			}
-			if v.config.PrivateKeyBits != foundKeyBits {
-				return RootResult{}, fmt.Errorf("cannot update the PrivateKeyBits field without choosing a new PKI mount for the root CA")
-			}
 		}
 	}
 
