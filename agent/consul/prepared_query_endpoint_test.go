@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -2761,7 +2760,7 @@ func (m *mockQueryServer) GetLogger() hclog.Logger {
 		m.Logger = hclog.New(&hclog.LoggerOptions{
 			Name:   "mock_query",
 			Output: m.LogBuffer,
-			Level:  testutil.TestLogLevel,
+			Level:  hclog.Debug,
 		})
 	}
 	return m.Logger
@@ -3018,9 +3017,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote|dc2:PreparedQuery.ExecuteRemote|dc4:PreparedQuery.ExecuteRemote" {
 			t.Fatalf("bad: %s", queries)
 		}
-		if !strings.Contains(mock.LogBuffer.String(), "Skipping unknown datacenter") {
-			t.Fatalf("bad: %s", mock.LogBuffer.String())
-		}
+		require.Contains(t, mock.LogBuffer.String(), "Skipping unknown datacenter")
 	}
 
 	// Same setup as before but dc1 is going to return an error and should

@@ -56,6 +56,7 @@ type TestAgent struct {
 	// The io.Writer must allow concurrent reads and writes. Note that
 	// bytes.Buffer is not safe for concurrent reads and writes.
 	LogOutput io.Writer
+	LogLevel  hclog.Level
 
 	// DataDir may be set to a directory which exists. If is it not set,
 	// TestAgent.Start will create one and set DataDir to the directory path.
@@ -158,8 +159,12 @@ func (a *TestAgent) Start(t *testing.T) error {
 		logOutput = testutil.NewLogBuffer(t)
 	}
 
+	if a.LogLevel == 0 {
+		a.LogLevel = testutil.TestLogLevel
+	}
+
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Level:      testutil.TestLogLevel,
+		Level:      a.LogLevel,
 		Output:     logOutput,
 		TimeFormat: "04:05.000",
 		Name:       name,
