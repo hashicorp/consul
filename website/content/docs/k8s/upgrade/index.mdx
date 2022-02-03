@@ -76,7 +76,7 @@ certain Helm chart version.
   $ helm repo update
   ```
 
-1. List all available versions:
+1. List all available versions. Here we can see that the latest version of `0.40.0`.
 
   ```shell-session hideClipboard
   $ helm search repo hashicorp/consul --versions
@@ -87,8 +87,6 @@ certain Helm chart version.
   hashicorp/consul	0.37.0       	1.10.4     	Official HashiCorp Consul Chart
   ...
   ```
-
-  Here we can see that the latest version of `0.40.0`.
 
   1. To determine which version you have installed, issue the following command:
 
@@ -105,9 +103,9 @@ certain Helm chart version.
 
 1. Upgrade by performing a `helm upgrade` with the `--version` flag:
 
-```shell-session
-$ helm upgrade consul hashicorp/consul --namespace consul --version 0.40.0 --values /path/to/my/values.yaml
-```
+  ```shell-session
+  $ helm upgrade consul hashicorp/consul --namespace consul --version 0.40.0 --values /path/to/my/values.yaml
+  ```
 
   **Before performing the upgrade, be sure you've read the other sections on this page,
   continuing at [Determining What Will Change](#determining-what-will-change).**
@@ -134,15 +132,13 @@ to update to the new version.
 
    </CodeBlockConfig>
 
-1. Determine your current installed chart version:
+1. Determine your current installed chart version. In this example, version `0.40.0` (from `consul-k8s:0.40.0`) is being used.
 
   ```shell-session
   $ helm list --filter consul --namespace consul
   NAME  	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART        	APP VERSION
   consul	consul   	2       	2022-02-02 21:49:45.647678 -0800 PST	deployed	consul-0.39.0	1.11.1
   ```
-
-  In this example, version `0.40.0` (from `consul-k8s:0.40.0`) is being used.
 
 1. Perform a `helm upgrade`:
 
@@ -153,9 +149,9 @@ to update to the new version.
   **Before performing the upgrade, be sure you've read the other sections on this page,
   continuing at [Determining What Will Change](#determining-what-will-change).**
 
-  ~> NOTE: It's important to always set the `--version` flag, because otherwise Helm
-  will use the most up-to-date version in its local cache, which may result in an
-  unintended upgrade.
+~> NOTE: It's important to always set the `--version` flag, because otherwise Helm
+will use the most up-to-date version in its local cache, which may result in an
+unintended upgrade.
 
 ## Determining What Will Change
 
@@ -269,16 +265,16 @@ To initiate the upgrade:
   
   </CodeBlockConfig>
 
-The `updatePartition` value controls how many instances of the server
-cluster are updated. Only instances with an index _greater than_ the
-`updatePartition` value are updated (zero-indexed). Therefore, by setting
-it equal to replicas, none should update yet.
+  The `updatePartition` value controls how many instances of the server
+  cluster are updated. Only instances with an index _greater than_ the
+  `updatePartition` value are updated (zero-indexed). Therefore, by setting
+  it equal to replicas, none should update yet.
 
-The `updateStrategy` controls how Kubernetes rolls out changes to the client daemonset.
-By setting it to `OnDelete`, no clients will be restarted until their pods are deleted.
-Without this, they would be redeployed alongside the servers because their Docker
-image versions have changed. This is not desirable because we want the Consul
-servers to be upgraded _before_ the clients.
+  The `updateStrategy` controls how Kubernetes rolls out changes to the client daemonset.
+  By setting it to `OnDelete`, no clients will be restarted until their pods are deleted.
+  Without this, they would be redeployed alongside the servers because their Docker
+  image versions have changed. This is not desirable because we want the Consul
+  servers to be upgraded _before_ the clients.
 
 1. Next, perform the upgrade:
 
