@@ -45,8 +45,8 @@ Perform the following steps:
 
 ```shell-session
 $ helm list --filter consul --namespace consul 
-NAME  	NAMESPACE	REVISION	UPDATED        	STATUS  	CHART        	APP VERSION
-consul	default  	2       	2020-09-30 ...	deployed	consul-0.24.0	1.8.2
+NAME  	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART        	APP VERSION
+consul	consul   	2       	2022-02-02 21:49:45.647678 -0800 PST	deployed	consul-0.39.0	1.11.1
 ```
 
 In this example, version `0.40.0` (from `consul-k8s:0.40.0`) is being used, and Consul on Kubernetes is installed in the `consul` namespace.
@@ -99,7 +99,7 @@ consul	consul   	2       	2022-02-02 21:49:45.647678 -0800 PST	deployed	consul-0
 ```
 
 In this example, version `0.39.0` (from `consul-k8s:0.39.0`) is being used.
-If you want to upgrade to the latest `0.40.1` version, use the following procedure:
+If you want to upgrade to the latest `0.40.0` version, use the following procedure:
 
 1. Check the changelog for any breaking changes from that version and any versions in between: https://github.com/hashicorp/consul-helm/blob/master/CHANGELOG.md.
 
