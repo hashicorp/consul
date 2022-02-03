@@ -31,7 +31,7 @@ In a _zero trust_ model, applications require identity-based access to ensure al
 
 ## How does a Service Mesh work?
 
-A service mesh typically consist of a control plane, and a data plane. The control plane maintains a central registry that keeps track of all services and their respective IP addresses, this is called [service discovery](https://www.hashicorp.com/products/consul/service-discovery-and-health-checking).
+A service mesh typically consist of a control plane and a data plane. The control plane maintains a central registry that keeps track of all services and their respective IP addresses. This activity is called [service discovery](https://www.hashicorp.com/products/consul/service-discovery-and-health-checking).
 As long as the application is registered with the control plane, the control plane will be able to share with other members of the mesh how to communicate with the application and enforce rules for who can communicate with each other.
 
 The control plane is responsible for securing the mesh, facilitating service discovery, health checking, policy enforcement, and other similar operational concerns.
@@ -44,7 +44,7 @@ Many service mesh solutions employ a sidecar proxy to handle data plane communic
 ## API Gateway vs Service Mesh
 
 An API gateway is a centralized access point for handling incoming client requests and delivering them to services.
-The API Gateway acts as a control plane that allows operators and developers to manage incoming client requests and apply different handling logic depending on the request.
+The API gateway acts as a control plane that allows operators and developers to manage incoming client requests and apply different handling logic depending on the request.
 The API gateway will route the incoming requests to the respective service. The primary function of an API gateway is to handle requests and return the reply from the service back to the client.
 
 A service mesh specializes in the network management of services and the communication between services.
