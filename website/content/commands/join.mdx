@@ -12,6 +12,8 @@ description: >-
 
 Command: `consul join`
 
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/join/:address](/api-docs/agent#join-agent)
+
 The `join` command tells a Consul agent to join an existing cluster.
 A new Consul agent may join any node in the existing cluster. After joining
 with one member, the gossip communication will propagate the updated membership
@@ -20,13 +22,21 @@ state across the cluster.
 An agent which is already part of a cluster may join an agent in a different
 cluster, causing the two clusters to be merged into a single cluster.
 
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required  |
+| ------------- |
+| `agent:write` |
+
 ## Usage
 
 Usage: `consul join [options] address ...`
 
-You may call join with multiple addresses if you want to try to join
-multiple clusters. Consul will attempt to join all addresses, and the join
-command will fail only if Consul was unable to join with any.
+You may call `join` with multiple addresses if you want attempt to join the cluster
+through multiple nodes. Consul will attempt to join all addresses. The join
+command will fail only if Consul was unable to join any of the specified addresses.
 
 #### API Options
 

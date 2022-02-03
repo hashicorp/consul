@@ -291,3 +291,39 @@ func TestLoad_EmptyClientAddr(t *testing.T) {
 		})
 	}
 }
+
+func TestBuilder_DurationVal_InvalidDuration(t *testing.T) {
+	b := builder{}
+	badDuration1 := "not-a-duration"
+	badDuration2 := "also-not"
+	b.durationVal("field1", &badDuration1)
+	b.durationVal("field1", &badDuration2)
+
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "2 errors")
+	require.Contains(t, b.err.Error(), badDuration1)
+	require.Contains(t, b.err.Error(), badDuration2)
+}
+
+func TestBuilder_ServiceVal_MultiError(t *testing.T) {
+	b := builder{}
+	b.serviceVal(&ServiceDefinition{
+		Meta:       map[string]string{"": "empty-key"},
+		Port:       intPtr(12345),
+		SocketPath: strPtr("/var/run/socket.sock"),
+		Checks: []CheckDefinition{
+			{Interval: strPtr("bad-interval")},
+		},
+		Weights: &ServiceWeights{Passing: intPtr(-1)},
+	})
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "4 errors")
+	require.Contains(t, b.err.Error(), "bad-interval")
+	require.Contains(t, b.err.Error(), "Key cannot be blank")
+	require.Contains(t, b.err.Error(), "Invalid weight")
+	require.Contains(t, b.err.Error(), "cannot have both socket path")
+}
+
+func intPtr(v int) *int {
+	return &v
+}

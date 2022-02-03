@@ -103,9 +103,16 @@ export default function({
     let location = context.owner.lookup(`location:${locationType}`);
     return location.getURLFrom();
   };
+  const oidcProvider = function(name, response) {
+    const context = helpers.getContext();
+    const provider = context.owner.lookup('torii-provider:oidc-with-url');
+    provider.popup.open = async function() {
+      return response;
+    };
+  };
 
   models(library, create, setCookie);
-  http(library, respondWith, setCookie);
+  http(library, respondWith, setCookie, oidcProvider);
   visit(library, pages, utils.setCurrentPage, reset);
   click(library, utils.find, helpers.click);
   form(library, utils.find, helpers.fillIn, helpers.triggerKeyEvent, utils.getCurrentPage);

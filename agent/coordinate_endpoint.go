@@ -4,21 +4,17 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// checkCoordinateDisabled will return a standard response if coordinates are
-// disabled. This returns true if they are disabled and we should not continue.
-func (s *HTTPHandlers) checkCoordinateDisabled(resp http.ResponseWriter, req *http.Request) bool {
+// checkCoordinateDisabled will return an unauthorized error if coordinates are
+// disabled. Otherwise, a nil error will be returned.
+func (s *HTTPHandlers) checkCoordinateDisabled() error {
 	if !s.agent.config.DisableCoordinates {
-		return false
+		return nil
 	}
-
-	resp.WriteHeader(http.StatusUnauthorized)
-	fmt.Fprint(resp, "Coordinate support disabled")
-	return true
+	return UnauthorizedError{Reason: "Coordinate support disabled"}
 }
 
 // sorter wraps a coordinate list and implements the sort.Interface to sort by
@@ -45,8 +41,8 @@ func (s *sorter) Less(i, j int) bool {
 // CoordinateDatacenters returns the WAN nodes in each datacenter, along with
 // raw network coordinates.
 func (s *HTTPHandlers) CoordinateDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkCoordinateDisabled(resp, req) {
-		return nil, nil
+	if err := s.checkCoordinateDisabled(); err != nil {
+		return nil, err
 	}
 
 	var out []structs.DatacenterMap
@@ -74,8 +70,8 @@ func (s *HTTPHandlers) CoordinateDatacenters(resp http.ResponseWriter, req *http
 // CoordinateNodes returns the LAN nodes in the given datacenter, along with
 // raw network coordinates.
 func (s *HTTPHandlers) CoordinateNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkCoordinateDisabled(resp, req) {
-		return nil, nil
+	if err := s.checkCoordinateDisabled(); err != nil {
+		return nil, err
 	}
 
 	args := structs.DCSpecificRequest{}
@@ -99,11 +95,14 @@ func (s *HTTPHandlers) CoordinateNodes(resp http.ResponseWriter, req *http.Reque
 // CoordinateNode returns the LAN node in the given datacenter, along with
 // raw network coordinates.
 func (s *HTTPHandlers) CoordinateNode(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkCoordinateDisabled(resp, req) {
-		return nil, nil
+	if err := s.checkCoordinateDisabled(); err != nil {
+		return nil, err
 	}
 
-	node := strings.TrimPrefix(req.URL.Path, "/v1/coordinate/node/")
+	node, err := getPathSuffixUnescaped(req.URL.Path, "/v1/coordinate/node/")
+	if err != nil {
+		return nil, err
+	}
 	args := structs.NodeSpecificRequest{Node: node}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -151,15 +150,13 @@ func filterCoordinates(req *http.Request, in structs.Coordinates) structs.Coordi
 
 // CoordinateUpdate inserts or updates the LAN coordinate of a node.
 func (s *HTTPHandlers) CoordinateUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkCoordinateDisabled(resp, req) {
-		return nil, nil
+	if err := s.checkCoordinateDisabled(); err != nil {
+		return nil, err
 	}
 
 	args := structs.CoordinateUpdateRequest{}
 	if err := decodeBody(req.Body, &args); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)

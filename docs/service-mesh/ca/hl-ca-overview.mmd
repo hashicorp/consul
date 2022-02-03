@@ -1,0 +1,43 @@
+graph TD
+    subgraph "Primary DC"
+        leaderP["Leader"]
+        rootCAI["Root CA "]
+        rootCA["Root CA "]
+        Provider["Consul/AWS providers"]
+        IntermediateProvider["Vault provider"]
+        intermediateCAP["Intermediate CA "]
+        leafP["Leaf certificates"]
+    end
+
+    subgraph "Secondary DC"
+        leaderS["Leader"]
+        intermediateCAS["Intermediate CA"]
+        leafS["Leaf certificates"]
+        ProviderS["Consul/AWS/Vault providers"]
+    end
+
+    consulCAS["Consul client Agents"]
+    servicesS["Mesh services"]
+
+    consulCAP["Consul client Agents"]
+    servicesP["Mesh services"]
+    
+    leaderP -->|use|Provider
+    leaderP-->|use|IntermediateProvider
+    Provider--> |fetch/self sign|rootCA
+    IntermediateProvider --> |fetch/self sign|rootCAI 
+    rootCAI -->|sign| intermediateCAP
+    intermediateCAP -->|sign| leafP
+    rootCA -->|sign| leafP
+
+    leaderS -->|use| ProviderS
+    ProviderS --> |generate csr| intermediateCAS
+    rootCA -->|sign| intermediateCAS
+    rootCAI -->|sign| intermediateCAS
+    intermediateCAS --> |sign| leafS
+
+    leafS -->|auth/encrypt| servicesS
+    leafS -->|auth/encrypt| consulCAS
+    leafP -->|auth/encrypt| servicesP
+    leafP -->|auth/encrypt| consulCAP
+

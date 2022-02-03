@@ -69,6 +69,23 @@ func (e NotFoundError) Error() string {
 	return e.Reason
 }
 
+// UnauthorizedError should be returned by a handler when the request lacks valid authorization.
+type UnauthorizedError struct {
+	Reason string
+}
+
+func (e UnauthorizedError) Error() string {
+	return e.Reason
+}
+
+type EntityTooLargeError struct {
+	Reason string
+}
+
+func (e EntityTooLargeError) Error() string {
+	return e.Reason
+}
+
 // CodeWithPayloadError allow returning non HTTP 200
 // Error codes while not returning PlainText payload
 type CodeWithPayloadError struct {
@@ -82,10 +99,11 @@ func (e CodeWithPayloadError) Error() string {
 }
 
 type ForbiddenError struct {
+	Reason string
 }
 
 func (e ForbiddenError) Error() string {
-	return "Access is restricted"
+	return e.Reason
 }
 
 // HTTPHandlers provides an HTTP api for an agent.
@@ -241,7 +259,8 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 
 			// If enableDebug is not set, and ACLs are disabled, write
 			// an unauthorized response
-			if !enableDebug && s.checkACLDisabled(resp, req) {
+			if !enableDebug && s.checkACLDisabled() {
+				resp.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
@@ -423,9 +442,19 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			return ok
 		}
 
+		isUnauthorized := func(err error) bool {
+			_, ok := err.(UnauthorizedError)
+			return ok
+		}
+
 		isTooManyRequests := func(err error) bool {
 			// Sadness net/rpc can't do nice typed errors so this is all we got
 			return err.Error() == consul.ErrRateLimited.Error()
+		}
+
+		isEntityToLarge := func(err error) bool {
+			_, ok := err.(EntityTooLargeError)
+			return ok
 		}
 
 		addAllowHeader := func(methods []string) {
@@ -467,8 +496,14 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			case isNotFound(err):
 				resp.WriteHeader(http.StatusNotFound)
 				fmt.Fprint(resp, err.Error())
+			case isUnauthorized(err):
+				resp.WriteHeader(http.StatusUnauthorized)
+				fmt.Fprint(resp, err.Error())
 			case isTooManyRequests(err):
 				resp.WriteHeader(http.StatusTooManyRequests)
+				fmt.Fprint(resp, err.Error())
+			case isEntityToLarge(err):
+				resp.WriteHeader(http.StatusRequestEntityTooLarge)
 				fmt.Fprint(resp, err.Error())
 			default:
 				resp.WriteHeader(http.StatusInternalServerError)
@@ -599,7 +634,7 @@ func (s *HTTPHandlers) Index(resp http.ResponseWriter, req *http.Request) {
 	// Give them something helpful if there's no UI so they at least know
 	// what this server is.
 	if !s.IsUIEnabled() {
-		fmt.Fprint(resp, "Consul Agent")
+		fmt.Fprint(resp, "Consul Agent: UI disabled. To enable, set ui_config.enabled=true in the agent configuration and restart.")
 		return
 	}
 
@@ -1118,11 +1153,23 @@ func (s *HTTPHandlers) checkWriteAccess(req *http.Request) error {
 		}
 	}
 
-	return ForbiddenError{}
+	return ForbiddenError{Reason: "Access is restricted"}
 }
 
 func (s *HTTPHandlers) parseFilter(req *http.Request, filter *string) {
 	if other := req.URL.Query().Get("filter"); other != "" {
 		*filter = other
 	}
+}
+
+func getPathSuffixUnescaped(path string, prefixToTrim string) (string, error) {
+	// The suffix may be URL-encoded, so attempt to decode
+	suffixRaw := strings.TrimPrefix(path, prefixToTrim)
+	suffixUnescaped, err := url.PathUnescape(suffixRaw)
+
+	if err != nil {
+		return suffixRaw, fmt.Errorf("failure in unescaping path param %q: %v", suffixRaw, err)
+	}
+
+	return suffixUnescaped, nil
 }

@@ -23,7 +23,7 @@ via Kubernetes Custom Resources. Configuration entries provide cluster-wide defa
 You can specify the following values in the `kind` field. Click on a configuration entry to view its documentation:
 
 - [`Mesh`](/docs/connect/config-entries/mesh) (requires Consul 1.10.0+)
-- [`ExportedServices`](/docs/connect/config-entries/exported-services) 
+- [`ExportedServices`](/docs/connect/config-entries/exported-services) <EnterpriseAlert inline />
 - [`ProxyDefaults`](/docs/connect/config-entries/proxy-defaults)
 - [`ServiceDefaults`](/docs/connect/config-entries/service-defaults)
 - [`ServiceSplitter`](/docs/connect/config-entries/service-splitter)
@@ -93,7 +93,7 @@ Once installed, you can use `kubectl` to create and manage Consul's configuratio
 You can create configuration entries via `kubectl apply`.
 
 ```shell-session
-$ cat <<EOF | kubectl apply -f -
+$ cat <<EOF | kubectl apply --filename -
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
 metadata:

@@ -1,0 +1,262 @@
+---
+layout: docs
+page_title: Distributed Tracing
+description: >-
+  Distributed tracing is a way to track and correlate requests across microservices.
+---
+
+# Distributed Tracing
+
+Distributed tracing is a way to track and correlate requests across microservices. Distributed tracing must first
+be implemented in each application, it cannot be added by Consul. Once implemented in your applications, adding
+distributed tracing to Consul will add the sidecar proxies as spans in the request path.
+
+## Application Changes
+
+Consul alone cannot implement distributed tracing for your applications. Each application must propagate the required
+headers. Typically this is done using a tracing library such as:
+
+- https://github.com/opentracing/opentracing-go
+- https://github.com/DataDog/dd-trace-go
+- https://github.com/openzipkin/zipkin-go
+
+## Configuration
+
+Once your applications have been instrumented with a tracing library, you are ready to configure Consul to add sidecar
+proxy spans to the trace. Your eventual config will look something like:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "proxy-defaults"
+Name = "global"
+Config {
+  protocol           = "http"
+  envoy_tracing_json = <<EOF
+{
+  "http":{
+    "name":"envoy.tracers.zipkin",
+    "typedConfig":{
+      "@type":"type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
+      "collector_cluster":"collector_cluster_name",
+      "collector_endpoint_version":"HTTP_JSON",
+      "collector_endpoint":"/api/v2/spans",
+      "shared_span_context":false
+    }
+  }
+}
+EOF
+
+  envoy_extra_static_clusters_json = <<EOF
+{
+  "connect_timeout":"3.000s",
+  "dns_lookup_family":"V4_ONLY",
+  "lb_policy":"ROUND_ROBIN",
+  "load_assignment":{
+    "cluster_name":"collector_cluster_name",
+    "endpoints":[
+      {
+        "lb_endpoints":[
+          {
+            "endpoint":{
+              "address":{
+                "socket_address":{
+                  "address":"collector-url",
+                  "port_value":9411,
+                  "protocol":"TCP"
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "name":"collector_cluster_name",
+  "type":"STRICT_DNS"
+}
+EOF
+}
+
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  config:
+    protocol: http
+    envoy_tracing_json: |
+      {
+        "http":{
+          "name":"envoy.tracers.zipkin",
+          "typedConfig":{
+            "@type":"type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
+            "collector_cluster":"collector_cluster_name",
+            "collector_endpoint_version":"HTTP_JSON",
+            "collector_endpoint":"/api/v2/spans",
+            "shared_span_context":false
+          }
+        }
+      }
+    envoy_extra_static_clusters_json: |
+      {
+        "connect_timeout":"3.000s",
+        "dns_lookup_family":"V4_ONLY",
+        "lb_policy":"ROUND_ROBIN",
+        "load_assignment":{
+          "cluster_name":"collector_cluster_name",
+          "endpoints":[
+            {
+              "lb_endpoints":[
+                {
+                  "endpoint":{
+                    "address":{
+                      "socket_address":{
+                        "address":"collector-url",
+                        "port_value":9411,
+                        "protocol":"TCP"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "name":"collector_cluster_name",
+        "type":"STRICT_DNS"
+      }
+```
+
+```json
+{
+  "Kind": "ProxyDefaults",
+  "Name": "global",
+  "Config": {
+    "protocol": "http",
+    "envoy_tracing_json": "{\"http\":{\"name\":\"envoy.tracers.zipkin\",\"typedConfig\":{\"@type\":\"type.googleapis.com/envoy.config.trace.v3.ZipkinConfig\",\"collector_cluster\":\"collector_cluster_name\",\"collector_endpoint_version\":\"HTTP_JSON\",\"collector_endpoint\":\"/api/v2/spans\",\"shared_span_context\":false}}}",
+    "envoy_extra_static_clusters_json": "{\"connect_timeout\":\"3.000s\",\"dns_lookup_family\":\"V4_ONLY\",\"lb_policy\":\"ROUND_ROBIN\",\"load_assignment\":{\"cluster_name\":\"collector_cluster_name\",\"endpoints\":[{\"lb_endpoints\":[{\"endpoint\":{\"address\":{\"socket_address\":{\"address\":\"collector-url\",\"port_value\":9411,\"protocol\":\"TCP\"}}}}]}]},\"name\":\"collector_cluster_name\",\"type\":\"STRICT_DNS\"}"
+  }
+}
+```
+
+</CodeTabs>
+
+-> **NOTE:** This example uses a [proxy defaults](/docs/connect/config-entries/proxy-defaults) config entry which will apply to all proxies
+but you can also apply this config in the
+[proxy service registration](/docs/connect/registration/service-registration#proxy-parameters) (not supported on Kubernetes).
+
+Within the config there are two keys you need to customize:
+
+1. [`envoy_tracing_json`](/docs/connect/proxies/envoy#envoy_tracing_json): Sets the tracing configuration for your specific tracing type.
+   See the [Envoy tracers documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/trace/trace) for your
+   specific collector's configuration. This configuration will reference the cluster name defined in `envoy_extra_static_clusters_json`.
+1. [`envoy_extra_static_clusters_json`](/docs/connect/proxies/envoy#envoy_extra_static_clusters_json): Defines the address
+   of your tracing collector where Envoy will send its spans. In this example the URL was `collector-url:9411`.
+
+## Applying the configuration
+
+This configuration only applies when proxies are _restarted_ since it changes the _bootstrap_ config for Envoy
+which can only be applied on startup. This means you must restart all your proxies for changes to this
+config to take effect.
+
+-> **Note:** On Kubernetes this is a matter of restarting your deployments, e.g. `kubectl rollout restart deploy/deploy-name`.
+
+## Considerations
+
+1. Distributed tracing is only supported for HTTP and gRPC services. You must specify the protocol either globally
+   via a proxy defaults config entry:
+
+    <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+   ```hcl
+   Kind      = "proxy-defaults"
+   Name      = "global"
+   Config {
+     protocol = "http"
+   }
+   ```
+
+   ```yaml
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ProxyDefaults
+   metadata:
+     name: global
+   spec:
+     config:
+       protocol: http
+   ```
+
+   ```json
+   {
+     "Kind": "proxy-defaults",
+     "Name": "global",
+     "Config": {
+       "protocol": "http"
+     }
+   }
+   ```
+
+    </CodeTabs>
+
+   Or via a service defaults config entry for each service:
+
+    <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+   ```hcl
+   Kind      = "service-defaults"
+   Name      = "service-name"
+   Protocol  = "http"
+   ```
+
+   ```yaml
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ProxyDefaults
+   metadata:
+     name: service-name
+   spec:
+     protocol: http
+   ```
+
+   ```json
+   {
+     "Kind": "service-defaults",
+     "Name": "service-name",
+     "Protocol": "http"
+   }
+   ```
+
+    </CodeTabs>
+
+1. Requests through [Ingress Gateways](/docs/connect/gateways/ingress-gateway) will not be traced unless the header
+   `x-client-trace-id: 1` is set (see [hashicorp/consul#6645](https://github.com/hashicorp/consul/issues/6645)).
+
+1. Consul does not currently support interoperation with [OpenTelemetry](https://opentelemetry.io/) libraries due to
+   Envoy not yet having support.
+
+1. Tracing is only supported with Envoy proxies, not the built-in proxy.
+
+1. When configuring the Zipkin tracer in `envoy_tracing_json`, set [`trace_id_128bit`](https://www.envoyproxy.io/docs/envoy/v1.21.0/api-v3/config/trace/v3/zipkin.proto#envoy-v3-api-field-config-trace-v3-zipkinconfig-trace-id-128bit) to  `true` if your application is configured to generate 128-bit trace IDs. For example:
+
+   <CodeBlockConfig highlight="10">
+
+   ```json
+   {
+     "http": {
+       "name": "envoy.tracers.zipkin",
+       "typedConfig": {
+         "@type": "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
+         "collector_cluster": "zipkin",
+         "collector_endpoint_version": "HTTP_JSON",
+         "collector_endpoint": "/api/v2/spans",
+         "shared_span_context": false,
+         "trace_id_128bit": true
+       }
+     }
+   }
+   ```
+
+   </CodeBlockConfig>

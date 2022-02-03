@@ -28,7 +28,6 @@ func TestTokenReadCommand_Pretty(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -52,7 +51,7 @@ func TestTokenReadCommand_Pretty(t *testing.T) {
 		&api.ACLToken{Description: "test"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(err)
+	assert.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -61,13 +60,13 @@ func TestTokenReadCommand_Pretty(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
-	assert.Contains(output, fmt.Sprintf("test"))
-	assert.Contains(output, token.AccessorID)
-	assert.Contains(output, token.SecretID)
+	assert.Contains(t, output, fmt.Sprintf("test"))
+	assert.Contains(t, output, token.AccessorID)
+	assert.Contains(t, output, token.SecretID)
 }
 
 func TestTokenReadCommand_JSON(t *testing.T) {
@@ -76,7 +75,6 @@ func TestTokenReadCommand_JSON(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -100,7 +98,7 @@ func TestTokenReadCommand_JSON(t *testing.T) {
 		&api.ACLToken{Description: "test"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(err)
+	assert.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -110,8 +108,8 @@ func TestTokenReadCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	assert.Equal(t, code, 0)
+	assert.Empty(t, ui.ErrorWriter.String())
 
 	var jsonOutput json.RawMessage
 	err = json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)

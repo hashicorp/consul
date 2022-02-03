@@ -6,7 +6,8 @@
 }
 %pill::before {
   margin-right: 4px;
-  font-size: 0.8em;
+  width: 0.75rem !important; /* 12px */
+  height: 0.75rem !important; /* 12px */
 }
 %pill-200 {
   @extend %pill;

@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: **(Enterprise only)** add support for cross-partition transparent proxying.
-```

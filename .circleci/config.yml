@@ -568,7 +568,7 @@ jobs:
 
   algolia-index:
     docker:
-      - image: docker.mirror.hashicorp.services/node:12
+      - image: docker.mirror.hashicorp.services/node:14
     steps:
       - checkout
       - run:
@@ -579,6 +579,7 @@ jobs:
               exit 0
             fi
             cd website/
+            npm install -g npm@latest
             npm install
             node scripts/index_search_content.js
       - run: *notify-slack-failure
@@ -688,11 +689,20 @@ jobs:
             if ! git diff --quiet --exit-code HEAD^! ui/; then
               git config --local user.email "github-team-consul-core@hashicorp.com"
               git config --local user.name "hc-github-team-consul-core"
-
+              
+              # stash newly built bindata_assetfs.go
+              git stash push
+              
+              # checkout the CI branch and merge latest from main
+              git checkout ci/main-assetfs-build
+              git merge --no-edit main
+            
+              git stash pop
+            
               short_sha=$(git rev-parse --short HEAD)
               git add agent/uiserver/bindata_assetfs.go
               git commit -m "auto-updated agent/uiserver/bindata_assetfs.go from commit ${short_sha}"
-              git push origin main
+              git push origin ci/main-assetfs-build
             else
               echo "no UI changes so no static assets to publish"
             fi
@@ -836,10 +846,10 @@ jobs:
     environment:
       ENVOY_VERSION: "1.19.1"
 
-  envoy-integration-test-1_20_0:
+  envoy-integration-test-1_20_1:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.20.0"
+      ENVOY_VERSION: "1.20.1"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -1090,7 +1100,7 @@ workflows:
       - envoy-integration-test-1_19_1:
           requires:
             - dev-build
-      - envoy-integration-test-1_20_0:
+      - envoy-integration-test-1_20_1:
           requires:
             - dev-build
 
@@ -1104,7 +1114,6 @@ workflows:
               only:
                 - main
       - algolia-index:
-          context: consul-docs
           filters:
             branches:
               only:

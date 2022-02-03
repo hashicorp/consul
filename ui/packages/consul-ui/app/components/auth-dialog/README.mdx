@@ -1,63 +1,55 @@
----
-class: ember
----
 # AuthDialog
-
-```hbs preview-template
-<AuthDialog
-  @dc={{'dc-1'}}
-  @nspace={{'default'}}
-  @partition={{'default'}}
-  @onchange={{action (noop)}}
-as |api components|>
-  {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
-    <BlockSlot @name="unauthorized">
-      Here's the login form:
-      <AuthForm />
-    </BlockSlot>
-    <BlockSlot @name="authorized">
-      Here's your profile:
-      <AuthProfile />
-      <button onclick={{action api.logout}}>Logout</button>
-    </BlockSlot>
-  {{/let}}
-</AuthDialog>
-```
-
-### Arguments
 
 A component to help orchestrate a login/logout flow.
 
+```hbs preview-template
+<AuthDialog
+  @src={{uri 'settings://consul:token'}}
+  @sink={{uri 'settings://consul:token'}}
+  @onchange={{action (noop)}}
+>
+  <:unauthorized as |api|>
+    <AuthForm
+      @onsubmit={{action api.login value="data"}}
+    />
+  </:unauthorized>
+  <:authorized as |api|>
+    <AuthProfile
+      @item={{api.token}}
+    />
+    <button
+      {{on 'click' (fn api.logout)}}
+    >
+      Logout
+    </button>
+  </:authorized>
+</AuthDialog>
+```
+
+## Arguments
+
 | Argument | Type | Default | Description |
 | --- | --- | --- | --- |
-| `dc` | `String` | | The name of the current datacenter |
-| `nspace` | `String` | | The name of the current namespace |
-| `partition` | `String` | | The name of the current partition |
 | `onchange` | `Function` | | An action to fire when the users token has changed (logged in/logged out/token changed) |
+| `src` | `URI` | | DataSource URI used to retrive/watch for changes on the users token |
+| `sink` | `URI` | | DataSink URI used to save the users token to |
 
-### Methods/Actions/api
+## Exports
 
-| Method/Action |  Description |
-| --- | --- |
-| `login` | Login with a specified token |
-| `logout` | Logout (delete token) |
-| `token` | The current token itself (as a property not a method) |
+| Name | Type | Description |
+| --- | --- | --- |
+| `login` | `Function` | Login with a specified token |
+| `logout` | `Function` | Logout (delete token) |
+| `token` | `Token` | The current token itself |
 
-### Components
-
-| Name |  Description |
-| --- | --- |
-| [`AuthForm`](../auth-form/README.mdx) | Renders an Authorization form |
-| [`AuthProfile`](../auth-profile/README.mdx) | Renders a User Profile |
-
-### Slots
+## Slots
 
 | Name  | Description |
 | --- | --- |
 | `unauthorized` | This slot is only rendered when the user doesn't have a token |
-| `authorized`   | This slot is only rendered whtn the user has a token.|
+| `authorized`   | This slot is only rendered when the user has a token.|
 
-### See
+## See
 
 - [Component Source Code](./index.js)
 - [Template Source Code](./index.hbs)

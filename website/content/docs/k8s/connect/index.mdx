@@ -204,7 +204,7 @@ Because transparent proxy is enabled by default,
 we use Kubernetes DNS to connect to our desired upstream.
 
 ```shell-session
-$ kubectl exec deploy/static-client -- curl -s http://static-server/
+$ kubectl exec deploy/static-client -- curl --silent http://static-server/
 "hello world"
 ```
 
@@ -216,7 +216,7 @@ without updating either of the running pods. You can then remove this
 intention to allow connections again.
 
 ```shell-session
-$ kubectl exec deploy/static-client -- curl -s http://static-server/
+$ kubectl exec deploy/static-client -- curl --silent http://static-server/
 command terminated with exit code 52
 ```
 
@@ -231,29 +231,29 @@ Pod annotations can be used to configure the injection behavior.
   injector's configuration if desired.
 
 - `consul.hashicorp.com/transparent-proxy` - If this is "true", this Pod
-   will run with transparent proxy enabled. This means you can use Kubernetes
-   DNS to access upstream services and all inbound and outbound traffic within
-   the pod is redirected to go through the proxy.
+  will run with transparent proxy enabled. This means you can use Kubernetes
+  DNS to access upstream services and all inbound and outbound traffic within
+  the pod is redirected to go through the proxy.
 
 - `consul.hashicorp.com/transparent-proxy-overwrite-probes` - If this is "true"
-   and transparent proxy is enabled, the Connect injector will overwrite Kubernetes
-   HTTP probes to point to the Envoy proxy.
+  and transparent proxy is enabled, the Connect injector will overwrite Kubernetes
+  HTTP probes to point to the Envoy proxy.
 
 - `consul.hashicorp.com/transparent-proxy-exclude-inbound-ports` - A comma-separated
-   list of inbound ports to exclude from traffic redirection when running in transparent proxy
-   mode.
+  list of inbound ports to exclude from traffic redirection when running in transparent proxy
+  mode.
 
 - `consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs` - A comma-separated
-   list of outbound CIDRs to exclude from traffic redirection when running in transparent proxy
-   mode.
+  list of outbound CIDRs to exclude from traffic redirection when running in transparent proxy
+  mode.
 
 - `consul.hashicorp.com/transparent-proxy-exclude-outbound-ports` - A comma-separated
-   list of outbound ports to exclude from traffic redirection when running in transparent proxy
-   mode.
+  list of outbound ports to exclude from traffic redirection when running in transparent proxy
+  mode.
 
 - `consul.hashicorp.com/transparent-proxy-exclude-uids` - A comma-separated
-   list of additional user IDs to exclude from traffic redirection when running in transparent proxy
-   mode.
+  list of additional user IDs to exclude from traffic redirection when running in transparent proxy
+  mode.
 
 - `consul.hashicorp.com/connect-service` - For pods that accept inbound
   connections, this specifies the name of the service that is being
@@ -338,6 +338,9 @@ Pod annotations can be used to configure the injection behavior.
     consul.hashicorp.com/service-tags: foo,bar,baz
   ```
 
+  If you need your tag to have a comma in it you can escape the comma with `\,`. For example,
+  `consul.hashicorp.com/service-tags: foo\,bar\,baz` will become the single tag `foo,bar,baz`.
+
 - `consul.hashicorp.com/service-meta-<YOUR_KEY>` - Set Consul meta key/value
   pairs that will be applied to the Consul service and its sidecar.
   The key will be what comes after `consul.hashicorp.com/service-meta-`, e.g.
@@ -357,6 +360,15 @@ Pod annotations can be used to configure the injection behavior.
   - `consul.hashicorp.com/sidecar-proxy-cpu-request` - Override the default CPU request.
   - `consul.hashicorp.com/sidecar-proxy-memory-limit` - Override the default memory limit.
   - `consul.hashicorp.com/sidecar-proxy-memory-request` - Override the default memory request.
+
+- `consul.hashicorp.com/consul-sidecar-` - Override default resource settings for
+the `consul-sidecar` container.
+The defaults are set in Helm config via the [`global.consulSidecarContainer.resources`](/docs/k8s/helm#v-global-consulsidecarcontainer) key.
+
+  - `consul.hashicorp.com/consul-sidecar-cpu-limit` - Override the default CPU limit.
+  - `consul.hashicorp.com/consul-sidecar-cpu-request` - Override the default CPU request.
+  - `consul.hashicorp.com/consul-sidecar-memory-limit` - Override the default memory limit.
+  - `consul.hashicorp.com/consul-sidecar-memory-request` - Override the default memory request.
 
 - `consul.hashicorp.com/enable-metrics` - Override the default Helm value [`connectInject.metrics.defaultEnabled`](/docs/k8s/helm#v-connectinject-metrics-defaultenabled).
 - `consul.hashicorp.com/enable-metrics-merging` - Override the default Helm value [`connectInject.metrics.defaultEnableMerging`](/docs/k8s/helm#v-connectinject-metrics-defaultenablemerging).
@@ -551,7 +563,7 @@ application.
 To verify the installation, run the
 ["Accepting Inbound Connections"](/docs/k8s/connect#accepting-inbound-connections)
 example from the "Usage" section above. After running this example, run
-`kubectl get pod static-server -o yaml`. In the raw YAML output, you should
+`kubectl get pod static-server --output yaml`. In the raw YAML output, you should
 see injected Connect containers and an annotation
 `consul.hashicorp.com/connect-inject-status` set to `injected`. This
 confirms that injection is working properly.

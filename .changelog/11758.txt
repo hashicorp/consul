@@ -1,3 +1,0 @@
-```release-note:bug
-rpc: unset partition before forwarding to remote datacenter
-```

@@ -1,0 +1,5 @@
+```release-note:bug
+ui: Fix an issue where attempting to delete a policy from the policy detail page when
+attached to a token would result in the delete button disappearing and no
+deletion being attempted
+```

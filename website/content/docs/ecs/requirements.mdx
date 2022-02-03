@@ -1,0 +1,26 @@
+---
+layout: docs
+page_title: Requirements - AWS ECS
+description: >-
+  Requirements for Consul Service Mesh on AWS ECS (Elastic Container Service).
+---
+
+# Requirements
+
+The following requirements must be met in order to install Consul on ECS:
+
+1. **Launch Type:** Fargate and EC2 launch types are supported.
+1. **Subnets:** ECS Tasks can run in private or public subnets. Tasks must have [network access](https://aws.amazon.com/premiumsupport/knowledge-center/ecs-pull-container-api-error-ecr/) to Amazon ECR or other public container registries to pull images.
+1. **Consul Servers:** You can use your own Consul servers running on virtual machines or use [HashiCorp Cloud Platform Consul](https://www.hashicorp.com/cloud-platform) to host the servers for you. For development purposes or testing, you may use the `dev-server` [Terraform module](https://github.com/hashicorp/terraform-aws-consul-ecs/tree/main) that runs the Consul server as an ECS task. The `dev-server` does not support persistent storage.
+1. **ACL Controller:** If you are running a secure Consul installation with ACLs enabled, configure the ACL controller.
+1. **Sidecar containers:** Consul on ECS requires two sidecar containers to run in each ECS task: a
+   Consul agent container and a sidecar proxy container. These additional sidecar containers must
+   be included in the ECS task definition. The [Consul ECS Terraform module](/docs/ecs/terraform/install)
+   will include these sidecar containers for you. If you do not use Terraform, you can construct
+   the task definition yourself by following [our documentation](/docs/ecs/manual/install).
+1. **Routing:** With your application running in tasks as part of the mesh, you must specify the
+   upstream services that your application calls. You will also need to change the URLs your
+   application uses to ensure the application is making requests through the service mesh.
+1. **Bind Address:** Once all communication is flowing through the service mesh, you should change
+   the address your application is listening on to `127.0.0.1` so that it only receives requests
+   through the sidecar proxy.

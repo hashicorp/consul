@@ -23,9 +23,7 @@ func (s *HTTPHandlers) preparedQueryCreate(resp http.ResponseWriter, req *http.R
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if err := decodeBody(req.Body, &args.Query); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	var reply string
@@ -145,9 +143,7 @@ func (s *HTTPHandlers) preparedQueryExecute(id string, resp http.ResponseWriter,
 			// We have to check the string since the RPC sheds
 			// the specific error type.
 			if structs.IsErrQueryNotFound(err) {
-				resp.WriteHeader(http.StatusNotFound)
-				fmt.Fprint(resp, err.Error())
-				return nil, nil
+				return nil, NotFoundError{Reason: err.Error()}
 			}
 			return nil, err
 		}
@@ -200,9 +196,7 @@ RETRY_ONCE:
 		// We have to check the string since the RPC sheds
 		// the specific error type.
 		if structs.IsErrQueryNotFound(err) {
-			resp.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(resp, err.Error())
-			return nil, nil
+			return nil, NotFoundError{Reason: err.Error()}
 		}
 		return nil, err
 	}
@@ -231,9 +225,7 @@ RETRY_ONCE:
 		// We have to check the string since the RPC sheds
 		// the specific error type.
 		if structs.IsErrQueryNotFound(err) {
-			resp.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(resp, err.Error())
-			return nil, nil
+			return nil, NotFoundError{Reason: err.Error()}
 		}
 		return nil, err
 	}
@@ -255,9 +247,7 @@ func (s *HTTPHandlers) preparedQueryUpdate(id string, resp http.ResponseWriter, 
 	s.parseToken(req, &args.Token)
 	if req.ContentLength > 0 {
 		if err := decodeBody(req.Body, &args.Query); err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(resp, "Request decode failed: %v", err)
-			return nil, nil
+			return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 		}
 	}
 
@@ -319,7 +309,10 @@ func (s *HTTPHandlers) PreparedQuerySpecific(resp http.ResponseWriter, req *http
 	}
 
 	path := req.URL.Path
-	id := strings.TrimPrefix(path, "/v1/query/")
+	id, err := getPathSuffixUnescaped(path, "/v1/query/")
+	if err != nil {
+		return nil, err
+	}
 
 	switch {
 	case strings.HasSuffix(path, "/execute"):

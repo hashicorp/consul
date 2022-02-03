@@ -14,17 +14,14 @@ export default class RouteComponent extends Component {
   }
 
   get model() {
-    if(this.args.name) {
-      const temp = this.args.name.split('.');
-      temp.pop();
-      const name = temp.join('.');
-      let model = this.routlet.modelFor(name);
-      if(Object.keys(model).length === 0) {
-        return null;
-      }
-      return model;
+    if(this._model) {
+      return this._model;
     }
-    return null;
+    if (this.args.name) {
+      const outlet = this.routlet.outletFor(this.args.name);
+      return this.routlet.modelFor(outlet.name);
+    }
+    return undefined;
   }
 
   @action

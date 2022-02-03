@@ -2096,6 +2096,7 @@ func TestParseConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			// TODO(rb): test SDS stuff here in both places (global/service)
 			name: "ingress-gateway: kitchen sink",
 			snake: `
 				kind = "ingress-gateway"
@@ -2106,6 +2107,12 @@ func TestParseConfigEntry(t *testing.T) {
 				}
 				tls {
 					enabled = true
+					tls_min_version = "TLSv1_1"
+					tls_max_version = "TLSv1_2"
+					cipher_suites = [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
 				}
 				listeners = [
 					{
@@ -2133,6 +2140,12 @@ func TestParseConfigEntry(t *testing.T) {
 				}
 				Tls {
 					Enabled = true
+					TLSMinVersion = "TLSv1_1"
+					TLSMaxVersion = "TLSv1_2"
+					CipherSuites = [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
 				}
 				Listeners = [
 					{
@@ -2160,7 +2173,13 @@ func TestParseConfigEntry(t *testing.T) {
 					"gir": "zim"
 				},
 				"tls": {
-					"enabled": true
+					"enabled": true,
+					"tls_min_version": "TLSv1_1",
+					"tls_max_version": "TLSv1_2",
+					"cipher_suites": [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
 				},
 				"listeners": [
 					{
@@ -2188,8 +2207,14 @@ func TestParseConfigEntry(t *testing.T) {
 					"foo": "bar",
 					"gir": "zim"
 				},
-				"Tls": {
-					"Enabled": true
+				"TLS": {
+					"Enabled": true,
+					"TLSMinVersion": "TLSv1_1",
+					"TLSMaxVersion": "TLSv1_2",
+					"CipherSuites": [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
 				},
 				"Listeners": [
 					{
@@ -2217,7 +2242,13 @@ func TestParseConfigEntry(t *testing.T) {
 					"gir": "zim",
 				},
 				TLS: api.GatewayTLSConfig{
-					Enabled: true,
+					Enabled:       true,
+					TLSMinVersion: "TLSv1_1",
+					TLSMaxVersion: "TLSv1_2",
+					CipherSuites: []string{
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+					},
 				},
 				Listeners: []api.IngressListener{
 					{

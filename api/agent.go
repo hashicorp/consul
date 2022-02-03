@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 )
 
 // ServiceKind is the kind of service being registered.
@@ -628,7 +627,7 @@ func (a *Agent) AgentHealthServiceByID(serviceID string) (string, *AgentServiceC
 }
 
 func (a *Agent) AgentHealthServiceByIDOpts(serviceID string, q *QueryOptions) (string, *AgentServiceChecksInfo, error) {
-	path := fmt.Sprintf("/v1/agent/health/service/id/%v", url.PathEscape(serviceID))
+	path := fmt.Sprintf("/v1/agent/health/service/id/%v", serviceID)
 	r := a.c.newRequest("GET", path)
 	r.setQueryOptions(q)
 	r.params.Add("format", "json")
@@ -669,7 +668,7 @@ func (a *Agent) AgentHealthServiceByName(service string) (string, []AgentService
 }
 
 func (a *Agent) AgentHealthServiceByNameOpts(service string, q *QueryOptions) (string, []AgentServiceChecksInfo, error) {
-	path := fmt.Sprintf("/v1/agent/health/service/name/%v", url.PathEscape(service))
+	path := fmt.Sprintf("/v1/agent/health/service/name/%v", service)
 	r := a.c.newRequest("GET", path)
 	r.setQueryOptions(q)
 	r.params.Add("format", "json")

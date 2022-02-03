@@ -541,7 +541,7 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 			gwListEmpty:      true,
 			gwFilteredByACLs: true,
 		},
-		"master token": {
+		"initial management token": {
 			token: "root",
 		},
 	}

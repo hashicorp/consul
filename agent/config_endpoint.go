@@ -32,7 +32,11 @@ func (s *HTTPHandlers) configGet(resp http.ResponseWriter, req *http.Request) (i
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	pathArgs := strings.SplitN(strings.TrimPrefix(req.URL.Path, "/v1/config/"), "/", 2)
+	kindAndName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/config/")
+	if err != nil {
+		return nil, err
+	}
+	pathArgs := strings.SplitN(kindAndName, "/", 2)
 
 	switch len(pathArgs) {
 	case 2:
@@ -79,19 +83,19 @@ func (s *HTTPHandlers) configDelete(resp http.ResponseWriter, req *http.Request)
 	var args structs.ConfigEntryRequest
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	pathArgs := strings.SplitN(strings.TrimPrefix(req.URL.Path, "/v1/config/"), "/", 2)
+	kindAndName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/config/")
+	if err != nil {
+		return nil, err
+	}
+	pathArgs := strings.SplitN(kindAndName, "/", 2)
 
 	if len(pathArgs) != 2 {
-		resp.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(resp, "Must provide both a kind and name to delete")
-		return nil, nil
+		return nil, NotFoundError{Reason: "Must provide both a kind and name to delete"}
 	}
 
 	entry, err := structs.MakeConfigEntry(pathArgs[0], pathArgs[1])
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "%v", err)
-		return nil, nil
+		return nil, BadRequestError{Reason: err.Error()}
 	}
 	args.Entry = entry
 	// Parse enterprise meta.

@@ -88,7 +88,6 @@ enable_acl_replication = true
 
 func TestLoad_DeprecatedConfig_ACLMasterTokens(t *testing.T) {
 	t.Run("top-level fields", func(t *testing.T) {
-		require := require.New(t)
 
 		opts := LoadOpts{
 			HCL: []string{`
@@ -101,21 +100,20 @@ func TestLoad_DeprecatedConfig_ACLMasterTokens(t *testing.T) {
 		patchLoadOptsShims(&opts)
 
 		result, err := Load(opts)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		expectWarns := []string{
 			deprecationWarning("acl_master_token", "acl.tokens.initial_management"),
 			deprecationWarning("acl_agent_master_token", "acl.tokens.agent_recovery"),
 		}
-		require.ElementsMatch(expectWarns, result.Warnings)
+		require.ElementsMatch(t, expectWarns, result.Warnings)
 
 		rt := result.RuntimeConfig
-		require.Equal("token1", rt.ACLInitialManagementToken)
-		require.Equal("token2", rt.ACLTokens.ACLAgentRecoveryToken)
+		require.Equal(t, "token1", rt.ACLInitialManagementToken)
+		require.Equal(t, "token2", rt.ACLTokens.ACLAgentRecoveryToken)
 	})
 
 	t.Run("embedded in tokens struct", func(t *testing.T) {
-		require := require.New(t)
 
 		opts := LoadOpts{
 			HCL: []string{`
@@ -132,21 +130,20 @@ func TestLoad_DeprecatedConfig_ACLMasterTokens(t *testing.T) {
 		patchLoadOptsShims(&opts)
 
 		result, err := Load(opts)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		expectWarns := []string{
 			deprecationWarning("acl.tokens.master", "acl.tokens.initial_management"),
 			deprecationWarning("acl.tokens.agent_master", "acl.tokens.agent_recovery"),
 		}
-		require.ElementsMatch(expectWarns, result.Warnings)
+		require.ElementsMatch(t, expectWarns, result.Warnings)
 
 		rt := result.RuntimeConfig
-		require.Equal("token1", rt.ACLInitialManagementToken)
-		require.Equal("token2", rt.ACLTokens.ACLAgentRecoveryToken)
+		require.Equal(t, "token1", rt.ACLInitialManagementToken)
+		require.Equal(t, "token2", rt.ACLTokens.ACLAgentRecoveryToken)
 	})
 
 	t.Run("both", func(t *testing.T) {
-		require := require.New(t)
 
 		opts := LoadOpts{
 			HCL: []string{`
@@ -166,10 +163,10 @@ func TestLoad_DeprecatedConfig_ACLMasterTokens(t *testing.T) {
 		patchLoadOptsShims(&opts)
 
 		result, err := Load(opts)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		rt := result.RuntimeConfig
-		require.Equal("token3", rt.ACLInitialManagementToken)
-		require.Equal("token4", rt.ACLTokens.ACLAgentRecoveryToken)
+		require.Equal(t, "token3", rt.ACLInitialManagementToken)
+		require.Equal(t, "token4", rt.ACLTokens.ACLAgentRecoveryToken)
 	})
 }

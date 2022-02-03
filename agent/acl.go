@@ -15,7 +15,7 @@ import (
 // critical purposes, such as logging. Therefore we interpret all errors as empty-string
 // so we can safely log it without handling non-critical errors at the usage site.
 func (a *Agent) aclAccessorID(secretID string) string {
-	ident, err := a.delegate.ResolveTokenToIdentity(secretID)
+	ident, err := a.delegate.ResolveTokenAndDefaultMeta(secretID, nil, nil)
 	if acl.IsErrNotFound(err) {
 		return ""
 	}
@@ -23,10 +23,7 @@ func (a *Agent) aclAccessorID(secretID string) string {
 		a.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
 		return ""
 	}
-	if ident == nil {
-		return ""
-	}
-	return ident.ID()
+	return ident.AccessorID()
 }
 
 // vetServiceRegister makes sure the service registration action is allowed by
@@ -84,7 +81,13 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 				structs.ServiceIDString(existing.Service, &existing.EnterpriseMeta))
 		}
 	} else {
-		return NotFoundError{Reason: fmt.Sprintf("Unknown service %q", serviceID)}
+		// Take care if modifying this error message.
+		// agent/local/state.go's deleteService assumes the Catalog.Deregister RPC call
+		// will include "Unknown service"in the error if deregistration fails due to a
+		// service with that ID not existing.
+		return NotFoundError{Reason: fmt.Sprintf(
+			"Unknown service ID %q. Ensure that the service ID is passed, not the service name.",
+			serviceID)}
 	}
 
 	return nil
@@ -143,7 +146,9 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 			}
 		}
 	} else {
-		return fmt.Errorf("Unknown check %q", checkID.String())
+		return NotFoundError{Reason: fmt.Sprintf(
+			"Unknown check ID %q. Ensure that the check ID is passed, not the check name.",
+			checkID.String())}
 	}
 
 	return nil
@@ -166,7 +171,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 		if authz.NodeRead(node, &authzContext) == acl.Allow {
 			continue
 		}
-		accessorID := a.aclAccessorID(token)
+		accessorID := authz.AccessorID()
 		a.logger.Debug("dropping node from result due to ACLs", "node", node, "accessorID", accessorID)
 		m = append(m[:i], m[i+1:]...)
 		i--

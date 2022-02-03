@@ -102,7 +102,7 @@ A service lookup is used to query for service providers. Service queries support
 two lookup methods: standard and strict [RFC 2782](https://tools.ietf.org/html/rfc2782).
 
 By default, SRV weights are all set at 1, but changing weights is supported using the
-`Weights` attribute of the [service definition](/docs/agent/services).
+`Weights` attribute of the [service definition](/docs/discovery/services).
 
 Note that DNS is limited in size per request, even when performing DNS TCP
 queries.
@@ -207,6 +207,122 @@ rabbitmq.node1.dc1.consul.	0	IN	A	10.1.11.20
 
 Again, note that the SRV record returns the port of the service as well as its IP.
 
+#### SRV response for hosts in the .addr subdomain
+
+If a service registered to Consul has an explicit IP [`address`](/api-docs/agent/service#address)
+or tagged address(es) defined on the service registration, the hostname returned
+in the target field of the answer section for the DNS SRV query for the service
+will be in the format of `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
+
+<Tabs>
+
+<Tab heading="IPv4">
+
+In the example below, the `rabbitmq` service has been registered with an explicit
+IPv4 address of `192.0.2.10`.
+
+<CodeTabs heading="Service defined with explicit IPv4 address in agent config" filename="agent-config.hcl">
+
+```hcl
+node_name = "node1"
+
+services {
+  name = "rabbitmq"
+  address = "192.0.2.10"
+  port = 5672
+}
+```
+
+```json
+{
+  "node_name": "node1",
+  "services": [
+    {
+      "name": "rabbitmq",
+      "address": "192.0.2.10",
+      "port": 5672
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+When performing an SRV query for this service, the SRV response contains a single
+record with a hostname in the format of `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 -t srv _rabbitmq._tcp.service.consul +short
+1 1 5672 c000020a.addr.dc1.consul.
+```
+
+In this example, the hex-encoded IP from the returned hostname is `c000020a`.
+Converting each hex octet to decimal reveals the IP address that was specified
+in the service registration.
+
+```shell-session
+$ echo -n "c000020a" | perl -ne 'printf("%vd\n", pack("H*", $_))'
+192.0.2.10
+```
+
+</Tab>
+
+<Tab heading="IPv6">
+
+In the example below, the `rabbitmq` service has been registered with an explicit
+IPv6 address of `2001:db8:1:2:cafe::1337`.
+
+<CodeTabs heading="Service defined with explicit IPv6 address in agent config" filename="agent-config.hcl">
+
+```hcl
+node_name = "node1"
+
+services {
+  name = "rabbitmq"
+  address = "2001:db8:1:2:cafe::1337"
+  port = 5672
+}
+```
+
+```json
+{
+  "node_name": "node1",
+  "services": [
+    {
+      "name": "rabbitmq",
+      "address": "2001:db8:1:2:cafe::1337",
+      "port": 5672
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+When performing an SRV query for this servie, the SRV response contains a single
+record with a hostname in the format of `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 -t srv _rabbitmq._tcp.service.consul +short
+1 1 5672 20010db800010002cafe000000001337.addr.dc1.consul.
+```
+
+In this example, the hex-encoded IP from the returned hostname is
+`20010db800010002cafe000000001337`. This is the fully expanded IPv6 address with
+colon separators removed.
+
+The following command re-adds the colon separators to display the fully expanded
+IPv6 address that was specified in the service registration.
+
+```shell-session
+$ echo -n "20010db800010002cafe000000001337" | perl -ne 'printf join(":", unpack("(A4)*", $_))."\n"'
+2001:0db8:0001:0002:cafe:0000:0000:1337
+```
+
+</Tab>
+
+</Tabs>
+
 ### Prepared Query Lookups
 
 The format of a prepared query lookup is:
@@ -255,6 +371,21 @@ and doesn't support tags. This DNS interface will be expanded over time.
 If you need more complex behavior, please use the
 [catalog API](/api/catalog).
 
+### Service Virtual IP Lookups
+
+To find the unique virtual IP allocated for a service:
+
+```text
+<service>.virtual.<domain>
+```
+
+This will return the unique virtual IP for any [Connect-capable](/docs/connect)
+service. Each Connect service has a virtual IP assigned to it by Consul - this is used
+by sidecar proxies for the [Transparent Proxy](/docs/connect/transparent-proxy) feature.
+
+The virtual IP is also added to the service's [Tagged Addresses](/docs/discovery/services#tagged-addresses)
+under the `consul-virtual` tag.
+
 ### Ingress Service Lookups
 
 To find ingress-enabled services:
@@ -263,7 +394,7 @@ To find ingress-enabled services:
 <service>.ingress.<domain>
 ```
 
-This will find all [ingress gateway](/docs/connect/ingress-gateway)
+This will find all [ingress gateway](/docs/connect/gateways/ingress-gateway)
 endpoints for the given `service`.
 
 This endpoint currently only finds services within the same datacenter
@@ -299,8 +430,9 @@ In the following example, the `alt_domain` parameter is set to `test-domain`:
 ```
 
 ```shell-session
-$ dig @127.0.0.1 -p 8600  consul.service.test-domain SRV
+$ dig @127.0.0.1 -p 8600 consul.service.test-domain SRV
 ```
+
 The following responses are returned:
 
 ```
@@ -315,7 +447,7 @@ machine.node.dc1.test-domain. 0	IN	A	127.0.0.1
 machine.node.dc1.test-domain. 0	IN	TXT	"consul-network-segment="
 ```
 
--> **PTR queries:**  Responses to PTR queries (`<ip>.in-addr.arpa.`) will always use the
+-> **PTR queries:** Responses to PTR queries (`<ip>.in-addr.arpa.`) will always use the
 [primary domain](/docs/agent/options#domain) (not the alternative domain),
 as there is no way for the query to specify a domain.
 
@@ -335,37 +467,23 @@ using the [`advertise-wan`](/docs/agent/options#_advertise-wan) and
 [`translate_wan_addrs`](/docs/agent/options#translate_wan_addrs) configuration
 options.
 
-## Namespaced Services <EnterpriseAlert inline />
+## Namespaced/Partitioned Services <EnterpriseAlert inline />
 
-Consul Enterprise 1.7.0 added support for namespaces including resolving namespaced
-services via DNS. To maintain backwards compatibility existing queries can be used
-and these will resolve services within the `default` namespace. However, for resolving
-services from other namespaces the following form can be used:
-
-```text
-[tag.]<service>.service.<namespace>.<datacenter>.<domain>
-```
-
-This is the canonical name of a Consul Enterprise service with all parts present. Like
-Consul OSS some parts may be omitted but which parts depend on the value of the
-[`prefer_namespace` configuration](/docs/agent/options#dns_prefer_namespace).
-
-With `prefer_namespace` set to `true` the datacenter may be omitted and will be defaulted
-to the local agents datacenter:
+Consul Enterprise supports resolving namespaced and partitioned services via DNS.
+To maintain backwards compatibility existing queries can be used and these will
+resolve services within the `default` namespace and partition. However, for resolving
+services from other namespaces or partitions the following form can be used:
 
 ```text
-[tag.]<service>.service.<namespace>.<domain>
+[tag.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
 ```
 
-With `prefer_namespace` set to `false` the namespace may be omitted and will be defaulted
-to the `default` namespace:
-
-```text
-[tag.]<service>.service.<datacenter>
-```
-
-Finally, both the namespace and datacenter may be omitted and the service will be resolved
-in the `default` namespace and in the datacenter of the local agent.
+This is the canonical name of a Consul Enterprise service. Currently all parts must be
+present - in a future version (once the
+[`prefer_namespace` configuration](/docs/agent/options#dns_prefer_namespace) has been
+deprecated), the namespace, partition and datacenter components will become optional
+and may be individually omitted to default to the `default` namespace, local partition
+or local datacenter respectively.
 
 ## DNS with ACLs
 
@@ -386,11 +504,11 @@ Consul will either accept or deny the request depending on whether the token
 has the appropriate authorization. The following table describes the available
 DNS lookups and required policies when ACLs are enabled:
 
-| Lookup                                                     | Type                                               | Description                                                                                                                                                                       | ACLs Required                                                                                                                                                                           |
-| ---------------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `*.node.consul`                                            | [Node](#node-lookups)                              | Allow resolving DNS requests for the target node (i.e., `<target>.node.consul`)                                                                                                   | [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                                                                                  |
-| `*.service.consul`, `*.connect.consul`, `*.ingress.consul` | [Service: standard](#service-lookups)              | Allow resolving DNS requests for target service (e.g., `<target>.service.consul`) instances running on ACL-authorized nodes                                                       | [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                    |
-| `*.query.consul`                                           | [Service: prepared query](#prepared-query-lookups) | Allow resolving DNS requests for [service instances specified](/api/query#service-1) by the target prepared query (i.e., `<target>.query.consul`) running on ACL-authorized nodes | [`query:read`](/docs/security/acl/acl-rules#prepared-query-rules), [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules) |
+| Lookup                                                                         | Type                                               | Description                                                                                                                                                                       | ACLs Required                                                                                                                                                                           |
+| ------------------------------------------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `*.node.consul`                                                                | [Node](#node-lookups)                              | Allow resolving DNS requests for the target node (i.e., `<target>.node.consul`)                                                                                                   | [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                                                                                  |
+| `*.service.consul`, `*.connect.consul`, `*.ingress.consul`, `*.virtual.consul` | [Service: standard](#service-lookups)              | Allow resolving DNS requests for target service (e.g., `<target>.service.consul`) instances running on ACL-authorized nodes                                                       | [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                    |
+| `*.query.consul`                                                               | [Service: prepared query](#prepared-query-lookups) | Allow resolving DNS requests for [service instances specified](/api/query#service-1) by the target prepared query (i.e., `<target>.query.consul`) running on ACL-authorized nodes | [`query:read`](/docs/security/acl/acl-rules#prepared-query-rules), [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules) |
 
 For guidance on how to configure an appropriate token for DNS, refer to the
 securing Consul with ACLs guides for:
