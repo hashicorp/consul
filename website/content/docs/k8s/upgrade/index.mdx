@@ -43,11 +43,11 @@ Perform the following steps:
 
 1. Determine your current installed chart version.
 
-```shell-session
-$ helm list --filter consul --namespace consul 
-NAME  	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART        	APP VERSION
-consul	consul   	2       	2022-02-02 21:49:45.647678 -0800 PST	deployed	consul-0.39.0	1.11.1
-```
+  ```shell-session
+  $ helm list --filter consul --namespace consul 
+  NAME  	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART        	APP VERSION
+  consul	consul   	2       	2022-02-02 21:49:45.647678 -0800 PST	deployed	consul-0.39.0	1.11.1
+  ```
 
 In this example, version `0.40.0` (from `consul-k8s:0.40.0`) is being used, and Consul on Kubernetes is installed in the `consul` namespace.
 
@@ -72,31 +72,31 @@ certain Helm chart version.
 
 1. Update your local Helm repository cache:
 
-```shell-session
-$ helm repo update
-```
+  ```shell-session
+  $ helm repo update
+  ```
 
 1. List all available versions:
 
-```shell-session hideClipboard
-$ helm search repo hashicorp/consul --versions
-NAME            	CHART VERSION	APP VERSION	DESCRIPTION
-hashicorp/consul	0.40.0       	1.11.2     	Official HashiCorp Consul Chart
-hashicorp/consul	0.39.0       	1.11.1     	Official HashiCorp Consul Chart
-hashicorp/consul	0.38.0       	1.10.4     	Official HashiCorp Consul Chart
-hashicorp/consul	0.37.0       	1.10.4     	Official HashiCorp Consul Chart
-...
-```
+  ```shell-session hideClipboard
+  $ helm search repo hashicorp/consul --versions
+  NAME            	CHART VERSION	APP VERSION	DESCRIPTION
+  hashicorp/consul	0.40.0       	1.11.2     	Official HashiCorp Consul Chart
+  hashicorp/consul	0.39.0       	1.11.1     	Official HashiCorp Consul Chart
+  hashicorp/consul	0.38.0       	1.10.4     	Official HashiCorp Consul Chart
+  hashicorp/consul	0.37.0       	1.10.4     	Official HashiCorp Consul Chart
+  ...
+  ```
 
-Here we can see that the latest version of `0.40.0`.
+  Here we can see that the latest version of `0.40.0`.
 
-1. To determine which version you have installed, issue the following command:
+  1. To determine which version you have installed, issue the following command:
 
-```shell-session
-$ helm list --filter consul --namespace consul
-NAME  	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART        	APP VERSION
-consul	consul   	2       	2022-02-02 21:49:45.647678 -0800 PST	deployed	consul-0.39.0	1.11.1
-```
+  ```shell-session
+  $ helm list --filter consul --namespace consul
+  NAME  	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART        	APP VERSION
+  consul	consul   	2       	2022-02-02 21:49:45.647678 -0800 PST	deployed	consul-0.39.0	1.11.1
+  ```
 
 In this example, version `0.39.0` (from `consul-k8s:0.39.0`) is being used.
 If you want to upgrade to the latest `0.40.0` version, use the following procedure:
