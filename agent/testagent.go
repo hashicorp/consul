@@ -159,7 +159,7 @@ func (a *TestAgent) Start(t *testing.T) error {
 	}
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Level:      hclog.Debug,
+		Level:      testutil.TestLogLevel,
 		Output:     logOutput,
 		TimeFormat: "04:05.000",
 		Name:       name,

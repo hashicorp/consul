@@ -1445,7 +1445,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 
 			logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 				Name:   config.NodeName,
-				Level:  hclog.Debug,
+				Level:  testutil.TestLogLevel,
 				Output: io.MultiWriter(pw, testutil.NewLogBuffer(t)),
 			})
 

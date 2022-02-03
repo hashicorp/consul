@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -2760,7 +2761,7 @@ func (m *mockQueryServer) GetLogger() hclog.Logger {
 		m.Logger = hclog.New(&hclog.LoggerOptions{
 			Name:   "mock_query",
 			Output: m.LogBuffer,
-			Level:  hclog.Debug,
+			Level:  testutil.TestLogLevel,
 		})
 	}
 	return m.Logger

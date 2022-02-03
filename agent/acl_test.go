@@ -67,7 +67,7 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 
 	bd.Logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:       name,
-		Level:      hclog.Debug,
+		Level:      testutil.TestLogLevel,
 		Output:     logBuffer,
 		TimeFormat: "04:05.000",
 	})
