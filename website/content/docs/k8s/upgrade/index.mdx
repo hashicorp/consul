@@ -132,7 +132,7 @@ to update to the new version.
 
    </CodeBlockConfig>
 
-1. Determine your current installed chart version. In this example, version `0.40.0` (from `consul-k8s:0.40.0`) is being used.
+1. Determine your current installed chart version. In this example, version `0.39.0` (from `consul-k8s:0.39.0`) is being used.
 
   ```shell-session
   $ helm list --filter consul --namespace consul
@@ -143,7 +143,7 @@ to update to the new version.
 1. Perform a `helm upgrade`:
 
   ```shell-session
-  $ helm upgrade consul hashicorp/consul --namespace consul --version 0.40.0 --values /path/to/my/values.yaml
+  $ helm upgrade consul hashicorp/consul --namespace consul --version 0.39.0 --values /path/to/my/values.yaml
   ```
 
   **Before performing the upgrade, be sure you've read the other sections on this page,
