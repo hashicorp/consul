@@ -112,6 +112,10 @@ commands:
           echo "export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.SessionToken')" >> $BASH_ENV
 
   run-go-test-full:
+    parameters:
+      go_test_flags:
+        type: string
+        default: ""
     steps:
       - attach_workspace:
           at: /home/circleci/go/bin
@@ -127,6 +131,9 @@ commands:
             echo $PACKAGE_NAMES
             # some tests expect this umask, and arm images have a different default
             umask 0022
+
+            << parameters.go_test_flags >>
+
             gotestsum \
               --format=short-verbose \
               --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
@@ -137,6 +144,7 @@ commands:
               --packages="$PACKAGE_NAMES" \
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -p 2 \
+              ${GO_TEST_FLAGS-} \
               -cover -coverprofile=coverage.txt
 
       - store_test_results:
@@ -260,7 +268,8 @@ jobs:
             sudo tar -C /usr/local -xzvf go1.17.5.linux-arm64.tar.gz
       - run: make dev
       - run: *install-gotestsum
-      - run-go-test-full
+      - run-go-test-full:
+          go_test_flags: 'if ! [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
       
   go-test:
     docker:
