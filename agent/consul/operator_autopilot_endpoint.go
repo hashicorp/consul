@@ -25,7 +25,7 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 		return err
 	}
 	if authz.OperatorRead(nil) != acl.Allow {
-		return acl.PermissionDenied("Missing operator:read permissions")
+		return acl.PermissionDeniedByACLUnnamed(authz, "Operator:Read", "")
 	}
 
 	state := op.srv.fsm.State()
@@ -57,7 +57,7 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 		return err
 	}
 	if authz.OperatorWrite(nil) != acl.Allow {
-		return acl.PermissionDenied("Missing operator:write permissions")
+		return acl.PermissionDeniedByACLUnnamed(authz, "Operator:Write", "")
 	}
 
 	// Apply the update
@@ -92,7 +92,7 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 		return err
 	}
 	if authz.OperatorRead(nil) != acl.Allow {
-		return acl.PermissionDenied("Missing operator:read permissions")
+		return acl.PermissionDeniedByACLUnnamed(authz, "Operator:Read", "")
 	}
 
 	state := op.srv.autopilot.GetState()
@@ -159,7 +159,7 @@ func (op *Operator) AutopilotState(args *structs.DCSpecificRequest, reply *autop
 		return err
 	}
 	if authz.OperatorRead(nil) != acl.Allow {
-		return acl.PermissionDenied("Missing operator:read permissions")
+		return acl.PermissionDeniedByACLUnnamed(authz, "Operator:Read", "")
 	}
 
 	state := op.srv.autopilot.GetState()

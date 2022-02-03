@@ -76,3 +76,38 @@ func PermissionDenied(msg string, args ...interface{}) PermissionDeniedError {
 	cause := fmt.Sprintf(msg, args...)
 	return PermissionDeniedError{Cause: cause}
 }
+
+type PermissionDeniedByACLError struct {
+	Accessor   string                     // "token guid"
+	Permission string                     // e.g. "service:read" Perhaps split into resource and level
+	ObjectType string                     // e.g. service
+	Object     EnterpriseObjectDescriptor // e.g. "sidecar-proxy-1"
+}
+
+func (e PermissionDeniedByACLError) Error() string {
+	message := errPermissionDenied
+
+	if e.Accessor == "" {
+		message += ": accessor "
+	} else {
+		message += fmt.Sprintf(": accessor '%s'", e.Accessor)
+	}
+
+	message += fmt.Sprintf(" lacks permission '%s' on %s", e.Permission, e.ObjectType)
+
+	if e.Object.Name != "" {
+		message += " " + e.Object.ToString()
+	}
+	return message
+}
+
+// TODO Extract informoration from Authorizer
+func PermissionDeniedByACL(_ Authorizer, context AuthorizerContext, permission string, objectType string, object string) PermissionDeniedByACLError {
+	desc := MakeEnterpriseObjectDescriptor(object, context)
+	return PermissionDeniedByACLError{Accessor: "", Permission: permission, ObjectType: objectType, Object: desc}
+}
+
+func PermissionDeniedByACLUnnamed(_ Authorizer, permission string, objectType string) PermissionDeniedByACLError {
+	desc := EnterpriseObjectDescriptor{Name: ""}
+	return PermissionDeniedByACLError{Accessor: "", Permission: permission, ObjectType: objectType, Object: desc}
+}

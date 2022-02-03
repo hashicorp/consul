@@ -172,6 +172,10 @@ func NodeNameString(node string, _ *EnterpriseMeta) string {
 	return node
 }
 
+func IDToEnterpriseObjectDescriptor(id string, entMeta *EnterpriseMeta) acl.EnterpriseObjectDescriptor {
+	return acl.EnterpriseObjectDescriptor{Name: id}
+}
+
 func ServiceIDString(id string, _ *EnterpriseMeta) string {
 	return id
 }
