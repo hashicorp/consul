@@ -16,7 +16,7 @@ task {
   name        = "frontend-firewall-policies"
   description = "Add firewall policy rules for frontend services"
   providers   = ["fake-firewall", "null"]
-  source      = "example/firewall-policy/module"
+  module      = "example/firewall-policy/module"
   version     = "1.0.0"
   condition "services" {
     names = ["web", "image"]
@@ -24,7 +24,7 @@ task {
 }
 ```
 
-In the example task above, the "fake-firewall" and "null" providers, listed in the `providers` field, are used. These providers themselves should be configured in their own separate [`terraform_provider` blocks](/docs/nia/configuration#terraform-provider). These providers are used in the Terraform module "example/firewall-policy/module", configured in the `source` field, to create, update, and destroy resources. This module may do something like use the providers to create and destroy firewall policy objects based on IP addresses. The IP addresses come from the "web" and "image" service instances configured in the `condition "services"` block. This service-level information is retrieved by CTS which watches Consul catalog for changes.
+In the example task above, the "fake-firewall" and "null" providers, listed in the `providers` field, are used. These providers themselves should be configured in their own separate [`terraform_provider` blocks](/docs/nia/configuration#terraform-provider). These providers are used in the Terraform module "example/firewall-policy/module", configured in the `module` field, to create, update, and destroy resources. This module may do something like use the providers to create and destroy firewall policy objects based on IP addresses. The IP addresses come from the "web" and "image" service instances configured in the `condition "services"` block. This service-level information is retrieved by CTS which watches Consul catalog for changes.
 
 See [task configuration](/docs/nia/configuration#task) for more details on how to configure a task.
 
@@ -72,7 +72,7 @@ task {
   name        = "services_condition_task"
   description = "execute on changes to services whose name starts with web"
   providers   = ["my-provider"]
-  source      = "path/to/services-condition-module"
+  module      = "path/to/services-condition-module"
 
   condition "services" {
     regexp              = "^web.*"
@@ -97,7 +97,7 @@ Below is an example configuration for a task that will execute when a service wi
 ```hcl
 task {
   name      = "catalog_service_condition_task"
-  source    = "path/to/catalog-services-module"
+  module    = "path/to/catalog-services-module"
   providers = ["my-provider"]
 
   condition "catalog-services" {
@@ -127,7 +127,7 @@ Based on the `recurse` option, the condition either monitors a single Consul KV 
 task {
   name        = "consul_kv_condition_task"
   description = "execute on changes to Consul KV entry"
-  source      = "path/to/consul-kv-module"
+  module      = "path/to/consul-kv-module"
   providers   = ["my-provider"]
 
   condition "consul-kv" {
@@ -154,7 +154,7 @@ Below is an example configuration for a task that will execute every Monday, whi
 task {
   name        = "scheduled_task"
   description = "execute every Monday using service information from web and db"
-  source      = "path/to/module"
+  module      = "path/to/module"
 
   condition "schedule" {
     cron = "* * * * Mon"
