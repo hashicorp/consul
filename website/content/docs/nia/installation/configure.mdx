@@ -24,7 +24,9 @@ task {
   source      = "namespace/example/module"
   version     = "1.0.0"
   providers   = ["myprovider"]
-  services    = ["web", "api"]
+  condition "services" {
+    names = ["web", "api"]
+  }
 }
 ```
 
@@ -78,7 +80,9 @@ task {
   source      = "namespace/example/module"
   version     = "1.0.0"
   providers   = ["myprovider"]
-  services    = ["web", "api"]
+  condition "services" {
+    names = ["web", "api"]
+  }
   buffer_period {
     min = "10s"
   }
