@@ -266,8 +266,11 @@ jobs:
             sudo rm -rf /usr/local/go
             wget https://golang.org/dl/go1.17.5.linux-arm64.tar.gz
             sudo tar -C /usr/local -xzvf go1.17.5.linux-arm64.tar.gz
-      - run: make dev
       - run: *install-gotestsum
+      - run: go mod download
+      - run:
+          name: make dev
+          command: if [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then make dev; fi
       - run-go-test-full:
           go_test_flags: 'if ! [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
       
