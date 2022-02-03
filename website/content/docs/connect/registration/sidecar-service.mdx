@@ -130,9 +130,9 @@ proxy.
 - `name` - Defaults to being `<parent-service-name>-sidecar-proxy`.
 - `tags` - Defaults to the tags of the parent service.
 - `meta` - Defaults to the service metadata of the parent service.
-- `port` - Defaults to being auto-assigned from a [configurable
-  range](/docs/agent/options#sidecar_min_port) that is
-  by default `[21000, 21255]`.
+- `port` - Defaults to being auto-assigned from a configurable
+  range specified by [`sidecar_min_port`](/docs/agent/options#sidecar_min_port)
+  and [`sidecar_max_port`](/docs/agent/options#sidecar_max_port).
 - `kind` - Defaults to `connect-proxy`. This can't be overridden currently.
 - `check`, `checks` - By default we add a TCP check on the local address and
   port for the proxy, and a [service alias
