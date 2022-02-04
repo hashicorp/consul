@@ -91,6 +91,7 @@ func (w Watcher) watch() {
 				w.logger.Error("watcher event channel is closed")
 				return
 			}
+			w.logger.Debug("received watcher event", "event", event)
 			err := w.handleEvent(event)
 			if err != nil {
 				w.logger.Error("error handling watcher event", "error", err, "event", event)
