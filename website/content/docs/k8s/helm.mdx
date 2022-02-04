@@ -679,6 +679,17 @@ Use these links to navigate to a particular top-level stanza.
     NOTE: The use of a YAML string is deprecated. Instead, set directly as a
     YAML map.
 
+  - `containerSecurityContext` ((#v-client-containersecuritycontext)) (`map`) - The container securityContext for each container in the client pods. In
+    addition to the Pod's SecurityContext this can
+    set the capabilities of processes running in the container and ensure the
+    root file systems in the container is read-only.
+
+    - `client` ((#v-client-containersecuritycontext-client)) (`map`) - The consul client agent container
+
+    - `aclInit` ((#v-client-containersecuritycontext-aclinit)) (`map`) - The acl-init initContainer
+
+    - `tlsInit` ((#v-client-containersecuritycontext-tlsinit)) (`map`) - The tls-init initContainer
+
   - `securityContext` ((#v-client-securitycontext)) (`map`) - The security context for the client pods. This should be a YAML map corresponding to a
     Kubernetes [SecurityContext](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/) object.
     By default, servers will run as non-root, with user ID `100` and group ID `1000`,
