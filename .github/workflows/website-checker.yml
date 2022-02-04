@@ -21,8 +21,10 @@ on:
 jobs:
   # checks that a 'type/docs-cherrypick' label is attached to PRs with website/ changes
   website-check:
-    # If there's a `type/docs-cherrypick` label we ignore this check
-    if: "!contains(github.event.pull_request.labels.*.name, 'type/docs-cherrypick')"
+    # If there's already a `type/docs-cherrypick` label or an explicit `pr/no-docs` label, we ignore this check 
+    if: >-
+      !contains(github.event.pull_request.labels.*.name, 'type/docs-cherrypick') ||
+      !contains(github.event.pull_request.labels.*.name, 'pr/no-docs')
     runs-on: ubuntu-latest
 
     steps:
@@ -40,7 +42,7 @@ jobs:
             # post PR comment to GitHub to check if a 'type/docs-cherrypick' label needs to be applied to the PR
             echo "website-check: Did not find a 'type/docs-cherrypick' label, posting a reminder in the PR"
             github_message="🤔 This PR has changes in the \`website/\` directory but does not have a \`type/docs-cherrypick\` label. If the changes are for the next version, this can be ignored. If they are updates to current docs, attach the label to auto cherrypick to the \`stable-website\` branch after merging."
-            curl -f -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
+            curl -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
                 -X POST \
                 -d "{ \"body\": \"${github_message}\"}" \
                 "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments"

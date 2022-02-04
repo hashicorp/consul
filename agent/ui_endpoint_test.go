@@ -1409,14 +1409,15 @@ func TestUIServiceTopology(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.UIServiceTopology(resp, tc.httpReq)
-			assert.Nil(r, err)
 
 			if tc.wantErr != "" {
+				assert.NotNil(r, err)
 				assert.Nil(r, tc.want) // should not define a non-nil want
-				require.Equal(r, tc.wantErr, resp.Body.String())
+				require.Contains(r, err.Error(), tc.wantErr)
 				require.Nil(r, obj)
 				return
 			}
+			assert.Nil(r, err)
 
 			require.NoError(r, checkIndex(resp))
 			require.NotNil(r, obj)

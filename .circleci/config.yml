@@ -359,7 +359,7 @@ jobs:
           path: /tmp/jsonfile
       - run: *notify-slack-failure
 
-  # build all distros
+  # build is a templated job for build-x
   build-distros: &build-distros
     docker:
       - image: *GOLANG_IMAGE
@@ -367,7 +367,13 @@ jobs:
       <<: *ENVIRONMENT
     steps:
       - checkout
-      - run: ./build-support/scripts/build-local.sh
+      - run:
+          name: Build
+          command: |
+            for os in $XC_OS; do
+              target="./pkg/bin/${GOOS}_${GOARCH}/"
+              GOOS="$os" CGO_ENABLED=0 go build -o "$target" -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+            done
 
       # save dev build to CircleCI
       - store_artifacts:
@@ -380,7 +386,7 @@ jobs:
     environment:
       <<: *build-env
       XC_OS: "freebsd linux windows"
-      XC_ARCH: "386"
+      GOARCH: "386"
 
   # build all amd64 architecture supported OS binaries
   build-amd64:
@@ -388,7 +394,7 @@ jobs:
     environment:
       <<: *build-env
       XC_OS: "darwin freebsd linux solaris windows"
-      XC_ARCH: "amd64"
+      GOARCH: "amd64"
 
   # build all arm/arm64 architecture supported OS binaries
   build-arm:
@@ -433,7 +439,11 @@ jobs:
       - attach_workspace: # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
           at: .
       - run:
-          command: make dev
+          name: Build
+          command: |
+            make dev
+            mkdir -p /home/circleci/go/bin
+            cp ./bin/consul /home/circleci/go/bin/consul
 
       # save dev build to pass to downstream jobs
       - persist_to_workspace:
@@ -689,11 +699,20 @@ jobs:
             if ! git diff --quiet --exit-code HEAD^! ui/; then
               git config --local user.email "github-team-consul-core@hashicorp.com"
               git config --local user.name "hc-github-team-consul-core"
-
+              
+              # stash newly built bindata_assetfs.go
+              git stash push
+              
+              # checkout the CI branch and merge latest from main
+              git checkout ci/main-assetfs-build
+              git merge --no-edit main
+            
+              git stash pop
+            
               short_sha=$(git rev-parse --short HEAD)
               git add agent/uiserver/bindata_assetfs.go
               git commit -m "auto-updated agent/uiserver/bindata_assetfs.go from commit ${short_sha}"
-              git push origin main
+              git push origin ci/main-assetfs-build
             else
               echo "no UI changes so no static assets to publish"
             fi

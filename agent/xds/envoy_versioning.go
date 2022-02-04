@@ -13,8 +13,7 @@ var (
 	// the zero'th point release of the last element of proxysupport.EnvoyVersions.
 	minSupportedVersion = version.Must(version.NewVersion("1.17.0"))
 
-	// add min version constraints for associated feature flags when necessary, for example:
-	// minVersionAllowingEmptyGatewayClustersWithIncrementalXDS = version.Must(version.NewVersion("1.16.0"))
+	minVersionToForceLDSandCDSToAlwaysUseWildcardsOnReconnect = version.Must(version.NewVersion("1.19.0"))
 
 	specificUnsupportedVersions = []unsupportedVersion{}
 )
@@ -26,16 +25,19 @@ type unsupportedVersion struct {
 }
 
 type supportedProxyFeatures struct {
-	// add version dependent feature flags here
+	// Older versions of Envoy incorrectly exploded a wildcard subscription for
+	// LDS and CDS into specific line items on incremental xDS reconnect. They
+	// would populate both InitialResourceVersions and ResourceNamesSubscribe
+	// when they SHOULD have left ResourceNamesSubscribe empty (or used an
+	// explicit "*" in later Envoy versions) to imply wildcard mode. On
+	// reconnect, Consul interpreted the lack of the wildcard attribute as
+	// implying that the Envoy instance should not receive updates for any
+	// newly created listeners and clusters for the remaining life of that
+	// Envoy sidecar process.
 	//
-	// For example, we previously had flags for Envoy < 1.16 called:
-	//
-	// GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS
-	// IncrementalXDSUpdatesMustBeSerial
-	//
-	// Which then manifested in the code for checks with this struct populated.
-	// By dropping support for 1.15, we no longer have any special flags here
-	// but leaving this flagging functionality for future one-offs.
+	// see: https://github.com/envoyproxy/envoy/issues/16063
+	// see: https://github.com/envoyproxy/envoy/pull/16153
+	ForceLDSandCDSToAlwaysUseWildcardsOnReconnect bool
 }
 
 func determineSupportedProxyFeatures(node *envoy_core_v3.Node) (supportedProxyFeatures, error) {
@@ -73,12 +75,9 @@ func determineSupportedProxyFeaturesFromVersion(version *version.Version) (suppo
 
 	sf := supportedProxyFeatures{}
 
-	// add version constraints to populate feature flags here when necessary, for example:
-	/*
-		if version.LessThan(minVersionAllowingEmptyGatewayClustersWithIncrementalXDS) {
-			sf.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS = true
-		}
-	*/
+	if version.LessThan(minVersionToForceLDSandCDSToAlwaysUseWildcardsOnReconnect) {
+		sf.ForceLDSandCDSToAlwaysUseWildcardsOnReconnect = true
+	}
 
 	return sf, nil
 }

@@ -51,9 +51,7 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 		if apiReq.OverrideMeshGateway.Mode != "" {
 			_, err := structs.ValidateMeshGatewayMode(string(apiReq.OverrideMeshGateway.Mode))
 			if err != nil {
-				resp.WriteHeader(http.StatusBadRequest)
-				fmt.Fprint(resp, "Invalid OverrideMeshGateway.Mode parameter")
-				return nil, nil
+				return nil, BadRequestError{Reason: "Invalid OverrideMeshGateway.Mode parameter"}
 			}
 			args.OverrideMeshGateway = apiReq.OverrideMeshGateway
 		}

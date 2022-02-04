@@ -10,9 +10,9 @@ description: >-
 
 # ACL Rules
 
-This topic describes how to configure rules for Consul's access control list (ACL) system. The ACL system enables you to control access to data and APIs. Refer to the [ACL system documentation](/docs/acl/acl-system) to learn more about ACLs.
+This topic describes how to configure rules for Consul's access control list (ACL) system. The ACL system enables you to control access to data and APIs. Refer to the [ACL system documentation](/docs/security/acl/acl-system) to learn more about ACLs.
 
--> **1.4.0 and later:** This topic applies to Consul versions 1.4.0 and later. Refer to the [legacy ACL system documentation](/docs/acl/acl-legacy) for older versions of Consul.
+-> **1.4.0 and later:** This topic applies to Consul versions 1.4.0 and later. Refer to the [legacy ACL system documentation](/docs/security/acl/acl-legacy) for older versions of Consul.
 
 ## Rule Specification
 
@@ -269,7 +269,7 @@ operator = "read"
 
 ## Defining Rules with the ACL API
 
-You can configure ACLs remotely by calling the ACL HTTP API endpoint and including rules in the payload. The endpoint takes data formatted in HCL or JSON. Refer to the [ACL HTTP API endpoint documentation](/api/acl/acl) for details about the API.
+You can configure ACLs remotely by calling the ACL HTTP API endpoint and including rules in the payload. The endpoint takes data formatted in HCL or JSON. Refer to the [ACL HTTP API endpoint documentation](/api-docs/acl) for details about the API.
 
 The following example adds a set of rules that apply to the `key` resource (Consul K/V) within the `my-app-policy` policy. The rules are formatted in HCL, but they are wrapped in JSON so that the data can be sent using cURL:
 
@@ -318,7 +318,7 @@ The following table provides an overview of the resources you can use to create 
 
 | Resource                      | Description                                                                                                                                              | Labels |
 |-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
-| `acl`                         | Controls access to ACL operations in the [ACL API](/api/acl/acl). <br/>See [ACL Resource Rules](#acl-resource-rules) for details.                        | No       |
+| `acl`                         | Controls access to ACL operations in the [ACL API](/api-docs/acl). <br/>See [ACL Resource Rules](#acl-resource-rules) for details.                        | No       |
 | `partition`<br/>`partition_prefix` | <EnterpriseAlert inline /> Controls access to one or more admin partitions. <br/>See [Admin Partition Rules](#admin-partition-rules) for details. | Yes      |
 | `agent`<br/>`agent_prefix`    | Controls access to the utility operations in the [Agent API](/api/agent), such as `join` and `leave`. <br/>See [Agent Rules](#agent-rules) for details.  | Yes      |
 | `event`<br/>`event_prefix`    | Controls access to event operations in the [Event API](/api/event), such as firing and listing events. <br/>See [Event Rules](#event-rules) for details. | Yes      |
@@ -329,14 +329,14 @@ The following table provides an overview of the resources you can use to create 
 | `node`<br/>`node_prefix` &nbsp; | Controls access to node-level registration and read access to the [Catalog API](/api/catalog). <br/>See [Node Rules](#node-rules) for details. | Yes      |
 | `operator` &nbsp; &nbsp; &nbsp; | Controls access to cluster-level operations available in the [Operator API](/api/operator) excluding keyring API endpoints. <br/>See [Operator Rules](#operator-rules) for details. | No      |
 | `query`<br/>`query_prefix` | Controls access to create, update, and delete prepared queries in the [Prepared Query API](/api/query). Access to the [node](#node-rules) and [service](#service-rules) must also be granted. <br/>See [Prepared Query Rules](#prepared-query-rules) for details. | Yes      |
-| `service`<br/>`service_prefix` | Controls service-level registration and read access to the [Catalog API](/api/catalog), as well as service discovery with the [Health API](/api/health). <br/>See [Service Rules](#node-rules) for details. | Yes      |
+| `service`<br/>`service_prefix` | Controls service-level registration and read access to the [Catalog API](/api/catalog), as well as service discovery with the [Health API](/api/health). <br/>See [Service Rules](#service-rules) for details. | Yes      |
 | `session`<br/>`session_prefix` | Controls access to operations in the [Session API](/api/session). <br/>See [Session Rules](#session-rules) for details. | Yes      |
 
 The following topics provide additional details about the available resources.
 
 ### ACL Resource Rules
 
-The `acl` resource controls access to ACL operations in the [ACL API](/api/acl/acl). Only one `acl` rule is allowed per policy. The value is set to one of the [policy dispositions](#policy-dispositions).
+The `acl` resource controls access to ACL operations in the [ACL API](/api-docs/acl). Only one `acl` rule is allowed per policy. The value is set to one of the [policy dispositions](#policy-dispositions).
 
 The `acl = "write"` rule is also required to create snapshots. This is because all token secrets are contained within the snapshot.
 
@@ -875,14 +875,14 @@ The [`acl.token.default`](/docs/agent/options#acl_tokens_default) used by the ag
 
 Node rules are used to filter query results when reading from the catalog or retrieving information from the health endpoints. This allows for configurations where a token has access to a given service name, but only on an allowed subset of node names.
 
-Consul agents check tokens locally when health checks are registered and when Consul performs periodic [anti-entropy](/docs/internals/anti-entropy) syncs.
+Consul agents check tokens locally when health checks are registered and when Consul performs periodic [anti-entropy](/docs/architecture/anti-entropy) syncs.
 These actions may required an ACL token to complete. Use the following methods to configure ACL tokens for registration events:
 
 * Configure a global token in the [acl.tokens.default](/docs/agent/options#acl_tokens_default) parameter.
 This allows a single token to be used during all check registration operations.
 * Provide an ACL token with service and check definitions at registration time.
 This allows for greater flexibility and enables the use of multiple tokens on the same agent.
-Refer to the [services](/docs/agent/services) and [checks](/docs/agent/checks) documentation for examples.
+Refer to the [services](/docs/discovery/services) and [checks](/docs/discovery/checks) documentation for examples.
 Tokens may also be passed to the [HTTP API](/api) for operations that require them.
 
 ### Operator Rules
@@ -1068,7 +1068,7 @@ used to filter the results of the query.
 
 Service rules come into play when using the [Agent API](/api/agent) to register services or
 checks. The agent will check tokens locally as a service or check is registered, and Consul also
-performs periodic [anti-entropy](/docs/internals/anti-entropy) syncs, which may require an
+performs periodic [anti-entropy](/docs/architecture/anti-entropy) syncs, which may require an
 ACL token to complete. To accommodate this, Consul provides two methods of configuring ACL tokens
 to use for registration events:
 
@@ -1078,8 +1078,8 @@ to use for registration events:
 2. Providing an ACL token with service and check definitions at registration
    time. This allows for greater flexibility and enables the use of multiple
    tokens on the same agent. Examples of what this looks like are available for
-   both [services](/docs/agent/services) and
-   [checks](/docs/agent/checks). Tokens may also be passed to the [HTTP
+   both [services](/docs/discovery/services) and
+   [checks](/docs/discovery/checks). Tokens may also be passed to the [HTTP
    API](/api) for operations that require them. **Note:** all tokens
    passed to an agent are persisted on local disk to allow recovery from
    restarts. See [`-data-dir` flag

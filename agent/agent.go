@@ -167,14 +167,11 @@ type delegate interface {
 	// RemoveFailedNode is used to remove a failed node from the cluster.
 	RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error
 
-	// TODO: replace this method with consul.ACLResolver
-	ResolveTokenToIdentity(token string) (structs.ACLIdentity, error)
-
 	// ResolveTokenAndDefaultMeta returns an acl.Authorizer which authorizes
 	// actions based on the permissions granted to the token.
 	// If either entMeta or authzContext are non-nil they will be populated with the
 	// default partition and namespace from the token.
-	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error)
 
 	RPC(method string, args interface{}, reply interface{}) error
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
@@ -208,9 +205,6 @@ type Agent struct {
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
 	delegate delegate
-
-	// aclMasterAuthorizer is an object that helps manage local ACL enforcement.
-	aclMasterAuthorizer acl.Authorizer
 
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.

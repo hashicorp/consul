@@ -1560,6 +1560,11 @@
   resolved "https://registry.yarnpkg.com/@istanbuljs/schema/-/schema-0.1.3.tgz#e45e384e4b8ec16bce2fd903af78450f6bf7ec98"
   integrity sha512-ZXRY4jNvVgSVQ8DL3LTcakaAtXwTVUxE81hslsyD2AtoXW/wVob10HkOJ1X/pAlcI7D+2YoZKg5do8G/w6RYgA==
 
+"@lit/reactive-element@^1.2.1":
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/@lit/reactive-element/-/reactive-element-1.2.1.tgz#8620d7f0baf63e12821fa93c34d21e23477736f7"
+  integrity sha512-03FYfMguIWo9E1y1qcTpXzoO8Ukpn0j5o4GjNFq/iHqJEPY6pYopsU44e7NSFIgCTorr8wdUU5PfVy8VeD6Rwg==
+
 "@mapbox/rehype-prism@^0.6.0":
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/@mapbox/rehype-prism/-/rehype-prism-0.6.0.tgz#3d8a860870951d4354257d0ba908d11545bd5ed5"

@@ -1,0 +1,22 @@
+# on-outside
+
+`{{on-outside 'click' (fn @callback}}` works similarly to `{{on }}` but allows
+you to attach handlers that is specifically not the currently modified
+element.
+
+```hbs preview-template
+<button
+  {{on-outside 'click' (set this 'clicked' 'outside clicked')}}
+  {{on 'click' (set this 'clicked' 'inside clicked')}}
+  style="background: red;width: 100px;height: 100px;"
+>
+  {{or this.clicked "click me or outside of me"}}
+</button>
+```
+
+## Positional Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `event` | `string` |  | Name of the event to listen for |
+| `handler` | `function` |  | Function to handle the event |

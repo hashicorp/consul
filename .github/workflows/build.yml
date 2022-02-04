@@ -3,7 +3,7 @@ name: build
 on:
   push:
     # Sequence of patterns matched against refs/heads
-    branches: [ 
+    branches: [
       "main"
     ]
 
@@ -145,6 +145,7 @@ jobs:
           config_dir: ".release/linux/package"
           preinstall: ".release/linux/preinstall"
           postinstall: ".release/linux/postinstall"
+          preremove: ".release/linux/preremove"
           postremove: ".release/linux/postremove"
 
       - name: Set Package Names
@@ -218,7 +219,7 @@ jobs:
           GOLDFLAGS: "${{ needs.get-product-version.outputs.shared-ldflags }}"
         run: |
           mkdir dist out
-          go build -ldflags="$GOLDFLAGS" -o dist/ .
+          go build -ldflags="$GOLDFLAGS" -tags netcgo -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@v2

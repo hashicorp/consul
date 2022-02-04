@@ -11,7 +11,7 @@ description: >-
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
-Terminating gateways enable connectivity from services in the Consul service mesh to
+Terminating gateways enable connectivity within your organizational network from services in the Consul service mesh to
 services outside the mesh. These gateways effectively act as Connect proxies that can
 represent more than one service. They terminate Connect mTLS connections, enforce intentions,
 and forward requests to the appropriate destination.
@@ -22,14 +22,14 @@ For additional use cases and usage patterns, review the tutorial for
 [understanding terminating gateways](https://learn.hashicorp.com/tutorials/consul/service-mesh-terminating-gateways).
 
 ~> **Known limitations:** Terminating gateways currently do not support targeting service subsets with
-[L7 configuration](/docs/connect/l7-traffic-management). They route to all instances of a service with no capabilities
+[L7 configuration](/docs/connect/l7-traffic). They route to all instances of a service with no capabilities
 for filtering by instance.
 
 ## Security Considerations
 
 ~> We recommend that terminating gateways are not exposed to the WAN or open internet. This is because terminating gateways
 hold certificates to decrypt Consul Connect traffic directed at them and may be configured with credentials to connect
-to linked services. Connections over the WAN or open internet should flow through [mesh gateways](/docs/connect/mesh-gateway)
+to linked services. Connections over the WAN or open internet should flow through [mesh gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters)
 whenever possible since they are not capable of decrypting traffic or connecting directly to services.
 
 By specifying a path to a [CA file](/docs/connect/config-entries/terminating-gateway#cafile) connections
@@ -120,7 +120,7 @@ All services registered in the Consul catalog must be associated with a node, ev
 not managed by a Consul client agent. All agent-less services with the same address can be registered under the same node name and address.
 However, ensure that the [node name](/api/catalog#node) for external services registered directly in the catalog
 does not match the node name of any Consul client agent node. If the node name overlaps with the node name of a Consul client agent,
-Consul's [anti-entropy sync](/docs/internals/anti-entropy) will delete the services registered via the `/catalog/register` HTTP API endpoint.
+Consul's [anti-entropy sync](/docs/architecture/anti-entropy) will delete the services registered via the `/catalog/register` HTTP API endpoint.
 
 For a complete example of how to register external services review the
 [external services tutorial](https://learn.hashicorp.com/tutorials/consul/service-registration-external-services).

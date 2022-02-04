@@ -44,7 +44,7 @@ The corresponding CLI command is [`consul acl auth-method create`](/commands/acl
 
 - `Type` `(string: <required>)` - The type of auth method being configured.
   This field is immutable. For allowed values see the [auth method
-  documentation](/docs/acl/auth-methods).
+  documentation](/docs/security/acl/auth-methods).
 
 - `Description` `(string: "")` - Free form human readable description of the
   auth method.
@@ -69,7 +69,7 @@ The corresponding CLI command is [`consul acl auth-method create`](/commands/acl
 - `Config` `(map[string]string: <required>)` - The raw configuration to use for
   the chosen auth method. Contents will vary depending upon the type chosen.
   For more information on configuring specific auth method types, see the [auth
-  method documentation](/docs/acl/auth-methods).
+  method documentation](/docs/security/acl/auth-methods).
 
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to
   create the auth method within. If not provided in the JSON body, the value of
@@ -252,7 +252,7 @@ The corresponding CLI command is [`consul acl auth-method update`](/commands/acl
 - `Config` `(map[string]string: <required>)` - The raw configuration to use for
   the chosen auth method. Contents will vary depending upon the type chosen.
   For more information on configuring specific auth method types, see the [auth
-  method documentation](/docs/acl/auth-methods).
+  method documentation](/docs/security/acl/auth-methods).
 
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
   the auth method to update. If not provided in the JSON body, the value of

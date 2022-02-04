@@ -21,7 +21,7 @@ service of the same name.
 ## Interaction with other Config Entries
 
 - Service router config entries are a component of [L7 Traffic
-  Management](/docs/connect/l7-traffic-management).
+  Management](/docs/connect/l7-traffic).
 
 - Service router config entries are restricted to only services that define
   their protocol as HTTP-based via a corresponding
@@ -36,10 +36,9 @@ service of the same name.
   to any configured
   [`service-resolver`](/docs/connect/config-entries/service-resolver).
 
-## UI 
+## UI
 
-
-Once a `service-router` is successfully entered, you can view it in the UI. Service routers, service splitters, and service resolvers can all be viewed by clicking on your service then switching to the *routing* tab. 
+Once a `service-router` is successfully entered, you can view it in the UI. Service routers, service splitters, and service resolvers can all be viewed by clicking on your service then switching to the _routing_ tab.
 
 ![screenshot of service router in the UI](/img/l7-routing/Router.png)
 
@@ -309,7 +308,16 @@ spec:
       name: 'Namespace',
       type: `string: "default"`,
       enterprise: true,
-      description: 'Specifies the namespace the config entry will apply to.',
+      description:
+        'Specifies the namespace to which the configuration entry will apply.',
+      yaml: false,
+    },
+    {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        'Specifies the admin partition to which the configuration will apply.',
       yaml: false,
     },
     {
@@ -545,7 +553,14 @@ spec:
       name: 'Namespace',
       type: 'string: ""',
       description:
-        'The Consul namespace to resolve the service from instead of the current namespace. If empty the current namespace is assumed.',
+        'The Consul namespace to resolve the service from instead of the current namespace. If empty, the current namespace is used.',
+      enterprise: true,
+    },
+    {
+      name: 'Partition',
+      type: 'string: ""',
+      description:
+        'The Consul admin partition to resolve the service from instead of the current partition. If empty, the current partition is used.',
       enterprise: true,
     },
     {
@@ -582,7 +597,6 @@ spec:
         'A list of HTTP response status codes that are eligible for retry.',
     },
     {
-      yaml: false,
       name: 'RequestHeaders',
       type: 'HTTPHeaderModifiers: <optional>',
       description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
@@ -590,7 +604,6 @@ spec:
       This cannot be used with a \`tcp\` listener.`,
     },
     {
-      yaml: false,
       name: 'ResponseHeaders',
       type: 'HTTPHeaderModifiers: <optional>',
       description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
@@ -600,21 +613,12 @@ spec:
   ]}
 />
 
-
 ### `HTTPHeaderModifiers`
 
 <ConfigEntryReference
   topLevel={false}
-  yaml={false}
   keys={[
     {
-      hcl: false,
-      name: 'Unsupported',
-      type: '',
-      description: `HTTP Header modification is not yet supported in our Kubernetes CRDs.`,
-    },
-    {
-      yaml: false,
       name: 'Add',
       type: 'map<string|string>: optional',
       description: `The set of key/value pairs that specify header values to add.
@@ -627,7 +631,6 @@ spec:
       metadata into the value added.`,
     },
     {
-      yaml: false,
       name: 'Set',
       type: 'map<string|string>: optional',
       description: `The set of key/value pairs that specify header values to add.
@@ -640,7 +643,6 @@ spec:
       metadata into the value added.`,
     },
     {
-      yaml: false,
       name: 'Remove',
       type: 'array<string>: optional',
       description: `The set of header names to remove. Only headers

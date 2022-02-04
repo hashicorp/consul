@@ -41,7 +41,7 @@ func TestAutoConfigBackend_CreateACLToken(t *testing.T) {
 
 	waitForLeaderEstablishment(t, srv)
 
-	r1, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+	r1, err := upsertTestRole(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
 	t.Run("predefined-ids", func(t *testing.T) {

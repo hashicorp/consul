@@ -2,9 +2,11 @@ package xds
 
 import (
 	"fmt"
+
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -33,15 +35,16 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			// member, because this key/value pair is created only when a
 			// GatewayService is returned in the RPC
 			u := upstreams[0]
-			id := u.Identifier()
 
-			chain := cfgSnap.IngressGateway.DiscoveryChain[id]
+			uid := proxycfg.NewUpstreamID(&u)
+
+			chain := cfgSnap.IngressGateway.DiscoveryChain[uid]
 			if chain == nil {
 				// Wait until a chain is present in the snapshot.
 				continue
 			}
 
-			cfg := s.getAndModifyUpstreamConfigForListener(id, &u, chain)
+			cfg := s.getAndModifyUpstreamConfigForListener(uid, &u, chain)
 
 			// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
 			// TODO(freddy): Why can the protocol of the listener be overridden here?
@@ -60,9 +63,9 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 			filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
 
-			l := makePortListenerWithDefault(id, address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+			l := makePortListenerWithDefault(uid.EnvoyID(), address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				routeName:   id,
+				routeName:   uid.EnvoyID(),
 				useRDS:      useRDS,
 				clusterName: clusterName,
 				filterName:  filterName,

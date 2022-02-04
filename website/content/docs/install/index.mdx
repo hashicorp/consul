@@ -38,32 +38,56 @@ command-line, make sure to place it somewhere on your `PATH`.
 ## Compiling from Source
 
 To compile from source, you will need [Go](https://golang.org) installed and
-configured properly (including a `GOPATH` environment variable set), as well as
 a copy of [`git`](https://www.git-scm.com/) in your `PATH`.
 
-1. Clone the Consul repository from GitHub into your `GOPATH`:
+1. Clone the Consul repository from GitHub:
 
    ```shell
-   $ mkdir -p $GOPATH/src/github.com/hashicorp && cd !$
    $ git clone https://github.com/hashicorp/consul.git
    $ cd consul
    ```
 
-1. Bootstrap the project. This will download and compile libraries and tools
-   needed to compile Consul:
+1. Build Consul for your target system. The binary will be placed in `./bin`
+   (relative to the git checkout).
 
-   ```shell
-   $ make tools
-   ```
+   <!--
+      The tabs below are intended to be indented with the step immediately
+      above, but getting that to work is tricky.
 
-1. Build Consul for your current system and put the binary in `./bin/`
-   (relative to the git checkout). The `make dev` target is just a shortcut that
-   builds `consul` for only your local build environment (no cross-compiled
-   targets).
+      The pre-commit linting rules will automatically unindent the <Tab>
+      element upon commit. This causes compilation to fail, because <Tabs>
+      and all its contained <Tab> elements need to be at the same indent level
+      for compilation.
 
-   ```shell
+      To circumvent the pre-commit linting rules, commit with:
+      $ git commit --no-verify
+   -->
+   
+   <Tabs>
+   <Tab heading="Compile for your current system">
+
+   ```shell-session
    $ make dev
    ```
+
+   </Tab>
+   <Tab heading="Cross-compile for another system">
+
+   Specify your target system by setting the following environment variables
+   before building:
+
+   - `GOOS`: Target operating system. Valid values include:
+     `linux`, `darwin`, `windows`, `solaris`, `freebsd`.
+   - `GOARCH`: Target architecture. Valid values include:
+     `386`, `amd64`, `arm`, `arm64`
+
+   ```shell-session
+   $ export GOOS=linux GOARCH=amd64
+   $ make dev
+   ```
+
+   </Tab>
+   </Tabs>
 
 ## Verifying the Installation
 
@@ -79,4 +103,4 @@ $ consul version
 
 Consul currently supports all 'evergreen' browsers, as they are generally on
 up-to-date versions. For more information on supported browsers, please see our
-[FAQ](/docs/faq)
+[FAQ](/docs/troubleshoot/faq)
