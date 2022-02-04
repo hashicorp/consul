@@ -78,6 +78,14 @@ func (e UnauthorizedError) Error() string {
 	return e.Reason
 }
 
+type EntityTooLargeError struct {
+	Reason string
+}
+
+func (e EntityTooLargeError) Error() string {
+	return e.Reason
+}
+
 // CodeWithPayloadError allow returning non HTTP 200
 // Error codes while not returning PlainText payload
 type CodeWithPayloadError struct {
@@ -91,10 +99,11 @@ func (e CodeWithPayloadError) Error() string {
 }
 
 type ForbiddenError struct {
+	Reason string
 }
 
 func (e ForbiddenError) Error() string {
-	return "Access is restricted"
+	return e.Reason
 }
 
 // HTTPHandlers provides an HTTP api for an agent.
@@ -443,6 +452,11 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			return err.Error() == consul.ErrRateLimited.Error()
 		}
 
+		isEntityToLarge := func(err error) bool {
+			_, ok := err.(EntityTooLargeError)
+			return ok
+		}
+
 		addAllowHeader := func(methods []string) {
 			resp.Header().Add("Allow", strings.Join(methods, ","))
 		}
@@ -487,6 +501,9 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				fmt.Fprint(resp, err.Error())
 			case isTooManyRequests(err):
 				resp.WriteHeader(http.StatusTooManyRequests)
+				fmt.Fprint(resp, err.Error())
+			case isEntityToLarge(err):
+				resp.WriteHeader(http.StatusRequestEntityTooLarge)
 				fmt.Fprint(resp, err.Error())
 			default:
 				resp.WriteHeader(http.StatusInternalServerError)
@@ -1136,7 +1153,7 @@ func (s *HTTPHandlers) checkWriteAccess(req *http.Request) error {
 		}
 	}
 
-	return ForbiddenError{}
+	return ForbiddenError{Reason: "Access is restricted"}
 }
 
 func (s *HTTPHandlers) parseFilter(req *http.Request, filter *string) {

@@ -12,8 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -2372,6 +2374,6 @@ func (f *fakeRPC) RPC(method string, args interface{}, reply interface{}) error 
 	return nil
 }
 
-func (f *fakeRPC) ResolveTokenToIdentity(_ string) (structs.ACLIdentity, error) {
-	return nil, nil
+func (f *fakeRPC) ResolveTokenAndDefaultMeta(string, *structs.EnterpriseMeta, *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
+	return consul.ACLResolveResult{}, nil
 }

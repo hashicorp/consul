@@ -1,6 +1,6 @@
 # This Dockerfile contains multiple targets.
 # Use 'docker build --target=<name> .' to build one.
-# e.g. `docker build --target=dev .`
+# e.g. `docker build --target=official .`
 #
 # All non-dev targets have a VERSION argument that must be provided 
 # via --build-arg=VERSION=<version> when building. 

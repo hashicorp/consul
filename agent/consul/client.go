@@ -56,7 +56,7 @@ type Client struct {
 	config *Config
 
 	// acls is used to resolve tokens to effective policies
-	acls *ACLResolver
+	*ACLResolver
 
 	// Connection pool to consul servers
 	connPool *pool.ConnPool
@@ -127,7 +127,7 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 		Tokens:          deps.Tokens,
 	}
 	var err error
-	if c.acls, err = NewACLResolver(&aclConfig); err != nil {
+	if c.ACLResolver, err = NewACLResolver(&aclConfig); err != nil {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
 	}
@@ -172,7 +172,7 @@ func (c *Client) Shutdown() error {
 	// Close the connection pool
 	c.connPool.Shutdown()
 
-	c.acls.Close()
+	c.ACLResolver.Close()
 
 	return nil
 }

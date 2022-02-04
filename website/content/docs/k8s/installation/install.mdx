@@ -27,7 +27,7 @@ mesh](https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?utm_sourc
 
 ## Consul K8s CLI Installation
 
-We recommend using the [Consul K8S CLI](/docs/k8s/k8s-cli) to install Consul on Kubernetes for single-cluster deployments. You can install Consul on Kubernetes using the Consul K8s CLI tool after installing the CLI.
+We recommend using the [Consul K8s CLI](/docs/k8s/k8s-cli) to install Consul on Kubernetes for single-cluster deployments. You can install Consul on Kubernetes using the Consul K8s CLI tool after installing the CLI.
 
 Before beginning the installation process, verify that `kubectl` is already configured to authenticate to the Kubernetes cluster using a valid `kubeconfig` file.
 
@@ -45,38 +45,58 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
    $ brew install hashicorp/tap/consul-k8s
    ```
 
-1. Issue the `install` subcommand to install Consul on Kubernetes:
+1. Issue the `install` subcommand to install Consul on Kubernetes. Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli) for details about all commands and available options. Without any additional options passed, the `consul-k8s` CLI will install Consul on Kubernetes by using the Consul Helm chart's default values. Below is an example that installs Consul on Kubernetes with Service Mesh and CRDs enabled. If you did not set the `-auto-approve` option to `true`, you will be prompted to proceed with the installation if the pre-install checks pass.
 
-   ```shell-session
-   consul-k8s install <OPTIONS>
-   ```
+  -> The pre-install checks may fail if existing `PersistentVolumeClaims` (PVC) are detected. Refer to the [uninstall instructions](/docs/k8s/operations/uninstall#uninstall-consul) for information about removing PVCs.
+  
+  ```shell-session
+  $ consul-k8s install -set connectInject.enabled=true -set controller.enabled=true
 
-   Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli) for details about all commands and available options.
-
-   If you did not set the `-auto-approve` option to `true`, you will be prompted to proceed with the installation if the pre-install checks pass.
-
-   ```shell-session
-   ==> Pre-Install Checks
-   ✓ No existing installations found
+  ==> Pre-Install Checks
+  No existing installations found.
    ✓ No previous persistent volume claims found
    ✓ No previous secrets found
 
-   ==> Consul Installation Summary
-       Installation name: consul
-       Namespace: myns
-       Overrides:
-       connectInject:
-         enabled: true
-       global:
-         name: consul
-       server:
-         bootstrapExpect: 1
-         replicas: 1
+  ==> Consul Installation Summary
+      Installation name: consul
+      Namespace: consul
+      Overrides:
+      connectInject:
+        enabled: true
+      controller:
+        enabled: true
 
-       Proceed with installation? (y/n)
-   ```
+      Proceed with installation? (y/N) y
+      
+  ==> Running Installation
+    ✓ Downloaded charts
+   --> creating 1 resource(s)
+   --> creating 45 resource(s)
+   --> beginning wait for 45 resources with timeout of 10m0s
+    ✓ Consul installed into namespace "consul"
+  ```
 
-1. Enter `y` to proceed. The pre-install checks may fail if existing `PersistentVolumeClaims` (PVC) are detected. Refer to the [uninstall instructions](/docs/k8s/operations/uninstall#uninstall-consul) for information about removing PVCs.
+1. (Optional) Issue the `consul-k8s status` command to quickly glance at the status of the installed Consul cluster. 
+
+  ```shell-session
+  $ consul-k8s status
+
+  ==> Consul-K8s Status Summary
+     NAME  | NAMESPACE |  STATUS  | CHARTVERSION | APPVERSION | REVISION |      LAST UPDATED
+  ---------+-----------+----------+--------------+------------+----------+--------------------------
+    consul | consul    | deployed | 0.40.0       | 1.11.2     |        1 | 2022/01/31 16:58:51 PST
+
+  ==> Config:
+      connectInject:
+        enabled: true
+      controller:
+        enabled: true
+      global:
+        name: consul
+
+   ✓ Consul servers healthy (3/3)
+   ✓ Consul clients healthy (3/3)
+  ```
 
 ## Helm Chart Installation
 
@@ -155,8 +175,9 @@ create a `config.yaml` file to override the default settings.
 You can learn what settings are available by running `helm inspect values hashicorp/consul`
 or by reading the [Helm Chart Reference](/docs/k8s/helm).
 
-For example, if you want to enable the [Consul Connect](/docs/k8s/connect) feature,
-use the following config file:
+#### Minimal `config.yaml` for Consul Service Mesh
+
+The minimal settings to enable [Consul Service Mesh]((/docs/k8s/connect)) would be captured in the following `config.yaml` config file:
 
 <CodeBlockConfig filename="config.yaml">
 
@@ -178,6 +199,44 @@ $ helm install consul hashicorp/consul --create-namespace --namespace consul --v
 NAME: consul
 ...
 ```
+
+#### Enable Consul Service Mesh on select namespaces
+
+By default, Consul Service Mesh is enabled on almost all namespaces (with the exception of `kube-system` and `local-path-storage`) within a Kubernetes cluster. You can restrict this to a subset of namespaces by specifying a `namespaceSelector` that matches a label attached to each namespace denoting whether to enable Consul service mesh. In order to default to enabling service mesh on select namespaces by label, the `connectInject.default` value must be set to `true`.
+
+<CodeBlockConfig filename="config.yaml">
+
+```yaml
+global:
+  name: consul
+connectInject:
+  enabled: true
+  default: true
+  namespaceSelector: |
+    matchLabels:
+      connect-inject : enabled
+controller:
+  enabled: true
+```
+  
+</CodeBlockConfig>
+
+Label the namespace(s), where you would like to enable Consul Service Mesh. 
+
+```shell-session
+$ kubectl create ns foo 
+$ kubectl label namespace foo connect-inject=enabled
+```
+
+Next, run `helm install` with the `--values` flag:
+
+```shell-session
+$ helm install consul hashicorp/consul --create-namespace --namespace consul --values config.yaml
+NAME: consul
+...
+```
+
+#### Updating your Consul on Kubernetes configuration 
 
 If you've already installed Consul and want to make changes, you'll need to run
 `helm upgrade`. See [Upgrading](/docs/k8s/upgrade) for more details.

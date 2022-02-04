@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -150,7 +151,7 @@ func (c *CheckState) CriticalFor() time.Duration {
 
 type rpc interface {
 	RPC(method string, args interface{}, reply interface{}) error
-	ResolveTokenToIdentity(secretID string) (structs.ACLIdentity, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error)
 }
 
 // State is used to represent the node's services,
@@ -1538,7 +1539,7 @@ func (l *State) notifyIfAliased(serviceID structs.ServiceID) {
 // critical purposes, such as logging. Therefore we interpret all errors as empty-string
 // so we can safely log it without handling non-critical errors at the usage site.
 func (l *State) aclAccessorID(secretID string) string {
-	ident, err := l.Delegate.ResolveTokenToIdentity(secretID)
+	ident, err := l.Delegate.ResolveTokenAndDefaultMeta(secretID, nil, nil)
 	if acl.IsErrNotFound(err) {
 		return ""
 	}
@@ -1546,8 +1547,5 @@ func (l *State) aclAccessorID(secretID string) string {
 		l.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
 		return ""
 	}
-	if ident == nil {
-		return ""
-	}
-	return ident.ID()
+	return ident.AccessorID()
 }

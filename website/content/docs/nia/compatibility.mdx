@@ -1,35 +1,40 @@
 ---
 layout: docs
-page_title: Consul-Terraform-Sync Compatibility
+page_title: Consul-Terraform-Sync (CTS) Compatibility
 description: >-
-  Consul-Terraform-Sync Compatibility
+  Consul-Terraform-Sync (CTS) Compatibility
 ---
 
 # Compatibility
 
+The following tables list the Consul-Terraform-Sync (CTS) version compatibility for Consul, Terraform, and Vault.
+
 ## Consul
 
-Below are the supported Consul versions with compatible Consul-Terraform-Sync versions. The latest Consul-Terraform-Sync binary targets supporting the latest patch version of the three most recent Consul minor versions.
+Below are CTS versions with supported Consul versions. The latest CTS binary supports the three most recent Consul minor versions, along with their latest patch versions.
 
-| Consul Version               | Compatible Consul-Terraform-Sync Version |
-| ---------------------------- | ---------------------------------------- |
-| 1.8+                         | 0.1+                                     |
+| CTS Version         | Consul OSS & Enterprise Version |
+| :------------------ | :------------------------------ |
+| CTS Enterprise 0.3+ | 1.8+                            |
+| CTS OSS 0.1+        | 1.8+                            |
 
 ## Terraform
 
-Consul-Terraform-Sync is compatible with the following Terraform OSS versions:
+CTS integration with Terraform is supported for the following:
 
-| Consul-Terraform-Sync | Compatible Terraform Version |
-| --------------------- | ---------------------------- |
-| 0.3+                  | 0.13 - 1.1                   |
-| 0.2                   | 0.13 - 1.0                   |
-| 0.1                   | 0.13 - 0.14                  |
+| CTS Version         | Terraform CLI Version | Terraform Cloud Version | Terraform Enterprise Version |
+| :------------------ | :-------------------- | :---------------------- | :--------------------------- |
+| CTS Enterprise 0.4+ | 0.13 - 1.1            | Latest                  | v202010-2 - Latest           |
+| CTS Enterprise 0.3+ | 0.13 - 1.1            | N/A                     | v202010-2 - Latest           |
+| CTS OSS 0.3+        | 0.13 - 1.1            | N/A                     | N/A                          |
+| CTS OSS 0.2         | 0.13 - 1.0            | N/A                     | N/A                          |
+| CTS OSS 0.1         | 0.13 - 0.14           | N/A                     | N/A                          |
 
-## Terraform Cloud
+## Vault
 
-Consul-Terraform-Sync integration with Terraform Cloud is supported for the following:
+CTS integrates with Vault to query secrets, the integration is supported for the following:
 
-| Consul-Terraform-Sync Enterprise | Terraform Cloud            | Version            |
-| -------------------------------- | -------------------------- | ------------------ |
-| 0.4+                             | Terraform Cloud            | Latest             |
-| 0.3+                             | Terraform Enterprise       | v202010-2 - Latest |
+| CTS Version         | Vault OSS & Enterprise Version |
+| :------------------ | :----------------------------- |
+| CTS Enterprise 0.3+ | 0.7+                           |
+| CTS OSS 0.1+        | 0.7+                           |

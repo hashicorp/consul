@@ -2,7 +2,6 @@ package agent
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -26,9 +25,7 @@ func (s *HTTPHandlers) EventFire(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 	if event.Name == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing name"}
 	}
 
 	// Get the ACL token
@@ -58,9 +55,7 @@ func (s *HTTPHandlers) EventFire(resp http.ResponseWriter, req *http.Request) (i
 	// Try to fire the event
 	if err := s.agent.UserEvent(dc, token, event); err != nil {
 		if acl.IsErrPermissionDenied(err) {
-			resp.WriteHeader(http.StatusForbidden)
-			fmt.Fprint(resp, acl.ErrPermissionDenied.Error())
-			return nil, nil
+			return nil, ForbiddenError{Reason: acl.ErrPermissionDenied.Error()}
 		}
 		resp.WriteHeader(http.StatusInternalServerError)
 		return nil, err

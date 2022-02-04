@@ -1,10 +1,24 @@
 [
   {
-    "title": "Intro to Consul",
+    "title": "What is Consul?",
     "routes": [
       {
         "title": "Overview",
         "path": "intro"
+      },
+      {
+        "title": "Use Cases",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "intro/usecases",
+            "hidden": true
+          },
+          {
+            "title": "What is a Service Mesh?",
+            "path": "intro/usecases/what-is-a-service-mesh"
+          }
+        ]
       },
       {
         "title": "Consul vs. Other Software",
@@ -506,10 +520,6 @@
           {
             "title": "Configuring a Connect CA Provider",
             "path": "k8s/connect/connect-ca-provider"
-          },
-          {
-            "title": "Ambassador Edge Stack Integration",
-            "href": "https://learn.hashicorp.com/tutorials/consul/load-balancing-ambassador"
           },
           {
             "title": "Health Checks",

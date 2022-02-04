@@ -139,9 +139,7 @@ func (s *HTTPHandlers) UINodeInfo(resp http.ResponseWriter, req *http.Request) (
 		return nil, err
 	}
 	if args.Node == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing node name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing node name"}
 	}
 
 	// Make the RPC request
@@ -255,9 +253,7 @@ func (s *HTTPHandlers) UIGatewayServicesNodes(resp http.ResponseWriter, req *htt
 		return nil, err
 	}
 	if args.ServiceName == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing gateway name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing gateway name"}
 	}
 
 	// Make the RPC request
@@ -301,16 +297,12 @@ func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Req
 		return nil, err
 	}
 	if args.ServiceName == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing service name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing service name"}
 	}
 
 	kind, ok := req.URL.Query()["kind"]
 	if !ok {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing service kind")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing service kind"}
 	}
 	args.ServiceKind = structs.ServiceKind(kind[0])
 
@@ -318,9 +310,7 @@ func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Req
 	case structs.ServiceKindTypical, structs.ServiceKindIngressGateway:
 		// allowed
 	default:
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Unsupported service kind %q", args.ServiceKind)
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Unsupported service kind %q", args.ServiceKind)}
 	}
 
 	// Make the RPC request
@@ -584,9 +574,7 @@ func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.R
 		return nil, err
 	}
 	if name == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing gateway name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing gateway name"}
 	}
 	args.Match = &structs.IntentionQueryMatch{
 		Type: structs.IntentionMatchDestination,

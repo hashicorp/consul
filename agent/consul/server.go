@@ -141,7 +141,7 @@ type Server struct {
 	aclConfig *acl.Config
 
 	// acls is used to resolve tokens to effective policies
-	acls *ACLResolver
+	*ACLResolver
 
 	aclAuthMethodValidators authmethod.Cache
 
@@ -457,7 +457,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		Tokens:      flat.Tokens,
 	}
 	// Initialize the ACL resolver.
-	if s.acls, err = NewACLResolver(&aclConfig); err != nil {
+	if s.ACLResolver, err = NewACLResolver(&aclConfig); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
 	}
@@ -994,8 +994,8 @@ func (s *Server) Shutdown() error {
 		s.connPool.Shutdown()
 	}
 
-	if s.acls != nil {
-		s.acls.Close()
+	if s.ACLResolver != nil {
+		s.ACLResolver.Close()
 	}
 
 	if s.fsm != nil {

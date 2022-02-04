@@ -39,6 +39,12 @@ type TestACLAgent struct {
 func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzResolver, resolveIdent identResolver) *TestACLAgent {
 	t.Helper()
 
+	if resolveIdent == nil {
+		resolveIdent = func(s string) (structs.ACLIdentity, error) {
+			return nil, nil
+		}
+	}
+
 	a := &TestACLAgent{resolveAuthzFn: resolveAuthz, resolveIdentFn: resolveIdent}
 
 	dataDir := testutil.TempDir(t, "acl-agent")
@@ -86,26 +92,15 @@ func (a *TestACLAgent) ResolveToken(secretID string) (acl.Authorizer, error) {
 	return authz, err
 }
 
-func (a *TestACLAgent) ResolveTokenToIdentityAndAuthorizer(secretID string) (structs.ACLIdentity, acl.Authorizer, error) {
-	if a.resolveAuthzFn == nil {
-		return nil, nil, fmt.Errorf("ResolveTokenToIdentityAndAuthorizer call is unexpected - no authz resolver callback set")
-	}
-
-	return a.resolveAuthzFn(secretID)
-}
-
-func (a *TestACLAgent) ResolveTokenToIdentity(secretID string) (structs.ACLIdentity, error) {
-	if a.resolveIdentFn == nil {
-		return nil, fmt.Errorf("ResolveTokenToIdentity call is unexpected - no ident resolver callback set")
-	}
-
-	return a.resolveIdentFn(secretID)
-}
-
-func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
-	identity, authz, err := a.ResolveTokenToIdentityAndAuthorizer(secretID)
+func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
+	authz, err := a.ResolveToken(secretID)
 	if err != nil {
-		return nil, err
+		return consul.ACLResolveResult{}, err
+	}
+
+	identity, err := a.resolveIdentFn(secretID)
+	if err != nil {
+		return consul.ACLResolveResult{}, err
 	}
 
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
@@ -119,7 +114,7 @@ func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *stru
 	// Use the meta to fill in the ACL authorization context
 	entMeta.FillAuthzContext(authzContext)
 
-	return authz, err
+	return consul.ACLResolveResult{Authorizer: authz, ACLIdentity: identity}, err
 }
 
 // All of these are stubs to satisfy the interface
@@ -522,23 +517,4 @@ func TestACL_filterChecksWithAuthorizer(t *testing.T) {
 	require.False(t, ok)
 	_, ok = checks["my-other"]
 	require.False(t, ok)
-}
-
-// TODO: remove?
-func TestACL_ResolveIdentity(t *testing.T) {
-	t.Parallel()
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), nil, catalogIdent)
-
-	// this test is meant to ensure we are calling the correct function
-	// which is ResolveTokenToIdentity on the Agent delegate. Our
-	// nil authz resolver will cause it to emit an error if used
-	ident, err := a.delegate.ResolveTokenToIdentity(nodeROSecret)
-	require.NoError(t, err)
-	require.NotNil(t, ident)
-
-	// just double checkingto ensure if we had used the wrong function
-	// that an error would be produced
-	_, err = a.delegate.ResolveTokenAndDefaultMeta(nodeROSecret, nil, nil)
-	require.Error(t, err)
-
 }

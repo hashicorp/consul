@@ -55,8 +55,8 @@ func (s *HTTPHandlers) KVSGet(resp http.ResponseWriter, req *http.Request, args 
 	params := req.URL.Query()
 	if _, ok := params["recurse"]; ok {
 		method = "KVS.List"
-	} else if missingKey(resp, args) {
-		return nil, nil
+	} else if args.Key == "" {
+		return nil, BadRequestError{Reason: "Missing key name"}
 	}
 
 	// Do not allow wildcard NS on GET reqs
@@ -156,8 +156,8 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
-	if missingKey(resp, args) {
-		return nil, nil
+	if args.Key == "" {
+		return nil, BadRequestError{Reason: "Missing key name"}
 	}
 	if conflictingFlags(resp, req, "cas", "acquire", "release") {
 		return nil, nil
@@ -208,13 +208,10 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 
 	// Check the content-length
 	if req.ContentLength > int64(s.agent.config.KVMaxValueSize) {
-		resp.WriteHeader(http.StatusRequestEntityTooLarge)
-		fmt.Fprintf(resp,
-			"Request body(%d bytes) too large, max size: %d bytes. See %s.",
-			req.ContentLength, s.agent.config.KVMaxValueSize,
-			"https://www.consul.io/docs/agent/options.html#kv_max_value_size",
-		)
-		return nil, nil
+		return nil, EntityTooLargeError{
+			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
+				req.ContentLength, s.agent.config.KVMaxValueSize, "https://www.consul.io/docs/agent/options.html#kv_max_value_size"),
+		}
 	}
 
 	// Copy the value
@@ -259,8 +256,8 @@ func (s *HTTPHandlers) KVSDelete(resp http.ResponseWriter, req *http.Request, ar
 	params := req.URL.Query()
 	if _, ok := params["recurse"]; ok {
 		applyReq.Op = api.KVDeleteTree
-	} else if missingKey(resp, args) {
-		return nil, nil
+	} else if args.Key == "" {
+		return nil, BadRequestError{Reason: "Missing key name"}
 	}
 
 	// Check for cas value
@@ -284,16 +281,6 @@ func (s *HTTPHandlers) KVSDelete(resp http.ResponseWriter, req *http.Request, ar
 		return out, nil
 	}
 	return true, nil
-}
-
-// missingKey checks if the key is missing
-func missingKey(resp http.ResponseWriter, args *structs.KeyRequest) bool {
-	if args.Key == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing key name")
-		return true
-	}
-	return false
 }
 
 // conflictingFlags determines if non-composable flags were passed in a request.
