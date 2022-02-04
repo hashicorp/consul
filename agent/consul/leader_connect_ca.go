@@ -781,7 +781,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	}()
 
 	// Attempt to initialize the config if we failed to do so in Initialize for some reason
-	_, err = c.initializeCAConfig()
+	prevConfig, err := c.initializeCAConfig()
 	if err != nil {
 		return err
 	}
@@ -832,6 +832,15 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		RawConfig: args.Config.Config,
 		State:     args.Config.State,
 	}
+
+	if args.Config.Provider == config.Provider {
+		if validator, ok := newProvider.(ValidateConfigUpdater); ok {
+			if err := validator.ValidateConfigUpdate(prevConfig.Config, args.Config.Config); err != nil {
+				return fmt.Errorf("new configuration is incompatible with previous configuration: %w", err)
+			}
+		}
+	}
+
 	if err := newProvider.Configure(pCfg); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
@@ -856,6 +865,19 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		return err
 	}
 	return nil
+}
+
+// ValidateConfigUpdater is an optional interface that may be implemented
+// by a ca.Provider. If the provider implements this interface, the
+// ValidateConfigurationUpdate will be called when a user attempts to change the
+// CA configuration, and the provider type has not changed from the previous
+// configuration.
+type ValidateConfigUpdater interface {
+	// ValidateConfigUpdate should return an error if the next configuration is
+	// incompatible with the previous configuration.
+	//
+	// TODO: use better types after https://github.com/hashicorp/consul/issues/12238
+	ValidateConfigUpdate(previous, next map[string]interface{}) error
 }
 
 func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.CARequest, config *structs.CAConfiguration) error {

@@ -558,92 +558,88 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 	t.Parallel()
 
 	testVault := ca.NewTestVaultServer(t)
-	defer testVault.Stop()
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.6.0"
-		c.PrimaryDatacenter = "dc1"
-		c.CAConfig = &structs.CAConfiguration{
-			Provider: "vault",
-			Config: map[string]interface{}{
-				"Address":             testVault.Addr,
-				"Token":               testVault.RootToken,
-				"RootPKIPath":         "pki-root/",
-				"IntermediatePKIPath": "pki-intermediate/",
-			},
+	newConfig := func(keyType string, keyBits int) map[string]interface{} {
+		return map[string]interface{}{
+			"Address":             testVault.Addr,
+			"Token":               testVault.RootToken,
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+			"PrivateKeyType":      keyType,
+			"PrivateKeyBits":      keyBits,
 		}
-	})
-	defer s1.Shutdown()
-
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-
-	// Capture the current root.
-	{
-		rootList, _, err := getTestRoots(s1, "dc1")
-		require.NoError(t, err)
-		require.Len(t, rootList.Roots, 1)
 	}
 
-	cases := []struct {
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config:   newConfig(connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits),
+		}
+	})
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	// note: unlike many table tests, the ordering of these cases does matter
+	// because any non-errored case will modify the CA config, and any subsequent
+	// tests will use the same agent with that new CA config.
+	testSteps := []struct {
 		name      string
-		configFn  func() (*structs.CAConfiguration, error)
+		configFn  func() *structs.CAConfiguration
 		expectErr string
 	}{
 		{
-			name: "cannot edit key bits",
-			configFn: func() (*structs.CAConfiguration, error) {
+			name: "allow modifying key type and bits from default",
+			configFn: func() *structs.CAConfiguration {
 				return &structs.CAConfiguration{
-					Provider: "vault",
-					Config: map[string]interface{}{
-						"Address":             testVault.Addr,
-						"Token":               testVault.RootToken,
-						"RootPKIPath":         "pki-root/",
-						"IntermediatePKIPath": "pki-intermediate/",
-						//
-						"PrivateKeyType": "ec",
-						"PrivateKeyBits": 384,
-					},
+					Provider:                 "vault",
+					Config:                   newConfig("rsa", 4096),
 					ForceWithoutCrossSigning: true,
-				}, nil
+				}
 			},
-			expectErr: `error generating CA root certificate: cannot update the PrivateKeyBits field without choosing a new PKI mount for the root CA`,
 		},
 		{
-			name: "cannot edit key type",
-			configFn: func() (*structs.CAConfiguration, error) {
+			name: "error when trying to modify key bits",
+			configFn: func() *structs.CAConfiguration {
 				return &structs.CAConfiguration{
-					Provider: "vault",
-					Config: map[string]interface{}{
-						"Address":             testVault.Addr,
-						"Token":               testVault.RootToken,
-						"RootPKIPath":         "pki-root/",
-						"IntermediatePKIPath": "pki-intermediate/",
-						//
-						"PrivateKeyType": "rsa",
-						"PrivateKeyBits": 4096,
-					},
+					Provider:                 "vault",
+					Config:                   newConfig("rsa", 2048),
 					ForceWithoutCrossSigning: true,
-				}, nil
+				}
 			},
-			expectErr: `error generating CA root certificate: cannot update the PrivateKeyType field without choosing a new PKI mount for the root CA`,
+			expectErr: `cannot update the PrivateKeyBits field without changing RootPKIPath`,
+		},
+		{
+			name: "error when trying to modify key type",
+			configFn: func() *structs.CAConfiguration {
+				return &structs.CAConfiguration{
+					Provider:                 "vault",
+					Config:                   newConfig("ec", 256),
+					ForceWithoutCrossSigning: true,
+				}
+			},
+			expectErr: `cannot update the PrivateKeyType field without changing RootPKIPath`,
+		},
+		{
+			name: "allow update that does not change key type or bits",
+			configFn: func() *structs.CAConfiguration {
+				return &structs.CAConfiguration{
+					Provider:                 "vault",
+					Config:                   newConfig("rsa", 4096),
+					ForceWithoutCrossSigning: true,
+				}
+			},
 		},
 	}
 
-	for _, tc := range cases {
+	for _, tc := range testSteps {
 		t.Run(tc.name, func(t *testing.T) {
-			newConfig, err := tc.configFn()
-			require.NoError(t, err)
-
 			args := &structs.CARequest{
 				Datacenter: "dc1",
-				Config:     newConfig,
+				Config:     tc.configFn(),
 			}
 			var reply interface{}
 
-			err = msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply)
+			codec := rpcClient(t, s1)
+			err := msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply)
 			if tc.expectErr == "" {
 				require.NoError(t, err)
 			} else {
