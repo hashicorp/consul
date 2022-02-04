@@ -27,7 +27,12 @@ Some of the benefits of a service mesh include;
 - network automation
 
 A common use case for leveraging a service mesh is to achieve a [_zero trust_ model](/use-cases/zero-trust-networking).
-In a _zero trust_ model, applications require identity-based access to ensure all communication within the service mesh is authenticated with TLS certificates and encrypted in transit.
+In a zero trust model, applications require identity-based access to ensure all communication within the service mesh is authenticated with TLS certificates and encrypted in transit.
+
+In traditional security strategies, protection is primarily focused at the perimeter of a network.
+In cloud environments, the surface area for network access is much wider than the traditional on-premises networks.
+In addition, traditional security practices overlook the fact that many bad actors can originate from within the network walls.
+A zero trust model addresses these concerns while allowing organizations to scale as needed.
 
 ## How does a Service Mesh work?
 
@@ -64,7 +69,7 @@ A service mesh can be connected to another service mesh in another data center o
 Modern infrastructure is transitioning from being primarily static to dynamic in nature (ephemeral).
 This dynamic infrastructure has a short life cycle, meaning virtual machines (VM) and containers are frequently recycled.
 It's difficult for an organization to manage and keep track of application services that live on short-lived resources. A service mesh solves this problem by acting as a central registry of all registered services.
-As service instances, either VMs or containers, come up and down, the mesh is aware of their state and availability. The ability to conduct _service discovery_ is the foundation to the other problems a service mesh solves.
+As instances of a service (e.g., VM, container, serverless functions) come up and down, the mesh is aware of their state and availability. The ability to conduct _service discovery_ is the foundation to the other problems a service mesh solves.
 
 As a service mesh is aware of the state of a service and its instances, the mesh can implement more intelligent and dynamic network routing.
 Many service meshes offer L7 traffic management capabilities. As a result, operators and developers can create powerful rules to direct network traffic as needed, such as load balancing, traffic splitting, dynamic failover, and custom resolvers.
