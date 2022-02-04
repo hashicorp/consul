@@ -10,7 +10,11 @@ project "consul" {
     organization = "hashicorp"
     repository = "consul"
     release_branches = [
-      "fix-security-scan"
+      "main",
+      "release/1.8.x",
+      "release/1.9.x",
+      "release/1.10.x",
+      "release/1.11.x"
     ]
   }
 }

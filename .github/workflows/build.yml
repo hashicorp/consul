@@ -5,8 +5,7 @@ on:
     # Sequence of patterns matched against refs/heads
     branches:
       # Push events on the main branch
-      # - main
-      - 'fix-security-scan'
+      - main
 
 env:
   PKG_NAME: consul
