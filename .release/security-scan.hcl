@@ -1,19 +1,13 @@
 container {
 	dependencies = true
 	alpine_secdb = true
-	
-	secrets {
-		all = true
-	}
+	secrets      = true
 }
 
 binary {
-	go_modules   = true
+	secrets      = true
+	go_modules   = false
 	osv          = true
 	oss_index    = true
 	nvd          = true
-
-	secrets {
-		all = true
-	}
 }
