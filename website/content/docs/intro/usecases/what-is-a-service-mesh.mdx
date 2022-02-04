@@ -95,13 +95,15 @@ Non-Kubernetes based service meshes can be installed through infrastructure as c
 
 ## What is a Multi Platform Service Mesh?
 
-A multi-platform service mesh is capable of supporting various infrastructure environments. This can range from having the service mesh support Kubernetes and non-Kubernetes workloads, to having a service mesh span across various cloud environments (multi-cloud).
+A multi-platform service mesh is capable of supporting various infrastructure environments.
+This can range from having the service mesh support Kubernetes and non-Kubernetes workloads, to having a service mesh span across various cloud environments (multi-cloud and hybrid cloud).
 
 ## What is Consul?
 
-Consul is a multi-networking tool that offers a fully-featured service mesh solution that solves the networking and security challenges of operating microservices and cloud infrastructure.
+Consul is a multi-networking tool that offers a fully-featured service mesh solution that solves the networking and security challenges of operating microservices and cloud infrastructure (multi-cloud and hybrid cloud).
 Consul offers a software-driven approach to routing and segmentation. It also brings additional benefits such as failure handling, retries, and network observability.
-Each of these features can be used individually as needed or they can be used together to build a full service mesh and achieve [zero trust](https://www.hashicorp.com/solutions/zero-trust-security) security. In simple terms, Consul is the control plane of the service mesh.
+Each of these features can be used individually as needed or they can be used together to build a full service mesh and achieve [zero trust](https://www.hashicorp.com/solutions/zero-trust-security) security.
+In simple terms, Consul is the control plane of the service mesh. The data plane is supported by Consul through its first class support of [Envoy](https://www.envoyproxy.io/) as a proxy.
 
 You can use Consul with virtual machines (VMs), containers, or with container orchestration platforms, such as [Nomad](https://www.nomadproject.io/) and Kubernetes.
 Consul is platform agnostic which makes it a great fit for all environments, including legacy platforms.
