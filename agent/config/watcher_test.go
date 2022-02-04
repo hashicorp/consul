@@ -169,6 +169,42 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	require.NoError(t, assertEvent(file.Name(), watcherCh))
 }
 
+func TestEventWatcherMove(t *testing.T) {
+	watcherCh := make(chan *WatcherEvent)
+	w, err := New(func(event *WatcherEvent) error {
+		watcherCh <- event
+		return nil
+	})
+	defer func() {
+		_ = w.Close()
+	}()
+	require.NoError(t, err)
+	file := testutil.TempFile(t, "temp_config")
+	_, err = file.WriteString("test config")
+	require.NoError(t, err)
+	err = file.Sync()
+	require.NoError(t, err)
+	err = file.Close()
+	require.NoError(t, err)
+
+	require.NoError(t, err)
+	file2 := testutil.TempFile(t, "temp_config"+randomString(12))
+	_, err = file2.WriteString("test config 2")
+	require.NoError(t, err)
+	err = file2.Sync()
+	require.NoError(t, err)
+	err = file2.Close()
+	require.NoError(t, err)
+
+	err = w.Add(file2.Name())
+
+	require.NoError(t, err)
+	w.reconcileTimeout = 20 * time.Millisecond
+	w.Start()
+	os.Rename(file.Name(), file2.Name())
+	require.NoError(t, assertEvent(file2.Name(), watcherCh))
+}
+
 func TestEventReconcile(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
 	w, err := New(func(event *WatcherEvent) error {
