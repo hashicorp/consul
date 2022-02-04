@@ -1,0 +1,119 @@
+---
+layout: docs
+page_title: What is a service mesh?
+description: >-
+  Learn what a service mesh is, its benefits, and how it works. 
+  A service mesh can solve many of the modern challenges that exist in multi-platform and multi-cloud application architectures, ranging from security to application resiliency.
+---
+
+# What is a Service Mesh?
+
+A _service mesh_ is a dedicated network layer that provides secure service-to-service communication within and across infrastructure, including on-premises and cloud environments.
+Service meshes are often used with a microservice architectural pattern, but can provide value in any scenario where complex networking is involved.
+
+## Benefits of a service mesh
+
+A service mesh provides benefits for all organizations, ranging from security to improved application resiliency.
+Some of the benefits of a service mesh include;
+
+- service discovery
+- application health monitoring
+- load balancing
+- automatic failover
+- traffic management
+- encryption
+- observability and traceability,
+- authentication and authorization,
+- network automation
+
+A common use case for leveraging a service mesh is to achieve a [_zero trust_ model](/use-cases/zero-trust-networking).
+In a zero trust model, applications require identity-based access to ensure all communication within the service mesh is authenticated with TLS certificates and encrypted in transit.
+
+In traditional security strategies, protection is primarily focused at the perimeter of a network.
+In cloud environments, the surface area for network access is much wider than the traditional on-premises networks.
+In addition, traditional security practices overlook the fact that many bad actors can originate from within the network walls.
+A zero trust model addresses these concerns while allowing organizations to scale as needed.
+
+## How does a service mesh work?
+
+A service mesh typically consist of a control plane and a data plane. The control plane maintains a central registry that keeps track of all services and their respective IP addresses. This activity is called [service discovery](https://www.hashicorp.com/products/consul/service-discovery-and-health-checking).
+As long as the application is registered with the control plane, the control plane will be able to share with other members of the mesh how to communicate with the application and enforce rules for who can communicate with each other.
+
+The control plane is responsible for securing the mesh, facilitating service discovery, health checking, policy enforcement, and other similar operational concerns.
+
+The data plane handles communication between services.
+Many service mesh solutions employ a sidecar proxy to handle data plane communications, and thus limit the level of awareness the services need to have about the network environment.
+
+![Overview of a service mesh](/img/what_is_service_mesh_1.png)
+
+## API gateway vs service mesh
+
+An API gateway is a centralized access point for handling incoming client requests and delivering them to services.
+The API gateway acts as a control plane that allows operators and developers to manage incoming client requests and apply different handling logic depending on the request.
+The API gateway will route the incoming requests to the respective service. The primary function of an API gateway is to handle requests and return the reply from the service back to the client.
+
+A service mesh specializes in the network management of services and the communication between services.
+The mesh is responsible for keeping track of services and their health status, IP address, and traffic routing and ensuring all traffic between services is authenticated and encrypted.
+Unlike API gateways, a service mesh will track all registered services' lifecycle and ensure requests are routed to healthy instances of the service.
+API gateways are frequently deployed alongside a load balancer to ensure traffic is directed to healthy and available instances of the service.
+The mesh reduces the load balancer footprint as routing responsibilities are handled in a decentralized manner.
+
+API gateways can be used with a service mesh to bridge external networks (non-mesh) with a service mesh.
+
+-> **API gateways and traffic direction**: API gateways are often used to accept north-south traffic. North-south traffic is networking traffic that either enters or exits a data center or a virtual private network (VPC).
+A service mesh is primarily used for handling east-west traffic. East-west traffic traditionally remains inside a data center or a VPC.
+A service mesh can be connected to another service mesh in another data center or VPC to form a federated mesh.
+
+## What problems does a service mesh solve?
+
+Modern infrastructure is transitioning from being primarily static to dynamic in nature (ephemeral).
+This dynamic infrastructure has a short life cycle, meaning virtual machines (VM) and containers are frequently recycled.
+It's difficult for an organization to manage and keep track of application services that live on short-lived resources. A service mesh solves this problem by acting as a central registry of all registered services.
+As instances of a service (e.g., VM, container, serverless functions) come up and down, the mesh is aware of their state and availability. The ability to conduct _service discovery_ is the foundation to the other problems a service mesh solves.
+
+As a service mesh is aware of the state of a service and its instances, the mesh can implement more intelligent and dynamic network routing.
+Many service meshes offer L7 traffic management capabilities. As a result, operators and developers can create powerful rules to direct network traffic as needed, such as load balancing, traffic splitting, dynamic failover, and custom resolvers.
+A service mesh's dynamic network behavior allows application owners to improve application resiliency and availability with no application changes.
+
+Implementing dynamic network behavior is critical as more and more applications are deployed across different cloud providers (multi-cloud) and private data centers.
+Organizations may need to route network traffic to other infrastructure environments. Ensuring this traffic is secure is on top of mind for all organizations.
+Service meshes offer the ability to enforce network traffic encryption (mTLS) and authentication between all services. The service mesh can automatically generate an SSL certificate for each service and its instances.
+The certificate authenticates with other services inside the mesh and encrypts the TCP/UDP/gRPC connection with SSL.
+
+Fine-grained policies that dictate what services are allowed to communicate with each other is another benefit of a service mesh.
+Traditionally, services are permitted to communicate with other services through firewall rules.
+The traditional firewall (IP-based) model is difficult to enforce with dynamic infrastructure resources with a short lifecycle and frequently recycling IP addresses.
+As a result, network administrators have to open up network ranges to permit network traffic between services without differentiating the services generating the network traffic. However, a service mesh allows operators and developers to shift away from an IP-based model and focus more on service to service permissions.
+An operator defines a policy that only allows _service A_ to communicate with _service B_. Otherwise, the default action is to deny the traffic.
+This shift from an IP address-based security model to a service-focused model reduces the overhead of securing network traffic and allows an organization to take advantage of multi-cloud environments without sacrificing security due to complexity.
+
+## How do you implement a service mesh?
+
+Service meshes are commonly installed in Kubernetes clusters. There are also platform-agnostic service meshes available for non-Kubernetes-based workloads.
+For Kubernetes, most service meshes can be installed by operators through a [Helm chart](https://helm.sh/). Additionally, the service mesh may offer a CLI tool that supports the installation and maintenance of the service mesh.
+Non-Kubernetes based service meshes can be installed through infrastructure as code (IaC) products such as [Terraform](https://www.terraform.io/), CloudFormation, ARM Templates, Puppet, Chef, etc.
+
+## What is a multi platform service mesh?
+
+A multi-platform service mesh is capable of supporting various infrastructure environments.
+This can range from having the service mesh support Kubernetes and non-Kubernetes workloads, to having a service mesh span across various cloud environments (multi-cloud and hybrid cloud).
+
+## What is Consul?
+
+Consul is a multi-networking tool that offers a fully-featured service mesh solution that solves the networking and security challenges of operating microservices and cloud infrastructure (multi-cloud and hybrid cloud).
+Consul offers a software-driven approach to routing and segmentation. It also brings additional benefits such as failure handling, retries, and network observability.
+Each of these features can be used individually as needed or they can be used together to build a full service mesh and achieve [zero trust](https://www.hashicorp.com/solutions/zero-trust-security) security.
+In simple terms, Consul is the control plane of the service mesh. The data plane is supported by Consul through its first class support of [Envoy](https://www.envoyproxy.io/) as a proxy.
+
+You can use Consul with virtual machines (VMs), containers, or with container orchestration platforms, such as [Nomad](https://www.nomadproject.io/) and Kubernetes.
+Consul is platform agnostic which makes it a great fit for all environments, including legacy platforms.
+
+Consul is available as a [self-install](/downloads) project or as a fully managed service mesh solution called [HCP Consul](https://portal.cloud.hashicorp.com/sign-in?utm_source=consul_docs).
+HCP Consul enables users to discover and securely connect services without the added operational burden of maintaining a service mesh on their own.
+
+You can learn more about Consul by visting the Consul Learn [tutorials](https://learn.hashicorp.com/consul).
+
+## Next
+
+Get started today with a service mesh by leveraging [HCP Consul](https://portal.cloud.hashicorp.com/sign-in?utm_source=consul_docs).
+Prepare your organization for the future of multi-cloud and embrace a [zero-trust](https://www.hashicorp.com/solutions/zero-trust-security) architecture.
