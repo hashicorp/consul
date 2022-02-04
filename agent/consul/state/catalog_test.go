@@ -5977,6 +5977,40 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 	return ws
 }
 
+func TestStore_EnsureService_DoesNotPanicOnIngressGateway(t *testing.T) {
+	store := NewStateStore(nil)
+
+	err := store.EnsureConfigEntry(1, &structs.IngressGatewayConfigEntry{
+		Kind: structs.IngressGateway,
+		Name: "the-ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     12345,
+				Protocol: "tcp",
+				Services: []structs.IngressService{{Name: "the-service"}},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	err = store.EnsureRegistration(2, &structs.RegisterRequest{
+		Node: "the-node",
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			Service: "the-proxy",
+			Proxy: structs.ConnectProxyConfig{
+				DestinationServiceName: "the-ingress",
+				Upstreams: []structs.Upstream{
+					{
+						DestinationName: "the-service",
+					},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+}
+
 func TestStateStore_DumpGatewayServices(t *testing.T) {
 	s := testStateStore(t)
 
