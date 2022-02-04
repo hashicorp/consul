@@ -28,6 +28,8 @@ export default class Node extends Model {
   // MeshServiceInstances are all instances that aren't connect-proxies this
   // currently includes gateways as these need to show up in listings
   @filter('Services', item => item.Service.Kind !== 'connect-proxy') MeshServiceInstances;
+  // ProxyServiceInstances are all instances that are connect-proxies
+  @filter('Services', item => item.Service.Kind === 'connect-proxy') ProxyServiceInstances;
 
   @computed('Checks.[]', 'ChecksCritical', 'ChecksPassing', 'ChecksWarning')
   get Status() {
