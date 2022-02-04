@@ -1,5 +1,5 @@
 # This Dockerfile creates a production release image for the project using crt release flow.
-FROM alpine:3.13 as  default
+FROM alpine:3 as  default
 
 ARG VERSION
 ARG BIN_NAME

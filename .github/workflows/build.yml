@@ -3,9 +3,9 @@ name: build
 on:
   push:
     # Sequence of patterns matched against refs/heads
-    branches: [
-      "main"
-    ]
+    branches:
+      # Push events on the main branch
+      - main
 
 env:
   PKG_NAME: consul
