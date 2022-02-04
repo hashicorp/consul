@@ -31,11 +31,18 @@ export default Component.extend({
     }
   },
   setMode: function(mode) {
-    set(this, 'options', {
+    let options = {
       ...DEFAULTS,
       mode: mode.mime,
       readOnly: this.readonly,
-    });
+    };
+    if (mode.name === 'XML') {
+      options.htmlMode = mode.htmlMode;
+      options.matchClosing = mode.matchClosing;
+      options.alignCDATA = mode.alignCDATA;
+    }
+    set(this, 'options', options);
+
     const editor = this.editor;
     editor.setOption('mode', mode.mime);
     this.helper.lint(editor, mode.mode);

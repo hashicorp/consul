@@ -18,7 +18,6 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 	s := testACLTokensStateStore(t)
 
 	// Setup token and wait for good state
@@ -37,14 +36,14 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
-	require.NoError(err)
+	require.NoError(t, err)
 	defer sub.Unsubscribe()
 
 	eventCh := testRunSub(sub)
 
 	// Stream should get EndOfSnapshot
 	e := assertEvent(t, eventCh)
-	require.True(e.IsEndOfSnapshot())
+	require.True(t, e.IsEndOfSnapshot())
 
 	// Update an unrelated token.
 	token2 := &structs.ACLToken{
@@ -52,7 +51,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 		SecretID:   "72e81982-7a0f-491f-a60e-c9c802ac1402",
 	}
 	token2.SetHash(false)
-	require.NoError(s.ACLTokenSet(3, token2.Clone()))
+	require.NoError(t, s.ACLTokenSet(3, token2.Clone()))
 
 	// Ensure there's no reset event.
 	assertNoEvent(t, eventCh)
@@ -64,11 +63,11 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 		Description: "something else",
 	}
 	token3.SetHash(false)
-	require.NoError(s.ACLTokenSet(4, token3.Clone()))
+	require.NoError(t, s.ACLTokenSet(4, token3.Clone()))
 
 	// Ensure the reset event was sent.
 	err = assertErr(t, eventCh)
-	require.Equal(stream.ErrSubForceClosed, err)
+	require.Equal(t, stream.ErrSubForceClosed, err)
 
 	// Register another subscription.
 	subscription2 := &stream.SubscribeRequest{
@@ -77,27 +76,27 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 		Token: token.SecretID,
 	}
 	sub2, err := publisher.Subscribe(subscription2)
-	require.NoError(err)
+	require.NoError(t, err)
 	defer sub2.Unsubscribe()
 
 	eventCh2 := testRunSub(sub2)
 
 	// Expect initial EoS
 	e = assertEvent(t, eventCh2)
-	require.True(e.IsEndOfSnapshot())
+	require.True(t, e.IsEndOfSnapshot())
 
 	// Delete the unrelated token.
-	require.NoError(s.ACLTokenDeleteByAccessor(5, token2.AccessorID, nil))
+	require.NoError(t, s.ACLTokenDeleteByAccessor(5, token2.AccessorID, nil))
 
 	// Ensure there's no reset event.
 	assertNoEvent(t, eventCh2)
 
 	// Delete the token used by the subscriber.
-	require.NoError(s.ACLTokenDeleteByAccessor(6, token.AccessorID, nil))
+	require.NoError(t, s.ACLTokenDeleteByAccessor(6, token.AccessorID, nil))
 
 	// Ensure the reset event was sent.
 	err = assertErr(t, eventCh2)
-	require.Equal(stream.ErrSubForceClosed, err)
+	require.Equal(t, stream.ErrSubForceClosed, err)
 }
 
 func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
@@ -106,7 +105,6 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 	s := testACLTokensStateStore(t)
 
 	// Create token and wait for good state
@@ -125,14 +123,14 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
-	require.NoError(err)
+	require.NoError(t, err)
 	defer sub.Unsubscribe()
 
 	eventCh := testRunSub(sub)
 
 	// Ignore the end of snapshot event
 	e := assertEvent(t, eventCh)
-	require.True(e.IsEndOfSnapshot(), "event should be a EoS got %v", e)
+	require.True(t, e.IsEndOfSnapshot(), "event should be a EoS got %v", e)
 
 	// Update an unrelated policy.
 	policy2 := structs.ACLPolicy{
@@ -143,7 +141,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 		Datacenters: []string{"dc1"},
 	}
 	policy2.SetHash(false)
-	require.NoError(s.ACLPolicySet(3, &policy2))
+	require.NoError(t, s.ACLPolicySet(3, &policy2))
 
 	// Ensure there's no reset event.
 	assertNoEvent(t, eventCh)
@@ -157,7 +155,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 		Datacenters: []string{"dc1"},
 	}
 	policy3.SetHash(false)
-	require.NoError(s.ACLPolicySet(4, &policy3))
+	require.NoError(t, s.ACLPolicySet(4, &policy3))
 
 	// Ensure the reset event was sent.
 	assertReset(t, eventCh, true)
@@ -169,27 +167,27 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 		Token: token.SecretID,
 	}
 	sub, err = publisher.Subscribe(subscription2)
-	require.NoError(err)
+	require.NoError(t, err)
 	defer sub.Unsubscribe()
 
 	eventCh = testRunSub(sub)
 
 	// Ignore the end of snapshot event
 	e = assertEvent(t, eventCh)
-	require.True(e.IsEndOfSnapshot(), "event should be a EoS got %v", e)
+	require.True(t, e.IsEndOfSnapshot(), "event should be a EoS got %v", e)
 
 	// Delete the unrelated policy.
-	require.NoError(s.ACLPolicyDeleteByID(5, testPolicyID_C, nil))
+	require.NoError(t, s.ACLPolicyDeleteByID(5, testPolicyID_C, nil))
 
 	// Ensure there's no reload event.
 	assertNoEvent(t, eventCh)
 
 	// Delete the policy used by the subscriber.
-	require.NoError(s.ACLPolicyDeleteByID(6, testPolicyID_A, nil))
+	require.NoError(t, s.ACLPolicyDeleteByID(6, testPolicyID_A, nil))
 
 	// Ensure the reload event was sent.
 	err = assertErr(t, eventCh)
-	require.Equal(stream.ErrSubForceClosed, err)
+	require.Equal(t, stream.ErrSubForceClosed, err)
 
 	// Register another subscription.
 	subscription3 := &stream.SubscribeRequest{
@@ -198,14 +196,14 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 		Token: token.SecretID,
 	}
 	sub, err = publisher.Subscribe(subscription3)
-	require.NoError(err)
+	require.NoError(t, err)
 	defer sub.Unsubscribe()
 
 	eventCh = testRunSub(sub)
 
 	// Ignore the end of snapshot event
 	e = assertEvent(t, eventCh)
-	require.True(e.IsEndOfSnapshot(), "event should be a EoS got %v", e)
+	require.True(t, e.IsEndOfSnapshot(), "event should be a EoS got %v", e)
 
 	// Now update the policy used in role B, but not directly in the token.
 	policy4 := structs.ACLPolicy{
@@ -216,7 +214,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 		Datacenters: []string{"dc1"},
 	}
 	policy4.SetHash(false)
-	require.NoError(s.ACLPolicySet(7, &policy4))
+	require.NoError(t, s.ACLPolicySet(7, &policy4))
 
 	// Ensure the reset event was sent.
 	assertReset(t, eventCh, true)
@@ -228,7 +226,6 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 	s := testACLTokensStateStore(t)
 
 	// Create token and wait for good state
@@ -247,13 +244,13 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	eventCh := testRunSub(sub)
 
 	// Stream should get EndOfSnapshot
 	e := assertEvent(t, eventCh)
-	require.True(e.IsEndOfSnapshot())
+	require.True(t, e.IsEndOfSnapshot())
 
 	// Update an unrelated role (the token has role testRoleID_B).
 	role := structs.ACLRole{
@@ -262,7 +259,7 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 		Description: "test",
 	}
 	role.SetHash(false)
-	require.NoError(s.ACLRoleSet(3, &role))
+	require.NoError(t, s.ACLRoleSet(3, &role))
 
 	// Ensure there's no reload event.
 	assertNoEvent(t, eventCh)
@@ -274,7 +271,7 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 		Description: "changed",
 	}
 	role2.SetHash(false)
-	require.NoError(s.ACLRoleSet(4, &role2))
+	require.NoError(t, s.ACLRoleSet(4, &role2))
 
 	// Ensure the reload event was sent.
 	assertReset(t, eventCh, false)
@@ -286,22 +283,22 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 		Token: token.SecretID,
 	}
 	sub, err = publisher.Subscribe(subscription2)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	eventCh = testRunSub(sub)
 
 	// Ignore the end of snapshot event
 	e = assertEvent(t, eventCh)
-	require.True(e.IsEndOfSnapshot(), "event should be a EoS got %v", e)
+	require.True(t, e.IsEndOfSnapshot(), "event should be a EoS got %v", e)
 
 	// Delete the unrelated policy.
-	require.NoError(s.ACLRoleDeleteByID(5, testRoleID_A, nil))
+	require.NoError(t, s.ACLRoleDeleteByID(5, testRoleID_A, nil))
 
 	// Ensure there's no reload event.
 	assertNoEvent(t, eventCh)
 
 	// Delete the policy used by the subscriber.
-	require.NoError(s.ACLRoleDeleteByID(6, testRoleID_B, nil))
+	require.NoError(t, s.ACLRoleDeleteByID(6, testRoleID_B, nil))
 
 	// Ensure the reload event was sent.
 	assertReset(t, eventCh, false)
@@ -422,24 +419,12 @@ type nodePayload struct {
 	node *structs.ServiceNode
 }
 
-func (p nodePayload) MatchesKey(key, _, partition string) bool {
-	if key == "" && partition == "" {
-		return true
-	}
-
-	if p.node == nil {
-		return false
-	}
-
-	if structs.PartitionOrDefault(partition) != p.node.PartitionOrDefault() {
-		return false
-	}
-
-	return p.key == key
-}
-
 func (p nodePayload) HasReadPermission(acl.Authorizer) bool {
 	return true
+}
+
+func (p nodePayload) Subject() stream.Subject {
+	return stream.Subject(p.node.PartitionOrDefault() + "/" + p.node.NamespaceOrDefault() + "/" + p.key)
 }
 
 func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLToken {

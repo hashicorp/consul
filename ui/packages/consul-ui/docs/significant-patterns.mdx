@@ -12,6 +12,11 @@ DSL. The format is closely modeled on Ember's DSL and if you need to generate
 Ember's DSL from this for some reason you can use one of our Debug Utilities
 to do this.
 
+All Route based configuration including paths, queryParams, simple redirects
+and non-default templateNames are configured in this configuration format.
+Please note redirects and template names use relative slash separated paths to
+avoid copypasta and for future potential reuse purposes.
+
 ### Routes
 
 We use a specific BaseRoute as a parent Route for **all** our Routes. This contains project wide

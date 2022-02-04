@@ -323,9 +323,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds the error type
 		if err.Error() == consul.ErrIntentionNotFound.Error() {
-			resp.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(resp, err.Error())
-			return nil, nil
+			return nil, NotFoundError{Reason: err.Error()}
 		}
 
 		// Not ideal, but there are a number of error scenarios that are not
@@ -486,7 +484,10 @@ func parseIntentionStringComponent(input string, entMeta *structs.EnterpriseMeta
 // IntentionSpecific handles the endpoint for /v1/connect/intentions/:id.
 // Deprecated: use IntentionExact.
 func (s *HTTPHandlers) IntentionSpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	id := strings.TrimPrefix(req.URL.Path, "/v1/connect/intentions/")
+	id, err := getPathSuffixUnescaped(req.URL.Path, "/v1/connect/intentions/")
+	if err != nil {
+		return nil, err
+	}
 
 	switch req.Method {
 	case "GET":
@@ -518,9 +519,7 @@ func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter,
 	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds the error type
 		if err.Error() == consul.ErrIntentionNotFound.Error() {
-			resp.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(resp, err.Error())
-			return nil, nil
+			return nil, NotFoundError{Reason: err.Error()}
 		}
 
 		// Not ideal, but there are a number of error scenarios that are not

@@ -32,31 +32,26 @@ func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bo
 	return e.Value.CanRead(authz) == acl.Allow
 }
 
-func (e EventPayloadCheckServiceNode) MatchesKey(key, namespace, partition string) bool {
-	if key == "" && namespace == "" && partition == "" {
-		return true
-	}
-
-	if e.Value.Service == nil {
-		return false
-	}
-
-	name := e.Value.Service.Service
-	if e.overrideKey != "" {
-		name = e.overrideKey
-	}
-	ns := e.Value.Service.EnterpriseMeta.NamespaceOrDefault()
-	if e.overrideNamespace != "" {
-		ns = e.overrideNamespace
-	}
-	ap := e.Value.Service.EnterpriseMeta.PartitionOrDefault()
+func (e EventPayloadCheckServiceNode) Subject() stream.Subject {
+	partition := e.Value.Service.PartitionOrDefault()
 	if e.overridePartition != "" {
-		ap = e.overridePartition
+		partition = e.overridePartition
 	}
+	partition = strings.ToLower(partition)
 
-	return (key == "" || strings.EqualFold(key, name)) &&
-		(namespace == "" || strings.EqualFold(namespace, ns)) &&
-		(partition == "" || strings.EqualFold(partition, ap))
+	namespace := e.Value.Service.NamespaceOrDefault()
+	if e.overrideNamespace != "" {
+		namespace = e.overrideNamespace
+	}
+	namespace = strings.ToLower(namespace)
+
+	key := e.Value.Service.Service
+	if e.overrideKey != "" {
+		key = e.overrideKey
+	}
+	key = strings.ToLower(key)
+
+	return stream.Subject(partition + "/" + namespace + "/" + key)
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
@@ -67,8 +62,7 @@ func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 		defer tx.Abort()
 
 		connect := topic == topicServiceHealthConnect
-		entMeta := structs.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
-		idx, nodes, err := checkServiceNodesTxn(tx, nil, req.Key, connect, &entMeta)
+		idx, nodes, err := checkServiceNodesTxn(tx, nil, req.Key, connect, &req.EnterpriseMeta)
 		if err != nil {
 			return 0, err
 		}
@@ -315,8 +309,8 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 		events = append(events, e)
 	}
 
-	for gatewayName, serviceChanges := range termGatewayChanges {
-		for serviceName, gsChange := range serviceChanges {
+	for gatewayName, svcChanges := range termGatewayChanges {
+		for serviceName, gsChange := range svcChanges {
 			gs := changeObject(gsChange.change).(*structs.GatewayService)
 
 			q := Query{
@@ -355,6 +349,12 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 			// Build service events and append them
 			for _, sn := range nodes {
 				tuple := newNodeServiceTupleFromServiceNode(sn)
+
+				// If we're already sending an event for the service, don't send another.
+				if _, ok := serviceChanges[tuple]; ok {
+					continue
+				}
+
 				e, err := newServiceHealthEventForService(tx, changes.Index, tuple)
 				if err != nil {
 					return nil, err

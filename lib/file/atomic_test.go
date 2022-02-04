@@ -13,9 +13,8 @@ import (
 // tests that it just writes the file properly. I would love to test this
 // better but I'm not sure how. -mitchellh
 func TestWriteAtomic(t *testing.T) {
-	require := require.New(t)
 	td, err := ioutil.TempDir("", "lib-file")
-	require.NoError(err)
+	require.NoError(t, err)
 	defer os.RemoveAll(td)
 
 	// Create a subdir that doesn't exist to test that it is created
@@ -23,10 +22,10 @@ func TestWriteAtomic(t *testing.T) {
 
 	// Write
 	expected := []byte("hello")
-	require.NoError(WriteAtomic(path, expected))
+	require.NoError(t, WriteAtomic(path, expected))
 
 	// Read and verify
 	actual, err := ioutil.ReadFile(path)
-	require.NoError(err)
-	require.Equal(expected, actual)
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
 }

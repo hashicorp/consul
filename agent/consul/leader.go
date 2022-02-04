@@ -363,7 +363,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 	// Purge the cache, since it could've changed while we were not the
 	// leader.
-	s.acls.cache.Purge()
+	s.ACLResolver.cache.Purge()
 
 	// Purge the auth method validators since they could've changed while we
 	// were not leader.

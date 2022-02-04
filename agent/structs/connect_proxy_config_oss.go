@@ -13,6 +13,6 @@ func (us *Upstream) DestinationID() ServiceID {
 	}
 }
 
-func (us *Upstream) enterpriseIdentifierPrefix() string {
+func (us *Upstream) enterpriseStringPrefix() string {
 	return ""
 }

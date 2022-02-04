@@ -30,6 +30,8 @@ consul:
   terminating-gateway: Terminating Gateway
   mesh-gateway: Mesh Gateway
   status: Health Status
+  service.meta: Service Meta
+  node.meta: Node Meta
   service-name: Service Name
   node-name: Node Name
   accessorid: AccessorID

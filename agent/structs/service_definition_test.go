@@ -71,16 +71,15 @@ func TestServiceDefinitionValidate(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require := require.New(t)
 			service := TestServiceDefinition(t)
 			tc.Modify(service)
 
 			err := service.Validate()
 			if tc.Err == "" {
-				require.NoError(err)
+				require.NoError(t, err)
 			} else {
-				require.Error(err)
-				require.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+				require.Error(t, err)
+				require.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 			}
 		})
 	}

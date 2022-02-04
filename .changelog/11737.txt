@@ -1,3 +1,0 @@
-```release-note:improvement
-partitions: **(Enterprise only)** rename APIs, commands, and public types to use "partition" rather than "admin partition".
-```

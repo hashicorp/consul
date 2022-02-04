@@ -127,7 +127,7 @@ func (m *Manager) Run() error {
 	defer m.State.StopNotify(stateCh)
 
 	for {
-		m.syncState()
+		m.syncState(m.notifyBroadcast)
 
 		// Wait for a state change
 		_, ok := <-stateCh
@@ -140,7 +140,7 @@ func (m *Manager) Run() error {
 
 // syncState is called whenever the local state notifies a change. It holds the
 // lock while finding any new or updated proxies and removing deleted ones.
-func (m *Manager) syncState() {
+func (m *Manager) syncState(notifyBroadcast func(ch <-chan ConfigSnapshot)) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -160,7 +160,7 @@ func (m *Manager) syncState() {
 		// know that so we'd need to set it here if not during registration of the
 		// proxy service. Sidecar Service in the interim can do that, but we should
 		// validate more generally that that is always true.
-		err := m.ensureProxyServiceLocked(svc)
+		err := m.ensureProxyServiceLocked(svc, notifyBroadcast)
 		if err != nil {
 			m.Logger.Error("failed to watch proxy service",
 				"service", sid.String(),
@@ -179,7 +179,7 @@ func (m *Manager) syncState() {
 }
 
 // ensureProxyServiceLocked adds or changes the proxy to our state.
-func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService) error {
+func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, notifyBroadcast func(ch <-chan ConfigSnapshot)) error {
 	sid := ns.CompoundServiceID()
 
 	// Retrieve the token used to register the service, or fallback to the
@@ -227,14 +227,16 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService) error {
 	m.proxies[sid] = state
 
 	// Start a goroutine that will wait for changes and broadcast them to watchers.
-	go func(ch <-chan ConfigSnapshot) {
-		// Run until ch is closed
-		for snap := range ch {
-			m.notify(&snap)
-		}
-	}(ch)
+	go notifyBroadcast(ch)
 
 	return nil
+}
+
+func (m *Manager) notifyBroadcast(ch <-chan ConfigSnapshot) {
+	// Run until ch is closed
+	for snap := range ch {
+		m.notify(&snap)
+	}
 }
 
 // removeProxyService is called when a service deregisters and frees all

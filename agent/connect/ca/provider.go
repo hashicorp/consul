@@ -118,17 +118,18 @@ type Provider interface {
 }
 
 type PrimaryProvider interface {
-	// GenerateRoot causes the creation of a new root certificate for this provider.
-	// This can also be a no-op if a root certificate already exists for the given
-	// config. If IsPrimary is false, calling this method is an error.
-	GenerateRoot() error
-
-	// ActiveRoot returns the currently active root CA for this
-	// provider. This should be a parent of the certificate returned by
-	// ActiveIntermediate()
+	// GenerateRoot is called:
+	//   * to initialize the CA system when a server is elected as a raft leader
+	//   * when the CA configuration is updated in a way that might require
+	//     generating a new root certificate.
 	//
-	// TODO: currently called from secondaries, but shouldn't be so is on PrimaryProvider
-	ActiveRoot() (string, error)
+	// In both cases GenerateRoot is always called on a newly created provider
+	// after calling Provider.Configure, and before any other calls to the
+	// provider.
+	//
+	// The provider should return an existing root certificate if one exists,
+	// otherwise it should generate a new root certificate and return it.
+	GenerateRoot() (RootResult, error)
 
 	// GenerateIntermediate returns a new intermediate signing cert and sets it to
 	// the active intermediate. If multiple intermediates are needed to complete
@@ -179,6 +180,14 @@ type SecondaryProvider interface {
 	// as well as the root it was signed by. This completes the initialization for
 	// a provider where IsPrimary was set to false in Configure().
 	SetIntermediate(intermediatePEM, rootPEM string) error
+}
+
+// RootResult is the result returned by PrimaryProvider.GenerateRoot.
+//
+// TODO: rename this struct
+type RootResult struct {
+	// PEM encoded certificate that will be used as the primary CA.
+	PEM string
 }
 
 // NeedsStop is an optional interface that allows a CA to define a function

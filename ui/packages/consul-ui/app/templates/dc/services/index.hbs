@@ -105,7 +105,7 @@ as |sort filters items partition nspace|}}
             >
               <BlockSlot @name="header">
                 <h2>
-                  {{#if (gt services.length 0)}}
+                  {{#if (gt items.length 0)}}
                     No services found
                   {{else}}
                     Welcome to Services
@@ -114,7 +114,7 @@ as |sort filters items partition nspace|}}
               </BlockSlot>
               <BlockSlot @name="body">
                 <p>
-                  {{#if (gt services.length 0)}}
+                  {{#if (gt items.length 0)}}
                     No services where found matching that search, or you may not have access to view the services you are searching for.
                   {{else}}
                     There don't seem to be any registered services, or you may not have access to view services yet.

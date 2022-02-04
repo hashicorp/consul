@@ -11,6 +11,8 @@ Network Infrastructure Automation (NIA) enables dynamic updates to network infra
 
 Consul-Terraform-Sync executes one or more automation tasks with the most recent service variable values from the Consul service catalog. Each task consists of a runbook automation written as a Consul-Terraform-Sync compatible Terraform module using resources and data sources for the underlying network infrastructure. The `consul-terraform-sync` daemon runs on the same node as a Consul agent.
 
+CTS is available as an open source and enterprise distribution. Follow the [Network Infrastructure Automation introduction tutorial](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-intro?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) to get started with CTS OSS or read more about [CTS Enterprise](/docs/nia/enterprise).
+
 ## Use Cases
 
 **Application teams must wait for manual changes in the network to release, scale up/down and re-deploy their applications.** This creates a bottleneck, especially in frequent workflows related to scaling up/down the application, breaking the DevOps goal of self-service enablement. Consul-Terraform-Sync automates this process, thus decreasing the possibility of human error in manually editing configuration files, as well as decreasing the overall time taken to push out configuration changes.
@@ -19,7 +21,7 @@ Consul-Terraform-Sync executes one or more automation tasks with the most recent
 
 ## Glossary
 
-**Condition** - A task-level defined environmental requirement. When a task’s condition is met, Consul-Terraform-Sync executes that task to update network infrastructure. Depending on the condition type, the condition definition may also define and enable the source input that the task provides to the configured Terraform Module.
+**Condition** - A task-level defined environmental requirement. When a task’s condition is met, Consul-Terraform-Sync executes that task to update network infrastructure. Depending on the condition type, the condition definition may also define and enable the source input that the task provides to the configured Terraform module.
 
 **Consul-Terraform-Sync** - [GitHub repo](https://github.com/hashicorp/consul-terraform-sync) and binary/CLI name for the project that is used to perform Network Infrastructure Automation.
 
@@ -33,9 +35,11 @@ Consul-Terraform-Sync executes one or more automation tasks with the most recent
 
 -> **Note:** The terminology "tasks" used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
 
-**Source Input** - A source input defines objects that provide values or metadata to the Terraform module. See [source input](/docs/nia/terraform-modules#source-input) for the supported metadata and values. For example, a user can configure a Consul KV source input to provide KV pairs as variables to their respective Terraform Module. The source input can be included in two ways. It can be specified as a parameter in a condition using `source_includes_var` and also by using the `source_input` block.
+**Source Input** - A source input defines objects that provide values or metadata to the Terraform module. See [source input](/docs/nia/terraform-modules#source-input) for the supported metadata and values. For example, a user can configure a Consul KV source input to provide KV pairs as variables to their respective Terraform module. The source input can be included in two ways. It can be specified as a parameter in a condition using `source_includes_var` and also by using the `source_input` block.
 
 **Network Infrastructure Automation (NIA)** - Enables dynamic updates to network infrastructure devices triggered when specific conditions, such as service changes and registration, are met.
+
+**Services** - A service in CTS represents a service that is registered with Consul for service discovery. Services are grouped by their service names. There may be more than one instance of a particular service, each with its own unique ID. CTS monitors services based on service names and can provide service instance details to a Terraform module for network automation.
 
 **Tasks** - A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream.
 

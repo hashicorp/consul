@@ -37,7 +37,7 @@ proxy when an instance goes unhealthy.
 ## Tasks
 
 A task is the action triggered by the updated data monitored in Consul. It
-takes the dynamic service data and translates it into a call to the
+takes that dynamic service data and translates it into a call to the
 infrastructure application to configure it with the updates. It uses a driver
 to push out these updates, the initial driver being a local Terraform run. An
 example of a task is to automate a firewall security policy rule with

@@ -33,7 +33,7 @@ build:
 # local Docker image with the dependency changes included.
 build-image:
 	@echo "==> Building Docker image..."
-	@docker build -t hashicorp-consul-website-local .
+	@docker build --tag hashicorp-consul-website-local .
 
 # Use this if you have run `build-image` to use the locally built image
 # rather than our CI-generated image to test dependency changes.

@@ -6,14 +6,17 @@
 #downstream-container,
 #metrics-container,
 #upstream-container {
-  border: 1px solid rgb(var(--tone-gray-200));
   border-radius: var(--decor-radius-100);
+  border: 1px solid;
+  /* TODO: If this color is combined with the above */
+  /* border property then the compressor removes the color */
+  border-color: rgb(var(--tone-gray-200));
 }
 #downstream-container,
 #upstream-container {
   background-color: rgb(var(--tone-gray-100));
 }
-#downstream-container div:first-child {
+#downstream-container > div:first-child {
   display: inline-flex;
   span::before {
     @extend %with-info-circle-outline-mask, %as-pseudo;

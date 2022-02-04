@@ -52,7 +52,7 @@ ${range(env('CONSUL_EXPOSED_COUNT', 3)).map((i) => `
 `)}
             ]
           },
-          "Mode": "${fake.helpers.randomize(['', 'direct', 'transparent'])}",
+          "Mode": "${env('CONSUL_TPROXY_ENABLE') ? `transparent` : fake.helpers.randomize(['', 'direct', 'transparent'])}",
           "TransparentProxy": {},
           "DestinationServiceName": "${location.pathname.slice(4)}"
           ${ location.pathname.slice(4) === "service-0" ? `
