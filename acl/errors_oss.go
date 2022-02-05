@@ -5,14 +5,14 @@ package acl
 
 // In some sense we really want this to contain an EnterpriseMeta, but
 // this turns out to be a convenient place to hang helper functions off of.
-type EnterpriseObjectDescriptor struct {
+type ResourceDescriptor struct {
 	Name string
 }
 
-func MakeEnterpriseObjectDescriptor(name string, _ AuthorizerContext) EnterpriseObjectDescriptor {
-	return EnterpriseObjectDescriptor{Name: name}
+func NewResourceDescriptor(name string, _ *AuthorizerContext) ResourceDescriptor {
+	return ResourceDescriptor{Name: name}
 }
 
-func (od *EnterpriseObjectDescriptor) ToString() string {
+func (od *ResourceDescriptor) ToString() string {
 	return od.Name
 }

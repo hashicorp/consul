@@ -44,14 +44,14 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	// Vet the service itself.
 	service.FillAuthzContext(&authzContext)
 	if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
-		return acl.PermissionDeniedByACL(authz, authzContext, "service:write", "service", service.Service)
+		return acl.PermissionDeniedByACL(authz, &authzContext, "service", "write", service.Service)
 	}
 
 	// Vet any service that might be getting overwritten.
 	if existing := a.State.Service(service.CompoundServiceID()); existing != nil {
 		existing.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			return acl.PermissionDeniedByACL(authz, authzContext, "service:write", "service", existing.Service)
+			return acl.PermissionDeniedByACL(authz, &authzContext, "service", "write", existing.Service)
 		}
 	}
 
@@ -60,7 +60,7 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	if service.Kind == structs.ServiceKindConnectProxy {
 		service.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-			return acl.PermissionDeniedByACL(authz, authzContext, "service:write", "service", service.Proxy.DestinationServiceName)
+			return acl.PermissionDeniedByACL(authz, &authzContext, "service", "write", service.Proxy.DestinationServiceName)
 		}
 	}
 
@@ -74,7 +74,7 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 	if existing := a.State.Service(serviceID); existing != nil {
 		existing.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			return acl.PermissionDeniedByACL(authz, authzContext, "service:write", "service", existing.Service)
+			return acl.PermissionDeniedByACL(authz, &authzContext, "service", "write", existing.Service)
 		}
 	} else {
 		// Take care if modifying this error message.
@@ -96,12 +96,12 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 	// Vet the check itself.
 	if len(check.ServiceName) > 0 {
 		if authz.ServiceWrite(check.ServiceName, &authzContext) != acl.Allow {
-			return acl.PermissionDeniedByACL(authz, authzContext, "service:write", "service", check.ServiceName)
+			return acl.PermissionDeniedByACL(authz, &authzContext, "service", "write", check.ServiceName)
 		}
 	} else {
 		// N.B. Should this authzContext be derived from a.AgentEnterpriseMeta()
 		if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-			return acl.PermissionDeniedByACL(authz, authzContext, "node:write", "node", a.config.NodeName)
+			return acl.PermissionDeniedByACL(authz, &authzContext, "node", "write", a.config.NodeName)
 		}
 	}
 
@@ -110,12 +110,12 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 		if len(existing.ServiceName) > 0 {
 			// N.B. Should this authzContext be derived from existing.EnterpriseMeta?
 			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
-				return acl.PermissionDeniedByACL(authz, authzContext, "service:write", "service", existing.ServiceName)
+				return acl.PermissionDeniedByACL(authz, &authzContext, "service", "write", existing.ServiceName)
 			}
 		} else {
 			// N.B. Should this authzContext be derived from a.AgentEnterpriseMeta()
 			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDeniedByACL(authz, authzContext, "node:write", "node", a.config.NodeName)
+				return acl.PermissionDeniedByACL(authz, &authzContext, "node", "write", a.config.NodeName)
 			}
 		}
 	}
@@ -131,11 +131,11 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 	if existing := a.State.Check(checkID); existing != nil {
 		if len(existing.ServiceName) > 0 {
 			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
-				return acl.PermissionDeniedByACL(authz, authzContext, "service:write", "service", existing.ServiceName)
+				return acl.PermissionDeniedByACL(authz, &authzContext, "service", "write", existing.ServiceName)
 			}
 		} else {
 			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDeniedByACL(authz, authzContext, "service:write", "node", a.config.NodeName)
+				return acl.PermissionDeniedByACL(authz, &authzContext, "node", "write", a.config.NodeName)
 			}
 		}
 	} else {
