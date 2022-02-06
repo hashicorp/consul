@@ -240,6 +240,10 @@ func (s *staticAuthorizer) Snapshot(_ *AuthorizerContext) EnforcementDecision {
 	return Deny
 }
 
+func (s *staticAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
+	return AllowAuthorizer{Authorizer: s}
+}
+
 // AllowAll returns an Authorizer that allows all operations
 func AllowAll() Authorizer {
 	return allowAll

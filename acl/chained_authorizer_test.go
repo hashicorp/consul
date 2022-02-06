@@ -99,6 +99,10 @@ func (authz testAuthorizer) Snapshot(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
 
+func (authz testAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
+	return AllowAuthorizer{Authorizer: &authz}
+}
+
 func TestChainedAuthorizer(t *testing.T) {
 	t.Run("No Authorizers", func(t *testing.T) {
 		authz := NewChainedAuthorizer([]Authorizer{})
