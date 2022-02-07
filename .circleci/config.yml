@@ -270,7 +270,12 @@ jobs:
       - run: go mod download
       - run:
           name: make dev
-          command: if [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then make dev; fi
+          command: |
+            if [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then
+              make dev
+              mkdir -p /home/circleci/bin
+              cp ./bin/consul /home/circleci/bin/consul
+            fi
       - run-go-test-full:
           go_test_flags: 'if ! [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
       
