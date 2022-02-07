@@ -23,7 +23,6 @@ Admin partitions exist a level above namespaces in the identity hierarchy. They 
 Learn resources are available to help you get started with Admin Partitions.
 
 - [Multi-Tenancy with Administrative Partitions](https://learn.hashicorp.com/tutorials/consul/consul-admin-partitions?in=consul/enterprise)
-<!-- - [Multi Cluster Applications with Consul Enterprise Admin Partitions](https://learn.hashicorp.com/tutorials/consul/kubernetes-admin-partitions?in=consul/kubernetes) UNCOMMENT WHEN RELEASED-->
 
 ### Default Admin Partition
 
@@ -201,7 +200,7 @@ $ kubectl get secret server-consul-partitions-acl-token --context <server-contex
 
 ```yaml
 global:
-  name: INSERT_UNIQUE_NAME_HERE
+  name: client
   enabled: false
   enableConsulNamespaces: true
   image: hashicorp/consul-enterprise:1.11.2-ent
@@ -226,13 +225,13 @@ global:
     secretKey: key
 externalServers:
   enabled: true
-  hosts: [34.135.103.67] # See step 5 above
+  hosts: [34.135.103.67] # See step 5
   tlsServerName: server.dc1.consul
-  k8sAuthMethodHost: https://104.154.156.146 # See step 6 above
+  k8sAuthMethodHost: https://104.154.156.146 # See step 6
 client:
   enabled: true
   exposeGossipPorts: true
-  join: [34.135.103.67] # See step 5 above
+  join: [34.135.103.67] # See step 5
 connectInject:
   enabled: true
   consulNamespaces:
