@@ -1,11 +1,11 @@
 package config
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
+	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/hashicorp/go-hclog"
 	"os"
+	"syscall"
 	"time"
 )
 
@@ -21,7 +21,7 @@ type Watcher struct {
 }
 
 type watchedFile struct {
-	hash           string
+	iNode          uint64
 	isEventWatched bool
 }
 
@@ -43,11 +43,11 @@ func (w Watcher) Add(filename string) error {
 	if err != nil {
 		return err
 	}
-	hash, err := w.hashFile(filename)
+	hash, err := w.getInode(filename)
 	if err != nil {
 		return err
 	}
-	w.configFiles[filename] = &watchedFile{hash: hash, isEventWatched: true}
+	w.configFiles[filename] = &watchedFile{iNode: hash, isEventWatched: true}
 	return nil
 }
 
@@ -69,15 +69,24 @@ func (w Watcher) Close() error {
 	return nil
 }
 
-func (w Watcher) hashFile(filename string) (string, error) {
-	file, err := os.ReadFile(filename)
-	if err != nil {
-		return "", err
+func (w Watcher) getInode(filename string) (uint64, error) {
+	realFilename := filename
+	linkedFile, err := os.Readlink(filename)
+	if err == nil {
+		realFilename = linkedFile
 	}
-	hasher := sha256.New()
+	fileinfo, err := os.Stat(realFilename)
 
-	hash := hex.EncodeToString(hasher.Sum(file))
-	return hash, nil
+	if err != nil {
+		return 0, err
+	}
+	stat, ok := fileinfo.Sys().(*syscall.Stat_t)
+	if !ok {
+		return 0, fmt.Errorf("Not a syscall.Stat_t %v", fileinfo.Sys())
+	}
+
+	w.logger.Info("read inode ", "inode", stat.Ino)
+	return stat.Ino, nil
 }
 
 func (w Watcher) watch() {
@@ -114,7 +123,9 @@ func (w Watcher) watch() {
 }
 
 func (w Watcher) handleEvent(event fsnotify.Event) error {
-	if !isWrite(event) && !isRemove(event) && !isCreate(event) {
+
+	// we only want Create event to avoid triggering a relaod on file modification
+	if !isCreate(event) {
 		return nil
 	}
 	// If the file was removed, set it to be readded to watch when created
@@ -126,7 +137,7 @@ func (w Watcher) handleEvent(event fsnotify.Event) error {
 
 func (w Watcher) reconcile() {
 	for filename, configFile := range w.configFiles {
-		newHash, err := w.hashFile(filename)
+		newInode, err := w.getInode(filename)
 		if err != nil {
 			continue
 		}
@@ -137,7 +148,7 @@ func (w Watcher) reconcile() {
 				configFile.isEventWatched = true
 			}
 		}
-		if configFile.hash != newHash {
+		if configFile.iNode != newInode {
 			w.handleFunc(&WatcherEvent{Filename: filename})
 		}
 	}
