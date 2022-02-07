@@ -39,8 +39,14 @@ steps:
     environment:
       GOTESTSUM_RELEASE: 1.6.4
     command: |
+      ARCH=`uname -m`
+      if [[ "$ARCH" == "aarch64" ]]; then
+         ARCH="arm64"
+      else
+         ARCH="amd64"
+      fi
       url=https://github.com/gotestyourself/gotestsum/releases/download
-      curl -sSL "${url}/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | \
+      curl -sSL "${url}/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_${ARCH}.tar.gz" | \
       sudo tar -xz --overwrite -C /usr/local/bin gotestsum
 
   get-aws-cli: &get-aws-cli
@@ -104,6 +110,54 @@ commands:
           echo "export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.AccessKeyId')" >> $BASH_ENV
           echo "export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.SecretAccessKey')" >> $BASH_ENV
           echo "export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.SessionToken')" >> $BASH_ENV
+
+  run-go-test-full:
+    parameters:
+      go_test_flags:
+        type: string
+        default: ""
+    steps:
+      - attach_workspace:
+          at: /home/circleci/go/bin
+      - run: sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y rsyslog
+      - run: sudo service rsyslog start
+      - run: go mod download
+      - run:
+          name: go test
+          command: |
+            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
+            PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./... | circleci tests split --split-by=timings --timings-type=classname)
+            echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
+            echo $PACKAGE_NAMES
+            # some tests expect this umask, and arm images have a different default
+            umask 0022
+
+            << parameters.go_test_flags >>
+
+            gotestsum \
+              --format=short-verbose \
+              --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
+              --debug \
+              --rerun-fails=3 \
+              --rerun-fails-max-failures=40 \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --packages="$PACKAGE_NAMES" \
+              --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
+              -tags="$GOTAGS" -p 2 \
+              ${GO_TEST_FLAGS-} \
+              -cover -coverprofile=coverage.txt
+
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: /tmp/jsonfile
+      - run: &rerun-fails-report
+          name: "Re-run fails report"
+          command: |
+            .circleci/scripts/rerun-fails-report.sh /tmp/gotestsum-rerun-fails
+      - run: *notify-slack-failure
 
 jobs:
   # lint consul tests
@@ -194,6 +248,32 @@ jobs:
             exit 1
           fi
 
+  go-test-arm64:
+    machine:
+      image: ubuntu-2004:202101-01
+    resource_class: arm.medium
+    parallelism: 4
+    environment:
+      <<: *ENVIRONMENT
+      GOTAGS: "" # No tags for OSS but there are for enterprise
+      # GOMAXPROCS defaults to number of cores on underlying hardware, set
+      # explicitly to avoid OOM issues https://support.circleci.com/hc/en-us/articles/360034684273-common-GoLang-memory-issues
+      GOMAXPROCS: 4
+    steps:
+      - checkout
+      - run:
+         command: |
+            sudo rm -rf /usr/local/go
+            wget https://golang.org/dl/go1.17.5.linux-arm64.tar.gz
+            sudo tar -C /usr/local -xzvf go1.17.5.linux-arm64.tar.gz
+      - run: *install-gotestsum
+      - run: go mod download
+      - run:
+          name: make dev
+          command: if [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then make dev; fi
+      - run-go-test-full:
+          go_test_flags: 'if ! [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
+      
   go-test:
     docker:
       - image: *GOLANG_IMAGE
@@ -204,46 +284,9 @@ jobs:
       # GOMAXPROCS defaults to number of cores on underlying hardware, set
       # explicitly to avoid OOM issues https://support.circleci.com/hc/en-us/articles/360034684273-common-GoLang-memory-issues
       GOMAXPROCS: 4
-      # The medium resource class (default) boxes are 2 vCPUs, 4GB RAM
-      # https://circleci.com/docs/2.0/configuration-reference/#docker-executor
-      # but we can run a little over that limit.
     steps:
       - checkout
-      - attach_workspace:
-          at: /home/circleci/go/bin
-      - run: sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y rsyslog
-      - run: sudo service rsyslog start
-      - run: go mod download
-      - run:
-          name: go test
-          command: |
-            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
-            PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./... | circleci tests split --split-by=timings --timings-type=classname)
-            echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
-            echo $PACKAGE_NAMES
-            gotestsum \
-              --format=short-verbose \
-              --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
-              --debug \
-              --rerun-fails=3 \
-              --rerun-fails-max-failures=40 \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --packages="$PACKAGE_NAMES" \
-              --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
-              -tags="$GOTAGS" -p 2 \
-              -cover -coverprofile=coverage.txt
-
-      - store_test_results:
-          path: *TEST_RESULTS_DIR
-      - store_artifacts:
-          path: *TEST_RESULTS_DIR
-      - store_artifacts:
-          path: /tmp/jsonfile
-      - run: &rerun-fails-report
-          name: "Re-run fails report"
-          command: |
-            .circleci/scripts/rerun-fails-report.sh /tmp/gotestsum-rerun-fails
-      - run: *notify-slack-failure
+      - run-go-test-full
 
   go-test-race:
     docker:
@@ -1016,6 +1059,7 @@ workflows:
           go-arch: "386"
           <<: *filter-ignore-non-go-branches
       - test-connect-ca-providers: *filter-ignore-non-go-branches
+      - go-test-arm64: *filter-ignore-non-go-branches
       - dev-build: *filter-ignore-non-go-branches
       - go-test:
           requires: [dev-build]
