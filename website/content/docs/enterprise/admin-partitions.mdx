@@ -194,11 +194,12 @@ $ kubectl get secret server-consul-ca-key --context <server-context> --output ya
 $ kubectl get secret server-consul-partitions-acl-token --context <server-context> --output yaml | kubectl apply --context <client-context> --filename -
 ```
 
-1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition. In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied:
+1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition.
+   In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied. Also, ensure a unique global name is assigned.
 
   <CodeTabs heading="client.yaml">
 
-  <CodeBlockConfig lineNumbers>
+  <CodeBlockConfig lineNumbers highlight="2,27,29,33">
 
 ```yaml
 global:
