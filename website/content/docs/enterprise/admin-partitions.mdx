@@ -118,6 +118,7 @@ This step must also be completed for every cluster.
 1. Create a server configuration values file to override the default Consul Helm chart settings:
 
   <CodeTabs heading="server.yaml">
+
   <CodeBlockConfig lineNumbers>
 
 ```yaml
@@ -196,6 +197,7 @@ $ kubectl get secret server-consul-partitions-acl-token --context <server-contex
 1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition. In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied:
 
   <CodeTabs heading="client.yaml">
+
   <CodeBlockConfig lineNumbers>
 
 ```yaml
