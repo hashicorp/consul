@@ -109,11 +109,11 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Verify that your VPC is configured to enable connectivity between the pods running Consul clients and servers. Refer to your virtual cloud provider's documentation for instructions on configuring network connectivity.
 1. Create the license secret in each cluster, e.g.:
 
-```shell-session
-$ kubectl create secret generic license --from-file=key=[license file path i.e. ./license.hclic]
-```
+  ```shell-session
+  $ kubectl create secret generic license --from-file=key=[license file path i.e. ./license.hclic]
+  ```
 
-This step must also be completed for every cluster.
+  This step must also be completed for every cluster.
 
 1. Create a server configuration values file to override the default Consul Helm chart settings:
 
@@ -121,78 +121,78 @@ This step must also be completed for every cluster.
 
   <CodeBlockConfig lineNumbers>
 
-```yaml
-global:
-  enableConsulNamespaces: true
-  tls:
+  ```yaml
+  global:
+    enableConsulNamespaces: true
+    tls:
+      enabled: true
+    image: hashicorp/consul-enterprise:1.11.2-ent
+    adminPartitions:
+      enabled: true
+    acls:
+      managedSystemACLs: true
+    enterpriseLicense:
+      secretName: license
+      secretKey: key
+  server:
+    exposeGossipAndRPCPorts: true
+  connectInject:
     enabled: true
-  image: hashicorp/consul-enterprise:1.11.2-ent
-  adminPartitions:
+    consulNamespaces:
+      mirroringK8S: true
+  controller:
     enabled: true
-  acls:
-    managedSystemACLs: true
-  enterpriseLicense:
-    secretName: license
-    secretKey: key
-server:
-  exposeGossipAndRPCPorts: true
-connectInject:
-  enabled: true
-  consulNamespaces:
-    mirroringK8S: true
-controller:
-  enabled: true
-meshGateway:
-  enabled: true
-  replicas: 1
-dns:
-  enabled: true
-  enableRedirection: true
-```
+  meshGateway:
+    enabled: true
+    replicas: 1
+  dns:
+    enabled: true
+    enableRedirection: true
+  ```
 
   </CodeBlockConfig>
   </CodeTabs>
 
-Refer to the [Helm Chart Configuration reference](/docs/k8s/helm) for details about the parameters you can specify in the file.
+  Refer to the [Helm Chart Configuration reference](/docs/k8s/helm) for details about the parameters you can specify in the file.
 
 1. Install the Consul server(s) using the values file created in the previous step:
 
-```shell-session
-$ helm install server hashicorp/consul --values server.yaml --version "0.40.0"
-```
+  ```shell-session
+  $ helm install server hashicorp/consul --values server.yaml --version "0.40.0"
+  ```
 
 1. After the server starts, get the external IP address for partition service so that it can be added to the client configuration. The IP address is used to bootstrap connectivity between servers and clients. <a name="get-external-ip-address"/>
 
-```shell-session
-$ kubectl get services --selector="app=consul,component=server" --output jsonpath="{range .items[*]}{@.status.loadBalancer.ingress[*].ip}{end}"
-34.135.103.67
-```
+  ```shell-session
+  $ kubectl get services --selector="app=consul,component=server" --output jsonpath="{range .items[*]}{@.status.loadBalancer.ingress[*].ip}{end}"
+  34.135.103.67
+  ```
 
 1. Get the Kubernetes authentication method URL for the workload cluster:
 
-```shell-session
-$ kubectl config view --output "jsonpath={.clusters[?(@.name=='<workload-cluster-name>')].cluster.server}"
-```
+  ```shell-session
+  $ kubectl config view --output "jsonpath={.clusters[?(@.name=='<workload-cluster-name>')].cluster.server}"
+  ```
 
-Use the IP address printed to the console to configure the `k8sAuthMethodHost` parameter in the workload configuration file for your client nodes.
+  Use the IP address printed to the console to configure the `k8sAuthMethodHost` parameter in the workload configuration file for your client nodes.
 
 1. Copy the server certificate to the workload cluster.
 
-```shell-session
-$ kubectl get secret server-consul-ca-cert --context <server-context> --output yaml | kubectl apply --context <client-context> --filename -
-```
+  ```shell-session
+  $ kubectl get secret server-consul-ca-cert --context <server-context> --output yaml | kubectl apply --context <client-context> --filename -
+  ```
 
 1. Copy the server key to the workload cluster.
 
-```shell-session
-$ kubectl get secret server-consul-ca-key --context <server-context> --output yaml | kubectl apply --context <client-context> --filename -
-```
+  ```shell-session
+  $ kubectl get secret server-consul-ca-key --context <server-context> --output yaml | kubectl apply --context <client-context> --filename -
+  ```
 
 1. If ACLs were enabled in the server configuration values file, copy the token to the workload cluster.
 
-```shell-session
-$ kubectl get secret server-consul-partitions-acl-token --context <server-context> --output yaml | kubectl apply --context <client-context> --filename -
-```
+  ```shell-session
+  $ kubectl get secret server-consul-partitions-acl-token --context <server-context> --output yaml | kubectl apply --context <client-context> --filename -
+  ```
 
 1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition.
    In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied. Also, ensure a unique global name is assigned.
@@ -201,53 +201,53 @@ $ kubectl get secret server-consul-partitions-acl-token --context <server-contex
 
   <CodeBlockConfig lineNumbers highlight="2,27,29,33">
 
-```yaml
-global:
-  name: client
-  enabled: false
-  enableConsulNamespaces: true
-  image: hashicorp/consul-enterprise:1.11.2-ent
-  adminPartitions:
+  ```yaml
+  global:
+    name: client
+    enabled: false
+    enableConsulNamespaces: true
+    image: hashicorp/consul-enterprise:1.11.2-ent
+    adminPartitions:
+      enabled: true
+      name: clients
+    tls:
+      enabled: true
+      caCert:
+        secretName: server-consul-ca-cert
+        secretKey: tls.crt
+      caKey:
+        secretName: server-consul-ca-key
+        secretKey: tls.key
+    acls:
+      manageSystemACLs: true
+      bootstrapToken:
+        secretName: server-consul-partitions-acl-token
+        secretKey: token
+    enterpriseLicense:
+      secretName: license
+      secretKey: key
+  externalServers:
     enabled: true
-    name: clients
-  tls:
+    hosts: [34.135.103.67] # See step 5
+    tlsServerName: server.dc1.consul
+    k8sAuthMethodHost: https://104.154.156.146 # See step 6
+  client:
     enabled: true
-    caCert:
-      secretName: server-consul-ca-cert
-      secretKey: tls.crt
-    caKey:
-      secretName: server-consul-ca-key
-      secretKey: tls.key
-  acls:
-    manageSystemACLs: true
-    bootstrapToken:
-      secretName: server-consul-partitions-acl-token
-      secretKey: token
-  enterpriseLicense:
-    secretName: license
-    secretKey: key
-externalServers:
-  enabled: true
-  hosts: [34.135.103.67] # See step 5
-  tlsServerName: server.dc1.consul
-  k8sAuthMethodHost: https://104.154.156.146 # See step 6
-client:
-  enabled: true
-  exposeGossipPorts: true
-  join: [34.135.103.67] # See step 5
-connectInject:
-  enabled: true
-  consulNamespaces:
-    mirroringK8S: true
-controller:
-  enabled: true
-meshGateway:
-  enabled: true
-  replicas: 1
-dns:
-  enabled: true
-  enableRedirection: true
-```
+    exposeGossipPorts: true
+    join: [34.135.103.67] # See step 5
+  connectInject:
+    enabled: true
+    consulNamespaces:
+      mirroringK8S: true
+  controller:
+    enabled: true
+  meshGateway:
+    enabled: true
+    replicas: 1
+  dns:
+    enabled: true
+    enableRedirection: true
+  ```
 
   </CodeBlockConfig>
   </CodeTabs>
@@ -264,11 +264,11 @@ You can log into the Consul UI to verify that the partitions appear as expected.
 
 1. If ACLs are enabled, you will need the partitions ACL token, which can be read from the Kubernetes secret. The token is an encoded string that must be decoded in base64, e.g.:
 
-```shell-session
-$ kubectl get secret server-consul-bootstrap-acl-token --template "{{ .data.token | base64decode }}"
-```
+  ```shell-session
+  $ kubectl get secret server-consul-bootstrap-acl-token --template "{{ .data.token | base64decode }}"
+  ```
 
-The example command gets the token using the secret name configured in the values file (`bootstrap.secretName`), decodes the secret, and prints the usable token to the console in JSON format.
+  The example command gets the token using the secret name configured in the values file (`bootstrap.secretName`), decodes the secret, and prints the usable token to the console in JSON format.
 
 1. Open the Consul UI in a browser using the external IP address and port number described in a previous step (see [step 5](#get-external-ip-address)).
 1. Click **Log in** and enter the decoded token when prompted.
