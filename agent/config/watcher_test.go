@@ -37,7 +37,7 @@ func TestWatcherAddRemoveExist(t *testing.T) {
 	require.NoError(t, err)
 	h, ok := w.configFiles[file.Name()]
 	require.True(t, ok)
-	require.Equal(t, "7465737420636f6e666967e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", h.hash)
+	require.NotEqual(t, 0, h.iNode)
 	err = w.Remove(file.Name())
 	require.NoError(t, err)
 	_, ok = w.configFiles[file.Name()]
@@ -83,7 +83,7 @@ func TestEventWatcherWrite(t *testing.T) {
 	require.NoError(t, err)
 	err = file.Sync()
 	require.NoError(t, err)
-	require.NoError(t, assertEvent(file.Name(), watcherCh))
+	require.Error(t, assertEvent(file.Name(), watcherCh), "timedout waiting for event")
 }
 
 func TestEventWatcherRead(t *testing.T) {
@@ -196,13 +196,14 @@ func TestEventWatcherMove(t *testing.T) {
 	err = file2.Close()
 	require.NoError(t, err)
 
-	err = w.Add(file2.Name())
+	err = w.Add(file.Name())
 
 	require.NoError(t, err)
 	w.reconcileTimeout = 20 * time.Millisecond
 	w.Start()
-	os.Rename(file.Name(), file2.Name())
-	require.NoError(t, assertEvent(file2.Name(), watcherCh))
+	err = os.Rename(file2.Name(), file.Name())
+	require.NoError(t, err)
+	require.NoError(t, assertEvent(file.Name(), watcherCh))
 }
 
 func TestEventReconcile(t *testing.T) {
@@ -221,15 +222,22 @@ func TestEventReconcile(t *testing.T) {
 	err = file.Sync()
 	require.NoError(t, err)
 
+	file2 := testutil.TempFile(t, "temp_config"+randomString(12))
+	_, err = file2.WriteString("test config 2")
+	require.NoError(t, err)
+	err = file2.Sync()
+	require.NoError(t, err)
+	err = file2.Close()
+	require.NoError(t, err)
+
 	err = w.Add(file.Name())
 	require.NoError(t, err)
 	w.reconcileTimeout = 50 * time.Millisecond
 	// remove the file from the internal watcher to only trigger the reconcile
-	w.watcher.Remove(file.Name())
-	w.Start()
-	_, err = file.WriteString("test config 2")
+	err = w.watcher.Remove(file.Name())
 	require.NoError(t, err)
-	err = file.Sync()
+	w.Start()
+	err = os.Rename(file2.Name(), file.Name())
 	require.NoError(t, err)
 	require.NoError(t, assertEvent(file.Name(), watcherCh))
 }
