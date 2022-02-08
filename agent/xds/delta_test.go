@@ -895,19 +895,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 			),
 		})
 
-		// the listener is updated
-		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-			TypeUrl: ListenerType,
-			Nonce:   hexString(6),
-			Resources: makeTestResources(t,
-				makeTestListener(t, snap, "http:db:rds"),
-			),
-		})
-
 		envoy.SendDeltaReqACK(t, ClusterType, 5)
-
-		// ACKs the listener
-		envoy.SendDeltaReqACK(t, ListenerType, 6)
 
 		// The behaviors of Cluster updates triggering re-sends of Endpoint updates
 		// tested in TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpactEndpoints
@@ -916,13 +904,25 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 			TypeUrl: EndpointType,
-			Nonce:   hexString(7),
+			Nonce:   hexString(6),
 			Resources: makeTestResources(t,
 				makeTestEndpoints(t, snap, "http:db"),
 			),
 		})
 
-		envoy.SendDeltaReqACK(t, EndpointType, 7)
+		envoy.SendDeltaReqACK(t, EndpointType, 6)
+
+		// the listener is updated
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: ListenerType,
+			Nonce:   hexString(7),
+			Resources: makeTestResources(t,
+				makeTestListener(t, snap, "http:db:rds"),
+			),
+		})
+
+		// ACKs the listener
+		envoy.SendDeltaReqACK(t, ListenerType, 7)
 
 		// THE ACTUAL THING WE CARE ABOUT: replaced route config
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
