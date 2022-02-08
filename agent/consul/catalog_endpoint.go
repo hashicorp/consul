@@ -241,8 +241,10 @@ func vetRegisterWithACL(
 	// privileges.
 	needsNode := ns == nil || subj.ChangesNode(ns.Node)
 
-	if needsNode && authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if needsNode {
+		if err := authz.ToAllowAuthorizer().NodeWriteAllowed(subj.Node, &authzContext); err != nil {
+			return err
+		}
 	}
 
 	// Vet the service change. This includes making sure they can register
@@ -293,8 +295,8 @@ func vetRegisterWithACL(
 
 		// Node-level check.
 		if check.ServiceID == "" {
-			if authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
+			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(subj.Node, &authzContext); err != nil {
+				return err
 			}
 			continue
 		}
@@ -408,7 +410,8 @@ func vetDeregisterWithACL(
 	// Allow service deregistration if the token has write permission for the node.
 	// This accounts for cases where the agent no longer has a token with write permission
 	// on the service to deregister it.
-	if authz.NodeWrite(subj.Node, &authzContext) == acl.Allow {
+	nodeWriteErr := authz.ToAllowAuthorizer().NodeWriteAllowed(subj.Node, &authzContext)
+	if nodeWriteErr == nil {
 		return nil
 	}
 
@@ -438,14 +441,14 @@ func vetDeregisterWithACL(
 				return acl.ErrPermissionDenied
 			}
 		} else {
-			if authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
+			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(subj.Node, &authzContext); err != nil {
+				return err
 			}
 		}
 	} else {
 		// Since NodeWrite is not given - otherwise the earlier check
 		// would've returned already - we can deny here.
-		return acl.ErrPermissionDenied
+		return nodeWriteErr
 	}
 
 	return nil

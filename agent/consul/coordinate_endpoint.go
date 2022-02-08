@@ -152,8 +152,8 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 		return err
 	}
 
-	if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().NodeWriteAllowed(args.Node, &authzContext); err != nil {
+		return err
 	}
 
 	// Add the coordinate to the map of pending updates.
@@ -245,8 +245,8 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 		return err
 	}
 
-	if authz.NodeRead(args.Node, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().NodeReadAllowed(args.Node, &authzContext); err != nil {
+		return err
 	}
 
 	return c.srv.blockingQuery(&args.QueryOptions,

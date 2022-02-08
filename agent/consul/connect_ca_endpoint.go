@@ -187,8 +187,8 @@ func (s *ConnectCA) Sign(
 		}
 	} else if isAgent {
 		agentID.GetEnterpriseMeta().FillAuthzContext(&authzContext)
-		if authz.NodeWrite(agentID.Agent, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().NodeWriteAllowed(agentID.Agent, &authzContext); err != nil {
+			return err
 		}
 	}
 

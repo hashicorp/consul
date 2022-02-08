@@ -2,13 +2,12 @@ package agent
 
 import (
 	"fmt"
-
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/types"
 )
 
 // aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
@@ -100,8 +99,8 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 		}
 	} else {
 		// N.B. Should this authzContext be derived from a.AgentEnterpriseMeta()
-		if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-			return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceNode, acl.AccessWrite, a.config.NodeName)
+		if err := authz.ToAllowAuthorizer().NodeWriteAllowed(a.config.NodeName, &authzContext); err != nil {
+			return err
 		}
 	}
 
@@ -114,8 +113,9 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 			}
 		} else {
 			// N.B. Should this authzContext be derived from a.AgentEnterpriseMeta()
-			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceNode, acl.AccessWrite, a.config.NodeName)
+
+			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(a.config.NodeName, &authzContext); err != nil {
+				return err
 			}
 		}
 	}
@@ -134,8 +134,8 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 				return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, existing.ServiceName)
 			}
 		} else {
-			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceNode, acl.AccessWrite, a.config.NodeName)
+			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(a.config.NodeName, &authzContext); err != nil {
+				return err
 			}
 		}
 	} else {

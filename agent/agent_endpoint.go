@@ -1375,8 +1375,8 @@ func (s *HTTPHandlers) AgentNodeMaintenance(resp http.ResponseWriter, req *http.
 
 	var authzContext acl.AuthorizerContext
 	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
-	if authz.NodeWrite(s.agent.config.NodeName, &authzContext) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().NodeWriteAllowed(s.agent.config.NodeName, &authzContext); err != nil {
+		return nil, err
 	}
 
 	if enable {
