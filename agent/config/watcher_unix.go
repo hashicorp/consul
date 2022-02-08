@@ -25,5 +25,5 @@ func (w Watcher) getFileId(filename string) (uint64, error) {
 	}
 
 	w.logger.Info("read inode ", "inode", stat.Ino)
-	return uint64(stat.Ctimespec.Nano()), nil
+	return stat.Ino, nil
 }
