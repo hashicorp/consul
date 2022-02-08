@@ -60,8 +60,8 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 	// Authorize using the agent's own enterprise meta, not the token.
 	var authzContext acl.AuthorizerContext
 	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
-	if authz.AgentRead(s.agent.config.NodeName, &authzContext) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().AgentReadAllowed(s.agent.config.NodeName, &authzContext); err != nil {
+		return nil, err
 	}
 
 	var cs lib.CoordinateSet
@@ -150,8 +150,8 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 	// Authorize using the agent's own enterprise meta, not the token.
 	var authzContext acl.AuthorizerContext
 	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
-	if authz.AgentRead(s.agent.config.NodeName, &authzContext) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().AgentReadAllowed(s.agent.config.NodeName, &authzContext); err != nil {
+		return nil, err
 	}
 	if enablePrometheusOutput(req) {
 		if s.agent.config.Telemetry.PrometheusOpts.Expiration < 1 {
@@ -187,8 +187,8 @@ func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Re
 	// Authorize using the agent's own enterprise meta, not the token.
 	var authzContext acl.AuthorizerContext
 	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
-	if authz.AgentRead(s.agent.config.NodeName, &authzContext) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().AgentReadAllowed(s.agent.config.NodeName, &authzContext); err != nil {
+		return nil, err
 	}
 
 	flusher, ok := resp.(http.Flusher)
@@ -240,8 +240,8 @@ func (s *HTTPHandlers) AgentReload(resp http.ResponseWriter, req *http.Request) 
 	// Authorize using the agent's own enterprise meta, not the token.
 	var authzContext acl.AuthorizerContext
 	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
-	if authz.AgentWrite(s.agent.config.NodeName, &authzContext) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().AgentWriteAllowed(s.agent.config.NodeName, &authzContext); err != nil {
+		return nil, err
 	}
 
 	return nil, s.agent.ReloadConfig()
@@ -621,8 +621,9 @@ func (s *HTTPHandlers) AgentJoin(resp http.ResponseWriter, req *http.Request) (i
 	// Authorize using the agent's own enterprise meta, not the token.
 	var authzContext acl.AuthorizerContext
 	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
-	if authz.AgentWrite(s.agent.config.NodeName, &authzContext) != acl.Allow {
-		return nil, acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceAgent, acl.AccessWrite, s.agent.config.NodeName)
+
+	if err := authz.ToAllowAuthorizer().AgentWriteAllowed(s.agent.config.NodeName, &authzContext); err != nil {
+		return nil, err
 	}
 
 	// Get the request partition and default to that of the agent.
@@ -666,8 +667,8 @@ func (s *HTTPHandlers) AgentLeave(resp http.ResponseWriter, req *http.Request) (
 	// Authorize using the agent's own enterprise meta, not the token.
 	var authzContext acl.AuthorizerContext
 	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
-	if authz.AgentWrite(s.agent.config.NodeName, &authzContext) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().AgentWriteAllowed(s.agent.config.NodeName, &authzContext); err != nil {
+		return nil, err
 	}
 
 	if err := s.agent.Leave(); err != nil {
@@ -1399,8 +1400,8 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 	// Authorize using the agent's own enterprise meta, not the token.
 	var authzContext acl.AuthorizerContext
 	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
-	if authz.AgentRead(s.agent.config.NodeName, &authzContext) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().AgentReadAllowed(s.agent.config.NodeName, &authzContext); err != nil {
+		return nil, err
 	}
 
 	// Get the provided loglevel.
@@ -1482,8 +1483,8 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 	// Authorize using the agent's own enterprise meta, not the token.
 	var authzContext acl.AuthorizerContext
 	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
-	if authz.AgentWrite(s.agent.config.NodeName, &authzContext) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().AgentWriteAllowed(s.agent.config.NodeName, &authzContext); err != nil {
+		return nil, err
 	}
 
 	// The body is just the token, but it's in a JSON object so we can add
