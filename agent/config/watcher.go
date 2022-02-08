@@ -1,9 +1,6 @@
 package config
 
 import (
-	"fmt"
-	"os"
-	"syscall"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -62,24 +59,6 @@ func (w Watcher) Remove(filename string) error {
 func (w Watcher) Close() error {
 	close(w.done)
 	return w.watcher.Close()
-}
-
-func (w Watcher) getINode(filename string) (uint64, error) {
-	realFilename := filename
-	if linkedFile, err := os.Readlink(filename); err == nil {
-		realFilename = linkedFile
-	}
-	fileInfo, err := os.Stat(realFilename)
-	if err != nil {
-		return 0, err
-	}
-	stat, ok := fileInfo.Sys().(*syscall.Stat_t)
-	if !ok {
-		return 0, fmt.Errorf("not a syscall.Stat_t %v", fileInfo.Sys())
-	}
-
-	w.logger.Info("read inode ", "inode", stat.Ino)
-	return stat.Ino, nil
 }
 
 func (w Watcher) watch() {
