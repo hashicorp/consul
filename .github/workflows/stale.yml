@@ -1,0 +1,29 @@
+name: stale
+on:
+  schedule:
+    - cron: 0 1 * * *
+  workflow_dispatch: {}
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v4
+        with:
+          days-before-stale: -1
+          days-before-close: -1
+          days-before-pr-stale: 60
+          days-before-pr-close: 30
+          stale-pr-message: This pull request has been automatically flagged
+            for inactivity because it has not been acted upon in the last 60
+            days. It will be closed if no new activity occurs in the next
+            30 days. Please feel free to re-open to resurrect the change if
+            you feel this has happened by mistake. Thank you for your
+            contributions.
+          close-pr-message: Closing due to inactivity. If you feel this was a
+            mistake or you wish to re-open at any time in the future, please
+            leave a comment and it will be re-surfaced for the maintainers to review.
+          stale-pr-label: meta/stale
+          exempt-pr-labels:
+            - meta/staleproof
