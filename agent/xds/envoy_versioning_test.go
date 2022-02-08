@@ -114,7 +114,6 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 	} {
 		cases[v] = testcase{expect: supportedProxyFeatures{
 			GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS: true,
-			IncrementalXDSUpdatesMustBeSerial:                  true,
 			ForceLDSandCDSToAlwaysUseWildcardsOnReconnect:      true,
 		}}
 	}
