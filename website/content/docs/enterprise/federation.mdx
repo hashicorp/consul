@@ -17,8 +17,8 @@ description: >-
   {' '}for additional information.
 </EnterpriseAlert>
 
-Consul's core federation capability uses the same gossip mechanism that is used
-for a single datacenter. This requires that every server from every datacenter
+Consul's _WAN gossip_ federation capability uses the same gossip mechanism that is used for a single datacenter.
+WAN gossip federation requires that every server from every datacenter
 be in a fully connected mesh with an open gossip port (8302/tcp and 8302/udp)
 and an open server RPC port (8300/tcp). For organizations with large numbers of
 datacenters, it becomes difficult to support a fully connected mesh. It is often
@@ -33,3 +33,20 @@ can make queries to the remote datacenter in service of both API and DNS
 requests for remote resources (in spite of the partially-connected nature of the
 topology as a whole). Consul datacenters can simultaneously participate in both
 network areas and the existing WAN pool, which eases migration.
+
+## Requirements
+
+- Consul Enterprise 0.8+
+- **Direct server connectivity:**
+  All Consul servers in the 2 Consul datacenters
+  you want to connect with a network area must have direct network connection. 
+  To ensure connectivity is direct, not funneled through mesh gateways,
+  verify that the
+  [`connect.enable_mesh_gateway_wan_federation`](/docs/agent/config/config-files#connect_enable_mesh_gateway_wan_federation)
+  option is set to `false` (default).
+- **Primary datacenter connectivity:**
+  All Consul datacenters must be connected
+  to the [primary_datacenter](/docs/agent/config/config-files#primary_datacenter)
+  through WAN gossip or a network area.
+  Network areas cannot be if two datacenters are connected only through a
+  [cluster peering](/docs/connect/cluster-peering) relationship.
