@@ -168,7 +168,7 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	err = recreated.Sync()
 	require.NoError(t, err)
 	require.NoError(t, assertEvent(file.Name(), watcherCh))
-	iNode, err := w.getINode(recreated.Name())
+	iNode, err := w.getFileId(recreated.Name())
 	require.NoError(t, err)
 	require.Equal(t, iNode, w.configFiles[recreated.Name()].iNode)
 }
@@ -208,7 +208,7 @@ func TestEventWatcherMove(t *testing.T) {
 	err = os.Rename(file2.Name(), file.Name())
 	require.NoError(t, err)
 	require.NoError(t, assertEvent(file.Name(), watcherCh))
-	iNode, err := w.getINode(file.Name())
+	iNode, err := w.getFileId(file.Name())
 	require.NoError(t, err)
 	require.Equal(t, iNode, w.configFiles[file.Name()].iNode)
 }
@@ -247,7 +247,7 @@ func TestEventReconcile(t *testing.T) {
 	err = os.Rename(file2.Name(), file.Name())
 	require.NoError(t, err)
 	require.NoError(t, assertEvent(file.Name(), watcherCh))
-	iNode, err := w.getINode(file.Name())
+	iNode, err := w.getFileId(file.Name())
 	require.NoError(t, err)
 	require.Equal(t, iNode, w.configFiles[file.Name()].iNode)
 }

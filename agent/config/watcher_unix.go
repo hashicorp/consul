@@ -9,7 +9,7 @@ import (
 	"syscall"
 )
 
-func (w Watcher) getINode(filename string) (uint64, error) {
+func (w Watcher) getFileId(filename string) (uint64, error) {
 	realFilename := filename
 	if linkedFile, err := os.Readlink(filename); err == nil {
 		realFilename = linkedFile
@@ -25,5 +25,5 @@ func (w Watcher) getINode(filename string) (uint64, error) {
 	}
 
 	w.logger.Info("read inode ", "inode", stat.Ino)
-	return stat.Ino, nil
+	return uint64(stat.Ctimespec.Nano()), nil
 }
