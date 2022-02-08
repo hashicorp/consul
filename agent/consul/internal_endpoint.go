@@ -464,16 +464,16 @@ func (m *Internal) KeyringOperation(
 	}
 	switch args.Operation {
 	case structs.KeyringList:
-		if authz.KeyringRead(nil) != acl.Allow {
-			return fmt.Errorf("Reading keyring denied by ACLs")
+		if err := authz.ToAllowAuthorizer().KeyringReadAllowed(nil); err != nil {
+			return err
 		}
 	case structs.KeyringInstall:
 		fallthrough
 	case structs.KeyringUse:
 		fallthrough
 	case structs.KeyringRemove:
-		if authz.KeyringWrite(nil) != acl.Allow {
-			return fmt.Errorf("Modifying keyring denied due to ACLs")
+		if err := authz.ToAllowAuthorizer().KeyringWriteAllowed(nil); err != nil {
+			return err
 		}
 	default:
 		panic("Invalid keyring operation")
