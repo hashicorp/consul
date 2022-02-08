@@ -135,6 +135,42 @@ func TestEventWatcherChmod(t *testing.T) {
 	require.Error(t, assertEvent(file.Name(), watcherCh), "timedout waiting for event")
 }
 
+func TestEventWatcherRemoveCreate(t *testing.T) {
+	watcherCh := make(chan *WatcherEvent)
+	w, err := New(func(event *WatcherEvent) error {
+		watcherCh <- event
+		return nil
+	})
+	defer func() {
+		_ = w.Close()
+	}()
+	require.NoError(t, err)
+	file := testutil.TempFile(t, "temp_config")
+	_, err = file.WriteString("test config")
+	require.NoError(t, err)
+	err = file.Sync()
+	require.NoError(t, err)
+	err = file.Close()
+	require.NoError(t, err)
+
+	err = w.Add(file.Name())
+	require.NoError(t, err)
+	w.reconcileTimeout = 20 * time.Millisecond
+	w.Start()
+	err = os.Remove(file.Name())
+	require.NoError(t, err)
+	time.Sleep(200 * time.Millisecond)
+	recreated, err := os.Create(file.Name())
+	_, err = recreated.WriteString("config 2")
+	require.NoError(t, err)
+	err = recreated.Sync()
+	require.NoError(t, err)
+	require.NoError(t, assertEvent(file.Name(), watcherCh))
+	iNode, err := w.getFileId(recreated.Name())
+	require.NoError(t, err)
+	require.Equal(t, iNode, w.configFiles[recreated.Name()].iNode)
+}
+
 func TestEventWatcherMove(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
 	w, err := New(func(event *WatcherEvent) error {
