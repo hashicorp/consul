@@ -253,7 +253,7 @@ func TestEventReconcile(t *testing.T) {
 }
 
 func assertEvent(name string, watcherCh chan *WatcherEvent) error {
-	timeout := time.After(200 * time.Millisecond)
+	timeout := time.After(1000 * time.Millisecond)
 	select {
 	case ev := <-watcherCh:
 		if ev.Filename != name {
