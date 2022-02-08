@@ -686,8 +686,8 @@ func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Reque
 		return nil, err
 	}
 	// TODO(partitions): should this be possible in a partition?
-	if authz.OperatorWrite(nil) != acl.Allow {
-		return nil, acl.PermissionDeniedByACLUnnamed(authz, nil, acl.ResourceOperator, acl.AccessWrite)
+	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+		return nil, err
 	}
 
 	// Get the request partition and default to that of the agent.
@@ -1684,8 +1684,8 @@ func (s *HTTPHandlers) AgentHost(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	// TODO(partitions): should this be possible in a partition?
-	if authz.OperatorRead(nil) != acl.Allow {
-		return nil, acl.PermissionDeniedByACLUnnamed(authz, nil, acl.ResourceOperator, acl.AccessRead)
+	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(nil); err != nil {
+		return nil, err
 	}
 
 	return debug.CollectHostInfo(), nil

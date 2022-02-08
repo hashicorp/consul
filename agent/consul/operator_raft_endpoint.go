@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -23,8 +22,8 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 	if err != nil {
 		return err
 	}
-	if authz.OperatorRead(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(nil); err != nil {
+		return err
 	}
 
 	// We can't fetch the leader and the configuration atomically with
@@ -88,8 +87,8 @@ func (op *Operator) RaftRemovePeerByAddress(args *structs.RaftRemovePeerRequest,
 	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
-	if authz.OperatorWrite(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+		return err
 	}
 
 	// Since this is an operation designed for humans to use, we will return
@@ -141,8 +140,8 @@ func (op *Operator) RaftRemovePeerByID(args *structs.RaftRemovePeerRequest, repl
 	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
-	if authz.OperatorWrite(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+		return err
 	}
 
 	// Since this is an operation designed for humans to use, we will return

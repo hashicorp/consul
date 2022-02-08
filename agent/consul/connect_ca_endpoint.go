@@ -65,8 +65,8 @@ func (s *ConnectCA) ConfigurationGet(
 	if err != nil {
 		return err
 	}
-	if authz.OperatorWrite(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+		return err
 	}
 
 	state := s.srv.fsm.State()
@@ -97,8 +97,8 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return err
 	}
-	if authz.OperatorWrite(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+		return err
 	}
 
 	return s.srv.caManager.UpdateConfiguration(args)
@@ -223,8 +223,8 @@ func (s *ConnectCA) SignIntermediate(
 	if err != nil {
 		return err
 	}
-	if authz.OperatorWrite(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+		return err
 	}
 
 	provider, _ := s.srv.caManager.getCAProvider()

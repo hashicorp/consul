@@ -273,6 +273,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			// If the token provided does not have the necessary permissions,
 			// write a forbidden response
 			// TODO(partitions): should this be possible in a partition?
+			// TODO(acl errors): can we return a better error here?
 			if authz.OperatorRead(nil) != acl.Allow {
 				resp.WriteHeader(http.StatusForbidden)
 				return
