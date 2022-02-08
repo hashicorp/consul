@@ -1114,7 +1114,6 @@ workflows:
               only:
                 - main
       - algolia-index:
-          context: consul-docs
           filters:
             branches:
               only:
