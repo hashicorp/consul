@@ -19,11 +19,11 @@ func (w Watcher) getINode(filename string) (uint64, error) {
 		return 0, err
 	}
 
-	stat := fileinfo.Sys().(*syscall.Win32FileAttributeData)
+	stat, ok := fileInfo.Sys().(*syscall.Win32FileAttributeData)
 	if !ok {
 		return 0, fmt.Errorf("not a syscall.Stat_t %v", fileInfo.Sys())
 	}
 
-	w.logger.Info("read inode ", "inode", stat.Ino)
-	return time.Since(time.Unix(0, stat.CreationTime.Nanoseconds())), nil
+	w.logger.Info("read inode ", "inode", stat.CreationTime.Nanoseconds())
+	return uint64(stat.CreationTime.Nanoseconds()), nil
 }
