@@ -97,11 +97,15 @@ func (w Watcher) handleEvent(event fsnotify.Event) error {
 	if !isCreate(event) && !isRemove(event) {
 		return nil
 	}
+	id, err := w.getFileId(event.Name)
+	if err != nil {
+		return err
+	}
 	// If the file was removed, set it to be re-added to watch when created
 	if isRemove(event) {
 		w.configFiles[event.Name].watched = false
 	}
-	w.reconcileINodes()
+	w.configFiles[event.Name].iNode = id
 	return w.handleFunc(&WatcherEvent{Filename: event.Name})
 }
 
@@ -109,30 +113,26 @@ func (w Watcher) reconcile() {
 	for filename, configFile := range w.configFiles {
 		newInode, err := w.getFileId(filename)
 		if err != nil {
+			w.logger.Error("failed to get file id", "file", filename, "err", err)
 			continue
 		}
 
 		if !configFile.watched {
 			if err := w.watcher.Add(filename); err != nil {
+				w.logger.Error("failed to add file to watcher", "file", filename, "err", err)
 				continue
 			} else {
 				configFile.watched = true
 			}
 		}
-		if configFile.iNode != newInode {
-			w.reconcileINodes()
-			w.handleFunc(&WatcherEvent{Filename: filename})
-		}
-	}
-}
 
-func (w Watcher) reconcileINodes() {
-	for filename := range w.configFiles {
-		iNode, err := w.getFileId(filename)
-		if err != nil {
-			continue
+		if configFile.iNode != newInode {
+			w.configFiles[filename].iNode = newInode
+			err = w.handleFunc(&WatcherEvent{Filename: filename})
+			if err != nil {
+				w.logger.Error("event handle failed", "file", filename, "err", err)
+			}
 		}
-		w.configFiles[filename].iNode = iNode
 	}
 }
 
