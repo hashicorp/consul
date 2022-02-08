@@ -9,7 +9,7 @@ import (
 	"syscall"
 )
 
-func (w Watcher) getInode(filename string) (uint64, error) {
+func (w Watcher) getINode(filename string) (uint64, error) {
 	realFilename := filename
 	if linkedFile, err := os.Readlink(filename); err == nil {
 		realFilename = linkedFile
