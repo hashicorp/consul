@@ -2,11 +2,12 @@ package config
 
 import (
 	"fmt"
-	"github.com/fsnotify/fsnotify"
-	"github.com/hashicorp/go-hclog"
 	"os"
 	"syscall"
 	"time"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/hashicorp/go-hclog"
 )
 
 const timeoutDuration = 10 * time.Second
@@ -21,8 +22,8 @@ type Watcher struct {
 }
 
 type watchedFile struct {
-	iNode          uint64
-	isEventWatched bool
+	iNode   uint64
+	watched bool
 }
 
 type WatcherEvent struct {
@@ -39,21 +40,19 @@ func New(handleFunc func(event *WatcherEvent) error) (*Watcher, error) {
 }
 
 func (w Watcher) Add(filename string) error {
-	err := w.watcher.Add(filename)
+	if err := w.watcher.Add(filename); err != nil {
+		return err
+	}
+	iNode, err := w.getINode(filename)
 	if err != nil {
 		return err
 	}
-	hash, err := w.getInode(filename)
-	if err != nil {
-		return err
-	}
-	w.configFiles[filename] = &watchedFile{iNode: hash, isEventWatched: true}
+	w.configFiles[filename] = &watchedFile{iNode: iNode, watched: true}
 	return nil
 }
 
 func (w Watcher) Remove(filename string) error {
-	err := w.watcher.Remove(filename)
-	if err != nil {
+	if err := w.watcher.Remove(filename); err != nil {
 		return err
 	}
 	delete(w.configFiles, filename)
@@ -62,27 +61,21 @@ func (w Watcher) Remove(filename string) error {
 
 func (w Watcher) Close() error {
 	close(w.done)
-	err := w.watcher.Close()
-	if err != nil {
-		return err
-	}
-	return nil
+	return w.watcher.Close()
 }
 
-func (w Watcher) getInode(filename string) (uint64, error) {
+func (w Watcher) getINode(filename string) (uint64, error) {
 	realFilename := filename
-	linkedFile, err := os.Readlink(filename)
-	if err == nil {
+	if linkedFile, err := os.Readlink(filename); err == nil {
 		realFilename = linkedFile
 	}
-	fileinfo, err := os.Stat(realFilename)
-
+	fileInfo, err := os.Stat(realFilename)
 	if err != nil {
 		return 0, err
 	}
-	stat, ok := fileinfo.Sys().(*syscall.Stat_t)
+	stat, ok := fileInfo.Sys().(*syscall.Stat_t)
 	if !ok {
-		return 0, fmt.Errorf("Not a syscall.Stat_t %v", fileinfo.Sys())
+		return 0, fmt.Errorf("not a syscall.Stat_t %v", fileInfo.Sys())
 	}
 
 	w.logger.Info("read inode ", "inode", stat.Ino)
@@ -90,7 +83,6 @@ func (w Watcher) getInode(filename string) (uint64, error) {
 }
 
 func (w Watcher) watch() {
-
 	timer := time.NewTimer(w.reconcileTimeout)
 	defer timer.Stop()
 	for {
@@ -101,8 +93,7 @@ func (w Watcher) watch() {
 				return
 			}
 			w.logger.Debug("received watcher event", "event", event)
-			err := w.handleEvent(event)
-			if err != nil {
+			if err := w.handleEvent(event); err != nil {
 				w.logger.Error("error handling watcher event", "error", err, "event", event)
 			}
 			timer.Reset(w.reconcileTimeout)
@@ -123,34 +114,46 @@ func (w Watcher) watch() {
 }
 
 func (w Watcher) handleEvent(event fsnotify.Event) error {
-
-	// we only want Create event to avoid triggering a relaod on file modification
-	if !isCreate(event) {
+	// we only want Create and Remove events to avoid triggering a relaod on file modification
+	if !isCreate(event) && !isRemove(event) {
 		return nil
 	}
-	// If the file was removed, set it to be readded to watch when created
+	// If the file was removed, set it to be re-added to watch when created
 	if isRemove(event) {
-		w.configFiles[event.Name].isEventWatched = false
+		w.configFiles[event.Name].watched = false
 	}
+	w.reconcileINodes()
 	return w.handleFunc(&WatcherEvent{Filename: event.Name})
 }
 
 func (w Watcher) reconcile() {
 	for filename, configFile := range w.configFiles {
-		newInode, err := w.getInode(filename)
+		newInode, err := w.getINode(filename)
 		if err != nil {
 			continue
 		}
 
-		if !configFile.isEventWatched {
-			err = w.watcher.Add(filename)
-			if err == nil {
-				configFile.isEventWatched = true
+		if !configFile.watched {
+			if err := w.watcher.Add(filename); err != nil {
+				continue
+			} else {
+				configFile.watched = true
 			}
 		}
 		if configFile.iNode != newInode {
+			w.reconcileINodes()
 			w.handleFunc(&WatcherEvent{Filename: filename})
 		}
+	}
+}
+
+func (w Watcher) reconcileINodes() {
+	for filename := range w.configFiles {
+		iNode, err := w.getINode(filename)
+		if err != nil {
+			continue
+		}
+		w.configFiles[filename].iNode = iNode
 	}
 }
 
