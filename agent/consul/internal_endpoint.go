@@ -428,10 +428,10 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 		return err
 	}
 
-	if authz.EventWrite(args.Name, nil) != acl.Allow {
+	if err := authz.ToAllowAuthorizer().EventWriteAllowed(args.Name, nil); err != nil {
 		accessorID := authz.AccessorID()
 		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
-		return acl.ErrPermissionDenied
+		return err
 	}
 
 	// Set the query meta data
