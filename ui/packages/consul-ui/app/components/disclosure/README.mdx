@@ -1,0 +1,60 @@
+# Disclosure
+
+A component which can be used to implement an aria Disclosure pattern.
+
+The disclosure exports an Action component already configured for use. But if
+you want to contruct your own trigger, disclosure has all the properties to
+enable you to do so.
+
+You should make use of the `disclosure.panel` property in order to 'tag' the
+disclosure panel you are using.
+
+Clicking outside will not close the disclosure by default, if you require this
+functionality please combine with our `{{on-outside 'click'}}` modifier (see example).
+
+```hbs preview-template
+<Disclosure>
+  <:button as |disclosure|>
+    <disclosure.Action
+      {{on-outside 'click' disclosure.close}}
+      {{on 'click' disclosure.toggle}}
+    >
+      {{if disclosure.expanded "Close" "Open"}}
+    </disclosure.Action>
+  </:button>
+  <:panel as |disclosure|>
+    <p
+      id={{disclosure.panel}}
+    >
+      Disclose Me!
+    </p>
+  </:panel>
+</Disclosure>
+```
+
+## Exported API
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `Action` | `GlimmerComponent` | A contextual '<Action />' component with aria attributes correctly applied, please note you still need to add an 'on' modifier here so you can control whether it opens on click/hover etc |
+| `open` | `Function` | Open the disclosure if its not already open |
+| `close` | `Function` | Close the disclosure if its not already closed |
+| `toggle` | `Function` | Toggle the open/close state of the disclosure |
+| `expanded` | `Boolean` | Whether the disclosure is 'expanded' or not |
+| `event` | `Boolean` | The event used to change the state of the disclosure |
+| `button` | `string` | An id to use on the trigger for the disclosure |
+| `panel` | `string` | An id to use on the panel for the disclosure |
+
+## Slots
+
+| Name | Description |
+| --- | --- |
+| `button` | Provides a configurable slot in which to add your open/close trigger |
+| `panel` | Provides a configurable slot in which to add your disclosed content |
+
+## See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---
