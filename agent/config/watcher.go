@@ -40,7 +40,7 @@ func (w Watcher) Add(filename string) error {
 	if err := w.watcher.Add(filename); err != nil {
 		return err
 	}
-	iNode, err := w.getINode(filename)
+	iNode, err := w.getFileId(filename)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func (w Watcher) handleEvent(event fsnotify.Event) error {
 
 func (w Watcher) reconcile() {
 	for filename, configFile := range w.configFiles {
-		newInode, err := w.getINode(filename)
+		newInode, err := w.getFileId(filename)
 		if err != nil {
 			continue
 		}
@@ -128,7 +128,7 @@ func (w Watcher) reconcile() {
 
 func (w Watcher) reconcileINodes() {
 	for filename := range w.configFiles {
-		iNode, err := w.getINode(filename)
+		iNode, err := w.getFileId(filename)
 		if err != nil {
 			continue
 		}
