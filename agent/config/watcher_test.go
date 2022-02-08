@@ -161,6 +161,7 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	require.NoError(t, err)
 	time.Sleep(200 * time.Millisecond)
 	recreated, err := os.Create(file.Name())
+	require.NoError(t, err)
 	_, err = recreated.WriteString("config 2")
 	require.NoError(t, err)
 	err = recreated.Sync()
