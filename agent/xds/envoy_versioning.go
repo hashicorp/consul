@@ -14,7 +14,6 @@ var (
 	minSupportedVersion = version.Must(version.NewVersion("1.15.0"))
 
 	minVersionAllowingEmptyGatewayClustersWithIncrementalXDS = version.Must(version.NewVersion("1.16.0"))
-	minVersionAllowingMultipleIncrementalXDSChanges          = version.Must(version.NewVersion("1.16.0"))
 
 	specificUnsupportedVersions = []unsupportedVersion{}
 )
@@ -30,16 +29,6 @@ type supportedProxyFeatures struct {
 	// list via the incremental xDS protocol will correctly ack the message and
 	// just never request LDS resources.
 	GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS bool
-
-	// IncrementalXDSUpdatesMustBeSerial is needed to avoid an envoy crash.
-	//
-	// Versions of Envoy prior to 1.16.0 could crash if multiple in-flight
-	// changes to resources were happening during incremental xDS. To prevent
-	// that we force serial updates on those older versions.
-	//
-	// issue: https://github.com/envoyproxy/envoy/issues/11877
-	// PR:    https://github.com/envoyproxy/envoy/pull/12069
-	IncrementalXDSUpdatesMustBeSerial bool
 
 	// Older versions of Envoy incorrectly exploded a wildcard subscription for
 	// LDS and CDS into specific line items on incremental xDS reconnect. They
@@ -92,10 +81,6 @@ func determineSupportedProxyFeaturesFromVersion(version *version.Version) (suppo
 
 	if version.LessThan(minVersionAllowingEmptyGatewayClustersWithIncrementalXDS) {
 		sf.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS = true
-	}
-
-	if version.LessThan(minVersionAllowingMultipleIncrementalXDSChanges) {
-		sf.IncrementalXDSUpdatesMustBeSerial = true
 	}
 
 	// All envoy versions available in Consul 1.10.x need this fix.
