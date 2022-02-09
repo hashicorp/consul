@@ -100,8 +100,11 @@ func (w Watcher) handleEvent(event fsnotify.Event) error {
 	}
 	if isRemove(event) {
 		// If the file was removed, set it to be re-added to watch when created
-		w.configFiles[event.Name].watched = false
-		return nil
+		err := w.watcher.Add(event.Name)
+		if err != nil {
+			w.configFiles[event.Name].watched = false
+			return nil
+		}
 	}
 
 	id, err := w.getFileId(event.Name)
