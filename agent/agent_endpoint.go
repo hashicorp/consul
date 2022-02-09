@@ -440,8 +440,8 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 			}
 			var authzContext acl.AuthorizerContext
 			svc.FillAuthzContext(&authzContext)
-			if authz.ServiceRead(svc.Service, &authzContext) != acl.Allow {
-				return "", nil, acl.ErrPermissionDenied
+			if err := authz.ToAllowAuthorizer().ServiceReadAllowed(svc.Service, &authzContext); err != nil {
+				return "", nil, err
 			}
 
 			// Calculate the content hash over the response, minus the hash field
@@ -1008,8 +1008,8 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 	dc := s.agent.config.Datacenter
 
 	if service := s.agent.State.Service(sid); service != nil {
-		if authz.ServiceRead(service.Service, &authzContext) != acl.Allow {
-			return nil, acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessRead, service.Service)
+		if err := authz.ToAllowAuthorizer().ServiceReadAllowed(service.Service, &authzContext); err != nil {
+			return nil, err
 		}
 		code, status, healthChecks := agentHealthService(sid, s)
 		if returnTextPlain(req) {
@@ -1061,8 +1061,8 @@ func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *h
 		return nil, err
 	}
 
-	if authz.ServiceRead(serviceName, &authzContext) != acl.Allow {
-		return nil, acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessRead, serviceName)
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(serviceName, &authzContext); err != nil {
+		return nil, err
 	}
 
 	if !s.validateRequestPartition(resp, &entMeta) {

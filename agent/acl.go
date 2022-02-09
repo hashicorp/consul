@@ -2,12 +2,11 @@ package agent
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
-
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 // aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
@@ -42,15 +41,15 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 
 	// Vet the service itself.
 	service.FillAuthzContext(&authzContext)
-	if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
-		return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, service.Service)
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Service, &authzContext); err != nil {
+		return err
 	}
 
 	// Vet any service that might be getting overwritten.
 	if existing := a.State.Service(service.CompoundServiceID()); existing != nil {
 		existing.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, existing.Service)
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(existing.Service, &authzContext); err != nil {
+			return err
 		}
 	}
 
@@ -58,8 +57,8 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	// since it can be discovered as an instance of that service.
 	if service.Kind == structs.ServiceKindConnectProxy {
 		service.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-			return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, service.Proxy.DestinationServiceName)
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Proxy.DestinationServiceName, &authzContext); err != nil {
+			return err
 		}
 	}
 
@@ -72,8 +71,9 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 	// Vet any changes based on the existing services's info.
 	if existing := a.State.Service(serviceID); existing != nil {
 		existing.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, existing.Service)
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(existing.Service, &authzContext); err != nil {
+			return err
+
 		}
 	} else {
 		// Take care if modifying this error message.
@@ -94,8 +94,8 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 
 	// Vet the check itself.
 	if len(check.ServiceName) > 0 {
-		if authz.ServiceWrite(check.ServiceName, &authzContext) != acl.Allow {
-			return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, check.ServiceName)
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(check.ServiceName, &authzContext); err != nil {
+			return err
 		}
 	} else {
 		// N.B. Should this authzContext be derived from a.AgentEnterpriseMeta()
@@ -108,12 +108,11 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 	if existing := a.State.Check(check.CompoundCheckID()); existing != nil {
 		if len(existing.ServiceName) > 0 {
 			// N.B. Should this authzContext be derived from existing.EnterpriseMeta?
-			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
-				return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, existing.ServiceName)
+			if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(existing.ServiceName, &authzContext); err != nil {
+				return err
 			}
 		} else {
 			// N.B. Should this authzContext be derived from a.AgentEnterpriseMeta()
-
 			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(a.config.NodeName, &authzContext); err != nil {
 				return err
 			}
@@ -130,8 +129,8 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 	// Vet any changes based on the existing check's info.
 	if existing := a.State.Check(checkID); existing != nil {
 		if len(existing.ServiceName) > 0 {
-			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
-				return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, existing.ServiceName)
+			if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(existing.ServiceName, &authzContext); err != nil {
+				return err
 			}
 		} else {
 			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(a.config.NodeName, &authzContext); err != nil {

@@ -220,6 +220,8 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 	// If we're doing a connect or ingress query, we need read access to the service
 	// we're trying to find proxies for, so check that.
 	if args.Connect || args.Ingress {
+		// TODO: ACL Error improvements; can this be improved? What happens if we returned an error here?
+		// Is this similar to filters where we might want to return a hint?
 		if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 			// Just return nil, which will return an empty response (tested)
 			return nil

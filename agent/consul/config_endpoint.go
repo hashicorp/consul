@@ -439,8 +439,8 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 	if err != nil {
 		return err
 	}
-	if authz.ServiceRead(args.Name, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.Name, &authzContext); err != nil {
+		return err
 	}
 
 	var (

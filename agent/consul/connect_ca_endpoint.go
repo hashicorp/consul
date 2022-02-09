@@ -65,7 +65,7 @@ func (s *ConnectCA) ConfigurationGet(
 	if err != nil {
 		return err
 	}
-	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+	if err := authz.ToAllowAuthorizer().ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
 		return err
 	}
 
@@ -175,8 +175,8 @@ func (s *ConnectCA) Sign(
 	if isService {
 		entMeta.Merge(serviceID.GetEnterpriseMeta())
 		entMeta.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(serviceID.Service, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(serviceID.Service, &authzContext); err != nil {
+			return err
 		}
 
 		// Verify that the DC in the service URI matches us. We might relax this

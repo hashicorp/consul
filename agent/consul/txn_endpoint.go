@@ -131,8 +131,8 @@ func vetCheckTxnOp(op *structs.TxnCheckOp, authz acl.Authorizer) error {
 		}
 	} else {
 		// Service-level check.
-		if authz.ServiceWrite(op.Check.ServiceName, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(op.Check.ServiceName, &authzContext); err != nil {
+			return err
 		}
 	}
 	return nil
