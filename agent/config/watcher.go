@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -16,12 +17,13 @@ type Watcher struct {
 	logger           hclog.Logger
 	reconcileTimeout time.Duration
 	done             chan interface{}
+	toBeRemoved      chan string
+	toBeAdded        chan string
 }
 
 type watchedFile struct {
 	iNode   uint64
 	watched bool
-	deleted bool
 }
 
 type WatcherEvent struct {
@@ -34,10 +36,10 @@ func New(handleFunc func(event *WatcherEvent) error) (*Watcher, error) {
 		return nil, err
 	}
 	cfgFiles := make(map[string]*watchedFile)
-	return &Watcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{}), reconcileTimeout: timeoutDuration, done: make(chan interface{})}, nil
+	return &Watcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{}), reconcileTimeout: timeoutDuration, done: make(chan interface{}), toBeAdded: make(chan string), toBeRemoved: make(chan string)}, nil
 }
 
-func (w Watcher) Add(filename string) error {
+func (w *Watcher) add(filename string) error {
 	if err := w.watcher.Add(filename); err != nil {
 		return err
 	}
@@ -49,20 +51,39 @@ func (w Watcher) Add(filename string) error {
 	return nil
 }
 
-func (w Watcher) Remove(filename string) error {
+func (w *Watcher) remove(filename string) error {
 	if err := w.watcher.Remove(filename); err != nil {
 		return err
 	}
-	w.configFiles[filename].deleted = true
+	delete(w.configFiles, filename)
 	return nil
 }
+func (w *Watcher) Remove(filename string) error {
+	timeout := time.After(timeoutDuration)
+	select {
+	case w.toBeRemoved <- filename:
+		return nil
+	case <-timeout:
+		return fmt.Errorf("Remove timeout")
+	}
+}
 
-func (w Watcher) Close() error {
+func (w *Watcher) Add(filename string) error {
+	timeout := time.After(timeoutDuration)
+	select {
+	case w.toBeAdded <- filename:
+		return nil
+	case <-timeout:
+		return fmt.Errorf("Remove timeout")
+	}
+}
+
+func (w *Watcher) Close() error {
 	close(w.done)
 	return w.watcher.Close()
 }
 
-func (w Watcher) watch() {
+func (w *Watcher) watch() {
 	timer := time.NewTimer(w.reconcileTimeout)
 	defer timer.Stop()
 	for {
@@ -88,12 +109,22 @@ func (w Watcher) watch() {
 			timer.Reset(w.reconcileTimeout)
 		case <-w.done:
 			return
+		case filename := <-w.toBeAdded:
+			err := w.add(filename)
+			if err != nil {
+				w.logger.Error("error adding a file", "file", filename, "err", err)
+			}
+		case filename := <-w.toBeRemoved:
+			err := w.remove(filename)
+			if err != nil {
+				w.logger.Error("error removing a file", "file", filename, "err", err)
+			}
 		}
 	}
 
 }
 
-func (w Watcher) handleEvent(event fsnotify.Event) error {
+func (w *Watcher) handleEvent(event fsnotify.Event) error {
 	w.logger.Info("event received ", "filename", event.Name, "OP", event.Op)
 	// we only want Create and Remove events to avoid triggering a relaod on file modification
 	if !isCreate(event) && !isRemove(event) {
@@ -118,15 +149,11 @@ func (w Watcher) handleEvent(event fsnotify.Event) error {
 	return w.handleFunc(&WatcherEvent{Filename: event.Name})
 }
 
-func (w Watcher) reconcile() {
+func (w *Watcher) reconcile() {
 	for filename, configFile := range w.configFiles {
 		newInode, err := w.getFileId(filename)
 		if err != nil {
 			w.logger.Error("failed to get file id", "file", filename, "err", err)
-			continue
-		}
-		if w.configFiles[filename].deleted {
-			delete(w.configFiles, filename)
 			continue
 		}
 
@@ -148,8 +175,7 @@ func (w Watcher) reconcile() {
 		}
 	}
 }
-
-func (w Watcher) Start() {
+func (w *Watcher) Start() {
 	go w.watch()
 }
 
