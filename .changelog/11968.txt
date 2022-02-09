@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Temporarily remove KV pre-flight check for KV list permissions
-```

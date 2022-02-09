@@ -1,3 +1,0 @@
-```release-note:feature
-sso/oidc: **(Enterprise only)** Add support for providing acr_values in OIDC auth flow
-```

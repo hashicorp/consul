@@ -1,3 +1,0 @@
-```release-note:bug
-ui: **(Enterprise only)** Ensure permissions are checked based on the actively selected namespace
-```

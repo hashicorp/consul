@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: Automatically rewrite the Host header for Terminating Gateway HTTP services
-```

@@ -1,3 +1,0 @@
-```release-note:improvement
-config: add `dns_config.recursor_strategy` flag to control the order which DNS recursors are queried
-```

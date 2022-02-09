@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: Add support for connecting to services behind a terminating gateway when using a transparent proxy.
-```

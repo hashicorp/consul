@@ -1,3 +1,0 @@
-```release-note:bug
-snapshot: fixes a bug that would cause snapshots to be missing all but the first ACL Auth Method.
-```

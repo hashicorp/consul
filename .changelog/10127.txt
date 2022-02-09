@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: rename cluster config entry to mesh.
-```

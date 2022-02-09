@@ -1,3 +1,0 @@
-```release-note:bug
-connect: fix crash that would result from multiple instances of a service resolving service config on a single agent.
-```

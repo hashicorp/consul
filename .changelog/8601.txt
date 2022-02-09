@@ -1,3 +1,0 @@
-```release-note:bug
-connect: fix bug in preventing some namespaced config entry modifications
-```

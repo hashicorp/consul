@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: improve accessibility of modal dialogs 
-```

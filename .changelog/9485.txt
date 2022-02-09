@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Various accessibility scan test improvements
-```

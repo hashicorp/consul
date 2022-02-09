@@ -1,3 +1,0 @@
-```release-note:improvement
-segments: **(Enterprise only)** ensure that the serf_lan_allowed_cidrs applies to network segments
-```

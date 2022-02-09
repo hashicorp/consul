@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: add Namespace configuration setting for Vault CA provider
-```

@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: Append port number to expected ingress hosts.
-```

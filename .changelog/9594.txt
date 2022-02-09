@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Display LockDelay in nanoseconds as a temporary fix to the formatting
-```

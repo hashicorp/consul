@@ -1,3 +1,0 @@
-```release-note:bug
-agent: prevent duplicate services and check registrations from being synced to servers.
-```

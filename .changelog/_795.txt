@@ -1,3 +1,0 @@
-```release-note:security
-audit-logging: Parse endpoint URL to prevent requests from bypassing the audit log [CVE-2021-28156](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-28156)
-```

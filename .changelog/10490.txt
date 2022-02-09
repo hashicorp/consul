@@ -1,3 +1,0 @@
-```release-note:bug
-checks: fixes the default ServerName used with TLS health checks.
-```

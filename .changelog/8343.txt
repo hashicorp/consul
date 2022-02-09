@@ -1,3 +1,0 @@
-```release-note:bug
-gossip: Avoid issue where two unique leave events for the same node could lead to infinite rebroadcast storms.
-```

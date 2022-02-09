@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: allow exposing duplicate HTTP paths through a proxy instance.
-```

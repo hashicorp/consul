@@ -1,3 +1,0 @@
-```release-note:enhancement
-telemetry: added metrics to track certificates expiry.
-```

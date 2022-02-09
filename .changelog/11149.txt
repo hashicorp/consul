@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Don't show a CRD warning for read-only intentions
-```

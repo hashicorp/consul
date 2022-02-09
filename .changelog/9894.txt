@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: Add support for transparently proxying traffic through Envoy. [experimental]
-```

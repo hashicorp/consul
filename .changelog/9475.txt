@@ -1,3 +1,0 @@
-```release-note:bug
-checks: add TLSServerName field to allow setting the TLS server name for HTTPS health checks.
-```

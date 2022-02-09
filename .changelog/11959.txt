@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Fixes a visual issue with some border colors
-```

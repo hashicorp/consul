@@ -1,3 +1,0 @@
-```release-note:improvement
-xds: ensure that all envoyproxy/go-control-plane protobuf symbols are linked into the final binary
-```

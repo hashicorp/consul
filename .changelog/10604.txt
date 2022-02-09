@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Show ACLs disabled page at Tokens page instead of 403 error when ACLs are disabled
-```

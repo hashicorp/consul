@@ -1,3 +1,0 @@
-```release-note:feature
-xds: exclusively support the Incremental xDS protocol when using xDS v3
-```

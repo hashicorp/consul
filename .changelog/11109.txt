@@ -1,3 +1,0 @@
-```release-note:bug
-connect: Fix upstream listener escape hatch for prepared queries
-```

@@ -1,3 +1,0 @@
-```release-note:feature
-ui: If Prometheus is being used for monitoring the sidecars, the topology view can be configured to display overview metrics for the services.
-```

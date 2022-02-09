@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: service-resolver subset filters are validated for valid go-bexpr syntax on write
-```

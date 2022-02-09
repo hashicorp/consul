@@ -1,3 +1,0 @@
-```release-note:feature
-ui: Adds visible Consul version information
-```

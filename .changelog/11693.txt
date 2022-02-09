@@ -1,3 +1,0 @@
-```release-note:bug
-ca: fixes a bug that caused non blocking leaf cert queries to return the same cached response regardless of ca rotation or leaf cert expiry
-```

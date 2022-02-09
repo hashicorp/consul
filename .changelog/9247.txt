@@ -1,3 +1,0 @@
-```release-note:bug
-streaming: ensure the order of results provided by /health/service/:serviceName is consistent with and without streaming enabled
-```

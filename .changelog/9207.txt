@@ -1,3 +1,0 @@
-```release-note:breaking-change
-connect: Update Envoy metrics names and labels for proxy listeners so that attributes like datacenter and namespace can be extracted. 
-```

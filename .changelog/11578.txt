@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Fix inline-code brand styling
-```

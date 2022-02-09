@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Improve loader centering with new side navigation
-```

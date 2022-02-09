@@ -1,3 +1,0 @@
-```release-note:improvement
-agent: protect the metrics proxy behind ACLs
-```

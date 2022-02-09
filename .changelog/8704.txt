@@ -1,3 +1,0 @@
-```release-note:bug
-ui: show correct datacenter for gateways
-```

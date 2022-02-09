@@ -1,3 +1,0 @@
-```release-note:bug
-ui: only show topology tab for services that exist
-```

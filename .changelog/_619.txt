@@ -1,3 +1,0 @@
-```release-note:bug
-license: (Enterprise only) Fixed an issue where the UI would see Namespaces and SSO as licensed when they were not.
-```

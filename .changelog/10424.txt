@@ -1,3 +1,0 @@
-```release-note:improvement
-connect/ca: cease including the common name field in generated x509 non-CA certificates
-```

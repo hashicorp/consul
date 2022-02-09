@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: add permanently visible indicator when ACLs are disabled
-```

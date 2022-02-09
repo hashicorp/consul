@@ -1,3 +1,0 @@
-```release-note:feature
-ingress: allow setting TLS min version and cipher suites in ingress gateway config entries
-```

@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: restrict transparent proxy mode to only match on the tagged virtual IP address.
-```

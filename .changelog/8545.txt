@@ -1,3 +1,0 @@
-```release-note:feature
-agent: expose the list of supported envoy versions on /v1/agent/self
-```

@@ -1,3 +1,0 @@
-```release-note:improvement
-acl: allow auth methods created in the primary datacenter to optionally create global tokens.
-```

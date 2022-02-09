@@ -1,3 +1,0 @@
-```release-note:bug
-connect/ca: require new vault mount points when updating the key type/bits for the vault connect CA provider
-```

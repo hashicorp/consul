@@ -1,3 +1,0 @@
-```release-note:bug
-api: ensure new partition fields are omit empty for compatibility with older versions of consul
-```

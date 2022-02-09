@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: if the token given to the vault provider returns no data avoid a panic
-```

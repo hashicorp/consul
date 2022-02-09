@@ -1,3 +1,0 @@
-```release-note:feature
-agent: Add a new RPC endpoint for streaming cluster state change events to clients.
-```

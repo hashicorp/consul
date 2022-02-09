@@ -1,3 +1,0 @@
-```release-note:improvement
-agent: **(Enterprise only)** purge service/check registration files for incorrect partitions on reload
-```

@@ -1,3 +1,0 @@
-```release-note:bug
-cli: snapshot inspect command would panic on invalid input.
-```

@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Prevent disconnection notice appearing with auth change on certain pages
-```

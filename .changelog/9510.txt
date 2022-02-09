@@ -1,3 +1,0 @@
-```release-note:bug
-client: Help added in Prometheus in relases 1.9.0 does not generate warnings anymore in logs
-```

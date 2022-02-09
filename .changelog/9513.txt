@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Fixes an issue where intention description or metadata could be overwritten if saved from the topology view.
-```

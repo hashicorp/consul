@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Only show a partial list of intention permissions, with the option to show all
-```

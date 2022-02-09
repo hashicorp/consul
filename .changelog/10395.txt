@@ -1,3 +1,0 @@
-```release-note:improvement
-grpc: move gRPC INFO logs to be emitted as TRACE logs from Consul
-```

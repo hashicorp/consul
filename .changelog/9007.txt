@@ -1,3 +1,0 @@
-```release-note:improvement
-server: break up Intention.Apply monolithic method
-```

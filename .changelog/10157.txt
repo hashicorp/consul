@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Don't render a DOM element for empty namespace descriptions
-```

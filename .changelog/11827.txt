@@ -1,3 +1,0 @@
-```release-note:breaking-change
-sdk: several changes to the testutil configuration structs (removed `ACLMasterToken`, renamed `Master` to `InitialManagement`, and `AgentMaster` to `AgentRecovery`)
-```

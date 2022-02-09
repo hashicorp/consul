@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Update conditional for topology empty state
-```

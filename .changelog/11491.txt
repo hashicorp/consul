@@ -1,3 +1,0 @@
-```release-note:security
-agent: Use SHA256 instead of MD5 to generate persistence file names.
-```

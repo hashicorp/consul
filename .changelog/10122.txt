@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Adding conditional to prevent Service Mesh from breaking when there are no Upstreams
-```

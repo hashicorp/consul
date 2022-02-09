@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Gracefully recover from non-existant DC errors 
-```

@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: ingress gateways may now enable built-in TLS for a subset of listeners.
-```

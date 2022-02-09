@@ -1,3 +1,0 @@
-```release-note:bug
-ca: fixed a bug when ca provider fail and provider state is stuck in `INITIALIZING` state.
-```

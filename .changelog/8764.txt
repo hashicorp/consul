@@ -1,3 +1,0 @@
-```release-note:improvement
-api: support GetMeta() and GetNamespace() on all config entry kinds
-```

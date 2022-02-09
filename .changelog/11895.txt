@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: update Envoy supported version of 1.20 to 1.20.1
-```

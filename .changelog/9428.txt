@@ -1,3 +1,0 @@
-```release-note:bug
-connect: connect CA Roots in the primary datacenter should use a SigningKeyID derived from their local intermediate
-```

@@ -1,3 +1,0 @@
-```release-note:feature
-telemetry: track node and service counts and emit them as metrics
-```

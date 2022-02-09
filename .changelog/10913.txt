@@ -1,3 +1,0 @@
-```release-note:bug
-ui: fixes a bug with some service failovers not showing the routing tab visualization
-```

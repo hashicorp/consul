@@ -1,3 +1,0 @@
-```release-note:feature
-xds: emit a labeled gauge of connected xDS streams by version
-```

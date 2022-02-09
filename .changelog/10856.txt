@@ -1,3 +1,0 @@
-```release-note:improvement
-ci: upgrade to use Go 1.16.7
-```

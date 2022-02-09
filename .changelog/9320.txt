@@ -1,3 +1,0 @@
-```release-note:bug
-replication: Correctly log all replication warnings that should not be suppressed
-```

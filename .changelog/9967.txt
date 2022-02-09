@@ -1,3 +1,0 @@
-```release-note:bug
-api: ensure v1/health/ingress/:service endpoint works properly when streaming is enabled
-```

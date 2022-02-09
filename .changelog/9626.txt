@@ -1,3 +1,0 @@
-```release-note:bug
-autopilot: Fixed a bug that would cause snapshot restoration to stop autopilot on the leader.
-```

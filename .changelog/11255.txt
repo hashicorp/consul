@@ -1,3 +1,0 @@
-```release-note:bug
-rpc: only attempt to authorize the DNSName in the client cert when verify_incoming_rpc=true
-```

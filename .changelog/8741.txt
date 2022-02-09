@@ -1,3 +1,0 @@
-```release-note:bug
-agent: make the json/hcl decoding of ConnectProxyConfig fully work with CamelCase and snake_case
-```

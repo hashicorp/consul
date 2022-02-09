@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: Support dialing individual service IP addresses through transparent proxies.
-```

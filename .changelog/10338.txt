@@ -1,3 +1,0 @@
-```release-note:bug
-agent: fix logging output by removing leading whitespace from every log line
-```

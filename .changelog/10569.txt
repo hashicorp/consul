@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Ensure in-folder KVs are created in the correct folder
-```

@@ -1,3 +1,0 @@
-```release-note:bug
-server: ensure that central service config flattening properly resets the state each time
-```

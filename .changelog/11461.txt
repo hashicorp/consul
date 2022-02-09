@@ -1,3 +1,0 @@
-```release-note:improvement
-config: warn the user if client_addr is empty because client services won't be listening
-```
