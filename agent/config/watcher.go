@@ -93,23 +93,23 @@ func (w Watcher) watch() {
 }
 
 func (w Watcher) handleEvent(event fsnotify.Event) error {
-	w.logger.Debug("event received ", "event", event.Op)
+	w.logger.Info("event received ", "filename", event.Name, "OP", event.Op)
 	// we only want Create and Remove events to avoid triggering a relaod on file modification
 	if !isCreate(event) && !isRemove(event) {
 		return nil
 	}
-	var id uint64
-	if !isRemove(event) {
-		var err error
-		id, err = w.getFileId(event.Name)
-		if err != nil {
-			return err
-		}
-	}
-	// If the file was removed, set it to be re-added to watch when created
 	if isRemove(event) {
+		// If the file was removed, set it to be re-added to watch when created
 		w.configFiles[event.Name].watched = false
+		return nil
 	}
+
+	id, err := w.getFileId(event.Name)
+	if err != nil {
+		return err
+	}
+
+	w.logger.Info("set id ", "filename", event.Name, "id", id)
 	w.configFiles[event.Name].iNode = id
 	return w.handleFunc(&WatcherEvent{Filename: event.Name})
 }

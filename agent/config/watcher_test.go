@@ -22,7 +22,9 @@ func TestNewWatcher(t *testing.T) {
 }
 
 func TestWatcherAddRemoveExist(t *testing.T) {
+	watcherCh := make(chan *WatcherEvent)
 	w, err := New(func(event *WatcherEvent) error {
+		watcherCh <- event
 		return nil
 	})
 	defer func() {
@@ -30,19 +32,54 @@ func TestWatcherAddRemoveExist(t *testing.T) {
 	}()
 	require.NoError(t, err)
 	file := testutil.TempFile(t, "temp_config")
-	_, err = file.Write([]byte("test config"))
+	_, err = file.WriteString("test config")
+	require.NoError(t, err)
+	err = file.Sync()
 	require.NoError(t, err)
 	err = file.Close()
 	require.NoError(t, err)
+
+	require.NoError(t, err)
+	file2 := testutil.TempFile(t, "temp_config"+randomString(12))
+	_, err = file2.WriteString("test config 2")
+	require.NoError(t, err)
+	err = file2.Sync()
+	require.NoError(t, err)
+	err = file2.Close()
+	require.NoError(t, err)
+
+	require.NoError(t, err)
+	file3 := testutil.TempFile(t, "temp_config"+randomString(12))
+	_, err = file3.WriteString("test config 2")
+	require.NoError(t, err)
+	err = file3.Sync()
+	require.NoError(t, err)
+	err = file3.Close()
+	require.NoError(t, err)
+
 	err = w.Add(file.Name())
 	require.NoError(t, err)
+
 	h, ok := w.configFiles[file.Name()]
 	require.True(t, ok)
 	require.NotEqual(t, 0, h.iNode)
+
+	require.NoError(t, err)
+	w.Start()
+	err = os.Rename(file2.Name(), file.Name())
+	require.NoError(t, err)
+	require.NoError(t, assertEvent(file.Name(), watcherCh))
+
+	// wait for file to be added back
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	err = w.Remove(file.Name())
 	require.NoError(t, err)
 	_, ok = w.configFiles[file.Name()]
 	require.False(t, ok)
+
+	err = os.Rename(file3.Name(), file.Name())
+	require.NoError(t, err)
+	require.Error(t, assertEvent(file.Name(), watcherCh), "timedout waiting for event")
 }
 
 func TestWatcherAddNotExist(t *testing.T) {
@@ -159,8 +196,6 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	w.Start()
 	err = os.Remove(file.Name())
 	require.NoError(t, err)
-	// this should be the REMOVE event
-	require.NoError(t, assertEvent(file.Name(), watcherCh))
 	time.Sleep(200 * time.Millisecond)
 	recreated, err := os.Create(file.Name())
 	require.NoError(t, err)
@@ -184,6 +219,7 @@ func TestEventWatcherMove(t *testing.T) {
 	defer func() {
 		_ = w.Close()
 	}()
+	w.reconcileTimeout = 20 * time.Millisecond
 	require.NoError(t, err)
 	file := testutil.TempFile(t, "temp_config")
 	_, err = file.WriteString("test config")
@@ -193,28 +229,31 @@ func TestEventWatcherMove(t *testing.T) {
 	err = file.Close()
 	require.NoError(t, err)
 
-	require.NoError(t, err)
-	file2 := testutil.TempFile(t, "temp_config"+randomString(12))
-	_, err = file2.WriteString("test config 2")
-	require.NoError(t, err)
-	err = file2.Sync()
-	require.NoError(t, err)
-	err = file2.Close()
-	require.NoError(t, err)
+	for i := 0; i < 100; i++ {
+		file2 := testutil.TempFile(t, "temp_config"+randomString(12))
+		_, err = file2.WriteString("test config 2")
+		require.NoError(t, err)
+		err = file2.Sync()
+		require.NoError(t, err)
+		err = file2.Close()
+		require.NoError(t, err)
 
-	err = w.Add(file.Name())
+		err = w.Add(file.Name())
 
-	require.NoError(t, err)
-	w.Start()
-	err = os.Rename(file2.Name(), file.Name())
-	require.NoError(t, err)
-	require.NoError(t, assertEvent(file.Name(), watcherCh))
-	iNode, err := w.getFileId(file.Name())
-	require.NoError(t, err)
-	require.Equal(t, iNode, w.configFiles[file.Name()].iNode)
+		require.NoError(t, err)
+		w.Start()
+		err = os.Rename(file2.Name(), file.Name())
+		require.NoError(t, err)
+		require.NoError(t, assertEvent(file.Name(), watcherCh))
+		time.Sleep(w.reconcileTimeout + 10*time.Millisecond)
+		iNode, err := w.getFileId(file.Name())
+		require.NoError(t, err)
+		require.Equal(t, iNode, w.configFiles[file.Name()].iNode)
+
+	}
 }
 
-func TestEventReconcile(t *testing.T) {
+func TestEventReconcileMove(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
 	w, err := New(func(event *WatcherEvent) error {
 		watcherCh <- event
@@ -240,7 +279,7 @@ func TestEventReconcile(t *testing.T) {
 
 	err = w.Add(file.Name())
 	require.NoError(t, err)
-	w.reconcileTimeout = 50 * time.Millisecond
+	w.reconcileTimeout = 20 * time.Millisecond
 	// remove the file from the internal watcher to only trigger the reconcile
 	err = w.watcher.Remove(file.Name())
 	require.NoError(t, err)
