@@ -55,7 +55,7 @@ tls {
   - `verify_incoming` - (bool: false) Enable mutual TLS. Requires all incoming connections to the CTS API to use a TLS connection and provide a certificate signed by a Certificate Authority specified by the `ca_cert` or `ca_path`.
   - `ca_cert` - (string) The path to a PEM-encoded certificate authority file used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true. Takes precedence over `ca_path` if both are configured.
   - `ca_path` - (string) The path to a directory of PEM-encoded certificate authority files used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true.
-- `license_path` <EnterpriseAlert inline /> - (string: "") Configures the path to the file containing the license. A license must be set to use enterprise features. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. See [Setting the License](/docs/nia/enterprise/license#setting-the-license) for details.
+- `license_path` <EnterpriseAlert inline /> - (string) Configures the path to the file containing the license. A license must be set to use enterprise features. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. See [Setting the License](/docs/nia/enterprise/license#setting-the-license) for details.
 
 ## Consul
 
@@ -146,7 +146,7 @@ task {
 }
 ```
 
-- `description` - (string) The human readable text to describe the service.
+- `description` - (string) The human readable text to describe the task.
 - `name` - (string: required) Name is the unique name of the task (required). A task name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes.
 - `enabled` - (bool: true) Enable or disable a task from running and managing resources.
 - `providers` - (list[string]) Providers is the list of provider names the task is dependent on. This is used to map [Terraform provider configuration](#terraform-provider) to the task.
@@ -201,7 +201,7 @@ task {
 
 ### Task Condition
 
-A `task` block can be optionally configured with a `condition` block to set the conditions that should be met in order to execute that particular task. Below are the different types of conditions that CTS supports.
+A `task` block is configured with a `condition` block to set the conditions that should be met in order to execute that particular task. Below are the different types of conditions that CTS supports.
 
 #### Services Condition
 
