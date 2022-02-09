@@ -97,6 +97,7 @@ This endpoint allows patch updates to specifically supported fields for existing
 
 | Name | Required | Type | Description  | Default |
 | -----| -------- | ---- | ------------ | ------- |
+|`:task_name` | Required | string | Specifies the name of the task to update | none |
 |`run` | Optional | string | Values can only be `"inspect"` and `"now"`.<br/><ul><li>`"inspect"`: Does not update the task but returns information on if/how resources would be changed for the proposed task update.</li><li> `"now"`: Updates the task accordingly and immediately runs the task, rather than allowing the task to run at the natural daemon cadence</li></ul> | none |
 
 #### Request Body
@@ -173,6 +174,12 @@ This endpoint allows for deletion of existing tasks. It does not allow deletion 
 | Method | Path                | Produces           |
 | ------ | ------------------- | ------------------ |
 | `DELETE`  | `/tasks/:task_name` | `application/json` |
+
+#### Request Parameters
+
+| Name | Required | Type | Description  | Default |
+| -----| -------- | ---- | ------------ | ------- |
+|`:task_name` | Required | string | Specifies the name of the task to retrieve | none |
 
 #### Response Statuses
 
