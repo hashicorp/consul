@@ -64,7 +64,7 @@ func (w *Watcher) Remove(filename string) error {
 	case w.toBeRemoved <- filename:
 		return nil
 	case <-timeout:
-		return fmt.Errorf("Remove timeout")
+		return fmt.Errorf("file remove timedout %s", filename)
 	}
 }
 
@@ -74,7 +74,7 @@ func (w *Watcher) Add(filename string) error {
 	case w.toBeAdded <- filename:
 		return nil
 	case <-timeout:
-		return fmt.Errorf("Remove timeout")
+		return fmt.Errorf("file add timedout %s", filename)
 	}
 }
 
@@ -107,8 +107,6 @@ func (w *Watcher) watch() {
 		case <-timer.C:
 			w.reconcile()
 			timer.Reset(w.reconcileTimeout)
-		case <-w.done:
-			return
 		case filename := <-w.toBeAdded:
 			err := w.add(filename)
 			if err != nil {
@@ -119,6 +117,8 @@ func (w *Watcher) watch() {
 			if err != nil {
 				w.logger.Error("error removing a file", "file", filename, "err", err)
 			}
+		case <-w.done:
+			return
 		}
 	}
 
