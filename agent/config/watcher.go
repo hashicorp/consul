@@ -139,6 +139,7 @@ func (w *Watcher) handleEvent(event fsnotify.Event) error {
 		err := w.watcher.Add(event.Name)
 		if err != nil {
 			configFile.watched = false
+			configFile.iNode = 0
 			return nil
 		}
 	}
