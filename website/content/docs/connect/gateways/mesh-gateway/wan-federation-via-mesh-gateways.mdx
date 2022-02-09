@@ -126,7 +126,7 @@ connect {
 }
 ```
 
-Any references to [`start_join_wan`](/docs/agent/options#start_join_wan) or [`retry_join_wan`](/docs/agent/options#retry_join_wan) should be omitted.
+The [`start_join_wan`](/docs/agent/options#start_join_wan) or [`retry_join_wan`](/docs/agent/options#retry_join_wan) are only used for the [traditional federation process](/docs/k8s/installation/multi-cluster#traditional-wan-federation). They must be omitted when federating Consul servers via gateways.
 
 -> The `primary_gateways` configuration can also use `go-discover` syntax just
 like `retry_join_wan`.
