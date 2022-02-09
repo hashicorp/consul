@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	filepath2 "path/filepath"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -130,28 +131,45 @@ func (w *Watcher) handleEvent(event fsnotify.Event) error {
 	if !isCreate(event) && !isRemove(event) {
 		return nil
 	}
-	configFile, ok := w.configFiles[event.Name]
+	configFile, basename, ok := w.isWatched(event.Name)
 	if !ok {
 		return fmt.Errorf("file %s is not watched", event.Name)
 	}
-	if isRemove(event) {
-		// If the file was removed, set it to be re-added to watch when created
-		err := w.watcher.Add(event.Name)
-		if err != nil {
-			configFile.watched = false
-			configFile.iNode = 0
-			return nil
+
+	// we only want to update inode and re-add if the event is on the watched file itself
+	if event.Name == basename {
+		if isRemove(event) {
+			// If the file was removed, set it to be re-added to watch when created
+			err := w.watcher.Add(event.Name)
+			if err != nil {
+				configFile.watched = false
+				configFile.iNode = 0
+				return nil
+			}
 		}
-	}
 
-	id, err := w.getFileId(event.Name)
-	if err != nil {
-		return err
-	}
+		id, err := w.getFileId(event.Name)
+		if err != nil {
+			return err
+		}
 
-	w.logger.Info("set id ", "filename", event.Name, "id", id)
-	w.configFiles[event.Name].iNode = id
-	return w.handleFunc(&WatcherEvent{Filename: event.Name})
+		w.logger.Info("set id ", "filename", event.Name, "id", id)
+		configFile.iNode = id
+		return w.handleFunc(&WatcherEvent{Filename: event.Name})
+	}
+	if isCreate(event) {
+		return w.handleFunc(&WatcherEvent{Filename: event.Name})
+	}
+	return nil
+}
+
+func (w *Watcher) isWatched(filename string) (*watchedFile, string, bool) {
+	configFile, ok := w.configFiles[filename]
+	if ok {
+		return configFile, filename, true
+	}
+	filepath := filepath2.Dir(filename)
+	return w.isWatched(filepath)
 }
 
 func (w *Watcher) reconcile() {

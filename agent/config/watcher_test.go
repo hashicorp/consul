@@ -2,7 +2,9 @@ package config
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -64,7 +66,7 @@ func TestWatcherAddNotExist(t *testing.T) {
 	}()
 	require.NoError(t, err)
 	file := testutil.TempFile(t, "temp_config")
-	filename := file.Name() + randomString(16)
+	filename := file.Name() + randomStr(16)
 	w.Add(filename)
 	_, ok := w.configFiles[filename]
 	require.False(t, ok)
@@ -229,11 +231,102 @@ func TestEventReconcileMove(t *testing.T) {
 	require.NoError(t, assertEvent(filepath, watcherCh))
 }
 
+func TestEventWatcherDirCreateRemove(t *testing.T) {
+	watcherCh := make(chan *WatcherEvent)
+	w, err := New(func(event *WatcherEvent) error {
+		watcherCh <- event
+		return nil
+	})
+	defer func() {
+		_ = w.Close()
+	}()
+	w.reconcileTimeout = 20 * time.Millisecond
+	require.NoError(t, err)
+	filepath := createTempConfigDir(t, "temp_config1")
+	w.Start()
+	err = w.Add(filepath)
+	require.NoError(t, err)
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
+	for i := 0; i < 10; i++ {
+		name := filepath + "/" + randomStr(20)
+		file, err := os.Create(name)
+		require.NoError(t, err)
+		require.NoError(t, assertEvent(filepath, watcherCh))
+
+		err = os.Remove(name)
+		require.NoError(t, err)
+		require.Error(t, assertEvent(filepath, watcherCh), "timedout waiting for event")
+		err = file.Close()
+		require.NoError(t, err)
+	}
+}
+
+func TestEventWatcherDirMove(t *testing.T) {
+	watcherCh := make(chan *WatcherEvent)
+	w, err := New(func(event *WatcherEvent) error {
+		fmt.Printf("event for %s\n", event.Filename)
+		watcherCh <- event
+		return nil
+	})
+	defer func() {
+		_ = w.Close()
+	}()
+	w.reconcileTimeout = 20 * time.Millisecond
+	require.NoError(t, err)
+	filepath := createTempConfigDir(t, "temp_config1")
+
+	name := filepath + "/" + randomStr(20)
+	file, err := os.Create(name)
+	require.NoError(t, err)
+	err = file.Close()
+	require.NoError(t, err)
+	w.Start()
+	err = w.Add(filepath)
+	require.NoError(t, err)
+
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
+	for i := 0; i < 100; i++ {
+		filepathTmp := createTempConfigFile(t, "temp_config2")
+		os.Rename(filepathTmp, name)
+		require.NoError(t, err)
+		require.NoError(t, assertEvent(filepath, watcherCh))
+	}
+}
+
+func TestEventWatcherDirRead(t *testing.T) {
+	watcherCh := make(chan *WatcherEvent)
+	w, err := New(func(event *WatcherEvent) error {
+		fmt.Printf("event for %s\n", event.Filename)
+		watcherCh <- event
+		return nil
+	})
+	defer func() {
+		_ = w.Close()
+	}()
+	w.reconcileTimeout = 20 * time.Millisecond
+	require.NoError(t, err)
+	filepath := createTempConfigDir(t, "temp_config1")
+
+	name := filepath + "/" + randomStr(20)
+	file, err := os.Create(name)
+	require.NoError(t, err)
+	err = file.Close()
+	require.NoError(t, err)
+	w.Start()
+	err = w.Add(filepath)
+	require.NoError(t, err)
+
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
+	_, err = os.ReadFile(name)
+	require.NoError(t, err)
+	require.Error(t, assertEvent(filepath, watcherCh), "timedout waiting for event")
+}
+
 func assertEvent(name string, watcherCh chan *WatcherEvent) error {
 	timeout := time.After(1000 * time.Millisecond)
 	select {
 	case ev := <-watcherCh:
-		if ev.Filename != name {
+		if ev.Filename != name && !strings.Contains(ev.Filename, name) {
 			return fmt.Errorf("filename do not match")
 		}
 		return nil
@@ -253,4 +346,19 @@ func createTempConfigFile(t *testing.T, filename string) string {
 	err = file.Sync()
 	require.NoError(t, err)
 	return file.Name()
+}
+
+func createTempConfigDir(t *testing.T, dirname string) string {
+	return testutil.TempDir(t, dirname)
+}
+func randomStr(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyz" +
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	var seededRand *rand.Rand = rand.New(
+		rand.NewSource(time.Now().UnixNano()))
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
 }
