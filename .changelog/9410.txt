@@ -1,3 +1,0 @@
-```release-note:bug
-ui: ensure namespace is used for node API requests
-```

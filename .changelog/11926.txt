@@ -1,3 +1,0 @@
-```release-note:bug
-cli: Display assigned node identities in output of `consul acl token list`.
-```

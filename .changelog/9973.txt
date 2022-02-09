@@ -1,3 +1,0 @@
-```release-note:feature
-connect: add toggle to globally disable wildcard outbound network access when transparent proxy is enabled
-```

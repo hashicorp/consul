@@ -1,3 +1,0 @@
-```release-note:enhancement
-systemd: Support starting/stopping the systemd service for linux packages when the optional EnvironmentFile does not exist.
-```

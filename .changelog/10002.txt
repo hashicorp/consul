@@ -1,3 +1,0 @@
-```release-note:feature
-ui: Transparent Proxy - Service mesh visualization updates
-```

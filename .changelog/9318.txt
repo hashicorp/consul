@@ -1,3 +1,0 @@
-```release-note:bug
-connect: only unset the active root in a secondary datacenter when a new one is replacing it
-```

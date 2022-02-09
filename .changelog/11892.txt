@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Ensure a login buttons appear for some error states, plus text amends
-```

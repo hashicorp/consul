@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Topology - Fix up Default Allow and Permissive Intentions notices
-```

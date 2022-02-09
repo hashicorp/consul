@@ -1,3 +1,0 @@
-```release-note:feature
-acl: Added ACL Node Identities for easier creation of Consul Agent tokens.
-```

@@ -1,3 +1,0 @@
-```release-note:breaking-change
-connect: Disallow wildcard as name for service-defaults. 
-```

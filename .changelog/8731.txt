@@ -1,3 +1,0 @@
-```release-note:bug
-raft: (Enterprise only) properly update consul server meta non_voter for non-voting Enterprise Consul servers
-```

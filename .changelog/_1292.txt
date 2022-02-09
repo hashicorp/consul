@@ -1,3 +1,0 @@
-```release-note:bug
-namespaces: **(Enterprise only)** ensure the namespace replicator doesn't replicate deleted namespaces
-```

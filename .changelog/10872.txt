@@ -1,3 +1,0 @@
-```release-note:feature
-ui: Adding support in Topology view for Routing Configurations
-```

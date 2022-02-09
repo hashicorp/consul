@@ -1,3 +1,0 @@
-```release-note:bug
-api: Fixed a panic caused by an api request with Connect=null
-```

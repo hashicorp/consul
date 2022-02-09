@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Move all CSS icons to use standard CSS custom properties rather than SASS variables
-```

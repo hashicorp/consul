@@ -1,3 +1,0 @@
-```release-note:bug
-server: fix panic when deleting a non existent intention
-```

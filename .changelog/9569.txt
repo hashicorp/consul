@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Fixes an issue with setting -ui-content-path flag/config
-```

@@ -1,3 +1,0 @@
-```release-note:bug
-areas: **(Enterprise only)** make the gRPC server tracker network area aware
-```

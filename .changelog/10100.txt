@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Added CRD popover 'informed action' for intentions managed by CRDs
-```

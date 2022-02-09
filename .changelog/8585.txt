@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: add support for specifying load balancing policy in service-resolver
-```

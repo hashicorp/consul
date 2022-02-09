@@ -1,3 +1,0 @@
-```release-note:improvement
-snapshot agent: Deregister critical snapshotting TTL check if leadership is transferred.
-```

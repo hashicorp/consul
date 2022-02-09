@@ -1,3 +1,0 @@
-```release-note:bug
-acl: **(Enterprise only)** fix namespace and namespace_prefix policy evaluation when both govern an authz request
-```

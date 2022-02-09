@@ -1,3 +1,0 @@
-```release-note:feature
-cli: Add prefix option to kv import command
-```

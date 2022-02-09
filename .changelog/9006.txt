@@ -1,3 +1,0 @@
-```release-note:feature
-cli: snapshot inspect command supports JSON output
-```

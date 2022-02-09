@@ -1,3 +1,0 @@
-```release-note:improvement
-areas: **(Enterprise only)** Add 15s timeout to opening streams over pooled connections.
-```

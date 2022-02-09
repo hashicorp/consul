@@ -1,3 +1,0 @@
-```release-note:improvement
-telemetry: The usage data in the `metrics` API now includes cluster member counts, reporting clients on a per segment basis.
-```

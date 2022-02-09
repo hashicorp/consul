@@ -1,3 +1,0 @@
-```release-note:bug
-windows: Fixes a bug with empty log files when Consul is run as a Windows Service
-```

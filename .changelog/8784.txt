@@ -1,3 +1,0 @@
-```release-note:bug
-connect: Fixed an issue where the Vault intermediate was not renewed in the primary datacenter.
-```

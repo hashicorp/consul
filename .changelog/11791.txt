@@ -1,3 +1,0 @@
-```release-note:bugfix
-ui: Change partitions to expect [] from the listing API
-```

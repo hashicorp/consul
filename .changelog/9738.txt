@@ -1,3 +1,0 @@
-```release-note:bug
-cache: Prevent spamming the logs for days when a cached request encounters an "ACL not found" error.
-```

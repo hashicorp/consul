@@ -1,3 +1,0 @@
-```release-note:improvement
-api: Allow for the client to use TLS over a Unix domain socket.
-```

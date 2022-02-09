@@ -1,3 +1,0 @@
-```release-note:enhancement
-Allow configuring graceful stop in testutil.
-```

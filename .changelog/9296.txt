@@ -1,3 +1,0 @@
-```release-note:feature
-ui: add copyable IDs to the Role and Policy views
-```

@@ -1,3 +1,0 @@
-```release-note:feature
-cli: update `snapshot inspect` command to provide more detailed snapshot data
-```

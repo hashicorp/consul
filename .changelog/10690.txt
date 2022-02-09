@@ -1,3 +1,0 @@
-```release-note:feature
-health-checks: add support for h2c in http2 ping health checks
-```

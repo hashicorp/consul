@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Removes the extra rendering of namespace in service upstream list
-```

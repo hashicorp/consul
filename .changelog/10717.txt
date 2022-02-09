@@ -1,3 +1,0 @@
-```release-note:improvement
-checks: Add Interval and Timeout to API response.
-```

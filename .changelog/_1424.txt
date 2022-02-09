@@ -1,3 +1,0 @@
-```release-note:feature
-networking: **(Enterprise Only)** Make `segment_limit` configurable, cap at 256.
-```

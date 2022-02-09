@@ -1,3 +1,0 @@
-```release-note:bug
-xds: (beta-only) ensure that dependent xDS resources are reconfigured during primary type warming
-```

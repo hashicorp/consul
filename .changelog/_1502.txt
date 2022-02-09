@@ -1,3 +1,0 @@
-```release-note:bug
-partitions: **(Enterprise only)** Do not leave a serf partition when the partition is deleted
-```

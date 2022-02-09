@@ -1,3 +1,0 @@
-```release-note:bug
-telemetry: Consul Clients no longer emit Autopilot metrics.
-```

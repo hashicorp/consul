@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: Allow per-upstream configuration to be set in service-defaults. [experimental]
-```

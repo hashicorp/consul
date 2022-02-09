@@ -1,3 +1,0 @@
-```release-note:feature
-agent: return the default ACL policy to callers as a header
-```

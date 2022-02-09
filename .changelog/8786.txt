@@ -1,3 +1,0 @@
-```release-note:improvement
-server: **(Consul Enterprise only)** ensure that we also shutdown network segment serf instances on server shutdown
-```

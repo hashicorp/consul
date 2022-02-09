@@ -1,3 +1,0 @@
-```release-note:enhancement
-ui: Change partition URL segment prefix from `-` to `_` 
-```

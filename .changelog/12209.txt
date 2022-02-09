@@ -1,3 +1,0 @@
-```release-note:enhancement
-ui: Use @hashicorp/flight icons for all our icons.
-```

@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Move to a sidebar based main navigation
-```

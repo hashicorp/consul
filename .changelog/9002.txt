@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: add dashboard_url_template config option for external dashboard links
-```

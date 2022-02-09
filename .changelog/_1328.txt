@@ -1,3 +1,0 @@
-```release-note:bug
-snapshot: **(Enterprise only)** fixed a bug where the snapshot agent would ignore the `license_path` setting in config files
-```

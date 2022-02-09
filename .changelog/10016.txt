@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: Update the service mesh visualization to account for transparent proxies.
-```

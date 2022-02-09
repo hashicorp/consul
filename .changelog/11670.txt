@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Fix visual issue with slight table header overflow
-```

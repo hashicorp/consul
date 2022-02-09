@@ -1,3 +1,0 @@
-```release-note:improvement
-server: remove config entry CAS in legacy intention API bridge code
-```

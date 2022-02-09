@@ -1,3 +1,0 @@
-```release-note:improvement
-api: Return 404 when de-registering a non-existent check
-```

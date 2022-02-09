@@ -1,3 +1,0 @@
-```release-note:feature
-ui: Create Routing Configurations route and page
-```

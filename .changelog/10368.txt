@@ -1,3 +1,0 @@
-```release-note:improvement
-monitoring: optimize the monitoring endpoint to avoid losing logs when under high load.
-```

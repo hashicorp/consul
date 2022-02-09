@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Disabling policy form fields from users with 'read' permissions
-```

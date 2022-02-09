@@ -1,3 +1,0 @@
-```release-note:improvement
-acl: Give more descriptive error if auth method not found.
-```

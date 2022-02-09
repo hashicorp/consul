@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: The Vault provider will now automatically renew the lease of the token used, if supported.
-```

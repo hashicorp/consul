@@ -1,3 +1,0 @@
-```release-note:bug
-connect: fix issue with attempting to generate an invalid upstream cluster from UpstreamConfig.Defaults.
-```

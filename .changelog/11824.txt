@@ -1,3 +1,0 @@
-```release-note:bug
-proxycfg: ensure all of the watches are canceled if they are cancelable
-```

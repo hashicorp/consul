@@ -1,3 +1,0 @@
-```release-note:bugfix
-ui: Fixes an issue with the version footer wandering when scrolling
-```

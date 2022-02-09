@@ -1,3 +1,0 @@
-```release-note:feature
-autopilot: Added a new `consul operator autopilot state` command to retrieve and view the Autopilot state from consul.
-```

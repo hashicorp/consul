@@ -1,3 +1,0 @@
-```release-note:bug
-api: Remove trailing periods from the gateway internal HTTP API endpoint
-```

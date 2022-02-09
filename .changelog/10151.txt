@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Fix text searching through upstream instances.
-```

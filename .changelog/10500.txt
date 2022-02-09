@@ -1,3 +1,0 @@
-```release-note:bug
-check root and intermediate CA expiry before using it to sign a leaf certificate.
-```

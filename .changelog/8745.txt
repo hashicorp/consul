@@ -1,3 +1,0 @@
-```release-note:improvement
-server: make sure that the various replication loggers use consistent logging
-```

@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Ensure we show a readonly designed page for readonly intentions
-```

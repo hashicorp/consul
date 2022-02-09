@@ -1,3 +1,0 @@
-```release-note:improvement
-checks: add health status to the failure message when gRPC healthchecks fail.
-```

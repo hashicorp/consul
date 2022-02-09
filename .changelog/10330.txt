@@ -1,3 +1,0 @@
-```release-note:bug
-connect/ca: ensure edits to the key type/bits for the connect builtin CA will regenerate the roots
-```

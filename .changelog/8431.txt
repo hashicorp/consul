@@ -1,3 +1,0 @@
-```release-note:feature
-checks: add H2 ping health checks.
-```

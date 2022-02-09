@@ -1,3 +1,0 @@
-```release-note:improvement
-telemetry: Add new metrics for the count of KV entries in the Consul store.
-```

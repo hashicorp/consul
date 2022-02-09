@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: support Envoy v1.14.4, v1.13.4, v1.12.6.
-```

@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: various changes to make namespaces for intentions work more like for other subsystems.
-```

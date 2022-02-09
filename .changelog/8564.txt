@@ -1,3 +1,0 @@
-```release-note:improvement
-cli: the `consul connect envoy --envoy_statsd_url` flag will now resolve the `$HOST_IP` environment variable, as part of a full url.
-```

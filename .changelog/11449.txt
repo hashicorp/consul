@@ -1,3 +1,0 @@
-```release-note:feature
-ca: Add a configurable TTL to the AWS ACM Private CA provider root certificate.
-```

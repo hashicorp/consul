@@ -1,3 +1,0 @@
-```release-note:improvement
-api: Improve error message if service or health check not found by stating that the entity must be referred to by ID, not name
-```

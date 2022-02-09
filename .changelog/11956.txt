@@ -1,3 +1,0 @@
-```release-note:improvement
-ci: Enable security scanning for CRT
-```

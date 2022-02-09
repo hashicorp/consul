@@ -1,3 +1,0 @@
-```release-note:improvement
-streaming: display a warning on agent(s) when incompatible streaming parameters are used
-```

@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Fix dropdown option duplication in the new intentions form
-```

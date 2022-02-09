@@ -1,3 +1,0 @@
-```release-note:bug
- Mutate `NodeService` struct properly to avoid a data race.
-```

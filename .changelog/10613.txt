@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: Support manipulating HTTP headers in the mesh.
-```

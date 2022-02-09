@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Added humanized formatting to lock session durations
-```

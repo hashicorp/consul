@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: support stricter content security policies
-```

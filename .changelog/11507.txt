@@ -1,3 +1,0 @@
-```release-note:improvement
-version: Improved performance of the version.GetHumanVersion function by 50% on memory allocation.
-```

@@ -1,3 +1,0 @@
-```release-note:improvement
-agent: Allow to restrict servers that can join a given Serf Consul cluster.
-```

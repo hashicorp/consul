@@ -1,3 +1,0 @@
-```release-note:bug
-command: when generating envoy bootstrap configs use the datacenter returned from the agent services endpoint
-```
