@@ -1156,7 +1156,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 			case err := <-errCh:
 				if tt.wantDenied {
 					require.Error(t, err)
-					require.Contains(t, err.Error(), "permission denied")
+					require.Contains(t, err.Error(), "Permission denied")
 					mgr.AssertWatchCancelled(t, sid)
 				} else {
 					require.NoError(t, err)
