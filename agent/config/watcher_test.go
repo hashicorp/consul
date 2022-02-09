@@ -159,6 +159,8 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	w.Start()
 	err = os.Remove(file.Name())
 	require.NoError(t, err)
+	// this should be the REMOVE event
+	require.NoError(t, assertEvent(file.Name(), watcherCh))
 	time.Sleep(200 * time.Millisecond)
 	recreated, err := os.Create(file.Name())
 	require.NoError(t, err)
@@ -166,6 +168,7 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	require.NoError(t, err)
 	err = recreated.Sync()
 	require.NoError(t, err)
+	// this an event coming from the reconcile loop
 	require.NoError(t, assertEvent(file.Name(), watcherCh))
 	iNode, err := w.getFileId(recreated.Name())
 	require.NoError(t, err)
@@ -202,7 +205,6 @@ func TestEventWatcherMove(t *testing.T) {
 	err = w.Add(file.Name())
 
 	require.NoError(t, err)
-	w.reconcileTimeout = 20 * time.Millisecond
 	w.Start()
 	err = os.Rename(file2.Name(), file.Name())
 	require.NoError(t, err)
