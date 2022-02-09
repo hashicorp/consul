@@ -21,6 +21,7 @@ type Watcher struct {
 type watchedFile struct {
 	iNode   uint64
 	watched bool
+	deleted bool
 }
 
 type WatcherEvent struct {
@@ -52,7 +53,7 @@ func (w Watcher) Remove(filename string) error {
 	if err := w.watcher.Remove(filename); err != nil {
 		return err
 	}
-	delete(w.configFiles, filename)
+	w.configFiles[filename].deleted = true
 	return nil
 }
 
@@ -122,6 +123,10 @@ func (w Watcher) reconcile() {
 		newInode, err := w.getFileId(filename)
 		if err != nil {
 			w.logger.Error("failed to get file id", "file", filename, "err", err)
+			continue
+		}
+		if w.configFiles[filename].deleted {
+			delete(w.configFiles, filename)
 			continue
 		}
 
