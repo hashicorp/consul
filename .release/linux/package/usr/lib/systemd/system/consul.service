@@ -10,6 +10,7 @@ EnvironmentFile=-/etc/consul.d/consul.env
 User=consul
 Group=consul
 ExecStart=/usr/bin/consul agent -config-dir=/etc/consul.d/
+ExecReload=/usr/bin/consul validate /etc/consul.d/
 ExecReload=/bin/kill --signal HUP $MAINPID
 KillMode=process
 KillSignal=SIGTERM
