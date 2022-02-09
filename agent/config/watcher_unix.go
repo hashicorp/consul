@@ -24,6 +24,6 @@ func (w Watcher) getFileId(filename string) (uint64, error) {
 		return 0, fmt.Errorf("not a syscall.Stat_t %v", fileInfo.Sys())
 	}
 
-	w.logger.Debug("read inode ", "inode", stat.Ino)
+	w.logger.Info("read inode ", "inode", stat.Ino)
 	return stat.Ino, nil
 }
