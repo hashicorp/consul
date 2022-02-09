@@ -130,11 +130,15 @@ func (w *Watcher) handleEvent(event fsnotify.Event) error {
 	if !isCreate(event) && !isRemove(event) {
 		return nil
 	}
+	configFile, ok := w.configFiles[event.Name]
+	if !ok {
+		return fmt.Errorf("file %s is not watched", event.Name)
+	}
 	if isRemove(event) {
 		// If the file was removed, set it to be re-added to watch when created
 		err := w.watcher.Add(event.Name)
 		if err != nil {
-			w.configFiles[event.Name].watched = false
+			configFile.watched = false
 			return nil
 		}
 	}
