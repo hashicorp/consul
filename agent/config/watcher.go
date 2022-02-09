@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-const timeoutDuration = 10 * time.Second
+const timeoutDuration = 200 * time.Millisecond
 
 type Watcher struct {
 	watcher          *fsnotify.Watcher
@@ -93,7 +93,7 @@ func (w Watcher) watch() {
 }
 
 func (w Watcher) handleEvent(event fsnotify.Event) error {
-	w.logger.Info("event received ", "event", event.Op)
+	w.logger.Debug("event received ", "event", event.Op)
 	// we only want Create and Remove events to avoid triggering a relaod on file modification
 	if !isCreate(event) && !isRemove(event) {
 		return nil
