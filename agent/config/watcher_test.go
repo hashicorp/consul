@@ -55,6 +55,7 @@ func TestWatcherAddRemoveExist(t *testing.T) {
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	err = w.Remove(filepath)
 	require.NoError(t, err)
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	_, ok = w.configFiles[filepath]
 	require.False(t, ok)
 
@@ -173,13 +174,14 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	w.Start()
 	err = os.Remove(filepath)
 	require.NoError(t, err)
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	recreated, err := os.Create(filepath)
 	require.NoError(t, err)
 	_, err = recreated.WriteString("config 2")
 	require.NoError(t, err)
 	err = recreated.Sync()
 	require.NoError(t, err)
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	// this an event coming from the reconcile loop
 	require.NoError(t, assertEvent(filepath, watcherCh))
 	iNode, err := w.getFileId(recreated.Name())
