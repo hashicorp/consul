@@ -218,7 +218,7 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 	// Pull out the service name
 	var err error
 	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, prefix)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	if args.ServiceName == "" {
