@@ -322,12 +322,34 @@ func TestEventWatcherDirRead(t *testing.T) {
 	require.Error(t, assertEvent(filepath, watcherCh), "timedout waiting for event")
 }
 
+func TestEventWatcherMoveSoftLink(t *testing.T) {
+	watcherCh := make(chan *WatcherEvent)
+	w, err := New(func(event *WatcherEvent) error {
+		watcherCh <- event
+		return nil
+	})
+	defer func() {
+		_ = w.Close()
+	}()
+	w.reconcileTimeout = 20 * time.Millisecond
+	require.NoError(t, err)
+	filepath := createTempConfigFile(t, "temp_config1")
+	tempDir := createTempConfigDir(t, "temp_dir")
+	name := tempDir + "/" + randomStr(20)
+	err = os.Symlink(filepath, name)
+	require.NoError(t, err)
+	w.Start()
+	err = w.Add(name)
+	require.Error(t, err, "symbolic link are not supported")
+
+}
+
 func assertEvent(name string, watcherCh chan *WatcherEvent) error {
-	timeout := time.After(1000 * time.Millisecond)
+	timeout := time.After(2000 * time.Millisecond)
 	select {
 	case ev := <-watcherCh:
 		if ev.Filename != name && !strings.Contains(ev.Filename, name) {
-			return fmt.Errorf("filename do not match")
+			return fmt.Errorf("filename do not match %s %s", ev.Filename, name)
 		}
 		return nil
 	case <-timeout:
