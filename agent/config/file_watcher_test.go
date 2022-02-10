@@ -162,7 +162,7 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	w.Start()
 	err = w.Add(filepath)
 	require.NoError(t, err)
-
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	err = os.Remove(filepath)
 	require.NoError(t, err)
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
