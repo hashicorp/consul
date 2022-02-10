@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,6 +19,7 @@ type FileWatcher struct {
 	handleFunc       func(event *WatcherEvent) error
 	logger           hclog.Logger
 	reconcileTimeout time.Duration
+	cancel           context.CancelFunc
 	done             chan interface{}
 	toBeRemoved      chan string
 	toBeAdded        chan string
@@ -37,8 +39,12 @@ func New(handleFunc func(event *WatcherEvent) error) (*FileWatcher, error) {
 	if err != nil {
 		return nil, err
 	}
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	cfgFiles := make(map[string]*watchedFile)
-	return &FileWatcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{}), reconcileTimeout: timeoutDuration, done: make(chan interface{}), toBeAdded: make(chan string), toBeRemoved: make(chan string)}, nil
+	w := &FileWatcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{}), reconcileTimeout: timeoutDuration, done: make(chan interface{}), toBeAdded: make(chan string), toBeRemoved: make(chan string), cancel: cancelFunc}
+
+	go w.watch(ctx)
+	return w, nil
 }
 
 func (w *FileWatcher) add(filename string) error {
@@ -94,13 +100,14 @@ func isSymLink(filename string) bool {
 }
 
 func (w *FileWatcher) Close() error {
-	close(w.done)
+	w.cancel()
+	<-w.done
 	return w.watcher.Close()
 }
 
-func (w *FileWatcher) watch() {
-	timer := time.NewTimer(w.reconcileTimeout)
-	defer timer.Stop()
+func (w *FileWatcher) watch(ctx context.Context) {
+	ticker := time.NewTicker(w.reconcileTimeout)
+	defer ticker.Stop()
 	for {
 		select {
 		case event, ok := <-w.watcher.Events:
@@ -112,15 +119,13 @@ func (w *FileWatcher) watch() {
 			if err := w.handleEvent(event); err != nil {
 				w.logger.Error("error handling watcher event", "error", err, "event", event)
 			}
-			timer.Reset(w.reconcileTimeout)
 		case _, ok := <-w.watcher.Errors:
 			if !ok {
 				w.logger.Error("watcher error channel is closed")
 				return
 			}
-		case <-timer.C:
+		case <-ticker.C:
 			w.reconcile()
-			timer.Reset(w.reconcileTimeout)
 		case filename := <-w.toBeAdded:
 			err := w.add(filename)
 			if err != nil {
@@ -131,7 +136,8 @@ func (w *FileWatcher) watch() {
 			if err != nil {
 				w.logger.Error("error removing a file", "file", filename, "err", err)
 			}
-		case <-w.done:
+		case <-ctx.Done():
+			close(w.done)
 			return
 		}
 	}
@@ -139,7 +145,7 @@ func (w *FileWatcher) watch() {
 }
 
 func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
-	w.logger.Info("event received ", "filename", event.Name, "OP", event.Op)
+	w.logger.Debug("event received ", "filename", event.Name, "OP", event.Op)
 	// we only want Create and Remove events to avoid triggering a relaod on file modification
 	if !isCreate(event) && !isRemove(event) {
 		return nil
@@ -166,7 +172,7 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 			return err
 		}
 
-		w.logger.Info("set id ", "filename", event.Name, "id", id)
+		w.logger.Debug("set id ", "filename", event.Name, "id", id)
 		configFile.iNode = id
 		return w.handleFunc(&WatcherEvent{Filename: event.Name})
 	}
@@ -213,9 +219,6 @@ func (w *FileWatcher) reconcile() {
 			}
 		}
 	}
-}
-func (w *FileWatcher) Start() {
-	go w.watch()
 }
 
 func isCreate(event fsnotify.Event) bool {

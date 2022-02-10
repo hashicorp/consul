@@ -37,7 +37,6 @@ func TestWatcherAddRemoveExist(t *testing.T) {
 	filepath := createTempConfigFile(t, "temp_config1")
 	filepath2 := createTempConfigFile(t, "temp_config2")
 	filepath3 := createTempConfigFile(t, "temp_config3")
-	w.Start()
 	err = w.Add(filepath)
 	require.NoError(t, err)
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
@@ -87,7 +86,6 @@ func TestEventWatcherWrite(t *testing.T) {
 	require.NoError(t, err)
 	err = file.Sync()
 	require.NoError(t, err)
-	w.Start()
 	err = w.Add(file.Name())
 	require.NoError(t, err)
 	_, err = file.WriteString("test config 2")
@@ -109,7 +107,6 @@ func TestEventWatcherRead(t *testing.T) {
 	}()
 
 	filepath := createTempConfigFile(t, "temp_config1")
-	w.Start()
 	err = w.Add(filepath)
 	require.NoError(t, err)
 
@@ -138,7 +135,6 @@ func TestEventWatcherChmod(t *testing.T) {
 	require.NoError(t, err)
 	err = file.Sync()
 	require.NoError(t, err)
-	w.Start()
 	err = w.Add(file.Name())
 	require.NoError(t, err)
 
@@ -159,7 +155,6 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	require.NoError(t, err)
 	filepath := createTempConfigFile(t, "temp_config1")
 	w.reconcileTimeout = 20 * time.Millisecond
-	w.Start()
 	err = w.Add(filepath)
 	require.NoError(t, err)
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
@@ -192,7 +187,6 @@ func TestEventWatcherMove(t *testing.T) {
 	w.reconcileTimeout = 20 * time.Millisecond
 	require.NoError(t, err)
 	filepath := createTempConfigFile(t, "temp_config1")
-	w.Start()
 	err = w.Add(filepath)
 	require.NoError(t, err)
 
@@ -218,7 +212,6 @@ func TestEventReconcileMove(t *testing.T) {
 
 	filepath2 := createTempConfigFile(t, "temp_config2")
 	w.reconcileTimeout = 20 * time.Millisecond
-	w.Start()
 	err = w.Add(filepath)
 	require.NoError(t, err)
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
@@ -243,7 +236,6 @@ func TestEventWatcherDirCreateRemove(t *testing.T) {
 	w.reconcileTimeout = 20 * time.Millisecond
 	require.NoError(t, err)
 	filepath := createTempConfigDir(t, "temp_config1")
-	w.Start()
 	err = w.Add(filepath)
 	require.NoError(t, err)
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
@@ -280,7 +272,6 @@ func TestEventWatcherDirMove(t *testing.T) {
 	require.NoError(t, err)
 	err = file.Close()
 	require.NoError(t, err)
-	w.Start()
 	err = w.Add(filepath)
 	require.NoError(t, err)
 
@@ -312,7 +303,6 @@ func TestEventWatcherDirRead(t *testing.T) {
 	require.NoError(t, err)
 	err = file.Close()
 	require.NoError(t, err)
-	w.Start()
 	err = w.Add(filepath)
 	require.NoError(t, err)
 
@@ -338,7 +328,6 @@ func TestEventWatcherMoveSoftLink(t *testing.T) {
 	name := tempDir + "/" + randomStr(20)
 	err = os.Symlink(filepath, name)
 	require.NoError(t, err)
-	w.Start()
 	err = w.Add(name)
 	require.Error(t, err, "symbolic link are not supported")
 
