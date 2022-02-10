@@ -1,0 +1,11 @@
+{{#if @shadowRoot}}
+  {{#in-element @shadowRoot}}
+    {{#if @stylesheets}}
+      {{adopt-styles
+        @shadowRoot
+        @stylesheets
+      }}
+    {{/if}}
+  {{yield}}
+  {{/in-element}}
+{{/if}}

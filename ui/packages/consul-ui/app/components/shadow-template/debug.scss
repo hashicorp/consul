@@ -1,0 +1,6 @@
+[id^='docfy-demo-preview-shadow-template'] .component-name::part(header)::before,
+[id^='docfy-demo-preview-shadow-template'] component-name::part(header)::before {
+  @extend %with-logo-consul-color-icon, %as-pseudo;
+  width: 2rem; /* 32px */
+  height: 2rem; /* 32px */
+}
