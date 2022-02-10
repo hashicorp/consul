@@ -12,7 +12,7 @@ import (
 
 const timeoutDuration = 200 * time.Millisecond
 
-type Watcher struct {
+type FileWatcher struct {
 	watcher          *fsnotify.Watcher
 	configFiles      map[string]*watchedFile
 	handleFunc       func(event *WatcherEvent) error
@@ -32,16 +32,16 @@ type WatcherEvent struct {
 	Filename string
 }
 
-func New(handleFunc func(event *WatcherEvent) error) (*Watcher, error) {
+func New(handleFunc func(event *WatcherEvent) error) (*FileWatcher, error) {
 	ws, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
 	cfgFiles := make(map[string]*watchedFile)
-	return &Watcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{}), reconcileTimeout: timeoutDuration, done: make(chan interface{}), toBeAdded: make(chan string), toBeRemoved: make(chan string)}, nil
+	return &FileWatcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{}), reconcileTimeout: timeoutDuration, done: make(chan interface{}), toBeAdded: make(chan string), toBeRemoved: make(chan string)}, nil
 }
 
-func (w *Watcher) add(filename string) error {
+func (w *FileWatcher) add(filename string) error {
 	if err := w.watcher.Add(filename); err != nil {
 		return err
 	}
@@ -53,14 +53,14 @@ func (w *Watcher) add(filename string) error {
 	return nil
 }
 
-func (w *Watcher) remove(filename string) error {
+func (w *FileWatcher) remove(filename string) error {
 	if err := w.watcher.Remove(filename); err != nil {
 		return err
 	}
 	delete(w.configFiles, filename)
 	return nil
 }
-func (w *Watcher) Remove(filename string) error {
+func (w *FileWatcher) Remove(filename string) error {
 	timeout := time.After(timeoutDuration)
 	select {
 	case w.toBeRemoved <- filename:
@@ -70,7 +70,7 @@ func (w *Watcher) Remove(filename string) error {
 	}
 }
 
-func (w *Watcher) Add(filename string) error {
+func (w *FileWatcher) Add(filename string) error {
 	timeout := time.After(timeoutDuration)
 
 	// explicitly do not support symlink as the behaviour is not consistent between OSs
@@ -93,12 +93,12 @@ func isSymLink(filename string) bool {
 	return false
 }
 
-func (w *Watcher) Close() error {
+func (w *FileWatcher) Close() error {
 	close(w.done)
 	return w.watcher.Close()
 }
 
-func (w *Watcher) watch() {
+func (w *FileWatcher) watch() {
 	timer := time.NewTimer(w.reconcileTimeout)
 	defer timer.Stop()
 	for {
@@ -139,7 +139,7 @@ func (w *Watcher) watch() {
 
 }
 
-func (w *Watcher) handleEvent(event fsnotify.Event) error {
+func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 	w.logger.Info("event received ", "filename", event.Name, "OP", event.Op)
 	// we only want Create and Remove events to avoid triggering a relaod on file modification
 	if !isCreate(event) && !isRemove(event) {
@@ -177,7 +177,7 @@ func (w *Watcher) handleEvent(event fsnotify.Event) error {
 	return nil
 }
 
-func (w *Watcher) isWatched(filename string) (*watchedFile, string, bool) {
+func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 	configFile, ok := w.configFiles[filename]
 	if ok {
 		return configFile, filename, true
@@ -186,7 +186,7 @@ func (w *Watcher) isWatched(filename string) (*watchedFile, string, bool) {
 	return w.isWatched(filepath)
 }
 
-func (w *Watcher) reconcile() {
+func (w *FileWatcher) reconcile() {
 	for filename, configFile := range w.configFiles {
 		newInode, err := w.getFileId(filename)
 		if err != nil {
@@ -212,7 +212,7 @@ func (w *Watcher) reconcile() {
 		}
 	}
 }
-func (w *Watcher) Start() {
+func (w *FileWatcher) Start() {
 	go w.watch()
 }
 

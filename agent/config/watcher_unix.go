@@ -9,12 +9,8 @@ import (
 	"syscall"
 )
 
-func (w Watcher) getFileId(filename string) (uint64, error) {
-	realFilename := filename
-	if linkedFile, err := os.Readlink(filename); err == nil {
-		realFilename = linkedFile
-	}
-	fileInfo, err := os.Stat(realFilename)
+func (w *FileWatcher) getFileId(filename string) (uint64, error) {
+	fileInfo, err := os.Stat(filename)
 	if err != nil {
 		return 0, err
 	}
