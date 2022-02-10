@@ -533,6 +533,30 @@ func makeTestEndpoints(t *testing.T, _ *proxycfg.ConfigSnapshot, fixtureName str
 
 func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName string) *envoy_listener_v3.Listener {
 	switch fixtureName {
+	case "tcp:bad_public_listener":
+		return &envoy_listener_v3.Listener{
+			// Envoy can't bind to port 1
+			Name:             "public_listener:0.0.0.0:1",
+			Address:          makeAddress("0.0.0.0", 1),
+			TrafficDirection: envoy_core_v3.TrafficDirection_INBOUND,
+			FilterChains: []*envoy_listener_v3.FilterChain{
+				{
+					TransportSocket: xdsNewPublicTransportSocket(t, snap),
+					Filters: []*envoy_listener_v3.Filter{
+						xdsNewFilter(t, "envoy.filters.network.rbac", &envoy_network_rbac_v3.RBAC{
+							Rules:      &envoy_rbac_v3.RBAC{},
+							StatPrefix: "connect_authz",
+						}),
+						xdsNewFilter(t, "envoy.filters.network.tcp_proxy", &envoy_tcp_proxy_v3.TcpProxy{
+							ClusterSpecifier: &envoy_tcp_proxy_v3.TcpProxy_Cluster{
+								Cluster: "local_app",
+							},
+							StatPrefix: "public_listener",
+						}),
+					},
+				},
+			},
+		}
 	case "tcp:public_listener":
 		return &envoy_listener_v3.Listener{
 			Name:             "public_listener:0.0.0.0:9999",
