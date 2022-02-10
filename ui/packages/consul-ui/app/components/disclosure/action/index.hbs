@@ -1,7 +1,6 @@
 <Action
   aria-expanded={{if @disclosure.expanded 'true' 'false'}}
-  aria-controls={{@disclosure.panel}}
-  id={{@disclosure.button}}
+  aria-controls={{@disclosure.controls}}
   ...attributes
 >
   {{yield}}
