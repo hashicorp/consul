@@ -45,17 +45,17 @@ export default class Node extends Model {
     }
   }
 
-  @computed('Checks.[]')
+  @computed('NodeChecks.[]')
   get ChecksCritical() {
     return this.NodeChecks.filter(item => item.Status === 'critical').length;
   }
 
-  @computed('Checks.[]')
+  @computed('NodeChecks.[]')
   get ChecksPassing() {
     return this.NodeChecks.filter(item => item.Status === 'passing').length;
   }
 
-  @computed('Checks.[]')
+  @computed('NodeChecks.[]')
   get ChecksWarning() {
     return this.NodeChecks.filter(item => item.Status === 'warning').length;
   }
