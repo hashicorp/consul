@@ -799,15 +799,23 @@
         "title": "Access Control (ACLs)",
         "routes": [
           {
-            "title": "Overview",
-            "path": "security/acl"
-          },
-          {
-            "title": "ACL System",
+            "title": "ACL System Overview",
             "path": "security/acl/acl-system"
           },
           {
-            "title": "ACL Rules",
+            "title": "Tokens",
+            "path": "security/acl/acl-tokens"
+          },
+          {
+            "title": "Policies",
+            "path": "security/acl/acl-policies"
+          },
+          {
+            "title": "Roles",
+            "path": "security/acl/acl-roles"
+          },
+          {
+            "title": "Rules Reference",
             "path": "security/acl/acl-rules"
           },
           {

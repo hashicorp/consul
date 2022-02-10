@@ -1,0 +1,144 @@
+---
+layout: docs
+page_title: Roles
+description: >-
+  This topic describes roles within the access control list (ACL) system. A role is a named set of policies and service identities.
+  They are intended to
+---
+
+# Roles
+
+A role is a collection of policies that your ACL administrator can link to a token.
+They enable you to reuse policies by decoupling the policies from the token distributed to team members.
+Instead, the token is linked to the role, which is able to hold several policies that can be updated asynchronously without distributing new tokens to users.
+As a result, roles can provide a more convenient authentication infrastrcture than creating unique policies and tokens for each requester.
+
+## Workflow Overview
+
+Roles are configurations link several policies to a token. The following procedure describes the workflow for implementing roles.
+
+1. Assemble rules into policies (see [Policies](/docs/security/acl/acl-policies)) and register them in Consul.
+1. Define a role and include the policy IDs or names.
+1. Register the role in Consule and link it to a token.
+1. Distribute the tokens to users for implementation.
+
+## Creating Roles
+
+Creating roles is commonly the responsibility of the Consul ACLs administrator.
+Roles have several attributes, including service identities and node identities.
+Refer to the following documentation for details:
+
+- [Role Attributes](#role-attributes)
+- [Service Identities](#service-identities)
+- [Node Identities](#node-identities)
+
+Use the Consul command line or API endpoint to create roles.
+
+### Command Line
+
+Issue the `consul acl role create` command to create roles. In the following example, a role named `crawler` is created that contains a policy named `crawler-kv` and a policy named `crawler-key`.
+
+```shell-session
+$ consul acl role create -name "crawler" -description "web crawler role" -policy-name "crawler-kv" -policy-name "crawler-key"
+```
+
+Refer to the [command line documentation](/command/acl/role) for details.
+
+### API
+
+Make a `PUT` call to the `acl/role` endpoint and specify the role configuration in the payload to create roles. You can save the role definition in a JSON file or use escaped JSON in the call. In the following example call, the payload is defined externally.
+
+```shell-session
+$ curl -X PUT --data @payload.json http://127.0.0.1:8500/v1/acl/role
+```
+
+Refer to the [API documentation](/api-docs/acl/roles) for details.
+
+## Role Attributes
+
+Roles may contain the following table describe the attributes:
+
+- `ID`: The `ID` is an auto-generated public identifier. You can specify the role `ID` when linking it to tokens.
+- `Name`: A unique meaningful name for the role. You can specify the role `Name` when linking it to tokens.
+- `Description`: (Optional) A human-readable description of the role.
+- `Policies`: Specifies a the list of policies that are applicable for the role. The object can reference the policy `ID` or `Name` attribute.
+- `ServiceIdentities`: Specifies a list of services that are applicable for the role. See [Service Identities](#service-identities) for details.
+- `NodeIdentities`: Specifies a list of nodes that are applicable for the role. See [Node Identities](#node-identities) for details.
+- `Namespace`: <EnterpriseAlert inline /> The namespace this policy resides within. Roles can only be linked to policies that are defined in the same namespace and admin partition. See [Namespaces](/docs/enterprise/namespaces) and [Admin Partitions](/docs/enterprise/admin-partitions) for additional information. Requires Consul Enterprise 1.7.0+.
+
+## Service Identities
+
+<!-- -> Added in Consul 1.5.0 # Remove and lean on versioning?-->
+
+Service identities are methods for linking services that participate in a Consul service mesh to a policy.
+They are configurations added to a role that specifies a services that participate in a Consul service mesh and links them to a policy.
+Service identities are templates that provide privileges to _be discovered_ and to _discover other healthy service instances_ in a service mesh.
+See [Service Mesh](/docs/connect) for additional information about Consul service mesh.
+
+They are usable
+on both tokens and roles and are composed of the following elements:
+
+- **Service Name** - The name of the service.
+- **Datacenters** - A list of datacenters the effective policy is valid within. (Optional)
+
+Suitable policies tend to all look nearly identical so a service identity is a policy
+template to aid in avoiding boilerplate policy creation.
+
+During the authorization process, the configured service identity is automatically
+applied as a policy with the following preconfigured [ACL
+rules](/docs/acl/acl-system#acl-rules-and-scope):
+
+```hcl
+# Allow the service and its sidecar proxy to register into the catalog.
+service "<Service Name>" {
+	policy = "write"
+}
+service "<Service Name>-sidecar-proxy" {
+	policy = "write"
+}
+
+# Allow for any potential upstreams to be resolved.
+service_prefix "" {
+	policy = "read"
+}
+node_prefix "" {
+	policy = "read"
+}
+```
+
+The [API documentation for roles](/api/acl/roles#sample-payload) has some
+examples of using a service identity.
+
+-> **Service Scope for Namespace and Admin Partition** - Service identity rules in Consul Enterprise are scoped to the namespace or admin partition within which the corresponding ACL token or role resides.
+
+## Node Identities
+
+-> Added in Consul 1.8.1
+
+An ACL node identity is an [ACL policy](/docs/acl/acl-system#policies) template for expressing a link to a policy
+suitable for use as an [Consul `agent` token](/docs/agent/options#acl_tokens_agent). They are usable
+on both tokens and roles and are composed of the following elements:
+
+- **Node Name** - The name of the node to grant access to.
+- **Datacenter** - The datacenter that the node resides within.
+
+During the authorization process, the configured node identity is automatically
+applied as a policy with the following preconfigured [ACL
+rules](/docs/acl/acl-system#acl-rules-and-scope):
+
+```hcl
+# Allow the agent to register its own node in the Catalog and update its network coordinates
+node "<Node Name>" {
+  policy = "write"
+}
+
+# Allows the agent to detect and diff services registered to itself. This is used during
+# anti-entropy to reconcile difference between the agents knowledge of registered
+# services and checks in comparison with what is known in the Catalog.
+service_prefix "" {
+  policy = "read"
+}
+```
+
+-> **Consul Enterprise Namespacing** - Node Identities can only be applied to tokens and roles in the `default` namespace.
+The synthetic policy rules allow for `service:read` permissions on all services in all namespaces.

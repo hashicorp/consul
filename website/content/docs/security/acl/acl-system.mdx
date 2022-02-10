@@ -1,342 +1,91 @@
 ---
 layout: docs
-page_title: ACL System
+page_title: Access Control List (ACL) Overview
 description: >-
-  The Consul Access Control List (ACL) system authenticates requests and authorizes
-  access to resources. It is used by the UI, API, CLI, service-to-service
-  communication, and agent-to-agent communication.
+  This topic describes provides an overview of the optional access control list (ACL) system shipped with Consul. The ACL system authenticates requests and authorizes access to resources. It is used by the UI, API, and CLI for service-to-service communication and agent-to-agent communication.
 ---
 
-# ACL System
+# Access Control List (ACL) Overview
 
-The Consul Access Control List (ACL) system authenticates requests and authorizes
-access to resources. It is used by the UI, API, CLI, service-to-service
-communication, and agent-to-agent communication.
+This topic describes core concepts associated with the optioal access control list (ACL) system shipped with Consul. ACLs authenticate requests and authorize access to resources. They also control access to the Consul UI, API, and CLI, as well as secure service-to-service and agent-to-agent communication.
 
-This page will introduce you to all of the core concepts of the ACL system. For a more
-step-to-step guide see [Bootstrap and Explore ACLs] for getting started with ACLs and
-[Secure Consul with ACLs] for configuring ACLs in a production environment.
+Refer to the following tutorials for step-by-step instructions on how to get started using ACLs:
 
-[Bootstrap and Explore ACLs]: https://learn.hashicorp.com/tutorials/consul/access-control-setup?utm_source=consul.io&utm_medium=docs
-[Secure Consul with ACLs]: https://learn.hashicorp.com/tutorials/consul/access-control-setup-production?utm_source=consul.io&utm_medium=docs
+- [Bootstrap and Explore ACLs]
+- [Secure Consul with ACLs]
+- [Troubleshoot the ACL System](https://learn.hashicorp.com/tutorials/consul/access-control-troubleshoot)
 
-See allso the [ACL API reference](/api-docs/acl), [ACL CLI reference](/commands/acl), and
-[Troubleshoot the ACL System](https://learn.hashicorp.com/tutorials/consul/access-control-troubleshoot).
+[bootstrap and explore acls]: https://learn.hashicorp.com/tutorials/consul/access-control-setup?utm_source=consul.io&utm_medium=docs
+[secure consul with acls]: https://learn.hashicorp.com/tutorials/consul/access-control-setup-production?utm_source=consul.io&utm_medium=docs
 
+Refer to the [ACL API reference](/api-docs/acl) and [ACL CLI reference](/commands/acl) for additional usage information.
 
-## Overview
+## Workflow Overview
 
-The diagram below shows the relationships between the core components of the ACL system:
+Implementations may vary depending on the needs of the organization, but the following procedure describes the basic workflow for for creating and implementing ACLs:
+
+1. The person responsible for administrating ACLs in your organization specifies one or more authentication rules to define a [policy](#policies).
+1. The ACL administrator uses the Consul API to generate and link a [token](#tokens) to one or more policies. The following diagram illustrates the relationship between rules, policies, and tokens:
 
 ![ACL system component relationships](/img/acl-token-policy-rule-relationship.png)
 
+The ACL administrator can create and link additional artifacts to tokens, such as [service identities](#service-identities), [node identities](#node-identities), and [roles](#roles) that enable policies to accommodate more complex requirements.
+
+1. Tokens are distributed to end users and incorporated into their services.
+1. Agents and services present the token when making requests.
+1. Consul evaluates the token to determine if the request has permission to interact with the requested resource.
+
 ## Tokens
 
-Tokens are the core method of authentication in Consul. The `SecretID` of the token
-(often referred to as the ACL token) is an opaque string that is included in requests to
-identify the person or system making the request. The ACL system will look up the ACL
-token and grant or deny access based on the permissions associated with the token.
-Permissions are granted to a token by linking it to [policies](#policies), [roles](#roles),
-[service identities](#service-identities), and [node identities](#node-identities).
+ACL tokens are the core method of authentication in Consul. Tokens contain several attributes, but the value of the `SecretID` field (sometimes referred to as the ACL token) is the attribute that you or your service must include to identify the person or system making the request. Your ACL administrator may also use the token's `AccessorID` for audit logging purposes.
 
-A Token also has an Accessor ID which is used in [Audit Logging](/docs/enterprise/audit-logging)
-and API responses to identify the token without revealing the secret ID.
+Refer to the following topics for details about tokens:
 
-Tokens can be created directly from the [CLI](/commands/acl/token) or [API](/api-docs/acl/tokens).
-[Auth Methods](/docs/security/acl/auth-methods) can be used to dynamically create tokens
-from a trusted external system.
-
-Consul HTTP API requests accept a token from an [HTTP Header](/api-docs/index#authentication),
-and CLI requests accept a token from
-[`-token` command line flag](/commands#authentication) or
-[`CONSUL_HTTP_TOKEN_FILE` environment variable](/commands#consul_http_token_file).
-
+- [Tokens](/docs/security/acl/acl-tokens)
+- [ACL token command line](/commands/acl/token)
+- [ACL tokens API](/api-docs/acl/tokens)
 
 ## Policies
 
-An ACL policy (not to be confused with [policy dispositions](/docs/security/acl/acl-rules#policy-dispositions)) is a named set of rules and several attributes that define the policy domain. The ID is generated when the policy is created, but you can specify the attributes when creating the policy. Refer to the [ACL policy command line](https://www.consul.io/commands/acl/policy) documentation or [ACL policy API](/api-docs/acl/policies) documentation for additional information on how to create policies.
+An ACL policy is a set of rules grant or deny access to resources in the network.
+The person responsible for administrating ACLs in your organization will assemble and create policies and link them to tokens.
+Tokens are the artifacts distributed to users so that they can be implemented.
+In addition to the rules that authenticate access to services, several attributes may be assigned policies that determine their scope.
 
-ACL policies can have the following attributes:
+Refer to the following topics for details about policies:
 
-| Attribute | Description | Required | Default |
-| ---       | ---         | ---      | ---     |
-| `ID` | The policy's auto-generated public identifier. | N/A | N/A |
-| `name` | Unique name for the policy. | Required | none |
-| `description` | Human readable description of the policy. | Optional | none |
-| `rules` | Set of rules granting or denying permissions. See the [Rule Specification](/docs/acl/acl-rules#rule-specification) documentation for more details. | Optional | none |
-| `datacenter` | Datacenter in which the policy is valid. More than one datacenter can be specified. | Optional | none | 
-| `namespace` | <EnterpriseAlert inline /> Namespace in which the policy is valid. Added in Consul Enterprise 1.7.0. | Optional | `default` |
-| `partition` | <EnterpriseAlert inline /> Admin partition in which the policy is valid. Added in Consul Enterprise 1.11.0 | Optional | `default` |
-
--> **Non-default Namespaces and Partitions** - Rules defined in a policy tied to an namespace or admin partition other than `default` can only grant a subset of privileges that affect the namespace or partition. See [Namespace Rules](/docs/acl/acl-rules#namespace-rules) and [Admin Partition Rules](/docs/acl/acl-rules#admin-partition-rules) for additional information.
-
-You can view the current ACL policies on the command line or through the API. The following example demonstrates the command line usage:
-
-```shell-session
-$ consul acl policy list -format json -token <token_id>
-[
-    {
-        "ID": "56595ec1-52e4-d6de-e566-3b78696d5459",
-        "Name": "b-policy",
-        "Description": "",
-        "Datacenters": null,
-        "Hash": "ULwaXlI6Ecqb9YSPegXWgVL1LlwctY9TeeAOhp5HGBA=",
-        "CreateIndex": 126,
-        "ModifyIndex": 126,
-        "Namespace": "default",
-        "Partition": "default"
-    },
-    {
-        "ID": "00000000-0000-0000-0000-000000000001",
-        "Name": "global-management",
-        "Description": "Builtin Policy that grants unlimited access",
-        "Datacenters": null,
-        "Hash": "W1bQuDAlAlxEb4ZWwnVHplnt3I5oPKOZJQITh79Xlog=",
-        "CreateIndex": 70,
-        "ModifyIndex": 70,
-        "Namespace": "default",
-        "Partition": "default"
-    }
-]
-```
-
-Note that the `Hash`, `CreateIndex`, and `ModifyIndex` attributes are also printed. These attributes are printed for all responses and are not specific to ACL policies. 
-
-### Builtin Policies
-
-- **Global Management** - Grants unrestricted privileges to any token that uses it. When created it will be named `global-management`
-  and will be assigned the reserved ID of `00000000-0000-0000-0000-000000000001`. This policy can be renamed but modification
-  of anything else including the rule set and datacenter scoping will be prevented by Consul.
-
-- **Namespace Management** - <EnterpriseAlert inline /> - Every namespace created will have a policy injected with the name `namespace-management`. This policy gets injected with a randomized UUID and may be managed like any other user-defined policy
-  within the Namespace. (Added in Consul Enterprise 1.7.0)
-
-## Service Identities
-
--> Added in Consul 1.5.0
-
-An ACL service identity is an [ACL policy](/docs/acl/acl-system#policies) template for expressing a link to a policy
-suitable for use in [Consul Connect](/docs/connect). They are usable
-on both tokens and roles and are composed of the following elements:
-
-- **Service Name** - The name of the service.
-- **Datacenters** - A list of datacenters the effective policy is valid within. (Optional)
-
-Services participating in the service mesh will need privileges to both _be
-discovered_ and to _discover other healthy service instances_. Suitable
-policies tend to all look nearly identical so a service identity is a policy
-template to aid in avoiding boilerplate policy creation.
-
-During the authorization process, the configured service identity is automatically
-applied as a policy with the following preconfigured [ACL
-rules](/docs/acl/acl-system#acl-rules-and-scope):
-
-```hcl
-# Allow the service and its sidecar proxy to register into the catalog.
-service "<Service Name>" {
-	policy = "write"
-}
-service "<Service Name>-sidecar-proxy" {
-	policy = "write"
-}
-
-# Allow for any potential upstreams to be resolved.
-service_prefix "" {
-	policy = "read"
-}
-node_prefix "" {
-	policy = "read"
-}
-```
-
-The [API documentation for roles](/api/acl/roles#sample-payload) has some
-examples of using a service identity.
-
--> **Service Scope for Namespace and Admin Partition** - Service identity rules in Consul Enterprise are scoped to the namespace or admin partition within which the corresponding ACL token or role resides.
-
-## Node Identities
-
--> Added in Consul 1.8.1
-
-An ACL node identity is an [ACL policy](/docs/acl/acl-system#policies) template for expressing a link to a policy
-suitable for use as an [Consul `agent` token](/docs/agent/options#acl_tokens_agent). They are usable
-on both tokens and roles and are composed of the following elements:
-
-- **Node Name** - The name of the node to grant access to.
-- **Datacenter** - The datacenter that the node resides within.
-
-During the authorization process, the configured node identity is automatically
-applied as a policy with the following preconfigured [ACL
-rules](/docs/acl/acl-system#acl-rules-and-scope):
-
-```hcl
-# Allow the agent to register its own node in the Catalog and update its network coordinates
-node "<Node Name>" {
-  policy = "write"
-}
-
-# Allows the agent to detect and diff services registered to itself. This is used during
-# anti-entropy to reconcile difference between the agents knowledge of registered
-# services and checks in comparison with what is known in the Catalog.
-service_prefix "" {
-  policy = "read"
-}
-```
-
--> **Consul Enterprise Namespacing** - Node Identities can only be applied to tokens and roles in the `default` namespace.
-The synthetic policy rules allow for `service:read` permissions on all services in all namespaces.
+- [Policies](/docs/security/acl/policies)
+- [ACL policy command line](/commands/acl/policy)
+- [ACL policy API](/api-docs/acl/policies)
 
 ## Roles
 
--> Added in Consul 1.5.0
+A role is a collection of policies that your ACL administrator can link to a token.
+They enable you to reuse policies by decoupling the policies from the token distributed to team members.
+Instead, the token is linked to the role, which is able to hold several policies that can be updated asynchronously without distributing new tokens to users.
+As a result, roles can provide a more convenient authentication infrastrcture than creating unique policies and tokens for each requester.
 
-An ACL role is a named set of policies and service identities and is composed
-of the following elements:
+Refer to the [Roles](/docs/security/acl/acl-roles) topic for additional information.
 
-- **ID** - The role's auto-generated public identifier.
-- **Name** - A unique meaningful name for the role.
-- **Description** - A human readable description of the role. (Optional)
-- **Policy Set** - The list of policies that are applicable for the role.
-- **Service Identity Set** - The list of service identities that are applicable for the role.
-- **Namespace** <EnterpriseAlert inline /> - The namespace this policy resides within. (Added in Consul Enterprise 1.7.0)
+## Service Identities
 
--> **Linking Roles to Policies in Consul Enterprise** - Roles can only be linked to policies that are defined in the same namespace and admin partition. 
+An ACL service identity is an ACL policy template for expressing a link to a policy suitable for use in a [service mesh](/docs/connect).
 
-#### ACL Rules and Scope
+Services participating in the service mesh will need privileges to both _be discovered_ and to _discover other healthy service instances_. Suitable
+policies tend to all look nearly identical so a service identity is a policy template to aid in avoiding boilerplate policy creation.
 
-The rules from all policies, roles, and service identities linked with a token are combined to form that token's
-effective rule set. Policy rules can be defined in either an allowlist or denylist
-mode depending on the configuration of [`acl_default_policy`](/docs/agent/options#acl_default_policy).
-If the default policy is to "deny" access to all resources, then policy rules can be set to
-allowlist access to specific resources. Conversely, if the default policy is “allow” then policy rules can
-be used to explicitly deny access to resources.
+Service identities can be used in tokens and roles. Refer to the following topics for additional information about service identities:
 
-The following table summarizes the ACL resources that are available for constructing
-rules:
+- [Service Identities](/docs/security/acl/acl-roles#service-identities)
+- [API documentation for roles](/api/acl/roles#sample-payload)
 
-| Resource                                            | Scope                                                                                                                                                                                                    |
-| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`acl`](/docs/acl/acl-rules#acl-resource-rules)     | Operations for managing the ACL system [ACL API](/api/acl/acl)                                                                                                                                           |
-| [`agent`](/docs/acl/acl-rules#agent-rules)          | Utility operations in the [Agent API](/api/agent), other than service and check registration                                                                                                             |
-| [`event`](/docs/acl/acl-rules#event-rules)          | Listing and firing events in the [Event API](/api/event)                                                                                                                                                 |
-| [`key`](/docs/acl/acl-rules#key-value-rules)        | Key/value store operations in the [KV Store API](/api/kv)                                                                                                                                                |
-| [`keyring`](/docs/acl/acl-rules#keyring-rules)      | Keyring operations in the [Keyring API](/api/operator/keyring)                                                                                                                                           |
-| [`node`](/docs/acl/acl-rules#node-rules)            | Node-level catalog operations in the [Catalog API](/api/catalog), [Health API](/api/health), [Prepared Query API](/api/query), [Network Coordinate API](/api/coordinate), and [Agent API](/api/agent)    |
-| [`operator`](/docs/acl/acl-rules#operator-rules)    | Cluster-level operations in the [Operator API](/api/operator), other than the [Keyring API](/api/operator/keyring)                                                                                       |
-| [`query`](/docs/acl/acl-rules#prepared-query-rules) | Prepared query operations in the [Prepared Query API](/api/query)                                                                                                                                        |
-| [`service`](/docs/acl/acl-rules#service-rules)      | Service-level catalog operations in the [Catalog API](/api/catalog), [Health API](/api/health), [Intentions API](/api/connect/intentions), [Prepared Query API](/api/query), and [Agent API](/api/agent) |
-| [`session`](/docs/acl/acl-rules#session-rules)      | Session operations in the [Session API](/api/session)                                                                                                                                                    |
+## Node Identities
 
-Since Consul snapshots actually contain ACL tokens, the [Snapshot API](/api/snapshot)
-requires a token with "write" privileges for the ACL system.
+A node identity is a template that can be configured in tokens and roles.
+They link nodes to policies suitable for use as an [Consul `agent` token](/docs/agent/options#acl_tokens_agent).
+During the authorization process, the configured node identity is automatically applied as a policy.
 
-The following resources are not covered by ACL policies:
+Refer to the following topics for additional information about node identities:
 
-1. The [Status API](/api/status) is used by servers when bootstrapping and exposes
-   basic IP and port information about the servers, and does not allow modification
-   of any state.
-
-2. The datacenter listing operation of the
-   [Catalog API](/api/catalog#list-datacenters) similarly exposes the names of known
-   Consul datacenters, and does not allow modification of any state.
-
-3. The [connect CA roots endpoint](/api/connect/ca#list-ca-root-certificates) exposes just the public TLS certificate which other systems can use to verify the TLS connection with Consul.
-
-Constructing rules from these policies is covered in detail on the
-[ACL Rules](/docs/acl/acl-rules) page.
-
--> **Consul Enterprise Namespacing** - In addition to directly linked policies, roles and service identities, Consul Enterprise
-will include the ACL policies and roles defined in the [Namespaces definition](/docs/enterprise/namespaces#namespace-definition). (Added in Consul Enterprise 1.7.0)
-
-## Configuring ACLs
-
-ACLs are configured using several different configuration options. These are marked
-as to whether they are set on servers, clients, or both.
-
-| Configuration Option                                           | Servers    | Clients    | Purpose                                                                |
-| -------------------------------------------------------------- | ---------- | ---------- | ---------------------------------------------------------------------- |
-| [`acl.enabled`](/docs/agent/options#acl_enabled)               | `REQUIRED` | `REQUIRED` | Controls whether ACLs are enabled                                      |
-| [`acl.default_policy`](/docs/agent/options#acl_default_policy) | `OPTIONAL` | `N/A`      | Determines allowlist or denylist mode                                  |
-| [`acl.down_policy`](/docs/agent/options#acl_down_policy)       | `OPTIONAL` | `OPTIONAL` | Determines what to do when the remote token or policy resolution fails |
-| [`acl.role_ttl`](/docs/agent/options#acl_role_ttl)             | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Roles                           |
-| [`acl.policy_ttl`](/docs/agent/options#acl_policy_ttl)         | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Policies                        |
-| [`acl.token_ttl`](/docs/agent/options#acl_token_ttl)           | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Tokens                          |
-
-## Special and builtin Tokens
-
-A number of special tokens can also be configured which allow for bootstrapping the ACL
-system, or accessing Consul in special situations:
-
-| Special Token                                                                        | Servers    | Clients    | Purpose                                                                                                                                                                                                                                                                   |
-| ------------------------------------------------------------------------------------ | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery)         | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent) when remote bearer token resolution fails; used for setting up the cluster such as doing initial join operations, see the [ACL Agent Recovery Token](#acl-agent-recovery-token) section for more details |
-| [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent)                           | `OPTIONAL` | `OPTIONAL` | Special token that is used for an agent's internal operations, see the [ACL Agent Token](#acl-agent-token) section for more details                                                                                                                                       |
-| [`acl.tokens.initial_management`](/docs/agent/options#acl_tokens_initial_management) | `OPTIONAL` | `N/A`      | Special token used to bootstrap the ACL system, check the [Bootstrapping ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production) tutorial for more details                                                                                    |
-| [`acl.tokens.default`](/docs/agent/options#acl_tokens_default)                       | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents                                                                                                 |
-
-All of these tokens except the `initial_management` token can all be introduced or updated via the [/v1/agent/token API](/api/agent#update-acl-tokens).
-
-In Consul 1.4 - 1.10, the following special tokens were known by different names:
-
-| New Name (1.11+)                                                                     | Old Name (1.4 - 1.10)                                                    |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery)         | [`acl.tokens.agent_master`](/docs/agent/options#acl_tokens_agent_master) |
-| [`acl.tokens.initial_management`](/docs/agent/options#acl_tokens_initial_management) | [`acl.tokens.master`](/docs/agent/options#acl_tokens_master)             |
-
-
-#### Builtin Tokens
-
-During cluster bootstrapping when ACLs are enabled both the special `anonymous` and the `initial_management` token will be
-injected.
-
-- **Anonymous Token** - The anonymous token is used when a request is made to Consul without specifying a bearer token.
-  The anonymous token's description and policies may be updated but Consul will prevent this token's deletion. When created,
-  it will be assigned `00000000-0000-0000-0000-000000000002` for its Accessor ID and `anonymous` for its Secret ID.
-
-- **Initial Management Token** - When an initial management token is present within the Consul configuration, it is created
-  and will be linked with the builtin Global Management policy giving it unrestricted privileges. The initial management
-  token is created with the Secret ID set to the value of the configuration entry.
-  In Consul 1.4 - 1.10, this was called the `master` token. It was renamed to `initial_management` token in Consul 1.11.
-
-#### ACL Agent Recovery Token
-
-Since the [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it
-
-In Consul 1.4 - 1.10, this was called the `agent_master` token. It was renamed to `agent_recovery` token in Consul 1.11.
-
-```hcl
-agent "<node name of agent>" {
-  policy = "write"
-}
-node_prefix "" {
-  policy = "read"
-}
-```
-
-#### ACL Agent Token
-
-The [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent) is a special token that is used for an agent's internal operations. It isn't used directly for any user-initiated operations like the [`acl.tokens.default`](/docs/agent/options#acl_tokens_default), though if the `acl.tokens.agent` isn't configured the `acl.tokens.default` will be used. The ACL agent token is used for the following operations by the agent:
-
-1. Updating the agent's node entry using the [Catalog API](/api/catalog), including updating its node metadata, tagged addresses, and network coordinates
-2. Performing [anti-entropy](/docs/internals/anti-entropy) syncing, in particular reading the node metadata and services registered with the catalog
-3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/commands/exec) commands
-
-Here's an example policy sufficient to accomplish the above for a node called `mynode`:
-
-```hcl
-node "mynode" {
-  policy = "write"
-}
-service_prefix "" {
-  policy = "read"
-}
-key_prefix "_rexec" {
-  policy = "write"
-}
-```
-
-The `service_prefix` policy needs read access for any services that can be registered on the agent. If [remote exec is disabled](/docs/agent/options#disable_remote_exec), the default, then the `key_prefix` policy can be omitted.
-
-## Next Steps
-
-Continue reading about [ACL rules](/docs/acl/acl-rules).
+- [Node Identities](/docs/security/acl/acl-roles#node-identities)
+- [API documentation for roles](/api/acl/roles#sample-payload)
