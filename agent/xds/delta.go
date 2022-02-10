@@ -26,6 +26,15 @@ import (
 	"github.com/hashicorp/consul/logging"
 )
 
+type deltaRecvResponse int
+
+const (
+	deltaRecvResponseNack deltaRecvResponse = iota
+	deltaRecvResponseAck
+	deltaRecvNewSubscription
+	deltaRecvUnknownType
+)
+
 // ADSDeltaStream is a shorter way of referring to this thing...
 type ADSDeltaStream = envoy_discovery_v3.AggregatedDiscoveryService_DeltaAggregatedResourcesServer
 
@@ -175,8 +184,17 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 
 			if handler, ok := handlers[req.TypeUrl]; ok {
-				if handler.Recv(req, generator.ProxyFeatures) {
+				switch handler.Recv(req, generator.ProxyFeatures) {
+				case deltaRecvNewSubscription:
 					generator.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
+
+				case deltaRecvResponseNack:
+					generator.Logger.Trace("got nack response for type", "typeUrl", req.TypeUrl)
+
+					// There is no reason to believe that generating new xDS resources from the same snapshot
+					// would lead to an ACK from Envoy. Instead we continue to the top of this for loop and wait
+					// for a new request or snapshot.
+					continue
 				}
 			}
 
@@ -430,9 +448,9 @@ func newDeltaType(
 // Recv handles new discovery requests from envoy.
 //
 // Returns true the first time a type receives a request.
-func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf supportedProxyFeatures) bool {
+func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf supportedProxyFeatures) deltaRecvResponse {
 	if t == nil {
-		return false // not something we care about
+		return deltaRecvUnknownType // not something we care about
 	}
 	logger := t.generator.Logger.With("typeUrl", t.typeURL)
 
@@ -487,6 +505,7 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf su
 			logger.Error("got error response from envoy proxy", "nonce", req.ResponseNonce,
 				"error", status.ErrorProto(req.ErrorDetail))
 			t.nack(req.ResponseNonce)
+			return deltaRecvResponseNack
 		}
 	}
 
@@ -557,7 +576,10 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf su
 		}
 	}
 
-	return registeredThisTime
+	if registeredThisTime {
+		return deltaRecvNewSubscription
+	}
+	return deltaRecvResponseAck
 }
 
 func (t *xDSDeltaType) ack(nonce string) {
