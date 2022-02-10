@@ -7,7 +7,7 @@ Feature: dc / nodes / index
     body: |
       "211.245.86.75:8500"
     ---
-  Scenario: Viewing an a node with an unhealthy NodeCheck
+  Scenario: Viewing a node with an unhealthy NodeCheck
     Given 1 node model from yaml
     ---
     - Checks:
@@ -21,7 +21,7 @@ Feature: dc / nodes / index
     Then the url should be /dc-1/nodes
     Then I see 1 node models
     And I see status on the nodes.0 like "critical"
-  Scenario: Viewing an a node with an unhealthy ServiceCheck
+  Scenario: Viewing a node with an unhealthy ServiceCheck
     Given 1 node model from yaml
     ---
     - Checks:
