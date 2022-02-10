@@ -184,8 +184,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 
 			if handler, ok := handlers[req.TypeUrl]; ok {
-				resp := handler.Recv(req, generator.ProxyFeatures)
-				switch resp {
+				switch handler.Recv(req, generator.ProxyFeatures) {
 				case deltaRecvNewSubscription:
 					generator.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
 
