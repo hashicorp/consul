@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
-	filepath2 "path/filepath"
+	"path/filepath"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -182,8 +182,8 @@ func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 	if ok {
 		return configFile, filename, true
 	}
-	filepath := filepath2.Dir(filename)
-	return w.isWatched(filepath)
+	path := filepath.Dir(filename)
+	return w.isWatched(path)
 }
 
 func (w *FileWatcher) reconcile() {
