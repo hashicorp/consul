@@ -1,0 +1,3 @@
+```release-note:bugfix
+ui: Ensure proxy instance health is taken into account in Service Instance Listings
+```
