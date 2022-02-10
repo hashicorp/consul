@@ -90,7 +90,8 @@ func (e PermissionDeniedError) Error() string {
 
 	// This is used where we
 	if e.Cause != "" {
-		message.WriteString(e.Cause)
+		fmt.Fprintf(&message, ": %s", e.Cause)
+		return message.String()
 	}
 	if e.Resource == "" {
 		return message.String()
