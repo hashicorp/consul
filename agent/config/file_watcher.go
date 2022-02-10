@@ -183,6 +183,9 @@ func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 		return configFile, filename, true
 	}
 	path := filepath.Dir(filename)
+	if path == filename || path == "" {
+		return nil, "", false
+	}
 	return w.isWatched(path)
 }
 
