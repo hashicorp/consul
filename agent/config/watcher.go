@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	filepath2 "path/filepath"
 	"time"
 
@@ -71,12 +72,25 @@ func (w *Watcher) Remove(filename string) error {
 
 func (w *Watcher) Add(filename string) error {
 	timeout := time.After(timeoutDuration)
+
+	// explicitly do not support symlink as the behaviour is not consistent between OSs
+	if isSymLink(filename) {
+		return fmt.Errorf("symbolic link are not supported %s", filename)
+	}
 	select {
 	case w.toBeAdded <- filename:
 		return nil
 	case <-timeout:
 		return fmt.Errorf("file add timedout %s", filename)
 	}
+}
+
+func isSymLink(filename string) bool {
+	symlinks, err := os.Readlink(filename)
+	if err == nil && symlinks != filename {
+		return true
+	}
+	return false
 }
 
 func (w *Watcher) Close() error {
