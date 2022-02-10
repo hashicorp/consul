@@ -1368,14 +1368,14 @@ func (a *Agent) ShutdownAgent() error {
 	// this should help them to be stopped more quickly
 	a.baseDeps.AutoConfig.Stop()
 
+	a.stateLock.Lock()
+	defer a.stateLock.Unlock()
 	// Stop the service manager (must happen before we take the stateLock to avoid deadlock)
 	if a.serviceManager != nil {
 		a.serviceManager.Stop()
 	}
 
 	// Stop all the checks
-	a.stateLock.Lock()
-	defer a.stateLock.Unlock()
 	for _, chk := range a.checkMonitors {
 		chk.Stop()
 	}
