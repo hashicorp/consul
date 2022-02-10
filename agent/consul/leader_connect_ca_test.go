@@ -693,6 +693,86 @@ func TestCAManager_Initialize_Vault_WithIntermediateAsPrimaryCA(t *testing.T) {
 	})
 }
 
+func TestCAManager_Verify_NoChangeToSecondaryConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	ca.SkipIfVaultNotPresent(t)
+
+	vault := ca.NewTestVaultServer(t)
+	vclient := vault.Client()
+	generateExternalRootCA(t, vclient)
+
+	meshRootPath := "pki-root"
+	primaryCert := setupPrimaryCA(t, vclient, meshRootPath)
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             vault.Addr,
+				"Token":               vault.RootToken,
+				"RootPKIPath":         meshRootPath,
+				"IntermediatePKIPath": "pki-intermediate/",
+				// TODO: there are failures to init the CA system if these are not set
+				// to the values of the already initialized CA.
+				"PrivateKeyType": "ec",
+				"PrivateKeyBits": 256,
+			},
+		}
+	})
+	defer s1.Shutdown()
+
+	roots := structs.IndexedCARoots{}
+	runStep(t, "check primary DC", func(t *testing.T) {
+		testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+		codec := rpcClient(t, s1)
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(t, err)
+		require.Len(t, roots.Roots, 1)
+		require.Equal(t, primaryCert, roots.Roots[0].RootCert)
+
+		leafCertPEM := getLeafCert(t, codec, roots.TrustDomain, "dc1")
+		verifyLeafCert(t, roots.Roots[0], leafCertPEM)
+	})
+
+	runStep(t, "run secondary DC and force update", func(t *testing.T) {
+		_, sDC2 := testServerWithConfig(t, func(c *Config) {
+			c.Datacenter = "dc2"
+			c.PrimaryDatacenter = "dc1"
+			c.CAConfig = &structs.CAConfiguration{
+				Provider: "vault",
+				Config: map[string]interface{}{
+					"Address":             vault.Addr,
+					"Token":               vault.RootToken,
+					"RootPKIPath":         meshRootPath,
+					"IntermediatePKIPath": "pki-secondary/",
+					// TODO: there are failures to init the CA system if these are not set
+					// to the values of the already initialized CA.
+					"PrivateKeyType": "ec",
+					"PrivateKeyBits": 256,
+				},
+			}
+		})
+		defer sDC2.Shutdown()
+		joinWAN(t, sDC2, s1)
+		testrpc.WaitForActiveCARoot(t, sDC2.RPC, "dc2", nil)
+
+		codec := rpcClient(t, sDC2)
+		var configBefore structs.CAConfiguration
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", &structs.DCSpecificRequest{}, &configBefore)
+		require.NoError(t, err)
+
+		sDC2.caManager.secondaryUpdateRoots(roots)
+
+		var configAfter structs.CAConfiguration
+		err = msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", &structs.DCSpecificRequest{}, &configAfter)
+		require.NoError(t, err)
+		require.EqualValues(t, configBefore.ModifyIndex, configAfter.ModifyIndex)
+	})
+}
+
 func getLeafCert(t *testing.T, codec rpc.ClientCodec, trustDomain string, dc string) string {
 	pk, _, err := connect.GeneratePrivateKey()
 	require.NoError(t, err)
