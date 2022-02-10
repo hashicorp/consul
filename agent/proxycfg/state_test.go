@@ -1891,8 +1891,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								Nodes: structs.CheckServiceNodes{
 									{
 										Node: &structs.Node{
-											Node:    "node1",
-											Address: "10.0.0.1",
+											Datacenter: "dc1",
+											Node:       "node1",
+											Address:    "10.0.0.1",
 										},
 										Service: &structs.NodeService{
 											Kind:    structs.ServiceKindConnectProxy,
@@ -1916,8 +1917,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 									},
 									{
 										Node: &structs.Node{
-											Node:    "node2",
-											Address: "10.0.0.2",
+											Datacenter: "dc1",
+											Node:       "node2",
+											Address:    "10.0.0.2",
 											RaftIndex: structs.RaftIndex{
 												ModifyIndex: 21,
 											},
@@ -1948,8 +1950,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							structs.CheckServiceNodes{
 								{
 									Node: &structs.Node{
-										Node:    "node1",
-										Address: "10.0.0.1",
+										Datacenter: "dc1",
+										Node:       "node1",
+										Address:    "10.0.0.1",
 									},
 									Service: &structs.NodeService{
 										Kind:    structs.ServiceKindConnectProxy,
@@ -1973,8 +1976,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								},
 								{
 									Node: &structs.Node{
-										Node:    "node2",
-										Address: "10.0.0.2",
+										Datacenter: "dc1",
+										Node:       "node2",
+										Address:    "10.0.0.2",
 										RaftIndex: structs.RaftIndex{
 											ModifyIndex: 21,
 										},
@@ -2065,8 +2069,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								Nodes: structs.CheckServiceNodes{
 									{
 										Node: &structs.Node{
-											Node:    "node2",
-											Address: "10.0.0.2",
+											Datacenter: "dc1",
+											Node:       "node2",
+											Address:    "10.0.0.2",
 											RaftIndex: structs.RaftIndex{
 												ModifyIndex: 21,
 											},
@@ -2099,8 +2104,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							structs.CheckServiceNodes{
 								{
 									Node: &structs.Node{
-										Node:    "node2",
-										Address: "10.0.0.2",
+										Datacenter: "dc1",
+										Node:       "node2",
+										Address:    "10.0.0.2",
 										RaftIndex: structs.RaftIndex{
 											ModifyIndex: 21,
 										},
@@ -2144,7 +2150,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								Nodes: structs.CheckServiceNodes{
 									{
 										Node: &structs.Node{
-											Node: "node2",
+											Datacenter: "dc1",
+											Node:       "node2",
 										},
 										Service: &structs.NodeService{
 											Kind:    structs.ServiceKindConnectProxy,
@@ -2178,7 +2185,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							structs.CheckServiceNodes{
 								{
 									Node: &structs.Node{
-										Node: "node2",
+										Datacenter: "dc1",
+										Node:       "node2",
 									},
 									Service: &structs.NodeService{
 										Kind:    structs.ServiceKindConnectProxy,

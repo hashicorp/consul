@@ -111,9 +111,8 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 				continue
 			}
 
-			// Make sure to use an external address when crossing partitions.
-			// Datacenter is not considered because transparent proxies cannot dial other datacenters.
-			isRemote := !structs.EqualPartitions(node.Node.PartitionOrDefault(), s.proxyID.PartitionOrDefault())
+			// Make sure to use an external address when crossing partition or DC boundaries.
+			isRemote := !snap.Locality.Matches(node.Node.Datacenter, node.Node.PartitionOrDefault())
 			csnIdx, addr, _ := node.BestAddress(isRemote)
 
 			existing := upstreamsSnapshot.PassthroughIndices[addr]
