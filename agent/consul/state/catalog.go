@@ -4016,6 +4016,7 @@ func insertGatewayServiceTopologyMapping(tx WriteTxn, idx uint64, gs *structs.Ga
 	mapping := upstreamDownstream{
 		Upstream:   gs.Service,
 		Downstream: gs.Gateway,
+		Refs:       make(map[string]struct{}),
 		RaftIndex:  gs.RaftIndex,
 	}
 	if err := tx.Insert(tableMeshTopology, &mapping); err != nil {
