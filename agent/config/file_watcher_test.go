@@ -154,7 +154,6 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	}()
 	require.NoError(t, err)
 	filepath := createTempConfigFile(t, "temp_config1")
-	w.reconcileTimeout = 20 * time.Millisecond
 	err = w.Add(filepath)
 	require.NoError(t, err)
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
@@ -184,13 +183,12 @@ func TestEventWatcherMove(t *testing.T) {
 	defer func() {
 		_ = w.Close()
 	}()
-	w.reconcileTimeout = 20 * time.Millisecond
 	require.NoError(t, err)
 	filepath := createTempConfigFile(t, "temp_config1")
 	err = w.Add(filepath)
 	require.NoError(t, err)
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		filepath2 := createTempConfigFile(t, "temp_config2")
 		err = os.Rename(filepath2, filepath)
 		require.NoError(t, err)
@@ -211,7 +209,6 @@ func TestEventReconcileMove(t *testing.T) {
 	filepath := createTempConfigFile(t, "temp_config1")
 
 	filepath2 := createTempConfigFile(t, "temp_config2")
-	w.reconcileTimeout = 20 * time.Millisecond
 	err = w.Add(filepath)
 	require.NoError(t, err)
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
@@ -233,7 +230,6 @@ func TestEventWatcherDirCreateRemove(t *testing.T) {
 	defer func() {
 		_ = w.Close()
 	}()
-	w.reconcileTimeout = 20 * time.Millisecond
 	require.NoError(t, err)
 	filepath := createTempConfigDir(t, "temp_config1")
 	err = w.Add(filepath)
@@ -263,7 +259,6 @@ func TestEventWatcherDirMove(t *testing.T) {
 	defer func() {
 		_ = w.Close()
 	}()
-	w.reconcileTimeout = 20 * time.Millisecond
 	require.NoError(t, err)
 	filepath := createTempConfigDir(t, "temp_config1")
 
@@ -294,7 +289,6 @@ func TestEventWatcherDirRead(t *testing.T) {
 	defer func() {
 		_ = w.Close()
 	}()
-	w.reconcileTimeout = 20 * time.Millisecond
 	require.NoError(t, err)
 	filepath := createTempConfigDir(t, "temp_config1")
 
@@ -321,7 +315,6 @@ func TestEventWatcherMoveSoftLink(t *testing.T) {
 	defer func() {
 		_ = w.Close()
 	}()
-	w.reconcileTimeout = 20 * time.Millisecond
 	require.NoError(t, err)
 	filepath := createTempConfigFile(t, "temp_config1")
 	tempDir := createTempConfigDir(t, "temp_dir")
