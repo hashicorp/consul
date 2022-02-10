@@ -118,7 +118,6 @@ func (w *FileWatcher) watch() {
 				w.logger.Error("watcher error channel is closed")
 				return
 			}
-			timer.Reset(w.reconcileTimeout)
 		case <-timer.C:
 			w.reconcile()
 			timer.Reset(w.reconcileTimeout)
