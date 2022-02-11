@@ -1,3 +1,17 @@
+## 1.9.15 (February 11, 2022)
+
+IMPROVEMENTS:
+
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+
+BUG FIXES:
+
+* Fix a data race when a service is added while the agent is shutting down.. [[GH-12302](https://github.com/hashicorp/consul/issues/12302)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* config-entry: fix a panic when creating an ingress gateway config-entry and a proxy service instance, where both provided the same upstream and downstream mapping. [[GH-12277](https://github.com/hashicorp/consul/issues/12277)]
+* config: include all config errors in the error message, previously some could be hidden. [[GH-11918](https://github.com/hashicorp/consul/issues/11918)]
+* snapshot: the `snapshot save` command now saves the snapshot with read permission for only the current user. [[GH-11918](https://github.com/hashicorp/consul/issues/11918)]
+
 ## 1.9.14 (January 12, 2022)
 
 SECURITY:
