@@ -82,16 +82,17 @@ type PermissionDeniedError struct {
 // 1) Named entities without a context
 // 2) Unnamed entities with a context
 // 3) Completely context free checks (global permissions)
-// 4) Errors that only have a cause and bad
+// 4) Errors that only have a cause (for example bad token)
 func (e PermissionDeniedError) Error() string {
 	var message strings.Builder
 	message.WriteString(errPermissionDenied)
 
-	// This is used where we
+	// Type 4)
 	if e.Cause != "" {
 		fmt.Fprintf(&message, ": %s", e.Cause)
 		return message.String()
 	}
+	// Should only be empty when default struct is used.
 	if e.Resource == "" {
 		return message.String()
 	}
