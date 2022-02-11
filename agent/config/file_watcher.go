@@ -154,15 +154,18 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 }
 
 func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
-	configFile, ok := w.configFiles[filename]
-	if ok {
-		return configFile, filename, true
+	path := filename
+	for {
+		configFile, ok := w.configFiles[path]
+		if ok {
+			return configFile, path, true
+		}
+		NewPath := filepath.Dir(path)
+		if NewPath == path || path == "" {
+			return nil, "", false
+		}
+		path = NewPath
 	}
-	path := filepath.Dir(filename)
-	if path == filename || path == "" {
-		return nil, "", false
-	}
-	return w.isWatched(path)
 }
 
 func (w *FileWatcher) reconcile() {
