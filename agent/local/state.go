@@ -1083,31 +1083,24 @@ func (l *State) updateSyncState() error {
 			continue
 		}
 
-		wasCopied := false
+		// Make a shallow copy since we may mutate it below and other readers
+		// may be reading it and we want to avoid a race.
+		nextService := *ls.Service
 
 		// If our definition is different, we need to update it. Make a
 		// copy so that we don't retain a pointer to any actual state
 		// store info for in-memory RPCs.
-		if ls.Service.EnableTagOverride {
-			tags := make([]string, len(rs.Tags))
-			copy(tags, rs.Tags)
-
-			// Make a shallow copy since we're going to mutate it and other
-			// readers may be reading it and we want to avoid a race.
-			dup := *ls.Service
-			ls.Service = &dup
-			wasCopied = true
-
-			ls.Service.Tags = tags
+		if nextService.EnableTagOverride {
+			nextService.Tags = structs.CloneStringSlice(rs.Tags)
 		}
 
 		// Merge any tagged addresses with the consul- prefix (set by the server)
 		// back into the local state.
-		if !reflect.DeepEqual(ls.Service.TaggedAddresses, rs.TaggedAddresses) {
+		if !reflect.DeepEqual(nextService.TaggedAddresses, rs.TaggedAddresses) {
 			// Make a copy of TaggedAddresses to prevent races when writing
 			// since other goroutines may be reading from the map
 			m := make(map[string]structs.ServiceAddress)
-			for k, v := range ls.Service.TaggedAddresses {
+			for k, v := range nextService.TaggedAddresses {
 				m[k] = v
 			}
 			for k, v := range rs.TaggedAddresses {
@@ -1115,14 +1108,10 @@ func (l *State) updateSyncState() error {
 					m[k] = v
 				}
 			}
-			if !wasCopied {
-				// Make a shallow copy since we're going to mutate it and other
-				// readers may be reading it and we want to avoid a race.
-				dup := *ls.Service
-				ls.Service = &dup
-			}
-			ls.Service.TaggedAddresses = m
+			nextService.TaggedAddresses = m
 		}
+
+		ls.Service = &nextService
 		ls.InSync = ls.Service.IsSame(rs)
 	}
 
