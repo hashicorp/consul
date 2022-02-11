@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +18,7 @@ import (
 func TestNewWatcher(t *testing.T) {
 	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		return nil
-	}, []string{})
+	}, []string{}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	require.NotNil(t, w)
 }
@@ -28,7 +30,7 @@ func TestWatcherRenameEvent(t *testing.T) {
 	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
-	}, filepaths)
+	}, filepaths, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -49,7 +51,7 @@ func TestWatcherAddNotExist(t *testing.T) {
 	filename := file.Name() + randomStr(16)
 	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		return nil
-	}, []string{filename})
+	}, []string{filename}, hclog.New(&hclog.LoggerOptions{}))
 	require.Error(t, err, "no such file or directory")
 	require.Nil(t, w)
 }
@@ -65,7 +67,7 @@ func TestEventWatcherWrite(t *testing.T) {
 	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
-	}, []string{file.Name()})
+	}, []string{file.Name()}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -86,7 +88,7 @@ func TestEventWatcherRead(t *testing.T) {
 	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
-	}, []string{filepath})
+	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -113,7 +115,7 @@ func TestEventWatcherChmod(t *testing.T) {
 	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
-	}, []string{file.Name()})
+	}, []string{file.Name()}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -132,7 +134,7 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
-	}, []string{filepath})
+	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -162,7 +164,7 @@ func TestEventWatcherMove(t *testing.T) {
 	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
-	}, []string{filepath})
+	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -184,7 +186,7 @@ func TestEventReconcileMove(t *testing.T) {
 	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
-	}, []string{filepath})
+	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -206,7 +208,7 @@ func TestEventWatcherDirCreateRemove(t *testing.T) {
 	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
-	}, []string{filepath})
+	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -239,7 +241,7 @@ func TestEventWatcherDirMove(t *testing.T) {
 	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
-	}, []string{filepath})
+	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -267,7 +269,7 @@ func TestEventWatcherDirRead(t *testing.T) {
 	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
-	}, []string{filepath})
+	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -292,7 +294,7 @@ func TestEventWatcherMoveSoftLink(t *testing.T) {
 	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
-	}, []string{name})
+	}, []string{name}, hclog.New(&hclog.LoggerOptions{}))
 	require.Error(t, err, "symbolic link are not supported")
 	require.Nil(t, w)
 

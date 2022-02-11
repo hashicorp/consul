@@ -21,8 +21,6 @@ type FileWatcher struct {
 	reconcileTimeout time.Duration
 	cancel           context.CancelFunc
 	done             chan interface{}
-	toBeRemoved      chan string
-	toBeAdded        chan string
 }
 
 type watchedFile struct {
@@ -34,14 +32,20 @@ type WatcherEvent struct {
 	Filename string
 }
 
-func NewFileWatcher(handleFunc func(event *WatcherEvent) error, configFiles []string) (*FileWatcher, error) {
+func NewFileWatcher(handleFunc func(event *WatcherEvent) error, configFiles []string, logger hclog.Logger) (*FileWatcher, error) {
 	ws, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
 	cfgFiles := make(map[string]*watchedFile)
 
-	w := &FileWatcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{}), reconcileTimeout: timeoutDuration, done: make(chan interface{}), toBeAdded: make(chan string), toBeRemoved: make(chan string)}
+	w := &FileWatcher{watcher: ws,
+		configFiles:      cfgFiles,
+		handleFunc:       handleFunc,
+		logger:           logger,
+		reconcileTimeout: timeoutDuration,
+		done:             make(chan interface{}),
+	}
 	for _, f := range configFiles {
 		err = w.add(f)
 		if err != nil {
@@ -74,8 +78,11 @@ func (w *FileWatcher) add(filename string) error {
 }
 
 func isSymLink(filename string) bool {
-	symlinks, err := os.Readlink(filename)
-	if err == nil && symlinks != filename {
+	fi, err := os.Lstat(filename)
+	if err != nil {
+		return false
+	}
+	if fi.Mode()&os.ModeSymlink != 0 {
 		return true
 	}
 	return false
