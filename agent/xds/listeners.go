@@ -218,26 +218,27 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// as opposed to via a virtual IP.
 		var passthroughChains []*envoy_listener_v3.FilterChain
 
-		for uid, passthrough := range cfgSnap.ConnectProxy.PassthroughUpstreams {
-			u := structs.Upstream{
-				DestinationName:      uid.Name,
-				DestinationNamespace: uid.NamespaceOrDefault(),
-				DestinationPartition: uid.PartitionOrDefault(),
+		for _, targets := range cfgSnap.ConnectProxy.PassthroughUpstreams {
+			for tid, addrs := range targets {
+				uid := proxycfg.NewUpstreamIDFromTargetID(tid)
+
+				sni := connect.ServiceSNI(
+					uid.Name, "", uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+
+				filterName := fmt.Sprintf("%s.%s.%s.%s", uid.Name, uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter)
+
+				filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+					clusterName: "passthrough~" + sni,
+					filterName:  filterName,
+					protocol:    "tcp",
+				})
+				if err != nil {
+					return nil, err
+				}
+				filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(addrs)
+
+				passthroughChains = append(passthroughChains, filterChain)
 			}
-
-			filterName := fmt.Sprintf("%s.%s.%s.%s", u.DestinationName, u.DestinationNamespace, u.DestinationPartition, cfgSnap.Datacenter)
-
-			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				clusterName: "passthrough~" + passthrough.SNI,
-				filterName:  filterName,
-				protocol:    "tcp",
-			})
-			if err != nil {
-				return nil, err
-			}
-			filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(passthrough.Addrs)
-
-			passthroughChains = append(passthroughChains, filterChain)
 		}
 
 		outboundListener.FilterChains = append(outboundListener.FilterChains, passthroughChains...)

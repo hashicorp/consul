@@ -45,6 +45,25 @@ func NewUpstreamIDFromServiceID(sid structs.ServiceID) UpstreamID {
 	return id
 }
 
+func NewUpstreamIDFromTargetID(tid string) UpstreamID {
+	// Drop the leading subset if one is present in the target ID.
+	separators := strings.Count(tid, ".")
+	if separators > 3 {
+		prefix := tid[:strings.Index(tid, ".")+1]
+		tid = strings.TrimPrefix(tid, prefix)
+	}
+
+	split := strings.SplitN(tid, ".", 4)
+
+	id := UpstreamID{
+		Name:           split[0],
+		EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(split[2], split[1]),
+		Datacenter:     split[3],
+	}
+	id.normalize()
+	return id
+}
+
 func (u *UpstreamID) normalize() {
 	if u.Type == structs.UpstreamDestTypeService {
 		u.Type = ""

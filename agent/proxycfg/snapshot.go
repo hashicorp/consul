@@ -9,7 +9,6 @@ import (
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -52,13 +51,29 @@ type ConfigSnapshotUpstreams struct {
 	// UpstreamConfig is a map to an upstream's configuration.
 	UpstreamConfig map[UpstreamID]*structs.Upstream
 
-	// PassthroughEndpoints is a map of: UpstreamID -> ServicePassthroughAddrs.
-	PassthroughUpstreams map[UpstreamID]ServicePassthroughAddrs
+	// PassthroughEndpoints is a map of: UpstreamID -> (map of TargetID ->
+	// (set of IP addresses)). It contains the upstream endpoints that
+	// can be dialed directly by a transparent proxy.
+	PassthroughUpstreams map[UpstreamID]map[string]map[string]struct{}
+
+	// PassthroughIndices is a map of: address -> indexedTarget.
+	// It is used to track the modify index associated with a passthrough address.
+	// Tracking this index helps break ties when a single address is shared by
+	// more than one upstream due to a race.
+	PassthroughIndices map[string]indexedTarget
 
 	// IntentionUpstreams is a set of upstreams inferred from intentions.
 	//
 	// This list only applies to proxies registered in 'transparent' mode.
 	IntentionUpstreams map[UpstreamID]struct{}
+}
+
+// indexedTarget is used to associate the Raft modify index of a resource
+// with the corresponding upstream target.
+type indexedTarget struct {
+	upstreamID UpstreamID
+	targetID   string
+	idx        uint64
 }
 
 type GatewayKey struct {
@@ -89,18 +104,6 @@ func gatewayKeyFromString(s string) GatewayKey {
 		return GatewayKey{Datacenter: split[0], Partition: acl.DefaultPartitionName}
 	}
 	return GatewayKey{Partition: split[0], Datacenter: split[1]}
-}
-
-// ServicePassthroughAddrs contains the LAN addrs
-type ServicePassthroughAddrs struct {
-	// SNI is the Service SNI of the upstream.
-	SNI string
-
-	// SpiffeID is the SPIFFE ID to use for upstream SAN validation.
-	SpiffeID connect.SpiffeIDService
-
-	// Addrs is a set of the best LAN addresses for the instances of the upstream.
-	Addrs map[string]struct{}
 }
 
 type configSnapshotConnectProxy struct {

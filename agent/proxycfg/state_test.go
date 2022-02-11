@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
@@ -1892,8 +1891,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								Nodes: structs.CheckServiceNodes{
 									{
 										Node: &structs.Node{
-											Node:    "node1",
-											Address: "10.0.0.1",
+											Datacenter: "dc1",
+											Node:       "node1",
+											Address:    "10.0.0.1",
 										},
 										Service: &structs.NodeService{
 											Kind:    structs.ServiceKindConnectProxy,
@@ -1910,12 +1910,19 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 													DialedDirectly: true,
 												},
 											},
+											RaftIndex: structs.RaftIndex{
+												ModifyIndex: 12,
+											},
 										},
 									},
 									{
 										Node: &structs.Node{
-											Node:    "node2",
-											Address: "10.0.0.2",
+											Datacenter: "dc1",
+											Node:       "node2",
+											Address:    "10.0.0.2",
+											RaftIndex: structs.RaftIndex{
+												ModifyIndex: 21,
+											},
 										},
 										Service: &structs.NodeService{
 											Kind:    structs.ServiceKindConnectProxy,
@@ -1943,8 +1950,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							structs.CheckServiceNodes{
 								{
 									Node: &structs.Node{
-										Node:    "node1",
-										Address: "10.0.0.1",
+										Datacenter: "dc1",
+										Node:       "node1",
+										Address:    "10.0.0.1",
 									},
 									Service: &structs.NodeService{
 										Kind:    structs.ServiceKindConnectProxy,
@@ -1961,12 +1969,19 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 												DialedDirectly: true,
 											},
 										},
+										RaftIndex: structs.RaftIndex{
+											ModifyIndex: 12,
+										},
 									},
 								},
 								{
 									Node: &structs.Node{
-										Node:    "node2",
-										Address: "10.0.0.2",
+										Datacenter: "dc1",
+										Node:       "node2",
+										Address:    "10.0.0.2",
+										RaftIndex: structs.RaftIndex{
+											ModifyIndex: 21,
+										},
 									},
 									Service: &structs.NodeService{
 										Kind:    structs.ServiceKindConnectProxy,
@@ -1985,20 +2000,24 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						// The LAN service address is used below because transparent proxying
 						// does not support querying service nodes in other DCs, and the WAN address
 						// should not be used in DC-local calls.
-						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[UpstreamID]ServicePassthroughAddrs{
+						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[UpstreamID]map[string]map[string]struct{}{
 							dbUID: {
-								SNI: connect.ServiceSNI("db", "", structs.IntentionDefaultNamespace, "", snap.Datacenter, snap.Roots.TrustDomain),
-								SpiffeID: connect.SpiffeIDService{
-									Host:       snap.Roots.TrustDomain,
-									Namespace:  db.NamespaceOrDefault(),
-									Partition:  db.PartitionOrDefault(),
-									Datacenter: snap.Datacenter,
-									Service:    "db",
-								},
-								Addrs: map[string]struct{}{
+								"db.default.default.dc1": map[string]struct{}{
 									"10.10.10.10": {},
 									"10.0.0.2":    {},
 								},
+							},
+						})
+						require.Equal(t, snap.ConnectProxy.PassthroughIndices, map[string]indexedTarget{
+							"10.0.0.2": {
+								upstreamID: dbUID,
+								targetID:   "db.default.default.dc1",
+								idx:        21,
+							},
+							"10.10.10.10": {
+								upstreamID: dbUID,
+								targetID:   "db.default.default.dc1",
+								idx:        12,
 							},
 						})
 					},
@@ -2041,8 +2060,194 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Contains(t, snap.ConnectProxy.WatchedUpstreams[dbUID], "mysql.default.default.dc1")
 					},
 				},
-				// Empty list of upstreams should clean everything up
 				{
+					// Receive a new upstream target event without proxy1.
+					events: []cache.UpdateEvent{
+						{
+							CorrelationID: "upstream-target:db.default.default.dc1:" + dbUID.String(),
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Datacenter: "dc1",
+											Node:       "node2",
+											Address:    "10.0.0.2",
+											RaftIndex: structs.RaftIndex{
+												ModifyIndex: 21,
+											},
+										},
+										Service: &structs.NodeService{
+											Kind:    structs.ServiceKindConnectProxy,
+											ID:      "db-sidecar-proxy2",
+											Service: "db-sidecar-proxy",
+											Proxy: structs.ConnectProxyConfig{
+												DestinationServiceName: "db",
+												TransparentProxy: structs.TransparentProxyConfig{
+													DialedDirectly: true,
+												},
+											},
+										},
+									},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 1)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints, dbUID)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbUID], 1)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbUID], "db.default.default.dc1")
+
+						// THe endpoint and passthrough address for proxy1 should be gone.
+						require.Equal(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc1"],
+							structs.CheckServiceNodes{
+								{
+									Node: &structs.Node{
+										Datacenter: "dc1",
+										Node:       "node2",
+										Address:    "10.0.0.2",
+										RaftIndex: structs.RaftIndex{
+											ModifyIndex: 21,
+										},
+									},
+									Service: &structs.NodeService{
+										Kind:    structs.ServiceKindConnectProxy,
+										ID:      "db-sidecar-proxy2",
+										Service: "db-sidecar-proxy",
+										Proxy: structs.ConnectProxyConfig{
+											DestinationServiceName: "db",
+											TransparentProxy: structs.TransparentProxyConfig{
+												DialedDirectly: true,
+											},
+										},
+									},
+								},
+							},
+						)
+						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[UpstreamID]map[string]map[string]struct{}{
+							dbUID: {
+								"db.default.default.dc1": map[string]struct{}{
+									"10.0.0.2": {},
+								},
+							},
+						})
+						require.Equal(t, snap.ConnectProxy.PassthroughIndices, map[string]indexedTarget{
+							"10.0.0.2": {
+								upstreamID: dbUID,
+								targetID:   "db.default.default.dc1",
+								idx:        21,
+							},
+						})
+					},
+				},
+				{
+					// Receive a new upstream target event with a conflicting passthrough address
+					events: []cache.UpdateEvent{
+						{
+							CorrelationID: "upstream-target:api.default.default.dc1:" + apiUID.String(),
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Datacenter: "dc1",
+											Node:       "node2",
+										},
+										Service: &structs.NodeService{
+											Kind:    structs.ServiceKindConnectProxy,
+											ID:      "api-sidecar-proxy",
+											Service: "api-sidecar-proxy",
+											Address: "10.0.0.2",
+											Proxy: structs.ConnectProxyConfig{
+												DestinationServiceName: "api",
+												TransparentProxy: structs.TransparentProxyConfig{
+													DialedDirectly: true,
+												},
+											},
+											RaftIndex: structs.RaftIndex{
+												ModifyIndex: 32,
+											},
+										},
+									},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 2)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints, apiUID)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[apiUID], 1)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints[apiUID], "api.default.default.dc1")
+
+						// THe endpoint and passthrough address for proxy1 should be gone.
+						require.Equal(t, snap.ConnectProxy.WatchedUpstreamEndpoints[apiUID]["api.default.default.dc1"],
+							structs.CheckServiceNodes{
+								{
+									Node: &structs.Node{
+										Datacenter: "dc1",
+										Node:       "node2",
+									},
+									Service: &structs.NodeService{
+										Kind:    structs.ServiceKindConnectProxy,
+										ID:      "api-sidecar-proxy",
+										Service: "api-sidecar-proxy",
+										Address: "10.0.0.2",
+										Proxy: structs.ConnectProxyConfig{
+											DestinationServiceName: "api",
+											TransparentProxy: structs.TransparentProxyConfig{
+												DialedDirectly: true,
+											},
+										},
+										RaftIndex: structs.RaftIndex{
+											ModifyIndex: 32,
+										},
+									},
+								},
+							},
+						)
+						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[UpstreamID]map[string]map[string]struct{}{
+							apiUID: {
+								// This target has a higher index so the old passthrough address should be discarded.
+								"api.default.default.dc1": map[string]struct{}{
+									"10.0.0.2": {},
+								},
+							},
+						})
+						require.Equal(t, snap.ConnectProxy.PassthroughIndices, map[string]indexedTarget{
+							"10.0.0.2": {
+								upstreamID: apiUID,
+								targetID:   "api.default.default.dc1",
+								idx:        32,
+							},
+						})
+					},
+				},
+				{
+					// Event with no nodes should clean up addrs
+					events: []cache.UpdateEvent{
+						{
+							CorrelationID: "upstream-target:api.default.default.dc1:" + apiUID.String(),
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 2)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints, apiUID)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[apiUID], 1)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints[apiUID], "api.default.default.dc1")
+
+						// The endpoint and passthrough address for proxy1 should be gone.
+						require.Empty(t, snap.ConnectProxy.WatchedUpstreamEndpoints[apiUID]["api.default.default.dc1"])
+						require.Empty(t, snap.ConnectProxy.PassthroughUpstreams[apiUID]["api.default.default.dc1"])
+						require.Empty(t, snap.ConnectProxy.PassthroughIndices)
+					},
+				},
+				{
+					// Empty list of upstreams should clean up map keys
 					requiredWatches: map[string]verifyWatchRequest{
 						rootsWatchID: genVerifyRootsWatch("dc1"),
 						intentionUpstreamsID: genVerifyServiceSpecificRequest(intentionUpstreamsID,
@@ -2070,6 +2275,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Empty(t, snap.ConnectProxy.WatchedGatewayEndpoints)
 						require.Empty(t, snap.ConnectProxy.DiscoveryChain)
 						require.Empty(t, snap.ConnectProxy.IntentionUpstreams)
+						require.Empty(t, snap.ConnectProxy.PassthroughUpstreams)
+						require.Empty(t, snap.ConnectProxy.PassthroughIndices)
 					},
 				},
 			},
