@@ -28,12 +28,12 @@ func TestPermissionDeniedError(t *testing.T) {
 			expected: "Permission denied: simon says",
 		},
 		{
-			err:      PermissionDeniedByACL(&auth1, nil, "Service", "Read", "foobar"),
-			expected: "Permission denied: provided accessor lacks permission 'Service:Read' foobar",
+			err:      PermissionDeniedByACL(&auth1, nil, ResourceService, AccessRead, "foobar"),
+			expected: "Permission denied: provided accessor lacks permission 'service:read' foobar",
 		},
 		{
-			err:      PermissionDeniedByACLUnnamed(&auth1, nil, "Service", "Read"),
-			expected: "Permission denied: provided accessor lacks permission 'Service:Read'",
+			err:      PermissionDeniedByACLUnnamed(&auth1, nil, ResourceService, AccessRead),
+			expected: "Permission denied: provided accessor lacks permission 'service:read'",
 		},
 	}
 

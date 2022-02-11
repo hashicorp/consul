@@ -70,9 +70,9 @@ type PermissionDeniedError struct {
 	// Accessor contains information on the accessor used e.g. "token <GUID>"
 	Accessor string
 	// Resource (e.g. Service)
-	Resource string
+	Resource Resource
 	// Access leve (e.g. Read)
-	AccessLevel string
+	AccessLevel AccessLevel
 	// e.g. "sidecar-proxy-1"
 	ResourceID ResourceDescriptor
 }
@@ -102,7 +102,7 @@ func (e PermissionDeniedError) Error() string {
 		fmt.Fprintf(&message, ": accessor '%s'", e.Accessor)
 	}
 
-	fmt.Fprintf(&message, " lacks permission '%s:%s'", e.Resource, e.AccessLevel)
+	fmt.Fprintf(&message, " lacks permission '%s:%s'", e.Resource, e.AccessLevel.String())
 
 	if e.ResourceID.Name != "" {
 		fmt.Fprintf(&message, " %s", e.ResourceID.ToString())
@@ -116,12 +116,12 @@ func PermissionDenied(msg string, args ...interface{}) PermissionDeniedError {
 }
 
 // TODO Extract information from Authorizer
-func PermissionDeniedByACL(_ Authorizer, context *AuthorizerContext, resource string, accessLevel string, resourceID string) PermissionDeniedError {
+func PermissionDeniedByACL(_ Authorizer, context *AuthorizerContext, resource Resource, accessLevel AccessLevel, resourceID string) PermissionDeniedError {
 	desc := NewResourceDescriptor(resourceID, context)
 	return PermissionDeniedError{Accessor: "", Resource: resource, AccessLevel: accessLevel, ResourceID: desc}
 }
 
-func PermissionDeniedByACLUnnamed(_ Authorizer, context *AuthorizerContext, accessLevel string, permission string) PermissionDeniedError {
+func PermissionDeniedByACLUnnamed(_ Authorizer, context *AuthorizerContext, resource Resource, accessLevel AccessLevel) PermissionDeniedError {
 	desc := NewResourceDescriptor("", context)
-	return PermissionDeniedError{Accessor: "", Resource: accessLevel, AccessLevel: permission, ResourceID: desc}
+	return PermissionDeniedError{Accessor: "", Resource: resource, AccessLevel: accessLevel, ResourceID: desc}
 }
