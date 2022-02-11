@@ -1,0 +1,7 @@
+```release-note:improvement
+raft: add additional logging of snapshot restore progress
+```
+
+```release-note:bug
+raft: fix some gaps in leadership transfer
+```
