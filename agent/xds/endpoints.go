@@ -221,7 +221,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
 			clusterName := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
 
-			addr, port := srv.BestAddress(false /*wan*/)
+			_, addr, port := srv.BestAddress(false /*wan*/)
 
 			lbEndpoint := &envoy_endpoint_v3.LbEndpoint{
 				HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
@@ -512,7 +512,7 @@ func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpo
 
 		for _, ep := range endpoints {
 			// TODO (mesh-gateway) - should we respect the translate_wan_addrs configuration here or just always use the wan for cross-dc?
-			addr, port := ep.BestAddress(!localKey.Matches(ep.Node.Datacenter, ep.Node.PartitionOrDefault()))
+			_, addr, port := ep.BestAddress(!localKey.Matches(ep.Node.Datacenter, ep.Node.PartitionOrDefault()))
 			healthStatus, weight := calculateEndpointHealthAndWeight(ep, endpointGroup.OnlyPassing)
 
 			if endpointGroup.OverrideHealth != envoy_core_v3.HealthStatus_UNKNOWN {

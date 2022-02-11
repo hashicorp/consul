@@ -27,7 +27,8 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	snap.ConnectProxy.WatchedServiceChecks = make(map[structs.ServiceID][]structs.CheckType)
 	snap.ConnectProxy.PreparedQueryEndpoints = make(map[string]structs.CheckServiceNodes)
 	snap.ConnectProxy.UpstreamConfig = make(map[string]*structs.Upstream)
-	snap.ConnectProxy.PassthroughUpstreams = make(map[string]ServicePassthroughAddrs)
+	snap.ConnectProxy.PassthroughUpstreams = make(map[string]map[string]map[string]struct{})
+	snap.ConnectProxy.PassthroughIndices = make(map[string]indexedTarget)
 
 	// Watch for root changes
 	err := s.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
@@ -321,6 +322,17 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				delete(snap.ConnectProxy.WatchedDiscoveryChains, sn)
 			}
 		}
+		for sn := range snap.ConnectProxy.PassthroughUpstreams {
+			if _, ok := seenServices[sn]; !ok {
+				delete(snap.ConnectProxy.PassthroughUpstreams, sn)
+			}
+		}
+		for addr, indexed := range snap.ConnectProxy.PassthroughIndices {
+			if _, ok := seenServices[indexed.serviceName]; !ok {
+				delete(snap.ConnectProxy.PassthroughIndices, addr)
+			}
+		}
+
 		// These entries are intentionally handled separately from the WatchedDiscoveryChains above.
 		// There have been situations where a discovery watch was cancelled, then fired.
 		// That update event then re-populated the DiscoveryChain map entry, which wouldn't get cleaned up

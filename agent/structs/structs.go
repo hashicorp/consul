@@ -1733,7 +1733,7 @@ type CheckServiceNode struct {
 	Checks  HealthChecks
 }
 
-func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
+func (csn *CheckServiceNode) BestAddress(wan bool) (uint64, string, int) {
 	// TODO (mesh-gateway) needs a test
 	// best address
 	// wan
@@ -1746,12 +1746,14 @@ func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
 	//   node addr
 
 	addr, port := csn.Service.BestAddress(wan)
+	idx := csn.Service.ModifyIndex
 
 	if addr == "" {
 		addr = csn.Node.BestAddress(wan)
+		idx = csn.Node.ModifyIndex
 	}
 
-	return addr, port
+	return idx, addr, port
 }
 
 func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecision {
@@ -1991,6 +1993,25 @@ func (n ServiceName) Matches(o ServiceName) bool {
 
 func (n ServiceName) ToServiceID() ServiceID {
 	return ServiceID{ID: n.Name, EnterpriseMeta: n.EnterpriseMeta}
+}
+
+func NewServiceNameFromTargetID(tid string) ServiceName {
+	// Drop the leading subset if one is present in the target ID.
+	separators := strings.Count(tid, ".")
+	if separators > 3 {
+		prefix := tid[:strings.Index(tid, ".")+1]
+		tid = strings.TrimPrefix(tid, prefix)
+	}
+
+	split := strings.SplitN(tid, ".", 4)
+
+	sn := ServiceName{
+		Name:           split[0],
+		EnterpriseMeta: NewEnterpriseMetaWithPartition(split[2], split[1]),
+	}
+	sn.EnterpriseMeta.Normalize()
+
+	return sn
 }
 
 func ServiceGatewayVirtualIPTag(sn ServiceName) string {
