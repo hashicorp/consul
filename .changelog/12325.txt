@@ -3,5 +3,5 @@ raft: add additional logging of snapshot restore progress
 ```
 
 ```release-note:bug
-raft: fix some gaps in leadership transfer
+raft: fixed a race condition in leadership transfer that could result in reelection of the current leader
 ```
