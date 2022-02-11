@@ -1118,7 +1118,6 @@ func (l *State) updateSyncState() error {
 			if !wasCopied {
 				// Make a shallow copy since we're going to mutate it and other
 				// readers may be reading it and we want to avoid a race.
-				wasCopied = true
 				dup := *ls.Service
 				ls.Service = &dup
 			}
