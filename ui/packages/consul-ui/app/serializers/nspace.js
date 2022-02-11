@@ -2,6 +2,29 @@ import Serializer from './application';
 import { get } from '@ember/object';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/nspace';
 
+const normalizeACLs = item => {
+  if (get(item, 'ACLs.PolicyDefaults')) {
+    item.ACLs.PolicyDefaults = item.ACLs.PolicyDefaults.map(function(item) {
+      if (typeof item.template === 'undefined') {
+        item.template = '';
+      }
+      return item;
+    });
+  }
+  // Both of these might come though unset so we make sure we at least
+  // have an empty array here so we can add children to them if we
+  // need to whilst saving nspaces
+  ['PolicyDefaults', 'RoleDefaults'].forEach(function(prop) {
+    if (typeof item.ACLs === 'undefined') {
+      item.ACLs = [];
+    }
+    if (typeof item.ACLs[prop] === 'undefined') {
+      item.ACLs[prop] = [];
+    }
+  });
+  return item;
+};
+
 export default class NspaceSerializer extends Serializer {
   primaryKey = PRIMARY_KEY;
   slugKey = SLUG_KEY;
@@ -15,24 +38,7 @@ export default class NspaceSerializer extends Serializer {
             body.map(function(item) {
               item.Namespace = '*';
               item.Datacenter = query.dc;
-              if (get(item, 'ACLs.PolicyDefaults')) {
-                item.ACLs.PolicyDefaults = item.ACLs.PolicyDefaults.map(function(item) {
-                  item.template = '';
-                  return item;
-                });
-              }
-              // Both of these might come though unset so we make sure we at least
-              // have an empty array here so we can add children to them if we
-              // need to whilst saving nspaces
-              ['PolicyDefaults', 'RoleDefaults'].forEach(function(prop) {
-                if (typeof item.ACLs === 'undefined') {
-                  item.ACLs = [];
-                }
-                if (typeof item.ACLs[prop] === 'undefined') {
-                  item.ACLs[prop] = [];
-                }
-              });
-              return item;
+              return normalizeACLs(item);
             })
           )
         ),
@@ -46,7 +52,7 @@ export default class NspaceSerializer extends Serializer {
         respond((headers, body) => {
           body.Datacenter = serialized.dc;
           body.Namespace = '*';
-          return cb(headers, body);
+          return cb(headers, normalizeACLs(body));
         }),
       serialized,
       data
@@ -59,7 +65,7 @@ export default class NspaceSerializer extends Serializer {
         respond((headers, body) => {
           body.Datacenter = serialized.dc;
           body.Namespace = '*';
-          return cb(headers, body);
+          return cb(headers, normalizeACLs(body));
         }),
       serialized,
       data
@@ -68,7 +74,7 @@ export default class NspaceSerializer extends Serializer {
 
   respondForUpdateRecord(respond, serialized, data) {
     return respond((headers, body) => {
-      return body;
+      return normalizeACLs(body);
     });
   }
 }
