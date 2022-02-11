@@ -16,7 +16,7 @@ const timeoutDuration = 200 * time.Millisecond
 type FileWatcher struct {
 	watcher          *fsnotify.Watcher
 	configFiles      map[string]*watchedFile
-	handleFunc       func(event *WatcherEvent) error
+	handleFunc       func(event *WatcherEvent)
 	logger           hclog.Logger
 	reconcileTimeout time.Duration
 	cancel           context.CancelFunc
@@ -32,7 +32,7 @@ type WatcherEvent struct {
 	Filename string
 }
 
-func NewFileWatcher(handleFunc func(event *WatcherEvent) error, configFiles []string, logger hclog.Logger) (*FileWatcher, error) {
+func NewFileWatcher(handleFunc func(event *WatcherEvent), configFiles []string, logger hclog.Logger) (*FileWatcher, error) {
 	ws, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 		}
 	}
 	if isCreate(event) || isWrite(event) || isRename(event) {
-		return w.handleFunc(&WatcherEvent{Filename: event.Name})
+		go w.handleFunc(&WatcherEvent{Filename: event.Name})
 	}
 	return nil
 }
@@ -180,10 +180,7 @@ func (w *FileWatcher) reconcile() {
 		}
 		if configFile.id != newInode {
 			w.configFiles[filename].id = newInode
-			err = w.handleFunc(&WatcherEvent{Filename: filename})
-			if err != nil {
-				w.logger.Error("event handle failed", "file", filename, "err", err)
-			}
+			go w.handleFunc(&WatcherEvent{Filename: filename})
 		}
 	}
 }
