@@ -98,7 +98,7 @@ func (e PermissionDeniedError) Error() string {
 	}
 
 	if e.Accessor == "" {
-		message.WriteString(": accessor ")
+		message.WriteString(": provided accessor")
 	} else {
 		fmt.Fprintf(&message, ": accessor '%s'", e.Accessor)
 	}
