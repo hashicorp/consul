@@ -455,7 +455,7 @@ func retainGateways(full structs.CheckServiceNodes) structs.CheckServiceNodes {
 func renderGatewayAddrs(gateways structs.CheckServiceNodes, wan bool) []string {
 	out := make([]string, 0, len(gateways))
 	for _, csn := range gateways {
-		addr, port := csn.BestAddress(wan)
+		_, addr, port := csn.BestAddress(wan)
 		completeAddr := ipaddr.FormatAddressPort(addr, port)
 		out = append(out, completeAddr)
 	}
