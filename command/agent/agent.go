@@ -180,6 +180,29 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 
+	w, err := config.NewFileWatcher(func(event *config.WatcherEvent) error {
+		bd.Logger.Error("dhayachi:: config to reload!!!")
+		return agent.ReloadConfig()
+	})
+
+	if err != nil {
+		ui.Error(err.Error())
+		return 1
+	}
+	for _, f := range c.configLoadOpts.ConfigFiles {
+		path, err := filepath.Abs(f)
+		if err != nil {
+			ui.Error(err.Error())
+			return 1
+		}
+		bd.Logger.Error("dhayachi:: adding config!!!", "path", path)
+		err = w.Add(f)
+		if err != nil {
+			ui.Error(err.Error())
+			return 1
+		}
+	}
+
 	config := bd.RuntimeConfig
 	if config.Logging.LogJSON {
 		// Hide all non-error output when JSON logging is enabled.
