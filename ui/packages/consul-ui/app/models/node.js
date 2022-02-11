@@ -31,7 +31,9 @@ export default class Node extends Model {
   // ProxyServiceInstances are all instances that are connect-proxies
   @filter('Services', item => item.Service.Kind === 'connect-proxy') ProxyServiceInstances;
 
-  @computed('Checks.[]', 'ChecksCritical', 'ChecksPassing', 'ChecksWarning')
+  @filter('Checks', item => item.ServiceID === '') NodeChecks;
+
+  @computed('ChecksCritical', 'ChecksPassing', 'ChecksWarning')
   get Status() {
     switch (true) {
       case this.ChecksCritical !== 0:
@@ -45,18 +47,18 @@ export default class Node extends Model {
     }
   }
 
-  @computed('Checks.[]')
+  @computed('NodeChecks.[]')
   get ChecksCritical() {
-    return this.Checks.filter(item => item.Status === 'critical').length;
+    return this.NodeChecks.filter(item => item.Status === 'critical').length;
   }
 
-  @computed('Checks.[]')
+  @computed('NodeChecks.[]')
   get ChecksPassing() {
-    return this.Checks.filter(item => item.Status === 'passing').length;
+    return this.NodeChecks.filter(item => item.Status === 'passing').length;
   }
 
-  @computed('Checks.[]')
+  @computed('NodeChecks.[]')
   get ChecksWarning() {
-    return this.Checks.filter(item => item.Status === 'warning').length;
+    return this.NodeChecks.filter(item => item.Status === 'warning').length;
   }
 }
