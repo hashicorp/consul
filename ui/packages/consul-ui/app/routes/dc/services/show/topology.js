@@ -20,8 +20,10 @@ export default class TopologyRoute extends Route {
           item.Datacenter === source.Datacenter &&
           item.SourceName === source.Name &&
           item.SourceNS === source.Namespace &&
+          item.SourcePartition === source.Partition &&
           item.DestinationName === destination.Name &&
-          item.DestinationNS === destination.Namespace
+          item.DestinationNS === destination.Namespace &&
+          item.DestinationPartition === destination.Partition
         );
       });
       if (typeof intention === 'undefined') {
@@ -29,8 +31,10 @@ export default class TopologyRoute extends Route {
           Datacenter: source.Datacenter,
           SourceName: source.Name,
           SourceNS: source.Namespace || 'default',
+          SourcePartition: source.Partition || 'default',
           DestinationName: destination.Name,
           DestinationNS: destination.Namespace || 'default',
+          DestinationPartition: destination.Partition || 'default',
         });
       } else {
         // we found an intention in the find higher up, so we are updating
