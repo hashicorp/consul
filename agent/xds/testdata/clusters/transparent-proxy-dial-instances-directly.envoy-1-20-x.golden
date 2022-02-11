@@ -206,7 +206,7 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "passthrough~kafka.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
+      "name": "passthrough~kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "ORIGINAL_DST",
       "connectTimeout": "5s",
       "lbPolicy": "CLUSTER_PROVIDED",
@@ -234,18 +234,18 @@
               },
               "matchSubjectAltNames": [
                 {
-                  "exact": "spiffe://e5b08d03-bfc3-c870-1833-baddb116e648.consul/ns/default/dc/dc1/svc/kafka"
+                  "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/kafka"
                 }
               ]
             }
           },
-          "sni": "kafka.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul"
+          "sni": "kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
         }
       }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "passthrough~mongo.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
+      "name": "passthrough~mongo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "ORIGINAL_DST",
       "connectTimeout": "5s",
       "lbPolicy": "CLUSTER_PROVIDED",
@@ -273,12 +273,12 @@
               },
               "matchSubjectAltNames": [
                 {
-                  "exact": "spiffe://e5b08d03-bfc3-c870-1833-baddb116e648.consul/ns/default/dc/dc1/svc/mongo"
+                  "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mongo"
                 }
               ]
             }
           },
-          "sni": "mongo.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul"
+          "sni": "mongo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
         }
       }
     }

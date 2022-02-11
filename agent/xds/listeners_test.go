@@ -1188,16 +1188,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 				// We add a filter chains for each passthrough service name.
 				// The filter chain will route to a cluster with the same SNI name.
-				snap.ConnectProxy.PassthroughUpstreams = map[string]proxycfg.ServicePassthroughAddrs{
+				snap.ConnectProxy.PassthroughUpstreams = map[string]map[string]map[string]struct{}{
 					kafka.String(): {
-						SNI: "kafka.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
-						Addrs: map[string]struct{}{
+						"kafka.default.default.dc1": map[string]struct{}{
 							"9.9.9.9": {},
 						},
 					},
 					mongo.String(): {
-						SNI: "mongo.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
-						Addrs: map[string]struct{}{
+						"mongo.default.default.dc1": map[string]struct{}{
 							"10.10.10.10": {},
 							"10.10.10.12": {},
 						},

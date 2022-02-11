@@ -2108,14 +2108,18 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 		input   CheckServiceNode
 		lanAddr string
 		lanPort int
+		lanIdx  uint64
 		wanAddr string
 		wanPort int
+		wanIdx  uint64
 	}
 
 	nodeAddr := "10.1.2.3"
 	nodeWANAddr := "198.18.19.20"
+	nodeIdx := uint64(11)
 	serviceAddr := "10.2.3.4"
 	servicePort := 1234
+	serviceIdx := uint64(22)
 	serviceWANAddr := "198.19.20.21"
 	serviceWANPort := 987
 
@@ -2124,15 +2128,23 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 			input: CheckServiceNode{
 				Node: &Node{
 					Address: nodeAddr,
+					RaftIndex: RaftIndex{
+						ModifyIndex: nodeIdx,
+					},
 				},
 				Service: &NodeService{
 					Port: servicePort,
+					RaftIndex: RaftIndex{
+						ModifyIndex: serviceIdx,
+					},
 				},
 			},
 
 			lanAddr: nodeAddr,
+			lanIdx:  nodeIdx,
 			lanPort: servicePort,
 			wanAddr: nodeAddr,
+			wanIdx:  nodeIdx,
 			wanPort: servicePort,
 		},
 		"node-wan-address": {
@@ -2142,15 +2154,23 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 					TaggedAddresses: map[string]string{
 						"wan": nodeWANAddr,
 					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: nodeIdx,
+					},
 				},
 				Service: &NodeService{
 					Port: servicePort,
+					RaftIndex: RaftIndex{
+						ModifyIndex: serviceIdx,
+					},
 				},
 			},
 
 			lanAddr: nodeAddr,
+			lanIdx:  nodeIdx,
 			lanPort: servicePort,
 			wanAddr: nodeWANAddr,
+			wanIdx:  nodeIdx,
 			wanPort: servicePort,
 		},
 		"service-address": {
@@ -2161,16 +2181,24 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 					TaggedAddresses: map[string]string{
 						"wan": nodeWANAddr,
 					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: nodeIdx,
+					},
 				},
 				Service: &NodeService{
 					Address: serviceAddr,
 					Port:    servicePort,
+					RaftIndex: RaftIndex{
+						ModifyIndex: serviceIdx,
+					},
 				},
 			},
 
 			lanAddr: serviceAddr,
+			lanIdx:  serviceIdx,
 			lanPort: servicePort,
 			wanAddr: serviceAddr,
+			wanIdx:  serviceIdx,
 			wanPort: servicePort,
 		},
 		"service-wan-address": {
@@ -2180,6 +2208,9 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 					// this will be ignored
 					TaggedAddresses: map[string]string{
 						"wan": nodeWANAddr,
+					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: nodeIdx,
 					},
 				},
 				Service: &NodeService{
@@ -2191,12 +2222,17 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 							Port:    serviceWANPort,
 						},
 					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: serviceIdx,
+					},
 				},
 			},
 
 			lanAddr: serviceAddr,
+			lanIdx:  serviceIdx,
 			lanPort: servicePort,
 			wanAddr: serviceWANAddr,
+			wanIdx:  serviceIdx,
 			wanPort: serviceWANPort,
 		},
 		"service-wan-address-default-port": {
@@ -2206,6 +2242,9 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 					// this will be ignored
 					TaggedAddresses: map[string]string{
 						"wan": nodeWANAddr,
+					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: nodeIdx,
 					},
 				},
 				Service: &NodeService{
@@ -2217,12 +2256,17 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 							Port:    0,
 						},
 					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: serviceIdx,
+					},
 				},
 			},
 
 			lanAddr: serviceAddr,
+			lanIdx:  serviceIdx,
 			lanPort: servicePort,
 			wanAddr: serviceWANAddr,
+			wanIdx:  serviceIdx,
 			wanPort: servicePort,
 		},
 		"service-wan-address-node-lan": {
@@ -2233,6 +2277,9 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 					TaggedAddresses: map[string]string{
 						"wan": nodeWANAddr,
 					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: nodeIdx,
+					},
 				},
 				Service: &NodeService{
 					Port: servicePort,
@@ -2242,12 +2289,17 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 							Port:    serviceWANPort,
 						},
 					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: serviceIdx,
+					},
 				},
 			},
 
 			lanAddr: nodeAddr,
+			lanIdx:  nodeIdx,
 			lanPort: servicePort,
 			wanAddr: serviceWANAddr,
+			wanIdx:  serviceIdx,
 			wanPort: serviceWANPort,
 		},
 	}
@@ -2257,13 +2309,15 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 
-			addr, port := tc.input.BestAddress(false)
+			idx, addr, port := tc.input.BestAddress(false)
 			require.Equal(t, tc.lanAddr, addr)
 			require.Equal(t, tc.lanPort, port)
+			require.Equal(t, tc.lanIdx, idx)
 
-			addr, port = tc.input.BestAddress(true)
+			idx, addr, port = tc.input.BestAddress(true)
 			require.Equal(t, tc.wanAddr, addr)
 			require.Equal(t, tc.wanPort, port)
+			require.Equal(t, tc.wanIdx, idx)
 		})
 	}
 }
@@ -2518,5 +2572,40 @@ func TestGatewayService_IsSame(t *testing.T) {
 
 	if !g.IsSame(other) {
 		t.Fatalf("should be equal, was %#v VS %#v", g, other)
+	}
+}
+
+// TODO(freddy): Needs enterprise test
+func TestServiceNameFromTargetID(t *testing.T) {
+	type testcase struct {
+		tid    string
+		expect ServiceName
+	}
+	run := func(t *testing.T, tc testcase) {
+		tc.expect.EnterpriseMeta.Normalize()
+
+		got := NewServiceNameFromTargetID(tc.tid)
+		require.Equal(t, tc.expect, got)
+	}
+
+	cases := map[string]testcase{
+		"with subset": {
+			tid: "v1.foo.default.default.dc2",
+			expect: ServiceName{
+				Name: "foo",
+			},
+		},
+		"without subset": {
+			tid: "foo.default.default.dc2",
+			expect: ServiceName{
+				Name: "foo",
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
 	}
 }
