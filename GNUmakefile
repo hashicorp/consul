@@ -18,6 +18,8 @@ GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
 MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 
+export PATH := $(PWD)/bin:$(PATH)
+
 ASSETFS_PATH?=agent/uiserver/bindata_assetfs.go
 # Get the git commit
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
@@ -145,7 +147,8 @@ dev: dev-build
 
 dev-build:
 	mkdir -p bin
-	CGO_ENABLED=0 go build -o ./bin -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+	CGO_ENABLED=0 go install -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+	cp -f ${MAIN_GOPATH}/bin/consul ./bin/consul
 
 dev-docker: linux
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
