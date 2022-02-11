@@ -4,6 +4,7 @@ page_title: Consul-Terraform-Sync Tasks API
 description: >-
   Consul-Terraform-Sync Tasks API
 ---
+
 # Tasks
 
 The `/tasks` endpoints interact with the tasks that Consul-Terraform-Sync (CTS) is responsible for running.
@@ -18,33 +19,35 @@ This endpoint returns information about an existing task.
 
 #### Request Parameters
 
-| Name | Required | Type | Description  | Default |
-| -----| -------- | ---- | ------------ | ------- |
-|`:task_name` | Required | string | Specifies the name of the task to retrieve | none |
+| Name         | Required | Type   | Description                                | Default |
+| ------------ | -------- | ------ | ------------------------------------------ | ------- |
+| `:task_name` | Required | string | Specifies the name of the task to retrieve | none    |
 
 #### Response Statuses
 
-| Status | Reason |
-| ------ | ------ |
-| 200  | Successfully retrieved and returned task information |
-| 404  | Task with the given name not found |
+| Status | Reason                                               |
+| ------ | ---------------------------------------------------- |
+| 200    | Successfully retrieved and returned task information |
+| 404    | Task with the given name not found                   |
 
 #### Response Fields
 
-| Name	| Type | Description |
-| ----- | ---- | ----------- |
-| `request_id` | string | The ID of the request. Used for auditing and debugging purposes. |
-| `task` | object | The task's configuration information. See [task object](#task-object) for details. |
+| Name         | Type   | Description                                                                        |
+| ------------ | ------ | ---------------------------------------------------------------------------------- |
+| `request_id` | string | The ID of the request. Used for auditing and debugging purposes.                   |
+| `task`       | object | The task's configuration information. See [task object](#task-object) for details. |
 
 #### Example: Retrieve a task
 
 Request:
+
 ```shell-session
 $ curl --request GET \
   localhost:8558/v1/tasks/task_a
 ```
 
 Response:
+
 ```json
 {
   "request_id": "b7559ab0-5111-381b-367a-0dfb7e216d41",
@@ -71,9 +74,7 @@ Response:
         "cts_user_defined_meta": {},
         "datacenter": "",
         "filter": "",
-        "names": [
-          "api"
-        ],
+        "names": ["api"],
         "namespace": ""
       }
     },
@@ -85,46 +86,141 @@ Response:
 }
 ```
 
+# Create Task
+
+This endpoint allows for creation of a task. It only supports creation of a new task, and does not support updating a task.
+
+| Method   | Path     | Produces           |
+| -------- | -------- | ------------------ |
+| `Create` | `/tasks` | `application/json` |
+
+#### Request Parameters
+
+| Name  | Required | Type   | Description                                                                                                                                                                                                                                                                                                                                         | Default |
+| ----- | -------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `run` | Optional | string | Values can only be `"inspect"` and `"now"`.<br/><ul><li>`"inspect"`: Does not update the task but returns information on if/how resources would be changed for the proposed task update.</li><li> `"now"`: Updates the task accordingly and immediately runs the task, rather than allowing the task to run at the natural daemon cadence</li></ul> | none    |
+
+#### Request Body
+
+| Name   | Required | Type   | Description                                                                        |
+| ------ | -------- | ------ | ---------------------------------------------------------------------------------- |
+| `task` | Required | object | The task's configuration information. See [task object](#task-object) for details. |
+
+#### Response Statuses
+
+| Status | Reason                        |
+| ------ | ----------------------------- |
+| 201    | Successfully created the task |
+
+#### Response Fields
+
+| Name         | Type   | Description                                                                                       |
+| ------------ | ------ | ------------------------------------------------------------------------------------------------- |
+| `request_id` | string | The ID of the request. Used for auditing and debugging purposes.                                  |
+| `task`       | object | The task's configuration information after creation. See [task object](#task-object) for details. |
+
+#### Example: Create a task
+
+Payload:
+
+```json
+{
+  "task": {
+    "description": "Writes the service name, id, and IP address to a file",
+    "enabled": true,
+    "name": "api-task",
+    "providers": ["my-provider"],
+    "condition": {
+      "services": {
+        "names": ["web", "api"]
+      }
+    },
+    "module": "path/to/module"
+  }
+}
+```
+
+Request:
+
+```shell-session
+curl --request POST \
+     --data @payload.json \
+     localhost:8558/v1/tasks
+```
+
+Response:
+
+```json
+{
+  "request_id": "0428ed18-1359-874c-8b27-742e43ebd7e7",
+  "task": {
+    "buffer_period": {
+      "enabled": true,
+      "max": "25s",
+      "min": "5s"
+    },
+    "condition": {
+      "services": {
+        "cts_user_defined_meta": {},
+        "datacenter": "",
+        "filter": "",
+        "names": ["api", "web"],
+        "namespace": "",
+        "use_as_module_input": true
+      }
+    },
+    "description": "Writes the service name, id, and IP address to a file",
+    "enabled": true,
+    "module": "path/to/module",
+    "module_input": {},
+    "name": "api-task",
+    "providers": ["my-provider"],
+    "variables": {},
+    "version": ""
+  }
+}
+```
+
 ## Update Task
 
 This endpoint allows patch updates to specifically supported fields for existing tasks. Currently only supports updating a task's [`enabled` value](/docs/nia/configuration#enabled-4).
 
-| Method | Path                | Produces           |
-| ------ | ------------------- | ------------------ |
-| `PATCH`  | `/tasks/:task_name` | `application/json` |
+| Method  | Path                | Produces           |
+| ------- | ------------------- | ------------------ |
+| `PATCH` | `/tasks/:task_name` | `application/json` |
 
 #### Request Parameters
 
-| Name | Required | Type | Description  | Default |
-| -----| -------- | ---- | ------------ | ------- |
-|`:task_name` | Required | string | Specifies the name of the task to update | none |
-|`run` | Optional | string | Values can only be `"inspect"` and `"now"`.<br/><ul><li>`"inspect"`: Does not update the task but returns information on if/how resources would be changed for the proposed task update.</li><li> `"now"`: Updates the task accordingly and immediately runs the task, rather than allowing the task to run at the natural daemon cadence</li></ul> | none |
+| Name         | Required | Type   | Description                                                                                                                                                                                                                                                                                                                                         | Default |
+| ------------ | -------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `:task_name` | Required | string | Specifies the name of the task to update                                                                                                                                                                                                                                                                                                            | none    |
+| `run`        | Optional | string | Values can only be `"inspect"` and `"now"`.<br/><ul><li>`"inspect"`: Does not update the task but returns information on if/how resources would be changed for the proposed task update.</li><li> `"now"`: Updates the task accordingly and immediately runs the task, rather than allowing the task to run at the natural daemon cadence</li></ul> | none    |
 
 #### Request Body
 
-| Name | Required | Type | Description  |
-| -----| -------- | ---- | ------------ |
-|`enabled` | Required | boolean | Whether the task is enabled to run and manage resources.|
+| Name      | Required | Type    | Description                                              |
+| --------- | -------- | ------- | -------------------------------------------------------- |
+| `enabled` | Required | boolean | Whether the task is enabled to run and manage resources. |
 
 #### Response Statuses
 
-| Status | Reason           |
-| ------ | ------------------ |
-| 200  | Successfully updated the task |
-| 404  | Task with the given name not found |
+| Status | Reason                             |
+| ------ | ---------------------------------- |
+| 200    | Successfully updated the task      |
+| 404    | Task with the given name not found |
 
 #### Response Fields
 
-| Name	| Type	 | Description        |
-| ----- | ------ | ------------------ |
-|`inspect` | object |  Information on how resources would be changed given a proposed task update, similar to [inspect-mode](/docs/nia/cli/cli-overview#inspect-mode). This is only returned when passed the `run=inspect` request parameter.
-|`inspect.changes_present` | boolean | Whether or not changes were detected for running the proposed task update.
-|`inspect.plan` | string | The Terraform plan generated for the proposed task update. Note: a non-empty string does not necessarily indicate changes were detected.
-
+| Name                      | Type    | Description                                                                                                                                                                                                            |
+| ------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `inspect`                 | object  | Information on how resources would be changed given a proposed task update, similar to [inspect-mode](/docs/nia/cli/cli-overview#inspect-mode). This is only returned when passed the `run=inspect` request parameter. |
+| `inspect.changes_present` | boolean | Whether or not changes were detected for running the proposed task update.                                                                                                                                             |
+| `inspect.plan`            | string  | The Terraform plan generated for the proposed task update. Note: a non-empty string does not necessarily indicate changes were detected.                                                                               |
 
 #### Example: Disable a task
 
 Request:
+
 ```shell-session
 $ curl --header "Content-Type: application/json" \
   --request PATCH \
@@ -133,6 +229,7 @@ $ curl --header "Content-Type: application/json" \
 ```
 
 Response:
+
 ```json
 {}
 ```
@@ -140,6 +237,7 @@ Response:
 #### Example: Inspect enabling a task
 
 Request:
+
 ```shell-session
 $ curl --header "Content-Type: application/json" \
   --request PATCH \
@@ -148,6 +246,7 @@ $ curl --header "Content-Type: application/json" \
 ```
 
 Response if no changes present:
+
 ```json
 {
   "inspect": {
@@ -158,6 +257,7 @@ Response if no changes present:
 ```
 
 Response if changes present:
+
 ```json
 {
   "inspect": {
@@ -171,36 +271,39 @@ Response if changes present:
 
 This endpoint allows for deletion of existing tasks. It does not allow deletion of a task that is currently running.
 
-| Method | Path                | Produces           |
-| ------ | ------------------- | ------------------ |
-| `DELETE`  | `/tasks/:task_name` | `application/json` |
+| Method   | Path                | Produces           |
+| -------- | ------------------- | ------------------ |
+| `DELETE` | `/tasks/:task_name` | `application/json` |
 
 #### Request Parameters
 
-| Name | Required | Type | Description  | Default |
-| -----| -------- | ---- | ------------ | ------- |
-|`:task_name` | Required | string | Specifies the name of the task to retrieve | none |
+| Name         | Required | Type   | Description                                | Default |
+| ------------ | -------- | ------ | ------------------------------------------ | ------- |
+| `:task_name` | Required | string | Specifies the name of the task to retrieve | none    |
 
 #### Response Statuses
 
-| Status | Reason           |
-| ------ | ------------------ |
-| 200  | Successfully deleted the task |
-| 404  | Task with the given name not found |
-| 409  | Task is currently running |
+| Status | Reason                             |
+| ------ | ---------------------------------- |
+| 200    | Successfully deleted the task      |
+| 404    | Task with the given name not found |
+| 409    | Task is currently running          |
 
 #### Response Fields
-| Name	| Type	 | Description        |
-| ----- | ------ | ------------------ |
-|`request_id` | string | The ID of the request. Used for auditing and debugging purposes.
+
+| Name         | Type   | Description                                                      |
+| ------------ | ------ | ---------------------------------------------------------------- |
+| `request_id` | string | The ID of the request. Used for auditing and debugging purposes. |
 
 #### Sample Request
+
 ```shell-session
 $ curl --request DELETE \
   localhost:8558/v1/tasks/task_a
 ```
 
 #### Sample Response
+
 ```json
 {
   "request_id": "9b23eea7-a435-2797-c71e-10c15766cd73"
@@ -211,19 +314,19 @@ $ curl --request DELETE \
 
 The task object is used by the Task APIs as part of a request or response. It represents the task's [configuration information](/docs/nia/configuration#task).
 
-| Name	| Type | Description |
-| ----- | ---- | ----------- |
-| `buffer_period` | object |  The buffer period for triggering task execution. |
-| `buffer_period.enabled` | bool | Whether the buffer period is enabled or disabled. |
-| `buffer_period.min` | string | The minimum period of time to wait after changes are detected before triggering the task. |
-| `buffer_period.max` | string | The maximum period of time to wait after changes are detected before triggering the task. |
-| `condition` | object | The [condition](/docs/nia/configuration#task-condition) on which to trigger the task to execute. <br/><br/> If the task has the deprecated `services` field configured as a module input, it is represented here as `condition.services`. |
-| `description` | string | The human readable text to describe the task. |
-| `enabled` | bool | Whether the task is enabled or disabled from executing. |
-| `module` | string | The location of the Terraform module. |
-| `module_input` | object | The additional [module input(s)](/docs/nia/configuration#task-source-input) that the tasks provides to the Terraform module on execution. <br/><br/> If the task has the deprecated `services` field configured as a module input, it is represented here as `module_input.services`. |
-| `name` | string | The unique name of the task. |
-| `providers` | list[string] | The list of provider names that the task's module uses. |
-| `variables` | map[string] | The map of variables that are provided to the task's module. |
-| `version` | string | The version of the configured module that the task uses. If empty, the latest version is used.
-| `terraform_version` | string | <EnterpriseAlert inline /> The version of Terraform to use for the Terraform Cloud workspace associated with the task. This is only available when used with the [Terraform Cloud driver](/docs/nia/configuration#terraform-driver). |
+| Name                    | Type         | Description                                                                                                                                                                                                                                                                           |
+| ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `buffer_period`         | object       | The buffer period for triggering task execution.                                                                                                                                                                                                                                      |
+| `buffer_period.enabled` | bool         | Whether the buffer period is enabled or disabled.                                                                                                                                                                                                                                     |
+| `buffer_period.min`     | string       | The minimum period of time to wait after changes are detected before triggering the task.                                                                                                                                                                                             |
+| `buffer_period.max`     | string       | The maximum period of time to wait after changes are detected before triggering the task.                                                                                                                                                                                             |
+| `condition`             | object       | The [condition](/docs/nia/configuration#task-condition) on which to trigger the task to execute. <br/><br/> If the task has the deprecated `services` field configured as a module input, it is represented here as `condition.services`.                                             |
+| `description`           | string       | The human readable text to describe the task.                                                                                                                                                                                                                                         |
+| `enabled`               | bool         | Whether the task is enabled or disabled from executing.                                                                                                                                                                                                                               |
+| `module`                | string       | The location of the Terraform module.                                                                                                                                                                                                                                                 |
+| `module_input`          | object       | The additional [module input(s)](/docs/nia/configuration#task-source-input) that the tasks provides to the Terraform module on execution. <br/><br/> If the task has the deprecated `services` field configured as a module input, it is represented here as `module_input.services`. |
+| `name`                  | string       | The unique name of the task.                                                                                                                                                                                                                                                          |
+| `providers`             | list[string] | The list of provider names that the task's module uses.                                                                                                                                                                                                                               |
+| `variables`             | map[string]  | The map of variables that are provided to the task's module.                                                                                                                                                                                                                          |
+| `version`               | string       | The version of the configured module that the task uses. If empty, the latest version is used.                                                                                                                                                                                        |
+| `terraform_version`     | string       | <EnterpriseAlert inline /> The version of Terraform to use for the Terraform Cloud workspace associated with the task. This is only available when used with the [Terraform Cloud driver](/docs/nia/configuration#terraform-driver).                                                  |
