@@ -1083,12 +1083,21 @@ func (l *State) updateSyncState() error {
 			continue
 		}
 
+		wasCopied := false
+
 		// If our definition is different, we need to update it. Make a
 		// copy so that we don't retain a pointer to any actual state
 		// store info for in-memory RPCs.
 		if ls.Service.EnableTagOverride {
 			tags := make([]string, len(rs.Tags))
 			copy(tags, rs.Tags)
+
+			// Make a shallow copy since we're going to mutate it and other
+			// readers may be reading it and we want to avoid a race.
+			dup := *ls.Service
+			ls.Service = &dup
+			wasCopied = true
+
 			ls.Service.Tags = tags
 		}
 
@@ -1105,6 +1114,13 @@ func (l *State) updateSyncState() error {
 				if strings.HasPrefix(k, structs.MetaKeyReservedPrefix) {
 					m[k] = v
 				}
+			}
+			if !wasCopied {
+				// Make a shallow copy since we're going to mutate it and other
+				// readers may be reading it and we want to avoid a race.
+				wasCopied = true
+				dup := *ls.Service
+				ls.Service = &dup
 			}
 			ls.Service.TaggedAddresses = m
 		}
