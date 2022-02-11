@@ -26,28 +26,42 @@ type FileWatcher struct {
 }
 
 type watchedFile struct {
-	iNode   uint64
-	watched bool
+	id    uint64
+	modId uint64
 }
 
 type WatcherEvent struct {
 	Filename string
 }
 
-func NewFileWatcher(handleFunc func(event *WatcherEvent) error) (*FileWatcher, error) {
+func NewFileWatcher(handleFunc func(event *WatcherEvent) error, configFiles []string) (*FileWatcher, error) {
 	ws, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancelFunc := context.WithCancel(context.Background())
 	cfgFiles := make(map[string]*watchedFile)
-	w := &FileWatcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{}), reconcileTimeout: timeoutDuration, done: make(chan interface{}), toBeAdded: make(chan string), toBeRemoved: make(chan string), cancel: cancelFunc}
 
-	go w.watch(ctx)
+	w := &FileWatcher{watcher: ws, configFiles: cfgFiles, handleFunc: handleFunc, logger: hclog.New(&hclog.LoggerOptions{}), reconcileTimeout: timeoutDuration, done: make(chan interface{}), toBeAdded: make(chan string), toBeRemoved: make(chan string)}
+	for _, f := range configFiles {
+		err = w.add(f)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return w, nil
 }
 
+func (w *FileWatcher) Start(ctx context.Context) {
+	cancelCtx, cancel := context.WithCancel(ctx)
+	w.cancel = cancel
+	go w.watch(cancelCtx)
+}
+
 func (w *FileWatcher) add(filename string) error {
+	if isSymLink(filename) {
+		return fmt.Errorf("symbolic link are not supported %s", filename)
+	}
 	if err := w.watcher.Add(filename); err != nil {
 		return err
 	}
@@ -55,40 +69,8 @@ func (w *FileWatcher) add(filename string) error {
 	if err != nil {
 		return err
 	}
-	w.configFiles[filename] = &watchedFile{iNode: iNode, watched: true}
+	w.configFiles[filename] = &watchedFile{id: iNode}
 	return nil
-}
-
-func (w *FileWatcher) remove(filename string) error {
-	if err := w.watcher.Remove(filename); err != nil {
-		return err
-	}
-	delete(w.configFiles, filename)
-	return nil
-}
-func (w *FileWatcher) Remove(filename string) error {
-	timeout := time.After(timeoutDuration)
-	select {
-	case w.toBeRemoved <- filename:
-		return nil
-	case <-timeout:
-		return fmt.Errorf("file remove timedout %s", filename)
-	}
-}
-
-func (w *FileWatcher) Add(filename string) error {
-	timeout := time.After(timeoutDuration)
-
-	// explicitly do not support symlink as the behaviour is not consistent between OSs
-	if isSymLink(filename) {
-		return fmt.Errorf("symbolic link are not supported %s", filename)
-	}
-	select {
-	case w.toBeAdded <- filename:
-		return nil
-	case <-timeout:
-		return fmt.Errorf("file add timedout %s", filename)
-	}
 }
 
 func isSymLink(filename string) bool {
@@ -126,16 +108,6 @@ func (w *FileWatcher) watch(ctx context.Context) {
 			}
 		case <-ticker.C:
 			w.reconcile()
-		case filename := <-w.toBeAdded:
-			err := w.add(filename)
-			if err != nil {
-				w.logger.Error("error adding a file", "file", filename, "err", err)
-			}
-		case filename := <-w.toBeRemoved:
-			err := w.remove(filename)
-			if err != nil {
-				w.logger.Error("error removing a file", "file", filename, "err", err)
-			}
 		case <-ctx.Done():
 			close(w.done)
 			return
@@ -147,7 +119,7 @@ func (w *FileWatcher) watch(ctx context.Context) {
 func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 	w.logger.Debug("event received ", "filename", event.Name, "OP", event.Op)
 	// we only want Create and Remove events to avoid triggering a relaod on file modification
-	if !isCreate(event) && !isRemove(event) {
+	if !isCreate(event) && !isRemove(event) && !isWrite(event) && !isRename(event) {
 		return nil
 	}
 	configFile, basename, ok := w.isWatched(event.Name)
@@ -158,16 +130,17 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 	// we only want to update inode and re-add if the event is on the watched file itself
 	if event.Name == basename {
 		if isRemove(event) {
-			// If the file was removed, set it to be re-added to watch when created
+			// If the file was removed, try to re-add it right away
 			err := w.watcher.Add(event.Name)
 			if err != nil {
-				configFile.watched = false
-				configFile.iNode = 0
+				// re-add failed, set it to retry later in reconcile
+				configFile.id = 0
+				configFile.modId = 0
 				return nil
 			}
 		}
 	}
-	if isCreate(event) {
+	if isCreate(event) || isWrite(event) || isRename(event) {
 		return w.handleFunc(&WatcherEvent{Filename: event.Name})
 	}
 	return nil
@@ -193,17 +166,13 @@ func (w *FileWatcher) reconcile() {
 			continue
 		}
 
-		if !configFile.watched {
-			if err := w.watcher.Add(filename); err != nil {
-				w.logger.Error("failed to add file to watcher", "file", filename, "err", err)
-				continue
-			} else {
-				configFile.watched = true
-			}
+		err = w.watcher.Add(filename)
+		if err != nil {
+			w.logger.Error("failed to add file to watcher", "file", filename, "err", err)
+			continue
 		}
-
-		if configFile.iNode != newInode {
-			w.configFiles[filename].iNode = newInode
+		if configFile.id != newInode {
+			w.configFiles[filename].id = newInode
 			err = w.handleFunc(&WatcherEvent{Filename: filename})
 			if err != nil {
 				w.logger.Error("event handle failed", "file", filename, "err", err)
@@ -218,4 +187,21 @@ func isCreate(event fsnotify.Event) bool {
 
 func isRemove(event fsnotify.Event) bool {
 	return event.Op&fsnotify.Remove == fsnotify.Remove
+}
+
+func isWrite(event fsnotify.Event) bool {
+	return event.Op&fsnotify.Write == fsnotify.Write
+}
+
+func isRename(event fsnotify.Event) bool {
+	return event.Op&fsnotify.Rename == fsnotify.Rename
+}
+
+func (w *FileWatcher) getFileId(filename string) (uint64, error) {
+	fileInfo, err := os.Stat(filename)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(fileInfo.ModTime().Nanosecond()), err
 }
