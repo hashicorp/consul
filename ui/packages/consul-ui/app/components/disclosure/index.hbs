@@ -1,5 +1,6 @@
 <StateChart
   @src={{state-chart 'boolean'}}
+  @initial={{if @expanded 'true' 'false'}}
 as |State Guard Action dispatch state|>
 {{#let (hash
   toggle=(fn dispatch 'TOGGLE')
@@ -8,22 +9,17 @@ as |State Guard Action dispatch state|>
   expanded=(state-matches state 'true')
   event=state.context
   button=(unique-id)
-  panel=(unique-id)
+  controls=this.ids
 ) as |_api|}}
   {{#let (assign _api (hash
     Action=(component 'disclosure/action' disclosure=_api)
+    Details=(component 'disclosure/details' disclosure=(hash
+      add=this.add
+      remove=this.remove
+      expanded=(state-matches state 'true')
+    ))
   )) as |api|}}
-    <div
-      class={{class-map
-        'disclosure'
-      }}
-      ...attributes
-    >
-      {{yield api to="button"}}
-      <State @matches="true">
-        {{yield api to="panel"}}
-      </State>
-    </div>
+    {{yield api}}
   {{/let}}
 {{/let}}
 </StateChart>
