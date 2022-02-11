@@ -145,7 +145,8 @@ dev: dev-build
 
 dev-build:
 	mkdir -p bin
-	CGO_ENABLED=0 go build -o ./bin -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+	CGO_ENABLED=0 go install -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+	cp -f ${MAIN_GOPATH}/bin/consul ./bin/consul
 
 dev-docker: linux
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
