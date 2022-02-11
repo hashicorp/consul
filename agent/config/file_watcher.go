@@ -34,7 +34,7 @@ type WatcherEvent struct {
 	Filename string
 }
 
-func New(handleFunc func(event *WatcherEvent) error) (*FileWatcher, error) {
+func NewFileWatcher(handleFunc func(event *WatcherEvent) error) (*FileWatcher, error) {
 	ws, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err

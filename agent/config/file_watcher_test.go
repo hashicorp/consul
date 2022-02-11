@@ -13,7 +13,7 @@ import (
 )
 
 func TestNewWatcher(t *testing.T) {
-	w, err := New(func(event *WatcherEvent) error {
+	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		return nil
 	})
 	defer func() {
@@ -25,7 +25,7 @@ func TestNewWatcher(t *testing.T) {
 
 func TestWatcherAddRemoveExist(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
-	w, err := New(func(event *WatcherEvent) error {
+	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
 	})
@@ -57,7 +57,7 @@ func TestWatcherAddRemoveExist(t *testing.T) {
 }
 
 func TestWatcherAddNotExist(t *testing.T) {
-	w, err := New(func(event *WatcherEvent) error {
+	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		return nil
 	})
 	defer func() {
@@ -73,7 +73,7 @@ func TestWatcherAddNotExist(t *testing.T) {
 
 func TestEventWatcherWrite(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
-	w, err := New(func(event *WatcherEvent) error {
+	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
 	})
@@ -97,7 +97,7 @@ func TestEventWatcherWrite(t *testing.T) {
 
 func TestEventWatcherRead(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
-	w, err := New(func(event *WatcherEvent) error {
+	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
 	})
@@ -117,7 +117,7 @@ func TestEventWatcherRead(t *testing.T) {
 
 func TestEventWatcherChmod(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
-	w, err := New(func(event *WatcherEvent) error {
+	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
 	})
@@ -145,7 +145,7 @@ func TestEventWatcherChmod(t *testing.T) {
 
 func TestEventWatcherRemoveCreate(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
-	w, err := New(func(event *WatcherEvent) error {
+	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
 	})
@@ -176,7 +176,7 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 
 func TestEventWatcherMove(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
-	w, err := New(func(event *WatcherEvent) error {
+	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
 	})
@@ -198,7 +198,7 @@ func TestEventWatcherMove(t *testing.T) {
 
 func TestEventReconcileMove(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
-	w, err := New(func(event *WatcherEvent) error {
+	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
 	})
@@ -223,7 +223,7 @@ func TestEventReconcileMove(t *testing.T) {
 
 func TestEventWatcherDirCreateRemove(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
-	w, err := New(func(event *WatcherEvent) error {
+	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
 	})
@@ -251,7 +251,7 @@ func TestEventWatcherDirCreateRemove(t *testing.T) {
 
 func TestEventWatcherDirMove(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
-	w, err := New(func(event *WatcherEvent) error {
+	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		fmt.Printf("event for %s\n", event.Filename)
 		watcherCh <- event
 		return nil
@@ -281,7 +281,7 @@ func TestEventWatcherDirMove(t *testing.T) {
 
 func TestEventWatcherDirRead(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
-	w, err := New(func(event *WatcherEvent) error {
+	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		fmt.Printf("event for %s\n", event.Filename)
 		watcherCh <- event
 		return nil
@@ -308,7 +308,7 @@ func TestEventWatcherDirRead(t *testing.T) {
 
 func TestEventWatcherMoveSoftLink(t *testing.T) {
 	watcherCh := make(chan *WatcherEvent)
-	w, err := New(func(event *WatcherEvent) error {
+	w, err := NewFileWatcher(func(event *WatcherEvent) error {
 		watcherCh <- event
 		return nil
 	})
