@@ -5711,12 +5711,13 @@ func TestStore_EnsureService_DoesNotPanicOnIngressGateway(t *testing.T) {
 				Services: []structs.IngressService{{Name: "the-service"}},
 			},
 		},
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	err = store.EnsureRegistration(2, &structs.RegisterRequest{
 		Node: "the-node",
 		Service: &structs.NodeService{
+			ID:      "the-proxy-id",
 			Kind:    structs.ServiceKindConnectProxy,
 			Service: "the-proxy",
 			Proxy: structs.ConnectProxyConfig{
