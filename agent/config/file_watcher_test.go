@@ -327,7 +327,7 @@ func TestEventWatcherMoveSoftLink(t *testing.T) {
 }
 
 func assertEvent(name string, watcherCh chan *WatcherEvent) error {
-	timeout := time.After(2000 * time.Millisecond)
+	timeout := time.After(500 * time.Millisecond)
 	select {
 	case ev := <-watcherCh:
 		if ev.Filename != name && !strings.Contains(ev.Filename, name) {

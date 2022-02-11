@@ -166,15 +166,6 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 				return nil
 			}
 		}
-
-		id, err := w.getFileId(event.Name)
-		if err != nil {
-			return err
-		}
-
-		w.logger.Debug("set id ", "filename", event.Name, "id", id)
-		configFile.iNode = id
-		return w.handleFunc(&WatcherEvent{Filename: event.Name})
 	}
 	if isCreate(event) {
 		return w.handleFunc(&WatcherEvent{Filename: event.Name})
