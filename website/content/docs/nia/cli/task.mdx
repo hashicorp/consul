@@ -4,23 +4,85 @@ page_title: Task Command
 description: >-
   Consul-Terraform-Sync supports task commands for users to modify tasks while the daemon is running
 ---
+
 # task
+
+## task create
+
+`task create` command creates a new task so that it will run and update task resources. The command generates and outputs a Terraform plan, similar to [inspect-mode](/docs/nia/cli/cli-overview#inspect-mode), of how resources will be modified if the task is created. The command will then ask for user approval before creating the task.
+
+It is not to be used for updating a task and will not create a task if the task name already exists.
+
+### Usage
+
+`consul-terraform-sync task create [options] -task-file=<task config>`
+
+**Options:**
+
+In addition to [general options](/docs/nia/cli/cli-overview#general-options) this command also supports the following:
+
+| Name         | Required | Type   | Description                                                                                                         |
+| ------------ | -------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
+| `-task-file` | Required | string | The path to the task configuration file. See [configuration information](/docs/nia/configuration#task) for details. |
+
+### Example
+
+```shell-session
+$ consul-terraform-sync task create -task-file=task.hcl
+==> Inspecting changes to resource if creating task 'api-task'...
+
+    Generating plan that Consul Terraform Sync will use Terraform to execute
+
+    Request ID: 1da3e8e0-87c3-069b-51a6-46903e794a76
+    Request Payload:
+
+    // <request payload truncated>
+
+    Plan:
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+// <diff truncated>
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+==> Creating the task will perform the actions described above.
+    Do you want to perform these actions for 'api-task'?
+     - This action cannot be undone.
+     - Consul-Terraform-Sync cannot guarantee Terraform will perform
+       these exact actions if monitored services have changed.
+
+    Only 'yes' will be accepted to approve, enter 'no' or leave blank to reject
+
+Enter a value: yes
+
+==> Creating task api-task...
+    Note: this can take some time depending on the module size.
+    terminating this process will not stop task creation, see CTS logs for more details
+
+==> Task 'api-task' created
+    Request ID: '78eddd74-0f08-83d6-72b2-6aaac1424fba'
+```
 
 ## task enable
 
 `task enable` command enables an existing task so that it will run and update task resources. If the task is already enabled, it will return a success. The command generates and outputs a Terraform plan, similar to [inspect-mode](/docs/nia/cli/cli-overview#inspect-mode), of how resources will be modified if task becomes enabled. If resources changes are detected, the command will ask for user approval before enabling the task. If no resources are detected, the command will go ahead and enable the task.
 
 ### Usage
+
 `consul-terraform-sync task enable [options] <task_name>`
 
 **Arguments:**
 
-| Name | Required | Type	| Description  |
-| -----| -------- | ----- | ------------ |
-|`task_name` | Required | string | The name of the task to enable.
+| Name        | Required | Type   | Description                     |
+| ----------- | -------- | ------ | ------------------------------- |
+| `task_name` | Required | string | The name of the task to enable. |
 
 **Options:** Currently only supporting [general options](/docs/nia/cli/cli-overview#general-options)
-
 
 ### Example
 
@@ -60,16 +122,16 @@ Enter a value: yes
 `task disable` command disables an existing task so that it will no longer run and update task resources. If the task is already disabled, it will return a success.
 
 ### Usage
+
 `consul-terraform-sync task disable [options] <task_name>`
 
 **Arguments:**
 
-| Name | Required | Type	| Description  |
-| -----| -------- | ----- | ------------ |
-|`task_name` | Required | string | The name of the task to disable.
+| Name        | Required | Type   | Description                      |
+| ----------- | -------- | ------ | -------------------------------- |
+| `task_name` | Required | string | The name of the task to disable. |
 
 **Options:** Currently only supporting [general options](/docs/nia/cli/cli-overview#general-options)
-
 
 ### Example
 
@@ -85,16 +147,16 @@ $ consul-terraform-sync task disable task_b
 `task delete` command deletes an existing task. The command will ask the user for approval before deleting the task. A task that is currently running cannot be deleted, and the delete must be retried after the task has completed.
 
 ### Usage
+
 `consul-terraform-sync task delete [options] <task_name>`
 
 **Arguments:**
 
-| Name | Required | Type	| Description  |
-| -----| -------- | ----- | ------------ |
-|`task_name` | Required | string  | The name of the task to delete.
+| Name        | Required | Type   | Description                     |
+| ----------- | -------- | ------ | ------------------------------- |
+| `task_name` | Required | string | The name of the task to delete. |
 
 **Options:** Currently only supporting [general options](/docs/nia/cli/cli-overview#general-options)
-
 
 ### Example
 
