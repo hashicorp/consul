@@ -3,7 +3,9 @@ package acl
 import (
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"strings"
+	"testing"
 )
 
 // These error constants define the standard ACL error types. The values
@@ -125,4 +127,25 @@ func PermissionDeniedByACL(_ Authorizer, context *AuthorizerContext, resource Re
 func PermissionDeniedByACLUnnamed(_ Authorizer, context *AuthorizerContext, resource Resource, accessLevel AccessLevel) PermissionDeniedError {
 	desc := NewResourceDescriptor("", context)
 	return PermissionDeniedError{Accessor: "", Resource: resource, AccessLevel: accessLevel, ResourceID: desc}
+}
+
+func RequirePermissionDeniedError(t testing.TB, err error, _ Authorizer, _ *AuthorizerContext, resource Resource, accessLevel AccessLevel, resourceID string) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("An error is expected but got nil.")
+	}
+	if v, ok := err.(PermissionDeniedError); ok {
+		require.Equal(t, v.Resource, resource)
+		require.Equal(t, v.AccessLevel, accessLevel)
+		require.Equal(t, v.ResourceID.Name, resourceID)
+	} else {
+		t.Fatalf("Expected a permission denied error got %v", err)
+	}
+}
+
+func RequirePermissionDeniedMessage(t testing.TB, msg string, _ Authorizer, _ *AuthorizerContext, resource Resource, accessLevel AccessLevel, resourceID string) {
+	require.Contains(t, msg, errPermissionDenied)
+	require.Contains(t, msg, resource)
+	require.Contains(t, msg, accessLevel.String())
+	require.Contains(t, msg, resourceID)
 }
