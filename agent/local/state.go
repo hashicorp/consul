@@ -1086,12 +1086,14 @@ func (l *State) updateSyncState() error {
 		// Make a shallow copy since we may mutate it below and other readers
 		// may be reading it and we want to avoid a race.
 		nextService := *ls.Service
+		changed := false
 
 		// If our definition is different, we need to update it. Make a
 		// copy so that we don't retain a pointer to any actual state
 		// store info for in-memory RPCs.
 		if nextService.EnableTagOverride {
 			nextService.Tags = structs.CloneStringSlice(rs.Tags)
+			changed = true
 		}
 
 		// Merge any tagged addresses with the consul- prefix (set by the server)
@@ -1109,9 +1111,12 @@ func (l *State) updateSyncState() error {
 				}
 			}
 			nextService.TaggedAddresses = m
+			changed = true
 		}
 
-		ls.Service = &nextService
+		if changed {
+			ls.Service = &nextService
+		}
 		ls.InSync = ls.Service.IsSame(rs)
 	}
 
