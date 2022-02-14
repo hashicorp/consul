@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -77,7 +76,11 @@ func (s *HTTPHandlers) HealthNodeChecks(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Pull out the service name
-	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/health/node/")
+	var err error
+	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/health/node/")
+	if err != nil {
+		return nil, err
+	}
 	if args.Node == "" {
 		return nil, BadRequestError{Reason: "Missing node name"}
 	}
@@ -123,7 +126,11 @@ func (s *HTTPHandlers) HealthServiceChecks(resp http.ResponseWriter, req *http.R
 	}
 
 	// Pull out the service name
-	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/health/checks/")
+	var err error
+	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, "/v1/health/checks/")
+	if err != nil {
+		return nil, err
+	}
 	if args.ServiceName == "" {
 		return nil, BadRequestError{Reason: "Missing service name"}
 	}
@@ -209,7 +216,11 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Pull out the service name
-	args.ServiceName = strings.TrimPrefix(req.URL.Path, prefix)
+	var err error
+	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, prefix)
+	if err != nil {
+		return nil, err
+	}
 	if args.ServiceName == "" {
 		return nil, BadRequestError{Reason: "Missing service name"}
 	}
