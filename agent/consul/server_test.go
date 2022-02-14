@@ -4,7 +4,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
-	"net/rpc"
 	"os"
 	"strings"
 	"sync/atomic"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/ipaddr"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
