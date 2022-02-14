@@ -113,9 +113,11 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 	return nil
 }
 
-// shouldSkipOperation detects if the result of the operation has already
-// happened and skips it. It is ok if this incorrectly detects something as
-// changed when it in fact has not, the important thing is that it doesn't do
+// shouldSkipOperation returns true if the result of the operation has 
+// already happened and is safe to skip. 
+// 
+// It is ok if this incorrectly detects something as changed when it 
+// in fact has not, the important thing is that it doesn't do
 // the reverse and incorrectly detect a change as a no-op.
 func (c *ConfigEntry) shouldSkipOperation(args *structs.ConfigEntryRequest) (bool, error) {
 	state := c.srv.fsm.State()
