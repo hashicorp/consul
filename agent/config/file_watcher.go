@@ -193,7 +193,7 @@ func (w *FileWatcher) reconcile() {
 			continue
 		}
 		if configFile.id != newId {
-			w.logger.Info("failed to re-add file, retry in reconcile ", "filename", filename, "old id", configFile.id, "new id", newId)
+			w.logger.Info("reconcile file", "filename", filename, "old id", configFile.id, "new id", newId)
 			w.configFiles[filename].id = newId
 			go w.handleFunc(&WatcherEvent{Filename: filename})
 		}
