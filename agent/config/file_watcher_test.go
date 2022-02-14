@@ -167,6 +167,7 @@ func TestEventWatcherMove(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		filepath2 := createTempConfigFile(t, "temp_config2")
 		err = os.Rename(filepath2, filepath)
+		time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 		require.NoError(t, err)
 		require.NoError(t, assertEvent(filepath, watcherCh))
 	}
