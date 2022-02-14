@@ -23,7 +23,8 @@ func TestNewWatcher(t *testing.T) {
 
 func TestWatcherRenameEvent(t *testing.T) {
 
-	filepaths := []string{createTempConfigFile(t, "temp_config1"), createTempConfigFile(t, "temp_config2"), createTempConfigFile(t, "temp_config3")}
+	fileTmp := createTempConfigFile(t, "temp_config3")
+	filepaths := []string{createTempConfigFile(t, "temp_config1"), createTempConfigFile(t, "temp_config2")}
 	watcherCh := make(chan *WatcherEvent)
 	w, err := NewFileWatcher(func(event *WatcherEvent) {
 		watcherCh <- event
@@ -35,7 +36,7 @@ func TestWatcherRenameEvent(t *testing.T) {
 	}()
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	require.NoError(t, err)
-	err = os.Rename(filepaths[1], filepaths[0])
+	err = os.Rename(fileTmp, filepaths[0])
 	require.NoError(t, err)
 	require.NoError(t, assertEvent(filepaths[0], watcherCh))
 	// make sure we consume all events
