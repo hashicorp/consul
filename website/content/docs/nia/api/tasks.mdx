@@ -211,19 +211,19 @@ $ curl --request DELETE \
 
 The task object is used by the Task APIs as part of a request or response. It represents the task's [configuration information](/docs/nia/configuration#task).
 
-| Name	| Type | Description |
-| ----- | ---- | ----------- |
-| `buffer_period` | object |  The buffer period for triggering task execution. |
-| `buffer_period.enabled` | bool | Whether the buffer period is enabled or disabled. |
-| `buffer_period.min` | string | The minimum period of time to wait after changes are detected before triggering the task. |
-| `buffer_period.max` | string | The maximum period of time to wait after changes are detected before triggering the task. |
-| `condition` | object | The [condition](/docs/nia/configuration#task-condition) on which to trigger the task to execute. <br/><br/> If the task has the deprecated `services` field configured as a module input, it is represented here as `condition.services`. |
-| `description` | string | The human readable text to describe the task. |
-| `enabled` | bool | Whether the task is enabled or disabled from executing. |
-| `module` | string | The location of the Terraform module. |
-| `module_input` | object | The additional [module input(s)](/docs/nia/configuration#task-source-input) that the tasks provides to the Terraform module on execution. <br/><br/> If the task has the deprecated `services` field configured as a module input, it is represented here as `module_input.services`. |
-| `name` | string | The unique name of the task. |
-| `providers` | list[string] | The list of provider names that the task's module uses. |
-| `variables` | map[string] | The map of variables that are provided to the task's module. |
-| `version` | string | The version of the configured module that the task uses. If empty, the latest version is used.
-| `terraform_version` | string | <EnterpriseAlert inline /> The version of Terraform to use for the Terraform Cloud workspace associated with the task. This is only available when used with the [Terraform Cloud driver](/docs/nia/configuration#terraform-driver). |
+| Name	| Required | Type | Description | Default |
+| ----- | -------- | ---- | ----------- | ------- |
+| `buffer_period` | object | Optional | The buffer period for triggering task execution. | The global buffer period configured for CTS. |
+| `buffer_period.enabled` | bool | Optional | Whether the buffer period is enabled or disabled. | The global buffer period's enabled value configured for CTS. |
+| `buffer_period.min` | string | Optional | The minimum period of time to wait after changes are detected before triggering the task. | The global buffer period's min value configured for CTS. |
+| `buffer_period.max` | string | Optional | The maximum period of time to wait after changes are detected before triggering the task. | The global buffer period's max value configured for CTS. |
+| `condition` | object | Required | The [condition](/docs/nia/configuration#task-condition) on which to trigger the task to execute. <br/><br/> If the task has the deprecated `services` field configured as a module input, it is represented here as `condition.services`. | none |
+| `description` | string | Optional | The human readable text to describe the task. | none |
+| `enabled` | bool | Optional | Whether the task is enabled or disabled from executing. | `true` |
+| `module` | string | Required | The location of the Terraform module. | none |
+| `module_input` | object | Optional | The additional [module input(s)](/docs/nia/configuration#task-source-input) that the tasks provides to the Terraform module on execution. <br/><br/> If the task has the deprecated `services` field configured as a module input, it is represented here as `module_input.services`. | none |
+| `name` | string | Required | The unique name of the task. | none |
+| `providers` | list[string] | Optional | The list of provider names that the task's module uses. | none |
+| `variables` | map[string] | Optional | The map of variables that are provided to the task's module. | none |
+| `version` | string | Optional | The version of the configured module that the task uses.| The latest version. |
+| `terraform_version` | string | Optional | <EnterpriseAlert inline /> The version of Terraform to use for the Terraform Cloud workspace associated with the task. This is only available when used with the [Terraform Cloud driver](/docs/nia/configuration#terraform-driver). | The latest compatible version supported by the organization. |
