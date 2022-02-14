@@ -77,13 +77,13 @@ Task health status value is determined by the success or failure of all stored [
 
 | Method | Path                | Produces           |
 | ------ | ------------------- | ------------------ |
-| `GET`  | `/status/tasks/:task` | `application/json` |
+| `GET`  | `/status/tasks/:task_name` | `application/json` |
 
 #### Request Parameters
 
 | Name	   | Required | Type	 | Description        | Default |
 | -------- | -------- | ------ | ------------------ | ------- |
-|`task`    | Optional | string | Option to specify the name of the task to return in the response. If not specified, all tasks are returned in the response.| none
+|`:task_name` | Optional | string | Option to specify the name of the task to return in the response. If not specified, all tasks are returned in the response.| none
 |`include` | Optional | string | Only accepts the value `"events"`. Use to include stored event information in response. | none
 |`status`  | Optional | string | Only accepts health status values `"successful"`, `"errored"`, `"critical"`, or `"unknown"`. Use to filter response by tasks that have the specified health status value. Recommend setting this parameter when requesting all tasks i.e. no `task` parameter is set. | none
 
@@ -103,8 +103,8 @@ The response is a JSON map of task name to a status information structure with t
 |`task_name`  | string | Name of the task as configured in CTS.
 |`status`     | string | Values are `"successful"`, `"errored"`, `"critical"`, or `"unknown"`. This is determined by the success or failure of all stored events on the network infrastructure update process for the task, as described earlier.
 |`enabled`    | boolean | Whether the task is enabled or not.
-|`services`   | list[string] | List of the services configured for the task.
-|`providers`  | list[string] | List of the providers configured for the task.
+|`services`   | list[string] | **Deprecated in CTS 0.5.0 and will be removed in a future major release.** List of the services configured for the task.
+|`providers`  | list[string] | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** List of the providers configured for the task.
 |`events_url` | string | Relative URL to retrieve the event data stored for the task.
 |`events`     | list[[Event](/docs/nia/api/status#event)] | List of stored events that inform the task's status. See [section below](/docs/nia/api/status#event) for information on event data. This field is only included in the response upon request by setting the `?include=events` parameter. The relative URL for the request to include events can be retrieved from the `events_url` field.
 
@@ -121,11 +121,10 @@ Event represents the process of updating network infrastructure of a task. The d
 |`task_name`  | string | Name that task is configured with in CTS.
 |`error`         | object | Information when the event fails. Null when successful.
 |`error.message` | string | Error message that is returned on failure.
-|`config`           | object | Configuration values for the task when it was run.
-|`config.services`  | list[string] | List of the services configured for the task.
-|`config.source`    | string | **Deprecated in CTS 0.5.0 and will be removed in a future major release. See the `config.module` field instead.**
-|`config.module`    | string | Module configured for the task.
-|`config.providers` | list[string] | List of the providers configured for the task.
+|`config`           | object | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** Configuration values for the task when it was run.
+|`config.services`  | list[string] | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** List of the services configured for the task.
+|`config.source`    | string | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** Module configured for the task.
+|`config.providers` | list[string] | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** List of the providers configured for the task.
 
 #### Example: All Task Statuses
 
@@ -200,7 +199,7 @@ Response:
             "null"
           ],
           "services": [
-            "web",
+            "web"
           ],
           "module": "../modules/test_task"
         }
