@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -66,6 +67,8 @@ func (w *FileWatcher) add(filename string) error {
 	if isSymLink(filename) {
 		return fmt.Errorf("symbolic link are not supported %s", filename)
 	}
+	filename = strings.TrimSuffix(filename, "/")
+	w.logger.Debug("adding file", "file", filename)
 	if err := w.watcher.Add(filename); err != nil {
 		return err
 	}
@@ -129,16 +132,17 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 	if !isCreate(event) && !isRemove(event) && !isWrite(event) && !isRename(event) {
 		return nil
 	}
-	configFile, basename, ok := w.isWatched(event.Name)
+	filename := strings.TrimSuffix(event.Name, "/")
+	configFile, basename, ok := w.isWatched(filename)
 	if !ok {
 		return fmt.Errorf("file %s is not watched", event.Name)
 	}
 
 	// we only want to update inode and re-add if the event is on the watched file itself
-	if event.Name == basename {
+	if filename == basename {
 		if isRemove(event) {
 			// If the file was removed, try to re-add it right away
-			err := w.watcher.Add(event.Name)
+			err := w.watcher.Add(filename)
 			if err != nil {
 				// re-add failed, set it to retry later in reconcile
 				configFile.id = 0
@@ -148,7 +152,7 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 		}
 	}
 	if isCreate(event) || isWrite(event) || isRename(event) {
-		go w.handleFunc(&WatcherEvent{Filename: event.Name})
+		go w.handleFunc(&WatcherEvent{Filename: filename})
 	}
 	return nil
 }
@@ -165,8 +169,10 @@ func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 		return nil, path, false
 	}
 	if !stat.IsDir() {
+		w.logger.Debug("not a dir")
 		// try to see if the watched path is the parent dir
 		NewPath := filepath.Dir(path)
+		w.logger.Debug("get dir", "dir", NewPath)
 		configFile, ok = w.configFiles[NewPath]
 	}
 	return configFile, path, ok
