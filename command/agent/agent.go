@@ -180,22 +180,20 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 
-	for _, f := range c.configLoadOpts.ConfigFiles {
-		bd.Logger.Error("dhayachi:: config file!!!", "f", f)
-	}
-	//TODO(autoreload-config): add config parameter check
-	w, err := config.NewFileWatcher(func(event *config.WatcherEvent) {
-		bd.Logger.Error("dhayachi:: config to reload!!!")
-		err := agent.ReloadConfig()
+	if bd.RuntimeConfig.AutoReloadConfig {
+		w, err := config.NewFileWatcher(func(event *config.WatcherEvent) {
+			bd.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
+			err := agent.ReloadConfig()
+			if err != nil {
+				bd.Logger.Error("error loading config", "error", err)
+			}
+		}, c.configLoadOpts.ConfigFiles, bd.Logger)
 		if err != nil {
-			bd.Logger.Error("error loading config", "error", err)
+			ui.Error(err.Error())
+			return 1
 		}
-	}, c.configLoadOpts.ConfigFiles, bd.Logger)
-	if err != nil {
-		ui.Error(err.Error())
-		return 1
+		agent.FileWatcher = w
 	}
-	w.Start(context.Background())
 
 	config := bd.RuntimeConfig
 	if config.Logging.LogJSON {

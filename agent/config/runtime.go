@@ -1316,6 +1316,11 @@ type RuntimeConfig struct {
 	// hcl: skip_leave_on_interrupt = (true|false)
 	SkipLeaveOnInt bool
 
+	// AutoReloadConfig indicate if the config will be
+	//auto reloaded bases on config file modification
+	// hcl: auto_reload_config = (true|false)
+	AutoReloadConfig bool
+
 	// StartJoinAddrsLAN is a list of addresses to attempt to join -lan when the
 	// agent starts. If Serf is unable to communicate with any of these
 	// addresses, then the agent will error and exit.

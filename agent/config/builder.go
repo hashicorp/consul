@@ -1072,6 +1072,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Services:                    services,
 		SessionTTLMin:               b.durationVal("session_ttl_min", c.SessionTTLMin),
 		SkipLeaveOnInt:              skipLeaveOnInt,
+		AutoReloadConfig:            boolVal(c.AutoReloadConfig),
 		StartJoinAddrsLAN:           b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
 		StartJoinAddrsWAN:           b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
 		TLSCipherSuites:             b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),

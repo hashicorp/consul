@@ -359,6 +359,10 @@ type Agent struct {
 	// run by the Agent
 	routineManager *routine.Manager
 
+	//fileWatcher is the watcher responsible to report events when a config file
+	// changed
+	FileWatcher *config.FileWatcher
+
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
 }
@@ -683,7 +687,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		{Name: "version", Value: a.config.Version},
 		{Name: "pre_release", Value: a.config.VersionPrerelease},
 	})
-
+	a.FileWatcher.Start(ctx)
 	return nil
 }
 
@@ -1361,6 +1365,11 @@ func (a *Agent) ShutdownAgent() error {
 	a.logger.Info("Requesting shutdown")
 	// Stop the watches to avoid any notification/state change during shutdown
 	a.stopAllWatches()
+
+	// Stop config file watcher
+	if a.FileWatcher != nil {
+		a.FileWatcher.Stop()
+	}
 
 	a.stopLicenseManager()
 
