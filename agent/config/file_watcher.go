@@ -105,7 +105,7 @@ func (w *FileWatcher) watch(ctx context.Context) {
 				w.logger.Error("watcher event channel is closed")
 				return
 			}
-			w.logger.Info("received watcher event", "event", event)
+			w.logger.Debug("received watcher event", "event", event)
 			if err := w.handleEvent(event); err != nil {
 				w.logger.Error("error handling watcher event", "error", err, "event", event)
 			}
@@ -125,7 +125,7 @@ func (w *FileWatcher) watch(ctx context.Context) {
 }
 
 func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
-	w.logger.Info("event received ", "filename", event.Name, "OP", event.Op)
+	w.logger.Debug("event received ", "filename", event.Name, "OP", event.Op)
 	// we only want Create and Remove events to avoid triggering a relaod on file modification
 	if !isCreate(event) && !isRemove(event) && !isWrite(event) && !isRename(event) {
 		return nil
@@ -140,11 +140,13 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 	if filename == basename {
 		if isRemove(event) {
 			// If the file was removed, try to reconcile and see if anything changed.
+			w.logger.Debug("attempt a reconcile ", "filename", event.Name, "OP", event.Op)
 			configFile.id = 0
 			w.reconcile()
 		}
 	}
 	if isCreate(event) || isWrite(event) || isRename(event) {
+		w.logger.Debug("call the handler", "filename", event.Name, "OP", event.Op)
 		go w.handleFunc(&WatcherEvent{Filename: filename})
 	}
 	return nil
@@ -173,6 +175,7 @@ func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 
 func (w *FileWatcher) reconcile() {
 	for filename, configFile := range w.configFiles {
+		w.logger.Debug("reconciling", "filename", filename)
 		newId, err := w.getFileId(filename)
 		if err != nil {
 			w.logger.Error("failed to get file id", "file", filename, "err", err)
@@ -185,7 +188,7 @@ func (w *FileWatcher) reconcile() {
 			continue
 		}
 		if configFile.id != newId {
-			w.logger.Info("reconcile file", "filename", filename, "old id", configFile.id, "new id", newId)
+			w.logger.Debug("call the handler", "filename", filename, "old id", configFile.id, "new id", newId)
 			w.configFiles[filename].id = newId
 			go w.handleFunc(&WatcherEvent{Filename: filename})
 		}
