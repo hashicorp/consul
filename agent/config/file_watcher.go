@@ -143,6 +143,7 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 			// If the file was removed, try to re-add it right away
 			err := w.watcher.Add(filename)
 			if err != nil {
+				//TODO(autoconfigreload): add debug log here.
 				// re-add failed, set it to retry later in reconcile
 				configFile.id = 0
 				configFile.modId = 0
