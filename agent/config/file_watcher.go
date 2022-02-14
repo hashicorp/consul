@@ -155,17 +155,21 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 
 func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 	path := filename
-	for {
-		configFile, ok := w.configFiles[path]
-		if ok {
-			return configFile, path, true
-		}
-		NewPath := filepath.Dir(path)
-		if NewPath == path || path == "" {
-			return nil, "", false
-		}
-		path = NewPath
+	configFile, ok := w.configFiles[path]
+	if ok {
+		return configFile, path, true
 	}
+
+	stat, err := os.Stat(filename)
+	if err != nil {
+		return nil, path, false
+	}
+	if !stat.IsDir() {
+		// try to see if the watched path is the parent dir
+		NewPath := filepath.Dir(path)
+		configFile, ok = w.configFiles[NewPath]
+	}
+	return configFile, path, ok
 }
 
 func (w *FileWatcher) reconcile() {

@@ -245,6 +245,35 @@ func TestEventWatcherDirMove(t *testing.T) {
 	}
 }
 
+// Consul do not support configuration in sub-directories
+func TestEventWatcherSubDirMove(t *testing.T) {
+	filepath := createTempConfigDir(t, "temp_config1")
+	err := os.Mkdir(filepath+"/temp", 0777)
+	require.NoError(t, err)
+	name := filepath + "/temp/" + randomStr(20)
+	file, err := os.Create(name)
+	require.NoError(t, err)
+	err = file.Close()
+	require.NoError(t, err)
+	watcherCh := make(chan *WatcherEvent)
+	w, err := NewFileWatcher(func(event *WatcherEvent) {
+		watcherCh <- event
+	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
+	require.NoError(t, err)
+	w.Start(context.Background())
+	defer func() {
+		_ = w.Close()
+	}()
+
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
+	for i := 0; i < 2; i++ {
+		filepathTmp := createTempConfigFile(t, "temp_config2")
+		os.Rename(filepathTmp, name)
+		require.NoError(t, err)
+		require.Error(t, assertEvent(filepath, watcherCh), "timedout waiting for event")
+	}
+}
+
 func TestEventWatcherDirRead(t *testing.T) {
 	filepath := createTempConfigDir(t, "temp_config1")
 
