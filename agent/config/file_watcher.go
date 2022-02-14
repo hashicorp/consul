@@ -24,8 +24,7 @@ type FileWatcher struct {
 }
 
 type watchedFile struct {
-	id    uint64
-	modId uint64
+	id uint64
 }
 
 type WatcherEvent struct {
@@ -132,7 +131,7 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 		return nil
 	}
 	filename := filepath.Clean(event.Name)
-	_, basename, ok := w.isWatched(filename)
+	configFile, basename, ok := w.isWatched(filename)
 	if !ok {
 		return fmt.Errorf("file %s is not watched", event.Name)
 	}
@@ -141,6 +140,7 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 	if filename == basename {
 		if isRemove(event) {
 			// If the file was removed, try to reconcile and see if anything changed.
+			configFile.id = 0
 			w.reconcile()
 		}
 	}
