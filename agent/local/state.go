@@ -12,6 +12,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
+	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul"
@@ -265,6 +266,13 @@ func (l *State) AddService(service *structs.NodeService, token string) error {
 func (l *State) addServiceLocked(service *structs.NodeService, token string) error {
 	if service == nil {
 		return fmt.Errorf("no service")
+	}
+
+	// Avoid having the stored service have any call-site ownership.
+	var err error
+	service, err = cloneService(service)
+	if err != nil {
+		return err
 	}
 
 	// use the service name as id if the id was omitted
@@ -530,8 +538,12 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 		return fmt.Errorf("no check")
 	}
 
-	// clone the check since we will be modifying it.
-	check = check.Clone()
+	// Avoid having the stored check have any call-site ownership.
+	var err error
+	check, err = cloneCheck(check)
+	if err != nil {
+		return err
+	}
 
 	if l.discardCheckOutput.Load().(bool) {
 		check.Output = ""
@@ -1557,4 +1569,22 @@ func (l *State) aclAccessorID(secretID string) string {
 		return ""
 	}
 	return ident.AccessorID()
+}
+
+func cloneService(ns *structs.NodeService) (*structs.NodeService, error) {
+	// TODO: consider doing a hand-managed clone function
+	raw, err := copystructure.Copy(ns)
+	if err != nil {
+		return nil, err
+	}
+	return raw.(*structs.NodeService), err
+}
+
+func cloneCheck(check *structs.HealthCheck) (*structs.HealthCheck, error) {
+	// TODO: consider doing a hand-managed clone function
+	raw, err := copystructure.Copy(check)
+	if err != nil {
+		return nil, err
+	}
+	return raw.(*structs.HealthCheck), err
 }
