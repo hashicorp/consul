@@ -3,6 +3,7 @@ package raft
 import (
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -132,17 +133,18 @@ type Config struct {
 	// can _understand_.
 	ProtocolVersion ProtocolVersion
 
-	// HeartbeatTimeout specifies the time in follower state without
-	// a leader before we attempt an election.
+	// HeartbeatTimeout specifies the time in follower state without contact
+	// from a leader before we attempt an election.
 	HeartbeatTimeout time.Duration
 
-	// ElectionTimeout specifies the time in candidate state without
-	// a leader before we attempt an election.
+	// ElectionTimeout specifies the time in candidate state without contact
+	// from a leader before we attempt an election.
 	ElectionTimeout time.Duration
 
-	// CommitTimeout controls the time without an Apply() operation
-	// before we heartbeat to ensure a timely commit. Due to random
-	// staggering, may be delayed as much as 2x this value.
+	// CommitTimeout specifies the time without an Apply operation before the
+	// leader sends an AppendEntry RPC to followers, to ensure a timely commit of
+	// log entries.
+	// Due to random staggering, may be delayed as much as 2x this value.
 	CommitTimeout time.Duration
 
 	// MaxAppendEntries controls the maximum number of append entries
@@ -219,6 +221,21 @@ type Config struct {
 
 	// skipStartup allows NewRaft() to bypass all background work goroutines
 	skipStartup bool
+}
+
+func (conf *Config) getOrCreateLogger() hclog.Logger {
+	if conf.Logger != nil {
+		return conf.Logger
+	}
+	if conf.LogOutput == nil {
+		conf.LogOutput = os.Stderr
+	}
+
+	return hclog.New(&hclog.LoggerOptions{
+		Name:   "raft",
+		Level:  hclog.LevelFromString(conf.LogLevel),
+		Output: conf.LogOutput,
+	})
 }
 
 // ReloadableConfig is the subset of Config that may be reconfigured during
