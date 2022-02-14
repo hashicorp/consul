@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -43,10 +42,10 @@ func NewFileWatcher(handleFunc func(event *WatcherEvent), configFiles []string, 
 	w := &FileWatcher{watcher: ws,
 		configFiles:      cfgFiles,
 		handleFunc:       handleFunc,
-		logger:           logger,
 		reconcileTimeout: timeoutDuration,
 		done:             make(chan interface{}),
 	}
+	w.logger = logger.Named("file-watcher")
 	for _, f := range configFiles {
 		err = w.add(f)
 		if err != nil {
@@ -67,8 +66,8 @@ func (w *FileWatcher) add(filename string) error {
 	if isSymLink(filename) {
 		return fmt.Errorf("symbolic link are not supported %s", filename)
 	}
-	filename = strings.TrimSuffix(filename, "/")
-	w.logger.Debug("adding file", "file", filename)
+	filename = filepath.Clean(filename)
+	w.logger.Trace("adding file", "file", filename)
 	if err := w.watcher.Add(filename); err != nil {
 		return err
 	}
@@ -132,7 +131,7 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 	if !isCreate(event) && !isRemove(event) && !isWrite(event) && !isRename(event) {
 		return nil
 	}
-	filename := strings.TrimSuffix(event.Name, "/")
+	filename := filepath.Clean(event.Name)
 	configFile, basename, ok := w.isWatched(filename)
 	if !ok {
 		return fmt.Errorf("file %s is not watched", event.Name)
@@ -169,10 +168,10 @@ func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 		return nil, path, false
 	}
 	if !stat.IsDir() {
-		w.logger.Debug("not a dir")
+		w.logger.Trace("not a dir")
 		// try to see if the watched path is the parent dir
 		NewPath := filepath.Dir(path)
-		w.logger.Debug("get dir", "dir", NewPath)
+		w.logger.Trace("get dir", "dir", NewPath)
 		configFile, ok = w.configFiles[NewPath]
 	}
 	return configFile, path, ok
