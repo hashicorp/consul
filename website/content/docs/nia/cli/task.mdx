@@ -27,8 +27,27 @@ In addition to [general options](/docs/nia/cli/cli-overview#general-options) thi
 
 ### Example
 
+task_example.hcl:
+
+```hcl
+task {
+  name           = "api-task"
+  description    = ""
+  enabled        = true,
+  providers      = []
+  module         = "org/example/module"
+  version        = "1.0.0"
+  variable_files = []
+  condition "services" {
+    names = ["web", "api"]
+  }
+}
+```
+
+Shell Session:
+
 ```shell-session
-$ consul-terraform-sync task create -task-file=task.hcl
+$ consul-terraform-sync task create -task-file=task_example.hcl
 ==> Inspecting changes to resource if creating task 'api-task'...
 
     Generating plan that Consul Terraform Sync will use Terraform to execute
