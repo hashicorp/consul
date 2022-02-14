@@ -174,7 +174,7 @@ func TestEventWatcherMove(t *testing.T) {
 
 func TestEventReconcileMove(t *testing.T) {
 	filepath := createTempConfigFile(t, "temp_config1")
-	filepath2 := createTempConfigFile(t, "temp_config2")
+
 	watcherCh := make(chan *WatcherEvent)
 	w, err := NewFileWatcher(func(event *WatcherEvent) {
 		watcherCh <- event
@@ -184,7 +184,8 @@ func TestEventReconcileMove(t *testing.T) {
 	defer func() {
 		_ = w.Stop()
 	}()
-
+	time.Sleep(500 * time.Millisecond)
+	filepath2 := createTempConfigFile(t, "temp_config2")
 	// remove the file from the internal watcher to only trigger the reconcile
 	err = w.watcher.Remove(filepath)
 	require.NoError(t, err)
