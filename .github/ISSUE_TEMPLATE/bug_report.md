@@ -4,6 +4,15 @@ about: You're experiencing an issue with Consul that is different than the docum
 
 ---
 
+<!-- 
+NOTE: If you are filing a specific issue related to Consul on Kubernetes or Consul on ECS, please file an issue at the following repos instead 
+to receive a more timely response. Upon triage, your issue may be transferred to a different repo and more details will likely be requested to 
+properly address the issue. 
+
+- Consul on Kubernetes: https://github.com/hashicorp/consul-k8s 
+- Consul on ECS: https://github.com/hashicorp/consul-k8s 
+-->
+
 When filing a bug, please include the following headings if possible. Any example text in this template can be deleted.
 
 #### Overview of the Issue
