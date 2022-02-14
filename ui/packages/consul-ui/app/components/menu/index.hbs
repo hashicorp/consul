@@ -9,7 +9,7 @@
   }}
 >
   {{yield (hash
-    Action=(component 'menu/action')
+    Action=(component 'menu/action' disclosure=@disclosure)
     Item=(component 'menu/item')
     Separator=(component 'menu/separator')
   )}}
