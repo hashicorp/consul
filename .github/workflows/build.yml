@@ -175,7 +175,7 @@ jobs:
     strategy:
       matrix:
         goos: [ darwin ]
-        goarch: [ "amd64" ]
+        goarch: [ "amd64", "arm64" ]
         go: [ "1.16.12" ]
       fail-fast: true
 
