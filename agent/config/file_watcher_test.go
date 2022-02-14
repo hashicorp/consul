@@ -32,7 +32,7 @@ func TestWatcherRenameEvent(t *testing.T) {
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
-		_ = w.Close()
+		_ = w.Stop()
 	}()
 
 	require.NoError(t, err)
@@ -68,7 +68,7 @@ func TestEventWatcherWrite(t *testing.T) {
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
-		_ = w.Close()
+		_ = w.Stop()
 	}()
 
 	_, err = file.WriteString("test config 2")
@@ -88,7 +88,7 @@ func TestEventWatcherRead(t *testing.T) {
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
-		_ = w.Close()
+		_ = w.Stop()
 	}()
 
 	_, err = os.ReadFile(filepath)
@@ -114,7 +114,7 @@ func TestEventWatcherChmod(t *testing.T) {
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
-		_ = w.Close()
+		_ = w.Stop()
 	}()
 
 	file.Chmod(0777)
@@ -132,7 +132,7 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
-		_ = w.Close()
+		_ = w.Stop()
 	}()
 
 	require.NoError(t, err)
@@ -161,7 +161,7 @@ func TestEventWatcherMove(t *testing.T) {
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
-		_ = w.Close()
+		_ = w.Stop()
 	}()
 
 	for i := 0; i < 10; i++ {
@@ -183,7 +183,7 @@ func TestEventReconcileMove(t *testing.T) {
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
-		_ = w.Close()
+		_ = w.Stop()
 	}()
 
 	// remove the file from the internal watcher to only trigger the reconcile
@@ -191,8 +191,8 @@ func TestEventReconcileMove(t *testing.T) {
 	require.NoError(t, err)
 
 	err = os.Rename(filepath2, filepath)
-	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	require.NoError(t, err)
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	require.NoError(t, assertEvent(filepath, watcherCh))
 }
 
@@ -205,7 +205,7 @@ func TestEventWatcherDirCreateRemove(t *testing.T) {
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
-		_ = w.Close()
+		_ = w.Stop()
 	}()
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	for i := 0; i < 10; i++ {
@@ -237,7 +237,7 @@ func TestEventWatcherDirMove(t *testing.T) {
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
-		_ = w.Close()
+		_ = w.Stop()
 	}()
 
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
@@ -264,7 +264,7 @@ func TestEventWatcherDirMoveTrim(t *testing.T) {
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
-		_ = w.Close()
+		_ = w.Stop()
 	}()
 
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
@@ -293,7 +293,7 @@ func TestEventWatcherSubDirMove(t *testing.T) {
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
-		_ = w.Close()
+		_ = w.Stop()
 	}()
 
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
@@ -320,7 +320,7 @@ func TestEventWatcherDirRead(t *testing.T) {
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
-		_ = w.Close()
+		_ = w.Stop()
 	}()
 
 	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
@@ -347,7 +347,7 @@ func TestEventWatcherMoveSoftLink(t *testing.T) {
 }
 
 func assertEvent(name string, watcherCh chan *WatcherEvent) error {
-	timeout := time.After(500 * time.Millisecond)
+	timeout := time.After(1000 * time.Millisecond)
 	select {
 	case ev := <-watcherCh:
 		if ev.Filename != name && !strings.Contains(ev.Filename, name) {

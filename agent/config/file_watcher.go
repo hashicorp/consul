@@ -90,7 +90,7 @@ func isSymLink(filename string) bool {
 	return false
 }
 
-func (w *FileWatcher) Close() error {
+func (w *FileWatcher) Stop() error {
 	w.cancel()
 	<-w.done
 	return w.watcher.Close()
