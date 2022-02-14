@@ -34,9 +34,10 @@ func TestWatcherRenameEvent(t *testing.T) {
 	defer func() {
 		_ = w.Close()
 	}()
-	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
+
 	require.NoError(t, err)
 	err = os.Rename(fileTmp, filepaths[0])
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	require.NoError(t, err)
 	require.NoError(t, assertEvent(filepaths[0], watcherCh))
 	// make sure we consume all events
@@ -183,12 +184,13 @@ func TestEventReconcileMove(t *testing.T) {
 	defer func() {
 		_ = w.Close()
 	}()
-	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
+
 	// remove the file from the internal watcher to only trigger the reconcile
 	err = w.watcher.Remove(filepath)
 	require.NoError(t, err)
 
 	err = os.Rename(filepath2, filepath)
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	require.NoError(t, err)
 	require.NoError(t, assertEvent(filepath, watcherCh))
 }
