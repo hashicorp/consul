@@ -993,7 +993,7 @@ func (s *Server) blockingQuery(
 		var ws memdb.WatchSet
 		err := query(ws, s.fsm.State())
 		s.setQueryMeta(responseMeta, opts.GetToken())
-		if errors.Is(err, errNotFound) {
+		if errors.Is(err, errNotFound) || errors.Is(err, errNotChanged) {
 			return nil
 		}
 		return err
@@ -1008,7 +1008,10 @@ func (s *Server) blockingQuery(
 	// decrement the count when the function returns.
 	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
 
-	var notFound bool
+	var (
+		notFound bool
+		ranOnce  bool
+	)
 
 	for {
 		if opts.GetRequireConsistent() {
@@ -1027,19 +1030,56 @@ func (s *Server) blockingQuery(
 		// whole state store is abandoned.
 		ws.Add(state.AbandonCh())
 
+		// You can use one of two sentinel errors to signal special behaviors
+		// from query() calls:
+		//
+		// (1) errNotFound: data that is not found
+		//
+		//     In this scenario, any read of query() will deterministically
+		//     return a 'nil/empty' result. Call to call the data will still be
+		//     absent, and thus we would want to avoid waking up the caller of
+		//     the blocking query to freshly say "yep still not found!".
+		//
+		//     On the first blocking query call assuming the index provided
+		//     matches the index of the data returned, this function will
+		//     correctly block due to the 'if queryMeta.GetIndex() >
+		//     minQueryIndex {' line below.
+		//
+		//     Subsequent loops then will EITHER swallow the update if the
+		//     index remains the same OR if after waking up the data is still
+		//     absent.
+		//
+		// (2) errNotChanged: data that has not changed
+		//
+		//     In this scenario the first read of query() may return value=V0
+		//     and would block just as in (1) above due to a matching index
+		//     parameter. The body of query() is free to have a stateful
+		//     closure that may retain metadata about the prior execution
+		//     sufficient for future comparison with another returned value.
+		//
+		//     On a future loop, query() may detect that the newly generated
+		//     data is effectively unchanged and may return an
+		//     err=errNotChanged result.
+
 		err := query(ws, state)
 		s.setQueryMeta(responseMeta, opts.GetToken())
+
 		switch {
 		case errors.Is(err, errNotFound):
 			if notFound {
 				// query result has not changed
 				minQueryIndex = responseMeta.GetIndex()
 			}
-
 			notFound = true
+		case errors.Is(err, errNotChanged):
+			if ranOnce {
+				// query result has not changed
+				minQueryIndex = responseMeta.GetIndex()
+			}
 		case err != nil:
 			return err
 		}
+		ranOnce = true
 
 		if responseMeta.GetIndex() > minQueryIndex {
 			return nil
@@ -1060,7 +1100,10 @@ func (s *Server) blockingQuery(
 	}
 }
 
-var errNotFound = fmt.Errorf("no data found for query")
+var (
+	errNotFound   = fmt.Errorf("no data found for query")
+	errNotChanged = fmt.Errorf("data did not change for query")
+)
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
 //

@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -617,6 +618,10 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 		}
 	}
 
+	var (
+		priorHash uint64
+		ranOnce   bool
+	)
 	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -628,6 +633,35 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 
 			reply.Index = index
 			reply.Matches = matches
+
+			// Generate a hash of the intentions content driving this response.
+			// Use it to determine if the response is identical to a prior
+			// wakeup.
+			newHash, err := hashstructure_v2.Hash(matches, hashstructure_v2.FormatV2, nil)
+			if err != nil {
+				return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+			}
+
+			if ranOnce && priorHash == newHash {
+				priorHash = newHash
+				return errNotChanged
+			} else {
+				priorHash = newHash
+				ranOnce = true
+			}
+
+			hasData := false
+			for _, match := range matches {
+				if len(match) > 0 {
+					hasData = true
+					break
+				}
+			}
+
+			if !hasData {
+				return errNotFound
+			}
+
 			return nil
 		},
 	)
