@@ -37,7 +37,6 @@ func TestWatcherRenameEvent(t *testing.T) {
 
 	require.NoError(t, err)
 	err = os.Rename(fileTmp, filepaths[0])
-	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	require.NoError(t, err)
 	require.NoError(t, assertEvent(filepaths[0], watcherCh))
 	// make sure we consume all events
@@ -347,7 +346,7 @@ func TestEventWatcherMoveSoftLink(t *testing.T) {
 }
 
 func assertEvent(name string, watcherCh chan *WatcherEvent) error {
-	timeout := time.After(1000 * time.Millisecond)
+	timeout := time.After(500 * time.Millisecond)
 	select {
 	case ev := <-watcherCh:
 		if ev.Filename != name && !strings.Contains(ev.Filename, name) {

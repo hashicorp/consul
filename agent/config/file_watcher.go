@@ -132,7 +132,7 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 		return nil
 	}
 	filename := filepath.Clean(event.Name)
-	configFile, basename, ok := w.isWatched(filename)
+	_, basename, ok := w.isWatched(filename)
 	if !ok {
 		return fmt.Errorf("file %s is not watched", event.Name)
 	}
@@ -140,16 +140,8 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 	// we only want to update inode and re-add if the event is on the watched file itself
 	if filename == basename {
 		if isRemove(event) {
-			// If the file was removed, try to re-add it right away
-			err := w.watcher.Add(filename)
-			if err != nil {
-				w.logger.Info("failed to re-add file, retry in reconcile ", "filename", event.Name, "OP", event.Op)
-				//TODO(autoconfigreload): add debug log here.
-				// re-add failed, set it to retry later in reconcile
-				configFile.id = 0
-				configFile.modId = 0
-				return nil
-			}
+			// If the file was removed, try to reconcile and see if anything changed.
+			w.reconcile()
 		}
 	}
 	if isCreate(event) || isWrite(event) || isRename(event) {
