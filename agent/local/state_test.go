@@ -387,7 +387,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	// We should have 5 services (consul included)
 	require.Len(t, services.NodeServices.Services, 5)
 
-	// Check that virtual IPs have been set
+	// check that virtual ips have been set
 	vips := make(map[string]struct{})
 	serviceToVIP := make(map[string]string)
 	for _, serv := range services.NodeServices.Services {
@@ -593,6 +593,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv1, "")
 
@@ -607,6 +608,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv2, "")
 
@@ -628,6 +630,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -643,6 +646,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -867,6 +871,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv1, token)
 
@@ -880,6 +885,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv2, token)
 
