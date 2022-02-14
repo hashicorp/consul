@@ -45,68 +45,115 @@ func TestConfigEntry_Apply(t *testing.T) {
 	// wait for cross-dc queries to work
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
-	updated := &structs.ServiceConfigEntry{
-		Name: "foo",
-	}
-	// originally target this as going to dc2
-	args := structs.ConfigEntryRequest{
-		Datacenter: "dc2",
-		Entry:      updated,
-	}
-	out := false
-	require.NoError(t, msgpackrpc.CallWithCodec(codec2, "ConfigEntry.Apply", &args, &out))
-	require.True(t, out)
-
-	// the previous RPC should not return until the primary has been updated but will return
-	// before the secondary has the data.
-	state := s1.fsm.State()
-	_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(t, err)
-
-	serviceConf, ok := entry.(*structs.ServiceConfigEntry)
-	require.True(t, ok)
-	require.Equal(t, "foo", serviceConf.Name)
-	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
-
-	retry.Run(t, func(r *retry.R) {
-		// wait for replication to happen
-		state := s2.fsm.State()
-		_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-		require.NoError(r, err)
-		require.NotNil(r, entry)
-		// this test is not testing that the config entries that are replicated are correct as thats done elsewhere.
+	runStep(t, "send the apply request to dc2 - it should get forwarded to dc1", func(t *testing.T) {
+		updated := &structs.ServiceConfigEntry{
+			Name: "foo",
+		}
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc2",
+			Entry:      updated,
+		}
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec2, "ConfigEntry.Apply", &args, &out))
+		require.True(t, out)
 	})
 
-	updated = &structs.ServiceConfigEntry{
-		Name: "foo",
-		MeshGateway: structs.MeshGatewayConfig{
-			Mode: structs.MeshGatewayModeLocal,
-		},
-	}
+	var originalModifyIndex uint64
+	runStep(t, "verify the entry was updated in the primary and secondary", func(t *testing.T) {
+		// the previous RPC should not return until the primary has been updated but will return
+		// before the secondary has the data.
+		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+		require.NoError(t, err)
 
-	args = structs.ConfigEntryRequest{
-		Datacenter: "dc1",
-		Op:         structs.ConfigEntryUpsertCAS,
-		Entry:      updated,
-	}
+		serviceConf, ok := entry.(*structs.ServiceConfigEntry)
+		require.True(t, ok)
+		require.Equal(t, "foo", serviceConf.Name)
+		require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
 
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
-	require.False(t, out)
+		retry.Run(t, func(r *retry.R) {
+			// wait for replication to happen
+			_, entry, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+			require.NoError(r, err)
+			require.NotNil(r, entry)
+			// this test is not testing that the config entries that are replicated are correct as thats done elsewhere.
+		})
+		originalModifyIndex = serviceConf.ModifyIndex
+	})
 
-	args.Entry.GetRaftIndex().ModifyIndex = serviceConf.ModifyIndex
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
-	require.True(t, out)
+	runStep(t, "update the entry again in the primary", func(t *testing.T) {
+		updated := &structs.ServiceConfigEntry{
+			Name: "foo",
+			MeshGateway: structs.MeshGatewayConfig{
+				Mode: structs.MeshGatewayModeLocal,
+			},
+		}
 
-	state = s1.fsm.State()
-	_, entry, err = state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(t, err)
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Op:         structs.ConfigEntryUpsertCAS,
+			Entry:      updated,
+		}
 
-	serviceConf, ok = entry.(*structs.ServiceConfigEntry)
-	require.True(t, ok)
-	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
-	require.Equal(t, "foo", serviceConf.Name)
-	require.Equal(t, "", serviceConf.Protocol)
-	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
+		runStep(t, "with the wrong CAS", func(t *testing.T) {
+			var out bool
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+			require.False(t, out)
+		})
+		runStep(t, "with the correct CAS", func(t *testing.T) {
+			var out bool
+			args.Entry.GetRaftIndex().ModifyIndex = originalModifyIndex
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+			require.True(t, out)
+		})
+	})
+
+	runStep(t, "verify the entry was updated in the state store", func(t *testing.T) {
+		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+		require.NoError(t, err)
+
+		serviceConf, ok := entry.(*structs.ServiceConfigEntry)
+		require.True(t, ok)
+		require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
+		require.Equal(t, "foo", serviceConf.Name)
+		require.Equal(t, "", serviceConf.Protocol)
+		require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
+	})
+
+	runStep(t, "verify no-op updates do not advance the raft indexes", func(t *testing.T) {
+		var modifyIndex uint64
+		for i := 0; i < 3; i++ {
+			runStep(t, fmt.Sprintf("iteration %d", i), func(t *testing.T) {
+				args := structs.ConfigEntryRequest{
+					Datacenter: "dc1",
+					Op:         structs.ConfigEntryUpsert,
+					Entry: &structs.ServiceConfigEntry{
+						Kind:     structs.ServiceDefaults,
+						Name:     "noop",
+						Protocol: "grpc",
+					},
+				}
+				var out bool
+				require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+				require.True(t, out)
+
+				getIndex, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "noop", nil)
+				require.NoError(t, err)
+				require.NotNil(t, entry)
+
+				listIndex, entries, err := s1.fsm.State().ConfigEntries(nil, nil)
+				require.NoError(t, err)
+				require.Len(t, entries, 2)
+
+				if i == 0 {
+					modifyIndex = entry.GetRaftIndex().ModifyIndex
+				} else {
+					require.Equal(t, modifyIndex, entry.GetRaftIndex().ModifyIndex)
+					require.Equal(t, modifyIndex, getIndex)
+					require.Equal(t, modifyIndex, listIndex)
+				}
+			})
+		}
+	})
 }
 
 func TestConfigEntry_ProxyDefaultsMeshGateway(t *testing.T) {
@@ -623,48 +670,70 @@ func TestConfigEntry_Delete(t *testing.T) {
 	// wait for cross-dc queries to work
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
-	// Create a dummy service in the state store to look up.
-	entry := &structs.ServiceConfigEntry{
-		Kind: structs.ServiceDefaults,
-		Name: "foo",
-	}
-	state := s1.fsm.State()
-	require.NoError(t, state.EnsureConfigEntry(1, entry))
-
-	// Verify it's there.
-	_, existing, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(t, err)
-
-	serviceConf, ok := existing.(*structs.ServiceConfigEntry)
-	require.True(t, ok)
-	require.Equal(t, "foo", serviceConf.Name)
-	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
-
-	retry.Run(t, func(r *retry.R) {
-		// wait for it to be replicated into the secondary dc
-		_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-		require.NoError(r, err)
-		require.NotNil(r, existing)
+	runStep(t, "create a dummy service in the state store to look up", func(t *testing.T) {
+		entry := &structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "foo",
+		}
+		require.NoError(t, s1.fsm.State().EnsureConfigEntry(1, entry))
 	})
 
-	// send the delete request to dc2 - it should get forwarded to dc1.
-	args := structs.ConfigEntryRequest{
-		Datacenter: "dc2",
-	}
-	args.Entry = entry
-	var out struct{}
-	require.NoError(t, msgpackrpc.CallWithCodec(codec2, "ConfigEntry.Delete", &args, &out))
+	runStep(t, "verify it exists in the primary and is replicated to the secondary", func(t *testing.T) {
+		// Verify it's there.
+		_, existing, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+		require.NoError(t, err)
 
-	// Verify the entry was deleted.
-	_, existing, err = s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(t, err)
-	require.Nil(t, existing)
+		serviceConf, ok := existing.(*structs.ServiceConfigEntry)
+		require.True(t, ok)
+		require.Equal(t, "foo", serviceConf.Name)
+		require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
 
-	// verify it gets deleted from the secondary too
-	retry.Run(t, func(r *retry.R) {
-		_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-		require.NoError(r, err)
-		require.Nil(r, existing)
+		retry.Run(t, func(r *retry.R) {
+			// wait for it to be replicated into the secondary dc
+			_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+			require.NoError(r, err)
+			require.NotNil(r, existing)
+		})
+	})
+
+	runStep(t, "send the delete request to dc2 - it should get forwarded to dc1", func(t *testing.T) {
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc2",
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "foo",
+			},
+		}
+		var out structs.ConfigEntryDeleteResponse
+		require.NoError(t, msgpackrpc.CallWithCodec(codec2, "ConfigEntry.Delete", &args, &out))
+		require.True(t, out.Deleted)
+	})
+
+	runStep(t, "verify the entry was deleted in the primary and secondary", func(t *testing.T) {
+		// Verify the entry was deleted.
+		_, existing, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+		require.NoError(t, err)
+		require.Nil(t, existing)
+
+		// verify it gets deleted from the secondary too
+		retry.Run(t, func(r *retry.R) {
+			_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+			require.NoError(r, err)
+			require.Nil(r, existing)
+		})
+	})
+
+	runStep(t, "delete in dc1 again - should be fine", func(t *testing.T) {
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "foo",
+			},
+		}
+		var out structs.ConfigEntryDeleteResponse
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out))
+		require.True(t, out.Deleted)
 	})
 }
 
