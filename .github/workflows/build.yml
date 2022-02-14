@@ -149,6 +149,7 @@ jobs:
           config_dir: ".release/linux/package"
           preinstall: ".release/linux/preinstall"
           postinstall: ".release/linux/postinstall"
+          preremove: ".release/linux/preremove"
           postremove: ".release/linux/postremove"
 
       - name: Set Package Names
@@ -175,7 +176,7 @@ jobs:
     strategy:
       matrix:
         goos: [ darwin ]
-        goarch: [ "amd64" ]
+        goarch: [ "amd64", "arm64" ]
         go: [ "1.16.12" ]
       fail-fast: true
 
