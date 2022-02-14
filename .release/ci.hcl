@@ -11,10 +11,7 @@ project "consul" {
     repository = "consul"
     release_branches = [
       "main",
-      "release/1.8.x",
-      "release/1.9.x",
-      "release/1.10.x",
-      "release/1.11.x",
+      "release/1.11.x"
     ]
   }
 }
@@ -42,8 +39,36 @@ event "upload-dev" {
   }
 }
 
-event "notarize-darwin-amd64" {
+event "security-scan-binaries" {
   depends = ["upload-dev"]
+  action "security-scan-binaries" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "security-scan-binaries"
+    config = "security-scan.hcl"
+  }
+
+  notification {
+    on = "fail"
+  }
+}
+
+event "security-scan-containers" {
+  depends = ["security-scan-binaries"]
+  action "security-scan-containers" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "security-scan-containers"
+    config = "security-scan.hcl"
+  }
+
+  notification {
+    on = "fail"
+  }
+}
+
+event "notarize-darwin-amd64" {
+  depends = ["security-scan-containers"]
   action "notarize-darwin-amd64" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
