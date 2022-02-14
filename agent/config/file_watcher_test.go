@@ -36,6 +36,7 @@ func TestWatcherRenameEvent(t *testing.T) {
 
 	require.NoError(t, err)
 	err = os.Rename(fileTmp, filepaths[0])
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	require.NoError(t, err)
 	require.NoError(t, assertEvent(filepaths[0], w.EventsCh, defaultTimeout))
 	// make sure we consume all events
@@ -169,6 +170,7 @@ func TestEventReconcileMove(t *testing.T) {
 	require.NoError(t, err)
 
 	err = os.Rename(filepath2, filepath)
+	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	require.NoError(t, err)
 	require.NoError(t, assertEvent(filepath, w.EventsCh, 2000*time.Millisecond))
 }
