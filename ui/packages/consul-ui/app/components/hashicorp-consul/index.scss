@@ -1,11 +1,18 @@
 %hashicorp-consul {
-  [role='banner'] nav .dcs {
+  nav .dcs {
     @extend %main-nav-vertical-hoisted;
     left: 100px;
   }
-  [role='banner'] nav .dcs .popover-menu[aria-label]::before {
-    display: none;
+  nav .dcs .menu-panel {
+    min-width: 250px;
   }
+  nav li.partitions,
+  nav li.nspaces {
+    @extend %main-nav-vertical-popover-menu;
+    /*    --panel-height: 300px;
+    --row-height: 43px; */
+  }
+
   [role='banner'] a svg {
     fill: rgb(var(--tone-brand-600));
   }
