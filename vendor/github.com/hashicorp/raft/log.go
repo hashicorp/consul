@@ -29,7 +29,7 @@ const (
 
 	// LogBarrier is used to ensure all preceding operations have been
 	// applied to the FSM. It is similar to LogNoop, but instead of returning
-	// once committed, it only returns once the FSM manager acks it. Otherwise
+	// once committed, it only returns once the FSM manager acks it. Otherwise,
 	// it is possible there are operations committed but not yet applied to
 	// the FSM.
 	LogBarrier

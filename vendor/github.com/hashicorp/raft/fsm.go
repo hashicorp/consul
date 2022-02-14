@@ -6,29 +6,37 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	hclog "github.com/hashicorp/go-hclog"
 )
 
-// FSM provides an interface that can be implemented by
-// clients to make use of the replicated log.
+// FSM is implemented by clients to make use of the replicated log.
 type FSM interface {
-	// Apply log is invoked once a log entry is committed.
-	// It returns a value which will be made available in the
-	// ApplyFuture returned by Raft.Apply method if that
-	// method was called on the same Raft node as the FSM.
+	// Apply is called once a log entry is committed by a majority of the cluster.
+	//
+	// Apply should apply the log to the FSM. Apply must be deterministic and
+	// produce the same result on all peers in the cluster.
+	//
+	// The returned value is returned to the client as the ApplyFuture.Response.
 	Apply(*Log) interface{}
 
-	// Snapshot is used to support log compaction. This call should
-	// return an FSMSnapshot which can be used to save a point-in-time
-	// snapshot of the FSM. Apply and Snapshot are not called in multiple
-	// threads, but Apply will be called concurrently with Persist. This means
-	// the FSM should be implemented in a fashion that allows for concurrent
-	// updates while a snapshot is happening.
+	// Snapshot returns an FSMSnapshot used to: support log compaction, to
+	// restore the FSM to a previous state, or to bring out-of-date followers up
+	// to a recent log index.
+	//
+	// The Snapshot implementation should return quickly, because Apply can not
+	// be called while Snapshot is running. Generally this means Snapshot should
+	// only capture a pointer to the state, and any expensive IO should happen
+	// as part of FSMSnapshot.Persist.
+	//
+	// Apply and Snapshot are always called from the same thread, but Apply will
+	// be called concurrently with FSMSnapshot.Persist. This means the FSM should
+	// be implemented to allow for concurrent updates while a snapshot is happening.
 	Snapshot() (FSMSnapshot, error)
 
 	// Restore is used to restore an FSM from a snapshot. It is not called
 	// concurrently with any other command. The FSM must discard all previous
-	// state.
-	Restore(io.ReadCloser) error
+	// state before restoring the snapshot.
+	Restore(snapshot io.ReadCloser) error
 }
 
 // BatchingFSM extends the FSM interface to add an ApplyBatch function. This can
@@ -72,7 +80,7 @@ func (r *Raft) runFSM() {
 	batchingFSM, batchingEnabled := r.fsm.(BatchingFSM)
 	configStore, configStoreEnabled := r.fsm.(ConfigurationStore)
 
-	commitSingle := func(req *commitTuple) {
+	applySingle := func(req *commitTuple) {
 		// Apply the log if a command or config change
 		var resp interface{}
 		// Make sure we send a response
@@ -107,10 +115,10 @@ func (r *Raft) runFSM() {
 		lastTerm = req.log.Term
 	}
 
-	commitBatch := func(reqs []*commitTuple) {
+	applyBatch := func(reqs []*commitTuple) {
 		if !batchingEnabled {
 			for _, ct := range reqs {
-				commitSingle(ct)
+				applySingle(ct)
 			}
 			return
 		}
@@ -177,8 +185,15 @@ func (r *Raft) runFSM() {
 		}
 		defer source.Close()
 
+		snapLogger := r.logger.With(
+			"id", req.ID,
+			"last-index", meta.Index,
+			"last-term", meta.Term,
+			"size-in-bytes", meta.Size,
+		)
+
 		// Attempt to restore
-		if err := fsmRestoreAndMeasure(r.fsm, source); err != nil {
+		if err := fsmRestoreAndMeasure(snapLogger, r.fsm, source, meta.Size); err != nil {
 			req.respond(fmt.Errorf("failed to restore snapshot %v: %v", req.ID, err))
 			return
 		}
@@ -213,7 +228,7 @@ func (r *Raft) runFSM() {
 		case ptr := <-r.fsmMutateCh:
 			switch req := ptr.(type) {
 			case []*commitTuple:
-				commitBatch(req)
+				applyBatch(req)
 
 			case *restoreFuture:
 				restore(req)
@@ -234,13 +249,20 @@ func (r *Raft) runFSM() {
 // fsmRestoreAndMeasure wraps the Restore call on an FSM to consistently measure
 // and report timing metrics. The caller is still responsible for calling Close
 // on the source in all cases.
-func fsmRestoreAndMeasure(fsm FSM, source io.ReadCloser) error {
+func fsmRestoreAndMeasure(logger hclog.Logger, fsm FSM, source io.ReadCloser, snapshotSize int64) error {
 	start := time.Now()
-	if err := fsm.Restore(source); err != nil {
+
+	crc := newCountingReadCloser(source)
+
+	monitor := startSnapshotRestoreMonitor(logger, crc, snapshotSize, false)
+	defer monitor.StopAndWait()
+
+	if err := fsm.Restore(crc); err != nil {
 		return err
 	}
 	metrics.MeasureSince([]string{"raft", "fsm", "restore"}, start)
 	metrics.SetGauge([]string{"raft", "fsm", "lastRestoreDuration"},
 		float32(time.Since(start).Milliseconds()))
+
 	return nil
 }
