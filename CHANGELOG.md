@@ -1,3 +1,26 @@
+## 1.11.3 (February 11, 2022)
+
+IMPROVEMENTS:
+
+* connect: update Envoy supported version of 1.20 to 1.20.1 [[GH-11895](https://github.com/hashicorp/consul/issues/11895)]
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+
+BUG FIXES:
+
+* Fix a data race when a service is added while the agent is shutting down.. [[GH-12302](https://github.com/hashicorp/consul/issues/12302)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* ca: adjust validation of PrivateKeyType/Bits with the Vault provider, to remove the error when the cert is created manually in Vault. [[GH-12267](https://github.com/hashicorp/consul/issues/12267)]
+* config-entry: fix a panic when creating an ingress gateway config-entry and a proxy service instance, where both provided the same upstream and downstream mapping. [[GH-12277](https://github.com/hashicorp/consul/issues/12277)]
+* connect: fixes bug where passthrough addressses for transparent proxies dialed directly weren't being cleaned up. [[GH-12223](https://github.com/hashicorp/consul/issues/12223)]
+* partitions: **(Enterprise only)** Do not leave a serf partition when the partition is deleted
+* serf: update serf v0.9.7, complete the leave process if broadcasting leave timeout. [[GH-12057](https://github.com/hashicorp/consul/issues/12057)]
+* ui: Fix up a problem where occasionally an intention can visually disappear from the listing after saving [[GH-12315](https://github.com/hashicorp/consul/issues/12315)]
+* ui: Fixed a bug with creating multiple nested KVs in one interaction [[GH-12081](https://github.com/hashicorp/consul/issues/12081)]
+* ui: Include partition data when saving an intention from the topology visualization [[GH-12317](https://github.com/hashicorp/consul/issues/12317)]
+* xds: allow only one outstanding delta request at a time [[GH-12236](https://github.com/hashicorp/consul/issues/12236)]
+* xds: fix for delta xDS reconnect bug in LDS/CDS [[GH-12174](https://github.com/hashicorp/consul/issues/12174)]
+* xds: prevents tight loop where the Consul client agent would repeatedly re-send config that Envoy has rejected. [[GH-12195](https://github.com/hashicorp/consul/issues/12195)]
+
 ## 1.11.2 (January 12, 2022)
 
 FEATURES:
@@ -175,6 +198,30 @@ permissions errors rather than using UI capabilities 'pre-user-action' [[GH-1152
 NOTES:
 
 * Renamed the `agent_master` field to `agent_recovery` in the `acl-tokens.json` file in which tokens are persisted on-disk (when `acl.enable_token_persistence` is enabled) [[GH-11744](https://github.com/hashicorp/consul/issues/11744)]
+
+## 1.10.8 (February 11, 2022)
+
+SECURITY:
+
+* agent: Use SHA256 instead of MD5 to generate persistence file names.
+
+IMPROVEMENTS:
+
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+
+BUG FIXES:
+
+* Fix a data race when a service is added while the agent is shutting down.. [[GH-12302](https://github.com/hashicorp/consul/issues/12302)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* config-entry: fix a panic when creating an ingress gateway config-entry and a proxy service instance, where both providedthe same upstream and downstrem mapping. [[GH-12277](https://github.com/hashicorp/consul/issues/12277)]
+* config: include all config errors in the error message, previously some could be hidden. [[GH-11918](https://github.com/hashicorp/consul/issues/11918)]
+* connect: fixes bug where passthrough addressses for transparent proxies dialed directly weren't being cleaned up. [[GH-12223](https://github.com/hashicorp/consul/issues/12223)]
+* memberlist: fixes a bug which prevented members from joining a cluster with
+large amounts of churn [[GH-253](https://github.com/hashicorp/memberlist/issues/253)] [[GH-12047](https://github.com/hashicorp/consul/issues/12047)]
+* snapshot: the `snapshot save` command now saves the snapshot with read permission for only the current user. [[GH-11918](https://github.com/hashicorp/consul/issues/11918)]
+* xds: allow only one outstanding delta request at a time [[GH-12236](https://github.com/hashicorp/consul/issues/12236)]
+* xds: fix for delta xDS reconnect bug in LDS/CDS [[GH-12174](https://github.com/hashicorp/consul/issues/12174)]
+* xds: prevents tight loop where the Consul client agent would repeatedly re-send config that Envoy has rejected. [[GH-12195](https://github.com/hashicorp/consul/issues/12195)]a
 
 ## 1.10.7 (January 12, 2022)
 
@@ -498,6 +545,20 @@ being expired. [[GH-10161](https://github.com/hashicorp/consul/issues/10161)]
 NOTES:
 
 * legal: **(Enterprise only)** Enterprise binary downloads will now include a copy of the EULA and Terms of Evaluation in the zip archive
+
+## 1.9.15 (February 11, 2022)
+
+IMPROVEMENTS:
+
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+
+BUG FIXES:
+
+* Fix a data race when a service is added while the agent is shutting down.. [[GH-12302](https://github.com/hashicorp/consul/issues/12302)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* config-entry: fix a panic when creating an ingress gateway config-entry and a proxy service instance, where both provided the same upstream and downstream mapping. [[GH-12277](https://github.com/hashicorp/consul/issues/12277)]
+* config: include all config errors in the error message, previously some could be hidden. [[GH-11918](https://github.com/hashicorp/consul/issues/11918)]
+* snapshot: the `snapshot save` command now saves the snapshot with read permission for only the current user. [[GH-11918](https://github.com/hashicorp/consul/issues/11918)]
 
 ## 1.9.14 (January 12, 2022)
 
