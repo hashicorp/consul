@@ -25,5 +25,4 @@ jobs:
             mistake or you wish to re-open at any time in the future, please
             leave a comment and it will be re-surfaced for the maintainers to review.
           stale-pr-label: meta/stale
-          exempt-pr-labels:
-            - meta/staleproof
+          exempt-pr-labels: meta/staleproof
