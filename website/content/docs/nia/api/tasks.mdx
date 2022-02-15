@@ -269,7 +269,7 @@ Response if changes present:
 
 ## Delete Task
 
-This endpoint allows for deletion of existing tasks. It does not allow deletion of a task that is currently running.
+This endpoint allows for deletion of existing tasks. It marks a task for deletion based on the name provided. If the task is not running, it will be deleted immediately. Otherwise, it will be deleted once the task is completed.
 
 | Method   | Path                | Produces           |
 | -------- | ------------------- | ------------------ |
@@ -283,11 +283,10 @@ This endpoint allows for deletion of existing tasks. It does not allow deletion 
 
 #### Response Statuses
 
-| Status | Reason                             |
-| ------ | ---------------------------------- |
-| 200    | Successfully deleted the task      |
-| 404    | Task with the given name not found |
-| 409    | Task is currently running          |
+| Status | Reason                                    |
+| ------ | ----------------------------------------- |
+| 202    | Successfully marked the task for deletion |
+| 404    | Task with the given name not found        |
 
 #### Response Fields
 
