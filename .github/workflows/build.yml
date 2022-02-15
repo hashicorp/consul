@@ -5,7 +5,6 @@ on:
     # Sequence of patterns matched against refs/heads
     branches:
       - release/1.11.x
-      - eculver/1.11/dockerfile-fixes
 
 env:
   PKG_NAME: consul
