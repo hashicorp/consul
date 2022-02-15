@@ -16,11 +16,7 @@ as |grouped|}}
       checks.firstObject.Status
     as |status|}}
     <dl
-      class={{class-map
-        'consul-instance-checks'
-        (array 'empty' (eq checks.length 0))
-        (array status (not-eq checks.length 0))
-      }}
+      class={{concat 'consul-instance-checks' (if (eq checks.length 0) ' empty') (if (not-eq checks.length 0) (concat ' ' status))}}
       ...attributes
     >
       <dt>
