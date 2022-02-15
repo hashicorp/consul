@@ -176,7 +176,6 @@
   "resolutions": {
     "ember-basic-dropdown": "^3.0.10",
     "ember-changeset": "3.10.1",
-    "refractor": "^3.5.0",
     "validated-changeset": "0.10.0"
   },
   "engines": {
