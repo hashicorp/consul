@@ -31,7 +31,7 @@ task_example.hcl:
 
 ```hcl
 task {
-  name           = "api-task"
+  name           = "task_a"
   description    = ""
   enabled        = true,
   providers      = []
@@ -48,7 +48,7 @@ Shell Session:
 
 ```shell-session
 $ consul-terraform-sync task create -task-file=task_example.hcl
-==> Inspecting changes to resource if creating task 'api-task'...
+==> Inspecting changes to resource if creating task 'task_a'...
 
     Generating plan that Consul Terraform Sync will use Terraform to execute
 
@@ -70,7 +70,7 @@ Terraform will perform the following actions:
 Plan: 1 to add, 0 to change, 0 to destroy.
 
 ==> Creating the task will perform the actions described above.
-    Do you want to perform these actions for 'api-task'?
+    Do you want to perform these actions for 'task_a'?
      - This action cannot be undone.
      - Consul-Terraform-Sync cannot guarantee Terraform will perform
        these exact actions if monitored services have changed.
@@ -84,7 +84,7 @@ Enter a value: yes
     Please be patient as it may take some time to see a confirmation that this task has completed.
     Warning: Terminating this process will not stop task creation.
 
-==> Task 'api-task' created
+==> Task 'task_a' created
     Request ID: '78eddd74-0f08-83d6-72b2-6aaac1424fba'
 ```
 
