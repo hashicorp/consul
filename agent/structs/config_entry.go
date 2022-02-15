@@ -61,7 +61,7 @@ type ConfigEntry interface {
 	// CanRead and CanWrite return whether or not the given Authorizer
 	// has permission to read or write to the config entry, respectively.
 	CanRead(acl.Authorizer) error
-	CanWrite(acl.Authorizer) bool
+	CanWrite(acl.Authorizer) error
 
 	GetMeta() map[string]string
 	GetEnterpriseMeta() *EnterpriseMeta
@@ -189,10 +189,10 @@ func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) error {
 	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
 }
 
-func (e *ServiceConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.ServiceWrite(e.Name, &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().ServiceWriteAllowed(e.Name, &authzContext)
 }
 
 func (e *ServiceConfigEntry) GetRaftIndex() *RaftIndex {
@@ -310,10 +310,10 @@ func (e *ProxyConfigEntry) CanRead(authz acl.Authorizer) error {
 	return nil
 }
 
-func (e *ProxyConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ProxyConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.MeshWrite(&authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {

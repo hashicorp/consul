@@ -255,7 +255,7 @@ func (e *ServiceRouterConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceRouterConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceRouterConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -598,7 +598,7 @@ func (e *ServiceSplitterConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceSplitterConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceSplitterConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -1073,7 +1073,7 @@ func (e *ServiceResolverConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceResolverConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceResolverConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -1306,7 +1306,7 @@ func canReadDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer
 	return authz.ToAllowAuthorizer().ServiceReadAllowed(entry.GetName(), &authzContext)
 }
 
-func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) bool {
+func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) error {
 	entryID := NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())
 
 	var authzContext acl.AuthorizerContext
@@ -1314,8 +1314,8 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorize
 
 	name := entry.GetName()
 
-	if authz.ServiceWrite(name, &authzContext) != acl.Allow {
-		return false
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(name, &authzContext); err != nil {
+		return err
 	}
 
 	for _, svc := range entry.ListRelatedServices() {
@@ -1326,11 +1326,11 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorize
 		svc.FillAuthzContext(&authzContext)
 		// You only need read on related services to redirect traffic flow for
 		// your own service.
-		if authz.ServiceRead(svc.ID, &authzContext) != acl.Allow {
-			return false
+		if err := authz.ToAllowAuthorizer().ServiceReadAllowed(svc.ID, &authzContext); err != nil {
+			return err
 		}
 	}
-	return true
+	return nil
 }
 
 // DiscoveryChainRequest is used when requesting the discovery chain for a

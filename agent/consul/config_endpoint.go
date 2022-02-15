@@ -89,8 +89,8 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		return err
 	}
 
-	if !args.Entry.CanWrite(authz) {
-		return acl.ErrPermissionDenied // TODO(acl-error-enhancements) Better errors await refactoring of CanWrite above.
+	if err := args.Entry.CanWrite(authz); err != nil {
+		return err
 	}
 
 	if args.Op != structs.ConfigEntryUpsert && args.Op != structs.ConfigEntryUpsertCAS {
@@ -388,8 +388,8 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *structs.Co
 		return err
 	}
 
-	if !args.Entry.CanWrite(authz) {
-		return acl.ErrPermissionDenied
+	if err := args.Entry.CanWrite(authz); err != nil {
+		return err
 	}
 
 	// Only delete and delete-cas ops are supported. If the caller erroneously

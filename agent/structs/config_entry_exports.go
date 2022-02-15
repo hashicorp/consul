@@ -142,10 +142,10 @@ func (e *ExportedServicesConfigEntry) CanRead(authz acl.Authorizer) error {
 	return authz.ToAllowAuthorizer().MeshReadAllowed(&authzContext)
 }
 
-func (e *ExportedServicesConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ExportedServicesConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.MeshWrite(&authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *ExportedServicesConfigEntry) GetRaftIndex() *RaftIndex {
