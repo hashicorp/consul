@@ -22,7 +22,7 @@ export default function DownloadsProps(preMerchandisingSlot) {
       {
         label: 'Kubernetes Quickstart',
         href:
-          'https: //learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
+          'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
       },
       {
         label: 'View all Consul tutorials',
