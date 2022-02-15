@@ -10,11 +10,7 @@
     >
       {{@dc.Name}}
     </disclosure.Action>
-    <disclosure.Menu
-      class={{class-map
-        (array 'menu-panel')
-      }}
-    as |panel|>
+    <disclosure.Menu as |panel|>
       <DataSource
         @src={{uri '/*/*/*/datacenters'}}
         @onchange={{action (mut @dcs) value="data"}}
@@ -22,7 +18,6 @@
         <panel.Menu as |menu|>
           {{#each (sort-by 'Name' @dcs) as |item|}}
             <menu.Item
-              data-test-datacenter-picker
               aria-current={{if (eq @dc.Name item.Name) 'true'}}
               class={{class-map
                 (array 'is-local' item.Local)
