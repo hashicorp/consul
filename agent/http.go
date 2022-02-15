@@ -769,13 +769,24 @@ func setLastContact(resp http.ResponseWriter, last time.Duration) {
 }
 
 // setMeta is used to set the query response meta data
-func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) {
+func setMeta(resp http.ResponseWriter, m responseMeta) {
 	setIndex(resp, m.GetIndex())
 	setLastContact(resp, m.GetLastContact())
 	setKnownLeader(resp, m.GetKnownLeader())
 	setConsistency(resp, m.GetConsistencyLevel())
 	setQueryBackend(resp, m.GetBackend())
 	setResultsFilteredByACLs(resp, m.GetResultsFilteredByACLs())
+}
+
+// responseMeta is metadata included in the response about how the request was
+// handled and the server state.
+type responseMeta interface {
+	GetLastContact() time.Duration
+	GetKnownLeader() bool
+	GetIndex() uint64
+	GetConsistencyLevel() string
+	GetBackend() structs.QueryBackend
+	GetResultsFilteredByACLs() bool
 }
 
 func setQueryBackend(resp http.ResponseWriter, backend structs.QueryBackend) {
@@ -826,7 +837,7 @@ func serveHandlerWithHeaders(h http.Handler, headers map[string]string) http.Han
 
 // parseWait is used to parse the ?wait and ?index query params
 // Returns true on error
-func parseWait(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func parseWait(resp http.ResponseWriter, req *http.Request, b queryOptions) bool {
 	query := req.URL.Query()
 	if wait := query.Get("wait"); wait != "" {
 		dur, err := time.ParseDuration(wait)
@@ -851,7 +862,7 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b structs.QueryOptio
 
 // parseCacheControl parses the CacheControl HTTP header value. So far we only
 // support maxage directive.
-func parseCacheControl(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func parseCacheControl(resp http.ResponseWriter, req *http.Request, b queryOptions) bool {
 	raw := strings.ToLower(req.Header.Get("Cache-Control"))
 
 	if raw == "" {
@@ -909,7 +920,7 @@ func parseCacheControl(resp http.ResponseWriter, req *http.Request, b structs.Qu
 
 // parseConsistency is used to parse the ?stale and ?consistent query params.
 // Returns true on error
-func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Request, b queryOptions) bool {
 	query := req.URL.Query()
 	defaults := true
 	if _, ok := query["stale"]; ok {
@@ -1113,7 +1124,7 @@ func parseMetaPair(raw string) (string, string) {
 
 // parse is a convenience method for endpoints that need to use both parseWait
 // and parseDC.
-func (s *HTTPHandlers) parse(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parse(resp http.ResponseWriter, req *http.Request, dc *string, b queryOptions) bool {
 	s.parseDC(req, dc)
 	var token string
 	s.parseTokenWithDefault(req, &token)
@@ -1128,6 +1139,24 @@ func (s *HTTPHandlers) parse(resp http.ResponseWriter, req *http.Request, dc *st
 		return true
 	}
 	return parseWait(resp, req, b)
+}
+
+// queryOptions receives options parsed from the HTTP request.
+type queryOptions interface {
+	SetToken(string)
+	SetMinQueryIndex(uint64)
+	SetMaxQueryTime(time.Duration)
+	GetAllowStale() bool
+	SetAllowStale(bool)
+	GetRequireConsistent() bool
+	SetRequireConsistent(bool)
+	GetUseCache() bool
+	SetUseCache(bool)
+	SetMaxStaleDuration(time.Duration)
+	SetMaxAge(time.Duration)
+	SetMustRevalidate(bool)
+	SetStaleIfError(time.Duration)
+	SetFilter(string)
 }
 
 func (s *HTTPHandlers) checkWriteAccess(req *http.Request) error {

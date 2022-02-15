@@ -4,51 +4,6 @@ import (
 	"time"
 )
 
-// QueryOptionsCompat is the interface that both the structs.QueryOptions
-// and the proto/pbcommon.QueryOptions structs need to implement so that they
-// can be operated on interchangeably
-type QueryOptionsCompat interface {
-	GetToken() string
-	SetToken(string)
-	GetMinQueryIndex() uint64
-	SetMinQueryIndex(uint64)
-	GetMaxQueryTime() time.Duration
-	SetMaxQueryTime(time.Duration)
-	GetAllowStale() bool
-	SetAllowStale(bool)
-	GetRequireConsistent() bool
-	SetRequireConsistent(bool)
-	GetUseCache() bool
-	SetUseCache(bool)
-	GetMaxStaleDuration() time.Duration
-	SetMaxStaleDuration(time.Duration)
-	GetMaxAge() time.Duration
-	SetMaxAge(time.Duration)
-	GetMustRevalidate() bool
-	SetMustRevalidate(bool)
-	GetStaleIfError() time.Duration
-	SetStaleIfError(time.Duration)
-	GetFilter() string
-	SetFilter(string)
-}
-
-// QueryMetaCompat is the interface that both the structs.QueryMeta
-// and the proto/pbcommon.QueryMeta structs need to implement so that they
-// can be operated on interchangeably
-type QueryMetaCompat interface {
-	GetLastContact() time.Duration
-	SetLastContact(time.Duration)
-	GetKnownLeader() bool
-	SetKnownLeader(bool)
-	GetIndex() uint64
-	SetIndex(uint64)
-	GetConsistencyLevel() string
-	SetConsistencyLevel(string)
-	GetBackend() QueryBackend
-	GetResultsFilteredByACLs() bool
-	SetResultsFilteredByACLs(bool)
-}
-
 // GetToken helps implement the QueryOptionsCompat interface
 // Copied from proto/pbcommon/common.pb.go
 func (m *QueryOptions) GetToken() string {
