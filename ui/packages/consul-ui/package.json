@@ -64,7 +64,7 @@
     "@glimmer/tracking": "^1.0.0",
     "@hashicorp/ember-cli-api-double": "^3.1.0",
     "@lit/reactive-element": "^1.2.1",
-    "@mapbox/rehype-prism": "^0.6.0",
+    "@mapbox/rehype-prism": "^0.8.0",
     "@xstate/fsm": "^1.4.0",
     "a11y-dialog": "^6.0.1",
     "babel-eslint": "^10.0.3",
@@ -163,7 +163,7 @@
     "pretty-ms": "^7.0.1",
     "qunit-dom": "^1.0.0",
     "react-is": "^17.0.1",
-    "refractor": "^3.3.1",
+    "refractor": "^3.5.0",
     "remark-autolink-headings": "^6.0.1",
     "remark-hbs": "^0.4.0",
     "sass": "^1.28.0",
@@ -176,6 +176,7 @@
   "resolutions": {
     "ember-basic-dropdown": "^3.0.10",
     "ember-changeset": "3.10.1",
+    "refractor": "^3.5.0",
     "validated-changeset": "0.10.0"
   },
   "engines": {
