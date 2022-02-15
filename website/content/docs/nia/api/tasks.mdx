@@ -128,7 +128,7 @@ Payload:
   "task": {
     "description": "Writes the service name, id, and IP address to a file",
     "enabled": true,
-    "name": "api-task",
+    "name": "task_a",
     "providers": ["my-provider"],
     "condition": {
       "services": {
@@ -143,9 +143,10 @@ Payload:
 Request:
 
 ```shell-session
-curl --request POST \
-     --data @payload.json \
-     localhost:8558/v1/tasks
+$ curl --header "Content-Type: application/json" \
+  --request POST \
+  --data @payload.json \
+  localhost:8558/v1/tasks
 ```
 
 Response:
@@ -173,7 +174,7 @@ Response:
     "enabled": true,
     "module": "path/to/module",
     "module_input": {},
-    "name": "api-task",
+    "name": "task_a",
     "providers": ["my-provider"],
     "variables": {},
     "version": ""
