@@ -413,7 +413,7 @@ func (c *cmd) captureLongRunning(ctx context.Context) error {
 
 		g.Go(func() error {
 			// use ctx without a timeout to allow the trace to finish sending
-			return c.captureTrace(ctx, s)
+			return c.captureTrace(ctx, int(c.interval.Seconds()))
 		})
 	}
 	if c.captureTarget(targetLogs) {
@@ -443,8 +443,8 @@ func (c *cmd) captureGoRoutines(outputDir string) error {
 	return ioutil.WriteFile(filepath.Join(outputDir, "goroutine.prof"), gr, 0644)
 }
 
-func (c *cmd) captureTrace(ctx context.Context, s float64) error {
-	prof, err := c.client.Debug().PProf(ctx, "trace", int(s))
+func (c *cmd) captureTrace(ctx context.Context, duration int) error {
+	prof, err := c.client.Debug().PProf(ctx, "trace", duration)
 	if err != nil {
 		return fmt.Errorf("failed to collect cpu profile: %w", err)
 	}
