@@ -136,10 +136,10 @@ func (e *ExportedServicesConfigEntry) Validate() error {
 	return nil
 }
 
-func (e *ExportedServicesConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ExportedServicesConfigEntry) CanRead(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.MeshRead(&authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().MeshReadAllowed(&authzContext)
 }
 
 func (e *ExportedServicesConfigEntry) CanWrite(authz acl.Authorizer) bool {

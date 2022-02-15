@@ -194,8 +194,8 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.ConfigE
 	}
 	lookupEntry.GetEnterpriseMeta().Merge(&args.EnterpriseMeta)
 
-	if !lookupEntry.CanRead(authz) {
-		return acl.ErrPermissionDenied
+	if err := lookupEntry.CanRead(authz); err != nil {
+		return err
 	}
 
 	return c.srv.blockingQuery(
@@ -254,7 +254,8 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 			// Filter the entries returned by ACL permissions.
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
-				if !entry.CanRead(authz) {
+				if err := entry.CanRead(authz); err != nil {
+					// TODO we may wish to extract more details from this error to aid user comprehension
 					reply.QueryMeta.ResultsFilteredByACLs = true
 					continue
 				}
@@ -335,7 +336,8 @@ func (c *ConfigEntry) ListAll(args *structs.ConfigEntryListAllRequest, reply *st
 			// Filter the entries returned by ACL permissions or by the provided kinds.
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
-				if !entry.CanRead(authz) {
+				if err := entry.CanRead(authz); err != nil {
+					// TODO we may wish to extract more details from this error to aid user comprehension
 					reply.QueryMeta.ResultsFilteredByACLs = true
 					continue
 				}
