@@ -400,15 +400,11 @@ func makeIntervalDir(base string, now time.Time) (string, error) {
 
 func (c *cmd) captureLongRunning(ctx context.Context) error {
 	g := new(errgroup.Group)
-	// Capture a profile/trace with a minimum of 1s
-	s := c.duration.Seconds()
-	if s < 1 {
-		s = 1
-	}
+
 	if c.captureTarget(targetProfiles) {
 		g.Go(func() error {
 			// use ctx without a timeout to allow the profile to finish sending
-			return c.captureProfile(ctx, s)
+			return c.captureProfile(ctx, c.duration.Seconds())
 		})
 
 		g.Go(func() error {
