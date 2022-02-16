@@ -79,6 +79,26 @@ $ curl \
     http://127.0.0.1:8500/v1/kv/foo
 ```
 
+## URL-Encoded Resource Names
+
+Some Consul HTTP API endpoints accept resource names in URL path or query parameters.
+To pass a resource name containing URL-invalid characters, such as `/` or ` `,
+URL-encode the resource name into the URL.
+
+However, we generally recommend using resource names that don't require URL-encoding.
+Depending on the validation that Consul applies to a resource name,
+Consul may still reject a request if it considers the resource name invalid for that endpoint.
+And even if Consul considers the resource name valid, it may degrade other functionality,
+such as failed [DNS lookups](/docs/discovery/dns)
+for nodes or services with names containing invalid DNS characters.
+
+This HTTP API capability also allows the
+[CLI to accept arguments with URL-invalid characters](/commands#arguments-with-url-invalid-characters).
+
+### Invalid Characters
+
+The linefeed character (`%0a`) will cause a request to be rejected even if it is URL-encoded.
+
 ## Translated Addresses
 
 Consul 0.7 added the ability to translate addresses in HTTP response based on
