@@ -148,6 +148,7 @@ jobs:
           config_dir: ".release/linux/package"
           preinstall: ".release/linux/preinstall"
           postinstall: ".release/linux/postinstall"
+          preremove: ".release/linux/preremove"
           postremove: ".release/linux/postremove"
 
       - name: Set Package Names
@@ -244,6 +245,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+
       - name: Docker Build (Action)
         uses: hashicorp/actions-docker-build@v1
         with:
