@@ -38,13 +38,14 @@ func NewFileWatcher(handleFunc func(event *WatcherEvent), configFiles []string, 
 	}
 	cfgFiles := make(map[string]*watchedFile)
 
-	w := &FileWatcher{watcher: ws,
+	w := &FileWatcher{
+		watcher:          ws,
+		logger:           logger.Named("file-watcher"),
 		configFiles:      cfgFiles,
 		handleFunc:       handleFunc,
 		reconcileTimeout: timeoutDuration,
 		done:             make(chan interface{}),
 	}
-	w.logger = logger.Named("file-watcher")
 	for _, f := range configFiles {
 		err = w.add(f)
 		if err != nil {
@@ -63,7 +64,7 @@ func (w *FileWatcher) Start(ctx context.Context) {
 
 func (w *FileWatcher) add(filename string) error {
 	if isSymLink(filename) {
-		return fmt.Errorf("symbolic link are not supported %s", filename)
+		return fmt.Errorf("symbolic links are not supported %s", filename)
 	}
 	filename = filepath.Clean(filename)
 	w.logger.Trace("adding file", "file", filename)
@@ -121,12 +122,11 @@ func (w *FileWatcher) watch(ctx context.Context) {
 			return
 		}
 	}
-
 }
 
 func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 	w.logger.Debug("event received ", "filename", event.Name, "OP", event.Op)
-	// we only want Create and Remove events to avoid triggering a relaod on file modification
+	// we only want Create and Remove events to avoid triggering a reload on file modification
 	if !isCreate(event) && !isRemove(event) && !isWrite(event) && !isRename(event) {
 		return nil
 	}
@@ -166,9 +166,9 @@ func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 	if !stat.IsDir() {
 		w.logger.Trace("not a dir")
 		// try to see if the watched path is the parent dir
-		NewPath := filepath.Dir(path)
-		w.logger.Trace("get dir", "dir", NewPath)
-		configFile, ok = w.configFiles[NewPath]
+		newPath := filepath.Dir(path)
+		w.logger.Trace("get dir", "dir", newPath)
+		configFile, ok = w.configFiles[newPath]
 	}
 	return configFile, path, ok
 }
