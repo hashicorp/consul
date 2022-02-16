@@ -554,6 +554,10 @@
         ]
       },
       {
+        "title": "Annotations and Labels",
+        "path": "k8s/annotations-and-labels"
+      },
+      {
         "title": "Consul DNS",
         "path": "k8s/dns"
       },
