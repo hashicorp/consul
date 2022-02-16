@@ -3461,6 +3461,7 @@ func (s *Store) ServiceTopology(
 		err              error
 		fullyTransparent bool
 		hasTransparent   bool
+		connectNative    bool
 	)
 	switch kind {
 	case structs.ServiceKindIngressGateway:
@@ -3505,6 +3506,9 @@ func (s *Store) ServiceTopology(
 				// transparent proxy mode. If ANY instance isn't in the right mode then the warming applies.
 				fullyTransparent = false
 			}
+			if proxy.ServiceConnect.Native {
+				connectNative = true
+			}
 		}
 
 	default:
@@ -3526,8 +3530,8 @@ func (s *Store) ServiceTopology(
 
 	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
 
-	// Only transparent proxies have upstreams from intentions
-	if hasTransparent {
+	// Only transparent proxies / connect native services have upstreams from intentions
+	if hasTransparent || connectNative {
 		idx, intentionUpstreams, err := s.intentionTopologyTxn(tx, ws, sn, false, defaultAllow)
 		if err != nil {
 			return 0, nil, err
@@ -3607,8 +3611,8 @@ func (s *Store) ServiceTopology(
 			sn = structs.NewServiceName(upstream.Service.Proxy.DestinationServiceName, &upstream.Service.EnterpriseMeta)
 		}
 
-		// Avoid returning upstreams from intentions when none of the proxy instances of the target are in transparent mode.
-		if !hasTransparent && upstreamSources[sn.String()] != structs.TopologySourceRegistration {
+		// Avoid returning upstreams from intentions when none of the proxy instances of the target are in transparent mode or connect native.
+		if !hasTransparent && !connectNative && upstreamSources[sn.String()] != structs.TopologySourceRegistration {
 			continue
 		}
 		upstreams = append(upstreams, upstream)
@@ -3711,6 +3715,7 @@ func (s *Store) ServiceTopology(
 	}
 
 	idx, unfilteredDownstreams, err := s.combinedServiceNodesTxn(tx, ws, downstreamNames)
+
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get downstreams for %q: %v", sn.String(), err)
 	}
@@ -3734,8 +3739,8 @@ func (s *Store) ServiceTopology(
 		if downstream.Service.Kind == structs.ServiceKindConnectProxy {
 			sn = structs.NewServiceName(downstream.Service.Proxy.DestinationServiceName, &downstream.Service.EnterpriseMeta)
 		}
-		if _, ok := tproxyMap[sn]; !ok && downstreamSources[sn.String()] != structs.TopologySourceRegistration {
-			// If downstream is not a transparent proxy, remove references
+		if _, ok := tproxyMap[sn]; !ok && !downstream.Service.Connect.Native && downstreamSources[sn.String()] != structs.TopologySourceRegistration {
+			// If downstream is not a transparent proxy or connect native, remove references
 			delete(downstreamSources, sn.String())
 			delete(downstreamDecisions, sn.String())
 			continue
