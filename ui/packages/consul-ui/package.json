@@ -174,11 +174,6 @@
     "unist-util-visit": "^2.0.3",
     "wayfarer": "^7.0.1"
   },
-  "resolutions": {
-    "ember-basic-dropdown": "^3.0.10",
-    "ember-changeset": "3.10.1",
-    "validated-changeset": "0.10.0"
-  },
   "engines": {
     "node": ">=10 <=14"
   },
