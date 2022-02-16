@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const defaultTimeout = 500 * time.Millisecond
+
 func TestNewWatcher(t *testing.T) {
 	w, err := NewFileWatcher([]string{}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
@@ -35,9 +37,9 @@ func TestWatcherRenameEvent(t *testing.T) {
 	require.NoError(t, err)
 	err = os.Rename(fileTmp, filepaths[0])
 	require.NoError(t, err)
-	require.NoError(t, assertEvent(filepaths[0], w.EventsCh))
+	require.NoError(t, assertEvent(filepaths[0], w.EventsCh, defaultTimeout))
 	// make sure we consume all events
-	assertEvent(filepaths[0], w.EventsCh)
+	assertEvent(filepaths[0], w.EventsCh, defaultTimeout)
 }
 
 func TestWatcherAddNotExist(t *testing.T) {
@@ -67,7 +69,7 @@ func TestEventWatcherWrite(t *testing.T) {
 	require.NoError(t, err)
 	err = file.Sync()
 	require.NoError(t, err)
-	require.NoError(t, assertEvent(file.Name(), w.EventsCh))
+	require.NoError(t, assertEvent(file.Name(), w.EventsCh, defaultTimeout))
 }
 
 func TestEventWatcherRead(t *testing.T) {
@@ -82,7 +84,7 @@ func TestEventWatcherRead(t *testing.T) {
 
 	_, err = os.ReadFile(filepath)
 	require.NoError(t, err)
-	require.Error(t, assertEvent(filepath, w.EventsCh), "timedout waiting for event")
+	require.Error(t, assertEvent(filepath, w.EventsCh, defaultTimeout), "timedout waiting for event")
 }
 
 func TestEventWatcherChmod(t *testing.T) {
@@ -105,7 +107,7 @@ func TestEventWatcherChmod(t *testing.T) {
 
 	file.Chmod(0777)
 	require.NoError(t, err)
-	require.Error(t, assertEvent(file.Name(), w.EventsCh), "timedout waiting for event")
+	require.Error(t, assertEvent(file.Name(), w.EventsCh, defaultTimeout), "timedout waiting for event")
 }
 
 func TestEventWatcherRemoveCreate(t *testing.T) {
@@ -128,7 +130,7 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	err = recreated.Sync()
 	require.NoError(t, err)
 	// this an event coming from the reconcile loop
-	require.NoError(t, assertEvent(filepath, w.EventsCh))
+	require.NoError(t, assertEvent(filepath, w.EventsCh, defaultTimeout))
 }
 
 func TestEventWatcherMove(t *testing.T) {
@@ -146,7 +148,7 @@ func TestEventWatcherMove(t *testing.T) {
 		filepath2 := createTempConfigFile(t, "temp_config2")
 		err = os.Rename(filepath2, filepath)
 		require.NoError(t, err)
-		require.NoError(t, assertEvent(filepath, w.EventsCh))
+		require.NoError(t, assertEvent(filepath, w.EventsCh, defaultTimeout))
 	}
 }
 
@@ -166,7 +168,7 @@ func TestEventReconcileMove(t *testing.T) {
 
 	err = os.Rename(filepath2, filepath)
 	require.NoError(t, err)
-	require.NoError(t, assertEvent(filepath, w.EventsCh))
+	require.NoError(t, assertEvent(filepath, w.EventsCh, 2000*time.Millisecond))
 }
 
 func TestEventWatcherDirCreateRemove(t *testing.T) {
@@ -183,11 +185,11 @@ func TestEventWatcherDirCreateRemove(t *testing.T) {
 		require.NoError(t, err)
 		err = file.Close()
 		require.NoError(t, err)
-		require.NoError(t, assertEvent(filepath, w.EventsCh))
+		require.NoError(t, assertEvent(filepath, w.EventsCh, defaultTimeout))
 
 		err = os.Remove(name)
 		require.NoError(t, err)
-		require.NoError(t, assertEvent(filepath, w.EventsCh))
+		require.NoError(t, assertEvent(filepath, w.EventsCh, defaultTimeout))
 	}
 }
 
@@ -210,7 +212,7 @@ func TestEventWatcherDirMove(t *testing.T) {
 		filepathTmp := createTempConfigFile(t, "temp_config2")
 		os.Rename(filepathTmp, name)
 		require.NoError(t, err)
-		require.NoError(t, assertEvent(filepath, w.EventsCh))
+		require.NoError(t, assertEvent(filepath, w.EventsCh, defaultTimeout))
 	}
 }
 
@@ -233,7 +235,7 @@ func TestEventWatcherDirMoveTrim(t *testing.T) {
 		filepathTmp := createTempConfigFile(t, "temp_config2")
 		os.Rename(filepathTmp, name)
 		require.NoError(t, err)
-		require.NoError(t, assertEvent(filepath, w.EventsCh))
+		require.NoError(t, assertEvent(filepath, w.EventsCh, defaultTimeout))
 	}
 }
 
@@ -258,7 +260,7 @@ func TestEventWatcherSubDirMove(t *testing.T) {
 		filepathTmp := createTempConfigFile(t, "temp_config2")
 		os.Rename(filepathTmp, name)
 		require.NoError(t, err)
-		require.Error(t, assertEvent(filepath, w.EventsCh), "timedout waiting for event")
+		require.Error(t, assertEvent(filepath, w.EventsCh, defaultTimeout), "timedout waiting for event")
 	}
 }
 
@@ -279,7 +281,7 @@ func TestEventWatcherDirRead(t *testing.T) {
 
 	_, err = os.ReadFile(name)
 	require.NoError(t, err)
-	require.Error(t, assertEvent(filepath, w.EventsCh), "timedout waiting for event")
+	require.Error(t, assertEvent(filepath, w.EventsCh, defaultTimeout), "timedout waiting for event")
 }
 
 func TestEventWatcherMoveSoftLink(t *testing.T) {
@@ -296,15 +298,14 @@ func TestEventWatcherMoveSoftLink(t *testing.T) {
 
 }
 
-func assertEvent(name string, watcherCh chan *WatcherEvent) error {
-	timeout := time.After(500 * time.Millisecond)
+func assertEvent(name string, watcherCh chan *WatcherEvent, timeout time.Duration) error {
 	select {
 	case ev := <-watcherCh:
 		if ev.Filename != name && !strings.Contains(ev.Filename, name) {
 			return fmt.Errorf("filename do not match %s %s", ev.Filename, name)
 		}
 		return nil
-	case <-timeout:
+	case <-time.After(timeout):
 		return fmt.Errorf("timedout waiting for event")
 	}
 }
