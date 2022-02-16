@@ -24,7 +24,7 @@ type FileWatcher struct {
 }
 
 type watchedFile struct {
-	id time.Time
+	modTime time.Time
 }
 
 type WatcherEvent struct {
@@ -75,7 +75,7 @@ func (w *FileWatcher) add(filename string) error {
 	if err != nil {
 		return err
 	}
-	w.configFiles[filename] = &watchedFile{id: modTime}
+	w.configFiles[filename] = &watchedFile{modTime: modTime}
 	return nil
 }
 
@@ -142,7 +142,7 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 		if isRemoveEvent(event) {
 			// If the file was removed, try to reconcile and see if anything changed.
 			w.logger.Trace("attempt a reconcile ", "filename", event.Name, "OP", event.Op)
-			configFile.id = time.Time{}
+			configFile.modTime = time.Time{}
 			w.reconcile()
 		}
 	}
@@ -176,9 +176,9 @@ func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 func (w *FileWatcher) reconcile() {
 	for filename, configFile := range w.configFiles {
 		w.logger.Trace("reconciling", "filename", filename)
-		newId, err := w.getFileModifiedTime(filename)
+		newModTime, err := w.getFileModifiedTime(filename)
 		if err != nil {
-			w.logger.Error("failed to get file id", "file", filename, "err", err)
+			w.logger.Error("failed to get file modTime", "file", filename, "err", err)
 			continue
 		}
 
@@ -187,9 +187,9 @@ func (w *FileWatcher) reconcile() {
 			w.logger.Error("failed to add file to watcher", "file", filename, "err", err)
 			continue
 		}
-		if configFile.id != newId {
-			w.logger.Trace("call the handler", "filename", filename, "old id", configFile.id, "new id", newId)
-			w.configFiles[filename].id = newId
+		if !configFile.modTime.Equal(newModTime) {
+			w.logger.Trace("call the handler", "filename", filename, "old modTime", configFile.modTime, "new modTime", newModTime)
+			w.configFiles[filename].modTime = newModTime
 			w.EventsCh <- &WatcherEvent{Filename: filename}
 		}
 	}

@@ -154,14 +154,14 @@ func TestEventWatcherMove(t *testing.T) {
 
 func TestEventReconcileMove(t *testing.T) {
 	filepath := createTempConfigFile(t, "temp_config1")
-
+	filepath2 := createTempConfigFile(t, "temp_config2")
 	w, err := NewFileWatcher([]string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
 		_ = w.Stop()
 	}()
-	filepath2 := createTempConfigFile(t, "temp_config2")
+
 	// remove the file from the internal watcher to only trigger the reconcile
 	err = w.watcher.Remove(filepath)
 	require.NoError(t, err)
