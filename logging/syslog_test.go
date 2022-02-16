@@ -9,9 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// testSyslogFunc is a wrapper for injecting Write functionality into a Syslogger
-// implementation. It's a dummy Syslogger implementation that allows us to
-// inject our test assertions into a SyslogWrapper.
+// testSyslogFunc is a wrapper for injecting WriteLevel functionality into a Syslogger
+// implementation; it gives us a way to inject test assertions into a SyslogWrapper.
 type testSyslogWriteLevelFunc func(p gsyslog.Priority, m []byte) error
 
 // Write is a no-op
