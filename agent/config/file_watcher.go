@@ -24,7 +24,7 @@ type FileWatcher struct {
 }
 
 type watchedFile struct {
-	id uint64
+	id time.Time
 }
 
 type WatcherEvent struct {
@@ -71,11 +71,11 @@ func (w *FileWatcher) add(filename string) error {
 	if err := w.watcher.Add(filename); err != nil {
 		return err
 	}
-	iNode, err := w.getFileId(filename)
+	modTime, err := w.getFileModifiedTime(filename)
 	if err != nil {
 		return err
 	}
-	w.configFiles[filename] = &watchedFile{id: iNode}
+	w.configFiles[filename] = &watchedFile{id: modTime}
 	return nil
 }
 
@@ -99,6 +99,7 @@ func (w *FileWatcher) Stop() error {
 func (w *FileWatcher) watch(ctx context.Context) {
 	ticker := time.NewTicker(w.reconcileTimeout)
 	defer ticker.Stop()
+	defer close(w.done)
 	for {
 		select {
 		case event, ok := <-w.watcher.Events:
@@ -106,7 +107,7 @@ func (w *FileWatcher) watch(ctx context.Context) {
 				w.logger.Error("watcher event channel is closed")
 				return
 			}
-			w.logger.Debug("received watcher event", "event", event)
+			w.logger.Trace("received watcher event", "event", event)
 			if err := w.handleEvent(event); err != nil {
 				w.logger.Error("error handling watcher event", "error", err, "event", event)
 			}
@@ -118,16 +119,15 @@ func (w *FileWatcher) watch(ctx context.Context) {
 		case <-ticker.C:
 			w.reconcile()
 		case <-ctx.Done():
-			close(w.done)
 			return
 		}
 	}
 }
 
 func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
-	w.logger.Debug("event received ", "filename", event.Name, "OP", event.Op)
+	w.logger.Trace("event received ", "filename", event.Name, "OP", event.Op)
 	// we only want Create and Remove events to avoid triggering a reload on file modification
-	if !isCreate(event) && !isRemove(event) && !isWrite(event) && !isRename(event) {
+	if !isCreateEvent(event) && !isRemoveEvent(event) && !isWriteEvent(event) && !isRenameEvent(event) {
 		return nil
 	}
 	filename := filepath.Clean(event.Name)
@@ -136,17 +136,17 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 		return fmt.Errorf("file %s is not watched", event.Name)
 	}
 
-	// we only want to update inode and re-add if the event is on the watched file itself
+	// we only want to update mod time and re-add if the event is on the watched file itself
 	if filename == basename {
-		if isRemove(event) {
+		if isRemoveEvent(event) {
 			// If the file was removed, try to reconcile and see if anything changed.
-			w.logger.Debug("attempt a reconcile ", "filename", event.Name, "OP", event.Op)
-			configFile.id = 0
+			w.logger.Trace("attempt a reconcile ", "filename", event.Name, "OP", event.Op)
+			configFile.id = time.Time{}
 			w.reconcile()
 		}
 	}
-	if isCreate(event) || isWrite(event) || isRename(event) {
-		w.logger.Debug("call the handler", "filename", event.Name, "OP", event.Op)
+	if isCreateEvent(event) || isWriteEvent(event) || isRenameEvent(event) {
+		w.logger.Trace("call the handler", "filename", event.Name, "OP", event.Op)
 		go w.handleFunc(&WatcherEvent{Filename: filename})
 	}
 	return nil
@@ -159,12 +159,12 @@ func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 		return configFile, path, true
 	}
 
-	stat, err := os.Stat(filename)
+	stat, err := os.Lstat(filename)
 	if err != nil {
 		return nil, path, false
 	}
-	if !stat.IsDir() {
-		w.logger.Trace("not a dir")
+	if !stat.IsDir() && stat.Mode()&os.ModeSymlink == 0 {
+		w.logger.Trace("not a dir and not a symlink to a dir")
 		// try to see if the watched path is the parent dir
 		newPath := filepath.Dir(path)
 		w.logger.Trace("get dir", "dir", newPath)
@@ -175,8 +175,8 @@ func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 
 func (w *FileWatcher) reconcile() {
 	for filename, configFile := range w.configFiles {
-		w.logger.Debug("reconciling", "filename", filename)
-		newId, err := w.getFileId(filename)
+		w.logger.Trace("reconciling", "filename", filename)
+		newId, err := w.getFileModifiedTime(filename)
 		if err != nil {
 			w.logger.Error("failed to get file id", "file", filename, "err", err)
 			continue
@@ -188,34 +188,34 @@ func (w *FileWatcher) reconcile() {
 			continue
 		}
 		if configFile.id != newId {
-			w.logger.Debug("call the handler", "filename", filename, "old id", configFile.id, "new id", newId)
+			w.logger.Trace("call the handler", "filename", filename, "old id", configFile.id, "new id", newId)
 			w.configFiles[filename].id = newId
 			go w.handleFunc(&WatcherEvent{Filename: filename})
 		}
 	}
 }
 
-func isCreate(event fsnotify.Event) bool {
+func isCreateEvent(event fsnotify.Event) bool {
 	return event.Op&fsnotify.Create == fsnotify.Create
 }
 
-func isRemove(event fsnotify.Event) bool {
+func isRemoveEvent(event fsnotify.Event) bool {
 	return event.Op&fsnotify.Remove == fsnotify.Remove
 }
 
-func isWrite(event fsnotify.Event) bool {
+func isWriteEvent(event fsnotify.Event) bool {
 	return event.Op&fsnotify.Write == fsnotify.Write
 }
 
-func isRename(event fsnotify.Event) bool {
+func isRenameEvent(event fsnotify.Event) bool {
 	return event.Op&fsnotify.Rename == fsnotify.Rename
 }
 
-func (w *FileWatcher) getFileId(filename string) (uint64, error) {
+func (w *FileWatcher) getFileModifiedTime(filename string) (time.Time, error) {
 	fileInfo, err := os.Stat(filename)
 	if err != nil {
-		return 0, err
+		return time.Time{}, err
 	}
 
-	return uint64(fileInfo.ModTime().Nanosecond()), err
+	return fileInfo.ModTime(), err
 }

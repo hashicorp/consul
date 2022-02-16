@@ -135,17 +135,14 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	}()
 
 	require.NoError(t, err)
-	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	err = os.Remove(filepath)
 	require.NoError(t, err)
-	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	recreated, err := os.Create(filepath)
 	require.NoError(t, err)
 	_, err = recreated.WriteString("config 2")
 	require.NoError(t, err)
 	err = recreated.Sync()
 	require.NoError(t, err)
-	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	// this an event coming from the reconcile loop
 	require.NoError(t, assertEvent(filepath, watcherCh))
 }
@@ -166,7 +163,6 @@ func TestEventWatcherMove(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		filepath2 := createTempConfigFile(t, "temp_config2")
 		err = os.Rename(filepath2, filepath)
-		time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 		require.NoError(t, err)
 		require.NoError(t, assertEvent(filepath, watcherCh))
 	}
@@ -184,7 +180,6 @@ func TestEventReconcileMove(t *testing.T) {
 	defer func() {
 		_ = w.Stop()
 	}()
-	time.Sleep(500 * time.Millisecond)
 	filepath2 := createTempConfigFile(t, "temp_config2")
 	// remove the file from the internal watcher to only trigger the reconcile
 	err = w.watcher.Remove(filepath)
@@ -192,7 +187,6 @@ func TestEventReconcileMove(t *testing.T) {
 
 	err = os.Rename(filepath2, filepath)
 	require.NoError(t, err)
-	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	require.NoError(t, assertEvent(filepath, watcherCh))
 }
 
@@ -207,7 +201,6 @@ func TestEventWatcherDirCreateRemove(t *testing.T) {
 	defer func() {
 		_ = w.Stop()
 	}()
-	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	for i := 0; i < 10; i++ {
 		name := filepath + "/" + randomStr(20)
 		file, err := os.Create(name)
@@ -240,7 +233,6 @@ func TestEventWatcherDirMove(t *testing.T) {
 		_ = w.Stop()
 	}()
 
-	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	for i := 0; i < 100; i++ {
 		filepathTmp := createTempConfigFile(t, "temp_config2")
 		os.Rename(filepathTmp, name)
@@ -267,7 +259,6 @@ func TestEventWatcherDirMoveTrim(t *testing.T) {
 		_ = w.Stop()
 	}()
 
-	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	for i := 0; i < 100; i++ {
 		filepathTmp := createTempConfigFile(t, "temp_config2")
 		os.Rename(filepathTmp, name)
@@ -296,7 +287,6 @@ func TestEventWatcherSubDirMove(t *testing.T) {
 		_ = w.Stop()
 	}()
 
-	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	for i := 0; i < 2; i++ {
 		filepathTmp := createTempConfigFile(t, "temp_config2")
 		os.Rename(filepathTmp, name)
@@ -323,7 +313,6 @@ func TestEventWatcherDirRead(t *testing.T) {
 		_ = w.Stop()
 	}()
 
-	time.Sleep(w.reconcileTimeout + 50*time.Millisecond)
 	_, err = os.ReadFile(name)
 	require.NoError(t, err)
 	require.Error(t, assertEvent(filepath, watcherCh), "timedout waiting for event")
