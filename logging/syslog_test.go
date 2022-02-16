@@ -1,3 +1,4 @@
+//go:build linux || darwin || dragonfly || freebsd || netbsd || openbsd || solaris
 // +build linux darwin dragonfly freebsd netbsd openbsd solaris
 
 package logging
