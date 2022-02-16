@@ -373,10 +373,19 @@
         "hidden": true
       }
     ]
-  },
+  },  
   {
-    "title": "Consul API Gateway <sup>BETA</sup>",
-    "path": "api-gateway"
+    "title": "Consul API Gateway",
+    "routes": [
+      {
+        "title": "Consul API Gateway",
+        "path": "api-gateway/api-gateway"
+      },
+      {
+        "title": "Technical Specifications",
+        "path": "api-gateway/api-gateway-tech-specs"
+      }      
+    ]
   },
   {
     "title": "Kubernetes",
