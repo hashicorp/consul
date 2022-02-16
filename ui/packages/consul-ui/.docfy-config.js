@@ -1,7 +1,7 @@
 const path = require('path');
 
 const autolinkHeadings = require('remark-autolink-headings');
-const prism = require('@mapbox/rehype-prism');
+const prism = require('./lib/rehype-prism/index');
 const refractor = require('refractor');
 const gherkin = require('refractor/lang/gherkin');
 const mermaid = require('refractor/lang/mermaid');
