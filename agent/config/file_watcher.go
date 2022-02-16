@@ -16,7 +16,7 @@ const timeoutDuration = 200 * time.Millisecond
 type FileWatcher struct {
 	watcher          *fsnotify.Watcher
 	configFiles      map[string]*watchedFile
-	handleFunc       func(event *WatcherEvent)
+	EventsCh         chan *WatcherEvent
 	logger           hclog.Logger
 	reconcileTimeout time.Duration
 	cancel           context.CancelFunc
@@ -31,7 +31,7 @@ type WatcherEvent struct {
 	Filename string
 }
 
-func NewFileWatcher(handleFunc func(event *WatcherEvent), configFiles []string, logger hclog.Logger) (*FileWatcher, error) {
+func NewFileWatcher(configFiles []string, logger hclog.Logger) (*FileWatcher, error) {
 	ws, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func NewFileWatcher(handleFunc func(event *WatcherEvent), configFiles []string, 
 		watcher:          ws,
 		logger:           logger.Named("file-watcher"),
 		configFiles:      cfgFiles,
-		handleFunc:       handleFunc,
+		EventsCh:         make(chan *WatcherEvent),
 		reconcileTimeout: timeoutDuration,
 		done:             make(chan interface{}),
 	}
@@ -100,6 +100,7 @@ func (w *FileWatcher) watch(ctx context.Context) {
 	ticker := time.NewTicker(w.reconcileTimeout)
 	defer ticker.Stop()
 	defer close(w.done)
+	defer close(w.EventsCh)
 	for {
 		select {
 		case event, ok := <-w.watcher.Events:
@@ -147,7 +148,7 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 	}
 	if isCreateEvent(event) || isWriteEvent(event) || isRenameEvent(event) {
 		w.logger.Trace("call the handler", "filename", event.Name, "OP", event.Op)
-		go w.handleFunc(&WatcherEvent{Filename: filename})
+		w.EventsCh <- &WatcherEvent{Filename: filename}
 	}
 	return nil
 }
@@ -160,10 +161,9 @@ func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 	}
 
 	stat, err := os.Lstat(filename)
-	if err != nil {
-		return nil, path, false
-	}
-	if !stat.IsDir() && stat.Mode()&os.ModeSymlink == 0 {
+
+	// if the error is a not exist still try to find if the event for a configured file
+	if os.IsNotExist(err) || (!stat.IsDir() && stat.Mode()&os.ModeSymlink == 0) {
 		w.logger.Trace("not a dir and not a symlink to a dir")
 		// try to see if the watched path is the parent dir
 		newPath := filepath.Dir(path)
@@ -190,7 +190,7 @@ func (w *FileWatcher) reconcile() {
 		if configFile.id != newId {
 			w.logger.Trace("call the handler", "filename", filename, "old id", configFile.id, "new id", newId)
 			w.configFiles[filename].id = newId
-			go w.handleFunc(&WatcherEvent{Filename: filename})
+			w.EventsCh <- &WatcherEvent{Filename: filename}
 		}
 	}
 }

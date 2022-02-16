@@ -16,7 +16,7 @@ import (
 )
 
 func TestNewWatcher(t *testing.T) {
-	w, err := NewFileWatcher(func(event *WatcherEvent) {}, []string{}, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher([]string{}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	require.NotNil(t, w)
 }
@@ -25,10 +25,7 @@ func TestWatcherRenameEvent(t *testing.T) {
 
 	fileTmp := createTempConfigFile(t, "temp_config3")
 	filepaths := []string{createTempConfigFile(t, "temp_config1"), createTempConfigFile(t, "temp_config2")}
-	watcherCh := make(chan *WatcherEvent)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-		watcherCh <- event
-	}, filepaths, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher(filepaths, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -38,17 +35,16 @@ func TestWatcherRenameEvent(t *testing.T) {
 	require.NoError(t, err)
 	err = os.Rename(fileTmp, filepaths[0])
 	require.NoError(t, err)
-	require.NoError(t, assertEvent(filepaths[0], watcherCh))
+	require.NoError(t, assertEvent(filepaths[0], w.EventsCh))
 	// make sure we consume all events
-	assertEvent(filepaths[0], watcherCh)
+	assertEvent(filepaths[0], w.EventsCh)
 }
 
 func TestWatcherAddNotExist(t *testing.T) {
 
 	file := testutil.TempFile(t, "temp_config")
 	filename := file.Name() + randomStr(16)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-	}, []string{filename}, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher([]string{filename}, hclog.New(&hclog.LoggerOptions{}))
 	require.Error(t, err, "no such file or directory")
 	require.Nil(t, w)
 }
@@ -60,10 +56,7 @@ func TestEventWatcherWrite(t *testing.T) {
 	require.NoError(t, err)
 	err = file.Sync()
 	require.NoError(t, err)
-	watcherCh := make(chan *WatcherEvent)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-		watcherCh <- event
-	}, []string{file.Name()}, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher([]string{file.Name()}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -74,16 +67,13 @@ func TestEventWatcherWrite(t *testing.T) {
 	require.NoError(t, err)
 	err = file.Sync()
 	require.NoError(t, err)
-	require.NoError(t, assertEvent(file.Name(), watcherCh))
+	require.NoError(t, assertEvent(file.Name(), w.EventsCh))
 }
 
 func TestEventWatcherRead(t *testing.T) {
 
 	filepath := createTempConfigFile(t, "temp_config1")
-	watcherCh := make(chan *WatcherEvent)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-		watcherCh <- event
-	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher([]string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -92,7 +82,7 @@ func TestEventWatcherRead(t *testing.T) {
 
 	_, err = os.ReadFile(filepath)
 	require.NoError(t, err)
-	require.Error(t, assertEvent(filepath, watcherCh), "timedout waiting for event")
+	require.Error(t, assertEvent(filepath, w.EventsCh), "timedout waiting for event")
 }
 
 func TestEventWatcherChmod(t *testing.T) {
@@ -106,10 +96,7 @@ func TestEventWatcherChmod(t *testing.T) {
 	err = file.Sync()
 	require.NoError(t, err)
 
-	watcherCh := make(chan *WatcherEvent)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-		watcherCh <- event
-	}, []string{file.Name()}, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher([]string{file.Name()}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -118,16 +105,13 @@ func TestEventWatcherChmod(t *testing.T) {
 
 	file.Chmod(0777)
 	require.NoError(t, err)
-	require.Error(t, assertEvent(file.Name(), watcherCh), "timedout waiting for event")
+	require.Error(t, assertEvent(file.Name(), w.EventsCh), "timedout waiting for event")
 }
 
 func TestEventWatcherRemoveCreate(t *testing.T) {
 
 	filepath := createTempConfigFile(t, "temp_config1")
-	watcherCh := make(chan *WatcherEvent)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-		watcherCh <- event
-	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher([]string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -144,16 +128,14 @@ func TestEventWatcherRemoveCreate(t *testing.T) {
 	err = recreated.Sync()
 	require.NoError(t, err)
 	// this an event coming from the reconcile loop
-	require.NoError(t, assertEvent(filepath, watcherCh))
+	require.NoError(t, assertEvent(filepath, w.EventsCh))
 }
 
 func TestEventWatcherMove(t *testing.T) {
 
 	filepath := createTempConfigFile(t, "temp_config1")
-	watcherCh := make(chan *WatcherEvent)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-		watcherCh <- event
-	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
+
+	w, err := NewFileWatcher([]string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -164,17 +146,14 @@ func TestEventWatcherMove(t *testing.T) {
 		filepath2 := createTempConfigFile(t, "temp_config2")
 		err = os.Rename(filepath2, filepath)
 		require.NoError(t, err)
-		require.NoError(t, assertEvent(filepath, watcherCh))
+		require.NoError(t, assertEvent(filepath, w.EventsCh))
 	}
 }
 
 func TestEventReconcileMove(t *testing.T) {
 	filepath := createTempConfigFile(t, "temp_config1")
 
-	watcherCh := make(chan *WatcherEvent)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-		watcherCh <- event
-	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher([]string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -187,31 +166,28 @@ func TestEventReconcileMove(t *testing.T) {
 
 	err = os.Rename(filepath2, filepath)
 	require.NoError(t, err)
-	require.NoError(t, assertEvent(filepath, watcherCh))
+	require.NoError(t, assertEvent(filepath, w.EventsCh))
 }
 
 func TestEventWatcherDirCreateRemove(t *testing.T) {
 	filepath := createTempConfigDir(t, "temp_config1")
-	watcherCh := make(chan *WatcherEvent)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-		watcherCh <- event
-	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher([]string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
 		_ = w.Stop()
 	}()
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 1; i++ {
 		name := filepath + "/" + randomStr(20)
 		file, err := os.Create(name)
 		require.NoError(t, err)
 		err = file.Close()
 		require.NoError(t, err)
-		require.NoError(t, assertEvent(filepath, watcherCh))
+		require.NoError(t, assertEvent(filepath, w.EventsCh))
 
 		err = os.Remove(name)
 		require.NoError(t, err)
-		require.NoError(t, assertEvent(filepath, watcherCh))
+		require.NoError(t, assertEvent(filepath, w.EventsCh))
 	}
 }
 
@@ -223,10 +199,7 @@ func TestEventWatcherDirMove(t *testing.T) {
 	require.NoError(t, err)
 	err = file.Close()
 	require.NoError(t, err)
-	watcherCh := make(chan *WatcherEvent)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-		watcherCh <- event
-	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher([]string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -237,7 +210,7 @@ func TestEventWatcherDirMove(t *testing.T) {
 		filepathTmp := createTempConfigFile(t, "temp_config2")
 		os.Rename(filepathTmp, name)
 		require.NoError(t, err)
-		require.NoError(t, assertEvent(filepath, watcherCh))
+		require.NoError(t, assertEvent(filepath, w.EventsCh))
 	}
 }
 
@@ -249,10 +222,7 @@ func TestEventWatcherDirMoveTrim(t *testing.T) {
 	require.NoError(t, err)
 	err = file.Close()
 	require.NoError(t, err)
-	watcherCh := make(chan *WatcherEvent)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-		watcherCh <- event
-	}, []string{filepath + "/"}, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher([]string{filepath + "/"}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -263,7 +233,7 @@ func TestEventWatcherDirMoveTrim(t *testing.T) {
 		filepathTmp := createTempConfigFile(t, "temp_config2")
 		os.Rename(filepathTmp, name)
 		require.NoError(t, err)
-		require.NoError(t, assertEvent(filepath, watcherCh))
+		require.NoError(t, assertEvent(filepath, w.EventsCh))
 	}
 }
 
@@ -277,10 +247,7 @@ func TestEventWatcherSubDirMove(t *testing.T) {
 	require.NoError(t, err)
 	err = file.Close()
 	require.NoError(t, err)
-	watcherCh := make(chan *WatcherEvent)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-		watcherCh <- event
-	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher([]string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -291,7 +258,7 @@ func TestEventWatcherSubDirMove(t *testing.T) {
 		filepathTmp := createTempConfigFile(t, "temp_config2")
 		os.Rename(filepathTmp, name)
 		require.NoError(t, err)
-		require.Error(t, assertEvent(filepath, watcherCh), "timedout waiting for event")
+		require.Error(t, assertEvent(filepath, w.EventsCh), "timedout waiting for event")
 	}
 }
 
@@ -303,10 +270,7 @@ func TestEventWatcherDirRead(t *testing.T) {
 	require.NoError(t, err)
 	err = file.Close()
 	require.NoError(t, err)
-	watcherCh := make(chan *WatcherEvent)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-		watcherCh <- event
-	}, []string{filepath}, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher([]string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
 	defer func() {
@@ -315,7 +279,7 @@ func TestEventWatcherDirRead(t *testing.T) {
 
 	_, err = os.ReadFile(name)
 	require.NoError(t, err)
-	require.Error(t, assertEvent(filepath, watcherCh), "timedout waiting for event")
+	require.Error(t, assertEvent(filepath, w.EventsCh), "timedout waiting for event")
 }
 
 func TestEventWatcherMoveSoftLink(t *testing.T) {
@@ -326,10 +290,7 @@ func TestEventWatcherMoveSoftLink(t *testing.T) {
 	err := os.Symlink(filepath, name)
 	require.NoError(t, err)
 
-	watcherCh := make(chan *WatcherEvent)
-	w, err := NewFileWatcher(func(event *WatcherEvent) {
-		watcherCh <- event
-	}, []string{name}, hclog.New(&hclog.LoggerOptions{}))
+	w, err := NewFileWatcher([]string{name}, hclog.New(&hclog.LoggerOptions{}))
 	require.Error(t, err, "symbolic link are not supported")
 	require.Nil(t, w)
 
