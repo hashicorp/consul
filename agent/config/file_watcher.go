@@ -91,6 +91,7 @@ func isSymLink(filename string) bool {
 }
 
 func (w *FileWatcher) Stop() error {
+	close(w.EventsCh)
 	w.cancel()
 	<-w.done
 	return w.watcher.Close()
@@ -100,7 +101,7 @@ func (w *FileWatcher) watch(ctx context.Context) {
 	ticker := time.NewTicker(w.reconcileTimeout)
 	defer ticker.Stop()
 	defer close(w.done)
-	defer close(w.EventsCh)
+
 	for {
 		select {
 		case event, ok := <-w.watcher.Events:
