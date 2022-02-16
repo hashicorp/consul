@@ -24,6 +24,7 @@ In addition to [general options](/docs/nia/cli/cli-overview#general-options) thi
 | Name         | Required | Type   | Description                                                                                                         |
 | ------------ | -------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
 | `-task-file` | Required | string | The path to the task configuration file. See [configuration information](/docs/nia/configuration#task) for details. |
+| `-auto-approve` &nbsp; | Optional | boolean | Whether to skip the interactive approval of the plan before creating. |
 
 ### Example
 
@@ -102,7 +103,13 @@ Enter a value: yes
 | ----------- | -------- | ------ | ------------------------------- |
 | `task_name` | Required | string | The name of the task to enable. |
 
-**Options:** Currently only supporting [general options](/docs/nia/cli/cli-overview#general-options)
+**Options:**
+
+In addition to [general options](/docs/nia/cli/cli-overview#general-options) this command also supports the following:
+
+| Name            | Required | Type    | Description                     |
+| --------------- | -------- | ------- | ------------------------------- |
+| `-auto-approve` | Optional | boolean | Whether to skip the interactive approval of the plan before enabling. |
 
 ### Example
 
@@ -177,7 +184,13 @@ $ consul-terraform-sync task disable task_b
 | ----------- | -------- | ------ | ------------------------------- |
 | `task_name` | Required | string | The name of the task to delete. |
 
-**Options:** Currently only supporting [general options](/docs/nia/cli/cli-overview#general-options)
+**Options:**
+
+In addition to [general options](/docs/nia/cli/cli-overview#general-options) this command also supports the following:
+
+| Name            | Required | Type    | Description                     |
+| --------------- | -------- | ------- | ------------------------------- |
+| `-auto-approve` | Optional | boolean | Whether to skip the interactive approval of the task deletion. |
 
 ### Example
 
