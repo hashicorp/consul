@@ -603,7 +603,6 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
 // back to our active root.
 func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
-	// TODO: is this necessary? Doesn't vault check this for us?
 	rootPEM, err := v.getCA(v.config.RootPKIPath)
 	if err != nil {
 		return "", err

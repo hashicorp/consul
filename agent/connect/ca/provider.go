@@ -135,7 +135,7 @@ type PrimaryProvider interface {
 	// the active intermediate. If multiple intermediates are needed to complete
 	// the chain from the signing certificate back to the active root, they should
 	// all by bundled here.
-	// TODO: replace with GenerateLeafSigningCert
+	// TODO: replace with GenerateLeafSigningCert (https://github.com/hashicorp/consul/issues/12386)
 	GenerateIntermediate() (string, error)
 
 	// SignIntermediate will validate the CSR to ensure the trust domain in the

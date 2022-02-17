@@ -488,7 +488,7 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 		return err
 	}
 
-	// TODO: delete this
+	// TODO: https://github.com/hashicorp/consul/issues/12386
 	interPEM, err := provider.GenerateIntermediate()
 	if err != nil {
 		return fmt.Errorf("error generating intermediate cert: %v", err)
@@ -976,7 +976,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 		}
 	}
 
-	// TODO: delete this
+	// TODO: https://github.com/hashicorp/consul/issues/12386
 	intermediate, err := newProvider.GenerateIntermediate()
 	if err != nil {
 		return err
