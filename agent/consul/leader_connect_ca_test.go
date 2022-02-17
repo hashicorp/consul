@@ -653,6 +653,7 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 		}
 	})
 
+	var origLeafSecondary string
 	runStep(t, "start secondary DC", func(t *testing.T) {
 		joinWAN(t, serverDC2, serverDC1)
 		testrpc.WaitForActiveCARoot(t, serverDC2.RPC, "dc2", nil)
@@ -665,6 +666,7 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 
 		leafPEM := getLeafCert(t, codec, roots.TrustDomain, "dc2")
 		verifyLeafCert(t, roots.Roots[0], leafPEM)
+		origLeafSecondary = leafPEM
 	})
 
 	runStep(t, "renew leaf signing CA in primary", func(t *testing.T) {
@@ -737,6 +739,13 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 
 		// original certs from old root cert should still verify
 		verifyLeafCertWithRoots(t, roots, origLeaf)
+
+		// original certs from secondary should still verify
+		rootsSecondary := structs.IndexedCARoots{}
+		r := &structs.DCSpecificRequest{Datacenter: "dc2"}
+		err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", r, &rootsSecondary)
+		require.NoError(t, err)
+		verifyLeafCertWithRoots(t, rootsSecondary, origLeafSecondary)
 	})
 
 	runStep(t, "rotate to a different external root", func(t *testing.T) {
@@ -772,6 +781,13 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 
 		// original certs from old root cert should still verify
 		verifyLeafCertWithRoots(t, roots, origLeaf)
+
+		// original certs from secondary should still verify
+		rootsSecondary := structs.IndexedCARoots{}
+		r := &structs.DCSpecificRequest{Datacenter: "dc2"}
+		err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", r, &rootsSecondary)
+		require.NoError(t, err)
+		verifyLeafCertWithRoots(t, rootsSecondary, origLeafSecondary)
 	})
 }
 
