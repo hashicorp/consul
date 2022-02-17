@@ -124,7 +124,7 @@ func (c *FederationState) Get(args *structs.FederationStateQuery, reply *structs
 
 			reply.Index = index
 			if fedState == nil {
-				return nil
+				return errNotFound
 			}
 
 			reply.State = fedState

@@ -207,7 +207,7 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.ConfigE
 
 			reply.Index = index
 			if entry == nil {
-				return nil
+				return errNotFound
 			}
 
 			reply.Entry = entry
