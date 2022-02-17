@@ -173,6 +173,7 @@ $ consul-terraform-sync task disable task_b
 
 `task delete` command deletes an existing task. The command will ask the user for approval before deleting the task. The task will be marked for deletion and will be deleted immediately if it is not running. Otherwise, the task will be deleted once it has completed.
 
+-> **Note:** Deleting a task will not destroy the infrastructure managed by the task.
 
 ### Usage
 
@@ -198,6 +199,7 @@ In addition to [general options](/docs/nia/cli/cli-overview#general-options) thi
 $ consul-terraform-sync task delete task_a
 ==> Do you want to delete 'task_a'?
      - This action cannot be undone.
+     - Deleting a task will not destroy the infrastructure managed by the task.
      - If the task is not running, it will be deleted immediately.
      - If the task is running, it will be deleted once it has completed.
     Only 'yes' will be accepted to approve, enter 'no' or leave blank to reject.

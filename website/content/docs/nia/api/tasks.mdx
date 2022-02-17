@@ -272,6 +272,8 @@ Response if changes present:
 
 This endpoint allows for deletion of existing tasks. It marks a task for deletion based on the name provided. If the task is not running, it will be deleted immediately. Otherwise, it will be deleted once the task is completed.
 
+-> **Note:** Deleting a task will not destroy the infrastructure managed by the task.
+
 | Method   | Path                | Produces           |
 | -------- | ------------------- | ------------------ |
 | `DELETE` | `/tasks/:task_name` | `application/json` |
