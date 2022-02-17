@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -16,21 +17,29 @@ const timeoutDuration = 200 * time.Millisecond
 type FileWatcher struct {
 	watcher          *fsnotify.Watcher
 	configFiles      map[string]*watchedFile
-	EventsCh         chan *WatcherEvent
 	logger           hclog.Logger
 	reconcileTimeout time.Duration
 	cancel           context.CancelFunc
 	done             chan interface{}
+	stopOnce         sync.Once
+
+	//EventsCh Channel where an event will be emitted when a file change is detected
+	// a call to Start is needed before any event is emitted
+	// after a Call to Stop succeed, the channel will be closed
+	EventsCh chan *FileWatcherEvent
 }
 
 type watchedFile struct {
 	modTime time.Time
 }
 
-type WatcherEvent struct {
+type FileWatcherEvent struct {
 	Filename string
 }
 
+//NewFileWatcher create a file watcher that will watch all the files/folders from configFiles
+// if success a FileWatcher will be returned and a nil error
+// otherwise an error and a nil FileWatcher are returned
 func NewFileWatcher(configFiles []string, logger hclog.Logger) (*FileWatcher, error) {
 	ws, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -40,9 +49,10 @@ func NewFileWatcher(configFiles []string, logger hclog.Logger) (*FileWatcher, er
 		watcher:          ws,
 		logger:           logger.Named("file-watcher"),
 		configFiles:      make(map[string]*watchedFile),
-		EventsCh:         make(chan *WatcherEvent),
+		EventsCh:         make(chan *FileWatcherEvent),
 		reconcileTimeout: timeoutDuration,
 		done:             make(chan interface{}),
+		stopOnce:         sync.Once{},
 	}
 	for _, f := range configFiles {
 		err = w.add(f)
@@ -54,10 +64,27 @@ func NewFileWatcher(configFiles []string, logger hclog.Logger) (*FileWatcher, er
 	return w, nil
 }
 
+// Start start a file watcher, with a copy of the passed context.
+// calling Start multiple times is a noop
 func (w *FileWatcher) Start(ctx context.Context) {
-	cancelCtx, cancel := context.WithCancel(ctx)
-	w.cancel = cancel
-	go w.watch(cancelCtx)
+	if w.cancel == nil {
+		cancelCtx, cancel := context.WithCancel(ctx)
+		w.cancel = cancel
+		go w.watch(cancelCtx)
+	}
+}
+
+// Stop the file watcher
+// calling Stop multiple times is a noop
+func (w *FileWatcher) Stop() error {
+	var err error
+	w.stopOnce.Do(func() {
+		close(w.EventsCh)
+		w.cancel()
+		<-w.done
+		err = w.watcher.Close()
+	})
+	return err
 }
 
 func (w *FileWatcher) add(filename string) error {
@@ -88,13 +115,6 @@ func isSymLink(filename string) bool {
 	return false
 }
 
-func (w *FileWatcher) Stop() error {
-	close(w.EventsCh)
-	w.cancel()
-	<-w.done
-	return w.watcher.Close()
-}
-
 func (w *FileWatcher) watch(ctx context.Context) {
 	ticker := time.NewTicker(w.reconcileTimeout)
 	defer ticker.Stop()
@@ -108,7 +128,7 @@ func (w *FileWatcher) watch(ctx context.Context) {
 				return
 			}
 			w.logger.Trace("received watcher event", "event", event)
-			if err := w.handleEvent(event); err != nil {
+			if err := w.handleEvent(ctx, event); err != nil {
 				w.logger.Error("error handling watcher event", "error", err, "event", event)
 			}
 		case _, ok := <-w.watcher.Errors:
@@ -117,14 +137,14 @@ func (w *FileWatcher) watch(ctx context.Context) {
 				return
 			}
 		case <-ticker.C:
-			w.reconcile()
+			w.reconcile(ctx)
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
+func (w *FileWatcher) handleEvent(ctx context.Context, event fsnotify.Event) error {
 	w.logger.Trace("event received ", "filename", event.Name, "OP", event.Op)
 	// we only want Create and Remove events to avoid triggering a reload on file modification
 	if !isCreateEvent(event) && !isRemoveEvent(event) && !isWriteEvent(event) && !isRenameEvent(event) {
@@ -142,12 +162,17 @@ func (w *FileWatcher) handleEvent(event fsnotify.Event) error {
 			// If the file was removed, try to reconcile and see if anything changed.
 			w.logger.Trace("attempt a reconcile ", "filename", event.Name, "OP", event.Op)
 			configFile.modTime = time.Time{}
-			w.reconcile()
+			w.reconcile(ctx)
 		}
 	}
 	if isCreateEvent(event) || isWriteEvent(event) || isRenameEvent(event) {
 		w.logger.Trace("call the handler", "filename", event.Name, "OP", event.Op)
-		w.EventsCh <- &WatcherEvent{Filename: filename}
+		select {
+		case w.EventsCh <- &FileWatcherEvent{Filename: filename}:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+
 	}
 	return nil
 }
@@ -172,7 +197,7 @@ func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 	return configFile, path, ok
 }
 
-func (w *FileWatcher) reconcile() {
+func (w *FileWatcher) reconcile(ctx context.Context) {
 	for filename, configFile := range w.configFiles {
 		w.logger.Trace("reconciling", "filename", filename)
 		newModTime, err := w.getFileModifiedTime(filename)
@@ -189,7 +214,11 @@ func (w *FileWatcher) reconcile() {
 		if !configFile.modTime.Equal(newModTime) {
 			w.logger.Trace("call the handler", "filename", filename, "old modTime", configFile.modTime, "new modTime", newModTime)
 			w.configFiles[filename].modTime = newModTime
-			w.EventsCh <- &WatcherEvent{Filename: filename}
+			select {
+			case w.EventsCh <- &FileWatcherEvent{Filename: filename}:
+			case <-ctx.Done():
+				return
+			}
 		}
 	}
 }

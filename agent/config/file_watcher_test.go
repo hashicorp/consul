@@ -174,7 +174,7 @@ func TestEventReconcileMove(t *testing.T) {
 }
 
 func TestEventWatcherDirCreateRemove(t *testing.T) {
-	filepath := createTempConfigDir(t, "temp_config1")
+	filepath := testutil.TempDir(t, "temp_config1")
 	w, err := NewFileWatcher([]string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
@@ -196,7 +196,7 @@ func TestEventWatcherDirCreateRemove(t *testing.T) {
 }
 
 func TestEventWatcherDirMove(t *testing.T) {
-	filepath := createTempConfigDir(t, "temp_config1")
+	filepath := testutil.TempDir(t, "temp_config1")
 
 	name := filepath + "/" + randomStr(20)
 	file, err := os.Create(name)
@@ -219,7 +219,7 @@ func TestEventWatcherDirMove(t *testing.T) {
 }
 
 func TestEventWatcherDirMoveTrim(t *testing.T) {
-	filepath := createTempConfigDir(t, "temp_config1")
+	filepath := testutil.TempDir(t, "temp_config1")
 
 	name := filepath + "/" + randomStr(20)
 	file, err := os.Create(name)
@@ -243,7 +243,7 @@ func TestEventWatcherDirMoveTrim(t *testing.T) {
 
 // Consul do not support configuration in sub-directories
 func TestEventWatcherSubDirMove(t *testing.T) {
-	filepath := createTempConfigDir(t, "temp_config1")
+	filepath := testutil.TempDir(t, "temp_config1")
 	err := os.Mkdir(filepath+"/temp", 0777)
 	require.NoError(t, err)
 	name := filepath + "/temp/" + randomStr(20)
@@ -267,7 +267,7 @@ func TestEventWatcherSubDirMove(t *testing.T) {
 }
 
 func TestEventWatcherDirRead(t *testing.T) {
-	filepath := createTempConfigDir(t, "temp_config1")
+	filepath := testutil.TempDir(t, "temp_config1")
 
 	name := filepath + "/" + randomStr(20)
 	file, err := os.Create(name)
@@ -289,7 +289,7 @@ func TestEventWatcherDirRead(t *testing.T) {
 func TestEventWatcherMoveSoftLink(t *testing.T) {
 
 	filepath := createTempConfigFile(t, "temp_config1")
-	tempDir := createTempConfigDir(t, "temp_dir")
+	tempDir := testutil.TempDir(t, "temp_dir")
 	name := tempDir + "/" + randomStr(20)
 	err := os.Symlink(filepath, name)
 	require.NoError(t, err)
@@ -300,7 +300,7 @@ func TestEventWatcherMoveSoftLink(t *testing.T) {
 
 }
 
-func assertEvent(name string, watcherCh chan *WatcherEvent, timeout time.Duration) error {
+func assertEvent(name string, watcherCh chan *FileWatcherEvent, timeout time.Duration) error {
 	select {
 	case ev := <-watcherCh:
 		if ev.Filename != name && !strings.Contains(ev.Filename, name) {
@@ -324,9 +324,6 @@ func createTempConfigFile(t *testing.T, filename string) string {
 	return file.Name()
 }
 
-func createTempConfigDir(t *testing.T, dirname string) string {
-	return testutil.TempDir(t, dirname)
-}
 func randomStr(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyz" +
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
