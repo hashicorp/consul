@@ -693,16 +693,25 @@ func (a *Agent) Start(ctx context.Context) error {
 	})
 
 	// start a go routine to reload config based on file watcher events
-	go func() {
-		for event := range a.FileWatcher.EventsCh {
-			a.baseDeps.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
-			err := a.ReloadConfig(true)
+	if a.baseDeps.RuntimeConfig.AutoReloadConfig {
+		if a.WatchedFiles != nil {
+			w, err := config.NewFileWatcher(a.WatchedFiles, a.baseDeps.Logger)
 			if err != nil {
 				a.baseDeps.Logger.Error("error loading config", "error", err)
 			}
+			a.FileWatcher = w
+			go func() {
+				for event := range a.FileWatcher.EventsCh {
+					a.baseDeps.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
+					err := a.ReloadConfig(true)
+					if err != nil {
+						a.baseDeps.Logger.Error("error loading config", "error", err)
+					}
+				}
+			}()
+			a.FileWatcher.Start(ctx)
 		}
-	}()
-	a.FileWatcher.Start(ctx)
+	}
 	return nil
 }
 

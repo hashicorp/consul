@@ -188,15 +188,6 @@ func (c *cmd) run(args []string) int {
 	if bd.RuntimeConfig.CertFile != "" {
 		watcherFiles = append(watcherFiles, bd.RuntimeConfig.CertFile)
 	}
-	if bd.RuntimeConfig.AutoReloadConfig {
-		w, err := config.NewFileWatcher(watcherFiles, bd.Logger)
-		if err != nil {
-			ui.Error(err.Error())
-			return 1
-		}
-		agent.FileWatcher = w
-		agent.WatchedFiles = watcherFiles
-	}
 
 	config := bd.RuntimeConfig
 	if config.Logging.LogJSON {
