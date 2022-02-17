@@ -122,9 +122,7 @@ IMPROVEMENTS:
 * connect/ca: cease including the common name field in generated x509 non-CA certificates [[GH-10424](https://github.com/hashicorp/consul/issues/10424)]
 * connect: Add low-level feature to allow an Ingress to retrieve TLS certificates from SDS. [[GH-10903](https://github.com/hashicorp/consul/issues/10903)]
 * connect: Consul will now generate a unique virtual IP for each connect-enabled service (this will also differ across namespace/partition in Enterprise). [[GH-11724](https://github.com/hashicorp/consul/issues/11724)]
-* connect: Support Vault auth methods for the Connect CA Vault provider. Currently, we support any non-deprecated auth methods
-the latest version of Vault supports (v1.8.5), which include AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud,
-JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password. [[GH-11573](https://github.com/hashicorp/consul/issues/11573)]
+* connect: Support Vault auth methods for the Connect CA Vault provider. Currently, we support any non-deprecated auth methods the latest version of Vault supports (v1.8.5), which include AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud, JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password. [[GH-11573](https://github.com/hashicorp/consul/issues/11573)]
 * connect: Support manipulating HTTP headers in the mesh. [[GH-10613](https://github.com/hashicorp/consul/issues/10613)]
 * connect: add Namespace configuration setting for Vault CA provider [[GH-11477](https://github.com/hashicorp/consul/issues/11477)]
 * connect: ingress gateways may now enable built-in TLS for a subset of listeners. [[GH-11163](https://github.com/hashicorp/consul/issues/11163)]
