@@ -479,6 +479,10 @@
                 "path": "k8s/installation/vault/gossip"
               },
               {
+                "title": "Enterprise License",
+                "path": "k8s/installation/vault/enterprise-license"
+              },
+              {
                 "title": "Server TLS",
                 "path": "k8s/installation/vault/server-tls"
               },
