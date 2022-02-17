@@ -736,9 +736,8 @@ func (s *HTTPHandlers) ACLBindingRuleCreate(resp http.ResponseWriter, req *http.
 }
 
 func (s *HTTPHandlers) ACLBindingRuleWrite(resp http.ResponseWriter, req *http.Request, bindingRuleID string) (interface{}, error) {
-	args := structs.ACLBindingRuleSetRequest{
-		Datacenter: s.agent.config.Datacenter,
-	}
+	args := structs.ACLBindingRuleSetRequest{}
+	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if err := s.parseEntMeta(req, &args.BindingRule.EnterpriseMeta); err != nil {
 		return nil, err
@@ -764,9 +763,9 @@ func (s *HTTPHandlers) ACLBindingRuleWrite(resp http.ResponseWriter, req *http.R
 
 func (s *HTTPHandlers) ACLBindingRuleDelete(resp http.ResponseWriter, req *http.Request, bindingRuleID string) (interface{}, error) {
 	args := structs.ACLBindingRuleDeleteRequest{
-		Datacenter:    s.agent.config.Datacenter,
 		BindingRuleID: bindingRuleID,
 	}
+	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
@@ -880,9 +879,8 @@ func (s *HTTPHandlers) ACLAuthMethodCreate(resp http.ResponseWriter, req *http.R
 }
 
 func (s *HTTPHandlers) ACLAuthMethodWrite(resp http.ResponseWriter, req *http.Request, methodName string) (interface{}, error) {
-	args := structs.ACLAuthMethodSetRequest{
-		Datacenter: s.agent.config.Datacenter,
-	}
+	args := structs.ACLAuthMethodSetRequest{}
+	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if err := s.parseEntMeta(req, &args.AuthMethod.EnterpriseMeta); err != nil {
 		return nil, err
@@ -911,9 +909,9 @@ func (s *HTTPHandlers) ACLAuthMethodWrite(resp http.ResponseWriter, req *http.Re
 
 func (s *HTTPHandlers) ACLAuthMethodDelete(resp http.ResponseWriter, req *http.Request, methodName string) (interface{}, error) {
 	args := structs.ACLAuthMethodDeleteRequest{
-		Datacenter:     s.agent.config.Datacenter,
 		AuthMethodName: methodName,
 	}
+	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
