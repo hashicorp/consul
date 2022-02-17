@@ -1174,7 +1174,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method?token=root&dc=dc1", jsonBody(methodInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method?token=root", jsonBody(methodInput))
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLAuthMethodCreate(resp, req)
 			require.NoError(t, err)
@@ -1222,7 +1222,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			methodMap[method.Name] = method
 		})
 
-		t.Run("Create in invalid datacenter", func(t *testing.T) {
+		t.Run("Create in remote datacenter", func(t *testing.T) {
 			methodInput := &structs.ACLAuthMethod{
 				Name:        "other",
 				Type:        "testing",
@@ -1234,7 +1234,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				MaxTokenTTL:   500_000_000_000,
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method?token=root&dc=invalid", jsonBody(methodInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method?token=root&dc=remote", jsonBody(methodInput))
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLAuthMethodCRUD(resp, req)
 			require.Error(t, err)
@@ -1252,7 +1252,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method/not-test?token=root&dc=dc1", jsonBody(methodInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method/not-test?token=root", jsonBody(methodInput))
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLAuthMethodCRUD(resp, req)
 			require.Error(t, err)
@@ -1270,7 +1270,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method/test?token=root&dc=dc1", jsonBody(methodInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method/test?token=root", jsonBody(methodInput))
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLAuthMethodCRUD(resp, req)
 			require.NoError(t, err)
@@ -1361,7 +1361,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				BindName:    "web",
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root&dc=dc1", jsonBody(ruleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root", jsonBody(ruleInput))
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLBindingRuleCreate(resp, req)
 			require.NoError(t, err)
@@ -1392,7 +1392,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				BindName:    "fancy-role",
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root&dc=dc1", jsonBody(ruleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root", jsonBody(ruleInput))
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLBindingRuleCreate(resp, req)
 			require.NoError(t, err)
@@ -1414,7 +1414,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			ruleMap[rule.ID] = rule
 		})
 
-		t.Run("Create in invalid datacenter", func(t *testing.T) {
+		t.Run("Create in remote datacenter", func(t *testing.T) {
 			ruleInput := &structs.ACLBindingRule{
 				Description: "other",
 				AuthMethod:  "test",
@@ -1423,14 +1423,14 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				BindName:    "fancy-role",
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root&dc=invalid", jsonBody(ruleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root&dc=remote", jsonBody(ruleInput))
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLBindingRuleCRUD(resp, req)
 			require.EqualError(t, err, "No path to datacenter")
 		})
 
 		t.Run("BindingRule CRUD Missing ID in URL", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/binding-rule/?token=root&dc=dc1", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/binding-rule/?token=root", nil)
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLBindingRuleCRUD(resp, req)
 			require.Error(t, err)
@@ -1447,7 +1447,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				BindName:    "${serviceaccount.name}",
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule/"+idMap["rule-test"]+"?token=root&dc=dc1", jsonBody(ruleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule/"+idMap["rule-test"]+"?token=root", jsonBody(ruleInput))
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLBindingRuleCRUD(resp, req)
 			require.NoError(t, err)
@@ -1479,7 +1479,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				BindName:    "vault",
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root&dc=dc1", jsonBody(ruleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root", jsonBody(ruleInput))
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLBindingRuleCreate(resp, req)
 			require.Error(t, err)
@@ -1531,7 +1531,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 		})
 
 		t.Run("Delete", func(t *testing.T) {
-			req, _ := http.NewRequest("DELETE", "/v1/acl/binding-rule/"+idMap["rule-other"]+"?token=root&dc=dc1", nil)
+			req, _ := http.NewRequest("DELETE", "/v1/acl/binding-rule/"+idMap["rule-other"]+"?token=root", nil)
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLBindingRuleCRUD(resp, req)
 			require.NoError(t, err)
@@ -1540,7 +1540,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 		})
 
 		t.Run("Read", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/binding-rule/"+idMap["rule-test"]+"?token=root&dc=dc1", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/binding-rule/"+idMap["rule-test"]+"?token=root", nil)
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLBindingRuleCRUD(resp, req)
 			require.NoError(t, err)
