@@ -1106,17 +1106,39 @@
     "title": "Release Notes",
     "routes": [
       {
-        "title": "1.11.0",
-        "path": "release-notes/1-11-0"
+        "title": "Consul Core",
+        "routes": [
+          {
+            "title": "1.11.0",
+            "path": "release-notes/1-11-0"
+          },
+          {
+            "title": "1.10.0",
+            "path": "release-notes/1-10-0"
+          },
+          {
+            "title": "1.9.0",
+            "path": "release-notes/1-9-0"
+          }
+        ]
       },
       {
-        "title": "1.10.0",
-        "path": "release-notes/1-10-0"
+        "title": "Consul K8s",
+        "routes": [
+          {
+            "title": "0.41",
+            "path": "release-notes/1-11-0"
+          },
+          {
+            "title": "0.32.0",
+            "path": "release-notes/1-10-0"
+          },
+          {
+            "title": "0.27.0",
+            "path": "release-notes/1-9-0"
+          }
+        ]
       },
-      {
-        "title": "1.9.0",
-        "path": "release-notes/1-9-0"
-      }
     ]
   },
   {
