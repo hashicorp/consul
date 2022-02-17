@@ -314,14 +314,13 @@ func assertEvent(name string, watcherCh chan *WatcherEvent, timeout time.Duratio
 
 func createTempConfigFile(t *testing.T, filename string) string {
 	file := testutil.TempFile(t, filename)
-	defer func() {
-		err := file.Close()
-		require.NoError(t, err)
-	}()
-	_, err := file.WriteString("test config")
-	require.NoError(t, err)
-	err = file.Sync()
-	require.NoError(t, err)
+
+	_, err1 := file.WriteString("test config")
+	err2 := file.Close()
+
+	require.NoError(t, err1)
+	require.NoError(t, err2)
+
 	return file.Name()
 }
 

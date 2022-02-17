@@ -36,12 +36,10 @@ func NewFileWatcher(configFiles []string, logger hclog.Logger) (*FileWatcher, er
 	if err != nil {
 		return nil, err
 	}
-	cfgFiles := make(map[string]*watchedFile)
-
 	w := &FileWatcher{
 		watcher:          ws,
 		logger:           logger.Named("file-watcher"),
-		configFiles:      cfgFiles,
+		configFiles:      make(map[string]*watchedFile),
 		EventsCh:         make(chan *WatcherEvent),
 		reconcileTimeout: timeoutDuration,
 		done:             make(chan interface{}),
@@ -49,7 +47,7 @@ func NewFileWatcher(configFiles []string, logger hclog.Logger) (*FileWatcher, er
 	for _, f := range configFiles {
 		err = w.add(f)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error adding file %q: %w", f, err)
 		}
 	}
 
