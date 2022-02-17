@@ -1126,7 +1126,7 @@
         "title": "Consul K8s",
         "routes": [
           {
-            "title": "0.41",
+            "title": "0.41.0",
             "path": "release-notes/k8s/1-11-0"
           },
           {
