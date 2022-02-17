@@ -244,7 +244,7 @@ func (s *HTTPHandlers) AgentReload(resp http.ResponseWriter, req *http.Request) 
 		return nil, acl.ErrPermissionDenied
 	}
 
-	return nil, s.agent.ReloadConfig()
+	return nil, s.agent.ReloadConfig(false)
 }
 
 func buildAgentService(s *structs.NodeService, dc string) api.AgentService {

@@ -180,19 +180,22 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 
+	watcherFiles := make([]string, len(c.configLoadOpts.ConfigFiles))
+	copy(watcherFiles, c.configLoadOpts.ConfigFiles)
+	if bd.RuntimeConfig.KeyFile != "" {
+		watcherFiles = append(watcherFiles, bd.RuntimeConfig.KeyFile)
+	}
+	if bd.RuntimeConfig.CertFile != "" {
+		watcherFiles = append(watcherFiles, bd.RuntimeConfig.CertFile)
+	}
 	if bd.RuntimeConfig.AutoReloadConfig {
-		w, err := config.NewFileWatcher(func(event *config.WatcherEvent) {
-			bd.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
-			err := agent.ReloadConfig()
-			if err != nil {
-				bd.Logger.Error("error loading config", "error", err)
-			}
-		}, c.configLoadOpts.ConfigFiles, bd.Logger)
+		w, err := config.NewFileWatcher(watcherFiles, bd.Logger)
 		if err != nil {
 			ui.Error(err.Error())
 			return 1
 		}
 		agent.FileWatcher = w
+		agent.WatchedFiles = watcherFiles
 	}
 
 	config := bd.RuntimeConfig
@@ -321,7 +324,7 @@ func (c *cmd) run(args []string) int {
 		case syscall.SIGHUP:
 			c.logger.Info("Caught", "signal", sig)
 
-			err := agent.ReloadConfig()
+			err := agent.ReloadConfig(false)
 			if err != nil {
 				c.logger.Error("Reload config failed", "error", err)
 			}

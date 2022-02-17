@@ -359,9 +359,13 @@ type Agent struct {
 	// run by the Agent
 	routineManager *routine.Manager
 
-	//fileWatcher is the watcher responsible to report events when a config file
+	//FileWatcher is the watcher responsible to report events when a config file
 	// changed
 	FileWatcher *config.FileWatcher
+
+	//WatchedFiles is the list of files which are watched by the FileWatcher
+	// changed
+	WatchedFiles []string
 
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
@@ -687,6 +691,17 @@ func (a *Agent) Start(ctx context.Context) error {
 		{Name: "version", Value: a.config.Version},
 		{Name: "pre_release", Value: a.config.VersionPrerelease},
 	})
+
+	// start a go routine to reload config based on file watcher events
+	go func() {
+		for event := range a.FileWatcher.EventsCh {
+			a.baseDeps.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
+			err := a.ReloadConfig(true)
+			if err != nil {
+				a.baseDeps.Logger.Error("error loading config", "error", err)
+			}
+		}
+	}()
 	a.FileWatcher.Start(ctx)
 	return nil
 }
@@ -3698,7 +3713,7 @@ func (a *Agent) DisableNodeMaintenance() {
 // ReloadConfig will atomically reload all configuration, including
 // all services, checks, tokens, metadata, dnsServer configs, etc.
 // It will also reload all ongoing watches.
-func (a *Agent) ReloadConfig() error {
+func (a *Agent) ReloadConfig(autoReload bool) error {
 	newCfg, err := a.baseDeps.AutoConfig.ReadConfig()
 	if err != nil {
 		return err
@@ -3709,6 +3724,17 @@ func (a *Agent) ReloadConfig() error {
 	// breaking some existing behavior.
 	newCfg.NodeID = a.config.NodeID
 
+	if autoReload {
+		if newCfg.KeyFile != a.config.KeyFile || newCfg.CertFile != a.config.CertFile {
+			newWatched := removeWatchedFiles(a.WatchedFiles, a.config.KeyFile, a.config.CAFile)
+			newWatched = append(newWatched, newCfg.KeyFile, newCfg.CertFile)
+			a.FileWatcher, err = config.NewFileWatcher(newWatched, a.baseDeps.Logger)
+			if err != nil {
+				return err
+			}
+			a.FileWatcher.Start(context.Background())
+		}
+	}
 	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
 	// metrics in a future release of Consul.
 	if !a.config.Telemetry.DisableCompatOneNine {
@@ -3716,6 +3742,21 @@ func (a *Agent) ReloadConfig() error {
 	}
 
 	return a.reloadConfigInternal(newCfg)
+}
+
+func removeWatchedFiles(watchedFiles []string, keys ...string) []string {
+	newWatched := make([]string, len(watchedFiles))
+	copy(newWatched, watchedFiles)
+	for _, key := range keys {
+		if key != "" {
+			for i, wf := range newWatched {
+				if wf != key {
+					newWatched = append(newWatched, newWatched[i])
+				}
+			}
+		}
+	}
+	return newWatched
 }
 
 // reloadConfigInternal is mainly needed for some unit tests. Instead of parsing
