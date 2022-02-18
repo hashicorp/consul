@@ -156,8 +156,6 @@ func TestEventWatcherMove(t *testing.T) {
 
 func TestEventReconcileMove(t *testing.T) {
 	filepath := createTempConfigFile(t, "temp_config1")
-	//make sure mod time is different between the 2 files.
-	time.Sleep(10 * time.Millisecond)
 	filepath2 := createTempConfigFile(t, "temp_config2")
 	err := os.Chtimes(filepath, time.Now(), time.Now().Add(-1*time.Second))
 	require.NoError(t, err)
