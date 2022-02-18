@@ -6,6 +6,7 @@ on:
     branches:
       # Push events on the main branch
       - main
+      - remove-setup-qemu
 
 env:
   PKG_NAME: consul
