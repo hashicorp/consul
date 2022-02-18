@@ -7,7 +7,7 @@ description: >-
 
 # Storing the Enterprise License in Vault
 
-To use an enterprise license stored in Vault, the steps will be similar to [Storing Gossip Encryption Key in Vault](/docs/k8s/installation/vault/gossip). We need to do the following:
+To use an enterprise license stored in Vault, the steps will be similar to [Storing Gossip Encryption Key in Vault](/docs/k8s/installation/vault/gossip). You need to do the following:
 
 1. Store an enterprise license key in Vault.
 1. Create policies that will allow Consul client and server to access that key.
@@ -21,7 +21,7 @@ First, store the license key in Vault:
 $ vault kv put secret/consul/enterpriselicense key="<enterprise license>"
 ```
 
-Next, we will need to create a policy that allows read access to this secret:
+Next, you will need to create a policy that allows read access to this secret:
 
 
 <CodeBlockConfig filename="enterpriselicense-policy.hcl">
@@ -40,7 +40,7 @@ $ vault policy write enterpriselicense-policy enterpriselicense-policy.hcl
 
 Prior to creating Vault auth roles for the Consul servers and clients, ensure that the Vault Kubernetes auth method is enabled as described in [Vault Kubernetes Auth Method](/docs/k8s/installation/vault#vault-kubernetes-auth-method).
 
-Next, we will create Kubernetes auth roles for the Consul server and client:
+Next, you will create Kubernetes auth roles for the Consul server and client:
 
 ```shell-session
 $ vault write auth/kubernetes/role/consul-server \
@@ -73,7 +73,7 @@ you can run the following `helm template` commands with your Consul on Kubernete
 
 ## Deploying the Consul Helm chart
 
-Now that we've configured Vault, you can configure the Consul Helm chart to
+Now that you have configured Vault, you can configure the Consul Helm chart to
 use the enterprise license key in Vault:
 
 <CodeBlockConfig filename="values.yaml">
@@ -93,6 +93,6 @@ global:
 </CodeBlockConfig>
 
 Note that `global.enterpriseLicense.secretName` is the path of the secret in Vault.
-This should be the same path as the one you'd include in your Vault policy.
+This should be the same path as the one you included in your Vault policy.
 `global.enterpriseLicense.secretKey` is the key inside the secret data. This should be the same
-as the key we passed when we created the enterprise license secret in Vault.
+as the key you passed when creating the enterprise license secret in Vault.
