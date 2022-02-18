@@ -452,6 +452,8 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					Node:           "node1",
 					CheckID:        "check1",
 					Name:           "name1",
+					Interval:       "",
+					Timeout:        "", // these are empty because a TTL was provided
 					Status:         "critical",
 					Notes:          "note1",
 					ServiceID:      "svcid1",
@@ -500,6 +502,8 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					Node:           "node1",
 					CheckID:        "check1",
 					Name:           "name1",
+					Interval:       "",
+					Timeout:        "", // these are empty bcause a TTL was provided
 					Status:         "critical",
 					Notes:          "note1",
 					ServiceID:      "svcid2",
@@ -512,6 +516,8 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					Node:           "node1",
 					CheckID:        "check-noname",
 					Name:           "Service 'svcname2' check",
+					Interval:       "",
+					Timeout:        "", // these are empty because a TTL was provided
 					Status:         "critical",
 					ServiceID:      "svcid2",
 					ServiceName:    "svcname2",
@@ -523,6 +529,8 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					Node:           "node1",
 					CheckID:        "service:svcid2:3",
 					Name:           "check-noid",
+					Interval:       "",
+					Timeout:        "", // these are empty becuase a TTL was provided
 					Status:         "critical",
 					ServiceID:      "svcid2",
 					ServiceName:    "svcname2",
@@ -534,6 +542,8 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					Node:           "node1",
 					CheckID:        "service:svcid2:4",
 					Name:           "Service 'svcname2' check",
+					Interval:       "",
+					Timeout:        "", // these are empty because a TTL was provided
 					Status:         "critical",
 					ServiceID:      "svcid2",
 					ServiceName:    "svcname2",
