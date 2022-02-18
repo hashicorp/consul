@@ -277,9 +277,9 @@ func TestEventWatcherDirRead(t *testing.T) {
 	w, err := NewFileWatcher([]string{filepath}, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
-	defer func() {
+	t.Cleanup(func() {
 		_ = w.Stop()
-	}()
+	})
 
 	_, err = os.ReadFile(name)
 	require.NoError(t, err)
