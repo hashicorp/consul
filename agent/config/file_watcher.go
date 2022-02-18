@@ -79,9 +79,9 @@ func (w *FileWatcher) Start(ctx context.Context) {
 func (w *FileWatcher) Stop() error {
 	var err error
 	w.stopOnce.Do(func() {
-		close(w.EventsCh)
 		w.cancel()
 		<-w.done
+		close(w.EventsCh)
 		err = w.watcher.Close()
 	})
 	return err
