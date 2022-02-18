@@ -945,7 +945,17 @@ type blockingQueryResponseMeta interface {
 //
 // The query function is expected to be a closure that has access to responseMeta
 // so that it can set the Index. The actual result of the query is opaque to blockingQuery.
-// If query function returns an error, the error is returned to the caller immediately.
+//
+// The query function can return errNotFound, which is a sentinel error. Returning
+// errNotFound indicates that the query found no results, which allows
+// blockingQuery to keep blocking until the query returns a non-nil error.
+// The query function must take care to set the actual result of the query to
+// nil in these cases, otherwise when blockingQuery times out it may return
+// a previous result. errNotFound will never be returned to the caller, it is
+// converted to nil before returning.
+//
+// If query function returns any other error, the error is returned to the caller
+// immediately.
 //
 // The query function must follow these rules:
 //
