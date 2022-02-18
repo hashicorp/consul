@@ -134,7 +134,11 @@ The configuration options are listed below.
   must be the intermediate certificate that Consul will use as the primary CA.
   The last certificate in the bundle must be a root certificate. The bundle
   must contain a valid chain, where each certificate is followed by the certificate
-  that authorized it.
+  that authorized it. See [using an external root CA](#using-an-external-root-ca) for
+  step-by-step instructions for this setup.
+
+  See the section about [root and intermediate PKI paths](#root-and-intermediate-pki-paths)
+  for more details.
 
 - `IntermediatePKIPath` / `intermediate_pki_path` (`string: <required>`) -
   The path to a PKI secrets engine for the generated intermediate certificate.
@@ -144,6 +148,9 @@ The configuration options are listed below.
 
   When WAN Federation is enabled, every secondary 
   datacenter must specify a unique `intermediate_pki_path`. 
+
+  See the section about [root and intermediate PKI paths](#root-and-intermediate-pki-paths)
+  for more details.
 
 - `CAFile` / `ca_file` (`string: ""`) - Specifies an optional path to the CA
   certificate used for Vault communication. If unspecified, this will fallback
@@ -176,22 +183,65 @@ The configuration options are listed below.
 
 ## Root and Intermediate PKI Paths
 
-The Vault CA provider uses two separately configured
+The Vault CA provider uses two separately configured paths with the
 [PKI secrets engines](https://www.vaultproject.io/docs/secrets/pki)
 for managing Connect certificates.
 
-The `RootPKIPath` is the PKI engine for the root certificate. Consul will
-use this root certificate to sign the intermediate certificate. Consul will
-never attempt to write or modify any data within the root PKI path.
+The [`RootPKIPath` (`root_pki_path`)](#rootpkipath) is the PKI path for the
+root certificate. Consul will
+use this root certificate to sign an intermediate certificate for each
+Consul datacenter, including the primary datacenter. Consul will
+never modify any data within the root PKI path after the path has been
+mounted and initialized.
 
-The `IntermediatePKIPath` is the PKI engine used for storing the intermediate
-signed with the root certificate. The intermediate is used to sign all leaf
-certificates and Consul may periodically generate new intermediates for
-automatic rotation. Therefore, Consul requires write access to this path.
+The [`IntermediatePKIPath` (`intermediate_pki_path`)](#intermediatepkipath) is
+the PKI path used for storing the intermediate CA that was signed by the root certificate.
+The intermediate is used to sign all leaf certificates.
+Consul will periodically generate new intermediates before the existing certificate
+expires. Therefore, Consul requires write access to this path. This path is managed
+entirely by Consul, it should not be mounted or initialized.
 
 If either path does not exist, then Consul will attempt to mount and
 initialize it. This requires additional privileges by the Vault token in use.
 If the paths already exist, Consul will use them as configured.
+
+### Using an external root CA
+
+To use an external root CA with the Vault provider you must initialize the
+`RootPKIPath` before configuring Consul to use that path.
+
+The following steps can be used to initialize the path:
+
+1. Enable the PKI secrets engine at the path (`connect_root`) that will be used as
+   `RootPKIPath`. Optionally you may also tune the path using `vault secrets tune`.
+
+   ```shell-session
+   $ vault secrets enable -path=connect_root pki
+   ```
+
+2. Create a [private certificate and a certificate signing request (CSR) in Vault](https://www.vaultproject.io/api-docs/secret/pki#generate-intermediate).
+
+   ```shell-session
+   $ vault write connect_root/intermediate/generate/internal
+   ```
+
+3. Use the external root CA to sign the CSR. The exact steps depend on where the root 
+CA is stored.  If you are using vault to store the root CA use
+[sign-intermediate](https://www.vaultproject.io/api-docs/secret/pki#sign-intermediate).
+4. Create a pem bundle by concatenating the signed intermediate and the root CA that
+   signed it.
+
+   ```shell-session
+   $ cat signed-intermediate.pem root-ca.pem > bundle.pem
+   ```
+
+5. Write the bundle.pem to the `RootPKIPath` with
+[`set-signed`](https://www.vaultproject.io/api-docs/secret/pki#set-signed-intermediate).
+
+   ```shell-session
+   $ vault write connect_root/intermediate/set-signed certificate=@./bundle.pem
+   ```
+
 
 ## Vault ACL Policies
 
