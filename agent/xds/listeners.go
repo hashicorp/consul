@@ -1304,7 +1304,7 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(
 		configMap = u.Config
 	}
 	if chain == nil || chain.IsDefault() {
-		cfg, err = structs.ParseUpstreamConfig(configMap)
+		cfg, err = structs.ParseUpstreamConfigNoDefaults(configMap)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
@@ -1327,18 +1327,18 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(
 			// Remove from config struct so we don't use it later on
 			cfg.EnvoyListenerJSON = ""
 		}
-
-		protocol := cfg.Protocol
-		if protocol == "" {
-			protocol = chain.Protocol
-		}
-		if protocol == "" {
-			protocol = "tcp"
-		}
-
-		// set back on the config so that we can use it from return value
-		cfg.Protocol = protocol
 	}
+
+	protocol := cfg.Protocol
+	if protocol == "" {
+		protocol = chain.Protocol
+	}
+	if protocol == "" {
+		protocol = "tcp"
+	}
+
+	// set back on the config so that we can use it from return value
+	cfg.Protocol = protocol
 
 	return cfg
 }
