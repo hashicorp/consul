@@ -3737,6 +3737,10 @@ func (a *Agent) ReloadConfig(autoReload bool) error {
 		if newCfg.KeyFile != a.config.KeyFile || newCfg.CertFile != a.config.CertFile {
 			newWatched := removeWatchedFiles(a.WatchedFiles, a.config.KeyFile, a.config.CAFile)
 			newWatched = append(newWatched, newCfg.KeyFile, newCfg.CertFile)
+			a.FileWatcher.Stop()
+			if err != nil {
+				return err
+			}
 			a.FileWatcher, err = config.NewFileWatcher(newWatched, a.baseDeps.Logger)
 			if err != nil {
 				return err
