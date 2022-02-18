@@ -75,7 +75,7 @@ func (w *FileWatcher) Start(ctx context.Context) {
 }
 
 // Stop the file watcher
-// calling Stop multiple times is a noop
+// calling Stop multiple times is a noop, Stop must be called after a Start
 func (w *FileWatcher) Stop() error {
 	var err error
 	w.stopOnce.Do(func() {
