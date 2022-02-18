@@ -53,10 +53,14 @@ as |route|>
             </h3>
           </notice.Header>
           <notice.Body>
-            {{t "routes.dc.services.instance.upstreams.tproxy-mode.body"}}
+            {{t "routes.dc.services.instance.upstreams.tproxy-mode.body"
+              htmlSafe=true
+            }}
           </notice.Body>
           <notice.Footer>
-            {{t "routes.dc.services.instance.upstreams.tproxy-mode.footer"}}
+            {{t "routes.dc.services.instance.upstreams.tproxy-mode.footer"
+              htmlSafe=true
+            }}
           </notice.Footer>
         </Notice>
       {{/if}}
