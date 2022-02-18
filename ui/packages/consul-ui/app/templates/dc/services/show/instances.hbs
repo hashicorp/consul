@@ -29,8 +29,9 @@ as |route|>
   )
 
   route.model.items
+  route.model.proxies.firstObject
 
-as |sort filters items|}}
+as |sort filters items proxyMeta|}}
     {{#if (gt items.length 0) }}
     <input type="checkbox" id="toolbar-toggle" />
     <Consul::ServiceInstance::SearchBar
@@ -41,6 +42,19 @@ as |sort filters items|}}
       @sort={{sort}}
 
       @filter={{filters}}
+      />
+    {{/if}}
+    {{#if proxyMeta.ServiceName}}
+      <DataSource
+        @src={{uri '/${partition}/${nspace}/${dc}/service-instances/for-service/${name}'
+          (hash
+            partition=route.params.partition
+            nspace=route.params.nspace
+            dc=route.params.dc
+            name=proxyMeta.ServiceName
+          )
+        }}
+        @onchange={{action (mut proxies) value="data"}}
       />
     {{/if}}
     {{! Service > Service Instance view doesn't require filtering of proxies }}
@@ -55,6 +69,7 @@ as |sort filters items|}}
         <Consul::ServiceInstance::List
           @routeName="dc.services.instance"
           @items={{collection.items}}
+          @proxies={{proxies}}
         />
       </collection.Collection>
       <collection.Empty>

@@ -45,6 +45,8 @@ type QueryMetaCompat interface {
 	GetConsistencyLevel() string
 	SetConsistencyLevel(string)
 	GetBackend() QueryBackend
+	GetResultsFilteredByACLs() bool
+	SetResultsFilteredByACLs(bool)
 }
 
 // GetToken helps implement the QueryOptionsCompat interface
@@ -273,4 +275,16 @@ func (q *QueryMeta) SetConsistencyLevel(consistencyLevel string) {
 
 func (q *QueryMeta) GetBackend() QueryBackend {
 	return q.Backend
+}
+
+// GetResultsFilteredByACLs is needed to implement the structs.QueryMetaCompat
+// interface.
+func (q *QueryMeta) GetResultsFilteredByACLs() bool {
+	return q.ResultsFilteredByACLs
+}
+
+// SetResultsFilteredByACLs is needed to implement the structs.QueryMetaCompat
+// interface.
+func (q *QueryMeta) SetResultsFilteredByACLs(v bool) {
+	q.ResultsFilteredByACLs = v
 }

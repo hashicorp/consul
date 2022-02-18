@@ -16,11 +16,7 @@ state: needs-love
     Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
     </:label>
     <:content>
-    <!-- Plain text or something that renders data like the following -->
-    <Consul::ServiceIdentity::Template
-        @nspace={{nspace}}
-        @name={{item.Name}}
-    />
+      {"content": "Initial Content"}
     </:content>
 </CodeEditor>
 ```

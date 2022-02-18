@@ -55,6 +55,15 @@ type IndexedCARoots struct {
 	QueryMeta `json:"-"`
 }
 
+func (r IndexedCARoots) Active() *CARoot {
+	for _, root := range r.Roots {
+		if root.ID == r.ActiveRootID {
+			return root
+		}
+	}
+	return nil
+}
+
 // CARoot represents a root CA certificate that is trusted.
 type CARoot struct {
 	// ID is a globally unique ID (UUID) representing this CA root.
@@ -67,9 +76,14 @@ type CARoot struct {
 	// SerialNumber is the x509 serial number of the certificate.
 	SerialNumber uint64
 
-	// SigningKeyID is the ID of the public key that corresponds to the private
-	// key used to sign leaf certificates. Is is the HexString format of the
-	// raw AuthorityKeyID bytes.
+	// SigningKeyID is the connect.HexString encoded id of the public key that
+	// corresponds to the private key used to sign leaf certificates in the
+	// local datacenter.
+	//
+	// The value comes from x509.Certificate.SubjectKeyId of the local leaf
+	// signing cert.
+	//
+	// See https://www.rfc-editor.org/rfc/rfc3280#section-4.2.1.1 for more detail.
 	SigningKeyID string
 
 	// ExternalTrustDomain is the trust domain this root was generated under. It
@@ -86,11 +100,20 @@ type CARoot struct {
 	NotBefore time.Time
 	NotAfter  time.Time
 
-	// RootCert is the PEM-encoded public certificate.
+	// RootCert is the PEM-encoded public certificate for the root CA. The
+	// certificate is the same for all federated clusters.
 	RootCert string
 
 	// IntermediateCerts is a list of PEM-encoded intermediate certs to
-	// attach to any leaf certs signed by this CA.
+	// attach to any leaf certs signed by this CA. The list may include a
+	// certificate cross-signed by an old root CA, any subordinate CAs below the
+	// root CA, and the intermediate CA used to sign leaf certificates in the
+	// local Datacenter.
+	//
+	// If the provider which created this root uses an intermediate to sign
+	// leaf certificates (Vault provider), or this is a secondary Datacenter then
+	// the intermediate used to sign leaf certificates will be the last in the
+	// list.
 	IntermediateCerts []string
 
 	// SigningCert is the PEM-encoded signing certificate and SigningKey
@@ -136,6 +159,20 @@ func (c *CARoot) Clone() *CARoot {
 // CARoots is a list of CARoot structures.
 type CARoots []*CARoot
 
+// Active returns the single CARoot that is marked as active, or nil if there
+// is no active root (ex: when they are no roots).
+func (c CARoots) Active() *CARoot {
+	if c == nil {
+		return nil
+	}
+	for _, r := range c {
+		if r.Active {
+			return r
+		}
+	}
+	return nil
+}
+
 // CASignRequest is the request for signing a service certificate.
 type CASignRequest struct {
 	// Datacenter is the target for this request.
@@ -160,10 +197,14 @@ type IssuedCert struct {
 	// This is encoded in standard hex separated by :.
 	SerialNumber string
 
-	// CertPEM and PrivateKeyPEM are the PEM-encoded certificate and private
-	// key for that cert, respectively. This should not be stored in the
-	// state store, but is present in the sign API response.
-	CertPEM       string `json:",omitempty"`
+	// CertPEM is a PEM encoded bundle of a leaf certificate, optionally followed
+	// by one or more intermediate certificates that will form a chain of trust
+	// back to a root CA.
+	//
+	// This field is not persisted in the state store, but is present in the
+	// sign API response.
+	CertPEM string `json:",omitempty"`
+	// PrivateKeyPEM is the PEM encoded private key associated with CertPEM.
 	PrivateKeyPEM string `json:",omitempty"`
 
 	// Service is the name of the service for which the cert was issued.

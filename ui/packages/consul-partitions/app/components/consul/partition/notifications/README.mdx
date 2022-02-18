@@ -1,40 +1,13 @@
 # Consul::Partition::Notifications
 
-A Notification component specifically for Partitions (at some point will be replaced with just using `ember-intl`/`t`.
+A Notification component specifically for Partitions. This is only a component as we currently use this in two places and if we need to add more types we can do so in one place.
+
+We currently one have one 'remove' type due to the fact that Admin Partions can't use the default 'delete' notification as they get 'marked for deletion' instead.
 
 ```hbs preview-template
-  <figure>
-    <figcaption>Provide a widget to change the <code>@type</code></figcaption>
-
-    <select
-      {{on 'change' (action (mut this.type) value="target.value")}}
-    >
-      <option>create</option>
-      <option>update</option>
-      <option>delete</option>
-    </select>
-  </figure>
-  <figure>
-    <figcaption>Provide a widget to change the <code>@status</code></figcaption>
-
-    <select
-      {{on 'change' (action (mut this.success) value="target.value")}}
-    >
-      <option>success</option>
-      <option>error</option>
-    </select>
-  </figure>
-  <figure>
-    <figcaption>Show the notification text</figcaption>
-    <p>
-      <Consul::Partition::Notifications
-        @type={{or this.type 'create'}}
-        @status={{or this.success 'success'}}
-        @error={{undefined}}
-      />
-    </p>
-  </figure>
-
+  <Consul::Partition::Notifications
+    @type={{'remove'}}
+  />
 ```
 
 

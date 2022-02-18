@@ -9,7 +9,7 @@ export default class MyDocument extends Document {
 
   render() {
     return (
-      <Html>
+      <Html lang="en">
         <Head>
           <HashiHead />
         </Head>
@@ -19,7 +19,7 @@ export default class MyDocument extends Document {
           <script
             noModule
             dangerouslySetInnerHTML={{
-              __html: `window.MSInputMethodContext && document.documentMode && document.write('<script src="/ie-custom-properties.js"><\\x2fscript>');`,
+              __html: `window.MSInputMethodContext && document.documentMode && document.write('<script src="/ie-warning.js"><\\x2fscript>');`,
             }}
           />
         </body>

@@ -7,9 +7,19 @@ page_title: 'Commands: Namespace Write'
 
 Command: `consul namespace write`
 
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/namespace/:name](/api-docs/namespaces#update-a-namespace)
+
 <EnterpriseAlert />
 
 This `namespace write` command creates or updates a namespace's configuration from its full definition. This was added in Consul Enterprise 1.7.0.
+
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
 
 ## Usage
 
@@ -24,6 +34,8 @@ or HCL format. See [here](/docs/enterprise/namespaces#namespace-definition) for 
 @include 'http_api_options_client.mdx'
 
 @include 'http_api_options_server.mdx'
+
+@include 'http_api_partition_options.mdx'
 
 #### Command Options
 

@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
+	"github.com/hashicorp/go-hclog"
 )
 
 func noopRegister(*grpc.Server) {}
@@ -23,7 +24,7 @@ func TestHandler_EmitsStats(t *testing.T) {
 	sink, reset := patchGlobalMetrics(t)
 
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	handler := NewHandler(addr, noopRegister)
+	handler := NewHandler(hclog.Default(), addr, noopRegister)
 	reset()
 
 	testservice.RegisterSimpleServer(handler.srv, &simple{})

@@ -6,9 +6,9 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/raft"
 )

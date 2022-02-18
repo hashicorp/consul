@@ -28,6 +28,9 @@ type Namespace struct {
 	// This is nullable so that we can omit if empty when encoding in JSON
 	DeletedAt *time.Time `json:"DeletedAt,omitempty" alias:"deleted_at"`
 
+	// Partition which contains the Namespace.
+	Partition string `json:"Partition,omitempty"`
+
 	// CreateIndex is the Raft index at which the Namespace was created
 	CreateIndex uint64 `json:"CreateIndex,omitempty"`
 
@@ -50,7 +53,7 @@ type Namespaces struct {
 	c *Client
 }
 
-// Operator returns a handle to the operator endpoints.
+// Namespaces returns a handle to the namespaces endpoints.
 func (c *Client) Namespaces() *Namespaces {
 	return &Namespaces{c}
 }

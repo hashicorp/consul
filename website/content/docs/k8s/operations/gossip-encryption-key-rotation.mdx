@@ -8,21 +8,21 @@ description: Rotate the Gossip Encryption Key on Kubernetes Cluster safely
 
 The following instructions provides a step-by-step manual process for rotating [gossip encryption](/docs/security/encryption#gossip-encryption) keys on Consul clusters that are deployed onto a Kubernetes cluster with Consul on Kubernetes.
 
-The following steps should only be performed in the *primary datacenter* if your Consul clusters are [federated](https://www.consul.io/docs/k8s/installation/multi-cluster/kubernetes). Rotating the gossip encryption in the primary datacenter will automatically rotate the gossip encryption in the secondary datacenters. 
+The following steps should only be performed in the *primary datacenter* if your Consul clusters are [federated](/docs/k8s/installation/multi-cluster/kubernetes). Rotating the gossip encryption in the primary datacenter will automatically rotate the gossip encryption in the secondary datacenters.
 
--> **Note:** Careful precaution should be taken to prohibit new clients from joining during the gossip encryption rotation process, otherwise the new clients will join the gossip pool without knowledge of the new primary gossip encryption key. In addition, deletion of a gossip encryption key from the keyring should occur only after clients have safely migrated to utilizing the new gossip encryption key for communication. 
+-> **Note:** Careful precaution should be taken to prohibit new clients from joining during the gossip encryption rotation process, otherwise the new clients will join the gossip pool without knowledge of the new primary gossip encryption key. In addition, deletion of a gossip encryption key from the keyring should occur only after clients have safely migrated to utilizing the new gossip encryption key for communication.
 
 1. (Optional) If Consul is installed in a dedicated namespace, set the kubeConfig context to the consul namespace. Otherwise, subsequent commands will need to include -n consul.
 
     ```shell-session
     kubectl config set-context --current --namespace=consul
     ```
-1. Generate a new key and store in safe place for retrieval in the future ([Vault KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv/kv-v2#usage) is a recommended option). 
+1. Generate a new key and store in safe place for retrieval in the future ([Vault KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv/kv-v2#usage) is a recommended option).
 
     ```shell-session
-    consul keygen
+    $ consul keygen
     ```
-  
+
     This should generate a new key which can be used as the gossip encryption key. In this example, we will be using
     `Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w=` as the replacement gossip encryption key.
 
@@ -37,9 +37,9 @@ The following steps should only be performed in the *primary datacenter* if your
     1. **Note:** If ACLs are enabled, export the bootstrap token as the CONSUL_HTTP_TOKEN to perform all `consul keyring` operations. The bootstrap token can be found in the Kubernetes secret `consul-bootstrap-acl-token` of the primary datacenter.
 
         ```shell-session
-        export CONSUL_HTTP_TOKEN=<INSERT BOOTSTRAP ACL TOKEN>
+        $ export CONSUL_HTTP_TOKEN=<INSERT BOOTSTRAP ACL TOKEN>
         ```
-    
+
     1. Install the new Gossip encryption key with the `consul keyring` command:
 
         ```shell-session
@@ -107,7 +107,7 @@ The following steps should only be performed in the *primary datacenter* if your
     ```
 
     ```shell-session
-    kubectl patch secret consul-gossip-encryption-key -p '{"stringData":{"key": "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="}}'
+    $ kubectl patch secret consul-gossip-encryption-key --patch='{"stringData":{"key": "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="}}'
     ```
 
     **Note:** In the case of federated Consul clusters, update the federation-secret value for the gossip encryption key. The name of the secret and key can be found in the values file of the secondary datacenter.
@@ -120,7 +120,7 @@ The following steps should only be performed in the *primary datacenter* if your
     ```
 
     ```shell-session
-    kubectl patch secret consul-federation -p '{"stringData":{"gossipEncryptionKey": "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="}}'
+    $ kubectl patch secret consul-federation --patch='{"stringData":{"gossipEncryptionKey": "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="}}'
     ```
 
 1. Remove the old key once the new one has been installed successfully.

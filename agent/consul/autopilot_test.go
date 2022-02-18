@@ -6,12 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestAutopilot_IdempotentShutdown(t *testing.T) {
@@ -19,7 +20,7 @@ func TestAutopilot_IdempotentShutdown(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	dir1, s1 := testServerWithConfig(t, nil)
+	dir1, s1 := testServerWithConfig(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	retry.Run(t, func(r *retry.R) { r.Check(waitForLeader(s1)) })
@@ -76,7 +77,6 @@ func TestAutopilot_CleanupDeadServer(t *testing.T) {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 5)) })
 	}
 
-	require := require.New(t)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	leaderIndex := -1
 	for i, s := range servers {
@@ -85,7 +85,7 @@ func TestAutopilot_CleanupDeadServer(t *testing.T) {
 			break
 		}
 	}
-	require.NotEqual(leaderIndex, -1)
+	require.NotEqual(t, leaderIndex, -1)
 
 	// Shutdown two non-leader servers
 	killed := make(map[string]struct{})

@@ -1,0 +1,6 @@
+```release-note:deprecation
+api: `/v1/agent/token/agent_master` is deprecated and will be removed in a future major release - use `/v1/agent/token/agent_recovery` instead
+```
+```release-note:breaking-change
+cli: `consul acl set-agent-token master` has been replaced with `consul acl set-agent-token recovery`
+```

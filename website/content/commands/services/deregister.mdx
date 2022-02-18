@@ -7,6 +7,8 @@ page_title: 'Commands: Services Deregister'
 
 Command: `consul services deregister`
 
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/service/deregister/:service_id](/api-docs/agent/service#deregister-service)
+
 The `services deregister` command deregisters a service with the local agent.
 Note that this command can only deregister services that were registered
 with the agent specified (defaults to the local agent) and is meant to
@@ -15,8 +17,16 @@ be paired with `services register`.
 This is just one method for service deregistration. If the service was
 registered with a configuration file, then deleting that file and
 [reloading](/commands/reload) Consul is the correct method to
-deregister. See [Service Definition](/docs/agent/services) for more
+deregister. See [Service Definition](/docs/discovery/services) for more
 information about registering services generally.
+
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required    |
+| --------------- |
+| `service:write` |
 
 ## Usage
 
@@ -35,6 +45,8 @@ This flexibility makes it easy to pair the command with the
 #### Enterprise Options
 
 @include 'http_api_namespace_options.mdx'
+
+@include 'http_api_partition_options.mdx'
 
 #### Service Deregistration Flags
 

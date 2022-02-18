@@ -380,6 +380,25 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 		return c.generateNewLeaf(reqReal, lastResultWithNewState())
 	}
 
+	// If we called Fetch() with MustRevalidate then this call came from a non-blocking query.
+	// Any prior CA rotations should've already expired the cert.
+	// All we need to do is check whether the current CA is the one that signed the leaf. If not, generate a new leaf.
+	// This is not a perfect solution (as a CA rotation update can be missed) but it should take care of instances like
+	// see https://github.com/hashicorp/consul/issues/10871, https://github.com/hashicorp/consul/issues/9862
+	// This seems to me like a hack, so maybe we can revisit the caching/ fetching logic in this case
+	if req.CacheInfo().MustRevalidate {
+		roots, err := c.rootsFromCache()
+		if err != nil {
+			return lastResultWithNewState(), err
+		}
+		if activeRootHasKey(roots, state.authorityKeyID) {
+			return lastResultWithNewState(), nil
+		}
+
+		// if we reach here then the current leaf was not signed by the same CAs, just regen
+		return c.generateNewLeaf(reqReal, lastResultWithNewState())
+	}
+
 	// We are about to block and wait for a change or timeout.
 
 	// Make a chan we can be notified of changes to CA roots on. It must be
@@ -401,7 +420,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	c.fetchStart(rootUpdateCh)
 	defer c.fetchDone(rootUpdateCh)
 
-	// Setup the timeout chan outside the loop so we don't keep bumping the timout
+	// Setup the timeout chan outside the loop so we don't keep bumping the timeout
 	// later if we loop around.
 	timeoutCh := time.After(opts.Timeout)
 
@@ -492,7 +511,7 @@ func (c *ConnectCALeaf) rootsFromCache() (*structs.IndexedCARoots, error) {
 
 // generateNewLeaf does the actual work of creating a new private key,
 // generating a CSR and getting it signed by the servers. result argument
-// represents the last result currently in cache if any along with it's state.
+// represents the last result currently in cache if any along with its state.
 func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	result cache.FetchResult) (cache.FetchResult, error) {
 
@@ -643,14 +662,15 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 // since this is only used for cache-related requests and not forwarded
 // directly to any Consul servers.
 type ConnectCALeafRequest struct {
-	Token         string
-	Datacenter    string
-	Service       string // Service name, not ID
-	Agent         string // Agent name, not ID
-	DNSSAN        []string
-	IPSAN         []net.IP
-	MinQueryIndex uint64
-	MaxQueryTime  time.Duration
+	Token          string
+	Datacenter     string
+	Service        string // Service name, not ID
+	Agent          string // Agent name, not ID
+	DNSSAN         []string
+	IPSAN          []net.IP
+	MinQueryIndex  uint64
+	MaxQueryTime   time.Duration
+	MustRevalidate bool
 
 	structs.EnterpriseMeta
 }
@@ -684,10 +704,11 @@ func (req *ConnectCALeafRequest) TargetPartition() string {
 
 func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
 	return cache.RequestInfo{
-		Token:      r.Token,
-		Key:        r.Key(),
-		Datacenter: r.Datacenter,
-		MinIndex:   r.MinQueryIndex,
-		Timeout:    r.MaxQueryTime,
+		Token:          r.Token,
+		Key:            r.Key(),
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MustRevalidate: r.MustRevalidate,
 	}
 }

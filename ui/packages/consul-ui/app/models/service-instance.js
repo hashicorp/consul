@@ -1,9 +1,8 @@
-import Model, { attr, belongsTo } from '@ember-data/model';
+import Model, { attr } from '@ember-data/model';
 import { fragmentArray } from 'ember-data-model-fragments/attributes';
-import { computed, get } from '@ember/object';
+import { computed } from '@ember/object';
 import { or, filter, alias } from '@ember/object/computed';
 import { tracked } from '@glimmer/tracking';
-import mergeChecks from 'consul-ui/utils/merge-checks';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Node.Node,Service.ID';
@@ -28,8 +27,6 @@ export default class ServiceInstance extends Model {
   @attr('string') uid;
 
   @attr('string') Datacenter;
-  // ProxyInstance is the ember-data model relationship
-  @belongsTo('Proxy') ProxyInstance;
   // Proxy is the actual JSON api response
   @attr() Proxy;
   @attr() Node;
@@ -54,18 +51,6 @@ export default class ServiceInstance extends Model {
 
   @filter('Checks.@each.Kind', (item, i, arr) => item.Kind === 'service') ServiceChecks;
   @filter('Checks.@each.Kind', (item, i, arr) => item.Kind === 'node') NodeChecks;
-
-  // MeshChecks are a concatenation of Checks for the Instance and Checks for
-  // the ProxyInstance.
-  @computed('Checks.[]', 'ProxyInstance.{Checks.[],ServiceProxy.Expose.Checks}')
-  get MeshChecks() {
-    // merge the instance and proxy checks together, avoiding duplicate node
-    // checks and additionally setting any checks to exposed if required
-    return mergeChecks(
-      [get(this, 'Checks'), get(this, 'ProxyInstance.Checks')],
-      get(this, 'ProxyInstance.ServiceProxy.Expose.Checks')
-    );
-  }
 
   @computed('Service.Meta')
   get ExternalSources() {

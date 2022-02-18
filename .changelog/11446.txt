@@ -1,3 +1,0 @@
-```release-note:improvement
-cli: update consul members output to display partitions and sort the results usefully
-```

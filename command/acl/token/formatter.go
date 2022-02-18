@@ -52,6 +52,9 @@ func (f *prettyFormatter) FormatToken(token *api.ACLToken) (string, error) {
 
 	buffer.WriteString(fmt.Sprintf("AccessorID:       %s\n", token.AccessorID))
 	buffer.WriteString(fmt.Sprintf("SecretID:         %s\n", token.SecretID))
+	if token.Partition != "" {
+		buffer.WriteString(fmt.Sprintf("Partition:        %s\n", token.Partition))
+	}
 	if token.Namespace != "" {
 		buffer.WriteString(fmt.Sprintf("Namespace:        %s\n", token.Namespace))
 	}
@@ -126,6 +129,9 @@ func (f *prettyFormatter) formatTokenListEntry(token *api.ACLTokenListEntry) str
 
 	buffer.WriteString(fmt.Sprintf("AccessorID:       %s\n", token.AccessorID))
 	buffer.WriteString(fmt.Sprintf("SecretID:         %s\n", token.SecretID))
+	if token.Partition != "" {
+		buffer.WriteString(fmt.Sprintf("Partition:        %s\n", token.Partition))
+	}
 	if token.Namespace != "" {
 		buffer.WriteString(fmt.Sprintf("Namespace:        %s\n", token.Namespace))
 	}
@@ -167,13 +173,9 @@ func (f *prettyFormatter) formatTokenListEntry(token *api.ACLTokenListEntry) str
 		}
 	}
 	if len(token.NodeIdentities) > 0 {
-		buffer.WriteString(fmt.Sprintln("Service Identities:"))
-		for _, svcid := range token.ServiceIdentities {
-			if len(svcid.Datacenters) > 0 {
-				buffer.WriteString(fmt.Sprintf("   %s (Datacenters: %s)\n", svcid.ServiceName, strings.Join(svcid.Datacenters, ", ")))
-			} else {
-				buffer.WriteString(fmt.Sprintf("   %s (Datacenters: all)\n", svcid.ServiceName))
-			}
+		buffer.WriteString(fmt.Sprintln("Node Identities:"))
+		for _, nodeid := range token.NodeIdentities {
+			buffer.WriteString(fmt.Sprintf("   %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter))
 		}
 	}
 	return buffer.String()

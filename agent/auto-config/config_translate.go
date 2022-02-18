@@ -26,9 +26,12 @@ func translateConfig(c *pbconfig.Config) config.Config {
 		Datacenter:        stringPtrOrNil(c.Datacenter),
 		PrimaryDatacenter: stringPtrOrNil(c.PrimaryDatacenter),
 		NodeName:          stringPtrOrNil(c.NodeName),
-		// only output the SegmentName in the configuration if its non-empty
+		// only output the SegmentName in the configuration if it's non-empty
 		// this will avoid a warning later when parsing the persisted configuration
 		SegmentName: stringPtrOrNil(c.SegmentName),
+		// only output the Partition in the configuration if it's non-empty
+		// this will avoid a warning later when parsing the persisted configuration
+		Partition: stringPtrOrNil(c.Partition),
 	}
 
 	if a := c.AutoEncrypt; a != nil {
@@ -62,9 +65,9 @@ func translateConfig(c *pbconfig.Config) config.Config {
 			}
 
 			result.ACL.Tokens = config.Tokens{
-				Master:                 stringPtrOrNil(t.Master),
+				InitialManagement:      stringPtrOrNil(t.InitialManagement),
+				AgentRecovery:          stringPtrOrNil(t.AgentRecovery),
 				Replication:            stringPtrOrNil(t.Replication),
-				AgentMaster:            stringPtrOrNil(t.AgentMaster),
 				Default:                stringPtrOrNil(t.Default),
 				Agent:                  stringPtrOrNil(t.Agent),
 				ManagedServiceProvider: tokens,

@@ -9,7 +9,6 @@ import (
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -17,42 +16,64 @@ import (
 // A shared data structure that contains information about discovered upstreams
 type ConfigSnapshotUpstreams struct {
 	Leaf *structs.IssuedCert
-	// DiscoveryChain is a map of upstream.Identifier() ->
-	// CompiledDiscoveryChain's, and is used to determine what services could be
-	// targeted by this upstream. We then instantiate watches for those targets.
-	DiscoveryChain map[string]*structs.CompiledDiscoveryChain
 
-	// WatchedDiscoveryChains is a map of upstream.Identifier() -> CancelFunc's
+	// DiscoveryChain is a map of UpstreamID -> CompiledDiscoveryChain's, and
+	// is used to determine what services could be targeted by this upstream.
+	// We then instantiate watches for those targets.
+	DiscoveryChain map[UpstreamID]*structs.CompiledDiscoveryChain
+
+	// WatchedDiscoveryChains is a map of UpstreamID -> CancelFunc's
 	// in order to cancel any watches when the proxy's configuration is
 	// changed. Ingress gateways and transparent proxies need this because
 	// discovery chain watches are added and removed through the lifecycle
 	// of a single proxycfg state instance.
-	WatchedDiscoveryChains map[string]context.CancelFunc
+	WatchedDiscoveryChains map[UpstreamID]context.CancelFunc
 
-	// WatchedUpstreams is a map of upstream.Identifier() -> (map of TargetID ->
+	// WatchedUpstreams is a map of UpstreamID -> (map of TargetID ->
 	// CancelFunc's) in order to cancel any watches when the configuration is
 	// changed.
-	WatchedUpstreams map[string]map[string]context.CancelFunc
+	WatchedUpstreams map[UpstreamID]map[string]context.CancelFunc
 
-	// WatchedUpstreamEndpoints is a map of upstream.Identifier() -> (map of
+	// WatchedUpstreamEndpoints is a map of UpstreamID -> (map of
 	// TargetID -> CheckServiceNodes) and is used to determine the backing
 	// endpoints of an upstream.
-	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
+	WatchedUpstreamEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
 
-	// WatchedGateways is a map of upstream.Identifier() -> (map of
-	// GatewayKey.String() -> CancelFunc) in order to cancel watches for mesh gateways
-	WatchedGateways map[string]map[string]context.CancelFunc
+	// WatchedGateways is a map of UpstreamID -> (map of GatewayKey.String() ->
+	// CancelFunc) in order to cancel watches for mesh gateways
+	WatchedGateways map[UpstreamID]map[string]context.CancelFunc
 
-	// WatchedGatewayEndpoints is a map of upstream.Identifier() -> (map of
-	// GatewayKey.String() -> CheckServiceNodes) and is used to determine the backing
-	// endpoints of a mesh gateway.
-	WatchedGatewayEndpoints map[string]map[string]structs.CheckServiceNodes
+	// WatchedGatewayEndpoints is a map of UpstreamID -> (map of
+	// GatewayKey.String() -> CheckServiceNodes) and is used to determine the
+	// backing endpoints of a mesh gateway.
+	WatchedGatewayEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
 
 	// UpstreamConfig is a map to an upstream's configuration.
-	UpstreamConfig map[string]*structs.Upstream
+	UpstreamConfig map[UpstreamID]*structs.Upstream
 
-	// PassthroughEndpoints is a map of: ServiceName -> ServicePassthroughAddrs.
-	PassthroughUpstreams map[string]ServicePassthroughAddrs
+	// PassthroughEndpoints is a map of: UpstreamID -> (map of TargetID ->
+	// (set of IP addresses)). It contains the upstream endpoints that
+	// can be dialed directly by a transparent proxy.
+	PassthroughUpstreams map[UpstreamID]map[string]map[string]struct{}
+
+	// PassthroughIndices is a map of: address -> indexedTarget.
+	// It is used to track the modify index associated with a passthrough address.
+	// Tracking this index helps break ties when a single address is shared by
+	// more than one upstream due to a race.
+	PassthroughIndices map[string]indexedTarget
+
+	// IntentionUpstreams is a set of upstreams inferred from intentions.
+	//
+	// This list only applies to proxies registered in 'transparent' mode.
+	IntentionUpstreams map[UpstreamID]struct{}
+}
+
+// indexedTarget is used to associate the Raft modify index of a resource
+// with the corresponding upstream target.
+type indexedTarget struct {
+	upstreamID UpstreamID
+	targetID   string
+	idx        uint64
 }
 
 type GatewayKey struct {
@@ -85,23 +106,11 @@ func gatewayKeyFromString(s string) GatewayKey {
 	return GatewayKey{Partition: split[0], Datacenter: split[1]}
 }
 
-// ServicePassthroughAddrs contains the LAN addrs
-type ServicePassthroughAddrs struct {
-	// SNI is the Service SNI of the upstream.
-	SNI string
-
-	// SpiffeID is the SPIFFE ID to use for upstream SAN validation.
-	SpiffeID connect.SpiffeIDService
-
-	// Addrs is a set of the best LAN addresses for the instances of the upstream.
-	Addrs map[string]struct{}
-}
-
 type configSnapshotConnectProxy struct {
 	ConfigSnapshotUpstreams
 
 	WatchedServiceChecks   map[structs.ServiceID][]structs.CheckType // TODO: missing garbage collection
-	PreparedQueryEndpoints map[string]structs.CheckServiceNodes      // DEPRECATED:see:WatchedUpstreamEndpoints
+	PreparedQueryEndpoints map[UpstreamID]structs.CheckServiceNodes  // DEPRECATED:see:WatchedUpstreamEndpoints
 
 	// NOTE: Intentions stores a list of lists as returned by the Intentions
 	// Match RPC. So far we only use the first list as the list of matching
@@ -129,6 +138,7 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 		len(c.PreparedQueryEndpoints) == 0 &&
 		len(c.UpstreamConfig) == 0 &&
 		len(c.PassthroughUpstreams) == 0 &&
+		len(c.IntentionUpstreams) == 0 &&
 		!c.MeshConfigSet
 }
 
@@ -364,6 +374,9 @@ type configSnapshotIngressGateway struct {
 	// the GatewayServices RPC to retrieve them.
 	Upstreams map[IngressListenerKey]structs.Upstreams
 
+	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
+	UpstreamsSet map[UpstreamID]struct{}
+
 	// Listeners is the original listener config from the ingress-gateway config
 	// entry to save us trying to pass fields through Upstreams
 	Listeners map[IngressListenerKey]structs.IngressListener
@@ -374,6 +387,7 @@ func (c *configSnapshotIngressGateway) IsEmpty() bool {
 		return true
 	}
 	return len(c.Upstreams) == 0 &&
+		len(c.UpstreamsSet) == 0 &&
 		len(c.DiscoveryChain) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0

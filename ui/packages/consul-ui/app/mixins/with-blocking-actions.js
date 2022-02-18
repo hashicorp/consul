@@ -1,6 +1,8 @@
 import Mixin from '@ember/object/mixin';
 import { inject as service } from '@ember/service';
 import { set, get } from '@ember/object';
+import { singularize } from 'ember-inflector';
+
 /** With Blocking Actions
  * This mixin contains common write actions (Create Update Delete) for routes.
  * It could also be an Route to extend but decoration seems to be more sense right now.
@@ -25,7 +27,11 @@ export default Mixin.create({
     const route = this;
     set(this, 'feedback', {
       execute: function(cb, type, error) {
-        return feedback.execute(cb, type, error, route.controller);
+        const temp = route.routeName.split('.');
+        temp.pop();
+        const routeName = singularize(temp.pop());
+
+        return feedback.execute(cb, type, error, routeName);
       },
     });
   },

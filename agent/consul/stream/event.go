@@ -14,6 +14,11 @@ import (
 // events which match the Topic.
 type Topic fmt.Stringer
 
+// Subject identifies a portion of a topic for which a subscriber wishes to
+// receive events (e.g. health events for a particular service) usually the
+// normalized resource name (including partition and namespace if applicable).
+type Subject string
+
 // Event is a structure with identifiers and a payload. Events are Published to
 // EventPublisher and returned to Subscribers.
 type Event struct {
@@ -26,18 +31,16 @@ type Event struct {
 // should not modify the state of the payload if the Event is being submitted to
 // EventPublisher.Publish.
 type Payload interface {
-	// MatchesKey must return true if the Payload should be included in a
-	// subscription requested with the key, namespace, and partition.
-	//
-	// Generally this means that the payload matches the key, namespace, and
-	// partition or the payload is a special framing event that should be
-	// returned to every subscription.
-	MatchesKey(key, namespace, partition string) bool
-
 	// HasReadPermission uses the acl.Authorizer to determine if the items in the
 	// Payload are visible to the request. It returns true if the payload is
 	// authorized for Read, otherwise returns false.
 	HasReadPermission(authz acl.Authorizer) bool
+
+	// Subject is used to identify which subscribers should be notified of this
+	// event - e.g. those subscribing to health events for a particular service.
+	// it is usually the normalized resource name (including the partition and
+	// namespace if applicable).
+	Subject() Subject
 }
 
 // PayloadEvents is a Payload that may be returned by Subscription.Next when
@@ -81,14 +84,6 @@ func (p *PayloadEvents) filter(f func(Event) bool) bool {
 	return true
 }
 
-// MatchesKey filters the PayloadEvents to those which match the key,
-// namespace, and partition.
-func (p *PayloadEvents) MatchesKey(key, namespace, partition string) bool {
-	return p.filter(func(event Event) bool {
-		return event.Payload.MatchesKey(key, namespace, partition)
-	})
-}
-
 func (p *PayloadEvents) Len() int {
 	return len(p.Items)
 }
@@ -99,6 +94,14 @@ func (p *PayloadEvents) HasReadPermission(authz acl.Authorizer) bool {
 	return p.filter(func(event Event) bool {
 		return event.Payload.HasReadPermission(authz)
 	})
+}
+
+// Subject is required to satisfy the Payload interface but is not implemented
+// by PayloadEvents. PayloadEvents structs are constructed by Subscription.Next
+// *after* Subject has been used to dispatch the enclosed events to the correct
+// buffer.
+func (PayloadEvents) Subject() Subject {
+	panic("PayloadEvents does not implement Subject")
 }
 
 // IsEndOfSnapshot returns true if this is a framing event that indicates the
@@ -117,12 +120,15 @@ func (e Event) IsNewSnapshotToFollow() bool {
 
 type framingEvent struct{}
 
-func (framingEvent) MatchesKey(string, string, string) bool {
+func (framingEvent) HasReadPermission(acl.Authorizer) bool {
 	return true
 }
 
-func (framingEvent) HasReadPermission(acl.Authorizer) bool {
-	return true
+// Subject is required by the Payload interface but is not implemented by
+// framing events, as they are typically *manually* appended to the correct
+// buffer and do not need to be routed using a Subject.
+func (framingEvent) Subject() Subject {
+	panic("framing events do not implement Subject")
 }
 
 type endOfSnapshot struct {
@@ -137,12 +143,15 @@ type closeSubscriptionPayload struct {
 	tokensSecretIDs []string
 }
 
-func (closeSubscriptionPayload) MatchesKey(string, string, string) bool {
+func (closeSubscriptionPayload) HasReadPermission(acl.Authorizer) bool {
 	return false
 }
 
-func (closeSubscriptionPayload) HasReadPermission(acl.Authorizer) bool {
-	return false
+// Subject is required by the Payload interface but it is not implemented by
+// closeSubscriptionPayload, as this event type is handled separately and not
+// actually appended to the buffer.
+func (closeSubscriptionPayload) Subject() Subject {
+	panic("closeSubscriptionPayload does not implement Subject")
 }
 
 // NewCloseSubscriptionEvent returns a special Event that is handled by the

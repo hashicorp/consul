@@ -72,18 +72,21 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 			if err != nil {
 				return err
 			}
-
 			reply.Index, reply.Dump = index, dump
-			if err := m.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			raw, err := filter.Execute(reply.Dump)
 			if err != nil {
 				return err
 			}
-
 			reply.Dump = raw.(structs.NodeDump)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			return nil
 		})
 }
@@ -114,10 +117,6 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Nodes = nodes
 
-			if err := m.srv.filterACL(args.Token, &reply.Nodes); err != nil {
-				return err
-			}
-
 			// Get, store, and filter gateway services
 			idx, gatewayServices, err := state.DumpGatewayServices(ws)
 			if err != nil {
@@ -130,16 +129,19 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Index = maxIdx
 
-			if err := m.srv.filterACL(args.Token, &reply.Gateways); err != nil {
-				return err
-			}
-
 			raw, err := filter.Execute(reply.Nodes)
 			if err != nil {
 				return err
 			}
-
 			reply.Nodes = raw.(structs.CheckServiceNodes)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			return nil
 		})
 }
@@ -399,19 +401,19 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	}
 
 	// Check ACLs
-	authz, err := m.srv.ResolveToken(args.Token)
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, nil, nil)
 	if err != nil {
 		return err
 	}
 
 	if authz.EventWrite(args.Name, nil) != acl.Allow {
-		accessorID := m.aclAccessorID(args.Token)
+		accessorID := authz.AccessorID()
 		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
 		return acl.ErrPermissionDenied
 	}
 
 	// Set the query meta data
-	m.srv.setQueryMeta(&reply.QueryMeta)
+	m.srv.setQueryMeta(&reply.QueryMeta, args.Token)
 
 	// Add the consul prefix to the event name
 	eventName := userEventName(args.Name)
@@ -431,11 +433,11 @@ func (m *Internal) KeyringOperation(
 	}
 
 	// Check ACLs
-	identity, authz, err := m.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	authz, err := m.srv.ACLResolver.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if err := m.srv.validateEnterpriseToken(identity); err != nil {
+	if err := m.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
 	switch args.Operation {
@@ -542,22 +544,4 @@ func (m *Internal) executeKeyringOpMgr(
 	}
 
 	return serfResp, err
-}
-
-// aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
-// critical purposes, such as logging. Therefore we interpret all errors as empty-string
-// so we can safely log it without handling non-critical errors at the usage site.
-func (m *Internal) aclAccessorID(secretID string) string {
-	_, ident, err := m.srv.ResolveIdentityFromToken(secretID)
-	if acl.IsErrNotFound(err) {
-		return ""
-	}
-	if err != nil {
-		m.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
-		return ""
-	}
-	if ident == nil {
-		return ""
-	}
-	return ident.ID()
 }

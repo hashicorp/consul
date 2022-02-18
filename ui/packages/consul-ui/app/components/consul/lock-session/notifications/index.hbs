@@ -1,7 +1,36 @@
-{{#if (eq @type 'delete')}}
-  {{#if (eq @status 'success') }}
-    The session was invalidated.
+{{#if (eq @type 'remove')}}
+  {{#if @error}}
+    <Notice
+      class="notification-delete"
+      @type="error"
+      ...attributes
+    as |notice|>
+      <notice.Header>
+        <strong>Error!</strong>
+      </notice.Header>
+      <notice.Body>
+        <p>
+          There was an error invalidating the Lock Session.
+      {{#if (and @error.status @error.detail)}}
+          <br />{{@error.status}}: {{@error.detail}}
+      {{/if}}
+        </p>
+      </notice.Body>
+    </Notice>
   {{else}}
-    There was an error invalidating the session.
+    <Notice
+      class="notification-delete"
+      @type="success"
+      ...attributes
+    as |notice|>
+      <notice.Header>
+        <strong>Success!</strong>
+      </notice.Header>
+      <notice.Body>
+        <p>
+          Your Lock Session has been invalidated.
+        </p>
+      </notice.Body>
+    </Notice>
   {{/if}}
 {{/if}}

@@ -1,5 +1,6 @@
 export default {
   Name: item => item.Name,
+  Node: item => item.Node.Node,
   Tags: item => item.Service.Tags || [],
   ID: item => item.Service.ID || '',
   Address: item => item.Address || '',

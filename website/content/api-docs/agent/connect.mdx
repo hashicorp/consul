@@ -169,10 +169,14 @@ The agent generates a CSR locally and calls the
 is cached and returned by this API until it is near expiry or the root
 certificates change.
 
-This API supports blocking queries. The blocking query will block until
-a new certificate is necessary because the existing certificate will expire
-or the root certificate is being rotated. This blocking behavior allows
-clients to efficiently wait for certificate rotations.
+Non blocking queries to this endpoint will always check that the leaf certificate is not expired
+and that the root certificates have not changed. Otherwise, a new leaf certificate is generated.
+
+This API supports blocking queries. The blocking query will block until 
+a new certificate is necessary (because the existing certificate will expire, is expired, 
+or the root certificate is being rotated), or until the query timeout is reached. The current
+query timeout is set to 10 minutes. This blocking behavior allows clients to
+wait for certificate rotations.
 
 | Method | Path                              | Produces           |
 | ------ | --------------------------------- | ------------------ |

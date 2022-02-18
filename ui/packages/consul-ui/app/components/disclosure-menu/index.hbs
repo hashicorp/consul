@@ -1,0 +1,16 @@
+<div
+  class={{class-map
+    "disclosure-menu"
+  }}
+  ...attributes
+>
+  <Disclosure as |disclosure|>
+    {{yield (hash
+      Action=(component 'disclosure-menu/action' disclosure=disclosure)
+      Menu=(component 'disclosure-menu/menu' disclosure=disclosure)
+      disclosure=disclosure
+      toggle=disclosure.toggle
+      expanded=disclosure.expanded
+    )}}
+  </Disclosure>
+</div>

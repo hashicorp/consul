@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"net/rpc"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -18,14 +17,16 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-version"
+	"go.etcd.io/bbolt"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
-	raftboltdb "github.com/hashicorp/raft-boltdb"
+	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
@@ -115,6 +116,7 @@ const (
 	secondaryCARootWatchRoutineName       = "secondary CA roots watch"
 	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
 	backgroundCAInitializationRoutineName = "CA initialization"
+	virtualIPCheckRoutineName             = "virtual IP version check"
 )
 
 var (
@@ -139,7 +141,7 @@ type Server struct {
 	aclConfig *acl.Config
 
 	// acls is used to resolve tokens to effective policies
-	acls *ACLResolver
+	*ACLResolver
 
 	aclAuthMethodValidators authmethod.Cache
 
@@ -187,6 +189,12 @@ type Server struct {
 	// eventChWAN is used to receive events from the
 	// serf cluster that spans datacenters
 	eventChWAN chan serf.Event
+
+	// wanMembershipNotifyCh is used to receive notifications that the the
+	// serfWAN wan pool may have changed.
+	//
+	// If this is nil, notification is skipped.
+	wanMembershipNotifyCh chan struct{}
 
 	// fsm is the state machine used with Raft to provide
 	// strong consistency.
@@ -265,6 +273,7 @@ type Server struct {
 	// serfWAN is the Serf cluster maintained between DC's
 	// which SHOULD only consist of Consul servers
 	serfWAN                *serf.Serf
+	serfWANConfig          *serf.Config
 	memberlistTransportWAN wanfed.IngestionAwareTransport
 	gatewayLocator         *GatewayLocator
 
@@ -441,14 +450,14 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	s.aclConfig = newACLConfig(partitionInfo, logger)
 	aclConfig := ACLResolverConfig{
 		Config:      config.ACLResolverSettings,
-		Delegate:    s,
+		Backend:     &serverACLResolverBackend{Server: s},
 		CacheConfig: serverACLCacheConfig,
 		Logger:      logger,
 		ACLConfig:   s.aclConfig,
 		Tokens:      flat.Tokens,
 	}
 	// Initialize the ACL resolver.
-	if s.acls, err = NewACLResolver(&aclConfig); err != nil {
+	if s.ACLResolver, err = NewACLResolver(&aclConfig); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
 	}
@@ -472,7 +481,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
-	s.caManager = NewCAManager(&caDelegateWithState{s}, s.leaderRoutineManager, s.logger.ResetNamed("connect.ca"), s.config)
+	s.caManager = NewCAManager(&caDelegateWithState{Server: s}, s.leaderRoutineManager, s.logger.ResetNamed("connect.ca"), s.config)
 	if s.config.ConnectEnabled && (s.config.AutoEncryptAllowTLS || s.config.AutoConfigAuthzEnabled) {
 		go s.connectCARootsMonitor(&lib.StopChannelContext{StopCh: s.shutdownCh})
 	}
@@ -492,7 +501,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 
 	// Initialize the WAN Serf if enabled
 	if config.SerfWANConfig != nil {
-		s.serfWAN, err = s.setupSerf(setupSerfOptions{
+		s.serfWAN, s.serfWANConfig, err = s.setupSerf(setupSerfOptions{
 			Config:       config.SerfWANConfig,
 			EventCh:      s.eventChWAN,
 			SnapshotPath: serfWANSnapshot,
@@ -547,7 +556,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 			s.Shutdown()
 			return nil, fmt.Errorf("Failed to add WAN serf route: %v", err)
 		}
-		go router.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
+		go router.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN, s.wanMembershipNotifyCh)
 
 		// Fire up the LAN <-> WAN join flooder.
 		addrFn := func(s *metadata.Server) (string, error) {
@@ -646,7 +655,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		s.registerEnterpriseGRPCServices(deps, srv)
 	}
 
-	return agentgrpc.NewHandler(config.RPCAddr, register)
+	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register)
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {
@@ -729,12 +738,20 @@ func (s *Server) setupRaft() error {
 		}
 
 		// Create the backend raft store for logs and stable storage.
-		store, err := raftboltdb.NewBoltStore(filepath.Join(path, "raft.db"))
+		store, err := raftboltdb.New(raftboltdb.Options{
+			BoltOptions: &bbolt.Options{
+				NoFreelistSync: s.config.RaftBoltDBConfig.NoFreelistSync,
+			},
+			Path: filepath.Join(path, "raft.db"),
+		})
 		if err != nil {
 			return err
 		}
 		s.raftStore = store
 		stable = store
+
+		// start publishing boltdb metrics
+		go store.RunMetrics(&lib.StopChannelContext{StopCh: s.shutdownCh}, 0)
 
 		// Wrap the store in a LogCache to improve performance.
 		cacheStore, err := raft.NewLogCache(raftLogCacheSize, store)
@@ -977,8 +994,8 @@ func (s *Server) Shutdown() error {
 		s.connPool.Shutdown()
 	}
 
-	if s.acls != nil {
-		s.acls.Close()
+	if s.ACLResolver != nil {
+		s.ACLResolver.Close()
 	}
 
 	if s.fsm != nil {
@@ -1115,6 +1132,11 @@ func (s *Server) JoinWAN(addrs []string) (int, error) {
 	if s.serfWAN == nil {
 		return 0, ErrWANFederationDisabled
 	}
+
+	if err := s.enterpriseValidateJoinWAN(); err != nil {
+		return 0, err
+	}
+
 	return s.serfWAN.Join(addrs, true)
 }
 
@@ -1191,6 +1213,18 @@ func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *structs.Ente
 	}
 
 	return s.removeFailedNode(removeFn, node, wanNode, entMeta)
+}
+
+// RemoveFailedNodeWAN is used to remove a failed node from the WAN cluster.
+func (s *Server) RemoveFailedNodeWAN(wanNode string, prune bool, entMeta *structs.EnterpriseMeta) error {
+	var removeFn func(*serf.Serf, string) error
+	if prune {
+		removeFn = (*serf.Serf).RemoveFailedNodePrune
+	} else {
+		removeFn = (*serf.Serf).RemoveFailedNode
+	}
+
+	return s.removeFailedNode(removeFn, "", wanNode, entMeta)
 }
 
 // IsLeader checks if this server is the cluster leader
@@ -1313,7 +1347,7 @@ func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	// Let the caller peek at the reply.
 	if replyFn != nil {
 		if err := replyFn(&reply); err != nil {
-			return nil
+			return err
 		}
 	}
 

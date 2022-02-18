@@ -34,6 +34,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
+The corresponding CLI command is [`consul acl binding-rule create`](/commands/acl/binding-rule/create).
+
 ### Parameters
 
 - `Description` `(string: "")` - Free form human readable description of the binding rule.
@@ -118,7 +120,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X PUT \
+$ curl --request PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/binding-rule
 ```
@@ -158,6 +160,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
+The corresponding CLI command is [`consul acl binding-rule read`](/commands/acl/binding-rule/read).
+
 ### Parameters
 
 - `id` `(string: <required>)` - Specifies the UUID of the ACL binding rule
@@ -172,7 +176,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X GET http://127.0.0.1:8500/v1/acl/binding-rule/000ed53c-e2d3-e7e6-31a5-c19bc3518a3d
+$ curl --request GET http://127.0.0.1:8500/v1/acl/binding-rule/000ed53c-e2d3-e7e6-31a5-c19bc3518a3d
 ```
 
 ### Sample Response
@@ -207,6 +211,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
+
+The corresponding CLI command is [`consul acl binding-rule update`](/commands/acl/binding-rule/update).
 
 ### Parameters
 
@@ -297,7 +303,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X PUT \
+$ curl --request PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/binding-rule/000ed53c-e2d3-e7e6-31a5-c19bc3518a3d
 ```
@@ -338,6 +344,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
+The corresponding CLI command is [`consul acl binding-rule delete`](/commands/acl/binding-rule/delete).
+
 ### Parameters
 
 - `id` `(string: <required>)` - Specifies the UUID of the ACL binding rule to
@@ -352,7 +360,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```shell-session
-$ curl -X DELETE \
+$ curl --request DELETE \
     http://127.0.0.1:8500/v1/acl/binding-rule/000ed53c-e2d3-e7e6-31a5-c19bc3518a3d
 ```
 
@@ -380,6 +388,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
+The corresponding CLI command is [`consul acl binding-rule list`](/commands/acl/binding-rule/list).
+
 ## Parameters
 
 - `authmethod` `(string: "")` - Filters the binding rule list to those binding
@@ -395,7 +405,7 @@ The table below shows this endpoint's support for
 ## Sample Request
 
 ```shell-session
-$ curl -X GET http://127.0.0.1:8500/v1/acl/binding-rules
+$ curl --request GET http://127.0.0.1:8500/v1/acl/binding-rules
 ```
 
 ### Sample Response

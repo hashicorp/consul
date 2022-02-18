@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/go-hclog"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
@@ -33,11 +33,7 @@ func testClientConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports := freeport.MustTake(2)
-	t.Cleanup(func() {
-		freeport.Return(ports)
-	})
-
+	ports := freeport.GetN(t, 2)
 	config.Datacenter = "dc1"
 	config.DataDir = dir
 	config.NodeName = uniqueNodeName(t.Name())
@@ -511,7 +507,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:   c.NodeName,
-		Level:  hclog.Debug,
+		Level:  testutil.TestLogLevel,
 		Output: testutil.NewLogBuffer(t),
 	})
 

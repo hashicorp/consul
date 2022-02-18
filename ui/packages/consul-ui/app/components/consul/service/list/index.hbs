@@ -25,7 +25,18 @@
       </dd>
     </dl>
 {{#if (gt item.InstanceCount 0)}}
-  <a data-test-service-name href={{href-to "dc.services.show.index" item.Name}}>
+  <a
+    data-test-service-name
+    href={{href-to "dc.services.show.index" item.Name
+      params=(if (not-eq item.Partition @partition)
+        (hash
+          partition=item.Partition
+          nspace=item.Namespace
+        )
+        (hash)
+      )
+    }}
+  >
     {{item.Name}}
   </a>
 {{else}}
@@ -35,20 +46,6 @@
 {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
-{{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
-  {{#if (not-eq item.Namespace nspace)}}
-    <dl class="nspace">
-      <dt>
-        <Tooltip>
-            Namespace
-        </Tooltip>
-      </dt>
-      <dd>
-        {{item.Namespace}}
-      </dd>
-    </dl>
-  {{/if}}
-{{/if}}
     <Consul::Kind @item={{item}} />
     <Consul::ExternalSource @item={{item}} />
   {{#if (and (not-eq item.InstanceCount 0) (and (not-eq item.Kind 'terminating-gateway') (not-eq item.Kind 'ingress-gateway'))) }}
@@ -87,6 +84,11 @@
       {{/if}}
     </dl>
   {{/if}}
+    <Consul::Bucket::List
+      @item={{item}}
+      @nspace={{@nspace}}
+      @partition={{@partition}}
+    />
     <TagList @item={{item}} />
   </BlockSlot>
 </ListCollection>

@@ -28,8 +28,9 @@ as |route|>
     )
 
     route.model.item.MeshServiceInstances
+    route.model.item.ProxyServiceInstances
 
-  as |sort filters items|}}
+  as |sort filters items proxies|}}
   <div class="tab-section">
     {{#if (gt items.length 0) }}
       <input type="checkbox" id="toolbar-toggle" />
@@ -44,7 +45,6 @@ as |route|>
         @filter={{filters}}
         />
       {{/if}}
-      {{! filter out any sidecar proxies }}
       <DataCollection
         @type="service-instance"
         @sort={{sort.value}}
@@ -54,10 +54,10 @@ as |route|>
       as |collection|>
         <collection.Collection>
           <Consul::ServiceInstance::List
-            @node={{item}}
+            @node={{route.model.item}}
             @routeName="dc.services.show"
             @items={{collection.items}}
-            @checks={{checks}}
+            @proxies={{proxies}}
           />
         </collection.Collection>
         <collection.Empty>

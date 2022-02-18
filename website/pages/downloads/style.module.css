@@ -20,3 +20,35 @@
     margin-bottom: 0;
   }
 }
+
+.merchandisingSlot {
+  width: 100%;
+  border: 1px solid var(--gray-6);
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 58px;
+
+  & .centerWrapper {
+    display: flex;
+    align-items: center;
+
+    & p {
+      margin: 0;
+      max-width: 490px;
+      margin-right: 26px;
+    }
+
+    @media (max-width: 800px) {
+      flex-direction: column;
+      & p {
+        text-align: center;
+        margin-bottom: 12px;
+      }
+    }
+  }
+}
+
+.legalNotice {
+  margin-bottom: 60px;
+}

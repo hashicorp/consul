@@ -184,25 +184,24 @@ func TestStore_CAConfig_Snapshot_Restore_BlankConfig(t *testing.T) {
 }
 
 func TestStore_CARootSetList(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Call list to populate the watch set
 	ws := memdb.NewWatchSet()
 	_, _, err := s.CARoots(ws)
-	assert.Nil(err)
+	assert.Nil(t, err)
 
 	// Build a valid value
 	ca1 := connect.TestCA(t, nil)
 	expected := *ca1
 	// Set
 	ok, err := s.CARootSetCAS(1, 0, []*structs.CARoot{ca1})
-	assert.Nil(err)
-	assert.True(ok)
+	assert.Nil(t, err)
+	assert.True(t, ok)
 
 	// Make sure the index got updated.
-	assert.Equal(s.maxIndex(tableConnectCARoots), uint64(1))
-	assert.True(watchFired(ws), "watch fired")
+	assert.Equal(t, s.maxIndex(tableConnectCARoots), uint64(1))
+	assert.True(t, watchFired(ws), "watch fired")
 
 	// Read it back out and verify it.
 
@@ -212,20 +211,19 @@ func TestStore_CARootSetList(t *testing.T) {
 	}
 	ws = memdb.NewWatchSet()
 	_, roots, err := s.CARoots(ws)
-	assert.Nil(err)
-	assert.Len(roots, 1)
+	assert.Nil(t, err)
+	assert.Len(t, roots, 1)
 	actual := roots[0]
 	assertDeepEqual(t, expected, *actual)
 }
 
 func TestStore_CARootSet_emptyID(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Call list to populate the watch set
 	ws := memdb.NewWatchSet()
 	_, _, err := s.CARoots(ws)
-	assert.Nil(err)
+	assert.Nil(t, err)
 
 	// Build a valid value
 	ca1 := connect.TestCA(t, nil)
@@ -233,29 +231,28 @@ func TestStore_CARootSet_emptyID(t *testing.T) {
 
 	// Set
 	ok, err := s.CARootSetCAS(1, 0, []*structs.CARoot{ca1})
-	assert.NotNil(err)
-	assert.Contains(err.Error(), ErrMissingCARootID.Error())
-	assert.False(ok)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), ErrMissingCARootID.Error())
+	assert.False(t, ok)
 
 	// Make sure the index got updated.
-	assert.Equal(s.maxIndex(tableConnectCARoots), uint64(0))
-	assert.False(watchFired(ws), "watch fired")
+	assert.Equal(t, s.maxIndex(tableConnectCARoots), uint64(0))
+	assert.False(t, watchFired(ws), "watch fired")
 
 	// Read it back out and verify it.
 	ws = memdb.NewWatchSet()
 	_, roots, err := s.CARoots(ws)
-	assert.Nil(err)
-	assert.Len(roots, 0)
+	assert.Nil(t, err)
+	assert.Len(t, roots, 0)
 }
 
 func TestStore_CARootSet_noActive(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Call list to populate the watch set
 	ws := memdb.NewWatchSet()
 	_, _, err := s.CARoots(ws)
-	assert.Nil(err)
+	assert.Nil(t, err)
 
 	// Build a valid value
 	ca1 := connect.TestCA(t, nil)
@@ -265,19 +262,18 @@ func TestStore_CARootSet_noActive(t *testing.T) {
 
 	// Set
 	ok, err := s.CARootSetCAS(1, 0, []*structs.CARoot{ca1, ca2})
-	assert.NotNil(err)
-	assert.Contains(err.Error(), "exactly one active")
-	assert.False(ok)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "exactly one active")
+	assert.False(t, ok)
 }
 
 func TestStore_CARootSet_multipleActive(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Call list to populate the watch set
 	ws := memdb.NewWatchSet()
 	_, _, err := s.CARoots(ws)
-	assert.Nil(err)
+	assert.Nil(t, err)
 
 	// Build a valid value
 	ca1 := connect.TestCA(t, nil)
@@ -285,13 +281,12 @@ func TestStore_CARootSet_multipleActive(t *testing.T) {
 
 	// Set
 	ok, err := s.CARootSetCAS(1, 0, []*structs.CARoot{ca1, ca2})
-	assert.NotNil(err)
-	assert.Contains(err.Error(), "exactly one active")
-	assert.False(ok)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "exactly one active")
+	assert.False(t, ok)
 }
 
 func TestStore_CARootActive_valid(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Build a valid value
@@ -303,33 +298,31 @@ func TestStore_CARootActive_valid(t *testing.T) {
 
 	// Set
 	ok, err := s.CARootSetCAS(1, 0, []*structs.CARoot{ca1, ca2, ca3})
-	assert.Nil(err)
-	assert.True(ok)
+	assert.Nil(t, err)
+	assert.True(t, ok)
 
 	// Query
 	ws := memdb.NewWatchSet()
 	idx, res, err := s.CARootActive(ws)
-	assert.Equal(idx, uint64(1))
-	assert.Nil(err)
-	assert.NotNil(res)
-	assert.Equal(ca2.ID, res.ID)
+	assert.Equal(t, idx, uint64(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
+	assert.Equal(t, ca2.ID, res.ID)
 }
 
 // Test that querying the active CA returns the correct value.
 func TestStore_CARootActive_none(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Querying with no results returns nil.
 	ws := memdb.NewWatchSet()
 	idx, res, err := s.CARootActive(ws)
-	assert.Equal(idx, uint64(0))
-	assert.Nil(res)
-	assert.Nil(err)
+	assert.Equal(t, idx, uint64(0))
+	assert.Nil(t, res)
+	assert.Nil(t, err)
 }
 
 func TestStore_CARoot_Snapshot_Restore(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Create some intentions.
@@ -351,8 +344,8 @@ func TestStore_CARoot_Snapshot_Restore(t *testing.T) {
 
 	// Now create
 	ok, err := s.CARootSetCAS(1, 0, roots)
-	assert.Nil(err)
-	assert.True(ok)
+	assert.Nil(t, err)
+	assert.True(t, ok)
 
 	// Snapshot the queries.
 	snap := s.Snapshot()
@@ -360,34 +353,33 @@ func TestStore_CARoot_Snapshot_Restore(t *testing.T) {
 
 	// Alter the real state store.
 	ok, err = s.CARootSetCAS(2, 1, roots[:1])
-	assert.Nil(err)
-	assert.True(ok)
+	assert.Nil(t, err)
+	assert.True(t, ok)
 
 	// Verify the snapshot.
-	assert.Equal(snap.LastIndex(), uint64(1))
+	assert.Equal(t, snap.LastIndex(), uint64(1))
 	dump, err := snap.CARoots()
-	assert.Nil(err)
-	assert.Equal(roots, dump)
+	assert.Nil(t, err)
+	assert.Equal(t, roots, dump)
 
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
 		restore := s.Restore()
 		for _, r := range dump {
-			assert.Nil(restore.CARoot(r))
+			assert.Nil(t, restore.CARoot(r))
 		}
 		restore.Commit()
 
 		// Read the restored values back out and verify that they match.
 		idx, actual, err := s.CARoots(nil)
-		assert.Nil(err)
-		assert.Equal(idx, uint64(2))
-		assert.Equal(roots, actual)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(2))
+		assert.Equal(t, roots, actual)
 	}()
 }
 
 func TestStore_CABuiltinProvider(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	{
@@ -398,13 +390,13 @@ func TestStore_CABuiltinProvider(t *testing.T) {
 		}
 
 		ok, err := s.CASetProviderState(0, expected)
-		assert.NoError(err)
-		assert.True(ok)
+		assert.NoError(t, err)
+		assert.True(t, ok)
 
 		idx, state, err := s.CAProviderState(expected.ID)
-		assert.NoError(err)
-		assert.Equal(idx, uint64(0))
-		assert.Equal(expected, state)
+		assert.NoError(t, err)
+		assert.Equal(t, idx, uint64(0))
+		assert.Equal(t, expected, state)
 	}
 
 	{
@@ -415,13 +407,13 @@ func TestStore_CABuiltinProvider(t *testing.T) {
 		}
 
 		ok, err := s.CASetProviderState(1, expected)
-		assert.NoError(err)
-		assert.True(ok)
+		assert.NoError(t, err)
+		assert.True(t, ok)
 
 		idx, state, err := s.CAProviderState(expected.ID)
-		assert.NoError(err)
-		assert.Equal(idx, uint64(1))
-		assert.Equal(expected, state)
+		assert.NoError(t, err)
+		assert.Equal(t, idx, uint64(1))
+		assert.Equal(t, expected, state)
 	}
 
 	{
@@ -429,21 +421,20 @@ func TestStore_CABuiltinProvider(t *testing.T) {
 		// numbers will initialize from the max index of the provider table.
 		// That's why this first serial is 2 and not 1.
 		sn, err := s.CAIncrementProviderSerialNumber(10)
-		assert.NoError(err)
-		assert.Equal(uint64(2), sn)
+		assert.NoError(t, err)
+		assert.Equal(t, uint64(2), sn)
 
 		sn, err = s.CAIncrementProviderSerialNumber(10)
-		assert.NoError(err)
-		assert.Equal(uint64(3), sn)
+		assert.NoError(t, err)
+		assert.Equal(t, uint64(3), sn)
 
 		sn, err = s.CAIncrementProviderSerialNumber(10)
-		assert.NoError(err)
-		assert.Equal(uint64(4), sn)
+		assert.NoError(t, err)
+		assert.Equal(t, uint64(4), sn)
 	}
 }
 
 func TestStore_CABuiltinProvider_Snapshot_Restore(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Create multiple state entries.
@@ -462,8 +453,8 @@ func TestStore_CABuiltinProvider_Snapshot_Restore(t *testing.T) {
 
 	for i, state := range before {
 		ok, err := s.CASetProviderState(uint64(98+i), state)
-		assert.NoError(err)
-		assert.True(ok)
+		assert.NoError(t, err)
+		assert.True(t, ok)
 	}
 
 	// Take a snapshot.
@@ -477,26 +468,26 @@ func TestStore_CABuiltinProvider_Snapshot_Restore(t *testing.T) {
 		RootCert:   "d",
 	}
 	ok, err := s.CASetProviderState(100, after)
-	assert.NoError(err)
-	assert.True(ok)
+	assert.NoError(t, err)
+	assert.True(t, ok)
 
 	snapped, err := snap.CAProviderState()
-	assert.NoError(err)
-	assert.Equal(before, snapped)
+	assert.NoError(t, err)
+	assert.Equal(t, before, snapped)
 
 	// Restore onto a new state store.
 	s2 := testStateStore(t)
 	restore := s2.Restore()
 	for _, entry := range snapped {
-		assert.NoError(restore.CAProviderState(entry))
+		assert.NoError(t, restore.CAProviderState(entry))
 	}
 	restore.Commit()
 
 	// Verify the restored values match those from before the snapshot.
 	for _, state := range before {
 		idx, res, err := s2.CAProviderState(state.ID)
-		assert.NoError(err)
-		assert.Equal(idx, uint64(99))
-		assert.Equal(state, res)
+		assert.NoError(t, err)
+		assert.Equal(t, idx, uint64(99))
+		assert.Equal(t, state, res)
 	}
 }

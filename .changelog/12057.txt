@@ -1,0 +1,3 @@
+```release-note:bug
+serf: update serf v0.9.7, complete the leave process if broadcasting leave timeout.
+```

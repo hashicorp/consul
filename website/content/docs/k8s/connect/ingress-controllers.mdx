@@ -12,7 +12,9 @@ description: Configuring Ingress Controllers With Consul On Kubernetes
 [Transparent Proxy](/docs/connect/transparent-proxy) mode enabled.
 
 This page describes a general approach for integrating Ingress Controllers with Consul on Kubernetes to secure traffic from the Controller
-to the backend services. This allows Consul to transparently secure traffic from the ingress point through the entire traffic flow of the service.
+to the backend services by deploying sidecars along with your Ingress Controller. This allows Consul to transparently secure traffic from the ingress point through the entire traffic flow of the service. 
+
+If you are looking for a fully supported solution for ingress traffic into Consul Service Mesh, please visit [Consul API Gateway](https://www.consul.io/docs/api-gateway) for instruction on how to install Consul API Gateway along with Consul on Kubernetes. 
 
 A few steps are generally required to enable an Ingress controller to join the mesh and pass traffic through to a service:
 
@@ -38,7 +40,7 @@ these annotations to the *pods* of your *ingress controller*.
        consul.hashicorp.com/connect-inject: "true"
        # Add the container ports used by your ingress controller
        consul.hashicorp.com/transparent-proxy-exclude-inbound-ports: "80,8000,9000,8443"
-       # And the CIDR of your Kubernetes API: `kubectl get svc kubernetes -o jsonpath='{.spec.clusterIP}'
+       # And the CIDR of your Kubernetes API: `kubectl get svc kubernetes --output jsonpath='{.spec.clusterIP}'
        consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs: "10.108.0.1/32"
    ```
 

@@ -1,17 +1,44 @@
 <Route
   @name={{routeName}}
 as |route|>
-{{#let (not (can "write intention for service" item=item.Service)) as |readOnly|}}
-  <Consul::Intention::Form
-    @nspace={{'*'}}
-    @dc={{route.params.dc}}
-    @partition={{route.params.partition}}
-    @src={{route.params.intention_id}}
-    @readonly={{readOnly}}
-    @autofill={{hash
-      DestinationName=route.params.name
+{{#let
+  (not (can "write intention for service" item=item.Service))
+as |readOnly|}}
+  <DataLoader @src={{
+    uri '/${partition}/${nspace}/${dc}/intention/${id}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        id=(or route.params.intention_id '')
+      )
     }}
-    @onsubmit={{transition-to 'dc.services.show.intentions.index'}}
-  />
+  as |loader|>
+
+    <BlockSlot @name="error">
+        <ErrorState
+          @error={{loader.error}}
+          @login={{route.model.app.login.open}}
+        />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+  loader.data
+as |item|}}
+        <Consul::Intention::Form
+          @readonly={{readOnly}}
+          @item={{item}}
+          @dc={{route.model.dc}}
+          @nspace={{route.params.nspace}}
+          @partition={{route.params.partition}}
+          @autofill={{hash
+            DestinationName=route.params.name
+          }}
+          @onsubmit={{transition-to 'dc.services.show.intentions.index'}}
+        />
+{{/let}}
+  </BlockSlot>
+</DataLoader>
 {{/let}}
 </Route>

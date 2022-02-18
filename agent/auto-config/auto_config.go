@@ -279,6 +279,7 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context, csr strin
 		Datacenter: ac.config.Datacenter,
 		Node:       ac.config.NodeName,
 		Segment:    ac.config.SegmentName,
+		Partition:  ac.config.PartitionOrEmpty(),
 		JWT:        token,
 		CSR:        csr,
 	}

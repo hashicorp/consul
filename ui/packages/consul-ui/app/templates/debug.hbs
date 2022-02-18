@@ -1,7 +1,31 @@
 {{page-title 'Engineering Docs - Consul' separator=' - '}}
 
 {{document-attrs class="is-debug"}}
+{{! Tell CSS what we have enabled }}
+{{#if (can "use acls")}}
+  {{document-attrs class="has-acls"}}
+{{/if}}
+{{#if (can "use nspaces")}}
+  {{document-attrs class="has-nspaces"}}
+{{/if}}
+{{#if (can "use partitions")}}
+  {{document-attrs class="has-partitions"}}
+{{/if}}
 <App class="docs" id="wrapper">
+
+  <:notifications as |app|>
+    {{#each flashMessages.queue as |flash|}}
+      {{#if flash.dom}}
+        <app.Notification
+          @delay={{sub flash.timeout flash.extendedTimeout}}
+          @sticky={{flash.sticky}}
+        >
+          {{{flash.dom}}}
+        </app.Notification>
+      {{/if}}
+    {{/each}}
+  </:notifications>
+
   <:main-nav>
 
     <DocfyOutput as |node|>

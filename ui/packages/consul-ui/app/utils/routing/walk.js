@@ -37,7 +37,7 @@ export default function(routes) {
   };
 }
 
-export let dump = () => {};
+export let dump = (routes) => {};
 
 runInDebug(() => {
   const indent = function(num) {

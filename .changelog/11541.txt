@@ -1,3 +1,0 @@
-```release-note:improvement
-partitions: Prevent writing partition-exports entries to secondary DCs.
-```

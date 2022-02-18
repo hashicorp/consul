@@ -7,10 +7,10 @@ as |State Guard Action dispatch state|>
     @cond={{this.isSecret}}
   />
   {{#let
-    (uri '/${partition}/{$nspace}/${dc}'
+    (uri '/${partition}/${nspace}/${dc}'
       (hash
-        partition=@partition
-        nspace=@nspace
+        partition=(or @value.Partition @partition)
+        nspace=(or @value.Namespace @nspace)
         dc=@dc
       )
     )
@@ -30,7 +30,7 @@ as |State Guard Action dispatch state|>
       <DataSource
         @src={{uri (concat path '/oidc/provider/${value}')
           (hash
-            value=@value
+            value=@value.Name
           )
         }}
         @onchange={{queue (action (mut this.provider) value="data") (action dispatch "SUCCESS")}}

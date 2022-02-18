@@ -1,0 +1,36 @@
+# Consul::Intention::List
+
+A component for rendering Intentions.
+
+
+There are some extra conextual components to use here due to how we detect
+intention CRDs and make that easy to work with/add necessary notices. The
+notice will only show if applicable, but the contextual component is used to
+define where that is when it does display.
+
+```hbs preview-template
+
+<DataSource @src="/partition/default/dc-1/intentions" as |source|>
+  <Consul::Intention::List
+    @items={{source.data}}
+    @delete={{noop}}
+  as |list|>
+      <list.CustomResourceNotice />
+      <list.Table />
+  </Consul::Intention::List>
+</DataSource>
+
+```
+
+## Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `items` | `array` |  | An array of Intentions |
+| `ondelete` | `function` |  | An action to execute when the `Delete` action is clicked |
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---
