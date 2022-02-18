@@ -69,21 +69,20 @@ Refer to the [Roles](/docs/security/acl/acl-roles) topic for additional informat
 
 ## Service Identities
 
-An ACL service identity is an ACL policy template for expressing a link to a policy suitable for use in a [service mesh](/docs/connect).
+Service identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. The are used during the authorization process to automatically generate a policy for the service(s) specifed. The policy will be linked to the role or token so that the service(s) can _be discovered_ and _discover other healthy service instances_ in a service mesh.
 
-Services participating in the service mesh will need privileges to both _be discovered_ and to _discover other healthy service instances_. Suitable
-policies tend to all look nearly identical so a service identity is a policy template to aid in avoiding boilerplate policy creation.
+Service identities enable you to quickly construct policies for services, rather than creating identical polices for each service.
 
-Service identities can be used in tokens and roles. Refer to the following topics for additional information about service identities:
+Refer to the following topics for additional information about service identities:
 
 - [Service Identities](/docs/security/acl/acl-roles#service-identities)
 - [API documentation for roles](/api/acl/roles#sample-payload)
 
 ## Node Identities
 
-A node identity is a template that can be configured in tokens and roles.
-They link nodes to policies suitable for use as an [Consul `agent` token](/docs/agent/options#acl_tokens_agent).
-During the authorization process, the configured node identity is automatically applied as a policy.
+Node identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. The are used during the authorization process to automatically generate a policy for the node(s) specifed. You can specify the token linked to the policy in the [`acl_tokens_agent`](/docs/agent/options#acl_tokens_agent) field when configuring the agent.
+
+Node identities enable you to quickly construct policies for nodes, rather than creating identical polices for each service.
 
 Refer to the following topics for additional information about node identities:
 

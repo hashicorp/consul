@@ -70,65 +70,231 @@ Roles may contain the following table describe the attributes:
 
 <!-- -> Added in Consul 1.5.0 # Remove and lean on versioning?-->
 
-Service identities are methods for linking services that participate in a Consul service mesh to a policy.
-They are configurations added to a role that specifies a services that participate in a Consul service mesh and links them to a policy.
-Service identities are templates that provide privileges to _be discovered_ and to _discover other healthy service instances_ in a service mesh.
-See [Service Mesh](/docs/connect) for additional information about Consul service mesh.
+You can specify a service identity when configuring roles or linking tokens to policies. Service identities are used during the authorization process to automatically generate a policy for the service(s) specifed. The policy will be linked to the role or token so that the service(s) can _be discovered_ and _discover other healthy service instances_ in a service mesh. See [Service Mesh](/docs/connect) for additional information about Consul service mesh. Service identities enable you to quickly construct policies for services, rather than creating identical polices for each service.
 
-They are usable
-on both tokens and roles and are composed of the following elements:
+### Service Identity Specification
 
-- **Service Name** - The name of the service.
-- **Datacenters** - A list of datacenters the effective policy is valid within. (Optional)
+Use the following syntax to define a service identity:
 
-Suitable policies tend to all look nearly identical so a service identity is a policy
-template to aid in avoiding boilerplate policy creation.
+<CodeTabs>
+<CodeBlockConfig>
 
-During the authorization process, the configured service identity is automatically
-applied as a policy with the following preconfigured [ACL
-rules](/docs/acl/acl-system#acl-rules-and-scope):
+```json
+{
+  "ServiceIdentities": [
+    {
+      "ServiceName": "<service name>",
+      "Datacenters": ["<datacenter name>"]
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig>
+
+```hcl
+"ServiceIdentities" = {
+  "ServiceName" = "<service name>"
+  "Datacenters" = ["<datacenter name>"]
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+- `ServiceIdentities`: Declares a service identity block.
+- `ServiceIdentities.ServiceName`: String value that specifies the name of the service you want to associate with the policy.
+- `ServiceIdentitites.Datacenters`: Array that specifies the names of datacenters in which the service identity applies. This field is optional.
+
+Refer to the the [API documentation for roles](/api/acl/roles#sample-payload) for additional information and examples.
+
+-> **Scope for Namespace and Admin Partition** - In Consul Enterprise, service identities inherit the namespace or admin partition scope of the corresponding ACL token or role.
+
+The following policy is generated for each service when a service identity is declared:
 
 ```hcl
 # Allow the service and its sidecar proxy to register into the catalog.
-service "<Service Name>" {
+service "<service name>" {
+    policy = "write"
+}
+service "<service name>-sidecar-proxy" {
+    policy = "write"
+}
+
+# Allow for any potential upstreams to be resolved.
+service_prefix "" {
+    policy = "read"
+}
+node_prefix "" {
+    policy = "read"
+}
+
+```
+
+Refer to the [rules reference](/docs/security/acl/acl-rules) for information about the rules in the policy.
+
+### Example
+
+The following role configuration contains service identities for the `web` and `db` services. Note that the `db` service is also scoped to the `dc1` datacenter so that the policy will only be applied to instances of `db` in `dc1`.
+
+<CodeTabs>
+<CodeBlockConfig filename="example-role.hcl">
+
+```hcl
+"Description" = "Showcases all input parameters"
+"Name" = "example-role"
+"Policies" = {
+  "ID" = "783beef3-783f-f41f-7422-7087dc272765"
+}
+"Policies" = {
+  "Name" = "node-read"
+}
+"ServiceIdentities" = {
+  "ServiceName" = "web"
+}
+"ServiceIdentities" = {
+  "Datacenters" = ["dc1"]
+  "ServiceName" = "db"
+}
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig filename="example-role.json">
+
+```json
+{
+  "Name": "example-role",
+  "Description": "Showcases all input parameters",
+  "Policies": [
+    {
+      "ID": "783beef3-783f-f41f-7422-7087dc272765"
+    },
+    {
+      "Name": "node-read"
+    }
+  ],
+  "ServiceIdentities": [
+    {
+      "ServiceName": "web"
+    },
+    {
+      "ServiceName": "db",
+      "Datacenters": ["dc1"]
+    }
+  ],
+  "NodeIdentities": [
+    {
+      "NodeName": "node-1",
+      "Datacenter": "dc2"
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+During the authorization process, the following policies for the `web` and `db` services will be generated and linked to the token:
+
+<CodeBlockConfig filename="web-policy.hcl">
+
+```hcl
+# Allow the service and its sidecar proxy to register into the catalog.
+service "web" {
 	policy = "write"
 }
-service "<Service Name>-sidecar-proxy" {
+service "web-sidecar-proxy" {
 	policy = "write"
 }
 
 # Allow for any potential upstreams to be resolved.
 service_prefix "" {
-	policy = "read"
+    policy = "read"
 }
 node_prefix "" {
-	policy = "read"
+    policy = "read"
 }
 ```
 
-The [API documentation for roles](/api/acl/roles#sample-payload) has some
-examples of using a service identity.
+</CodeBlockConfig>
 
--> **Service Scope for Namespace and Admin Partition** - Service identity rules in Consul Enterprise are scoped to the namespace or admin partition within which the corresponding ACL token or role resides.
+Per the `ServiceIdentitites.Datacenters` configuration, the `db` policy is scoped to resources in the `dc1` datacenter.
+
+<CodeBlockConfig filename="db-policy.hcl">
+
+```hcl
+# Allow the service and its sidecar proxy to register into the catalog.
+service "db" {
+	policy = "write"
+}
+service "db-sidecar-proxy" {
+	policy = "write"
+}
+
+# Allow for any potential upstreams to be resolved.
+service_prefix "" {
+    policy = "read"
+}
+node_prefix "" {
+    policy = "read"
+}
+```
+
+</CodeBlockConfig>
 
 ## Node Identities
 
--> Added in Consul 1.8.1
+<!-- -> Added in Consul 1.8.1 -- remove and lean on doc version? -->
 
-An ACL node identity is an [ACL policy](/docs/acl/acl-system#policies) template for expressing a link to a policy
-suitable for use as an [Consul `agent` token](/docs/agent/options#acl_tokens_agent). They are usable
-on both tokens and roles and are composed of the following elements:
+You can specify a node identity when configuring roles or linking tokens to policies. Node identities are used during the authorization process to automatically generate a policy for the node(s) specifed. In most cases, "node" refers to a Consul agent.
 
-- **Node Name** - The name of the node to grant access to.
-- **Datacenter** - The datacenter that the node resides within.
+You can specify the token linked to the policy in the [`acl_tokens_agent`](/docs/agent/options#acl_tokens_agent) field when configuring the agent. Node identities enable you to quickly construct policies for nodes, rather than creating identical polices for each node.
 
-During the authorization process, the configured node identity is automatically
-applied as a policy with the following preconfigured [ACL
-rules](/docs/acl/acl-system#acl-rules-and-scope):
+### Node Identity Specification
+
+Use the following syntax to define a node identity:
+
+<CodeTabs>
+<CodeBlockConfig>
+
+```json
+{
+  "NodeIdentities": [
+    {
+      "NodeName": "<node name>",
+      "Datacenters": ["<datacenter name>"]
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig>
+
+```hcl
+"NodeIdentities" = {
+  "NodeName" = "<node name>"
+  "Datacenters" = ["<datacenter name>"]
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+- `NodeIdentities`: Declares a node identity block.
+- `NodeIdentities.ServiceName`: String value that specifies the name of the node you want to associate with the policy.
+- `NodeIdentitites.Datacenters`: Array that specifies the names of datacenters in which the node identity applies. This field is optional.
+
+Refer to the the [API documentation for roles](/api/acl/roles#sample-payload) for additional information and examples.
+
+-> **Consul Enterprise Namespacing** - Node Identities can only be applied to tokens and roles in the `default` namespace. The generated policy rules allow for `service:read` permissions on all services in all namespaces.
+
+The following policy is generated for each node when a node identity is declared:
 
 ```hcl
 # Allow the agent to register its own node in the Catalog and update its network coordinates
-node "<Node Name>" {
+node "<node name>" {
   policy = "write"
 }
 
@@ -140,5 +306,73 @@ service_prefix "" {
 }
 ```
 
--> **Consul Enterprise Namespacing** - Node Identities can only be applied to tokens and roles in the `default` namespace.
-The synthetic policy rules allow for `service:read` permissions on all services in all namespaces.
+Refer to the [rules reference](/docs/security/acl/acl-rules) for information about the rules in the policy.
+
+### Example
+
+The following role configuration contains a node identity for `node-1`. Note that the node identity is also scoped to the `dc2` datacenter. As a result, the policy will only be applied to nodes named `node-1` in `dc2`.
+
+<CodeTabs>
+<CodeBlockConfig filename="example-role.hcl">
+
+```hcl
+"Description" = "Showcases all input parameters"
+"Name" = "example-role"
+"NodeIdentities" = {
+  "Datacenter" = "dc2"
+  "NodeName" = "node-1",
+}
+"Policies" = {
+  "ID" = "783beef3-783f-f41f-7422-7087dc272765"
+}
+"Policies" = {
+  "Name" = "node-read"
+}
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig filename="example-role.json">
+
+```json
+{
+  "Name": "example-role",
+  "Description": "Showcases all input parameters",
+  "Policies": [
+    {
+      "ID": "783beef3-783f-f41f-7422-7087dc272765"
+    },
+    {
+      "Name": "node-read"
+    }
+  ],
+  "NodeIdentities": [
+    {
+      "NodeName": "node-1",
+      "Datacenter": "dc2"
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+During the authorization process, the following policy will be generated and linked to the token:
+
+<CodeBlockConfig filename="node-1-policy.hcl">
+
+```hcl
+# Allow the agent to register its own node in the Catalog and update its network coordinates
+node "node-1" {
+  policy = "write"
+}
+
+# Allows the agent to detect and diff services registered to itself. This is used during
+# anti-entropy to reconcile difference between the agents knowledge of registered
+# services and checks in comparison with what is known in the Catalog.
+service_prefix "" {
+  policy = "read"
+}
+```
+
+</CodeBlockConfig>
