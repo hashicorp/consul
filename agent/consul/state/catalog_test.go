@@ -1690,7 +1690,8 @@ func TestStateStore_EnsureService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 30 {
+	// Index matches the requested node's latest service update.
+	if idx != 20 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
