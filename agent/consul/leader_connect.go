@@ -2,12 +2,14 @@ package consul
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-version"
 )
 
 const (
@@ -24,6 +26,18 @@ var (
 	// maxRetryBackoff is the maximum number of seconds to wait between failed blocking
 	// queries when backing off.
 	maxRetryBackoff = 256
+
+	// minVirtualIPVersion is the minimum version for all Consul servers for virtual IP
+	// assignment to be enabled.
+	minVirtualIPVersion = version.Must(version.NewVersion("1.11.0"))
+
+	// minVirtualIPVersion is the minimum version for all Consul servers for virtual IP
+	// assignment to be enabled for terminating gateways.
+	minVirtualIPTerminatingGatewayVersion = version.Must(version.NewVersion("1.11.2"))
+
+	// virtualIPVersionCheckInterval is the frequency we check whether all servers meet
+	// the minimum version to enable virtual IP assignment for services.
+	virtualIPVersionCheckInterval = time.Minute
 )
 
 // startConnectLeader starts multi-dc connect leader routines.
@@ -36,6 +50,7 @@ func (s *Server) startConnectLeader(ctx context.Context) error {
 	s.leaderRoutineManager.Start(ctx, caRootPruningRoutineName, s.runCARootPruning)
 	s.leaderRoutineManager.Start(ctx, caRootMetricRoutineName, rootCAExpiryMonitor(s).Monitor)
 	s.leaderRoutineManager.Start(ctx, caSigningMetricRoutineName, signingCAExpiryMonitor(s).Monitor)
+	s.leaderRoutineManager.Start(ctx, virtualIPCheckRoutineName, s.runVirtualIPVersionCheck)
 
 	return s.startIntentionConfigEntryMigration(ctx)
 }
@@ -47,6 +62,7 @@ func (s *Server) stopConnectLeader() {
 	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
 	s.leaderRoutineManager.Stop(caRootMetricRoutineName)
 	s.leaderRoutineManager.Stop(caSigningMetricRoutineName)
+	s.leaderRoutineManager.Stop(virtualIPCheckRoutineName)
 }
 
 func (s *Server) runCARootPruning(ctx context.Context) error {
@@ -109,6 +125,92 @@ func (s *Server) pruneCARoots() error {
 	args.Roots = newRoots
 	_, err = s.raftApply(structs.ConnectCARequestType, args)
 	return err
+}
+
+func (s *Server) runVirtualIPVersionCheck(ctx context.Context) error {
+	// Return early if the flag is already set.
+	done, err := s.setVirtualIPFlags()
+	if err != nil {
+		s.loggers.Named(logging.Connect).Warn("error enabling virtual IPs", "error", err)
+	}
+	if done {
+		s.leaderRoutineManager.Stop(virtualIPCheckRoutineName)
+		return nil
+	}
+
+	ticker := time.NewTicker(virtualIPVersionCheckInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+			done, err := s.setVirtualIPFlags()
+			if err != nil {
+				s.loggers.Named(logging.Connect).Warn("error enabling virtual IPs", "error", err)
+				continue
+			}
+			if done {
+				return nil
+			}
+		}
+	}
+}
+
+func (s *Server) setVirtualIPFlags() (bool, error) {
+	virtualIPFlag, err := s.setVirtualIPVersionFlag()
+	if err != nil {
+		return false, err
+	}
+	terminatingGatewayVirtualIPFlag, err := s.setVirtualIPTerminatingGatewayVersionFlag()
+	if err != nil {
+		return false, err
+	}
+
+	return virtualIPFlag && terminatingGatewayVirtualIPFlag, nil
+}
+
+func (s *Server) setVirtualIPVersionFlag() (bool, error) {
+	val, err := s.getSystemMetadata(structs.SystemMetadataVirtualIPsEnabled)
+	if err != nil {
+		return false, err
+	}
+	if val != "" {
+		return true, nil
+	}
+
+	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minVirtualIPVersion); !ok {
+		return false, fmt.Errorf("can't allocate Virtual IPs until all servers >= %s",
+			minVirtualIPVersion.String())
+	}
+
+	if err := s.setSystemMetadataKey(structs.SystemMetadataVirtualIPsEnabled, "true"); err != nil {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (s *Server) setVirtualIPTerminatingGatewayVersionFlag() (bool, error) {
+	val, err := s.getSystemMetadata(structs.SystemMetadataTermGatewayVirtualIPsEnabled)
+	if err != nil {
+		return false, err
+	}
+	if val != "" {
+		return true, nil
+	}
+
+	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minVirtualIPTerminatingGatewayVersion); !ok {
+		return false, fmt.Errorf("can't allocate Virtual IPs for terminating gateways until all servers >= %s",
+			minVirtualIPTerminatingGatewayVersion.String())
+	}
+
+	if err := s.setSystemMetadataKey(structs.SystemMetadataTermGatewayVirtualIPsEnabled, "true"); err != nil {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // retryLoopBackoff loops a given function indefinitely, backing off exponentially

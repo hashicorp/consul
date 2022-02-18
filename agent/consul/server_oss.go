@@ -19,6 +19,10 @@ import (
 
 func (s *Server) registerEnterpriseGRPCServices(deps Deps, srv *grpc.Server) {}
 
+func (s *Server) enterpriseValidateJoinWAN() error {
+	return nil // no-op
+}
+
 // JoinLAN is used to have Consul join the inner-DC pool The target address
 // should be another node inside the DC listening on the Serf LAN address
 func (s *Server) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, error) {
@@ -26,6 +30,8 @@ func (s *Server) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, 
 }
 
 // removeFailedNode is used to remove a failed node from the cluster
+//
+// if node is empty, just remove wanNode from the WAN
 func (s *Server) removeFailedNode(
 	removeFn func(*serf.Serf, string) error,
 	node, wanNode string,
@@ -42,10 +48,12 @@ func (s *Server) removeFailedNode(
 
 	var merr error
 
-	if found, err := maybeRemove(s.serfLAN, node); err != nil {
-		merr = multierror.Append(merr, fmt.Errorf("could not remove failed node from LAN: %w", err))
-	} else if found {
-		foundAny = true
+	if node != "" {
+		if found, err := maybeRemove(s.serfLAN, node); err != nil {
+			merr = multierror.Append(merr, fmt.Errorf("could not remove failed node from LAN: %w", err))
+		} else if found {
+			foundAny = true
+		}
 	}
 
 	if s.serfWAN != nil {

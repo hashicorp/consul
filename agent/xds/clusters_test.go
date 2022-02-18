@@ -69,8 +69,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 					customAppClusterJSON(t, customClusterJSONOptions{
 						Name: "myservice",
 					})
-				snap.ConnectProxy.UpstreamConfig = map[string]*structs.Upstream{
-					"db": {
+				snap.ConnectProxy.UpstreamConfig = map[proxycfg.UpstreamID]*structs.Upstream{
+					UID("db"): {
+						// The local bind port is overridden by the escape hatch, but is required for explicit upstreams.
+						LocalBindPort: 9191,
 						Config: map[string]interface{}{
 							"envoy_cluster_json": customAppClusterJSON(t, customClusterJSONOptions{
 								Name: "myservice",
@@ -665,30 +667,25 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Mode = structs.ProxyModeTransparent
+				kafka := structs.NewServiceName("kafka", nil)
+				mongo := structs.NewServiceName("mongo", nil)
+				kafkaUID := proxycfg.NewUpstreamIDFromServiceName(kafka)
+				mongoUID := proxycfg.NewUpstreamIDFromServiceName(mongo)
+
+				snap.ConnectProxy.IntentionUpstreams = map[proxycfg.UpstreamID]struct{}{
+					kafkaUID: {},
+					mongoUID: {},
+				}
 
 				// We add a passthrough cluster for each upstream service name
-				snap.ConnectProxy.PassthroughUpstreams = map[string]proxycfg.ServicePassthroughAddrs{
-					"default/kafka": {
-						SNI: "kafka.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
-						SpiffeID: connect.SpiffeIDService{
-							Host:       "e5b08d03-bfc3-c870-1833-baddb116e648.consul",
-							Namespace:  "default",
-							Datacenter: "dc1",
-							Service:    "kafka",
-						},
-						Addrs: map[string]struct{}{
+				snap.ConnectProxy.PassthroughUpstreams = map[proxycfg.UpstreamID]map[string]map[string]struct{}{
+					kafkaUID: {
+						"kafka.default.default.dc1": map[string]struct{}{
 							"9.9.9.9": {},
 						},
 					},
-					"default/mongo": {
-						SNI: "mongo.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
-						SpiffeID: connect.SpiffeIDService{
-							Host:       "e5b08d03-bfc3-c870-1833-baddb116e648.consul",
-							Namespace:  "default",
-							Datacenter: "dc1",
-							Service:    "mongo",
-						},
-						Addrs: map[string]struct{}{
+					mongoUID: {
+						"mongo.default.default.dc1": map[string]struct{}{
 							"10.10.10.10": {},
 							"10.10.10.12": {},
 						},
@@ -696,9 +693,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 				}
 
 				// There should still be a cluster for non-passthrough requests
-				snap.ConnectProxy.DiscoveryChain["mongo"] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
-				snap.ConnectProxy.WatchedUpstreamEndpoints["mongo"] = map[string]structs.CheckServiceNodes{
-					"mongo.default.dc1": {
+				snap.ConnectProxy.DiscoveryChain[mongoUID] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.WatchedUpstreamEndpoints[mongoUID] = map[string]structs.CheckServiceNodes{
+					"mongo.default.default.dc1": {
 						structs.CheckServiceNode{
 							Node: &structs.Node{
 								Datacenter: "dc1",
@@ -913,4 +910,9 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 			require.Equal(t, tc.expected, &c)
 		})
 	}
+}
+
+// UID is just a convenience function to aid in writing tests less verbosely.
+func UID(input string) proxycfg.UpstreamID {
+	return proxycfg.UpstreamIDFromString(input)
 }

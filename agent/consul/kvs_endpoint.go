@@ -160,18 +160,13 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 			}
 
 			if ent == nil {
-				// Must provide non-zero index to prevent blocking
-				// Index 1 is impossible anyways (due to Raft internals)
-				if index == 0 {
-					reply.Index = 1
-				} else {
-					reply.Index = index
-				}
+				reply.Index = index
 				reply.Entries = nil
-			} else {
-				reply.Index = ent.ModifyIndex
-				reply.Entries = structs.DirEntries{ent}
+				return errNotFound
 			}
+
+			reply.Index = ent.ModifyIndex
+			reply.Entries = structs.DirEntries{ent}
 			return nil
 		})
 }
@@ -204,7 +199,10 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 			if err != nil {
 				return err
 			}
+
+			total := len(ent)
 			ent = FilterDirEnt(authz, ent)
+			reply.QueryMeta.ResultsFilteredByACLs = total != len(ent)
 
 			if len(ent) == 0 {
 				// Must provide non-zero index to prevent blocking
@@ -263,7 +261,9 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 				reply.Index = index
 			}
 
+			total := len(entries)
 			entries = FilterDirEnt(authz, entries)
+			reply.QueryMeta.ResultsFilteredByACLs = total != len(entries)
 
 			// Collect the keys from the filtered entries
 			prefixLen := len(args.Prefix)

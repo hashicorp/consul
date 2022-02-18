@@ -8,18 +8,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/square/go-jose.v2/jwt"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
-	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 func TestLoginCommand_noTabs(t *testing.T) {
@@ -44,7 +44,7 @@ func TestLoginCommand(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -241,7 +241,7 @@ func TestLoginCommand_k8s(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -339,7 +339,7 @@ func TestLoginCommand_jwt(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -352,7 +352,7 @@ func TestLoginCommand_jwt(t *testing.T) {
 	bearerTokenFile := filepath.Join(testDir, "bearer.token")
 
 	// spin up a fake oidc server
-	oidcServer := startSSOTestServer(t)
+	oidcServer := oidcauthtest.Start(t)
 	pubKey, privKey := oidcServer.SigningKeys()
 
 	type mConfig = map[string]interface{}
@@ -469,12 +469,4 @@ func TestLoginCommand_jwt(t *testing.T) {
 			require.Len(t, token, 36, "must be a valid uid: %s", token)
 		})
 	}
-}
-
-func startSSOTestServer(t *testing.T) *oidcauthtest.Server {
-	ports := freeport.MustTake(1)
-	return oidcauthtest.Start(t, oidcauthtest.WithPort(
-		ports[0],
-		func() { freeport.Return(ports) },
-	))
 }

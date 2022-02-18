@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
@@ -137,9 +136,7 @@ func (s *HTTPHandlers) CatalogRegister(resp http.ResponseWriter, req *http.Reque
 	}
 
 	if err := s.rewordUnknownEnterpriseFieldError(decodeBody(req.Body, &args)); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Setup the default DC if not provided
@@ -169,9 +166,7 @@ func (s *HTTPHandlers) CatalogDeregister(resp http.ResponseWriter, req *http.Req
 		return nil, err
 	}
 	if err := s.rewordUnknownEnterpriseFieldError(decodeBody(req.Body, &args)); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Setup the default DC if not provided
@@ -362,11 +357,13 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 	}
 
 	// Pull out the service name
-	args.ServiceName = strings.TrimPrefix(req.URL.Path, pathPrefix)
+	var err error
+	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, pathPrefix)
+	if err != nil {
+		return nil, err
+	}
 	if args.ServiceName == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing service name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing service name"}
 	}
 
 	// Make the RPC request
@@ -435,11 +432,13 @@ func (s *HTTPHandlers) CatalogNodeServices(resp http.ResponseWriter, req *http.R
 	}
 
 	// Pull out the node name
-	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/catalog/node/")
+	var err error
+	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/catalog/node/")
+	if err != nil {
+		return nil, err
+	}
 	if args.Node == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing node name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing node name"}
 	}
 
 	// Make the RPC request
@@ -498,11 +497,13 @@ func (s *HTTPHandlers) CatalogNodeServiceList(resp http.ResponseWriter, req *htt
 	}
 
 	// Pull out the node name
-	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/catalog/node-services/")
+	var err error
+	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/catalog/node-services/")
+	if err != nil {
+		return nil, err
+	}
 	if args.Node == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing node name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing node name"}
 	}
 
 	// Make the RPC request
@@ -547,11 +548,13 @@ func (s *HTTPHandlers) CatalogGatewayServices(resp http.ResponseWriter, req *htt
 	}
 
 	// Pull out the gateway's service name
-	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/catalog/gateway-services/")
+	var err error
+	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, "/v1/catalog/gateway-services/")
+	if err != nil {
+		return nil, err
+	}
 	if args.ServiceName == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing gateway name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing gateway name"}
 	}
 
 	// Make the RPC request

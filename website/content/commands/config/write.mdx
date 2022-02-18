@@ -7,9 +7,35 @@ page_title: 'Commands: Config Write'
 
 Command: `consul config write`
 
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/config](/api-docs/config#apply-configuration)
+
 The `config write` command creates or updates a centralized config entry.
 See the [configuration entries docs](/docs/agent/config-entries) for more
 details about configuration entries.
+
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required<sup>1</sup>                                      |
+| ------------------------------------------------------------- |
+| `service:write`<br />`operator:write`<br />`intentions:write` |
+
+<p>
+  <sup>1</sup> The actual ACL required depends on the config entry kind being
+  updated:
+</p>
+
+| Config Entry Kind   | Required ACL       |
+| ------------------- | ------------------ |
+| ingress-gateway     | `operator:write`   |
+| proxy-defaults      | `operator:write`   |
+| service-defaults    | `service:write`    |
+| service-intentions  | `intentions:write` |
+| service-resolver    | `service:write`    |
+| service-router      | `service:write`    |
+| service-splitter    | `service:write`    |
+| terminating-gateway | `operator:write`   |
 
 ## Usage
 
@@ -22,6 +48,8 @@ Usage: `consul config write [options] FILE`
 #### Enterprise Options
 
 @include 'http_api_namespace_options.mdx'
+
+@include 'http_api_partition_options.mdx'
 
 #### Config Write Options
 
@@ -42,8 +70,9 @@ From stdin:
 
 ### Config Entry examples
 
-All config entries must have a `Kind` when registered. Currently, the only
-supported types are `service-defaults` and `proxy-defaults`.
+All config entries must have a `Kind` when registered. See
+[Service Mesh - Config Entries](/docs/connect/config-entries) for the list of
+supported config entries.
 
 #### Service defaults
 

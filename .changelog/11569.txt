@@ -1,0 +1,3 @@
+```release-note:enhancement
+api: responses that contain only a partial subset of results, due to filtering by ACL policies, may now include an `X-Consul-Results-Filtered-By-ACLs` header
+```

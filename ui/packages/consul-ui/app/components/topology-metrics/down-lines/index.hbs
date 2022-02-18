@@ -92,7 +92,7 @@
       @disabled={{disabled}}
       @oncreate={{action @oncreate item @service}}
     />
-  {{else if (and (not-eq item.Datacenter '') item.Intention.Allowed (not item.TransparentProxy) (eq item.Source 'specific-intention'))}}
+  {{else if (and (not-eq item.Datacenter '') item.Intention.Allowed (not item.TransparentProxy) (not item.ConnectNative) (eq item.Source 'specific-intention'))}}
     <TopologyMetrics::Popover
       @type='not-defined'
       @service={{@service}}

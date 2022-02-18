@@ -1,0 +1,28 @@
+# adopt-styles
+
+Adopt/apply given styles to a `ShadowRoot` using constructable styleSheets if supported
+
+```hbs preview-template
+<div
+  {{attach-shadow (set this 'shadow')}}
+>
+  {{#if this.shadow}}
+    {{#in-element this.shadow}}
+      {{adopt-styles this.shadow (css '
+        :host {
+          background-color: red;
+          width: 100px;
+          height: 100px;
+        }
+      ')}}
+    {{/in-element}}
+  {{/if}}
+</div>
+```
+
+## Positional Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `params` | `[ShadowRoot, CSSResultGroup]` |  | |
+

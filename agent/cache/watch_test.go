@@ -51,15 +51,13 @@ func TestCacheNotify(t *testing.T) {
 	// after cancellation as if it had timed out.
 	typ.Static(FetchResult{Value: 42, Index: 8}, nil).WaitUntil(trigger[4])
 
-	require := require.New(t)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	ch := make(chan UpdateEvent)
 
 	err := c.Notify(ctx, "t", TestRequest(t, RequestInfo{Key: "hello"}), "test", ch)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Should receive the error with index == 0 first.
 	TestCacheNotifyChResult(t, ch, UpdateEvent{
@@ -70,7 +68,7 @@ func TestCacheNotify(t *testing.T) {
 	})
 
 	// There should be no more updates delivered yet
-	require.Len(ch, 0)
+	require.Len(t, ch, 0)
 
 	// Trigger blocking query to return a "change"
 	close(trigger[0])
@@ -102,7 +100,7 @@ func TestCacheNotify(t *testing.T) {
 	//    requests to the "backend"
 	//  - that multiple watchers can distinguish their results using correlationID
 	err = c.Notify(ctx, "t", TestRequest(t, RequestInfo{Key: "hello"}), "test2", ch)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Should get test2 notify immediately, and it should be a cache hit
 	TestCacheNotifyChResult(t, ch, UpdateEvent{
@@ -121,7 +119,7 @@ func TestCacheNotify(t *testing.T) {
 	// it's only a sanity check, if we somehow _do_ get the change delivered later
 	// than 10ms the next value assertion will fail anyway.
 	time.Sleep(10 * time.Millisecond)
-	require.Len(ch, 0)
+	require.Len(t, ch, 0)
 
 	// Trigger final update
 	close(trigger[3])
@@ -183,15 +181,13 @@ func TestCacheNotifyPolling(t *testing.T) {
 	typ.Static(FetchResult{Value: 12, Index: 1}, nil).Once()
 	typ.Static(FetchResult{Value: 42, Index: 1}, nil).Once()
 
-	require := require.New(t)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	ch := make(chan UpdateEvent)
 
 	err := c.Notify(ctx, "t", TestRequest(t, RequestInfo{Key: "hello", MaxAge: 100 * time.Millisecond}), "test", ch)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Should receive the first result pretty soon
 	TestCacheNotifyChResult(t, ch, UpdateEvent{
@@ -202,32 +198,32 @@ func TestCacheNotifyPolling(t *testing.T) {
 	})
 
 	// There should be no more updates delivered yet
-	require.Len(ch, 0)
+	require.Len(t, ch, 0)
 
 	// make sure the updates do not come too quickly
 	select {
 	case <-time.After(50 * time.Millisecond):
 	case <-ch:
-		require.Fail("Received update too early")
+		require.Fail(t, "Received update too early")
 	}
 
 	// make sure we get the update not too far out.
 	select {
 	case <-time.After(100 * time.Millisecond):
-		require.Fail("Didn't receive the notification")
+		require.Fail(t, "Didn't receive the notification")
 	case result := <-ch:
-		require.Equal(result.Result, 12)
-		require.Equal(result.CorrelationID, "test")
-		require.Equal(result.Meta.Hit, false)
-		require.Equal(result.Meta.Index, uint64(1))
+		require.Equal(t, result.Result, 12)
+		require.Equal(t, result.CorrelationID, "test")
+		require.Equal(t, result.Meta.Hit, false)
+		require.Equal(t, result.Meta.Index, uint64(1))
 		// pretty conservative check it should be even newer because without a second
 		// notifier each value returned will have been executed just then and not served
 		// from the cache.
-		require.True(result.Meta.Age < 50*time.Millisecond)
-		require.NoError(result.Err)
+		require.True(t, result.Meta.Age < 50*time.Millisecond)
+		require.NoError(t, result.Err)
 	}
 
-	require.Len(ch, 0)
+	require.Len(t, ch, 0)
 
 	// Register a second observer using same chan and request. Note that this is
 	// testing a few things implicitly:
@@ -235,7 +231,7 @@ func TestCacheNotifyPolling(t *testing.T) {
 	//    requests to the "backend"
 	//  - that multiple watchers can distinguish their results using correlationID
 	err = c.Notify(ctx, "t", TestRequest(t, RequestInfo{Key: "hello", MaxAge: 100 * time.Millisecond}), "test2", ch)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Should get test2 notify immediately, and it should be a cache hit
 	TestCacheNotifyChResult(t, ch, UpdateEvent{
@@ -245,7 +241,7 @@ func TestCacheNotifyPolling(t *testing.T) {
 		Err:           nil,
 	})
 
-	require.Len(ch, 0)
+	require.Len(t, ch, 0)
 
 	// wait for the next batch of responses
 	events := make([]UpdateEvent, 0)
@@ -255,25 +251,25 @@ func TestCacheNotifyPolling(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		select {
 		case <-timeout:
-			require.Fail("UpdateEvent not received in time")
+			require.Fail(t, "UpdateEvent not received in time")
 		case eve := <-ch:
 			events = append(events, eve)
 		}
 	}
 
-	require.Equal(events[0].Result, 42)
-	require.Equal(events[0].Meta.Hit && events[1].Meta.Hit, false)
-	require.Equal(events[0].Meta.Index, uint64(1))
-	require.True(events[0].Meta.Age < 50*time.Millisecond)
-	require.NoError(events[0].Err)
-	require.Equal(events[1].Result, 42)
+	require.Equal(t, events[0].Result, 42)
+	require.Equal(t, events[0].Meta.Hit && events[1].Meta.Hit, false)
+	require.Equal(t, events[0].Meta.Index, uint64(1))
+	require.True(t, events[0].Meta.Age < 50*time.Millisecond)
+	require.NoError(t, events[0].Err)
+	require.Equal(t, events[1].Result, 42)
 	// Sometimes this would be a hit and others not. It all depends on when the various getWithIndex calls got fired.
 	// If both are done concurrently then it will not be a cache hit but the request gets single flighted and both
 	// get notified at the same time.
-	// require.Equal(events[1].Meta.Hit, true)
-	require.Equal(events[1].Meta.Index, uint64(1))
-	require.True(events[1].Meta.Age < 100*time.Millisecond)
-	require.NoError(events[1].Err)
+	// require.Equal(t,events[1].Meta.Hit, true)
+	require.Equal(t, events[1].Meta.Index, uint64(1))
+	require.True(t, events[1].Meta.Age < 100*time.Millisecond)
+	require.NoError(t, events[1].Err)
 }
 
 // Test that a refresh performs a backoff.
@@ -298,15 +294,13 @@ func TestCacheWatch_ErrorBackoff(t *testing.T) {
 		atomic.AddUint32(&retries, 1)
 	})
 
-	require := require.New(t)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	ch := make(chan UpdateEvent)
 
 	err := c.Notify(ctx, "t", TestRequest(t, RequestInfo{Key: "hello"}), "test", ch)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Should receive the first result pretty soon
 	TestCacheNotifyChResult(t, ch, UpdateEvent{
@@ -331,15 +325,15 @@ OUT:
 			break OUT
 		case u := <-ch:
 			numErrors++
-			require.Error(u.Err)
+			require.Error(t, u.Err)
 		}
 	}
 	// Must be fewer than 10 failures in that time
-	require.True(numErrors < 10, fmt.Sprintf("numErrors: %d", numErrors))
+	require.True(t, numErrors < 10, fmt.Sprintf("numErrors: %d", numErrors))
 
 	// Check the number of RPCs as a sanity check too
 	actual := atomic.LoadUint32(&retries)
-	require.True(actual < 10, fmt.Sprintf("actual: %d", actual))
+	require.True(t, actual < 10, fmt.Sprintf("actual: %d", actual))
 }
 
 // Test that a refresh performs a backoff.
@@ -363,15 +357,13 @@ func TestCacheWatch_ErrorBackoffNonBlocking(t *testing.T) {
 		atomic.AddUint32(&retries, 1)
 	})
 
-	require := require.New(t)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	ch := make(chan UpdateEvent)
 
 	err := c.Notify(ctx, "t", TestRequest(t, RequestInfo{Key: "hello", MaxAge: 100 * time.Millisecond}), "test", ch)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Should receive the first result pretty soon
 	TestCacheNotifyChResult(t, ch, UpdateEvent{
@@ -399,13 +391,13 @@ OUT:
 			break OUT
 		case u := <-ch:
 			numErrors++
-			require.Error(u.Err)
+			require.Error(t, u.Err)
 		}
 	}
 	// Must be fewer than 10 failures in that time
-	require.True(numErrors < 10, fmt.Sprintf("numErrors: %d", numErrors))
+	require.True(t, numErrors < 10, fmt.Sprintf("numErrors: %d", numErrors))
 
 	// Check the number of RPCs as a sanity check too
 	actual := atomic.LoadUint32(&retries)
-	require.True(actual < 10, fmt.Sprintf("actual: %d", actual))
+	require.True(t, actual < 10, fmt.Sprintf("actual: %d", actual))
 }

@@ -90,7 +90,7 @@ as |after|}}
 {{#let
   (action dispatch "RESET")
 as |after|}}
-    {{#yield-slot name="error" params=(block-params after)}}
+    {{#yield-slot name="error" params=(block-params after api.error)}}
       {{yield api}}
     {{else}}
       <Notice

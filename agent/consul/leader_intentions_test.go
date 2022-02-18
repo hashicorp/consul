@@ -29,7 +29,7 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 		c.Datacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.Build = "1.6.0"
 		c.OverrideInitialSerfTags = func(tags map[string]string) {
@@ -217,7 +217,6 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 func TestLeader_batchLegacyIntentionUpdates(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
 	ixn1 := structs.TestIntention(t)
 	ixn1.ID = "ixn1"
 	ixn2 := structs.TestIntention(t)
@@ -356,7 +355,7 @@ func TestLeader_batchLegacyIntentionUpdates(t *testing.T) {
 
 	for _, tc := range cases {
 		actual := batchLegacyIntentionUpdates(tc.deletes, tc.updates)
-		assert.Equal(tc.expected, actual)
+		assert.Equal(t, tc.expected, actual)
 	}
 }
 

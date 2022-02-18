@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/decode"
 )
 
 const (
@@ -160,6 +160,34 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	return nil
 }
 
+func (v *VaultProvider) ValidateConfigUpdate(prevRaw, nextRaw map[string]interface{}) error {
+	prev, err := ParseVaultCAConfig(prevRaw)
+	if err != nil {
+		return fmt.Errorf("failed to parse existing CA config: %w", err)
+	}
+	next, err := ParseVaultCAConfig(nextRaw)
+	if err != nil {
+		return fmt.Errorf("failed to parse new CA config: %w", err)
+	}
+
+	if prev.RootPKIPath != next.RootPKIPath {
+		return nil
+	}
+
+	if prev.PrivateKeyType != "" && prev.PrivateKeyType != connect.DefaultPrivateKeyType {
+		if prev.PrivateKeyType != next.PrivateKeyType {
+			return fmt.Errorf("cannot update the PrivateKeyType field without changing RootPKIPath")
+		}
+	}
+
+	if prev.PrivateKeyBits != 0 && prev.PrivateKeyBits != connect.DefaultPrivateKeyBits {
+		if prev.PrivateKeyBits != next.PrivateKeyBits {
+			return fmt.Errorf("cannot update the PrivateKeyBits field without changing RootPKIPath")
+		}
+	}
+	return nil
+}
+
 // renewToken uses a vaultapi.LifetimeWatcher to repeatedly renew our token's lease.
 // If the token can no longer be renewed and auth method is set,
 // it will re-authenticate to Vault using the auth method and restart the renewer with the new token.
@@ -220,19 +248,14 @@ func (v *VaultProvider) State() (map[string]string, error) {
 	return nil, nil
 }
 
-// ActiveRoot returns the active root CA certificate.
-func (v *VaultProvider) ActiveRoot() (string, error) {
-	return v.getCA(v.config.RootPKIPath)
-}
-
 // GenerateRoot mounts and initializes a new root PKI backend if needed.
-func (v *VaultProvider) GenerateRoot() error {
+func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 	if !v.isPrimary {
-		return fmt.Errorf("provider is not the root certificate authority")
+		return RootResult{}, fmt.Errorf("provider is not the root certificate authority")
 	}
 
 	// Set up the root PKI backend if necessary.
-	rootPEM, err := v.ActiveRoot()
+	rootPEM, err := v.getCA(v.config.RootPKIPath)
 	switch err {
 	case ErrBackendNotMounted:
 		err := v.client.Sys().Mount(v.config.RootPKIPath, &vaultapi.MountInput{
@@ -246,16 +269,15 @@ func (v *VaultProvider) GenerateRoot() error {
 				DefaultLeaseTTL: v.config.RootCertTTL.String(),
 			},
 		})
-
 		if err != nil {
-			return err
+			return RootResult{}, err
 		}
 
 		fallthrough
 	case ErrBackendNotInitialized:
 		uid, err := connect.CompactUID()
 		if err != nil {
-			return err
+			return RootResult{}, err
 		}
 		_, err = v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
@@ -264,40 +286,23 @@ func (v *VaultProvider) GenerateRoot() error {
 			"key_bits":    v.config.PrivateKeyBits,
 		})
 		if err != nil {
-			return err
+			return RootResult{}, err
 		}
+
+		// retrieve the newly generated cert so that we can return it
+		// TODO: is this already available from the Local().Write() above?
+		rootPEM, err = v.getCA(v.config.RootPKIPath)
+		if err != nil {
+			return RootResult{}, err
+		}
+
 	default:
 		if err != nil {
-			return err
-		}
-
-		if rootPEM != "" {
-			rootCert, err := connect.ParseCert(rootPEM)
-			if err != nil {
-				return err
-			}
-
-			// Vault PKI doesn't allow in-place cert/key regeneration. That
-			// means if you need to change either the key type or key bits then
-			// you also need to provide new mount points.
-			// https://www.vaultproject.io/api-docs/secret/pki#generate-root
-			//
-			// A separate bug in vault likely also requires that you use the
-			// ForceWithoutCrossSigning option when changing key types.
-			foundKeyType, foundKeyBits, err := connect.KeyInfoFromCert(rootCert)
-			if err != nil {
-				return err
-			}
-			if v.config.PrivateKeyType != foundKeyType {
-				return fmt.Errorf("cannot update the PrivateKeyType field without choosing a new PKI mount for the root CA")
-			}
-			if v.config.PrivateKeyBits != foundKeyBits {
-				return fmt.Errorf("cannot update the PrivateKeyBits field without choosing a new PKI mount for the root CA")
-			}
+			return RootResult{}, err
 		}
 	}
 
-	return nil
+	return RootResult{PEM: rootPEM}, nil
 }
 
 // GenerateIntermediateCSR creates a private key and generates a CSR
@@ -397,17 +402,14 @@ func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
 		return fmt.Errorf("cannot set an intermediate using another root in the primary datacenter")
 	}
 
-	err := validateSetIntermediate(
-		intermediatePEM, rootPEM,
-		"", // we don't have access to the private key directly
-		v.spiffeID,
-	)
+	// the private key is in vault, so we can't use it in this validation
+	err := validateSetIntermediate(intermediatePEM, rootPEM, "", v.spiffeID)
 	if err != nil {
 		return err
 	}
 
 	_, err = v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/set-signed", map[string]interface{}{
-		"certificate": fmt.Sprintf("%s\n%s", intermediatePEM, rootPEM),
+		"certificate": intermediatePEM,
 	})
 	if err != nil {
 		return err
@@ -575,7 +577,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
 // back to our active root.
 func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
-	rootPEM, err := v.ActiveRoot()
+	rootPEM, err := v.getCA(v.config.RootPKIPath)
 	if err != nil {
 		return "", err
 	}

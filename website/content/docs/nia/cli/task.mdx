@@ -8,7 +8,7 @@ description: >-
 
 ## task enable
 
-`task enable` command enables an existing task so that it will run and update task resources. If the task is already enabled, it will return a success. The command generates and outputs a Terraform plan, similar to [inspect-mode](/docs/nia/cli/cli-overview#inspect-mode), of how resources will be modified if task becomes enabled. If resources changes are detected, the command will ask for user approval before enabling the task. If no resources are detected, the command will go ahead and enable the task.
+`task enable` command enables an existing task so that it will run and update task resources. If the task is already enabled, it will return a success. The command generates and outputs a Terraform plan, similar to [inspect-mode](/docs/nia/cli#inspect-mode), of how resources will be modified if task becomes enabled. If resources changes are detected, the command will ask for user approval before enabling the task. If no resources are detected, the command will go ahead and enable the task.
 
 ### Usage
 `consul-terraform-sync task enable [options] <task_name>`
@@ -16,7 +16,7 @@ description: >-
 **Arguments:**
 - `task_name` - (string: required) The name of the task to enable
 
-**Options:** Currently only supporting [general options](/docs/nia/cli/cli-overview#general-options)
+**Options:** Currently only supporting [general options](/docs/nia/cli#general-options)
 
 
 ### Example
@@ -62,7 +62,7 @@ Enter a value: yes
 **Arguments:**
 - `task_name` - (string: required) The name of the task to disable
 
-**Options:** Currently only supporting [general options](/docs/nia/cli/cli-overview#general-options)
+**Options:** Currently only supporting [general options](/docs/nia/cli#general-options)
 
 
 ### Example

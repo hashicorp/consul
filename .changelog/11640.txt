@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Include `Service.Namespace` into available variables for `dashboard_url_templates`
+```

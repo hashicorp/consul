@@ -167,14 +167,11 @@ type delegate interface {
 	// RemoveFailedNode is used to remove a failed node from the cluster.
 	RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error
 
-	// TODO: replace this method with consul.ACLResolver
-	ResolveTokenToIdentity(token string) (structs.ACLIdentity, error)
-
 	// ResolveTokenAndDefaultMeta returns an acl.Authorizer which authorizes
 	// actions based on the permissions granted to the token.
 	// If either entMeta or authzContext are non-nil they will be populated with the
 	// default partition and namespace from the token.
-	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error)
 
 	RPC(method string, args interface{}, reply interface{}) error
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
@@ -208,9 +205,6 @@ type Agent struct {
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
 	delegate delegate
-
-	// aclMasterAuthorizer is an object that helps manage local ACL enforcement.
-	aclMasterAuthorizer acl.Authorizer
 
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
@@ -1153,8 +1147,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.RaftTrailingLogs != 0 {
 		cfg.RaftConfig.TrailingLogs = uint64(runtimeCfg.RaftTrailingLogs)
 	}
-	if runtimeCfg.ACLMasterToken != "" {
-		cfg.ACLMasterToken = runtimeCfg.ACLMasterToken
+	if runtimeCfg.ACLInitialManagementToken != "" {
+		cfg.ACLInitialManagementToken = runtimeCfg.ACLInitialManagementToken
 	}
 	cfg.ACLTokenReplication = runtimeCfg.ACLTokenReplication
 	cfg.ACLsEnabled = runtimeCfg.ACLsEnabled
@@ -1263,6 +1257,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	}
 
 	cfg.ConfigEntryBootstrap = runtimeCfg.ConfigEntryBootstrap
+	cfg.RaftBoltDBConfig = runtimeCfg.RaftBoltDBConfig
 
 	// Duplicate our own serf config once to make sure that the duplication
 	// function does not drift.
@@ -1373,14 +1368,14 @@ func (a *Agent) ShutdownAgent() error {
 	// this should help them to be stopped more quickly
 	a.baseDeps.AutoConfig.Stop()
 
+	a.stateLock.Lock()
+	defer a.stateLock.Unlock()
 	// Stop the service manager (must happen before we take the stateLock to avoid deadlock)
 	if a.serviceManager != nil {
 		a.serviceManager.Stop()
 	}
 
 	// Stop all the checks
-	a.stateLock.Lock()
-	defer a.stateLock.Unlock()
 	for _, chk := range a.checkMonitors {
 		chk.Stop()
 	}
@@ -1553,11 +1548,31 @@ func (a *Agent) RefreshPrimaryGatewayFallbackAddresses(addrs []string) error {
 }
 
 // ForceLeave is used to remove a failed node from the cluster
-func (a *Agent) ForceLeave(node string, prune bool, entMeta *structs.EnterpriseMeta) (err error) {
+func (a *Agent) ForceLeave(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
 	a.logger.Info("Force leaving node", "node", node)
-	err = a.delegate.RemoveFailedNode(node, prune, entMeta)
+
+	err := a.delegate.RemoveFailedNode(node, prune, entMeta)
 	if err != nil {
 		a.logger.Warn("Failed to remove node",
+			"node", node,
+			"error", err,
+		)
+	}
+	return err
+}
+
+// ForceLeaveWAN is used to remove a failed node from the WAN cluster
+func (a *Agent) ForceLeaveWAN(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+	a.logger.Info("(WAN) Force leaving node", "node", node)
+
+	srv, ok := a.delegate.(*consul.Server)
+	if !ok {
+		return fmt.Errorf("Must be a server to force-leave a node from the WAN cluster")
+	}
+
+	err := srv.RemoveFailedNodeWAN(node, prune, entMeta)
+	if err != nil {
+		a.logger.Warn("(WAN) Failed to remove node",
 			"node", node,
 			"error", err,
 		)

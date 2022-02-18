@@ -23,7 +23,7 @@ their pod IPs (`false`).
 
 Finally, `client.join` is set to an array of valid
 [`-retry-join` values](/docs/agent/options#retry-join). In the
-example above, a fake [cloud auto-join](/docs/agent/cloud-auto-join)
+example above, a fake [cloud auto-join](/docs/install/cloud-auto-join)
 value is specified. This should be set to resolve to the proper addresses of
 your existing Consul cluster.
 
@@ -57,7 +57,7 @@ You may also consider adopting Consul Enterprise for
 -> **Note:** Consul on Kubernetes currently does not support external servers that require mutual authentication
 for the HTTPS clients of the Consul servers, that is when servers have either
 `verify_incoming` or `verify_incoming_https` set to `true`.
-As noted in the [Security Model](/docs/internals/security#secure-configuration),
+As noted in the [Security Model](/docs/security#secure-configuration),
 that setting isn't strictly necessary to support Consul's threat model as it is recommended that
 all requests contain a valid ACL token.
 
@@ -94,7 +94,7 @@ to help initialize ACL tokens for Consul clients and consul-k8s components for y
 
 ### Manually Bootstrapping ACLs
 
-If you would like to call the [ACL bootstrapping API](/api/acl/acl#bootstrap-acls) yourself or if your cluster has already been bootstrapped with ACLs,
+If you would like to call the [ACL bootstrapping API](/api-docs/acl#bootstrap-acls) yourself or if your cluster has already been bootstrapped with ACLs,
 you can provide the bootstrap token to the Helm chart. The Helm chart will then use this token to configure ACLs
 for Consul clients and any consul-k8s components you are enabling.
 
@@ -128,7 +128,7 @@ The bootstrap token requires the following minimal permissions:
 Next, configure external servers. The Helm chart will use this configuration to talk to the Consul server's API
 to create policies, tokens, and an auth method. If you are [enabling Consul Connect](/docs/k8s/connect),
 `k8sAuthMethodHost` should be set to the address of your Kubernetes API server
-so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](/docs/acl/auth-methods/kubernetes)
+so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](/docs/security/acl/auth-methods/kubernetes)
 with `consul login`.
 
 <CodeBlockConfig filename="config.yaml">

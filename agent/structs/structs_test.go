@@ -941,17 +941,16 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			assert := assert.New(t)
 			ns := TestNodeServiceProxy(t)
 			tc.Modify(ns)
 
 			err := ns.Validate()
-			assert.Equal(err != nil, tc.Err != "", err)
+			assert.Equal(t, err != nil, tc.Err != "", err)
 			if err == nil {
 				return
 			}
 
-			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 		})
 	}
 }
@@ -1000,17 +999,16 @@ func TestStructs_NodeService_ValidateConnectProxy_In_Partition(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			assert := assert.New(t)
 			ns := TestNodeServiceProxyInPartition(t, "bar")
 			tc.Modify(ns)
 
 			err := ns.Validate()
-			assert.Equal(err != nil, tc.Err != "", err)
+			assert.Equal(t, err != nil, tc.Err != "", err)
 			if err == nil {
 				return
 			}
 
-			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 		})
 	}
 }
@@ -1046,17 +1044,16 @@ func TestStructs_NodeService_ValidateSidecarService(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			assert := assert.New(t)
 			ns := TestNodeServiceSidecar(t)
 			tc.Modify(ns)
 
 			err := ns.Validate()
-			assert.Equal(err != nil, tc.Err != "", err)
+			assert.Equal(t, err != nil, tc.Err != "", err)
 			if err == nil {
 				return
 			}
 
-			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 		})
 	}
 }
@@ -1561,7 +1558,7 @@ func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
 		},
 		"reserved key prefix denied": {
 			map[string]string{
-				metaKeyReservedPrefix + "key": "value1",
+				MetaKeyReservedPrefix + "key": "value1",
 			},
 			false,
 			"reserved for internal use",
@@ -1570,7 +1567,7 @@ func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
 		},
 		"reserved key prefix allowed": {
 			map[string]string{
-				metaKeyReservedPrefix + "key": "value1",
+				MetaKeyReservedPrefix + "key": "value1",
 			},
 			true,
 			"",
@@ -1640,13 +1637,13 @@ func TestStructs_validateMetaPair(t *testing.T) {
 		// key too long
 		{longKey, "value", "Key is too long", false, nil},
 		// reserved prefix
-		{metaKeyReservedPrefix + "key", "value", "reserved for internal use", false, nil},
+		{MetaKeyReservedPrefix + "key", "value", "reserved for internal use", false, nil},
 		// reserved prefix, allowed
-		{metaKeyReservedPrefix + "key", "value", "", true, nil},
+		{MetaKeyReservedPrefix + "key", "value", "", true, nil},
 		// reserved prefix, not allowed via an allowlist
-		{metaKeyReservedPrefix + "bad", "value", "reserved for internal use", false, map[string]struct{}{metaKeyReservedPrefix + "good": {}}},
+		{MetaKeyReservedPrefix + "bad", "value", "reserved for internal use", false, map[string]struct{}{MetaKeyReservedPrefix + "good": {}}},
 		// reserved prefix, allowed via an allowlist
-		{metaKeyReservedPrefix + "good", "value", "", true, map[string]struct{}{metaKeyReservedPrefix + "good": {}}},
+		{MetaKeyReservedPrefix + "good", "value", "", true, map[string]struct{}{MetaKeyReservedPrefix + "good": {}}},
 		// value too long
 		{"key", longValue, "Value is too long", false, nil},
 	}
@@ -2108,14 +2105,18 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 		input   CheckServiceNode
 		lanAddr string
 		lanPort int
+		lanIdx  uint64
 		wanAddr string
 		wanPort int
+		wanIdx  uint64
 	}
 
 	nodeAddr := "10.1.2.3"
 	nodeWANAddr := "198.18.19.20"
+	nodeIdx := uint64(11)
 	serviceAddr := "10.2.3.4"
 	servicePort := 1234
+	serviceIdx := uint64(22)
 	serviceWANAddr := "198.19.20.21"
 	serviceWANPort := 987
 
@@ -2124,15 +2125,23 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 			input: CheckServiceNode{
 				Node: &Node{
 					Address: nodeAddr,
+					RaftIndex: RaftIndex{
+						ModifyIndex: nodeIdx,
+					},
 				},
 				Service: &NodeService{
 					Port: servicePort,
+					RaftIndex: RaftIndex{
+						ModifyIndex: serviceIdx,
+					},
 				},
 			},
 
 			lanAddr: nodeAddr,
+			lanIdx:  nodeIdx,
 			lanPort: servicePort,
 			wanAddr: nodeAddr,
+			wanIdx:  nodeIdx,
 			wanPort: servicePort,
 		},
 		"node-wan-address": {
@@ -2142,15 +2151,23 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 					TaggedAddresses: map[string]string{
 						"wan": nodeWANAddr,
 					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: nodeIdx,
+					},
 				},
 				Service: &NodeService{
 					Port: servicePort,
+					RaftIndex: RaftIndex{
+						ModifyIndex: serviceIdx,
+					},
 				},
 			},
 
 			lanAddr: nodeAddr,
+			lanIdx:  nodeIdx,
 			lanPort: servicePort,
 			wanAddr: nodeWANAddr,
+			wanIdx:  nodeIdx,
 			wanPort: servicePort,
 		},
 		"service-address": {
@@ -2161,16 +2178,24 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 					TaggedAddresses: map[string]string{
 						"wan": nodeWANAddr,
 					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: nodeIdx,
+					},
 				},
 				Service: &NodeService{
 					Address: serviceAddr,
 					Port:    servicePort,
+					RaftIndex: RaftIndex{
+						ModifyIndex: serviceIdx,
+					},
 				},
 			},
 
 			lanAddr: serviceAddr,
+			lanIdx:  serviceIdx,
 			lanPort: servicePort,
 			wanAddr: serviceAddr,
+			wanIdx:  serviceIdx,
 			wanPort: servicePort,
 		},
 		"service-wan-address": {
@@ -2180,6 +2205,9 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 					// this will be ignored
 					TaggedAddresses: map[string]string{
 						"wan": nodeWANAddr,
+					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: nodeIdx,
 					},
 				},
 				Service: &NodeService{
@@ -2191,12 +2219,17 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 							Port:    serviceWANPort,
 						},
 					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: serviceIdx,
+					},
 				},
 			},
 
 			lanAddr: serviceAddr,
+			lanIdx:  serviceIdx,
 			lanPort: servicePort,
 			wanAddr: serviceWANAddr,
+			wanIdx:  serviceIdx,
 			wanPort: serviceWANPort,
 		},
 		"service-wan-address-default-port": {
@@ -2206,6 +2239,9 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 					// this will be ignored
 					TaggedAddresses: map[string]string{
 						"wan": nodeWANAddr,
+					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: nodeIdx,
 					},
 				},
 				Service: &NodeService{
@@ -2217,12 +2253,17 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 							Port:    0,
 						},
 					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: serviceIdx,
+					},
 				},
 			},
 
 			lanAddr: serviceAddr,
+			lanIdx:  serviceIdx,
 			lanPort: servicePort,
 			wanAddr: serviceWANAddr,
+			wanIdx:  serviceIdx,
 			wanPort: servicePort,
 		},
 		"service-wan-address-node-lan": {
@@ -2233,6 +2274,9 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 					TaggedAddresses: map[string]string{
 						"wan": nodeWANAddr,
 					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: nodeIdx,
+					},
 				},
 				Service: &NodeService{
 					Port: servicePort,
@@ -2242,12 +2286,17 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 							Port:    serviceWANPort,
 						},
 					},
+					RaftIndex: RaftIndex{
+						ModifyIndex: serviceIdx,
+					},
 				},
 			},
 
 			lanAddr: nodeAddr,
+			lanIdx:  nodeIdx,
 			lanPort: servicePort,
 			wanAddr: serviceWANAddr,
+			wanIdx:  serviceIdx,
 			wanPort: serviceWANPort,
 		},
 	}
@@ -2257,13 +2306,15 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 
-			addr, port := tc.input.BestAddress(false)
+			idx, addr, port := tc.input.BestAddress(false)
 			require.Equal(t, tc.lanAddr, addr)
 			require.Equal(t, tc.lanPort, port)
+			require.Equal(t, tc.lanIdx, idx)
 
-			addr, port = tc.input.BestAddress(true)
+			idx, addr, port = tc.input.BestAddress(true)
 			require.Equal(t, tc.wanAddr, addr)
 			require.Equal(t, tc.wanPort, port)
+			require.Equal(t, tc.wanIdx, idx)
 		})
 	}
 }
@@ -2449,10 +2500,11 @@ func TestSnapshotRequestResponse_MsgpackEncodeDecode(t *testing.T) {
 		in := &SnapshotResponse{
 			Error: "blah",
 			QueryMeta: QueryMeta{
-				Index:            3,
-				LastContact:      5 * time.Second,
-				KnownLeader:      true,
-				ConsistencyLevel: "default",
+				Index:                 3,
+				LastContact:           5 * time.Second,
+				KnownLeader:           true,
+				ConsistencyLevel:      "default",
+				ResultsFilteredByACLs: true,
 			},
 		}
 		TestMsgpackEncodeDecode(t, in, true)

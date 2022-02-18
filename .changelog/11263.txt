@@ -1,3 +1,0 @@
-```release-note:bug
-acl: **(Enterprise only)** Fix bug in 'consul members' filtering with partitions.
-```

@@ -116,13 +116,12 @@ func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 		TLSSkipVerify: true,
 	}
 	tlsConfig := vaultTLSConfig(config)
-	require := require.New(t)
-	require.Equal(config.CAFile, tlsConfig.CACert)
-	require.Equal(config.CAPath, tlsConfig.CAPath)
-	require.Equal(config.CertFile, tlsConfig.ClientCert)
-	require.Equal(config.KeyFile, tlsConfig.ClientKey)
-	require.Equal(config.TLSServerName, tlsConfig.TLSServerName)
-	require.Equal(config.TLSSkipVerify, tlsConfig.Insecure)
+	require.Equal(t, config.CAFile, tlsConfig.CACert)
+	require.Equal(t, config.CAPath, tlsConfig.CAPath)
+	require.Equal(t, config.CertFile, tlsConfig.ClientCert)
+	require.Equal(t, config.KeyFile, tlsConfig.ClientKey)
+	require.Equal(t, config.TLSServerName, tlsConfig.TLSServerName)
+	require.Equal(t, config.TLSSkipVerify, tlsConfig.Insecure)
 }
 
 func TestVaultCAProvider_Configure(t *testing.T) {
@@ -171,11 +170,10 @@ func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
 
 	provider, testVault := testVaultProviderWithConfig(t, false, nil)
 	defer testVault.Stop()
-	require := require.New(t)
 
 	cert, err := provider.ActiveIntermediate()
-	require.Empty(cert)
-	require.NoError(err)
+	require.Empty(t, cert)
+	require.NoError(t, err)
 }
 
 func TestVaultCAProvider_RenewToken(t *testing.T) {
@@ -231,8 +229,6 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 	defer testvault2.Stop()
 	client2 := testvault2.client
 
-	require := require.New(t)
-
 	cases := []struct {
 		certFunc            func() (string, error)
 		backendPath         string
@@ -242,7 +238,10 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 		expectedRootCertTTL string
 	}{
 		{
-			certFunc:            providerWDefaultRootCertTtl.ActiveRoot,
+			certFunc: func() (string, error) {
+				root, err := providerWDefaultRootCertTtl.GenerateRoot()
+				return root.PEM, err
+			},
 			backendPath:         "pki-root/",
 			rootCaCreation:      true,
 			client:              client1,
@@ -264,28 +263,28 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 		provider := tc.provider
 		client := tc.client
 		cert, err := tc.certFunc()
-		require.NoError(err)
+		require.NoError(t, err)
 		req := client.NewRequest("GET", "/v1/"+tc.backendPath+"ca/pem")
 		resp, err := client.RawRequest(req)
-		require.NoError(err)
+		require.NoError(t, err)
 		bytes, err := ioutil.ReadAll(resp.Body)
-		require.NoError(err)
-		require.Equal(cert, string(bytes)+"\n")
+		require.NoError(t, err)
+		require.Equal(t, cert, string(bytes)+"\n")
 
 		// Should be a valid CA cert
 		parsed, err := connect.ParseCert(cert)
-		require.NoError(err)
-		require.True(parsed.IsCA)
-		require.Len(parsed.URIs, 1)
-		require.Equal(fmt.Sprintf("spiffe://%s.consul", provider.clusterID), parsed.URIs[0].String())
+		require.NoError(t, err)
+		require.True(t, parsed.IsCA)
+		require.Len(t, parsed.URIs, 1)
+		require.Equal(t, fmt.Sprintf("spiffe://%s.consul", provider.clusterID), parsed.URIs[0].String())
 
 		// test that the root cert ttl as applied
 		if tc.rootCaCreation {
 			rootCertTTL, err := time.ParseDuration(tc.expectedRootCertTTL)
-			require.NoError(err)
+			require.NoError(t, err)
 			expectedNotAfter := time.Now().Add(rootCertTTL).UTC()
 
-			require.WithinDuration(expectedNotAfter, parsed.NotAfter, 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
+			require.WithinDuration(t, expectedNotAfter, parsed.NotAfter, 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
 		}
 	}
 }
@@ -313,7 +312,6 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 	for _, tc := range KeyTestCases {
 		tc := tc
 		t.Run(tc.Desc, func(t *testing.T) {
-			require := require.New(t)
 			provider, testVault := testVaultProviderWithConfig(t, true, map[string]interface{}{
 				"LeafCertTTL":    "1h",
 				"PrivateKeyType": tc.KeyType,
@@ -328,12 +326,13 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 				Service:    "foo",
 			}
 
-			rootPEM, err := provider.ActiveRoot()
-			require.NoError(err)
+			root, err := provider.GenerateRoot()
+			require.NoError(t, err)
+			rootPEM := root.PEM
 			assertCorrectKeyType(t, tc.KeyType, rootPEM)
 
 			intPEM, err := provider.ActiveIntermediate()
-			require.NoError(err)
+			require.NoError(t, err)
 			assertCorrectKeyType(t, tc.KeyType, intPEM)
 
 			// Generate a leaf cert for the service.
@@ -342,23 +341,23 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 				raw, _ := connect.TestCSR(t, spiffeService)
 
 				csr, err := connect.ParseCSR(raw)
-				require.NoError(err)
+				require.NoError(t, err)
 
 				cert, err := provider.Sign(csr)
-				require.NoError(err)
+				require.NoError(t, err)
 
 				parsed, err := connect.ParseCert(cert)
-				require.NoError(err)
-				require.Equal(parsed.URIs[0], spiffeService.URI())
+				require.NoError(t, err)
+				require.Equal(t, parsed.URIs[0], spiffeService.URI())
 				firstSerial = parsed.SerialNumber.Uint64()
 
 				// Ensure the cert is valid now and expires within the correct limit.
 				now := time.Now()
-				require.True(parsed.NotAfter.Sub(now) < time.Hour)
-				require.True(parsed.NotBefore.Before(now))
+				require.True(t, parsed.NotAfter.Sub(now) < time.Hour)
+				require.True(t, parsed.NotBefore.Before(now))
 
 				// Make sure we can validate the cert as expected.
-				require.NoError(connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
+				require.NoError(t, connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
 				requireTrailingNewline(t, cert)
 			}
 
@@ -369,22 +368,22 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 				raw, _ := connect.TestCSR(t, spiffeService)
 
 				csr, err := connect.ParseCSR(raw)
-				require.NoError(err)
+				require.NoError(t, err)
 
 				cert, err := provider.Sign(csr)
-				require.NoError(err)
+				require.NoError(t, err)
 
 				parsed, err := connect.ParseCert(cert)
-				require.NoError(err)
-				require.Equal(parsed.URIs[0], spiffeService.URI())
-				require.NotEqual(firstSerial, parsed.SerialNumber.Uint64())
+				require.NoError(t, err)
+				require.Equal(t, parsed.URIs[0], spiffeService.URI())
+				require.NotEqual(t, firstSerial, parsed.SerialNumber.Uint64())
 
 				// Ensure the cert is valid now and expires within the correct limit.
-				require.True(time.Until(parsed.NotAfter) < time.Hour)
-				require.True(parsed.NotBefore.Before(time.Now()))
+				require.True(t, time.Until(parsed.NotAfter) < time.Hour)
+				require.True(t, parsed.NotBefore.Before(time.Now()))
 
 				// Make sure we can validate the cert as expected.
-				require.NoError(connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
+				require.NoError(t, connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
 			}
 		})
 	}
@@ -399,7 +398,6 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.Desc, func(t *testing.T) {
-			require := require.New(t)
 
 			if tc.SigningKeyType != tc.CSRKeyType {
 				// See https://github.com/hashicorp/vault/issues/7709
@@ -413,12 +411,12 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 			defer testVault1.Stop()
 
 			{
-				rootPEM, err := provider1.ActiveRoot()
-				require.NoError(err)
-				assertCorrectKeyType(t, tc.SigningKeyType, rootPEM)
+				root, err := provider1.GenerateRoot()
+				require.NoError(t, err)
+				assertCorrectKeyType(t, tc.SigningKeyType, root.PEM)
 
 				intPEM, err := provider1.ActiveIntermediate()
-				require.NoError(err)
+				require.NoError(t, err)
 				assertCorrectKeyType(t, tc.SigningKeyType, intPEM)
 			}
 
@@ -430,12 +428,12 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 			defer testVault2.Stop()
 
 			{
-				rootPEM, err := provider2.ActiveRoot()
-				require.NoError(err)
-				assertCorrectKeyType(t, tc.CSRKeyType, rootPEM)
+				root, err := provider2.GenerateRoot()
+				require.NoError(t, err)
+				assertCorrectKeyType(t, tc.CSRKeyType, root.PEM)
 
 				intPEM, err := provider2.ActiveIntermediate()
-				require.NoError(err)
+				require.NoError(t, err)
 				assertCorrectKeyType(t, tc.CSRKeyType, intPEM)
 			}
 
@@ -498,7 +496,8 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 		delegate := newMockDelegate(t, conf)
 		provider1 := TestConsulProvider(t, delegate)
 		require.NoError(t, provider1.Configure(testProviderConfig(conf)))
-		require.NoError(t, provider1.GenerateRoot())
+		_, err := provider1.GenerateRoot()
+		require.NoError(t, err)
 
 		// Ensure that we don't configure vault to try and mint leafs that
 		// outlive their CA during the test (which hard fails in vault).
@@ -792,8 +791,9 @@ func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawCo
 	t.Cleanup(provider.Stop)
 	require.NoError(t, provider.Configure(cfg))
 	if isPrimary {
-		require.NoError(t, provider.GenerateRoot())
-		_, err := provider.GenerateIntermediate()
+		_, err := provider.GenerateRoot()
+		require.NoError(t, err)
+		_, err = provider.GenerateIntermediate()
 		require.NoError(t, err)
 	}
 

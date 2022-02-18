@@ -45,6 +45,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
+The corresponding CLI command is [`consul operator area create`](/commands/operator/area#create).
+
 ### Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
@@ -111,6 +113,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | --------------- |
 | `YES`            | `all`             | `none`        | `operator:read` |
 
+The corresponding CLI command is [`consul operator area list`](/commands/operator/area#list).
+
 ### Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
@@ -153,6 +157,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
+
+The corresponding CLI command is [`consul operator area update`](/commands/operator/area#update).
 
 ### Parameters
 
@@ -244,6 +250,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
+The corresponding CLI command is [`consul operator area delete`](/commands/operator/area#delete).
+
 ### Parameters
 
 - `uuid` `(string: <required>)` - Specifies the UUID of the area to delete. This
@@ -279,6 +287,8 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
+
+The corresponding CLI command is [`consul operator area join`](/commands/operator/area#join).
 
 ### Parameters
 
@@ -353,6 +363,8 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `operator:read` |
 
+The corresponding CLI command is [`consul operator area members`](/commands/operator/area#members).
+
 ### Parameters
 
 - `uuid` `(string: <required>)` - Specifies the UUID of the area to list. This
@@ -413,4 +425,4 @@ $ curl \
 
 - `RTT` is an estimated network round trip time from the server answering the
   query to the given server, in nanoseconds. This is computed using [network
-  coordinates](/docs/internals/coordinates).
+  coordinates](/docs/architecture/coordinates).

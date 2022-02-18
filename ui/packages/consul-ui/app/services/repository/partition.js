@@ -4,6 +4,8 @@ import RepositoryService, { softDelete } from 'consul-ui/services/repository';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/partition';
 import dataSource from 'consul-ui/decorators/data-source';
 
+import { defaultChangeset as changeset } from 'consul-ui/utils/form/builder';
+
 const findActive = function(items, item) {
   let found = items.find(function(i) {
     return i.Name === item.Name;
@@ -61,10 +63,7 @@ export default class PartitionRepository extends RepositoryService {
     } else {
       item = await super.findBySlug(...arguments);
     }
-    return this.form
-      .form(this.getModelName())
-      .setData(item)
-      .getData();
+    return changeset(item);
   }
 
   remove(item) {

@@ -1,7 +1,7 @@
 import { env } from 'consul-ui/env';
 const OPTIONAL = {};
 if (env('CONSUL_PARTITIONS_ENABLED')) {
-  OPTIONAL.partition = /^-([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
+  OPTIONAL.partition = /^_([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
 }
 
 if (env('CONSUL_NSPACES_ENABLED')) {
@@ -194,7 +194,7 @@ export default class FSMWithOptionalLocation {
       hash.nspace = `~${hash.nspace}`;
     }
     if (typeof hash.partition !== 'undefined') {
-      hash.partition = `-${hash.partition}`;
+      hash.partition = `_${hash.partition}`;
     }
     if (typeof this.router === 'undefined') {
       this.router = this.container.lookup('router:main');
@@ -240,7 +240,7 @@ export default class FSMWithOptionalLocation {
    */
   transitionTo(url) {
     if (this.router.currentRouteName.startsWith('docs') && url.startsWith('console://')) {
-      console.log(`location.transitionTo: ${url.substr(10)}`);
+      console.info(`location.transitionTo: ${url.substr(10)}`);
       return true;
     }
     const previousOptional = Object.entries(this.optionalParams());

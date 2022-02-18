@@ -5,40 +5,26 @@
   <ul>
 {{#each @items as |item|}}
     <li>
+
       <div class="header">
         <p>
           {{item.DestinationName}}
         </p>
       </div>
+
       <div class="detail">
-{{#if (can 'use partitions')}}
-  {{#if (not-eq item.DestinationType 'prepared_query')}}
-        <dl class="partition">
-          <dt
-            {{tooltip}}
-          >
-            Admin Partition
-          </dt>
-          <dd>
-            {{or item.DestinationPartition 'default'}}
-          </dd>
-        </dl>
-  {{/if}}
+
+{{#if (not-eq item.DestinationType 'prepared_query')}}
+        <Consul::Bucket::List
+          @item={{hash
+            Namespace=(or item.DestinationNamespace @nspace)
+            Partition=(or item.DestinationPartition @partition)
+          }}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+        />
 {{/if}}
-{{#if (can 'use nspaces')}}
-  {{#if (not-eq item.DestinationType 'prepared_query')}}
-        <dl class="nspace">
-          <dt
-            {{tooltip}}
-          >
-            Namespace
-          </dt>
-          <dd>
-            {{or item.DestinationNamespace 'default'}}
-          </dd>
-        </dl>
-  {{/if}}
-{{/if}}
+
 {{#if (and (not-eq item.Datacenter @dc) (not-eq item.Datacenter ""))}}
         <dl class="datacenter">
           <dt
@@ -51,6 +37,7 @@
           </dd>
         </dl>
 {{/if}}
+
 {{#if item.LocalBindSocketPath}}
         <dl class="local-bind-socket-path">
           <dt>
@@ -73,23 +60,26 @@
           </dd>
         </dl>
 {{else}}
+
   {{#if (gt item.LocalBindPort 0)}}
     {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress|}}
-          <dl class="local-bind-address">
-            <dt>
-              Address
-            </dt>
-            <dd>
-              <CopyButton
-                @value={{combinedAddress}}
-                @name="Address"
-              />
-                {{combinedAddress}}
-            </dd>
-          </dl>
+        <dl class="local-bind-address">
+          <dt>
+            Address
+          </dt>
+          <dd>
+            <CopyButton
+              @value={{combinedAddress}}
+              @name="Address"
+            />
+              {{combinedAddress}}
+          </dd>
+        </dl>
     {{/let}}
   {{/if}}
+
 {{/if}}
+
       </div>
     </li>
 {{/each}}

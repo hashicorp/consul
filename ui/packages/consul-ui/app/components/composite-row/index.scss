@@ -1,5 +1,4 @@
 @import './layout';
-@import './skin';
 %composite-row {
   @extend %list-row;
 }
@@ -33,12 +32,8 @@
 .consul-auth-method-list > ul > li:not(:first-child) {
   @extend %with-composite-row-intent;
 }
-.consul-lock-session-list ul > li:not(:first-child) {
-  @extend %with-one-action-row;
-}
 // TODO: This hides the iconless dt's in the below lists as they don't have
 // tooltips the todo would be to wrap these texts in spans
-.consul-lock-session-list ul > li:not(:first-child) dl:not([class]) dt,
 .consul-nspace-list > ul > li:not(:first-child) dt,
 .consul-token-list > ul > li:not(:first-child) dt,
 .consul-policy-list > ul li:not(:first-child) dl:not(.datacenter) dt,

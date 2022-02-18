@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Fixes a bug with URL decoding within KV area
+```

@@ -24,11 +24,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/internal/go-sso/oidcauth/internal/strutil"
-	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
+
+	"github.com/hashicorp/consul/internal/go-sso/oidcauth/internal/strutil"
 )
 
 // Server is local server the mocks the endpoints used by the OIDC and
@@ -54,25 +54,17 @@ type Server struct {
 	disableUserInfo   bool
 }
 
-type startOption struct {
-	port       int
-	returnFunc func()
-}
-
-// WithPort is a option for Start that lets the caller control the port
-// allocation. The returnFunc parameter is used when the provider is stopped to
-// return the port in whatever bookkeeping system the caller wants to use.
-func WithPort(port int, returnFunc func()) startOption {
-	return startOption{
-		port:       port,
-		returnFunc: returnFunc,
-	}
+type TestingT interface {
+	require.TestingT
+	Helper()
+	Cleanup(func())
 }
 
 // Start creates a disposable Server. If the port provided is
 // zero it will bind to a random free port, otherwise the provided port is
 // used.
-func Start(t testing.T, options ...startOption) *Server {
+func Start(t TestingT) *Server {
+	t.Helper()
 	s := &Server{
 		allowedRedirectURIs: []string{
 			"https://example.com",
@@ -89,23 +81,9 @@ func Start(t testing.T, options ...startOption) *Server {
 	require.NoError(t, err)
 	s.jwks = jwks
 
-	var (
-		port       int
-		returnFunc func()
-	)
-	for _, option := range options {
-		if option.port > 0 {
-			port = option.port
-			returnFunc = option.returnFunc
-		}
-	}
-
-	s.httpServer = httptestNewUnstartedServerWithPort(s, port)
+	s.httpServer = httptest.NewUnstartedServer(s)
 	s.httpServer.Config.ErrorLog = log.New(ioutil.Discard, "", 0)
 	s.httpServer.StartTLS()
-	if returnFunc != nil {
-		t.Cleanup(returnFunc)
-	}
 	t.Cleanup(s.httpServer.Close)
 
 	cert := s.httpServer.Certificate()

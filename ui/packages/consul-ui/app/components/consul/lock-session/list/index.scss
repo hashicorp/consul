@@ -1,10 +1,16 @@
-.consul-lock-session-list .checks dd {
-  display: inline-flex;
-  flex-wrap: wrap;
-  padding-left: 0px;
+.consul-lock-session-list ul > li:not(:first-child) {
+  @extend %composite-row;
 }
-.consul-lock-session-list .checks dd > *:not(:last-child)::after {
-  content: ',';
-  margin-right: 0.3em;
-  display: inline;
+.consul-lock-session-list button {
+  /* knock the button over a little */
+  /* for meatball menus we use as much clickable space */
+  /* as possible which is invisible hence why we need to */
+  /* do this for a single button */
+  margin-right: var(--horizontal-padding);
+}
+.consul-lock-session-list dl {
+  @extend %horizontal-kv-list;
+}
+.consul-lock-session-list .checks dd {
+  @extend %csv-list;
 }

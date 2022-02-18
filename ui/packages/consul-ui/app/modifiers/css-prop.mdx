@@ -1,0 +1,25 @@
+# css-prop
+
+Get the value for a single specific CSS Property from the modified element.
+`returns` can be specified either as a second parameter or an option.
+
+```hbs preview-template
+<div
+  {{css-prop '--red-500' returns=(set this 'red')}}
+>
+  <code>--red-500: {{this.red}}</code>
+</div>
+```
+
+## Positional Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `property` | `string` |  | The name of the CSS property to fetch from the element |
+| `returns` | `function` |  | Usually `set` or `mut` or similar |
+
+## Named Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `returns` | `function` |  | See the `returns` positional argument |

@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -19,7 +18,11 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
-	args.Name = strings.TrimPrefix(req.URL.Path, "/v1/discovery-chain/")
+	var err error
+	args.Name, err = getPathSuffixUnescaped(req.URL.Path, "/v1/discovery-chain/")
+	if err != nil {
+		return nil, err
+	}
 	if args.Name == "" {
 		return nil, BadRequestError{Reason: "Missing chain name"}
 	}
@@ -48,9 +51,7 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 		if apiReq.OverrideMeshGateway.Mode != "" {
 			_, err := structs.ValidateMeshGatewayMode(string(apiReq.OverrideMeshGateway.Mode))
 			if err != nil {
-				resp.WriteHeader(http.StatusBadRequest)
-				fmt.Fprint(resp, "Invalid OverrideMeshGateway.Mode parameter")
-				return nil, nil
+				return nil, BadRequestError{Reason: "Invalid OverrideMeshGateway.Mode parameter"}
 			}
 			args.OverrideMeshGateway = apiReq.OverrideMeshGateway
 		}

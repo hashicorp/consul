@@ -197,14 +197,13 @@ func TestConnectProxyConfig_MarshalJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
 			got, err := tt.in.MarshalJSON()
 			if tt.wantErr {
-				require.Error(err)
+				require.Error(t, err)
 				return
 			}
-			require.NoError(err)
-			require.JSONEq(tt.want, string(got))
+			require.NoError(t, err)
+			require.JSONEq(t, tt.want, string(got))
 		})
 	}
 }
@@ -255,14 +254,13 @@ func TestUpstream_MarshalJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
 			got, err := json.Marshal(tt.in)
 			if tt.wantErr {
-				require.Error(err)
+				require.Error(t, err)
 				return
 			}
-			require.NoError(err)
-			require.JSONEq(tt.want, string(got))
+			require.NoError(t, err)
+			require.JSONEq(t, tt.want, string(got))
 		})
 	}
 }

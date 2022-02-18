@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Fixes an issue where under some circumstances after logging we present the
+data loaded previous to you logging in.
+```

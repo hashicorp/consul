@@ -281,6 +281,11 @@ type QueryMeta struct {
 	// defined policy. This can be "allow" which means ACLs are used to
 	// deny-list, or "deny" which means ACLs are allow-lists.
 	DefaultACLPolicy string
+
+	// ResultsFilteredByACLs is true when some of the query's results were
+	// filtered out by enforcing ACLs. It may be false because nothing was
+	// removed, or because the endpoint does not yet support this flag.
+	ResultsFilteredByACLs bool
 }
 
 // WriteMeta is used to return meta data about a write
@@ -1069,6 +1074,14 @@ func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 	switch v := header.Get("X-Consul-Default-ACL-Policy"); v {
 	case "allow", "deny":
 		q.DefaultACLPolicy = v
+	}
+
+	// Parse the X-Consul-Results-Filtered-By-ACLs
+	switch header.Get("X-Consul-Results-Filtered-By-ACLs") {
+	case "true":
+		q.ResultsFilteredByACLs = true
+	default:
+		q.ResultsFilteredByACLs = false
 	}
 
 	// Parse Cache info

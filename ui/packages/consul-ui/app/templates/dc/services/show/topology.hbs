@@ -103,10 +103,16 @@ as |nspace dc items topology|}}
         @service={{items.firstObject}}
         @topology={{topology}}
 
-        @metricsHref={{render-template config.data.dashboard_url_templates.service (hash
-          Datacenter=dc.Name
-          Service=items.firstObject
-        )}}
+        @metricsHref={{render-template config.data.dashboard_url_templates.service
+          (hash
+            Datacenter=dc.Name
+            Service=(hash
+              Name=items.firstObject.Name
+              Namespace=(or items.firstObject.Namespace '')
+              Partition=(or items.firstObject.Partition '')
+            )
+          )
+        }}
         @isRemoteDC={{not dc.Local}}
         @hasMetricsProvider={{gt config.data.metrics_provider.length 0}}
         @oncreate={{route-action 'createIntention'}}

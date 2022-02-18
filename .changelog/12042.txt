@@ -1,0 +1,4 @@
+```release-note:bug
+memberlist: fixes a bug which prevented members from joining a cluster with
+large amounts of churn [[GH-253](https://github.com/hashicorp/memberlist/issues/253)]
+```

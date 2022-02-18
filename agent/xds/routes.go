@@ -28,7 +28,7 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		return s.routesForConnectProxy(cfgSnap.ConnectProxy.DiscoveryChain)
+		return s.routesForConnectProxy(cfgSnap)
 	case structs.ServiceKindIngressGateway:
 		return s.routesForIngressGateway(
 			cfgSnap.IngressGateway.Listeners,
@@ -46,20 +46,26 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 
 // routesFromSnapshotConnectProxy returns the xDS API representation of the
 // "routes" in the snapshot.
-func (s *ResourceGenerator) routesForConnectProxy(chains map[string]*structs.CompiledDiscoveryChain) ([]proto.Message, error) {
+func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
-	for id, chain := range chains {
+	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		if chain.IsDefault() {
 			continue
 		}
 
-		virtualHost, err := makeUpstreamRouteForDiscoveryChain(id, chain, []string{"*"})
+		explicit := cfgSnap.ConnectProxy.UpstreamConfig[uid].HasLocalPortOrSocket()
+		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
+			continue
+		}
+
+		virtualHost, err := makeUpstreamRouteForDiscoveryChain(uid.EnvoyID(), chain, []string{"*"})
 		if err != nil {
 			return nil, err
 		}
 
 		route := &envoy_route_v3.RouteConfiguration{
-			Name:         id,
+			Name:         uid.EnvoyID(),
 			VirtualHosts: []*envoy_route_v3.VirtualHost{virtualHost},
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the reasonable value of true to prevent
@@ -167,7 +173,7 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, a
 func (s *ResourceGenerator) routesForIngressGateway(
 	listeners map[proxycfg.IngressListenerKey]structs.IngressListener,
 	upstreams map[proxycfg.IngressListenerKey]structs.Upstreams,
-	chains map[string]*structs.CompiledDiscoveryChain,
+	chains map[proxycfg.UpstreamID]*structs.CompiledDiscoveryChain,
 ) ([]proto.Message, error) {
 
 	var result []proto.Message
@@ -189,14 +195,14 @@ func (s *ResourceGenerator) routesForIngressGateway(
 		}
 
 		for _, u := range upstreams {
-			upstreamID := u.Identifier()
-			chain := chains[upstreamID]
+			uid := proxycfg.NewUpstreamID(&u)
+			chain := chains[uid]
 			if chain == nil {
 				continue
 			}
 
 			domains := generateUpstreamIngressDomains(listenerKey, u)
-			virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, domains)
+			virtualHost, err := makeUpstreamRouteForDiscoveryChain(uid.EnvoyID(), chain, domains)
 			if err != nil {
 				return nil, err
 			}

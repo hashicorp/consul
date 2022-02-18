@@ -15,7 +15,7 @@ const hbs = (path, attrs = {}) =>
 const BrandLoader = attrs => hbs('brand-loader/index.hbs', attrs);
 const Enterprise = attrs => hbs('brand-loader/enterprise.hbs', attrs);
 
-module.exports = ({ appName, environment, rootURL, config }) => `
+module.exports = ({ appName, environment, rootURL, config, env }) => `
   <noscript>
       <div style="margin: 0 auto;">
           <h2>JavaScript Required</h2>
@@ -38,24 +38,32 @@ ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.oper
     "css.escape/css.escape.js": "${rootURL}assets/css.escape.js",
     "codemirror/mode/javascript/javascript.js": "${rootURL}assets/codemirror/mode/javascript/javascript.js",
     "codemirror/mode/ruby/ruby.js": "${rootURL}assets/codemirror/mode/ruby/ruby.js",
-    "codemirror/mode/yaml/yaml.js": "${rootURL}assets/codemirror/mode/yaml/yaml.js"
+    "codemirror/mode/yaml/yaml.js": "${rootURL}assets/codemirror/mode/yaml/yaml.js",
+    "codemirror/mode/xml/xml.js": "${rootURL}assets/codemirror/mode/xml/xml.js"
   }
   </script>
-  <script data-app-name="${appName}" data-${appName}-services src="${rootURL}assets/consul-ui/services.js"></script>
+  <script src="${rootURL}assets/consul-ui/services.js"></script>
+  <script src="${rootURL}assets/consul-ui/routes.js"></script>
 ${
   environment === 'development' || environment === 'staging'
     ? `
-  <script data-app-name="${appName}" data-${appName}-services src="${rootURL}assets/consul-ui/services-debug.js"></script>
-  <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-ui/routes-debug.js"></script>
-` : ``}
+  <script src="${rootURL}assets/consul-ui/services-debug.js"></script>
+  <script src="${rootURL}assets/consul-ui/routes-debug.js"></script>
+`
+    : ``
+}
 ${
   environment === 'production'
     ? `
 {{if .ACLsEnabled}}
-  <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-acls/routes.js"></script>
+  <script src="${rootURL}assets/consul-acls/routes.js"></script>
 {{end}}
 {{if .PartitionsEnabled}}
-  <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-partitions/routes.js"></script>
+  <script src="${rootURL}assets/consul-partitions/services.js"></script>
+  <script src="${rootURL}assets/consul-partitions/routes.js"></script>
+{{end}}
+{{if .NamespacesEnabled}}
+  <script src="${rootURL}assets/consul-nspaces/routes.js"></script>
 {{end}}
 `
     : `
@@ -63,8 +71,11 @@ ${
 (
   function(get, obj) {
     Object.entries(obj).forEach(([key, value]) => {
-      if(get(key)) {
-        document.write(\`\\x3Cscript data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/\${value}/routes.js">\\x3C/script>\`);
+      if(get(key) || (key === 'CONSUL_NSPACES_ENABLE' && ${
+        env('CONSUL_NSPACES_ENABLED') === '1' ? `true` : `false`
+      })) {
+        document.write(\`\\x3Cscript src="${rootURL}assets/\${value}/services.js">\\x3C/script>\`);
+        document.write(\`\\x3Cscript src="${rootURL}assets/\${value}/routes.js">\\x3C/script>\`);
       }
     });
   }
@@ -72,7 +83,8 @@ ${
   key => document.cookie.split('; ').find(item => item.startsWith(\`\${key}=\`)),
   {
     'CONSUL_ACLS_ENABLE': 'consul-acls',
-    'CONSUL_PARTITIONS_ENABLE': 'consul-partitions'
+    'CONSUL_PARTITIONS_ENABLE': 'consul-partitions',
+    'CONSUL_NSPACES_ENABLE': 'consul-nspaces'
   }
 );
 </script>

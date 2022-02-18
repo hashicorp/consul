@@ -9,6 +9,35 @@ description: |-
 
 # Transparent Proxy
 
+Transparent proxy allows applications to communicate through the mesh without changing their configuration.
+Transparent proxy also hardens application security by preventing direct inbound connections that bypass the mesh.
+
+#### Without Transparent Proxy
+
+![Diagram demonstrating that without transparent proxy, applications must "opt in" to connecting to their dependencies through the mesh](/img/consul-connect/without-transparent-proxy.png)
+
+Without transparent proxy, application owners need to:
+
+1. Explicitly configure upstream services, choosing a local port to access them.
+1. Change application to access `localhost:<chosen port>`.
+1. Configure application to listen only on the loopback interface to prevent unauthorized
+   traffic from bypassing the mesh.
+
+#### With Transparent Proxy
+
+![Diagram demonstrating that with transparent proxy, connections are automatically routed through the mesh](/img/consul-connect/with-transparent-proxy.png)
+
+With transparent proxy:
+
+1. Upstreams are inferred from service intentions, so no explicit configuration
+   is needed.
+1. Outbound connections pointing to a KubeDNS name "just work" — network rules
+   redirect them through the proxy.
+1. Inbound traffic is forced to go through the proxy to prevent unauthorized
+   direct access to the application.
+
+#### Overview
+
 Transparent proxy allows users to reach other services in the service mesh while ensuring that inbound and outbound
 traffic for services in the mesh are directed through the sidecar proxy. Traffic is secured
 and only reaches intended destinations since the proxy can enforce security and policy like TLS and Service Intentions.
@@ -33,6 +62,7 @@ the traffic redirection command is automatically set up via an init container.
 * To use transparent proxy on Kubernetes, Consul-helm >= `0.32.0` and Consul-k8s >= `0.26.0` are required in addition to Consul >= `1.10.0`.
 * If the default policy for ACLs is "deny", then Service Intentions should be set up to allow intended services to connect to each other.
 Otherwise, all Connect services can talk to all other services.
+* If using Transparent Proxy, all worker nodes within a Kubernetes cluster must have the `ip_tables` kernel module running, e.g. `modprobe ip_tables`. 
 
 The Kubernetes integration takes care of registering Kubernetes services with Consul, injecting a sidecar proxy, and
 enabling traffic redirection.
@@ -136,7 +166,7 @@ transparent proxy's datacenter. Services can also dial explicit upstreams in oth
 [annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) such as
 `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"` to reach an upstream service called `my-service`
 in the datacenter `dc2`.
-* In the deployment configuration where a [single Consul datacenter spans multiple Kubernetes clusters](https://www.consul.io/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s), services in one Kubernetes cluster must explicitly dial a service in another Kubernetes cluster using the [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) annotation. An example would be
+* In the deployment configuration where a [single Consul datacenter spans multiple Kubernetes clusters](/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s), services in one Kubernetes cluster must explicitly dial a service in another Kubernetes cluster using the [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) annotation. An example would be
 `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234"`, where `my-service` is the service that exists in another Kubernetes cluster and is exposed on port `1234`. Although Transparent Proxy is enabled, KubeDNS is not utilized when communicating between services existing on separate Kubernetes clusters.
 * When dialing headless services the request will be proxied using a plain TCP proxy with a 5s connection timeout.
 Currently the upstream's protocol and connection timeout are not considered.

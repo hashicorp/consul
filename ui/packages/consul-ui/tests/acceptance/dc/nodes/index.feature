@@ -7,6 +7,36 @@ Feature: dc / nodes / index
     body: |
       "211.245.86.75:8500"
     ---
+  Scenario: Viewing a node with an unhealthy NodeCheck
+    Given 1 node model from yaml
+    ---
+    - Checks:
+        - Status: critical
+          ServiceID: ""
+    ---
+    When I visit the nodes page for yaml
+    ---
+      dc: dc-1
+    ---
+    Then the url should be /dc-1/nodes
+    Then I see 1 node models
+    And I see status on the nodes.0 like "critical"
+  Scenario: Viewing a node with an unhealthy ServiceCheck
+    Given 1 node model from yaml
+    ---
+    - Checks:
+        - Status: passing
+          ServiceID: ""
+        - Status: critical
+          ServiceID: web
+    ---
+    When I visit the nodes page for yaml
+    ---
+      dc: dc-1
+    ---
+    Then the url should be /dc-1/nodes
+    Then I see 1 node models
+    And I see status on the nodes.0 like "passing"
   Scenario: Viewing nodes in the listing
     Given 3 node models
     When I visit the nodes page for yaml

@@ -1,3 +1,11 @@
+%theme-light {
+  --theme-dark-none: ;
+  --theme-light-none: initial;
+}
+%theme-dark {
+  --theme-dark-none: initial;
+  --theme-light-none: ;
+}
 %with-icon {
   background-repeat: no-repeat;
   background-position: center;
@@ -20,8 +28,8 @@
   content: '';
   visibility: visible;
   background-size: contain;
-  width: 1.2em;
-  height: 1.2em;
+  width: 1rem; /* 16px */
+  height: 1rem; /* 16px */
   vertical-align: text-top;
 }
 %led-icon {

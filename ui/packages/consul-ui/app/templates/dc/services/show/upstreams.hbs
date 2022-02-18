@@ -42,11 +42,12 @@ as |route|>
       )
     )
 
-    route.params.nspace
+    (or route.params.partition route.model.user.token.Partition 'default')
+    (or route.params.nspace route.model.user.token.Namespace 'default')
     route.params.dc
     loader.data
 
-  as |sort filters nspace dc items|}}
+  as |sort filters partition nspace dc items|}}
   {{#if (gt items.length 0)}}
       <input type="checkbox" id="toolbar-toggle" />
       <Consul::Upstream::SearchBar
@@ -74,6 +75,7 @@ as |route|>
               @items={{collection.items}}
               @dc={{dc}}
               @nspace={{nspace}}
+              @partition={{partition}}
             >
             </Consul::Upstream::List>
           </collection.Collection>

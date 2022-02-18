@@ -695,7 +695,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 	done := false
 	for i := len(labels) - 1; i >= 0 && !done; i-- {
 		switch labels[i] {
-		case "service", "connect", "ingress", "node", "query", "addr":
+		case "service", "connect", "virtual", "ingress", "node", "query", "addr":
 			queryParts = labels[:i]
 			querySuffixes = labels[i+1:]
 			queryKind = labels[i]
@@ -784,6 +784,41 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 		}
 		// name.connect.consul
 		return d.serviceLookup(cfg, lookup, req, resp)
+
+	case "virtual":
+		if len(queryParts) < 1 {
+			return invalid()
+		}
+
+		if !d.parseDatacenterAndEnterpriseMeta(querySuffixes, cfg, &datacenter, &entMeta) {
+			return invalid()
+		}
+
+		args := structs.ServiceSpecificRequest{
+			Datacenter:     datacenter,
+			ServiceName:    queryParts[len(queryParts)-1],
+			EnterpriseMeta: entMeta,
+			QueryOptions: structs.QueryOptions{
+				Token: d.agent.tokens.UserToken(),
+			},
+		}
+		var out string
+		if err := d.agent.RPC("Catalog.VirtualIPForService", &args, &out); err != nil {
+			return err
+		}
+		if out != "" {
+			resp.Answer = append(resp.Answer, &dns.A{
+				Hdr: dns.RR_Header{
+					Name:   qName + respDomain,
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(cfg.NodeTTL / time.Second),
+				},
+				A: net.ParseIP(out),
+			})
+		}
+
+		return nil
 
 	case "ingress":
 		if len(queryParts) < 1 {

@@ -53,7 +53,7 @@ ${typeof location.search.ns !== 'undefined' ? `
             "Namespace": "${location.search.ns}",
 ` : ``}
 ${typeof location.search.partition !== 'undefined' ? `
-            "Partition": "${location.search.partition}",
+            "Partition": "${fake.helpers.randomize([env('CONSUL_PARTITION_EXPORTER', location.search.partition), location.search.partition])}",
 ` : ``}
             "Tags":[
                 ${
@@ -132,6 +132,7 @@ ${range(env('CONSUL_UPSTREAM_COUNT', 10)).map((item, j) => `
                     "Datacenter": "${fake.address.countryCode().toLowerCase()} ${ i % 2 ? "west" : "east"}-${j}",
                     "DestinationName": "${fake.hacker.noun()}",
                     "DestinationNamespace": "${fake.hacker.noun()}",
+                    "DestinationPartition": "${fake.hacker.noun()}",
                     "DestinationType": "${fake.helpers.randomize(['service', 'prepared_query'])}",
 ${fake.random.number({min: 1, max: 10}) > 5 ? `
                     "LocalBindAddress": "${fake.internet.ip()}",

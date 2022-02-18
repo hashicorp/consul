@@ -61,14 +61,15 @@ export default Component.extend({
     delete this._guards[name];
   },
   dispatch: function(eventName, payload) {
-    this.machine.send(eventName, payload);
+    this.machine.state.context = payload;
+    this.machine.send({ type: eventName });
   },
   actions: {
     dispatch: function(eventName, e) {
       if (e && e.preventDefault) {
         e.preventDefault();
       }
-      this.dispatch(eventName);
+      this.dispatch(eventName, e);
     },
   },
 });

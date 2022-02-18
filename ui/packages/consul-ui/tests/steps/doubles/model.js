@@ -38,6 +38,14 @@ export default function(scenario, create, set, win = window, doc = document) {
     .given(['ACLs are disabled'], function() {
       doc.cookie = `CONSUL_ACLS_ENABLE=0`;
     })
+    .given(['SSO is enabled'], function() {
+      doc.cookie = `CONSUL_SSO_ENABLE=1`;
+      set('CONSUL_SSO_ENABLE', 1);
+    })
+    .given(['partitions are enabled'], function() {
+      doc.cookie = `CONSUL_PARTITIONS_ENABLE=1`;
+      set('CONSUL_PARTITIONS_ENABLE', 1);
+    })
     .given(['the default ACL policy is "$policy"'], function(policy) {
       set('CONSUL_ACL_POLICY', policy);
     })

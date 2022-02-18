@@ -25,9 +25,11 @@ type SystemMetadataRequest struct {
 }
 
 const (
-	SystemMetadataIntentionFormatKey         = "intention-format"
-	SystemMetadataIntentionFormatConfigValue = "config-entry"
-	SystemMetadataIntentionFormatLegacyValue = "legacy"
+	SystemMetadataIntentionFormatKey           = "intention-format"
+	SystemMetadataIntentionFormatConfigValue   = "config-entry"
+	SystemMetadataIntentionFormatLegacyValue   = "legacy"
+	SystemMetadataVirtualIPsEnabled            = "virtual-ips"
+	SystemMetadataTermGatewayVirtualIPsEnabled = "virtual-ips-term-gateway"
 )
 
 type SystemMetadataEntry struct {

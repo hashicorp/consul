@@ -1,63 +1,106 @@
-<DataForm
-  @dc={{dc}}
-  @nspace={{nspace}}
-  @partition={{partition}}
-  @item={{item}}
-  @type="session"
-  @onsubmit={{action onsubmit}}
-  as |api|
+<div
+  class="consul-lock-session-form"
+  data-test-session={{@item.ID}}
+  ...attributes
 >
-  <BlockSlot @name="form">
-      <div
-        class="consul-lock-session-form definition-table"
-        data-test-session={{api.data.ID}}
-        ...attributes
-      >
-        <h2>
-          <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html#session-design" rel="help noopener noreferrer" target="_blank">Lock Session</a>
-        </h2>
-        <dl>
-{{#if api.data.Name}}
-          <dt>Name</dt>
-          <dd>{{api.data.Name}}</dd>
-{{/if}}
-          <dt>ID</dt>
-          <dd>{{api.data.ID}}</dd>
-          <dt>Node</dt>
-          <dd>
-              <a href={{href-to 'dc.nodes.show' api.data.Node}}>{{api.data.Node}}</a>
-          </dd>
-          <dt>Delay</dt>
-          <dd>{{duration-from api.data.LockDelay}}</dd>
-          <dt>TTL</dt>
-          <dd>{{or api.data.TTL '-'}}</dd>
-          <dt>Behavior</dt>
-          <dd>{{api.data.Behavior}}</dd>
-{{#let api.data.checks as |checks|}}
-          <dt>Health Checks</dt>
-          <dd>
-  {{#if (gt checks.length 0)}}
-              {{ join ', ' checks}}
-  {{else}}
-              -
+  <DataWriter
+    @sink={{uri
+      '/${partition}/${nspace}/${dc}/session'
+      (hash
+        partition=@item.Partition
+        nspace=@item.Namespace
+        dc=@item.Datacenter
+      )
+    }}
+    @type={{'session'}}
+    @label={{'Lock Session'}}
+    @ondelete={{fn (if @ondelete @ondelete @onsubmit) @item}}
+    @onchange={{fn (optional @onsubmit) @item}}
+    as |writer|>
+      <BlockSlot @name="removed" as |after|>
+        <Consul::LockSession::Notifications
+          {{notification
+            after=(action after)
+          }}
+          @type="remove"
+        />
+      </BlockSlot>
+      <BlockSlot @name="error" as |after error|>
+        <Consul::LockSession::Notifications
+          {{notification
+            after=(action after)
+          }}
+          @type="remove"
+          @error={{error}}
+        />
+      </BlockSlot>
+      <BlockSlot @name="content">
+        <div
+          class="definition-table"
+        >
+          <dl>
+  {{#if @item.Name}}
+            <dt>Name</dt>
+            <dd>{{@item.Name}}</dd>
   {{/if}}
-          </dd>
-{{/let}}
-        </dl>
-{{#if (can 'delete session' item=api.data)}}
-        <ConfirmationDialog @message="Are you sure you want to invalidate this session?">
+            <dt>ID</dt>
+            <dd>{{@item.ID}}</dd>
+            <dt>Node</dt>
+            <dd>
+                <a
+                  href={{href-to 'dc.nodes.show' @item.Node}}
+                >
+                  {{@item.Node}}
+                </a>
+            </dd>
+            <dt>Delay</dt>
+            <dd>{{duration-from @item.LockDelay}}</dd>
+            <dt>TTL</dt>
+            <dd>{{or @item.TTL '-'}}</dd>
+            <dt>Behavior</dt>
+            <dd>{{@item.Behavior}}</dd>
+  {{#let @item.checks as |checks|}}
+            <dt>Health Checks</dt>
+            <dd>
+    {{#if (gt checks.length 0)}}
+                {{ join ', ' checks}}
+    {{else}}
+                -
+    {{/if}}
+            </dd>
+  {{/let}}
+          </dl>
+        </div>
+  {{#if (can 'delete session' item=@item)}}
+        <ConfirmationDialog @message="Are you sure you want to invalidate this Lock Session?">
           <BlockSlot @name="action" as |confirm|>
-            <button type="button" data-test-delete class="type-delete" {{action confirm api.delete session}} disabled={{api.disabled}}>Invalidate Session</button>
+            <Action
+              data-test-delete
+              class="type-delete"
+              {{on 'click' (fn confirm (fn writer.delete @item))}}
+            >
+              Invalidate Session
+            </Action>
           </BlockSlot>
           <BlockSlot @name="dialog" as |execute cancel message|>
             <p>
               {{message}}
             </p>
-            <button type="button" class="type-delete" {{action execute}}>Confirm Invalidation</button>
-            <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+            <Action
+              class="type-delete"
+              {{on 'click' (fn execute)}}
+            >
+              Confirm Invalidation
+            </Action>
+            <Action
+              class="type-cancel"
+              {{on 'click' (fn cancel)}}
+            >
+              Cancel
+            </Action>
           </BlockSlot>
         </ConfirmationDialog>
-{{/if}}
-      </div>
-    </BlockSlot>
-</DataForm>
+  {{/if}}
+      </BlockSlot>
+    </DataWriter>
+</div>

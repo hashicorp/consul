@@ -1,0 +1,18 @@
+---
+type: ember
+state: needs-love
+---
+# Consul::DiscoveryChain
+
+Mainly presentational component to visualize a discovery-chain.
+
+```hbs preview-template
+<DataSource @src={{uri '/partition/default/dc-1/discovery-chain/service-name'}} as |source|>
+{{#if source.data}}
+  <Consul::DiscoveryChain
+    @chain={{source.data.Chain}}
+  />
+{{/if}}
+</DataSource>
+```
+

@@ -76,6 +76,10 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 			}
 		}
 
+		if ap == "" {
+			ap = "default"
+		}
+
 		return &SpiffeIDService{
 			Host:       input.Host,
 			Partition:  ap,
@@ -101,6 +105,10 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 			if agent, err = url.PathUnescape(v[3]); err != nil {
 				return nil, fmt.Errorf("Invalid node: %s", err)
 			}
+		}
+
+		if ap == "" {
+			ap = "default"
 		}
 
 		return &SpiffeIDAgent{

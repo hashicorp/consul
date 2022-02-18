@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/rpc"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/yamux"
 
 	"github.com/hashicorp/consul/agent/structs"

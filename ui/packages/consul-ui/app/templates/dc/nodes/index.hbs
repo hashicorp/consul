@@ -90,7 +90,18 @@ as |route|>
             />
           </collection.Collection>
           <collection.Empty>
-            <EmptyState>
+            <EmptyState
+              @login={{route.model.app.login.open}}
+            >
+              <BlockSlot @name="header">
+                <h2>
+                  {{#if (gt items.length 0)}}
+                    No nodes found
+                  {{else}}
+                    Welcome to Nodes
+                  {{/if}}
+                </h2>
+              </BlockSlot>
               <BlockSlot @name="body">
                 <p>
                   There don't seem to be any registered nodes, or you may not have access to view nodes yet.

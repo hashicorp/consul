@@ -13,7 +13,6 @@ import (
 func TestAPI_ConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
 		// Don't bootstrap CA
 		c.Connect = nil
@@ -25,8 +24,8 @@ func TestAPI_ConnectCARoots_empty(t *testing.T) {
 	connect := c.Connect()
 	_, _, err := connect.CARoots(nil)
 
-	require.Error(err)
-	require.Contains(err.Error(), "Connect must be enabled")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Connect must be enabled")
 }
 
 func TestAPI_ConnectCARoots_list(t *testing.T) {

@@ -39,16 +39,14 @@ func TestCoordinate_Disabled_Response(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/should/not/care", nil)
 			resp := httptest.NewRecorder()
 			obj, err := tt(resp, req)
-			if err != nil {
-				t.Fatalf("err: %v", err)
+			err, ok := err.(UnauthorizedError)
+			if !ok {
+				t.Fatalf("expected unauthorized error but got %v", err)
 			}
 			if obj != nil {
 				t.Fatalf("bad: %#v", obj)
 			}
-			if got, want := resp.Code, http.StatusUnauthorized; got != want {
-				t.Fatalf("got %d want %d", got, want)
-			}
-			if !strings.Contains(resp.Body.String(), "Coordinate support disabled") {
+			if !strings.Contains(err.Error(), "Coordinate support disabled") {
 				t.Fatalf("bad: %#v", resp)
 			}
 		})

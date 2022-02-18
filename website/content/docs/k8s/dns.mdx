@@ -30,7 +30,7 @@ The default name of the Consul DNS service will be `consul-consul-dns`. Use
 that name to get the `ClusterIP`:
 
 ```shell-session
-$ kubectl get svc consul-consul-dns -o jsonpath='{.spec.clusterIP}'
+$ kubectl get svc consul-consul-dns --output jsonpath='{.spec.clusterIP}'
 10.35.240.78%
 ```
 
@@ -53,7 +53,7 @@ export CONSUL_DNS_IP=10.35.240.78
 And create the `ConfigMap`:
 
 ```shell-session
-$ cat <<EOF | kubectl apply -f -
+$ cat <<EOF | kubectl apply --filename -
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -72,7 +72,7 @@ configmap/kube-dns configured
 Ensure that the `ConfigMap` was created successfully:
 
 ```shell-session
-$ kubectl get configmap kube-dns -n kube-system -o yaml
+$ kubectl get configmap kube-dns --namespace kube-system --output yaml
 apiVersion: v1
 data:
   stubDomains: |
@@ -102,7 +102,7 @@ Consul DNS service.
 Edit the `ConfigMap`:
 
 ```shell-session
-$ kubectl edit configmap coredns -n kube-system
+$ kubectl edit configmap coredns --namespace kube-system
 ```
 
 And add the `consul` block below the default `.:53` block and replace
@@ -162,7 +162,7 @@ spec:
 </CodeBlockConfig>
 
 ```shell-session
-$ kubectl apply -f job.yaml
+$ kubectl apply --filename job.yaml
 ```
 
 Then query the pod name for the job and check the logs. You should see

@@ -18,39 +18,29 @@ as |State Guard Action dispatch state|>
   {{! This DataSource just permanently listens to any changes to the users }}
   {{! token, whether thats a new token, a changed token or a deleted token }}
   <DataSource
-    @src={{uri 'settings://consul:token'}}
+    @src={{@src}}
     @onchange={{queue (action (mut token) value="data") (action dispatch "CHANGE") (action (mut previousToken) value="data")}}
   />
   {{! This DataSink is just used for logging in from the form, }}
   {{! or logging out via the exposed logout function }}
   <DataSink
-    @sink={{uri "settings://consul:token"}}
+    @sink={{@sink}}
     as |sink|
   >
-    {{yield}}
     {{#let (hash
       login=(action sink.open)
       logout=(action sink.open null)
       token=token
-    ) (hash
-      AuthProfile=(component 'auth-profile' item=token)
-      AuthForm=(component 'auth-form'
-        dc=dc
-        partition=partition
-        nspace=nspace
-        onsubmit=(action sink.open value="data"))
-    ) as |api components|}}
+    ) as |api|}}
+
       <State @matches="authorized">
-        {{#yield-slot name="authorized"}}
-          {{yield api components}}
-        {{/yield-slot}}
+        {{yield api to="authorized"}}
       </State>
 
       <State @matches="unauthorized">
-        {{#yield-slot name="unauthorized"}}
-          {{yield api components}}
-        {{/yield-slot}}
+        {{yield api to="unauthorized"}}
       </State>
+
     {{/let}}
   </DataSink>
 </StateChart>

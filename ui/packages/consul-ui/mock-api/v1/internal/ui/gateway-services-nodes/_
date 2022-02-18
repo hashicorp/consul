@@ -17,6 +17,9 @@ ${i === 1 ? `
 ` : `
       "Namespace": "${fake.hacker.noun()}-ns-${i}",
 `}
+${typeof location.search.partition !== 'undefined' ? `
+      "Partition": "${fake.helpers.randomize([env('CONSUL_PARTITION_EXPORTER', location.search.partition), location.search.partition])}",
+` : ``}
     "Tags": [
       ${
         range(env('CONSUL_TAG_COUNT', fake.random.number(10))).map(

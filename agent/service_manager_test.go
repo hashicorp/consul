@@ -23,8 +23,6 @@ func TestServiceManager_RegisterService(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	require := require.New(t)
-
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -51,12 +49,12 @@ func TestServiceManager_RegisterService(t *testing.T) {
 		Port:           8000,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify both the service and sidecar.
 	redisService := a.State.Service(structs.NewServiceID("redis", nil))
-	require.NotNil(redisService)
-	require.Equal(&structs.NodeService{
+	require.NotNil(t, redisService)
+	require.Equal(t, &structs.NodeService{
 		ID:              "redis",
 		Service:         "redis",
 		Port:            8000,
@@ -73,8 +71,6 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	require := require.New(t)
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -124,12 +120,12 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify sidecar got global config loaded
 	sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
-	require.NotNil(sidecarService)
-	require.Equal(&structs.NodeService{
+	require.NotNil(t, sidecarService)
+	require.Equal(t, &structs.NodeService{
 		Kind:            structs.ServiceKindConnectProxy,
 		ID:              "web-sidecar-proxy",
 		Service:         "web-sidecar-proxy",
@@ -169,8 +165,6 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	require := require.New(t)
-
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -199,12 +193,12 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
-	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify gateway got global config loaded
 	gateway := a.State.Service(structs.NewServiceID("mesh-gateway", nil))
-	require.NotNil(gateway)
-	require.Equal(&structs.NodeService{
+	require.NotNil(t, gateway)
+	require.Equal(t, &structs.NodeService{
 		Kind:            structs.ServiceKindMeshGateway,
 		ID:              "mesh-gateway",
 		Service:         "mesh-gateway",
@@ -228,8 +222,6 @@ func TestServiceManager_RegisterTerminatingGateway(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	require := require.New(t)
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -259,12 +251,12 @@ func TestServiceManager_RegisterTerminatingGateway(t *testing.T) {
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
-	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify gateway got global config loaded
 	gateway := a.State.Service(structs.NewServiceID("terminating-gateway", nil))
-	require.NotNil(gateway)
-	require.Equal(&structs.NodeService{
+	require.NotNil(t, gateway)
+	require.Equal(t, &structs.NodeService{
 		Kind:            structs.ServiceKindTerminatingGateway,
 		ID:              "terminating-gateway",
 		Service:         "terminating-gateway",
@@ -292,8 +284,6 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	// This is the ServiceManager version of TestAgent_PersistService  and
 	// TestAgent_PurgeService.
 	t.Parallel()
-
-	require := require.New(t)
 
 	// Launch a server to manage the config entries.
 	serverAgent := NewTestAgent(t, "")
@@ -331,7 +321,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	_, err := a.JoinLAN([]string{
 		fmt.Sprintf("127.0.0.1:%d", serverAgent.Config.SerfPortLAN),
 	}, nil)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -401,7 +391,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 
 	// Service is not persisted unless requested, but we always persist service configs.
 	err = a.AddService(AddServiceRequest{Service: svc, Source: ConfigSourceRemote})
-	require.NoError(err)
+	require.NoError(t, err)
 	requireFileIsAbsent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
@@ -412,7 +402,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 		token:   "mytoken",
 		Source:  ConfigSourceRemote,
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 	requireFileIsPresent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
@@ -447,8 +437,8 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	// Verify in memory state.
 	{
 		sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
-		require.NotNil(sidecarService)
-		require.Equal(expectState, sidecarService)
+		require.NotNil(t, sidecarService)
+		require.Equal(t, expectState, sidecarService)
 	}
 
 	// Updates service definition on disk
@@ -460,7 +450,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 		token:   "mytoken",
 		Source:  ConfigSourceRemote,
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 	requireFileIsPresent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
@@ -496,8 +486,8 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	expectState.Proxy.LocalServicePort = 8001
 	{
 		sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
-		require.NotNil(sidecarService)
-		require.Equal(expectState, sidecarService)
+		require.NotNil(t, sidecarService)
+		require.Equal(t, expectState, sidecarService)
 	}
 
 	// Kill the agent to restart it.
@@ -512,12 +502,12 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 
 	{
 		restored := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
-		require.NotNil(restored)
-		require.Equal(expectState, restored)
+		require.NotNil(t, restored)
+		require.Equal(t, expectState, restored)
 	}
 
 	// Now remove it.
-	require.NoError(a2.RemoveService(structs.NewServiceID("web-sidecar-proxy", nil)))
+	require.NoError(t, a2.RemoveService(structs.NewServiceID("web-sidecar-proxy", nil)))
 	requireFileIsAbsent(t, svcFile)
 	requireFileIsAbsent(t, configFile)
 }
@@ -704,8 +694,6 @@ func TestServiceManager_Disabled(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	require := require.New(t)
-
 	a := NewTestAgent(t, "enable_central_service_config = false")
 	defer a.Shutdown()
 
@@ -752,12 +740,12 @@ func TestServiceManager_Disabled(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify sidecar got global config loaded
 	sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
-	require.NotNil(sidecarService)
-	require.Equal(&structs.NodeService{
+	require.NotNil(t, sidecarService)
+	require.Equal(t, &structs.NodeService{
 		Kind:            structs.ServiceKindConnectProxy,
 		ID:              "web-sidecar-proxy",
 		Service:         "web-sidecar-proxy",

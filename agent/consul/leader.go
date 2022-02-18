@@ -363,7 +363,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 	// Purge the cache, since it could've changed while we were not the
 	// leader.
-	s.acls.cache.Purge()
+	s.ACLResolver.cache.Purge()
 
 	// Purge the auth method validators since they could've changed while we
 	// were not leader.
@@ -386,8 +386,6 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 	if s.InPrimaryDatacenter() {
 		s.logger.Info("initializing acls")
-
-		// TODO(partitions): initialize acls in all of the partitions?
 
 		// Create/Upgrade the builtin global-management policy
 		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
@@ -420,28 +418,28 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 			s.logger.Info("Created ACL 'global-management' policy")
 		}
 
-		// Check for configured master token.
-		if master := s.config.ACLMasterToken; len(master) > 0 {
+		// Check for configured initial management token.
+		if initialManagement := s.config.ACLInitialManagementToken; len(initialManagement) > 0 {
 			state := s.fsm.State()
-			if _, err := uuid.ParseUUID(master); err != nil {
-				s.logger.Warn("Configuring a non-UUID master token is deprecated")
+			if _, err := uuid.ParseUUID(initialManagement); err != nil {
+				s.logger.Warn("Configuring a non-UUID initial management token is deprecated")
 			}
 
-			_, token, err := state.ACLTokenGetBySecret(nil, master, nil)
+			_, token, err := state.ACLTokenGetBySecret(nil, initialManagement, nil)
 			if err != nil {
-				return fmt.Errorf("failed to get master token: %v", err)
+				return fmt.Errorf("failed to get initial management token: %v", err)
 			}
 			// Ignoring expiration times to avoid an insertion collision.
 			if token == nil {
 				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
 				if err != nil {
-					return fmt.Errorf("failed to generate the accessor ID for the master token: %v", err)
+					return fmt.Errorf("failed to generate the accessor ID for the initial management token: %v", err)
 				}
 
 				token := structs.ACLToken{
 					AccessorID:  accessor,
-					SecretID:    master,
-					Description: "Master Token",
+					SecretID:    initialManagement,
+					Description: "Initial Management Token",
 					Policies: []structs.ACLTokenPolicyLink{
 						{
 							ID: structs.ACLPolicyGlobalManagementID,
@@ -461,12 +459,12 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 						ResetIndex: 0,
 					}
 					if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
-						s.logger.Info("Bootstrapped ACL master token from configuration")
+						s.logger.Info("Bootstrapped ACL initial management token from configuration")
 						done = true
 					} else {
 						if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() &&
 							err.Error() != structs.ACLBootstrapInvalidResetIndexErr.Error() {
-							return fmt.Errorf("failed to bootstrap master token: %v", err)
+							return fmt.Errorf("failed to bootstrap initial management token: %v", err)
 						}
 					}
 				}
@@ -478,16 +476,16 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 						CAS:    false,
 					}
 					if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
-						return fmt.Errorf("failed to create master token: %v", err)
+						return fmt.Errorf("failed to create initial management token: %v", err)
 					}
 
-					s.logger.Info("Created ACL master token from configuration")
+					s.logger.Info("Created ACL initial management token from configuration")
 				}
 			}
 		}
 
 		state := s.fsm.State()
-		_, token, err := state.ACLTokenGetBySecret(nil, structs.ACLTokenAnonymousID, nil)
+		_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
 		if err != nil {
 			return fmt.Errorf("failed to get anonymous token: %v", err)
 		}
@@ -965,8 +963,10 @@ func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *structs
 func (s *Server) reconcileMember(member serf.Member) error {
 	// Check if this is a member we should handle
 	if !s.shouldHandleMember(member) {
-		// TODO(partition): log the partition name
-		s.logger.Warn("skipping reconcile of node", "member", member)
+		s.logger.Warn("skipping reconcile of node",
+			"member", member,
+			"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
+		)
 		return nil
 	}
 	defer metrics.MeasureSince([]string{"leader", "reconcileMember"}, time.Now())
@@ -986,8 +986,8 @@ func (s *Server) reconcileMember(member serf.Member) error {
 	}
 	if err != nil {
 		s.logger.Error("failed to reconcile member",
-			// TODO(partition): log the partition name
 			"member", member,
+			"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
 			"error", err,
 		)
 
@@ -996,6 +996,7 @@ func (s *Server) reconcileMember(member serf.Member) error {
 			return nil
 		}
 	}
+
 	return nil
 }
 
@@ -1088,7 +1089,10 @@ func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *structs.Ente
 		}
 	}
 AFTER_CHECK:
-	s.logger.Info("member joined, marking health alive", "member", member.Name)
+	s.logger.Info("member joined, marking health alive",
+		"member", member.Name,
+		"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
+	)
 
 	// Register with the catalog.
 	req := structs.RegisterRequest{
@@ -1130,11 +1134,12 @@ func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *structs.Ent
 	}
 
 	if node == nil {
-		s.logger.Info("ignoring failed event for member because it does not exist in the catalog", "member", member.Name)
+		s.logger.Info("ignoring failed event for member because it does not exist in the catalog",
+			"member", member.Name,
+			"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
+		)
 		return nil
 	}
-
-	// TODO(partitions): get the ent meta by parsing serf tags
 
 	if node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
@@ -1148,7 +1153,10 @@ func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *structs.Ent
 			}
 		}
 	}
-	s.logger.Info("member failed, marking health critical", "member", member.Name)
+	s.logger.Info("member failed, marking health critical",
+		"member", member.Name,
+		"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
+	)
 
 	// Register with the catalog
 	req := structs.RegisterRequest{
@@ -1194,8 +1202,13 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeE
 	// Do not deregister ourself. This can only happen if the current leader
 	// is leaving. Instead, we should allow a follower to take-over and
 	// deregister us later.
+	//
+	// TODO(partitions): check partitions here too? server names should be unique in general though
 	if member.Name == s.config.NodeName {
-		s.logger.Warn("deregistering self should be done by follower", "name", s.config.NodeName)
+		s.logger.Warn("deregistering self should be done by follower",
+			"name", s.config.NodeName,
+			"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
+		)
 		return nil
 	}
 
@@ -1217,7 +1230,11 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeE
 	}
 
 	// Deregister the node
-	s.logger.Info("deregistering member", "member", member.Name, "reason", reason)
+	s.logger.Info("deregistering member",
+		"member", member.Name,
+		"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
+		"reason", reason,
+	)
 	req := structs.DeregisterRequest{
 		Datacenter:     s.config.Datacenter,
 		Node:           member.Name,

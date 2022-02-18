@@ -63,10 +63,10 @@ type ServiceRouteHTTPMatchQueryParam struct {
 }
 
 type ServiceRouteDestination struct {
-	Service       string `json:",omitempty"`
-	ServiceSubset string `json:",omitempty" alias:"service_subset"`
-	// Referencing other partitions is not supported.
+	Service               string               `json:",omitempty"`
+	ServiceSubset         string               `json:",omitempty" alias:"service_subset"`
 	Namespace             string               `json:",omitempty"`
+	Partition             string               `json:",omitempty"`
 	PrefixRewrite         string               `json:",omitempty" alias:"prefix_rewrite"`
 	RequestTimeout        time.Duration        `json:",omitempty" alias:"request_timeout"`
 	NumRetries            uint32               `json:",omitempty" alias:"num_retries"`
@@ -134,11 +134,11 @@ func (e *ServiceSplitterConfigEntry) GetCreateIndex() uint64     { return e.Crea
 func (e *ServiceSplitterConfigEntry) GetModifyIndex() uint64     { return e.ModifyIndex }
 
 type ServiceSplit struct {
-	Weight        float32
-	Service       string `json:",omitempty"`
-	ServiceSubset string `json:",omitempty" alias:"service_subset"`
-	// Referencing other partitions is not supported.
+	Weight          float32
+	Service         string               `json:",omitempty"`
+	ServiceSubset   string               `json:",omitempty" alias:"service_subset"`
 	Namespace       string               `json:",omitempty"`
+	Partition       string               `json:",omitempty"`
 	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
 	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
 }
@@ -216,9 +216,9 @@ type ServiceResolverSubset struct {
 type ServiceResolverRedirect struct {
 	Service       string `json:",omitempty"`
 	ServiceSubset string `json:",omitempty" alias:"service_subset"`
-	// Referencing other partitions is not supported.
-	Namespace  string `json:",omitempty"`
-	Datacenter string `json:",omitempty"`
+	Namespace     string `json:",omitempty"`
+	Partition     string `json:",omitempty"`
+	Datacenter    string `json:",omitempty"`
 }
 
 type ServiceResolverFailover struct {
