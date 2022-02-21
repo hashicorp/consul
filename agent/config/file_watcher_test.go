@@ -47,13 +47,18 @@ func TestWatcherAddRemove(t *testing.T) {
 	filepaths := []string{}
 	w, err := NewFileWatcher(filepaths, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
-	err = w.Add(createTempConfigFile(t, "temp_config1"))
+	file1 := createTempConfigFile(t, "temp_config1")
+	err = w.Add(file1)
 	require.NoError(t, err)
-	file := createTempConfigFile(t, "temp_config2")
-	err = w.Add(file)
+	file2 := createTempConfigFile(t, "temp_config2")
+	err = w.Add(file2)
 	require.NoError(t, err)
-	err = w.Remove(file)
-	require.NoError(t, err)
+	w.Remove(file2)
+	_, ok := w.configFiles[file1]
+	require.True(t, ok)
+	_, ok = w.configFiles[file2]
+	require.False(t, ok)
+
 }
 
 func TestWatcherAddWhileRunning(t *testing.T) {
@@ -64,13 +69,18 @@ func TestWatcherAddWhileRunning(t *testing.T) {
 	defer func() {
 		_ = w.Stop()
 	}()
-	err = w.Add(createTempConfigFile(t, "temp_config1"))
+	file1 := createTempConfigFile(t, "temp_config1")
+	err = w.Add(file1)
 	require.NoError(t, err)
-	file := createTempConfigFile(t, "temp_config2")
-	err = w.Add(file)
+	file2 := createTempConfigFile(t, "temp_config2")
+	err = w.Add(file2)
 	require.NoError(t, err)
-	err = w.Remove(file)
-	require.NoError(t, err)
+	w.Remove(file2)
+	require.Len(t, w.configFiles, 1)
+	_, ok := w.configFiles[file1]
+	require.True(t, ok)
+	_, ok = w.configFiles[file2]
+	require.False(t, ok)
 }
 
 func TestWatcherRemoveNotFound(t *testing.T) {
@@ -83,8 +93,7 @@ func TestWatcherRemoveNotFound(t *testing.T) {
 	}()
 
 	file := createTempConfigFile(t, "temp_config2")
-	err = w.Remove(file)
-	require.Errorf(t, err, errNotFound)
+	w.Remove(file)
 }
 
 func TestWatcherAddNotExist(t *testing.T) {

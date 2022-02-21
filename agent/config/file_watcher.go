@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,8 +13,6 @@ import (
 )
 
 const timeoutDuration = 200 * time.Millisecond
-
-const errNotFound = "file not found"
 
 type FileWatcher struct {
 	watcher          *fsnotify.Watcher
@@ -100,15 +97,10 @@ func (w *FileWatcher) Add(filename string) error {
 
 // Remove a file from the file watcher
 // Remove will lock the file watcher during the remove
-func (w *FileWatcher) Remove(filename string) error {
+func (w *FileWatcher) Remove(filename string) {
 	w.configFilesLock.Lock()
 	defer w.configFilesLock.Unlock()
-	_, ok := w.configFiles[filename]
-	if !ok {
-		return errors.New(errNotFound)
-	}
 	delete(w.configFiles, filename)
-	return nil
 }
 
 func (w *FileWatcher) add(filename string) error {
