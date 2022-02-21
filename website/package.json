@@ -50,7 +50,7 @@
     "next-remote-watch": "1.0.0",
     "nuka-carousel": "4.7.7",
     "react": "^17.0.2",
-    "react-datocms": "^1.6.6",
+    "react-datocms": "^3.0.10",
     "react-device-detect": "1.17.0",
     "react-dom": "^17.0.2",
     "react-player": "^2.9.0"
