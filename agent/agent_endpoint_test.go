@@ -631,7 +631,7 @@ func TestAgent_Service(t *testing.T) {
 			updateFunc: func() {
 				time.Sleep(100 * time.Millisecond)
 				// Reload
-				require.NoError(t, a.reloadConfigInternal(a.Config))
+				require.NoError(t, a.reloadConfigInternal(a.Config, false))
 			},
 			// Should eventually timeout since there is no actual change
 			wantWait: 200 * time.Millisecond,
@@ -649,7 +649,7 @@ func TestAgent_Service(t *testing.T) {
 				// Reload
 				newConfig := *a.Config
 				newConfig.Services = append(newConfig.Services, &updatedProxy)
-				require.NoError(t, a.reloadConfigInternal(&newConfig))
+				require.NoError(t, a.reloadConfigInternal(&newConfig, false))
 			},
 			wantWait: 100 * time.Millisecond,
 			wantCode: 200,
@@ -1699,7 +1699,7 @@ func TestAgent_Reload(t *testing.T) {
 
 	shim := &delegateConfigReloadShim{delegate: a.delegate}
 	a.delegate = shim
-	if err := a.reloadConfigInternal(cfg2); err != nil {
+	if err := a.reloadConfigInternal(cfg2, false); err != nil {
 		t.Fatalf("got error %v want nil", err)
 	}
 	if a.State.Service(structs.NewServiceID("redis-reloaded", nil)) == nil {
@@ -1861,7 +1861,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 		// We check that reload does not go to critical
 		ensureNothingCritical(r, "red-is-dead")
 
-		if err := a.reloadConfigInternal(cfg2); err != nil {
+		if err := a.reloadConfigInternal(cfg2, false); err != nil {
 			t.Fatalf("got error %v want nil", err)
 		}
 

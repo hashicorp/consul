@@ -2920,8 +2920,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.VerifyServerHostname = true
-			rt.VerifyOutgoing = true
+			rt.NotAutoReloadableRuntimeConfig.VerifyServerHostname = true
+			rt.NotAutoReloadableRuntimeConfig.VerifyOutgoing = true
 		},
 	})
 	run(t, testCase{
@@ -2941,7 +2941,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.VerifyIncoming = true
+			rt.NotAutoReloadableRuntimeConfig.VerifyIncoming = true
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
 
@@ -2969,7 +2969,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.VerifyIncoming = true
+			rt.NotAutoReloadableRuntimeConfig.VerifyIncoming = true
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
 
@@ -2997,7 +2997,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.VerifyIncomingRPC = true
+			rt.NotAutoReloadableRuntimeConfig.VerifyIncomingRPC = true
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
 
@@ -4613,7 +4613,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.AutoConfig.DNSSANs = []string{"foo"}
 			rt.AutoConfig.IPSANs = []net.IP{net.IPv4(127, 0, 0, 1)}
 			rt.DataDir = dataDir
-			rt.VerifyOutgoing = true
+			rt.NotAutoReloadableRuntimeConfig.VerifyOutgoing = true
 		},
 	})
 
@@ -5576,25 +5576,31 @@ func TestLoad_FullConfig(t *testing.T) {
 		EnableRemoteScriptChecks:               true,
 		EnableLocalScriptChecks:                true,
 		EncryptKey:                             "A4wELWqH",
-		EncryptVerifyIncoming:                  true,
-		EncryptVerifyOutgoing:                  true,
-		GRPCPort:                               4881,
-		GRPCAddrs:                              []net.Addr{tcpAddr("32.31.61.91:4881")},
-		HTTPAddrs:                              []net.Addr{tcpAddr("83.39.91.39:7999")},
-		HTTPBlockEndpoints:                     []string{"RBvAFcGD", "fWOWFznh"},
-		AllowWriteHTTPFrom:                     []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
-		HTTPPort:                               7999,
-		HTTPResponseHeaders:                    map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
-		HTTPSAddrs:                             []net.Addr{tcpAddr("95.17.17.19:15127")},
-		HTTPMaxConnsPerClient:                  100,
-		HTTPMaxHeaderBytes:                     10,
-		HTTPSHandshakeTimeout:                  2391 * time.Millisecond,
-		HTTPSPort:                              15127,
-		HTTPUseCache:                           false,
-		KeyFile:                                "IEkkwgIA",
-		KVMaxValueSize:                         1234567800,
-		LeaveDrainTime:                         8265 * time.Second,
-		LeaveOnTerm:                            true,
+		NotAutoReloadableRuntimeConfig: NotAutoReloadableRuntimeConfig{
+			EncryptVerifyIncoming: true,
+			VerifyIncoming:        true,
+			VerifyIncomingHTTPS:   true,
+			VerifyIncomingRPC:     true,
+			VerifyOutgoing:        true,
+			VerifyServerHostname:  true},
+		EncryptVerifyOutgoing: true,
+		GRPCPort:              4881,
+		GRPCAddrs:             []net.Addr{tcpAddr("32.31.61.91:4881")},
+		HTTPAddrs:             []net.Addr{tcpAddr("83.39.91.39:7999")},
+		HTTPBlockEndpoints:    []string{"RBvAFcGD", "fWOWFznh"},
+		AllowWriteHTTPFrom:    []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
+		HTTPPort:              7999,
+		HTTPResponseHeaders:   map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
+		HTTPSAddrs:            []net.Addr{tcpAddr("95.17.17.19:15127")},
+		HTTPMaxConnsPerClient: 100,
+		HTTPMaxHeaderBytes:    10,
+		HTTPSHandshakeTimeout: 2391 * time.Millisecond,
+		HTTPSPort:             15127,
+		HTTPUseCache:          false,
+		KeyFile:               "IEkkwgIA",
+		KVMaxValueSize:        1234567800,
+		LeaveDrainTime:        8265 * time.Second,
+		LeaveOnTerm:           true,
 		Logging: logging.Config{
 			LogLevel:       "k1zo9Spt",
 			LogJSON:        true,
@@ -5996,14 +6002,9 @@ func TestLoad_FullConfig(t *testing.T) {
 			},
 			DashboardURLTemplates: map[string]string{"u2eziu2n_lower_case": "http://lkjasd.otr"},
 		},
-		UnixSocketUser:       "E0nB1DwA",
-		UnixSocketGroup:      "8pFodrV8",
-		UnixSocketMode:       "E8sAwOv4",
-		VerifyIncoming:       true,
-		VerifyIncomingHTTPS:  true,
-		VerifyIncomingRPC:    true,
-		VerifyOutgoing:       true,
-		VerifyServerHostname: true,
+		UnixSocketUser:  "E0nB1DwA",
+		UnixSocketGroup: "8pFodrV8",
+		UnixSocketMode:  "E8sAwOv4",
 		Watches: []map[string]interface{}{
 			{
 				"type":       "key",
@@ -6349,12 +6350,14 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 		HTTPSAddrs: []net.Addr{
 			&net.TCPAddr{IP: net.ParseIP("198.18.0.2"), Port: 5678},
 		},
-		Datacenter:     "dc-test",
-		CAFile:         "/etc/consul/ca.crt",
-		CAPath:         "/etc/consul/ca.dir",
-		CertFile:       "/etc/consul/server.crt",
-		KeyFile:        "/etc/consul/ssl/server.key",
-		VerifyOutgoing: false,
+		Datacenter: "dc-test",
+		CAFile:     "/etc/consul/ca.crt",
+		CAPath:     "/etc/consul/ca.dir",
+		CertFile:   "/etc/consul/server.crt",
+		KeyFile:    "/etc/consul/ssl/server.key",
+		NotAutoReloadableRuntimeConfig: NotAutoReloadableRuntimeConfig{
+			VerifyOutgoing: false,
+		},
 	}
 
 	cfg, err := rt.APIConfig(false)
@@ -6368,7 +6371,7 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 	require.Equal(t, rt.Datacenter, cfg.Datacenter)
 	require.Equal(t, true, cfg.TLSConfig.InsecureSkipVerify)
 
-	rt.VerifyOutgoing = true
+	rt.NotAutoReloadableRuntimeConfig.VerifyOutgoing = true
 	cfg, err = rt.APIConfig(true)
 	require.NoError(t, err)
 	require.Equal(t, "198.18.0.2:5678", cfg.Address)
@@ -6387,7 +6390,8 @@ func TestRuntime_APIConfigHTTP(t *testing.T) {
 			&net.UnixAddr{Name: "/var/run/foo"},
 			&net.TCPAddr{IP: net.ParseIP("198.18.0.1"), Port: 5678},
 		},
-		Datacenter: "dc-test",
+		Datacenter:                     "dc-test",
+		NotAutoReloadableRuntimeConfig: NotAutoReloadableRuntimeConfig{},
 	}
 
 	cfg, err := rt.APIConfig(false)
@@ -6516,11 +6520,13 @@ func TestRuntime_ClientAddressAnyV6(t *testing.T) {
 
 func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 	c := &RuntimeConfig{
-		VerifyIncoming:              true,
-		VerifyIncomingRPC:           true,
-		VerifyIncomingHTTPS:         true,
-		VerifyOutgoing:              true,
-		VerifyServerHostname:        true,
+		NotAutoReloadableRuntimeConfig: NotAutoReloadableRuntimeConfig{
+			VerifyIncoming:       true,
+			VerifyIncomingRPC:    true,
+			VerifyIncomingHTTPS:  true,
+			VerifyOutgoing:       true,
+			VerifyServerHostname: true,
+		},
 		CAFile:                      "a",
 		CAPath:                      "b",
 		CertFile:                    "c",
@@ -6556,11 +6562,11 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 
 func TestRuntime_ToTLSUtilConfig_AutoConfig(t *testing.T) {
 	c := &RuntimeConfig{
-		VerifyIncoming:              true,
-		VerifyIncomingRPC:           true,
-		VerifyIncomingHTTPS:         true,
-		VerifyOutgoing:              true,
-		VerifyServerHostname:        true,
+		NotAutoReloadableRuntimeConfig: NotAutoReloadableRuntimeConfig{VerifyIncoming: true,
+			VerifyIncomingRPC:    true,
+			VerifyIncomingHTTPS:  true,
+			VerifyOutgoing:       true,
+			VerifyServerHostname: true},
 		CAFile:                      "a",
 		CAPath:                      "b",
 		CertFile:                    "c",

@@ -32,6 +32,60 @@ type RuntimeSOAConfig struct {
 // RuntimeConfig specifies the configuration the consul agent actually
 // uses. Is is derived from one or more Config structures which can come
 // from files, flags and/or environment variables.
+type NotAutoReloadableRuntimeConfig struct {
+	// EncryptVerifyIncoming enforces incoming gossip encryption and can be
+	// used to upshift to encrypted gossip on a running cluster.
+	//
+	// hcl: encrypt_verify_incoming = (true|false)
+	EncryptVerifyIncoming bool
+
+	// VerifyIncomingRPC is used to verify the authenticity of incoming RPC
+	// connections. This means that TCP requests are forbidden, only allowing
+	// for TLS. TLS connections must match a provided certificate authority.
+	// This can be used to force client auth.
+	//
+	// hcl: verify_incoming_rpc = (true|false)
+	VerifyIncomingRPC bool
+
+	// VerifyIncoming is used to verify the authenticity of incoming
+	// connections. This means that TCP requests are forbidden, only allowing
+	// for TLS. TLS connections must match a provided certificate authority.
+	// This can be used to force client auth.
+	//
+	// hcl: verify_incoming = (true|false)
+	VerifyIncoming bool
+
+	// VerifyIncomingHTTPS is used to verify the authenticity of incoming HTTPS
+	// connections. This means that TCP requests are forbidden, only allowing
+	// for TLS. TLS connections must match a provided certificate authority.
+	// This can be used to force client auth.
+	//
+	// hcl: verify_incoming_https = (true|false)
+	VerifyIncomingHTTPS bool
+
+	// VerifyOutgoing is used to verify the authenticity of outgoing
+	// connections. This means that TLS requests are used. TLS connections must
+	// match a provided certificate authority. This is used to verify
+	// authenticity of server nodes.
+	//
+	// hcl: verify_outgoing = (true|false)
+	VerifyOutgoing bool
+
+	// VerifyServerHostname is used to enable hostname verification of servers.
+	// This ensures that the certificate presented is valid for
+	// server.<datacenter>.<domain>. This prevents a compromised client from
+	// being restarted as a server, and then intercepting request traffic as
+	// well as being added as a raft peer. This should be enabled by default
+	// with VerifyOutgoing, but for legacy reasons we cannot break existing
+	// clients.
+	//
+	// hcl: verify_server_hostname = (true|false)
+	VerifyServerHostname bool
+}
+
+// RuntimeConfig specifies the configuration the consul agent actually
+// uses. Is is derived from one or more Config structures which can come
+// from files, flags and/or environment variables.
 type RuntimeConfig struct {
 	// non-user configurable values
 	AEInterval time.Duration
@@ -662,12 +716,6 @@ type RuntimeConfig struct {
 	// hcl: encrypt = string
 	// flag: -encrypt string
 	EncryptKey string
-
-	// EncryptVerifyIncoming enforces incoming gossip encryption and can be
-	// used to upshift to encrypted gossip on a running cluster.
-	//
-	// hcl: encrypt_verify_incoming = (true|false)
-	EncryptVerifyIncoming bool
 
 	// EncryptVerifyOutgoing enforces outgoing gossip encryption and can be
 	// used to upshift to encrypted gossip on a running cluster.
@@ -1426,48 +1474,7 @@ type RuntimeConfig struct {
 	// hcl: unix_sockets { user = string }
 	UnixSocketUser string
 
-	// VerifyIncoming is used to verify the authenticity of incoming
-	// connections. This means that TCP requests are forbidden, only allowing
-	// for TLS. TLS connections must match a provided certificate authority.
-	// This can be used to force client auth.
-	//
-	// hcl: verify_incoming = (true|false)
-	VerifyIncoming bool
-
-	// VerifyIncomingHTTPS is used to verify the authenticity of incoming HTTPS
-	// connections. This means that TCP requests are forbidden, only allowing
-	// for TLS. TLS connections must match a provided certificate authority.
-	// This can be used to force client auth.
-	//
-	// hcl: verify_incoming_https = (true|false)
-	VerifyIncomingHTTPS bool
-
-	// VerifyIncomingRPC is used to verify the authenticity of incoming RPC
-	// connections. This means that TCP requests are forbidden, only allowing
-	// for TLS. TLS connections must match a provided certificate authority.
-	// This can be used to force client auth.
-	//
-	// hcl: verify_incoming_rpc = (true|false)
-	VerifyIncomingRPC bool
-
-	// VerifyOutgoing is used to verify the authenticity of outgoing
-	// connections. This means that TLS requests are used. TLS connections must
-	// match a provided certificate authority. This is used to verify
-	// authenticity of server nodes.
-	//
-	// hcl: verify_outgoing = (true|false)
-	VerifyOutgoing bool
-
-	// VerifyServerHostname is used to enable hostname verification of servers.
-	// This ensures that the certificate presented is valid for
-	// server.<datacenter>.<domain>. This prevents a compromised client from
-	// being restarted as a server, and then intercepting request traffic as
-	// well as being added as a raft peer. This should be enabled by default
-	// with VerifyOutgoing, but for legacy reasons we cannot break existing
-	// clients.
-	//
-	// hcl: verify_server_hostname = (true|false)
-	VerifyServerHostname bool
+	NotAutoReloadableRuntimeConfig NotAutoReloadableRuntimeConfig
 
 	// Watches are used to monitor various endpoints and to invoke a
 	// handler to act appropriately. These are managed entirely in the
@@ -1677,7 +1684,7 @@ func (c *RuntimeConfig) ConnectCAConfiguration() (*structs.CAConfiguration, erro
 func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) {
 	cfg := &api.Config{
 		Datacenter: c.Datacenter,
-		TLSConfig:  api.TLSConfig{InsecureSkipVerify: !c.VerifyOutgoing},
+		TLSConfig:  api.TLSConfig{InsecureSkipVerify: !c.NotAutoReloadableRuntimeConfig.VerifyOutgoing},
 	}
 
 	unixAddr, httpAddr, httpsAddr := c.ClientAddress()
@@ -1716,11 +1723,11 @@ func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 
 func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
 	return tlsutil.Config{
-		VerifyIncoming:           c.VerifyIncoming,
-		VerifyIncomingRPC:        c.VerifyIncomingRPC,
-		VerifyIncomingHTTPS:      c.VerifyIncomingHTTPS,
-		VerifyOutgoing:           c.VerifyOutgoing,
-		VerifyServerHostname:     c.VerifyServerHostname,
+		VerifyIncoming:           c.NotAutoReloadableRuntimeConfig.VerifyIncoming,
+		VerifyIncomingRPC:        c.NotAutoReloadableRuntimeConfig.VerifyIncomingRPC,
+		VerifyIncomingHTTPS:      c.NotAutoReloadableRuntimeConfig.VerifyIncomingHTTPS,
+		VerifyOutgoing:           c.NotAutoReloadableRuntimeConfig.VerifyOutgoing,
+		VerifyServerHostname:     c.NotAutoReloadableRuntimeConfig.VerifyServerHostname,
 		CAFile:                   c.CAFile,
 		CAPath:                   c.CAPath,
 		CertFile:                 c.CertFile,

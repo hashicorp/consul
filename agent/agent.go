@@ -1102,7 +1102,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.SerfWANConfig.MemberlistConfig.CIDRsAllowed = runtimeCfg.SerfAllowedCIDRsWAN
 	cfg.SerfLANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrLAN.IP.String()
 	cfg.SerfLANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrLAN.Port
-	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.EncryptVerifyIncoming
+	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.NotAutoReloadableRuntimeConfig.EncryptVerifyIncoming
 	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.EncryptVerifyOutgoing
 	cfg.SerfLANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipLANGossipInterval
 	cfg.SerfLANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipLANGossipNodes
@@ -1119,7 +1119,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 		cfg.SerfWANConfig.MemberlistConfig.BindPort = runtimeCfg.SerfBindAddrWAN.Port
 		cfg.SerfWANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrWAN.IP.String()
 		cfg.SerfWANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrWAN.Port
-		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.EncryptVerifyIncoming
+		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.NotAutoReloadableRuntimeConfig.EncryptVerifyIncoming
 		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.EncryptVerifyOutgoing
 		cfg.SerfWANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipWANGossipInterval
 		cfg.SerfWANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipWANGossipNodes
@@ -1312,8 +1312,8 @@ func segmentConfig(config *config.RuntimeConfig) ([]consul.NetworkSegment, error
 		if config.ReconnectTimeoutLAN != 0 {
 			serfConf.ReconnectTimeout = config.ReconnectTimeoutLAN
 		}
-		if config.EncryptVerifyIncoming {
-			serfConf.MemberlistConfig.GossipVerifyIncoming = config.EncryptVerifyIncoming
+		if config.NotAutoReloadableRuntimeConfig.EncryptVerifyIncoming {
+			serfConf.MemberlistConfig.GossipVerifyIncoming = config.NotAutoReloadableRuntimeConfig.EncryptVerifyIncoming
 		}
 		if config.EncryptVerifyOutgoing {
 			serfConf.MemberlistConfig.GossipVerifyOutgoing = config.EncryptVerifyOutgoing
@@ -3747,14 +3747,17 @@ func (a *Agent) ReloadConfig(autoReload bool) error {
 				}
 			}
 		}
+		// reset not reloadable fields
+		newCfg.NotAutoReloadableRuntimeConfig = a.config.NotAutoReloadableRuntimeConfig
 	}
+
 	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
 	// metrics in a future release of Consul.
 	if !a.config.Telemetry.DisableCompatOneNine {
 		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
 	}
 
-	return a.reloadConfigInternal(newCfg)
+	return a.reloadConfigInternal(newCfg, autoReload)
 }
 
 func removeWatchedFiles(watchedFiles []string, keys ...string) []string {
@@ -3775,7 +3778,7 @@ func removeWatchedFiles(watchedFiles []string, keys ...string) []string {
 // reloadConfigInternal is mainly needed for some unit tests. Instead of parsing
 // the configuration using CLI flags and on disk config, this just takes a
 // runtime configuration and applies it.
-func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
+func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig, reload bool) error {
 	// Change the log level and update it
 	if logging.ValidateLogLevel(newCfg.Logging.LogLevel) {
 		a.logger.SetLevel(logging.LevelFromString(newCfg.Logging.LogLevel))

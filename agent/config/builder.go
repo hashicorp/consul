@@ -1004,16 +1004,22 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		EnableRemoteScriptChecks:   enableRemoteScriptChecks,
 		EnableLocalScriptChecks:    enableLocalScriptChecks,
 		EncryptKey:                 stringVal(c.EncryptKey),
-		EncryptVerifyIncoming:      boolVal(c.EncryptVerifyIncoming),
-		EncryptVerifyOutgoing:      boolVal(c.EncryptVerifyOutgoing),
-		GRPCPort:                   grpcPort,
-		GRPCAddrs:                  grpcAddrs,
-		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
-		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
-		KeyFile:                    stringVal(c.KeyFile),
-		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
-		LeaveDrainTime:             b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
-		LeaveOnTerm:                leaveOnTerm,
+		NotAutoReloadableRuntimeConfig: NotAutoReloadableRuntimeConfig{
+			EncryptVerifyIncoming: boolVal(c.EncryptVerifyIncoming),
+			VerifyIncoming:        boolVal(c.VerifyIncoming),
+			VerifyIncomingHTTPS:   boolVal(c.VerifyIncomingHTTPS),
+			VerifyIncomingRPC:     boolVal(c.VerifyIncomingRPC),
+			VerifyOutgoing:        verifyOutgoing,
+			VerifyServerHostname:  verifyServerName},
+		EncryptVerifyOutgoing: boolVal(c.EncryptVerifyOutgoing),
+		GRPCPort:              grpcPort,
+		GRPCAddrs:             grpcAddrs,
+		HTTPMaxConnsPerClient: intVal(c.Limits.HTTPMaxConnsPerClient),
+		HTTPSHandshakeTimeout: b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
+		KeyFile:               stringVal(c.KeyFile),
+		KVMaxValueSize:        uint64Val(c.Limits.KVMaxValueSize),
+		LeaveDrainTime:        b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
+		LeaveOnTerm:           leaveOnTerm,
 		Logging: logging.Config{
 			LogLevel:          stringVal(c.LogLevel),
 			LogJSON:           boolVal(c.LogJSON),
@@ -1085,11 +1091,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		UnixSocketGroup:             stringVal(c.UnixSocket.Group),
 		UnixSocketMode:              stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:              stringVal(c.UnixSocket.User),
-		VerifyIncoming:              boolVal(c.VerifyIncoming),
-		VerifyIncomingHTTPS:         boolVal(c.VerifyIncomingHTTPS),
-		VerifyIncomingRPC:           boolVal(c.VerifyIncomingRPC),
-		VerifyOutgoing:              verifyOutgoing,
-		VerifyServerHostname:        verifyServerName,
 		Watches:                     c.Watches,
 	}
 
@@ -1477,7 +1478,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	}
 
 	if rt.AutoEncryptAllowTLS {
-		if !rt.VerifyIncoming && !rt.VerifyIncomingRPC {
+		if !rt.NotAutoReloadableRuntimeConfig.VerifyIncoming && !rt.NotAutoReloadableRuntimeConfig.VerifyIncomingRPC {
 			b.warn("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
 		}
 	}
@@ -2318,7 +2319,7 @@ func (b *builder) validateAutoConfig(rt RuntimeConfig) error {
 
 	// Right now we require TLS as everything we are going to transmit via auto-config is sensitive. Signed Certificates, Tokens
 	// and other encryption keys. This must be transmitted over a secure connection so we don't allow doing otherwise.
-	if !rt.VerifyOutgoing {
+	if !rt.NotAutoReloadableRuntimeConfig.VerifyOutgoing {
 		return fmt.Errorf("auto_config.enabled cannot be set without configuring TLS for server communications")
 	}
 

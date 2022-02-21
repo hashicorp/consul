@@ -31,7 +31,6 @@
         "127.0.0.0/8",
         "::1/128"
     ],
-    "AutoReloadConfig" : false,
     "AutoConfig": {
         "Authorizer": {
             "AllowReuse": false,
@@ -64,6 +63,7 @@
     "AutoEncryptDNSSAN": [],
     "AutoEncryptIPSAN": [],
     "AutoEncryptTLS": false,
+    "AutoReloadConfig": false,
     "AutopilotCleanupDeadServers": false,
     "AutopilotDisableUpgradeMigration": false,
     "AutopilotLastContactThreshold": "0s",
@@ -185,7 +185,6 @@
     "EnableLocalScriptChecks": false,
     "EnableRemoteScriptChecks": false,
     "EncryptKey": "hidden",
-    "EncryptVerifyIncoming": false,
     "EncryptVerifyOutgoing": false,
     "EnterpriseRuntimeConfig": {},
     "ExposeMaxPort": 0,
@@ -236,6 +235,14 @@
     "NodeID": "",
     "NodeMeta": {},
     "NodeName": "",
+    "NotAutoReloadableRuntimeConfig": {
+        "EncryptVerifyIncoming": false,
+        "VerifyIncoming": false,
+        "VerifyIncomingHTTPS": false,
+        "VerifyIncomingRPC": false,
+        "VerifyOutgoing": false,
+        "VerifyServerHostname": false
+    },
     "PidFile": "",
     "PrimaryDatacenter": "",
     "PrimaryGateways": [
@@ -417,11 +424,6 @@
     "UnixSocketMode": "",
     "UnixSocketUser": "",
     "UseStreamingBackend": false,
-    "VerifyIncoming": false,
-    "VerifyIncomingHTTPS": false,
-    "VerifyIncomingRPC": false,
-    "VerifyOutgoing": false,
-    "VerifyServerHostname": false,
     "Version": "",
     "VersionPrerelease": "",
     "Watches": []

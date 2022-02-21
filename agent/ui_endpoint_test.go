@@ -2336,7 +2336,7 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 			// not a pointer)
 			cfg.UIConfig.MetricsProxy = tc.config
 
-			require.NoError(t, a.Agent.reloadConfigInternal(&cfg))
+			require.NoError(t, a.Agent.reloadConfigInternal(&cfg, false))
 
 			// Now fetch the API handler to run requests against
 			h := a.srv.handler(true)
