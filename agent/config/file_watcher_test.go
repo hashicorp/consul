@@ -40,11 +40,11 @@ func TestWatcherRenameEvent(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, assertEvent(filepaths[0], w.EventsCh, defaultTimeout))
 	// make sure we consume all events
-	assertEvent(filepaths[0], w.EventsCh, defaultTimeout)
+	_ = assertEvent(filepaths[0], w.EventsCh, defaultTimeout)
 }
 
 func TestWatcherAddRemove(t *testing.T) {
-	filepaths := []string{}
+	var filepaths []string
 	w, err := NewFileWatcher(filepaths, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	file1 := createTempConfigFile(t, "temp_config1")
@@ -62,7 +62,7 @@ func TestWatcherAddRemove(t *testing.T) {
 }
 
 func TestWatcherAddWhileRunning(t *testing.T) {
-	filepaths := []string{}
+	var filepaths []string
 	w, err := NewFileWatcher(filepaths, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
@@ -84,7 +84,7 @@ func TestWatcherAddWhileRunning(t *testing.T) {
 }
 
 func TestWatcherRemoveNotFound(t *testing.T) {
-	filepaths := []string{}
+	var filepaths []string
 	w, err := NewFileWatcher(filepaths, hclog.New(&hclog.LoggerOptions{}))
 	require.NoError(t, err)
 	w.Start(context.Background())
@@ -268,7 +268,7 @@ func TestEventWatcherDirMove(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		filepathTmp := createTempConfigFile(t, "temp_config2")
-		os.Rename(filepathTmp, name)
+		err = os.Rename(filepathTmp, name)
 		require.NoError(t, err)
 		require.NoError(t, assertEvent(filepath, w.EventsCh, defaultTimeout))
 	}
@@ -291,7 +291,7 @@ func TestEventWatcherDirMoveTrim(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		filepathTmp := createTempConfigFile(t, "temp_config2")
-		os.Rename(filepathTmp, name)
+		err = os.Rename(filepathTmp, name)
 		require.NoError(t, err)
 		require.NoError(t, assertEvent(filepath, w.EventsCh, defaultTimeout))
 	}
@@ -316,7 +316,7 @@ func TestEventWatcherSubDirMove(t *testing.T) {
 
 	for i := 0; i < 2; i++ {
 		filepathTmp := createTempConfigFile(t, "temp_config2")
-		os.Rename(filepathTmp, name)
+		err = os.Rename(filepathTmp, name)
 		require.NoError(t, err)
 		require.Error(t, assertEvent(filepath, w.EventsCh, defaultTimeout), "timedout waiting for event")
 	}
