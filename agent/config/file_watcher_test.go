@@ -105,7 +105,7 @@ func TestEventWatcherChmod(t *testing.T) {
 		_ = w.Stop()
 	}()
 
-	file.Chmod(0777)
+	err = file.Chmod(0777)
 	require.NoError(t, err)
 	require.Error(t, assertEvent(file.Name(), w.EventsCh, defaultTimeout), "timedout waiting for event")
 }
