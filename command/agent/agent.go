@@ -188,6 +188,7 @@ func (c *cmd) run(args []string) int {
 	if bd.RuntimeConfig.CertFile != "" {
 		watcherFiles = append(watcherFiles, bd.RuntimeConfig.CertFile)
 	}
+	agent.WatchedFiles = watcherFiles
 
 	config := bd.RuntimeConfig
 	if config.Logging.LogJSON {
