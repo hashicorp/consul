@@ -83,7 +83,6 @@ func (w *FileWatcher) Stop() error {
 	w.stopOnce.Do(func() {
 		w.cancel()
 		<-w.done
-		close(w.EventsCh)
 		err = w.watcher.Close()
 	})
 	return err
@@ -137,6 +136,7 @@ func (w *FileWatcher) watch(ctx context.Context) {
 	ticker := time.NewTicker(w.reconcileTimeout)
 	defer ticker.Stop()
 	defer close(w.done)
+	defer close(w.EventsCh)
 
 	for {
 		select {
