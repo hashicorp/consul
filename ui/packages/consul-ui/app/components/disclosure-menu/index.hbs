@@ -4,12 +4,16 @@
   }}
   ...attributes
 >
-  <Disclosure as |disclosure|>
+  <Disclosure
+    @expanded={{@expanded}}
+  as |disclosure|>
     {{yield (hash
       Action=(component 'disclosure-menu/action' disclosure=disclosure)
       Menu=(component 'disclosure-menu/menu' disclosure=disclosure)
       disclosure=disclosure
       toggle=disclosure.toggle
+      close=disclosure.close
+      open=disclosure.open
       expanded=disclosure.expanded
     )}}
   </Disclosure>

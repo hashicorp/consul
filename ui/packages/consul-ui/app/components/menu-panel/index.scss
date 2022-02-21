@@ -1,22 +1,50 @@
 @import './skin';
 @import './layout';
+@import './deprecated';
 
 .menu-panel {
   @extend %menu-panel;
 }
+.menu-panel-deprecated {
+  @extend %menu-panel-deprecated;
+}
+%menu-panel {
+  @extend %panel;
+}
+%menu-panel-item span {
+  @extend %menu-panel-badge;
+}
 %menu-panel [role='separator'] {
+  @extend %panel-separator;
   @extend %menu-panel-separator;
 }
 %menu-panel > div {
   @extend %menu-panel-header;
 }
-// %menu-panel > ul > li > *:not(div),
-%menu-panel [role='menuitem'] {
+%menu-panel > ul {
+  @extend %menu-panel-body;
+}
+%menu-panel-body > li {
+  @extend %menu-panel-item;
+}
+%menu-panel-body > [role='treeitem'],
+%menu-panel-body > li > [role='menuitem'],
+%menu-panel-body > li > [role='option'] {
+  @extend %menu-panel-button;
+}
+%menu-panel-button + * {
+  @extend %menu-panel-confirmation;
+}
+%menu-panel-item[aria-selected] > *,
+%menu-panel-item[aria-checked] > *,
+%menu-panel-item[aria-current] > *,
+%menu-panel-item.is-active > * {
+  @extend %menu-panel-button-selected;
+}
+%menu-panel-button {
   @extend %internal-button;
 }
-%menu-panel > ul > li.dangerous > *:not(div) {
+/* first-child is highly likely to be the button/or anchor*/
+%menu-panel-item.dangerous > *:first-child {
   @extend %internal-button-dangerous;
-}
-%menu-panel .informed-action {
-  border: 0 !important;
 }
