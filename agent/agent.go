@@ -3733,19 +3733,19 @@ func (a *Agent) ReloadConfig(autoReload bool) error {
 	// breaking some existing behavior.
 	newCfg.NodeID = a.config.NodeID
 
+	//if auto reload is enabled, make sure we have the right certs file watched.
 	if autoReload {
-		if newCfg.KeyFile != a.config.KeyFile || newCfg.CertFile != a.config.CertFile {
-			newWatched := removeWatchedFiles(a.WatchedFiles, a.config.KeyFile, a.config.CAFile)
-			newWatched = append(newWatched, newCfg.KeyFile, newCfg.CertFile)
-			a.FileWatcher.Stop()
-			if err != nil {
-				return err
+		for _, f := range []struct {
+			oldCfg string
+			newCfg string
+		}{{a.config.KeyFile, newCfg.KeyFile}, {a.config.KeyFile, newCfg.KeyFile}} {
+			if f.oldCfg != f.newCfg {
+				a.FileWatcher.Remove(f.oldCfg)
+				err = a.FileWatcher.Add(f.newCfg)
+				if err != nil {
+					return err
+				}
 			}
-			a.FileWatcher, err = config.NewFileWatcher(newWatched, a.baseDeps.Logger)
-			if err != nil {
-				return err
-			}
-			a.FileWatcher.Start(context.Background())
 		}
 	}
 	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
