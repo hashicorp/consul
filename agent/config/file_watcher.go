@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,9 +15,12 @@ import (
 
 const timeoutDuration = 200 * time.Millisecond
 
+const errNotFound = "file not found"
+
 type FileWatcher struct {
 	watcher          *fsnotify.Watcher
 	configFiles      map[string]*watchedFile
+	configFilesLock  sync.RWMutex
 	logger           hclog.Logger
 	reconcileTimeout time.Duration
 	cancel           context.CancelFunc
@@ -53,6 +57,7 @@ func NewFileWatcher(configFiles []string, logger hclog.Logger) (*FileWatcher, er
 		reconcileTimeout: timeoutDuration,
 		done:             make(chan interface{}),
 		stopOnce:         sync.Once{},
+		configFilesLock:  sync.RWMutex{},
 	}
 	for _, f := range configFiles {
 		err = w.add(f)
@@ -87,6 +92,25 @@ func (w *FileWatcher) Stop() error {
 	return err
 }
 
+// Add a file to the file watcher
+// Add will lock the file watcher during the add
+func (w *FileWatcher) Add(filename string) error {
+	return w.add(filename)
+}
+
+// Remove a file from the file watcher
+// Remove will lock the file watcher during the remove
+func (w *FileWatcher) Remove(filename string) error {
+	w.configFilesLock.Lock()
+	defer w.configFilesLock.Unlock()
+	_, ok := w.configFiles[filename]
+	if !ok {
+		return errors.New(errNotFound)
+	}
+	delete(w.configFiles, filename)
+	return nil
+}
+
 func (w *FileWatcher) add(filename string) error {
 	if isSymLink(filename) {
 		return fmt.Errorf("symbolic links are not supported %s", filename)
@@ -100,6 +124,8 @@ func (w *FileWatcher) add(filename string) error {
 	if err != nil {
 		return err
 	}
+	w.configFilesLock.Lock()
+	defer w.configFilesLock.Unlock()
 	w.configFiles[filename] = &watchedFile{modTime: modTime}
 	return nil
 }
@@ -179,6 +205,8 @@ func (w *FileWatcher) handleEvent(ctx context.Context, event fsnotify.Event) err
 
 func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 	path := filename
+	w.configFilesLock.RLock()
+	defer w.configFilesLock.RUnlock()
 	configFile, ok := w.configFiles[path]
 	if ok {
 		return configFile, path, true
@@ -192,12 +220,16 @@ func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 		// try to see if the watched path is the parent dir
 		newPath := filepath.Dir(path)
 		w.logger.Trace("get dir", "dir", newPath)
+		w.configFilesLock.RLock()
+		defer w.configFilesLock.RUnlock()
 		configFile, ok = w.configFiles[newPath]
 	}
 	return configFile, path, ok
 }
 
 func (w *FileWatcher) reconcile(ctx context.Context) {
+	w.configFilesLock.Lock()
+	defer w.configFilesLock.Unlock()
 	for filename, configFile := range w.configFiles {
 		w.logger.Trace("reconciling", "filename", filename)
 		newModTime, err := w.getFileModifiedTime(filename)
@@ -213,7 +245,7 @@ func (w *FileWatcher) reconcile(ctx context.Context) {
 		}
 		if !configFile.modTime.Equal(newModTime) {
 			w.logger.Trace("call the handler", "filename", filename, "old modTime", configFile.modTime, "new modTime", newModTime)
-			w.configFiles[filename].modTime = newModTime
+			configFile.modTime = newModTime
 			select {
 			case w.EventsCh <- &FileWatcherEvent{Filename: filename}:
 			case <-ctx.Done():

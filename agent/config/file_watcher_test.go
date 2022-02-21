@@ -43,6 +43,50 @@ func TestWatcherRenameEvent(t *testing.T) {
 	assertEvent(filepaths[0], w.EventsCh, defaultTimeout)
 }
 
+func TestWatcherAddRemove(t *testing.T) {
+	filepaths := []string{}
+	w, err := NewFileWatcher(filepaths, hclog.New(&hclog.LoggerOptions{}))
+	require.NoError(t, err)
+	err = w.Add(createTempConfigFile(t, "temp_config1"))
+	require.NoError(t, err)
+	file := createTempConfigFile(t, "temp_config2")
+	err = w.Add(file)
+	require.NoError(t, err)
+	err = w.Remove(file)
+	require.NoError(t, err)
+}
+
+func TestWatcherAddWhileRunning(t *testing.T) {
+	filepaths := []string{}
+	w, err := NewFileWatcher(filepaths, hclog.New(&hclog.LoggerOptions{}))
+	require.NoError(t, err)
+	w.Start(context.Background())
+	defer func() {
+		_ = w.Stop()
+	}()
+	err = w.Add(createTempConfigFile(t, "temp_config1"))
+	require.NoError(t, err)
+	file := createTempConfigFile(t, "temp_config2")
+	err = w.Add(file)
+	require.NoError(t, err)
+	err = w.Remove(file)
+	require.NoError(t, err)
+}
+
+func TestWatcherRemoveNotFound(t *testing.T) {
+	filepaths := []string{}
+	w, err := NewFileWatcher(filepaths, hclog.New(&hclog.LoggerOptions{}))
+	require.NoError(t, err)
+	w.Start(context.Background())
+	defer func() {
+		_ = w.Stop()
+	}()
+
+	file := createTempConfigFile(t, "temp_config2")
+	err = w.Remove(file)
+	require.Errorf(t, err, errNotFound)
+}
+
 func TestWatcherAddNotExist(t *testing.T) {
 
 	file := testutil.TempFile(t, "temp_config")
