@@ -7,7 +7,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"golang.org/x/sync/errgroup"
 	"io"
 	"io/ioutil"
 	"os"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/cli"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
@@ -418,19 +418,13 @@ func (c *cmd) captureLongRunning() error {
 	}
 
 	g := new(errgroup.Group)
-	// Capture a profile/trace with a minimum of 1s
-	s := c.duration.Seconds()
-	if s < 1 {
-		s = 1
-	}
-	// Capture pprof
 	if c.configuredTarget("pprof") {
 		g.Go(func() error {
-			return c.captureProfile(s, timestampDir)
+			return c.captureProfile(c.duration.Seconds(), timestampDir)
 		})
 
 		g.Go(func() error {
-			return c.captureTrace(s, timestampDir)
+			return c.captureTrace(int(c.interval.Seconds()), timestampDir)
 		})
 	}
 	// Capture logs
@@ -449,12 +443,11 @@ func (c *cmd) captureGoRoutines(timestampDir string) error {
 		return fmt.Errorf("failed to collect goroutine profile: %w", err)
 	}
 
-	err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
-	return err
+	return ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
 }
 
-func (c *cmd) captureTrace(s float64, timestampDir string) error {
-	trace, err := c.client.Debug().Trace(int(s))
+func (c *cmd) captureTrace(duration int, timestampDir string) error {
+	trace, err := c.client.Debug().Trace(duration)
 	if err != nil {
 		return fmt.Errorf("failed to collect trace: %w", err)
 	}
