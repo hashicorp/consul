@@ -579,9 +579,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
 				google := structs.NewServiceName("google", nil)
-				snap.ConnectProxy.IntentionUpstreams = map[string]struct{}{
-					google.String(): {},
-				}
 				snap.ConnectProxy.DiscoveryChain[google.String()] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil,
 					// Set default service protocol to HTTP
 					&structs.ProxyConfigEntry{
@@ -604,8 +601,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 								Address: "9.9.9.9",
 								Port:    9090,
 								TaggedAddresses: map[string]structs.ServiceAddress{
-									"virtual":                      {Address: "10.0.0.1"},
-									structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+									"virtual": {Address: "10.0.0.1"},
 								},
 							},
 						},
