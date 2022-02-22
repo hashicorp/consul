@@ -3757,7 +3757,7 @@ func (a *Agent) ReloadConfig(autoReload bool) error {
 		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
 	}
 
-	return a.reloadConfigInternal(newCfg, autoReload)
+	return a.reloadConfigInternal(newCfg)
 }
 
 func removeWatchedFiles(watchedFiles []string, keys ...string) []string {
@@ -3778,7 +3778,7 @@ func removeWatchedFiles(watchedFiles []string, keys ...string) []string {
 // reloadConfigInternal is mainly needed for some unit tests. Instead of parsing
 // the configuration using CLI flags and on disk config, this just takes a
 // runtime configuration and applies it.
-func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig, reload bool) error {
+func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	// Change the log level and update it
 	if logging.ValidateLogLevel(newCfg.Logging.LogLevel) {
 		a.logger.SetLevel(logging.LevelFromString(newCfg.Logging.LogLevel))

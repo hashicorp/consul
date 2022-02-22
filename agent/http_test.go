@@ -1394,7 +1394,7 @@ func TestEnableWebUI(t *testing.T) {
 	}
 	`
 	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: newHCL})
-	require.NoError(t, a.reloadConfigInternal(c, false))
+	require.NoError(t, a.reloadConfigInternal(c))
 
 	// Now index requests should contain that metrics provider name.
 	{
@@ -1669,7 +1669,7 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 			// Reload config with higher limit
 			newCfg := *a.config
 			newCfg.HTTPMaxConnsPerClient = 10
-			require.NoError(t, a.reloadConfigInternal(&newCfg, false))
+			require.NoError(t, a.reloadConfigInternal(&newCfg))
 
 			// Now another conn should be allowed
 			conn4, err := net.DialTimeout("tcp", addr.String(), time.Second)

@@ -3944,7 +3944,7 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 		verify_server_hostname = true
 	`
 	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
-	require.NoError(t, a.reloadConfigInternal(c, false))
+	require.NoError(t, a.reloadConfigInternal(c))
 	tlsConf = a.tlsConfigurator.OutgoingRPCConfig()
 	require.False(t, tlsConf.InsecureSkipVerify)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
@@ -3987,7 +3987,7 @@ func testAgent_ReloadConfigAndKeepChecksStatus(t *testing.T, extraHCL string) {
 	}
 
 	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
-	require.NoError(t, a.reloadConfigInternal(c, false))
+	require.NoError(t, a.reloadConfigInternal(c))
 
 	// After reload, should be passing directly (no critical state)
 	for id, check := range a.State.Checks(nil) {
@@ -4030,7 +4030,7 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 		verify_server_hostname = true
 	`
 	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
-	require.NoError(t, a.reloadConfigInternal(c, false))
+	require.NoError(t, a.reloadConfigInternal(c))
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
 	require.False(t, tlsConf.InsecureSkipVerify)
@@ -4062,7 +4062,7 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 		verify_incoming = true
 	`
 	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
-	require.Error(t, a.reloadConfigInternal(c, false))
+	require.Error(t, a.reloadConfigInternal(c))
 	tlsConf, err := tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
