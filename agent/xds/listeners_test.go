@@ -1142,6 +1142,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				snap.ConnectProxy.IntentionUpstreams = map[string]struct{}{
 					google.String(): {},
 				}
+
 				snap.ConnectProxy.DiscoveryChain[google.String()] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil,
 					// Set default service protocol to HTTP
 					&structs.ProxyConfigEntry{
@@ -1164,8 +1165,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 								Address: "9.9.9.9",
 								Port:    9090,
 								TaggedAddresses: map[string]structs.ServiceAddress{
-									"virtual":                      {Address: "10.0.0.1"},
-									structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+									"virtual": {Address: "10.0.0.1"},
 								},
 							},
 						},
@@ -1189,7 +1189,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
-				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(
+					t, "no-endpoints", "default", "dc1",
+					connect.TestClusterID+".consul", "dc1", nil)
 			},
 		},
 		{
