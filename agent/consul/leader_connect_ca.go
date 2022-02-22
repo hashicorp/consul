@@ -91,6 +91,8 @@ func (c *caDelegateWithState) State() *state.Store {
 }
 
 func (c *caDelegateWithState) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
+	// ApplyCARequest is often called by ConnectCA.SetConfiguration, so should
+	// already have metrics applied. The exception is CAManager.Initialize.
 	return c.Server.raftApplyMsgpack(structs.ConnectCARequestType, req)
 }
 

@@ -970,6 +970,7 @@ func (s *Server) reconcileMember(member serf.Member) error {
 		)
 		return nil
 	}
+	// TODO: deprecate this metric
 	defer metrics.MeasureSince([]string{"leader", "reconcileMember"}, time.Now())
 
 	nodeEntMeta := getSerfMemberEnterpriseMeta(member)
@@ -1017,6 +1018,7 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 // handleAliveMember is used to ensure the node
 // is registered, with a passing health check.
 func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+	start := time.Now()
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}
@@ -1117,12 +1119,23 @@ AFTER_CHECK:
 	}
 
 	_, err = s.raftApply(structs.RegisterRequestType, &req)
+	s.rpcObserver.Observe("Catalog.Register", rpcTypeLeader, start, &req, err)
 	return err
 }
+
+// rpcTypeLeader identifies the "RPC" request as coming from some internal
+// operation that runs on the cluster leader. Technically this is not an RPC
+// request, but these raft.Apply operations have the same impact on blocking
+// queries, and streaming subscriptions, so need to be tracked by the same metric
+// and logs.
+// Really what we are measuring here is a "cluster operation". The term we have
+// used for this historically is "RPC", so we continue to use that here.
+const rpcTypeLeader = "leader"
 
 // handleFailedMember is used to mark the node's status
 // as being critical, along with all checks as unknown.
 func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+	start := time.Now()
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}
@@ -1179,6 +1192,7 @@ func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *structs.Ent
 		SkipNodeUpdate: true,
 	}
 	_, err = s.raftApply(structs.RegisterRequestType, &req)
+	s.rpcObserver.Observe("Catalog.Register", rpcTypeLeader, start, &req, err)
 	return err
 }
 
@@ -1196,6 +1210,7 @@ func (s *Server) handleReapMember(member serf.Member, nodeEntMeta *structs.Enter
 
 // handleDeregisterMember is used to deregister a member of a given reason
 func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+	start := time.Now()
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}
@@ -1242,6 +1257,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeE
 		EnterpriseMeta: *nodeEntMeta,
 	}
 	_, err = s.raftApply(structs.DeregisterRequestType, &req)
+	s.rpcObserver.Observe("Catalog.Deregister", rpcTypeLeader, start, &req, err)
 	return err
 }
 
@@ -1296,14 +1312,19 @@ func (s *Server) removeConsulServer(m serf.Member) error {
 // through Raft to ensure consistency. We do this outside the leader loop
 // to avoid blocking.
 func (s *Server) reapTombstones(index uint64) {
-	defer metrics.MeasureSince([]string{"leader", "reapTombstones"}, time.Now())
+	start := time.Now()
+	// TODO: deprecate this metric
+	defer metrics.MeasureSince([]string{"leader", "reapTombstones"}, start)
 	req := structs.TombstoneRequest{
 		Datacenter: s.config.Datacenter,
 		Op:         structs.TombstoneReap,
 		ReapIndex:  index,
 	}
 	_, err := s.raftApply(structs.TombstoneRequestType, &req)
+	s.rpcObserver.Observe("KVS.TombstoneReap", rpcTypeLeader, start, &req, err)
+
 	if err != nil {
+		// TODO: remove this log line after consul/issues/11947 is done
 		s.logger.Error("failed to reap tombstones up to index",
 			"index", index,
 			"error", err,

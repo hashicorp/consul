@@ -7,9 +7,10 @@ import (
 
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-version"
 )
 
 const (
@@ -75,6 +76,7 @@ func (s *Server) runCARootPruning(ctx context.Context) error {
 			return nil
 		case <-ticker.C:
 			if err := s.pruneCARoots(); err != nil {
+				// TODO: remove this log line after consul/issues/11947 is done
 				s.loggers.Named(logging.Connect).Error("error pruning CA roots", "error", err)
 			}
 		}
@@ -83,6 +85,7 @@ func (s *Server) runCARootPruning(ctx context.Context) error {
 
 // pruneCARoots looks for any CARoots that have been rotated out and expired.
 func (s *Server) pruneCARoots() error {
+	start := time.Now()
 	if !s.config.ConnectEnabled {
 		return nil
 	}
@@ -124,6 +127,7 @@ func (s *Server) pruneCARoots() error {
 	args.Index = idx
 	args.Roots = newRoots
 	_, err = s.raftApply(structs.ConnectCARequestType, args)
+	s.rpcObserver.Observe("ConnectCA.SetRoots", rpcTypeLeader, start, &args, err)
 	return err
 }
 

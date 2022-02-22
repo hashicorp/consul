@@ -16,6 +16,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	agentrpc "github.com/hashicorp/consul/agent/rpc"
+
 	"github.com/hashicorp/go-version"
 	"go.etcd.io/bbolt"
 
@@ -248,6 +250,8 @@ type Server struct {
 	grpcHandler connHandler
 	rpcServer   *rpc.Server
 
+	rpcObserver agentrpc.ServiceCallObserver // TODO: initialize this.
+
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
 	// to request client certificates. At this point a client doesn't have
@@ -376,8 +380,8 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
 		router:                  flat.Router,
-		rpcServer:               rpc.NewServer(),
-		insecureRPCServer:       rpc.NewServer(),
+		rpcServer:               rpc.NewServer(), // TODO: set interceptor
+		insecureRPCServer:       rpc.NewServer(), // TODO: set interceptor
 		tlsConfigurator:         flat.TLSConfigurator,
 		reassertLeaderCh:        make(chan chan error),
 		sessionTimers:           NewSessionTimers(),
@@ -388,6 +392,8 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		aclAuthMethodValidators: authmethod.NewCache(),
 		fsm:                     newFSMFromConfig(flat.Logger, gc, config),
 	}
+
+	s.rpcObserver = agentrpc.ServiceCallObserver{Logger: serverLogger}
 
 	if s.config.ConnectMeshGatewayWANFederationEnabled {
 		s.gatewayLocator = NewGatewayLocator(
