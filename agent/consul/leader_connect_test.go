@@ -15,11 +15,13 @@ import (
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -1246,74 +1248,122 @@ func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
 	})
 }
 
-func TestParseCARoot(t *testing.T) {
-	type test struct {
-		name             string
-		pem              string
-		wantSerial       uint64
-		wantSigningKeyID string
-		wantKeyType      string
-		wantKeyBits      int
-		wantErr          bool
+func TestNewCARoot(t *testing.T) {
+	type testCase struct {
+		name        string
+		pem         string
+		expected    *structs.CARoot
+		expectedErr string
 	}
-	// Test certs generated with
+
+	run := func(t *testing.T, tc testCase) {
+		root, err := newCARoot(tc.pem, "provider-name", "cluster-id")
+		if tc.expectedErr != "" {
+			testutil.RequireErrorContains(t, err, tc.expectedErr)
+			return
+		}
+		require.NoError(t, err)
+		assert.DeepEqual(t, root, tc.expected)
+	}
+
+	// Test certs can be generated with
 	//   go run connect/certgen/certgen.go -out-dir /tmp/connect-certs -key-type ec -key-bits 384
-	// for various key types. This does limit the exposure to formats that might
-	// exist in external certificates which can be used as Connect CAs.
-	// Specifically many other certs will have serial numbers that don't fit into
-	// 64 bits but for reasons we truncate down to 64 bits which means our
-	// `SerialNumber` will not match the one reported by openssl. We should
-	// probably fix that at some point as it seems like a big footgun but it would
-	// be a breaking API change to change the type to not be a JSON number and
-	// JSON numbers don't even support the full range of a uint64...
-	tests := []test{
-		{"no cert", "", 0, "", "", 0, true},
+	// serial generated with:
+	//   openssl x509 -noout -text
+	testCases := []testCase{
 		{
-			name: "default cert",
-			// Watchout for indentations they will break PEM format
-			pem: readTestData(t, "cert-with-ec-256-key.pem"),
-			// Based on `openssl x509 -noout -text` report from the cert
-			wantSerial:       8341954965092507701,
-			wantSigningKeyID: "97:4D:17:81:64:F8:B4:AF:05:E8:6C:79:C5:40:3B:0E:3E:8B:C0:AE:38:51:54:8A:2F:05:DB:E3:E8:E4:24:EC",
-			wantKeyType:      "ec",
-			wantKeyBits:      256,
-			wantErr:          false,
+			name:        "no cert",
+			expectedErr: "no PEM-encoded data found",
 		},
 		{
-			name: "ec 384 cert",
-			// Watchout for indentations they will break PEM format
-			pem: readTestData(t, "cert-with-ec-384-key.pem"),
-			// Based on `openssl x509 -noout -text` report from the cert
-			wantSerial:       2935109425518279965,
-			wantSigningKeyID: "0B:A0:88:9B:DC:95:31:51:2E:3D:D4:F9:42:D0:6A:A0:62:46:82:D2:7C:22:E7:29:A9:AA:E8:A5:8C:CF:C7:42",
-			wantKeyType:      "ec",
-			wantKeyBits:      384,
-			wantErr:          false,
+			name: "type=ec bits=256",
+			pem:  readTestData(t, "cert-with-ec-256-key.pem"),
+			expected: &structs.CARoot{
+				ID:                  "c9:1b:24:e0:89:63:1a:ba:22:01:f4:cf:bc:f1:c0:36:b2:6b:6c:3d",
+				Name:                "Provider-Name CA Primary Cert",
+				SerialNumber:        8341954965092507701,
+				SigningKeyID:        "97:4d:17:81:64:f8:b4:af:05:e8:6c:79:c5:40:3b:0e:3e:8b:c0:ae:38:51:54:8a:2f:05:db:e3:e8:e4:24:ec",
+				ExternalTrustDomain: "cluster-id",
+				NotBefore:           time.Date(2019, 10, 17, 11, 46, 29, 0, time.UTC),
+				NotAfter:            time.Date(2029, 10, 17, 11, 46, 29, 0, time.UTC),
+				RootCert:            readTestData(t, "cert-with-ec-256-key.pem"),
+				Active:              true,
+				PrivateKeyType:      "ec",
+				PrivateKeyBits:      256,
+			},
 		},
 		{
-			name: "rsa 4096 cert",
-			// Watchout for indentations they will break PEM format
-			pem: readTestData(t, "cert-with-rsa-4096-key.pem"),
-			// Based on `openssl x509 -noout -text` report from the cert
-			wantSerial:       5186695743100577491,
-			wantSigningKeyID: "92:FA:CC:97:57:1E:31:84:A2:33:DD:9B:6A:A8:7C:FC:BE:E2:94:CA:AC:B3:33:17:39:3B:B8:67:9B:DC:C1:08",
-			wantKeyType:      "rsa",
-			wantKeyBits:      4096,
-			wantErr:          false,
+			name: "type=ec bits=384",
+			pem:  readTestData(t, "cert-with-ec-384-key.pem"),
+			expected: &structs.CARoot{
+				ID:                  "29:69:c4:0f:aa:8f:bd:07:31:0d:51:3b:45:62:3d:c0:b2:fc:c6:3f",
+				Name:                "Provider-Name CA Primary Cert",
+				SerialNumber:        2935109425518279965,
+				SigningKeyID:        "0b:a0:88:9b:dc:95:31:51:2e:3d:d4:f9:42:d0:6a:a0:62:46:82:d2:7c:22:e7:29:a9:aa:e8:a5:8c:cf:c7:42",
+				ExternalTrustDomain: "cluster-id",
+				NotBefore:           time.Date(2019, 10, 17, 11, 55, 18, 0, time.UTC),
+				NotAfter:            time.Date(2029, 10, 17, 11, 55, 18, 0, time.UTC),
+				RootCert:            readTestData(t, "cert-with-ec-384-key.pem"),
+				Active:              true,
+				PrivateKeyType:      "ec",
+				PrivateKeyBits:      384,
+			},
+		},
+		{
+			name: "type=rsa bits=4096",
+			pem:  readTestData(t, "cert-with-rsa-4096-key.pem"),
+			expected: &structs.CARoot{
+				ID:                  "3a:6a:e3:e2:2d:44:85:5a:e9:44:3b:ef:d2:90:78:83:7f:61:a2:84",
+				Name:                "Provider-Name CA Primary Cert",
+				SerialNumber:        5186695743100577491,
+				SigningKeyID:        "92:fa:cc:97:57:1e:31:84:a2:33:dd:9b:6a:a8:7c:fc:be:e2:94:ca:ac:b3:33:17:39:3b:b8:67:9b:dc:c1:08",
+				ExternalTrustDomain: "cluster-id",
+				NotBefore:           time.Date(2019, 10, 17, 11, 53, 15, 0, time.UTC),
+				NotAfter:            time.Date(2029, 10, 17, 11, 53, 15, 0, time.UTC),
+				RootCert:            readTestData(t, "cert-with-rsa-4096-key.pem"),
+				Active:              true,
+				PrivateKeyType:      "rsa",
+				PrivateKeyBits:      4096,
+			},
+		},
+		{
+			name: "two certs in pem",
+			pem:  readTestData(t, "pem-with-two-certs.pem"),
+			expected: &structs.CARoot{
+				ID:                  "42:43:10:1f:71:6b:21:21:d1:10:49:d1:f0:41:78:8c:0a:77:ef:c0",
+				Name:                "Provider-Name CA Primary Cert",
+				SerialNumber:        17692800288680335732,
+				SigningKeyID:        "9d:5c:27:43:ce:58:7b:ca:3e:7d:c4:fb:b6:2e:b7:13:e9:a1:68:3e",
+				ExternalTrustDomain: "cluster-id",
+				NotBefore:           time.Date(2022, 1, 5, 23, 22, 12, 0, time.UTC),
+				NotAfter:            time.Date(2022, 4, 7, 15, 22, 42, 0, time.UTC),
+				RootCert:            readTestData(t, "pem-with-two-certs.pem"),
+				Active:              true,
+				PrivateKeyType:      "ec",
+				PrivateKeyBits:      256,
+			},
+		},
+		{
+			name: "three certs in pem",
+			pem:  readTestData(t, "pem-with-three-certs.pem"),
+			expected: &structs.CARoot{
+				ID:                  "42:43:10:1f:71:6b:21:21:d1:10:49:d1:f0:41:78:8c:0a:77:ef:c0",
+				Name:                "Provider-Name CA Primary Cert",
+				SerialNumber:        17692800288680335732,
+				SigningKeyID:        "9d:5c:27:43:ce:58:7b:ca:3e:7d:c4:fb:b6:2e:b7:13:e9:a1:68:3e",
+				ExternalTrustDomain: "cluster-id",
+				NotBefore:           time.Date(2022, 1, 5, 23, 22, 12, 0, time.UTC),
+				NotAfter:            time.Date(2022, 4, 7, 15, 22, 42, 0, time.UTC),
+				RootCert:            readTestData(t, "pem-with-three-certs.pem"),
+				Active:              true,
+				PrivateKeyType:      "ec",
+				PrivateKeyBits:      256,
+			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			root, err := parseCARoot(tt.pem, "consul", "cluster")
-			if tt.wantErr {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-			require.Equal(t, tt.wantSerial, root.SerialNumber)
-			require.Equal(t, strings.ToLower(tt.wantSigningKeyID), root.SigningKeyID)
-			require.Equal(t, tt.wantKeyType, root.PrivateKeyType)
-			require.Equal(t, tt.wantKeyBits, root.PrivateKeyBits)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
 		})
 	}
 }
