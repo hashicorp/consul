@@ -19,8 +19,6 @@ When setting up a
 Consul cluster, operators must ensure that each Consul server can directly reach
 every Consul server in every datacenter over its WAN-advertised network address.
 
-[![WAN federation without mesh gateways](/img/wan-federation-connectivity-traditional.png)](/img/wan-federation-connectivity-traditional.png)
-
 This requires that operators setting up the virtual machines or containers
 hosting the servers take additional steps to ensure the necessary routing and
 firewall rules are in place to allow the servers to speak to each other over
@@ -39,7 +37,18 @@ Operators looking to simplify their WAN deployment and minimize the exposed
 security surface area can elect to join these datacenters together using [mesh
 gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters) to do so.
 
+<Tabs>
+<Tab heading="Traditional WAN Federation">
+
+[![WAN federation without mesh gateways](/img/wan-federation-connectivity-traditional.png)](/img/wan-federation-connectivity-traditional.png)
+
+</Tab>
+<Tab heading="WAN Federation via Mesh Gateways">
+
 [![WAN federation with mesh gateways](/img/wan-federation-connectivity-mesh-gateways.png)](/img/wan-federation-connectivity-mesh-gateways.png)
+
+</Tab>
+</Tabs>
 
 ## Requirements
 
