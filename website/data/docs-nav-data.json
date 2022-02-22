@@ -373,18 +373,18 @@
         "hidden": true
       }
     ]
-  },  
+  },
   {
     "title": "Consul API Gateway",
     "routes": [
       {
-        "title": "Consul API Gateway",
-        "path": "api-gateway/api-gateway"
+        "title": "Overview",
+        "path": "api-gateway"
       },
       {
         "title": "Technical Specifications",
-        "path": "api-gateway/api-gateway-tech-specs"
-      }      
+        "path": "api-gateway/tech-specs"
+      }
     ]
   },
   {
