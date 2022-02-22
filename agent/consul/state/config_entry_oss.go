@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package state
@@ -8,11 +9,12 @@ import (
 
 	memdb "github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 func indexFromConfigEntryKindName(arg interface{}) ([]byte, error) {
-	n, ok := arg.(ConfigEntryKindName)
+	n, ok := arg.(configentry.KindName)
 	if !ok {
 		return nil, fmt.Errorf("invalid type for ConfigEntryKindName query: %T", arg)
 	}

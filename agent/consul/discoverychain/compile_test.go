@@ -4,13 +4,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/require"
 )
 
 type compileTestCase struct {
-	entries *structs.DiscoveryChainConfigEntries
+	entries *configentry.DiscoveryChainSet
 	setup   func(req *CompileRequest)
 	expect  *structs.CompiledDiscoveryChain
 	// expectIsDefault tests behavior of CompiledDiscoveryChain.IsDefault()
@@ -2494,7 +2496,7 @@ func newSimpleRoute(name string, muts ...func(*structs.ServiceRoute)) structs.Se
 	return r
 }
 
-func setGlobalProxyProtocol(entries *structs.DiscoveryChainConfigEntries, protocol string) {
+func setGlobalProxyProtocol(entries *configentry.DiscoveryChainSet, protocol string) {
 	entries.GlobalProxy = &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
@@ -2504,7 +2506,7 @@ func setGlobalProxyProtocol(entries *structs.DiscoveryChainConfigEntries, protoc
 	}
 }
 
-func setServiceProtocol(entries *structs.DiscoveryChainConfigEntries, name, protocol string) {
+func setServiceProtocol(entries *configentry.DiscoveryChainSet, name, protocol string) {
 	entries.AddServices(&structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     name,
@@ -2512,8 +2514,8 @@ func setServiceProtocol(entries *structs.DiscoveryChainConfigEntries, name, prot
 	})
 }
 
-func newEntries() *structs.DiscoveryChainConfigEntries {
-	return &structs.DiscoveryChainConfigEntries{
+func newEntries() *configentry.DiscoveryChainSet {
+	return &configentry.DiscoveryChainSet{
 		Routers:   make(map[structs.ServiceID]*structs.ServiceRouterConfigEntry),
 		Splitters: make(map[structs.ServiceID]*structs.ServiceSplitterConfigEntry),
 		Resolvers: make(map[structs.ServiceID]*structs.ServiceResolverConfigEntry),
