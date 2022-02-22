@@ -579,11 +579,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
 				google := structs.NewServiceName("google", nil)
-				googleUID := proxycfg.NewUpstreamIDFromServiceName(google)
-				snap.ConnectProxy.IntentionUpstreams = map[proxycfg.UpstreamID]struct{}{
-					googleUID: {},
+				snap.ConnectProxy.IntentionUpstreams = map[string]struct{}{
+					google.String(): {},
 				}
-				snap.ConnectProxy.DiscoveryChain[googleUID] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil,
+				snap.ConnectProxy.DiscoveryChain[google.String()] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil,
 					// Set default service protocol to HTTP
 					&structs.ProxyConfigEntry{
 						Kind: structs.ProxyDefaults,
@@ -593,7 +592,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						},
 					})
 
-				snap.ConnectProxy.WatchedUpstreamEndpoints[googleUID] = map[string]structs.CheckServiceNodes{
+				snap.ConnectProxy.WatchedUpstreamEndpoints[google.String()] = map[string]structs.CheckServiceNodes{
 					"google.default.default.dc1": {
 						structs.CheckServiceNode{
 							Node: &structs.Node{
@@ -630,7 +629,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
-				snap.ConnectProxy.DiscoveryChain[UID("no-endpoints")] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 			},
 		},
 		{
