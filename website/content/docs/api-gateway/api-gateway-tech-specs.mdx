@@ -6,3 +6,60 @@ description: >-
 ---
 
 # Technical Specifications
+
+## Required Software and Supported Versions
+
+## Consul Server Deployments
+
+- Consul Editions supported: OSS and Enterprise
+- Supported Consul Server deployment types:
+  - Self Managed
+  - HCP Consul
+
+## Deployment Environments
+
+Consul API Gateway can be deployed in the following Kubernetes-based environments:
+
+- Generic Kubernetes
+- AWS Elastic Kubernetes Service (EKS)
+- Google Kubernetes Engine (GKE)
+- Azure Kubernetes Service (AKS)
+
+## Kubernetes Gateway API Specification
+
+Supported version of the Gateway API spec: v1alpha2
+
+
+## Resource Allocations
+
+### Gateway Controller Pod
+
+| Resource | Allocation                                                                                               |
+| -------- | -------------------------------------------------------------------------------------------------------- |
+| CPU      | None specified. Will use namespace or cluster default depending on the Kubernetes cluster configuration. |
+| Memory   | None specified. Will use namespace or cluster default depending on the Kubernetes cluster configuration. |
+
+### Gateway Instance Pod
+
+| Resource | Allocation                                                                                               |
+| -------- | -------------------------------------------------------------------------------------------------------- |
+| CPU      | None specified. Will use namespace or cluster default depending on the Kubernetes cluster configuration. |
+| Memory   | None specified. Will use namespace or cluster default depending on the Kubernetes cluster configuration. |
+
+## TCP Ports Required
+
+The tables below lists the TCP ports that are used by each component of the API Gateway.
+
+### Gateway Controller Pod
+
+| Port | Used For                                                           |
+| ---- | ------------------------------------------------------------------ |
+| 9090 | Secret Discovery Service (SDS)                                     |
+| Configurable | Port for scraping Prometheus metrics. Disabled by default. |
+
+### Gateway Instance Pod
+
+| Port  | Used For                      |
+| ----- | ----------------------------- |
+| 9090 | Secret Discovery Service (SDS) |
+| 20000 | Kubernetes readiness probe    |
