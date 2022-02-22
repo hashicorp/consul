@@ -1,9 +1,11 @@
 package discoverychain
 
 import (
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestCompileConfigEntries(t testing.T,
@@ -13,7 +15,7 @@ func TestCompileConfigEntries(t testing.T,
 	evaluateInDatacenter string,
 	evaluateInTrustDomain string,
 	setup func(req *CompileRequest), entries ...structs.ConfigEntry) *structs.CompiledDiscoveryChain {
-	set := structs.NewDiscoveryChainConfigEntries()
+	set := configentry.NewDiscoveryChainSet()
 
 	set.AddEntries(entries...)
 
