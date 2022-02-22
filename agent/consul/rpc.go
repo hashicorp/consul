@@ -568,8 +568,9 @@ func (s *Server) ForwardRPC(method string, info structs.RPCInfo, reply interface
 		return s.forwardDC(method, dc, info, reply)
 	}
 	forwardToLeader := func(leader *metadata.Server) error {
+		timeout := info.Timeout(s.config.RPCHoldTimeout, s.config.MaxQueryTime, s.config.DefaultQueryTime)
 		return s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
-			method, info, reply, 0)
+			method, info, reply, timeout)
 	}
 	return s.forwardRPC(info, forwardToDC, forwardToLeader)
 }
@@ -765,7 +766,15 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 
 	metrics.IncrCounterWithLabels([]string{"rpc", "cross-dc"}, 1,
 		[]metrics.Label{{Name: "datacenter", Value: dc}})
-	if err := s.connPool.RPC(dc, server.ShortName, server.Addr, method, args, reply, 0); err != nil {
+
+	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
+	info, _ := args.(structs.RPCInfo)
+	timeout := time.Duration(0)
+	if info != nil {
+		timeout = info.Timeout(s.config.RPCHoldTimeout, s.config.MaxQueryTime, s.config.DefaultQueryTime)
+	}
+
+	if err := s.connPool.RPC(dc, server.ShortName, server.Addr, method, args, reply, timeout); err != nil {
 		manager.NotifyFailedServer(server)
 		s.rpcLogger().Error("RPC failed to server in DC",
 			"server", server.Addr,
