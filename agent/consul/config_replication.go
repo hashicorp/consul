@@ -104,6 +104,7 @@ func (s *Server) reconcileLocalConfig(ctx context.Context, configs []structs.Con
 			Entry:      entry,
 		}
 
+		// TODO(rpc-metrics): observe this apply
 		_, err := s.raftApply(structs.ConfigEntryRequestType, &req)
 		if err != nil {
 			merr = multierror.Append(merr, fmt.Errorf("Failed to apply config entry %s: %w", op, err))

@@ -796,6 +796,7 @@ func (s *Server) getOrCreateAutopilotConfig() *structs.AutopilotConfig {
 
 	config = s.config.AutopilotConfig
 	req := structs.AutopilotSetConfigRequest{Config: *config}
+	// TODO(rpc-metrics): observe this apply
 	if _, err = s.raftApply(structs.AutopilotRequestType, req); err != nil {
 		logger.Error("failed to initialize config", "error", err)
 		return nil
@@ -871,6 +872,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 				Entry:      entry,
 			}
 
+			// TODO(rpc-metrics): observe this apply
 			_, err := s.raftApply(structs.ConfigEntryRequestType, &req)
 			if err != nil {
 				return fmt.Errorf("Failed to apply configuration entry %q / %q: %v", entry.GetKind(), entry.GetName(), err)

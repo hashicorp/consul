@@ -154,6 +154,7 @@ func (r *FederationStateReplicator) PerformDeletions(ctx context.Context, deleti
 			State:      state,
 		}
 
+		// TODO(rpc-metrics): observe this apply
 		_, err := r.srv.raftApply(structs.FederationStateRequestType, &req)
 		if err != nil {
 			return false, err
@@ -195,6 +196,7 @@ func (r *FederationStateReplicator) PerformUpdates(ctx context.Context, updatesR
 			State:      state2,
 		}
 
+		// TODO(rpc-metrics): observe this apply
 		_, err := r.srv.raftApply(structs.FederationStateRequestType, &req)
 		if err != nil {
 			return false, err

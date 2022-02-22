@@ -100,6 +100,7 @@ func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 		"amount", len(req.TokenIDs),
 		"locality", locality,
 	)
+	// TODO(rpc-metrics): observe this apply
 	_, err = s.raftApply(structs.ACLTokenDeleteRequestType, &req)
 	if err != nil {
 		return 0, fmt.Errorf("Failed to apply token expiration deletions: %v", err)

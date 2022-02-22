@@ -115,6 +115,7 @@ func (s *Server) invalidateSession(id string, entMeta *structs.EnterpriseMeta) {
 
 	// Retry with exponential backoff to invalidate the session
 	for attempt := uint(0); attempt < maxInvalidateAttempts; attempt++ {
+		// TODO(rpc-metrics): observe this apply
 		_, err := s.raftApply(structs.SessionRequestType, args)
 		if err == nil {
 			s.logger.Debug("Session TTL expired", "session", id)
