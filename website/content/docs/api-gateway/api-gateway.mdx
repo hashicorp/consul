@@ -141,36 +141,6 @@ Configure the following artifacts to facilitate ingress into your Consul service
 - [Gateway](#gateway): Defines the main infrastructure resource that links API gateway components. It specifies the name of the `GatewayClass` and one or more `listeners` (see [Listeners](#listeners)), which specify the logical endpoints bound to the gateway's addresses.
 - [Routes](#routes): Specifies the path from the client to the listener.
 
-### GatewayClass
-
-The `GatewayClass` resource is used as a template for creating `Gateway` resources.
-The specification includes the name of the controller (`controllerName`) and an API object containing controller-specific configuration resources within the cluster (`parametersRef`).
-The value of the `controllerName` field must be set to `hashicorp.com/consul-api-gateway-controller`.
-
-When gateways are created from a `GatewayClass`, they use the parameters specified in the `GatewayClass` at the time of instantiation.
-
-Add the `kind: GatewayClass` option to the the gateway values file to declare a gateway class.
-The following example creates a gateway class called `test-gateway-class`:
-
-<CodeBlockConfig filename="gateway.yaml">
-
-```yaml
-apiVersion: gateway.networking.k8s.io/v1alpha2
-kind: GatewayClass
-metadata:
-  name: test-gateway-class
-spec:
-  controllerName: 'hashicorp.com/consul-api-gateway-controller'
-  parametersRef:
-    group: api-gateway.consul.hashicorp.com
-    kind: GatewayClassConfig
-    name: test-gateway-class-config
-```
-
-</CodeBlockConfig>
-
-Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.GatewayClass) for details about configuring gateway classes.
-
 ### GatewayClassConfig
 
 The `GatewayClassConfig` object describes additional Consul API Gateway-related configuration parameters for the `GatewayClass`.
@@ -219,6 +189,36 @@ The following table describes the required parameters for the `spec` array:
 | `useHostPorts`                    | If set to `true`, then the Envoy container ports are mapped to host ports.                                                                                                                                                                                                                                                                                                          | Boolean | `false`                                          |
 
 Refer to the [Consul API Gateway repository](https://github.com/hashicorp/consul-api-gateway/blob/main/config/crd/bases/api-gateway.consul.hashicorp.com_gatewayclassconfigs.yaml) for the complete specification.
+
+### GatewayClass
+
+The `GatewayClass` resource is used as a template for creating `Gateway` resources.
+The specification includes the name of the controller (`controllerName`) and an API object containing controller-specific configuration resources within the cluster (`parametersRef`).
+The value of the `controllerName` field must be set to `hashicorp.com/consul-api-gateway-controller`.
+
+When gateways are created from a `GatewayClass`, they use the parameters specified in the `GatewayClass` at the time of instantiation.
+
+Add the `kind: GatewayClass` option to the the gateway values file to declare a gateway class.
+The following example creates a gateway class called `test-gateway-class`:
+
+<CodeBlockConfig filename="gateway.yaml">
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: GatewayClass
+metadata:
+  name: test-gateway-class
+spec:
+  controllerName: 'hashicorp.com/consul-api-gateway-controller'
+  parametersRef:
+    group: api-gateway.consul.hashicorp.com
+    kind: GatewayClassConfig
+    name: test-gateway-class-config
+```
+
+</CodeBlockConfig>
+
+Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.GatewayClass) for details about configuring gateway classes.
 
 ### Gateway
 
