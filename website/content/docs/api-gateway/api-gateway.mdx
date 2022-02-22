@@ -143,10 +143,10 @@ Configure the following artifacts to facilitate ingress into your Consul service
 
 ### GatewayClassConfig
 
-The `GatewayClassConfig` object describes additional Consul API Gateway-related configuration parameters for the `GatewayClass`.
+The `GatewayClassConfig` object describes Consul API Gateway-related configuration parameters for the [`GatewayClass`](#gatewayclass).
 
 Add the `kind: GatewayClassConfig` option to the gateway values file to declare a gateway class.
-The following example creates a gateway class called `test-gateway-class-config`:
+The following example creates a gateway class config called `test-gateway-class-config`:
 
 <CodeBlockConfig filename="gateway.yaml">
 
@@ -168,7 +168,7 @@ spec:
 
 </CodeBlockConfig>
 
-The following table describes the required parameters for the `spec` array:
+The following table describes the allowed parameters for the `spec` array:
 
 | Parameter                         | Description                                                                                                                                                                                                                                                                                                                                                                         | Type    | Default                                          |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------ |
