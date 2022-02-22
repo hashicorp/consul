@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 	"text/template"
 	"time"
@@ -36,6 +37,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		setup              func(snap *proxycfg.ConfigSnapshot)
 		overrideGoldenName string
 		generatorSetup     func(*ResourceGenerator)
+		stripTenancy       bool
 	}{
 		{
 			name:   "defaults",
@@ -1193,6 +1195,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					t, "no-endpoints", "default", "dc1",
 					connect.TestClusterID+".consul", "dc1", nil)
 			},
+			stripTenancy: true,
 		},
 		{
 			name:   "transparent-proxy-catalog-destinations-only",
@@ -1377,6 +1380,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 					t.Run("current", func(t *testing.T) {
 						gotJSON := protoToJSON(t, r)
+						if tt.stripTenancy {
+							// TPROXY upstreams use ServiceName strings as map keys instead of upstream
+							// identifiers, so enterprise sometimes prefixes them.
+							gotJSON = strings.ReplaceAll(gotJSON,
+								`"name": "default/default/`, `"name": "`)
+						}
 
 						gName := tt.name
 						if tt.overrideGoldenName != "" {
