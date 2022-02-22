@@ -578,11 +578,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 				snap.ConnectProxy.MeshConfigSet = true
 
 				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
-				google := structs.NewServiceName("google", nil)
-				snap.ConnectProxy.IntentionUpstreams = map[string]struct{}{
-					google.String(): {},
-				}
-				snap.ConnectProxy.DiscoveryChain[google.String()] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil,
+				googleUID := "google"
+				snap.ConnectProxy.DiscoveryChain[googleUID] = discoverychain.TestCompileConfigEntries(t, "google", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil,
 					// Set default service protocol to HTTP
 					&structs.ProxyConfigEntry{
 						Kind: structs.ProxyDefaults,
@@ -592,8 +589,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 						},
 					})
 
-				snap.ConnectProxy.WatchedUpstreamEndpoints[google.String()] = map[string]structs.CheckServiceNodes{
-					"google.default.default.dc1": {
+				snap.ConnectProxy.WatchedUpstreamEndpoints[googleUID] = map[string]structs.CheckServiceNodes{
+					"google.default.dc1": {
 						structs.CheckServiceNode{
 							Node: &structs.Node{
 								Address:    "8.8.8.8",
@@ -604,15 +601,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 								Address: "9.9.9.9",
 								Port:    9090,
 								TaggedAddresses: map[string]structs.ServiceAddress{
-									"virtual":                      {Address: "10.0.0.1"},
-									structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+									"virtual": {Address: "10.0.0.1"},
 								},
 							},
 						},
 					},
 					// Other targets of the discovery chain should be ignored.
 					// We only match on the upstream's virtual IP, not the IPs of other targets.
-					"google-v2.default.default.dc1": {
+					"google-v2.default.dc1": {
 						structs.CheckServiceNode{
 							Node: &structs.Node{
 								Address:    "7.7.7.7",
@@ -629,7 +625,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
-				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(
+					t, "no-endpoints", "default", "dc1",
+					connect.TestClusterID+".consul", "dc1", nil)
 			},
 		},
 		{
