@@ -135,10 +135,15 @@ func (e *DiscoveryChainSet) AddEntries(entries ...structs.ConfigEntry) {
 	}
 }
 
+// IsEmpty returns true if there are no config entries at all in the response.
+// You should prefer this over IsChainEmpty() in most cases.
 func (e *DiscoveryChainSet) IsEmpty() bool {
 	return e.IsChainEmpty() && len(e.Services) == 0 && len(e.ProxyDefaults) == 0
 }
 
+// IsChainEmpty returns true if there are no service-routers,
+// service-splitters, or service-resolvers that are present. These config
+// entries are the primary parts of the discovery chain.
 func (e *DiscoveryChainSet) IsChainEmpty() bool {
 	return len(e.Routers) == 0 && len(e.Splitters) == 0 && len(e.Resolvers) == 0
 }
