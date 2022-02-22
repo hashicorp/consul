@@ -2024,6 +2024,13 @@ Use these links to navigate to a particular top-level stanza.
         annotations: |
           "annotation-key": "annotation-value"
         ```
+  - `consulNamespaces` ((#v-apigateway-consulnamespaces)) - <EnterpriseAlert inline /> These settings manage the Consul API Gateway's interaction with Consul namespaces. Requires `global.enableConsulNamespaces` to be set to `true` and Consul Enterprise v1.7+ with a valid Consul Enterprise license.
+
+    - `consulDestinationNamespace` ((#v-apigateway-consulnamespaces-consuldestinationnamespace)) (`string: "default"`) - Name of the Consul namespace to register all k8s services into. If the Consul namespace does not already exist, it will be created. This will be ignored if `mirroringK8S` is set to `true`.
+
+    - `mirroringK8S` ((#v-apigateway-consulnamespaces-mirroringk8s)) (`boolean: false`) - If true, k8s services will be registered into a Consul namespace of the same name as their k8s namespace, optionally prefixed if `mirroringK8SPrefix` is set below. If the Consul namespace does not already exist, it will be created. Turning this on overrides the `consulDestinationNamespace` setting. `addK8SNamespaceSuffix` may no longer be needed if enabling this option.
+
+    - `mirroringK8SPrefix` ((#v-apigateway-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If `mirroringK8S` is set to `true`, `mirroringK8SPrefix` allows each Consul namespace to be given a prefix. For example, if `mirroringK8SPrefix` is set to "k8s-", a service in the k8s `staging` namespace will be registered into the `k8s-staging` Consul namespace.
 
 ### webhookCertManager
 
