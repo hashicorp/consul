@@ -135,6 +135,7 @@ type PrimaryProvider interface {
 	// the active intermediate. If multiple intermediates are needed to complete
 	// the chain from the signing certificate back to the active root, they should
 	// all by bundled here.
+	// TODO: replace with GenerateLeafSigningCert (https://github.com/hashicorp/consul/issues/12386)
 	GenerateIntermediate() (string, error)
 
 	// SignIntermediate will validate the CSR to ensure the trust domain in the
@@ -171,14 +172,20 @@ type PrimaryProvider interface {
 }
 
 type SecondaryProvider interface {
-	// GenerateIntermediateCSR generates a CSR for an intermediate CA
-	// certificate, to be signed by the root of another datacenter. If IsPrimary was
-	// set to true with Configure(), calling this is an error.
+	// GenerateIntermediateCSR should return a CSR for an intermediate CA
+	// certificate. The intermediate CA will be signed by the primary CA and
+	// should be used by the provider to sign leaf certificates in the local
+	// datacenter.
+	//
+	// After the certificate is signed, SecondaryProvider.SetIntermediate will
+	// be called to store the intermediate CA.
 	GenerateIntermediateCSR() (string, error)
 
-	// SetIntermediate sets the provider to use the given intermediate certificate
-	// as well as the root it was signed by. This completes the initialization for
-	// a provider where IsPrimary was set to false in Configure().
+	// SetIntermediate is called to store a newly signed leaf signing certificate and
+	// the chain of certificates back to the root CA certificate.
+	//
+	// The provider should save the certificates and use them to
+	// Provider.Sign leaf certificates.
 	SetIntermediate(intermediatePEM, rootPEM string) error
 }
 
@@ -186,7 +193,12 @@ type SecondaryProvider interface {
 //
 // TODO: rename this struct
 type RootResult struct {
-	// PEM encoded certificate that will be used as the primary CA.
+	// PEM encoded bundle of CA certificates. The first certificate must be the
+	// primary CA used to sign intermediates for secondary datacenters, and the
+	// last certificate must be the trusted CA.
+	//
+	// If there is only a single certificate in the bundle then it will be used
+	// as both the primary CA and the trusted CA.
 	PEM string
 }
 
