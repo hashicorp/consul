@@ -72,7 +72,7 @@ Your datacenter must meet the following requirements prior to configuring the Co
 
 1. Verify that the [requirements](#requirements) have been met.
 1. Verify that the Consul API Gateway CRDs and controller have been installed and applied (see [Installation](#installation)).
-1. Configure the artifacts described below in [Configuration](#configuration). If the following config is added to the `values.yaml` Helm config, the GatewayClassConfig and GatewayClass will be created automatically, and only the Gateway, Listeners and Routes will need to be configured manually. The `serviceType` for a managed GatewayClass will default to `LoadBalancer`, which is appropriate for most deployments to managed Kubernetes cloud offerings (EKS, GKE, AKS) - other deployments, such as to a [kind](https://kind.sigs.k8s.io/) cluster, may require specifying `NodePort` or `ClusterIP` instead.
+1. Configure the artifacts described below in [Configuration](#configuration). If the following config is added to the `values.yaml` Helm config, the GatewayClassConfig and GatewayClass will be created automatically, and only the Gateway, Listeners and Routes will need to be configured manually. The [`serviceType`](https://www.consul.io/docs/k8s/helm#v-apigateway-managedgatewayclass-servicetype) for a managed GatewayClass will default to `LoadBalancer`, which is appropriate for most deployments to managed Kubernetes cloud offerings (EKS, GKE, AKS) - other deployments, such as to a [kind](https://kind.sigs.k8s.io/) cluster, may require specifying `NodePort` or `ClusterIP` instead.
 
    <CodeBlockConfig hideClipboard filename="values.yaml">
 
