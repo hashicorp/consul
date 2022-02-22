@@ -317,3 +317,14 @@ spec:
 ```
 
 </CodeBlockConfig>
+
+
+### MeshService
+
+MeshService holds a reference to an externally managed Consul Service Mesh service, and can be used as a `backendRef` for a [`Route`](#route).
+
+| Parameter                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Type    | Default         |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------- |
+| `name`                      | Specifies the service name for a Consul service. It is assumed this service will exist in either the `consulDestinationNamespace` or mirrored Consul namespace from where this custom resource is defined, depending on the Helm configuration.
+
+Refer to the [Consul API Gateway repository](https://github.com/hashicorp/consul-api-gateway/blob/main/config/crd/bases/api-gateway.consul.hashicorp.com_meshservices.yaml) for the complete specification.
