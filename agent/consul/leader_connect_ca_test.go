@@ -7,12 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"net/rpc"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/go-version"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
+	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -77,7 +79,6 @@ func TestCAManager_Initialize_Vault_Secondary_SharedVault(t *testing.T) {
 				},
 			}
 		})
-		defer serverDC2.Shutdown()
 		joinWAN(t, serverDC2, serverDC1)
 		testrpc.WaitForActiveCARoot(t, serverDC2.RPC, "dc2", nil)
 
@@ -94,13 +95,24 @@ func TestCAManager_Initialize_Vault_Secondary_SharedVault(t *testing.T) {
 
 func verifyLeafCert(t *testing.T, root *structs.CARoot, leafCertPEM string) {
 	t.Helper()
+	roots := structs.IndexedCARoots{
+		ActiveRootID: root.ID,
+		Roots:        []*structs.CARoot{root},
+	}
+	verifyLeafCertWithRoots(t, roots, leafCertPEM)
+}
+
+func verifyLeafCertWithRoots(t *testing.T, roots structs.IndexedCARoots, leafCertPEM string) {
+	t.Helper()
 	leaf, intermediates, err := connect.ParseLeafCerts(leafCertPEM)
 	require.NoError(t, err)
 
 	pool := x509.NewCertPool()
-	ok := pool.AppendCertsFromPEM([]byte(root.RootCert))
-	if !ok {
-		t.Fatalf("Failed to add root CA PEM to cert pool")
+	for _, r := range roots.Roots {
+		ok := pool.AppendCertsFromPEM([]byte(r.RootCert))
+		if !ok {
+			t.Fatalf("Failed to add root CA PEM to cert pool")
+		}
 	}
 
 	// verify with intermediates from leaf CertPEM
@@ -113,10 +125,12 @@ func verifyLeafCert(t *testing.T, root *structs.CARoot, leafCertPEM string) {
 
 	// verify with intermediates from the CARoot
 	intermediates = x509.NewCertPool()
-	for _, intermediate := range root.IntermediateCerts {
-		c, err := connect.ParseCert(intermediate)
-		require.NoError(t, err)
-		intermediates.AddCert(c)
+	for _, r := range roots.Roots {
+		for _, intermediate := range r.IntermediateCerts {
+			c, err := connect.ParseCert(intermediate)
+			require.NoError(t, err)
+			intermediates.AddCert(c)
+		}
 	}
 
 	_, err = leaf.Verify(x509.VerifyOptions{
@@ -490,6 +504,79 @@ func TestCAManager_UpdateConfiguration_Vault_Primary(t *testing.T) {
 	require.Equal(t, connect.HexString(cert.SubjectKeyId), newRoot.SigningKeyID)
 }
 
+func TestCAManager_Initialize_Vault_WithIntermediateAsPrimaryCA(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	ca.SkipIfVaultNotPresent(t)
+
+	vault := ca.NewTestVaultServer(t)
+	vclient := vault.Client()
+	generateExternalRootCA(t, vclient)
+
+	meshRootPath := "pki-root"
+	primaryCert := setupPrimaryCA(t, vclient, meshRootPath, "")
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             vault.Addr,
+				"Token":               vault.RootToken,
+				"RootPKIPath":         meshRootPath,
+				"IntermediatePKIPath": "pki-intermediate/",
+			},
+		}
+	})
+
+	runStep(t, "check primary DC", func(t *testing.T) {
+		testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+		codec := rpcClient(t, s1)
+		roots := structs.IndexedCARoots{}
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(t, err)
+		require.Len(t, roots.Roots, 1)
+		require.Equal(t, primaryCert, roots.Roots[0].RootCert)
+
+		leafCertPEM := getLeafCert(t, codec, roots.TrustDomain, "dc1")
+		verifyLeafCert(t, roots.Roots[0], leafCertPEM)
+	})
+
+	// TODO: renew primary leaf signing cert
+	// TODO: rotate root
+
+	runStep(t, "run secondary DC", func(t *testing.T) {
+		_, sDC2 := testServerWithConfig(t, func(c *Config) {
+			c.Datacenter = "dc2"
+			c.PrimaryDatacenter = "dc1"
+			c.CAConfig = &structs.CAConfiguration{
+				Provider: "vault",
+				Config: map[string]interface{}{
+					"Address":             vault.Addr,
+					"Token":               vault.RootToken,
+					"RootPKIPath":         meshRootPath,
+					"IntermediatePKIPath": "pki-secondary/",
+				},
+			}
+		})
+		defer sDC2.Shutdown()
+		joinWAN(t, sDC2, s1)
+		testrpc.WaitForActiveCARoot(t, sDC2.RPC, "dc2", nil)
+
+		codec := rpcClient(t, sDC2)
+		roots := structs.IndexedCARoots{}
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(t, err)
+		require.Len(t, roots.Roots, 1)
+
+		leafCertPEM := getLeafCert(t, codec, roots.TrustDomain, "dc2")
+		verifyLeafCert(t, roots.Roots[0], leafCertPEM)
+
+		// TODO: renew secondary leaf signing cert
+	})
+}
+
 func getLeafCert(t *testing.T, codec rpc.ClientCodec, trustDomain string, dc string) string {
 	pk, _, err := connect.GeneratePrivateKey()
 	require.NoError(t, err)
@@ -508,6 +595,279 @@ func getLeafCert(t *testing.T, codec rpc.ClientCodec, trustDomain string, dc str
 	cert := structs.IssuedCert{}
 	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
 	require.NoError(t, err)
-
 	return cert.CertPEM
+}
+
+func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	ca.SkipIfVaultNotPresent(t)
+
+	vault := ca.NewTestVaultServer(t)
+	vclient := vault.Client()
+	rootPEM := generateExternalRootCA(t, vclient)
+
+	primaryCAPath := "pki-primary"
+	primaryCert := setupPrimaryCA(t, vclient, primaryCAPath, rootPEM)
+
+	_, serverDC1 := testServerWithConfig(t, func(c *Config) {
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             vault.Addr,
+				"Token":               vault.RootToken,
+				"RootPKIPath":         primaryCAPath,
+				"IntermediatePKIPath": "pki-intermediate/",
+			},
+		}
+	})
+	testrpc.WaitForTestAgent(t, serverDC1.RPC, "dc1")
+
+	var origLeaf string
+	roots := structs.IndexedCARoots{}
+	runStep(t, "verify primary DC", func(t *testing.T) {
+		codec := rpcClient(t, serverDC1)
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(t, err)
+		require.Len(t, roots.Roots, 1)
+		require.Equal(t, primaryCert, roots.Roots[0].RootCert)
+		require.Contains(t, roots.Roots[0].RootCert, rootPEM)
+
+		leafCert := getLeafCert(t, codec, roots.TrustDomain, "dc1")
+		verifyLeafCert(t, roots.Active(), leafCert)
+		origLeaf = leafCert
+	})
+
+	_, serverDC2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             vault.Addr,
+				"Token":               vault.RootToken,
+				"RootPKIPath":         "should-be-ignored",
+				"IntermediatePKIPath": "pki-secondary/",
+			},
+		}
+	})
+
+	var origLeafSecondary string
+	runStep(t, "start secondary DC", func(t *testing.T) {
+		joinWAN(t, serverDC2, serverDC1)
+		testrpc.WaitForActiveCARoot(t, serverDC2.RPC, "dc2", nil)
+
+		codec := rpcClient(t, serverDC2)
+		roots = structs.IndexedCARoots{}
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(t, err)
+		require.Len(t, roots.Roots, 1)
+
+		leafPEM := getLeafCert(t, codec, roots.TrustDomain, "dc2")
+		verifyLeafCert(t, roots.Roots[0], leafPEM)
+		origLeafSecondary = leafPEM
+	})
+
+	runStep(t, "renew leaf signing CA in primary", func(t *testing.T) {
+		previous := serverDC1.caManager.getLeafSigningCertFromRoot(roots.Active())
+
+		renewLeafSigningCert(t, serverDC1.caManager, serverDC1.caManager.getIntermediateCAPrimary)
+
+		codec := rpcClient(t, serverDC1)
+		roots = structs.IndexedCARoots{}
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(t, err)
+		require.Len(t, roots.Roots, 1)
+		require.Len(t, roots.Roots[0].IntermediateCerts, 2)
+
+		newCert := serverDC1.caManager.getLeafSigningCertFromRoot(roots.Active())
+		require.NotEqual(t, previous, newCert)
+
+		leafPEM := getLeafCert(t, codec, roots.TrustDomain, "dc1")
+		verifyLeafCert(t, roots.Roots[0], leafPEM)
+
+		// original certs from old signing cert should still verify
+		verifyLeafCert(t, roots.Roots[0], origLeaf)
+	})
+
+	runStep(t, "renew leaf signing CA in secondary", func(t *testing.T) {
+		previous := serverDC2.caManager.getLeafSigningCertFromRoot(roots.Active())
+
+		renewLeafSigningCert(t, serverDC2.caManager, serverDC2.caManager.secondaryRequestNewSigningCert)
+
+		codec := rpcClient(t, serverDC2)
+		roots = structs.IndexedCARoots{}
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(t, err)
+		require.Len(t, roots.Roots, 1)
+		// one intermediate from primary, two from secondary
+		require.Len(t, roots.Roots[0].IntermediateCerts, 3)
+
+		newCert := serverDC1.caManager.getLeafSigningCertFromRoot(roots.Active())
+		require.NotEqual(t, previous, newCert)
+
+		leafPEM := getLeafCert(t, codec, roots.TrustDomain, "dc2")
+		verifyLeafCert(t, roots.Roots[0], leafPEM)
+
+		// original certs from old signing cert should still verify
+		verifyLeafCert(t, roots.Roots[0], origLeaf)
+	})
+
+	runStep(t, "rotate root by changing the provider", func(t *testing.T) {
+		codec := rpcClient(t, serverDC1)
+		req := &structs.CARequest{
+			Op: structs.CAOpSetConfig,
+			Config: &structs.CAConfiguration{
+				Provider: "consul",
+			},
+		}
+		var resp error
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", req, &resp)
+		require.NoError(t, err)
+		require.Nil(t, resp)
+
+		roots = structs.IndexedCARoots{}
+		err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(t, err)
+		require.Len(t, roots.Roots, 2)
+		active := roots.Active()
+		require.Len(t, active.IntermediateCerts, 1)
+
+		leafPEM := getLeafCert(t, codec, roots.TrustDomain, "dc1")
+		verifyLeafCert(t, roots.Active(), leafPEM)
+
+		// original certs from old root cert should still verify
+		verifyLeafCertWithRoots(t, roots, origLeaf)
+
+		// original certs from secondary should still verify
+		rootsSecondary := structs.IndexedCARoots{}
+		r := &structs.DCSpecificRequest{Datacenter: "dc2"}
+		err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", r, &rootsSecondary)
+		require.NoError(t, err)
+		verifyLeafCertWithRoots(t, rootsSecondary, origLeafSecondary)
+	})
+
+	runStep(t, "rotate to a different external root", func(t *testing.T) {
+		setupPrimaryCA(t, vclient, "pki-primary-2/", rootPEM)
+
+		codec := rpcClient(t, serverDC1)
+		req := &structs.CARequest{
+			Op: structs.CAOpSetConfig,
+			Config: &structs.CAConfiguration{
+				Provider: "vault",
+				Config: map[string]interface{}{
+					"Address":             vault.Addr,
+					"Token":               vault.RootToken,
+					"RootPKIPath":         "pki-primary-2/",
+					"IntermediatePKIPath": "pki-intermediate-2/",
+				},
+			},
+		}
+		var resp error
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", req, &resp)
+		require.NoError(t, err)
+		require.Nil(t, resp)
+
+		roots = structs.IndexedCARoots{}
+		err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(t, err)
+		require.Len(t, roots.Roots, 3)
+		active := roots.Active()
+		require.Len(t, active.IntermediateCerts, 2)
+
+		leafPEM := getLeafCert(t, codec, roots.TrustDomain, "dc1")
+		verifyLeafCert(t, roots.Active(), leafPEM)
+
+		// original certs from old root cert should still verify
+		verifyLeafCertWithRoots(t, roots, origLeaf)
+
+		// original certs from secondary should still verify
+		rootsSecondary := structs.IndexedCARoots{}
+		r := &structs.DCSpecificRequest{Datacenter: "dc2"}
+		err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", r, &rootsSecondary)
+		require.NoError(t, err)
+		verifyLeafCertWithRoots(t, rootsSecondary, origLeafSecondary)
+	})
+}
+
+// renewLeafSigningCert mimics RenewIntermediate. This is unfortunate, but
+// necessary for now as there is no easy way to invoke that logic unconditionally.
+// Currently, it requires patching values and polling for the operation to
+// complete, which adds a lot of distractions to a test case.
+// With this function we can instead unconditionally rotate the leaf signing cert
+// synchronously.
+func renewLeafSigningCert(t *testing.T, manager *CAManager, fn func(ca.Provider, *structs.CARoot) error) {
+	t.Helper()
+	provider, _ := manager.getCAProvider()
+
+	store := manager.delegate.State()
+	_, root, err := store.CARootActive(nil)
+	require.NoError(t, err)
+
+	activeRoot := root.Clone()
+	err = fn(provider, activeRoot)
+	require.NoError(t, err)
+	err = manager.persistNewRootAndConfig(provider, activeRoot, nil)
+	require.NoError(t, err)
+	manager.setCAProvider(provider, activeRoot)
+}
+
+func generateExternalRootCA(t *testing.T, client *vaultapi.Client) string {
+	t.Helper()
+	err := client.Sys().Mount("corp", &vaultapi.MountInput{
+		Type:        "pki",
+		Description: "External root, probably corporate CA",
+		Config: vaultapi.MountConfigInput{
+			MaxLeaseTTL:     "2400h",
+			DefaultLeaseTTL: "1h",
+		},
+	})
+	require.NoError(t, err, "failed to mount")
+
+	resp, err := client.Logical().Write("corp/root/generate/internal", map[string]interface{}{
+		"common_name": "corporate CA",
+		"ttl":         "2400h",
+	})
+	require.NoError(t, err, "failed to generate root")
+	return ca.EnsureTrailingNewline(resp.Data["certificate"].(string))
+}
+
+func setupPrimaryCA(t *testing.T, client *vaultapi.Client, path string, rootPEM string) string {
+	t.Helper()
+	err := client.Sys().Mount(path, &vaultapi.MountInput{
+		Type:        "pki",
+		Description: "primary CA for Consul CA",
+		Config: vaultapi.MountConfigInput{
+			MaxLeaseTTL:     "2200h",
+			DefaultLeaseTTL: "1h",
+		},
+	})
+	require.NoError(t, err, "failed to mount")
+
+	out, err := client.Logical().Write(path+"/intermediate/generate/internal", map[string]interface{}{
+		"common_name": "primary CA",
+		"ttl":         "2200h",
+		"key_type":    "ec",
+		"key_bits":    256,
+	})
+	require.NoError(t, err, "failed to generate root")
+
+	intermediate, err := client.Logical().Write("corp/root/sign-intermediate", map[string]interface{}{
+		"csr":            out.Data["csr"],
+		"use_csr_values": true,
+		"format":         "pem_bundle",
+		"ttl":            "2200h",
+	})
+	require.NoError(t, err, "failed to sign intermediate")
+
+	var buf strings.Builder
+	buf.WriteString(ca.EnsureTrailingNewline(intermediate.Data["certificate"].(string)))
+	buf.WriteString(ca.EnsureTrailingNewline(rootPEM))
+
+	_, err = client.Logical().Write(path+"/intermediate/set-signed", map[string]interface{}{
+		"certificate": buf.String(),
+	})
+	require.NoError(t, err, "failed to set signed intermediate")
+	return ca.EnsureTrailingNewline(buf.String())
 }
