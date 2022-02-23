@@ -382,6 +382,10 @@
         "path": "api-gateway"
       },
       {
+        "title": "Usage",
+        "path": "api-gateway/api-gateway-usage"
+      },
+      {
         "title": "Technical Specifications",
         "path": "api-gateway/tech-specs"
       }

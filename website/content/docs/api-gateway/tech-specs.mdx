@@ -7,7 +7,13 @@ description: >-
 
 # Technical Specifications
 
-## Required Software and Supported Versions
+This topic describes the technical specifications associated with using Consul API Gateway.
+
+## Requirements
+
+Verify that your environment meets the following requirements prior to using Consul API Gateway.
+
+### Datacenter Requirements
 
 Your datacenter must meet the following requirements prior to configuring the Consul API Gateway:
 
@@ -15,6 +21,16 @@ Your datacenter must meet the following requirements prior to configuring the Co
 - `kubectl` 1.21+
 - Consul 1.11.2+
 - HashiCorp Consul Helm chart 0.41.0+
+
+### TCP Port Requirements
+
+The following table describes the TCP port requirements for each component of the API Gateway.
+
+| Port | Description | Component |
+| ---- | ----------- | --------- | 
+| 9090 | Secret discovery service (SDS) | Gateway controller pod <br/> Gateway instance pod |
+| 20000 | Kubernetes readiness probe | Gateway instance pod |
+| Configurable | Port for scraping Prometheus metrics. Disabled by default. | Gateway controller pod |
 
 ## Consul Server Deployments
 
@@ -39,36 +55,14 @@ Supported version of the Gateway API spec: v1alpha2
 
 ## Resource Allocations
 
-The tables below list the resource allocations for each component of the API Gateway.
+The following resources are allocated for each component of the API Gateway.
 
 ### Gateway Controller Pod
 
-| Resource | Allocation                                                                                               |
-| -------- | -------------------------------------------------------------------------------------------------------- |
-| CPU      | None specified. Will use namespace or cluster default depending on the Kubernetes cluster configuration. |
-| Memory   | None specified. Will use namespace or cluster default depending on the Kubernetes cluster configuration. |
+* **CPU**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration. 
+* **Memory**: None. Either the the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
 
 ### Gateway Instance Pod
 
-| Resource | Allocation                                                                                               |
-| -------- | -------------------------------------------------------------------------------------------------------- |
-| CPU      | None specified. Will use namespace or cluster default depending on the Kubernetes cluster configuration. |
-| Memory   | None specified. Will use namespace or cluster default depending on the Kubernetes cluster configuration. |
-
-## TCP Ports Required
-
-The tables below list the TCP ports that are used by each component of the API Gateway.
-
-### Gateway Controller Pod
-
-| Port | Used For                                                           |
-| ---- | ------------------------------------------------------------------ |
-| 9090 | Secret Discovery Service (SDS)                                     |
-| Configurable | Port for scraping Prometheus metrics. Disabled by default. |
-
-### Gateway Instance Pod
-
-| Port  | Used For                      |
-| ----- | ----------------------------- |
-| 9090 | Secret Discovery Service (SDS) |
-| 20000 | Kubernetes readiness probe    |
+* **CPU**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
+* **Memory**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
