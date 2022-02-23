@@ -8,6 +8,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -91,6 +92,7 @@ func (s *Server) reconcileLocalConfig(ctx context.Context, configs []structs.Con
 	ticker := time.NewTicker(time.Second / time.Duration(s.config.ConfigReplicationApplyLimit))
 	defer ticker.Stop()
 
+	var merr error
 	for i, entry := range configs {
 		// Exported services only apply to the primary datacenter.
 		if entry.GetKind() == structs.ExportedServices {
@@ -104,7 +106,7 @@ func (s *Server) reconcileLocalConfig(ctx context.Context, configs []structs.Con
 
 		_, err := s.raftApply(structs.ConfigEntryRequestType, &req)
 		if err != nil {
-			return false, fmt.Errorf("Failed to apply config %s: %v", op, err)
+			merr = multierror.Append(merr, fmt.Errorf("Failed to apply config entry %s: %w", op, err))
 		}
 
 		if i < len(configs)-1 {
@@ -117,7 +119,7 @@ func (s *Server) reconcileLocalConfig(ctx context.Context, configs []structs.Con
 		}
 	}
 
-	return false, nil
+	return false, merr
 }
 
 func (s *Server) fetchConfigEntries(lastRemoteIndex uint64) (*structs.IndexedGenericConfigEntries, error) {
@@ -204,6 +206,7 @@ func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64, lo
 		"updates", len(updates),
 	)
 
+	var merr error
 	if len(deletions) > 0 {
 		logger.Debug("Deleting local config entries",
 			"deletions", len(deletions),
@@ -214,9 +217,10 @@ func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64, lo
 			return 0, true, nil
 		}
 		if err != nil {
-			return 0, false, fmt.Errorf("failed to delete local config entries: %v", err)
+			merr = multierror.Append(merr, err)
+		} else {
+			logger.Debug("Config Entry replication - finished deletions")
 		}
-		logger.Debug("Config Entry replication - finished deletions")
 	}
 
 	if len(updates) > 0 {
@@ -228,9 +232,14 @@ func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64, lo
 			return 0, true, nil
 		}
 		if err != nil {
-			return 0, false, fmt.Errorf("failed to update local config entries: %v", err)
+			merr = multierror.Append(merr, err)
+		} else {
+			logger.Debug("Config Entry replication - finished updates")
 		}
-		logger.Debug("Config Entry replication - finished updates")
+	}
+
+	if merr != nil {
+		return 0, false, merr
 	}
 
 	// Return the index we got back from the remote side, since we've synced
