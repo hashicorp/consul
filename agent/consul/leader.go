@@ -856,6 +856,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 	}
 
 	for _, entry := range entries {
+		start := time.Now()
 		// avoid a round trip through Raft if we know the CAS is going to fail
 		_, existing, err := state.ConfigEntry(nil, entry.GetKind(), entry.GetName(), entry.GetEnterpriseMeta())
 		if err != nil {
@@ -872,8 +873,8 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 				Entry:      entry,
 			}
 
-			// TODO(rpc-metrics): observe this apply
 			_, err := s.raftApply(structs.ConfigEntryRequestType, &req)
+			s.rpcObserver.Observe("ConfigEntry.Apply", rpcTypeLeader, start, &req, err)
 			if err != nil {
 				return fmt.Errorf("Failed to apply configuration entry %q / %q: %v", entry.GetKind(), entry.GetName(), err)
 			}
