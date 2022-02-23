@@ -9,9 +9,9 @@ description: >-
 
 To use an enterprise license stored in Vault, the steps will be similar to [Storing Gossip Encryption Key in Vault](/docs/k8s/installation/vault/gossip). You need to do the following:
 
-1. Store an enterprise license key in Vault.
-1. Create policies that will allow Consul client and server to access that key.
-1. Create a Kubernetes auth roles that link policies from step 2 to Kubernetes service accounts of the Consul servers and clients.
+1. Store an enterprise license key in Vault's KV2 secrets engine.
+1. Create Vault Policies that allow read access to the key.
+1. Create a Vault Kubernetes Auth Role that links policies from step 2 to the Kubernetes service accounts of the Consul servers and clients.
 
 ## Configuring Vault
 
