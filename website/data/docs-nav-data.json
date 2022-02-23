@@ -793,6 +793,15 @@
       {
         "title": "Compatibility",
         "path": "nia/compatibility"
+      },
+      {
+        "title": "Release Notes",
+        "routes": [
+          {
+            "title": "v0.5.0",
+            "path": "nia/release-notes/0-5-0"
+          }
+        ]
       }
     ]
   },

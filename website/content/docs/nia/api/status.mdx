@@ -8,7 +8,7 @@ description: >-
 
 The `/status` endpoints share status-related information for tasks. This information is available for understanding the status of individual tasks and across tasks.
 
-The health status value is determined by aggregating the success or failure of the event of a task detecting changes in Consul services and then updating network infrastructure. Currently, only the 5 most recent events are stored in Consul-Terraform-Sync. For more information on the hierarchy of status information and how it is collected, see [Status Information](/docs/nia/tasks#status-information).
+The health status value is determined by aggregating the success or failure of the event of a task detecting changes in Consul services and then updating network infrastructure. Currently, only the 5 most recent events are stored in Consul-Terraform-Sync (CTS). For more information on the hierarchy of status information and how it is collected, see [Status Information](/docs/nia/tasks#status-information).
 
 ## Overall Status
 
@@ -21,18 +21,24 @@ This endpoint currently returns the overall status information for all tasks.
 #### Request Parameters
 Currently no request parameters are offered for the overall status API.
 
+#### Response Statuses
+
+| Status | Reason           |
+| ------ | ---------------- |
+| 200    | Successfully retrieved the status |
+
 #### Response Fields
 
-* `task_summary` - Summary of task information. See [Task Status API](/docs/nia/api#task-status) to learn more about how health status is determined.
-  * `status` - Summary count of how many tasks have each health status value
-    * `successful` - (int) The number of tasks that have a 'successful' health status
-    * `errored` - (int) The number of tasks that have a 'errored' health status
-    * `critical` - (int) The number of tasks that have a 'critical' health status
-    * `unknown` - (int) The number of tasks that have an 'unknown' health status
-  * `enabled` - Summary count of how many tasks are enabled or disabled
-    * `true` - (int) The number of tasks that are enabled
-    * `false` - (int) The number of tasks that are disabled
-
+| Name	| Type	 | Description        |
+| ----- | ------ | ------------------ |
+|`status` | object |  The summary count of how many tasks have a given health status value
+|`status.successful` | integer | The number of tasks that have a `successful` health status.
+|`status.errored` | integer | The number of tasks that have an `errored` health status.
+|`status.critical` | integer | The number of tasks that have a `critical` health status.
+|`status.unknown` | integer | The number of tasks that have an `unknown` health status.
+|`enabled` | object |  The summary count of how many tasks are enabled or disabled.
+|`enabled.true` | integer | The number of tasks that are enabled.
+|`enabled.false` | integer | The number of tasks that are disabled.
 
 #### Example
 
@@ -71,41 +77,54 @@ Task health status value is determined by the success or failure of all stored [
 
 | Method | Path                | Produces           |
 | ------ | ------------------- | ------------------ |
-| `GET`  | `/status/tasks/:task` | `application/json` |
+| `GET`  | `/status/tasks/:task_name` | `application/json` |
 
 #### Request Parameters
 
-* `task` - (string) Option to specify the name of the task to return in the response. If not specified, all tasks are returned in the response.
-* `include` - (string) Only accepts the value "events". Use to include stored event information in response.
-* `status` - (string) Only accepts health status values "successful", "errored", "critical", or "unknown". Use to filter response by tasks that have the specified health status value. Recommend setting this parameter when requesting all tasks i.e. no `task` parameter is set.
+| Name	   | Required | Type	 | Description        | Default |
+| -------- | -------- | ------ | ------------------ | ------- |
+|`:task_name` | Optional | string | Option to specify the name of the task to return in the response. If not specified, all tasks are returned in the response.| none
+|`include` | Optional | string | Only accepts the value `"events"`. Use to include stored event information in response. | none
+|`status`  | Optional | string | Only accepts health status values `"successful"`, `"errored"`, `"critical"`, or `"unknown"`. Use to filter response by tasks that have the specified health status value. Recommend setting this parameter when requesting all tasks i.e. no `task` parameter is set. | none
+
+#### Response Statuses
+
+| Status | Reason           |
+| ------ | ---------------- |
+| 200  | Successfully retrieved the task status |
+| 404  | Task with the given name not found |
 
 #### Response Fields
 
 The response is a JSON map of task name to a status information structure with the following fields.
 
-* `task_name` - (string) Name that task is configured with in Consul-Terraform-Sync.
-* `status` - (string) Values are "successful", "errored", "critical", or "unknown". This is determined by the success or failure of all stored events on the network infrastructure update process for the task, as described earlier.
-* `enabled` - (bool) Whether the task is enabled or not.
-* `services` - (list[string]) List of the services configured for the task.
-* `providers` - (list[string]) List of the providers configured for the task.
-* `events_url` - (string) Relative URL to retrieve the event data stored for the task.
-* `events` - [(list[Event])](/docs/nia/api#event) - List of stored events that inform the task's status. See section below for information on event data. This field is only included in the response upon request by setting the `?include=events` parameter. The relative URL for the request to include events can be retrieved from the `events_url` field.
+| Name	      | Type	  | Description       |
+| ----------- | ------ | ------------------ |
+|`task_name`  | string | Name of the task as configured in CTS.
+|`status`     | string | Values are `"successful"`, `"errored"`, `"critical"`, or `"unknown"`. This is determined by the success or failure of all stored events on the network infrastructure update process for the task, as described earlier.
+|`enabled`    | boolean | Whether the task is enabled or not.
+|`services`   | list[string] | **Deprecated in CTS 0.5.0 and will be removed in a future major release.** List of the services configured for the task.
+|`providers`  | list[string] | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** List of the providers configured for the task.
+|`events_url` | string | Relative URL to retrieve the event data stored for the task.
+|`events`     | list[[Event](/docs/nia/api/status#event)] | List of stored events that inform the task's status. See [section below](/docs/nia/api/status#event) for information on event data. This field is only included in the response upon request by setting the `?include=events` parameter. The relative URL for the request to include events can be retrieved from the `events_url` field.
 
 ##### Event
 
 Event represents the process of updating network infrastructure of a task. The data is captured in a JSON structure. For more details on the scope of an event, see [Event](/docs/nia/tasks#event).
 
-* `id` - (string) UUID to uniquely identify the event.
-* `success` - (bool) Indication of whether the event was successful or not.
-* `start_time` - (time) Time when the event started.
-* `end_time` - (time) Time when the event ended.
-* `task_name` - (string) Name that task is configured with in Consul-Terraform-Sync.
-* `error` Information when the event fails. Null when successful.
-  * `message` - (string) Error message that is returned on failure.
-* `config`
-  * `services` - (list[string]) List of the services configured for the task.
-  * `source` - (string) Source configured for the task.
-  * `providers` - (list[string]) List of the providers configured for the task.
+| Name	      | Type	 | Description       |
+| ----------- | ------ | ------------------ |
+|`id`         | string | UUID to uniquely identify the event.
+|`success`    | boolean | Indication of whether the event was successful or not.
+|`start_time` | time | Time when the event started.
+|`end_time`   | time | Time when the event ended.
+|`task_name`  | string | Name that task is configured with in CTS.
+|`error`         | object | Information when the event fails. Null when successful.
+|`error.message` | string | Error message that is returned on failure.
+|`config`           | object | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** Configuration values for the task when it was run.
+|`config.services`  | list[string] | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** List of the services configured for the task.
+|`config.source`    | string | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** Module configured for the task.
+|`config.providers` | list[string] | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** List of the providers configured for the task.
 
 #### Example: All Task Statuses
 
@@ -180,9 +199,9 @@ Response:
             "null"
           ],
           "services": [
-            "web",
+            "web"
           ],
-          "source": "../modules/test_task"
+          "module": "../modules/test_task"
         }
       },
       {
@@ -199,7 +218,7 @@ Response:
           "services": [
             "web",
           ],
-          "source": "../modules/test_task"
+          "module": "../modules/test_task"
         }
       }
     ]
