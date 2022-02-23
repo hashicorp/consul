@@ -326,7 +326,7 @@ function build_consul {
       -e CGO_ENABLED=0 \
       -e GOLDFLAGS="${GOLDFLAGS}" \
       -e GOTAGS="${GOTAGS}" \
-      ${image_name} make linux
+      ${image_name} make linux)
    ret=$?
 
    if test $ret -eq 0

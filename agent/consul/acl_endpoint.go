@@ -322,6 +322,9 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 
 			reply.Index, reply.Token = index, token
 			reply.SourceDatacenter = args.Datacenter
+			if token == nil {
+				return errNotFound
+			}
 			return nil
 		})
 }
@@ -1045,6 +1048,9 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyGetRequest, reply *structs.ACLPo
 			}
 
 			reply.Index, reply.Policy = index, policy
+			if policy == nil {
+				return errNotFound
+			}
 			return nil
 		})
 }
@@ -1428,6 +1434,9 @@ func (a *ACL) RoleRead(args *structs.ACLRoleGetRequest, reply *structs.ACLRoleRe
 			}
 
 			reply.Index, reply.Role = index, role
+			if role == nil {
+				return errNotFound
+			}
 			return nil
 		})
 }
@@ -1795,12 +1804,14 @@ func (a *ACL) BindingRuleRead(args *structs.ACLBindingRuleGetRequest, reply *str
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
 			index, rule, err := state.ACLBindingRuleGetByID(ws, args.BindingRuleID, &args.EnterpriseMeta)
-
 			if err != nil {
 				return err
 			}
 
 			reply.Index, reply.BindingRule = index, rule
+			if rule == nil {
+				return errNotFound
+			}
 			return nil
 		})
 }
@@ -2052,16 +2063,16 @@ func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *struc
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
 			index, method, err := state.ACLAuthMethodGetByName(ws, args.AuthMethodName, &args.EnterpriseMeta)
-
 			if err != nil {
 				return err
 			}
 
-			if method != nil {
-				_ = a.enterpriseAuthMethodTypeValidation(method.Type)
+			reply.Index, reply.AuthMethod = index, method
+			if method == nil {
+				return errNotFound
 			}
 
-			reply.Index, reply.AuthMethod = index, method
+			_ = a.enterpriseAuthMethodTypeValidation(method.Type)
 			return nil
 		})
 }

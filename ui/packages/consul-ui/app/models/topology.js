@@ -14,6 +14,7 @@ export default class Topology extends Model {
   @attr('string') Protocol;
   @attr('boolean') FilteredByACLs;
   @attr('boolean') TransparentProxy;
+  @attr('boolean') ConnectNative;
   @attr() Upstreams; // Service[]
   @attr() Downstreams; // Service[],
   @attr() meta; // {}
@@ -25,7 +26,7 @@ export default class Topology extends Model {
     undefinedDownstream =
       this.Downstreams.filter(
         item =>
-          item.Source === 'specific-intention' && !item.TransparentProxy && item.Intention.Allowed
+          item.Source === 'specific-intention' && !item.TransparentProxy && !item.ConnectNative && item.Intention.Allowed
       ).length !== 0;
 
     return undefinedDownstream;

@@ -2120,10 +2120,22 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 		if name == "" {
 			name = fmt.Sprintf("Service '%s' check", service.Service)
 		}
+
+		var intervalStr string
+		var timeoutStr string
+		if chkType.Interval != 0 {
+			intervalStr = chkType.Interval.String()
+		}
+		if chkType.Timeout != 0 {
+			timeoutStr = chkType.Interval.String()
+		}
+
 		check := &structs.HealthCheck{
 			Node:           a.config.NodeName,
 			CheckID:        types.CheckID(checkID),
 			Name:           name,
+			Interval:       intervalStr,
+			Timeout:        timeoutStr,
 			Status:         api.HealthCritical,
 			Notes:          chkType.Notes,
 			ServiceID:      service.ID,

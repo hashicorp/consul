@@ -209,6 +209,30 @@ An `<Action />` component with the correct aria attributes added.
 | `id` | `String` | A unique id which you **should** (for aria reasons) use for the root DOM element you are controlling with the disclosure |
 | `expanded` | `Boolean` | An alias of `disclosure.expanded`. Whether the disclosure is 'expanded' or not. If disclosure of the `Details` is controlled via CSS you **should** use this to set/unset `aria-hidden` |
 
+## Internal States
+
+Opened and closed states of the Disclosure are managed internally by a simple boolean state machine:
+
+```mermaid
+stateDiagram-v2
+    [*] --> false
+    true --> false: TOGGLE
+    true --> false: FALSE
+    false --> true: TOGGLE
+    false --> true: TRUE
+```
+
+which in the context of the Disclosure component is better represented via:
+
+```mermaid
+stateDiagram-v2
+    [*] --> closed
+    opened --> closed: TOGGLE
+    opened --> closed: CLOSE
+    closed --> opened: TOGGLE
+    closed --> opened: OPEN
+```
+
 ## See
 
 - [Component Source Code](./index.js)

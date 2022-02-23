@@ -1,74 +1,77 @@
 {{#if (can "use nspaces")}}
-    {{#if (can "choose nspaces")}}
-{{#let
-  (or @nspace 'default')
-as |nspace|}}
-          <li
-            class="nspaces"
-            data-test-nspace-menu
-          >
-              <PopoverMenu
-                aria-label="Namespace"
-                @position="left"
-              as |components api|>
-                <BlockSlot @name="trigger">
-                  {{nspace}}
-                </BlockSlot>
-                <BlockSlot @name="menu">
-                  {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-                  {{#if (gt @nspaces.length 0)}}
-                    <DataSource
-                      @src={{uri
-                      '/${partition}/*/${dc}/namespaces'
-                        (hash
-                          partition=@partition
-                          dc=@dc.Name
-                        )
-                      }}
-                      @onchange={{fn (optional @onchange)}}
-                      @loading="lazy"
-                    />
-                  {{else}}
-                    <DataSource
-                      @src={{uri
-                      '/${partition}/*/${dc}/namespaces'
-                        (hash
-                          partition=@partition
-                          dc=@dc.Name
-                        )
-                      }}
-                      @onchange={{fn (optional @onchange)}}
-                    />
-                  {{/if}}
-                  {{#each (reject-by 'DeletedAt' @nspaces) as |item|}}
-                    <MenuItem
-                      class={{if (eq nspace item.Name) 'is-active'}}
+  {{#if (can "choose nspaces")}}
+    {{#let
+      (or @nspace 'default')
+    as |nspace|}}
+        <li
+          class="nspaces"
+          data-test-nspace-menu
+        >
+          <DisclosureMenu
+            aria-label="Namespace"
+          as |disclosure|>
+            <disclosure.Action
+              {{on 'click' disclosure.toggle}}
+            >
+              {{nspace}}
+            </disclosure.Action>
+            <disclosure.Menu as |panel|>
+              {{#if (gt @nspaces.length 0)}}
+                <DataSource
+                  @src={{uri
+                  '/${partition}/*/${dc}/namespaces'
+                    (hash
+                      partition=@partition
+                      dc=@dc.Name
+                    )
+                  }}
+                  @onchange={{fn (optional @onchange)}}
+                />
+              {{else}}
+                <DataSource
+                  @src={{uri
+                  '/${partition}/*/${dc}/namespaces'
+                    (hash
+                      partition=@partition
+                      dc=@dc.Name
+                    )
+                  }}
+                  @onchange={{fn (optional @onchange)}}
+                />
+              {{/if}}
+              <panel.Menu as |menu|>
+                {{#each (reject-by 'DeletedAt' @nspaces) as |item|}}
+                  <menu.Item
+                    aria-current={{if (eq nspace item.Name) 'true'}}
+                  >
+                    <menu.Action
+                      {{on 'click' disclosure.close}}
                       @href={{href-to '.' params=(hash
                         partition=(if (gt @partition.length 0) @partition undefined)
                         nspace=item.Name
                       )}}
                     >
-                      <BlockSlot @name="label">
-                        {{item.Name}}
-                      </BlockSlot>
-                    </MenuItem>
-                  {{/each}}
-          {{#if (can 'manage nspaces')}}
-                    <MenuSeparator />
-                    <MenuItem
-                      data-test-main-nav-nspaces
+                      {{item.Name}}
+                    </menu.Action>
+                  </menu.Item>
+                {{/each}}
+                {{#if (can 'manage nspaces')}}
+                  <menu.Separator />
+                  <menu.Item
+                    data-test-main-nav-nspaces
+                  >
+                    <menu.Action
+                      {{on 'click' disclosure.close}}
                       @href={{href-to 'dc.nspaces' @dc.Name}}
                     >
-                      <BlockSlot @name="label">
-                        Manage Namespaces
-                      </BlockSlot>
-                    </MenuItem>
-          {{/if}}
-                  {{/let}}
-                </BlockSlot>
-              </PopoverMenu>
-          </li>
-{{/let}}
-    {{/if}}
+                      Manage Namespaces
+                    </menu.Action>
+                  </menu.Item>
+                {{/if}}
+              </panel.Menu>
+            </disclosure.Menu>
+          </DisclosureMenu>
+        </li>
+    {{/let}}
   {{/if}}
-
+{{/if}}

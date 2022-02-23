@@ -1150,6 +1150,70 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "transparent-proxy-http-upstream",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Mode = structs.ProxyModeTransparent
+
+				snap.ConnectProxy.MeshConfigSet = true
+
+				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
+				google := structs.NewServiceName("google", nil)
+				googleUID := proxycfg.NewUpstreamIDFromServiceName(google)
+				snap.ConnectProxy.IntentionUpstreams = map[proxycfg.UpstreamID]struct{}{
+					googleUID: {},
+				}
+				snap.ConnectProxy.DiscoveryChain[googleUID] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil,
+					// Set default service protocol to HTTP
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"protocol": "http",
+						},
+					})
+
+				snap.ConnectProxy.WatchedUpstreamEndpoints[googleUID] = map[string]structs.CheckServiceNodes{
+					"google.default.default.dc1": {
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								Address:    "8.8.8.8",
+								Datacenter: "dc1",
+							},
+							Service: &structs.NodeService{
+								Service: "google",
+								Address: "9.9.9.9",
+								Port:    9090,
+								TaggedAddresses: map[string]structs.ServiceAddress{
+									"virtual":                      {Address: "10.0.0.1"},
+									structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+								},
+							},
+						},
+					},
+					// Other targets of the discovery chain should be ignored.
+					// We only match on the upstream's virtual IP, not the IPs of other targets.
+					"google-v2.default.default.dc1": {
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								Address:    "7.7.7.7",
+								Datacenter: "dc1",
+							},
+							Service: &structs.NodeService{
+								Service: "google-v2",
+								TaggedAddresses: map[string]structs.ServiceAddress{
+									"virtual": {Address: "10.10.10.10"},
+								},
+							},
+						},
+					},
+				}
+
+				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
+				snap.ConnectProxy.DiscoveryChain[UID("no-endpoints")] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+			},
+		},
+		{
 			name:   "transparent-proxy-catalog-destinations-only",
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {

@@ -9,6 +9,7 @@ import (
 
 	memdb "github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -23,7 +24,7 @@ func indexFromConfigEntryKindName(arg interface{}) ([]byte, error) {
 	case ConfigEntryKindQuery:
 		b.String(strings.ToLower(n.Kind))
 		return b.Bytes(), nil
-	case ConfigEntryKindName:
+	case configentry.KindName:
 		b.String(strings.ToLower(n.Kind))
 		b.String(strings.ToLower(n.Name))
 		return b.Bytes(), nil

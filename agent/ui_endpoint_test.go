@@ -1281,6 +1281,142 @@ func TestUIServiceTopology(t *testing.T) {
 					},
 				},
 			},
+			"Node cnative": {
+				Datacenter: "dc1",
+				Node:       "cnative",
+				Address:    "127.0.0.6",
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:    "cnative",
+						CheckID: "cnative:alive",
+						Name:    "cnative-liveness",
+						Status:  api.HealthPassing,
+					},
+				},
+			},
+			"Service cbackend on cnative": {
+				Datacenter:     "dc1",
+				Node:           "cnative",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "cbackend",
+					Service: "cbackend",
+					Port:    8080,
+					Address: "198.18.1.70",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "cnative",
+						CheckID:     "cnative:cbackend",
+						Name:        "cbackend-liveness",
+						Status:      api.HealthPassing,
+						ServiceID:   "cbackend",
+						ServiceName: "cbackend",
+					},
+				},
+			},
+			"Service cbackend-proxy on cnative": {
+				Datacenter:     "dc1",
+				Node:           "cnative",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "cbackend-proxy",
+					Service: "cbackend-proxy",
+					Port:    8443,
+					Address: "198.18.1.70",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "cbackend",
+					},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "cnative",
+						CheckID:     "cnative:cbackend-proxy",
+						Name:        "cbackend proxy listening",
+						Status:      api.HealthCritical,
+						ServiceID:   "cbackend-proxy",
+						ServiceName: "cbackend-proxy",
+					},
+				},
+			},
+			"Service cfrontend on cnative": {
+				Datacenter:     "dc1",
+				Node:           "cnative",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "cfrontend",
+					Service: "cfrontend",
+					Port:    9080,
+					Address: "198.18.1.70",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "cnative",
+						CheckID:     "cnative:cfrontend",
+						Name:        "cfrontend-liveness",
+						Status:      api.HealthPassing,
+						ServiceID:   "cfrontend",
+						ServiceName: "cfrontend",
+					},
+				},
+			},
+			"Service cfrontend-proxy on cnative": {
+				Datacenter:     "dc1",
+				Node:           "cnative",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "cfrontend-proxy",
+					Service: "cfrontend-proxy",
+					Port:    9443,
+					Address: "198.18.1.70",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "cfrontend",
+						Upstreams: structs.Upstreams{
+							{
+								DestinationName: "cproxy",
+								LocalBindPort:   123,
+							},
+						},
+					},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "cnative",
+						CheckID:     "cnative:cfrontend-proxy",
+						Name:        "cfrontend proxy listening",
+						Status:      api.HealthCritical,
+						ServiceID:   "cfrontend-proxy",
+						ServiceName: "cfrontend-proxy",
+					},
+				},
+			},
+			"Service cproxy on cnative": {
+				Datacenter:     "dc1",
+				Node:           "cnative",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "cproxy",
+					Service: "cproxy",
+					Port:    1111,
+					Address: "198.18.1.70",
+					Connect: structs.ServiceConnect{Native: true},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "cnative",
+						CheckID:     "cnative:cproxy",
+						Name:        "cproxy-liveness",
+						Status:      api.HealthPassing,
+						ServiceID:   "cproxy",
+						ServiceName: "cproxy",
+					},
+				},
+			},
 		}
 		for _, args := range registrations {
 			var out struct{}
@@ -1292,6 +1428,8 @@ func TestUIServiceTopology(t *testing.T) {
 	// wildcard deny intention
 	// api -> web exact intention
 	// web -> redis exact intention
+	// cfrontend -> cproxy exact intention
+	// cproxy -> cbackend exact intention
 	{
 		entries := []structs.ConfigEntryRequest{
 			{
@@ -1387,6 +1525,32 @@ func TestUIServiceTopology(t *testing.T) {
 									EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 								},
 							},
+						},
+					},
+				},
+			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "cproxy",
+					Sources: []*structs.SourceIntention{
+						{
+							Action: structs.IntentionActionAllow,
+							Name:   "cfrontend",
+						},
+					},
+				},
+			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "cbackend",
+					Sources: []*structs.SourceIntention{
+						{
+							Action: structs.IntentionActionAllow,
+							Name:   "cproxy",
 						},
 					},
 				},
@@ -1612,6 +1776,60 @@ func TestUIServiceTopology(t *testing.T) {
 							DefaultAllow:   true,
 							Allowed:        false,
 							HasPermissions: true,
+							HasExact:       true,
+						},
+						Source: structs.TopologySourceRegistration,
+					},
+				},
+				FilteredByACLs: false,
+			},
+		},
+		{
+			name: "cproxy",
+			httpReq: func() *http.Request {
+				req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/cproxy?kind=", nil)
+				return req
+			}(),
+			want: &ServiceTopology{
+				Protocol:         "http",
+				TransparentProxy: false,
+				Upstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "cbackend",
+							Datacenter:     "dc1",
+							Nodes:          []string{"cnative"},
+							InstanceCount:  1,
+							ChecksPassing:  2,
+							ChecksWarning:  0,
+							ChecksCritical: 1,
+							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							DefaultAllow:   true,
+							Allowed:        true,
+							HasPermissions: false,
+							HasExact:       true,
+						},
+						Source: structs.TopologySourceSpecificIntention,
+					},
+				},
+				Downstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "cfrontend",
+							Datacenter:     "dc1",
+							Nodes:          []string{"cnative"},
+							InstanceCount:  1,
+							ChecksPassing:  2,
+							ChecksWarning:  0,
+							ChecksCritical: 1,
+							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							DefaultAllow:   true,
+							Allowed:        true,
+							HasPermissions: false,
 							HasExact:       true,
 						},
 						Source: structs.TopologySourceRegistration,

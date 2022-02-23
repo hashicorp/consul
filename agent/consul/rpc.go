@@ -945,7 +945,17 @@ type blockingQueryResponseMeta interface {
 //
 // The query function is expected to be a closure that has access to responseMeta
 // so that it can set the Index. The actual result of the query is opaque to blockingQuery.
-// If query function returns an error, the error is returned to the caller immediately.
+//
+// The query function can return errNotFound, which is a sentinel error. Returning
+// errNotFound indicates that the query found no results, which allows
+// blockingQuery to keep blocking until the query returns a non-nil error.
+// The query function must take care to set the actual result of the query to
+// nil in these cases, otherwise when blockingQuery times out it may return
+// a previous result. errNotFound will never be returned to the caller, it is
+// converted to nil before returning.
+//
+// If query function returns any other error, the error is returned to the caller
+// immediately.
 //
 // The query function must follow these rules:
 //
@@ -983,6 +993,9 @@ func (s *Server) blockingQuery(
 		var ws memdb.WatchSet
 		err := query(ws, s.fsm.State())
 		s.setQueryMeta(responseMeta, opts.GetToken())
+		if errors.Is(err, errNotFound) {
+			return nil
+		}
 		return err
 	}
 
@@ -994,6 +1007,8 @@ func (s *Server) blockingQuery(
 	metrics.SetGauge([]string{"rpc", "queries_blocking"}, float32(count))
 	// decrement the count when the function returns.
 	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
+
+	var notFound bool
 
 	for {
 		if opts.GetRequireConsistent() {
@@ -1014,7 +1029,15 @@ func (s *Server) blockingQuery(
 
 		err := query(ws, state)
 		s.setQueryMeta(responseMeta, opts.GetToken())
-		if err != nil {
+		switch {
+		case errors.Is(err, errNotFound):
+			if notFound {
+				// query result has not changed
+				minQueryIndex = responseMeta.GetIndex()
+			}
+
+			notFound = true
+		case err != nil:
 			return err
 		}
 
@@ -1036,6 +1059,8 @@ func (s *Server) blockingQuery(
 		}
 	}
 }
+
+var errNotFound = fmt.Errorf("no data found for query")
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
 //

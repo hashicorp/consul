@@ -1,6 +1,9 @@
 <Action
   role="menuitem"
   ...attributes
+  @href={{@href}}
+  {{on 'click' (if @href @disclosure.close (noop))}}
+  @external={{@external}}
 >
   {{yield}}
 </Action>
