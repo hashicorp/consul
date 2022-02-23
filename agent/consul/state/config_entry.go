@@ -884,7 +884,7 @@ func (s *Store) ReadResolvedServiceConfigEntries(
 	)
 
 	// The upstreams passed as arguments to this endpoint are the upstreams explicitly defined in a proxy registration.
-	// If no upstreams were passed, then we should only returned the resolved config if the proxy in transparent mode.
+	// If no upstreams were passed, then we should only return the resolved config if the proxy is in transparent mode.
 	// Otherwise we would return a resolved upstream config to a proxy with no configured upstreams.
 	if noUpstreamArgs && !tproxy {
 		return maxIndex, &res, nil
