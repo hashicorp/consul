@@ -954,6 +954,19 @@ type blockingQueryResponseMeta interface {
 // a previous result. errNotFound will never be returned to the caller, it is
 // converted to nil before returning.
 //
+// The query function can return errNotChanged, which is a sentinel error. This
+// can only be returned on calls AFTER the first call, as it would not be
+// possible to detect the absence of a change on the first call. Returning
+// errNotChanged indicates that the query results are identical to the prior
+// results which allows blockingQuery to keep blocking until the query returns
+// a real changed result.
+//
+// The query function must take care to ensure the actual result of the query
+// is either left unmodified or explicitly left in a good state before
+// returning, otherwise when blockingQuery times out it may return an
+// incomplete or unexpected result. errNotChanged will never be returned to the
+// caller, it is converted to nil before returning.
+//
 // If query function returns any other error, the error is returned to the caller
 // immediately.
 //
@@ -1029,37 +1042,6 @@ func (s *Server) blockingQuery(
 		// This channel will be closed if a snapshot is restored and the
 		// whole state store is abandoned.
 		ws.Add(state.AbandonCh())
-
-		// You can use one of two sentinel errors to signal special behaviors
-		// from query() calls:
-		//
-		// (1) errNotFound: data that is not found
-		//
-		//     In this scenario, any read of query() will deterministically
-		//     return a 'nil/empty' result. Call to call the data will still be
-		//     absent, and thus we would want to avoid waking up the caller of
-		//     the blocking query to freshly say "yep still not found!".
-		//
-		//     On the first blocking query call assuming the index provided
-		//     matches the index of the data returned, this function will
-		//     correctly block due to the 'if queryMeta.GetIndex() >
-		//     minQueryIndex {' line below.
-		//
-		//     Subsequent loops then will EITHER swallow the update if the
-		//     index remains the same OR if after waking up the data is still
-		//     absent.
-		//
-		// (2) errNotChanged: data that has not changed
-		//
-		//     In this scenario the first read of query() may return value=V0
-		//     and would block just as in (1) above due to a matching index
-		//     parameter. The body of query() is free to have a stateful
-		//     closure that may retain metadata about the prior execution
-		//     sufficient for future comparison with another returned value.
-		//
-		//     On a future loop, query() may detect that the newly generated
-		//     data is effectively unchanged and may return an
-		//     err=errNotChanged result.
 
 		err := query(ws, state)
 		s.setQueryMeta(responseMeta, opts.GetToken())
