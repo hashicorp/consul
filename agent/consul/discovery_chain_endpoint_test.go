@@ -334,18 +334,7 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 
 		require.NoError(t, g.Wait())
 
-		// The test is a bit racy because of the timing of the two goroutines,
-		// so we relax the check for the count to be within a small range.
-		//
-		// The blocking query is going to wake up every second, so use the
-		// elapsed test time with that known timing value to gauge how many
-		// legit wakeups should happen and then pad it out a smidge.
-		elapsed := time.Since(start)
-		expectedQueries := 2 + int(elapsed/time.Second)
-
-		if count < 2 || count > expectedQueries {
-			t.Fatalf("expected count to be >= 2 or < %d, got %d", expectedQueries, count)
-		}
+		assertBlockingQueryWakeupCount(t, time.Second, start, count)
 	}
 
 	runStep(t, "test the errNotFound path", func(t *testing.T) {
