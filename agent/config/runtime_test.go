@@ -5382,8 +5382,6 @@ func TestLoad_FullConfig(t *testing.T) {
 			EntryFetchMaxBurst: 42,
 			EntryFetchRate:     0.334,
 		},
-		CAFile:             "erA7T0PM",
-		CAPath:             "mQEN1Mfp",
 		CertFile:           "7s4QAzDk",
 		CheckOutputMaxSize: checks.DefaultBufSize,
 		Checks: []*structs.CheckDefinition{
@@ -5582,8 +5580,12 @@ func TestLoad_FullConfig(t *testing.T) {
 			VerifyIncomingHTTPS:   true,
 			VerifyIncomingRPC:     true,
 			VerifyOutgoing:        true,
-			VerifyServerHostname:  true},
-		EncryptVerifyOutgoing: true,
+			VerifyServerHostname:  true,
+			EncryptVerifyOutgoing: true,
+			CAFile:                "erA7T0PM",
+			CAPath:                "mQEN1Mfp",
+		},
+
 		GRPCPort:              4881,
 		GRPCAddrs:             []net.Addr{tcpAddr("32.31.61.91:4881")},
 		HTTPAddrs:             []net.Addr{tcpAddr("83.39.91.39:7999")},
@@ -6351,12 +6353,13 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 			&net.TCPAddr{IP: net.ParseIP("198.18.0.2"), Port: 5678},
 		},
 		Datacenter: "dc-test",
-		CAFile:     "/etc/consul/ca.crt",
-		CAPath:     "/etc/consul/ca.dir",
-		CertFile:   "/etc/consul/server.crt",
-		KeyFile:    "/etc/consul/ssl/server.key",
+
+		CertFile: "/etc/consul/server.crt",
+		KeyFile:  "/etc/consul/ssl/server.key",
 		NotAutoReloadableRuntimeConfig: NotAutoReloadableRuntimeConfig{
 			VerifyOutgoing: false,
+			CAFile:         "/etc/consul/ca.crt",
+			CAPath:         "/etc/consul/ca.dir",
 		},
 	}
 
@@ -6364,8 +6367,8 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "198.18.0.2:5678", cfg.Address)
 	require.Equal(t, "https", cfg.Scheme)
-	require.Equal(t, rt.CAFile, cfg.TLSConfig.CAFile)
-	require.Equal(t, rt.CAPath, cfg.TLSConfig.CAPath)
+	require.Equal(t, rt.NotAutoReloadableRuntimeConfig.CAFile, cfg.TLSConfig.CAFile)
+	require.Equal(t, rt.NotAutoReloadableRuntimeConfig.CAPath, cfg.TLSConfig.CAPath)
 	require.Equal(t, "", cfg.TLSConfig.CertFile)
 	require.Equal(t, "", cfg.TLSConfig.KeyFile)
 	require.Equal(t, rt.Datacenter, cfg.Datacenter)
@@ -6376,8 +6379,8 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "198.18.0.2:5678", cfg.Address)
 	require.Equal(t, "https", cfg.Scheme)
-	require.Equal(t, rt.CAFile, cfg.TLSConfig.CAFile)
-	require.Equal(t, rt.CAPath, cfg.TLSConfig.CAPath)
+	require.Equal(t, rt.NotAutoReloadableRuntimeConfig.CAFile, cfg.TLSConfig.CAFile)
+	require.Equal(t, rt.NotAutoReloadableRuntimeConfig.CAPath, cfg.TLSConfig.CAPath)
 	require.Equal(t, rt.CertFile, cfg.TLSConfig.CertFile)
 	require.Equal(t, rt.KeyFile, cfg.TLSConfig.KeyFile)
 	require.Equal(t, rt.Datacenter, cfg.Datacenter)
@@ -6526,9 +6529,10 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 			VerifyIncomingHTTPS:  true,
 			VerifyOutgoing:       true,
 			VerifyServerHostname: true,
+			CAFile:               "a",
+			CAPath:               "b",
 		},
-		CAFile:                      "a",
-		CAPath:                      "b",
+
 		CertFile:                    "c",
 		KeyFile:                     "d",
 		NodeName:                    "e",
@@ -6566,9 +6570,11 @@ func TestRuntime_ToTLSUtilConfig_AutoConfig(t *testing.T) {
 			VerifyIncomingRPC:    true,
 			VerifyIncomingHTTPS:  true,
 			VerifyOutgoing:       true,
-			VerifyServerHostname: true},
-		CAFile:                      "a",
-		CAPath:                      "b",
+			VerifyServerHostname: true,
+			CAFile:               "a",
+			CAPath:               "b",
+		},
+
 		CertFile:                    "c",
 		KeyFile:                     "d",
 		NodeName:                    "e",

@@ -5334,3 +5334,29 @@ func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 		t.FailNow()
 	}
 }
+
+func TestAgent_AutoReloadConfigEnable(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, `auto_reload_config = true`)
+	defer a.Shutdown()
+
+	require.True(t, a.Agent.config.AutoReloadConfig)
+}
+
+func TestAgent_AutoReloadReloadWhenConfigChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, `auto_reload_config = true`)
+	defer a.Shutdown()
+
+	require.True(t, a.Agent.config.AutoReloadConfig)
+}

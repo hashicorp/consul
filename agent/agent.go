@@ -1103,7 +1103,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.SerfLANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrLAN.IP.String()
 	cfg.SerfLANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrLAN.Port
 	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.NotAutoReloadableRuntimeConfig.EncryptVerifyIncoming
-	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.EncryptVerifyOutgoing
+	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.NotAutoReloadableRuntimeConfig.EncryptVerifyOutgoing
 	cfg.SerfLANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipLANGossipInterval
 	cfg.SerfLANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipLANGossipNodes
 	cfg.SerfLANConfig.MemberlistConfig.ProbeInterval = runtimeCfg.GossipLANProbeInterval
@@ -1120,7 +1120,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 		cfg.SerfWANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrWAN.IP.String()
 		cfg.SerfWANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrWAN.Port
 		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.NotAutoReloadableRuntimeConfig.EncryptVerifyIncoming
-		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.EncryptVerifyOutgoing
+		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.NotAutoReloadableRuntimeConfig.EncryptVerifyOutgoing
 		cfg.SerfWANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipWANGossipInterval
 		cfg.SerfWANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipWANGossipNodes
 		cfg.SerfWANConfig.MemberlistConfig.ProbeInterval = runtimeCfg.GossipWANProbeInterval
@@ -1315,8 +1315,8 @@ func segmentConfig(config *config.RuntimeConfig) ([]consul.NetworkSegment, error
 		if config.NotAutoReloadableRuntimeConfig.EncryptVerifyIncoming {
 			serfConf.MemberlistConfig.GossipVerifyIncoming = config.NotAutoReloadableRuntimeConfig.EncryptVerifyIncoming
 		}
-		if config.EncryptVerifyOutgoing {
-			serfConf.MemberlistConfig.GossipVerifyOutgoing = config.EncryptVerifyOutgoing
+		if config.NotAutoReloadableRuntimeConfig.EncryptVerifyOutgoing {
+			serfConf.MemberlistConfig.GossipVerifyOutgoing = config.NotAutoReloadableRuntimeConfig.EncryptVerifyOutgoing
 		}
 
 		var rpcAddr *net.TCPAddr

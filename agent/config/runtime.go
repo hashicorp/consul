@@ -81,6 +81,24 @@ type NotAutoReloadableRuntimeConfig struct {
 	//
 	// hcl: verify_server_hostname = (true|false)
 	VerifyServerHostname bool
+
+	// EncryptVerifyOutgoing enforces outgoing gossip encryption and can be
+	// used to upshift to encrypted gossip on a running cluster.
+	//
+	// hcl: encrypt_verify_outgoing = (true|false)
+	EncryptVerifyOutgoing bool
+
+	// CAFile is a path to a certificate authority file. This is used with
+	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.
+	//
+	// hcl: ca_file = string
+	CAFile string
+
+	// CAPath is a path to a directory of certificate authority files. This is
+	// used with VerifyIncoming or VerifyOutgoing to verify the TLS connection.
+	//
+	// hcl: ca_path = string
+	CAPath string
 }
 
 // RuntimeConfig specifies the configuration the consul agent actually
@@ -431,18 +449,6 @@ type RuntimeConfig struct {
 	// Cache represent cache configuration of agent
 	Cache cache.Options
 
-	// CAFile is a path to a certificate authority file. This is used with
-	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.
-	//
-	// hcl: ca_file = string
-	CAFile string
-
-	// CAPath is a path to a directory of certificate authority files. This is
-	// used with VerifyIncoming or VerifyOutgoing to verify the TLS connection.
-	//
-	// hcl: ca_path = string
-	CAPath string
-
 	// CertFile is used to provide a TLS certificate that is used for serving
 	// TLS connections. Must be provided to serve TLS connections.
 	//
@@ -716,12 +722,6 @@ type RuntimeConfig struct {
 	// hcl: encrypt = string
 	// flag: -encrypt string
 	EncryptKey string
-
-	// EncryptVerifyOutgoing enforces outgoing gossip encryption and can be
-	// used to upshift to encrypted gossip on a running cluster.
-	//
-	// hcl: encrypt_verify_outgoing = (true|false)
-	EncryptVerifyOutgoing bool
 
 	// GRPCPort is the port the gRPC server listens on. Currently this only
 	// exposes the xDS and ext_authz APIs for Envoy and it is disabled by default.
@@ -1692,8 +1692,8 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 	if httpsAddr != "" {
 		cfg.Address = httpsAddr
 		cfg.Scheme = "https"
-		cfg.TLSConfig.CAFile = c.CAFile
-		cfg.TLSConfig.CAPath = c.CAPath
+		cfg.TLSConfig.CAFile = c.NotAutoReloadableRuntimeConfig.CAFile
+		cfg.TLSConfig.CAPath = c.NotAutoReloadableRuntimeConfig.CAPath
 		if includeClientCerts {
 			cfg.TLSConfig.CertFile = c.CertFile
 			cfg.TLSConfig.KeyFile = c.KeyFile
@@ -1728,8 +1728,8 @@ func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
 		VerifyIncomingHTTPS:      c.NotAutoReloadableRuntimeConfig.VerifyIncomingHTTPS,
 		VerifyOutgoing:           c.NotAutoReloadableRuntimeConfig.VerifyOutgoing,
 		VerifyServerHostname:     c.NotAutoReloadableRuntimeConfig.VerifyServerHostname,
-		CAFile:                   c.CAFile,
-		CAPath:                   c.CAPath,
+		CAFile:                   c.NotAutoReloadableRuntimeConfig.CAFile,
+		CAPath:                   c.NotAutoReloadableRuntimeConfig.CAPath,
 		CertFile:                 c.CertFile,
 		KeyFile:                  c.KeyFile,
 		NodeName:                 c.NodeName,

@@ -75,8 +75,6 @@
     "BindAddr": "127.0.0.1",
     "Bootstrap": false,
     "BootstrapExpect": 0,
-    "CAFile": "",
-    "CAPath": "",
     "Cache": {
         "EntryFetchMaxBurst": 42,
         "EntryFetchRate": 0.334,
@@ -185,7 +183,6 @@
     "EnableLocalScriptChecks": false,
     "EnableRemoteScriptChecks": false,
     "EncryptKey": "hidden",
-    "EncryptVerifyOutgoing": false,
     "EnterpriseRuntimeConfig": {},
     "ExposeMaxPort": 0,
     "ExposeMinPort": 0,
@@ -236,7 +233,10 @@
     "NodeMeta": {},
     "NodeName": "",
     "NotAutoReloadableRuntimeConfig": {
+        "CAFile": "",
+        "CAPath": "",
         "EncryptVerifyIncoming": false,
+        "EncryptVerifyOutgoing": false,
         "VerifyIncoming": false,
         "VerifyIncomingHTTPS": false,
         "VerifyIncomingRPC": false,
