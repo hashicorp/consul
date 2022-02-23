@@ -7,52 +7,56 @@ description: >-
 
 # Compatible Terraform Modules for Network Infrastructure Automation
 
-Consul-Terraform-Sync automates execution of Terraform modules through tasks. A task is a construct in Consul-Terraform-Sync that defines the automation of Terraform and the module.
+Consul-Terraform-Sync (CTS) automates execution of Terraform modules through tasks. A task is a construct in CTS that defines the automation of Terraform and the module.
 
 ## Module Specifications
 
-Compatible modules for Consul-Terraform-Sync follow the [standard module](https://www.terraform.io/docs/modules/index.html#standard-module-structure) structure. Modules can use syntax supported by Terraform version 0.13 and newer.
+Compatible modules for CTS follow the [standard module](https://www.terraform.io/docs/modules/index.html#standard-module-structure) structure. Modules can use syntax supported by Terraform version 0.13 and newer.
 
 ### Compatibility Requirements
 
-Below are the two required elements for module compatibility with Consul-Terraform-Sync
+Below are the two required elements for module compatibility with CTS
 
-1. **Root module** - Terraform has one requirement for files in the root directory of the repository to function as the primary entrypoint for the module. It should encapsulate the core logic to be used by Consul-Terraform-Sync for task automation. `main.tf` is the recommended filename for the main file where resources are created.
-2. [**`services` input variable**](#services-variable) - Consul-Terraform-Sync requires all modules to have the following input variable declared within the root module. The declaration of the `services` variable can be included at the top of the suggested `variables.tf` file where other input variables are commonly declared. This variable functions as the response object from the Consul catalog API and surfaces network information to be consumed by the module. It is structured as a map of objects.
+1. **Root module** - Terraform has one requirement for files in the root directory of the repository to function as the primary entrypoint for the module. It should encapsulate the core logic to be used by CTS for task automation. `main.tf` is the recommended filename for the main file where resources are created.
+2. [**`services` input variable**](#services-variable) - CTS requires all modules to have the following input variable declared within the root module. The declaration of the `services` variable can be included at the top of the suggested `variables.tf` file where other input variables are commonly declared. This variable functions as the response object from the Consul catalog API and surfaces network information to be consumed by the module. It is structured as a map of objects.
 
 ### Optional Input Variables
 
-In addition to the required `services` input variable, Consul-Terraform-Sync provides additional, optional input variables to be used within your module. Support for an optional input variable requires two changes:
+In addition to the required `services` input variable, CTS provides additional, optional input variables to be used within your module. Support for an optional input variable requires two changes:
 
 1. Updating the Terraform Module to declare the input variable in the suggested `variables.tf`
-1. Adding configuration to the Consul-Terraform-Sync task block to define the source input values that should be provided to the input variables
+1. Adding configuration to the CTS task block to define the module input values that should be provided to the input variables
 
-See below sections for more information on [defining source input](#source-input) and [declaring optional input variables](#how-to-create-a-compatible-terraform-module) in your Terraform module.
+See below sections for more information on [defining module input](#module-input) and [declaring optional input variables](#how-to-create-a-compatible-terraform-module) in your Terraform module.
 
-### Source Input
+### Module Input ((#source-input))
 
-A source input allows for a task to satisfy the input requirements defined by the Terraform Module’s [input variables](https://www.terraform.io/docs/language/values/variables.html), and is configured alongside a task’s condition. Both the source input and condition define objects to be monitored, but for differing reasons.
+A task monitors [Consul objects](/docs/nia#consul-objects) that are defined by the task's configuration. The Consul objects can be used for the module input that satisfies the requirements defined by the task's Terraform module's [input variables](https://www.terraform.io/docs/language/values/variables.html).
 
-The condition defines monitored objects with criteria. When this criteria is satisfied, Consul-Terraform-Sync will then trigger a task.
+A task's module input is slightly different from the task's condition, even though both monitor defined objects. The task's condition monitors defined objects with a configured criteria. When this criteria is satisfied, the task will trigger.
 
-The source input however, defines monitored objects with the intent of providing values or metadata about these objects to the Terraform Module. The source input and condition objects can be the same, such as when `task.services` is provided without a source input block and condition block, but they can also be defined using separate blocks. In this way the source input does not need to be tied to the provided condition in order to satisfy the Terraform Module.
+The module input, however, monitors defined objects with the intent of providing values or metadata about these objects to the Terraform module. The monitored module input and condition objects can be the same object, such as a task configured with a `condition "services"` block and `use_as_module_input` set to `true`. The module input and condition can also be different objects and configured separately, such as a task configured with a `condition "catalog-services` and `module_input "consul-kv"` block. As a result, the monitored module input is decoupled from the provided condition in order to satisfy the Terraform module.
 
-There are a few ways that a source input can be defined:
+Each type of object that CTS monitors can only be defined through one configuration within a task definition. For example, if a task monitors services, the task cannot have both `condition "services"` and `module_input "services"` configured. See [Task Module Input configuration](/docs/nia/configuration#task-module-input) for more details.
 
-- [**`services` list**](/docs/nia/configuration#services) - The list of services to act as a source input.
-- **`source_includes_var` condition field** - If the condition supports this field, and it is set to true, then the condition’s objects will be used as a source input. For example, if a module is defined supporting [`catalog_services` input variable](#catalog-services-variable) then, this field can be set to true in the [catalog-services condition](/docs/nia/tasks#catalog-services-condition).
-- [**`source_input` block**](/docs/nia/configuration#source-input) - This block specifically defines a source input.
+There are a few ways that a module input can be defined:
 
-Multiple ways of defining a source input adds configuration flexibility, and allows for optional additional input variables to be supported by Consul-Terraform-Sync alongside the `services` input variable.
+- [**`services` list**](/docs/nia/configuration#services) (deprecated) - The list of services to use as module input.
+- **`condition` block's `use_as_module_input` field** - When set to true, the condition's objects are used as module input.
+  - Field was previously named `source_includes_var` (deprecated)
+- [**`module_input` blocks**](/docs/nia/configuration#module-input) - This block can be configured multiple times to define objects to use as module input.
+  - Block was previously named `source_input` (deprecated)
 
-These optional input variables include:
+Multiple ways of defining a module input adds configuration flexibility, and allows for optional additional input variables to be supported by CTS alongside the `services` input variable.
+
+Additional optional input variable types:
 
 - [**`catalog_services` variable**](#catalog-services-variable)
 - [**`consul_kv` variable**](#consul-kv-variable)
 
-#### Services Source Input
+#### Services Module Input ((#services-source-input))
 
-Tasks configured with a services source input monitor for changes to services. Monitoring is either performed on a configured list of services or on any services matching a provided regex.
+Tasks configured with a services module input monitor for changes to services. Monitoring is either performed on a configured list of services or on any services matching a provided regex.
 
 Sample rendered services input:
 
@@ -89,13 +93,15 @@ services = {
 
 </CodeBlockConfig>
 
-In order to configure a task with the services source input, the list of services that will be used for the input must be configured in one of the following ways:
+In order to configure a task with the services module input, the list of services that will be used for the input must be configured in one of the following ways:
 
-- the task's [`services`](/docs/nia/configuration#services)
-- a [`condition "services"` block](/docs/nia/configuration#services-condition) configured with `regexp` and `source_includes_var` set to true
-- a [`source_input "services"` block](/docs/nia/configuration#services-source-input) configured with `regexp`
+- the task's [`services`](/docs/nia/configuration#services) (deprecated)
+- a [`condition "services"` block](/docs/nia/configuration#services-condition) configured with `use_as_module_input` field set to true
+  - Field was previously named `source_includes_var` (deprecated)
+- a [`module_input "services"` block](/docs/nia/configuration#services-module-input)
+  - Block was previously named `source_input "services"` (deprecated)
 
-The services source input operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) and provides the latest service information to the input variables. A complete list of service information that would be provided to the module is expanded below:
+The services module input operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) and provides the latest service information to the input variables. A complete list of service information that would be provided to the module is expanded below:
 
 | Attribute               | Description                                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
@@ -114,26 +120,26 @@ The services source input operates by monitoring the [Health List Nodes For Serv
 | `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent                                           |
 | `node_meta`             | List of user-defined metadata key/value pairs for the node                                        |
 
-Below is an example configuration for a task that will execute on a schedule and provide information about the services matching the `regexp` parameter to the task’s module. Note that because `regexp` is set, `task.services` is omitted, and since a schedule is being used to trigger task execution, a `condition "services"` block cannot be used.
+Below is an example configuration for a task that will execute on a schedule and provide information about the services matching the `regexp` parameter to the task’s module.
 
 ```hcl
 task {
   name        = "services_condition_task"
   description = "execute on changes to services whose name starts with web"
   providers   = ["my-provider"]
-  source      = "path/to/services-condition-module"
+  module      = "path/to/services-condition-module"
   condition "schedule" {
     cron = "* * * * Mon"
   }
-  source_input "services" {
+  module_input "services" {
     regexp = "^web.*"
   }
 }
 ```
 
-#### Consul KV Source Input
+#### Consul KV Module Input ((#consul-kv-source-input))
 
-Tasks configured with a Consul KV source input monitor Consul KV for changes to KV pairs that satisfy the provided configuration. The Consul KV source input operates by monitoring the [Consul KV API](/api-docs/kv#read-key) and provides these key values to the task’s module.
+Tasks configured with a Consul KV module input monitor Consul KV for changes to KV pairs that satisfy the provided configuration. The Consul KV module input operates by monitoring the [Consul KV API](/api-docs/kv#read-key) and provides these key values to the task's module.
 
 Sample rendered consul KV input:
 
@@ -147,26 +153,26 @@ consul_kv = {
 
 </CodeBlockConfig>
 
-To configure a task with the Consul KV source input, the KVs which will be used for the input must be configured in one of the following ways:
+To configure a task with the Consul KV module input, the KVs which will be used for the input must be configured in one of the following ways:
 
-- a [`condition "consul-kv"` block](/docs/nia/configuration#consul-kv-condition) configured with the `source_includes_var` set to true.
-- a [`source_input "consul-kv"` block](/docs/nia/configuration#consul-kv-source-input).
+- a [`condition "consul-kv"` block](/docs/nia/configuration#consul-kv-condition) configured with the `use_as_module_input` field set to true.
+  - Field was previously named `source_includes_var` (deprecated)
+- a [`module_input "consul-kv"` block](/docs/nia/configuration#consul-kv-module-input).
+  - Block was previously named `source_input "consul-kv"` (deprecated)
 
-Below is a similar example to the one provided in the [Consul KV Condition](/docs/nia/tasks#consul-kv-condition) section. However, the difference in this example is that instead of triggering based on a change to Consul KV, this task will instead execute on a schedule. Once execution is triggered, Consul KV information is then provided to the task’s module.
+Below is a similar example to the one provided in the [Consul KV Condition](/docs/nia/tasks#consul-kv-condition) section. However, the difference in this example is that instead of triggering based on a change to Consul KV, this task will instead execute on a schedule. Once execution is triggered, Consul KV information is then provided to the task's module.
 
 ```hcl
 task {
   name        = "consul_kv_schedule_task"
   description = "executes on Monday monitoring Consul KV"
-  providers   = ["my-provider"]
-  services    = ["web-api"]
-  source      = "path/to/consul-kv-module"
+  module      = "path/to/consul-kv-module"
 
   condition "schedule" {
     cron = "* * * * Mon"
   }
 
-  source_input "consul-kv" {
+  module_input "consul-kv" {
     path       = "my-key"
     recurse    = true
     datacenter = "dc1"
@@ -175,9 +181,9 @@ task {
 }
 ```
 
-#### Catalog Services Source Input
+#### Catalog Services Module Input ((#catalog-services-source-input))
 
-Tasks configured with a Catalog Services source input monitors for service and tag information provided by the [Catalog List Services API](/api-docs/catalog#list-services). The source input is a map of service names to a list of tags.
+Tasks configured with a Catalog Services module input monitors for service and tag information provided by the [Catalog List Services API](/api-docs/catalog#list-services). The module input is a map of service names to a list of tags.
 
 Sample rendered catalog-services input:
 
@@ -193,26 +199,26 @@ catalog_services = {
 
 </CodeBlockConfig>
 
-To configure a task with the Catalog Services source input, the catalog services which will be used for the input must be configured in one of the following ways:
+To configure a task with the Catalog Services module input, the catalog services which will be used for the input must be configured in one of the following ways:
 
-- a [`condition "catalog-services"` block](/docs/nia/configuration#consul-kv-condition) configured with `source_includes_var` set to true.
+- a [`condition "catalog-services"` block](/docs/nia/configuration#consul-kv-condition) configured with `use_as_module_input` field.
+  - Field was previously named `source_includes_var` (deprecated)
 
--> **Note:** Currently there is no support for a `source_input “catalog-services”` block.
+-> **Note:** Currently there is no support for a `module_input "catalog-services"` block.
 
-Example of a catalog-services condition which supports source input through `source_includes_var`:
+Example of a catalog-services condition which supports module input through `use_as_module_input`:
 
 ```hcl
 task {
   name        = "catalog_services_condition_task"
   description = "execute on registration/deregistration of services"
   providers   = ["my-provider"]
-  services    = ["web-api"]
-  source      = "path/to/catalog-services-module"
+  module      = "path/to/catalog-services-module"
   condition "catalog-services" {
     datacenter          = "dc1"
     namespace           = "default"
     regexp              = "web.*"
-    source_includes_var = true
+    use_as_module_input = true
     node_meta {
       key = "value"
     }
@@ -222,13 +228,13 @@ task {
 
 ## How to Create a Compatible Terraform Module
 
-You can read more on how to [create a module](https://www.terraform.io/docs/modules/index.html) or work through a [tutorial to build a module](https://learn.hashicorp.com/tutorials/terraform/module-create). Consul-Terraform-Sync is designed to integrate with any module that satisfies the specifications in the following section.
+You can read more on how to [create a module](https://www.terraform.io/docs/modules/index.html) or work through a [tutorial to build a module](https://learn.hashicorp.com/tutorials/terraform/module-create). CTS is designed to integrate with any module that satisfies the specifications in the following section.
 
 The repository [hashicorp/consul-terraform-sync-template-module](https://github.com/hashicorp/consul-terraform-sync-template-module) can be cloned and used as a starting point for structuring a compatible Terraform module. The template repository has the files described in the next steps prepared.
 
 First, create a directory to organize Terraform configuration files that make up the module. You can start off with creating two files `main.tf` and `variables.tf` and expand from there based on your module and network infrastructure automation needs.
 
-The `main.tf` is the entry point of the module and this is where you can begin authoring your module. It can contain multiple Terraform resources related to an automation task that uses Consul service discovery information, particularly the required [`services` input variable](#services-variable). The code example below shows a resource using the `services` variable. When this example is used in automation with Consul-Terraform-Sync, the content of the local file would dynamically update as Consul service discovery information changes.
+The `main.tf` is the entry point of the module and this is where you can begin authoring your module. It can contain multiple Terraform resources related to an automation task that uses Consul service discovery information, particularly the required [`services` input variable](#services-variable). The code example below shows a resource using the `services` variable. When this example is used in automation with CTS, the content of the local file would dynamically update as Consul service discovery information changes.
 
 <CodeBlockConfig filename="main.tf">
 
@@ -244,11 +250,11 @@ resource "local_file" "consul_services" {
 
 </CodeBlockConfig>
 
-Something important to consider before authoring your module is deciding the [condition under which it will execute](/docs/nia/tasks#task-execution). This will allow you to potentially include other types of Consul-Terraform-Sync provided input variables in your module. It will also help inform your documentation and how users should configure their task for your module.
+Something important to consider before authoring your module is deciding the [condition under which it will execute](/docs/nia/tasks#task-execution). This will allow you to potentially use other types of CTS provided input variables in your module. It will also help inform your documentation and how users should configure their task for your module.
 
 ### Services Variable
 
-To satisfy the specification requirements for a compatible module, copy the `services` variable declaration to the `variables.tf` file. Your module can optionally have other [variable declarations](#module-input-variables) and [Consul-Terraform-Sync provided input variables](/docs/nia/terraform-modules#optional-input-variables) in addition to `var.services`.
+To satisfy the specification requirements for a compatible module, copy the `services` variable declaration to the `variables.tf` file. Your module can optionally have other [variable declarations](#module-input-variables) and [CTS provided input variables](/docs/nia/terraform-modules#optional-input-variables) in addition to `var.services`.
 
 <CodeBlockConfig filename="variables.tf">
 
@@ -282,9 +288,9 @@ variable "services" {
 
 </CodeBlockConfig>
 
-Keys of the `services` map are unique identifiers of the service across Consul agents and data centers. Keys follow the format `service-id.node.datacenter` (or `service-id.node.namespace.datacenter` for Consul Enterprise). A complete list of attributes available for the `services` variable is included in the [documentation for Consul-Terraform-Sync tasks](/docs/nia/tasks#services-condition).
+Keys of the `services` map are unique identifiers of the service across Consul agents and data centers. Keys follow the format `service-id.node.datacenter` (or `service-id.node.namespace.datacenter` for Consul Enterprise). A complete list of attributes available for the `services` variable is included in the [documentation for CTS tasks](/docs/nia/tasks#services-condition).
 
-Terraform variables when passed as module arguments can be [lossy for object types](https://www.terraform.io/docs/configuration/types.html#conversion-of-complex-types). This allows Consul-Terraform-Sync to declare the full variable with every object attribute in the generated root module, and pass the variable to a child module that contains a subset of these attributes for its variable declaration. Modules compatible with Consul-Terraform-Sync may simplify the `var.services` declaration within the module by omitting unused attributes. For example, the following services variable has 4 attributes with the rest omitted.
+Terraform variables when passed as module arguments can be [lossy for object types](https://www.terraform.io/docs/configuration/types.html#conversion-of-complex-types). This allows CTS to declare the full variable with every object attribute in the generated root module, and pass the variable to a child module that contains a subset of these attributes for its variable declaration. Modules compatible with CTS may simplify the `var.services` declaration within the module by omitting unused attributes. For example, the following services variable has 4 attributes with the rest omitted.
 
 <CodeBlockConfig filename="variables.tf">
 
@@ -324,7 +330,7 @@ The keys of the `catalog_services` map are the names of the services that are re
 
 We recommend that if you make a module with with a catalog-services condition, that you document this in the README. This way, users that want to configure a task with your module will know to configure a catalog-services [condition](/docs/nia/configuration#condition) block.
 
-Similarly, if you include the `catalog_services` variable in your module, we recommend that you also document this usage in the README. Users of your module will then know to set the catalog-services condition [`source_includes_var`](/docs/nia/configuration#source_includes_var) configuration to be true. When this field is set to true, Consul-Terraform-Sync will declare the `catalog_services` variable in the generated root module, and pass the variable to a child module. Therefore, if this field is configured inconsistently, Consul-Terraform-Sync will error and exit.
+Similarly, if you use the `catalog_services` variable in your module, we recommend that you also document this usage in the README. Users of your module will then know to set the catalog-services condition [`use_as_module_input`](/docs/nia/configuration#catalog-services-condition) configuration to be true. When this field is set to true, CTS will declare the `catalog_services` variable in the generated root module, and pass the variable to a child module. Therefore, if this field is configured inconsistently, CTS will error and exit.
 
 ### Consul KV Variable
 
@@ -341,7 +347,7 @@ variable "consul_kv" {
 
 </CodeBlockConfig>
 
-If your module contains the `consul_kv` variable, we recommend documenting the usage in the README file so that users know to set the [`source_includes_var`](/docs/nia/configuration#source_includes_var-1) configuration to `true` in the `consul-kv` condition. Setting the field to `true` instructs Consul-Terraform-Sync to declare the `consul_kv` variable in the generated root module and pass the variable to a child module. Therefore, if this field is configured inconsistently, Consul-Terraform-Sync will error and exit.
+If your module contains the `consul_kv` variable, we recommend documenting the usage in the README file so that users know to set the [`use_as_module_input`](/docs/nia/configuration#consul-kv-condition) configuration to `true` in the `consul-kv` condition. Setting the field to `true` instructs CTS to declare the `consul_kv` variable in the generated root module and pass the variable to a child module. Therefore, if this field is configured inconsistently, CTS will error and exit.
 
 ### Module Input Variables
 
@@ -353,15 +359,15 @@ Network infrastructure differs vastly across teams and organizations, and the au
 4. Set reasonable default values for variables that are optional, or omit default values for variables that are required module arguments.
 5. Set the [sensitive argument](https://www.terraform.io/docs/language/values/variables.html#suppressing-values-in-cli-output) for variables that contain secret or sensitive values. When set, Terraform will redact the value from output when Terraform commands are run.
 
-Terraform is an explicit configuration language and requires variables to be declared, typed, and passed explicitly through as module arguments. Consul-Terraform-Sync abstracts this by creating intermediate variables at the root level from the source input. These values are configured by practitioners within the [`task` block](/docs/nia/configuration#variable_files). Value assignments are parsed to interpolate the corresponding variable declaration and are written to the appropriate Terraform files. A few assumptions are made for the intermediate variables: the variables users provide Consul-Terraform-Sync are declared and supported by the module, matching name and type.
+Terraform is an explicit configuration language and requires variables to be declared, typed, and passed explicitly through as module arguments. CTS abstracts this by creating intermediate variables at the root level from the module input. These values are configured by practitioners within the [`task` block](/docs/nia/configuration#variable_files). Value assignments are parsed to interpolate the corresponding variable declaration and are written to the appropriate Terraform files. A few assumptions are made for the intermediate variables: the variables users provide CTS are declared and supported by the module, matching name and type.
 
 ### Module Guidelines
 
-This section covers guidelines for authoring compatible Consul-Terraform-Sync modules.
+This section covers guidelines for authoring compatible CTS modules.
 
 #### Scope
 
-We recommend scoping the module to a few related resources for a provider. Small modules are easier and more flexible for end users to adopt for Consul-Terraform-Sync. It allows them to iteratively combine different modules and use them as building blocks to meet their unique network infrastructure needs.
+We recommend scoping the module to a few related resources for a provider. Small modules are easier and more flexible for end users to adopt for CTS. It allows them to iteratively combine different modules and use them as building blocks to meet their unique network infrastructure needs.
 
 #### Complexity
 
@@ -371,8 +377,8 @@ Consider authoring modules with low complexity to reduce the run time for Terraf
 
 The Terraform module must declare which providers it requires within the [`terraform.required_providers` block](https://www.terraform.io/docs/language/providers/requirements.html#requiring-providers). We suggest to also include a version constraint for the provider to specify which versions the module is compatible with.
 
-Aside from the `required_providers` block, provider configurations should not be included within the sharable module for network integrations. End users will configure the providers through Consul-Terraform-Sync, and Consul-Terraform-Sync will then translate provider configuration to the generated root module appropriately.
+Aside from the `required_providers` block, provider configurations should not be included within the sharable module for network integrations. End users will configure the providers through CTS, and CTS will then translate provider configuration to the generated root module appropriately.
 
 #### Documentation
 
-Modules for Consul-Terraform-Sync are Terraform modules and can effectively run independently from the `consul-terraform-sync` daemon and Consul environment. They should be written and designed with Terraform best practices and should be clear to a Terraform user what the module does and how to use it. Module documentation should be named `README` or `README.md`. The description should capture what the module should be used for and the implications of running it in automation with Consul-Terraform-Sync.
+Modules for CTS are Terraform modules and can effectively run independently from the `consul-terraform-sync` daemon and Consul environment. They should be written and designed with Terraform best practices and should be clear to a Terraform user what the module does and how to use it. Module documentation should be named `README` or `README.md`. The description should capture what the module should be used for and the implications of running it in automation with CTS.
