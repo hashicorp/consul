@@ -22,7 +22,7 @@ export default function ConsulSubnav({ menuItems }) {
         {
           text: 'Try HCP Consul',
           url:
-            'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=top_nav_consul',
+            'https://cloud.hashicorp.com/products/consul/?utm_source=consul_io&utm_content=top_nav_consul',
           theme: {
             brand: 'consul',
           },
