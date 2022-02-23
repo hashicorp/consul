@@ -66,14 +66,15 @@ func (r IndexedCARoots) Active() *CARoot {
 
 // CARoot represents a root CA certificate that is trusted.
 type CARoot struct {
-	// ID is a globally unique ID (UUID) representing this CA root.
+	// ID is a globally unique ID (UUID) representing this CA chain. It is
+	// calculated from the SHA1 of the primary CA certificate.
 	ID string
 
 	// Name is a human-friendly name for this CA root. This value is
 	// opaque to Consul and is not used for anything internally.
 	Name string
 
-	// SerialNumber is the x509 serial number of the certificate.
+	// SerialNumber is the x509 serial number of the primary CA certificate.
 	SerialNumber uint64
 
 	// SigningKeyID is the connect.HexString encoded id of the public key that
@@ -96,9 +97,12 @@ type CARoot struct {
 	// future flexibility.
 	ExternalTrustDomain string
 
-	// Time validity bounds.
+	// NotBefore is the x509.Certificate.NotBefore value of the primary CA
+	// certificate. This value should generally be a time in the past.
 	NotBefore time.Time
-	NotAfter  time.Time
+	// NotAfter is the  x509.Certificate.NotAfter value of the primary CA
+	// certificate. This is the time when the certificate will expire.
+	NotAfter time.Time
 
 	// RootCert is the PEM-encoded public certificate for the root CA. The
 	// certificate is the same for all federated clusters.

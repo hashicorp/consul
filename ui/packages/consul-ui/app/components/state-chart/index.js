@@ -67,7 +67,9 @@ export default Component.extend({
   actions: {
     dispatch: function(eventName, e) {
       if (e && e.preventDefault) {
-        e.preventDefault();
+        if (typeof e.target.nodeName === 'undefined' || e.target.nodeName.toLowerCase() !== 'a') {
+          e.preventDefault();
+        }
       }
       this.dispatch(eventName, e);
     },

@@ -4,6 +4,8 @@ IMPROVEMENTS:
 
 * connect: update Envoy supported version of 1.20 to 1.20.1 [[GH-11895](https://github.com/hashicorp/consul/issues/11895)]
 * sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+* streaming: Improved performance when the server is handling many concurrent subscriptions and has a high number of CPU cores [[GH-12080](https://github.com/hashicorp/consul/issues/12080)]
+* systemd: Support starting/stopping the systemd service for linux packages when the optional EnvironmentFile does not exist. [[GH-12176](https://github.com/hashicorp/consul/issues/12176)]
 
 BUG FIXES:
 
@@ -29,9 +31,11 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* api: URL-encode/decode resource names for v1/agent endpoints in API. [[GH-11335](https://github.com/hashicorp/consul/issues/11335)]
 * api: Return 404 when de-registering a non-existent check [[GH-11950](https://github.com/hashicorp/consul/issues/11950)]
 * connect: Add support for connecting to services behind a terminating gateway when using a transparent proxy. [[GH-12049](https://github.com/hashicorp/consul/issues/12049)]
 * http: when a user attempts to access the UI but can't because it's disabled, explain this and how to fix it [[GH-11820](https://github.com/hashicorp/consul/issues/11820)]
+* raft: Consul leaders will attempt to transfer leadership to another server as part of gracefully leaving the cluster. [[GH-11376](https://github.com/hashicorp/consul/issues/11376)]
 * ui: Added a notice for non-primary intention creation [[GH-11985](https://github.com/hashicorp/consul/issues/11985)]
 
 BUG FIXES:
@@ -102,11 +106,14 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* acls: Show AuthMethodNamespace when reading/listing ACL tokens. [[GH-10598](https://github.com/hashicorp/consul/issues/10598)]
 * acl: replication routine to report the last error message. [[GH-10612](https://github.com/hashicorp/consul/issues/10612)]
 * agent: add variation of force-leave that exclusively works on the WAN [[GH-11722](https://github.com/hashicorp/consul/issues/11722)]
 * api: Enable setting query options on agent health and maintenance endpoints. [[GH-10691](https://github.com/hashicorp/consul/issues/10691)]
+* api: responses that contain only a partial subset of results, due to filtering by ACL policies, may now include an `X-Consul-Results-Filtered-By-ACLs` header [[GH-11569](https://github.com/hashicorp/consul/issues/11569)]
 * checks: add failures_before_warning setting for interval checks. [[GH-10969](https://github.com/hashicorp/consul/issues/10969)]
 * ci: Upgrade to use Go 1.17.5 [[GH-11799](https://github.com/hashicorp/consul/issues/11799)]
+* ci: Allow configuring graceful stop in testutil. [[GH-10566](https://github.com/hashicorp/consul/issues/10566)]
 * cli: Add `-cas` and `-modify-index` flags to the `consul config delete` command to support Check-And-Set (CAS) deletion of config entries [[GH-11419](https://github.com/hashicorp/consul/issues/11419)]
 * config: **(Enterprise Only)** Allow specifying permission mode for audit logs. [[GH-10732](https://github.com/hashicorp/consul/issues/10732)]
 * config: Support Check-And-Set (CAS) deletion of config entries [[GH-11419](https://github.com/hashicorp/consul/issues/11419)]
@@ -115,9 +122,7 @@ IMPROVEMENTS:
 * connect/ca: cease including the common name field in generated x509 non-CA certificates [[GH-10424](https://github.com/hashicorp/consul/issues/10424)]
 * connect: Add low-level feature to allow an Ingress to retrieve TLS certificates from SDS. [[GH-10903](https://github.com/hashicorp/consul/issues/10903)]
 * connect: Consul will now generate a unique virtual IP for each connect-enabled service (this will also differ across namespace/partition in Enterprise). [[GH-11724](https://github.com/hashicorp/consul/issues/11724)]
-* connect: Support Vault auth methods for the Connect CA Vault provider. Currently, we support any non-deprecated auth methods
-the latest version of Vault supports (v1.8.5), which include AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud,
-JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password. [[GH-11573](https://github.com/hashicorp/consul/issues/11573)]
+* connect: Support Vault auth methods for the Connect CA Vault provider. Currently, we support any non-deprecated auth methods the latest version of Vault supports (v1.8.5), which include AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud, JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password. [[GH-11573](https://github.com/hashicorp/consul/issues/11573)]
 * connect: Support manipulating HTTP headers in the mesh. [[GH-10613](https://github.com/hashicorp/consul/issues/10613)]
 * connect: add Namespace configuration setting for Vault CA provider [[GH-11477](https://github.com/hashicorp/consul/issues/11477)]
 * connect: ingress gateways may now enable built-in TLS for a subset of listeners. [[GH-11163](https://github.com/hashicorp/consul/issues/11163)]
@@ -135,7 +140,9 @@ JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius,
 * segments: **(Enterprise only)** ensure that the serf_lan_allowed_cidrs applies to network segments [[GH-11495](https://github.com/hashicorp/consul/issues/11495)]
 * telemetry: add a new `agent.tls.cert.expiry` metric for tracking when the Agent TLS certificate expires. [[GH-10768](https://github.com/hashicorp/consul/issues/10768)]
 * telemetry: add a new `mesh.active-root-ca.expiry` metric for tracking when the root certificate expires. [[GH-9924](https://github.com/hashicorp/consul/issues/9924)]
+* telemetry: added metrics to track certificates expiry. [[GH-10504](https://github.com/hashicorp/consul/issues/10504)]
 * types: add TLSVersion and TLSCipherSuite [[GH-11645](https://github.com/hashicorp/consul/issues/11645)]
+* ui: Change partition URL segment prefix from `-` to `_` [[GH-11801](https://github.com/hashicorp/consul/issues/11801)]
 * ui: Add upstream icons for upstreams and upstream instances [[GH-11556](https://github.com/hashicorp/consul/issues/11556)]
 * ui: Add uri guard to prevent future URL encoding issues [[GH-11117](https://github.com/hashicorp/consul/issues/11117)]
 * ui: Move the majority of our SASS variables to use native CSS custom
@@ -207,6 +214,7 @@ SECURITY:
 
 IMPROVEMENTS:
 
+* raft: Consul leaders will attempt to transfer leadership to another server as part of gracefully leaving the cluster. [[GH-11376](https://github.com/hashicorp/consul/issues/11376)]
 * sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
 
 BUG FIXES:

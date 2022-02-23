@@ -205,12 +205,10 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.ConfigE
 				return err
 			}
 
-			reply.Index = index
+			reply.Index, reply.Entry = index, entry
 			if entry == nil {
-				return nil
+				return errNotFound
 			}
-
-			reply.Entry = entry
 			return nil
 		})
 }

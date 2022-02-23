@@ -388,6 +388,10 @@
       {
         "title": "Technical Specifications",
         "path": "api-gateway/tech-specs"
+      },
+      {
+        "title": "Supported Kubernetes Features",
+        "path": "api-gateway/kubernetes-features"
       }
     ]
   },

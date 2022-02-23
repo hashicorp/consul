@@ -5,6 +5,15 @@
 %main-nav-horizontal-action > a {
   color: inherit;
 }
+%main-nav-horizontal-popover-menu-trigger::after {
+  @extend %with-chevron-down-mask, %as-pseudo;
+  width: 16px;
+  height: 16px;
+  position: relative;
+}
+%main-nav-horizontal-popover-menu-trigger[aria-expanded='true']::after {
+  @extend %with-chevron-up-mask;
+}
 /**/
 /* reduced size hamburger menu */
 %main-nav-horizontal-toggle {

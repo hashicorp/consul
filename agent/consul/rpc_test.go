@@ -227,11 +227,9 @@ func (m *MockSink) Close() error {
 	return nil
 }
 
-func TestRPC_blockingQuery(t *testing.T) {
+func TestServer_blockingQuery(t *testing.T) {
 	t.Parallel()
-	dir, s := testServer(t)
-	defer os.RemoveAll(dir)
-	defer s.Shutdown()
+	_, s := testServerWithConfig(t)
 
 	// Perform a non-blocking query. Note that it's significant that the meta has
 	// a zero index in response - the implied opts.MinQueryIndex is also zero but
@@ -390,6 +388,93 @@ func TestRPC_blockingQuery(t *testing.T) {
 		err = s.blockingQuery(&opts, &meta, fn)
 		require.NoError(t, err)
 		require.True(t, meta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be honored for authenticated calls")
+	})
+
+	t.Run("non-blocking query for item that does not exist", func(t *testing.T) {
+		opts := structs.QueryOptions{}
+		meta := structs.QueryMeta{}
+		calls := 0
+		fn := func(_ memdb.WatchSet, _ *state.Store) error {
+			calls++
+			return errNotFound
+		}
+
+		err := s.blockingQuery(&opts, &meta, fn)
+		require.NoError(t, err)
+		require.Equal(t, 1, calls)
+	})
+
+	t.Run("blocking query for item that does not exist", func(t *testing.T) {
+		opts := structs.QueryOptions{MinQueryIndex: 3, MaxQueryTime: 100 * time.Millisecond}
+		meta := structs.QueryMeta{}
+		calls := 0
+		fn := func(ws memdb.WatchSet, _ *state.Store) error {
+			calls++
+			if calls == 1 {
+				meta.Index = 3
+
+				ch := make(chan struct{})
+				close(ch)
+				ws.Add(ch)
+				return errNotFound
+			}
+			meta.Index = 5
+			return errNotFound
+		}
+
+		err := s.blockingQuery(&opts, &meta, fn)
+		require.NoError(t, err)
+		require.Equal(t, 2, calls)
+	})
+
+	t.Run("blocking query for item that existed and is removed", func(t *testing.T) {
+		opts := structs.QueryOptions{MinQueryIndex: 3, MaxQueryTime: 100 * time.Millisecond}
+		meta := structs.QueryMeta{}
+		calls := 0
+		fn := func(ws memdb.WatchSet, _ *state.Store) error {
+			calls++
+			if calls == 1 {
+				meta.Index = 3
+
+				ch := make(chan struct{})
+				close(ch)
+				ws.Add(ch)
+				return nil
+			}
+			meta.Index = 5
+			return errNotFound
+		}
+
+		start := time.Now()
+		err := s.blockingQuery(&opts, &meta, fn)
+		require.True(t, time.Since(start) < opts.MaxQueryTime, "query timed out")
+		require.NoError(t, err)
+		require.Equal(t, 2, calls)
+	})
+
+	t.Run("blocking query for non-existent item that is created", func(t *testing.T) {
+		opts := structs.QueryOptions{MinQueryIndex: 3, MaxQueryTime: 100 * time.Millisecond}
+		meta := structs.QueryMeta{}
+		calls := 0
+		fn := func(ws memdb.WatchSet, _ *state.Store) error {
+			calls++
+			if calls == 1 {
+				meta.Index = 3
+
+				ch := make(chan struct{})
+				close(ch)
+				ws.Add(ch)
+				return errNotFound
+			}
+			meta.Index = 5
+			return nil
+		}
+
+		start := time.Now()
+		err := s.blockingQuery(&opts, &meta, fn)
+		require.True(t, time.Since(start) < opts.MaxQueryTime, "query timed out")
+		require.NoError(t, err)
+		require.Equal(t, 2, calls)
 	})
 }
 

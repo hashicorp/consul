@@ -26,6 +26,7 @@
 @import 'consul-ui/components/more-popover-menu';
 @import 'consul-ui/components/oidc-select';
 @import 'consul-ui/components/radio-card';
+@import 'consul-ui/components/panel';
 @import 'consul-ui/components/pill';
 @import 'consul-ui/components/popover-menu';
 @import 'consul-ui/components/popover-select';
@@ -92,7 +93,6 @@
 @import 'consul-ui/components/consul/auth-method';
 
 @import 'consul-ui/components/role-selector';
-@import 'consul-ui/components/collapsible-notices';
 @import 'consul-ui/components/topology-metrics';
 @import 'consul-ui/components/topology-metrics/card';
 @import 'consul-ui/components/topology-metrics/source-type';

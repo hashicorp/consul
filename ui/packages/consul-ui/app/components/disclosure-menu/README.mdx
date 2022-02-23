@@ -19,13 +19,15 @@ common usecase of having a floating menu.
     >
       {{if disclosure.expanded 'Close' 'Open'}}
     </disclosure.Action>
-    <disclosure.Menu as |menu|>
-      <menu.Item>
-        <menu.Action>Item 1</menu.Action>
-      </menu.Item>
-      <menu.Item>
-        <menu.Action>Item 2</menu.Action>
-      </menu.Item>
+    <disclosure.Menu as |panel|>
+      <panel.Menu as |menu|>
+        <menu.Item>
+          <menu.Action>Item 1</menu.Action>
+        </menu.Item>
+        <menu.Item>
+          <menu.Action>Item 2</menu.Action>
+        </menu.Item>
+      </panel.Menu>
     </disclosure.Menu>
   </DisclosureMenu>
 </figure>
@@ -46,13 +48,15 @@ common usecase of having a floating menu.
         (array 'top' this.height)
         (array 'background-color' 'rgb(var(--tone-gray-000))')
       }}
-    as |menu|>
-      <menu.Item>
-        <menu.Action>Item 1</menu.Action>
-      </menu.Item>
-      <menu.Item>
-        <menu.Action>Item 2</menu.Action>
-      </menu.Item>
+    as |panel|>
+      <panel.Menu as |menu|>
+        <menu.Item>
+          <menu.Action>Item 1</menu.Action>
+        </menu.Item>
+        <menu.Item>
+          <menu.Action>Item 2</menu.Action>
+        </menu.Item>
+      </panel.Menu>
     </disclosure.Menu>
   </DisclosureMenu>
 </figure>

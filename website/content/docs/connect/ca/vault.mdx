@@ -116,16 +116,25 @@ The configuration options are listed below.
 
 
 - `RootPKIPath` / `root_pki_path` (`string: <required>`) - The path to
-  a PKI secrets engine for the root certificate. If the path does not
+  a PKI secrets engine for the root certificate.
+
+  If the path does not
   exist, Consul will mount a new PKI secrets engine at the specified path with the
   `RootCertTTL` value as the root certificate's TTL. If the `RootCertTTL` is not set,
   a [`max_lease_ttl`](https://www.vaultproject.io/api/system/mounts#max_lease_ttl)
   of 87600 hours, or 10 years is applied by default as of Consul 1.11 and later. Prior to Consul 1.11, 
   the root certificate TTL was set to 8760 hour, or 1 year, and was not configurable. 
   The root certificate will expire at the end of the specified period. 
-  
+
   When WAN Federation is enabled, each secondary datacenter must use the same Vault cluster and share the same `root_pki_path`
-  with the primary datacenter. 
+  with the primary datacenter.
+
+  To use an intermediate certificate as the primary CA in Consul initialize the
+  `RootPKIPath` in Vault with a PEM bundle. The first certificate in the bundle
+  must be the intermediate certificate that Consul will use as the primary CA.
+  The last certificate in the bundle must be a root certificate. The bundle
+  must contain a valid chain, where each certificate is followed by the certificate
+  that authorized it.
 
 - `IntermediatePKIPath` / `intermediate_pki_path` (`string: <required>`) -
   The path to a PKI secrets engine for the generated intermediate certificate.

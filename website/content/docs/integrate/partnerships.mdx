@@ -6,22 +6,19 @@ description: Guide to partnership integrations for Consul.
 
 # Consul Integration Program
 
-The HashiCorp Consul Integration Program enables prospective partners to build integrations with HashiCorp Consul that are reviewed and verified by HashiCorp. Consul can be consumed in two ways: **self-managed**, or **HashiCorp Cloud Platform**, a hosted version of Consul operated by HashiCorp. HCP Consul is secure by default and offers an enterprise-level SLA to deploy an organization’s most important applications.
+The HashiCorp Consul Integration Program enables prospective partners to build integrations with HashiCorp Consul that are reviewed and verified by HashiCorp. Consul can be consumed in three ways: 
 
-All integrations are available with Consul’s self-managed version. In some cases, these integrations can also be validated against HCP Consul. Upon completion of the validation with HCP Consul, a partner will receive a HCP Consul Verified badge which will be displayed on their partner page and utilized on the partner’s website as well.
-
-<img src="/img/hcp_consul_partner_badge.png" alt="HCP Consul Badge" style={{display:'block', margin:'auto', width:'192px'}}/>
+- **Self-Managed**. Open source, always free
+- **HashiCorp Cloud Platform (HCP)**. A hosted version of Consul managed in the cloud
+- **Consul Enterprise**. Self-managed, with additional features for custom deployments
 
 The program is intended to be largely self-service with links to resources, code samples, documentation, and clear integration steps.
 
 ## Categories of Consul Integrations
 
-By leveraging Consul’s RESTful HTTP API system, prospective partners are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul’s functionalities. These integrations can be performed both with the OSS (open source) version of Consul, Consul Enterprise, and HCP Consul. For features in Consul Enterprise and HCP Consul, refer to the links below:
+By leveraging Consul’s RESTful HTTP API system, prospective partners are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul’s functionalities. These integrations can be performed both with the open source version of Consul, Consul Enterprise, and HCP Consul. 
 
-- [HCP Consul Features](https://cloud.hashicorp.com/docs/consul/features)
-- [Consul Enterprise Features](/docs/enterprise)
-
-**The Consul Ecosystem Architecture**
+**The Consul ecosystem of integrations:**
 
 <img src="/img/consul_ecosystem_diagram2.png" alt="Consul Architecture" style={{display:'block', margin:'auto', width:'624px'}}/>
 
@@ -34,6 +31,14 @@ By leveraging Consul’s RESTful HTTP API system, prospective partners are able 
 **Infrastructure**: There are two integration options in this category: natively through a direct integration with Consul or via Consul-Terraform-Sync (CTS). By leveraging Consul’s powerful **Network Infrastructure Automation (NIA)*** capabilities through CTS, changes in an infrastructure are seamlessly automated when Consul detects a change in its service catalog. For example, these integrations could be used to automate IP updates of load balancers or firewall security policies by leveraging Consul service discovery.
 
 -> **Network Infrastructure Automation (NIA)***: These integrations leverage Consul’s service catalog to seamlessly integrate with Consul-Terraform-Sync (CTS) to automate changes in network infrastructure via a publisher-subscriber method. More details can be found [here](/docs/integrate/nia-integration).
+
+**HCP Consul**: HCP Consul is secure by default and offers an enterprise-level service level agreement (SLA) to deploy an organization’s most important applications. Sign up for HCP Consul is free and available [here](https://cloud.hashicorp.com/products/consul).
+
+**Consul integration verification badges**: Partners will be issued the Consul Enterprise badge for integrations that work with [Consul Enterprise features](https://www.consul.io/docs/enterprise) such as namespaces. Partners will be issued the HCP Consul badge for integrations validated to work with [HCP Consul](https://cloud.hashicorp.com/docs/consul/features). Each badge would be displayed on HashiCorp’s partner page as well as be available for posting on the partner’s own website to provide better visibility and differentiation of the integration for joint customers.
+
+<span style={{display:'block', textAlign:'center'}}><img src="/img/consul_enterprise_partner_badge.png" style={{width:'192px', height:'192px'}}/><img src="/img/HCPc_badge.png" style={{width:'192px', height:'192px'}}/></span>
+
+Developing a valid integration with either Consul Enterprise or HCP Consul also qualifies the partner for the Premier tier of the HashiCorp Technology Partners program. The process for verification of these integrations is detailed below.
 
 ## Development Process
 
@@ -99,6 +104,8 @@ Here are links to resources, documentation, examples and best practices to guide
   
   - [Automated Firewalling with Check Point](https://www.hashicorp.com/integrations/checkpoint-software/consul)
   - [Automated Firewalling with Palo Alto Networks](https://www.hashicorp.com/integrations/pan/consul)
+  - [Automated Firewalling with Cisco FMC](https://registry.terraform.io/modules/CiscoDevNet/dynamicobjects/fmc/latest)
+  - [Automated Firewalling with Fortinet FortiManager](https://registry.terraform.io/modules/fortinetdev/cts-agpu/fortimanager/latest)
 
 **Software-Defined Networking \(SDN\)**
 
@@ -133,6 +140,8 @@ Please note that HCP Consul is currently only deployed on AWS so the partner’s
 - [Peering an HVN to a VPC for HCP Consul](https://www.youtube.com/watch?v=vuKjkIGYZlU)
 - [Connecting a Consul Client to HCP Consul](https://learn.hashicorp.com/tutorials/cloud/consul-client-virtual-machines?in=consul/cloud-get-started)
 - [Monitoring HCP Consul with Datadog](https://docs.datadoghq.com/integrations/guide/hcp-consul/)
+
+**Consul Enterprise**: An integration qualifies for Consul Enterprise when it is tested and compatible with Consul Enterprise Namespaces.
 
 ### 4. Review and Approval
 
