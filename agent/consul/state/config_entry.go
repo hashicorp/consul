@@ -878,7 +878,7 @@ func (s *Store) ReadResolvedServiceConfigEntries(
 	var (
 		noUpstreamArgs = len(upstreamIDs) == 0
 
-		// Check the args and the resolved value. If it was exclusively set via a config entry, then args.Mode
+		// Check the args and the resolved value. If it was exclusively set via a config entry, then proxyMode
 		// will never be transparent because the service config request does not use the resolved value.
 		tproxy = proxyMode == structs.ProxyModeTransparent || inferredProxyMode == structs.ProxyModeTransparent
 	)
