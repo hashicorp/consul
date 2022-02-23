@@ -1799,7 +1799,7 @@ func TestIntentionMatch_BlockOnNoChange(t *testing.T) {
 		})
 
 		g.Go(func() error {
-			for i := uint64(0); i < 200; i++ {
+			for i := 0; i < 200; i++ {
 				time.Sleep(5 * time.Millisecond)
 
 				var out string
