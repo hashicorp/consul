@@ -1,0 +1,3 @@
+```release-note:bug
+server: partly fix config entry replication issue that prevents replication in some circumstances
+```
