@@ -254,16 +254,12 @@ func TestReplication_ConfigEntries_GraphValidationErrorDuringReplication(t *test
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	client := rpcClient(t, s1)
-	defer client.Close()
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	_, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.ConfigReplicationRate = 100
@@ -271,8 +267,6 @@ func TestReplication_ConfigEntries_GraphValidationErrorDuringReplication(t *test
 		c.ConfigReplicationApplyLimit = 1000000
 	})
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
 	// Create two entries that will replicate in the wrong order and not work.
 	entries := []structs.ConfigEntry{
