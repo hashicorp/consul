@@ -307,7 +307,7 @@ func TestReplication_ConfigEntries_GraphValidationErrorDuringReplication(t *test
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
 
-	checkSame := func(t *retry.R) error {
+	checkSame := func(t require.TestingT) error {
 		_, remote, err := s1.fsm.State().ConfigEntries(nil, structs.ReplicationEnterpriseMeta())
 		require.NoError(t, err)
 		_, local, err := s2.fsm.State().ConfigEntries(nil, structs.ReplicationEnterpriseMeta())
