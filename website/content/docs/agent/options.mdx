@@ -19,7 +19,7 @@ Configuration precedence is evaluated in the following order:
 1. Command line arguments
 2. Configuration files
 
-When loading configuration, Consul loads the configuration from files and
+When loading configuration, the Consul agent loads the configuration from files and
 directories in lexical order. For example, configuration file
 `basic_config.json` will be processed before `extra_config.json`. Configuration
 can be in either [HCL](https://github.com/hashicorp/hcl#syntax) or JSON format.
@@ -32,7 +32,7 @@ earlier. In some cases, such as event handlers, merging appends the handlers to
 the existing configuration. The exact merging behavior is specified for each
 option below.
 
-Consul also supports reloading configuration when it receives the
+The Consul agent also supports reloading configuration when it receives the
 SIGHUP signal. Not all changes are respected, but those that are
 documented below in the
 [Reloadable Configuration](#reloadable-configuration) section. The
@@ -56,7 +56,7 @@ information.
 
 -> **Note:** Some CLI arguments may be different from HCL keys. See [Configuration Key Reference](#config_key_reference) for equivalent HCL Keys.
 
-The options below are all specified on the command-line.
+The agent configuration options below are all specified on the command-line.
 
 - `-advertise` ((#\_advertise)) - The advertise address is used to change
   the address that we advertise to other nodes in the cluster. By default, the [`-bind`](#_bind)
@@ -590,7 +590,7 @@ The options below are all specified on the command-line.
 
 ## Configuration Files ((#configuration_files))
 
-In addition to the command-line options, configuration can be put into
+In addition to the command-line options, configuration for the Consul agent can be put into
 files. This may be easier in certain situations, for example when Consul is
 being configured using a configuration management system.
 
