@@ -354,17 +354,17 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 }
 
 func (s *Server) replicateACLTokens(ctx context.Context, logger hclog.Logger, lastRemoteIndex uint64) (uint64, bool, error) {
-	tr := &aclTokenReplicator{}
+	tr := &aclTokenReplicator{rpcObserver: s.rpcObserver}
 	return s.replicateACLType(ctx, logger, tr, lastRemoteIndex)
 }
 
 func (s *Server) replicateACLPolicies(ctx context.Context, logger hclog.Logger, lastRemoteIndex uint64) (uint64, bool, error) {
-	tr := &aclPolicyReplicator{}
+	tr := &aclPolicyReplicator{rpcObserver: s.rpcObserver}
 	return s.replicateACLType(ctx, logger, tr, lastRemoteIndex)
 }
 
 func (s *Server) replicateACLRoles(ctx context.Context, logger hclog.Logger, lastRemoteIndex uint64) (uint64, bool, error) {
-	tr := &aclRoleReplicator{}
+	tr := &aclRoleReplicator{rpcObserver: s.rpcObserver}
 	return s.replicateACLType(ctx, logger, tr, lastRemoteIndex)
 }
 

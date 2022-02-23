@@ -11,7 +11,7 @@ type ServiceCallObserver struct {
 	Logger hclog.Logger
 }
 
-func (i *ServiceCallObserver) Observe(name string, rpcType string, start time.Time, request, response interface{}) {
+func (i ServiceCallObserver) Observe(name string, rpcType string, start time.Time, request, response interface{}) {
 	errored := "false"
 	if _, ok := response.(error); ok {
 		errored = "true"

@@ -3,6 +3,9 @@ package consul
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"github.com/hashicorp/consul/agent/rpc"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -11,6 +14,8 @@ type aclTokenReplicator struct {
 	local   structs.ACLTokens
 	remote  structs.ACLTokenListStubs
 	updated []*structs.ACLToken
+
+	rpcObserver rpc.ServiceCallObserver
 }
 
 var _ aclTypeReplicator = (*aclTokenReplicator)(nil)
@@ -82,12 +87,13 @@ func (r *aclTokenReplicator) FetchUpdated(srv *Server, updates []string) (int, e
 }
 
 func (r *aclTokenReplicator) DeleteLocalBatch(srv *Server, batch []string) error {
+	start := time.Now()
 	req := structs.ACLTokenBatchDeleteRequest{
 		TokenIDs: batch,
 	}
 
-	// TODO(rpc-metrics): observe this apply
 	_, err := srv.raftApply(structs.ACLTokenDeleteRequestType, &req)
+	r.rpcObserver.Observe("ACL.TokenDelete", rpcTypeLeader, start, &req, err)
 	return err
 }
 
@@ -104,6 +110,7 @@ func (r *aclTokenReplicator) PendingUpdateIsRedacted(i int) bool {
 }
 
 func (r *aclTokenReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, start, end int) error {
+	startTime := time.Now()
 	req := structs.ACLTokenBatchSetRequest{
 		Tokens:            r.updated[start:end],
 		CAS:               false,
@@ -111,8 +118,8 @@ func (r *aclTokenReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, 
 		FromReplication:   true,
 	}
 
-	// TODO(rpc-metrics): observe this apply
 	_, err := srv.raftApply(structs.ACLTokenSetRequestType, &req)
+	r.rpcObserver.Observe("ACL.TokenSet", rpcTypeLeader, startTime, &req, err)
 	return err
 }
 
@@ -122,6 +129,8 @@ type aclPolicyReplicator struct {
 	local   structs.ACLPolicies
 	remote  structs.ACLPolicyListStubs
 	updated []*structs.ACLPolicy
+
+	rpcObserver rpc.ServiceCallObserver
 }
 
 var _ aclTypeReplicator = (*aclPolicyReplicator)(nil)
@@ -184,12 +193,13 @@ func (r *aclPolicyReplicator) FetchUpdated(srv *Server, updates []string) (int, 
 }
 
 func (r *aclPolicyReplicator) DeleteLocalBatch(srv *Server, batch []string) error {
+	startTime := time.Now()
 	req := structs.ACLPolicyBatchDeleteRequest{
 		PolicyIDs: batch,
 	}
 
-	// TODO(rpc-metrics): observe this apply
 	_, err := srv.raftApply(structs.ACLPolicyDeleteRequestType, &req)
+	r.rpcObserver.Observe("ACL.PolicyDelete", rpcTypeLeader, startTime, &req, err)
 	return err
 }
 
@@ -206,12 +216,13 @@ func (r *aclPolicyReplicator) PendingUpdateIsRedacted(i int) bool {
 }
 
 func (r *aclPolicyReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, start, end int) error {
+	startTime := time.Now()
 	req := structs.ACLPolicyBatchSetRequest{
 		Policies: r.updated[start:end],
 	}
 
-	// TODO(rpc-metrics): observe this apply
 	_, err := srv.raftApply(structs.ACLPolicySetRequestType, &req)
+	r.rpcObserver.Observe("ACL.PolicySet", rpcTypeLeader, startTime, &req, err)
 	return err
 }
 
@@ -221,6 +232,8 @@ type aclRoleReplicator struct {
 	local   structs.ACLRoles
 	remote  structs.ACLRoles
 	updated []*structs.ACLRole
+
+	rpcObserver rpc.ServiceCallObserver
 }
 
 var _ aclTypeReplicator = (*aclRoleReplicator)(nil)
@@ -307,12 +320,13 @@ func (r *aclRoleReplicator) FetchUpdated(srv *Server, updates []string) (int, er
 }
 
 func (r *aclRoleReplicator) DeleteLocalBatch(srv *Server, batch []string) error {
+	startTime := time.Now()
 	req := structs.ACLRoleBatchDeleteRequest{
 		RoleIDs: batch,
 	}
 
-	// TODO(rpc-metrics): observe this apply
 	_, err := srv.raftApply(structs.ACLRoleDeleteRequestType, &req)
+	r.rpcObserver.Observe("ACL.RoleDelete", rpcTypeLeader, startTime, &req, err)
 	return err
 }
 
@@ -329,12 +343,13 @@ func (r *aclRoleReplicator) PendingUpdateIsRedacted(i int) bool {
 }
 
 func (r *aclRoleReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, start, end int) error {
+	startTime := time.Now()
 	req := structs.ACLRoleBatchSetRequest{
 		Roles:             r.updated[start:end],
 		AllowMissingLinks: true,
 	}
 
-	// TODO(rpc-metrics): observe this apply
 	_, err := srv.raftApply(structs.ACLRoleSetRequestType, &req)
+	r.rpcObserver.Observe("ACL.RoleSet", rpcTypeLeader, startTime, &req, err)
 	return err
 }

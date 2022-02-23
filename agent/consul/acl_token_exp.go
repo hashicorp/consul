@@ -55,6 +55,7 @@ func (s *Server) reapExpiredLocalACLTokens() (int, error) {
 	return s.reapExpiredACLTokens(true, false)
 }
 func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
+	start := time.Now()
 	if !s.config.ACLsEnabled {
 		return 0, nil
 	}
@@ -100,8 +101,8 @@ func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 		"amount", len(req.TokenIDs),
 		"locality", locality,
 	)
-	// TODO(rpc-metrics): observe this apply
 	_, err = s.raftApply(structs.ACLTokenDeleteRequestType, &req)
+	s.rpcObserver.Observe("ACL.TokenDelete", rpcTypeLeader, start, &req, err)
 	if err != nil {
 		return 0, fmt.Errorf("Failed to apply token expiration deletions: %v", err)
 	}
