@@ -22,6 +22,19 @@ Consul API Gateway solves the following primary use cases:
 
 Consul API Gateway implements the Kubernetes [Gateway API Specification](https://gateway-api.sigs.k8s.io/). This specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes based on the path or protocol of a client request. 
 
+### Supported Kubernetes Gateway Specification Features
+
+The Consul API Gateway supports a subset of the Kubernetes [v1alpha2 Gateway API specification](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/). The following table
+describes the supported features of the specification. For a complete list of features, including the list of gateway and route statuses and an explanation on how they
+are used, see the [documentation in our GitHub repo](https://github.com/hashicorp/consul-api-gateway/blob/main/dev/docs/supported-features.md).
+
+| Kubernetes Object  | Description |
+| ----- | ----------------------------- |
+| [`GatewayClass`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.GatewayClass) | <ul><li>Parameter specification via `GatewayClassConfig` CRD</li><li>Controller matching on `"hashicorp.com/consul-api-gateway-controller"`</li></ul> |
+| [`Gateway`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Gateway) | <ul><li>Supported protocols: `HTTP`, `HTTPS`, `TCP`</li><li>Header-based hostname matching (no SNI support)</li><li>Supported filters: header addition, removal, and setting</li><li>TLS modes supported: `terminate`</li><li>Certificate types supported: `core/v1/Secret`</li><li>Extended options: TLS version and cipher constraints</li></ul> |
+| [`HTTPRoute`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.HTTPRoute) | <ul><li>Weight-based load balancing</li><li>Supported rules: path, header, query, and method-based matching</li><li>Supported filters: header addition, removal, and setting</li><li>Supported backend types: <ol><li>`core/v1/Service` (must map to a registered Consul service)</li><li>`api-gateway.consul.hashicorp.com/v1alpha1/MeshService`</li></ol></li></ul> |
+| [`TCPRoute`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.TCPRoute) | <ul><li>Supported backend types: <ol><li>`core/v1/Service` (must map to a registered Consul service)</li><li>`api-gateway.consul.hashicorp.com/v1alpha1/MeshService`</li></ol></li></ul> |
+
 ## Additional Resources
 
 You can learn more about using Consul API Gateway by completing the [Consul API Gateway tutorial](https://learn.hashicorp.com/tutorials/consul/kubernetes-api-gateway).
