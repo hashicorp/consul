@@ -709,7 +709,8 @@ func (a *Agent) Start(ctx context.Context) error {
 					}
 				}
 			}()
-			a.FileWatcher.Start(ctx)
+			a.baseDeps.Logger.Debug("starting file watcher")
+			a.FileWatcher.Start(context.Background())
 		}
 	}
 	return nil

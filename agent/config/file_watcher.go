@@ -157,6 +157,7 @@ func (w *FileWatcher) watch(ctx context.Context) {
 		case <-ticker.C:
 			w.reconcile(ctx)
 		case <-ctx.Done():
+			w.logger.Error("context done", "Err", ctx.Err())
 			return
 		}
 	}
@@ -223,7 +224,6 @@ func (w *FileWatcher) reconcile(ctx context.Context) {
 	w.configFilesLock.Lock()
 	defer w.configFilesLock.Unlock()
 	for filename, configFile := range w.configFiles {
-		w.logger.Trace("reconciling", "filename", filename)
 		newModTime, err := w.getFileModifiedTime(filename)
 		if err != nil {
 			w.logger.Error("failed to get file modTime", "file", filename, "err", err)
