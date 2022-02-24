@@ -32,7 +32,7 @@ Refer to [Technical Specifications](/docs/api-gateway/tech-specs) for minimum so
    ```yaml
    global:
      name: consul
-     image: 'hashicorp/consul:1.11.2'
+     image: 'hashicorp/consul:1.11.3'
    connectInject:
      enabled: true
    controller:
@@ -49,7 +49,7 @@ Refer to [Technical Specifications](/docs/api-gateway/tech-specs) for minimum so
    <CodeBlockConfig>
 
    ```shell-session
-   $ helm install consul hashicorp/consul --version 0.41.0 --values values.yaml
+   $ helm install consul hashicorp/consul --version 0.41.1 --values values.yaml
    ```
 
    </CodeBlockConfig>
@@ -137,6 +137,8 @@ Configure the following artifacts to facilitate ingress into your Consul service
 - [GatewayClass](#gatewayclass): Defines a class of gateway resources that you can use as a template for creating gateways.
 - [Gateway](#gateway): Defines the main infrastructure resource that links API gateway components. It specifies the name of the `GatewayClass` and one or more `listeners` (see [Listeners](#listeners)), which specify the logical endpoints bound to the gateway's addresses.
 - [Routes](#routes): Specifies the path from the client to the listener.
+
+-> ** Note:** If `managedGatewayClass` is enabled in the Helm chart, a `GatewayClassConfig` and `GatewayClass` will be created automatically and should be configured via [Helm chart options](https://www.consul.io/docs/k8s/helm#v-apigateway-managedgatewayclass) instead of this custom resource.
 
 ### GatewayClassConfig
 
