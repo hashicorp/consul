@@ -335,16 +335,16 @@ consul.hashicorp.com/connect-service-upstreams: "web:1234,web-admin:2234"
 ```
 
 If you exec on to a static-client pod, using a command like:
-```
-kubectl exec -it static-client-5bd667fbd6-kk6xs -- /bin/sh
+```shell-session
+$ kubectl exec -it static-client-5bd667fbd6-kk6xs -- /bin/sh
 ```
 you can then run:
-```
-curl localhost:1234
+```shell-session
+$ curl localhost:1234
 ```
 to see the output `hello world` and run:
-```
-curl localhost:2234
+```shell-session
+$ curl localhost:2234
 ```
 to see the output `hello world from 9090`.
 
