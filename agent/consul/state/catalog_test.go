@@ -471,8 +471,11 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 	}
 
 	// Add in a top-level check.
+	//
+	// Verify that node name references in checks are case-insensitive during
+	// restore.
 	req.Check = &structs.HealthCheck{
-		Node:    nodeName,
+		Node:    strings.ToUpper(nodeName),
 		CheckID: "check1",
 		Name:    "check",
 		RaftIndex: structs.RaftIndex{
@@ -499,7 +502,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			t.Fatalf("bad: %#v", out)
 		}
 		c := out[0]
-		if c.Node != nodeName || c.CheckID != "check1" || c.Name != "check" ||
+		if c.Node != strings.ToUpper(nodeName) || c.CheckID != "check1" || c.Name != "check" ||
 			c.CreateIndex != 3 || c.ModifyIndex != 3 {
 			t.Fatalf("bad check returned: %#v", c)
 		}
@@ -545,7 +548,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			t.Fatalf("bad: %#v", out)
 		}
 		c1 := out[0]
-		if c1.Node != nodeName || c1.CheckID != "check1" || c1.Name != "check" ||
+		if c1.Node != strings.ToUpper(nodeName) || c1.CheckID != "check1" || c1.Name != "check" ||
 			c1.CreateIndex != 3 || c1.ModifyIndex != 3 {
 			t.Fatalf("bad check returned, should not be modified: %#v", c1)
 		}

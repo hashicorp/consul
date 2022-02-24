@@ -103,11 +103,11 @@ func (c *cmd) Run(args []string) int {
 		var area1, area2 string
 		for _, dc := range dcs {
 			for _, entry := range dc.Coordinates {
-				if dc.Datacenter == dc1 && entry.Node == node1 {
+				if dc.Datacenter == dc1 && strings.EqualFold(entry.Node, node1) {
 					area1 = dc.AreaID
 					coord1 = entry.Coord
 				}
-				if dc.Datacenter == dc2 && entry.Node == node2 {
+				if dc.Datacenter == dc2 && strings.EqualFold(entry.Node, node2) {
 					area2 = dc.AreaID
 					coord2 = entry.Coord
 				}
@@ -145,10 +145,10 @@ func (c *cmd) Run(args []string) int {
 		// Index all the coordinates by segment.
 		cs1, cs2 := make(lib.CoordinateSet), make(lib.CoordinateSet)
 		for _, entry := range entries {
-			if entry.Node == nodes[0] {
+			if strings.EqualFold(entry.Node, nodes[0]) {
 				cs1[entry.Segment] = entry.Coord
 			}
-			if entry.Node == nodes[1] {
+			if strings.EqualFold(entry.Node, nodes[1]) {
 				cs2[entry.Segment] = entry.Coord
 			}
 		}
