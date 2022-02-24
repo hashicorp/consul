@@ -23,8 +23,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/logging"
-
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/go-hclog"
@@ -5354,25 +5352,6 @@ func TestAgent_AutoReloadConfigDefaultDisable(t *testing.T) {
 	defer a.Shutdown()
 
 	require.False(t, a.Agent.config.AutoReloadConfig)
-}
-
-func TestAgent_AutoReloadReloadWhenConfigChange(t *testing.T) {
-
-	c := config.LoadOpts{}
-	dir := testutil.TempDir(t, "temp_config1")
-	c.FlagValues.DataDir = &dir
-	loader := func(source config.Source) (config.LoadResult, error) {
-		c.DefaultConfig = source
-		return config.Load(c)
-	}
-	bd, err := NewBaseDeps(loader, &logging.GatedWriter{Writer: os.Stdout})
-	require.NoError(t, err)
-
-	agent, err := New(bd)
-	require.NoError(t, err)
-	err = agent.Start(context.Background())
-	require.NoError(t, err)
-	defer agent.ShutdownAgent()
 }
 
 func TestAgent_AutoReloadDoReload_WhenCertAndKeyUpdated(t *testing.T) {
