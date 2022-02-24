@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -285,7 +286,7 @@ func vetRegisterWithACL(
 		// note in state_store.go to ban this down there in Consul 0.8,
 		// but it's good to leave this here because it's required for
 		// correctness wrt. ACLs.
-		if check.Node != subj.Node {
+		if !strings.EqualFold(check.Node, subj.Node) {
 			return fmt.Errorf("Node '%s' for check '%s' doesn't match register request node '%s'",
 				check.Node, check.CheckID, subj.Node)
 		}

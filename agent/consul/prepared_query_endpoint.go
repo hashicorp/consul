@@ -439,7 +439,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// position 0, provided the results are from the same datacenter.
 	if qs.Node != "" && reply.Datacenter == qs.Datacenter {
 		for i, node := range reply.Nodes {
-			if node.Node.Node == qs.Node {
+			if strings.EqualFold(node.Node.Node, qs.Node) {
 				reply.Nodes[0], reply.Nodes[i] = reply.Nodes[i], reply.Nodes[0]
 				break
 			}

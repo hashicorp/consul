@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -3431,42 +3432,49 @@ service "gateway" {
 }
 
 func TestVetRegisterWithACL(t *testing.T) {
-	t.Parallel()
+	appendAuthz := func(t *testing.T, defaultAuthz acl.Authorizer, rules string) acl.Authorizer {
+		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxCurrent, nil, nil)
+		require.NoError(t, err)
+
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(defaultAuthz, []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
+
+		return authz
+	}
+
+	t.Run("With an 'allow all' authorizer the update should be allowed", func(t *testing.T) {
+		args := &structs.RegisterRequest{
+			Node:    "nope",
+			Address: "127.0.0.1",
+		}
+
+		// With an "allow all" authorizer the update should be allowed.
+		require.NoError(t, vetRegisterWithACL(acl.ManageAll(), args, nil))
+	})
+
+	var perms acl.Authorizer = acl.DenyAll()
+
 	args := &structs.RegisterRequest{
 		Node:    "nope",
 		Address: "127.0.0.1",
 	}
 
-	// With an "allow all" authorizer the update should be allowed.
-	if err := vetRegisterWithACL(acl.ManageAll(), args, nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
 	// Create a basic node policy.
-	policy, err := acl.NewPolicyFromSource(`
-node "node" {
-  policy = "write"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	perms = appendAuthz(t, perms, `
+	node "node" {
+	  policy = "write"
+	} `)
 
 	// With that policy, the update should now be blocked for node reasons.
-	err = vetRegisterWithACL(perms, args, nil)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	err := vetRegisterWithACL(perms, args, nil)
+	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Now use a permitted node name.
-	args.Node = "node"
-	if err := vetRegisterWithACL(perms, args, nil); err != nil {
-		t.Fatalf("err: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
 	}
+	require.NoError(t, vetRegisterWithACL(perms, args, nil))
 
 	// Build some node info that matches what we have now.
 	ns := &structs.NodeServices{
@@ -3478,183 +3486,220 @@ node "node" {
 	}
 
 	// Try to register a service, which should be blocked.
-	args.Service = &structs.NodeService{
-		Service: "service",
-		ID:      "my-id",
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "service",
+			ID:      "my-id",
+		},
 	}
 	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Chain on a basic service policy.
-	policy, err = acl.NewPolicyFromSource(`
-service "service" {
-  policy = "write"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	perms = appendAuthz(t, perms, `
+	service "service" {
+	  policy = "write"
+	} `)
 
 	// With the service ACL, the update should go through.
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Add an existing service that they are clobbering and aren't allowed
 	// to write to.
-	ns.Services["my-id"] = &structs.NodeService{
-		Service: "other",
-		ID:      "my-id",
+	ns = &structs.NodeServices{
+		Node: &structs.Node{
+			Node:    "node",
+			Address: "127.0.0.1",
+		},
+		Services: map[string]*structs.NodeService{
+			"my-id": {
+				Service: "other",
+				ID:      "my-id",
+			},
+		},
 	}
 	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Chain on a policy that allows them to write to the other service.
-	policy, err = acl.NewPolicyFromSource(`
-service "other" {
-  policy = "write"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	perms = appendAuthz(t, perms, `
+	service "other" {
+	  policy = "write"
+	} `)
 
 	// Now it should go through.
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Try creating the node and the service at once by having no existing
 	// node record. This should be ok since we have node and service
 	// permissions.
-	if err := vetRegisterWithACL(perms, args, nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, vetRegisterWithACL(perms, args, nil))
 
 	// Add a node-level check to the member, which should be rejected.
-	args.Check = &structs.HealthCheck{
-		Node: "node",
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "service",
+			ID:      "my-id",
+		},
+		Check: &structs.HealthCheck{
+			Node: "node",
+		},
 	}
 	err = vetRegisterWithACL(perms, args, ns)
-	if err == nil || !strings.Contains(err.Error(), "check member must be nil") {
-		t.Fatalf("bad: %v", err)
-	}
+	testutil.RequireErrorContains(t, err, "check member must be nil")
 
 	// Move the check into the slice, but give a bad node name.
-	args.Check.Node = "nope"
-	args.Checks = append(args.Checks, args.Check)
-	args.Check = nil
-	err = vetRegisterWithACL(perms, args, ns)
-	if err == nil || !strings.Contains(err.Error(), "doesn't match register request node") {
-		t.Fatalf("bad: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "service",
+			ID:      "my-id",
+		},
+		Checks: []*structs.HealthCheck{
+			{
+				Node: "nope",
+			},
+		},
 	}
+	err = vetRegisterWithACL(perms, args, ns)
+	testutil.RequireErrorContains(t, err, "doesn't match register request node")
 
 	// Fix the node name, which should now go through.
-	args.Checks[0].Node = "node"
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "service",
+			ID:      "my-id",
+		},
+		Checks: []*structs.HealthCheck{
+			{
+				Node: "node",
+			},
+		},
 	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Add a service-level check.
-	args.Checks = append(args.Checks, &structs.HealthCheck{
-		Node:      "node",
-		ServiceID: "my-id",
-	})
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "service",
+			ID:      "my-id",
+		},
+		Checks: []*structs.HealthCheck{
+			{
+				Node: "node",
+			},
+			{
+				Node:      "node",
+				ServiceID: "my-id",
+			},
+		},
 	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Try creating everything at once. This should be ok since we have all
 	// the permissions we need. It also makes sure that we can register a
 	// new node, service, and associated checks.
-	if err := vetRegisterWithACL(perms, args, nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, vetRegisterWithACL(perms, args, nil))
 
 	// Nil out the service registration, which'll skip the special case
 	// and force us to look at the ns data (it will look like we are
 	// writing to the "other" service which also has "my-id").
-	args.Service = nil
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Checks: []*structs.HealthCheck{
+			{
+				Node: "node",
+			},
+			{
+				Node:      "node",
+				ServiceID: "my-id",
+			},
+		},
 	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Chain on a policy that forbids them to write to the other service.
-	policy, err = acl.NewPolicyFromSource(`
-service "other" {
-  policy = "deny"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	perms = appendAuthz(t, perms, `
+	service "other" {
+	  policy = "deny"
+	} `)
 
 	// This should get rejected.
 	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Change the existing service data to point to a service name they
-	// car write to. This should go through.
-	ns.Services["my-id"] = &structs.NodeService{
-		Service: "service",
-		ID:      "my-id",
+	// can write to. This should go through.
+	ns = &structs.NodeServices{
+		Node: &structs.Node{
+			Node:    "node",
+			Address: "127.0.0.1",
+		},
+		Services: map[string]*structs.NodeService{
+			"my-id": {
+				Service: "service",
+				ID:      "my-id",
+			},
+		},
 	}
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Chain on a policy that forbids them to write to the node.
-	policy, err = acl.NewPolicyFromSource(`
-node "node" {
-  policy = "deny"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	perms = appendAuthz(t, perms, `
+	node "node" {
+	  policy = "deny"
+	} `)
 
 	// This should get rejected because there's a node-level check in here.
 	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Change the node-level check into a service check, and then it should
 	// go through.
-	args.Checks[0].ServiceID = "my-id"
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Checks: []*structs.HealthCheck{
+			{
+				Node:      "node",
+				ServiceID: "my-id",
+			},
+			{
+				Node:      "node",
+				ServiceID: "my-id",
+			},
+		},
 	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Finally, attempt to update the node part of the data and make sure
 	// that gets rejected since they no longer have permissions.
-	args.Address = "127.0.0.2"
-	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.2",
+		Checks: []*structs.HealthCheck{
+			{
+				Node:      "node",
+				ServiceID: "my-id",
+			},
+			{
+				Node:      "node",
+				ServiceID: "my-id",
+			},
+		},
 	}
+	err = vetRegisterWithACL(perms, args, ns)
+	require.True(t, acl.IsErrPermissionDenied(err))
 }
 
 func TestVetDeregisterWithACL(t *testing.T) {
