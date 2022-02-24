@@ -105,7 +105,7 @@ type nodeServiceTuple struct {
 
 func newNodeServiceTupleFromServiceNode(sn *structs.ServiceNode) nodeServiceTuple {
 	return nodeServiceTuple{
-		Node:      sn.Node,
+		Node:      strings.ToLower(sn.Node),
 		ServiceID: sn.ServiceID,
 		EntMeta:   sn.EnterpriseMeta,
 	}
@@ -113,7 +113,7 @@ func newNodeServiceTupleFromServiceNode(sn *structs.ServiceNode) nodeServiceTupl
 
 func newNodeServiceTupleFromServiceHealthCheck(hc *structs.HealthCheck) nodeServiceTuple {
 	return nodeServiceTuple{
-		Node:      hc.Node,
+		Node:      strings.ToLower(hc.Node),
 		ServiceID: hc.ServiceID,
 		EntMeta:   hc.EnterpriseMeta,
 	}

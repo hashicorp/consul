@@ -136,7 +136,7 @@ func (s *Store) ensureCheckIfNodeMatches(
 	nodePartition string,
 	check *structs.HealthCheck,
 ) error {
-	if check.Node != node || !structs.EqualPartitions(nodePartition, check.PartitionOrDefault()) {
+	if !strings.EqualFold(check.Node, node) || !structs.EqualPartitions(nodePartition, check.PartitionOrDefault()) {
 		return fmt.Errorf("check node %q does not match node %q",
 			printNodeName(check.Node, check.PartitionOrDefault()),
 			printNodeName(node, nodePartition),
@@ -330,7 +330,7 @@ func (s *Store) ensureNodeTxn(tx WriteTxn, idx uint64, preserveIndexes bool, nod
 		}
 		if existing != nil {
 			n = existing
-			if n.Node != node.Node {
+			if !strings.EqualFold(n.Node, node.Node) {
 				// Lets first get all nodes and check whether name do match, we do not allow clash on nodes without ID
 				dupNameError := ensureNoNodeWithSimilarNameTxn(tx, node, false)
 				if dupNameError != nil {
