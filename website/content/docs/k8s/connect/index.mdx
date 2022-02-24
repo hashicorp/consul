@@ -220,6 +220,150 @@ $ kubectl exec deploy/static-client -- curl --silent http://static-server/
 command terminated with exit code 52
 ```
 
+### Kubernetes Pods with Multiple ports
+To configure a pod with multiple ports to be a part of the service mesh and receive and send service mesh traffic, you
+will need to add configuration so that a Consul service can be registered per port. This is because services in Consul
+currently support a single port per service instance.
+
+In the following example, suppose we have a pod which exposes 2 ports, `8080` and `9090`, both of which will need to
+receive service mesh traffic.
+
+First, decide on the names for the two Consul services that will correspond to those ports. In this example, the user
+chooses the names `web` for `8080` and `web-admin` for `9090`.
+
+Create two service accounts for `web` and `web-admin`:
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: web
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: web-admin
+```
+Create two Service objects for `web` and `web-admin`:
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-admin
+spec:
+  selector:
+    app: web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9090
+```
+`web` will target `containerPort` `8080` and select pods labeled `app: web`. `web-admin` will target `containerPort`
+`9090` and will also select the same pods.
+
+Create a Deployment with any chosen name, and use the following annotations:
+```yaml
+consul.hashicorp.com/connect-inject: true
+consul.hashicorp.com/connect-service: web,web-admin
+consul.hashicorp.com/connect-service-port: 8080,9090
+```
+Note that the order the ports are listed in the same order as the service names, i.e. the first service name `web`
+corresponds to the first port, `8080`, and the second service name `web-admin` corresponds to the second port, `9090`.
+
+The service account on the pod spec for the deployment should be set to the first service name `web`:
+```yaml
+serviceAccountName: web
+```
+
+For reference, the full deployment example could look something like the following:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      name: web
+      labels:
+        app: web
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+        'consul.hashicorp.com/connect-service': 'web,web-admin'
+        'consul.hashicorp.com/connect-service-port': '8080,9090'
+    spec:
+      containers:
+        - name: web
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+        - name: web-admin
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world from 9090"
+            - -listen=:9090
+          ports:
+            - containerPort: 9090
+              name: http
+      serviceAccountName: web
+```
+
+After deploying the `web` application, you can test service mesh connections by deploying the `static-client`
+application with the configuration in the [previous section](#connecting-to-connect-enabled-services) and add the
+following annotation to the pod template on `static-client`:
+```yaml
+consul.hashicorp.com/connect-service-upstreams: "web:1234,web-admin:2234"
+```
+
+If you exec on to a static-client pod, using a command like:
+```shell-session
+$ kubectl exec -it static-client-5bd667fbd6-kk6xs -- /bin/sh
+```
+you can then run:
+```shell-session
+$ curl localhost:1234
+```
+to see the output `hello world` and run:
+```shell-session
+$ curl localhost:2234
+```
+to see the output `hello world from 9090`.
+
+The way this works is that a Consul service instance is being registered per port on the Pod, so there are 2 Consul
+services in this case. An additional Envoy sidecar proxy and `connect-init` init container are also deployed per port in
+the Pod. So the upstream configuration can use the individual service names to reach each port as seen in the example.
+
+#### Caveats for Multi-port Pods
+* Transparent proxy is not supported for multi-port Pods.
+* Metrics and metrics merging is not supported for multi-port Pods.
+* Upstreams will only be set on the first service's Envoy sidecar proxy for the pod.
+  * This means that ServiceIntentions from a multi-port pod to elsewhere, will need to use the first service's name,
+    `web` in the example above to accept connections from either `web` or `web-admin`. ServiceIntentions from elsewhere
+    to a multi-port pod can use the individual service names within the multi-port Pod.
+* Health checking is done on a per-Pod basis, so if any Kubernetes health checks (like readiness, liveness, etc) are
+  failing for any container on the Pod, the entire Pod is marked unhealthy, and any Consul service referencing that Pod
+  will also be marked as unhealthy. So, if `web` has a failing health check, `web-admin` would also be marked as
+  unhealthy for service mesh traffic.
+
 ## Installation and Configuration
 
 The Connect sidecar proxy is injected via a
