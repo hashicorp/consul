@@ -1,5 +1,5 @@
 ```release-note:bug
-compare node names case insensitively in more places
+catalog: compare node names case insensitively in more places
 ```
 
 ```release-note:bug
