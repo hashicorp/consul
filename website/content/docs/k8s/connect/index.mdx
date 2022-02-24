@@ -275,6 +275,7 @@ spec:
 Create a Deployment with any chosen name, and use the following annotations:
 ```yaml
 consul.hashicorp.com/connect-inject: true
+consul.hashicorp.com/transparent-proxy: false
 consul.hashicorp.com/connect-service: web,web-admin
 consul.hashicorp.com/connect-service-port: 8080,9090
 ```
@@ -304,6 +305,7 @@ spec:
         app: web
       annotations:
         'consul.hashicorp.com/connect-inject': 'true'
+        'consul.hashicorp.com/transparent-proxy': 'false'
         'consul.hashicorp.com/connect-service': 'web,web-admin'
         'consul.hashicorp.com/connect-service-port': '8080,9090'
     spec:
