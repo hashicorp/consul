@@ -156,6 +156,9 @@ func TestLeader_FailedMember(t *testing.T) {
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
+		if len(checks) != 1 {
+			r.Fatalf("client missing check")
+		}
 		if got, want := checks[0].Status, api.HealthCritical; got != want {
 			r.Fatalf("got status %q want %q", got, want)
 		}
@@ -702,6 +705,9 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 		_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
+		}
+		if len(checks) != 1 {
+			r.Fatalf("client missing check")
 		}
 		if got, want := checks[0].Status, api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)
