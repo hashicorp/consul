@@ -172,23 +172,12 @@ func (c *cmd) run(args []string) int {
 		ui.Error(err.Error())
 		return 1
 	}
-
 	c.logger = bd.Logger
 	agent, err := agent.New(bd)
 	if err != nil {
 		ui.Error(err.Error())
 		return 1
 	}
-
-	watcherFiles := make([]string, len(c.configLoadOpts.ConfigFiles))
-	copy(watcherFiles, c.configLoadOpts.ConfigFiles)
-	if bd.RuntimeConfig.KeyFile != "" {
-		watcherFiles = append(watcherFiles, bd.RuntimeConfig.KeyFile)
-	}
-	if bd.RuntimeConfig.CertFile != "" {
-		watcherFiles = append(watcherFiles, bd.RuntimeConfig.CertFile)
-	}
-	agent.WatchedFiles = watcherFiles
 
 	config := bd.RuntimeConfig
 	if config.Logging.LogJSON {

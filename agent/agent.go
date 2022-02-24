@@ -363,10 +363,6 @@ type Agent struct {
 	// changed
 	FileWatcher *config.FileWatcher
 
-	//WatchedFiles is the list of files which are watched by the FileWatcher
-	// changed
-	WatchedFiles []string
-
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
 }
@@ -446,6 +442,13 @@ func New(bd BaseDeps) (*Agent, error) {
 
 	// TODO: pass in a fully populated apiServers into Agent.New
 	a.apiServers = NewAPIServers(a.logger)
+
+	if a.baseDeps.RuntimeConfig.KeyFile != "" {
+		a.baseDeps.WatchedFiles = append(a.baseDeps.WatchedFiles, bd.RuntimeConfig.KeyFile)
+	}
+	if a.baseDeps.RuntimeConfig.CertFile != "" {
+		a.baseDeps.WatchedFiles = append(a.baseDeps.WatchedFiles, bd.RuntimeConfig.CertFile)
+	}
 
 	return &a, nil
 }
@@ -694,8 +697,8 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// start a go routine to reload config based on file watcher events
 	if a.baseDeps.RuntimeConfig.AutoReloadConfig {
-		if a.WatchedFiles != nil {
-			w, err := config.NewFileWatcher(a.WatchedFiles, a.baseDeps.Logger)
+		if a.baseDeps.WatchedFiles != nil {
+			w, err := config.NewFileWatcher(a.baseDeps.WatchedFiles, a.baseDeps.Logger)
 			if err != nil {
 				a.baseDeps.Logger.Error("error loading config", "error", err)
 			}
@@ -3759,21 +3762,6 @@ func (a *Agent) ReloadConfig(autoReload bool) error {
 	}
 
 	return a.reloadConfigInternal(newCfg)
-}
-
-func removeWatchedFiles(watchedFiles []string, keys ...string) []string {
-	newWatched := make([]string, len(watchedFiles))
-	copy(newWatched, watchedFiles)
-	for _, key := range keys {
-		if key != "" {
-			for i, wf := range newWatched {
-				if wf != key {
-					newWatched = append(newWatched, newWatched[i])
-				}
-			}
-		}
-	}
-	return newWatched
 }
 
 // reloadConfigInternal is mainly needed for some unit tests. Instead of parsing

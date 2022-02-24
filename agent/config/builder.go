@@ -106,7 +106,9 @@ func Load(opts LoadOpts) (LoadResult, error) {
 	if err := b.validate(cfg); err != nil {
 		return r, err
 	}
-	return LoadResult{RuntimeConfig: &cfg, Warnings: b.Warnings}, nil
+	watcherFiles := make([]string, len(opts.ConfigFiles))
+	copy(watcherFiles, opts.ConfigFiles)
+	return LoadResult{RuntimeConfig: &cfg, Warnings: b.Warnings, WatchedFiles: watcherFiles}, nil
 }
 
 // LoadResult is the result returned from Load. The caller is responsible for
@@ -114,6 +116,7 @@ func Load(opts LoadOpts) (LoadResult, error) {
 type LoadResult struct {
 	RuntimeConfig *RuntimeConfig
 	Warnings      []string
+	WatchedFiles  []string
 }
 
 // builder constructs and validates a runtime configuration from multiple
