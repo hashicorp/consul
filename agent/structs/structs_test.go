@@ -1358,82 +1358,125 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 }
 
 func TestStructs_HealthCheck_IsSame(t *testing.T) {
-	hc := &HealthCheck{
-		Node:        "node1",
-		CheckID:     "check1",
-		Name:        "thecheck",
-		Status:      api.HealthPassing,
-		Notes:       "it's all good",
-		Output:      "lgtm",
-		ServiceID:   "service1",
-		ServiceName: "theservice",
-		ServiceTags: []string{"foo"},
-	}
-	if !hc.IsSame(hc) {
-		t.Fatalf("should be equal to itself")
+	type testcase struct {
+		name   string
+		setup  func(*HealthCheck)
+		expect bool
 	}
 
-	other := &HealthCheck{
-		Node:        "node1",
-		CheckID:     "check1",
-		Name:        "thecheck",
-		Status:      api.HealthPassing,
-		Notes:       "it's all good",
-		Output:      "lgtm",
-		ServiceID:   "service1",
-		ServiceName: "theservice",
-		ServiceTags: []string{"foo"},
-		RaftIndex: RaftIndex{
-			CreateIndex: 1,
-			ModifyIndex: 2,
+	cases := []testcase{
+		{
+			name: "Node",
+			setup: func(hc *HealthCheck) {
+				hc.Node = "XXX"
+			},
+		},
+		{
+			name: "Node casing",
+			setup: func(hc *HealthCheck) {
+				hc.Node = "NoDe1"
+			},
+			expect: true,
+		},
+		{
+			name: "CheckID",
+			setup: func(hc *HealthCheck) {
+				hc.CheckID = "XXX"
+			},
+		},
+		{
+			name: "Name",
+			setup: func(hc *HealthCheck) {
+				hc.Name = "XXX"
+			},
+		},
+		{
+			name: "Status",
+			setup: func(hc *HealthCheck) {
+				hc.Status = "XXX"
+			},
+		},
+		{
+			name: "Notes",
+			setup: func(hc *HealthCheck) {
+				hc.Notes = "XXX"
+			},
+		},
+		{
+			name: "Output",
+			setup: func(hc *HealthCheck) {
+				hc.Output = "XXX"
+			},
+		},
+		{
+			name: "ServiceID",
+			setup: func(hc *HealthCheck) {
+				hc.ServiceID = "XXX"
+			},
+		},
+		{
+			name: "ServiceName",
+			setup: func(hc *HealthCheck) {
+				hc.ServiceName = "XXX"
+			},
 		},
 	}
-	if !hc.IsSame(other) || !other.IsSame(hc) {
-		t.Fatalf("should not care about Raft fields")
+
+	run := func(t *testing.T, tc testcase) {
+		hc := &HealthCheck{
+			Node:        "node1",
+			CheckID:     "check1",
+			Name:        "thecheck",
+			Status:      api.HealthPassing,
+			Notes:       "it's all good",
+			Output:      "lgtm",
+			ServiceID:   "service1",
+			ServiceName: "theservice",
+			ServiceTags: []string{"foo"},
+		}
+
+		if !hc.IsSame(hc) {
+			t.Fatalf("should be equal to itself")
+		}
+
+		other := &HealthCheck{
+			Node:        "node1",
+			CheckID:     "check1",
+			Name:        "thecheck",
+			Status:      api.HealthPassing,
+			Notes:       "it's all good",
+			Output:      "lgtm",
+			ServiceID:   "service1",
+			ServiceName: "theservice",
+			ServiceTags: []string{"foo"},
+			RaftIndex: RaftIndex{
+				CreateIndex: 1,
+				ModifyIndex: 2,
+			},
+		}
+
+		if !hc.IsSame(other) || !other.IsSame(hc) {
+			t.Fatalf("should not care about Raft fields")
+		}
+
+		tc.setup(hc)
+
+		if tc.expect {
+			if !hc.IsSame(other) || !other.IsSame(hc) {
+				t.Fatalf("should be the same")
+			}
+		} else {
+			if hc.IsSame(other) || other.IsSame(hc) {
+				t.Fatalf("should not be the same")
+			}
+		}
 	}
 
-	checkCheckIDField := func(field *types.CheckID) {
-		if !hc.IsSame(other) || !other.IsSame(hc) {
-			t.Fatalf("should be the same")
-		}
-
-		old := *field
-		*field = "XXX"
-		if hc.IsSame(other) || other.IsSame(hc) {
-			t.Fatalf("should not be the same")
-		}
-		*field = old
-
-		if !hc.IsSame(other) || !other.IsSame(hc) {
-			t.Fatalf("should be the same")
-		}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
 	}
-
-	checkStringField := func(field *string) {
-		if !hc.IsSame(other) || !other.IsSame(hc) {
-			t.Fatalf("should be the same")
-		}
-
-		old := *field
-		*field = "XXX"
-		if hc.IsSame(other) || other.IsSame(hc) {
-			t.Fatalf("should not be the same")
-		}
-		*field = old
-
-		if !hc.IsSame(other) || !other.IsSame(hc) {
-			t.Fatalf("should be the same")
-		}
-	}
-
-	checkStringField(&other.Node)
-	checkCheckIDField(&other.CheckID)
-	checkStringField(&other.Name)
-	checkStringField(&other.Status)
-	checkStringField(&other.Notes)
-	checkStringField(&other.Output)
-	checkStringField(&other.ServiceID)
-	checkStringField(&other.ServiceName)
 }
 
 func TestStructs_HealthCheck_Marshalling(t *testing.T) {
