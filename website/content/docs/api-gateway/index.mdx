@@ -20,7 +20,11 @@ Consul API Gateway solves the following primary use cases:
 
 ## Implementation
 
-Consul API Gateway implements the Kubernetes [Gateway API Specification](https://gateway-api.sigs.k8s.io/). This specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes based on the path or protocol of a client request. 
+Consul API Gateway can be deoployed, currently, only on Kubernetes-based runtime environments. Addional runtimes will be supported In the future. It also requires Consul Service Mesh be deployed on the Kubernetes cluster.
+
+API Gateway can route traffic to services connected to the same service mesh its connected to. Those services can be running on the Kubernetes cluster or somewhere else, if they are connected to the same service mesh.
+
+Consul API Gateway implements, and is configured through, the Kubernetes [Gateway API Specification](https://gateway-api.sigs.k8s.io/). This specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes based on the path or protocol of a client request. 
 
 ### Supported Kubernetes Gateway Specification Features
 
