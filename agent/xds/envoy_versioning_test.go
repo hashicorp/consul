@@ -132,7 +132,7 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 	}
 	for _, v := range []string{
 		"1.19.0", "1.19.1",
-		"1.20.0", "1.20.1",
+		"1.20.0", "1.20.1", "1.20.2",
 	} {
 		cases[v] = testcase{expect: supportedProxyFeatures{}}
 	}
