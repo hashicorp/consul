@@ -287,43 +287,99 @@ func TestNode_IsSame(t *testing.T) {
 			ModifyIndex: 2,
 		},
 	}
-	other := &Node{
-		ID:              id,
-		Node:            node,
-		Datacenter:      datacenter,
-		Address:         address,
-		TaggedAddresses: make(map[string]string),
-		Meta:            make(map[string]string),
-		RaftIndex: RaftIndex{
-			CreateIndex: 1,
-			ModifyIndex: 3,
+
+	type testcase struct {
+		name   string
+		setup  func(*Node)
+		expect bool
+	}
+	cases := []testcase{
+		{
+			name: "id",
+			setup: func(n *Node) {
+				n.ID = types.NodeID("")
+			},
+			expect: false,
+		},
+		{
+			name: "node",
+			setup: func(n *Node) {
+				n.Node = "other"
+			},
+			expect: false,
+		},
+		{
+			name: "node casing",
+			setup: func(n *Node) {
+				n.Node = "MyNoDe1"
+			},
+			expect: true,
+		},
+		{
+			name: "dc",
+			setup: func(n *Node) {
+				n.Datacenter = "dcX"
+			},
+			expect: false,
+		},
+		{
+			name: "address",
+			setup: func(n *Node) {
+				n.Address = "127.0.0.1"
+			},
+			expect: false,
+		},
+		{
+			name: "tagged addresses",
+			setup: func(n *Node) {
+				n.TaggedAddresses = map[string]string{"my": "address"}
+			},
+			expect: false,
+		},
+		{
+			name: "meta",
+			setup: func(n *Node) {
+				n.Meta = map[string]string{"my": "meta"}
+			},
+			expect: false,
 		},
 	}
-	check := func(twiddle, restore func()) {
-		t.Helper()
+
+	run := func(t *testing.T, tc testcase) {
+		other := &Node{
+			ID:              id,
+			Node:            node,
+			Datacenter:      datacenter,
+			Address:         address,
+			TaggedAddresses: make(map[string]string),
+			Meta:            make(map[string]string),
+			RaftIndex: RaftIndex{
+				CreateIndex: 1,
+				ModifyIndex: 3,
+			},
+		}
+
 		if !n.IsSame(other) || !other.IsSame(n) {
 			t.Fatalf("should be the same")
 		}
 
-		twiddle()
-		if n.IsSame(other) || other.IsSame(n) {
-			t.Fatalf("should be different, was %#v VS %#v", n, other)
-		}
+		tc.setup(other)
 
-		restore()
-		if !n.IsSame(other) || !other.IsSame(n) {
-			t.Fatalf("should be the same")
+		if tc.expect {
+			if !n.IsSame(other) || !other.IsSame(n) {
+				t.Fatalf("should be the same")
+			}
+		} else {
+			if n.IsSame(other) || other.IsSame(n) {
+				t.Fatalf("should be different, was %#v VS %#v", n, other)
+			}
 		}
 	}
-	check(func() { other.ID = types.NodeID("") }, func() { other.ID = id })
-	check(func() { other.Node = "other" }, func() { other.Node = node })
-	check(func() { other.Datacenter = "dcX" }, func() { other.Datacenter = datacenter })
-	check(func() { other.Address = "127.0.0.1" }, func() { other.Address = address })
-	check(func() { other.TaggedAddresses = map[string]string{"my": "address"} }, func() { other.TaggedAddresses = map[string]string{} })
-	check(func() { other.Meta = map[string]string{"my": "meta"} }, func() { other.Meta = map[string]string{} })
 
-	if !n.IsSame(other) {
-		t.Fatalf("should be equal, was %#v VS %#v", n, other)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
 	}
 }
 
