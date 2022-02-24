@@ -384,57 +384,131 @@ func TestNode_IsSame(t *testing.T) {
 }
 
 func TestStructs_ServiceNode_IsSameService(t *testing.T) {
-	sn := testServiceNode(t)
-	node := "node1"
-	serviceID := sn.ServiceID
-	serviceAddress := sn.ServiceAddress
-	serviceEnableTagOverride := sn.ServiceEnableTagOverride
-	serviceMeta := make(map[string]string)
-	for k, v := range sn.ServiceMeta {
-		serviceMeta[k] = v
+	const (
+		nodeName = "node1"
+	)
+
+	type testcase struct {
+		name   string
+		setup  func(*ServiceNode)
+		expect bool
 	}
-	serviceName := sn.ServiceName
-	servicePort := sn.ServicePort
-	serviceTags := sn.ServiceTags
-	serviceWeights := Weights{Passing: 2, Warning: 1}
-	sn.ServiceWeights = serviceWeights
-	serviceProxy := sn.ServiceProxy
-	serviceConnect := sn.ServiceConnect
-	serviceTaggedAddresses := sn.ServiceTaggedAddresses
+	cases := []testcase{
+		{
+			name: "ServiceID",
+			setup: func(sn *ServiceNode) {
+				sn.ServiceID = "66fb695a-c782-472f-8d36-4f3edd754b37"
+			},
+		},
+		{
+			name: "Node",
+			setup: func(sn *ServiceNode) {
+				sn.Node = "other"
+			},
+		},
+		{
+			name: "Node casing",
+			setup: func(sn *ServiceNode) {
+				sn.Node = "NoDe1"
+			},
+			expect: true,
+		},
+		{
+			name: "ServiceAddress",
+			setup: func(sn *ServiceNode) {
+				sn.ServiceAddress = "1.2.3.4"
+			},
+		},
+		{
+			name: "ServiceEnableTagOverride",
+			setup: func(sn *ServiceNode) {
+				sn.ServiceEnableTagOverride = !sn.ServiceEnableTagOverride
+			},
+		},
+		{
+			name: "ServiceKind",
+			setup: func(sn *ServiceNode) {
+				sn.ServiceKind = "newKind"
+			},
+		},
+		{
+			name: "ServiceMeta",
+			setup: func(sn *ServiceNode) {
+				sn.ServiceMeta = map[string]string{"my": "meta"}
+			},
+		},
+		{
+			name: "ServiceName",
+			setup: func(sn *ServiceNode) {
+				sn.ServiceName = "duck"
+			},
+		},
+		{
+			name: "ServicePort",
+			setup: func(sn *ServiceNode) {
+				sn.ServicePort = 65534
+			},
+		},
+		{
+			name: "ServiceTags",
+			setup: func(sn *ServiceNode) {
+				sn.ServiceTags = []string{"new", "tags"}
+			},
+		},
+		{
+			name: "ServiceWeights",
+			setup: func(sn *ServiceNode) {
+				sn.ServiceWeights = Weights{Passing: 42, Warning: 41}
+			},
+		},
+		{
+			name: "ServiceProxy",
+			setup: func(sn *ServiceNode) {
+				sn.ServiceProxy = ConnectProxyConfig{}
+			},
+		},
+		{
+			name: "ServiceConnect",
+			setup: func(sn *ServiceNode) {
+				sn.ServiceConnect = ServiceConnect{}
+			},
+		},
+		{
+			name: "ServiceTaggedAddresses",
+			setup: func(sn *ServiceNode) {
+				sn.ServiceTaggedAddresses = nil
+			},
+		},
+	}
 
-	n := sn.ToNodeService().ToServiceNode(node)
-	other := sn.ToNodeService().ToServiceNode(node)
+	run := func(t *testing.T, tc testcase) {
+		sn := testServiceNode(t)
+		sn.ServiceWeights = Weights{Passing: 2, Warning: 1}
+		n := sn.ToNodeService().ToServiceNode(nodeName)
+		other := sn.ToNodeService().ToServiceNode(nodeName)
 
-	check := func(twiddle, restore func()) {
-		t.Helper()
 		if !n.IsSameService(other) || !other.IsSameService(n) {
 			t.Fatalf("should be the same")
 		}
 
-		twiddle()
-		if n.IsSameService(other) || other.IsSameService(n) {
-			t.Fatalf("should be different, was %#v VS %#v", n, other)
-		}
+		tc.setup(other)
 
-		restore()
-		if !n.IsSameService(other) || !other.IsSameService(n) {
-			t.Fatalf("should be the same after restore, was:\n %#v VS\n %#v", n, other)
+		if tc.expect {
+			if !n.IsSameService(other) || !other.IsSameService(n) {
+				t.Fatalf("should be the same")
+			}
+		} else {
+			if n.IsSameService(other) || other.IsSameService(n) {
+				t.Fatalf("should be different, was %#v VS %#v", n, other)
+			}
 		}
 	}
 
-	check(func() { other.ServiceID = "66fb695a-c782-472f-8d36-4f3edd754b37" }, func() { other.ServiceID = serviceID })
-	check(func() { other.Node = "other" }, func() { other.Node = node })
-	check(func() { other.ServiceAddress = "1.2.3.4" }, func() { other.ServiceAddress = serviceAddress })
-	check(func() { other.ServiceEnableTagOverride = !serviceEnableTagOverride }, func() { other.ServiceEnableTagOverride = serviceEnableTagOverride })
-	check(func() { other.ServiceKind = "newKind" }, func() { other.ServiceKind = "" })
-	check(func() { other.ServiceMeta = map[string]string{"my": "meta"} }, func() { other.ServiceMeta = serviceMeta })
-	check(func() { other.ServiceName = "duck" }, func() { other.ServiceName = serviceName })
-	check(func() { other.ServicePort = 65534 }, func() { other.ServicePort = servicePort })
-	check(func() { other.ServiceTags = []string{"new", "tags"} }, func() { other.ServiceTags = serviceTags })
-	check(func() { other.ServiceWeights = Weights{Passing: 42, Warning: 41} }, func() { other.ServiceWeights = serviceWeights })
-	check(func() { other.ServiceProxy = ConnectProxyConfig{} }, func() { other.ServiceProxy = serviceProxy })
-	check(func() { other.ServiceConnect = ServiceConnect{} }, func() { other.ServiceConnect = serviceConnect })
-	check(func() { other.ServiceTaggedAddresses = nil }, func() { other.ServiceTaggedAddresses = serviceTaggedAddresses })
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 func TestStructs_ServiceNode_PartialClone(t *testing.T) {
