@@ -43,7 +43,8 @@ type TestAgent struct {
 	// Name is an optional name of the agent.
 	Name string
 
-	HCL string
+	configFiles []string
+	HCL         string
 
 	// Config is the agent configuration. If Config is nil then
 	// TestConfig() is used. If Config.DataDir is set then it is
@@ -90,6 +91,16 @@ type TestAgent struct {
 // temporary directories.
 func NewTestAgent(t *testing.T, hcl string) *TestAgent {
 	a := StartTestAgent(t, TestAgent{HCL: hcl})
+	t.Cleanup(func() { a.Shutdown() })
+	return a
+}
+
+// NewTestAgent returns a started agent with the given configuration. It fails
+// the test if the Agent could not be started.
+// The caller is responsible for calling Shutdown() to stop the agent and remove
+// temporary directories.
+func NewTestAgentWithConfigFile(t *testing.T, hcl string, configFiles []string) *TestAgent {
+	a := StartTestAgent(t, TestAgent{configFiles: configFiles, HCL: hcl})
 	t.Cleanup(func() { a.Shutdown() })
 	return a
 }
@@ -186,6 +197,7 @@ func (a *TestAgent) Start(t *testing.T) error {
 				config.DefaultConsulSource(),
 				config.DevConsulSource(),
 			},
+			ConfigFiles: a.configFiles,
 		}
 		result, err := config.Load(opts)
 		if result.RuntimeConfig != nil {
