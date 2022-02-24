@@ -73,16 +73,6 @@ func TestStructs_Implements(t *testing.T) {
 }
 
 func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
-	req := &RegisterRequest{
-		ID:              types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
-		Node:            "test",
-		Address:         "127.0.0.1",
-		Datacenter:      "dc1",
-		TaggedAddresses: make(map[string]string),
-		NodeMeta: map[string]string{
-			"role": "server",
-		},
-	}
 
 	node := &Node{
 		ID:              types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
@@ -95,41 +85,104 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 		},
 	}
 
-	check := func(twiddle, restore func()) {
-		if req.ChangesNode(node) {
-			t.Fatalf("should not change")
-		}
-
-		twiddle()
-		if !req.ChangesNode(node) {
-			t.Fatalf("should change")
-		}
-
-		req.SkipNodeUpdate = true
-		if req.ChangesNode(node) {
-			t.Fatalf("should skip")
-		}
-
-		req.SkipNodeUpdate = false
-		if !req.ChangesNode(node) {
-			t.Fatalf("should change")
-		}
-
-		restore()
-		if req.ChangesNode(node) {
-			t.Fatalf("should not change")
-		}
+	type testcase struct {
+		name   string
+		setup  func(*RegisterRequest)
+		expect bool
 	}
 
-	check(func() { req.ID = "nope" }, func() { req.ID = types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5") })
-	check(func() { req.Node = "nope" }, func() { req.Node = "test" })
-	check(func() { req.Address = "127.0.0.2" }, func() { req.Address = "127.0.0.1" })
-	check(func() { req.Datacenter = "dc2" }, func() { req.Datacenter = "dc1" })
-	check(func() { req.TaggedAddresses["wan"] = "nope" }, func() { delete(req.TaggedAddresses, "wan") })
-	check(func() { req.NodeMeta["invalid"] = "nope" }, func() { delete(req.NodeMeta, "invalid") })
+	cases := []testcase{
+		{
+			name: "id",
+			setup: func(r *RegisterRequest) {
+				r.ID = "nope"
+			},
+			expect: true,
+		},
+		{
+			name: "name",
+			setup: func(r *RegisterRequest) {
+				r.Node = "nope"
+			},
+			expect: true,
+		},
+		{
+			name: "name casing",
+			setup: func(r *RegisterRequest) {
+				r.Node = "TeSt"
+			},
+			expect: false,
+		},
+		{
+			name: "address",
+			setup: func(r *RegisterRequest) {
+				r.Address = "127.0.0.2"
+			},
+			expect: true,
+		},
+		{
+			name: "dc",
+			setup: func(r *RegisterRequest) {
+				r.Datacenter = "dc2"
+			},
+			expect: true,
+		},
+		{
+			name: "tagged addresses",
+			setup: func(r *RegisterRequest) {
+				r.TaggedAddresses["wan"] = "nope"
+			},
+			expect: true,
+		},
+		{
+			name: "node meta",
+			setup: func(r *RegisterRequest) {
+				r.NodeMeta["invalid"] = "nope"
+			},
+			expect: true,
+		},
+	}
 
-	if !req.ChangesNode(nil) {
-		t.Fatalf("should change")
+	run := func(t *testing.T, tc testcase) {
+		req := &RegisterRequest{
+			ID:              types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
+			Node:            "test",
+			Address:         "127.0.0.1",
+			Datacenter:      "dc1",
+			TaggedAddresses: make(map[string]string),
+			NodeMeta: map[string]string{
+				"role": "server",
+			},
+		}
+
+		if req.ChangesNode(node) {
+			t.Fatalf("should not change")
+		}
+
+		tc.setup(req)
+
+		if tc.expect {
+			if !req.ChangesNode(node) {
+				t.Fatalf("should change")
+			}
+		} else {
+			if req.ChangesNode(node) {
+				t.Fatalf("should not change")
+			}
+		}
+
+		t.Run("skip node update", func(t *testing.T) {
+			req.SkipNodeUpdate = true
+			if req.ChangesNode(node) {
+				t.Fatalf("should skip")
+			}
+		})
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
 	}
 }
 
