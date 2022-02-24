@@ -5615,4 +5615,24 @@ func TestAgent_AutoReloadDoReload_WhenConfigFileUpdated(t *testing.T) {
 		require.NotEqual(r, aeCert.PrivateKey, aeCert2.PrivateKey)
 	})
 
+	aeCert = srv.tlsConfigurator.Cert()
+	require.NotNil(t, aeCert)
+
+	cert3, privateKey3, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err)
+	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert3), 0600))
+	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey3), 0600))
+
+	time.Sleep(1 * time.Second)
+	aeCert3 := srv.tlsConfigurator.Cert()
+	require.NotNil(t, aeCert3)
+	require.Equal(t, aeCert3.Certificate, aeCert.Certificate)
+	require.Equal(t, aeCert3.PrivateKey, aeCert.PrivateKey)
 }
