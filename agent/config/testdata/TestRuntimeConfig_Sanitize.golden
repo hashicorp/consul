@@ -232,7 +232,7 @@
     "NodeID": "",
     "NodeMeta": {},
     "NodeName": "",
-    "NotAutoReloadableRuntimeConfig": {
+    "StaticRuntimeConfig": {
         "CAFile": "",
         "CAPath": "",
         "EncryptVerifyIncoming": false,

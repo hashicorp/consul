@@ -206,7 +206,7 @@ func (c *cmd) run(args []string) int {
 	ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
 	ui.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",
-		config.EncryptKey != "", config.NotAutoReloadableRuntimeConfig.VerifyOutgoing, config.NotAutoReloadableRuntimeConfig.VerifyIncoming, config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
+		config.EncryptKey != "", config.StaticRuntimeConfig.VerifyOutgoing, config.StaticRuntimeConfig.VerifyIncoming, config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
 	// Enable log streaming
 	ui.Output("")
 	ui.Output("Log data will now stream in as it occurs:\n")

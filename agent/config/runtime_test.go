@@ -2920,8 +2920,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.NotAutoReloadableRuntimeConfig.VerifyServerHostname = true
-			rt.NotAutoReloadableRuntimeConfig.VerifyOutgoing = true
+			rt.StaticRuntimeConfig.VerifyServerHostname = true
+			rt.StaticRuntimeConfig.VerifyOutgoing = true
 		},
 	})
 	run(t, testCase{
@@ -2941,7 +2941,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.NotAutoReloadableRuntimeConfig.VerifyIncoming = true
+			rt.StaticRuntimeConfig.VerifyIncoming = true
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
 
@@ -2969,7 +2969,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.NotAutoReloadableRuntimeConfig.VerifyIncoming = true
+			rt.StaticRuntimeConfig.VerifyIncoming = true
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
 
@@ -2997,7 +2997,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.NotAutoReloadableRuntimeConfig.VerifyIncomingRPC = true
+			rt.StaticRuntimeConfig.VerifyIncomingRPC = true
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
 
@@ -4613,7 +4613,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.AutoConfig.DNSSANs = []string{"foo"}
 			rt.AutoConfig.IPSANs = []net.IP{net.IPv4(127, 0, 0, 1)}
 			rt.DataDir = dataDir
-			rt.NotAutoReloadableRuntimeConfig.VerifyOutgoing = true
+			rt.StaticRuntimeConfig.VerifyOutgoing = true
 		},
 	})
 
@@ -5574,7 +5574,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		EnableRemoteScriptChecks:               true,
 		EnableLocalScriptChecks:                true,
 		EncryptKey:                             "A4wELWqH",
-		NotAutoReloadableRuntimeConfig: NotAutoReloadableRuntimeConfig{
+		StaticRuntimeConfig: StaticRuntimeConfig{
 			EncryptVerifyIncoming: true,
 			VerifyIncoming:        true,
 			VerifyIncomingHTTPS:   true,
@@ -6356,7 +6356,7 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 
 		CertFile: "/etc/consul/server.crt",
 		KeyFile:  "/etc/consul/ssl/server.key",
-		NotAutoReloadableRuntimeConfig: NotAutoReloadableRuntimeConfig{
+		StaticRuntimeConfig: StaticRuntimeConfig{
 			VerifyOutgoing: false,
 			CAFile:         "/etc/consul/ca.crt",
 			CAPath:         "/etc/consul/ca.dir",
@@ -6367,20 +6367,20 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "198.18.0.2:5678", cfg.Address)
 	require.Equal(t, "https", cfg.Scheme)
-	require.Equal(t, rt.NotAutoReloadableRuntimeConfig.CAFile, cfg.TLSConfig.CAFile)
-	require.Equal(t, rt.NotAutoReloadableRuntimeConfig.CAPath, cfg.TLSConfig.CAPath)
+	require.Equal(t, rt.StaticRuntimeConfig.CAFile, cfg.TLSConfig.CAFile)
+	require.Equal(t, rt.StaticRuntimeConfig.CAPath, cfg.TLSConfig.CAPath)
 	require.Equal(t, "", cfg.TLSConfig.CertFile)
 	require.Equal(t, "", cfg.TLSConfig.KeyFile)
 	require.Equal(t, rt.Datacenter, cfg.Datacenter)
 	require.Equal(t, true, cfg.TLSConfig.InsecureSkipVerify)
 
-	rt.NotAutoReloadableRuntimeConfig.VerifyOutgoing = true
+	rt.StaticRuntimeConfig.VerifyOutgoing = true
 	cfg, err = rt.APIConfig(true)
 	require.NoError(t, err)
 	require.Equal(t, "198.18.0.2:5678", cfg.Address)
 	require.Equal(t, "https", cfg.Scheme)
-	require.Equal(t, rt.NotAutoReloadableRuntimeConfig.CAFile, cfg.TLSConfig.CAFile)
-	require.Equal(t, rt.NotAutoReloadableRuntimeConfig.CAPath, cfg.TLSConfig.CAPath)
+	require.Equal(t, rt.StaticRuntimeConfig.CAFile, cfg.TLSConfig.CAFile)
+	require.Equal(t, rt.StaticRuntimeConfig.CAPath, cfg.TLSConfig.CAPath)
 	require.Equal(t, rt.CertFile, cfg.TLSConfig.CertFile)
 	require.Equal(t, rt.KeyFile, cfg.TLSConfig.KeyFile)
 	require.Equal(t, rt.Datacenter, cfg.Datacenter)
@@ -6393,8 +6393,8 @@ func TestRuntime_APIConfigHTTP(t *testing.T) {
 			&net.UnixAddr{Name: "/var/run/foo"},
 			&net.TCPAddr{IP: net.ParseIP("198.18.0.1"), Port: 5678},
 		},
-		Datacenter:                     "dc-test",
-		NotAutoReloadableRuntimeConfig: NotAutoReloadableRuntimeConfig{},
+		Datacenter:          "dc-test",
+		StaticRuntimeConfig: StaticRuntimeConfig{},
 	}
 
 	cfg, err := rt.APIConfig(false)
@@ -6523,7 +6523,7 @@ func TestRuntime_ClientAddressAnyV6(t *testing.T) {
 
 func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 	c := &RuntimeConfig{
-		NotAutoReloadableRuntimeConfig: NotAutoReloadableRuntimeConfig{
+		StaticRuntimeConfig: StaticRuntimeConfig{
 			VerifyIncoming:       true,
 			VerifyIncomingRPC:    true,
 			VerifyIncomingHTTPS:  true,
@@ -6566,7 +6566,7 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 
 func TestRuntime_ToTLSUtilConfig_AutoConfig(t *testing.T) {
 	c := &RuntimeConfig{
-		NotAutoReloadableRuntimeConfig: NotAutoReloadableRuntimeConfig{VerifyIncoming: true,
+		StaticRuntimeConfig: StaticRuntimeConfig{VerifyIncoming: true,
 			VerifyIncomingRPC:    true,
 			VerifyIncomingHTTPS:  true,
 			VerifyOutgoing:       true,

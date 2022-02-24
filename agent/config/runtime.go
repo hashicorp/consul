@@ -29,10 +29,9 @@ type RuntimeSOAConfig struct {
 	Minttl  uint32 // 0,
 }
 
-// RuntimeConfig specifies the configuration the consul agent actually
-// uses. Is is derived from one or more Config structures which can come
-// from files, flags and/or environment variables.
-type NotAutoReloadableRuntimeConfig struct {
+// StaticRuntimeConfig specifies the subset of configuration the consul agent actually
+// uses and that are not reloadable by configuration auto reload.
+type StaticRuntimeConfig struct {
 	// EncryptVerifyIncoming enforces incoming gossip encryption and can be
 	// used to upshift to encrypted gossip on a running cluster.
 	//
@@ -1474,7 +1473,7 @@ type RuntimeConfig struct {
 	// hcl: unix_sockets { user = string }
 	UnixSocketUser string
 
-	NotAutoReloadableRuntimeConfig NotAutoReloadableRuntimeConfig
+	StaticRuntimeConfig StaticRuntimeConfig
 
 	// Watches are used to monitor various endpoints and to invoke a
 	// handler to act appropriately. These are managed entirely in the
@@ -1684,7 +1683,7 @@ func (c *RuntimeConfig) ConnectCAConfiguration() (*structs.CAConfiguration, erro
 func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) {
 	cfg := &api.Config{
 		Datacenter: c.Datacenter,
-		TLSConfig:  api.TLSConfig{InsecureSkipVerify: !c.NotAutoReloadableRuntimeConfig.VerifyOutgoing},
+		TLSConfig:  api.TLSConfig{InsecureSkipVerify: !c.StaticRuntimeConfig.VerifyOutgoing},
 	}
 
 	unixAddr, httpAddr, httpsAddr := c.ClientAddress()
@@ -1692,8 +1691,8 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 	if httpsAddr != "" {
 		cfg.Address = httpsAddr
 		cfg.Scheme = "https"
-		cfg.TLSConfig.CAFile = c.NotAutoReloadableRuntimeConfig.CAFile
-		cfg.TLSConfig.CAPath = c.NotAutoReloadableRuntimeConfig.CAPath
+		cfg.TLSConfig.CAFile = c.StaticRuntimeConfig.CAFile
+		cfg.TLSConfig.CAPath = c.StaticRuntimeConfig.CAPath
 		if includeClientCerts {
 			cfg.TLSConfig.CertFile = c.CertFile
 			cfg.TLSConfig.KeyFile = c.KeyFile
@@ -1723,13 +1722,13 @@ func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 
 func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
 	return tlsutil.Config{
-		VerifyIncoming:           c.NotAutoReloadableRuntimeConfig.VerifyIncoming,
-		VerifyIncomingRPC:        c.NotAutoReloadableRuntimeConfig.VerifyIncomingRPC,
-		VerifyIncomingHTTPS:      c.NotAutoReloadableRuntimeConfig.VerifyIncomingHTTPS,
-		VerifyOutgoing:           c.NotAutoReloadableRuntimeConfig.VerifyOutgoing,
-		VerifyServerHostname:     c.NotAutoReloadableRuntimeConfig.VerifyServerHostname,
-		CAFile:                   c.NotAutoReloadableRuntimeConfig.CAFile,
-		CAPath:                   c.NotAutoReloadableRuntimeConfig.CAPath,
+		VerifyIncoming:           c.StaticRuntimeConfig.VerifyIncoming,
+		VerifyIncomingRPC:        c.StaticRuntimeConfig.VerifyIncomingRPC,
+		VerifyIncomingHTTPS:      c.StaticRuntimeConfig.VerifyIncomingHTTPS,
+		VerifyOutgoing:           c.StaticRuntimeConfig.VerifyOutgoing,
+		VerifyServerHostname:     c.StaticRuntimeConfig.VerifyServerHostname,
+		CAFile:                   c.StaticRuntimeConfig.CAFile,
+		CAPath:                   c.StaticRuntimeConfig.CAPath,
 		CertFile:                 c.CertFile,
 		KeyFile:                  c.KeyFile,
 		NodeName:                 c.NodeName,

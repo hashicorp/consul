@@ -359,7 +359,7 @@ type Agent struct {
 	// run by the Agent
 	routineManager *routine.Manager
 
-	//FileWatcher is the watcher responsible to report events when a config file
+	// FileWatcher is the watcher responsible to report events when a config file
 	// changed
 	FileWatcher *config.FileWatcher
 
@@ -703,6 +703,8 @@ func (a *Agent) Start(ctx context.Context) error {
 				a.baseDeps.Logger.Error("error loading config", "error", err)
 			}
 			a.FileWatcher = w
+			a.baseDeps.Logger.Debug("starting file watcher")
+			a.FileWatcher.Start(context.Background())
 			go func() {
 				for event := range a.FileWatcher.EventsCh {
 					a.baseDeps.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
@@ -712,8 +714,6 @@ func (a *Agent) Start(ctx context.Context) error {
 					}
 				}
 			}()
-			a.baseDeps.Logger.Debug("starting file watcher")
-			a.FileWatcher.Start(context.Background())
 		}
 	}
 	return nil
@@ -1106,8 +1106,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.SerfWANConfig.MemberlistConfig.CIDRsAllowed = runtimeCfg.SerfAllowedCIDRsWAN
 	cfg.SerfLANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrLAN.IP.String()
 	cfg.SerfLANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrLAN.Port
-	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.NotAutoReloadableRuntimeConfig.EncryptVerifyIncoming
-	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.NotAutoReloadableRuntimeConfig.EncryptVerifyOutgoing
+	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.StaticRuntimeConfig.EncryptVerifyIncoming
+	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.StaticRuntimeConfig.EncryptVerifyOutgoing
 	cfg.SerfLANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipLANGossipInterval
 	cfg.SerfLANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipLANGossipNodes
 	cfg.SerfLANConfig.MemberlistConfig.ProbeInterval = runtimeCfg.GossipLANProbeInterval
@@ -1123,8 +1123,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 		cfg.SerfWANConfig.MemberlistConfig.BindPort = runtimeCfg.SerfBindAddrWAN.Port
 		cfg.SerfWANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrWAN.IP.String()
 		cfg.SerfWANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrWAN.Port
-		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.NotAutoReloadableRuntimeConfig.EncryptVerifyIncoming
-		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.NotAutoReloadableRuntimeConfig.EncryptVerifyOutgoing
+		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.StaticRuntimeConfig.EncryptVerifyIncoming
+		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.StaticRuntimeConfig.EncryptVerifyOutgoing
 		cfg.SerfWANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipWANGossipInterval
 		cfg.SerfWANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipWANGossipNodes
 		cfg.SerfWANConfig.MemberlistConfig.ProbeInterval = runtimeCfg.GossipWANProbeInterval
@@ -1316,11 +1316,11 @@ func segmentConfig(config *config.RuntimeConfig) ([]consul.NetworkSegment, error
 		if config.ReconnectTimeoutLAN != 0 {
 			serfConf.ReconnectTimeout = config.ReconnectTimeoutLAN
 		}
-		if config.NotAutoReloadableRuntimeConfig.EncryptVerifyIncoming {
-			serfConf.MemberlistConfig.GossipVerifyIncoming = config.NotAutoReloadableRuntimeConfig.EncryptVerifyIncoming
+		if config.StaticRuntimeConfig.EncryptVerifyIncoming {
+			serfConf.MemberlistConfig.GossipVerifyIncoming = config.StaticRuntimeConfig.EncryptVerifyIncoming
 		}
-		if config.NotAutoReloadableRuntimeConfig.EncryptVerifyOutgoing {
-			serfConf.MemberlistConfig.GossipVerifyOutgoing = config.NotAutoReloadableRuntimeConfig.EncryptVerifyOutgoing
+		if config.StaticRuntimeConfig.EncryptVerifyOutgoing {
+			serfConf.MemberlistConfig.GossipVerifyOutgoing = config.StaticRuntimeConfig.EncryptVerifyOutgoing
 		}
 
 		var rpcAddr *net.TCPAddr
@@ -3752,7 +3752,7 @@ func (a *Agent) ReloadConfig(autoReload bool) error {
 			}
 		}
 		// reset not reloadable fields
-		newCfg.NotAutoReloadableRuntimeConfig = a.config.NotAutoReloadableRuntimeConfig
+		newCfg.StaticRuntimeConfig = a.config.StaticRuntimeConfig
 	}
 
 	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
