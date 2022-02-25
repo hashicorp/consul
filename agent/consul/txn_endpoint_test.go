@@ -3,18 +3,18 @@ package consul
 import (
 	"bytes"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/require"
 )
 
 var testTxnRules = `
@@ -976,6 +976,7 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 	expected := structs.TxnReadResponse{
 		QueryMeta: structs.QueryMeta{
 			KnownLeader: true,
+			Index:       1,
 		},
 	}
 	for i, op := range arg.Ops {
@@ -1026,7 +1027,5 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 			}
 		}
 	}
-	if !reflect.DeepEqual(out, expected) {
-		t.Fatalf("bad %v", out)
-	}
+	require.Equal(expected, out)
 }
