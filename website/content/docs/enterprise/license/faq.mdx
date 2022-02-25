@@ -62,9 +62,13 @@ Failure to provide a valid license key will result in the Consul server agent no
 
 ## Q: Is there a grace period when licenses expire?
 
-A license includes an `expiration_date` and a `termination_date`. An enterprise binary will cease to function once the `termination_date` has passed.
-Licenses will now have a 24 hrs grace period. The grace period is the time between license expiry until the time it terminates.
-As Consul Enterprise approaches the expiration date, warnings will be issued in the system logs.
+**Yes—Consul will continue normal operation after license *expiration*** as defined in
+[`expiration_time`](/api-docs/operator/license#getting-the-consul-license).
+As license expiration is approached or passed, Consul will issue warnings in the system logs.
+
+Consul will only cease operation after license *termination*, which occurs 10 years
+after license expiration and is defined in
+[`termination_time`](/api-docs/operator/license#getting-the-consul-license).
 
 ## Q: Does this affect client agents?
 
