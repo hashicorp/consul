@@ -32,3 +32,7 @@ func NewKindName(kind, name string, entMeta *structs.EnterpriseMeta) KindName {
 	ret.Normalize()
 	return ret
 }
+
+func NewKindNameForEntry(entry structs.ConfigEntry) KindName {
+	return NewKindName(entry.GetKind(), entry.GetName(), entry.GetEnterpriseMeta())
+}
