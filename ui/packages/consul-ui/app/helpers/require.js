@@ -26,12 +26,13 @@ export default helper(([path = ''], { from }) => {
   switch(true) {
     case fullPath.endsWith('.css'):
       return fs[fullPath](css)
-    default:
+    default: {
       if(container.has(fullPath)) {
         return container.get(fullPath);
       }
       const module = fs[fullPath](HTMLElement);
       container.set(fullPath, module);
       return module;
+    }
   }
 });

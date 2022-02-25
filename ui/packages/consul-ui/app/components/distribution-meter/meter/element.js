@@ -8,7 +8,7 @@ export default (Component) => {
     attributeChangedCallback(name, prev, value) {
       const target = this;
       switch(name) {
-        case 'percentage':
+        case 'percentage': {
           let prevSibling = target;
           while(prevSibling) {
             const nextSibling = prevSibling.nextElementSibling;
@@ -18,7 +18,8 @@ export default (Component) => {
             prevSibling.setAttribute('aggregated-percentage', perc);
             prevSibling = prevSibling.previousElementSibling;
           }
-          break
+          break;
+        }
       }
     }
   }
