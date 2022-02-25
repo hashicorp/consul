@@ -101,6 +101,11 @@ Visit [consul.io/trial](/trial) for a free 30-day trial license.
 Contact your organization's HashiCorp account team or email support-softwaredelivery@hashicorp.com
 for information on how to renew your organization's enterprise license.
 
+## Q: I'm an existing enterprise customer but don't have my license, how can I get it?
+
+Contact your organization's HashiCorp account team or email support-softwaredelivery@hashicorp.com
+for information on how to renew your organization's enterprise license.
+
 ## Q: Are the license files locked to a specific cluster?
 
 The license files are not locked to a specific cluster or cluster node. The above changes apply to all nodes in a cluster.
@@ -139,7 +144,8 @@ Please see the [upgrade requirements](faq#q-what-are-the-upgrade-requirements).
 **NOTE:** If you are not upgrading Consul or your Helm chart version then no action is required.
 
 1. In order to use Consul Enterprise 1.10.0 or greater on Kubernetes you must use version 0.32.0 or greater of the Helm chart.
-1. You should already have a Consul Enterprise license set as a Kubernetes secret. If you do not, then if you are an existing HashiCorp enterprise customer you may contact your organization's customer success manager (CSM) or email support-softwaredelivery@hashicorp.com for information on how to get your organization's enterprise license. Once you have the license then create a Kubernetes secret containing the license as described in [Kubernetes - Consul Enterprise](/docs/k8s/installation/deployment-configurations/consul-enterprise).
+1. You should already have a Consul Enterprise license set as a Kubernetes secret. If you do not, refer to [how to obtain a copy of your license](/docs/enterprise/license/faq#q-i-m-an-existing-enterprise-customer-but-don-t-have-my-license-how-can-i-get-it).
+Once you have the license then create a Kubernetes secret containing the license as described in [Kubernetes - Consul Enterprise](/docs/k8s/installation/deployment-configurations/consul-enterprise).
 1. Follow the [Kubernetes Upgrade Docs](/docs/k8s/upgrade) to upgrade. No changes to your `values.yaml` file are needed to enable enterprise autoloading since this support is built in to consul-helm 0.32.0 and greater.
 
 ~> **WARNING:** If you are upgrading the Helm chart but **not** upgrading the Consul version, you must set `server.enterpriseLicense.enableLicenseAutoload: false`. See [Kubernetes - Consul Enterprise](/docs/k8s/installation/deployment-configurations/consul-enterprise) for more details.
