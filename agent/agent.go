@@ -3742,7 +3742,7 @@ func (a *Agent) ReloadConfig(autoReload bool) error {
 		for _, f := range []struct {
 			oldCfg string
 			newCfg string
-		}{{a.config.KeyFile, newCfg.KeyFile}, {a.config.KeyFile, newCfg.KeyFile}} {
+		}{{a.config.KeyFile, newCfg.KeyFile}, {a.config.CertFile, newCfg.CertFile}} {
 			if f.oldCfg != f.newCfg {
 				a.FileWatcher.Remove(f.oldCfg)
 				err = a.FileWatcher.Add(f.newCfg)
