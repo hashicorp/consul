@@ -4,6 +4,8 @@ page_title: Admin Partition - HTTP API
 description: The /partition endpoints allow for managing Consul Enterprise Admin Partitions.
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Admin Partition - HTTP API
 
 <EnterpriseAlert />
@@ -13,23 +15,18 @@ The functionality described here is available only in
 
 ## Create a Partition
 
-This endpoint creates a new Partition.
+This endpoint creates a new partition and has the following characteristics:
 
-| Method | Path         | Produces           |
-| ------ | ------------ | ------------------ |
-| `PUT`  | `/partition` | `application/json` |
-
-The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api#authentication).
-
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
-| ---------------- | ----------------- | ------------- | ---------------- |
-| `NO`             | `none`            | `none`        | `operator:write` |
-
-The corresponding CLI command is [`consul partition create`](/commands/partition#create).
+| Characteristic | Value |
+| -------------- | ----- |
+| [HTTP Method] | `PUT` |
+| [URL Path] | `/partition` |
+| [Response Type] | `application/json` |
+| [Required ACLs] | `operator:write` |
+| Corresponding CLI Command | [`consul partition create`](/commands/partition#create) |
+| [Consistency Modes] | N/A |
+| [Blocking Queries] | N/A |
+| [Agent Caching] | N/A |
 
 ### JSON Request Body Schema
 
@@ -69,25 +66,18 @@ $ curl ---request PUT \
 
 ## Read a Partition
 
-This endpoint reads a Partition with the given name.
+This endpoint reads a partition with the given name and has the following characteristics:
 
-| Method | Path               | Produces           |
-| ------ | ------------------ | ------------------ |
-| `GET`  | `/partition/:name` | `application/json` |
-
-The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api#authentication).
-
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                          |
-| ---------------- | ----------------- | ------------- | ------------------------------------- |
-| `NO`             | `consistent`      | `none`        | `operator:read` or `none`<sup>1</sup> |
-
-<sup>1</sup> A non-anonymous token can read its own partition.
-
-The corresponding CLI command is [`consul partition read`](/commands/partition#read).
+| Characteristic | Value |
+| -------------- | ----- |
+| [HTTP Method] | `GET` |
+| [URL Path] | `/partition/:name` |
+| [Response Type] | `application/json` |
+| [Required ACLs] | `operator:read`; however, a non-anonymous token can always read its own partition |
+| Corresponding CLI Command | [`consul partition read`](/commands/partition#read) |
+| [Consistency Modes] | `default`, `consistent` |
+| [Blocking Queries] | no |
+| [Agent Caching] | no |
 
 ### Path Parameters
 
@@ -100,7 +90,7 @@ $ curl --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
    http://127.0.0.1:8500/v1/partition/na-west
 ```
 
-### SampleResponse
+### Sample Response
 
 ```json
 {
@@ -113,23 +103,18 @@ $ curl --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
 
 ## Update a Partition
 
-This endpoint updates a Partition description.
+This endpoint updates a partition description and has the following characteristics:
 
-| Method | Path               | Produces           |
-| ------ | ------------------ | ------------------ |
-| `PUT`  | `/partition/:name` | `application/json` |
-
-The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api#authentication).
-
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
-| ---------------- | ----------------- | ------------- | ---------------- |
-| `NO`             | `none`            | `none`        | `operator:write` |
-
-The corresponding CLI command is [`consul partition write`](/commands/partition#write).
+| Characteristic | Value |
+| -------------- | ----- |
+| [HTTP Method] | `PUT` |
+| [URL Path] | `/partition/:name` |
+| [Response Type] | `application/json` |
+| [Required ACLs] | `operator:write` |
+| Corresponding CLI Command | [`consul partition write`](/commands/partition#write) |
+| [Consistency Modes] | N/A |
+| [Blocking Queries] | N/A |
+| [Agent Caching] | N/A |
 
 ### Path Parameters
 
@@ -173,31 +158,25 @@ $ curl --request PUT \
 
 ## Delete a Partition
 
-This endpoint marks a Partition for deletion. Once marked Consul will
+This endpoint marks a partition for deletion. Once marked Consul will
 deleted all the associated partitioned data in the background. Only once
-all associated data has been deleted will the Partition actually disappear.
+all associated data has been deleted will the partition actually disappear.
 Until then, further reads can be performed on the partition and a `DeletedAt`
-field will now be populated with the timestamp of when the Partition was
+field will now be populated with the timestamp of when the partition was
 marked for deletion.
 
-| Method   | Path               | Produces |
-| -------- | ------------------ | -------- |
-| `DELETE` | `/partition/:name` | N/A      |
+This endpoint has the following characteristics:
 
-This endpoint will return no data. Success or failure is indicated by the status
-code returned.
-
-The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api#authentication).
-
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
-| ---------------- | ----------------- | ------------- | ---------------- |
-| `NO`             | `none`            | `none`        | `operator:write` |
-
-The corresponding CLI command is [`consul partition delete`](/commands/partition#delete).
+| Characteristic | Value |
+| -------------- | ----- |
+| [HTTP Method] | `DELETE` |
+| [URL Path] | `/partition/:name` |
+| [Response Type] | none; success or failure is indicated by the HTTP response status code |
+| [Required ACLs] | `operator:write` |
+| Corresponding CLI Command | [`consul partition delete`](/commands/partition#delete) |
+| [Consistency Modes] | N/A |
+| [Blocking Queries] | N/A |
+| [Agent Caching] | N/A |
 
 ### Path Parameters
 
@@ -225,23 +204,18 @@ $ curl --request DELETE \
 
 ## List all Partitions
 
-This endpoint lists all the Partitions.
+This endpoint lists all the partitions and has the following characteristics:
 
-| Method | Path          | Produces           |
-| ------ | ------------- | ------------------ |
-| `GET`  | `/partitions` | `application/json` |
-
-The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api#authentication).
-
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
-| ---------------- | ----------------- | ------------- | --------------- |
-| `NO`             | `consistent`      | `none`        | `operator:read` |
-
-The corresponding CLI command is [`consul partition list`](/commands/partition#list).
+| Characteristic | Value |
+| -------------- | ----- |
+| [HTTP Method] | `GET` |
+| [URL Path] | `/partitions` |
+| [Response Type] | `application/json` |
+| [Required ACLs] | `operator:read` |
+| Corresponding CLI Command | [`consul partition list`](/commands/partition#list) |
+| [Consistency Modes] | `default`, `consistent` |
+| [Blocking Queries] | no |
+| [Agent Caching] | no |
 
 ### Sample Request
 
