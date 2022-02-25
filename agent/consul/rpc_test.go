@@ -1689,7 +1689,7 @@ func getFirstSubscribeEventOrError(conn *grpc.ClientConn, req *pbsubscribe.Subsc
 // Those tests are a bit racy because of the timing of the two goroutines, so
 // we relax the check for the count to be within a small range.
 //
-// The blocking query is going to wake up every second, so use the elapsed test
+// The blocking query is going to wake up every interval, so use the elapsed test
 // time with that known timing value to gauge how many legit wakeups should
 // happen and then pad it out a smidge.
 func assertBlockingQueryWakeupCount(t testing.TB, interval time.Duration, start time.Time, gotCount int) {
