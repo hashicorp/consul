@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -3751,8 +3752,11 @@ func (a *Agent) ReloadConfig(autoReload bool) error {
 				}
 			}
 		}
-		// reset not reloadable fields
-		newCfg.StaticRuntimeConfig = a.config.StaticRuntimeConfig
+		if !reflect.DeepEqual(newCfg.StaticRuntimeConfig, a.config.StaticRuntimeConfig) {
+			a.logger.Warn("Static Runtime config has changed and need a manual config reload to be applied", "StaticRuntimeConfig", a.config.StaticRuntimeConfig, "StaticRuntimeConfig From file", newCfg.StaticRuntimeConfig)
+			// reset not reloadable fields
+			newCfg.StaticRuntimeConfig = a.config.StaticRuntimeConfig
+		}
 	}
 
 	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
