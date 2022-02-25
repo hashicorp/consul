@@ -1,11 +1,25 @@
 <@disclosure.Details as |details|>
-<div
-  {{on-outside 'click' @disclosure.close}}
-  ...attributes
->
-  {{yield (hash
-    Menu=(component 'menu' disclosure=@disclosure)
-  )}}
-</div>
+  <PagedCollection
+    @items={{or @items (array)}}
+  as |pager|>
+    <div
+      {{on-outside 'click' @disclosure.close}}
+      {{did-insert pager.viewport}}
+      {{on-resize pager.resize}}
+      {{css-prop '--paged-row-height' returns=pager.rowHeight}}
+      {{css-prop 'max-height' returns=pager.maxHeight}}
+      class={{class-map
+        (array 'paged-collection-scroll' (contains pager.type (array 'virtual-scroll' 'native-scroll')))
+      }}
+      ...attributes
+    >
+      {{yield (hash
+        Menu=(component 'menu'
+          disclosure=@disclosure
+          pager=pager
+        )
+      )}}
+    </div>
+  </PagedCollection>
 </@disclosure.Details>
 
