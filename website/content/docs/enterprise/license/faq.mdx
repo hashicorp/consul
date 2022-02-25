@@ -46,7 +46,7 @@ The list below is a great starting point for learning more about the license cha
 ## Q: Do these changes impact all customers/licenses?
 
 The license changes introduced in 1.10.0 only affect Consul Enterprise.
-This impacts customers that have an enterprise binary (evaluation or non-evaluation licenses) downloaded from https://releases.hashicorp.com.
+This impacts customers that have an enterprise binary (trial or non-trial licenses) downloaded from https://releases.hashicorp.com.
 The license changes do not impact customers with the baked-in licensed binaries. In a later release of Consul Enterprise, baked-in binaries will be deprecated.
 
 ## Q: What is the product behavior change introduced by the licensing changes?
@@ -54,11 +54,12 @@ The license changes do not impact customers with the baked-in licensed binaries.
 Starting with Consul Enterprise 1.10.0, a valid license is required on-disk (auto-loading) or as an environment variable for Consul Enterprise to successfully boot-up.
 The in-storage license feature will not be supported starting with Consul Enterprise 1.10.0+ent. All Consul Enterprise clusters using 1.10.0+ent must ensure that there is a valid license on-disk (auto-loaded) or as an environment variable.
 
-## Q: What is the impact on evaluation licenses due to this change?
+## Q: What is the impact on trial licenses due to this change? ((#q-what-is-the-impact-on-evaluation-licenses-due-to-this-change))
 
-The 6-hour trial period for evaluation licenses will be deprecated as of Consul Enterprise 1.10.0.
-This means that any clusters deployed with Consul 1.10.0+ent binaries will need to have a valid license on the disk (auto-loaded) or as an environment variable.
-Failure to provide a valid license key will result in the Consul server agent not starting.
+Consul Enterprise 1.10.0+ server agents require a valid license to start.
+The license can be provided on disk (auto-loaded) or as an environment variable.
+There is no longer a 6-hour trial period in which Consul Enterprise server agents
+can operate without a license.
 
 ## Q: Is there a grace period when licenses expire?
 
@@ -96,6 +97,11 @@ Consul snapshot agents will attempt to retrieve the license from servers if cert
 
 Visit [consul.io/trial](/trial) for a free 30-day trial license.
 
+~> **Trial install will cease operation 24 hours after 30-day license expiration**:
+   Trial licenses are not meant to be used in production.
+   This is unlike non-trial licenses which provide a 10 year grace period as described in
+   the answer for [Q: Is there a grace period when licenses expire?](#q-is-there-a-grace-period-when-licenses-expire).
+
 ## Q: How can I renew a license?
 
 Contact your organization's HashiCorp account team or email support-softwaredelivery@hashicorp.com
@@ -116,7 +122,7 @@ This will not impact HCP Consul.
 
 ## Q: Does this need to happen every time a node restarts, or is this a one-time check?
 
-Consul Enterprise binaries starting with 1.10.0+ent, will be subject to EULA check. Release 1.10.0+ent introduces the EULA check for evaluation licenses (non-evaluation licenses already go through EULA check during contractual agreement).
+Consul Enterprise binaries starting with 1.10.0+ent, will be subject to EULA check. Release 1.10.0+ent introduces the EULA check for trial licenses (non-trial licenses already go through EULA check during contractual agreement).
 
 The agreement to a EULA happens only once (when the user gets their license), Consul Enterprise **will check for the presence of a valid license every time a node restarts**.
 
