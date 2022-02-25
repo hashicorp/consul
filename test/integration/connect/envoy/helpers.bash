@@ -179,10 +179,14 @@ function assert_envoy_version {
   echo "Got version=$VERSION"
   echo "Want version=$ENVOY_VERSION"
 
-  # 1.20.2 is a special snowflake in that the version for the release is actually
-  # reported as '1.20.2-dev'
+  # 1.20.2, 1.19.3 and 1.18.6 are special snowflakes in that the version for
+  # the release is reported with a '-dev' suffix (eg 1.20.2-dev).
   if [ "$ENVOY_VERSION" = "1.20.2" ] ; then
     ENVOY_VERSION="1.20.2-dev"
+  elif [ "$ENVOY_VERSION" = "1.19.3" ] ; then
+    ENVOY_VERSION="1.19.3-dev"
+  elif [ "$ENVOY_VERSION" = "1.18.6" ] ; then
+    ENVOY_VERSION="1.18.6-dev"
   fi
 
   echo $VERSION | grep "/$ENVOY_VERSION/"

@@ -9,36 +9,12 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 )
 
-func validateSetIntermediate(
-	intermediatePEM, rootPEM string,
-	currentPrivateKey string, // optional
-	spiffeID *connect.SpiffeIDSigning,
-) error {
+func validateSetIntermediate(intermediatePEM, rootPEM string, spiffeID *connect.SpiffeIDSigning) error {
 	// Get the key from the incoming intermediate cert so we can compare it
 	// to the currently stored key.
 	intermediate, err := connect.ParseCert(intermediatePEM)
 	if err != nil {
 		return fmt.Errorf("error parsing intermediate PEM: %v", err)
-	}
-
-	if currentPrivateKey != "" {
-		privKey, err := connect.ParseSigner(currentPrivateKey)
-		if err != nil {
-			return err
-		}
-
-		// Compare the two keys to make sure they match.
-		b1, err := x509.MarshalPKIXPublicKey(intermediate.PublicKey)
-		if err != nil {
-			return err
-		}
-		b2, err := x509.MarshalPKIXPublicKey(privKey.Public())
-		if err != nil {
-			return err
-		}
-		if !bytes.Equal(b1, b2) {
-			return fmt.Errorf("intermediate cert is for a different private key")
-		}
 	}
 
 	// Validate the remaining fields and make sure the intermediate validates against
@@ -62,6 +38,32 @@ func validateSetIntermediate(
 		return fmt.Errorf("could not verify intermediate cert against root: %v", err)
 	}
 
+	return nil
+}
+
+func validateIntermediateSignedByPrivateKey(intermediatePEM string, privateKey string) error {
+	intermediate, err := connect.ParseCert(intermediatePEM)
+	if err != nil {
+		return fmt.Errorf("error parsing intermediate PEM: %v", err)
+	}
+
+	privKey, err := connect.ParseSigner(privateKey)
+	if err != nil {
+		return err
+	}
+
+	// Compare the two keys to make sure they match.
+	b1, err := x509.MarshalPKIXPublicKey(intermediate.PublicKey)
+	if err != nil {
+		return err
+	}
+	b2, err := x509.MarshalPKIXPublicKey(privKey.Public())
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(b1, b2) {
+		return fmt.Errorf("intermediate cert is for a different private key")
+	}
 	return nil
 }
 

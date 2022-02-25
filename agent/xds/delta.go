@@ -26,6 +26,15 @@ import (
 	"github.com/hashicorp/consul/logging"
 )
 
+type deltaRecvResponse int
+
+const (
+	deltaRecvResponseNack deltaRecvResponse = iota
+	deltaRecvResponseAck
+	deltaRecvNewSubscription
+	deltaRecvUnknownType
+)
+
 // ADSDeltaStream is a shorter way of referring to this thing...
 type ADSDeltaStream = envoy_discovery_v3.AggregatedDiscoveryService_DeltaAggregatedResourcesServer
 
@@ -165,18 +174,27 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
 			}
 
-			if handler, ok := handlers[req.TypeUrl]; ok {
-				if handler.Recv(req) {
-					generator.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
-				}
-			}
-
 			if node == nil && req.Node != nil {
 				node = req.Node
 				var err error
 				generator.ProxyFeatures, err = determineSupportedProxyFeatures(req.Node)
 				if err != nil {
 					return status.Errorf(codes.InvalidArgument, err.Error())
+				}
+			}
+
+			if handler, ok := handlers[req.TypeUrl]; ok {
+				switch handler.Recv(req, generator.ProxyFeatures) {
+				case deltaRecvNewSubscription:
+					generator.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
+
+				case deltaRecvResponseNack:
+					generator.Logger.Trace("got nack response for type", "typeUrl", req.TypeUrl)
+
+					// There is no reason to believe that generating new xDS resources from the same snapshot
+					// would lead to an ACK from Envoy. Instead we continue to the top of this for loop and wait
+					// for a new request or snapshot.
+					continue
 				}
 			}
 
@@ -289,11 +307,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			generator.Logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
 
-			sentType := make(map[string]struct{}) // use this to only do one kind of mutation per type per execution
 			for _, op := range xDSUpdateOrder {
-				if _, sent := sentType[op.TypeUrl]; sent {
-					continue
-				}
 				err, sent := handlers[op.TypeUrl].SendIfNew(
 					cfgSnap.Kind,
 					currentVersions[op.TypeUrl],
@@ -309,7 +323,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 						op.TypeUrl, err)
 				}
 				if sent {
-					sentType[op.TypeUrl] = struct{}{}
+					break // wait until we get an ACK to do more
 				}
 			}
 		}
@@ -434,9 +448,9 @@ func newDeltaType(
 // Recv handles new discovery requests from envoy.
 //
 // Returns true the first time a type receives a request.
-func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool {
+func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf supportedProxyFeatures) deltaRecvResponse {
 	if t == nil {
-		return false // not something we care about
+		return deltaRecvUnknownType // not something we care about
 	}
 	logger := t.generator.Logger.With("typeUrl", t.typeURL)
 
@@ -447,6 +461,16 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool 
 		t.wildcard = len(req.ResourceNamesSubscribe) == 0
 		t.registered = true
 		registeredThisTime = true
+
+		if sf.ForceLDSandCDSToAlwaysUseWildcardsOnReconnect {
+			switch t.typeURL {
+			case ListenerType, ClusterType:
+				if !t.wildcard {
+					t.wildcard = true
+					logger.Trace("fixing Envoy bug fixed in 1.19.0 by inferring wildcard mode for type")
+				}
+			}
+		}
 	}
 
 	/*
@@ -481,6 +505,7 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool 
 			logger.Error("got error response from envoy proxy", "nonce", req.ResponseNonce,
 				"error", status.ErrorProto(req.ErrorDetail))
 			t.nack(req.ResponseNonce)
+			return deltaRecvResponseNack
 		}
 	}
 
@@ -551,7 +576,10 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool 
 		}
 	}
 
-	return registeredThisTime
+	if registeredThisTime {
+		return deltaRecvNewSubscription
+	}
+	return deltaRecvResponseAck
 }
 
 func (t *xDSDeltaType) ack(nonce string) {

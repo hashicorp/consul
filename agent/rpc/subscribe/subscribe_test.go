@@ -30,6 +30,33 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
+func TestServer_Subscribe_KeyIsRequired(t *testing.T) {
+	backend, err := newTestBackend()
+	require.NoError(t, err)
+
+	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
+	require.NoError(t, err)
+	t.Cleanup(logError(t, conn.Close))
+
+	client := pbsubscribe.NewStateChangeSubscriptionClient(conn)
+
+	stream, err := client.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
+		Topic: pbsubscribe.Topic_ServiceHealth,
+		Key:   "",
+	})
+	require.NoError(t, err)
+
+	_, err = stream.Recv()
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.Contains(t, err.Error(), "Key is required")
+}
+
 func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 	backend, err := newTestBackend()
 	require.NoError(t, err)
@@ -878,6 +905,8 @@ func assertNoEvents(t *testing.T, chEvents chan eventOrError) {
 
 func logError(t *testing.T, f func() error) func() {
 	return func() {
+		t.Helper()
+
 		if err := f(); err != nil {
 			t.Logf(err.Error())
 		}

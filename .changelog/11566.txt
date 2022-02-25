@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: **(Enterprise only)** Allow ingress gateways to target services in another partition
-```

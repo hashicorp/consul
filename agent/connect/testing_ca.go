@@ -112,10 +112,7 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int, ttl ti
 		t.Fatalf("error encoding private key: %s", err)
 	}
 	result.RootCert = buf.String()
-	result.ID, err = CalculateCertFingerprint(result.RootCert)
-	if err != nil {
-		t.Fatalf("error generating CA ID fingerprint: %s", err)
-	}
+	result.ID = CalculateCertFingerprint(bs)
 	result.SerialNumber = uint64(sn.Int64())
 	result.NotBefore = template.NotBefore.UTC()
 	result.NotAfter = template.NotAfter.UTC()

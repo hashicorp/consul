@@ -7,21 +7,27 @@ Feature: dc / nodes / sorting
       - Node: Node-A
         Checks:
           - Status: critical
+            ServiceID: ""
       - Node: Node-B
         Checks:
           - Status: passing
+            ServiceID: ""
       - Node: Node-C
         Checks:
           - Status: warning
+            ServiceID: ""
       - Node: Node-D
         Checks:
           - Status: critical
+            ServiceID: ""
       - Node: Node-E
         Checks:
           - Status: critical
+            ServiceID: ""
       - Node: Node-F
         Checks:
           - Status: warning
+            ServiceID: ""
     ---
     When I visit the nodes page for yaml
     ---

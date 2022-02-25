@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"net/rpc"
 	"os"
 	"strings"
 	"testing"
@@ -11,7 +10,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+
+	"github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 )
 
 // verifyNodeSort makes sure the order of the nodes in the slice is the same as

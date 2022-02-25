@@ -8,6 +8,7 @@ import (
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -37,7 +38,7 @@ type CompileRequest struct {
 	// overridden for any resolver in the compiled chain.
 	OverrideConnectTimeout time.Duration
 
-	Entries *structs.DiscoveryChainConfigEntries
+	Entries *configentry.DiscoveryChainSet
 }
 
 // Compile assembles a discovery chain in the form of a graph of nodes using
@@ -131,7 +132,7 @@ type compiler struct {
 	// config entries that are being compiled (will be mutated during compilation)
 	//
 	// This is an INPUT field.
-	entries *structs.DiscoveryChainConfigEntries
+	entries *configentry.DiscoveryChainSet
 
 	// resolvers is initially seeded by copying the provided entries.Resolvers
 	// map and default resolvers are added as they are needed.

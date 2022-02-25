@@ -123,23 +123,22 @@ func TestCalculateSoftExpire(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			require := require.New(t)
 			now, err := time.Parse("2006-01-02 15:04:05", tc.now)
-			require.NoError(err)
+			require.NoError(t, err)
 			issued, err := time.Parse("2006-01-02 15:04:05", tc.issued)
-			require.NoError(err)
+			require.NoError(t, err)
 			wantMin, err := time.Parse("2006-01-02 15:04:05", tc.wantMin)
-			require.NoError(err)
+			require.NoError(t, err)
 			wantMax, err := time.Parse("2006-01-02 15:04:05", tc.wantMax)
-			require.NoError(err)
+			require.NoError(t, err)
 
 			min, max := calculateSoftExpiry(now, &structs.IssuedCert{
 				ValidAfter:  issued,
 				ValidBefore: issued.Add(tc.lifetime),
 			})
 
-			require.Equal(wantMin, min)
-			require.Equal(wantMax, max)
+			require.Equal(t, wantMin, min)
+			require.Equal(t, wantMax, max)
 		})
 	}
 }
@@ -156,7 +155,6 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 	}
 	t.Parallel()
 
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 
@@ -211,8 +209,8 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 		t.Fatal("shouldn't block waiting for fetch")
 	case result := <-fetchCh:
 		v := mustFetchResult(t, result)
-		require.Equal(resp, v.Value)
-		require.Equal(uint64(1), v.Index)
+		require.Equal(t, resp, v.Value)
+		require.Equal(t, uint64(1), v.Index)
 		// Set the LastResult for subsequent fetches
 		opts.LastResult = &v
 	}
@@ -244,9 +242,9 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 		t.Fatal("shouldn't block waiting for fetch")
 	case result := <-fetchCh:
 		v := mustFetchResult(t, result)
-		require.Equal(resp, v.Value)
+		require.Equal(t, resp, v.Value)
 		// 3 since the second CA "update" used up 2
-		require.Equal(uint64(3), v.Index)
+		require.Equal(t, uint64(3), v.Index)
 		// Set the LastResult for subsequent fetches
 		opts.LastResult = &v
 		opts.MinIndex = 3
@@ -267,7 +265,6 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 
@@ -323,8 +320,8 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 		t.Fatal("shouldn't block waiting for fetch")
 	case result := <-fetchCh:
 		v := mustFetchResult(t, result)
-		require.Equal(resp, v.Value)
-		require.Equal(uint64(1), v.Index)
+		require.Equal(t, resp, v.Value)
+		require.Equal(t, uint64(1), v.Index)
 		// Set the LastResult for subsequent fetches
 		opts.LastResult = &v
 	}
@@ -378,24 +375,24 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 
 			if v.Index > uint64(1) {
 				// Got a new cert
-				require.Equal(resp, v.Value)
-				require.Equal(uint64(3), v.Index)
+				require.Equal(t, resp, v.Value)
+				require.Equal(t, uint64(3), v.Index)
 				// Should not have been delivered before the delay
-				require.True(time.Since(earliestRootDelivery) > typ.TestOverrideCAChangeInitialDelay)
+				require.True(t, time.Since(earliestRootDelivery) > typ.TestOverrideCAChangeInitialDelay)
 				// All good. We are done!
 				rootsDelivered = true
 			} else {
 				// Should be the cached cert
-				require.Equal(resp, v.Value)
-				require.Equal(uint64(1), v.Index)
+				require.Equal(t, resp, v.Value)
+				require.Equal(t, uint64(1), v.Index)
 				// Sanity check we blocked for the whole timeout
-				require.Truef(timeTaken > opts.Timeout,
+				require.Truef(t, timeTaken > opts.Timeout,
 					"should block for at least %s, returned after %s",
 					opts.Timeout, timeTaken)
 				// Sanity check that the forceExpireAfter state was set correctly
 				shouldExpireAfter = v.State.(*fetchState).forceExpireAfter
-				require.True(shouldExpireAfter.After(time.Now()))
-				require.True(shouldExpireAfter.Before(time.Now().Add(typ.TestOverrideCAChangeInitialDelay)))
+				require.True(t, shouldExpireAfter.After(time.Now()))
+				require.True(t, shouldExpireAfter.Before(time.Now().Add(typ.TestOverrideCAChangeInitialDelay)))
 			}
 			// Set the LastResult for subsequent fetches
 			opts.LastResult = &v
@@ -406,8 +403,7 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 
 		// Sanity check that we've not gone way beyond the deadline without a
 		// new cert. We give some leeway to make it less brittle.
-		require.Falsef(
-			time.Now().After(shouldExpireAfter.Add(100*time.Millisecond)),
+		require.Falsef(t, time.Now().After(shouldExpireAfter.Add(100*time.Millisecond)),
 			"waited extra 100ms and delayed CA rotate renew didn't happen")
 	}
 }
@@ -416,7 +412,6 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 func TestConnectCALeaf_changingRootsBetweenBlockingCalls(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 
@@ -461,8 +456,8 @@ func TestConnectCALeaf_changingRootsBetweenBlockingCalls(t *testing.T) {
 		t.Fatal("shouldn't block waiting for fetch")
 	case result := <-fetchCh:
 		v := mustFetchResult(t, result)
-		require.Equal(resp, v.Value)
-		require.Equal(uint64(1), v.Index)
+		require.Equal(t, resp, v.Value)
+		require.Equal(t, uint64(1), v.Index)
 		// Set the LastResult for subsequent fetches
 		opts.LastResult = &v
 	}
@@ -475,11 +470,11 @@ func TestConnectCALeaf_changingRootsBetweenBlockingCalls(t *testing.T) {
 		t.Fatal("shouldn't block for too long waiting for fetch")
 	case result := <-fetchCh:
 		v := mustFetchResult(t, result)
-		require.Equal(resp, v.Value)
+		require.Equal(t, resp, v.Value)
 		// Still the initial cached result
-		require.Equal(uint64(1), v.Index)
+		require.Equal(t, uint64(1), v.Index)
 		// Sanity check that it waited
-		require.True(time.Since(start) > opts.Timeout)
+		require.True(t, time.Since(start) > opts.Timeout)
 		// Set the LastResult for subsequent fetches
 		opts.LastResult = &v
 	}
@@ -507,11 +502,11 @@ func TestConnectCALeaf_changingRootsBetweenBlockingCalls(t *testing.T) {
 		t.Fatal("shouldn't block too long waiting for fetch")
 	case result := <-fetchCh:
 		v := mustFetchResult(t, result)
-		require.Equal(resp, v.Value)
+		require.Equal(t, resp, v.Value)
 		// Index should be 3 since root change consumed 2
-		require.Equal(uint64(3), v.Index)
+		require.Equal(t, uint64(3), v.Index)
 		// Sanity check that we didn't wait too long
-		require.True(time.Since(earliestRootDelivery) < opts.Timeout)
+		require.True(t, time.Since(earliestRootDelivery) < opts.Timeout)
 		// Set the LastResult for subsequent fetches
 		opts.LastResult = &v
 	}
@@ -525,7 +520,6 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 
@@ -594,8 +588,8 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 	case result := <-fetchCh:
 		switch v := result.(type) {
 		case error:
-			require.Error(v)
-			require.Equal(consul.ErrRateLimited.Error(), v.Error())
+			require.Error(t, v)
+			require.Equal(t, consul.ErrRateLimited.Error(), v.Error())
 		case cache.FetchResult:
 			t.Fatalf("Expected error")
 		}
@@ -608,8 +602,8 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 		t.Fatal("shouldn't block waiting for fetch")
 	case result := <-fetchCh:
 		v := mustFetchResult(t, result)
-		require.Equal(resp, v.Value)
-		require.Equal(uint64(1), v.Index)
+		require.Equal(t, resp, v.Value)
+		require.Equal(t, uint64(1), v.Index)
 		// Set the LastResult for subsequent fetches
 		opts.LastResult = &v
 		// Set MinIndex
@@ -633,7 +627,7 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 	earliestRootDelivery := time.Now()
 
 	// Sanity check state
-	require.Equal(uint64(1), atomic.LoadUint64(&rateLimitedRPCs))
+	require.Equal(t, uint64(1), atomic.LoadUint64(&rateLimitedRPCs))
 
 	// After root rotation jitter has been waited out, a new CSR will
 	// be attempted but will fail and return the previous cached result with no
@@ -646,14 +640,14 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 		// We should block for _at least_ one jitter period since we set that to
 		// 100ms and in test override mode we always pick the max jitter not a
 		// random amount.
-		require.True(time.Since(earliestRootDelivery) > 100*time.Millisecond)
-		require.Equal(uint64(2), atomic.LoadUint64(&rateLimitedRPCs))
+		require.True(t, time.Since(earliestRootDelivery) > 100*time.Millisecond)
+		require.Equal(t, uint64(2), atomic.LoadUint64(&rateLimitedRPCs))
 
 		v := mustFetchResult(t, result)
-		require.Equal(resp, v.Value)
+		require.Equal(t, resp, v.Value)
 		// 1 since this should still be the original cached result as we failed to
 		// get a new cert.
-		require.Equal(uint64(1), v.Index)
+		require.Equal(t, uint64(1), v.Index)
 		// Set the LastResult for subsequent fetches
 		opts.LastResult = &v
 	}
@@ -667,14 +661,14 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 		t.Fatal("shouldn't block too long waiting for fetch")
 	case result := <-fetchCh:
 		// We should block for _at least_ two jitter periods now.
-		require.True(time.Since(earliestRootDelivery) > 200*time.Millisecond)
-		require.Equal(uint64(3), atomic.LoadUint64(&rateLimitedRPCs))
+		require.True(t, time.Since(earliestRootDelivery) > 200*time.Millisecond)
+		require.Equal(t, uint64(3), atomic.LoadUint64(&rateLimitedRPCs))
 
 		v := mustFetchResult(t, result)
-		require.Equal(resp, v.Value)
+		require.Equal(t, resp, v.Value)
 		// 1 since this should still be the original cached result as we failed to
 		// get a new cert.
-		require.Equal(uint64(1), v.Index)
+		require.Equal(t, uint64(1), v.Index)
 		// Set the LastResult for subsequent fetches
 		opts.LastResult = &v
 	}
@@ -689,13 +683,13 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 		t.Fatal("shouldn't block too long waiting for fetch")
 	case result := <-fetchCh:
 		// We should block for _at least_ three jitter periods now.
-		require.True(time.Since(earliestRootDelivery) > 300*time.Millisecond)
-		require.Equal(uint64(3), atomic.LoadUint64(&rateLimitedRPCs))
+		require.True(t, time.Since(earliestRootDelivery) > 300*time.Millisecond)
+		require.Equal(t, uint64(3), atomic.LoadUint64(&rateLimitedRPCs))
 
 		v := mustFetchResult(t, result)
-		require.Equal(resp, v.Value)
+		require.Equal(t, resp, v.Value)
 		// 3 since the rootCA change used 2
-		require.Equal(uint64(3), v.Index)
+		require.Equal(t, uint64(3), v.Index)
 		// Set the LastResult for subsequent fetches
 		opts.LastResult = &v
 	}
@@ -909,7 +903,6 @@ func TestConnectCALeaf_expiringLeaf(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 
@@ -963,10 +956,10 @@ func TestConnectCALeaf_expiringLeaf(t *testing.T) {
 	case result := <-fetchCh:
 		switch v := result.(type) {
 		case error:
-			require.NoError(v)
+			require.NoError(t, v)
 		case cache.FetchResult:
-			require.Equal(resp, v.Value)
-			require.Equal(uint64(1), v.Index)
+			require.Equal(t, resp, v.Value)
+			require.Equal(t, uint64(1), v.Index)
 			// Set the LastResult for subsequent fetches
 			opts.LastResult = &v
 		}
@@ -981,10 +974,10 @@ func TestConnectCALeaf_expiringLeaf(t *testing.T) {
 	case result := <-fetchCh:
 		switch v := result.(type) {
 		case error:
-			require.NoError(v)
+			require.NoError(t, v)
 		case cache.FetchResult:
-			require.Equal(resp, v.Value)
-			require.Equal(uint64(2), v.Index)
+			require.Equal(t, resp, v.Value)
+			require.Equal(t, uint64(2), v.Index)
 			// Set the LastResult for subsequent fetches
 			opts.LastResult = &v
 		}
@@ -1004,7 +997,6 @@ func TestConnectCALeaf_expiringLeaf(t *testing.T) {
 func TestConnectCALeaf_DNSSANForService(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 
@@ -1040,12 +1032,12 @@ func TestConnectCALeaf_DNSSANForService(t *testing.T) {
 		DNSSAN:     []string{"test.example.com"},
 	}
 	_, err := typ.Fetch(opts, req)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	pemBlock, _ := pem.Decode([]byte(caReq.CSR))
 	csr, err := x509.ParseCertificateRequest(pemBlock.Bytes)
-	require.NoError(err)
-	require.Equal(csr.DNSNames, []string{"test.example.com"})
+	require.NoError(t, err)
+	require.Equal(t, csr.DNSNames, []string{"test.example.com"})
 }
 
 // testConnectCaRoot wraps ConnectCARoot to disable refresh so that the gated

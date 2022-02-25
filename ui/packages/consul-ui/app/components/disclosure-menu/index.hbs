@@ -1,0 +1,24 @@
+<div
+  class={{class-map
+    "disclosure-menu"
+  }}
+  ...attributes
+>
+  <Disclosure
+    @expanded={{@expanded}}
+  as |disclosure|>
+    {{yield (hash
+      Action=(component 'disclosure-menu/action' disclosure=disclosure)
+      Menu=(component 'disclosure-menu/menu'
+        disclosure=disclosure
+        items=@items
+        rowHeight=@rowHeight
+      )
+      disclosure=disclosure
+      toggle=disclosure.toggle
+      close=disclosure.close
+      open=disclosure.open
+      expanded=disclosure.expanded
+    )}}
+  </Disclosure>
+</div>

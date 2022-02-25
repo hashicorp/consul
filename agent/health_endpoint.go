@@ -1,11 +1,9 @@
 package agent
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -30,11 +28,13 @@ func (s *HTTPHandlers) HealthChecksInState(resp http.ResponseWriter, req *http.R
 	}
 
 	// Pull out the service name
-	args.State = strings.TrimPrefix(req.URL.Path, "/v1/health/state/")
+	var err error
+	args.State, err = getPathSuffixUnescaped(req.URL.Path, "/v1/health/state/")
+	if err != nil {
+		return nil, err
+	}
 	if args.State == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing check state")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing check state"}
 	}
 
 	// Make the RPC request
@@ -76,11 +76,13 @@ func (s *HTTPHandlers) HealthNodeChecks(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Pull out the service name
-	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/health/node/")
+	var err error
+	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/health/node/")
+	if err != nil {
+		return nil, err
+	}
 	if args.Node == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing node name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing node name"}
 	}
 
 	// Make the RPC request
@@ -124,11 +126,13 @@ func (s *HTTPHandlers) HealthServiceChecks(resp http.ResponseWriter, req *http.R
 	}
 
 	// Pull out the service name
-	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/health/checks/")
+	var err error
+	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, "/v1/health/checks/")
+	if err != nil {
+		return nil, err
+	}
 	if args.ServiceName == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing service name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing service name"}
 	}
 
 	// Make the RPC request
@@ -212,11 +216,13 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Pull out the service name
-	args.ServiceName = strings.TrimPrefix(req.URL.Path, prefix)
+	var err error
+	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, prefix)
+	if err != nil {
+		return nil, err
+	}
 	if args.ServiceName == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing service name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing service name"}
 	}
 
 	out, md, err := s.agent.rpcClientHealth.ServiceNodes(req.Context(), args)
@@ -234,9 +240,7 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 	// Filter to only passing if specified
 	filter, err := getBoolQueryParam(params, api.HealthPassing)
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Invalid value for ?passing")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Invalid value for ?passing"}
 	}
 
 	// FIXME: remove filterNonPassing, replace with nodes.Filter, which is used by DNSServer

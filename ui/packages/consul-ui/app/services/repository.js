@@ -26,7 +26,7 @@ export const softDelete = (repo, item) => {
     repo.getModelName()
   );
   return res;
-}
+};
 export default class RepositoryService extends Service {
   @service('store') store;
   @service('env') env;
@@ -116,7 +116,12 @@ export default class RepositoryService extends Service {
     if (typeof meta.date !== 'undefined') {
       this.store.peekAll(this.getModelName()).forEach(item => {
         const date = get(item, 'SyncTime');
-        if (!item.isDeleted && typeof date !== 'undefined' && date != meta.date && this.shouldReconcile(item, params)) {
+        if (
+          !item.isDeleted &&
+          typeof date !== 'undefined' &&
+          date != meta.date &&
+          this.shouldReconcile(item, params)
+        ) {
           this.store.unloadRecord(item);
         }
       });
@@ -156,12 +161,12 @@ export default class RepositoryService extends Service {
     try {
       res = await this.store.query(this.getModelName(), params);
       meta = res.meta;
-    } catch(e) {
-      switch(get(e, 'errors.firstObject.status')) {
+    } catch (e) {
+      switch (get(e, 'errors.firstObject.status')) {
         case '404':
         case '403':
           meta = {
-            date: Number.POSITIVE_INFINITY
+            date: Number.POSITIVE_INFINITY,
           };
           error = e;
           break;
@@ -169,10 +174,10 @@ export default class RepositoryService extends Service {
           throw e;
       }
     }
-    if(typeof meta !== 'undefined') {
+    if (typeof meta !== 'undefined') {
       this.reconcile(meta, params, configuration);
     }
-    if(typeof error !== 'undefined') {
+    if (typeof error !== 'undefined') {
       throw error;
     }
     return res;
@@ -210,6 +215,7 @@ export default class RepositoryService extends Service {
       item.execute();
       item = item.data;
     }
+    set(item, 'SyncTime', undefined);
     return item.save();
   }
 

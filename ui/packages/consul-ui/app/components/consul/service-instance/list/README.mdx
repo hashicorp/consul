@@ -1,0 +1,83 @@
+# Consul::ServiceInstance::List
+
+A presentational component to show a list of Service Instances. The component
+will display slightly different information based on whether you want the list
+in a `@node` view or not.
+
+Please note: A nice refactor here would be to let the node information be
+added from the outside via a slot. Once component is using the new row based
+scrollpane this can probably be looked at.
+
+```hbs preview-template
+<figure>
+  <figcaption>With no node given (i.e. from within a Service)</figcaption>
+    <DataSource
+      @src={{uri '/${partition}/${nspace}/${dc}/service-instances/for-service/${name}'
+        (hash
+          partition=''
+          nspace=''
+          dc='dc-1'
+          name='service-name'
+        )
+      }}
+      @onchange={{action (mut this.items) value="data"}}
+    />
+  <Consul::ServiceInstance::List
+    @routeName="dc.services.show"
+    @items={{this.items}}
+    @proxies={{array}}
+  />
+</figure>
+```
+
+Component configured to show a list from within a node page.
+
+```hbs preview-template
+<figure>
+  <figcaption>With a node given (i.e. from within a Node)</figcaption>
+    <DataSource
+      @src={{uri '/${partition}/${nspace}/${dc}/node/${name}'
+        (hash
+          partition=''
+          nspace=''
+          dc='dc-1'
+          name='node-0'
+        )
+      }}
+      @onchange={{action (mut this.node) value="data"}}
+    />
+    <DataSource
+      @src={{uri '/${partition}/${nspace}/${dc}/service-instances/for-service/${name}'
+        (hash
+          partition=''
+          nspace=''
+          dc='dc-1'
+          name='service-name'
+        )
+      }}
+      @onchange={{action (mut this.items) value="data"}}
+    />
+  <Consul::ServiceInstance::List
+    @routeName="dc.services.show"
+    @node={{this.node}}
+    @items={{this.items}}
+    @proxies={{array}}
+  />
+</figure>
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `items` | `Array` | | An array of Consul Service Instances |
+| `proxies` | `Array` | | An array of Consul Proxy Service Instances from the same Service |
+| `routeName` | `String` | | An Ember routeName for where clicking a row takes you |
+| `node` | `(Object | boolean)` | | Whether to show a node like view |
+
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

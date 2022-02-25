@@ -9,7 +9,7 @@ export default function(visitable, submitable, deletable, cancelable, clickable,
     datacenter: clickable('[name="policy[Datacenters]"]'),
     deleteModal: {
       resetScope: true,
-      scope: '[data-test-delete-modal]',
+      scope: '[data-test-delete-modal]:not([aria-hidden="true"])',
       ...deletable({}),
     },
   };

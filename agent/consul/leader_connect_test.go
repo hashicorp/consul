@@ -12,14 +12,16 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	uuid "github.com/hashicorp/go-uuid"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -196,7 +198,7 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 	for _, tc := range tests {
 		tc := tc
 		t.Run(fmt.Sprintf("%s-%d", tc.keyType, tc.keyBits), func(t *testing.T) {
-			masterToken := "8a85f086-dd95-4178-b128-e10902767c5c"
+			initialManagementToken := "8a85f086-dd95-4178-b128-e10902767c5c"
 
 			// Initialize primary as the primary DC
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -204,7 +206,7 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 				c.PrimaryDatacenter = "primary"
 				c.Build = "1.6.0"
 				c.ACLsEnabled = true
-				c.ACLInitialManagementToken = masterToken
+				c.ACLInitialManagementToken = initialManagementToken
 				c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 				c.CAConfig.Config["PrivateKeyType"] = tc.keyType
 				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
@@ -213,7 +215,7 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
 
-			s1.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
+			s1.tokens.UpdateAgentToken(initialManagementToken, token.TokenSourceConfig)
 
 			testrpc.WaitForLeader(t, s1.RPC, "primary")
 
@@ -232,8 +234,8 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 			defer os.RemoveAll(dir2)
 			defer s2.Shutdown()
 
-			s2.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
-			s2.tokens.UpdateReplicationToken(masterToken, token.TokenSourceConfig)
+			s2.tokens.UpdateAgentToken(initialManagementToken, token.TokenSourceConfig)
+			s2.tokens.UpdateReplicationToken(initialManagementToken, token.TokenSourceConfig)
 
 			// Create the WAN link
 			joinWAN(t, s2, s1)
@@ -327,7 +329,6 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 
 	// no parallel execution because we change globals
 	patchIntermediateCertRenewInterval(t)
-	require := require.New(t)
 
 	testVault := ca.NewTestVaultServer(t)
 
@@ -354,15 +355,15 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 
 	store := s1.caManager.delegate.State()
 	_, activeRoot, err := store.CARootActive(nil)
-	require.NoError(err)
+	require.NoError(t, err)
 	t.Log("original SigningKeyID", activeRoot.SigningKeyID)
 
 	intermediatePEM := s1.caManager.getLeafSigningCertFromRoot(activeRoot)
 	intermediateCert, err := connect.ParseCert(intermediatePEM)
-	require.NoError(err)
+	require.NoError(t, err)
 
-	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
-	require.Equal(intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
+	require.Equal(t, connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
+	require.Equal(t, intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
 
 	// Wait for dc1's intermediate to be refreshed.
 	retry.Run(t, func(r *retry.R) {
@@ -382,12 +383,12 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 	codec := rpcClient(t, s1)
 	roots := structs.IndexedCARoots{}
 	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
-	require.NoError(err)
-	require.Len(roots.Roots, 1)
+	require.NoError(t, err)
+	require.Len(t, roots.Roots, 1)
 
 	activeRoot = roots.Active()
-	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
-	require.Equal(intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
+	require.Equal(t, connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
+	require.Equal(t, intermediatePEM, s1.caManager.getLeafSigningCertFromRoot(activeRoot))
 
 	// Have the new intermediate sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
@@ -401,7 +402,7 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 	req := structs.CASignRequest{CSR: csr}
 	cert := structs.IssuedCert{}
 	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
-	require.NoError(err)
+	require.NoError(t, err)
 	verifyLeafCert(t, activeRoot, cert.CertPEM)
 }
 
@@ -425,7 +426,6 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 
 	// no parallel execution because we change globals
 	patchIntermediateCertRenewInterval(t)
-	require := require.New(t)
 
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
@@ -469,15 +469,15 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 
 	store := s2.fsm.State()
 	_, activeRoot, err := store.CARootActive(nil)
-	require.NoError(err)
+	require.NoError(t, err)
 	t.Log("original SigningKeyID", activeRoot.SigningKeyID)
 
 	intermediatePEM := s2.caManager.getLeafSigningCertFromRoot(activeRoot)
 	intermediateCert, err := connect.ParseCert(intermediatePEM)
-	require.NoError(err)
+	require.NoError(t, err)
 
-	require.Equal(intermediatePEM, s2.caManager.getLeafSigningCertFromRoot(activeRoot))
-	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
+	require.Equal(t, intermediatePEM, s2.caManager.getLeafSigningCertFromRoot(activeRoot))
+	require.Equal(t, connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
 
 	// Wait for dc2's intermediate to be refreshed.
 	retry.Run(t, func(r *retry.R) {
@@ -497,13 +497,13 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	codec := rpcClient(t, s2)
 	roots := structs.IndexedCARoots{}
 	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
-	require.NoError(err)
-	require.Len(roots.Roots, 1)
+	require.NoError(t, err)
+	require.Len(t, roots.Roots, 1)
 
 	_, activeRoot, err = store.CARootActive(nil)
-	require.NoError(err)
-	require.Equal(connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
-	require.Equal(intermediatePEM, s2.caManager.getLeafSigningCertFromRoot(activeRoot))
+	require.NoError(t, err)
+	require.Equal(t, connect.HexString(intermediateCert.SubjectKeyId), activeRoot.SigningKeyID)
+	require.Equal(t, intermediatePEM, s2.caManager.getLeafSigningCertFromRoot(activeRoot))
 
 	// Have dc2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
@@ -517,7 +517,7 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	req := structs.CASignRequest{CSR: csr}
 	cert := structs.IssuedCert{}
 	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
-	require.NoError(err)
+	require.NoError(t, err)
 	verifyLeafCert(t, activeRoot, cert.CertPEM)
 }
 
@@ -527,8 +527,6 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 	}
 
 	t.Parallel()
-
-	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
@@ -555,15 +553,15 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 	// Get the original intermediate
 	secondaryProvider, _ := getCAProviderWithLock(s2)
 	oldIntermediatePEM, err := secondaryProvider.ActiveIntermediate()
-	require.NoError(err)
-	require.NotEmpty(oldIntermediatePEM)
+	require.NoError(t, err)
+	require.NotEmpty(t, oldIntermediatePEM)
 
 	// Capture the current root
 	var originalRoot *structs.CARoot
 	{
 		rootList, activeRoot, err := getTestRoots(s1, "dc1")
-		require.NoError(err)
-		require.Len(rootList.Roots, 1)
+		require.NoError(t, err)
+		require.Len(t, rootList.Roots, 1)
 		originalRoot = activeRoot
 	}
 
@@ -574,7 +572,7 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 	// Update the provider config to use a new private key, which should
 	// cause a rotation.
 	_, newKey, err := connect.GeneratePrivateKey()
-	require.NoError(err)
+	require.NoError(t, err)
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
@@ -590,14 +588,14 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 		}
 		var reply interface{}
 
-		require.NoError(s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
+		require.NoError(t, s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
 	}
 
 	var updatedRoot *structs.CARoot
 	{
 		rootList, activeRoot, err := getTestRoots(s1, "dc1")
-		require.NoError(err)
-		require.Len(rootList.Roots, 2)
+		require.NoError(t, err)
+		require.Len(t, rootList.Roots, 2)
 		updatedRoot = activeRoot
 	}
 
@@ -613,17 +611,17 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 			r.Fatal("not a new intermediate")
 		}
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Verify the root lists have been rotated in each DC's state store.
 	state1 := s1.fsm.State()
 	_, primaryRoot, err := state1.CARootActive(nil)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	state2 := s2.fsm.State()
 	_, roots2, err := state2.CARoots(nil)
-	require.NoError(err)
-	require.Equal(2, len(roots2))
+	require.NoError(t, err)
+	require.Equal(t, 2, len(roots2))
 
 	newRoot := roots2[0]
 	oldRoot := roots2[1]
@@ -631,10 +629,10 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 		newRoot = roots2[1]
 		oldRoot = roots2[0]
 	}
-	require.False(oldRoot.Active)
-	require.True(newRoot.Active)
-	require.Equal(primaryRoot.ID, newRoot.ID)
-	require.Equal(primaryRoot.RootCert, newRoot.RootCert)
+	require.False(t, oldRoot.Active)
+	require.True(t, newRoot.Active)
+	require.Equal(t, primaryRoot.ID, newRoot.ID)
+	require.Equal(t, primaryRoot.RootCert, newRoot.RootCert)
 
 	// Get the new root from dc1 and validate a chain of:
 	// dc2 leaf -> dc2 intermediate -> dc1 root
@@ -650,13 +648,13 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 	raw, _ := connect.TestCSR(t, spiffeService)
 
 	leafCsr, err := connect.ParseCSR(raw)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	leafPEM, err := secondaryProvider.Sign(leafCsr)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	cert, err := connect.ParseCert(leafPEM)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Check that the leaf signed by the new intermediate can be verified using the
 	// returned cert chain (signed intermediate + remote root).
@@ -669,7 +667,7 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 		Intermediates: intermediatePool,
 		Roots:         rootPool,
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 }
 
 func TestCAManager_Initialize_Vault_FixesSigningKeyID_Primary(t *testing.T) {
@@ -1113,7 +1111,6 @@ func TestLeader_CARootPruning(t *testing.T) {
 		caRootPruneInterval = origPruneInterval
 	})
 
-	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1127,14 +1124,14 @@ func TestLeader_CARootPruning(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var rootList structs.IndexedCARoots
-	require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
-	require.Len(rootList.Roots, 1)
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.Len(t, rootList.Roots, 1)
 	oldRoot := rootList.Roots[0]
 
 	// Update the provider config to use a new private key, which should
 	// cause a rotation.
 	_, newKey, err := connect.GeneratePrivateKey()
-	require.NoError(err)
+	require.NoError(t, err)
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
@@ -1151,22 +1148,22 @@ func TestLeader_CARootPruning(t *testing.T) {
 		}
 		var reply interface{}
 
-		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
 	}
 
 	// Should have 2 roots now.
 	_, roots, err := s1.fsm.State().CARoots(nil)
-	require.NoError(err)
-	require.Len(roots, 2)
+	require.NoError(t, err)
+	require.Len(t, roots, 2)
 
 	time.Sleep(2 * time.Second)
 
 	// Now the old root should be pruned.
 	_, roots, err = s1.fsm.State().CARoots(nil)
-	require.NoError(err)
-	require.Len(roots, 1)
-	require.True(roots[0].Active)
-	require.NotEqual(roots[0].ID, oldRoot.ID)
+	require.NoError(t, err)
+	require.Len(t, roots, 1)
+	require.True(t, roots[0].Active)
+	require.NotEqual(t, roots[0].ID, oldRoot.ID)
 }
 
 func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
@@ -1176,7 +1173,6 @@ func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1201,13 +1197,13 @@ func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var rootList structs.IndexedCARoots
-	require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
-	require.Len(rootList.Roots, 1)
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.Len(t, rootList.Roots, 1)
 
 	// Update the provider config to use a new private key, which should
 	// cause a rotation.
 	_, newKey, err := connect.GeneratePrivateKey()
-	require.NoError(err)
+	require.NoError(t, err)
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
@@ -1222,12 +1218,12 @@ func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
 		}
 		var reply interface{}
 
-		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
 	}
 
 	// Get the active root before leader change.
 	_, root := getCAProviderWithLock(s1)
-	require.Len(root.IntermediateCerts, 1)
+	require.Len(t, root.IntermediateCerts, 1)
 
 	// Force a leader change and make sure the root CA values are preserved.
 	s1.Leave()
@@ -1252,75 +1248,122 @@ func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
 	})
 }
 
-func TestParseCARoot(t *testing.T) {
-	type test struct {
-		name             string
-		pem              string
-		wantSerial       uint64
-		wantSigningKeyID string
-		wantKeyType      string
-		wantKeyBits      int
-		wantErr          bool
+func TestNewCARoot(t *testing.T) {
+	type testCase struct {
+		name        string
+		pem         string
+		expected    *structs.CARoot
+		expectedErr string
 	}
-	// Test certs generated with
+
+	run := func(t *testing.T, tc testCase) {
+		root, err := newCARoot(tc.pem, "provider-name", "cluster-id")
+		if tc.expectedErr != "" {
+			testutil.RequireErrorContains(t, err, tc.expectedErr)
+			return
+		}
+		require.NoError(t, err)
+		assert.DeepEqual(t, root, tc.expected)
+	}
+
+	// Test certs can be generated with
 	//   go run connect/certgen/certgen.go -out-dir /tmp/connect-certs -key-type ec -key-bits 384
-	// for various key types. This does limit the exposure to formats that might
-	// exist in external certificates which can be used as Connect CAs.
-	// Specifically many other certs will have serial numbers that don't fit into
-	// 64 bits but for reasons we truncate down to 64 bits which means our
-	// `SerialNumber` will not match the one reported by openssl. We should
-	// probably fix that at some point as it seems like a big footgun but it would
-	// be a breaking API change to change the type to not be a JSON number and
-	// JSON numbers don't even support the full range of a uint64...
-	tests := []test{
-		{"no cert", "", 0, "", "", 0, true},
+	// serial generated with:
+	//   openssl x509 -noout -text
+	testCases := []testCase{
 		{
-			name: "default cert",
-			// Watchout for indentations they will break PEM format
-			pem: readTestData(t, "cert-with-ec-256-key.pem"),
-			// Based on `openssl x509 -noout -text` report from the cert
-			wantSerial:       8341954965092507701,
-			wantSigningKeyID: "97:4D:17:81:64:F8:B4:AF:05:E8:6C:79:C5:40:3B:0E:3E:8B:C0:AE:38:51:54:8A:2F:05:DB:E3:E8:E4:24:EC",
-			wantKeyType:      "ec",
-			wantKeyBits:      256,
-			wantErr:          false,
+			name:        "no cert",
+			expectedErr: "no PEM-encoded data found",
 		},
 		{
-			name: "ec 384 cert",
-			// Watchout for indentations they will break PEM format
-			pem: readTestData(t, "cert-with-ec-384-key.pem"),
-			// Based on `openssl x509 -noout -text` report from the cert
-			wantSerial:       2935109425518279965,
-			wantSigningKeyID: "0B:A0:88:9B:DC:95:31:51:2E:3D:D4:F9:42:D0:6A:A0:62:46:82:D2:7C:22:E7:29:A9:AA:E8:A5:8C:CF:C7:42",
-			wantKeyType:      "ec",
-			wantKeyBits:      384,
-			wantErr:          false,
+			name: "type=ec bits=256",
+			pem:  readTestData(t, "cert-with-ec-256-key.pem"),
+			expected: &structs.CARoot{
+				ID:                  "c9:1b:24:e0:89:63:1a:ba:22:01:f4:cf:bc:f1:c0:36:b2:6b:6c:3d",
+				Name:                "Provider-Name CA Primary Cert",
+				SerialNumber:        8341954965092507701,
+				SigningKeyID:        "97:4d:17:81:64:f8:b4:af:05:e8:6c:79:c5:40:3b:0e:3e:8b:c0:ae:38:51:54:8a:2f:05:db:e3:e8:e4:24:ec",
+				ExternalTrustDomain: "cluster-id",
+				NotBefore:           time.Date(2019, 10, 17, 11, 46, 29, 0, time.UTC),
+				NotAfter:            time.Date(2029, 10, 17, 11, 46, 29, 0, time.UTC),
+				RootCert:            readTestData(t, "cert-with-ec-256-key.pem"),
+				Active:              true,
+				PrivateKeyType:      "ec",
+				PrivateKeyBits:      256,
+			},
 		},
 		{
-			name: "rsa 4096 cert",
-			// Watchout for indentations they will break PEM format
-			pem: readTestData(t, "cert-with-rsa-4096-key.pem"),
-			// Based on `openssl x509 -noout -text` report from the cert
-			wantSerial:       5186695743100577491,
-			wantSigningKeyID: "92:FA:CC:97:57:1E:31:84:A2:33:DD:9B:6A:A8:7C:FC:BE:E2:94:CA:AC:B3:33:17:39:3B:B8:67:9B:DC:C1:08",
-			wantKeyType:      "rsa",
-			wantKeyBits:      4096,
-			wantErr:          false,
+			name: "type=ec bits=384",
+			pem:  readTestData(t, "cert-with-ec-384-key.pem"),
+			expected: &structs.CARoot{
+				ID:                  "29:69:c4:0f:aa:8f:bd:07:31:0d:51:3b:45:62:3d:c0:b2:fc:c6:3f",
+				Name:                "Provider-Name CA Primary Cert",
+				SerialNumber:        2935109425518279965,
+				SigningKeyID:        "0b:a0:88:9b:dc:95:31:51:2e:3d:d4:f9:42:d0:6a:a0:62:46:82:d2:7c:22:e7:29:a9:aa:e8:a5:8c:cf:c7:42",
+				ExternalTrustDomain: "cluster-id",
+				NotBefore:           time.Date(2019, 10, 17, 11, 55, 18, 0, time.UTC),
+				NotAfter:            time.Date(2029, 10, 17, 11, 55, 18, 0, time.UTC),
+				RootCert:            readTestData(t, "cert-with-ec-384-key.pem"),
+				Active:              true,
+				PrivateKeyType:      "ec",
+				PrivateKeyBits:      384,
+			},
+		},
+		{
+			name: "type=rsa bits=4096",
+			pem:  readTestData(t, "cert-with-rsa-4096-key.pem"),
+			expected: &structs.CARoot{
+				ID:                  "3a:6a:e3:e2:2d:44:85:5a:e9:44:3b:ef:d2:90:78:83:7f:61:a2:84",
+				Name:                "Provider-Name CA Primary Cert",
+				SerialNumber:        5186695743100577491,
+				SigningKeyID:        "92:fa:cc:97:57:1e:31:84:a2:33:dd:9b:6a:a8:7c:fc:be:e2:94:ca:ac:b3:33:17:39:3b:b8:67:9b:dc:c1:08",
+				ExternalTrustDomain: "cluster-id",
+				NotBefore:           time.Date(2019, 10, 17, 11, 53, 15, 0, time.UTC),
+				NotAfter:            time.Date(2029, 10, 17, 11, 53, 15, 0, time.UTC),
+				RootCert:            readTestData(t, "cert-with-rsa-4096-key.pem"),
+				Active:              true,
+				PrivateKeyType:      "rsa",
+				PrivateKeyBits:      4096,
+			},
+		},
+		{
+			name: "two certs in pem",
+			pem:  readTestData(t, "pem-with-two-certs.pem"),
+			expected: &structs.CARoot{
+				ID:                  "42:43:10:1f:71:6b:21:21:d1:10:49:d1:f0:41:78:8c:0a:77:ef:c0",
+				Name:                "Provider-Name CA Primary Cert",
+				SerialNumber:        17692800288680335732,
+				SigningKeyID:        "9d:5c:27:43:ce:58:7b:ca:3e:7d:c4:fb:b6:2e:b7:13:e9:a1:68:3e",
+				ExternalTrustDomain: "cluster-id",
+				NotBefore:           time.Date(2022, 1, 5, 23, 22, 12, 0, time.UTC),
+				NotAfter:            time.Date(2022, 4, 7, 15, 22, 42, 0, time.UTC),
+				RootCert:            readTestData(t, "pem-with-two-certs.pem"),
+				Active:              true,
+				PrivateKeyType:      "ec",
+				PrivateKeyBits:      256,
+			},
+		},
+		{
+			name: "three certs in pem",
+			pem:  readTestData(t, "pem-with-three-certs.pem"),
+			expected: &structs.CARoot{
+				ID:                  "42:43:10:1f:71:6b:21:21:d1:10:49:d1:f0:41:78:8c:0a:77:ef:c0",
+				Name:                "Provider-Name CA Primary Cert",
+				SerialNumber:        17692800288680335732,
+				SigningKeyID:        "9d:5c:27:43:ce:58:7b:ca:3e:7d:c4:fb:b6:2e:b7:13:e9:a1:68:3e",
+				ExternalTrustDomain: "cluster-id",
+				NotBefore:           time.Date(2022, 1, 5, 23, 22, 12, 0, time.UTC),
+				NotAfter:            time.Date(2022, 4, 7, 15, 22, 42, 0, time.UTC),
+				RootCert:            readTestData(t, "pem-with-three-certs.pem"),
+				Active:              true,
+				PrivateKeyType:      "ec",
+				PrivateKeyBits:      256,
+			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
-			root, err := parseCARoot(tt.pem, "consul", "cluster")
-			if tt.wantErr {
-				require.Error(err)
-				return
-			}
-			require.NoError(err)
-			require.Equal(tt.wantSerial, root.SerialNumber)
-			require.Equal(strings.ToLower(tt.wantSigningKeyID), root.SigningKeyID)
-			require.Equal(tt.wantKeyType, root.PrivateKeyType)
-			require.Equal(tt.wantKeyBits, root.PrivateKeyBits)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
 		})
 	}
 }
@@ -1491,7 +1534,6 @@ func TestCAManager_Initialize_BadCAConfigDoesNotPreventLeaderEstablishment(t *te
 }
 
 func TestConnectCA_ConfigurationSet_ForceWithoutCrossSigning(t *testing.T) {
-	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1505,14 +1547,14 @@ func TestConnectCA_ConfigurationSet_ForceWithoutCrossSigning(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var rootList structs.IndexedCARoots
-	require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
-	require.Len(rootList.Roots, 1)
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.Len(t, rootList.Roots, 1)
 	oldRoot := rootList.Roots[0]
 
 	// Update the provider config to use a new private key, which should
 	// cause a rotation.
 	_, newKey, err := connect.GeneratePrivateKey()
-	require.NoError(err)
+	require.NoError(t, err)
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
@@ -1530,18 +1572,18 @@ func TestConnectCA_ConfigurationSet_ForceWithoutCrossSigning(t *testing.T) {
 		}
 		var reply interface{}
 
-		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
 	}
 
 	// Old root should no longer be active.
 	_, roots, err := s1.fsm.State().CARoots(nil)
-	require.NoError(err)
-	require.Len(roots, 2)
+	require.NoError(t, err)
+	require.Len(t, roots, 2)
 	for _, r := range roots {
 		if r.ID == oldRoot.ID {
-			require.False(r.Active)
+			require.False(t, r.Active)
 		} else {
-			require.True(r.Active)
+			require.True(t, r.Active)
 		}
 	}
 }
@@ -1549,7 +1591,6 @@ func TestConnectCA_ConfigurationSet_ForceWithoutCrossSigning(t *testing.T) {
 func TestConnectCA_ConfigurationSet_Vault_ForceWithoutCrossSigning(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 
-	require := require.New(t)
 	testVault := ca.NewTestVaultServer(t)
 	defer testVault.Stop()
 
@@ -1577,8 +1618,8 @@ func TestConnectCA_ConfigurationSet_Vault_ForceWithoutCrossSigning(t *testing.T)
 		Datacenter: "dc1",
 	}
 	var rootList structs.IndexedCARoots
-	require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
-	require.Len(rootList.Roots, 1)
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.Len(t, rootList.Roots, 1)
 	oldRoot := rootList.Roots[0]
 
 	// Update the provider config to use a new PKI path, which should
@@ -1600,18 +1641,18 @@ func TestConnectCA_ConfigurationSet_Vault_ForceWithoutCrossSigning(t *testing.T)
 		}
 		var reply interface{}
 
-		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
 	}
 
 	// Old root should no longer be active.
 	_, roots, err := s1.fsm.State().CARoots(nil)
-	require.NoError(err)
-	require.Len(roots, 2)
+	require.NoError(t, err)
+	require.Len(t, roots, 2)
 	for _, r := range roots {
 		if r.ID == oldRoot.ID {
-			require.False(r.Active)
+			require.False(t, r.Active)
 		} else {
-			require.True(r.Active)
+			require.True(t, r.Active)
 		}
 	}
 }

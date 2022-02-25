@@ -10,11 +10,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/raft"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/raft"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestTxnEndpoint_Bad_JSON(t *testing.T) {
@@ -29,13 +30,12 @@ func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 	buf := bytes.NewBuffer([]byte("{"))
 	req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 	resp := httptest.NewRecorder()
-	if _, err := a.srv.Txn(resp, req); err != nil {
-		t.Fatalf("err: %v", err)
+	_, err := a.srv.Txn(resp, req)
+	err, ok := err.(BadRequestError)
+	if !ok {
+		t.Fatalf("expected bad request error but got %v", err)
 	}
-	if resp.Code != 400 {
-		t.Fatalf("expected 400, got %d", resp.Code)
-	}
-	if !bytes.Contains(resp.Body.Bytes(), []byte("Failed to parse")) {
+	if !strings.Contains(err.Error(), "Failed to parse") {
 		t.Fatalf("expected conflicting args error")
 	}
 }
@@ -62,14 +62,12 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
  `, value)))
 		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 		resp := httptest.NewRecorder()
-		if _, err := agent.srv.Txn(resp, req); err != nil {
+		_, err := agent.srv.Txn(resp, req)
+		if err, ok := err.(EntityTooLargeError); !ok && !wantPass {
+			t.Fatalf("expected too large error but got %v", err)
+		}
+		if err != nil && wantPass {
 			t.Fatalf("err: %v", err)
-		}
-		if resp.Code != 413 && !wantPass {
-			t.Fatalf("expected 413, got %d", resp.Code)
-		}
-		if resp.Code != 200 && wantPass {
-			t.Fatalf("expected 200, got %d", resp.Code)
 		}
 	}
 
@@ -139,14 +137,12 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
  `, value, value, value)))
 		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 		resp := httptest.NewRecorder()
-		if _, err := agent.srv.Txn(resp, req); err != nil {
+		_, err := agent.srv.Txn(resp, req)
+		if err, ok := err.(EntityTooLargeError); !ok && !wantPass {
+			t.Fatalf("expected too large error but got %v", err)
+		}
+		if err != nil && wantPass {
 			t.Fatalf("err: %v", err)
-		}
-		if resp.Code != 413 && !wantPass {
-			t.Fatalf("expected 413, got %d", resp.Code)
-		}
-		if resp.Code != 200 && wantPass {
-			t.Fatalf("expected 200, got %d", resp.Code)
 		}
 	}
 
@@ -208,11 +204,9 @@ func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
  `, strings.Repeat(`{ "KV": { "Verb": "get", "Key": "key" } },`, 2*maxTxnOps))))
 	req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 	resp := httptest.NewRecorder()
-	if _, err := a.srv.Txn(resp, req); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if resp.Code != 413 {
-		t.Fatalf("expected 413, got %d", resp.Code)
+	_, err := a.srv.Txn(resp, req)
+	if err, ok := err.(EntityTooLargeError); !ok {
+		t.Fatalf("expected too large error but got %v", err)
 	}
 }
 
@@ -385,6 +379,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 				},
 				QueryMeta: structs.QueryMeta{
 					KnownLeader: true,
+					Index:       1,
 				},
 			}
 			assert.Equal(t, expected, txnResp)

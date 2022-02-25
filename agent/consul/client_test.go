@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/go-hclog"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
@@ -507,7 +507,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:   c.NodeName,
-		Level:  hclog.Debug,
+		Level:  testutil.TestLogLevel,
 		Output: testutil.NewLogBuffer(t),
 	})
 

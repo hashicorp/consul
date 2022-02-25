@@ -1,6 +1,9 @@
 .popover-select {
   @extend %popover-select;
 }
+.popover-menu .menu-panel {
+  position: absolute !important;
+}
 %popover-select label {
   height: 100%;
 }
@@ -50,7 +53,7 @@
   color: rgb(var(--tone-gray-500));
 }
 %popover-select .aws button::before {
-  @extend %with-logo-aws-color-icon, %as-pseudo;
+  @extend %with-aws-300;
 }
 %popover-select .kubernetes button::before {
   @extend %with-logo-kubernetes-color-icon, %as-pseudo;
@@ -69,7 +72,7 @@
   @extend %with-logo-nomad-color-icon, %as-pseudo;
 }
 %popover-select .vault button::before {
-  @extend %with-logo-vault-color-icon, %as-pseudo;
+  @extend %with-vault-300;
 }
 %popover-select .terraform button::before {
   @extend %with-logo-terraform-color-icon, %as-pseudo;

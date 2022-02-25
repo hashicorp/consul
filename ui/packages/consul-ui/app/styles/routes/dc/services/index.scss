@@ -1,3 +1,11 @@
+/* drop the external dashboard button down if it exists */
+/* so it doesn't sit next to the Intentions create button */
+/* awkwardly */
+html[data-route^='dc.services.show'] .app-view .actions .external-dashboard {
+  position: absolute;
+  top: 50px;
+  right: 0;
+}
 /* instance detail dl text*/
 html[data-route^='dc.services.instance'] .app-view > header dl {
   float: left;

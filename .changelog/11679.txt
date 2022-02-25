@@ -1,3 +1,0 @@
-```release-note:feature
-ui: Adds support for partitions to the Routing visualization.
-```

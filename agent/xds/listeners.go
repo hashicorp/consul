@@ -93,16 +93,16 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 	}
 
-	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[id]
+	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
 		explicit := upstreamCfg.HasLocalPortOrSocket()
-		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[id]; !implicit && !explicit {
+		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
 
-		cfg := s.getAndModifyUpstreamConfigForListener(id, upstreamCfg, chain)
+		cfg := s.getAndModifyUpstreamConfigForListener(uid, upstreamCfg, chain)
 
 		// If escape hatch is present, create a listener from it and move on to the next
 		if cfg.EnvoyListenerJSON != "" {
@@ -133,7 +133,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// Generate the upstream listeners for when they are explicitly set with a local bind port or socket path
 		if upstreamCfg != nil && upstreamCfg.HasLocalPortOrSocket() {
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				routeName:   id,
+				routeName:   uid.EnvoyID(),
 				clusterName: clusterName,
 				filterName:  filterName,
 				protocol:    cfg.Protocol,
@@ -143,7 +143,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				return nil, err
 			}
 
-			upstreamListener := makeListener(id, upstreamCfg, envoy_core_v3.TrafficDirection_OUTBOUND)
+			upstreamListener := makeListener(uid.EnvoyID(), upstreamCfg, envoy_core_v3.TrafficDirection_OUTBOUND)
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
 			}
@@ -158,7 +158,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// as we do for explicit upstreams above.
 
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-			routeName:   id,
+			routeName:   uid.EnvoyID(),
 			clusterName: clusterName,
 			filterName:  filterName,
 			protocol:    cfg.Protocol,
@@ -168,13 +168,22 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			return nil, err
 		}
 
-		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id][chain.ID()]
+		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
 		uniqueAddrs := make(map[string]struct{})
 
 		// Match on the virtual IP for the upstream service (identified by the chain's ID).
 		// We do not match on all endpoints here since it would lead to load balancing across
 		// all instances when any instance address is dialed.
 		for _, e := range endpoints {
+			if e.Service.Kind == structs.ServiceKind(structs.TerminatingGateway) {
+				key := structs.ServiceGatewayVirtualIPTag(chain.CompoundServiceName())
+
+				if vip := e.Service.TaggedAddresses[key]; vip.Address != "" {
+					uniqueAddrs[vip.Address] = struct{}{}
+				}
+
+				continue
+			}
 			if vip := e.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; vip.Address != "" {
 				uniqueAddrs[vip.Address] = struct{}{}
 			}
@@ -190,7 +199,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 		if len(uniqueAddrs) > 2 {
 			s.Logger.Debug("detected multiple virtual IPs for an upstream, all will be used to match traffic",
-				"upstream", id, "ip_count", len(uniqueAddrs))
+				"upstream", uid, "ip_count", len(uniqueAddrs))
 		}
 
 		// For every potential address we collected, create the appropriate address prefix to match on.
@@ -209,27 +218,27 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// as opposed to via a virtual IP.
 		var passthroughChains []*envoy_listener_v3.FilterChain
 
-		for svc, passthrough := range cfgSnap.ConnectProxy.PassthroughUpstreams {
-			sn := structs.ServiceNameFromString(svc)
-			u := structs.Upstream{
-				DestinationName:      sn.Name,
-				DestinationNamespace: sn.NamespaceOrDefault(),
-				DestinationPartition: sn.PartitionOrDefault(),
+		for _, targets := range cfgSnap.ConnectProxy.PassthroughUpstreams {
+			for tid, addrs := range targets {
+				uid := proxycfg.NewUpstreamIDFromTargetID(tid)
+
+				sni := connect.ServiceSNI(
+					uid.Name, "", uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+
+				filterName := fmt.Sprintf("%s.%s.%s.%s", uid.Name, uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter)
+
+				filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+					clusterName: "passthrough~" + sni,
+					filterName:  filterName,
+					protocol:    "tcp",
+				})
+				if err != nil {
+					return nil, err
+				}
+				filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(addrs)
+
+				passthroughChains = append(passthroughChains, filterChain)
 			}
-
-			filterName := fmt.Sprintf("%s.%s.%s.%s", u.DestinationName, u.DestinationNamespace, u.DestinationPartition, cfgSnap.Datacenter)
-
-			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				clusterName: "passthrough~" + passthrough.SNI,
-				filterName:  filterName,
-				protocol:    "tcp",
-			})
-			if err != nil {
-				return nil, err
-			}
-			filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(passthrough.Addrs)
-
-			passthroughChains = append(passthroughChains, filterChain)
 		}
 
 		outboundListener.FilterChains = append(outboundListener.FilterChains, passthroughChains...)
@@ -262,7 +271,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	}
 
 	// Looping over explicit upstreams is only needed for prepared queries because they do not have discovery chains
-	for id, u := range cfgSnap.ConnectProxy.UpstreamConfig {
+	for uid, u := range cfgSnap.ConnectProxy.UpstreamConfig {
 		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
 			continue
 		}
@@ -271,7 +280,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
-			s.Logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
+			s.Logger.Warn("failed to parse", "upstream", uid, "error", err)
 		}
 
 		// If escape hatch is present, create a listener from it and move on to the next
@@ -279,7 +288,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			upstreamListener, err := makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
 			if err != nil {
 				s.Logger.Error("failed to parse envoy_listener_json",
-					"upstream", u.Identifier(),
+					"upstream", uid,
 					"error", err)
 				continue
 			}
@@ -287,13 +296,13 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			continue
 		}
 
-		upstreamListener := makeListener(id, u, envoy_core_v3.TrafficDirection_OUTBOUND)
+		upstreamListener := makeListener(uid.EnvoyID(), u, envoy_core_v3.TrafficDirection_OUTBOUND)
 
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 			// TODO (SNI partition) add partition for upstream SNI
 			clusterName: connect.UpstreamSNI(u, "", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
-			filterName:  id,
-			routeName:   id,
+			filterName:  uid.EnvoyID(),
+			routeName:   uid.EnvoyID(),
 			protocol:    cfg.Protocol,
 		})
 		if err != nil {
@@ -740,7 +749,7 @@ func injectHTTPFilterOnFilterChains(
 func (s *ResourceGenerator) injectConnectTLSOnFilterChains(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
 	for idx := range listener.FilterChains {
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
+			CommonTlsContext:         makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf()),
 			RequireClientCertificate: &wrappers.BoolValue{Value: true},
 		}
 		transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -1062,7 +1071,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 	protocol string,
 ) (*envoy_listener_v3.FilterChain, error) {
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-		CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
+		CommonTlsContext:         makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
 		RequireClientCertificate: &wrappers.BoolValue{Value: true},
 	}
 	transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -1280,7 +1289,11 @@ func simpleChainTarget(chain *structs.CompiledDiscoveryChain) (*structs.Discover
 	return chain.Targets[targetID], nil
 }
 
-func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(id string, u *structs.Upstream, chain *structs.CompiledDiscoveryChain) structs.UpstreamConfig {
+func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(
+	uid proxycfg.UpstreamID,
+	u *structs.Upstream,
+	chain *structs.CompiledDiscoveryChain,
+) structs.UpstreamConfig {
 	var (
 		cfg structs.UpstreamConfig
 		err error
@@ -1291,11 +1304,11 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(id string, u *
 		configMap = u.Config
 	}
 	if chain == nil || chain.IsDefault() {
-		cfg, err = structs.ParseUpstreamConfig(configMap)
+		cfg, err = structs.ParseUpstreamConfigNoDefaults(configMap)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
-			s.Logger.Warn("failed to parse", "upstream", id, "error", err)
+			s.Logger.Warn("failed to parse", "upstream", uid, "error", err)
 		}
 	} else {
 		// Use NoDefaults here so that we can set the protocol to the chain
@@ -1304,28 +1317,28 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(id string, u *
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
-			s.Logger.Warn("failed to parse", "upstream", id, "error", err)
+			s.Logger.Warn("failed to parse", "upstream", uid, "error", err)
 		}
 
 		if cfg.EnvoyListenerJSON != "" {
 			s.Logger.Warn("ignoring escape hatch setting because already configured for",
-				"discovery chain", chain.ServiceName, "upstream", id, "config", "envoy_listener_json")
+				"discovery chain", chain.ServiceName, "upstream", uid, "config", "envoy_listener_json")
 
 			// Remove from config struct so we don't use it later on
 			cfg.EnvoyListenerJSON = ""
 		}
-
-		protocol := cfg.Protocol
-		if protocol == "" {
-			protocol = chain.Protocol
-		}
-		if protocol == "" {
-			protocol = "tcp"
-		}
-
-		// set back on the config so that we can use it from return value
-		cfg.Protocol = protocol
 	}
+
+	protocol := cfg.Protocol
+	if protocol == "" {
+		protocol = chain.Protocol
+	}
+	if protocol == "" {
+		protocol = "tcp"
+	}
+
+	// set back on the config so that we can use it from return value
+	cfg.Protocol = protocol
 
 	return cfg
 }
@@ -1536,7 +1549,11 @@ func makeEnvoyHTTPFilter(name string, cfg proto.Message) (*envoy_http_v3.HttpFil
 	}, nil
 }
 
-func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoy_tls_v3.CommonTlsContext {
+func makeCommonTLSContextFromLeafWithoutParams(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoy_tls_v3.CommonTlsContext {
+	return makeCommonTLSContextFromLeaf(cfgSnap, leaf, nil)
+}
+
+func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert, tlsParams *envoy_tls_v3.TlsParameters) *envoy_tls_v3.CommonTlsContext {
 	// Concatenate all the root PEMs into one.
 	if cfgSnap.Roots == nil {
 		return nil
@@ -1547,8 +1564,12 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 		rootPEMS += ca.EnsureTrailingNewline(root.RootCert)
 	}
 
+	if tlsParams == nil {
+		tlsParams = &envoy_tls_v3.TlsParameters{}
+	}
+
 	return &envoy_tls_v3.CommonTlsContext{
-		TlsParams: &envoy_tls_v3.TlsParameters{},
+		TlsParams: tlsParams,
 		TlsCertificates: []*envoy_tls_v3.TlsCertificate{
 			{
 				CertificateChain: &envoy_core_v3.DataSource{

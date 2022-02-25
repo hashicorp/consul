@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: **(Enterprise only)** add support for targeting partitions in discovery chain routes, splits, and redirects.
-```

@@ -1,3 +1,0 @@
-```release-note:feature
-ui: Add documentation link to Partition empty state
-```
