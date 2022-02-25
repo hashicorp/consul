@@ -4,6 +4,7 @@
 >
   <DisclosureMenu
     aria-label="Datacenter"
+    @items={{sort-by 'Name' @dcs}}
   as |disclosure|>
     <disclosure.Action
       {{on 'click' disclosure.toggle}}
@@ -16,7 +17,7 @@
         @onchange={{action (mut @dcs) value="data"}}
       />
         <panel.Menu as |menu|>
-          {{#each (sort-by 'Name' @dcs) as |item|}}
+          {{#each menu.items as |item|}}
             <menu.Item
               aria-current={{if (eq @dc.Name item.Name) 'true'}}
               class={{class-map

@@ -1,0 +1,15 @@
+{{yield (hash
+  items=this.items
+  page=@page
+  pane=(fn this.setPane)
+  resize=(fn this.resize)
+  viewport=(fn this.setViewport)
+  rowHeight=(fn this.setRowHeight)
+  maxHeight=(fn this.setMaxHeight)
+  startHeight=this.startHeight
+  totalHeight=this.totalHeight
+  totalPages=this.totalPages
+  Pager=(if (eq type "index") (component 'yield') '')
+)}}
+
+{{will-destroy this.disconnect}}

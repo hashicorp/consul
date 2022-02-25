@@ -3,14 +3,21 @@
     @extend %main-nav-vertical-hoisted;
     left: 100px;
   }
-  nav .dcs .menu-panel {
-    min-width: 250px;
-  }
   nav li.partitions,
   nav li.nspaces {
     @extend %main-nav-vertical-popover-menu;
-    /*    --panel-height: 300px;
-    --row-height: 43px; */
+  }
+  nav li.dcs [aria-expanded] ~ * {
+    min-width: 250px;
+  }
+  nav li.dcs [aria-expanded] ~ * {
+    max-height: 560px;
+    --paged-row-height: 43px;
+  }
+  nav li.partitions [aria-expanded] ~ *,
+  nav li.nspaces [aria-expanded] ~ * {
+    max-height: 360px;
+    --paged-row-height: 43px;
   }
 
   [role='banner'] a svg {

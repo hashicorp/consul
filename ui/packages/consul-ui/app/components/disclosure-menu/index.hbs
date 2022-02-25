@@ -9,7 +9,11 @@
   as |disclosure|>
     {{yield (hash
       Action=(component 'disclosure-menu/action' disclosure=disclosure)
-      Menu=(component 'disclosure-menu/menu' disclosure=disclosure)
+      Menu=(component 'disclosure-menu/menu'
+        disclosure=disclosure
+        items=@items
+        rowHeight=@rowHeight
+      )
       disclosure=disclosure
       toggle=disclosure.toggle
       close=disclosure.close
