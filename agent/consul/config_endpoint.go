@@ -10,8 +10,10 @@ import (
 	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/copystructure"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -236,6 +238,10 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 		}
 	}
 
+	var (
+		priorHash uint64
+		ranOnce   bool
+	)
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -258,6 +264,26 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 			reply.Kind = args.Kind
 			reply.Index = index
 			reply.Entries = filteredEntries
+
+			// Generate a hash of the content driving this response. Use it to
+			// determine if the response is identical to a prior wakeup.
+			newHash, err := hashstructure_v2.Hash(filteredEntries, hashstructure_v2.FormatV2, nil)
+			if err != nil {
+				return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+			}
+
+			if ranOnce && priorHash == newHash {
+				priorHash = newHash
+				return errNotChanged
+			} else {
+				priorHash = newHash
+				ranOnce = true
+			}
+
+			if len(reply.Entries) == 0 {
+				return errNotFound
+			}
+
 			return nil
 		})
 }
@@ -417,115 +443,18 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 		return acl.ErrPermissionDenied
 	}
 
+	var (
+		priorHash uint64
+		ranOnce   bool
+	)
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			var thisReply structs.ServiceConfigResponse
-
-			thisReply.MeshGateway.Mode = structs.MeshGatewayModeDefault
-			// TODO(freddy) Refactor this into smaller set of state store functions
-			// Pass the WatchSet to both the service and proxy config lookups. If either is updated during the
-			// blocking query, this function will be rerun and these state store lookups will both be current.
-			// We use the default enterprise meta to look up the global proxy defaults because they are not namespaced.
-			_, proxyEntry, err := state.ConfigEntry(ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, &args.EnterpriseMeta)
-			if err != nil {
-				return err
-			}
-
 			var (
-				proxyConf               *structs.ProxyConfigEntry
-				proxyConfGlobalProtocol string
-				ok                      bool
+				upstreamIDs     = args.UpstreamIDs
+				legacyUpstreams = false
 			)
-			if proxyEntry != nil {
-				proxyConf, ok = proxyEntry.(*structs.ProxyConfigEntry)
-				if !ok {
-					return fmt.Errorf("invalid proxy config type %T", proxyEntry)
-				}
-				// Apply the proxy defaults to the sidecar's proxy config
-				mapCopy, err := copystructure.Copy(proxyConf.Config)
-				if err != nil {
-					return fmt.Errorf("failed to copy global proxy-defaults: %v", err)
-				}
-				thisReply.ProxyConfig = mapCopy.(map[string]interface{})
-				thisReply.Mode = proxyConf.Mode
-				thisReply.TransparentProxy = proxyConf.TransparentProxy
-				thisReply.MeshGateway = proxyConf.MeshGateway
-				thisReply.Expose = proxyConf.Expose
-
-				// Extract the global protocol from proxyConf for upstream configs.
-				rawProtocol := proxyConf.Config["protocol"]
-				if rawProtocol != nil {
-					proxyConfGlobalProtocol, ok = rawProtocol.(string)
-					if !ok {
-						return fmt.Errorf("invalid protocol type %T", rawProtocol)
-					}
-				}
-			}
-
-			index, serviceEntry, err := state.ConfigEntry(ws, structs.ServiceDefaults, args.Name, &args.EnterpriseMeta)
-			if err != nil {
-				return err
-			}
-			thisReply.Index = index
-
-			var serviceConf *structs.ServiceConfigEntry
-			if serviceEntry != nil {
-				serviceConf, ok = serviceEntry.(*structs.ServiceConfigEntry)
-				if !ok {
-					return fmt.Errorf("invalid service config type %T", serviceEntry)
-				}
-				if serviceConf.Expose.Checks {
-					thisReply.Expose.Checks = true
-				}
-				if len(serviceConf.Expose.Paths) >= 1 {
-					thisReply.Expose.Paths = serviceConf.Expose.Paths
-				}
-				if serviceConf.MeshGateway.Mode != structs.MeshGatewayModeDefault {
-					thisReply.MeshGateway.Mode = serviceConf.MeshGateway.Mode
-				}
-				if serviceConf.Protocol != "" {
-					if thisReply.ProxyConfig == nil {
-						thisReply.ProxyConfig = make(map[string]interface{})
-					}
-					thisReply.ProxyConfig["protocol"] = serviceConf.Protocol
-				}
-				if serviceConf.TransparentProxy.OutboundListenerPort != 0 {
-					thisReply.TransparentProxy.OutboundListenerPort = serviceConf.TransparentProxy.OutboundListenerPort
-				}
-				if serviceConf.TransparentProxy.DialedDirectly {
-					thisReply.TransparentProxy.DialedDirectly = serviceConf.TransparentProxy.DialedDirectly
-				}
-				if serviceConf.Mode != structs.ProxyModeDefault {
-					thisReply.Mode = serviceConf.Mode
-				}
-			}
-
-			// First collect all upstreams into a set of seen upstreams.
-			// Upstreams can come from:
-			// - Explicitly from proxy registrations, and therefore as an argument to this RPC endpoint
-			// - Implicitly from centralized upstream config in service-defaults
-			seenUpstreams := map[structs.ServiceID]struct{}{}
-
-			upstreamIDs := args.UpstreamIDs
-			legacyUpstreams := false
-
-			var (
-				noUpstreamArgs = len(upstreamIDs) == 0 && len(args.Upstreams) == 0
-
-				// Check the args and the resolved value. If it was exclusively set via a config entry, then args.Mode
-				// will never be transparent because the service config request does not use the resolved value.
-				tproxy = args.Mode == structs.ProxyModeTransparent || thisReply.Mode == structs.ProxyModeTransparent
-			)
-
-			// The upstreams passed as arguments to this endpoint are the upstreams explicitly defined in a proxy registration.
-			// If no upstreams were passed, then we should only returned the resolved config if the proxy in transparent mode.
-			// Otherwise we would return a resolved upstream config to a proxy with no configured upstreams.
-			if noUpstreamArgs && !tproxy {
-				*reply = thisReply
-				return nil
-			}
 
 			// The request is considered legacy if the deprecated args.Upstream was used
 			if len(upstreamIDs) == 0 && len(args.Upstreams) > 0 {
@@ -533,134 +462,272 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 
 				upstreamIDs = make([]structs.ServiceID, 0)
 				for _, upstream := range args.Upstreams {
-					// Before Consul namespaces were released, the Upstreams provided to the endpoint did not contain the namespace.
-					// Because of this we attach the enterprise meta of the request, which will just be the default namespace.
+					// Before Consul namespaces were released, the Upstreams
+					// provided to the endpoint did not contain the namespace.
+					// Because of this we attach the enterprise meta of the
+					// request, which will just be the default namespace.
 					sid := structs.NewServiceID(upstream, &args.EnterpriseMeta)
 					upstreamIDs = append(upstreamIDs, sid)
 				}
 			}
 
-			// First store all upstreams that were provided in the request
-			for _, sid := range upstreamIDs {
-				if _, ok := seenUpstreams[sid]; !ok {
-					seenUpstreams[sid] = struct{}{}
-				}
-			}
+			// Fetch all relevant config entries.
 
-			// Then store upstreams inferred from service-defaults and mapify the overrides.
-			var (
-				upstreamConfigs  = make(map[structs.ServiceID]*structs.UpstreamConfig)
-				upstreamDefaults *structs.UpstreamConfig
-				// usConfigs stores the opaque config map for each upstream and is keyed on the upstream's ID.
-				usConfigs = make(map[structs.ServiceID]map[string]interface{})
+			index, entries, err := state.ReadResolvedServiceConfigEntries(
+				ws,
+				args.Name,
+				&args.EnterpriseMeta,
+				upstreamIDs,
+				args.Mode,
 			)
-			if serviceConf != nil && serviceConf.UpstreamConfig != nil {
-				for i, override := range serviceConf.UpstreamConfig.Overrides {
-					if override.Name == "" {
-						c.logger.Warn(
-							"Skipping UpstreamConfig.Overrides entry without a required name field",
-							"entryIndex", i,
-							"kind", serviceConf.GetKind(),
-							"name", serviceConf.GetName(),
-							"namespace", serviceConf.GetEnterpriseMeta().NamespaceOrEmpty(),
-						)
-						continue // skip this impossible condition
-					}
-					seenUpstreams[override.ServiceID()] = struct{}{}
-					upstreamConfigs[override.ServiceID()] = override
-				}
-				if serviceConf.UpstreamConfig.Defaults != nil {
-					upstreamDefaults = serviceConf.UpstreamConfig.Defaults
-
-					// Store the upstream defaults under a wildcard key so that they can be applied to
-					// upstreams that are inferred from intentions and do not have explicit upstream configuration.
-					cfgMap := make(map[string]interface{})
-					upstreamDefaults.MergeInto(cfgMap)
-
-					wildcard := structs.NewServiceID(structs.WildcardSpecifier, args.WithWildcardNamespace())
-					usConfigs[wildcard] = cfgMap
-				}
+			if err != nil {
+				return err
 			}
 
-			for upstream := range seenUpstreams {
-				resolvedCfg := make(map[string]interface{})
-
-				// The protocol of an upstream is resolved in this order:
-				// 1. Default protocol from proxy-defaults (how all services should be addressed)
-				// 2. Protocol for upstream service defined in its service-defaults (how the upstream wants to be addressed)
-				// 3. Protocol defined for the upstream in the service-defaults.(upstream_config.defaults|upstream_config.overrides) of the downstream
-				// 	  (how the downstream wants to address it)
-				protocol := proxyConfGlobalProtocol
-
-				_, upstreamSvcDefaults, err := state.ConfigEntry(ws, structs.ServiceDefaults, upstream.ID, &upstream.EnterpriseMeta)
-				if err != nil {
-					return err
-				}
-				if upstreamSvcDefaults != nil {
-					cfg, ok := upstreamSvcDefaults.(*structs.ServiceConfigEntry)
-					if !ok {
-						return fmt.Errorf("invalid service config type %T", upstreamSvcDefaults)
-					}
-					if cfg.Protocol != "" {
-						protocol = cfg.Protocol
-					}
-				}
-				if protocol != "" {
-					resolvedCfg["protocol"] = protocol
-				}
-
-				// Merge centralized defaults for all upstreams before configuration for specific upstreams
-				if upstreamDefaults != nil {
-					upstreamDefaults.MergeInto(resolvedCfg)
-				}
-
-				// The MeshGateway value from the proxy registration overrides the one from upstream_defaults
-				// because it is specific to the proxy instance.
-				//
-				// The goal is to flatten the mesh gateway mode in this order:
-				// 	0. Value from centralized upstream_defaults
-				// 	1. Value from local proxy registration
-				// 	2. Value from centralized upstream_config
-				// 	3. Value from local upstream definition. This last step is done in the client's service manager.
-				if !args.MeshGateway.IsZero() {
-					resolvedCfg["mesh_gateway"] = args.MeshGateway
-				}
-
-				if upstreamConfigs[upstream] != nil {
-					upstreamConfigs[upstream].MergeInto(resolvedCfg)
-				}
-
-				if len(resolvedCfg) > 0 {
-					usConfigs[upstream] = resolvedCfg
-				}
+			// Generate a hash of the config entry content driving this
+			// response. Use it to determine if the response is identical to a
+			// prior wakeup.
+			newHash, err := hashstructure_v2.Hash(entries, hashstructure_v2.FormatV2, nil)
+			if err != nil {
+				return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
 			}
 
-			// don't allocate the slices just to not fill them
-			if len(usConfigs) == 0 {
-				*reply = thisReply
-				return nil
-			}
-
-			if legacyUpstreams {
-				// For legacy upstreams we return a map that is only keyed on the string ID, since they precede namespaces
-				thisReply.UpstreamConfigs = make(map[string]map[string]interface{})
-
-				for us, conf := range usConfigs {
-					thisReply.UpstreamConfigs[us.ID] = conf
-				}
-
+			if ranOnce && priorHash == newHash {
+				priorHash = newHash
+				reply.Index = index
+				// NOTE: the prior response is still alive inside of *reply, which
+				// is desirable
+				return errNotChanged
 			} else {
-				thisReply.UpstreamIDConfigs = make(structs.OpaqueUpstreamConfigs, 0, len(usConfigs))
-
-				for us, conf := range usConfigs {
-					thisReply.UpstreamIDConfigs = append(thisReply.UpstreamIDConfigs,
-						structs.OpaqueUpstreamConfig{Upstream: us, Config: conf})
-				}
+				priorHash = newHash
+				ranOnce = true
 			}
 
-			*reply = thisReply
+			thisReply, err := c.computeResolvedServiceConfig(
+				args,
+				upstreamIDs,
+				legacyUpstreams,
+				entries,
+			)
+			if err != nil {
+				return err
+			}
+			thisReply.Index = index
+
+			*reply = *thisReply
+			if entries.IsEmpty() {
+				// No config entries factored into this reply; it's a default.
+				return errNotFound
+			}
+
 			return nil
 		})
+}
+
+func (c *ConfigEntry) computeResolvedServiceConfig(
+	args *structs.ServiceConfigRequest,
+	upstreamIDs []structs.ServiceID,
+	legacyUpstreams bool,
+	entries *configentry.ResolvedServiceConfigSet,
+) (*structs.ServiceConfigResponse, error) {
+	var thisReply structs.ServiceConfigResponse
+
+	thisReply.MeshGateway.Mode = structs.MeshGatewayModeDefault
+
+	// TODO(freddy) Refactor this into smaller set of state store functions
+	// Pass the WatchSet to both the service and proxy config lookups. If either is updated during the
+	// blocking query, this function will be rerun and these state store lookups will both be current.
+	// We use the default enterprise meta to look up the global proxy defaults because they are not namespaced.
+	var proxyConfGlobalProtocol string
+	proxyConf := entries.GetProxyDefaults(args.PartitionOrDefault())
+	if proxyConf != nil {
+		// Apply the proxy defaults to the sidecar's proxy config
+		mapCopy, err := copystructure.Copy(proxyConf.Config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to copy global proxy-defaults: %v", err)
+		}
+		thisReply.ProxyConfig = mapCopy.(map[string]interface{})
+		thisReply.Mode = proxyConf.Mode
+		thisReply.TransparentProxy = proxyConf.TransparentProxy
+		thisReply.MeshGateway = proxyConf.MeshGateway
+		thisReply.Expose = proxyConf.Expose
+
+		// Extract the global protocol from proxyConf for upstream configs.
+		rawProtocol := proxyConf.Config["protocol"]
+		if rawProtocol != nil {
+			var ok bool
+			proxyConfGlobalProtocol, ok = rawProtocol.(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid protocol type %T", rawProtocol)
+			}
+		}
+	}
+
+	serviceConf := entries.GetServiceDefaults(
+		structs.NewServiceID(args.Name, &args.EnterpriseMeta),
+	)
+	if serviceConf != nil {
+		if serviceConf.Expose.Checks {
+			thisReply.Expose.Checks = true
+		}
+		if len(serviceConf.Expose.Paths) >= 1 {
+			thisReply.Expose.Paths = serviceConf.Expose.Paths
+		}
+		if serviceConf.MeshGateway.Mode != structs.MeshGatewayModeDefault {
+			thisReply.MeshGateway.Mode = serviceConf.MeshGateway.Mode
+		}
+		if serviceConf.Protocol != "" {
+			if thisReply.ProxyConfig == nil {
+				thisReply.ProxyConfig = make(map[string]interface{})
+			}
+			thisReply.ProxyConfig["protocol"] = serviceConf.Protocol
+		}
+		if serviceConf.TransparentProxy.OutboundListenerPort != 0 {
+			thisReply.TransparentProxy.OutboundListenerPort = serviceConf.TransparentProxy.OutboundListenerPort
+		}
+		if serviceConf.TransparentProxy.DialedDirectly {
+			thisReply.TransparentProxy.DialedDirectly = serviceConf.TransparentProxy.DialedDirectly
+		}
+		if serviceConf.Mode != structs.ProxyModeDefault {
+			thisReply.Mode = serviceConf.Mode
+		}
+	}
+
+	// First collect all upstreams into a set of seen upstreams.
+	// Upstreams can come from:
+	// - Explicitly from proxy registrations, and therefore as an argument to this RPC endpoint
+	// - Implicitly from centralized upstream config in service-defaults
+	seenUpstreams := map[structs.ServiceID]struct{}{}
+
+	var (
+		noUpstreamArgs = len(upstreamIDs) == 0 && len(args.Upstreams) == 0
+
+		// Check the args and the resolved value. If it was exclusively set via a config entry, then args.Mode
+		// will never be transparent because the service config request does not use the resolved value.
+		tproxy = args.Mode == structs.ProxyModeTransparent || thisReply.Mode == structs.ProxyModeTransparent
+	)
+
+	// The upstreams passed as arguments to this endpoint are the upstreams explicitly defined in a proxy registration.
+	// If no upstreams were passed, then we should only return the resolved config if the proxy is in transparent mode.
+	// Otherwise we would return a resolved upstream config to a proxy with no configured upstreams.
+	if noUpstreamArgs && !tproxy {
+		return &thisReply, nil
+	}
+
+	// First store all upstreams that were provided in the request
+	for _, sid := range upstreamIDs {
+		if _, ok := seenUpstreams[sid]; !ok {
+			seenUpstreams[sid] = struct{}{}
+		}
+	}
+
+	// Then store upstreams inferred from service-defaults and mapify the overrides.
+	var (
+		upstreamConfigs  = make(map[structs.ServiceID]*structs.UpstreamConfig)
+		upstreamDefaults *structs.UpstreamConfig
+		// usConfigs stores the opaque config map for each upstream and is keyed on the upstream's ID.
+		usConfigs = make(map[structs.ServiceID]map[string]interface{})
+	)
+	if serviceConf != nil && serviceConf.UpstreamConfig != nil {
+		for i, override := range serviceConf.UpstreamConfig.Overrides {
+			if override.Name == "" {
+				c.logger.Warn(
+					"Skipping UpstreamConfig.Overrides entry without a required name field",
+					"entryIndex", i,
+					"kind", serviceConf.GetKind(),
+					"name", serviceConf.GetName(),
+					"namespace", serviceConf.GetEnterpriseMeta().NamespaceOrEmpty(),
+				)
+				continue // skip this impossible condition
+			}
+			seenUpstreams[override.ServiceID()] = struct{}{}
+			upstreamConfigs[override.ServiceID()] = override
+		}
+		if serviceConf.UpstreamConfig.Defaults != nil {
+			upstreamDefaults = serviceConf.UpstreamConfig.Defaults
+
+			// Store the upstream defaults under a wildcard key so that they can be applied to
+			// upstreams that are inferred from intentions and do not have explicit upstream configuration.
+			cfgMap := make(map[string]interface{})
+			upstreamDefaults.MergeInto(cfgMap)
+
+			wildcard := structs.NewServiceID(structs.WildcardSpecifier, args.WithWildcardNamespace())
+			usConfigs[wildcard] = cfgMap
+		}
+	}
+
+	for upstream := range seenUpstreams {
+		resolvedCfg := make(map[string]interface{})
+
+		// The protocol of an upstream is resolved in this order:
+		// 1. Default protocol from proxy-defaults (how all services should be addressed)
+		// 2. Protocol for upstream service defined in its service-defaults (how the upstream wants to be addressed)
+		// 3. Protocol defined for the upstream in the service-defaults.(upstream_config.defaults|upstream_config.overrides) of the downstream
+		// 	  (how the downstream wants to address it)
+		protocol := proxyConfGlobalProtocol
+
+		upstreamSvcDefaults := entries.GetServiceDefaults(
+			structs.NewServiceID(upstream.ID, &upstream.EnterpriseMeta),
+		)
+		if upstreamSvcDefaults != nil {
+			if upstreamSvcDefaults.Protocol != "" {
+				protocol = upstreamSvcDefaults.Protocol
+			}
+		}
+
+		if protocol != "" {
+			resolvedCfg["protocol"] = protocol
+		}
+
+		// Merge centralized defaults for all upstreams before configuration for specific upstreams
+		if upstreamDefaults != nil {
+			upstreamDefaults.MergeInto(resolvedCfg)
+		}
+
+		// The MeshGateway value from the proxy registration overrides the one from upstream_defaults
+		// because it is specific to the proxy instance.
+		//
+		// The goal is to flatten the mesh gateway mode in this order:
+		// 	0. Value from centralized upstream_defaults
+		// 	1. Value from local proxy registration
+		// 	2. Value from centralized upstream_config
+		// 	3. Value from local upstream definition. This last step is done in the client's service manager.
+		if !args.MeshGateway.IsZero() {
+			resolvedCfg["mesh_gateway"] = args.MeshGateway
+		}
+
+		if upstreamConfigs[upstream] != nil {
+			upstreamConfigs[upstream].MergeInto(resolvedCfg)
+		}
+
+		if len(resolvedCfg) > 0 {
+			usConfigs[upstream] = resolvedCfg
+		}
+	}
+
+	// don't allocate the slices just to not fill them
+	if len(usConfigs) == 0 {
+		return &thisReply, nil
+	}
+
+	if legacyUpstreams {
+		// For legacy upstreams we return a map that is only keyed on the string ID, since they precede namespaces
+		thisReply.UpstreamConfigs = make(map[string]map[string]interface{})
+
+		for us, conf := range usConfigs {
+			thisReply.UpstreamConfigs[us.ID] = conf
+		}
+
+	} else {
+		thisReply.UpstreamIDConfigs = make(structs.OpaqueUpstreamConfigs, 0, len(usConfigs))
+
+		for us, conf := range usConfigs {
+			thisReply.UpstreamIDConfigs = append(thisReply.UpstreamIDConfigs,
+				structs.OpaqueUpstreamConfig{Upstream: us, Config: conf})
+		}
+	}
+
+	return &thisReply, nil
 }
 
 func gateWriteToSecondary(targetDC, localDC, primaryDC, kind string) error {

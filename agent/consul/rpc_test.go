@@ -1681,3 +1681,24 @@ func getFirstSubscribeEventOrError(conn *grpc.ClientConn, req *pbsubscribe.Subsc
 	}
 	return event, nil
 }
+
+// assertBlockingQueryWakeupCount is used to assist in assertions for
+// blockingQuery RPC tests involving the two sentinel errors errNotFound and
+// errNotChanged.
+//
+// Those tests are a bit racy because of the timing of the two goroutines, so
+// we relax the check for the count to be within a small range.
+//
+// The blocking query is going to wake up every interval, so use the elapsed test
+// time with that known timing value to gauge how many legit wakeups should
+// happen and then pad it out a smidge.
+func assertBlockingQueryWakeupCount(t testing.TB, interval time.Duration, start time.Time, gotCount int) {
+	t.Helper()
+
+	const buffer = 2
+	expectedQueries := int(time.Since(start)/interval) + buffer
+
+	if gotCount < 2 || gotCount > expectedQueries {
+		t.Fatalf("expected count to be >= 2 or < %d, got %d", expectedQueries, gotCount)
+	}
+}
