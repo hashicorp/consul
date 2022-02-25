@@ -160,18 +160,13 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 			}
 
 			if ent == nil {
-				// Must provide non-zero index to prevent blocking
-				// Index 1 is impossible anyways (due to Raft internals)
-				if index == 0 {
-					reply.Index = 1
-				} else {
-					reply.Index = index
-				}
+				reply.Index = index
 				reply.Entries = nil
-			} else {
-				reply.Index = ent.ModifyIndex
-				reply.Entries = structs.DirEntries{ent}
+				return errNotFound
 			}
+
+			reply.Index = ent.ModifyIndex
+			reply.Entries = structs.DirEntries{ent}
 			return nil
 		})
 }
