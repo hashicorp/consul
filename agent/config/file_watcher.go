@@ -53,8 +53,6 @@ func NewFileWatcher(configFiles []string, logger hclog.Logger) (*FileWatcher, er
 		EventsCh:         make(chan *FileWatcherEvent),
 		reconcileTimeout: timeoutDuration,
 		done:             make(chan interface{}),
-		stopOnce:         sync.Once{},
-		configFilesLock:  sync.RWMutex{},
 	}
 	for _, f := range configFiles {
 		err = w.add(f)
