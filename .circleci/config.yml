@@ -853,10 +853,10 @@ jobs:
     environment:
       ENVOY_VERSION: "1.17.4"
 
-  envoy-integration-test-1_18_4:
+  envoy-integration-test-1_18_6:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.18.4"
+      ENVOY_VERSION: "1.18.6"
 
   envoy-integration-test-1_20_2:
     <<: *ENVOY_TESTS
@@ -1120,7 +1120,7 @@ workflows:
       - envoy-integration-test-1_17_4:
           requires:
             - dev-build
-      - envoy-integration-test-1_18_4:
+      - envoy-integration-test-1_18_6:
           requires:
             - dev-build
       - envoy-integration-test-1_20_2:

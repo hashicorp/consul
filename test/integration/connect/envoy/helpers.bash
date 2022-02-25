@@ -154,6 +154,8 @@ function assert_envoy_version {
   # reported as '1.20.2-dev'
   if [ "$ENVOY_VERSION" = "1.20.2" ] ; then
     ENVOY_VERSION="1.20.2-dev"
+  elif [ "$ENVOY_VERSION" = "1.18.6" ] ; then
+    ENVOY_VERSION="1.18.6-dev"
   fi
 
   echo $VERSION | grep "/$ENVOY_VERSION/"
