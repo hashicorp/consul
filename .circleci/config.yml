@@ -889,15 +889,15 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_18_4:
+  envoy-integration-test-1_18_6:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.18.4"
+      ENVOY_VERSION: "1.18.6"
 
-  envoy-integration-test-1_19_1:
+  envoy-integration-test-1_19_3:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.19.1"
+      ENVOY_VERSION: "1.19.3"
 
   envoy-integration-test-1_20_2:
     <<: *ENVOY_TESTS
@@ -1148,10 +1148,10 @@ workflows:
       - envoy-integration-test-1_17_4:
           requires:
             - dev-build
-      - envoy-integration-test-1_18_4:
+      - envoy-integration-test-1_18_6:
           requires:
             - dev-build
-      - envoy-integration-test-1_19_1:
+      - envoy-integration-test-1_19_3:
           requires:
             - dev-build
       - envoy-integration-test-1_20_2:
