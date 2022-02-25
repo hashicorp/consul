@@ -9,10 +9,12 @@ import (
 	"time"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -310,63 +312,77 @@ func TestConfigEntry_Get_BlockOnNonExistent(t *testing.T) {
 	}
 
 	_, s1 := testServerWithConfig(t)
+
 	codec := rpcClient(t, s1)
-	store := s1.fsm.State()
+	readerCodec := rpcClient(t, s1)
+	writerCodec := rpcClient(t, s1)
 
-	entry := &structs.ServiceConfigEntry{
-		Kind: structs.ServiceDefaults,
-		Name: "alpha",
-	}
-	require.NoError(t, store.EnsureConfigEntry(1, entry))
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var count int
-
-	g, ctx := errgroup.WithContext(ctx)
-	g.Go(func() error {
-		args := structs.ConfigEntryQuery{
-			Kind: structs.ServiceDefaults,
-			Name: "does-not-exist",
-		}
-		args.QueryOptions.MaxQueryTime = time.Second
-
-		for ctx.Err() == nil {
-			var out structs.ConfigEntryResponse
-
-			err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.Get", &args, &out)
-			if err != nil {
-				return err
-			}
-			t.Log("blocking query index", out.QueryMeta.Index, out.Entry)
-			count++
-			args.QueryOptions.MinQueryIndex = out.QueryMeta.Index
-		}
-		return nil
-	})
-
-	g.Go(func() error {
-		for i := uint64(0); i < 200; i++ {
-			time.Sleep(5 * time.Millisecond)
-			entry := &structs.ServiceConfigEntry{
+	{ // create one relevant entry
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Entry: &structs.ServiceConfigEntry{
 				Kind: structs.ServiceDefaults,
-				Name: fmt.Sprintf("other%d", i),
-			}
-			if err := store.EnsureConfigEntry(i+2, entry); err != nil {
-				return err
-			}
-		}
-		cancel()
-		return nil
-	})
-
-	require.NoError(t, g.Wait())
-	// The test is a bit racy because of the timing of the two goroutines, so
-	// we relax the check for the count to be within a small range.
-	if count < 2 || count > 3 {
-		t.Fatalf("expected count to be 2 or 3, got %d", count)
+				Name: "alpha",
+			},
+		}, &out))
+		require.True(t, out)
 	}
+
+	runStep(t, "test the errNotFound path", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		var count int
+
+		start := time.Now()
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			args := structs.ConfigEntryQuery{
+				Kind: structs.ServiceDefaults,
+				Name: "does-not-exist",
+			}
+			args.QueryOptions.MaxQueryTime = time.Second
+
+			for ctx.Err() == nil {
+				var out structs.ConfigEntryResponse
+
+				err := msgpackrpc.CallWithCodec(readerCodec, "ConfigEntry.Get", &args, &out)
+				if err != nil {
+					return err
+				}
+				t.Log("blocking query index", out.QueryMeta.Index, out.Entry)
+				count++
+				args.QueryOptions.MinQueryIndex = out.QueryMeta.Index
+			}
+			return nil
+		})
+
+		g.Go(func() error {
+			for i := 0; i < 200; i++ {
+				time.Sleep(5 * time.Millisecond)
+
+				var out bool
+				err := msgpackrpc.CallWithCodec(writerCodec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+					Entry: &structs.ServiceConfigEntry{
+						Kind: structs.ServiceDefaults,
+						Name: fmt.Sprintf("other%d", i),
+					},
+				}, &out)
+				if err != nil {
+					return fmt.Errorf("[%d] unexpected error: %w", i, err)
+				}
+				if !out {
+					return fmt.Errorf("[%d] unexpectedly returned false", i)
+				}
+			}
+			cancel()
+			return nil
+		})
+
+		require.NoError(t, g.Wait())
+
+		assertBlockingQueryWakeupCount(t, time.Second, start, count)
+	})
 }
 
 func TestConfigEntry_Get_ACLDeny(t *testing.T) {
@@ -470,6 +486,102 @@ func TestConfigEntry_List(t *testing.T) {
 	expected.Kind = structs.ServiceDefaults
 	expected.QueryMeta = out.QueryMeta
 	require.Equal(t, expected, out)
+}
+
+func TestConfigEntry_List_BlockOnNoChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, s1 := testServerWithConfig(t)
+
+	codec := rpcClient(t, s1)
+	readerCodec := rpcClient(t, s1)
+	writerCodec := rpcClient(t, s1)
+
+	run := func(t *testing.T, dataPrefix string) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		var count int
+
+		start := time.Now()
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			args := structs.ConfigEntryQuery{
+				Kind:       structs.ServiceDefaults,
+				Datacenter: "dc1",
+			}
+			args.QueryOptions.MaxQueryTime = time.Second
+
+			for ctx.Err() == nil {
+				var out structs.IndexedConfigEntries
+
+				err := msgpackrpc.CallWithCodec(readerCodec, "ConfigEntry.List", &args, &out)
+				if err != nil {
+					return err
+				}
+				t.Log("blocking query index", out.QueryMeta.Index, out, time.Now())
+				count++
+				args.QueryOptions.MinQueryIndex = out.QueryMeta.Index
+			}
+			return nil
+		})
+
+		g.Go(func() error {
+			for i := 0; i < 200; i++ {
+				time.Sleep(5 * time.Millisecond)
+
+				var out bool
+				err := msgpackrpc.CallWithCodec(writerCodec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+					Entry: &structs.ServiceResolverConfigEntry{
+						Kind:           structs.ServiceResolver,
+						Name:           fmt.Sprintf(dataPrefix+"%d", i),
+						ConnectTimeout: 33 * time.Second,
+					},
+				}, &out)
+				if err != nil {
+					return fmt.Errorf("[%d] unexpected error: %w", i, err)
+				}
+				if !out {
+					return fmt.Errorf("[%d] unexpectedly returned false", i)
+				}
+			}
+			cancel()
+			return nil
+		})
+
+		require.NoError(t, g.Wait())
+
+		assertBlockingQueryWakeupCount(t, time.Second, start, count)
+	}
+
+	runStep(t, "test the errNotFound path", func(t *testing.T) {
+		run(t, "other")
+	})
+
+	{ // Create some dummy services in the state store to look up.
+		for _, entry := range []structs.ConfigEntry{
+			&structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "bar",
+			},
+			&structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "foo",
+			},
+		} {
+			var out bool
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+				Entry: entry,
+			}, &out))
+			require.True(t, out)
+		}
+	}
+
+	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+		run(t, "completely-different-other")
+	})
 }
 
 func TestConfigEntry_ListAll(t *testing.T) {
@@ -2023,6 +2135,142 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 		QueryMeta: out.QueryMeta,
 	}
 	require.Equal(t, expected, out)
+}
+
+func BenchmarkConfigEntry_ResolveServiceConfig_Hash(b *testing.B) {
+	res := &configentry.ResolvedServiceConfigSet{}
+
+	res.AddServiceDefaults(&structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "web",
+		Protocol: "http",
+	})
+	res.AddServiceDefaults(&structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "up1",
+		Protocol: "http",
+	})
+	res.AddServiceDefaults(&structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "up2",
+		Protocol: "http",
+	})
+	res.AddProxyDefaults(&structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "grpc",
+		},
+	})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := hashstructure_v2.Hash(res, hashstructure_v2.FormatV2, nil)
+		if err != nil {
+			b.Fatalf("error: %v", err)
+		}
+	}
+}
+
+func TestConfigEntry_ResolveServiceConfig_BlockOnNoChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, s1 := testServerWithConfig(t)
+
+	codec := rpcClient(t, s1)
+	readerCodec := rpcClient(t, s1)
+	writerCodec := rpcClient(t, s1)
+
+	run := func(t *testing.T, dataPrefix string) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		var count int
+
+		start := time.Now()
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			args := structs.ServiceConfigRequest{
+				Name: "foo",
+				UpstreamIDs: []structs.ServiceID{
+					structs.NewServiceID("bar", nil),
+				},
+			}
+			args.QueryOptions.MaxQueryTime = time.Second
+
+			for ctx.Err() == nil {
+				var out structs.ServiceConfigResponse
+
+				err := msgpackrpc.CallWithCodec(readerCodec, "ConfigEntry.ResolveServiceConfig", &args, &out)
+				if err != nil {
+					return err
+				}
+				t.Log("blocking query index", out.QueryMeta.Index, out, time.Now())
+				count++
+				args.QueryOptions.MinQueryIndex = out.QueryMeta.Index
+			}
+			return nil
+		})
+
+		g.Go(func() error {
+			for i := 0; i < 200; i++ {
+				time.Sleep(5 * time.Millisecond)
+
+				var out bool
+				err := msgpackrpc.CallWithCodec(writerCodec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+					Entry: &structs.ServiceConfigEntry{
+						Kind: structs.ServiceDefaults,
+						Name: fmt.Sprintf(dataPrefix+"%d", i),
+					},
+				}, &out)
+				if err != nil {
+					return fmt.Errorf("[%d] unexpected error: %w", i, err)
+				}
+				if !out {
+					return fmt.Errorf("[%d] unexpectedly returned false", i)
+				}
+			}
+			cancel()
+			return nil
+		})
+
+		require.NoError(t, g.Wait())
+
+		assertBlockingQueryWakeupCount(t, time.Second, start, count)
+	}
+
+	{ // create one unrelated entry
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "unrelated",
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	runStep(t, "test the errNotFound path", func(t *testing.T) {
+		run(t, "other")
+	})
+
+	{ // create one relevant entry
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Entry: &structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "bar",
+				Protocol: "grpc",
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+		run(t, "completely-different-other")
+	})
 }
 
 func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {

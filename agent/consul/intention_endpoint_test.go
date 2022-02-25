@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -8,6 +9,7 @@ import (
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -1740,6 +1742,123 @@ func TestIntentionMatch_good(t *testing.T) {
 		})
 	}
 	require.Equal(t, expected, actual)
+}
+
+func TestIntentionMatch_BlockOnNoChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, s1 := testServerWithConfig(t)
+
+	codec := rpcClient(t, s1)
+	readerCodec := rpcClient(t, s1)
+	writerCodec := rpcClient(t, s1)
+
+	waitForLeaderEstablishment(t, s1)
+
+	run := func(t *testing.T, dataPrefix string, expectMatches int) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		var count int
+
+		start := time.Now()
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			args := &structs.IntentionQueryRequest{
+				Datacenter: "dc1",
+				Match: &structs.IntentionQueryMatch{
+					Type: structs.IntentionMatchDestination,
+					Entries: []structs.IntentionMatchEntry{
+						{Name: "bar"},
+					},
+				},
+			}
+			args.QueryOptions.MaxQueryTime = time.Second
+
+			for ctx.Err() == nil {
+				var out structs.IndexedIntentionMatches
+
+				err := msgpackrpc.CallWithCodec(readerCodec, "Intention.Match", args, &out)
+				if err != nil {
+					return fmt.Errorf("error getting intentions: %w", err)
+				}
+				if len(out.Matches) != 1 {
+					return fmt.Errorf("expected 1 match got %d", len(out.Matches))
+				}
+				if len(out.Matches[0]) != expectMatches {
+					return fmt.Errorf("expected %d inner matches got %d", expectMatches, len(out.Matches[0]))
+				}
+
+				t.Log("blocking query index", out.QueryMeta.Index, out.Matches[0])
+				count++
+				args.QueryOptions.MinQueryIndex = out.QueryMeta.Index
+			}
+			return nil
+		})
+
+		g.Go(func() error {
+			for i := 0; i < 200; i++ {
+				time.Sleep(5 * time.Millisecond)
+
+				var out string
+				err := msgpackrpc.CallWithCodec(writerCodec, "Intention.Apply", &structs.IntentionRequest{
+					Datacenter: "dc1",
+					Op:         structs.IntentionOpCreate,
+					Intention: &structs.Intention{
+						// {"default", "*", "default", "baz"}, // shouldn't match
+						SourceNS:        "default",
+						SourceName:      "*",
+						DestinationNS:   "default",
+						DestinationName: fmt.Sprintf(dataPrefix+"%d", i),
+						Action:          structs.IntentionActionAllow,
+					},
+				}, &out)
+				if err != nil {
+					return fmt.Errorf("[%d] unexpected error: %w", i, err)
+				}
+			}
+			cancel()
+			return nil
+		})
+
+		require.NoError(t, g.Wait())
+
+		assertBlockingQueryWakeupCount(t, time.Second, start, count)
+	}
+
+	runStep(t, "test the errNotFound path", func(t *testing.T) {
+		run(t, "other", 0)
+	})
+
+	// Create some records
+	{
+		insert := [][]string{
+			{"default", "*", "default", "*"},
+			{"default", "*", "default", "bar"},
+			{"default", "*", "default", "baz"}, // shouldn't match
+		}
+
+		for _, v := range insert {
+			var out string
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention: &structs.Intention{
+					SourceNS:        v[0],
+					SourceName:      v[1],
+					DestinationNS:   v[2],
+					DestinationName: v[3],
+					Action:          structs.IntentionActionAllow,
+				},
+			}, &out))
+		}
+	}
+
+	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+		run(t, "completely-different-other", 2)
+	})
 }
 
 // Test matching with ACLs

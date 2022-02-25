@@ -1,14 +1,18 @@
 package consul
 
 import (
+	"context"
 	"encoding/base64"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -2314,6 +2318,115 @@ func TestInternal_IntentionUpstreams(t *testing.T) {
 			}
 			require.Equal(r, expectUp, out.Services)
 		})
+	})
+}
+
+func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, s1 := testServerWithConfig(t)
+
+	codec := rpcClient(t, s1)
+	readerCodec := rpcClient(t, s1)
+	writerCodec := rpcClient(t, s1)
+
+	waitForLeaderEstablishment(t, s1)
+
+	{ // ensure it's default deny to start
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "*",
+				Sources: []*structs.SourceIntention{
+					{
+						Name:   "*",
+						Action: structs.IntentionActionDeny,
+					},
+				},
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	run := func(t *testing.T, dataPrefix string, expectServices int) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		var count int
+
+		start := time.Now()
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			args := &structs.ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "web",
+			}
+			args.QueryOptions.MaxQueryTime = time.Second
+
+			for ctx.Err() == nil {
+				var out structs.IndexedServiceList
+
+				err := msgpackrpc.CallWithCodec(readerCodec, "Internal.IntentionUpstreams", args, &out)
+				if err != nil {
+					return fmt.Errorf("error getting upstreams: %w", err)
+				}
+
+				if len(out.Services) != expectServices {
+					return fmt.Errorf("expected %d services got %d", expectServices, len(out.Services))
+				}
+
+				t.Log("blocking query index", out.QueryMeta.Index, out.Services)
+				count++
+				args.QueryOptions.MinQueryIndex = out.QueryMeta.Index
+			}
+			return nil
+		})
+
+		g.Go(func() error {
+			for i := 0; i < 200; i++ {
+				time.Sleep(5 * time.Millisecond)
+
+				var out string
+				err := msgpackrpc.CallWithCodec(writerCodec, "Intention.Apply", &structs.IntentionRequest{
+					Datacenter: "dc1",
+					Op:         structs.IntentionOpCreate,
+					Intention: &structs.Intention{
+						SourceName:      fmt.Sprintf(dataPrefix+"-src-%d", i),
+						DestinationName: fmt.Sprintf(dataPrefix+"-dst-%d", i),
+						Action:          structs.IntentionActionAllow,
+					},
+				}, &out)
+				if err != nil {
+					return fmt.Errorf("[%d] unexpected error: %w", i, err)
+				}
+			}
+			cancel()
+			return nil
+		})
+
+		require.NoError(t, g.Wait())
+
+		assertBlockingQueryWakeupCount(t, time.Second, start, count)
+	}
+
+	runStep(t, "test the errNotFound path", func(t *testing.T) {
+		run(t, "other", 0)
+	})
+
+	// Services:
+	// api and api-proxy on node foo
+	// web and web-proxy on node foo
+	//
+	// Intentions
+	// * -> * (deny) intention
+	// web -> api (allow)
+	registerIntentionUpstreamEntries(t, codec, "")
+
+	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+		run(t, "completely-different-other", 1)
 	})
 }
 

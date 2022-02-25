@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -8,6 +9,7 @@ import (
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -241,4 +243,117 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 		}
 		require.Equal(t, expect, resp)
 	}
+}
+
+func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+	})
+
+	codec := rpcClient(t, s1)
+	readerCodec := rpcClient(t, s1)
+	writerCodec := rpcClient(t, s1)
+
+	waitForLeaderEstablishment(t, s1)
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	{ // create one unrelated entry
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "unrelated",
+				ConnectTimeout: 33 * time.Second,
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	run := func(t *testing.T, dataPrefix string) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		var count int
+
+		start := time.Now()
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			args := &structs.DiscoveryChainRequest{
+				Name:                 "web",
+				EvaluateInDatacenter: "dc1",
+				EvaluateInNamespace:  "default",
+				EvaluateInPartition:  "default",
+				Datacenter:           "dc1",
+			}
+			args.QueryOptions.MaxQueryTime = time.Second
+
+			for ctx.Err() == nil {
+				var out structs.DiscoveryChainResponse
+				err := msgpackrpc.CallWithCodec(readerCodec, "DiscoveryChain.Get", &args, &out)
+				if err != nil {
+					return fmt.Errorf("error getting discovery chain: %w", err)
+				}
+				if !out.Chain.IsDefault() {
+					return fmt.Errorf("expected default chain")
+				}
+
+				t.Log("blocking query index", out.QueryMeta.Index, out.Chain)
+				count++
+				args.QueryOptions.MinQueryIndex = out.QueryMeta.Index
+			}
+			return nil
+		})
+
+		g.Go(func() error {
+			for i := 0; i < 200; i++ {
+				time.Sleep(5 * time.Millisecond)
+
+				var out bool
+				err := msgpackrpc.CallWithCodec(writerCodec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+					Datacenter: "dc1",
+					Entry: &structs.ServiceConfigEntry{
+						Kind: structs.ServiceDefaults,
+						Name: fmt.Sprintf(dataPrefix+"%d", i),
+					},
+				}, &out)
+				if err != nil {
+					return fmt.Errorf("[%d] unexpected error: %w", i, err)
+				}
+				if !out {
+					return fmt.Errorf("[%d] unexpectedly returned false", i)
+				}
+			}
+			cancel()
+			return nil
+		})
+
+		require.NoError(t, g.Wait())
+
+		assertBlockingQueryWakeupCount(t, time.Second, start, count)
+	}
+
+	runStep(t, "test the errNotFound path", func(t *testing.T) {
+		run(t, "other")
+	})
+
+	{ // create one relevant entry
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Entry: &structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "web",
+				Protocol: "grpc",
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+		run(t, "completely-different-other")
+	})
 }
