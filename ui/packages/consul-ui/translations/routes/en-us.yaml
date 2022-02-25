@@ -71,9 +71,6 @@ dc:
       metadata:
         title: Metadata
   services:
-    # show:
-      # upstreams:
-      #   intro: |
     index:
       empty:
         header: |
