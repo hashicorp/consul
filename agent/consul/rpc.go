@@ -1042,8 +1042,6 @@ func (s *Server) blockingQuery(
 var errNotFound = fmt.Errorf("no data found for query")
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
-//
-// Note: This method must be called *after* filtering query results with ACLs.
 func (s *Server) setQueryMeta(m blockingQueryResponseMeta) {
 	if s.IsLeader() {
 		m.SetLastContact(0)
