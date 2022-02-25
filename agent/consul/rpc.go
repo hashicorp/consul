@@ -933,6 +933,19 @@ type blockingQueryResponseMeta interface {
 // a previous result. errNotFound will never be returned to the caller, it is
 // converted to nil before returning.
 //
+// The query function can return errNotChanged, which is a sentinel error. This
+// can only be returned on calls AFTER the first call, as it would not be
+// possible to detect the absence of a change on the first call. Returning
+// errNotChanged indicates that the query results are identical to the prior
+// results which allows blockingQuery to keep blocking until the query returns
+// a real changed result.
+//
+// The query function must take care to ensure the actual result of the query
+// is either left unmodified or explicitly left in a good state before
+// returning, otherwise when blockingQuery times out it may return an
+// incomplete or unexpected result. errNotChanged will never be returned to the
+// caller, it is converted to nil before returning.
+//
 // If query function returns any other error, the error is returned to the caller
 // immediately.
 //
@@ -972,7 +985,7 @@ func (s *Server) blockingQuery(
 		var ws memdb.WatchSet
 		err := query(ws, s.fsm.State())
 		s.setQueryMeta(responseMeta)
-		if errors.Is(err, errNotFound) {
+		if errors.Is(err, errNotFound) || errors.Is(err, errNotChanged) {
 			return nil
 		}
 		return err
@@ -987,7 +1000,10 @@ func (s *Server) blockingQuery(
 	// decrement the count when the function returns.
 	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
 
-	var notFound bool
+	var (
+		notFound bool
+		ranOnce  bool
+	)
 
 	for {
 		if opts.GetRequireConsistent() {
@@ -1008,17 +1024,23 @@ func (s *Server) blockingQuery(
 
 		err := query(ws, state)
 		s.setQueryMeta(responseMeta)
+
 		switch {
 		case errors.Is(err, errNotFound):
 			if notFound {
 				// query result has not changed
 				minQueryIndex = responseMeta.GetIndex()
 			}
-
 			notFound = true
+		case errors.Is(err, errNotChanged):
+			if ranOnce {
+				// query result has not changed
+				minQueryIndex = responseMeta.GetIndex()
+			}
 		case err != nil:
 			return err
 		}
+		ranOnce = true
 
 		if responseMeta.GetIndex() > minQueryIndex {
 			return nil
@@ -1039,7 +1061,10 @@ func (s *Server) blockingQuery(
 	}
 }
 
-var errNotFound = fmt.Errorf("no data found for query")
+var (
+	errNotFound   = fmt.Errorf("no data found for query")
+	errNotChanged = fmt.Errorf("data did not change for query")
+)
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
 func (s *Server) setQueryMeta(m blockingQueryResponseMeta) {
