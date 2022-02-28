@@ -10,11 +10,6 @@
         "title": "Use Cases",
         "routes": [
           {
-            "title": "Overview",
-            "path": "intro/usecases",
-            "hidden": true
-          },
-          {
             "title": "What is a Service Mesh?",
             "path": "intro/usecases/what-is-a-service-mesh"
           }
