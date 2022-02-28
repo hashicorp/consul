@@ -9,14 +9,6 @@
   --color-aws-500: rgb(var(--white));
   --color-vault-500: rgb(var(--tone-lemon-500));
 }
-h1::before {
-  --icon-name: var(--icon-aws);
-  content: '';
-}
-h1::after {
-  --icon-name: var(--icon-vault);
-  content: '';
-}
 
 %with-vault-100,
 %with-vault-300 {
