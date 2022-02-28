@@ -3585,6 +3585,24 @@ func TestVetRegisterWithACL(t *testing.T) {
 	}
 	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
+	// Use a wildly different casing for the node name, which should also go
+	// through. The ACLs still work, and the node-to-check comparison should
+	// still work.
+	args = &structs.RegisterRequest{
+		Node:    "NoDe",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "service",
+			ID:      "my-id",
+		},
+		Checks: []*structs.HealthCheck{
+			{
+				Node: "node",
+			},
+		},
+	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
+
 	// Add a service-level check.
 	args = &structs.RegisterRequest{
 		Node:    "node",
