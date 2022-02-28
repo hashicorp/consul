@@ -1,5 +1,64 @@
 # Iconography
 
+All our iconography uses native CSS properties for adding iconography from The
+Outside. You can also add icons using the same properties within `style=""`
+attributes, but you should think twice before adding decorative content into
+HTML and only do so if you have a good reason/have tried everything else.
+
+Available icons properties are:
+
+- `--icon-name`: See below for available names
+- `--icon-color`: By default our icons are set to be monochrome, using
+  `--icon-color` will color the icon, you can also use `currentColor`
+- `--icon-size`: Set the size of the icon, see below for available values. Our
+  values use a `icon-000` naming scheme similar to all our ther naming scales (and
+  `font-weight`). We default this to `icon-300` i.e. `1rem`/`16px` and `icon-000`
+  means 'use the font-size'
+- `--icon-resolution`: Set the resolution of the icon. Currently you can set
+  either `1` or `.5` here `resolution` happens to mean the thickness of the lines
+  used in the icon. 1 equals thicker lines and should be used at sizes lower than
+  `icon-500`. `.5` equals thinner lines and should be used at sizes larger than
+  `icon-500`.
+
+All of the above properties can be suffixed with `-start` or `-end`, these are
+mainly used for specifying icons using `style=""` attributes. Here `start` and
+`end` refer to either the `::before` or `::after` pseudo element to use to
+display the icon. If you are not using the `style=""` attribute (which you
+probably aren't) consider just using normal `::before` and `::after` CSS
+selectors.
+
+```css
+.selector::before {
+  --icon-name: icon-aws-color;
+  --icon-monochrome: initial; /* turns off monochrome mode */
+}
+```
+
+```css
+.selector::after {
+  --icon-name: icon-aws-color;
+  --icon-color: rgb(var(---white)); /* use white for monochrome mode */
+}
+```
+
+If you cannot use CSS or have a good reason to do so, you can very easily add
+icons in HTML using these CSS properties.
+
+```hbs preview-template
+<h2
+  style={{style-map
+    (array '--icon-name-start' 'icon-consul')
+    (array '--icon-color-start' 'rgb(var(--tone-strawberry-500))')
+    (array '--icon-name-end' 'icon-vault')
+    (array '--icon-color-end' 'var(--color-vault-500)')
+  }}
+>
+  Header Name
+</h2>
+```
+
+## Deprecated
+
 Please prefer our Constructable `%placeholder` styles over singular CSS
 properties. If you need to drop back, to something not covered there then you
 can also use CSS properties directly.
@@ -8,12 +67,6 @@ All icons use a `%with-` prefix for example `%with-alert-circle-fill-icon` or
 `%with-alert-circle-fill-mask`. We mostly use the `-mask` suffix and also use
 the `%as-pseudo` placeholder to tell CSS that we are using the background on a
 pseudo element:
-
-```css
-.selector::before {
-  @extend %with-alert-circle-fill-mask, %as-pseudo;
-}
-```
 
 If you are not using a pseudo element for whatever reason, then you do not need
 to use `%as-pseudo`.
@@ -39,36 +92,61 @@ use `-mask`, use `-icon` instead:
 }
 ```
 
-## Structure Icons + Consul Specific Icons
-
 ```hbs preview-template
-<ul>
-{{#each (icons-debug 'structure') as |prop|}}
+<figure>
+    <select
+      onchange={{action (mut this.type) value="target.value"}}
+    >
+      <option>colored</option>
+      <option>monochrome</option>
+    </select>
+    <select
+      onchange={{action (mut this.theme) value="target.value"}}
+    >
+      <option>light</option>
+      <option>dark</option>
+    </select>
+    <input
+      oninput={{action (mut this.size) value="target.value"}}
+      type="range" min="100" max="900" step="100"
+    />
+    {{this.size}}
+</figure>
+<ul
+  {{css-props (set this 'icons')
+    prefix='icon-'
+  }}
+  class={{class-map
+    (concat 'theme-' (or this.theme 'light'))
+  }}
+  style={{style-map
+    (array '--icon-color' (if (eq this.type 'monochrome') 'rgb(var(--black))'))
+    (array '--icon-size' (concat 'icon-' (or this.size '500')))
+    (array '--icon-resolution' (if (gt this.size 500) '.5' '1'))
+  }}
+>
+{{#each-in this.icons as |prop value|}}
+{{#if (and
+    (not (contains prop (array '--icon-name' '--icon-color' '--icon-size' '--icon-resolution')))
+    (not (string-includes prop '-24'))
+  )
+}}
+{{#let
+  (string-replace (string-replace prop '-16' '') '--' '')
+as |name|}}
   <li>
     <figure
-      {{with-copyable (concat "@extend %" prop.placeholder ", %as-pseudo;")}}
-      class={{concat 'debug-' prop.placeholder '-before'}}
+      {{with-copyable (concat '--icon-name: ' name ';content: "";')}}
+      style={{style-map
+        (array '--icon-name-start' name)
+      }}
     >
-      <figcaption>{{prop.name}}</figcaption>
+      <figcaption>{{name}}</figcaption>
     </figure>
   </li>
-{{/each}}
+{{/let}}
+{{/if}}
+{{/each-in}}
 </ul>
 ```
 
-## Flight Icons
-
-```hbs preview-template
-<ul>
-{{#each (icons-debug 'flight') as |prop|}}
-  <li>
-    <figure
-      {{with-copyable (concat "@extend %" prop.placeholder ", %as-pseudo;")}}
-      class={{concat 'debug-' prop.placeholder '-before'}}
-    >
-      <figcaption>{{prop.name}}</figcaption>
-    </figure>
-  </li>
-{{/each}}
-</ul>
-```
