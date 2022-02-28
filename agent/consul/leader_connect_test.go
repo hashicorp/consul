@@ -1490,8 +1490,6 @@ func TestCAManager_Initialize_Vault_BadCAConfigDoesNotPreventLeaderEstablishment
 }
 
 func TestCAManager_Initialize_BadCAConfigDoesNotPreventLeaderEstablishment(t *testing.T) {
-	ca.SkipIfVaultNotPresent(t)
-
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.9.1"
 		c.PrimaryDatacenter = "dc1"
