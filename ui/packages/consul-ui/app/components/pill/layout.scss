@@ -6,12 +6,11 @@
 }
 %pill::before {
   margin-right: 4px;
-  width: 0.75rem !important; /* 12px */
-  height: 0.75rem !important; /* 12px */
 }
 %pill-200 {
   @extend %pill;
   padding: 0 8px;
+  --icon-size: icon-200;
 }
 %pill-500 {
   @extend %pill;
