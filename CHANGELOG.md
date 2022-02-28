@@ -1,3 +1,22 @@
+## 1.9.16 (February 28, 2022)
+
+FEATURES:
+
+* ca: support using an external root CA with the vault CA provider [[GH-11910](https://github.com/hashicorp/consul/issues/11910)]
+
+IMPROVEMENTS:
+
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+* server: conditionally avoid writing a config entry to raft if it was already the same [[GH-12321](https://github.com/hashicorp/consul/issues/12321)]
+
+BUG FIXES:
+
+* agent: Parse datacenter from Create/Delete requests for AuthMethods and BindingRules. [[GH-12370](https://github.com/hashicorp/consul/issues/12370)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* server: **(Enterprise only)** Namespace deletion will now attempt to delete as many namespaced config entries as possible instead of halting on the first deletion that failed.
+* server: partly fix config entry replication issue that prevents replication in some circumstances [[GH-12307](https://github.com/hashicorp/consul/issues/12307)]
+* ui: Ensure we always display the Policy default preview in the Namespace editing form [[GH-12316](https://github.com/hashicorp/consul/issues/12316)]
+
 ## 1.9.15 (February 11, 2022)
 
 IMPROVEMENTS:

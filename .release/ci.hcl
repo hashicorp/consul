@@ -12,6 +12,7 @@ project "consul" {
     release_branches = [
       "main",
       "release/1.9.x",
+      "release/1.9.16",
     ]
   }
 }
