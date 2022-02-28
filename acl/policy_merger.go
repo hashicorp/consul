@@ -1,5 +1,7 @@
 package acl
 
+import "strings"
+
 type policyRulesMergeContext struct {
 	aclRule                  string
 	agentRules               map[string]*AgentRule
@@ -48,6 +50,8 @@ func (p *policyRulesMergeContext) merge(policy *PolicyRules) {
 	}
 
 	for _, ap := range policy.Agents {
+		ap.Node = strings.ToLower(ap.Node)
+
 		update := true
 		if permission, found := p.agentRules[ap.Node]; found {
 			update = takesPrecedenceOver(ap.Policy, permission.Policy)
@@ -59,6 +63,8 @@ func (p *policyRulesMergeContext) merge(policy *PolicyRules) {
 	}
 
 	for _, ap := range policy.AgentPrefixes {
+		ap.Node = strings.ToLower(ap.Node)
+
 		update := true
 		if permission, found := p.agentPrefixRules[ap.Node]; found {
 			update = takesPrecedenceOver(ap.Policy, permission.Policy)
@@ -122,6 +128,8 @@ func (p *policyRulesMergeContext) merge(policy *PolicyRules) {
 	}
 
 	for _, np := range policy.Nodes {
+		np.Name = strings.ToLower(np.Name)
+
 		update := true
 		if permission, found := p.nodeRules[np.Name]; found {
 			update = takesPrecedenceOver(np.Policy, permission.Policy)
@@ -133,6 +141,8 @@ func (p *policyRulesMergeContext) merge(policy *PolicyRules) {
 	}
 
 	for _, np := range policy.NodePrefixes {
+		np.Name = strings.ToLower(np.Name)
+
 		update := true
 		if permission, found := p.nodePrefixRules[np.Name]; found {
 			update = takesPrecedenceOver(np.Policy, permission.Policy)
@@ -206,6 +216,8 @@ func (p *policyRulesMergeContext) merge(policy *PolicyRules) {
 	}
 
 	for _, sp := range policy.Sessions {
+		sp.Node = strings.ToLower(sp.Node)
+
 		update := true
 		if permission, found := p.sessionRules[sp.Node]; found {
 			update = takesPrecedenceOver(sp.Policy, permission.Policy)
@@ -217,6 +229,8 @@ func (p *policyRulesMergeContext) merge(policy *PolicyRules) {
 	}
 
 	for _, sp := range policy.SessionPrefixes {
+		sp.Node = strings.ToLower(sp.Node)
+
 		update := true
 		if permission, found := p.sessionPrefixRules[sp.Node]; found {
 			update = takesPrecedenceOver(sp.Policy, permission.Policy)

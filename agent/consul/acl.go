@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -699,35 +700,34 @@ func dedupeServiceIdentities(in []*structs.ACLServiceIdentity) []*structs.ACLSer
 }
 
 func dedupeNodeIdentities(in []*structs.ACLNodeIdentity) []*structs.ACLNodeIdentity {
-	// From: https://github.com/golang/go/wiki/SliceTricks#in-place-deduplicate-comparable
-
 	if len(in) <= 1 {
 		return in
 	}
 
-	sort.Slice(in, func(i, j int) bool {
-		if in[i].NodeName < in[j].NodeName {
+	m := make(map[string]*structs.ACLNodeIdentity)
+	for _, id := range in {
+		key := strings.ToLower(id.NodeName) + "." + id.Datacenter
+		if _, present := m[key]; !present {
+			m[key] = id
+		}
+	}
+
+	out := make([]*structs.ACLNodeIdentity, 0, len(m))
+	for _, id := range m {
+		out = append(out, id)
+	}
+
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].NodeName < out[j].NodeName {
 			return true
+		} else if out[i].NodeName > out[j].NodeName {
+			return false
 		}
 
-		return in[i].Datacenter < in[j].Datacenter
+		return out[i].Datacenter < out[j].Datacenter
 	})
 
-	j := 0
-	for i := 1; i < len(in); i++ {
-		if in[j].NodeName == in[i].NodeName && in[j].Datacenter == in[i].Datacenter {
-			continue
-		}
-		j++
-		in[j] = in[i]
-	}
-
-	// Discard the skipped items.
-	for i := j + 1; i < len(in); i++ {
-		in[i] = nil
-	}
-
-	return in[:j+1]
+	return out
 }
 
 func mergeStringSlice(a, b []string) []string {

@@ -1,6 +1,8 @@
 package acl
 
 import (
+	"strings"
+
 	"github.com/armon/go-radix"
 )
 
@@ -472,6 +474,7 @@ func (p *policyAuthorizer) ACLWrite(*AuthorizerContext) EnforcementDecision {
 // AgentRead checks for permission to read from agent endpoints for a given
 // node.
 func (p *policyAuthorizer) AgentRead(node string, _ *AuthorizerContext) EnforcementDecision {
+	node = strings.ToLower(node)
 	if rule, ok := getPolicy(node, p.agentRules); ok {
 		return enforce(rule.access, AccessRead)
 	}
@@ -481,6 +484,7 @@ func (p *policyAuthorizer) AgentRead(node string, _ *AuthorizerContext) Enforcem
 // AgentWrite checks for permission to make changes via agent endpoints for a
 // given node.
 func (p *policyAuthorizer) AgentWrite(node string, _ *AuthorizerContext) EnforcementDecision {
+	node = strings.ToLower(node)
 	if rule, ok := getPolicy(node, p.agentRules); ok {
 		return enforce(rule.access, AccessWrite)
 	}
@@ -711,6 +715,7 @@ func (p *policyAuthorizer) OperatorWrite(*AuthorizerContext) EnforcementDecision
 
 // NodeRead checks if reading (discovery) of a node is allowed
 func (p *policyAuthorizer) NodeRead(name string, _ *AuthorizerContext) EnforcementDecision {
+	name = strings.ToLower(name)
 	if rule, ok := getPolicy(name, p.nodeRules); ok {
 		return enforce(rule.access, AccessRead)
 	}
@@ -723,6 +728,7 @@ func (p *policyAuthorizer) NodeReadAll(_ *AuthorizerContext) EnforcementDecision
 
 // NodeWrite checks if writing (registering) a node is allowed
 func (p *policyAuthorizer) NodeWrite(name string, _ *AuthorizerContext) EnforcementDecision {
+	name = strings.ToLower(name)
 	if rule, ok := getPolicy(name, p.nodeRules); ok {
 		return enforce(rule.access, AccessWrite)
 	}
@@ -773,6 +779,7 @@ func (p *policyAuthorizer) serviceWriteAny(_ *AuthorizerContext) EnforcementDeci
 
 // SessionRead checks for permission to read sessions for a given node.
 func (p *policyAuthorizer) SessionRead(node string, _ *AuthorizerContext) EnforcementDecision {
+	node = strings.ToLower(node)
 	if rule, ok := getPolicy(node, p.sessionRules); ok {
 		return enforce(rule.access, AccessRead)
 	}
@@ -781,6 +788,7 @@ func (p *policyAuthorizer) SessionRead(node string, _ *AuthorizerContext) Enforc
 
 // SessionWrite checks for permission to create sessions for a given node.
 func (p *policyAuthorizer) SessionWrite(node string, _ *AuthorizerContext) EnforcementDecision {
+	node = strings.ToLower(node)
 	// Check for an exact rule or catch-all
 	if rule, ok := getPolicy(node, p.sessionRules); ok {
 		return enforce(rule.access, AccessWrite)

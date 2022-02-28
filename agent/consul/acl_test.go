@@ -3864,6 +3864,123 @@ func TestDedupeServiceIdentities(t *testing.T) {
 		})
 	}
 }
+
+func TestDedupeNodeIdentities(t *testing.T) {
+	nodeid := func(name string, datacenter string) *structs.ACLNodeIdentity {
+		return &structs.ACLNodeIdentity{
+			NodeName:   name,
+			Datacenter: datacenter,
+		}
+	}
+
+	tests := []struct {
+		name   string
+		in     []*structs.ACLNodeIdentity
+		expect []*structs.ACLNodeIdentity
+	}{
+		{
+			name:   "empty",
+			in:     nil,
+			expect: nil,
+		},
+		{
+			name: "one",
+			in: []*structs.ACLNodeIdentity{
+				nodeid("foo", ""),
+			},
+			expect: []*structs.ACLNodeIdentity{
+				nodeid("foo", ""),
+			},
+		},
+		{
+			name: "just names",
+			in: []*structs.ACLNodeIdentity{
+				nodeid("fooZ", ""),
+				nodeid("fooA", ""),
+				nodeid("fooY", ""),
+				nodeid("fooB", ""),
+			},
+			expect: []*structs.ACLNodeIdentity{
+				nodeid("fooA", ""),
+				nodeid("fooB", ""),
+				nodeid("fooY", ""),
+				nodeid("fooZ", ""),
+			},
+		},
+		{
+			name: "just names with dupes",
+			in: []*structs.ACLNodeIdentity{
+				nodeid("fooZ", ""),
+				nodeid("fooA", ""),
+				nodeid("fooY", ""),
+				nodeid("fooB", ""),
+				nodeid("fooA", ""),
+				nodeid("fooB", ""),
+				nodeid("fooY", ""),
+				nodeid("fooZ", ""),
+			},
+			expect: []*structs.ACLNodeIdentity{
+				nodeid("fooA", ""),
+				nodeid("fooB", ""),
+				nodeid("fooY", ""),
+				nodeid("fooZ", ""),
+			},
+		},
+		{
+			name: "names with dupes and datacenters",
+			in: []*structs.ACLNodeIdentity{
+				nodeid("fooZ", "dc2"),
+				nodeid("fooA", ""),
+				nodeid("fooY", "dc1"),
+				nodeid("fooB", ""),
+				nodeid("fooA", "dc9"),
+				nodeid("fooB", ""),
+				nodeid("fooY", "dc1"),
+				nodeid("fooZ", "dc3"),
+				nodeid("fooZ", "dc4"),
+			},
+			expect: []*structs.ACLNodeIdentity{
+				nodeid("fooA", ""),
+				nodeid("fooA", "dc9"),
+				nodeid("fooB", ""),
+				nodeid("fooY", "dc1"),
+				nodeid("fooZ", "dc2"),
+				nodeid("fooZ", "dc3"),
+				nodeid("fooZ", "dc4"),
+			},
+		},
+		{
+			name: "mixed casing names with dupes and datacenters",
+			in: []*structs.ACLNodeIdentity{
+				nodeid("fooZ", "dc2"),
+				nodeid("FOOa", ""),
+				nodeid("fooY", "dc1"),
+				nodeid("fooB", ""),
+				nodeid("fooA", "dc9"),
+				nodeid("FOOB", ""),
+				nodeid("fooy", "dc1"),
+				nodeid("fOoZ", "dc3"),
+				nodeid("foOz", "dc4"),
+			},
+			expect: []*structs.ACLNodeIdentity{
+				nodeid("FOOa", ""),
+				nodeid("fooA", "dc9"),
+				nodeid("fooB", ""),
+				nodeid("fooY", "dc1"),
+				nodeid("fooZ", "dc2"),
+				nodeid("fOoZ", "dc3"),
+				nodeid("foOz", "dc4"),
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := dedupeNodeIdentities(test.in)
+			require.ElementsMatch(t, test.expect, got)
+		})
+	}
+}
+
 func TestACL_LocalToken(t *testing.T) {
 	t.Run("local token in same dc", func(t *testing.T) {
 		d := &ACLResolverTestDelegate{
