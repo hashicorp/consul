@@ -818,6 +818,10 @@ func TestMergePolicies(t *testing.T) {
 							Node:   "baz",
 							Policy: PolicyWrite,
 						},
+						{
+							Node:   "BLAH",
+							Policy: PolicyWrite,
+						},
 					},
 					AgentPrefixes: []*AgentRule{
 						{
@@ -832,6 +836,10 @@ func TestMergePolicies(t *testing.T) {
 							Node:   "222",
 							Policy: PolicyWrite,
 						},
+						{
+							Node:   "THREE",
+							Policy: PolicyWrite,
+						},
 					},
 				}},
 				{PolicyRules: PolicyRules{
@@ -844,6 +852,10 @@ func TestMergePolicies(t *testing.T) {
 							Node:   "baz",
 							Policy: PolicyDeny,
 						},
+						{
+							Node:   "blah",
+							Policy: PolicyDeny,
+						},
 					},
 					AgentPrefixes: []*AgentRule{
 						{
@@ -852,6 +864,10 @@ func TestMergePolicies(t *testing.T) {
 						},
 						{
 							Node:   "222",
+							Policy: PolicyDeny,
+						},
+						{
+							Node:   "three",
 							Policy: PolicyDeny,
 						},
 					},
@@ -871,6 +887,10 @@ func TestMergePolicies(t *testing.T) {
 						Node:   "baz",
 						Policy: PolicyDeny,
 					},
+					{
+						Node:   "blah",
+						Policy: PolicyDeny,
+					},
 				},
 				AgentPrefixes: []*AgentRule{
 					{
@@ -883,6 +903,10 @@ func TestMergePolicies(t *testing.T) {
 					},
 					{
 						Node:   "222",
+						Policy: PolicyDeny,
+					},
+					{
+						Node:   "three",
 						Policy: PolicyDeny,
 					},
 				},
