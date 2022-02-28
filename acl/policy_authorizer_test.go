@@ -440,6 +440,103 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "AllDenied", prefix: "*", check: checkDenyIntentionWrite},
 			},
 		},
+		"node and agent casing doesn't matter": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				Agents: []*AgentRule{
+					{
+						Node:   "foo",
+						Policy: PolicyWrite,
+					},
+					{
+						Node:   "FOO",
+						Policy: PolicyDeny,
+					},
+					{
+						Node:   "OOF",
+						Policy: PolicyWrite,
+					},
+					{
+						Node:   "oof",
+						Policy: PolicyDeny,
+					},
+				},
+				AgentPrefixes: []*AgentRule{
+					{
+						Node:   "ba",
+						Policy: PolicyWrite,
+					},
+					{
+						Node:   "BA",
+						Policy: PolicyDeny,
+					},
+					{
+						Node:   "RA",
+						Policy: PolicyWrite,
+					},
+					{
+						Node:   "ra",
+						Policy: PolicyDeny,
+					},
+				},
+				Nodes: []*NodeRule{
+					{
+						Name:   "foo",
+						Policy: PolicyWrite,
+					},
+					{
+						Name:   "FOO",
+						Policy: PolicyDeny,
+					},
+					{
+						Name:   "OOF",
+						Policy: PolicyWrite,
+					},
+					{
+						Name:   "oof",
+						Policy: PolicyDeny,
+					},
+				},
+				NodePrefixes: []*NodeRule{
+					{
+						Name:   "ba",
+						Policy: PolicyWrite,
+					},
+					{
+						Name:   "BA",
+						Policy: PolicyDeny,
+					},
+					{
+						Name:   "RA",
+						Policy: PolicyWrite,
+					},
+					{
+						Name:   "ra",
+						Policy: PolicyDeny,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "AgentReadDenyAlwaysWins", prefix: "foo", check: checkDenyAgentRead},
+				{name: "AgentWriteDenyAlwaysWins", prefix: "FOO", check: checkDenyAgentWrite},
+				{name: "AgentReadDenyAlwaysWins", prefix: "OOF", check: checkDenyAgentRead},
+				{name: "AgentWriteDenyAlwaysWins", prefix: "oof", check: checkDenyAgentWrite},
+
+				{name: "AgentReadDenyAlwaysWins", prefix: "bar", check: checkDenyAgentRead},
+				{name: "AgentWriteDenyAlwaysWins", prefix: "BAR", check: checkDenyAgentWrite},
+				{name: "AgentReadDenyAlwaysWins", prefix: "RAB", check: checkDenyAgentRead},
+				{name: "AgentWriteDenyAlwaysWins", prefix: "rab", check: checkDenyAgentWrite},
+
+				{name: "NodeReadDenyAlwaysWins", prefix: "foo", check: checkDenyNodeRead},
+				{name: "NodeWriteDenyAlwaysWins", prefix: "FOO", check: checkDenyNodeWrite},
+				{name: "NodeReadDenyAlwaysWins", prefix: "OOF", check: checkDenyNodeRead},
+				{name: "NodeWriteDenyAlwaysWins", prefix: "oof", check: checkDenyNodeWrite},
+
+				{name: "NodeReadDenyAlwaysWins", prefix: "bar", check: checkDenyNodeRead},
+				{name: "NodeWriteDenyAlwaysWins", prefix: "BAR", check: checkDenyNodeWrite},
+				{name: "NodeReadDenyAlwaysWins", prefix: "RAB", check: checkDenyNodeRead},
+				{name: "NodeWriteDenyAlwaysWins", prefix: "rab", check: checkDenyNodeWrite},
+			},
+		},
 	}
 
 	for name, tcase := range cases {

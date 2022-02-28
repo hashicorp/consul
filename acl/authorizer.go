@@ -21,6 +21,10 @@ const (
 	Default
 )
 
+func (d EnforcementDecision) GoString() string {
+	return d.String()
+}
+
 func (d EnforcementDecision) String() string {
 	switch d {
 	case Allow:

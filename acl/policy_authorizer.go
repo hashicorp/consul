@@ -164,14 +164,14 @@ func defaultIsAllow(decision EnforcementDecision) EnforcementDecision {
 func (p *policyAuthorizer) loadRules(policy *PolicyRules) error {
 	// Load the agent policy (exact matches)
 	for _, ap := range policy.Agents {
-		if err := insertPolicyIntoRadix(ap.Node, ap.Policy, nil, p.agentRules, false); err != nil {
+		if err := insertPolicyIntoRadix(strings.ToLower(ap.Node), ap.Policy, nil, p.agentRules, false); err != nil {
 			return err
 		}
 	}
 
 	// Load the agent policy (prefix matches)
 	for _, ap := range policy.AgentPrefixes {
-		if err := insertPolicyIntoRadix(ap.Node, ap.Policy, nil, p.agentRules, true); err != nil {
+		if err := insertPolicyIntoRadix(strings.ToLower(ap.Node), ap.Policy, nil, p.agentRules, true); err != nil {
 			return err
 		}
 	}
@@ -192,14 +192,14 @@ func (p *policyAuthorizer) loadRules(policy *PolicyRules) error {
 
 	// Load the node policy (exact matches)
 	for _, np := range policy.Nodes {
-		if err := insertPolicyIntoRadix(np.Name, np.Policy, &np.EnterpriseRule, p.nodeRules, false); err != nil {
+		if err := insertPolicyIntoRadix(strings.ToLower(np.Name), np.Policy, &np.EnterpriseRule, p.nodeRules, false); err != nil {
 			return err
 		}
 	}
 
 	// Load the node policy (prefix matches)
 	for _, np := range policy.NodePrefixes {
-		if err := insertPolicyIntoRadix(np.Name, np.Policy, &np.EnterpriseRule, p.nodeRules, true); err != nil {
+		if err := insertPolicyIntoRadix(strings.ToLower(np.Name), np.Policy, &np.EnterpriseRule, p.nodeRules, true); err != nil {
 			return err
 		}
 	}
