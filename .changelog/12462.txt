@@ -1,0 +1,3 @@
+```release-note:improvement
+catalog: compare node names case insensitively in ACL authz evaluation
+```
