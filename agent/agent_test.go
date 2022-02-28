@@ -5728,6 +5728,7 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 		DNSNames:    []string{serverName},
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 	})
+	require.NoError(t, err)
 	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKeyNew2), 0600))
 	// cert should not change as we did not update the associated cert
 	time.Sleep(1 * time.Second)
