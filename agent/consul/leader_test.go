@@ -275,6 +275,7 @@ func TestLeader_ReapOrLeftMember_IgnoreSelf(t *testing.T) {
 	t.Parallel()
 
 	run := func(t *testing.T, status serf.MemberStatus, nameFn func(string) string) {
+		t.Parallel()
 		dir1, s1 := testServerWithConfig(t, func(c *Config) {
 			c.PrimaryDatacenter = "dc1"
 			c.ACLsEnabled = true
@@ -328,6 +329,7 @@ func TestLeader_ReapOrLeftMember_IgnoreSelf(t *testing.T) {
 	}
 
 	t.Run("original name", func(t *testing.T) {
+		t.Parallel()
 		t.Run("left", func(t *testing.T) {
 			run(t, serf.StatusLeft, nil)
 		})
@@ -337,6 +339,7 @@ func TestLeader_ReapOrLeftMember_IgnoreSelf(t *testing.T) {
 	})
 
 	t.Run("uppercased name", func(t *testing.T) {
+		t.Parallel()
 		t.Run("left", func(t *testing.T) {
 			run(t, serf.StatusLeft, strings.ToUpper)
 		})
