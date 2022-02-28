@@ -30,14 +30,15 @@ selectors.
 ```css
 .selector::before {
   --icon-name: icon-aws-color;
-  --icon-monochrome: initial; /* turns off monochrome mode */
+  content: '';
 }
 ```
 
 ```css
 .selector::after {
-  --icon-name: icon-aws-color;
-  --icon-color: rgb(var(---white)); /* use white for monochrome mode */
+  --icon-name: icon-aws;
+  --icon-color: rgb(var(---white));
+  content: '';
 }
 ```
 
