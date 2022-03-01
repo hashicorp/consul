@@ -95,7 +95,6 @@ as |parts|}}
 
     <BlockSlot @name="content">
 
-    <PortalTarget @name="consul-lock-session-notification" />
 {{! if a KV has a session `Session` will always be populated despite any specific session permissions }}
 {{#if item.Session}}
     <Consul::LockSession::Notifications @type="kv" />
