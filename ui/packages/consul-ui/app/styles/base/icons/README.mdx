@@ -58,6 +58,28 @@ icons in HTML using these CSS properties.
 </h2>
 ```
 
+It's probably worth noting that we could make an icon component using the
+following. Under different circumstances this would give us an option that works
+"For Everyone, Everywhere" (in Every Framework as it's just native CSS).
+
+```hbs
+<span
+  class={{class-map
+    'visually-hidden'
+  }}
+  style={{style-map
+    (array '--icon-name-start' @name)
+    (array '--icon-color' @color)
+    (array '--icon-size' @size)
+  }}
+  ...attributes
+>{{yield}}</span>
+
+
+<Icon @name="icon-name" @color="#FF0000" @size="icon-300" />
+```
+
+
 ## Deprecated
 
 Please prefer our Constructable `%placeholder` styles over singular CSS
