@@ -240,9 +240,6 @@
           rtt: {
             _options: { path: '/round-trip-time' },
           },
-          sessions: {
-            _options: { path: '/lock-sessions' },
-          },
           metadata: {
             _options: { path: '/metadata' },
           },
