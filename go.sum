@@ -224,6 +224,8 @@ github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0/go.mod h1:8NvIoxWQoOIhqOTXgf
 github.com/grpc-ecosystem/grpc-gateway v1.9.0/go.mod h1:vNeuVxBJEsws4ogUvrchl83t/GYV9WGTSLVdBhOQFDY=
 github.com/hashicorp/consul-net-rpc v0.0.0-20220207223504-4cffceffcd29 h1:0BbXmAgzy5vx2rjixiO1FLJBdYJfEvSixcjWOli2w+Q=
 github.com/hashicorp/consul-net-rpc v0.0.0-20220207223504-4cffceffcd29/go.mod h1:vWEAHAeAqfOwB3pSgHMQpIu8VH1jL+Ltg54Tw0wt/NI=
+github.com/hashicorp/consul-net-rpc v0.0.0-20220301010508-276d1f75285b h1:FMbZWxGbEu81F9SicC9TpBv3u8tFGwIE0ZFECutfmqI=
+github.com/hashicorp/consul-net-rpc v0.0.0-20220301010508-276d1f75285b/go.mod h1:vWEAHAeAqfOwB3pSgHMQpIu8VH1jL+Ltg54Tw0wt/NI=
 github.com/hashicorp/errwrap v1.0.0 h1:hLrqtEDnRye3+sgx6z4qVLNuviH3MR5aQ0ykNJa/UYA=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/go-bexpr v0.1.2 h1:ijMXI4qERbzxbCnkxmfUtwMyjrrk3y+Vt0MxojNCbBs=
