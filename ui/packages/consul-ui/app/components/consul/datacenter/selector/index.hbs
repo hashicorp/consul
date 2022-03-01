@@ -4,7 +4,7 @@
 >
   <DisclosureMenu
     aria-label="Datacenter"
-    @items={{sort-by 'Name' @dcs}}
+    @items={{sort-by 'Primary:desc' 'Local:desc' 'Name:asc' @dcs}}
   as |disclosure|>
     <disclosure.Action
       {{on 'click' disclosure.toggle}}
