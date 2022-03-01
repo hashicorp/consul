@@ -9,89 +9,79 @@ import (
 
 	memdb "github.com/hashicorp/go-memdb"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 func withEnterpriseSchema(_ *memdb.DBSchema) {}
 
-func serviceIndexName(name string, _ *acl.EnterpriseMeta, peerName string) string {
-	return peeredIndexEntryName(fmt.Sprintf("service.%s", name), peerName)
+func serviceIndexName(name string, _ *structs.EnterpriseMeta) string {
+	return fmt.Sprintf("service.%s", name)
 }
 
-func serviceKindIndexName(kind structs.ServiceKind, _ *acl.EnterpriseMeta, peerName string) string {
-	base := "service_kind." + kind.Normalized()
-	return peeredIndexEntryName(base, peerName)
+func serviceKindIndexName(kind structs.ServiceKind, _ *structs.EnterpriseMeta) string {
+	return "service_kind." + kind.Normalized()
 }
 
-func catalogUpdateNodesIndexes(tx WriteTxn, idx uint64, _ *acl.EnterpriseMeta, peerName string) error {
+func nodeIndexName(name string, _ *structs.EnterpriseMeta) string {
+	return fmt.Sprintf("node.%s", name)
+}
+
+func catalogUpdateNodesIndexes(tx WriteTxn, idx uint64, entMeta *structs.EnterpriseMeta) error {
 	// overall nodes index
 	if err := indexUpdateMaxTxn(tx, idx, tableNodes); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	// peered index
-	if err := indexUpdateMaxTxn(tx, idx, peeredIndexEntryName(tableNodes, peerName)); err != nil {
-		return fmt.Errorf("failed updating partitioned+peered index for nodes table: %w", err)
-	}
-
 	return nil
 }
 
-// catalogUpdateServicesIndexes upserts the max index for the entire services table with varying levels
-// of granularity (no-op if `idx` is lower than what exists for that index key):
-// 	- all services
-// 	- all services in a specified peer (including internal)
-func catalogUpdateServicesIndexes(tx WriteTxn, idx uint64, _ *acl.EnterpriseMeta, peerName string) error {
-	// overall services index
-	if err := indexUpdateMaxTxn(tx, idx, tableServices); err != nil {
-		return fmt.Errorf("failed updating index for services table: %w", err)
-	}
-
-	// peered services index
-	if err := indexUpdateMaxTxn(tx, idx, peeredIndexEntryName(tableServices, peerName)); err != nil {
-		return fmt.Errorf("failed updating peered index for services table: %w", err)
-	}
-
-	return nil
-}
-
-// catalogUpdateServiceKindIndexes upserts the max index for the ServiceKind with varying levels
-// of granularity (no-op if `idx` is lower than what exists for that index key):
-// 	- all services of ServiceKind
-// 	- all services of ServiceKind in a specified peer (including internal)
-func catalogUpdateServiceKindIndexes(tx WriteTxn, idx uint64, kind structs.ServiceKind, _ *acl.EnterpriseMeta, peerName string) error {
-	base := "service_kind." + kind.Normalized()
-	// service-kind index
-	if err := indexUpdateMaxTxn(tx, idx, base); err != nil {
-		return fmt.Errorf("failed updating index for service kind: %w", err)
-	}
-
-	// peered index
-	if err := indexUpdateMaxTxn(tx, idx, peeredIndexEntryName(base, peerName)); err != nil {
-		return fmt.Errorf("failed updating peered index for service kind: %w", err)
-	}
-	return nil
-}
-
-func catalogUpdateServiceIndexes(tx WriteTxn, idx uint64, serviceName string, _ *acl.EnterpriseMeta, peerName string) error {
-	// per-service index
-	if err := indexUpdateMaxTxn(tx, idx, serviceIndexName(serviceName, nil, peerName)); err != nil {
+func catalogUpdateNodeIndexes(tx WriteTxn, nodeName string, idx uint64, _ *structs.EnterpriseMeta) error {
+	// per-node index
+	if err := indexUpdateMaxTxn(tx, idx, nodeIndexName(nodeName, nil)); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	return nil
 }
 
-func catalogUpdateServiceExtinctionIndex(tx WriteTxn, idx uint64, _ *acl.EnterpriseMeta, peerName string) error {
-	if err := indexUpdateMaxTxn(tx, idx, indexServiceExtinction); err != nil {
-		return fmt.Errorf("failed updating missing service extinction index: %w", err)
-	}
-	// update the peer index
-	if err := indexUpdateMaxTxn(tx, idx, peeredIndexEntryName(indexServiceExtinction, peerName)); err != nil {
-		return fmt.Errorf("failed updating missing service extinction peered index: %w", err)
+func catalogUpdateServicesIndexes(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {
+	// overall services index
+	if err := indexUpdateMaxTxn(tx, idx, tableServices); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
 	}
 
+	return nil
+}
+
+func catalogUpdateServiceKindIndexes(tx WriteTxn, kind structs.ServiceKind, idx uint64, _ *structs.EnterpriseMeta) error {
+	// service-kind index
+	if err := indexUpdateMaxTxn(tx, idx, serviceKindIndexName(kind, nil)); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	return nil
+}
+
+func catalogUpdateServiceIndexes(tx WriteTxn, serviceName string, idx uint64, _ *structs.EnterpriseMeta) error {
+	// per-service index
+	if err := indexUpdateMaxTxn(tx, idx, serviceIndexName(serviceName, nil)); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	return nil
+}
+
+func catalogUpdateServiceExtinctionIndex(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {
+	if err := tx.Insert(tableIndex, &IndexEntry{indexServiceExtinction, idx}); err != nil {
+		return fmt.Errorf("failed updating missing service extinction index: %s", err)
+	}
+	return nil
+}
+
+func catalogUpdateNodeExtinctionIndex(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {
+	if err := tx.Insert(tableIndex, &IndexEntry{indexNodeExtinction, idx}); err != nil {
+		return fmt.Errorf("failed updating missing node extinction index: %s", err)
+	}
 	return nil
 }
 
@@ -104,14 +94,18 @@ func catalogInsertNode(tx WriteTxn, node *structs.Node) error {
 		return fmt.Errorf("failed inserting node: %s", err)
 	}
 
-	if err := catalogUpdateNodesIndexes(tx, node.ModifyIndex, node.GetEnterpriseMeta(), node.PeerName); err != nil {
+	if err := catalogUpdateNodesIndexes(tx, node.ModifyIndex, node.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
+	if err := catalogUpdateNodeIndexes(tx, node.Node, node.ModifyIndex, node.GetEnterpriseMeta()); err != nil {
 		return err
 	}
 
 	// Update the node's service indexes as the node information is included
 	// in health queries and we would otherwise miss node updates in some cases
 	// for those queries.
-	if err := updateAllServiceIndexesOfNode(tx, node.ModifyIndex, node.Node, node.GetEnterpriseMeta(), node.PeerName); err != nil {
+	if err := updateAllServiceIndexesOfNode(tx, node.ModifyIndex, node.Node, node.GetEnterpriseMeta()); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -124,95 +118,90 @@ func catalogInsertService(tx WriteTxn, svc *structs.ServiceNode) error {
 		return fmt.Errorf("failed inserting service: %s", err)
 	}
 
-	if err := catalogUpdateServicesIndexes(tx, svc.ModifyIndex, &svc.EnterpriseMeta, svc.PeerName); err != nil {
+	if err := catalogUpdateServicesIndexes(tx, svc.ModifyIndex, &svc.EnterpriseMeta); err != nil {
 		return err
 	}
 
-	if err := catalogUpdateServiceIndexes(tx, svc.ModifyIndex, svc.ServiceName, &svc.EnterpriseMeta, svc.PeerName); err != nil {
+	if err := catalogUpdateServiceIndexes(tx, svc.ServiceName, svc.ModifyIndex, &svc.EnterpriseMeta); err != nil {
 		return err
 	}
 
-	if err := catalogUpdateServiceKindIndexes(tx, svc.ModifyIndex, svc.ServiceKind, &svc.EnterpriseMeta, svc.PeerName); err != nil {
+	if err := catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, svc.ModifyIndex, &svc.EnterpriseMeta); err != nil {
+		return err
+	}
+
+	// Update the node's index as the service information is included in node catalog queries.
+	if err := catalogUpdateNodeIndexes(tx, svc.Node, svc.ModifyIndex, &svc.EnterpriseMeta); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func catalogNodesMaxIndex(tx ReadTxn, _ *acl.EnterpriseMeta, peerName string) uint64 {
-	return maxIndexTxn(tx, peeredIndexEntryName(tableNodes, peerName))
+func catalogNodesMaxIndex(tx ReadTxn, entMeta *structs.EnterpriseMeta) uint64 {
+	return maxIndexTxn(tx, tableNodes)
 }
 
-func catalogServicesMaxIndex(tx ReadTxn, _ *acl.EnterpriseMeta, peerName string) uint64 {
-	return maxIndexTxn(tx, peeredIndexEntryName(tableServices, peerName))
+func catalogNodeMaxIndex(tx ReadTxn, nodeName string, _ *structs.EnterpriseMeta) uint64 {
+	return maxIndexTxn(tx, nodeIndexName(nodeName, nil))
 }
 
-func catalogServiceMaxIndex(tx ReadTxn, serviceName string, _ *acl.EnterpriseMeta, peerName string) (<-chan struct{}, interface{}, error) {
-	return tx.FirstWatch(tableIndex, indexID, serviceIndexName(serviceName, nil, peerName))
+func catalogNodeWatchIndex(tx ReadTxn, nodeName string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+	return tx.FirstWatch(tableIndex, "id", nodeIndexName(nodeName, nil))
 }
 
-func catalogServiceKindMaxIndex(tx ReadTxn, ws memdb.WatchSet, kind structs.ServiceKind, _ *acl.EnterpriseMeta, peerName string) uint64 {
-	return maxIndexWatchTxn(tx, ws, serviceKindIndexName(kind, nil, peerName))
+func catalogNodeMaxExtinctionIndex(tx ReadTxn, _ *structs.EnterpriseMeta) uint64 {
+	return maxIndexTxn(tx, indexNodeExtinction)
 }
 
-func catalogServiceListNoWildcard(tx ReadTxn, _ *acl.EnterpriseMeta, peerName string) (memdb.ResultIterator, error) {
-	q := Query{
-		PeerName: peerName,
-	}
-	return tx.Get(tableServices, indexID+"_prefix", q)
+func catalogServicesMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta) uint64 {
+	return maxIndexTxn(tx, tableServices)
 }
 
-func catalogServiceListByNode(tx ReadTxn, node string, _ *acl.EnterpriseMeta, peerName string, _ bool) (memdb.ResultIterator, error) {
-	return tx.Get(tableServices, indexNode, Query{Value: node, PeerName: peerName})
+func catalogServiceMaxIndex(tx ReadTxn, serviceName string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+	return tx.FirstWatch(tableIndex, "id", serviceIndexName(serviceName, nil))
 }
 
-func catalogServiceLastExtinctionIndex(tx ReadTxn, _ *acl.EnterpriseMeta, peerName string) (interface{}, error) {
-	return tx.First(tableIndex, indexID, peeredIndexEntryName(indexServiceExtinction, peerName))
+func catalogServiceKindMaxIndex(tx ReadTxn, ws memdb.WatchSet, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) uint64 {
+	return maxIndexWatchTxn(tx, ws, serviceKindIndexName(kind, nil))
 }
 
-func catalogMaxIndex(tx ReadTxn, _ *acl.EnterpriseMeta, peerName string, checks bool) uint64 {
+func catalogServiceListNoWildcard(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+	return tx.Get(tableServices, indexID)
+}
+
+func catalogServiceListByNode(tx ReadTxn, node string, _ *structs.EnterpriseMeta, _ bool) (memdb.ResultIterator, error) {
+	return tx.Get(tableServices, indexNode, Query{Value: node})
+}
+
+func catalogServiceLastExtinctionIndex(tx ReadTxn, _ *structs.EnterpriseMeta) (interface{}, error) {
+	return tx.First(tableIndex, "id", indexServiceExtinction)
+}
+
+func catalogMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta, checks bool) uint64 {
 	if checks {
-		return maxIndexTxn(tx,
-			peeredIndexEntryName(tableChecks, peerName),
-			peeredIndexEntryName(tableServices, peerName),
-			peeredIndexEntryName(tableNodes, peerName),
-		)
+		return maxIndexTxn(tx, tableNodes, tableServices, tableChecks)
 	}
-	return maxIndexTxn(tx,
-		peeredIndexEntryName(tableServices, peerName),
-		peeredIndexEntryName(tableNodes, peerName),
-	)
+	return maxIndexTxn(tx, tableNodes, tableServices)
 }
 
-func catalogMaxIndexWatch(tx ReadTxn, ws memdb.WatchSet, _ *acl.EnterpriseMeta, peerName string, checks bool) uint64 {
-	// TODO(peering_indexes): pipe peerName here
+func catalogMaxIndexWatch(tx ReadTxn, ws memdb.WatchSet, _ *structs.EnterpriseMeta, checks bool) uint64 {
 	if checks {
-		return maxIndexWatchTxn(tx, ws,
-			peeredIndexEntryName(tableChecks, peerName),
-			peeredIndexEntryName(tableServices, peerName),
-			peeredIndexEntryName(tableNodes, peerName),
-		)
+		return maxIndexWatchTxn(tx, ws, tableNodes, tableServices, tableChecks)
 	}
-	return maxIndexWatchTxn(tx, ws,
-		peeredIndexEntryName(tableServices, peerName),
-		peeredIndexEntryName(tableNodes, peerName),
-	)
+	return maxIndexWatchTxn(tx, ws, tableNodes, tableServices)
 }
 
-func catalogUpdateCheckIndexes(tx WriteTxn, idx uint64, _ *acl.EnterpriseMeta, peerName string) error {
+func catalogUpdateCheckIndexes(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {
 	// update the universal index entry
-	if err := indexUpdateMaxTxn(tx, idx, tableChecks); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-
-	if err := indexUpdateMaxTxn(tx, idx, peeredIndexEntryName(tableChecks, peerName)); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableChecks, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	return nil
 }
 
-func catalogChecksMaxIndex(tx ReadTxn, _ *acl.EnterpriseMeta, peerName string) uint64 {
-	return maxIndexTxn(tx, peeredIndexEntryName(tableChecks, peerName))
+func catalogChecksMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta) uint64 {
+	return maxIndexTxn(tx, tableChecks)
 }
 
 func catalogListChecksByNode(tx ReadTxn, q Query) (memdb.ResultIterator, error) {
@@ -225,18 +214,18 @@ func catalogInsertCheck(tx WriteTxn, chk *structs.HealthCheck, idx uint64) error
 		return fmt.Errorf("failed inserting check: %s", err)
 	}
 
-	if err := catalogUpdateCheckIndexes(tx, idx, &chk.EnterpriseMeta, chk.PeerName); err != nil {
+	if err := catalogUpdateCheckIndexes(tx, idx, &chk.EnterpriseMeta); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func validateRegisterRequestTxn(_ ReadTxn, _ *structs.RegisterRequest, _ bool) (*acl.EnterpriseMeta, error) {
+func validateRegisterRequestTxn(_ ReadTxn, _ *structs.RegisterRequest, _ bool) (*structs.EnterpriseMeta, error) {
 	return nil, nil
 }
 
-func (s *Store) ValidateRegisterRequest(_ *structs.RegisterRequest) (*acl.EnterpriseMeta, error) {
+func (s *Store) ValidateRegisterRequest(_ *structs.RegisterRequest) (*structs.EnterpriseMeta, error) {
 	return nil, nil
 }
 
@@ -257,11 +246,4 @@ func indexFromKindServiceName(arg interface{}) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("type must be KindServiceNameQuery or *KindServiceName: %T", arg)
 	}
-}
-
-func updateKindServiceNamesIndex(tx WriteTxn, idx uint64, kind structs.ServiceKind, entMeta acl.EnterpriseMeta) error {
-	if err := indexUpdateMaxTxn(tx, idx, kindServiceNameIndexName(kind.Normalized())); err != nil {
-		return fmt.Errorf("failed updating %s table index: %v", tableKindServiceNames, err)
-	}
-	return nil
 }
