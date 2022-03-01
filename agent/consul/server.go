@@ -367,21 +367,25 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 
+	rpcObserver := agentrpc.ServiceCallObserver{Logger: serverLogger}
+
 	// Create server.
 	s := &Server{
-		config:                  config,
-		tokens:                  flat.Tokens,
-		connPool:                flat.ConnPool,
-		grpcConnPool:            flat.GRPCConnPool,
-		eventChLAN:              make(chan serf.Event, serfEventChSize),
-		eventChWAN:              make(chan serf.Event, serfEventChSize),
-		logger:                  serverLogger,
-		loggers:                 loggers,
-		leaveCh:                 make(chan struct{}),
-		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  flat.Router,
-		rpcServer:               rpc.NewServer(), // TODO: set interceptor
-		insecureRPCServer:       rpc.NewServer(), // TODO: set interceptor
+		config:       config,
+		tokens:       flat.Tokens,
+		connPool:     flat.ConnPool,
+		grpcConnPool: flat.GRPCConnPool,
+		eventChLAN:   make(chan serf.Event, serfEventChSize),
+		eventChWAN:   make(chan serf.Event, serfEventChSize),
+		logger:       serverLogger,
+		loggers:      loggers,
+		leaveCh:      make(chan struct{}),
+		reconcileCh:  make(chan serf.Member, reconcileChSize),
+		router:       flat.Router,
+		rpcServer: rpc.NewServerWithOpts(
+			rpc.WithServerServiceCallInterceptor(newNetRPCInterceptor(rpcObserver))),
+		insecureRPCServer: rpc.NewServerWithOpts(
+			rpc.WithServerServiceCallInterceptor(newNetRPCInterceptor(rpcObserver))),
 		tlsConfigurator:         flat.TLSConfigurator,
 		reassertLeaderCh:        make(chan chan error),
 		sessionTimers:           NewSessionTimers(),
@@ -393,7 +397,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		fsm:                     newFSMFromConfig(flat.Logger, gc, config),
 	}
 
-	s.rpcObserver = agentrpc.ServiceCallObserver{Logger: serverLogger}
+	s.rpcObserver = rpcObserver
 
 	if s.config.ConnectMeshGatewayWANFederationEnabled {
 		s.gatewayLocator = NewGatewayLocator(

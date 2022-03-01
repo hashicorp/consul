@@ -8,12 +8,15 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
@@ -23,13 +26,12 @@ import (
 	"github.com/hashicorp/yamux"
 	"google.golang.org/grpc"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	agentrpc "github.com/hashicorp/consul/agent/rpc"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -1186,5 +1188,15 @@ func (s *Server) rpcQueryTimeout(queryTimeout time.Duration) time.Duration {
 func maskResultsFilteredByACLs(token string, meta blockingQueryResponseMeta) {
 	if token == "" {
 		meta.SetResultsFilteredByACLs(false)
+	}
+}
+
+const rpcTypeNetRPC = "netrpc"
+
+func newNetRPCInterceptor(obs agentrpc.ServiceCallObserver) rpc.ServerServiceCallInterceptor {
+	return func(reqServiceMethod string, argv, replyv reflect.Value, handler func()) {
+		start := time.Now()
+		handler()
+		obs.Observe(reqServiceMethod, rpcTypeNetRPC, start, argv.Interface(), replyv.Interface())
 	}
 }
