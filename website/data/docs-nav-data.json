@@ -868,7 +868,7 @@
         "routes": [
           {
             "title": "ACL System Overview",
-            "path": "security/acl/acl-system"
+            "path": "security/acl"
           },
           {
             "title": "Tokens",

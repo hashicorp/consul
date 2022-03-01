@@ -27,9 +27,9 @@ Implementations may vary depending on the needs of the organization, but the fol
 1. The person responsible for administrating ACLs in your organization specifies one or more authentication rules to define a [policy](#policies).
 1. The ACL administrator uses the Consul API to generate and link a [token](#tokens) to one or more policies. The following diagram illustrates the relationship between rules, policies, and tokens:
 
-![ACL system component relationships](/img/acl-token-policy-rule-relationship.png)
+  ![ACL system component relationships](/img/acl-token-policy-rule-relationship.png)
 
-The ACL administrator can create and link additional artifacts to tokens, such as [service identities](#service-identities), [node identities](#node-identities), and [roles](#roles) that enable policies to accommodate more complex requirements.
+  The ACL administrator can create and link additional artifacts to tokens, such as [service identities](#service-identities), [node identities](#node-identities), and [roles](#roles) that enable policies to accommodate more complex requirements.
 
 1. Tokens are distributed to end users and incorporated into their services.
 1. Agents and services present the token when making requests.
