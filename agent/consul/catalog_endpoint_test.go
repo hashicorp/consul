@@ -1,11 +1,15 @@
 package consul
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/go-uuid"
 
@@ -31,7 +35,17 @@ func TestCatalog_Register(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, s1 := testServerWithConfig(t)
+	_, config := testServerConfig(t)
+	deps := newDefaultDeps(t, config)
+
+	buf := new(bytes.Buffer)
+	deps.Logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   "srv1",
+		Level:  hclog.Debug,
+		Output: io.MultiWriter(buf, testutil.NewLogBuffer(t)),
+	})
+	s1, err := newServer(t, config, deps)
+	require.NoError(t, err)
 	codec := rpcClient(t, s1)
 
 	arg := structs.RegisterRequest{
@@ -50,9 +64,10 @@ func TestCatalog_Register(t *testing.T) {
 	}
 	var out struct{}
 
-	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
 	require.NoError(t, err)
 
+	// TODO: assert buf contains the log we expect
 }
 
 func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {

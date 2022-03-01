@@ -250,7 +250,7 @@ type Server struct {
 	grpcHandler connHandler
 	rpcServer   *rpc.Server
 
-	rpcObserver agentrpc.ServiceCallObserver // TODO: initialize this.
+	rpcObserver agentrpc.ServiceCallObserver
 
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
