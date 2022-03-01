@@ -55,24 +55,26 @@ type Conn struct {
 	clientLock sync.Mutex
 }
 
-// TimeoutConn wraps net.Conn with a default timeout.
-// readTimeout and writeTimeout apply to the subsequent operation.
+// TimeoutConn wraps net.Conn with a read timeout.
+// When set, Timeout only applies to the very next Read.
+// DefaultTimeout is used for any other Read.
 type TimeoutConn struct {
 	net.Conn
 	DefaultTimeout time.Duration
-	ReadTimeout    time.Duration
-	WriteTimeout   time.Duration
+	Timeout        time.Duration
 }
 
 func (c *TimeoutConn) Read(b []byte) (int, error) {
-	timeout := c.ReadTimeout
-	c.ReadTimeout = 0
+	timeout := c.Timeout
+	c.Timeout = 0
 	if timeout == 0 {
 		timeout = c.DefaultTimeout
 	}
-	deadline := time.Time{}
+	var deadline time.Time
 	if timeout > 0 {
 		deadline = time.Now().Add(timeout)
+	} else {
+		deadline = time.Time{}
 	}
 	if err := c.Conn.SetReadDeadline(deadline); err != nil {
 		return 0, err
@@ -81,18 +83,6 @@ func (c *TimeoutConn) Read(b []byte) (int, error) {
 }
 
 func (c *TimeoutConn) Write(b []byte) (int, error) {
-	timeout := c.WriteTimeout
-	c.WriteTimeout = 0
-	if timeout == 0 {
-		timeout = c.DefaultTimeout
-	}
-	deadline := time.Time{}
-	if timeout > 0 {
-		deadline = time.Now().Add(timeout)
-	}
-	if err := c.Conn.SetWriteDeadline(deadline); err != nil {
-		return 0, err
-	}
 	return c.Conn.Write(b)
 }
 
@@ -119,7 +109,7 @@ func (c *Conn) getClient() (*StreamClient, error) {
 		return nil, err
 	}
 
-	timeoutStream := &TimeoutConn{stream, c.pool.Timeout, 0, 0}
+	timeoutStream := &TimeoutConn{Conn: stream, DefaultTimeout: c.pool.Timeout}
 
 	// Create the RPC client
 	codec := msgpackrpc.NewCodecFromHandle(true, true, timeoutStream, structs.MsgpackHandle)
@@ -647,7 +637,7 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 	}
 
 	if timeout > 0 {
-		sc.stream.ReadTimeout = timeout
+		sc.stream.Timeout = timeout
 	}
 
 	// Make the RPC call
