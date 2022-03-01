@@ -49,7 +49,7 @@ Refer to the [command line documentation](/command/acl/role) for details.
 Make a `PUT` call to the `acl/role` endpoint and specify the role configuration in the payload to create roles. You can save the role definition in a JSON file or use escaped JSON in the call. In the following example call, the payload is defined externally.
 
 ```shell-session
-$ curl -X PUT --data @payload.json http://127.0.0.1:8500/v1/acl/role
+$ curl --request PUT --data @payload.json http://127.0.0.1:8500/v1/acl/role
 ```
 
 Refer to the [API documentation](/api-docs/acl/roles) for details.
@@ -77,7 +77,6 @@ You can specify a service identity when configuring roles or linking tokens to p
 Use the following syntax to define a service identity:
 
 <CodeTabs>
-<CodeBlockConfig>
 
 ```json
 {
@@ -90,8 +89,6 @@ Use the following syntax to define a service identity:
 }
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```hcl
 "ServiceIdentities" = {
@@ -100,7 +97,6 @@ Use the following syntax to define a service identity:
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 - `ServiceIdentities`: Declares a service identity block.
@@ -129,7 +125,6 @@ service_prefix "" {
 node_prefix "" {
     policy = "read"
 }
-
 ```
 
 Refer to the [rules reference](/docs/security/acl/acl-rules) for information about the rules in the policy.
@@ -142,20 +137,20 @@ The following role configuration contains service identities for the `web` and `
 <CodeBlockConfig filename="example-role.hcl">
 
 ```hcl
-"Description" = "Showcases all input parameters"
-"Name" = "example-role"
-"Policies" = {
-  "ID" = "783beef3-783f-f41f-7422-7087dc272765"
+Description = "Showcases all input parameters"
+Name = "example-role"
+Policies = {
+  ID = "783beef3-783f-f41f-7422-7087dc272765"
 }
-"Policies" = {
-  "Name" = "node-read"
+Policies = {
+  Name = "node-read"
 }
-"ServiceIdentities" = {
-  "ServiceName" = "web"
+ServiceIdentities = {
+  ServiceName = "web"
 }
-"ServiceIdentities" = {
-  "Datacenters" = ["dc1"]
-  "ServiceName" = "db"
+ServiceIdentities = {
+  Datacenters = ["dc1"]
+  ServiceName = "db"
 }
 ```
 
@@ -256,7 +251,6 @@ You can specify the token linked to the policy in the [`acl_tokens_agent`](/docs
 Use the following syntax to define a node identity:
 
 <CodeTabs>
-<CodeBlockConfig>
 
 ```json
 {
@@ -269,17 +263,14 @@ Use the following syntax to define a node identity:
 }
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```hcl
-"NodeIdentities" = {
-  "NodeName" = "<node name>"
-  "Datacenters" = ["<datacenter name>"]
+NodeIdentities = {
+  NodeName = "<node name>"
+  Datacenters = ["<datacenter name>"]
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 - `NodeIdentities`: Declares a node identity block.
@@ -316,17 +307,17 @@ The following role configuration contains a node identity for `node-1`. Note tha
 <CodeBlockConfig filename="example-role.hcl">
 
 ```hcl
-"Description" = "Showcases all input parameters"
-"Name" = "example-role"
-"NodeIdentities" = {
-  "Datacenter" = "dc2"
-  "NodeName" = "node-1",
+Description = "Showcases all input parameters"
+Name = "example-role"
+NodeIdentities = {
+  Datacenter = "dc2"
+  NodeName = "node-1",
 }
-"Policies" = {
-  "ID" = "783beef3-783f-f41f-7422-7087dc272765"
+Policies = {
+  ID = "783beef3-783f-f41f-7422-7087dc272765"
 }
-"Policies" = {
-  "Name" = "node-read"
+Policies = {
+  Name = "node-read"
 }
 ```
 
