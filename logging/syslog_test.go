@@ -29,15 +29,6 @@ func (f testSyslogWriteLevelFunc) Close() error {
 	return nil
 }
 
-func TestSyslog_Unix(t *testing.T) {
-	// the role of the underlying go-syslog library is primarily to wrap the
-	// default log/syslog package such that when running against an unsupported
-	// OS, a meaningful error is returned, so that's what we'll test here first
-	s, err := gsyslog.NewLogger(gsyslog.LOG_CRIT, "USER", "consul")
-	require.NoError(t, err)
-	require.NotNil(t, s)
-}
-
 func TestSyslog_Wrapper(t *testing.T) {
 	expectedMsg := []byte("test message")
 
