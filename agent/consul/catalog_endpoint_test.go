@@ -31,11 +31,8 @@ func TestCatalog_Register(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	_, s1 := testServerWithConfig(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -54,9 +51,8 @@ func TestCatalog_Register(t *testing.T) {
 	var out struct{}
 
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, err)
+
 }
 
 func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {

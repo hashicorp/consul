@@ -226,8 +226,9 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		config.ACLResolverSettings.Datacenter = config.Datacenter
 		config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
 
+		deps := newDefaultDeps(t, config)
 		var err error
-		srv, err = newServer(t, config)
+		srv, err = newServer(t, config, deps)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -252,7 +253,7 @@ func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToke
 	return dir, srv, codec
 }
 
-func newServer(t *testing.T, c *Config) (*Server, error) {
+func newServer(t *testing.T, c *Config, deps Deps) (*Server, error) {
 	// chain server up notification
 	oldNotify := c.NotifyListen
 	up := make(chan struct{})
@@ -263,7 +264,7 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 		}
 	}
 
-	srv, err := NewServer(c, newDefaultDeps(t, c))
+	srv, err := NewServer(c, deps)
 	if err != nil {
 		return nil, err
 	}
@@ -1135,27 +1136,20 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
-	configureTLS(conf1)
-	s1, err := newServer(t, conf1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer s1.Shutdown()
+
+	_, s1 := testServerWithConfig(t, func(conf1 *Config) {
+		conf1.TLSConfig.VerifyIncoming = true
+		conf1.TLSConfig.VerifyOutgoing = true
+		configureTLS(conf1)
+	})
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-	_, conf2 := testServerConfig(t)
-	conf2.Bootstrap = false
-	conf2.TLSConfig.VerifyIncoming = true
-	conf2.TLSConfig.VerifyOutgoing = true
-	configureTLS(conf2)
-	s2, err := newServer(t, conf2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer s2.Shutdown()
+	_, s2 := testServerWithConfig(t, func(conf2 *Config) {
+		conf2.Bootstrap = false
+		conf2.TLSConfig.VerifyIncoming = true
+		conf2.TLSConfig.VerifyOutgoing = true
+		configureTLS(conf2)
+	})
 
 	// Try to join
 	joinLAN(t, s2, s1)
@@ -1671,14 +1665,11 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, conf1 := testServerConfig(t)
-	conf1.RPCRateLimit = 2
-	conf1.RPCMaxBurst = 2
-	s1, err := newServer(t, conf1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer s1.Shutdown()
+
+	_, s1 := testServerWithConfig(t, func(conf1 *Config) {
+		conf1.RPCRateLimit = 2
+		conf1.RPCMaxBurst = 2
+	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {

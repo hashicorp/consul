@@ -446,15 +446,12 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 
 func TestClient_RPC_TLS(t *testing.T) {
 	t.Parallel()
-	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
-	configureTLS(conf1)
-	s1, err := newServer(t, conf1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer s1.Shutdown()
+
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.TLSConfig.VerifyIncoming = true
+		config.TLSConfig.VerifyOutgoing = true
+		configureTLS(config)
+	})
 
 	_, conf2 := testClientConfig(t)
 	conf2.TLSConfig.VerifyOutgoing = true
@@ -552,12 +549,7 @@ func TestClient_RPC_RateLimit(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, conf1 := testServerConfig(t)
-	s1, err := newServer(t, conf1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer s1.Shutdown()
+	_, s1 := testServerWithConfig(t)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	_, conf2 := testClientConfig(t)
@@ -659,15 +651,12 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
-	configureTLS(conf1)
-	s1, err := newServer(t, conf1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer s1.Shutdown()
+
+	_, s1 := testServerWithConfig(t, func(conf1 *Config) {
+		conf1.TLSConfig.VerifyIncoming = true
+		conf1.TLSConfig.VerifyOutgoing = true
+		configureTLS(conf1)
+	})
 
 	_, conf2 := testClientConfig(t)
 	conf2.TLSConfig.VerifyOutgoing = true

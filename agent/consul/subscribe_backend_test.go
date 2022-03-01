@@ -28,13 +28,12 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 
 	// TODO(rb): add tests for the wanfed/alpn variations
 
-	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
-	conf1.RPCConfig.EnableStreaming = true
-	configureTLS(conf1)
-	server, err := newServer(t, conf1)
-	require.NoError(t, err)
+	_, server := testServerWithConfig(t, func(conf1 *Config) {
+		conf1.TLSConfig.VerifyIncoming = true
+		conf1.TLSConfig.VerifyOutgoing = true
+		conf1.RPCConfig.EnableStreaming = true
+		configureTLS(conf1)
+	})
 	defer server.Shutdown()
 
 	client, builder := newClientWithGRPCResolver(t, configureTLS, clientConfigVerifyOutgoing)
@@ -160,17 +159,14 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	t.Parallel()
 
 	// Set up a server with initially bad certificates.
-	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
-	conf1.TLSConfig.CAFile = "../../test/ca/root.cer"
-	conf1.TLSConfig.CertFile = "../../test/key/ssl-cert-snakeoil.pem"
-	conf1.TLSConfig.KeyFile = "../../test/key/ssl-cert-snakeoil.key"
-	conf1.RPCConfig.EnableStreaming = true
-
-	server, err := newServer(t, conf1)
-	require.NoError(t, err)
-	defer server.Shutdown()
+	_, server := testServerWithConfig(t, func(conf1 *Config) {
+		conf1.TLSConfig.VerifyIncoming = true
+		conf1.TLSConfig.VerifyOutgoing = true
+		conf1.TLSConfig.CAFile = "../../test/ca/root.cer"
+		conf1.TLSConfig.CertFile = "../../test/key/ssl-cert-snakeoil.pem"
+		conf1.TLSConfig.KeyFile = "../../test/key/ssl-cert-snakeoil.key"
+		conf1.RPCConfig.EnableStreaming = true
+	})
 
 	// Set up a client with valid certs and verify_outgoing = true
 	client, builder := newClientWithGRPCResolver(t, configureTLS, clientConfigVerifyOutgoing)
