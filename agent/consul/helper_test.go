@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/rpc"
 	"testing"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"

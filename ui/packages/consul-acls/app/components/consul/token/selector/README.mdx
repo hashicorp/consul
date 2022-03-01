@@ -1,0 +1,49 @@
+# Consul::Token::Selector
+
+A self-contained component to allow the user to 'select' their token a.k.a.
+log in. The component is mostly a wrapper around a composition of `<AuthDialog
+/>`, `<AuthForm />`, `<AuthProfile />` and `<ModalDialog />`. The majority of
+the functionality is contained in those other components. This composition
+mostly orchestrates the interactions between them i.e. wires them together.
+
+As it uses `<AuthDialog />` (a componentized state machine), retrieving and saving
+the token is all managed via that component (via `<DataSource />` and
+`<DataSink />`, but this component provides the Consul specific DataSource
+uri's to tell `AuthDialog` to save user tokens to a Consul namespaced user
+settings area (Consul uses localStorage for saving user settings)
+
+Please note: 
+
+- Currently at least, you must add this inside of a `<ul>` element.
+- For the moment, make sure you have enabled ACLs using developer debug
+  cookies.
+
+```hbs preview-template
+<ul>
+  <Consul::Token::Selector
+    @dc={{hash
+      Name='dc-1'
+    }}
+    @nspace='default'
+    @partition='default'
+    @onchange={{noop}}
+  />
+</ul>
+```
+
+
+## Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dc` | `object` |  | The current datacenter |
+| `nspace` | `string` |  | The name of the current namespace |
+| `partition` | `string` |  | The name of the current partition |
+| `onchange` | `function` |  | An event handler, for when the user token change, either via logging in, logging out or re-logging in.
+
+## See
+
+- [Template Source Code](./index.hbs)
+- [Component Source Code](./index.js)
+
+---

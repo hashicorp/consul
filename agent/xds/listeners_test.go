@@ -72,6 +72,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 				snap.Proxy.Upstreams[0].LocalBindPort = 0
 				snap.Proxy.Upstreams[0].LocalBindSocketPath = "/tmp/service-mesh/client-1/grpc-employee-server"
 				snap.Proxy.Upstreams[0].LocalBindSocketMode = "0640"
+
+				snap.ConnectProxy.UpstreamConfig = proxycfg.UpstreamsToMap(snap.Proxy.Upstreams)
 			},
 		},
 		{
@@ -95,6 +97,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["protocol"] = "http"
+
+				snap.ConnectProxy.UpstreamConfig = proxycfg.UpstreamsToMap(snap.Proxy.Upstreams)
 			},
 		},
 		{
@@ -159,14 +163,21 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				for i := range snap.Proxy.Upstreams {
+					if snap.Proxy.Upstreams[i].DestinationName != "db" {
+						continue // only tweak the db upstream
+					}
 					if snap.Proxy.Upstreams[i].Config == nil {
 						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
 					}
+
+					uid := proxycfg.NewUpstreamID(&snap.Proxy.Upstreams[i])
+
 					snap.Proxy.Upstreams[i].Config["envoy_listener_json"] =
 						customListenerJSON(t, customListenerJSONOptions{
-							Name: snap.Proxy.Upstreams[i].Identifier() + ":custom-upstream",
+							Name: uid.EnvoyID() + ":custom-upstream",
 						})
 				}
+				snap.ConnectProxy.UpstreamConfig = proxycfg.UpstreamsToMap(snap.Proxy.Upstreams)
 			},
 		},
 		{
@@ -174,14 +185,22 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				for i := range snap.Proxy.Upstreams {
+					if snap.Proxy.Upstreams[i].DestinationName != "db" {
+						continue // only tweak the db upstream
+					}
 					if snap.Proxy.Upstreams[i].Config == nil {
 						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
 					}
+
+					uid := proxycfg.NewUpstreamID(&snap.Proxy.Upstreams[i])
+
 					snap.Proxy.Upstreams[i].Config["envoy_listener_json"] =
 						customListenerJSON(t, customListenerJSONOptions{
-							Name: snap.Proxy.Upstreams[i].Identifier() + ":custom-upstream",
+							Name: uid.EnvoyID() + ":custom-upstream",
 						})
 				}
+
+				snap.ConnectProxy.UpstreamConfig = proxycfg.UpstreamsToMap(snap.Proxy.Upstreams)
 			},
 		},
 		{
@@ -520,6 +539,30 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "ingress-with-tls-listener-min-version",
+			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.TLSConfig.TLSMinVersion = types.TLSv1_3
+			},
+		},
+		{
+			name:   "ingress-with-tls-listener-max-version",
+			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.TLSConfig.TLSMaxVersion = types.TLSv1_2
+			},
+		},
+		{
+			name:   "ingress-with-tls-listener-cipher-suites",
+			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.TLSConfig.CipherSuites = []types.TLSCipherSuite{
+					types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+					types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+				}
+			},
+		},
+		{
 			name: "ingress-with-tls-mixed-listeners",
 			// Use SDS helper even though we aren't testing SDS since it already sets
 			// up most things we need.
@@ -568,6 +611,215 @@ func TestListenersFromSnapshot(t *testing.T) {
 						},
 						// No TLS enabled
 						TLS: nil,
+					},
+				}
+			},
+		},
+		{
+			name:   "ingress-with-tls-min-version-listeners-gateway-defaults",
+			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.TLSConfig.TLSMinVersion = types.TLSv1_2
+
+				// One listener disables TLS, one inherits TLS minimum version from the gateway
+				// config, two others set different versions
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "http", Port: 8080}: {
+						{
+							DestinationName: "s1",
+							LocalBindPort:   8080,
+						},
+					},
+					{Protocol: "http", Port: 8081}: {
+						{
+							DestinationName: "s2",
+							LocalBindPort:   8081,
+						},
+					},
+					{Protocol: "http", Port: 8082}: {
+						{
+							DestinationName: "s3",
+							LocalBindPort:   8082,
+						},
+					},
+					{Protocol: "http", Port: 8083}: {
+						{
+							DestinationName: "s4",
+							LocalBindPort:   8083,
+						},
+					},
+					{Protocol: "http", Port: 8084}: {
+						{
+							DestinationName: "s4",
+							LocalBindPort:   8084,
+						},
+					},
+				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					// Omits listener TLS config, should default to gateway TLS config
+					{Protocol: "http", Port: 8080}: {
+						Port: 8080,
+						Services: []structs.IngressService{
+							{
+								Name: "s1",
+							},
+						},
+					},
+					// Explicitly sets listener TLS config to nil, should default to gateway TLS config
+					{Protocol: "http", Port: 8081}: {
+						Port: 8081,
+						Services: []structs.IngressService{
+							{
+								Name: "s2",
+							},
+						},
+						TLS: nil,
+					},
+					// Explicitly enables TLS config, but with no listener default TLS params,
+					// should default to gateway TLS config
+					{Protocol: "http", Port: 8082}: {
+						Port: 8082,
+						Services: []structs.IngressService{
+							{
+								Name: "s3",
+							},
+						},
+						TLS: &structs.GatewayTLSConfig{
+							Enabled: true,
+						},
+					},
+					// Explicitly unset gateway default TLS min version in favor of proxy default
+					{Protocol: "http", Port: 8083}: {
+						Port: 8083,
+						Services: []structs.IngressService{
+							{
+								Name: "s3",
+							},
+						},
+						TLS: &structs.GatewayTLSConfig{
+							Enabled:       true,
+							TLSMinVersion: types.TLSVersionAuto,
+						},
+					},
+					// Disables listener TLS
+					{Protocol: "http", Port: 8084}: {
+						Port: 8084,
+						Services: []structs.IngressService{
+							{
+								Name: "s4",
+							},
+						},
+						TLS: &structs.GatewayTLSConfig{
+							Enabled: false,
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "ingress-with-single-tls-listener",
+			create: proxycfg.TestConfigSnapshotIngress,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				// One listener should inherit non-TLS gateway config, another
+				// listener configures TLS with an explicit minimum version
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "http", Port: 8080}: {
+						{
+							DestinationName: "s1",
+							LocalBindPort:   8080,
+						},
+					},
+					{Protocol: "http", Port: 8081}: {
+						{
+							DestinationName: "s2",
+							LocalBindPort:   8081,
+						},
+					},
+				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "http", Port: 8080}: {
+						Port: 8080,
+						Services: []structs.IngressService{
+							{
+								Name: "s1",
+							},
+						},
+					},
+					{Protocol: "http", Port: 8081}: {
+						Port: 8081,
+						Services: []structs.IngressService{
+							{
+								Name: "s2",
+							},
+						},
+						TLS: &structs.GatewayTLSConfig{
+							Enabled:       true,
+							TLSMinVersion: types.TLSv1_2,
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "ingress-with-tls-mixed-min-version-listeners",
+			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.TLSConfig.TLSMinVersion = types.TLSv1_2
+
+				// One listener should inherit TLS minimum version from the gateway config,
+				// two others each set explicit TLS minimum versions
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "http", Port: 8080}: {
+						{
+							DestinationName: "s1",
+							LocalBindPort:   8080,
+						},
+					},
+					{Protocol: "http", Port: 8081}: {
+						{
+							DestinationName: "s2",
+							LocalBindPort:   8081,
+						},
+					},
+					{Protocol: "http", Port: 8082}: {
+						{
+							DestinationName: "s3",
+							LocalBindPort:   8082,
+						},
+					},
+				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "http", Port: 8080}: {
+						Port: 8080,
+						Services: []structs.IngressService{
+							{
+								Name: "s1",
+							},
+						},
+					},
+					{Protocol: "http", Port: 8081}: {
+						Port: 8081,
+						Services: []structs.IngressService{
+							{
+								Name: "s2",
+							},
+						},
+						TLS: &structs.GatewayTLSConfig{
+							Enabled:       true,
+							TLSMinVersion: types.TLSv1_0,
+						},
+					},
+					{Protocol: "http", Port: 8082}: {
+						Port: 8082,
+						Services: []structs.IngressService{
+							{
+								Name: "s3",
+							},
+						},
+						TLS: &structs.GatewayTLSConfig{
+							Enabled:       true,
+							TLSMinVersion: types.TLSv1_3,
+						},
 					},
 				}
 			},
@@ -668,7 +920,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					connect.TestClusterID+".consul",
 					nil,
 				)
-				snap.IngressGateway.DiscoveryChain["secure"] = secureChain
+				snap.IngressGateway.DiscoveryChain[UID("secure")] = secureChain
 
 				insecureChain := discoverychain.TestCompileConfigEntries(
 					t,
@@ -679,7 +931,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					connect.TestClusterID+".consul",
 					nil,
 				)
-				snap.IngressGateway.DiscoveryChain["insecure"] = insecureChain
+				snap.IngressGateway.DiscoveryChain[UID("insecure")] = insecureChain
 
 				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
 					{Protocol: "tcp", Port: 8080}: {
@@ -851,12 +1103,13 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
 				google := structs.NewServiceName("google", nil)
-				snap.ConnectProxy.IntentionUpstreams = map[string]struct{}{
-					google.String(): {},
+				googleUID := proxycfg.NewUpstreamIDFromServiceName(google)
+				snap.ConnectProxy.IntentionUpstreams = map[proxycfg.UpstreamID]struct{}{
+					googleUID: {},
 				}
-				snap.ConnectProxy.DiscoveryChain[google.String()] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[googleUID] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
-				snap.ConnectProxy.WatchedUpstreamEndpoints[google.String()] = map[string]structs.CheckServiceNodes{
+				snap.ConnectProxy.WatchedUpstreamEndpoints[googleUID] = map[string]structs.CheckServiceNodes{
 					"google.default.default.dc1": {
 						structs.CheckServiceNode{
 							Node: &structs.Node{
@@ -893,7 +1146,71 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
-				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[UID("no-endpoints")] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+			},
+		},
+		{
+			name:   "transparent-proxy-http-upstream",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Mode = structs.ProxyModeTransparent
+
+				snap.ConnectProxy.MeshConfigSet = true
+
+				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
+				google := structs.NewServiceName("google", nil)
+				googleUID := proxycfg.NewUpstreamIDFromServiceName(google)
+				snap.ConnectProxy.IntentionUpstreams = map[proxycfg.UpstreamID]struct{}{
+					googleUID: {},
+				}
+				snap.ConnectProxy.DiscoveryChain[googleUID] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil,
+					// Set default service protocol to HTTP
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"protocol": "http",
+						},
+					})
+
+				snap.ConnectProxy.WatchedUpstreamEndpoints[googleUID] = map[string]structs.CheckServiceNodes{
+					"google.default.default.dc1": {
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								Address:    "8.8.8.8",
+								Datacenter: "dc1",
+							},
+							Service: &structs.NodeService{
+								Service: "google",
+								Address: "9.9.9.9",
+								Port:    9090,
+								TaggedAddresses: map[string]structs.ServiceAddress{
+									"virtual":                      {Address: "10.0.0.1"},
+									structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+								},
+							},
+						},
+					},
+					// Other targets of the discovery chain should be ignored.
+					// We only match on the upstream's virtual IP, not the IPs of other targets.
+					"google-v2.default.default.dc1": {
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								Address:    "7.7.7.7",
+								Datacenter: "dc1",
+							},
+							Service: &structs.NodeService{
+								Service: "google-v2",
+								TaggedAddresses: map[string]structs.ServiceAddress{
+									"virtual": {Address: "10.10.10.10"},
+								},
+							},
+						},
+					},
+				}
+
+				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
+				snap.ConnectProxy.DiscoveryChain[UID("no-endpoints")] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 			},
 		},
 		{
@@ -911,11 +1228,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
 				google := structs.NewServiceName("google", nil)
-				snap.ConnectProxy.IntentionUpstreams = map[string]struct{}{
-					google.String(): {},
+				googleUID := proxycfg.NewUpstreamIDFromServiceName(google)
+				snap.ConnectProxy.IntentionUpstreams = map[proxycfg.UpstreamID]struct{}{
+					googleUID: {},
 				}
-				snap.ConnectProxy.DiscoveryChain[google.String()] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
-				snap.ConnectProxy.WatchedUpstreamEndpoints[google.String()] = map[string]structs.CheckServiceNodes{
+				snap.ConnectProxy.DiscoveryChain[googleUID] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.WatchedUpstreamEndpoints[googleUID] = map[string]structs.CheckServiceNodes{
 					"google.default.default.dc1": {
 						structs.CheckServiceNode{
 							Node: &structs.Node{
@@ -935,7 +1253,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
-				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[UID("no-endpoints")] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 			},
 		},
 		{
@@ -945,26 +1263,26 @@ func TestListenersFromSnapshot(t *testing.T) {
 				snap.Proxy.Mode = structs.ProxyModeTransparent
 				kafka := structs.NewServiceName("kafka", nil)
 				mongo := structs.NewServiceName("mongo", nil)
+				kafkaUID := proxycfg.NewUpstreamIDFromServiceName(kafka)
+				mongoUID := proxycfg.NewUpstreamIDFromServiceName(mongo)
 
-				snap.ConnectProxy.IntentionUpstreams = map[string]struct{}{
-					kafka.String(): {},
-					mongo.String(): {},
+				snap.ConnectProxy.IntentionUpstreams = map[proxycfg.UpstreamID]struct{}{
+					kafkaUID: {},
+					mongoUID: {},
 				}
-				snap.ConnectProxy.DiscoveryChain[mongo.String()] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
-				snap.ConnectProxy.DiscoveryChain[kafka.String()] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[mongoUID] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[kafkaUID] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 				// We add a filter chains for each passthrough service name.
 				// The filter chain will route to a cluster with the same SNI name.
-				snap.ConnectProxy.PassthroughUpstreams = map[string]proxycfg.ServicePassthroughAddrs{
-					kafka.String(): {
-						SNI: "kafka.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
-						Addrs: map[string]struct{}{
+				snap.ConnectProxy.PassthroughUpstreams = map[proxycfg.UpstreamID]map[string]map[string]struct{}{
+					kafkaUID: {
+						"kafka.default.default.dc1": map[string]struct{}{
 							"9.9.9.9": {},
 						},
 					},
-					mongo.String(): {
-						SNI: "mongo.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
-						Addrs: map[string]struct{}{
+					mongoUID: {
+						"mongo.default.default.dc1": map[string]struct{}{
 							"10.10.10.10": {},
 							"10.10.10.12": {},
 						},
@@ -972,7 +1290,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// There should still be a filter chain for mongo's virtual address
-				snap.ConnectProxy.WatchedUpstreamEndpoints[mongo.String()] = map[string]structs.CheckServiceNodes{
+				snap.ConnectProxy.WatchedUpstreamEndpoints[mongoUID] = map[string]structs.CheckServiceNodes{
 					"mongo.default.default.dc1": {
 						structs.CheckServiceNode{
 							Node: &structs.Node{
@@ -988,6 +1306,56 @@ func TestListenersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
+				}
+			},
+		},
+		{
+			name:   "transparent-proxy-terminating-gateway",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Mode = structs.ProxyModeTransparent
+
+				snap.ConnectProxy.MeshConfigSet = true
+				snap.ConnectProxy.MeshConfig = &structs.MeshConfigEntry{
+					TransparentProxy: structs.TransparentProxyMeshConfig{
+						MeshDestinationsOnly: true,
+					},
+				}
+
+				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
+				google := structs.NewServiceName("google", nil)
+				kafka := structs.NewServiceName("kafka", nil)
+				googleUID := proxycfg.NewUpstreamIDFromServiceName(google)
+				kafkaUID := proxycfg.NewUpstreamIDFromServiceName(kafka)
+				snap.ConnectProxy.IntentionUpstreams = map[proxycfg.UpstreamID]struct{}{
+					googleUID: {},
+					kafkaUID:  {},
+				}
+				snap.ConnectProxy.DiscoveryChain[googleUID] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+				snap.ConnectProxy.DiscoveryChain[kafkaUID] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+
+				tgate := structs.CheckServiceNode{
+					Node: &structs.Node{
+						Address:    "8.8.8.8",
+						Datacenter: "dc1",
+					},
+					Service: &structs.NodeService{
+						Service: "tgate1",
+						Kind:    structs.ServiceKind(structs.TerminatingGateway),
+						Address: "9.9.9.9",
+						Port:    9090,
+						TaggedAddresses: map[string]structs.ServiceAddress{
+							structs.ServiceGatewayVirtualIPTag(google): {Address: "10.0.0.1"},
+							structs.ServiceGatewayVirtualIPTag(kafka):  {Address: "10.0.0.2"},
+							"virtual": {Address: "6.6.6.6"},
+						},
+					},
+				}
+				snap.ConnectProxy.WatchedUpstreamEndpoints[googleUID] = map[string]structs.CheckServiceNodes{
+					"google.default.default.dc1": {tgate},
+				}
+				snap.ConnectProxy.WatchedUpstreamEndpoints[kafkaUID] = map[string]structs.CheckServiceNodes{
+					"kafka.default.default.dc1": {tgate},
 				}
 			},
 		},
@@ -1208,7 +1576,7 @@ func TestResolveListenerSDSConfig(t *testing.T) {
 			listenerCfg = lisCfg
 		}
 
-		got, err := resolveListenerSDSConfig(snap, listenerCfg)
+		got, err := resolveListenerSDSConfig(snap.IngressGateway.TLSConfig.SDS, listenerCfg.TLS, listenerCfg.Port)
 		if tc.wantErr != "" {
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tc.wantErr)

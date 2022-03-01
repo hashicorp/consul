@@ -1,0 +1,6 @@
+.disclosure-menu {
+  position: relative;
+}
+.disclosure-menu [aria-expanded] ~ * {
+  @extend %menu-panel;
+}

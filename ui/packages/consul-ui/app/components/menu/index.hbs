@@ -1,0 +1,16 @@
+<ul
+  role="menu"
+  aria-labelledby={{@disclosure.button}}
+  id={{@disclosure.panel}}
+  ...attributes
+  {{aria-menu
+    onclose=(or @onclose @disclosure.close)
+    openEvent=(or @event @disclosure.event)
+  }}
+>
+  {{yield (hash
+    Action=(component 'menu/action' disclosure=@disclosure)
+    Item=(component 'menu/item')
+    Separator=(component 'menu/separator')
+  )}}
+</ul>

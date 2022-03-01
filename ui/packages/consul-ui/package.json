@@ -63,7 +63,7 @@
     "@glimmer/component": "^1.0.0",
     "@glimmer/tracking": "^1.0.0",
     "@hashicorp/ember-cli-api-double": "^3.1.0",
-    "@mapbox/rehype-prism": "^0.6.0",
+    "@lit/reactive-element": "^1.2.1",
     "@xstate/fsm": "^1.4.0",
     "a11y-dialog": "^6.0.1",
     "babel-eslint": "^10.0.3",
@@ -79,8 +79,8 @@
     "chalk": "^4.1.0",
     "clipboard": "^2.0.4",
     "consul-acls": "*",
-    "consul-partitions": "*",
     "consul-nspaces": "*",
+    "consul-partitions": "*",
     "css.escape": "^1.5.1",
     "d3-array": "^2.8.0",
     "d3-scale": "^3.2.3",
@@ -148,6 +148,7 @@
     "eslint-plugin-node": "^11.0.0",
     "faker": "^5.5.3",
     "flat": "^5.0.0",
+    "hast-util-to-string": "^1.0.4",
     "husky": "^4.2.5",
     "ivy-codemirror": "^2.1.0",
     "js-yaml": "^4.0.0",
@@ -162,7 +163,7 @@
     "pretty-ms": "^7.0.1",
     "qunit-dom": "^1.0.0",
     "react-is": "^17.0.1",
-    "refractor": "^3.3.1",
+    "refractor": "^3.5.0",
     "remark-autolink-headings": "^6.0.1",
     "remark-hbs": "^0.4.0",
     "sass": "^1.28.0",
@@ -170,12 +171,8 @@
     "text-encoding": "^0.7.0",
     "tippy.js": "^6.2.7",
     "torii": "^0.10.1",
+    "unist-util-visit": "^2.0.3",
     "wayfarer": "^7.0.1"
-  },
-  "resolutions": {
-    "ember-basic-dropdown": "^3.0.10",
-    "ember-changeset": "3.10.1",
-    "validated-changeset": "0.10.0"
   },
   "engines": {
     "node": ">=10 <=14"

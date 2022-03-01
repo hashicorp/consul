@@ -1,0 +1,11 @@
+<@disclosure.Details as |details|>
+<div
+  {{on-outside 'click' @disclosure.close}}
+  ...attributes
+>
+  {{yield (hash
+    Menu=(component 'menu' disclosure=@disclosure)
+  )}}
+</div>
+</@disclosure.Details>
+

@@ -1,0 +1,95 @@
+# DisclosureMenu
+
+A component to be used for making dropup/down/left/right menus i.e. Disclosure
+Menus. Please see both Disclosure and Menu components for more details.
+
+The component does not make any guesses around whether you want the panel to
+be on another DOM layer/absolutely positioned so you should apply that layout
+yourself, but it's root node is relatively positioned to help for the fairly
+common usecase of having a floating menu.
+
+```hbs preview-template
+<figure>
+  <figcaption>
+    Non-floating Menu
+  </figcaption>
+  <DisclosureMenu as |disclosure|>
+    <disclosure.Action
+      {{on 'click' disclosure.toggle}}
+    >
+      {{if disclosure.expanded 'Close' 'Open'}}
+    </disclosure.Action>
+    <disclosure.Menu as |panel|>
+      <panel.Menu as |menu|>
+        <menu.Item>
+          <menu.Action>Item 1</menu.Action>
+        </menu.Item>
+        <menu.Item>
+          <menu.Action>Item 2</menu.Action>
+        </menu.Item>
+      </panel.Menu>
+    </disclosure.Menu>
+  </DisclosureMenu>
+</figure>
+<figure>
+  <figcaption>
+    Floating Menu
+  </figcaption>
+  <DisclosureMenu as |disclosure|>
+    <disclosure.Action
+      {{on 'click' disclosure.toggle}}
+      {{css-prop 'height' returns=(set this 'height')}}
+    >
+      {{if disclosure.expanded 'Close' 'Open'}}
+    </disclosure.Action>
+    <disclosure.Menu
+      style={{style-map
+        (array 'position' 'absolute')
+        (array 'top' this.height)
+        (array 'background-color' 'rgb(var(--tone-gray-000))')
+      }}
+    as |panel|>
+      <panel.Menu as |menu|>
+        <menu.Item>
+          <menu.Action>Item 1</menu.Action>
+        </menu.Item>
+        <menu.Item>
+          <menu.Action>Item 2</menu.Action>
+        </menu.Item>
+      </panel.Menu>
+    </disclosure.Menu>
+  </DisclosureMenu>
+</figure>
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `expanded` | `Boolean` | false | The _initial_ state of the disclosure. Please note: this is the _initial_ state only, please use the `disclosure.open` and `disclosure.close` for controling the state. |
+
+## Exported API
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `Action` | `GlimmerComponent` | A contextual '<Action />' component with aria attributes correctly applied, please note you still need to add an 'on' modifier here so you can control whether it opens on click/hover etc |
+| `Menu` | `MenuComponent` | A contextual '<Menu />' component already wrapped in a disclosure.Details component |
+| `toggle` | `Function` | Toggle the open/close state of the disclosure |
+| `expanded` | `Boolean` | Whether the disclosure is 'expanded' or not |
+| `disclosure` | `DisclosureComponentAPI` | A reference to the full DisclosureComponentAPI |
+
+
+### menu.Action
+
+An `<Action />` component with the correct aria attributes added.
+
+### menu.Menu
+
+A `<Menu />` component with the correct aria attributes added.
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---
+

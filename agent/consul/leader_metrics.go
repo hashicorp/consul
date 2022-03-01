@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/logging"
 )
 
@@ -55,27 +54,14 @@ func getRootCAExpiry(s *Server) (time.Duration, error) {
 }
 
 func signingCAExpiryMonitor(s *Server) CertExpirationMonitor {
-	isPrimary := s.config.Datacenter == s.config.PrimaryDatacenter
-	if isPrimary {
-		return CertExpirationMonitor{
-			Key:    metricsKeyMeshActiveSigningCAExpiry,
-			Logger: s.logger.Named(logging.Connect),
-			Query: func() (time.Duration, error) {
-				provider, _ := s.caManager.getCAProvider()
-
-				if _, ok := provider.(ca.PrimaryUsesIntermediate); ok {
-					return getActiveIntermediateExpiry(s)
-				}
-				return getRootCAExpiry(s)
-			},
-		}
-	}
-
 	return CertExpirationMonitor{
 		Key:    metricsKeyMeshActiveSigningCAExpiry,
 		Logger: s.logger.Named(logging.Connect),
 		Query: func() (time.Duration, error) {
-			return getActiveIntermediateExpiry(s)
+			if s.caManager.isIntermediateUsedToSignLeaf() {
+				return getActiveIntermediateExpiry(s)
+			}
+			return getRootCAExpiry(s)
 		},
 	}
 }

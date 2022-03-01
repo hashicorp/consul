@@ -19,7 +19,7 @@ To explicitly perform server certificate rotation, follow these steps:
 1. Perform a `helm upgrade`:
 
    ```shell-session
-   helm upgrade consul hashicorp/consul -f /path/to/my/values.yaml
+   $ helm upgrade consul hashicorp/consul --values /path/to/my/values.yaml
    ```
 
    This should run the `tls-init` job that will generate new Server certificates.

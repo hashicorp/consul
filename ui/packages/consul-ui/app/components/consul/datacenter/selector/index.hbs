@@ -1,0 +1,49 @@
+<li
+  class="dcs"
+  data-test-datacenter-menu
+>
+  <DisclosureMenu
+    aria-label="Datacenter"
+  as |disclosure|>
+    <disclosure.Action
+      {{on 'click' disclosure.toggle}}
+    >
+      {{@dc.Name}}
+    </disclosure.Action>
+    <disclosure.Menu as |panel|>
+      <DataSource
+        @src={{uri '/*/*/*/datacenters'}}
+        @onchange={{action (mut @dcs) value="data"}}
+      />
+        <panel.Menu as |menu|>
+          {{#each (sort-by 'Name' @dcs) as |item|}}
+            <menu.Item
+              aria-current={{if (eq @dc.Name item.Name) 'true'}}
+              class={{class-map
+                (array 'is-local' item.Local)
+                (array 'is-primary' item.Primary)
+              }}
+            >
+              <menu.Action
+                {{on 'click' disclosure.close}}
+                @href={{href-to '.' params=(hash
+                  dc=item.Name
+                  partition=undefined
+                  nspace=(if (gt @nspace.length 0) @nspace undefined)
+                )}}
+              >
+                {{item.Name}}
+              {{#if item.Primary}}
+                <span>Primary</span>
+              {{/if}}
+              {{#if item.Local}}
+                <span>Local</span>
+              {{/if}}
+              </menu.Action>
+            </menu.Item>
+          {{/each}}
+        </panel.Menu>
+    </disclosure.Menu>
+  </DisclosureMenu>
+</li>
+

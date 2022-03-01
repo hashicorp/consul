@@ -322,6 +322,9 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 
 			reply.Index, reply.Token = index, token
 			reply.SourceDatacenter = args.Datacenter
+			if token == nil {
+				return errNotFound
+			}
 			return nil
 		})
 }
@@ -724,7 +727,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
-	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
+	a.srv.ACLResolver.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 
 	// Don't check expiration times here as it doesn't really matter.
 	if _, updatedToken, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, token.AccessorID, nil); err == nil && updatedToken != nil {
@@ -876,7 +879,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
-	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
+	a.srv.ACLResolver.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 
 	if reply != nil {
 		*reply = token.AccessorID
@@ -1045,6 +1048,9 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyGetRequest, reply *structs.ACLPo
 			}
 
 			reply.Index, reply.Policy = index, policy
+			if policy == nil {
+				return errNotFound
+			}
 			return nil
 		})
 }
@@ -1198,7 +1204,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	}
 
 	// Remove from the cache to prevent stale cache usage
-	a.srv.acls.cache.RemovePolicy(policy.ID)
+	a.srv.ACLResolver.cache.RemovePolicy(policy.ID)
 
 	if _, policy, err := a.srv.fsm.State().ACLPolicyGetByID(nil, policy.ID, &policy.EnterpriseMeta); err == nil && policy != nil {
 		*reply = *policy
@@ -1257,7 +1263,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		return fmt.Errorf("Failed to apply policy delete request: %v", err)
 	}
 
-	a.srv.acls.cache.RemovePolicy(policy.ID)
+	a.srv.ACLResolver.cache.RemovePolicy(policy.ID)
 
 	*reply = policy.Name
 
@@ -1318,12 +1324,12 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 	}
 
 	// get full list of policies for this token
-	identity, policies, err := a.srv.acls.resolveTokenToIdentityAndPolicies(args.Token)
+	identity, policies, err := a.srv.ACLResolver.resolveTokenToIdentityAndPolicies(args.Token)
 	if err != nil {
 		return err
 	}
 
-	entIdentity, entPolicies, err := a.srv.acls.resolveEnterpriseIdentityAndPolicies(identity)
+	entIdentity, entPolicies, err := a.srv.ACLResolver.resolveEnterpriseIdentityAndPolicies(identity)
 	if err != nil {
 		return err
 	}
@@ -1428,6 +1434,9 @@ func (a *ACL) RoleRead(args *structs.ACLRoleGetRequest, reply *structs.ACLRoleRe
 			}
 
 			reply.Index, reply.Role = index, role
+			if role == nil {
+				return errNotFound
+			}
 			return nil
 		})
 }
@@ -1609,7 +1618,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 	}
 
 	// Remove from the cache to prevent stale cache usage
-	a.srv.acls.cache.RemoveRole(role.ID)
+	a.srv.ACLResolver.cache.RemoveRole(role.ID)
 
 	if _, role, err := a.srv.fsm.State().ACLRoleGetByID(nil, role.ID, &role.EnterpriseMeta); err == nil && role != nil {
 		*reply = *role
@@ -1664,7 +1673,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 		return fmt.Errorf("Failed to apply role delete request: %v", err)
 	}
 
-	a.srv.acls.cache.RemoveRole(role.ID)
+	a.srv.ACLResolver.cache.RemoveRole(role.ID)
 
 	*reply = role.Name
 
@@ -1719,12 +1728,12 @@ func (a *ACL) RoleResolve(args *structs.ACLRoleBatchGetRequest, reply *structs.A
 	}
 
 	// get full list of roles for this token
-	identity, roles, err := a.srv.acls.resolveTokenToIdentityAndRoles(args.Token)
+	identity, roles, err := a.srv.ACLResolver.resolveTokenToIdentityAndRoles(args.Token)
 	if err != nil {
 		return err
 	}
 
-	entIdentity, entRoles, err := a.srv.acls.resolveEnterpriseIdentityAndRoles(identity)
+	entIdentity, entRoles, err := a.srv.ACLResolver.resolveEnterpriseIdentityAndRoles(identity)
 	if err != nil {
 		return err
 	}
@@ -1795,12 +1804,14 @@ func (a *ACL) BindingRuleRead(args *structs.ACLBindingRuleGetRequest, reply *str
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
 			index, rule, err := state.ACLBindingRuleGetByID(ws, args.BindingRuleID, &args.EnterpriseMeta)
-
 			if err != nil {
 				return err
 			}
 
 			reply.Index, reply.BindingRule = index, rule
+			if rule == nil {
+				return errNotFound
+			}
 			return nil
 		})
 }
@@ -2052,16 +2063,16 @@ func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *struc
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
 			index, method, err := state.ACLAuthMethodGetByName(ws, args.AuthMethodName, &args.EnterpriseMeta)
-
 			if err != nil {
 				return err
 			}
 
-			if method != nil {
-				_ = a.enterpriseAuthMethodTypeValidation(method.Type)
+			reply.Index, reply.AuthMethod = index, method
+			if method == nil {
+				return errNotFound
 			}
 
-			reply.Index, reply.AuthMethod = index, method
+			_ = a.enterpriseAuthMethodTypeValidation(method.Type)
 			return nil
 		})
 }
@@ -2481,7 +2492,7 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
-	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
+	a.srv.ACLResolver.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 
 	*reply = true
 

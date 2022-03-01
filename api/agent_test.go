@@ -762,8 +762,6 @@ func TestAPI_AgentService(t *testing.T) {
 
 	agent := c.Agent()
 
-	require := require.New(t)
-
 	reg := &AgentServiceRegistration{
 		Name: "foo",
 		Tags: []string{"bar", "baz"},
@@ -777,10 +775,10 @@ func TestAPI_AgentService(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(agent.ServiceRegister(reg))
+	require.NoError(t, agent.ServiceRegister(reg))
 
 	got, qm, err := agent.Service("foo", nil)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	expect := &AgentService{
 		ID:          "foo",
@@ -797,8 +795,8 @@ func TestAPI_AgentService(t *testing.T) {
 		Partition:  defaultPartition,
 		Datacenter: "dc1",
 	}
-	require.Equal(expect, got)
-	require.Equal(expect.ContentHash, qm.LastContentHash)
+	require.Equal(t, expect, got)
+	require.Equal(t, expect.ContentHash, qm.LastContentHash)
 
 	// Sanity check blocking behavior - this is more thoroughly tested in the
 	// agent endpoint tests but this ensures that the API package is at least
@@ -810,8 +808,8 @@ func TestAPI_AgentService(t *testing.T) {
 	start := time.Now()
 	_, _, err = agent.Service("foo", &opts)
 	elapsed := time.Since(start)
-	require.NoError(err)
-	require.True(elapsed >= opts.WaitTime)
+	require.NoError(t, err)
+	require.True(t, elapsed >= opts.WaitTime)
 }
 
 func TestAPI_AgentSetTTLStatus(t *testing.T) {
@@ -1616,7 +1614,6 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
 		c.Connect = nil // disable connect to prevent CA being bootstrapped
 	})
@@ -1624,29 +1621,27 @@ func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 
 	agent := c.Agent()
 	_, _, err := agent.ConnectCARoots(nil)
-	require.Error(err)
-	require.Contains(err.Error(), "Connect must be enabled")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Connect must be enabled")
 }
 
 func TestAPI_AgentConnectCARoots_list(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	c, s := makeClient(t)
 	defer s.Stop()
 
 	agent := c.Agent()
 	s.WaitForSerfCheck(t)
 	list, meta, err := agent.ConnectCARoots(nil)
-	require.NoError(err)
-	require.True(meta.LastIndex > 0)
-	require.Len(list.Roots, 1)
+	require.NoError(t, err)
+	require.True(t, meta.LastIndex > 0)
+	require.Len(t, list.Roots, 1)
 }
 
 func TestAPI_AgentConnectCALeaf(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -1660,26 +1655,25 @@ func TestAPI_AgentConnectCALeaf(t *testing.T) {
 		Tags: []string{"bar", "baz"},
 		Port: 8000,
 	}
-	require.NoError(agent.ServiceRegister(reg))
+	require.NoError(t, agent.ServiceRegister(reg))
 
 	leaf, meta, err := agent.ConnectCALeaf("foo", nil)
-	require.NoError(err)
-	require.True(meta.LastIndex > 0)
+	require.NoError(t, err)
+	require.True(t, meta.LastIndex > 0)
 	// Sanity checks here as we have actual certificate validation checks at many
 	// other levels.
-	require.NotEmpty(leaf.SerialNumber)
-	require.NotEmpty(leaf.CertPEM)
-	require.NotEmpty(leaf.PrivateKeyPEM)
-	require.Equal("foo", leaf.Service)
-	require.True(strings.HasSuffix(leaf.ServiceURI, "/svc/foo"))
-	require.True(leaf.ModifyIndex > 0)
-	require.True(leaf.ValidAfter.Before(time.Now()))
-	require.True(leaf.ValidBefore.After(time.Now()))
+	require.NotEmpty(t, leaf.SerialNumber)
+	require.NotEmpty(t, leaf.CertPEM)
+	require.NotEmpty(t, leaf.PrivateKeyPEM)
+	require.Equal(t, "foo", leaf.Service)
+	require.True(t, strings.HasSuffix(leaf.ServiceURI, "/svc/foo"))
+	require.True(t, leaf.ModifyIndex > 0)
+	require.True(t, leaf.ValidAfter.Before(time.Now()))
+	require.True(t, leaf.ValidBefore.After(time.Now()))
 }
 
 func TestAPI_AgentConnectAuthorize(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -1692,9 +1686,9 @@ func TestAPI_AgentConnectAuthorize(t *testing.T) {
 		ClientCertURI: "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/ny1/svc/web",
 	}
 	auth, err := agent.ConnectAuthorize(params)
-	require.Nil(err)
-	require.True(auth.Authorized)
-	require.Equal(auth.Reason, "Default behavior configured by ACLs")
+	require.Nil(t, err)
+	require.True(t, auth.Authorized)
+	require.Equal(t, auth.Reason, "Default behavior configured by ACLs")
 }
 
 func TestAPI_AgentHealthServiceOpts(t *testing.T) {

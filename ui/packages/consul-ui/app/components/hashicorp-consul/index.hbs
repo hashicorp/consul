@@ -87,53 +87,12 @@
 
   <:main-nav>
     <ul>
-      <li
-        class="dcs"
-        data-test-datacenter-menu
-      >
-        <PopoverMenu
-          aria-label="Datacenter"
-          @position="left"
-        as |components|>
-          <BlockSlot @name="trigger">
-            {{@dc.Name}}
-          </BlockSlot>
-          <BlockSlot @name="menu">
-{{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-            <DataSource
-              @src={{uri '/*/*/*/datacenters'}}
-              @onchange={{action (mut @dcs) value="data"}}
-              @loading="lazy"
-            />
-{{#each (sort-by 'Name' @dcs) as |item|}}
-              <MenuItem
-                data-test-datacenter-picker
-                class={{concat
-                  (if (eq @dc.Name item.Name) 'is-active')
-                  (if item.Local ' is-local')
-                  (if item.Primary ' is-primary')
-                }}
-                @href={{href-to '.' params=(hash
-                  dc=item.Name
-                  partition=undefined
-                  nspace=(if (gt @nspace.length 0) @nspace undefined)
-                )}}
-              >
-                <BlockSlot @name="label">
-                  {{item.Name}}
-                {{#if item.Primary}}
-                  <span>Primary</span>
-                {{/if}}
-                {{#if item.Local}}
-                  <span>Local</span>
-                {{/if}}
-                </BlockSlot>
-              </MenuItem>
-{{/each}}
-{{/let}}
-          </BlockSlot>
-        </PopoverMenu>
-      </li>
+      <Consul::Datacenter::Selector
+        @dc={{@dc}}
+        @partition={{@partition}}
+        @nspace={{@nspace}}
+        @dcs={{@dcs}}
+      />
       <Consul::Partition::Selector
         @dc={{@dc}}
         @partition={{@partition}}
@@ -182,45 +141,52 @@
         <li
           data-test-main-nav-help
         >
-          <PopoverMenu @position="right" as |components|>
-            <BlockSlot @name="trigger">
+          <DisclosureMenu
+          as |disclosure|>
+            <disclosure.Action
+              {{on 'click' disclosure.toggle}}
+            >
               Help
-            </BlockSlot>
-            <BlockSlot @name="menu">
-              {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-                <MenuSeparator>
-                  <BlockSlot @name="label">
-                    Consul v{{env 'CONSUL_VERSION'}}
-                  </BlockSlot>
-                </MenuSeparator>
-                <MenuItem
+            </disclosure.Action>
+            <disclosure.Menu as |panel|>
+              <panel.Menu as |menu|>
+                <menu.Separator>
+                  Consul v{{env 'CONSUL_VERSION'}}
+                </menu.Separator>
+                <menu.Item
                   class="docs-link"
-                  @href={{env 'CONSUL_DOCS_URL'}}
                 >
-                  <BlockSlot @name="label">
+                  <menu.Action
+                    @href={{env 'CONSUL_DOCS_URL'}}
+                    @external={{true}}
+                  >
                     Documentation
-                  </BlockSlot>
-                </MenuItem>
-                <MenuItem
+                  </menu.Action>
+                </menu.Item>
+                <menu.Item
                   class="learn-link"
-                  @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
                 >
-                  <BlockSlot @name="label">
+                  <menu.Action
+                    @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
+                    @external={{true}}
+                  >
                     HashiCorp Learn
-                  </BlockSlot>
-                </MenuItem>
-                <MenuSeparator />
-                <MenuItem
-                  class="learn-link"
-                  @href={{env 'CONSUL_REPO_ISSUES_URL'}}
+                  </menu.Action>
+                </menu.Item>
+                <menu.Separator />
+                <menu.Item
+                  class="feedback-link"
                 >
-                  <BlockSlot @name="label">
+                  <menu.Action
+                    @href={{env 'CONSUL_REPO_ISSUES_URL'}}
+                    @external={{true}}
+                  >
                     Provide Feedback
-                  </BlockSlot>
-                </MenuItem>
-              {{/let}}
-            </BlockSlot>
-          </PopoverMenu>
+                  </menu.Action>
+                </menu.Item>
+              </panel.Menu>
+            </disclosure.Menu>
+          </DisclosureMenu>
         </li>
         <li
           data-test-main-nav-settings
@@ -236,20 +202,23 @@
             </a>
         </li>
         <Consul::Token::Selector
-          @token={{@user.token}}
           @dc={{@dc}}
           @partition={{@partition}}
           @nspace={{@nspace}}
           @onchange={{@onchange}}
-        as |modal|>
-          {{did-insert (set this 'modal')}}
+        as |selector|>
+          <Ref
+            @target={{this}}
+            @name="tokenSelector"
+            @value={{selector}}
+          />
         </Consul::Token::Selector>
     </ul>
   </:complementary-nav>
 
   <:main>
     {{yield (hash
-      login=(if this.modal this.modal (hash open=undefined))
+      login=(if this.tokenSelector this.tokenSelector (hash open=undefined close=undefined))
     )}}
   </:main>
 

@@ -85,7 +85,7 @@ func TestAgent_Services(t *testing.T) {
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
 		Service: "mysql",
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 		Meta: map[string]string{
 			"foo": "bar",
 		},
@@ -120,7 +120,7 @@ func TestAgent_ServicesFiltered(t *testing.T) {
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
 		Service: "mysql",
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 		Meta: map[string]string{
 			"foo": "bar",
 		},
@@ -172,7 +172,6 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -197,10 +196,10 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 	err := decoder.Decode(&val)
 	require.NoError(t, err)
 
-	assert.Len(val, 1)
+	assert.Len(t, val, 1)
 	actual := val["db-proxy"]
-	assert.Equal(api.ServiceKindConnectProxy, actual.Kind)
-	assert.Equal(srv1.Proxy.ToAPI(), actual.Proxy)
+	assert.Equal(t, api.ServiceKindConnectProxy, actual.Kind)
+	assert.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
 }
 
 // Thie tests that a sidecar-registered service is returned as expected.
@@ -211,8 +210,6 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
-	assert := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -241,13 +238,13 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 	decoder := json.NewDecoder(resp.Body)
 	var val map[string]*api.AgentService
 	err := decoder.Decode(&val)
-	require.NoError(err)
+	require.NoError(t, err)
 
-	assert.Len(val, 1)
+	assert.Len(t, val, 1)
 	actual := val["db-sidecar-proxy"]
-	require.NotNil(actual)
-	assert.Equal(api.ServiceKindConnectProxy, actual.Kind)
-	assert.Equal(srv1.Proxy.ToAPI(), actual.Proxy)
+	require.NotNil(t, actual)
+	assert.Equal(t, api.ServiceKindConnectProxy, actual.Kind)
+	assert.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
 
 	// Sanity check that LocalRegisteredAsSidecar is not in the output (assuming
 	// JSON encoding). Right now this is not the case because the services
@@ -255,8 +252,8 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 	// but this test serves as a regression test incase we change the endpoint to
 	// return the internal struct later and accidentally expose some "internal"
 	// state.
-	assert.NotContains(resp.Body.String(), "LocallyRegisteredAsSidecar")
-	assert.NotContains(resp.Body.String(), "locally_registered_as_sidecar")
+	assert.NotContains(t, resp.Body.String(), "LocallyRegisteredAsSidecar")
+	assert.NotContains(t, resp.Body.String(), "locally_registered_as_sidecar")
 }
 
 // This tests that a mesh gateway service is returned as expected.
@@ -393,7 +390,6 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 	})
 
 	t.Run("limited token", func(t *testing.T) {
-		require := require.New(t)
 
 		token := testCreateToken(t, a, `
 			service "web" {
@@ -410,8 +406,8 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 		if err := dec.Decode(&val); err != nil {
 			t.Fatalf("Err: %v", err)
 		}
-		require.Len(val, 1)
-		require.NotEmpty(resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+		require.Len(t, val, 1)
+		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("root token", func(t *testing.T) {
@@ -694,15 +690,13 @@ func TestAgent_Service(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert := assert.New(t)
-			require := require.New(t)
 
 			// Register the basic service to ensure it's in a known state to start.
 			{
 				req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(sidecarProxy))
 				resp := httptest.NewRecorder()
 				a.srv.h.ServeHTTP(resp, req)
-				require.Equal(200, resp.Code, "body: %s", resp.Body.String())
+				require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
 			}
 
 			req, _ := http.NewRequest("GET", tt.url, nil)
@@ -723,16 +717,16 @@ func TestAgent_Service(t *testing.T) {
 			elapsed := time.Since(start)
 
 			if tt.wantErr != "" {
-				require.Contains(strings.ToLower(resp.Body.String()), strings.ToLower(tt.wantErr))
+				require.Contains(t, strings.ToLower(resp.Body.String()), strings.ToLower(tt.wantErr))
 			}
 			if tt.wantCode != 0 {
-				require.Equal(tt.wantCode, resp.Code, "body: %s", resp.Body.String())
+				require.Equal(t, tt.wantCode, resp.Code, "body: %s", resp.Body.String())
 			}
 			if tt.wantWait != 0 {
-				assert.True(elapsed >= tt.wantWait, "should have waited at least %s, "+
+				assert.True(t, elapsed >= tt.wantWait, "should have waited at least %s, "+
 					"took %s", tt.wantWait, elapsed)
 			} else {
-				assert.True(elapsed < 10*time.Millisecond, "should not have waited, "+
+				assert.True(t, elapsed < 10*time.Millisecond, "should not have waited, "+
 					"took %s", elapsed)
 			}
 
@@ -740,10 +734,10 @@ func TestAgent_Service(t *testing.T) {
 				dec := json.NewDecoder(resp.Body)
 				val := &api.AgentService{}
 				err := dec.Decode(&val)
-				require.NoError(err)
+				require.NoError(t, err)
 
-				assert.Equal(tt.wantResp, val)
-				assert.Equal(tt.wantResp.ContentHash, resp.Header().Get("X-Consul-ContentHash"))
+				assert.Equal(t, tt.wantResp, val)
+				assert.Equal(t, tt.wantResp.ContentHash, resp.Header().Get("X-Consul-ContentHash"))
 			}
 		})
 	}
@@ -1390,7 +1384,6 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 	})
 
 	t.Run("limited token", func(t *testing.T) {
-		require := require.New(t)
 
 		token := testCreateToken(t, a, fmt.Sprintf(`
 			service "web" {
@@ -1410,8 +1403,8 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 		if err := dec.Decode(&val); err != nil {
 			t.Fatalf("Err: %v", err)
 		}
-		require.Len(val, 1)
-		require.NotEmpty(resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+		require.Len(t, val, 1)
+		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("root token", func(t *testing.T) {
@@ -1517,7 +1510,7 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
-	t.Run("agent master token", func(t *testing.T) {
+	t.Run("agent recovery token", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/agent/self?token=towel", nil)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
@@ -1550,7 +1543,7 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
-	t.Run("agent master token", func(t *testing.T) {
+	t.Run("agent recovery token", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/agent/metrics?token=towel", nil)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
@@ -1647,8 +1640,8 @@ type fakeResolveTokenDelegate struct {
 	authorizer acl.Authorizer
 }
 
-func (f fakeResolveTokenDelegate) ResolveTokenAndDefaultMeta(_ string, _ *structs.EnterpriseMeta, _ *acl.AuthorizerContext) (acl.Authorizer, error) {
-	return f.authorizer, nil
+func (f fakeResolveTokenDelegate) ResolveTokenAndDefaultMeta(_ string, _ *structs.EnterpriseMeta, _ *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
+	return consul.ACLResolveResult{Authorizer: f.authorizer}, nil
 }
 
 func TestAgent_Reload(t *testing.T) {
@@ -2008,7 +2001,6 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 	})
 
 	t.Run("limited token", func(t *testing.T) {
-		require := require.New(t)
 
 		token := testCreateToken(t, a, fmt.Sprintf(`
 			node "%s" {
@@ -2025,8 +2017,8 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 		if err := dec.Decode(&val); err != nil {
 			t.Fatalf("Err: %v", err)
 		}
-		require.Len(val, 1)
-		require.NotEmpty(resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+		require.Len(t, val, 1)
+		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("root token", func(t *testing.T) {
@@ -2125,7 +2117,7 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
-	t.Run("agent master token", func(t *testing.T) {
+	t.Run("agent recovery token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s?token=towel", addr), nil)
 		resp := httptest.NewRecorder()
 		a1.srv.h.ServeHTTP(resp, req)
@@ -2246,7 +2238,7 @@ func TestAgent_Leave_ACLDeny(t *testing.T) {
 
 	// this sub-test will change the state so that there is no leader.
 	// it must therefore be the last one in this list.
-	t.Run("agent master token", func(t *testing.T) {
+	t.Run("agent recovery token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/leave?token=towel", nil)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
@@ -2332,7 +2324,7 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
-	t.Run("agent master token", func(t *testing.T) {
+	t.Run("agent recovery token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", uri+"?token=towel", nil)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
@@ -3266,7 +3258,7 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 	args := &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Check: structs.CheckType{
 			TTL: 15 * time.Second,
@@ -3353,7 +3345,7 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 	args := &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Checks: []*structs.CheckType{
 			{
@@ -3378,7 +3370,7 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 	args = &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Checks: []*structs.CheckType{
 			{
@@ -3434,7 +3426,7 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 	args := &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Checks: []*structs.CheckType{
 			{
@@ -3460,7 +3452,7 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 	args = &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Checks: []*structs.CheckType{
 			{
@@ -3740,7 +3732,7 @@ func testAgent_RegisterService_ACLDeny(t *testing.T, extraHCL string) {
 
 	args := &structs.ServiceDefinition{
 		Name: "test",
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Check: structs.CheckType{
 			TTL: 15 * time.Second,
@@ -4364,8 +4356,6 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert := assert.New(t)
-			require := require.New(t)
 
 			// Constrain auto ports to 1 available to make it deterministic
 			hcl := `ports {
@@ -4382,10 +4372,10 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 			if tt.preRegister != nil {
-				require.NoError(a.addServiceFromSource(tt.preRegister, nil, false, "", ConfigSourceLocal))
+				require.NoError(t, a.addServiceFromSource(tt.preRegister, nil, false, "", ConfigSourceLocal))
 			}
 			if tt.preRegister2 != nil {
-				require.NoError(a.addServiceFromSource(tt.preRegister2, nil, false, "", ConfigSourceLocal))
+				require.NoError(t, a.addServiceFromSource(tt.preRegister2, nil, false, "", ConfigSourceLocal))
 			}
 
 			// Create an ACL token with require policy
@@ -4400,10 +4390,10 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
 			if tt.wantErr != "" {
-				require.Contains(strings.ToLower(resp.Body.String()), strings.ToLower(tt.wantErr))
+				require.Contains(t, strings.ToLower(resp.Body.String()), strings.ToLower(tt.wantErr))
 				return
 			}
-			require.Equal(200, resp.Code, "request failed with body: %s",
+			require.Equal(t, 200, resp.Code, "request failed with body: %s",
 				resp.Body.String())
 
 			// Sanity the target service registration
@@ -4412,8 +4402,8 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			// Parse the expected definition into a ServiceDefinition
 			var sd structs.ServiceDefinition
 			err := json.Unmarshal([]byte(tt.json), &sd)
-			require.NoError(err)
-			require.NotEmpty(sd.Name)
+			require.NoError(t, err)
+			require.NotEmpty(t, sd.Name)
 
 			svcID := sd.ID
 			if svcID == "" {
@@ -4421,26 +4411,26 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			sid := structs.NewServiceID(svcID, nil)
 			svc, ok := svcs[sid]
-			require.True(ok, "has service "+sid.String())
-			assert.Equal(sd.Name, svc.Service)
-			assert.Equal(sd.Port, svc.Port)
+			require.True(t, ok, "has service "+sid.String())
+			assert.Equal(t, sd.Name, svc.Service)
+			assert.Equal(t, sd.Port, svc.Port)
 			// Ensure that the actual registered service _doesn't_ still have it's
 			// sidecar info since it's duplicate and we don't want that synced up to
 			// the catalog or included in responses particularly - it's just
 			// registration syntax sugar.
-			assert.Nil(svc.Connect.SidecarService)
+			assert.Nil(t, svc.Connect.SidecarService)
 
 			if tt.wantNS == nil {
 				// Sanity check that there was no service registered, we rely on there
 				// being no services at start of test so we can just use the count.
-				assert.Len(svcs, 1, "should be no sidecar registered")
+				assert.Len(t, svcs, 1, "should be no sidecar registered")
 				return
 			}
 
 			// Ensure sidecar
 			svc, ok = svcs[structs.NewServiceID(tt.wantNS.ID, nil)]
-			require.True(ok, "no sidecar registered at "+tt.wantNS.ID)
-			assert.Equal(tt.wantNS, svc)
+			require.True(t, ok, "no sidecar registered at "+tt.wantNS.ID)
+			assert.Equal(t, tt.wantNS, svc)
 
 			if tt.assertStateFn != nil {
 				tt.assertStateFn(t, a.State)
@@ -4453,14 +4443,14 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 					"/v1/agent/service/deregister/"+svcID+"?token="+token, nil)
 				resp := httptest.NewRecorder()
 				a.srv.h.ServeHTTP(resp, req)
-				require.Equal(http.StatusOK, resp.Code)
+				require.Equal(t, http.StatusOK, resp.Code)
 
 				svcs := a.State.AllServices()
 				_, ok = svcs[structs.NewServiceID(tt.wantNS.ID, nil)]
 				if tt.wantSidecarIDLeftAfterDereg {
-					require.True(ok, "removed non-sidecar service at "+tt.wantNS.ID)
+					require.True(t, ok, "removed non-sidecar service at "+tt.wantNS.ID)
 				} else {
-					require.False(ok, "sidecar not deregistered with service "+svcID)
+					require.False(t, ok, "sidecar not deregistered with service "+svcID)
 				}
 			}
 		})
@@ -4488,7 +4478,6 @@ func TestAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T) {
 func testAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, extraHCL)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -4507,11 +4496,11 @@ func testAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T, extraH
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	assert.Equal(http.StatusBadRequest, resp.Code)
-	assert.Contains(resp.Body.String(), "Port")
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, resp.Body.String(), "Port")
 
 	// Ensure the service doesn't exist
-	assert.Nil(a.State.Service(structs.NewServiceID("connect-proxy", nil)))
+	assert.Nil(t, a.State.Service(structs.NewServiceID("connect-proxy", nil)))
 }
 
 // Tests agent registration of a service that is connect native.
@@ -4533,7 +4522,6 @@ func TestAgent_RegisterService_ConnectNative(t *testing.T) {
 func testAgent_RegisterService_ConnectNative(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, extraHCL)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -4555,12 +4543,12 @@ func testAgent_RegisterService_ConnectNative(t *testing.T, extraHCL string) {
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	assert.Equal(http.StatusOK, resp.Code)
+	assert.Equal(t, http.StatusOK, resp.Code)
 
 	// Ensure the service
 	svc := a.State.Service(structs.NewServiceID("web", nil))
 	require.NotNil(t, svc)
-	assert.True(svc.Connect.Native)
+	assert.True(t, svc.Connect.Native)
 }
 
 func TestAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T) {
@@ -4588,7 +4576,7 @@ func testAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T, extraHCL st
 	args := &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Check: structs.CheckType{
 			Name:       "test-check",
@@ -4640,7 +4628,7 @@ func testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t *testing.T, extra
 	args := &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Check: structs.CheckType{
 			Name:       "test-check",
@@ -5379,7 +5367,7 @@ func TestAgent_TokenTriggersFullSync(t *testing.T) {
 						initial_management = "root"
 						default = ""
 						agent = ""
-						agent_master = ""
+						agent_recovery = ""
 						replication = ""
 					}
 				}
@@ -5427,7 +5415,7 @@ func TestAgent_Token(t *testing.T) {
 				initial_management = "root"
 				default = ""
 				agent = ""
-				agent_master = ""
+				agent_recovery = ""
 				replication = ""
 			}
 		}
@@ -5436,20 +5424,20 @@ func TestAgent_Token(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	type tokens struct {
-		user         string
-		userSource   tokenStore.TokenSource
-		agent        string
-		agentSource  tokenStore.TokenSource
-		master       string
-		masterSource tokenStore.TokenSource
-		repl         string
-		replSource   tokenStore.TokenSource
+		user                string
+		userSource          tokenStore.TokenSource
+		agent               string
+		agentSource         tokenStore.TokenSource
+		agentRecovery       string
+		agentRecoverySource tokenStore.TokenSource
+		repl                string
+		replSource          tokenStore.TokenSource
 	}
 
 	resetTokens := func(init tokens) {
 		a.tokens.UpdateUserToken(init.user, init.userSource)
 		a.tokens.UpdateAgentToken(init.agent, init.agentSource)
-		a.tokens.UpdateAgentRecoveryToken(init.master, init.masterSource)
+		a.tokens.UpdateAgentRecoveryToken(init.agentRecovery, init.agentRecoverySource)
 		a.tokens.UpdateReplicationToken(init.repl, init.replSource)
 	}
 
@@ -5531,8 +5519,8 @@ func TestAgent_Token(t *testing.T) {
 			url:       "acl_agent_master_token?token=root",
 			body:      body("M"),
 			code:      http.StatusOK,
-			raw:       tokens{master: "M", masterSource: tokenStore.TokenSourceAPI},
-			effective: tokens{master: "M"},
+			raw:       tokens{agentRecovery: "M", agentRecoverySource: tokenStore.TokenSourceAPI},
+			effective: tokens{agentRecovery: "M"},
 		},
 		{
 			name:      "set master",
@@ -5540,8 +5528,8 @@ func TestAgent_Token(t *testing.T) {
 			url:       "agent_master?token=root",
 			body:      body("M"),
 			code:      http.StatusOK,
-			raw:       tokens{master: "M", masterSource: tokenStore.TokenSourceAPI},
-			effective: tokens{master: "M"},
+			raw:       tokens{agentRecovery: "M", agentRecoverySource: tokenStore.TokenSourceAPI},
+			effective: tokens{agentRecovery: "M"},
 		},
 		{
 			name:      "set recovery",
@@ -5549,8 +5537,8 @@ func TestAgent_Token(t *testing.T) {
 			url:       "agent_recovery?token=root",
 			body:      body("R"),
 			code:      http.StatusOK,
-			raw:       tokens{master: "R", masterSource: tokenStore.TokenSourceAPI},
-			effective: tokens{master: "R", masterSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{agentRecovery: "R", agentRecoverySource: tokenStore.TokenSourceAPI},
+			effective: tokens{agentRecovery: "R", agentRecoverySource: tokenStore.TokenSourceAPI},
 		},
 		{
 			name:      "set repl legacy",
@@ -5612,8 +5600,8 @@ func TestAgent_Token(t *testing.T) {
 			url:    "acl_agent_master_token?token=root",
 			body:   body(""),
 			code:   http.StatusOK,
-			init:   tokens{master: "M"},
-			raw:    tokens{masterSource: tokenStore.TokenSourceAPI},
+			init:   tokens{agentRecovery: "M"},
+			raw:    tokens{agentRecoverySource: tokenStore.TokenSourceAPI},
 		},
 		{
 			name:   "clear master",
@@ -5621,8 +5609,8 @@ func TestAgent_Token(t *testing.T) {
 			url:    "agent_master?token=root",
 			body:   body(""),
 			code:   http.StatusOK,
-			init:   tokens{master: "M"},
-			raw:    tokens{masterSource: tokenStore.TokenSourceAPI},
+			init:   tokens{agentRecovery: "M"},
+			raw:    tokens{agentRecoverySource: tokenStore.TokenSourceAPI},
 		},
 		{
 			name:   "clear recovery",
@@ -5630,8 +5618,8 @@ func TestAgent_Token(t *testing.T) {
 			url:    "agent_recovery?token=root",
 			body:   body(""),
 			code:   http.StatusOK,
-			init:   tokens{master: "R"},
-			raw:    tokens{masterSource: tokenStore.TokenSourceAPI},
+			init:   tokens{agentRecovery: "R"},
+			raw:    tokens{agentRecoverySource: tokenStore.TokenSourceAPI},
 		},
 		{
 			name:   "clear repl legacy",
@@ -5667,7 +5655,7 @@ func TestAgent_Token(t *testing.T) {
 			}
 			require.Equal(t, tt.effective.user, a.tokens.UserToken())
 			require.Equal(t, tt.effective.agent, a.tokens.AgentToken())
-			require.Equal(t, tt.effective.master, a.tokens.AgentRecoveryToken())
+			require.Equal(t, tt.effective.agentRecovery, a.tokens.AgentRecoveryToken())
 			require.Equal(t, tt.effective.repl, a.tokens.ReplicationToken())
 
 			tok, src := a.tokens.UserTokenAndSource()
@@ -5679,8 +5667,8 @@ func TestAgent_Token(t *testing.T) {
 			require.Equal(t, tt.raw.agentSource, src)
 
 			tok, src = a.tokens.AgentRecoveryTokenAndSource()
-			require.Equal(t, tt.raw.master, tok)
-			require.Equal(t, tt.raw.masterSource, src)
+			require.Equal(t, tt.raw.agentRecovery, tok)
+			require.Equal(t, tt.raw.agentRecoverySource, src)
 
 			tok, src = a.tokens.ReplicationTokenAndSource()
 			require.Equal(t, tt.raw.repl, tok)
@@ -5708,7 +5696,6 @@ func TestAgentConnectCARoots_empty(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, "connect { enabled = false }")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -5716,8 +5703,8 @@ func TestAgentConnectCARoots_empty(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equal(http.StatusInternalServerError, resp.Code)
-	require.Contains(resp.Body.String(), "Connect must be enabled")
+	require.Equal(t, http.StatusInternalServerError, resp.Code)
+	require.Contains(t, resp.Body.String(), "Connect must be enabled")
 }
 
 func TestAgentConnectCARoots_list(t *testing.T) {
@@ -5727,8 +5714,6 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -5744,22 +5729,22 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 
 	dec := json.NewDecoder(resp.Body)
 	value := &structs.IndexedCARoots{}
-	require.NoError(dec.Decode(value))
+	require.NoError(t, dec.Decode(value))
 
-	assert.Equal(value.ActiveRootID, ca2.ID)
+	assert.Equal(t, value.ActiveRootID, ca2.ID)
 	// Would like to assert that it's the same as the TestAgent domain but the
 	// only way to access that state via this package is by RPC to the server
 	// implementation running in TestAgent which is more or less a tautology.
-	assert.NotEmpty(value.TrustDomain)
-	assert.Len(value.Roots, 2)
+	assert.NotEmpty(t, value.TrustDomain)
+	assert.Len(t, value.Roots, 2)
 
 	// We should never have the secret information
 	for _, r := range value.Roots {
-		assert.Equal("", r.SigningCert)
-		assert.Equal("", r.SigningKey)
+		assert.Equal(t, "", r.SigningCert)
+		assert.Equal(t, "", r.SigningKey)
 	}
 
-	assert.Equal("MISS", resp.Header().Get("X-Cache"))
+	assert.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 
 	// Test caching
 	{
@@ -5769,11 +5754,11 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 
 		dec := json.NewDecoder(resp2.Body)
 		value2 := &structs.IndexedCARoots{}
-		require.NoError(dec.Decode(value2))
-		assert.Equal(value, value2)
+		require.NoError(t, dec.Decode(value2))
+		assert.Equal(t, value, value2)
 
 		// Should cache hit this time and not make request
-		assert.Equal("HIT", resp2.Header().Get("X-Cache"))
+		assert.Equal(t, "HIT", resp2.Header().Get("X-Cache"))
 	}
 
 	// Test that caching is updated in the background
@@ -5788,7 +5773,7 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 
 			dec := json.NewDecoder(resp.Body)
 			value := &structs.IndexedCARoots{}
-			require.NoError(dec.Decode(value))
+			require.NoError(t, dec.Decode(value))
 			if ca.ID != value.ActiveRootID {
 				r.Fatalf("%s != %s", ca.ID, value.ActiveRootID)
 			}
@@ -5815,7 +5800,6 @@ func TestAgentConnectCALeafCert_aclDefaultDeny(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -5837,13 +5821,13 @@ func TestAgentConnectCALeafCert_aclDefaultDeny(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
+		require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equal(http.StatusForbidden, resp.Code)
+	require.Equal(t, http.StatusForbidden, resp.Code)
 }
 
 func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
@@ -5853,7 +5837,6 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -5875,7 +5858,7 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
+		require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
 	}
 
 	token := createACLTokenWithServicePolicy(t, a.srv, "write")
@@ -5887,8 +5870,8 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 	// Get the issued cert
 	dec := json.NewDecoder(resp.Body)
 	value := &structs.IssuedCert{}
-	require.NoError(dec.Decode(value))
-	require.NotNil(value)
+	require.NoError(t, dec.Decode(value))
+	require.NotNil(t, value)
 }
 
 func createACLTokenWithServicePolicy(t *testing.T, srv *HTTPHandlers, policy string) string {
@@ -5924,7 +5907,6 @@ func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -5946,7 +5928,7 @@ func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
+		require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
 	}
 
 	token := createACLTokenWithServicePolicy(t, a.srv, "read")
@@ -5954,7 +5936,7 @@ func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?token="+token, nil)
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equal(http.StatusForbidden, resp.Code)
+	require.Equal(t, http.StatusForbidden, resp.Code)
 }
 
 func TestAgentConnectCALeafCert_good(t *testing.T) {
@@ -5964,8 +5946,6 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
 	a := StartTestAgent(t, TestAgent{Overrides: `
 		connect {
 			test_ca_leaf_root_change_spread = "1ns"
@@ -5993,7 +5973,7 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		if !assert.Equal(200, resp.Code) {
+		if !assert.Equal(t, 200, resp.Code) {
 			t.Log("Body: ", resp.Body.String())
 		}
 	}
@@ -6002,19 +5982,19 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equal("MISS", resp.Header().Get("X-Cache"))
+	require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 
 	// Get the issued cert
 	dec := json.NewDecoder(resp.Body)
 	issued := &structs.IssuedCert{}
-	require.NoError(dec.Decode(issued))
+	require.NoError(t, dec.Decode(issued))
 
 	// Verify that the cert is signed by the CA
 	requireLeafValidUnderCA(t, issued, ca1)
 
 	// Verify blocking index
-	assert.True(issued.ModifyIndex > 0)
-	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
+	assert.True(t, issued.ModifyIndex > 0)
+	assert.Equal(t, fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
 	index := resp.Header().Get("X-Consul-Index")
@@ -6026,8 +6006,8 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		a.srv.h.ServeHTTP(resp, req)
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
-		require.NoError(dec.Decode(issued2))
-		require.Equal(issued, issued2)
+		require.NoError(t, dec.Decode(issued2))
+		require.Equal(t, issued, issued2)
 	}
 
 	// Set a new CA
@@ -6040,26 +6020,26 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		a.srv.h.ServeHTTP(resp, req)
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
-		require.NoError(dec.Decode(issued2))
-		require.NotEqual(issued.CertPEM, issued2.CertPEM)
-		require.NotEqual(issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
+		require.NoError(t, dec.Decode(issued2))
+		require.NotEqual(t, issued.CertPEM, issued2.CertPEM)
+		require.NotEqual(t, issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
 
 		// Verify that the cert is signed by the new CA
 		requireLeafValidUnderCA(t, issued2, ca2)
 
 		// Should not be a cache hit! The data was updated in response to the blocking
 		// query being made.
-		require.Equal("MISS", resp.Header().Get("X-Cache"))
+		require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 	}
 
 	t.Run("test non-blocking queries update leaf cert", func(t *testing.T) {
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.AgentConnectCALeafCert(resp, req)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		// Get the issued cert
 		issued, ok := obj.(*structs.IssuedCert)
-		assert.True(ok)
+		assert.True(t, ok)
 
 		// Verify that the cert is signed by the CA
 		requireLeafValidUnderCA(t, issued, ca2)
@@ -6071,18 +6051,18 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 
 			resp := httptest.NewRecorder()
 			req, err := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
-			require.NoError(err)
+			require.NoError(t, err)
 			obj, err = a.srv.AgentConnectCALeafCert(resp, req)
-			require.NoError(err)
+			require.NoError(t, err)
 			issued2 := obj.(*structs.IssuedCert)
-			require.NotEqual(issued.CertPEM, issued2.CertPEM)
-			require.NotEqual(issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
+			require.NotEqual(t, issued.CertPEM, issued2.CertPEM)
+			require.NotEqual(t, issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
 
 			// Verify that the cert is signed by the new CA
 			requireLeafValidUnderCA(t, issued2, ca3)
 
 			// Should not be a cache hit!
-			require.Equal("MISS", resp.Header().Get("X-Cache"))
+			require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 		}
 
 		// Test caching for the leaf cert
@@ -6093,8 +6073,8 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 				// Fetch it again
 				resp := httptest.NewRecorder()
 				obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
-				require.NoError(err)
-				require.Equal(obj, obj2)
+				require.NoError(t, err)
+				require.Equal(t, obj, obj2)
 			}
 		}
 	})
@@ -6109,8 +6089,6 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
 	a := StartTestAgent(t, TestAgent{Overrides: `
 		connect {
 			test_ca_leaf_root_change_spread = "1ns"
@@ -6138,7 +6116,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		if !assert.Equal(200, resp.Code) {
+		if !assert.Equal(t, 200, resp.Code) {
 			t.Log("Body: ", resp.Body.String())
 		}
 	}
@@ -6147,19 +6125,19 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equal("MISS", resp.Header().Get("X-Cache"))
+	require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 
 	// Get the issued cert
 	dec := json.NewDecoder(resp.Body)
 	issued := &structs.IssuedCert{}
-	require.NoError(dec.Decode(issued))
+	require.NoError(t, dec.Decode(issued))
 
 	// Verify that the cert is signed by the CA
 	requireLeafValidUnderCA(t, issued, ca1)
 
 	// Verify blocking index
-	assert.True(issued.ModifyIndex > 0)
-	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
+	assert.True(t, issued.ModifyIndex > 0)
+	assert.Equal(t, fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
 	// Test caching
@@ -6169,8 +6147,8 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 		a.srv.h.ServeHTTP(resp, req)
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
-		require.NoError(dec.Decode(issued2))
-		require.Equal(issued, issued2)
+		require.NoError(t, dec.Decode(issued2))
+		require.Equal(t, issued, issued2)
 	}
 
 	// Test Blocking - see https://github.com/hashicorp/consul/issues/4462
@@ -6186,7 +6164,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 
 		select {
 		case <-time.After(500 * time.Millisecond):
-			require.FailNow("Shouldn't block for this long - not respecting wait parameter in the query")
+			require.FailNow(t, "Shouldn't block for this long - not respecting wait parameter in the query")
 
 		case <-doneCh:
 		}
@@ -6205,7 +6183,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 
 			dec := json.NewDecoder(resp.Body)
 			issued2 := &structs.IssuedCert{}
-			require.NoError(dec.Decode(issued2))
+			require.NoError(t, dec.Decode(issued2))
 			if issued.CertPEM == issued2.CertPEM {
 				r.Fatalf("leaf has not updated")
 			}
@@ -6219,7 +6197,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 			// Verify that the cert is signed by the new CA
 			requireLeafValidUnderCA(t, issued2, ca)
 
-			require.NotEqual(issued, issued2)
+			require.NotEqual(t, issued, issued2)
 		})
 	}
 }
@@ -6236,8 +6214,6 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 	testVault := ca.NewTestVaultServer(t)
 	defer testVault.Stop()
 
-	assert := assert.New(t)
-	require := require.New(t)
 	a := StartTestAgent(t, TestAgent{Overrides: fmt.Sprintf(`
 		connect {
 			test_ca_leaf_root_change_spread = "1ns"
@@ -6258,14 +6234,14 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 	{
 		args := &structs.DCSpecificRequest{Datacenter: "dc1"}
 		var reply structs.IndexedCARoots
-		require.NoError(a.RPC("ConnectCA.Roots", args, &reply))
+		require.NoError(t, a.RPC("ConnectCA.Roots", args, &reply))
 		for _, r := range reply.Roots {
 			if r.ID == reply.ActiveRootID {
 				ca1 = r
 				break
 			}
 		}
-		require.NotNil(ca1)
+		require.NotNil(t, ca1)
 	}
 
 	{
@@ -6282,7 +6258,7 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		if !assert.Equal(200, resp.Code) {
+		if !assert.Equal(t, 200, resp.Code) {
 			t.Log("Body: ", resp.Body.String())
 		}
 	}
@@ -6291,19 +6267,19 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equal("MISS", resp.Header().Get("X-Cache"))
+	require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 
 	// Get the issued cert
 	dec := json.NewDecoder(resp.Body)
 	issued := &structs.IssuedCert{}
-	require.NoError(dec.Decode(issued))
+	require.NoError(t, dec.Decode(issued))
 
 	// Verify that the cert is signed by the CA
 	requireLeafValidUnderCA(t, issued, ca1)
 
 	// Verify blocking index
-	assert.True(issued.ModifyIndex > 0)
-	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
+	assert.True(t, issued.ModifyIndex > 0)
+	assert.Equal(t, fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
 	// Test caching
@@ -6313,8 +6289,8 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 		a.srv.h.ServeHTTP(resp, req)
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
-		require.NoError(dec.Decode(issued2))
-		require.Equal(issued, issued2)
+		require.NoError(t, dec.Decode(issued2))
+		require.Equal(t, issued, issued2)
 	}
 
 	// Test that we aren't churning leaves for no reason at idle.
@@ -6359,9 +6335,6 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
-
 	a1 := StartTestAgent(t, TestAgent{Name: "dc1", HCL: `
 		datacenter = "dc1"
 		primary_datacenter = "dc1"
@@ -6387,7 +6360,7 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	// Wait for the WAN join.
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
 	_, err := a2.JoinWAN([]string{addr})
-	require.NoError(err)
+	require.NoError(t, err)
 
 	testrpc.WaitForLeader(t, a1.RPC, "dc1")
 	testrpc.WaitForLeader(t, a2.RPC, "dc2")
@@ -6419,30 +6392,30 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		resp := httptest.NewRecorder()
 		a2.srv.h.ServeHTTP(resp, req)
-		if !assert.Equal(200, resp.Code) {
+		if !assert.Equal(t, 200, resp.Code) {
 			t.Log("Body: ", resp.Body.String())
 		}
 	}
 
 	// List
 	req, err := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
-	require.NoError(err)
+	require.NoError(t, err)
 	resp := httptest.NewRecorder()
 	a2.srv.h.ServeHTTP(resp, req)
-	require.Equal(http.StatusOK, resp.Code)
-	require.Equal("MISS", resp.Header().Get("X-Cache"))
+	require.Equal(t, http.StatusOK, resp.Code)
+	require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 
 	// Get the issued cert
 	dec := json.NewDecoder(resp.Body)
 	issued := &structs.IssuedCert{}
-	require.NoError(dec.Decode(issued))
+	require.NoError(t, dec.Decode(issued))
 
 	// Verify that the cert is signed by the CA
 	requireLeafValidUnderCA(t, issued, dc1_ca1)
 
 	// Verify blocking index
-	assert.True(issued.ModifyIndex > 0)
-	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
+	assert.True(t, issued.ModifyIndex > 0)
+	assert.Equal(t, fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
 	// Test caching
@@ -6452,8 +6425,8 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		a2.srv.h.ServeHTTP(resp, req)
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
-		require.NoError(dec.Decode(issued2))
-		require.Equal(issued, issued2)
+		require.NoError(t, dec.Decode(issued2))
+		require.Equal(t, issued, issued2)
 	}
 
 	// Test that we aren't churning leaves for no reason at idle.
@@ -6508,11 +6481,11 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		// Try and sign again (note no index/wait arg since cache should update in
 		// background even if we aren't actively blocking)
 		a2.srv.h.ServeHTTP(resp, req)
-		require.Equal(http.StatusOK, resp.Code)
+		require.Equal(t, http.StatusOK, resp.Code)
 
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
-		require.NoError(dec.Decode(issued2))
+		require.NoError(t, dec.Decode(issued2))
 		if issued.CertPEM == issued2.CertPEM {
 			r.Fatalf("leaf has not updated")
 		}
@@ -6526,7 +6499,7 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		// Verify that the cert is signed by the new CA
 		requireLeafValidUnderCA(t, issued2, dc1_ca2)
 
-		require.NotEqual(issued, issued2)
+		require.NotEqual(t, issued, issued2)
 	})
 }
 
@@ -6584,8 +6557,6 @@ func TestAgentConnectAuthorize_badBody(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -6594,8 +6565,8 @@ func TestAgentConnectAuthorize_badBody(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equal(http.StatusBadRequest, resp.Code)
-	assert.Contains(resp.Body.String(), "decode failed")
+	require.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, resp.Body.String(), "decode failed")
 }
 
 func TestAgentConnectAuthorize_noTarget(t *testing.T) {
@@ -6605,8 +6576,6 @@ func TestAgentConnectAuthorize_noTarget(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -6615,8 +6584,8 @@ func TestAgentConnectAuthorize_noTarget(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equal(http.StatusBadRequest, resp.Code)
-	assert.Contains(resp.Body.String(), "Target service must be specified")
+	require.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, resp.Body.String(), "Target service must be specified")
 }
 
 // Client ID is not in the valid URI format
@@ -6627,8 +6596,6 @@ func TestAgentConnectAuthorize_idInvalidFormat(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -6640,8 +6607,8 @@ func TestAgentConnectAuthorize_idInvalidFormat(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equal(http.StatusBadRequest, resp.Code)
-	assert.Contains(resp.Body.String(), "ClientCertURI not a valid Connect identifier")
+	require.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, resp.Body.String(), "ClientCertURI not a valid Connect identifier")
 }
 
 // Client ID is a valid URI but its not a service URI
@@ -6652,8 +6619,6 @@ func TestAgentConnectAuthorize_idNotService(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -6665,8 +6630,8 @@ func TestAgentConnectAuthorize_idNotService(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equal(http.StatusBadRequest, resp.Code)
-	assert.Contains(resp.Body.String(), "ClientCertURI not a valid Service identifier")
+	require.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, resp.Body.String(), "ClientCertURI not a valid Service identifier")
 }
 
 // Test when there is an intention allowing the connection
@@ -6677,7 +6642,6 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -6698,7 +6662,7 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		req.Intention.DestinationName = target
 		req.Intention.Action = structs.IntentionActionAllow
 
-		require.Nil(a.RPC("Intention.Apply", &req, &ixnId))
+		require.Nil(t, a.RPC("Intention.Apply", &req, &ixnId))
 	}
 
 	args := &structs.ConnectAuthorizeRequest{
@@ -6708,30 +6672,30 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equal(200, resp.Code)
-	require.Equal("MISS", resp.Header().Get("X-Cache"))
+	require.Equal(t, 200, resp.Code)
+	require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 
 	dec := json.NewDecoder(resp.Body)
 	obj := &connectAuthorizeResp{}
-	require.NoError(dec.Decode(obj))
-	require.True(obj.Authorized)
-	require.Contains(obj.Reason, "Matched")
+	require.NoError(t, dec.Decode(obj))
+	require.True(t, obj.Authorized)
+	require.Contains(t, obj.Reason, "Matched")
 
 	// Make the request again
 	{
 		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		require.Equal(200, resp.Code)
+		require.Equal(t, 200, resp.Code)
 
 		dec := json.NewDecoder(resp.Body)
 		obj := &connectAuthorizeResp{}
-		require.NoError(dec.Decode(obj))
-		require.True(obj.Authorized)
-		require.Contains(obj.Reason, "Matched")
+		require.NoError(t, dec.Decode(obj))
+		require.True(t, obj.Authorized)
+		require.Contains(t, obj.Reason, "Matched")
 
 		// That should've been a cache hit.
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
+		require.Equal(t, "HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Change the intention
@@ -6748,7 +6712,7 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		req.Intention.DestinationName = target
 		req.Intention.Action = structs.IntentionActionDeny
 
-		require.Nil(a.RPC("Intention.Apply", &req, &ixnId))
+		require.Nil(t, a.RPC("Intention.Apply", &req, &ixnId))
 	}
 
 	// Short sleep lets the cache background refresh happen
@@ -6759,17 +6723,17 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		require.Equal(200, resp.Code)
+		require.Equal(t, 200, resp.Code)
 
 		dec := json.NewDecoder(resp.Body)
 		obj := &connectAuthorizeResp{}
-		require.NoError(dec.Decode(obj))
-		require.False(obj.Authorized)
-		require.Contains(obj.Reason, "Matched")
+		require.NoError(t, dec.Decode(obj))
+		require.False(t, obj.Authorized)
+		require.Contains(t, obj.Reason, "Matched")
 
 		// That should've been a cache hit, too, since it updated in the
 		// background.
-		require.Equal("HIT", resp.Header().Get("X-Cache"))
+		require.Equal(t, "HIT", resp.Header().Get("X-Cache"))
 	}
 }
 
@@ -6781,7 +6745,6 @@ func TestAgentConnectAuthorize_deny(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -6802,7 +6765,7 @@ func TestAgentConnectAuthorize_deny(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionDeny
 
 		var reply string
-		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
+		assert.Nil(t, a.RPC("Intention.Apply", &req, &reply))
 	}
 
 	args := &structs.ConnectAuthorizeRequest{
@@ -6812,13 +6775,13 @@ func TestAgentConnectAuthorize_deny(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	assert.Equal(200, resp.Code)
+	assert.Equal(t, 200, resp.Code)
 
 	dec := json.NewDecoder(resp.Body)
 	obj := &connectAuthorizeResp{}
 	require.NoError(t, dec.Decode(obj))
-	assert.False(obj.Authorized)
-	assert.Contains(obj.Reason, "Matched")
+	assert.False(t, obj.Authorized)
+	assert.Contains(t, obj.Reason, "Matched")
 }
 
 // Test when there is an intention allowing service with a different trust
@@ -6835,8 +6798,6 @@ func TestAgentConnectAuthorize_allowTrustDomain(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -6857,7 +6818,7 @@ func TestAgentConnectAuthorize_allowTrustDomain(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionAllow
 
 		var reply string
-		require.NoError(a.RPC("Intention.Apply", &req, &reply))
+		require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
 	}
 
 	{
@@ -6868,13 +6829,13 @@ func TestAgentConnectAuthorize_allowTrustDomain(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		assert.Equal(200, resp.Code)
+		assert.Equal(t, 200, resp.Code)
 
 		dec := json.NewDecoder(resp.Body)
 		obj := &connectAuthorizeResp{}
-		require.NoError(dec.Decode(obj))
-		require.True(obj.Authorized)
-		require.Contains(obj.Reason, "Matched")
+		require.NoError(t, dec.Decode(obj))
+		require.True(t, obj.Authorized)
+		require.Contains(t, obj.Reason, "Matched")
 	}
 }
 
@@ -6885,8 +6846,6 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -6908,7 +6867,7 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionDeny
 
 		var reply string
-		require.NoError(a.RPC("Intention.Apply", &req, &reply))
+		require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
 	}
 	{
 		// Allow web to DB
@@ -6924,7 +6883,7 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionAllow
 
 		var reply string
-		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
+		assert.Nil(t, a.RPC("Intention.Apply", &req, &reply))
 	}
 
 	// Web should be allowed
@@ -6936,13 +6895,13 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		assert.Equal(200, resp.Code)
+		assert.Equal(t, 200, resp.Code)
 
 		dec := json.NewDecoder(resp.Body)
 		obj := &connectAuthorizeResp{}
-		require.NoError(dec.Decode(obj))
-		assert.True(obj.Authorized)
-		assert.Contains(obj.Reason, "Matched")
+		require.NoError(t, dec.Decode(obj))
+		assert.True(t, obj.Authorized)
+		assert.Contains(t, obj.Reason, "Matched")
 	}
 
 	// API should be denied
@@ -6954,13 +6913,13 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		assert.Equal(200, resp.Code)
+		assert.Equal(t, 200, resp.Code)
 
 		dec := json.NewDecoder(resp.Body)
 		obj := &connectAuthorizeResp{}
-		require.NoError(dec.Decode(obj))
-		assert.False(obj.Authorized)
-		assert.Contains(obj.Reason, "Matched")
+		require.NoError(t, dec.Decode(obj))
+		assert.False(t, obj.Authorized)
+		assert.Contains(t, obj.Reason, "Matched")
 	}
 }
 
@@ -6972,7 +6931,6 @@ func TestAgentConnectAuthorize_serviceWrite(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -6988,7 +6946,7 @@ func TestAgentConnectAuthorize_serviceWrite(t *testing.T) {
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 
-	assert.Equal(http.StatusForbidden, resp.Code)
+	assert.Equal(t, http.StatusForbidden, resp.Code)
 }
 
 // Test when no intentions match w/ a default deny policy
@@ -6999,7 +6957,6 @@ func TestAgentConnectAuthorize_defaultDeny(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -7011,13 +6968,13 @@ func TestAgentConnectAuthorize_defaultDeny(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize?token=root", jsonReader(args))
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	assert.Equal(200, resp.Code)
+	assert.Equal(t, 200, resp.Code)
 
 	dec := json.NewDecoder(resp.Body)
 	obj := &connectAuthorizeResp{}
 	require.NoError(t, dec.Decode(obj))
-	assert.False(obj.Authorized)
-	assert.Contains(obj.Reason, "Default behavior")
+	assert.False(t, obj.Authorized)
+	assert.Contains(t, obj.Reason, "Default behavior")
 }
 
 // Test when no intentions match w/ a default allow policy
@@ -7028,14 +6985,20 @@ func TestAgentConnectAuthorize_defaultAllow(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dc1 := "dc1"
 	a := NewTestAgent(t, `
-		acl_datacenter = "`+dc1+`"
-		acl_default_policy = "allow"
-		acl_master_token = "root"
-		acl_agent_token = "root"
-		acl_agent_master_token = "towel"
+		primary_datacenter = "`+dc1+`"
+
+		acl {
+			enabled = true
+			default_policy = "allow"
+
+			tokens {
+				initial_management = "root"
+				agent = "root"
+				agent_recovery = "towel"
+			}
+		}
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, dc1)
@@ -7047,13 +7010,13 @@ func TestAgentConnectAuthorize_defaultAllow(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize?token=root", jsonReader(args))
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	assert.Equal(200, resp.Code)
+	assert.Equal(t, 200, resp.Code)
 
 	dec := json.NewDecoder(resp.Body)
 	obj := &connectAuthorizeResp{}
 	require.NoError(t, dec.Decode(obj))
-	assert.True(obj.Authorized)
-	assert.Contains(obj.Reason, "Default behavior")
+	assert.True(t, obj.Authorized)
+	assert.Contains(t, obj.Reason, "Default behavior")
 }
 
 func TestAgent_Host(t *testing.T) {
@@ -7062,30 +7025,36 @@ func TestAgent_Host(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	dc1 := "dc1"
 	a := NewTestAgent(t, `
-	acl_datacenter = "`+dc1+`"
-	acl_default_policy = "allow"
-	acl_master_token = "master"
-	acl_agent_token = "agent"
-	acl_agent_master_token = "towel"
-`)
+		primary_datacenter = "`+dc1+`"
+
+		acl {
+			enabled = true
+			default_policy = "allow"
+
+			tokens {
+				initial_management = "initial-management"
+				agent = "agent"
+				agent_recovery = "towel"
+			}
+		}
+	`)
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
-	req, _ := http.NewRequest("GET", "/v1/agent/host?token=master", nil)
+	req, _ := http.NewRequest("GET", "/v1/agent/host?token=initial-management", nil)
 	resp := httptest.NewRecorder()
 	// TODO: AgentHost should write to response so that we can test using ServeHTTP()
 	respRaw, err := a.srv.AgentHost(resp, req)
-	assert.Nil(err)
-	assert.Equal(http.StatusOK, resp.Code)
-	assert.NotNil(respRaw)
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.NotNil(t, respRaw)
 
 	obj := respRaw.(*debug.HostInfo)
-	assert.NotNil(obj.CollectionTime)
-	assert.Empty(obj.Errors)
+	assert.NotNil(t, obj.CollectionTime)
+	assert.Empty(t, obj.Errors)
 }
 
 func TestAgent_HostBadACL(t *testing.T) {
@@ -7094,16 +7063,22 @@ func TestAgent_HostBadACL(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 
 	dc1 := "dc1"
 	a := NewTestAgent(t, `
-	acl_datacenter = "`+dc1+`"
-	acl_default_policy = "deny"
-	acl_master_token = "root"
-	acl_agent_token = "agent"
-	acl_agent_master_token = "towel"
-`)
+		primary_datacenter = "`+dc1+`"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+				agent = "agent"
+				agent_recovery = "towel"
+			}
+		}
+	`)
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -7111,8 +7086,8 @@ func TestAgent_HostBadACL(t *testing.T) {
 	resp := httptest.NewRecorder()
 	// TODO: AgentHost should write to response so that we can test using ServeHTTP()
 	_, err := a.srv.AgentHost(resp, req)
-	assert.EqualError(err, "ACL not found")
-	assert.Equal(http.StatusOK, resp.Code)
+	assert.EqualError(t, err, "ACL not found")
+	assert.Equal(t, http.StatusOK, resp.Code)
 }
 
 // Thie tests that a proxy with an ExposeConfig is returned as expected.

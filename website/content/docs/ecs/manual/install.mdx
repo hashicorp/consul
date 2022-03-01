@@ -1,0 +1,552 @@
+---
+layout: docs
+page_title: Manual Installation - AWS ECS
+description: >-
+  Manually Install Consul Service Mesh on AWS ECS (Elastic Container Service).
+---
+
+# Manual Installation
+
+The following instructions describe how to manually create the ECS task definition using the [`consul-ecs` Docker image](https://gallery.ecr.aws/hashicorp/consul-ecs) without Terraform. Refer to the [Consul ECS Terraform module](/docs/ecs/terraform/install) documentation for an alternative method for installing Consul on ECS.
+
+This topic does not include instructions for creating all AWS resources necessary to install Consul, such as a VPC or the ECS cluster. Refer to the linked guides in the [Getting Started](/docs/ecs#getting-started) section for complete, runnable examples.
+
+## Prerequisites
+
+You should have some familiarity with AWS ECS. See [What is Amazon Elastic Container Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) for details.
+
+## Task Definition
+
+You must create a task definition, which includes the following containers:
+
+* Your application container
+* An Envoy sidecar-proxy container
+* A Consul client container
+* A `consul-ecs-mesh-init` container for service mesh setup
+* Optionally, a `consul-ecs-health-sync` container to sync ECS health checks into Consul
+
+## Top-level fields
+
+Your task definition must include the following top-level fields.
+
+The `volumes` list contains two [bind mounts](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/bind-mounts.html),
+named `consul_data` and `consul_binary`. Bind mounts are directories on the host which can be mounted into one or more containers
+in order to share files among containers. For Consul on ECS, certain binaries and configuration are shared among containers
+during task startup.
+
+```json
+{
+  "family": "my-example-client-app",
+  "networkMode": "awsvpc",
+  "volumes": [
+    {
+      "name": "consul_data",
+    },
+    {
+      "name": "consul_binary",
+    }
+  ],
+  "containerDefinitions": [...]
+  "tags": [
+    {
+      "key": "consul.hashicorp.com/mesh",
+      "value": "true"
+    },
+    {
+      "key": "consul.hashicorp.com/service-name",
+      "value":  "example-client-app"
+    }
+  ]
+}
+```
+
+| Field name             | Type   | Description                                                                                                        |
+| ---------------------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
+| `family`               | string | The task family name. This is used as the Consul service name by default.                                          |
+| `networkMode`          | string | Must be `awsvpc`, which is the only network mode supported by Consul on ECS.                                       |
+| `volumes`              | list   | Must be defined as shown above. Volumes are used to share configuration between containers for intial task setup.  |
+| `containerDefinitions` | list   | The list of containers to run in this task (see [Application container](#application-container)).                  |
+
+### Task Tags
+
+The `tags` list must include the following if you are using the ACL controller in a [secure configuration](/docs/manual/secure-configuration).
+Without these tags, the ACL controller will be unable to provision a service token for the task.
+
+| Tag Key                             | Tag Value           | Description                                                                                                                |
+| ----------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `consul.hashicorp.com/mesh`         | `true` (string)     | The ACL controller ignores tasks without this tag set to `true`.                                                           |
+| `consul.hashicorp.com/service-name` | Consul service name | Specifies the Consul service associated with this task. Required if the service name is different than the task `family`.  |
+
+## Application container
+
+First, include your application container in the `containerDefinitions` list
+in the task definition.
+
+Ensure that the `containerName` and `condition` fields in the `dependsOn` list
+are specified as described in the following example. These are container dependencies,
+which must be used to enforce a specific [startup order](/docs/ecs/architecture#task-startup).
+By using the following settings, your application container will start after `consul-ecs-mesh-init`
+has completed task setup and after `sidecar-proxy` is ready to proxy traffic between
+this task and the service mesh.
+
+```json
+{
+  "containerDefinitions": [
+    {
+      "name": "example-client-app",
+      "image": "docker.io/org/my_task:v0.0.1",
+      "essential": true,
+      "dependsOn": [
+        {
+          "containerName": "consul-ecs-mesh-init",
+          "condition": "SUCCESS"
+        },
+        {
+          "containerName": "sidecar-proxy",
+          "condition": "HEALTHY"
+        }
+      ],
+      ...
+    }
+  ]
+}
+```
+
+| Field name  | Type    | Description                                                                                                                       |
+| ----------- | ------- | --------------------------------------------------------------------------------------------------------------------------------  |
+| `name`      | string  | The name of your application container.                                                                                           |
+| `image`     | string  | The container image used to run your application.                                                                                 |
+| `essential` | boolean | Must be `true` to ensure the health of your application container affects the health status of the task.                          |
+| `dependsOn` | list    | Must be set as shown above. Container dependencies ensure your application container starts after service mesh setup is complete. |
+
+See the [ECS Task Definition](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html) documentation for a complete reference.
+
+## `sidecar-proxy` container
+
+The `sidecar-proxy` container runs [Envoy proxy](/docs/connect/proxies/envoy) for Consul Connect. In most cases, the container should contain the following parameters and values.
+
+The `mountPoints` list must be set as shown in the following example. This will mount the shared `consul_data` volume into the
+`sidecar-proxy` container at the path `/consul`. This volume is where the `consul-ecs-mesh-init` container copies the `envoy-bootstrap.json`
+file and the `consul-ecs` binary, which are required to start Envoy. The `dependsOn` list must also be defined as follows to ensure the
+`sidecar-proxy` container starts after `consul-ecs-mesh-init` has successfully written these files to the shared volume.
+
+<CodeBlockConfig highlight="8-40">
+
+```json
+{
+  "containerDefinitions": [
+    {
+      "name": "example-client-app",
+      "image": "docker.io/org/my_task:v0.0.1",
+      ...
+    },
+    {
+      "name": "sidecar-proxy",
+      "image": "envoyproxy/envoy-alpine:<VERSION>",
+      "essential": false,
+      "dependsOn": [
+        {
+          "containerName": "consul-ecs-mesh-init",
+          "condition": "SUCCESS"
+        }
+      ],
+      "healthCheck": {
+        "retries": 3,
+        "command": ["nc", "-z", "127.0.0.1", "20000"],
+        "timeout": 5,
+        "interval": 30
+      },
+      "mountPoints": [
+        {
+          "readOnly": true,
+          "containerPath": "/consul",
+          "sourceVolume": "consul_data"
+        }
+      ],
+      "ulimits": [
+        {
+          "name": "nofile",
+          "softLimit": 1048576,
+          "hardLimit": 1048576
+        }
+      ],
+      "command": ["envoy", "--config-path", "/consul/envoy-bootstrap.json"],
+      "entryPoint": ["/consul/consul-ecs", "envoy-entrypoint"],
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+
+The following table describes the necessary configuration settings.
+
+| Field name    | Type    | Description                                                                                                                                                |
+| ------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | string  | The container name, which must be `sidecar-proxy`.                                                                                                         |
+| `image`       | string  | The Envoy image. This must be a [supported version of Envoy](/docs/connect/proxies/envoy#supported-versions).                                              |
+| `dependsOn`   | list    | Must be set as shown above to ensure Envoy starts after the `consul-ecs-mesh-init` container has written the `envoy-bootstrap.json` config file for Envoy. |
+| `healthCheck` | list    | Must be set as shown above to monitor the health of Envoy's primary listener port, which ties into container dependencies and startup ordering.            |
+| `mountPoints` | list    | Must be set as shown above to access the files shared in the `/consul` directory, like the Envoy bootstrap configuration file and the `consul-ecs` binary. |
+| `ulimits`     | list    | The `nofile` ulimit must be raised to a sufficiently high value so that Envoy does not fail to open sockets.                                               |
+| `entrypoint`  | list    | Must be set to the custom Envoy entrypoint, `consul-ecs envoy-entrypoint`, to facilitate graceful shutdown.                                                |
+| `command`     | list    | The startup command. This passes the bootstrap configuration to Envoy.                                                                                     |
+
+-> **NOTE**: Envoy and Consul must be compatible versions. See the [supported versions of Envoy](/docs/connect/proxies/envoy#supported-versions) in the Consul documentation.
+
+## `consul-client` container
+
+Each task must include a Consul client container in order for the task to join your Consul cluster.
+
+<CodeBlockConfig highlight="13-31">
+
+```json
+{
+  "containerDefinitions": [
+    {
+      "name": "example-client-app",
+      "image": "docker.io/org/my_task:v0.0.1",
+      ...
+    },
+    {
+      "name": "sidecar-proxy",
+      "image": "envoyproxy/envoy-alpine:<ENVOY_VERSION>",
+      ...
+    }
+    {
+      "name": "consul-client"
+      "image": "public.ecr.aws/hashicorp/consul:<CONSUL_VERSION>",
+      "mountPoints": [
+        {
+          "readOnly": false,
+          "containerPath": "/consul",
+          "sourceVolume": "consul_data"
+        },
+        {
+          "containerPath": "/bin/consul-inject",
+          "sourceVolume": "consul_binary"
+        }
+      ],
+      "entryPoint": ["/bin/sh", "-ec"],
+      "command": [
+        "cp /bin/consul /bin/consul-inject/consul\n\nECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')\n\n\ncat << EOF > /consul/agent-defaults.hcl\naddresses = {\n  dns = \"127.0.0.1\"\n  grpc = \"127.0.0.1\"\n  http = \"127.0.0.1\"\n}\nadvertise_addr = \"$ECS_IPV4\"\nadvertise_reconnect_timeout = \"15m\"\nclient_addr = \"0.0.0.0\"\ndatacenter = \"dc1\"\nenable_central_service_config = true\nleave_on_terminate = true\nports {\n  grpc = 8502\n}\nretry_join = [\n  \"<Consul server location>",\n]\ntelemetry {\n  disable_compat_1.9 = true\n}\n\nEOF\n\ncat << EOF > /consul/agent-extra.hcl\naddresses = {\n  dns = \"0.0.0.0\"\n}\nlog_level = \"debug\"\n\nEOF\n\nexec consul agent \\\n    -data-dir /consul/data \\\n    -config-file /consul/agent-defaults.hcl \\\n    -config-file /consul/agent-extra.hcl\n"
+      ]
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+
+| Field name    | Type    | Description                                                                                                                       |
+| ------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | string  | The container name, which should always be `consul-client`.                                                                       |
+| `image`       | string  | The Consul image. Use our public AWS registry, `public.ecr.aws/hashicorp/consul`, to avoid rate limits.                           |
+| `mountPoints` | list    | Must be set as shown above. Volumes are mounted to share information with other containers for task setup.                        |
+| `entrypoint`  | list    | Must be set to a plain shell so that the startup `command` works properly.                                                        |
+| `command`     | list    | Specifies the contents of the [startup script](#consul-client-startup-script). Copy the script and format it into a JSON string.  |
+
+### Consul client startup script
+
+The following script is used to start the Consul client for Consul on ECS.
+
+```shell
+# Copy the consul binary to a shared volume for `consul-ecs-mesh-init` to use to generate Envoy configuration.
+cp /bin/consul /bin/consul-inject/consul
+
+# At runtime, determine the IP address assigned to this ECS Task.
+ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')
+
+# Write the Consul agent configuration file.
+cat << EOF > /consul/agent-defaults.hcl
+addresses = {
+  dns = "127.0.0.1"
+  grpc = "127.0.0.1"
+  http = "127.0.0.1"
+}
+advertise_addr = "$ECS_IPV4"
+advertise_reconnect_timeout = "15m"
+client_addr = "0.0.0.0"
+datacenter = "dc1"
+enable_central_service_config = true
+leave_on_terminate = true
+ports {
+  grpc = 8502
+}
+retry_join = ["<consul server location>"]
+telemetry {
+  disable_compat_1.9 = true
+}
+
+EOF
+
+# Start the consul agent.
+exec consul agent \
+    -data-dir /consul/data \
+    -config-file /consul/agent-defaults.hcl
+```
+
+The following table describes the values that you should use to configure the `command` script:
+
+| Field name           | Type    | Description                                                                                                  |
+| -------------------- | ------- | ------------------------------------------------------------------------------------------------------------ |
+| `addresses.*`        | strings | Set the DNS, GRPC, and HTTP addresses to `127.0.0.1` to ensure these are not accessible outside of the task. |
+| `advertise_addr`     | string  | Must be set to the task IP address so that other Consul agents know how to reach this agent.                 |
+| `client_addr`        | string  | Must be set to an interface reachable by other Consul agents.                                                |
+| `datacenter`         | string  | Must be set to the Consul datacenter this task will join.                                                    |
+| `leave_on_terminate` | boolean | Must be set to `true` so that the Consul agent leaves the cluster gracefully before exiting.                 |
+| `retry_join`         | string  | Must be set to your Consul server location(s) so this agent can join the Consul cluster.                     |
+
+-> **NOTE**: Use `exec` to start the Consul agent so that the Consul agent runs as PID 1. This ensures
+the Consul agent directly receives signals from ECS, which is important for graceful shutdown of the Consul agent.
+
+Refer to the [Consul Agent documentation](/docs/agent/options#configuration_files) for a complete reference of Consul agent
+configuration options.
+
+## `consul-ecs-mesh-init` container
+
+The `consul-ecs-mesh-init` container runs at task startup to setup this instance for Consul service mesh.
+It registers the service and proxy for this task with Consul and writes Envoy bootstrap
+configuration to a shared volume.
+
+<CodeBlockConfig highlight="18-41">
+
+```json
+{
+  "containerDefinitions": [
+    {
+      "name": "example-client-app",
+      "image": "docker.io/org/my_task:v0.0.1",
+      ...
+    },
+    {
+      "name": "sidecar-proxy",
+      "image": "envoyproxy/envoy-alpine:<ENVOY_VERSION>",
+      ...
+    },
+    {
+      "name": "consul-client"
+      "image": "public.ecr.aws/hashicorp/consul:<CONSUL_VERSION>",
+      ...
+    },
+    {
+      "name": "consul-ecs-mesh-init",
+      "image": "public.ecr.aws/hashicorp/consul-ecs:<CONSUL_ECS_VERSION>",
+      "command": ["mesh-init"],
+      "essential": false,
+      "environment": [
+        {
+          "name": "CONSUL_ECS_CONFIG_JSON",
+          "value": "{\"bootstrapDir\":\"/consul\",\"healthSyncContainers\":[],\"proxy\":{\"upstreams\":[{\"destinationName\":\"example-server-app\",\"localBindPort\":1234}]},\"service\":{\"checks\":[],\"meta\":{},\"name\":\"example-client-app\",\"port\":9090,\"tags\":[]}}"
+        }
+      ],
+      "mountPoints": [
+        {
+          "readOnly": false,
+          "containerPath": "/consul",
+          "sourceVolume": "consul_data"
+        },
+        {
+          "readOnly": true,
+          "containerPath": "/bin/consul-inject",
+          "sourceVolume": "consul_binary"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+
+| Field name    | Type    | Description                                                                                                                             |
+| -----------   | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | string  | The container name should be `consul-ecs-mesh-init`.                                                                                    |
+| `image`       | string  | The `consul-ecs` image. Use our public AWS registry, `public.ecr.aws/hashicorp/consul-ecs`, to avoid rate limits.                       |
+| `mountPoints` | list    | Must be set as show above, so the `consul` and `consul-ecs` binaries can be shared among containers for task setup.                     |
+| `command`     | list    | Set to `["mesh-init"]` so that the container runs the `consul-ecs mesh-init` command.                                                   |
+| `environment` | list    | This must include the [`CONSUL_ECS_CONFIG_JSON`](/docs/ecs/manual-installation#consul_ecs_config_json) variable. See below for details. |
+
+### `CONSUL_ECS_CONFIG_JSON`
+
+Configuration is passed to the `consul-ecs` binary in JSON format using the `CONSUL_ECS_CONFIG_JSON` environment variable.
+
+The following is an example of the configuration that might be used for a service named `example-client-app` with one upstream
+service name `example-server-app`. The `proxy` and `service` blocks include information used by `consul-ecs-mesh-init` to perform
+[service registration](/docs/discovery/services) with Consul during task startup. The same configuration format is used for
+the `consul-ecs-health-sync` container.
+
+```json
+{
+  "bootstrapDir": "/consul",
+  "healthSyncContainers": [],
+  "proxy": {
+    "upstreams": [
+      {
+        "destinationName": "example-server-app",
+        "localBindPort": 1234
+      }
+    ]
+  },
+  "service": {
+    "checks": [],
+    "meta": {},
+    "name": "example-client-app",
+    "port": 9090,
+    "tags": []
+  }
+}
+```
+
+| Field name             | Type    | Description                                                                                                                                     |
+| ---------------------- | ------  | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bootstrapDir`         | string  | This is the path of a  shared volume that is mounted to other containers, where `consul-ecs-mesh-init` will write out Envoy configuration.      |
+| `healthSyncContainers` | list    | Used for [health status syncing](/docs/ecs/manual-installation#consul-ecs-health-sync-container) from ECS to Consul. See below for details.     |
+| `proxy.upstreams`      | list    | The upstream services that your application calls over the service mesh, if any. The `destinationName` and `localBindPort` fields are required. |
+| `service.name`         | string  | The name used to register this service into the Consul service catalog.                                                                         |
+| `service.port`         | integer | The port your application listens on. Set to `0` if your application does not listen on any port.                                               |
+| `service.checks`       | list    | Consul [checks](/docs/discovery/checks) to include so that Consul can run health checks against your application.                               |
+
+See the [Configuration Reference](/docs/ecs/configuration-reference) for a complete reference of fields.
+
+## `consul-ecs-health-sync` container
+
+Optionally, Consul ECS can sync health checks for this task into Consul checks.
+This allows you to configure a health check for your application in one place and
+see a consistent health status in both ECS and Consul.
+
+For example, the following defines an ECS health check command that runs `curl localhost:9090/health`:
+
+<CodeBlockConfig highlight="6-11">
+
+```json
+{
+  "containerDefinitions": [
+    {
+      "name": "example-client-app",
+      "image": "docker.io/org/my_task:v0.0.1",
+      "healthCheck": {
+        "retries": 3,
+        "command": ["CMD-SHELL", "curl localhost:9090/health"],
+        "timeout": 5,
+        "interval": 30
+      },
+      ...
+    },
+    ...
+  ]
+}
+```
+
+</CodeBlockConfig>
+
+First, define which containers need their health status synced into Consul. To do this,
+add the container name(s) to the `healthSyncContainers` list of the `CONSUL_ECS_CONFIG_JSON` variable,
+as shown in the following example. This configuration must be passed to both the `consul-ecs-mesh-init`
+and `consul-ecs-health-sync` containers.
+
+<CodeBlockConfig highlight="3-3">
+
+```json
+{
+  "bootstrapDir": "/consul",
+  "healthSyncContainers": ["example-client-app"],
+  ...
+}
+```
+
+</CodeBlockConfig>
+
+Next, set the `CONSUL_ECS_CONFIG_JSON` variable for the `consul-ecs-mesh-init` container.
+The following example shows how the `CONSUL_ECS_CONFIG_JSON` variable should be formatted.
+The JSON configuration is compacted down to a single line and escaped.
+
+<CodeBlockConfig highlight="7-10">
+
+```json
+{
+  "containerDefinitions": [
+    {
+      "name": "consul-ecs-mesh-init",
+      "image": "public.ecr.aws/hashicorp/consul-ecs:<VERSION>",
+      "environment": [
+        {
+          "name": "CONSUL_ECS_CONFIG_JSON",
+          "value": "{\"bootstrapDir\":\"/consul\",\"healthSyncContainers\":[\"example-client-app\"],\"proxy\":{\"upstreams\":[{\"destinationName\":\"example-server-app\",\"localBindPort\":1234}]},\"service\":{\"checks\":[],\"meta\":{},\"name\":\"example-client-app\",\"port\":9090,\"tags\":[]}}"
+        }
+      ],
+      ...
+    },
+    ...
+  ]
+}
+```
+
+</CodeBlockConfig>
+
+Finally, include the `consul-ecs-health-sync` container in the `containerDefinitions` list.
+Pass the same value for `CONSUL_ECS_CONFIG_JSON` for both the `consul-ecs-health-sync`
+and `consul-ecs-mesh-init` containers.
+
+<CodeBlockConfig highlight="23-40">
+
+```json
+{
+  "containerDefinitions": [
+    {
+      "name": "example-client-app",
+      "image": "docker.io/org/my_task:v0.0.1",
+      ...
+    },
+    {
+      "name": "sidecar-proxy",
+      "image": "envoyproxy/envoy-alpine:<ENVOY_VERSION>",
+      ...
+    },
+    {
+      "name": "consul-client"
+      "image": "public.ecr.aws/hashicorp/consul:<CONSUL_VERSION>",
+      ...
+    },
+    {
+      "name": "consul-ecs-mesh-init",
+      "image": "public.ecr.aws/hashicorp/consul-ecs:<CONSUL_ECS_VERSION>",
+      ...
+    },
+    {
+      "name": "consul-ecs-health-sync",
+      "image": "public.ecr.aws/hashicorp/consul-ecs:<CONSUL_ECS_VERSION>",
+      "command": ["health-sync"],
+      "essential": false,
+      "dependsOn": [
+        {
+          "containerName": "consul-ecs-mesh-init",
+          "condition": "SUCCESS"
+        }
+      ],
+      "environment": [
+        {
+          "name": "CONSUL_ECS_CONFIG_JSON",
+          "value": "{\"bootstrapDir\":\"/consul\",\"healthSyncContainers\":[\"example-client-app\"],\"proxy\":{\"upstreams\":[{\"destinationName\":\"example-server-app\",\"localBindPort\":1234}]},\"service\":{\"checks\":[],\"meta\":{},\"name\":\"example-client-app\",\"port\":9090,\"tags\":[]}}"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+
+| Field name    | Type   | Description                                                                                                       |
+| ------------- | ------ | ----------------------------------------------------------------------------------------------------------------- |
+| `name`        | string | The container name, which must be `consul-ecs-health-sync`.                                                       |
+| `image`       | string | The `consul-ecs` image. Use our public AWS registry, `public.ecr.aws/hashicorp/consul-ecs`, to avoid rate limits. |
+| `command`     | list   | Must be set to `["health-sync"]` to run the `consul-ecs health-sync` command.                                     |
+| `dependsOn`   | list   | Must be set as shown above to ensure the `health-sync` container starts after service registration has completed. |
+| `environment` | list   | Must include the `CONSUL_ECS_CONFIG_JSON` variable to pass configuration to the `consul-ecs health-sync` command. |
+
+# Next Steps
+
+* Create the task definition using the [AWS Console](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html) or the [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/ecs/register-task-definition.html), or another method of your choice.
+* Create an [ECS Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html) to start tasks using the task definition.
+* Follow the [Secure Configration](/docs/ecs/manual/secure-configuration) to get production-ready.

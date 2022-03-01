@@ -1,13 +1,13 @@
 package consul
 
 import (
-	"net/rpc"
 	"os"
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	uuid "github.com/hashicorp/go-uuid"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
@@ -541,7 +541,7 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 			gwListEmpty:      true,
 			gwFilteredByACLs: true,
 		},
-		"master token": {
+		"initial management token": {
 			token: "root",
 		},
 	}

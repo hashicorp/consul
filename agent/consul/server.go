@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"net/rpc"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -21,6 +20,7 @@ import (
 	"go.etcd.io/bbolt"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -141,7 +141,7 @@ type Server struct {
 	aclConfig *acl.Config
 
 	// acls is used to resolve tokens to effective policies
-	acls *ACLResolver
+	*ACLResolver
 
 	aclAuthMethodValidators authmethod.Cache
 
@@ -450,14 +450,14 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	s.aclConfig = newACLConfig(partitionInfo, logger)
 	aclConfig := ACLResolverConfig{
 		Config:      config.ACLResolverSettings,
-		Delegate:    s,
+		Backend:     &serverACLResolverBackend{Server: s},
 		CacheConfig: serverACLCacheConfig,
 		Logger:      logger,
 		ACLConfig:   s.aclConfig,
 		Tokens:      flat.Tokens,
 	}
 	// Initialize the ACL resolver.
-	if s.acls, err = NewACLResolver(&aclConfig); err != nil {
+	if s.ACLResolver, err = NewACLResolver(&aclConfig); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
 	}
@@ -994,8 +994,8 @@ func (s *Server) Shutdown() error {
 		s.connPool.Shutdown()
 	}
 
-	if s.acls != nil {
-		s.acls.Close()
+	if s.ACLResolver != nil {
+		s.ACLResolver.Close()
 	}
 
 	if s.fsm != nil {

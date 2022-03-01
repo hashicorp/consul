@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/go-hclog"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
@@ -1162,15 +1162,15 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
-		build     string
-		master    string
-		bootstrap bool
+		name              string
+		build             string
+		initialManagement string
+		bootstrap         bool
 	}{
-		{"old version, no master", "0.8.0", "", true},
-		{"old version, master", "0.8.0", "root", false},
-		{"new version, no master", "0.9.1", "", true},
-		{"new version, master", "0.9.1", "root", false},
+		{"old version, no initial management", "0.8.0", "", true},
+		{"old version, initial management", "0.8.0", "root", false},
+		{"new version, no initial management", "0.9.1", "", true},
+		{"new version, initial management", "0.9.1", "root", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1180,17 +1180,17 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				c.Datacenter = "dc1"
 				c.PrimaryDatacenter = "dc1"
 				c.ACLsEnabled = true
-				c.ACLInitialManagementToken = tt.master
+				c.ACLInitialManagementToken = tt.initialManagement
 			}
 			dir1, s1 := testServerWithConfig(t, conf)
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
 			testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-			if tt.master != "" {
-				_, master, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.master, nil)
+			if tt.initialManagement != "" {
+				_, initialManagement, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.initialManagement, nil)
 				require.NoError(t, err)
-				require.NotNil(t, master)
+				require.NotNil(t, initialManagement)
 			}
 
 			_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken, nil)
@@ -1445,7 +1445,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 
 			logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 				Name:   config.NodeName,
-				Level:  hclog.Debug,
+				Level:  testutil.TestLogLevel,
 				Output: io.MultiWriter(pw, testutil.NewLogBuffer(t)),
 			})
 
@@ -2134,7 +2134,7 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 		c.Bootstrap = false
 		c.BootstrapExpect = 3
 		c.Datacenter = "dc1"
-		c.Build = "1.11.0"
+		c.Build = "1.11.2"
 	}
 	dir1, s1 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir1)
@@ -2163,6 +2163,10 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 	_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
 	require.NoError(t, err)
 	require.Nil(t, entry)
+	state = s1.fsm.State()
+	_, entry, err = state.SystemMetadataGet(nil, structs.SystemMetadataTermGatewayVirtualIPsEnabled)
+	require.NoError(t, err)
+	require.Nil(t, entry)
 
 	// Register a connect-native service and make sure we don't have a virtual IP yet.
 	err = state.EnsureRegistration(10, &structs.RegisterRequest{
@@ -2181,10 +2185,43 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "", vip)
 
+	// Register a terminating gateway.
+	err = state.EnsureRegistration(11, &structs.RegisterRequest{
+		Node:    "bar",
+		Address: "127.0.0.2",
+		Service: &structs.NodeService{
+			Service: "tgate1",
+			ID:      "tgate1",
+			Kind:    structs.ServiceKindTerminatingGateway,
+		},
+	})
+	require.NoError(t, err)
+
+	err = state.EnsureConfigEntry(12, &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "tgate1",
+		Services: []structs.LinkedService{
+			{
+				Name: "bar",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// Make sure the service referenced in the terminating gateway config doesn't have
+	// a virtual IP yet.
+	vip, err = state.VirtualIPForService(structs.NewServiceName("bar", nil))
+	require.NoError(t, err)
+	require.Equal(t, "", vip)
+
 	// Leave s3 and wait for the version to get updated.
 	require.NoError(t, s3.Leave())
 	retry.Run(t, func(r *retry.R) {
 		_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
+		require.NoError(r, err)
+		require.NotNil(r, entry)
+		require.Equal(r, "true", entry.Value)
+		_, entry, err = state.SystemMetadataGet(nil, structs.SystemMetadataTermGatewayVirtualIPsEnabled)
 		require.NoError(r, err)
 		require.NotNil(r, entry)
 		require.Equal(r, "true", entry.Value)
@@ -2206,6 +2243,34 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 	vip, err = state.VirtualIPForService(structs.NewServiceName("api", nil))
 	require.NoError(t, err)
 	require.Equal(t, "240.0.0.1", vip)
+
+	// Update the terminating gateway config entry - now there should be a virtual IP assigned.
+	err = state.EnsureConfigEntry(21, &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "tgate1",
+		Services: []structs.LinkedService{
+			{
+				Name: "api",
+			},
+			{
+				Name: "baz",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	_, node, err := state.NodeService("bar", "tgate1", nil)
+	require.NoError(t, err)
+	sn := structs.ServiceName{Name: "api"}
+	key := structs.ServiceGatewayVirtualIPTag(sn)
+	require.Contains(t, node.TaggedAddresses, key)
+	require.Equal(t, node.TaggedAddresses[key].Address, "240.0.0.1")
+
+	// Make sure the baz service (only referenced in the config entry so far)
+	// has a virtual IP.
+	vip, err = state.VirtualIPForService(structs.NewServiceName("baz", nil))
+	require.NoError(t, err)
+	require.Equal(t, "240.0.0.2", vip)
 }
 
 func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {

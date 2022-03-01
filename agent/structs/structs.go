@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
@@ -370,7 +370,9 @@ func (q QueryBackend) String() string {
 // QueryMeta allows a query response to include potentially
 // useful metadata about a query
 type QueryMeta struct {
-	// Index in the raft log of the latest item returned by the query.
+	// Index in the raft log of the latest item returned by the query. If the
+	// query did not return any results the Index will be a value that will
+	// change when a new item is added.
 	Index uint64
 
 	// If AllowStale is used, this is time elapsed since
@@ -1739,7 +1741,7 @@ type CheckServiceNode struct {
 	Checks  HealthChecks
 }
 
-func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
+func (csn *CheckServiceNode) BestAddress(wan bool) (uint64, string, int) {
 	// TODO (mesh-gateway) needs a test
 	// best address
 	// wan
@@ -1752,12 +1754,14 @@ func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
 	//   node addr
 
 	addr, port := csn.Service.BestAddress(wan)
+	idx := csn.Service.ModifyIndex
 
 	if addr == "" {
 		addr = csn.Node.BestAddress(wan)
+		idx = csn.Node.ModifyIndex
 	}
 
-	return addr, port
+	return idx, addr, port
 }
 
 func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecision {
@@ -1997,6 +2001,10 @@ func (n ServiceName) Matches(o ServiceName) bool {
 
 func (n ServiceName) ToServiceID() ServiceID {
 	return ServiceID{ID: n.Name, EnterpriseMeta: n.EnterpriseMeta}
+}
+
+func ServiceGatewayVirtualIPTag(sn ServiceName) string {
+	return fmt.Sprintf("%s:%s", TaggedAddressVirtualIP, sn.String())
 }
 
 type ServiceList []ServiceName

@@ -622,7 +622,7 @@ func (s *HTTPHandlers) AgentJoin(resp http.ResponseWriter, req *http.Request) (i
 	var authzContext acl.AuthorizerContext
 	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
 	if authz.AgentWrite(s.agent.config.NodeName, &authzContext) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+		return nil, acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceAgent, acl.AccessWrite, s.agent.config.NodeName)
 	}
 
 	// Get the request partition and default to that of the agent.
@@ -686,7 +686,7 @@ func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Reque
 	}
 	// TODO(partitions): should this be possible in a partition?
 	if authz.OperatorWrite(nil) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+		return nil, acl.PermissionDeniedByACLUnnamed(authz, nil, acl.ResourceOperator, acl.AccessWrite)
 	}
 
 	// Get the request partition and default to that of the agent.
@@ -1008,7 +1008,7 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 
 	if service := s.agent.State.Service(sid); service != nil {
 		if authz.ServiceRead(service.Service, &authzContext) != acl.Allow {
-			return nil, acl.ErrPermissionDenied
+			return nil, acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessRead, service.Service)
 		}
 		code, status, healthChecks := agentHealthService(sid, s)
 		if returnTextPlain(req) {
@@ -1061,7 +1061,7 @@ func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *h
 	}
 
 	if authz.ServiceRead(serviceName, &authzContext) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+		return nil, acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessRead, serviceName)
 	}
 
 	if !s.validateRequestPartition(resp, &entMeta) {
@@ -1684,7 +1684,7 @@ func (s *HTTPHandlers) AgentHost(resp http.ResponseWriter, req *http.Request) (i
 
 	// TODO(partitions): should this be possible in a partition?
 	if authz.OperatorRead(nil) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+		return nil, acl.PermissionDeniedByACLUnnamed(authz, nil, acl.ResourceOperator, acl.AccessRead)
 	}
 
 	return debug.CollectHostInfo(), nil

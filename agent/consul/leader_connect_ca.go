@@ -197,11 +197,18 @@ func (c *CAManager) secondarySetPrimaryRoots(newRoots structs.IndexedCARoots) {
 	c.primaryRoots = newRoots
 }
 
-func (c *CAManager) secondaryGetPrimaryRoots() structs.IndexedCARoots {
+func (c *CAManager) secondaryGetActivePrimaryCARoot() (*structs.CARoot, error) {
 	// TODO: this could be a different lock, as long as its the same lock in secondarySetPrimaryRoots
 	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
-	return c.primaryRoots
+	primaryRoots := c.primaryRoots
+	c.stateLock.Unlock()
+
+	for _, root := range primaryRoots.Roots {
+		if root.ID == primaryRoots.ActiveRootID && root.Active {
+			return root, nil
+		}
+	}
+	return nil, fmt.Errorf("primary datacenter does not have an active root CA for Connect")
 }
 
 // initializeCAConfig is used to initialize the CA config if necessary
@@ -246,28 +253,24 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 	return config, nil
 }
 
-// parseCARoot returns a filled-in structs.CARoot from a raw PEM value.
-func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
-	id, err := connect.CalculateCertFingerprint(pemValue)
+// newCARoot returns a filled-in structs.CARoot from a raw PEM value.
+func newCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
+	primaryCert, err := connect.ParseCert(pemValue)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing root fingerprint: %v", err)
+		return nil, err
 	}
-	rootCert, err := connect.ParseCert(pemValue)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing root cert: %v", err)
-	}
-	keyType, keyBits, err := connect.KeyInfoFromCert(rootCert)
+	keyType, keyBits, err := connect.KeyInfoFromCert(primaryCert)
 	if err != nil {
 		return nil, fmt.Errorf("error extracting root key info: %v", err)
 	}
 	return &structs.CARoot{
-		ID:                  id,
-		Name:                fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
-		SerialNumber:        rootCert.SerialNumber.Uint64(),
-		SigningKeyID:        connect.EncodeSigningKeyID(rootCert.SubjectKeyId),
+		ID:                  connect.CalculateCertFingerprint(primaryCert.Raw),
+		Name:                fmt.Sprintf("%s CA Primary Cert", strings.Title(provider)),
+		SerialNumber:        primaryCert.SerialNumber.Uint64(),
+		SigningKeyID:        connect.EncodeSigningKeyID(primaryCert.SubjectKeyId),
 		ExternalTrustDomain: clusterID,
-		NotBefore:           rootCert.NotBefore,
-		NotAfter:            rootCert.NotAfter,
+		NotBefore:           primaryCert.NotBefore,
+		NotAfter:            primaryCert.NotAfter,
 		RootCert:            pemValue,
 		PrivateKeyType:      keyType,
 		PrivateKeyBits:      keyBits,
@@ -428,7 +431,7 @@ func (c *CAManager) secondaryInitialize(provider ca.Provider, conf *structs.CACo
 	}
 	var roots structs.IndexedCARoots
 	if err := c.delegate.forwardDC("ConnectCA.Roots", c.serverConf.PrimaryDatacenter, &args, &roots); err != nil {
-		return err
+		return fmt.Errorf("failed to get CA roots from primary DC: %w", err)
 	}
 	c.secondarySetPrimaryRoots(roots)
 
@@ -475,21 +478,17 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	if err := provider.Configure(pCfg); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
-	if err := provider.GenerateRoot(); err != nil {
+	root, err := provider.GenerateRoot()
+	if err != nil {
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
 
-	// Get the active root cert from the CA
-	rootPEM, err := provider.ActiveRoot()
-	if err != nil {
-		return fmt.Errorf("error getting root cert: %v", err)
-	}
-	rootCA, err := parseCARoot(rootPEM, conf.Provider, conf.ClusterID)
+	rootCA, err := newCARoot(root.PEM, conf.Provider, conf.ClusterID)
 	if err != nil {
 		return err
 	}
 
-	// Also create the intermediate CA, which is the one that actually signs leaf certs
+	// TODO: https://github.com/hashicorp/consul/issues/12386
 	interPEM, err := provider.GenerateIntermediate()
 	if err != nil {
 		return fmt.Errorf("error generating intermediate cert: %v", err)
@@ -602,79 +601,45 @@ func (c *CAManager) getLeafSigningCertFromRoot(root *structs.CARoot) string {
 	return root.IntermediateCerts[len(root.IntermediateCerts)-1]
 }
 
-// secondaryInitializeIntermediateCA runs the routine for generating an intermediate CA CSR and getting
-// it signed by the primary DC if the root CA of the primary DC has changed since the last
-// intermediate. It should only be called while the state lock is held by setting the state
-// to non-ready.
+// secondaryInitializeIntermediateCA generates a Certificate Signing Request (CSR)
+// for the intermediate CA that is used to sign leaf certificates in the secondary.
+// The CSR is signed by the primary DC and then persisted in the state store.
+//
+// This method should only be called while the state lock is held by setting the
+// state to non-ready.
 func (c *CAManager) secondaryInitializeIntermediateCA(provider ca.Provider, config *structs.CAConfiguration) error {
 	activeIntermediate, err := provider.ActiveIntermediate()
 	if err != nil {
 		return err
 	}
 
-	var (
-		storedRootID         string
-		expectedSigningKeyID string
-		currentSigningKeyID  string
-		activeSecondaryRoot  *structs.CARoot
-	)
+	_, activeRoot, err := c.delegate.State().CARootActive(nil)
+	if err != nil {
+		return err
+	}
+	var currentSigningKeyID string
+	if activeRoot != nil {
+		currentSigningKeyID = activeRoot.SigningKeyID
+	}
+
+	var expectedSigningKeyID string
 	if activeIntermediate != "" {
-		// In the event that we already have an intermediate, we must have
-		// already replicated some primary root information locally, so check
-		// to see if we're up to date by fetching the rootID and the
-		// signingKeyID used in the secondary.
-		//
-		// Note that for the same rootID the primary representation of the root
-		// will have a different SigningKeyID field than the secondary
-		// representation of the same root. This is because it's derived from
-		// the intermediate which is different in all datacenters.
-		storedRoot, err := provider.ActiveRoot()
-		if err != nil {
-			return err
-		}
-
-		storedRootID, err = connect.CalculateCertFingerprint(storedRoot)
-		if err != nil {
-			return fmt.Errorf("error parsing root fingerprint: %v, %#v", err, storedRoot)
-		}
-
 		intermediateCert, err := connect.ParseCert(activeIntermediate)
 		if err != nil {
 			return fmt.Errorf("error parsing active intermediate cert: %v", err)
 		}
 		expectedSigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
-
-		// This will fetch the secondary's exact current representation of the
-		// active root. Note that this data should only be used if the IDs
-		// match, otherwise it's out of date and should be regenerated.
-		_, activeSecondaryRoot, err = c.delegate.State().CARootActive(nil)
-		if err != nil {
-			return err
-		}
-		if activeSecondaryRoot != nil {
-			currentSigningKeyID = activeSecondaryRoot.SigningKeyID
-		}
 	}
 
-	// Determine which of the provided PRIMARY representations of roots is the
-	// active one. We'll use this as a template to generate any new root
-	// representations meant for this secondary.
-	var newActiveRoot *structs.CARoot
-	primaryRoots := c.secondaryGetPrimaryRoots()
-	for _, root := range primaryRoots.Roots {
-		if root.ID == primaryRoots.ActiveRootID && root.Active {
-			newActiveRoot = root
-			break
-		}
-	}
-	if newActiveRoot == nil {
-		return fmt.Errorf("primary datacenter does not have an active root CA for Connect")
+	newActiveRoot, err := c.secondaryGetActivePrimaryCARoot()
+	if err != nil {
+		return err
 	}
 
 	// Get a signed intermediate from the primary DC if the provider
 	// hasn't been initialized yet or if the primary's root has changed.
-	needsNewIntermediate := false
-	if activeIntermediate == "" || storedRootID != primaryRoots.ActiveRootID {
+	needsNewIntermediate := activeIntermediate == ""
+	if activeRoot != nil && newActiveRoot.ID != activeRoot.ID {
 		needsNewIntermediate = true
 	}
 
@@ -684,28 +649,19 @@ func (c *CAManager) secondaryInitializeIntermediateCA(provider ca.Provider, conf
 		needsNewIntermediate = true
 	}
 
-	newIntermediate := false
 	if needsNewIntermediate {
-		if err := c.secondaryRenewIntermediate(provider, newActiveRoot); err != nil {
+		if err := c.secondaryRequestNewSigningCert(provider, newActiveRoot); err != nil {
 			return err
 		}
-		newIntermediate = true
 	} else {
 		// Discard the primary's representation since our local one is
 		// sufficiently up to date.
-		newActiveRoot = activeSecondaryRoot
-	}
-
-	// Update the roots list in the state store if there's a new active root.
-	state := c.delegate.State()
-	_, activeRoot, err := state.CARootActive(nil)
-	if err != nil {
-		return err
+		newActiveRoot = activeRoot
 	}
 
 	// Determine whether a root update is needed, and persist the roots/config accordingly.
 	var newRoot *structs.CARoot
-	if activeRoot == nil || activeRoot.ID != newActiveRoot.ID || newIntermediate {
+	if activeRoot == nil || needsNewIntermediate {
 		newRoot = newActiveRoot
 	}
 	if err := c.persistNewRootAndConfig(provider, newRoot, config); err != nil {
@@ -821,7 +777,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	}()
 
 	// Attempt to initialize the config if we failed to do so in Initialize for some reason
-	_, err = c.initializeCAConfig()
+	prevConfig, err := c.initializeCAConfig()
 	if err != nil {
 		return err
 	}
@@ -872,6 +828,15 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		RawConfig: args.Config.Config,
 		State:     args.Config.State,
 	}
+
+	if args.Config.Provider == config.Provider {
+		if validator, ok := newProvider.(ValidateConfigUpdater); ok {
+			if err := validator.ValidateConfigUpdate(prevConfig.Config, args.Config.Config); err != nil {
+				return fmt.Errorf("new configuration is incompatible with previous configuration: %w", err)
+			}
+		}
+	}
+
 	if err := newProvider.Configure(pCfg); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
@@ -898,17 +863,27 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	return nil
 }
 
+// ValidateConfigUpdater is an optional interface that may be implemented
+// by a ca.Provider. If the provider implements this interface, the
+// ValidateConfigurationUpdate will be called when a user attempts to change the
+// CA configuration, and the provider type has not changed from the previous
+// configuration.
+type ValidateConfigUpdater interface {
+	// ValidateConfigUpdate should return an error if the next configuration is
+	// incompatible with the previous configuration.
+	//
+	// TODO: use better types after https://github.com/hashicorp/consul/issues/12238
+	ValidateConfigUpdate(previous, next map[string]interface{}) error
+}
+
 func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.CARequest, config *structs.CAConfiguration) error {
-	if err := newProvider.GenerateRoot(); err != nil {
+	providerRoot, err := newProvider.GenerateRoot()
+	if err != nil {
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
 
-	newRootPEM, err := newProvider.ActiveRoot()
-	if err != nil {
-		return err
-	}
-
-	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
+	newRootPEM := providerRoot.PEM
+	newActiveRoot, err := newCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
 	if err != nil {
 		return err
 	}
@@ -961,6 +936,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 		// get a cross-signed certificate.
 		// 3. Take the active root for the new provider and append the intermediate from step 2
 		// to its list of intermediates.
+		// TODO: this cert is already parsed once in newCARoot, could we remove the second parse?
 		newRoot, err := connect.ParseCert(newRootPEM)
 		if err != nil {
 			return err
@@ -1000,6 +976,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 		}
 	}
 
+	// TODO: https://github.com/hashicorp/consul/issues/12386
 	intermediate, err := newProvider.GenerateIntermediate()
 	if err != nil {
 		return err
@@ -1070,9 +1047,11 @@ func (c *CAManager) primaryRenewIntermediate(provider ca.Provider, newActiveRoot
 	return nil
 }
 
-// secondaryRenewIntermediate should only be called while the state lock is held by
-// setting the state to non-ready.
-func (c *CAManager) secondaryRenewIntermediate(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+// secondaryRequestNewSigningCert creates a Certificate Signing Request, sends
+// the request to the primary, and stores the received certificate in the
+// provider.
+// Should only be called while the state lock is held by setting the state to non-ready.
+func (c *CAManager) secondaryRequestNewSigningCert(provider ca.Provider, newActiveRoot *structs.CARoot) error {
 	csr, err := provider.GenerateIntermediateCSR()
 	if err != nil {
 		return err
@@ -1187,7 +1166,7 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 	// Enough time has passed, go ahead with getting a new intermediate.
 	renewalFunc := c.primaryRenewIntermediate
 	if !isPrimary {
-		renewalFunc = c.secondaryRenewIntermediate
+		renewalFunc = c.secondaryRequestNewSigningCert
 	}
 	errCh := make(chan error, 1)
 	go func() {
@@ -1463,28 +1442,22 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 
 	connect.HackSANExtensionForCSR(csr)
 
-	root, err := provider.ActiveRoot()
-	if err != nil {
-		return nil, err
-	}
 	// Check if the root expired before using it to sign.
-	err = c.checkExpired(root)
+	// TODO: we store NotBefore and NotAfter on this struct, so we could avoid
+	// parsing the cert here.
+	err = c.checkExpired(caRoot.RootCert)
 	if err != nil {
 		return nil, fmt.Errorf("root expired: %w", err)
 	}
 
-	inter, err := provider.ActiveIntermediate()
-	if err != nil {
-		return nil, err
-	}
-	// Check if the intermediate expired before using it to sign.
-	err = c.checkExpired(inter)
-	if err != nil {
-		return nil, fmt.Errorf("intermediate expired: %w", err)
+	if c.isIntermediateUsedToSignLeaf() && len(caRoot.IntermediateCerts) > 0 {
+		inter := caRoot.IntermediateCerts[len(caRoot.IntermediateCerts)-1]
+		if err := c.checkExpired(inter); err != nil {
+			return nil, fmt.Errorf("intermediate expired: %w", err)
+		}
 	}
 
 	// All seems to be in order, actually sign it.
-
 	pem, err := provider.Sign(csr)
 	if err == ca.ErrRateLimited {
 		return nil, ErrRateLimited
@@ -1496,11 +1469,6 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	// Append any intermediates needed by this root.
 	for _, p := range caRoot.IntermediateCerts {
 		pem = pem + ca.EnsureTrailingNewline(p)
-	}
-
-	// Append our local CA's intermediate if there is one.
-	if inter != root {
-		pem = pem + ca.EnsureTrailingNewline(inter)
 	}
 
 	modIdx, err := c.delegate.ApplyCALeafRequest()

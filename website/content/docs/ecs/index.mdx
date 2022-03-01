@@ -8,15 +8,26 @@ description: >-
 
 # AWS ECS
 
-Consul can be deployed on [AWS ECS](https://aws.amazon.com/ecs/) (Elastic Container Service) using our official Terraform modules.
-
-![Consul on ECS Architecture](/img/consul-ecs-arch.png)
+Consul service mesh applications can be deployed on [AWS Elastic Container Service](https://aws.amazon.com/ecs/) (ECS)
+using either our official [Terraform modules](/docs/ecs/terraform/install) or without Terraform by [manually configuring
+the task definition](/docs/ecs/manual/install).
 
 ## Service Mesh
 
 Using Consul on AWS ECS enables you to add your ECS tasks to the service mesh and
 take advantage of features such as zero-trust-security, intentions, observability,
 traffic policy, and more.
+
+## Architecture
+
+![Consul on ECS Architecture](/img/consul-ecs-arch.png)
+
+Consul on ECS follows an [architecture](/docs/internals/architecture) similar to other platforms, but each ECS task is a
+Consul node. An ECS task runs the user application container(s), as well as a Consul client container for control plane
+communication and an [Envoy](https://envoyproxy.io/) sidecar proxy container to faciliate data plane communication for
+[Consul Connect](/docs/connect).
+
+For a detailed architecture overview, see the [Architecture](/docs/ecs/architecture) page.
 
 ## Getting Started
 
@@ -25,6 +36,8 @@ There are several ways to get started with Consul with ECS.
 * The [Serverless Consul Service Mesh with ECS and HCP](https://learn.hashicorp.com/tutorials/cloud/consul-ecs-hcp?in=consul/cloud-integrations) learn guide shows how to use Terraform to run Consul service mesh applications on ECS with managed Consul servers running in HashiCorp Cloud Platform (HCP).
 * The [Service Mesh with ECS and Consul on EC2](https://learn.hashicorp.com/tutorials/consul/consul-ecs-ec2?in=consul/cloud-integrations) learn guide shows how to use Terraform to run Consul service mesh applications on ECS with Consul servers running on EC2 instances.
 * The [Consul with Dev Server on Fargate](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-fargate) example installation deploys a sample application in ECS using the Fargate launch type.
-* The [Consul with Dev Server on EC2](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-ec2) example installation deploys a sample applciation in ECS using the EC2 launch type.
+* The [Consul with Dev Server on EC2](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-ec2) example installation deploys a sample application in ECS using the EC2 launch type.
 
-See the [Requirements](/docs/ecs/get-started/requirements) and the full [Install Guide](/docs/ecs/get-started/install) when you're ready to install Consul on an existing ECS cluster and add existing tasks to the service mesh.
+Refer to the [Requirements](/docs/ecs/requirements) and use one of the following sets of instructions when you're ready to install Consul on an existing ECS cluster and add tasks to the service mesh: 
+* [Install with Terraform](/docs/ecs/terraform/install) 
+* [Install Manually](/docs/ecs/manual/install)

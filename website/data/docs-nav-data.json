@@ -1,10 +1,24 @@
 [
   {
-    "title": "Intro to Consul",
+    "title": "What is Consul?",
     "routes": [
       {
         "title": "Overview",
         "path": "intro"
+      },
+      {
+        "title": "Use Cases",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "intro/usecases",
+            "hidden": true
+          },
+          {
+            "title": "What is a Service Mesh?",
+            "path": "intro/usecases/what-is-a-service-mesh"
+          }
+        ]
       },
       {
         "title": "Consul vs. Other Software",
@@ -270,6 +284,10 @@
         "path": "connect/connectivity-tasks"
       },
       {
+        "title": "Distributed Tracing",
+        "path": "connect/distributed-tracing"
+      },
+      {
         "title": "Gateways",
         "routes": [
           {
@@ -357,6 +375,10 @@
     ]
   },
   {
+    "title": "Consul API Gateway <sup>BETA</sup>",
+    "path": "api-gateway"
+  },
+  {
     "title": "Kubernetes",
     "routes": [
       {
@@ -369,6 +391,10 @@
           {
             "title": "Installing Consul on Kubernetes",
             "path": "k8s/installation/install"
+          },
+          {
+            "title": "Installing Consul K8s CLI",
+            "path": "k8s/installation/install-cli"
           },
           {
             "title": "Platform Guides",
@@ -453,6 +479,10 @@
                 "path": "k8s/installation/vault/gossip"
               },
               {
+                "title": "Enterprise License",
+                "path": "k8s/installation/vault/enterprise-license"
+              },
+              {
                 "title": "Server TLS",
                 "path": "k8s/installation/vault/server-tls"
               },
@@ -461,6 +491,10 @@
                 "path": "k8s/installation/vault/connect-ca"
               }
             ]
+          },
+          {
+            "title": "Compatibility Matrix",
+            "path": "k8s/installation/compatibility"
           }
         ]
       },
@@ -490,10 +524,6 @@
           {
             "title": "Configuring a Connect CA Provider",
             "path": "k8s/connect/connect-ca-provider"
-          },
-          {
-            "title": "Ambassador Edge Stack Integration",
-            "href": "https://learn.hashicorp.com/tutorials/consul/load-balancing-ambassador"
           },
           {
             "title": "Health Checks",
@@ -528,6 +558,10 @@
         ]
       },
       {
+        "title": "Annotations and Labels",
+        "path": "k8s/annotations-and-labels"
+      },
+      {
         "title": "Consul DNS",
         "path": "k8s/dns"
       },
@@ -535,12 +569,12 @@
         "title": "Upgrade",
         "routes": [
           {
-            "title": "Overview",
+            "title": "Upgrading Consul on Kubernetes",
             "path": "k8s/upgrade"
           },
           {
-            "title": "Compatibility Matrix",
-            "path": "k8s/upgrade/compatibility"
+            "title": "Upgrading Consul K8s CLI",
+            "path": "k8s/upgrade/upgrade-cli"
           }
         ]
       },
@@ -596,23 +630,44 @@
         "path": "ecs"
       },
       {
-        "title": "Get Started",
+        "title": "Requirements",
+        "path": "ecs/requirements"
+      },
+      {
+        "title": "Task Resource Usage",
+        "path": "ecs/task-resource-usage"
+      },
+      {
+        "title": "Install with Terraform",
         "routes": [
           {
-            "title": "Requirements",
-            "path": "ecs/get-started/requirements"
-          },
-          {
             "title": "Installation",
-            "path": "ecs/get-started/install"
+            "path": "ecs/terraform/install"
           },
           {
-            "title": "Production Installation",
-            "path": "ecs/get-started/production-installation"
+            "title": "Secure Configuration",
+            "path": "ecs/terraform/secure-configuration"
           },
           {
             "title": "Migrate Existing Tasks",
-            "path": "ecs/get-started/migrate-existing-tasks"
+            "path": "ecs/terraform/migrate-existing-tasks"
+          }
+        ]
+      },
+      {
+        "title": "Install Manually",
+        "routes": [
+          {
+            "title": "Installation",
+            "path": "ecs/manual/install"
+          },
+          {
+            "title": "Secure Configuration",
+            "path": "ecs/manual/secure-configuration"
+          },
+          {
+            "title": "ACL Controller",
+            "path": "ecs/manual/acl-controller"
           }
         ]
       },
@@ -623,6 +678,10 @@
       {
         "title": "Consul Enterprise",
         "path": "ecs/enterprise"
+      },
+      {
+        "title": "Configuration Reference",
+        "path": "ecs/configuration-reference"
       }
     ]
   },
@@ -738,6 +797,15 @@
       {
         "title": "Compatibility",
         "path": "nia/compatibility"
+      },
+      {
+        "title": "Release Notes",
+        "routes": [
+          {
+            "title": "v0.5.0",
+            "path": "nia/release-notes/0-5-0"
+          }
+        ]
       }
     ]
   },
@@ -825,6 +893,10 @@
           {
             "title": "Token Migration",
             "path": "security/acl/acl-migrate-tokens"
+          },
+          {
+            "title": "ACLs in Federated Datacenters",
+            "path": "security/acl/acl-federated-datacenters"
           },
           {
             "title": "Auth Methods",
@@ -1059,12 +1131,16 @@
     "title": "Release Notes",
     "routes": [
       {
-        "title": "1.9.0",
-        "path": "release-notes/1-9-0"
+        "title": "1.11.0",
+        "path": "release-notes/1-11-0"
       },
       {
         "title": "1.10.0",
         "path": "release-notes/1-10-0"
+      },
+      {
+        "title": "1.9.0",
+        "path": "release-notes/1-9-0"
       }
     ]
   },

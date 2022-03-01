@@ -1,6 +1,7 @@
 import Route from '@ember/routing/route';
 import { get, setProperties, action } from '@ember/object';
 import { inject as service } from '@ember/service';
+import resolve from 'consul-ui/utils/path/resolve';
 
 import { routes } from 'consul-ui/router';
 
@@ -16,7 +17,7 @@ export default class BaseRoute extends Route {
 
     const template = get(routes, `${this.routeName}._options.template`);
     if (typeof template !== 'undefined') {
-      this.templateName = template;
+      this.templateName = resolve(this.routeName.split('.').join('/'), template);
     }
 
     const queryParams = get(routes, `${this.routeName}._options.queryParams`);
@@ -28,25 +29,16 @@ export default class BaseRoute extends Route {
   redirect(model, transition) {
     let to = get(routes, `${this.routeName}._options.redirect`);
     if (typeof to !== 'undefined') {
-      // simple path resolve
-      to = to
-        .split('/')
-        .reduce((prev, item, i, items) => {
-          if (item !== '.') {
-            if (item === '..') {
-              prev.pop();
-            } else if (item !== '' || i === items.length - 1) {
-              prev.push(item);
-            }
-          }
-          return prev;
-        }, this.routeName.split('.'))
-        .join('.');
       // TODO: Does this need to return?
       // Almost remember things getting strange if you returned from here
       // which is why I didn't do it originally so be sure to look properly if
       // you feel like adding a return
-      this.replaceWith(`${to}`, model);
+      this.replaceWith(
+        resolve(this.routeName.split('.').join('/'), to)
+          .split('/')
+          .join('.'),
+        model
+      );
     }
   }
 

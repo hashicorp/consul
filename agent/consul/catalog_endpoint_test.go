@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"net/rpc"
 	"os"
 	"strings"
 	"testing"
@@ -10,7 +9,8 @@ import (
 
 	"github.com/hashicorp/go-uuid"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -388,7 +388,6 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -399,7 +398,7 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 
 	// Register
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -407,11 +406,11 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 		ServiceName: args.Service.Service,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
-	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
-	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
+	assert.Equal(t, structs.ServiceKindConnectProxy, v.ServiceKind)
+	assert.Equal(t, args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
 }
 
 // Test an invalid ConnectProxy. We don't need to exhaustively test because
@@ -423,7 +422,6 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -436,8 +434,8 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 	// Register
 	var out struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
-	assert.NotNil(err)
-	assert.Contains(err.Error(), "DestinationServiceName")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "DestinationServiceName")
 }
 
 // Test that write is required for the proxy destination to register a proxy.
@@ -448,7 +446,6 @@ func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -479,7 +476,7 @@ node "foo" {
 	args.WriteRequest.Token = token
 	var out struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
-	assert.True(acl.IsErrPermissionDenied(err))
+	assert.True(t, acl.IsErrPermissionDenied(err))
 
 	// Register should fail with the right destination but wrong name
 	args = structs.TestRegisterRequestProxy(t)
@@ -487,14 +484,14 @@ node "foo" {
 	args.Service.Proxy.DestinationServiceName = "foo"
 	args.WriteRequest.Token = token
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
-	assert.True(acl.IsErrPermissionDenied(err))
+	assert.True(t, acl.IsErrPermissionDenied(err))
 
 	// Register should work with the right destination
 	args = structs.TestRegisterRequestProxy(t)
 	args.Service.Service = "foo"
 	args.Service.Proxy.DestinationServiceName = "foo"
 	args.WriteRequest.Token = token
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 }
 
 func TestCatalog_Register_ConnectNative(t *testing.T) {
@@ -504,7 +501,6 @@ func TestCatalog_Register_ConnectNative(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -516,7 +512,7 @@ func TestCatalog_Register_ConnectNative(t *testing.T) {
 
 	// Register
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -524,11 +520,11 @@ func TestCatalog_Register_ConnectNative(t *testing.T) {
 		ServiceName: args.Service.Service,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
-	assert.Equal(structs.ServiceKindTypical, v.ServiceKind)
-	assert.True(v.ServiceConnect.Native)
+	assert.Equal(t, structs.ServiceKindTypical, v.ServiceKind)
+	assert.True(t, v.ServiceConnect.Native)
 }
 
 func TestCatalog_Deregister(t *testing.T) {
@@ -2149,7 +2145,6 @@ func TestCatalog_ListServiceNodes_ConnectProxy(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2161,7 +2156,7 @@ func TestCatalog_ListServiceNodes_ConnectProxy(t *testing.T) {
 	// Register the service
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -2170,11 +2165,11 @@ func TestCatalog_ListServiceNodes_ConnectProxy(t *testing.T) {
 		TagFilter:   false,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
-	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
-	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
+	assert.Equal(t, structs.ServiceKindConnectProxy, v.ServiceKind)
+	assert.Equal(t, args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
 }
 
 func TestCatalog_ServiceNodes_Gateway(t *testing.T) {
@@ -2304,7 +2299,6 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2316,7 +2310,7 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 	// Register the proxy service
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// Register the service
 	{
@@ -2324,7 +2318,7 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 		args := structs.TestRegisterRequest(t)
 		args.Service.Service = dst
 		var out struct{}
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 	}
 
 	// List
@@ -2334,22 +2328,22 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 		ServiceName: args.Service.Proxy.DestinationServiceName,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
-	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
-	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
+	assert.Equal(t, structs.ServiceKindConnectProxy, v.ServiceKind)
+	assert.Equal(t, args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
 
 	// List by non-Connect
 	req = structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: args.Service.Proxy.DestinationServiceName,
 	}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.ServiceNodes, 1)
 	v = resp.ServiceNodes[0]
-	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceName)
-	assert.Equal("", v.ServiceProxy.DestinationServiceName)
+	assert.Equal(t, args.Service.Proxy.DestinationServiceName, v.ServiceName)
+	assert.Equal(t, "", v.ServiceProxy.DestinationServiceName)
 }
 
 // Test that calling ServiceNodes with Connect: true will return
@@ -2361,7 +2355,6 @@ func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2374,7 +2367,7 @@ func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
 	args := structs.TestRegisterRequest(t)
 	args.Service.Connect.Native = true
 	var out struct{}
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -2383,20 +2376,20 @@ func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
 		ServiceName: args.Service.Service,
 	}
 	var resp structs.IndexedServiceNodes
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	require.Len(resp.ServiceNodes, 1)
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
-	require.Equal(args.Service.Service, v.ServiceName)
+	require.Equal(t, args.Service.Service, v.ServiceName)
 
 	// List by non-Connect
 	req = structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: args.Service.Service,
 	}
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	require.Len(resp.ServiceNodes, 1)
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.Len(t, resp.ServiceNodes, 1)
 	v = resp.ServiceNodes[0]
-	require.Equal(args.Service.Service, v.ServiceName)
+	require.Equal(t, args.Service.Service, v.ServiceName)
 }
 
 func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
@@ -2491,7 +2484,6 @@ func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2504,7 +2496,7 @@ func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
 	args := structs.TestRegisterRequest(t)
 	args.Service.Connect.Native = true
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -2513,10 +2505,10 @@ func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
 		TagFilter:   false,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
-	assert.Equal(args.Service.Connect.Native, v.ServiceConnect.Native)
+	assert.Equal(t, args.Service.Connect.Native, v.ServiceConnect.Native)
 }
 
 func TestCatalog_NodeServices(t *testing.T) {
@@ -2581,7 +2573,6 @@ func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2593,7 +2584,7 @@ func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
 	// Register the service
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.NodeSpecificRequest{
@@ -2601,12 +2592,12 @@ func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
 		Node:       args.Node,
 	}
 	var resp structs.IndexedNodeServices
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
 
-	assert.Len(resp.NodeServices.Services, 1)
+	assert.Len(t, resp.NodeServices.Services, 1)
 	v := resp.NodeServices.Services[args.Service.Service]
-	assert.Equal(structs.ServiceKindConnectProxy, v.Kind)
-	assert.Equal(args.Service.Proxy.DestinationServiceName, v.Proxy.DestinationServiceName)
+	assert.Equal(t, structs.ServiceKindConnectProxy, v.Kind)
+	assert.Equal(t, args.Service.Proxy.DestinationServiceName, v.Proxy.DestinationServiceName)
 }
 
 func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
@@ -2616,7 +2607,6 @@ func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2628,7 +2618,7 @@ func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
 	// Register the service
 	args := structs.TestRegisterRequest(t)
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.NodeSpecificRequest{
@@ -2636,11 +2626,11 @@ func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
 		Node:       args.Node,
 	}
 	var resp structs.IndexedNodeServices
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
 
-	assert.Len(resp.NodeServices.Services, 1)
+	assert.Len(t, resp.NodeServices.Services, 1)
 	v := resp.NodeServices.Services[args.Service.Service]
-	assert.Equal(args.Service.Connect.Native, v.Connect.Native)
+	assert.Equal(t, args.Service.Connect.Native, v.Connect.Native)
 }
 
 // Used to check for a regression against a known bug
@@ -2883,27 +2873,25 @@ func TestCatalog_NodeServices_ACL(t *testing.T) {
 	}
 
 	t.Run("deny", func(t *testing.T) {
-		require := require.New(t)
 
 		args.Token = token("deny")
 
 		var reply structs.IndexedNodeServices
 		err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
-		require.NoError(err)
-		require.Nil(reply.NodeServices)
-		require.True(reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.NoError(t, err)
+		require.Nil(t, reply.NodeServices)
+		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("allow", func(t *testing.T) {
-		require := require.New(t)
 
 		args.Token = token("read")
 
 		var reply structs.IndexedNodeServices
 		err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
-		require.NoError(err)
-		require.NotNil(reply.NodeServices)
-		require.False(reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.NoError(t, err)
+		require.NotNil(t, reply.NodeServices)
+		require.False(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 }
 

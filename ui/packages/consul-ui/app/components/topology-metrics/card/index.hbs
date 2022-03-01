@@ -29,18 +29,35 @@
     <TopologyMetrics::SourceType @source='routing-config' />
   {{/if}}
   <div class="details">
-  {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq @item.Namespace @service.Namespace))}}
-    <dl class="nspace">
-      <dt>
-        <Tooltip>
-            Namespace
-        </Tooltip>
-      </dt>
-      <dd>
-        {{@item.Namespace}}
-      </dd>
-    </dl>
-  {{/if}}
+    {{#if (and (can 'use partitions') (can 'use nspaces'))}}
+    <div class={{if (not-eq @item.Partition @service.Partition) 'group'}}>
+      {{#if (not-eq @item.Partition @service.Partition)}}
+      <dl class="partition">
+        <dt>
+          <Tooltip>
+              Admin Partition
+          </Tooltip>
+        </dt>
+        <dd>
+          {{@item.Partition}}
+        </dd>
+      </dl>
+      {{/if}}
+      <span></span>
+      {{#if (or (not-eq @item.Partition @service.Partition) (not-eq @item.Namespace @service.Namespace))}}
+      <dl class="nspace">
+        <dt>
+          <Tooltip>
+              Namespace
+          </Tooltip>
+        </dt>
+        <dd>
+          {{@item.Namespace}}
+        </dd>
+      </dl>
+      {{/if}}
+    </div>
+    {{/if}}
 
 {{#if (not-eq @item.Source 'routing-config')}}
 

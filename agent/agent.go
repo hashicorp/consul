@@ -167,14 +167,11 @@ type delegate interface {
 	// RemoveFailedNode is used to remove a failed node from the cluster.
 	RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error
 
-	// TODO: replace this method with consul.ACLResolver
-	ResolveTokenToIdentity(token string) (structs.ACLIdentity, error)
-
 	// ResolveTokenAndDefaultMeta returns an acl.Authorizer which authorizes
 	// actions based on the permissions granted to the token.
 	// If either entMeta or authzContext are non-nil they will be populated with the
 	// default partition and namespace from the token.
-	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error)
 
 	RPC(method string, args interface{}, reply interface{}) error
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
@@ -208,9 +205,6 @@ type Agent struct {
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
 	delegate delegate
-
-	// aclMasterAuthorizer is an object that helps manage local ACL enforcement.
-	aclMasterAuthorizer acl.Authorizer
 
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
@@ -1374,14 +1368,14 @@ func (a *Agent) ShutdownAgent() error {
 	// this should help them to be stopped more quickly
 	a.baseDeps.AutoConfig.Stop()
 
+	a.stateLock.Lock()
+	defer a.stateLock.Unlock()
 	// Stop the service manager (must happen before we take the stateLock to avoid deadlock)
 	if a.serviceManager != nil {
 		a.serviceManager.Stop()
 	}
 
 	// Stop all the checks
-	a.stateLock.Lock()
-	defer a.stateLock.Unlock()
 	for _, chk := range a.checkMonitors {
 		chk.Stop()
 	}
@@ -2126,10 +2120,22 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 		if name == "" {
 			name = fmt.Sprintf("Service '%s' check", service.Service)
 		}
+
+		var intervalStr string
+		var timeoutStr string
+		if chkType.Interval != 0 {
+			intervalStr = chkType.Interval.String()
+		}
+		if chkType.Timeout != 0 {
+			timeoutStr = chkType.Interval.String()
+		}
+
 		check := &structs.HealthCheck{
 			Node:           a.config.NodeName,
 			CheckID:        types.CheckID(checkID),
 			Name:           name,
+			Interval:       intervalStr,
+			Timeout:        timeoutStr,
 			Status:         api.HealthCritical,
 			Notes:          chkType.Notes,
 			ServiceID:      service.ID,

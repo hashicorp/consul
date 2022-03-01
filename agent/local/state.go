@@ -12,8 +12,10 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
+	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -150,7 +152,7 @@ func (c *CheckState) CriticalFor() time.Duration {
 
 type rpc interface {
 	RPC(method string, args interface{}, reply interface{}) error
-	ResolveTokenToIdentity(secretID string) (structs.ACLIdentity, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error)
 }
 
 // State is used to represent the node's services,
@@ -264,6 +266,13 @@ func (l *State) AddService(service *structs.NodeService, token string) error {
 func (l *State) addServiceLocked(service *structs.NodeService, token string) error {
 	if service == nil {
 		return fmt.Errorf("no service")
+	}
+
+	// Avoid having the stored service have any call-site ownership.
+	var err error
+	service, err = cloneService(service)
+	if err != nil {
+		return err
 	}
 
 	// use the service name as id if the id was omitted
@@ -529,8 +538,12 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 		return fmt.Errorf("no check")
 	}
 
-	// clone the check since we will be modifying it.
-	check = check.Clone()
+	// Avoid having the stored check have any call-site ownership.
+	var err error
+	check, err = cloneCheck(check)
+	if err != nil {
+		return err
+	}
 
 	if l.discardCheckOutput.Load().(bool) {
 		check.Output = ""
@@ -1082,34 +1095,41 @@ func (l *State) updateSyncState() error {
 			continue
 		}
 
-		// to avoid a data race with the service struct,
-		// We copy the Service struct, mutate it and replace the pointer
-		svc := *ls.Service
+		// Make a shallow copy since we may mutate it below and other readers
+		// may be reading it and we want to avoid a race.
+		nextService := *ls.Service
+		changed := false
 
 		// If our definition is different, we need to update it. Make a
 		// copy so that we don't retain a pointer to any actual state
 		// store info for in-memory RPCs.
-		if svc.EnableTagOverride {
-			svc.Tags = make([]string, len(rs.Tags))
-			copy(svc.Tags, rs.Tags)
+		if nextService.EnableTagOverride {
+			nextService.Tags = structs.CloneStringSlice(rs.Tags)
+			changed = true
 		}
 
 		// Merge any tagged addresses with the consul- prefix (set by the server)
 		// back into the local state.
-		if !reflect.DeepEqual(svc.TaggedAddresses, rs.TaggedAddresses) {
-			if svc.TaggedAddresses == nil {
-				svc.TaggedAddresses = make(map[string]structs.ServiceAddress)
+		if !reflect.DeepEqual(nextService.TaggedAddresses, rs.TaggedAddresses) {
+			// Make a copy of TaggedAddresses to prevent races when writing
+			// since other goroutines may be reading from the map
+			m := make(map[string]structs.ServiceAddress)
+			for k, v := range nextService.TaggedAddresses {
+				m[k] = v
 			}
 			for k, v := range rs.TaggedAddresses {
 				if strings.HasPrefix(k, structs.MetaKeyReservedPrefix) {
-					svc.TaggedAddresses[k] = v
+					m[k] = v
 				}
 			}
+			nextService.TaggedAddresses = m
+			changed = true
 		}
-		ls.InSync = svc.IsSame(rs)
 
-		// replace the service pointer to the new mutated struct
-		ls.Service = &svc
+		if changed {
+			ls.Service = &nextService
+		}
+		ls.InSync = ls.Service.IsSame(rs)
 	}
 
 	// Check which checks need syncing
@@ -1540,7 +1560,7 @@ func (l *State) notifyIfAliased(serviceID structs.ServiceID) {
 // critical purposes, such as logging. Therefore we interpret all errors as empty-string
 // so we can safely log it without handling non-critical errors at the usage site.
 func (l *State) aclAccessorID(secretID string) string {
-	ident, err := l.Delegate.ResolveTokenToIdentity(secretID)
+	ident, err := l.Delegate.ResolveTokenAndDefaultMeta(secretID, nil, nil)
 	if acl.IsErrNotFound(err) {
 		return ""
 	}
@@ -1548,8 +1568,23 @@ func (l *State) aclAccessorID(secretID string) string {
 		l.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
 		return ""
 	}
-	if ident == nil {
-		return ""
+	return ident.AccessorID()
+}
+
+func cloneService(ns *structs.NodeService) (*structs.NodeService, error) {
+	// TODO: consider doing a hand-managed clone function
+	raw, err := copystructure.Copy(ns)
+	if err != nil {
+		return nil, err
 	}
-	return ident.ID()
+	return raw.(*structs.NodeService), err
+}
+
+func cloneCheck(check *structs.HealthCheck) (*structs.HealthCheck, error) {
+	// TODO: consider doing a hand-managed clone function
+	raw, err := copystructure.Copy(check)
+	if err != nil {
+		return nil, err
+	}
+	return raw.(*structs.HealthCheck), err
 }

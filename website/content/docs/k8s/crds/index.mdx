@@ -93,7 +93,7 @@ Once installed, you can use `kubectl` to create and manage Consul's configuratio
 You can create configuration entries via `kubectl apply`.
 
 ```shell-session
-$ cat <<EOF | kubectl apply -f -
+$ cat <<EOF | kubectl apply --filename -
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
 metadata:

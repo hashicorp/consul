@@ -46,14 +46,13 @@ func testBothIntentionFormats(t *testing.T, f func(t *testing.T, s *Store, legac
 
 func TestStore_IntentionGet_none(t *testing.T) {
 	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
-		assert := assert.New(t)
 
 		// Querying with no results returns nil.
 		ws := memdb.NewWatchSet()
 		idx, _, res, err := s.IntentionGet(ws, testUUID())
-		assert.Equal(uint64(1), idx)
-		assert.Nil(res)
-		assert.Nil(err)
+		assert.Equal(t, uint64(1), idx)
+		assert.Nil(t, res)
+		assert.Nil(t, err)
 	})
 }
 

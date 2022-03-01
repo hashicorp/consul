@@ -1,34 +1,32 @@
-%menu-panel {
-  border: var(--decor-border-100);
-  border-radius: var(--decor-radius-200);
-  box-shadow: var(--decor-elevation-600);
-}
-%menu-panel > ul > li {
-  list-style-type: none;
+%menu-panel-button-selected::after {
+  @extend %with-check-plain-mask, %as-pseudo;
 }
 %menu-panel-header {
   @extend %p2;
+}
+%menu-panel-header + ul {
+  border-top: var(--decor-border-100);
+  border-color: rgb(var(--tone-border, var(--tone-gray-300)));
+}
+/* if the first item is a separator and it */
+/* contains text don't add a line */
+%menu-panel-separator:first-child:not(:empty) {
+  border: none;
 }
 %menu-panel-separator {
   @extend %p3;
   text-transform: uppercase;
   font-weight: var(--typo-weight-medium);
-}
-%menu-panel-header + ul,
-%menu-panel-separator:not(:first-child) {
-  border-top: var(--decor-border-100);
-}
-%menu-panel .is-active > *::after {
-  @extend %with-check-plain-mask, %as-pseudo;
-}
-%menu-panel {
-  border-color: rgb(var(--tone-gray-300));
-  background-color: rgb(var(--tone-gray-000));
-}
-%menu-panel-separator {
   color: rgb(var(--tone-gray-600));
 }
-%menu-panel-header + ul,
-%menu-panel-separator:not(:first-child) {
-  border-color: rgb(var(--tone-gray-300));
+%menu-panel-item {
+  list-style-type: none;
+}
+%menu-panel-badge {
+  @extend %pill;
+  color: rgb(var(--tone-gray-000));
+  background-color: rgb(var(--tone-gray-500));
+}
+%menu-panel-body .informed-action {
+  border: 0 !important;
 }

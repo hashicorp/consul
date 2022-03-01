@@ -44,10 +44,19 @@ export default class KvService extends RepositoryService {
         });
       }
     } else {
-      item = await super.findBySlug(...arguments);
+      if (params.id === '') {
+        item = await this.create({
+          Datacenter: params.dc,
+          Namespace: params.ns,
+          Partition: params.partition,
+        });
+      } else {
+        item = await super.findBySlug(...arguments);
+      }
     }
-    // TODO: Whilst KV is using DataForm and DataForm does the model > changeset conversion
-    // a model > changeset conversion is not needed here
+    // TODO: Whilst KV is using DataForm and DataForm does the model >
+    // changeset conversion a model > changeset conversion is not needed here
+    // until we move KV to just use DataWriter like the other new stuff
     return item;
   }
 

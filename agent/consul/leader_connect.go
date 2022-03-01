@@ -31,6 +31,10 @@ var (
 	// assignment to be enabled.
 	minVirtualIPVersion = version.Must(version.NewVersion("1.11.0"))
 
+	// minVirtualIPVersion is the minimum version for all Consul servers for virtual IP
+	// assignment to be enabled for terminating gateways.
+	minVirtualIPTerminatingGatewayVersion = version.Must(version.NewVersion("1.11.2"))
+
 	// virtualIPVersionCheckInterval is the frequency we check whether all servers meet
 	// the minimum version to enable virtual IP assignment for services.
 	virtualIPVersionCheckInterval = time.Minute
@@ -125,7 +129,7 @@ func (s *Server) pruneCARoots() error {
 
 func (s *Server) runVirtualIPVersionCheck(ctx context.Context) error {
 	// Return early if the flag is already set.
-	done, err := s.setVirtualIPVersionFlag()
+	done, err := s.setVirtualIPFlags()
 	if err != nil {
 		s.loggers.Named(logging.Connect).Warn("error enabling virtual IPs", "error", err)
 	}
@@ -142,7 +146,7 @@ func (s *Server) runVirtualIPVersionCheck(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			done, err := s.setVirtualIPVersionFlag()
+			done, err := s.setVirtualIPFlags()
 			if err != nil {
 				s.loggers.Named(logging.Connect).Warn("error enabling virtual IPs", "error", err)
 				continue
@@ -152,6 +156,19 @@ func (s *Server) runVirtualIPVersionCheck(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+func (s *Server) setVirtualIPFlags() (bool, error) {
+	virtualIPFlag, err := s.setVirtualIPVersionFlag()
+	if err != nil {
+		return false, err
+	}
+	terminatingGatewayVirtualIPFlag, err := s.setVirtualIPTerminatingGatewayVersionFlag()
+	if err != nil {
+		return false, err
+	}
+
+	return virtualIPFlag && terminatingGatewayVirtualIPFlag, nil
 }
 
 func (s *Server) setVirtualIPVersionFlag() (bool, error) {
@@ -169,6 +186,27 @@ func (s *Server) setVirtualIPVersionFlag() (bool, error) {
 	}
 
 	if err := s.setSystemMetadataKey(structs.SystemMetadataVirtualIPsEnabled, "true"); err != nil {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (s *Server) setVirtualIPTerminatingGatewayVersionFlag() (bool, error) {
+	val, err := s.getSystemMetadata(structs.SystemMetadataTermGatewayVirtualIPsEnabled)
+	if err != nil {
+		return false, err
+	}
+	if val != "" {
+		return true, nil
+	}
+
+	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minVirtualIPTerminatingGatewayVersion); !ok {
+		return false, fmt.Errorf("can't allocate Virtual IPs for terminating gateways until all servers >= %s",
+			minVirtualIPTerminatingGatewayVersion.String())
+	}
+
+	if err := s.setSystemMetadataKey(structs.SystemMetadataTermGatewayVirtualIPsEnabled, "true"); err != nil {
 		return false, nil
 	}
 

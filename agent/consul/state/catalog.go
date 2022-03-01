@@ -787,6 +787,32 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 		}
 	}
 
+	// If there's a terminating gateway config entry for this service, populate the tagged addresses
+	// with virtual IP mappings.
+	termGatewayVIPsSupported, err := terminatingGatewayVirtualIPsSupported(tx, nil)
+	if err != nil {
+		return err
+	}
+	if termGatewayVIPsSupported && svc.Kind == structs.ServiceKindTerminatingGateway {
+		_, conf, err := configEntryTxn(tx, nil, structs.TerminatingGateway, svc.Service, &svc.EnterpriseMeta)
+		if err != nil {
+			return fmt.Errorf("failed to retrieve terminating gateway config: %s", err)
+		}
+		if conf != nil {
+			termGatewayConf := conf.(*structs.TerminatingGatewayConfigEntry)
+			addrs, err := getTermGatewayVirtualIPs(tx, termGatewayConf.Services, &svc.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+			if svc.TaggedAddresses == nil {
+				svc.TaggedAddresses = make(map[string]structs.ServiceAddress)
+			}
+			for key, addr := range addrs {
+				svc.TaggedAddresses[key] = addr
+			}
+		}
+	}
+
 	// Create the service node entry and populate the indexes. Note that
 	// conversion doesn't populate any of the node-specific information.
 	// That's always populated when we read from the state store.
@@ -929,6 +955,18 @@ func addIPOffset(a, b net.IP) (net.IP, error) {
 
 func virtualIPsSupported(tx ReadTxn, ws memdb.WatchSet) (bool, error) {
 	_, entry, err := systemMetadataGetTxn(tx, ws, structs.SystemMetadataVirtualIPsEnabled)
+	if err != nil {
+		return false, fmt.Errorf("failed system metadata lookup: %s", err)
+	}
+	if entry == nil {
+		return false, nil
+	}
+
+	return entry.Value != "", nil
+}
+
+func terminatingGatewayVirtualIPsSupported(tx ReadTxn, ws memdb.WatchSet) (bool, error) {
+	_, entry, err := systemMetadataGetTxn(tx, ws, structs.SystemMetadataTermGatewayVirtualIPsEnabled)
 	if err != nil {
 		return false, fmt.Errorf("failed system metadata lookup: %s", err)
 	}
@@ -1697,7 +1735,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 			if err := cleanupGatewayWildcards(tx, idx, svc); err != nil {
 				return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", name.String(), err)
 			}
-			if err := freeServiceVirtualIP(tx, svc.ServiceName, entMeta); err != nil {
+			if err := freeServiceVirtualIP(tx, svc.ServiceName, nil, entMeta); err != nil {
 				return fmt.Errorf("failed to clean up virtual IP for %q: %v", name.String(), err)
 			}
 			if err := cleanupKindServiceName(tx, idx, svc.CompoundServiceName(), svc.ServiceKind); err != nil {
@@ -1713,7 +1751,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 
 // freeServiceVirtualIP is used to free a virtual IP for a service after the last instance
 // is removed.
-func freeServiceVirtualIP(tx WriteTxn, svc string, entMeta *structs.EnterpriseMeta) error {
+func freeServiceVirtualIP(tx WriteTxn, svc string, excludeGateway *structs.ServiceName, entMeta *structs.EnterpriseMeta) error {
 	supported, err := virtualIPsSupported(tx, nil)
 	if err != nil {
 		return err
@@ -1722,7 +1760,28 @@ func freeServiceVirtualIP(tx WriteTxn, svc string, entMeta *structs.EnterpriseMe
 		return nil
 	}
 
+	// Don't deregister the virtual IP if at least one terminating gateway still references this service.
 	sn := structs.NewServiceName(svc, entMeta)
+	termGatewaySupported, err := terminatingGatewayVirtualIPsSupported(tx, nil)
+	if err != nil {
+		return err
+	}
+	if termGatewaySupported {
+		svcGateways, err := tx.Get(tableGatewayServices, indexService, sn)
+		if err != nil {
+			return fmt.Errorf("failed gateway lookup for %q: %s", sn.Name, err)
+		}
+
+		for service := svcGateways.Next(); service != nil; service = svcGateways.Next() {
+			if svc, ok := service.(*structs.GatewayService); ok && svc != nil {
+				ignoreGateway := excludeGateway == nil || !svc.Gateway.Matches(*excludeGateway)
+				if ignoreGateway && svc.GatewayKind == structs.ServiceKindTerminatingGateway {
+					return nil
+				}
+			}
+		}
+	}
+
 	serviceVIP, err := tx.First(tableServiceVirtualIPs, indexID, sn)
 	if err != nil {
 		return fmt.Errorf("failed service virtual IP lookup: %s", err)
@@ -2862,6 +2921,18 @@ func updateGatewayServices(tx WriteTxn, idx uint64, conf structs.ConfigEntry, en
 		return err
 	}
 
+	// Update terminating gateway service virtual IPs
+	vipsSupported, err := terminatingGatewayVirtualIPsSupported(tx, nil)
+	if err != nil {
+		return err
+	}
+	if vipsSupported && conf.GetKind() == structs.TerminatingGateway {
+		gatewayConf := conf.(*structs.TerminatingGatewayConfigEntry)
+		if err := updateTerminatingGatewayVirtualIPs(tx, idx, gatewayConf, entMeta); err != nil {
+			return err
+		}
+	}
+
 	// Delete all associated with gateway first, to avoid keeping mappings that were removed
 	sn := structs.NewServiceName(conf.GetName(), entMeta)
 
@@ -2896,6 +2967,96 @@ func updateGatewayServices(tx WriteTxn, idx uint64, conf structs.ConfigEntry, en
 	if err := indexUpdateMaxTxn(tx, idx, tableGatewayServices); err != nil {
 		return fmt.Errorf("failed updating gateway-services index: %v", err)
 	}
+	return nil
+}
+
+func getTermGatewayVirtualIPs(tx WriteTxn, services []structs.LinkedService, entMeta *structs.EnterpriseMeta) (map[string]structs.ServiceAddress, error) {
+	addrs := make(map[string]structs.ServiceAddress, len(services))
+	for _, s := range services {
+		sn := structs.ServiceName{Name: s.Name, EnterpriseMeta: *entMeta}
+		vip, err := assignServiceVirtualIP(tx, sn)
+		if err != nil {
+			return nil, err
+		}
+		key := structs.ServiceGatewayVirtualIPTag(sn)
+		addrs[key] = structs.ServiceAddress{Address: vip}
+	}
+
+	return addrs, nil
+}
+
+func updateTerminatingGatewayVirtualIPs(tx WriteTxn, idx uint64, conf *structs.TerminatingGatewayConfigEntry, entMeta *structs.EnterpriseMeta) error {
+	// Build the current map of services with virtual IPs for this gateway
+	services := conf.Services
+	addrs, err := getTermGatewayVirtualIPs(tx, services, entMeta)
+	if err != nil {
+		return err
+	}
+
+	// Find any deleted service entries by comparing the new config entry to the existing one.
+	_, existing, err := configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
+	if err != nil {
+		return fmt.Errorf("failed to get config entry: %v", err)
+	}
+	var deletes []structs.ServiceName
+	cfg, ok := existing.(*structs.TerminatingGatewayConfigEntry)
+	if ok {
+		for _, s := range cfg.Services {
+			sn := structs.ServiceName{Name: s.Name, EnterpriseMeta: *entMeta}
+			key := structs.ServiceGatewayVirtualIPTag(sn)
+			if _, ok := addrs[key]; !ok {
+				deletes = append(deletes, sn)
+			}
+		}
+	}
+
+	q := Query{Value: conf.GetName(), EnterpriseMeta: *entMeta}
+	_, svcNodes, err := serviceNodesTxn(tx, nil, indexService, q)
+	if err != nil {
+		return err
+	}
+
+	// Update the tagged addrs for any existing instances of this terminating gateway.
+	for _, s := range svcNodes {
+		newAddrs := make(map[string]structs.ServiceAddress)
+		for key, addr := range s.ServiceTaggedAddresses {
+			if !strings.HasPrefix(key, structs.TaggedAddressVirtualIP+":") {
+				newAddrs[key] = addr
+			}
+		}
+		for key, addr := range addrs {
+			newAddrs[key] = addr
+		}
+
+		// Don't need to update the service record if it's a no-op.
+		if reflect.DeepEqual(newAddrs, s.ServiceTaggedAddresses) {
+			continue
+		}
+
+		newSN := s.PartialClone()
+		newSN.ServiceTaggedAddresses = newAddrs
+		newSN.ModifyIndex = idx
+		if err := catalogInsertService(tx, newSN); err != nil {
+			return err
+		}
+	}
+
+	// Check if we can delete any virtual IPs for the removed services.
+	gatewayName := structs.NewServiceName(conf.GetName(), entMeta)
+	for _, sn := range deletes {
+		// If there's no existing service nodes, attempt to free the virtual IP.
+		q := Query{Value: sn.Name, EnterpriseMeta: sn.EnterpriseMeta}
+		_, nodes, err := serviceNodesTxn(tx, nil, indexConnect, q)
+		if err != nil {
+			return err
+		}
+		if len(nodes) == 0 {
+			if err := freeServiceVirtualIP(tx, sn.Name, &gatewayName, &sn.EnterpriseMeta); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -3300,6 +3461,7 @@ func (s *Store) ServiceTopology(
 		err              error
 		fullyTransparent bool
 		hasTransparent   bool
+		connectNative    bool
 	)
 	switch kind {
 	case structs.ServiceKindIngressGateway:
@@ -3344,6 +3506,9 @@ func (s *Store) ServiceTopology(
 				// transparent proxy mode. If ANY instance isn't in the right mode then the warming applies.
 				fullyTransparent = false
 			}
+			if proxy.ServiceConnect.Native {
+				connectNative = true
+			}
 		}
 
 	default:
@@ -3365,8 +3530,8 @@ func (s *Store) ServiceTopology(
 
 	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
 
-	// Only transparent proxies have upstreams from intentions
-	if hasTransparent {
+	// Only transparent proxies / connect native services have upstreams from intentions
+	if hasTransparent || connectNative {
 		idx, intentionUpstreams, err := s.intentionTopologyTxn(tx, ws, sn, false, defaultAllow)
 		if err != nil {
 			return 0, nil, err
@@ -3446,8 +3611,8 @@ func (s *Store) ServiceTopology(
 			sn = structs.NewServiceName(upstream.Service.Proxy.DestinationServiceName, &upstream.Service.EnterpriseMeta)
 		}
 
-		// Avoid returning upstreams from intentions when none of the proxy instances of the target are in transparent mode.
-		if !hasTransparent && upstreamSources[sn.String()] != structs.TopologySourceRegistration {
+		// Avoid returning upstreams from intentions when none of the proxy instances of the target are in transparent mode or connect native.
+		if !hasTransparent && !connectNative && upstreamSources[sn.String()] != structs.TopologySourceRegistration {
 			continue
 		}
 		upstreams = append(upstreams, upstream)
@@ -3550,6 +3715,7 @@ func (s *Store) ServiceTopology(
 	}
 
 	idx, unfilteredDownstreams, err := s.combinedServiceNodesTxn(tx, ws, downstreamNames)
+
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get downstreams for %q: %v", sn.String(), err)
 	}
@@ -3573,8 +3739,8 @@ func (s *Store) ServiceTopology(
 		if downstream.Service.Kind == structs.ServiceKindConnectProxy {
 			sn = structs.NewServiceName(downstream.Service.Proxy.DestinationServiceName, &downstream.Service.EnterpriseMeta)
 		}
-		if _, ok := tproxyMap[sn]; !ok && downstreamSources[sn.String()] != structs.TopologySourceRegistration {
-			// If downstream is not a transparent proxy, remove references
+		if _, ok := tproxyMap[sn]; !ok && !downstream.Service.Connect.Native && downstreamSources[sn.String()] != structs.TopologySourceRegistration {
+			// If downstream is not a transparent proxy or connect native, remove references
 			delete(downstreamSources, sn.String())
 			delete(downstreamDecisions, sn.String())
 			continue
@@ -3855,6 +4021,7 @@ func insertGatewayServiceTopologyMapping(tx WriteTxn, idx uint64, gs *structs.Ga
 	mapping := upstreamDownstream{
 		Upstream:   gs.Service,
 		Downstream: gs.Gateway,
+		Refs:       make(map[string]struct{}),
 		RaftIndex:  gs.RaftIndex,
 	}
 	if err := tx.Insert(tableMeshTopology, &mapping); err != nil {

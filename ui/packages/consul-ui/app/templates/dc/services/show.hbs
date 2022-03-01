@@ -186,8 +186,8 @@ as |items item dc|}}
               }}
             as |config|>
             {{#if config.data.dashboard_url_templates.service}}
-              <a
-                href={{render-template config.data.dashboard_url_templates.service
+              <Action
+                @href={{render-template config.data.dashboard_url_templates.service
                   (hash
                     Datacenter=dc.Name
                     Service=(hash
@@ -197,12 +197,12 @@ as |items item dc|}}
                     )
                   )
                 }}
-                target="_blank"
-                rel="noopener noreferrer"
+                @external={{true}}
+                class="external-dashboard"
                 data-test-dashboard-anchor
               >
                 Open dashboard
-              </a>
+              </Action>
             {{/if}}
             </DataSource>
           </BlockSlot>
@@ -214,6 +214,7 @@ as |items item dc|}}
               @name={{routeName}}
               @model={{assign (hash
                 items=items
+                proxies=proxies
                 item=item
                 tabs=tabs
               ) route.model}}

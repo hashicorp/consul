@@ -2,12 +2,12 @@ package consul
 
 import (
 	"net"
-	"net/rpc"
 	"os"
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/pool"

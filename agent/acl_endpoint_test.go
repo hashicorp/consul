@@ -849,10 +849,10 @@ func TestACL_HTTP(t *testing.T) {
 			tokens, ok := raw.(structs.ACLTokenListStubs)
 			require.True(t, ok)
 
-			// 3 tokens created but 1 was deleted + master token + anon token
+			// 3 tokens created but 1 was deleted + initial management token + anon token
 			require.Len(t, tokens, 4)
 
-			// this loop doesn't verify anything about the master token
+			// this loop doesn't verify anything about the initial management token
 			for tokenID, expected := range tokenMap {
 				found := false
 				for _, actual := range tokens {
@@ -1222,6 +1222,26 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			methodMap[method.Name] = method
 		})
 
+		t.Run("Create in remote datacenter", func(t *testing.T) {
+			methodInput := &structs.ACLAuthMethod{
+				Name:        "other",
+				Type:        "testing",
+				Description: "test",
+				Config: map[string]interface{}{
+					"SessionID": testSessionID,
+				},
+				TokenLocality: "global",
+				MaxTokenTTL:   500_000_000_000,
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method?token=root&dc=remote", jsonBody(methodInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLAuthMethodCRUD(resp, req)
+			require.Error(t, err)
+			_, ok := err.(BadRequestError)
+			require.True(t, ok)
+		})
+
 		t.Run("Update Name URL Mismatch", func(t *testing.T) {
 			methodInput := &structs.ACLAuthMethod{
 				Name:        "test",
@@ -1392,6 +1412,21 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 
 			idMap["rule-other"] = rule.ID
 			ruleMap[rule.ID] = rule
+		})
+
+		t.Run("Create in remote datacenter", func(t *testing.T) {
+			ruleInput := &structs.ACLBindingRule{
+				Description: "other",
+				AuthMethod:  "test",
+				Selector:    "serviceaccount.namespace==default",
+				BindType:    structs.BindingRuleBindTypeRole,
+				BindName:    "fancy-role",
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root&dc=remote", jsonBody(ruleInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLBindingRuleCRUD(resp, req)
+			require.EqualError(t, err, "No path to datacenter")
 		})
 
 		t.Run("BindingRule CRUD Missing ID in URL", func(t *testing.T) {
@@ -1880,7 +1915,7 @@ func TestACL_Authorize(t *testing.T) {
 	var localToken structs.ACLToken
 	require.NoError(t, a2.RPC("ACL.TokenSet", &localTokenReq, &localToken))
 
-	t.Run("master-token", func(t *testing.T) {
+	t.Run("initial-management-token", func(t *testing.T) {
 		request := []structs.ACLAuthorizationRequest{
 			{
 				Resource: "acl",
@@ -2016,7 +2051,7 @@ func TestACL_Authorize(t *testing.T) {
 					resp := responses[idx]
 
 					require.Equal(t, req, resp.ACLAuthorizationRequest)
-					require.True(t, resp.Allow, "should have allowed all access for master token")
+					require.True(t, resp.Allow, "should have allowed all access for initial management token")
 				}
 			})
 		}
@@ -2277,7 +2312,7 @@ func TestACL_Authorize(t *testing.T) {
 type rpcFn func(string, interface{}, interface{}) error
 
 func upsertTestCustomizedAuthMethod(
-	rpc rpcFn, masterToken string, datacenter string,
+	rpc rpcFn, initialManagementToken string, datacenter string,
 	modify func(method *structs.ACLAuthMethod),
 ) (*structs.ACLAuthMethod, error) {
 	name, err := uuid.GenerateUUID()
@@ -2291,7 +2326,7 @@ func upsertTestCustomizedAuthMethod(
 			Name: "test-method-" + name,
 			Type: "testing",
 		},
-		WriteRequest: structs.WriteRequest{Token: masterToken},
+		WriteRequest: structs.WriteRequest{Token: initialManagementToken},
 	}
 
 	if modify != nil {
@@ -2308,11 +2343,11 @@ func upsertTestCustomizedAuthMethod(
 	return &out, nil
 }
 
-func upsertTestCustomizedBindingRule(rpc rpcFn, masterToken string, datacenter string, modify func(rule *structs.ACLBindingRule)) (*structs.ACLBindingRule, error) {
+func upsertTestCustomizedBindingRule(rpc rpcFn, initialManagementToken string, datacenter string, modify func(rule *structs.ACLBindingRule)) (*structs.ACLBindingRule, error) {
 	req := structs.ACLBindingRuleSetRequest{
 		Datacenter:   datacenter,
 		BindingRule:  structs.ACLBindingRule{},
-		WriteRequest: structs.WriteRequest{Token: masterToken},
+		WriteRequest: structs.WriteRequest{Token: initialManagementToken},
 	}
 
 	if modify != nil {

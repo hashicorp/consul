@@ -1,4 +1,3 @@
-{{#if (can "use partitions")}}
 {{#let
   (or @partition 'default')
 as |partition|}}
@@ -7,51 +6,56 @@ as |partition|}}
         class="partitions"
         data-test-partition-menu
       >
-          <PopoverMenu
-            aria-label="Admin Partition"
-            @position="left"
-          as |components api|>
-            <BlockSlot @name="trigger">
-              {{partition}}
-            </BlockSlot>
-            <BlockSlot @name="menu">
-              {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-                <DataSource
-                  @src={{uri
-                    '/*/*/${dc}/partitions'
-                    (hash
-                      dc=@dc.Name
-                    )
-                  }}
-                  @onchange={{fn (optional @onchange)}}
-                />
+        <DisclosureMenu
+          aria-label="Admin Partition"
+        as |disclosure|>
+          <disclosure.Action
+            {{on 'click' disclosure.toggle}}
+          >
+            {{partition}}
+          </disclosure.Action>
+          <disclosure.Menu as |panel|>
+            <DataSource
+              @src={{uri
+                '/*/*/${dc}/partitions'
+                (hash
+                  dc=@dc.Name
+                )
+              }}
+              @onchange={{fn (optional @onchange)}}
+            />
+            <panel.Menu as |menu|>
               {{#each (reject-by 'DeletedAt' @partitions) as |item|}}
-                <MenuItem
+                <menu.Item
                   class={{if (eq partition item.Name) 'is-active'}}
-                  @href={{href-to '.' params=(hash
-                    partition=item.Name
-                    nspace=undefined
-                  )}}
                 >
-                  <BlockSlot @name="label">
+                  <menu.Action
+                    {{on 'click' disclosure.close}}
+                    @href={{href-to '.' params=(hash
+                      partition=item.Name
+                      nspace=undefined
+                    )}}
+                  >
                     {{item.Name}}
-                  </BlockSlot>
-                </MenuItem>
+                  </menu.Action>
+                </menu.Item>
               {{/each}}
-      {{#if (can 'manage partitions')}}
-                <MenuSeparator />
-                <MenuItem
+              {{#if (can 'manage partitions')}}
+                <menu.Separator />
+                <menu.Item
                   data-test-main-nav-partitions
-                  @href={{href-to 'dc.partitions.index' @dc.Name}}
                 >
-                  <BlockSlot @name="label">
+                  <menu.Action
+                    {{on 'click' disclosure.close}}
+                    @href={{href-to 'dc.partitions.index' @dc.Name}}
+                  >
                     Manage Partitions
-                  </BlockSlot>
-                </MenuItem>
-      {{/if}}
-              {{/let}}
-            </BlockSlot>
-          </PopoverMenu>
+                  </menu.Action>
+                </menu.Item>
+              {{/if}}
+            </panel.Menu>
+          </disclosure.Menu>
+        </DisclosureMenu>
       </li>
   {{else}}
     <li 
@@ -62,5 +66,3 @@ as |partition|}}
     </li>
   {{/if}}
 {{/let}}
-{{/if}}
-

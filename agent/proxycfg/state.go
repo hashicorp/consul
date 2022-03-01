@@ -412,7 +412,7 @@ func hostnameEndpoints(logger hclog.Logger, localKey GatewayKey, nodes structs.C
 	)
 
 	for _, n := range nodes {
-		addr, _ := n.BestAddress(!localKey.Matches(n.Node.Datacenter, n.Node.PartitionOrDefault()))
+		_, addr, _ := n.BestAddress(!localKey.Matches(n.Node.Datacenter, n.Node.PartitionOrDefault()))
 		if net.ParseIP(addr) != nil {
 			hasIP = true
 			continue
@@ -437,7 +437,7 @@ type gatewayWatchOpts struct {
 	source     structs.QuerySource
 	token      string
 	key        GatewayKey
-	upstreamID string
+	upstreamID UpstreamID
 }
 
 func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
@@ -448,5 +448,5 @@ func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
 		UseServiceKind: true,
 		Source:         opts.source,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(opts.key.Partition),
-	}, fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID), opts.notifyCh)
+	}, fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID.String()), opts.notifyCh)
 }

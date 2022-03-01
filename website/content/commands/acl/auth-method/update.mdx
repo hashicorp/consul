@@ -7,10 +7,20 @@ page_title: 'Commands: ACL Auth Method Update'
 
 Command: `consul acl auth-method update`
 
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/auth-method/:name](/api-docs/acl/auth-methods#update-an-auth-method)
+
 The `acl auth-method update` command is used to update an auth method. The
 default operations is to merge the current auth method with those values
 provided to the command invocation. Therefore to update just one field, only
 the `-name` options and the option to modify must be provided.
+
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `acl:write`  |
 
 ## Usage
 

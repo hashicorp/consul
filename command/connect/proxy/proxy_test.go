@@ -114,7 +114,6 @@ func TestCommandConfigWatcher(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require := require.New(t)
 
 			// Register a few services with 0, 1 and 2 sidecars
 			a := agent.NewTestAgent(t, `
@@ -160,16 +159,16 @@ func TestCommandConfigWatcher(t *testing.T) {
 				"-http-addr=" + a.HTTPAddr(),
 			}, tc.Flags...))
 			if tc.WantErr == "" {
-				require.Equal(0, code, ui.ErrorWriter.String())
+				require.Equal(t, 0, code, ui.ErrorWriter.String())
 			} else {
-				require.Equal(1, code, ui.ErrorWriter.String())
-				require.Contains(ui.ErrorWriter.String(), tc.WantErr)
+				require.Equal(t, 1, code, ui.ErrorWriter.String())
+				require.Contains(t, ui.ErrorWriter.String(), tc.WantErr)
 				return
 			}
 
 			// Get the configuration watcher
 			cw, err := c.configWatcher(client)
-			require.NoError(err)
+			require.NoError(t, err)
 			if tc.Test != nil {
 				tc.Test(t, testConfig(t, cw))
 			}

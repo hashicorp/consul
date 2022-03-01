@@ -27,11 +27,17 @@ At a high level, there are two points of integration with Vault:
 
 ### Vault Helm Config
 
-A minimal valid installation of Vault must include the Agent Injector:
+A minimal valid installation of Vault Kubernetes must include the Agent Injector which is utilized for accessing secrets from Vault. Vault servers could be deployed
+external to Vault on Kubernetes as described via the [`externalvaultaddr`](https://www.vaultproject.io/docs/platform/k8s/helm/configuration#externalvaultaddr) value in the Vault Helm Configuration 
+
+<CodeBlockConfig filename="values.yaml">
+
 ```yaml
 injector:
   enabled: "true"
 ```
+
+</CodeBlockConfig>
 
 ### Vault Kubernetes Auth Method
 
@@ -41,7 +47,7 @@ Prior to creating Vault auth roles for the Consul servers and clients, ensure th
 $ vault auth enable kubernetes
 ```
 
-After enabling the Kubernetes auth method, in Vault, ensure that you have configured the Kubernetes Auth method properly as described in [Kubernetes Auth Method Configuration](https://www.vaultproject.io/docs/auth/kubernetes#configuration). The command should look simliar to the following with a custom `kubernetes_host` config provided from the information provided via `kubectl cluster-info`. 
+After enabling the Kubernetes auth method, in Vault, ensure that you have configured the Kubernetes Auth method properly as described in [Kubernetes Auth Method Configuration](https://www.vaultproject.io/docs/auth/kubernetes#configuration). The command should look similar to the following with a custom `kubernetes_host` config provided from the information provided via `kubectl cluster-info`.
 
 ```shell-session
 $ vault write auth/kubernetes/config \
@@ -52,7 +58,7 @@ $ vault write auth/kubernetes/config \
 
 ### Vault KV Secrets Engine - Version 2
 
-In order to utlize Vault as a secrets backend, we must enable thne [Vault KV secrets engine - Version 2](https://www.vaultproject.io/docs/secrets/kv/kv-v2).
+In order to utilize Vault as a secrets backend, we must enable the [Vault KV secrets engine - Version 2](https://www.vaultproject.io/docs/secrets/kv/kv-v2).
 
 ```shell-session
 $ vault secrets enable -path=consul kv-v2
@@ -60,7 +66,7 @@ $ vault secrets enable -path=consul kv-v2
 
 ### Vault PKI Engine
 
-The Vault PKI Engine must be enabled in order to leverage Vault for issuiing Consul Server TLS certificates. More details for configuring the PKI Engine is found in [Bootstrapping the PKI Engine](https://www.consul.io/docs/k8s/installation/vault/server-tls#bootstrapping-the-pki-engine) under the Server TLS section. 
+The Vault PKI Engine must be enabled in order to leverage Vault for issuing Consul Server TLS certificates. More details for configuring the PKI Engine is found in [Bootstrapping the PKI Engine](/docs/k8s/installation/vault/server-tls#bootstrapping-the-pki-engine) under the Server TLS section.
 
 ```shell-session
 $ vault secrets enable pki
@@ -69,8 +75,6 @@ $ vault secrets enable pki
 ## Known Limitations
 
 - TLS
-  - `global.tls.serverAdditionalDNSSans` is not currently configurable and must be manually added to the server certificate in Vault.
-  - `global.tls.serverAdditionalIPSans` is not currently configurable and must be manually added to the server certificate in Vault.
   - Mesh gateway is not currently supported.
 - Multi-DC Federation is not currently supported.
 - Certificate rotation for Server TLS certs is not currently supported through the Helm chart. Ensure the TTL for your Server TLS certificates are sufficiently long. Should your certificates expire it will be necessary to issue a `consul reload` on each server after issuing new Server TLS certs from Vault. 
@@ -83,7 +87,7 @@ which bootstrap Vault Auth roles and Policies for Consul to use. For the support
 guides and ensure to, when combining the secrets, append the Vault Policies to your Vault Kube Auth Roles via a comma separated value (i.e. `policies=gossip-policy,consul-ca,consul-server,custom-policy`).
 Ex:
 ```shell-session
-vault write auth/kubernetes/role/consul-server \
+$ vault write auth/kubernetes/role/consul-server \
     bound_service_account_names=<Consul server service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
     policies=gossip-policy,consul-ca,consul-server \

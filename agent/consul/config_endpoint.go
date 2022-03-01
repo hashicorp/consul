@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -93,6 +94,14 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 	if args.Op != structs.ConfigEntryUpsert && args.Op != structs.ConfigEntryUpsertCAS {
 		args.Op = structs.ConfigEntryUpsert
 	}
+
+	if skip, err := c.shouldSkipOperation(args); err != nil {
+		return err
+	} else if skip {
+		*reply = true
+		return nil
+	}
+
 	resp, err := c.srv.raftApply(structs.ConfigEntryRequestType, args)
 	if err != nil {
 		return err
@@ -102,6 +111,62 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 	}
 
 	return nil
+}
+
+// shouldSkipOperation returns true if the result of the operation has
+// already happened and is safe to skip.
+//
+// It is ok if this incorrectly detects something as changed when it
+// in fact has not, the important thing is that it doesn't do
+// the reverse and incorrectly detect a change as a no-op.
+func (c *ConfigEntry) shouldSkipOperation(args *structs.ConfigEntryRequest) (bool, error) {
+	state := c.srv.fsm.State()
+	_, currentEntry, err := state.ConfigEntry(nil, args.Entry.GetKind(), args.Entry.GetName(), args.Entry.GetEnterpriseMeta())
+	if err != nil {
+		return false, fmt.Errorf("error reading current config entry value: %w", err)
+	}
+
+	switch args.Op {
+	case structs.ConfigEntryUpsert, structs.ConfigEntryUpsertCAS:
+		return c.shouldSkipUpsertOperation(currentEntry, args.Entry)
+	case structs.ConfigEntryDelete, structs.ConfigEntryDeleteCAS:
+		return (currentEntry == nil), nil
+	default:
+		return false, fmt.Errorf("invalid config entry operation type: %v", args.Op)
+	}
+}
+
+func (c *ConfigEntry) shouldSkipUpsertOperation(currentEntry, updatedEntry structs.ConfigEntry) (bool, error) {
+	if currentEntry == nil {
+		return false, nil
+	}
+
+	if currentEntry.GetKind() != updatedEntry.GetKind() ||
+		currentEntry.GetName() != updatedEntry.GetName() ||
+		!currentEntry.GetEnterpriseMeta().IsSame(updatedEntry.GetEnterpriseMeta()) {
+		return false, nil
+	}
+
+	// The only reason a fully Normalized and Validated config entry may
+	// legitimately differ from the persisted one is due to the embedded
+	// RaftIndex.
+	//
+	// So, to intercept more no-op upserts we temporarily set the new config
+	// entry's raft index field to that of the existing data for the purposes
+	// of comparison, and then restore it.
+	var (
+		currentRaftIndex      = currentEntry.GetRaftIndex()
+		userProvidedRaftIndex = updatedEntry.GetRaftIndex()
+
+		currentRaftIndexCopy      = *currentRaftIndex
+		userProvidedRaftIndexCopy = *userProvidedRaftIndex
+	)
+
+	*userProvidedRaftIndex = currentRaftIndexCopy         // change
+	same := reflect.DeepEqual(currentEntry, updatedEntry) // compare
+	*userProvidedRaftIndex = userProvidedRaftIndexCopy    // restore
+
+	return same, nil
 }
 
 // Get returns a single config entry by Kind/Name.
@@ -140,12 +205,10 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.ConfigE
 				return err
 			}
 
-			reply.Index = index
+			reply.Index, reply.Entry = index, entry
 			if entry == nil {
-				return nil
+				return errNotFound
 			}
-
-			reply.Entry = entry
 			return nil
 		})
 }
@@ -307,6 +370,13 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *structs.Co
 	case structs.ConfigEntryDelete, structs.ConfigEntryDeleteCAS:
 	default:
 		args.Op = structs.ConfigEntryDelete
+	}
+
+	if skip, err := c.shouldSkipOperation(args); err != nil {
+		return err
+	} else if skip {
+		reply.Deleted = true
+		return nil
 	}
 
 	rsp, err := c.srv.raftApply(structs.ConfigEntryRequestType, args)
