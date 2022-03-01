@@ -524,14 +524,16 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 	resolver.Register(builder)
 
 	connPool := &pool.ConnPool{
-		Server:          false,
-		SrcAddr:         c.RPCSrcAddr,
-		Logger:          logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
-		MaxTime:         2 * time.Minute,
-		MaxStreams:      4,
-		TLSConfigurator: tls,
-		Datacenter:      c.Datacenter,
-		Timeout:         c.RPCHoldTimeout,
+		Server:           false,
+		SrcAddr:          c.RPCSrcAddr,
+		Logger:           logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
+		MaxTime:          2 * time.Minute,
+		MaxStreams:       4,
+		TLSConfigurator:  tls,
+		Datacenter:       c.Datacenter,
+		Timeout:          c.RPCHoldTimeout,
+		DefaultQueryTime: c.DefaultQueryTime,
+		MaxQueryTime:     c.MaxQueryTime,
 	}
 
 	return Deps{

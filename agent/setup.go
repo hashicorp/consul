@@ -164,12 +164,14 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 	}
 
 	pool := &pool.ConnPool{
-		Server:          config.ServerMode,
-		SrcAddr:         rpcSrcAddr,
-		Logger:          logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
-		TLSConfigurator: tls,
-		Datacenter:      config.Datacenter,
-		Timeout:         config.RPCHoldTimeout,
+		Server:           config.ServerMode,
+		SrcAddr:          rpcSrcAddr,
+		Logger:           logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
+		TLSConfigurator:  tls,
+		Datacenter:       config.Datacenter,
+		Timeout:          config.RPCHoldTimeout,
+		MaxQueryTime:     config.MaxQueryTime,
+		DefaultQueryTime: config.DefaultQueryTime,
 	}
 	if config.ServerMode {
 		pool.MaxTime = 2 * time.Minute

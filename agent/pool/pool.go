@@ -178,6 +178,10 @@ type ConnPool struct {
 	// The default timeout for stream reads/writes
 	Timeout time.Duration
 
+	// Used for calculating timeouts on RPC requests
+	MaxQueryTime     time.Duration
+	DefaultQueryTime time.Duration
+
 	// The maximum time to keep a connection open
 	MaxTime time.Duration
 
@@ -584,7 +588,6 @@ func (p *ConnPool) RPC(
 	method string,
 	args interface{},
 	reply interface{},
-	timeout time.Duration,
 ) error {
 	if nodeName == "" {
 		return fmt.Errorf("pool: ConnPool.RPC requires a node name")
@@ -597,7 +600,7 @@ func (p *ConnPool) RPC(
 	if method == "AutoEncrypt.Sign" || method == "AutoConfig.InitialConfiguration" {
 		return p.rpcInsecure(dc, addr, method, args, reply)
 	} else {
-		return p.rpc(dc, nodeName, addr, method, args, reply, timeout)
+		return p.rpc(dc, nodeName, addr, method, args, reply)
 	}
 }
 
@@ -627,13 +630,20 @@ func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args int
 	return nil
 }
 
-func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string, args interface{}, reply interface{}, timeout time.Duration) error {
+func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string, args interface{}, reply interface{}) error {
 	p.once.Do(p.init)
 
 	// Get a usable client
 	conn, sc, err := p.getClient(dc, nodeName, addr)
 	if err != nil {
 		return fmt.Errorf("rpc error getting client: %w", err)
+	}
+
+	timeout := time.Duration(0)
+	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
+	info, _ := args.(structs.RPCInfo)
+	if info != nil {
+		timeout = info.Timeout(p.Timeout, p.MaxQueryTime, p.DefaultQueryTime)
 	}
 
 	if timeout > 0 {
@@ -667,7 +677,7 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 // returns true if healthy, false if an error occurred
 func (p *ConnPool) Ping(dc string, nodeName string, addr net.Addr) (bool, error) {
 	var out struct{}
-	err := p.RPC(dc, nodeName, addr, "Status.Ping", struct{}{}, &out, 0)
+	err := p.RPC(dc, nodeName, addr, "Status.Ping", struct{}{}, &out)
 	return err == nil, err
 }
 

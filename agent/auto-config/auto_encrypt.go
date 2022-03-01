@@ -56,7 +56,7 @@ func (ac *AutoConfig) autoEncryptInitialCertsOnce(ctx context.Context, csr, key 
 			}
 
 			ac.logger.Debug("making AutoEncrypt.Sign RPC", "addr", addr.String())
-			err = ac.acConfig.DirectRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "AutoEncrypt.Sign", &request, &resp, 0)
+			err = ac.acConfig.DirectRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "AutoEncrypt.Sign", &request, &resp)
 			if err != nil {
 				ac.logger.Error("AutoEncrypt.Sign RPC failed", "addr", addr.String(), "error", err)
 				continue

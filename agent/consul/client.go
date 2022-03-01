@@ -267,16 +267,8 @@ TRY:
 		return structs.ErrRPCRateExceeded
 	}
 
-	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
-	info, _ := args.(structs.RPCInfo)
-
-	timeout := time.Duration(0)
-	if info != nil {
-		timeout = info.Timeout(c.config.RPCHoldTimeout, c.config.MaxQueryTime, c.config.DefaultQueryTime)
-	}
-
 	// Make the request.
-	rpcErr := c.connPool.RPC(c.config.Datacenter, server.ShortName, server.Addr, method, args, reply, timeout)
+	rpcErr := c.connPool.RPC(c.config.Datacenter, server.ShortName, server.Addr, method, args, reply)
 	if rpcErr == nil {
 		return nil
 	}
@@ -284,6 +276,8 @@ TRY:
 	// Move off to another server, and see if we can retry.
 	manager.NotifyFailedServer(server)
 
+	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
+	info, _ := args.(structs.RPCInfo)
 	if retry := canRetry(info, rpcErr, firstCheck, c.config); !retry {
 		c.logger.Error("RPC failed to server",
 			"method", method,
