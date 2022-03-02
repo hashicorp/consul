@@ -5647,6 +5647,7 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 	`), 0600))
 
 	srv := StartTestAgent(t, TestAgent{Name: "TestAgent-Server", HCL: hclConfig, configFiles: []string{configFile}})
+	srv.coalesceTimerShim = testCoalesceTimer
 	defer srv.Shutdown()
 
 	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
@@ -5719,4 +5720,14 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 		require.NotEqual(r, cert2.Certificate, srv.tlsConfigurator.Cert().Certificate)
 		require.NotEqual(r, cert2.PrivateKey, srv.tlsConfigurator.Cert().PrivateKey)
 	})
+}
+
+func testCoalesceTimer(inputCh chan *config.FileWatcherEvent, _ time.Duration) chan []config.FileWatcherEvent {
+	ch := make(chan []config.FileWatcherEvent)
+	go func() {
+		for evt := range inputCh {
+			ch <- []config.FileWatcherEvent{*evt}
+		}
+	}()
+	return ch
 }
