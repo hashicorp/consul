@@ -178,8 +178,8 @@ endif
 
 # linux builds a linux binary independent of the source platform
 linux:
-	mkdir -p bin
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+	@mkdir -p ./pkg/bin/linux_amd64
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./pkg/bin/linux_amd64 -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
