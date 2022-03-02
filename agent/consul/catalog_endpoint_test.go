@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/rpc/logtest"
+
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/go-uuid"
@@ -67,7 +69,12 @@ func TestCatalog_Register(t *testing.T) {
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
 	require.NoError(t, err)
 
-	// TODO: assert buf contains the log we expect
+	logtest.Assert(t, buf.String(),
+		// the first Catalog.Register comes from reconcileMembers
+		logtest.Line("method=Catalog.Register", "rpc_type=leader", "request_type=write", "errored=false"),
+		// the second from the RPC call
+		logtest.Line("method=Catalog.Register", "rpc_type=netrpc", "request_type=write", "errored=false"),
+	)
 }
 
 func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
@@ -76,11 +83,18 @@ func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	_, config := testServerConfig(t)
+	deps := newDefaultDeps(t, config)
+
+	buf := new(bytes.Buffer)
+	deps.Logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   "srv1",
+		Level:  hclog.Debug,
+		Output: io.MultiWriter(buf, testutil.NewLogBuffer(t)),
+	})
+	s1, err := newServer(t, config, deps)
+	require.NoError(t, err)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	for _, addr := range []string{"0.0.0.0", "::", "[::]"} {
 		t.Run("addr "+addr, func(t *testing.T) {
@@ -97,11 +111,16 @@ func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
 			var out struct{}
 
 			err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
-			if err == nil || err.Error() != "Invalid service address" {
-				t.Fatalf("got error %v want 'Invalid service address'", err)
-			}
+			require.EqualError(t, err, "Invalid service address")
 		})
 	}
+
+	logtest.Assert(t, buf.String(),
+		// the first Catalog.Register comes from reconcileMembers
+		logtest.Line("method=Catalog.Register", "rpc_type=leader", "request_type=write", "errored=false"),
+		// the rest from the RPC calls above
+		logtest.Line("method=Catalog.Register", "rpc_type=netrpc", "request_type=write", "errored=true"),
+	)
 }
 
 func TestCatalog_RegisterService_SkipNodeUpdate(t *testing.T) {

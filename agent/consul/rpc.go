@@ -1194,9 +1194,12 @@ func maskResultsFilteredByACLs(token string, meta blockingQueryResponseMeta) {
 const rpcTypeNetRPC = "netrpc"
 
 func newNetRPCInterceptor(obs agentrpc.ServiceCallObserver) rpc.ServerServiceCallInterceptor {
-	return func(reqServiceMethod string, argv, replyv reflect.Value, handler func()) {
+	return func(reqServiceMethod string, argv, replyv reflect.Value, handler func() error) {
 		start := time.Now()
-		handler()
-		obs.Observe(reqServiceMethod, rpcTypeNetRPC, start, argv.Interface(), replyv.Interface())
+		var resp interface{} = handler()
+		if resp == nil {
+			resp = replyv.Interface()
+		}
+		obs.Observe(reqServiceMethod, rpcTypeNetRPC, start, argv.Interface(), resp)
 	}
 }
