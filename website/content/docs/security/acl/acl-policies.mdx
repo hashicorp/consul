@@ -433,3 +433,111 @@ The `global-management` policy grants unrestricted privileges to any token linke
 ### Namespace Management <EnterpriseAlert inline />
 
 The `namespace-management` policy will be injected into all namespaces you create. The policy will be assigned a randomized UUID and can be managed as a normal, user-defined policy within the namespace. This feature was added in Consul Enterprise 1.7.0.
+
+## Example Policies
+
+This section includes example policy configurations for achieving specific use-cases.
+
+### Enable the Snapshot Agent to Run on a Specific Node
+
+The `consul snapshot agent` command starts a process that takes snapshots of the state of the Consul servers and either saves them locally or pushes them to a remote storage service. Refer to [Consul Snapshot Agent](/commands/snapshot/agent) for additional information.
+
+In the following example, the ACL policy enables the snapshot agent to run on a node named `server-1234`.
+
+<CodeTabs>
+
+```hcl
+# Required to read and snapshot ACL data
+acl = "write"
+# Allow the snapshot agent to create the key consul-snapshot/lock which will
+# serve as a leader election lock when multiple snapshot agents are running in
+# an environment
+key "consul-snapshot/lock" {
+  policy = "write"
+}
+# Allow the snapshot agent to create sessions on the specified node
+session "server-1234" {
+  policy = "write"
+}
+# Allow the snapshot agent to register itself into the catalog
+service "consul-snapshot" {
+  policy = "write"
+}
+```
+
+```json
+{
+  "acl": "write",
+  "key": {
+    "consul-snapshot/lock": {
+      "policy": "write"
+    }
+  },
+  "session": {
+    "server-1234": {
+      "policy": "write"
+    }
+  },
+  "service": {
+    "consul-snapshot": {
+      "policy": "write"
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+### Enable Vault to Access the Consul Storage Backend 
+
+If you are using [Vault](https://www.vaultproject.io/docs) to manage secrets in your infrastructure, you can configure Vault to use Consul's key/value (KV) store as backend storage to persist Vault's data. Refer to the [Consul KV documentation](/docs/dynamic-app-config/kv) and the [Vault storage documentation](https://www.vaultproject.io/docs/configuration/storage) for additional information.   
+
+In the following example, Vault is registered as a service and provided access to Consul's KV store.
+
+<CodeTabs>
+
+```hcl
+# Provide KV visibility to all agents.   
+agent_prefix "" {
+  "policy" = "read"
+}
+# Enable resources prefixed with 'vault/' to write to the KV
+key_prefix "vault/" {
+  "policy" = "write"
+}
+# Enable the vault service to write to the KV
+service "vault" {
+  "policy" = "write"
+}
+# Enable the agent to initialize a new session.
+session_prefix "" {
+  "policy" = "write"
+}
+```
+
+```json
+{
+  "key_prefix": {
+    "vault/": {
+      "policy": "write"
+    }
+  },
+  "service": {
+    "vault": {
+      "policy": "write"
+    }
+  },
+  "agent_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "session_prefix": {
+    "": {
+      "policy": "write"
+    }
+  }
+}
+
+```
+</CodeTabs>
