@@ -720,15 +720,44 @@ func (a *Agent) Start(ctx context.Context) error {
 	})
 
 	// start a go routine to reload config based on file watcher events
-	if a.configFileWatcher != nil {
-		a.baseDeps.Logger.Debug("starting file watcher")
-		a.configFileWatcher.Start(context.Background())
-		go func() {
-			for event := range a.configFileWatcher.EventsCh() {
-				a.baseDeps.Logger.Debug("auto-reload config triggered", "num-events", len(event.Filenames))
-				err := a.AutoReloadConfig()
-				if err != nil {
-					a.baseDeps.Logger.Error("error loading config", "error", err)
+	if a.baseDeps.RuntimeConfig.AutoReloadConfig {
+		if a.baseDeps.WatchedFiles != nil {
+			w, err := config.NewFileWatcher(a.baseDeps.WatchedFiles, a.baseDeps.Logger)
+			if err != nil {
+				a.baseDeps.Logger.Error("error loading config", "error", err)
+			}
+			a.FileWatcher = w
+			a.baseDeps.Logger.Debug("starting file watcher")
+			a.FileWatcher.Start(context.Background())
+			go func() {
+				var coalesceTimer *time.Timer = nil
+				eventsCount := 0
+				sendCh := make(chan struct{})
+				for {
+					select {
+					case event, ok := <-a.FileWatcher.EventsCh:
+						if !ok {
+							return
+						}
+						a.baseDeps.Logger.Debug("auto-reload event received", "event-file", event.Filename)
+						if coalesceTimer == nil {
+							coalesceTimer = time.AfterFunc(1*time.Millisecond, func() {
+								// This runs in another goroutine so we can't just do the send
+								// directly here as access to snap is racy. Instead, signal the main
+								// loop above.
+								sendCh <- struct{}{}
+							})
+						}
+						eventsCount++
+					case <-sendCh:
+						a.baseDeps.Logger.Debug("auto-reload config triggered", "num-events", eventsCount)
+						coalesceTimer = nil
+						eventsCount = 0
+						err := a.ReloadConfig(true)
+						if err != nil {
+							a.baseDeps.Logger.Error("error loading config", "error", err)
+						}
+					}
 				}
 			}
 		}()
