@@ -31,7 +31,7 @@ require (
 	github.com/google/pprof v0.0.0-20210601050228-01bbb1931b22
 	github.com/google/tcpproxy v0.0.0-20180808230851-dfa16c61dad2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
-	github.com/hashicorp/consul-net-rpc v0.0.0-20220301010508-276d1f75285b
+	github.com/hashicorp/consul-net-rpc v0.0.0-20220302000633-fba3491ad3ed
 	github.com/hashicorp/consul/api v1.11.0
 	github.com/hashicorp/consul/sdk v0.8.0
 	github.com/hashicorp/go-bexpr v0.1.2
