@@ -43,8 +43,8 @@ may benefit from additional components in the ACL system:
   tokens. (Added in Consul 1.5.0)
 
 - **ACL Service Identities** - Service identities are a policy template for
-  expressing a link to a policy suitable for use in [Consul
-  Connect](/docs/connect). At authorization time this acts like an
+  expressing a link to a policy suitable for use in the [service mesh](/docs/connect).
+  At authorization time this acts like an
   additional policy was attached, the contents of which are described further
   below. These are directly attached to tokens and roles and are not
   independently configured. (Added in Consul 1.5.0)
@@ -131,7 +131,7 @@ Note that the `Hash`, `CreateIndex`, and `ModifyIndex` attributes are also print
 -> Added in Consul 1.5.0
 
 An ACL service identity is an [ACL policy](/docs/security/acl/acl-system#acl-policies) template for expressing a link to a policy
-suitable for use in [Consul Connect](/docs/connect). They are usable
+suitable for use in the [service mesh](/docs/connect). They are usable
 on both tokens and roles and are composed of the following elements:
 
 - **Service Name** - The name of the service.
@@ -343,7 +343,7 @@ The following resources are not covered by ACL policies:
    [Catalog API](/api/catalog#list-datacenters) similarly exposes the names of known
    Consul datacenters, and does not allow modification of any state.
 
-3. The [connect CA roots endpoint](/api/connect/ca#list-ca-root-certificates) exposes just the public TLS certificate which other systems can use to verify the TLS connection with Consul.
+3. The [service mesh CA roots endpoint](/api/connect/ca#list-ca-root-certificates) exposes just the public TLS certificate which other systems can use to verify the TLS connection with Consul.
 
 Constructing rules from these policies is covered in detail on the
 [ACL Rules](/docs/security/acl/acl-rules) page.

@@ -7,10 +7,12 @@ page_title: 'Commands: Connect'
 
 Command: `consul connect`
 
-The `connect` command is used to interact with Consul
-[Connect](/docs/connect/intentions) subsystems. It exposes commands for
-running the built-in mTLS proxy and viewing/updating the Certificate Authority
-(CA) configuration. This command is available in Consul 1.2 and later.
+The `connect` command is used to interact with Consul's service mesh capabilities
+managed by the connect subsystem. It exposes commands for:
+- launching a sidecar proxy to bring mesh-unaware applications into the mesh
+- viewing/updating the service mesh's Certificate Authority (CA) configuration
+
+This command is available in Consul 1.2 and later.
 
 ## Usage
 
@@ -22,22 +24,27 @@ the complete list of subcommands.
 ```text
 Usage: consul connect <subcommand> [options] [args]
 
-  This command has subcommands for interacting with Consul Connect.
+This command is used to interact with the service mesh's Certificate Authority
+managed by the connect subsystem, including viewing or modifying the current CA configuration.
+See the [service mesh CA documentation](/docs/connect/ca) for more information.
+
+  This command has subcommands for interacting with the service mesh managed
+  by the connect subsystem.
 
   Here are some simple examples, and more detailed examples are available
   in the subcommands or the documentation.
 
-  Run the built-in Connect mTLS proxy
+  Run and Configure an Envoy sidecar proxy for an instance of the web service:
 
-      $ consul connect proxy
+      $ consul connect envoy -sidecar-for web
 
   For more examples, ask for subcommand help or view the documentation.
 
 Subcommands:
     ca                  Interact with the Consul Connect Certificate Authority (CA)
-    envoy               Runs or Configures Envoy as a Connect proxy
-    expose              Expose a Connect-enabled service through an Ingress gateway
-    proxy               Runs a Consul Connect proxy
+    envoy               Runs or Configures Envoy as a service mesh proxy
+    expose              Expose a service in the mesh through an Ingress gateway
+    proxy               Runs a built-in service mesh proxy (not recommended for production)
     redirect-traffic    Applies iptables rules for traffic redirection
 ```
 

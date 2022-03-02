@@ -1,40 +1,42 @@
 ---
 layout: docs
-page_title: Connect - Native Application Integration - Go
+page_title: Consul Service Mesh - Native Application Integration - Go
 description: >-
-  We provide a library that makes it drop-in simple to integrate Connect with
-  most Go applications. For most Go applications, Connect can be natively
-  integrated in just a single line of code excluding imports and struct
-  initialization.
+  We provide a library that makes it drop-in simple to natively integrate most Go applications
+  with the connect subsystem that provides Consul's service mesh capabilities.
+  Native integration eliminates the need to deploy a sidecar proxy with the service.
 ---
 
-# Connect-Native Integration with Go
+# Native Integration into the Consul Service Mesh with Go
 
 -> **Note:** When calling `ConnectAuthorize()` on incoming connections this library
 will return _deny_ if `Permissions` are defined on the matching intention.
 The method is currently only suited for networking layer 4 (e.g. TCP) integration.
 
-We provide a library that makes it drop-in simple to integrate Connect
-with most [Go](https://golang.org/) applications. This page shows examples
-of integrating this library for accepting or establishing Connect-based
-connections. For most Go applications, Connect can be natively integrated
-in just a single line of code excluding imports and struct initialization.
+We provide a library that makes it drop-in simple to natively integrate
+most [Go](https://golang.org/) applications with the connect subsystem that provides
+Consul's service mesh capabilities. Native integration eliminates the need to deploy
+a [sidecar proxy](/docs/connect/proxies) with the application.
+This page shows examples
+of integrating this library for accepting or establishing Consul service mesh
+connections. For most Go applications, native integration requires
+just a single line of code excluding imports and struct initialization.
 
 In addition to this, please read and understand the
-[overview of Connect-Native integrations](/docs/connect/native).
-In particular, after integrating applications with Connect, they must declare
-that they accept Connect-based connections via their service definitions.
+[overview of Consul service mesh native integrations](/docs/connect/native).
+In particular, after integrating applications with Consul service mesh, they must declare
+that they accept service mesh connections via the
+[connect stanza](/docs/discovery/services#connect) of their service definitions.
 
 ## Accepting Connections
 
 Any server that supports TLS (HTTP, gRPC, net/rpc, etc.) can begin
-accepting Connect-based connections in just a few lines of code. For most
-existing applications, converting the server to accept Connect-based
+accepting service mesh connections in just a few lines of code. For most
+existing applications, converting the server to accept service mesh
 connections will require only a one-line change excluding imports and
 structure initialization.
 
-The
-Go library exposes a `*tls.Config` that _automatically_ communicates with
+The Go library exposes a `*tls.Config` that _automatically_ communicates with
 Consul to load certificates and authorize inbound connections during the
 TLS handshake. This also automatically starts goroutines to update any
 changing certs.
@@ -155,7 +157,7 @@ section above. If your application is both a client and server, both the
 API client and service structure can be shared and reused.
 
 Next, we call `svc.HTTPClient()` to return a specially configured
-`*http.Client`. This client will automatically established Connect-based
+`*http.Client`. This client will automatically establish service mesh
 connections using Consul service discovery.
 
 Finally, we perform an HTTP `GET` request to a hypothetical userinfo service.

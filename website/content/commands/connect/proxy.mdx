@@ -10,10 +10,13 @@ description: >
 
 Command: `consul connect proxy`
 
-The connect proxy command is used to run Consul's built-in mTLS proxy for
-use with Connect. This can be used in production to enable a Connect-unaware
-application to accept and establish Connect-based connections. This proxy
-can also be used in development to connect to Connect-enabled services.
+This command configures and launches Consul's built-in mTLS proxy for
+as a sidecar proxy for use with Consul's [service mesh](/docs/connect/) capabilities.
+
+~> **Not supported in production:**
+   The built-in proxy is not supported for production deployments. It does not
+   support many of Consul's service mesh capabilities, and is not under active development.
+   The [Envoy proxy](/commands/connect/envoy) should be used for production deployments.
 
 ## Usage
 

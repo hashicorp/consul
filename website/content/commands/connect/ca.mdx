@@ -2,7 +2,7 @@
 layout: commands
 page_title: 'Commands: Connect CA'
 description: >
-  The connect CA subcommand is used to view and modify the Connect Certificate
+  The connect CA subcommand is used to view and modify the service mesh Certificate
   Authority (CA) configuration.
 ---
 
@@ -10,15 +10,15 @@ description: >
 
 Command: `consul connect ca`
 
-The CA connect command is used to interact with Consul Connect's Certificate Authority
-subsystem. The command can be used to view or modify the current CA configuration. See the
-[Connect CA documentation](/docs/connect/ca) for more information.
+This command is used to interact with the service mesh's Certificate Authority
+managed by the connect subsystem, including viewing or modifying the current CA configuration.
+See the [service mesh CA documentation](/docs/connect/ca) for more information.
 
 ```text
 Usage: consul connect ca <subcommand> [options] [args]
 
-  This command has subcommands for interacting with Consul Connect's
-  Certificate Authority (CA).
+  This command has subcommands for interacting with the service mesh's
+  Certificate Authority (CA) managed by the connect subsystem.
 
   Here are some simple examples, and more detailed examples are available
   in the subcommands or the documentation.
@@ -34,8 +34,8 @@ Usage: consul connect ca <subcommand> [options] [args]
   For more examples, ask for subcommand help or view the documentation.
 
 Subcommands:
-    get-config    Display the current Connect Certificate Authority (CA) configuration
-    set-config    Modify the current Connect CA configuration
+    get-config    Display the current service mesh CA configuration
+    set-config    Modify the current service mesh CA configuration
 ```
 
 ## get-config

@@ -9,9 +9,8 @@ description: The connect envoy subcommand is used to generate a bootstrap config
 
 Command: `consul connect envoy`
 
-The connect Envoy command is used to generate a bootstrap configuration for
-[Envoy proxy](https://envoyproxy.io) for use with [Consul
-Connect](/docs/connect/).
+This command configures and launches an [Envoy proxy](https://envoyproxy.io)
+for use with Consul's [service mesh](/docs/connect/) capabilities.
 
 The default behavior is to generate the necessary bootstrap configuration for
 Envoy based on the environment variables and options provided and by talking to
@@ -72,7 +71,7 @@ proxy configuration needed.
   ACL token from `-token` or the environment and so should be handled as a secret.
   This token grants the identity of any service it has `service:write` permission
   for and so can be used to access any upstream service that that service is
-  allowed to access by [Connect intentions](/docs/connect/intentions).
+  allowed to access by service mesh [intentions](/docs/connect/intentions).
 
 - `-envoy-version` - The version of envoy that is being started. Default is
   `1.19.1`. This is required so that the correct configuration can be generated.

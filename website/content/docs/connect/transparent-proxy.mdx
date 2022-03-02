@@ -1,6 +1,6 @@
 ---
 layout: docs
-page_title: Connect - Transparent Proxy
+page_title: Service Mesh - Transparent Proxy
 sidebar_title: Transparent Proxy
 description: |-
   Transparent proxy is used to direct inbound and outbound traffic to services via the Envoy proxy and configure
@@ -61,7 +61,7 @@ the traffic redirection command is automatically set up via an init container.
 
 * To use transparent proxy on Kubernetes, Consul-helm >= `0.32.0` and Consul-k8s >= `0.26.0` are required in addition to Consul >= `1.10.0`.
 * If the default policy for ACLs is "deny", then Service Intentions should be set up to allow intended services to connect to each other.
-Otherwise, all Connect services can talk to all other services.
+Otherwise, all services in the mesh can talk to all other services.
 * If using Transparent Proxy, all worker nodes within a Kubernetes cluster must have the `ip_tables` kernel module running, e.g. `modprobe ip_tables`. 
 
 The Kubernetes integration takes care of registering Kubernetes services with Consul, injecting a sidecar proxy, and
@@ -175,7 +175,7 @@ Currently the upstream's protocol and connection timeout are not considered.
 
 In Kubernetes, services can reach other services via their
 [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) address or via Pod IPs, and that
-traffic will be transparently sent through the proxy. Connect services in Kubernetes are required to have a Kubernetes
+traffic will be transparently sent through the proxy. Services in the mesh in Kubernetes are required to have a Kubernetes
 service selecting the Pods.
 
 ~> Note: In order to use KubeDNS, the Kubernetes service name will need to match the Consul service name. This will be the
@@ -188,12 +188,12 @@ proxy for all applications in a Kubernetes cluster is `connectInject.transparent
 Each Pod for the service will be configured with iptables rules to direct all inbound and outbound traffic through an
 inbound and outbound listener on the sidecar proxy. The proxy will be configured to know how to route traffic to the
 appropriate upstream services based on [Service
-Intentions](/docs/connect/config-entries/service-intentions). This means Connect services no longer
+Intentions](/docs/connect/config-entries/service-intentions). This means services in the mesh no longer
 need to use the `consul.hashicorp.com/connect-service-upstreams` annotation to configure upstreams explicitly. Once the
 Service Intentions are set, they can simply address the upstream services using KubeDNS.
 
 As of Consul-k8s >= `0.26.0` and Consul-helm >= `0.32.0`, a Kubernetes service that selects application pods is required
-for Connect applications, i.e:
+for service mesh applications, i.e:
 
 ```yaml
 apiVersion: v1
@@ -222,7 +222,7 @@ configured using the [DialedDirectly](/docs/connect/config-entries/service-defau
 option.
 
 Individual instance addresses can then be discovered using DNS, and dialed through the transparent proxy.
-When this mode is enabled on the upstream, connect certificates will be presented for mTLS and
+When this mode is enabled on the upstream, service mesh certificates will be presented for mTLS and
 intentions will be enforced at the destination.
 
 Note that when dialing individual instances HTTP routing rules configured with config entries

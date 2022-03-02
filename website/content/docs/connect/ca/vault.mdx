@@ -1,25 +1,22 @@
 ---
 layout: docs
-page_title: Connect - Certificate Management
+page_title: Vault as a Consul Service Mesh CA
 description: >-
   Consul can be used with Vault to manage and sign certificates. The Vault CA
   provider uses the Vault PKI secrets engine to generate and sign certificates.
 ---
 
-# Vault as a Connect CA
+# Vault as a Consul Service Mesh CA
 
-Consul can be used with [Vault](https://www.vaultproject.io) to
-manage and sign certificates.
-The Vault CA provider uses the
-[Vault PKI secrets engine](https://www.vaultproject.io/docs/secrets/pki)
-to generate and sign certificates.
+Consul can be used with [Vault's PKI secrets engine](https://www.vaultproject.io/docs/secrets/pki) to
+manage and sign service mesh certificates.
 
-This page documents the specifics of the Vault CA provider.
+This page documents the specifics of the Vault CA provider for Consul service mesh.
 Please read the [certificate management overview](/docs/connect/ca)
 page first to understand how Consul manages certificates with configurable
 CA providers.
 
--> **NOTE**: A Learn [tutorial](https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-connect-ca?in=consul/vault-secure) is available to help you configure Vault as the Consul Connect service mesh Certification Authority.
+-> **NOTE**: A Learn [tutorial](https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-connect-ca?in=consul/vault-secure) is available to help you configure Vault as the Consul service mesh Certification Authority.
 
 ## Requirements
 
@@ -28,7 +25,7 @@ must be met:
 
 - **Vault 0.10.3 or later.** Consul uses URI SANs in the PKI engine which
   were introduced in Vault 0.10.3. Prior versions of Vault are not
-  compatible with Connect.
+  compatible with Consul service mesh.
 
 ## Configuration
 
@@ -41,7 +38,7 @@ the [`ca_provider`] and [`ca_config`] options, or configured using the
 
 Example configurations are shown below:
 
-<CodeTabs heading="Connect CA configuration" tabs={["Agent configuration", "API"]}>
+<CodeTabs heading="Service Mesh CA configuration" tabs={["Agent configuration", "API"]}>
 
 <CodeBlockConfig filename="/etc/consul.d/config.hcl" highlight="4,6-9">
 
@@ -178,7 +175,7 @@ The configuration options are listed below.
 
 The Vault CA provider uses two separately configured
 [PKI secrets engines](https://www.vaultproject.io/docs/secrets/pki)
-for managing Connect certificates.
+for managing service mesh certificates.
 
 The `RootPKIPath` is the PKI engine for the root certificate. Consul will
 use this root certificate to sign the intermediate certificate. Consul will
@@ -199,7 +196,7 @@ If the paths already exist, Consul will use them as configured.
 
 The following Vault policy allows Consul to use pre-existing PKI paths in Vault.
 Consul is granted read-only access to the PKI mount points and the Root CA, but is
-granted full control of the Intermediate or Leaf CA for Connect clients.
+granted full control of the Intermediate or Leaf CA for service mesh participants.
 
 In this example the `RootPKIPath` is `connect_root` and the `IntermediatePKIPath`
 is `connect_inter`. These values should be updated for your environment.
@@ -247,7 +244,7 @@ path "auth/token/lookup-self" {
 
 The following Vault policy allows Consul to create and manage the PKI paths in Vault.
 Consul is granted the ability to create the PKI mount points and given full
-control of the Root and Intermediate or Leaf CA for Connect clients.
+control of the Root and Intermediate or Leaf CA for service mesh participants.
 
 In this example the `RootPKIPath` is `connect_root` and the `IntermediatePKIPath`
 is `connect_inter`. These values should be updated for your environment.

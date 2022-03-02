@@ -17,10 +17,10 @@ Consul provides several key features:
 * **Multi-Datacenter** - Consul is built to be datacenter aware, and can
   support any number of regions without complex configuration.
 
-* **Service Mesh/Service Segmentation** - Consul Connect enables secure service-to-service
+* **Service Mesh/Service Segmentation** - Consul enables secure service-to-service
   communication with automatic TLS encryption and identity-based authorization. Applications
   can use sidecar proxies in a service mesh configuration to establish TLS
-  connections for inbound and outbound connections without being aware of Connect at all.
+  connections for inbound and outbound connections without being aware of the service mesh at all.
 
 * **Service Discovery** - Consul makes it simple for services to register
   themselves and to discover other services via a DNS or HTTP interface.

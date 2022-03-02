@@ -307,8 +307,8 @@ The following are parts of the core Consul threat model:
 - **Consul agent-to-agent communication** - Communication between Consul agents should be secure from eavesdropping.
   This requires transport encryption to be enabled on the cluster and covers both TCP and UDP traffic.
 
-- **Consul agent-to-CA communication** - Communication between the Consul server and the configured certificate
-  authority provider for Connect is always encrypted.
+- **Consul agent-to-CA communication** - Communication between the Consul server and the configured Aertificate
+  Authority provider for the service mesh is always encrypted.
 
 - **Tampering of data in transit** - Any tampering should be detectable and cause Consul to avoid processing
   the request.
@@ -325,8 +325,9 @@ The following are parts of the core Consul threat model:
 - **Denial of Service against a node** - DoS attacks against a node should not compromise the security stance of
   the software.
 
-- **Connect-based Service-to-Service communication** - Communications between two Connect-enabled services (natively or
-  by proxy) should be secure from eavesdropping and provide authentication. This is achieved via mutual TLS.
+- **Service mesh communication between services** - Communications between two services in the service mesh
+  (through native integration or via sidecar proxy) are secured from eavesdropping and provide authentication
+  through mutual TLS.
 
 The following are not part of the threat model for server agents:
 
@@ -347,7 +348,7 @@ The following are not part of the threat model for server agents:
 The following are not part of the threat model for client agents:
 
 - **Access (read or write) to the Consul data directory** - Consul clients will use the data directory to cache local
-  state. This includes local services, associated ACL tokens, Connect TLS certificates, and more. Read or write access
+  state. This includes local services, associated ACL tokens, service mesh TLS certificates, and more. Read or write access
   to this directory will allow an attacker to access this data. This data is typically a smaller subset of the full data
   of the cluster.
 - **Access (read or write) to the Consul configuration directory** - Consul client configuration files contain the
@@ -358,18 +359,18 @@ The following are not part of the threat model for client agents:
 
 - **Memory access to a running Consul client agent** - The blast radius of this is much smaller than a server agent but
   the confidentiality of a subset of data can still be compromised. Particularly, any data requested against the agent's
-  API including services, KV, and Connect information may be compromised. If a particular set of data on the server was
+  API including services, KV, and connect subsystem information may be compromised. If a particular set of data on the server was
   never requested by the agent, it never enters the agent's memory since replication only exists between servers. An
   attacker could also potentially extract ACL tokens used for service registration on this agent, since the tokens must
   be stored in-memory alongside the registered service.
 
-- **Network access to a local Connect proxy or service** - Communications between a service and a Connect-aware proxy
+- **Network access to a local service mesh proxy or service** - Communications between a service in the mesh and its sidecar proxy
   are generally unencrypted and must happen over a trusted network. This is typically a loopback device. This requires
   that other processes on the same machine are trusted, or more complex isolation mechanisms are used such as network
-  namespaces. This also requires that external processes cannot communicate to the Connect service or proxy (except on
-  the inbound port). Therefore, non-native Connect applications should only bind to non-public addresses.
+  namespaces. This also requires that external processes cannot communicate to the service in the mesh or its sidecar proxy (except on
+  the inbound port). Therefore, applications in the mesh should only bind to non-public addresses if using a sidecar proxy.
 
-- **Improperly Implemented Connect proxy or service** - A Connect proxy or natively integrated service must correctly
+- **Improperly Implemented service mesh proxy or service** - A service mesh proxy or natively integrated service must correctly
   serve a valid leaf certificate, verify the inbound TLS client certificate, and call the Consul agent-local authorized
   endpoint. If any of this isn't performed correctly, the proxy or service may allow unauthenticated or unauthorized
   connections.

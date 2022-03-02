@@ -1,19 +1,18 @@
 ---
 layout: docs
-page_title: Connect - Certificate Management
+page_title: AWS Certificate Manager Private CA as a Consul Service Mesh CA
 description: >-
   Consul can be used with AWS Certificate Manager Private CA to manage and sign
   certificates.
 ---
 
-# AWS Certificate Manager Private CA as a Connect CA
+# AWS Certificate Manager Private CA as a Consul Service Mesh CA
 
-Consul can be used with [AWS Certificate Manager (ACM) Private Certificate
-Authority
+Consul can be used with [AWS Certificate Manager (ACM) Private Certificate Authority
 (CA)](https://aws.amazon.com/certificate-manager/private-certificate-authority/)
-to manage and sign certificates.
+to manage and sign service mesh certificates.
 
--> This page documents the specifics of the AWS ACM Private CA provider.
+-> This page documents the specifics of the AWS ACM Private CA provider for Consul service mesh.
 Please read the [certificate management overview](/docs/connect/ca)
 page first to understand how Consul manages certificates with configurable
 CA providers.
@@ -43,14 +42,14 @@ The IAM credential provided must have permission for the following actions:
 
 ## Configuration
 
-The ACM Private CA provider is enabled by setting the CA provider to
+The ACM Private CA provider is enabled by setting the connect subsystem's CA provider to
 `"aws-pca"` in the agent's [`ca_provider`] configuration option, or via the
 [`/connect/ca/configuration`] API endpoint. At this time there is only one,
 optional configuration value.
 
 Example configurations are shown below:
 
-<CodeTabs heading="Connect CA configuration" tabs={["Agent configuration", "API"]}>
+<CodeTabs heading="Service Mesh CA configuration" tabs={["Agent configuration", "API"]}>
 
 <CodeBlockConfig filename="/etc/consul.d/config.hcl" highlight="4,6">
 
@@ -117,7 +116,7 @@ ACM Private CA has several
 that restrict how fast certificates can be issued. This may impact how quickly
 large clusters can rotate all issued certificates.
 
-Currently, the ACM Private CA provider for Connect has some additional
+Currently, the ACM Private CA provider has some additional
 limitations described below.
 
 ### Unable to Cross-sign Other CAs
@@ -151,7 +150,7 @@ CA](https://aws.amazon.com/certificate-manager/pricing/) for actual cost
 information.
 
 Assume the following Consul datacenters exist and are configured to use ACM
-Private CA as their Connect CA with the default leaf certificate lifetime of
+Private CA as their service mesh CA with the default leaf certificate lifetime of
 72 hours:
 
 | Datacenter | Primary | CA Resource Created | Number of service instances |

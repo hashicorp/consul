@@ -1,32 +1,32 @@
 ---
 layout: docs
-page_title: How Connect Works
+page_title: How Consul Service Mesh Works
 description: >-
-  This page details the internals of Consul Connect: mutual TLS, agent caching
+  This page details the internals of Consul service mesh: mutual TLS, agent caching
   and performance, intention and certificate authority replication.
 ---
 
-# How Connect Works
+# How Consul Service Mesh Works
 
-This page details the inner workings of some of Connect's core features.
-Understanding how these features work isn't a prerequisite for using Connect,
+This page details the inner workings of some of Connect service mesh's core features.
+Understanding how these features work isn't a prerequisite for using the service mesh,
 but will help you build a mental model of what's going on under the hood, which
-may help you reason about Connect's behavior in more complex deployment
+may help you reason about the service mesh's behavior in more complex deployment
 scenarios.
 
-To try Connect locally, complete the [Getting Started with Consul service
+To try using the service mesh locally, complete the [Getting Started with Consul service
 mesh](https://learn.hashicorp.com/tutorials/consul/service-mesh?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
 tutorial.
 
 ## Mutual Transport Layer Security (mTLS)
 
-The core of Connect is based on [mutual TLS](https://en.wikipedia.org/wiki/Mutual_authentication).
+The core of Consul service mesh is based on [mutual TLS](https://en.wikipedia.org/wiki/Mutual_authentication).
 
-Connect provides each service with an identity encoded as a TLS certificate.
+Consul provides each service with an identity encoded as a TLS certificate.
 This certificate is used to establish and accept connections to and from other
 services. The identity is encoded in the TLS certificate in compliance with
 the [SPIFFE X.509 Identity Document](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md).
-This enables Connect services to establish and accept connections with
+This enables services in the mesh to establish and accept connections with
 other SPIFFE-compliant systems.
 
 The client service verifies the destination service certificate
@@ -51,24 +51,24 @@ requires no other dependencies, and
 also ships with built-in support for [Vault](/docs/connect/ca/vault). The PKI system is designed to be pluggable
 and can be extended to support any system by adding additional CA providers.
 
-All APIs required for Connect typically respond in microseconds and impose
-minimal overhead to existing services. To ensure this, Connect-related API calls
-are all made to the local Consul agent over a loopback interface, and all [agent
-Connect endpoints](/api/agent/connect) implement local caching, background
-updating, and support blocking queries. Most API calls operate on purely local
-in-memory data.
+All API calls used by the service mesh typically respond in microseconds
+and impose minimal overhead to existing services. To accomplish this,
+these API calls to the [agent connect endpoints](/api/agent/connect)
+are made to the local Consul agent over a loopback interface, and the endpoints
+implement local caching, background updating, and support blocking queries.
+Most API calls will operate on purely local in-memory data.
 
 ## Agent Caching and Performance
 
-To enable fast responses on endpoints such as the [agent Connect
-API](/api/agent/connect), the Consul agent locally caches most Connect-related
+To enable fast responses on endpoints such as the service mesh's [agent connect
+API](/api/agent/connect), the Consul agent locally caches most service mesh-related
 data and sets up background [blocking queries](/api/features/blocking) against
 the server to update the cache in the background. This allows most API calls
 such as retrieving certificates or authorizing connections to use in-memory
 data and respond very quickly.
 
 All data cached locally by the agent is populated on demand. Therefore, if
-Connect is not used at all, the cache does not store any data. On first request,
+the service mesh has not been used at all, the cache will have no data. On first request,
 the data is loaded from the server and cached. The set of data cached is: public
 CA root certificates, leaf certificates, intentions, and service discovery
 results for upstreams. For leaf certificates and intentions, only data related
@@ -80,10 +80,10 @@ may see data it shouldn't from the cache. This results in higher memory usage
 for cached data since it is duplicated per ACL token, but with the benefit
 of simplicity and security.
 
-With Connect enabled, you'll likely see increased memory usage by the
+With service mesh enabled, you'll likely see increased memory usage by the
 local Consul agent. The total memory is dependent on the number of intentions
-related to the services registered with the agent accepting Connect-based
-connections. The other data (leaf certificates and public CA certificates)
+related to the services registered with the agent participating in the service mesh.
+The other data (leaf certificates and public CA certificates)
 is a relatively fixed size per service. In most cases, the overhead per
 service should be relatively small: single digit kilobytes at most.
 
@@ -117,7 +117,7 @@ be set in the secondary datacenter server's configuration.
 
 ## Certificate Authority Federation
 
-The primary datacenter also acts as the root Certificate Authority (CA) for Connect.
+The primary datacenter also acts as the root Certificate Authority (CA) for the service mesh.
 The primary datacenter generates a trust-domain UUID and obtains a root certificate
 from the configured CA provider which defaults to the built-in one.
 
@@ -125,7 +125,7 @@ Secondary datacenters fetch the root CA public key and trust-domain ID from the
 primary and generate their own key and Certificate Signing Request (CSR) for an
 intermediate CA certificate. This CSR is signed by the root in the primary
 datacenter and the certificate is returned. The secondary datacenter can now use
-this intermediate to sign new Connect certificates in the secondary datacenter
+this intermediate to sign new service mesh certificates in the secondary datacenter
 without WAN communication. CA keys are never replicated between datacenters.
 
 The secondary maintains watches on the root CA certificate in the primary. If the

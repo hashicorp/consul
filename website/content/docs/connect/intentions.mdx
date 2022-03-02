@@ -2,7 +2,7 @@
 layout: docs
 page_title: Service-to-service permissions - Intentions
 description: >-
-  Intentions define access control for services via Connect and are used to
+  Intentions define access control for services in the mesh and are used to
   control which services may establish connections or make requests.
 ---
 
@@ -12,9 +12,9 @@ description: >-
 later. The documentation for the legacy intentions system is
 [here](/docs/connect/intentions-legacy).
 
-Intentions define access control for services via Connect and are used to
-control which services may establish connections or make requests. Intentions
-can be managed via the API, CLI, or UI.
+Intentions define access control for services in the service mesh.
+They control which services may establish connections or make requests.
+Intentions can be managed via the API, CLI, or UI.
 
 Intentions are enforced on inbound connections or requests by the
 [proxy](/docs/connect/proxies) or within a [natively integrated
@@ -50,7 +50,7 @@ intentions should be consulted for each incoming connection/request to
 determine if it should be accepted or rejected.
 
 The default intention behavior is defined by the [`default_policy`](/docs/agent/options#acl_default_policy) configuration.
-If the configuration is set `allow`, then all service mesh Connect connections will be allowed by default.
+If the configuration is set `allow`, then all service mesh connections will be allowed by default.
 If is set to `deny`, then all connections or requests will be denied by default.
 
 ## Intention Basics
@@ -259,7 +259,7 @@ of the intention, not the source.
 
 Intention permissions are by default implicitly granted at `read` level
 when granting `service:read` or `service:write`. This is because a
-service registered that wants to use Connect needs `intentions:read`
+service registered that wants to join the service mesh needs `intentions:read`
 for its own service name in order to know whether or not to authorize
 connections. The following ACL policy will implicitly grant `intentions:read`
 (note _read_) for service `web`.
@@ -299,8 +299,8 @@ service "web" {
 }
 ```
 
-Note that `intentions:read` is required for a token that a Connect-enabled
-service uses to register itself or its proxy. If the token used does not
+Note that `intentions:read` is required for a token that a service in the mesh
+uses to register itself or its proxy. If the token used does not
 have `intentions:read` then the agent will be unable to resolve intentions
 for the service and so will not be able to authorize any incoming connections.
 

@@ -77,7 +77,7 @@ supported config entries.
 #### Service defaults
 
 Service defaults control default global values for a service, such as the
-protocol and Connect fields.
+protocol and connect subsystem fields.
 
 ```json
 {
@@ -90,10 +90,11 @@ protocol and Connect fields.
 - `Name` - Sets the name of the config entry. For service defaults, this must be
   the name of the service being configured.
 
-- `Protocol` - Sets the protocol of the service. This is used by Connect proxies
+- `Protocol` - Sets the protocol of the service. This is used by service mesh proxies
   for things like observability features.
 
-- `Connect` - This block contains Connect-related fields for the service.
+- `Connect` - This block contains service mesh-related fields for the service used
+  by the connect subsystem.
 
   - `SidecarProxy` - Sets whether or not instances of this service should get a
     sidecar proxy by default.
@@ -101,7 +102,7 @@ protocol and Connect fields.
 #### Proxy defaults
 
 Proxy defaults allow for configuring global config defaults across all services
-for Connect proxy config. Currently, only one global entry is supported.
+for service mesh proxy config. Currently, only one global entry is supported.
 
 ```json
 {
@@ -116,4 +117,4 @@ for Connect proxy config. Currently, only one global entry is supported.
 - `Name` - Sets the name of the config entry. Currently, only a single `proxy-defaults`
   entry with the name `global` is supported.
 
-* `Config` - An arbitrary map of configuration values used by Connect proxies.
+* `Config` - An arbitrary map of configuration values used by service mesh proxies.
