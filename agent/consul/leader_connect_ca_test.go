@@ -724,7 +724,7 @@ func TestCAManager_Verify_Vault_NoChangeToSecondaryConfig(t *testing.T) {
 				"Address":             vault.Addr,
 				"Token":               vault.RootToken,
 				"RootPKIPath":         "pki-root/",
-				"IntermediatePKIPath": "pki-intermediate/",
+				"IntermediatePKIPath": "pki-intermediate-2/",
 			},
 		}
 	})
@@ -738,6 +738,9 @@ func TestCAManager_Verify_Vault_NoChangeToSecondaryConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	renewLeafSigningCert(t, sDC1.caManager, sDC1.caManager.primaryRenewIntermediate)
+
+	// Give the secondary some time to notice the update
+	time.Sleep(100 * time.Millisecond)
 
 	var configAfter structs.CAConfiguration
 	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", &structs.DCSpecificRequest{}, &configAfter)
