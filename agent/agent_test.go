@@ -5650,7 +5650,7 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 	`), 0600))
 
 	srv := StartTestAgent(t, TestAgent{Name: "TestAgent-Server", HCL: hclConfig, configFiles: []string{configFile}})
-
+	srv.coalesceTimerShim = testCoalesceTimer
 	defer srv.Shutdown()
 
 	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
@@ -5735,113 +5735,12 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 	})
 }
 
-func Test_coalesceTimerTwoPeriods(t *testing.T) {
-
-	certsDir := testutil.TempDir(t, "auto-config")
-
-	// write some test TLS certificates out to the cfg dir
-	serverName := "server.dc1.consul"
-	signer, _, err := tlsutil.GeneratePrivateKey()
-	require.NoError(t, err)
-
-	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
-	require.NoError(t, err)
-
-	cert, privateKey, err := tlsutil.GenerateCert(tlsutil.CertOpts{
-		Signer:      signer,
-		CA:          ca,
-		Name:        "Test Cert Name",
-		Days:        365,
-		DNSNames:    []string{serverName},
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-	})
-	require.NoError(t, err)
-
-	certFile := filepath.Join(certsDir, "cert.pem")
-	caFile := filepath.Join(certsDir, "cacert.pem")
-	keyFile := filepath.Join(certsDir, "key.pem")
-
-	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
-	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca), 0600))
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey), 0600))
-
-	// generate a gossip key
-	gossipKey := make([]byte, 32)
-	n, err := rand.Read(gossipKey)
-	require.NoError(t, err)
-	require.Equal(t, 32, n)
-	gossipKeyEncoded := base64.StdEncoding.EncodeToString(gossipKey)
-
-	hclConfig := TestACLConfigWithParams(nil)
-
-	configFile := testutil.TempDir(t, "config") + "/config.hcl"
-	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
-		encrypt = "`+gossipKeyEncoded+`"
-		encrypt_verify_incoming = true
-		encrypt_verify_outgoing = true
-		verify_incoming = true
-		verify_outgoing = true
-		verify_server_hostname = true
-		ca_file = "`+caFile+`"
-		cert_file = "`+certFile+`"
-		key_file = "`+keyFile+`"
-		connect { enabled = true }
-		auto_reload_config = true
-	`), 0600))
-
-	coalesceInterval := 100 * time.Millisecond
-	testAgent := TestAgent{Name: "TestAgent-Server", HCL: hclConfig, configFiles: []string{configFile}, Config: &config.RuntimeConfig{
-		AutoReloadConfigCoalesceInterval: coalesceInterval,
-	}}
-	srv := StartTestAgent(t, testAgent)
-	defer srv.Shutdown()
-
-	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
-
-	cert1Pub := srv.tlsConfigurator.Cert().Certificate
-	cert1Key := srv.tlsConfigurator.Cert().PrivateKey
-
-	certNew, privateKeyNew, err := tlsutil.GenerateCert(tlsutil.CertOpts{
-		Signer:      signer,
-		CA:          ca,
-		Name:        "Test Cert Name",
-		Days:        365,
-		DNSNames:    []string{serverName},
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-	})
-	require.NoError(t, err)
-	certFileNew := filepath.Join(certsDir, "cert_new.pem")
-	require.NoError(t, ioutil.WriteFile(certFileNew, []byte(certNew), 0600))
-	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
-		encrypt = "`+gossipKeyEncoded+`"
-		encrypt_verify_incoming = true
-		encrypt_verify_outgoing = true
-		verify_incoming = true
-		verify_outgoing = true
-		verify_server_hostname = true
-		ca_file = "`+caFile+`"
-		cert_file = "`+certFileNew+`"
-		key_file = "`+keyFile+`"
-		connect { enabled = true }
-		auto_reload_config = true
-	`), 0600))
-
-	// cert should not change as we did not update the associated key
-	time.Sleep(coalesceInterval * 2)
-	retry.Run(t, func(r *retry.R) {
-		cert := srv.tlsConfigurator.Cert()
-		require.NotNil(r, cert)
-		require.Equal(r, cert1Pub, cert.Certificate)
-		require.Equal(r, cert1Key, cert.PrivateKey)
-	})
-
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKeyNew), 0600))
-
-	// cert should change as we did not update the associated key
-	time.Sleep(coalesceInterval * 2)
-	retry.Run(t, func(r *retry.R) {
-		require.NotEqual(r, cert1Pub, srv.tlsConfigurator.Cert().Certificate)
-		require.NotEqual(r, cert1Key, srv.tlsConfigurator.Cert().PrivateKey)
-	})
-
+func testCoalesceTimer(inputCh chan *config.FileWatcherEvent, _ time.Duration) chan []config.FileWatcherEvent {
+	ch := make(chan []config.FileWatcherEvent)
+	go func() {
+		for evt := range inputCh {
+			ch <- []config.FileWatcherEvent{*evt}
+		}
+	}()
+	return ch
 }
