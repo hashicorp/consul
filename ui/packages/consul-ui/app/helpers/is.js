@@ -17,8 +17,8 @@ export const is = (helper, [abilityString, model], properties) => {
 
   return get(ability, propertyName);
 }
-export default Helper.extend({
+export default class extends Helper {
   compute([abilityString, model], properties) {
     return is(this, [abilityString, model], properties);
-  },
-});
+  }
+}
