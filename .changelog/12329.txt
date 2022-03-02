@@ -1,0 +1,3 @@
+```release-note:feature
+config: add `auto-reload-config` to automatically reload config when a config file change.
+```
