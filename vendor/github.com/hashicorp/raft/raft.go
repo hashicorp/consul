@@ -233,6 +233,11 @@ func (r *Raft) runFollower() {
 // the Raft object's member BootstrapCluster for more details. This must only be
 // called on the main thread, and only makes sense in the follower state.
 func (r *Raft) liveBootstrap(configuration Configuration) error {
+	if !hasVote(configuration, r.localID) {
+		// Reject this operation since we are not a voter
+		return ErrNotVoter
+	}
+
 	// Use the pre-init API to make the static updates.
 	cfg := r.config()
 	err := BootstrapCluster(&cfg, r.logs, r.stable, r.snapshots, r.trans, configuration)
