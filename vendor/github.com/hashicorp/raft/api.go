@@ -36,6 +36,10 @@ var (
 	// follower or candidate node.
 	ErrNotLeader = errors.New("node is not the leader")
 
+	// ErrNotVoter is returned when an operation can't be completed on a
+	// non-voter node.
+	ErrNotVoter = errors.New("node is not a voter")
+
 	// ErrLeadershipLost is returned when a leader fails to commit a log entry
 	// because it's been deposed in the process.
 	ErrLeadershipLost = errors.New("leadership lost while committing log")
