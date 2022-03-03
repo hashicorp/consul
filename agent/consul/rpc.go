@@ -967,8 +967,7 @@ type blockingQueryResponseMeta interface {
 // incomplete or unexpected result. errNotChanged will never be returned to the
 // caller, it is converted to nil before returning.
 //
-// If query function returns any other error, the error is returned to the caller
-// immediately.
+// If query function returns any other error, the error is returned to the caller immediately.
 //
 // The query function must follow these rules:
 //
