@@ -319,7 +319,7 @@ func (b testBackend) ResolveTokenAndDefaultMeta(
 	return b.authorizer(token, entMeta), nil
 }
 
-func (b testBackend) Forward(_ structs.RPCInfo, fn func(*gogrpc.ClientConn) error) (handled bool, err error) {
+func (b testBackend) Forward(_ structs.RPCRequest, fn func(*gogrpc.ClientConn) error) (handled bool, err error) {
 	if b.forwardConn != nil {
 		return true, fn(b.forwardConn)
 	}
