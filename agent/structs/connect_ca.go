@@ -294,6 +294,9 @@ type CAConfiguration struct {
 	// Configuration is arbitrary configuration for the provider. This
 	// should only contain primitive values and containers (such as lists
 	// and maps).
+	//
+	// Config should only be accessed by parsing it with the appropriate
+	// ca.Parse<ProviderName>CAConfig function.
 	Config map[string]interface{}
 
 	// State is optionally used by the provider to persist information it needs

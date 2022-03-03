@@ -507,7 +507,9 @@ type RuntimeConfig struct {
 	// ConnectCAProvider is the type of CA provider to use with Connect.
 	ConnectCAProvider string
 
-	// ConnectCAConfig is the config to use for the CA provider.
+	// ConnectCAConfig is the config to use for the CA provider. The config
+	// should only be accessed by parsing it with the appropriate
+	// ca.Parse<ProviderName>CAConfig function.
 	ConnectCAConfig map[string]interface{}
 
 	// ConnectMeshGatewayWANFederationEnabled determines if wan federation of
