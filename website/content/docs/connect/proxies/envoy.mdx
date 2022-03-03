@@ -32,7 +32,7 @@ Envoy must be run with the `--max-obj-name-len` option set to `256` or greater f
 
 The following matrix describes Envoy compatability for the currently supported **n-2 major Consul releases**. For previous Consul version compatability please view the respective versioned docs for this page. 
 
-Consul supports **four major Envoy releases** at the beginning of each major Consul release. Consul ensures that compatability with Envoy major releases are persisted across Envoy patch releases, so that fixes to major Bugs or CVEs that addressed by Envoy are supported. As a policy, only new major Envoy versions are added during the development of a upcoming Consul major release, and not to existing releases. 
+Consul supports **four major Envoy releases** at the beginning of each major Consul release. Consul maintains compatibility with Envoy patch releases for each major version so that users can benefit from bug and security fixes in Envoy. As a policy, Consul will add support for a new major versions of Envoy in a Consul major release. Support for newer versions of Envoy will not be added to existing releases.
 
 | Consul Version      | Compatible Envoy Versions                                                          |
 | ------------------- | -----------------------------------------------------------------------------------|
