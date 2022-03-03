@@ -23,7 +23,7 @@ as |route|>
               href=(href-to 'dc.show.health')
               selected=(is-href 'dc.show.health')
             )
-(if (and (is 'license') (not (is 'hcp')))
+(if (and (can 'read license') (not (is 'hcp')))
             (hash
               label=(compute (fn route.t 'license.title'))
               href=(href-to 'dc.show.license')
