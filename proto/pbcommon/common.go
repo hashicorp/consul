@@ -82,6 +82,10 @@ func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime,
 	return o.HasTimedOut(start, rpcHoldTimeout, maxQueryTime, defaultQueryTime)
 }
 
+func (q QueryOptions) RPCInfo() structs.RPCInfo {
+	return &q
+}
+
 // SetFilter is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetFilter(filter string) {
 	q.Filter = filter
@@ -140,6 +144,10 @@ func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Dur
 	return time.Since(start) > rpcHoldTimeout
 }
 
+func (w *WriteRequest) RPCInfo() structs.RPCInfo {
+	return w
+}
+
 // IsRead implements structs.RPCInfo
 func (r *ReadRequest) IsRead() bool {
 	return true
@@ -164,6 +172,10 @@ func (r *ReadRequest) SetTokenSecret(token string) {
 // HasTimedOut implements structs.RPCInfo
 func (r *ReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
 	return time.Since(start) > rpcHoldTimeout
+}
+
+func (r *ReadRequest) RPCInfo() structs.RPCInfo {
+	return r
 }
 
 // RequestDatacenter implements structs.RPCInfo
