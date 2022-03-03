@@ -34,10 +34,10 @@ The following matrix describes Envoy compatability for the currently supported *
 
 Consul supports **four major Envoy releases** at the beginning of each major Consul release. Consul ensures that compatability with Envoy major releases are persisted across Envoy patch releases, so that fixes to major Bugs or CVEs that addressed by Envoy are supported. As a policy, only new major Envoy versions are added during the development of a upcoming Consul major release, and not to existing releases. 
 
-| Consul Version      | Compatible Envoy Versions                              |
-| ------------------- | ------------------------------------------------------ |
-| 1.11.x              | 1.20.2, 1.19.3, 1.18.6, 1.17.4<sup>1</sup>             |
-| 1.10.x              | 1.18.6, 1.17.4<sup>1</sup>, 1.16.5<sup>1</sup> , 1.15.5<sup>1</sup> |
+| Consul Version      | Compatible Envoy Versions                                                          |
+| ------------------- | -----------------------------------------------------------------------------------|
+| 1.11.x              | 1.20.2, 1.19.3, 1.18.6, 1.17.4<sup>1</sup>                                         |
+| 1.10.x              | 1.18.6, 1.17.4<sup>1</sup>, 1.16.5<sup>1</sup> , 1.15.5<sup>1</sup>                |
 | 1.9.x               | 1.16.5<sup>1</sup>, 1.15.5<sup>1</sup>, 1.14.7<sup>1,2</sup>, 1.13.7<sup>1,2</sup> |
 
 1. Envoy 1.20.1 and earlier are vulnerable to [CVE-2022-21654](https://github.com/envoyproxy/envoy/security/advisories/GHSA-5j4x-g36v-m283) and [CVE-2022-21655](https://github.com/envoyproxy/envoy/security/advisories/GHSA-7r5p-7fmh-jxpg). Both CVEs were patched in 1.18.6, 1.19.3 and 1.20.2. Consul 1.9.0+ clusters should be upgrade to 1.10.x and adopt Envoy 1.18.6, since Envoy 1.16.x and older releaes are no longer supported (see [HCSEC-2022-07](https://discuss.hashicorp.com/t/hcsec-2022-07-consul-s-connect-service-mesh-affected-by-recent-envoy-security-releases/36332)). 
