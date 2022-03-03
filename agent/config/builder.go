@@ -667,8 +667,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	// Connect
 	connectEnabled := boolVal(c.Connect.Enabled)
-	connectCAProvider := stringVal(c.Connect.CAProvider)
-	connectCAConfig := c.Connect.CAConfig
 
 	// autoEncrypt and autoConfig implicitly turns on connect which is why
 	// they need to be above other settings that rely on connect.
@@ -696,39 +694,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	connectMeshGatewayWANFederationEnabled := boolVal(c.Connect.MeshGatewayWANFederationEnabled)
 	if connectMeshGatewayWANFederationEnabled && !connectEnabled {
 		return RuntimeConfig{}, fmt.Errorf("'connect.enable_mesh_gateway_wan_federation=true' requires 'connect.enabled=true'")
-	}
-	if connectCAConfig != nil {
-		// nolint: staticcheck // CA config should be changed to use HookTranslateKeys
-		lib.TranslateKeys(connectCAConfig, map[string]string{
-			// Consul CA config
-			"private_key":           "PrivateKey",
-			"root_cert":             "RootCert",
-			"intermediate_cert_ttl": "IntermediateCertTTL",
-
-			// Vault CA config
-			"address":               "Address",
-			"token":                 "Token",
-			"root_pki_path":         "RootPKIPath",
-			"intermediate_pki_path": "IntermediatePKIPath",
-			"ca_file":               "CAFile",
-			"ca_path":               "CAPath",
-			"cert_file":             "CertFile",
-			"key_file":              "KeyFile",
-			"tls_server_name":       "TLSServerName",
-			"tls_skip_verify":       "TLSSkipVerify",
-
-			// AWS CA config
-			"existing_arn":   "ExistingARN",
-			"delete_on_exit": "DeleteOnExit",
-
-			// Common CA config
-			"leaf_cert_ttl":      "LeafCertTTL",
-			"csr_max_per_second": "CSRMaxPerSecond",
-			"csr_max_concurrent": "CSRMaxConcurrent",
-			"private_key_type":   "PrivateKeyType",
-			"private_key_bits":   "PrivateKeyBits",
-			"root_cert_ttl":      "RootCertTTL",
-		})
 	}
 
 	aclsEnabled := false
@@ -976,8 +941,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
 		AutoConfig:                             autoConfig,
 		ConnectEnabled:                         connectEnabled,
-		ConnectCAProvider:                      connectCAProvider,
-		ConnectCAConfig:                        connectCAConfig,
+		ConnectCAProvider:                      stringVal(c.Connect.CAProvider),
+		ConnectCAConfig:                        c.Connect.CAConfig,
 		ConnectMeshGatewayWANFederationEnabled: connectMeshGatewayWANFederationEnabled,
 		ConnectSidecarMinPort:                  sidecarMinPort,
 		ConnectSidecarMaxPort:                  sidecarMaxPort,

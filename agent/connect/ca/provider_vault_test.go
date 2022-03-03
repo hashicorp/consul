@@ -18,48 +18,119 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
-func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
-	cases := map[string]struct {
-		rawConfig map[string]interface{}
-		expConfig *structs.VaultCAProviderConfig
-		expError  string
-	}{
-		"no token and no auth method provided": {
-			rawConfig: map[string]interface{}{},
-			expError:  "must provide a Vault token or configure a Vault auth method",
+func TestParseVaultCAConfig(t *testing.T) {
+	type testCase struct {
+		name        string
+		config      map[string]interface{}
+		expected    structs.VaultCAProviderConfig
+		expectedErr string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		actual, err := ParseVaultCAConfig(tc.config)
+		if tc.expectedErr != "" {
+			require.EqualError(t, err, tc.expectedErr)
+			return
+		}
+		require.NoError(t, err)
+		assertDeepEqual(t, tc.expected, *actual)
+	}
+
+	testCases := []testCase{
+		{
+			name:        "default",
+			expectedErr: "must provide a Vault token or configure a Vault auth method",
 		},
-		"both token and auth method provided": {
-			rawConfig: map[string]interface{}{"Token": "test", "AuthMethod": map[string]interface{}{"Type": "test"}},
-			expError:  "only one of Vault token or Vault auth method can be provided, but not both",
+		{
+			name:        "both token and auth method provided",
+			config:      map[string]interface{}{"Token": "test", "AuthMethod": map[string]interface{}{"Type": "test"}},
+			expectedErr: "only one of Vault token or Vault auth method can be provided, but not both",
 		},
-		"no root PKI path": {
-			rawConfig: map[string]interface{}{"Token": "test"},
-			expError:  "must provide a valid path to a root PKI backend",
+		{
+			name:        "no root PKI path",
+			config:      map[string]interface{}{"Token": "test"},
+			expectedErr: "must provide a valid path to a root PKI backend",
 		},
-		"no root intermediate path": {
-			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test"},
-			expError:  "must provide a valid path for the intermediate PKI backend",
+		{
+			name:        "no root intermediate path",
+			config:      map[string]interface{}{"Token": "test", "RootPKIPath": "test"},
+			expectedErr: "must provide a valid path for the intermediate PKI backend",
 		},
-		"adds a slash to RootPKIPath and IntermediatePKIPath": {
-			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test"},
-			expConfig: &structs.VaultCAProviderConfig{
+		{
+			name:   "adds a slash to RootPKIPath and IntermediatePKIPath",
+			config: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test"},
+			expected: structs.VaultCAProviderConfig{
 				CommonCAProviderConfig: defaultCommonConfig(),
 				Token:                  "test",
 				RootPKIPath:            "test/",
 				IntermediatePKIPath:    "test/",
 			},
 		},
+		{
+			name: "CamelCase config",
+			config: map[string]interface{}{
+				"Address":             "localhost:12345",
+				"Namespace":           "ns1",
+				"CAFile":              "/capath/ca.pem",
+				"CAPath":              "/capath/",
+				"CertFile":            "/certpath/cert.pem",
+				"KeyFile":             "/certpath/key.pem",
+				"TLSServerName":       "server.name",
+				"TLSSkipVerify":       true,
+				"Token":               "abc",
+				"RootPKIPath":         "consul-vault",
+				"IntermediatePKIPath": "connect-intermediate",
+			},
+			expected: structs.VaultCAProviderConfig{
+				CommonCAProviderConfig: defaultCommonConfig(),
+				Address:                "localhost:12345",
+				Token:                  "abc",
+				RootPKIPath:            "consul-vault/",
+				IntermediatePKIPath:    "connect-intermediate/",
+				Namespace:              "ns1",
+				CAFile:                 "/capath/ca.pem",
+				CAPath:                 "/capath/",
+				CertFile:               "/certpath/cert.pem",
+				KeyFile:                "/certpath/key.pem",
+				TLSServerName:          "server.name",
+				TLSSkipVerify:          true,
+			},
+		},
+		{
+			name: "snake_case config",
+			config: map[string]interface{}{
+				"address":               "localhost:12345",
+				"namespace":             "ns1",
+				"ca_file":               "/capath/ca.pem",
+				"ca_path":               "/capath/",
+				"cert_file":             "/certpath/cert.pem",
+				"key_file":              "/certpath/key.pem",
+				"tls_server_name":       "server.name",
+				"tls_skip_verify":       true,
+				"token":                 "abc",
+				"root_pki_path":         "consul-vault",
+				"intermediate_pki_path": "connect-intermediate",
+			},
+			expected: structs.VaultCAProviderConfig{
+				CommonCAProviderConfig: defaultCommonConfig(),
+				Address:                "localhost:12345",
+				Token:                  "abc",
+				RootPKIPath:            "consul-vault/",
+				IntermediatePKIPath:    "connect-intermediate/",
+				Namespace:              "ns1",
+				CAFile:                 "/capath/ca.pem",
+				CAPath:                 "/capath/",
+				CertFile:               "/certpath/cert.pem",
+				KeyFile:                "/certpath/key.pem",
+				TLSServerName:          "server.name",
+				TLSSkipVerify:          true,
+			},
+		},
 	}
 
-	for name, c := range cases {
-		t.Run(name, func(t *testing.T) {
-			config, err := ParseVaultCAConfig(c.rawConfig)
-			if c.expError != "" {
-				require.EqualError(t, err, c.expError)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, c.expConfig, config)
-			}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
 		})
 	}
 }

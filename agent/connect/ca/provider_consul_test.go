@@ -510,3 +510,80 @@ func TestConsulCAProvider_MigrateOldID(t *testing.T) {
 		})
 	}
 }
+
+func TestParseConsulCAConfig(t *testing.T) {
+	type testCase struct {
+		name     string
+		config   map[string]interface{}
+		expected structs.ConsulCAProviderConfig
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		actual, err := ParseConsulCAConfig(tc.config)
+		require.NoError(t, err)
+		assertDeepEqual(t, &tc.expected, actual)
+	}
+
+	var testCases = []testCase{
+		{
+			name: "default",
+			expected: structs.ConsulCAProviderConfig{
+				CommonCAProviderConfig: defaultCommonConfig(),
+			},
+		},
+		{
+			name: "CamelCase config",
+			config: map[string]interface{}{
+				"LeafCertTTL":         "30h",
+				"IntermediateCertTTL": "100h",
+				"RootCertTTL":         "300h",
+				"PrivateKeyType":      "rsa",
+				"PrivateKeyBits":      4096,
+				"PrivateKey":          "key",
+				"RootCert":            "cert",
+			},
+			expected: structs.ConsulCAProviderConfig{
+				CommonCAProviderConfig: structs.CommonCAProviderConfig{
+					LeafCertTTL:         30 * time.Hour,
+					IntermediateCertTTL: 100 * time.Hour,
+					RootCertTTL:         300 * time.Hour,
+					PrivateKeyType:      "rsa",
+					PrivateKeyBits:      4096,
+				},
+				PrivateKey: "key",
+				RootCert:   "cert",
+			},
+		},
+		{
+			name: "snake_case config",
+			config: map[string]interface{}{
+				"existing_arn":          "existing",
+				"delete_on_exit":        true,
+				"leaf_cert_ttl":         "30h",
+				"intermediate_cert_ttl": "100h",
+				"root_cert_ttl":         "300h",
+				"private_key_type":      "rsa",
+				"private_key_bits":      4096,
+				"private_key":           "key",
+				"root_cert":             "cert",
+			},
+			expected: structs.ConsulCAProviderConfig{
+				CommonCAProviderConfig: structs.CommonCAProviderConfig{
+					LeafCertTTL:         30 * time.Hour,
+					IntermediateCertTTL: 100 * time.Hour,
+					RootCertTTL:         300 * time.Hour,
+					PrivateKeyType:      "rsa",
+					PrivateKeyBits:      4096,
+				},
+				PrivateKey: "key",
+				RootCert:   "cert",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}

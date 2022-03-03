@@ -9,9 +9,11 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/acmpca"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -453,4 +455,82 @@ func testProviderConfigSecondary(t *testing.T, cfg map[string]interface{}) Provi
 	c.IsPrimary = false
 	c.Datacenter = "dc2"
 	return c
+}
+
+func TestParseAWSCAConfig(t *testing.T) {
+	type testCase struct {
+		name     string
+		config   map[string]interface{}
+		expected structs.AWSCAProviderConfig
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		actual, err := ParseAWSCAConfig(tc.config)
+		require.NoError(t, err)
+		assertDeepEqual(t, &tc.expected, actual)
+	}
+
+	var testCases = []testCase{
+		{
+			name: "default",
+			expected: structs.AWSCAProviderConfig{
+				CommonCAProviderConfig: defaultCommonConfig(),
+			},
+		},
+		{
+			name: "CamelCase config",
+			config: map[string]interface{}{
+				"ExistingARN":         "existing",
+				"DeleteOnExit":        true,
+				"LeafCertTTL":         "30h",
+				"IntermediateCertTTL": "100h",
+				"RootCertTTL":         "300h",
+			},
+			expected: structs.AWSCAProviderConfig{
+				CommonCAProviderConfig: structs.CommonCAProviderConfig{
+					LeafCertTTL:         30 * time.Hour,
+					IntermediateCertTTL: 100 * time.Hour,
+					RootCertTTL:         300 * time.Hour,
+					PrivateKeyType:      connect.DefaultPrivateKeyType,
+					PrivateKeyBits:      connect.DefaultPrivateKeyBits,
+				},
+				ExistingARN:  "existing",
+				DeleteOnExit: true,
+			},
+		},
+		{
+			name: "snake_case config",
+			config: map[string]interface{}{
+				"existing_arn":          "existing",
+				"delete_on_exit":        true,
+				"leaf_cert_ttl":         "30h",
+				"intermediate_cert_ttl": "100h",
+				"root_cert_ttl":         "300h",
+			},
+			expected: structs.AWSCAProviderConfig{
+				CommonCAProviderConfig: structs.CommonCAProviderConfig{
+					LeafCertTTL:         30 * time.Hour,
+					IntermediateCertTTL: 100 * time.Hour,
+					RootCertTTL:         300 * time.Hour,
+					PrivateKeyType:      connect.DefaultPrivateKeyType,
+					PrivateKeyBits:      connect.DefaultPrivateKeyBits,
+				},
+				ExistingARN:  "existing",
+				DeleteOnExit: true,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
 }

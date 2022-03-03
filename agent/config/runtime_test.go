@@ -3151,15 +3151,15 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectEnabled = true
 			rt.ConnectCAProvider = "vault"
 			rt.ConnectCAConfig = map[string]interface{}{
-				"CAFile":              "/capath/ca.pem",
-				"CAPath":              "/capath/",
-				"CertFile":            "/certpath/cert.pem",
-				"KeyFile":             "/certpath/key.pem",
-				"TLSServerName":       "server.name",
-				"TLSSkipVerify":       true,
-				"Token":               "abc",
-				"RootPKIPath":         "consul-vault",
-				"IntermediatePKIPath": "connect-intermediate",
+				"ca_file":               "/capath/ca.pem",
+				"ca_path":               "/capath/",
+				"cert_file":             "/certpath/cert.pem",
+				"key_file":              "/certpath/key.pem",
+				"tls_server_name":       "server.name",
+				"tls_skip_verify":       true,
+				"token":                 "abc",
+				"root_pki_path":         "consul-vault",
+				"intermediate_pki_path": "connect-intermediate",
 			}
 		},
 	})
@@ -3209,16 +3209,16 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectEnabled = true
 			rt.ConnectCAProvider = "vault"
 			rt.ConnectCAConfig = map[string]interface{}{
-				"CAFile":              "/capath/ca.pem",
-				"CAPath":              "/capath/",
-				"CertFile":            "/certpath/cert.pem",
-				"KeyFile":             "/certpath/key.pem",
-				"TLSServerName":       "server.name",
-				"TLSSkipVerify":       true,
-				"Token":               "abc",
-				"RootPKIPath":         "consul-vault",
-				"RootCertTTL":         "96360h",
-				"IntermediatePKIPath": "connect-intermediate",
+				"ca_file":               "/capath/ca.pem",
+				"ca_path":               "/capath/",
+				"cert_file":             "/certpath/cert.pem",
+				"key_file":              "/certpath/key.pem",
+				"tls_server_name":       "server.name",
+				"tls_skip_verify":       true,
+				"token":                 "abc",
+				"root_pki_path":         "consul-vault",
+				"root_cert_ttl":         "96360h",
+				"intermediate_pki_path": "connect-intermediate",
 			}
 		},
 	})
@@ -3252,8 +3252,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectEnabled = true
 			rt.ConnectCAProvider = "aws-pca"
 			rt.ConnectCAConfig = map[string]interface{}{
-				"ExistingARN":  "foo",
-				"DeleteOnExit": true,
+				"existing_arn":   "foo",
+				"delete_on_exit": true,
 			}
 		},
 	})
@@ -5531,11 +5531,11 @@ func TestLoad_FullConfig(t *testing.T) {
 		ExposeMaxPort:         2222,
 		ConnectCAProvider:     "consul",
 		ConnectCAConfig: map[string]interface{}{
-			"IntermediateCertTTL": "8760h",
-			"LeafCertTTL":         "1h",
-			"RootCertTTL":         "96360h",
-			"CSRMaxPerSecond":     float64(100),
-			"CSRMaxConcurrent":    float64(2),
+			"intermediate_cert_ttl": "8760h",
+			"leaf_cert_ttl":         "1h",
+			"root_cert_ttl":         "96360h",
+			"csr_max_per_second":    float64(100),
+			"csr_max_concurrent":    float64(2),
 		},
 		ConnectMeshGatewayWANFederationEnabled: false,
 		DNSAddrs:                               []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
