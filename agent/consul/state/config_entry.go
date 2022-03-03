@@ -431,7 +431,7 @@ func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, serv
 		EvaluateInPartition:  source.PartitionOrDefault(),
 		EvaluateInDatacenter: dc,
 	}
-	idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, source.Name, entMeta, req)
+	idx, chain, _, err := s.serviceDiscoveryChainTxn(tx, ws, source.Name, entMeta, req)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", source.String(), err)
 	}
@@ -488,7 +488,7 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 			EvaluateInPartition:  sn.PartitionOrDefault(),
 			EvaluateInDatacenter: dc,
 		}
-		idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, req)
+		idx, chain, _, err := s.serviceDiscoveryChainTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, req)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", sn.String(), err)
 		}
@@ -772,7 +772,7 @@ func (s *Store) ServiceDiscoveryChain(
 	serviceName string,
 	entMeta *structs.EnterpriseMeta,
 	req discoverychain.CompileRequest,
-) (uint64, *structs.CompiledDiscoveryChain, error) {
+) (uint64, *structs.CompiledDiscoveryChain, *configentry.DiscoveryChainSet, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
@@ -785,19 +785,19 @@ func (s *Store) serviceDiscoveryChainTxn(
 	serviceName string,
 	entMeta *structs.EnterpriseMeta,
 	req discoverychain.CompileRequest,
-) (uint64, *structs.CompiledDiscoveryChain, error) {
+) (uint64, *structs.CompiledDiscoveryChain, *configentry.DiscoveryChainSet, error) {
 
 	index, entries, err := readDiscoveryChainConfigEntriesTxn(tx, ws, serviceName, nil, entMeta)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 	req.Entries = entries
 
 	_, config, err := s.CAConfig(ws)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	} else if config == nil {
-		return 0, nil, errors.New("no cluster ca config setup")
+		return 0, nil, nil, errors.New("no cluster ca config setup")
 	}
 
 	// Build TrustDomain based on the ClusterID stored.
@@ -805,17 +805,17 @@ func (s *Store) serviceDiscoveryChainTxn(
 	if signingID == nil {
 		// If CA is bootstrapped at all then this should never happen but be
 		// defensive.
-		return 0, nil, errors.New("no cluster trust domain setup")
+		return 0, nil, nil, errors.New("no cluster trust domain setup")
 	}
 	req.EvaluateInTrustDomain = signingID.Host()
 
 	// Then we compile it into something useful.
 	chain, err := discoverychain.Compile(req)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed to compile discovery chain: %v", err)
+		return 0, nil, nil, fmt.Errorf("failed to compile discovery chain: %v", err)
 	}
 
-	return index, chain, nil
+	return index, chain, entries, nil
 }
 
 func (s *Store) ReadResolvedServiceConfigEntries(
