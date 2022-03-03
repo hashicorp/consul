@@ -1,4 +1,4 @@
-import { moduleFor, test } from 'ember-qunit';
+import { moduleFor } from 'ember-qunit';
 import { skip } from 'qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 const NAME = 'dc';
