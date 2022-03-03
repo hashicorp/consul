@@ -115,7 +115,7 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 		conf.Tags["nonvoter"] = "1"
 		conf.Tags["read_replica"] = "1"
 	}
-	if s.config.TLSConfig.CAPath != "" || s.config.TLSConfig.CAFile != "" {
+	if s.config.TLSConfig.InternalRPC.CAPath != "" || s.config.TLSConfig.InternalRPC.CAFile != "" {
 		conf.Tags["use_tls"] = "1"
 	}
 

@@ -10,11 +10,12 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/grpc/resolver"
@@ -447,8 +448,8 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 func TestClient_RPC_TLS(t *testing.T) {
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
+	conf1.TLSConfig.InternalRPC.VerifyIncoming = true
+	conf1.TLSConfig.InternalRPC.VerifyOutgoing = true
 	configureTLS(conf1)
 	s1, err := newServer(t, conf1)
 	if err != nil {
@@ -457,7 +458,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 	defer s1.Shutdown()
 
 	_, conf2 := testClientConfig(t)
-	conf2.TLSConfig.VerifyOutgoing = true
+	conf2.TLSConfig.InternalRPC.VerifyOutgoing = true
 	configureTLS(conf2)
 	c1 := newClient(t, conf2)
 
@@ -660,8 +661,8 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
+	conf1.TLSConfig.InternalRPC.VerifyIncoming = true
+	conf1.TLSConfig.InternalRPC.VerifyOutgoing = true
 	configureTLS(conf1)
 	s1, err := newServer(t, conf1)
 	if err != nil {
@@ -670,7 +671,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	defer s1.Shutdown()
 
 	_, conf2 := testClientConfig(t)
-	conf2.TLSConfig.VerifyOutgoing = true
+	conf2.TLSConfig.InternalRPC.VerifyOutgoing = true
 	configureTLS(conf2)
 	c1 := newClient(t, conf2)
 
