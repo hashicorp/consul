@@ -65,6 +65,12 @@ module.exports = {
       urlPrefix: 'docs/styles',
     },
     {
+      root: path.resolve(__dirname, 'app/services/repository'),
+      pattern: '**/*.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/repositories',
+    },
+    {
       root: path.resolve(__dirname, 'app/modifiers'),
       pattern: '**/*.mdx',
       urlSchema: 'auto',
