@@ -1,0 +1,71 @@
+<!-- START component-docs:@tagName -->
+# Action
+<!-- END component-docs:@tagName -->
+
+<!-- START component-docs:@description -->
+A simple component to perform an Action.
+<!-- END component-docs:@description -->
+
+Whether that 'action' be visiting a web page, navigating to a section of a
+Javascript application via the History API or dispatching a javascript
+event/Ember action. It doesn't matter, just use `Action`.
+
+**Note: You should use this for all links/buttons throughout the UI.** (apart from
+links that are part of i18n translations, you'll know which ones these are as
+they are in translation files, not handlebars templates) Many components export
+a slightly more configured Action contextual component which will be this
+component with a few more HTML attributes applied.
+
+You don't need to worry/think about which native tag to use the component will
+use the semantically correct tag depending on whether you give it a href
+argument or not.
+
+If you give the Action a `href` then that will navigate you to that hyerlink
+reference (semantically this is the same as the HTML Anchor tag, and
+semantically renders as one).
+
+```hbs preview-template
+  <Action
+    @href={{href-to 'dc.services'}}
+  >
+    Click Me
+  </Action>
+```
+
+If you don't give the `Action` a `href` then the action you are performing will
+not be navigation you to a hyperlink reference and instead performing the action
+specified, generally using the `on` modifier (semantically this is the same as
+a HTML button tag, and semantically renders as one).
+
+```hbs preview-template
+  <Action
+    {{on 'click' (set this 'boolean' (not this.boolean))}}
+  >
+    Click Me: {{if this.boolean 'On' 'Off'}}
+  </Action>
+```
+
+We currently have a handy shortcut to tag the Action as an `external` hyperlink
+reference. The following will add the necessary attributes for you for an
+`external` link so you don't have to. This is likely to be handled automatically
+in the future.
+
+```hbs preview-template
+  <Action
+    @href="https://www.consul.io"
+    @external={{true}}
+  >
+    Click Me
+  </Action>
+```
+
+## Arguments
+
+| Argument  | Type    | Default   | Description                                                    |
+| :-------- | :------ | :-------- | :------------------------------------------------------------- |
+| href      | string  | undefined | Clicking the Action will take the user to the specified href   |
+| external  | boolean | false     | Sets the href as an external link that will be treated as such |
+
+<!-- START component-docs:@args -->
+<!-- END component-docs:@args -->
+
