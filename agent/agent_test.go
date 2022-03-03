@@ -5731,3 +5731,69 @@ func testCoalesceTimer(inputCh chan *config.FileWatcherEvent, _ time.Duration) c
 	}()
 	return ch
 }
+
+func Test_coalesceTimerOnePeriod(t *testing.T) {
+
+	ch := make(chan *config.FileWatcherEvent)
+	ch2 := make(chan struct{})
+	outputCh := coalesceTimer(ch, 100*time.Millisecond)
+	time.AfterFunc(50*time.Millisecond, func() {
+		close(ch2)
+	})
+
+	count := 0
+	for {
+		select {
+		case <-ch2:
+			time.Sleep(100 * time.Millisecond)
+			close(ch)
+			goto DONE
+		default:
+			ch <- &config.FileWatcherEvent{}
+			count++
+		}
+	}
+DONE:
+
+	allEvt := make([][]config.FileWatcherEvent, 0)
+	for evt := range outputCh {
+		allEvt = append(allEvt, evt)
+	}
+	require.Len(t, allEvt, 1)
+	require.Len(t, allEvt[0], count)
+}
+
+func Test_coalesceTimerTwoPeriods(t *testing.T) {
+
+	ch := make(chan *config.FileWatcherEvent)
+	ch2 := make(chan struct{})
+	outputCh := coalesceTimer(ch, 100*time.Millisecond)
+	time.AfterFunc(150*time.Millisecond, func() {
+		close(ch2)
+	})
+
+	count := 0
+	allEvt := make([][]config.FileWatcherEvent, 0)
+	go func() {
+		for evt := range outputCh {
+			allEvt = append(allEvt, evt)
+		}
+	}()
+
+	for {
+		select {
+		case <-ch2:
+			close(ch)
+			goto DONE
+		default:
+			ch <- &config.FileWatcherEvent{}
+			count++
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+
+DONE:
+	time.Sleep(150 * time.Millisecond)
+	require.Len(t, allEvt, 2)
+	require.Equal(t, count, len(allEvt[0])+len(allEvt[1]))
+}

@@ -748,6 +748,9 @@ func coalesceTimer(inputCh chan *config.FileWatcherEvent, coalesceDuration time.
 			select {
 			case event, ok := <-inputCh:
 				if !ok {
+					if len(FileWatcherEvents) > 0 {
+						FileWatcherEventsCh <- FileWatcherEvents
+					}
 					close(FileWatcherEventsCh)
 					return
 				}
