@@ -220,27 +220,18 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 	if err != nil {
 		return nil, err
 	}
-	if config == nil {
-		config = c.serverConf.CAConfig
-
-		if c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter && config.ClusterID == "" {
-			id, err := uuid.GenerateUUID()
-			if err != nil {
-				return nil, err
-			}
-			config.ClusterID = id
-		}
-	} else if _, ok := config.Config["IntermediateCertTTL"]; !ok {
-		dup := *config
-		copied := make(map[string]interface{})
-		for k, v := range dup.Config {
-			copied[k] = v
-		}
-		copied["IntermediateCertTTL"] = connect.DefaultIntermediateCertTTL.String()
-		dup.Config = copied
-		config = &dup
-	} else {
+	if config != nil {
 		return config, nil
+	}
+
+	config = c.serverConf.CAConfig
+
+	if c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter && config.ClusterID == "" {
+		id, err := uuid.GenerateUUID()
+		if err != nil {
+			return nil, err
+		}
+		config.ClusterID = id
 	}
 
 	req := structs.CARequest{

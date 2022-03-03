@@ -18,6 +18,7 @@ import (
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
+	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,6 +29,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -146,18 +148,14 @@ func verifyLeafCertWithRoots(t *testing.T, roots structs.IndexedCARoots, leafCer
 }
 
 type mockCAServerDelegate struct {
-	t                     *testing.T
-	config                *Config
 	store                 *state.Store
 	primaryRoot           *structs.CARoot
 	secondaryIntermediate string
 	callbackCh            chan string
 }
 
-func NewMockCAServerDelegate(t *testing.T, config *Config) *mockCAServerDelegate {
+func NewMockCAServerDelegate(t *testing.T) *mockCAServerDelegate {
 	delegate := &mockCAServerDelegate{
-		t:           t,
-		config:      config,
 		store:       state.NewStateStore(nil),
 		primaryRoot: connect.TestCAWithTTL(t, nil, 1*time.Second),
 		callbackCh:  make(chan string, 0),
@@ -188,8 +186,6 @@ func (m *mockCAServerDelegate) ApplyCALeafRequest() (uint64, error) {
 	return 3, nil
 }
 
-// ApplyCARequest mirrors FSM.applyConnectCAOperation because that functionality
-// is not exported.
 func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
 	idx, _, err := m.store.CAConfig(nil)
 	if err != nil {
@@ -225,10 +221,7 @@ func (m *mockCAServerDelegate) forwardDC(method, dc string, args interface{}, re
 }
 
 func (m *mockCAServerDelegate) generateCASignRequest(csr string) *structs.CASignRequest {
-	return &structs.CASignRequest{
-		Datacenter: m.config.PrimaryDatacenter,
-		CSR:        csr,
-	}
+	return &structs.CASignRequest{Datacenter: "dc1", CSR: csr}
 }
 
 // mockCAProvider mocks an empty provider implementation with a channel in order to coordinate
@@ -324,7 +317,7 @@ func TestCAManager_Initialize(t *testing.T) {
 	conf.ConnectEnabled = true
 	conf.PrimaryDatacenter = "dc1"
 	conf.Datacenter = "dc2"
-	delegate := NewMockCAServerDelegate(t, conf)
+	delegate := NewMockCAServerDelegate(t)
 	delegate.secondaryIntermediate = delegate.primaryRoot.RootCert
 	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 
@@ -362,6 +355,51 @@ func TestCAManager_Initialize(t *testing.T) {
 	require.Equal(t, caStateInitialized, manager.state)
 }
 
+func TestCAManager_Initialize_HasDefaultIntermediateCertTTLSet(t *testing.T) {
+	delegate := &mockCAServerDelegate{
+		store:      state.NewStateStore(nil),
+		callbackCh: make(chan string, 200),
+	}
+
+	// Initialize the state with a config that does not have IntermediateCertTTL
+	err := delegate.store.CASetConfig(1, &structs.CAConfiguration{
+		ClusterID: connect.TestClusterID,
+		Provider:  "consul",
+	})
+	require.NoError(t, err)
+
+	logger := hclog.New(nil)
+	routines := routine.NewManager(logger)
+	conf := DefaultConfig()
+	conf.ConnectEnabled = true
+	conf.PrimaryDatacenter = "dc1"
+	conf.Datacenter = "dc1"
+	manager := NewCAManager(delegate, routines, logger, conf)
+
+	err = manager.Initialize()
+	require.NoError(t, err)
+
+	signer, _, err := connect.GeneratePrivateKeyWithConfig("ec", 256)
+	require.NoError(t, err)
+
+	id := &connect.SpiffeIDSigning{ClusterID: connect.TestClusterID, Domain: "consul"}
+	raw, err := connect.CreateCACSR(id, signer)
+	require.NoError(t, err)
+
+	csr, err := connect.ParseCSR(raw)
+	require.NoError(t, err)
+
+	fmt.Println(manager.provider)
+	rawCert, err := manager.provider.SignIntermediate(csr)
+	require.NoError(t, err)
+
+	cert, err := connect.ParseCert(rawCert)
+	require.NoError(t, err)
+
+	expected := time.Now().Add(connect.DefaultIntermediateCertTTL).Add(-ca.CertificateTimeDriftBuffer)
+	require.WithinDuration(t, expected, cert.NotAfter, 5*time.Second)
+}
+
 func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 
 	// No parallel execution because we change globals
@@ -371,7 +409,7 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	conf.ConnectEnabled = true
 	conf.PrimaryDatacenter = "dc1"
 	conf.Datacenter = "dc2"
-	delegate := NewMockCAServerDelegate(t, conf)
+	delegate := NewMockCAServerDelegate(t)
 	delegate.secondaryIntermediate = delegate.primaryRoot.RootCert
 	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 	manager.providerShim = &mockCAProvider{
@@ -463,7 +501,7 @@ func TestCAManager_SignCertificate_WithExpiredCert(t *testing.T) {
 			rootPEM := generateCertPEM(t, caPrivKey, arg.notBeforeRoot, arg.notAfterRoot)
 			intermediatePEM := generateCertPEM(t, caPrivKey, arg.notBeforeIntermediate, arg.notAfterIntermediate)
 
-			delegate := NewMockCAServerDelegate(t, conf)
+			delegate := NewMockCAServerDelegate(t)
 			delegate.primaryRoot.RootCert = rootPEM
 			delegate.secondaryIntermediate = intermediatePEM
 			manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
