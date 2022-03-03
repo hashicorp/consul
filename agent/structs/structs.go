@@ -202,6 +202,13 @@ func ValidStatus(s string) bool {
 	return s == api.HealthPassing || s == api.HealthWarning || s == api.HealthCritical
 }
 
+// RPCRequest is a shim that allows structs to implement a single method
+// for a given RPC request rather than all of RPCInfo at once.
+// This is relevant as we phase away from gogo-protobuf's embedding features.
+type RPCRequest interface {
+	RPCInfo() RPCInfo
+}
+
 // RPCInfo is used to describe common information about query
 type RPCInfo interface {
 	RequestDatacenter() string
