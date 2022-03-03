@@ -1,20 +1,87 @@
 import Error from '@ember/error';
+import { inject as service } from '@ember/service';
 import RepositoryService from 'consul-ui/services/repository';
 import dataSource from 'consul-ui/decorators/data-source';
+import {
+  HEADERS_DEFAULT_ACL_POLICY as DEFAULT_ACL_POLICY,
+} from 'consul-ui/utils/http/consul';
 
-const modelName = 'dc';
+
+const SECONDS = 1000;
+const MODEL_NAME = 'dc';
+
 export default class DcService extends RepositoryService {
+  @service('env') env;
+
   getModelName() {
-    return modelName;
+    return MODEL_NAME;
   }
 
   @dataSource('/:partition/:ns/:dc/datacenters')
-  async findAll() {
-    return super.findAll(...arguments);
+  async fetchAll({partition, ns, dc}, { uri }, request) {
+    const Local = this.env.var('CONSUL_DATACENTER_LOCAL');
+    const Primary = this.env.var('CONSUL_DATACENTER_PRIMARY');
+    return (await request`
+      GET /v1/catalog/datacenters
+      X-Request-ID: ${uri}
+    `)(
+      (headers, body, cache) => {
+        // TODO: Not sure nowadays whether we need to keep lowercasing everything
+        // I vaguely remember when I last looked it was not needed for browsers anymore
+        // but I also vaguely remember something about Pretender lowercasing things still
+        // so if we can work around Pretender I think we can remove all the header lowercasing
+        // For the moment we lowercase here so as to not effect the ember-data-flavoured-v1 fork
+        const entry = Object.entries(headers)
+          .find(([key, value]) => key.toLowerCase() === DEFAULT_ACL_POLICY.toLowerCase());
+        //
+        const DefaultACLPolicy = entry[1] || 'allow';
+        return {
+          meta: {
+            version: 2,
+            uri: uri,
+          },
+          body: body.map(dc => {
+            return cache(
+              {
+                Name: dc,
+                Datacenter: '',
+                Local: dc === Local,
+                Primary: dc === Primary,
+                DefaultACLPolicy: DefaultACLPolicy,
+              },
+              uri => uri`${MODEL_NAME}:///${''}/${''}/${dc}/datacenter`
+            );
+          })
+        };
+      });
   }
 
-  @dataSource('/:partition/:ns/:dc/datacenter/:name')
-  async findBySlug(params) {
+  @dataSource('/:partition/:ns/:dc/datacenter')
+  async fetch({partition, ns, dc}, { uri }, request) {
+    return (await request`
+      GET /v1/operator/autopilot/state?${{ dc }}
+      X-Request-ID: ${uri}
+    `)(
+      (headers, body, cache) => ({
+        meta: {
+          version: 2,
+          uri: uri,
+          interval: 30 * SECONDS
+        },
+        body: cache(
+          {
+            ...body,
+            // turn servers into an array instead of a map/object
+            Servers: Object.values(body.Servers)
+          },
+          uri => uri`${MODEL_NAME}:///${''}/${''}/${dc}/datacenter`
+        )
+      })
+    );
+  }
+
+  @dataSource('/:partition/:ns/:dc/datacenter-cache/:name')
+  async find(params) {
     const items = this.store.peekAll('dc');
     const item = items.findBy('Name', params.name);
     if (typeof item === 'undefined') {
@@ -26,4 +93,5 @@ export default class DcService extends RepositoryService {
     }
     return item;
   }
+
 }
