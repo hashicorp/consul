@@ -1716,8 +1716,6 @@ func rpcBlockingQueryTestHarness(
 	defer cancel()
 
 	launchWriters := func() {
-		t.Logf("WRITERS")
-		defer t.Logf("WRITERS DONE")
 		defer cancel()
 
 		for i := 0; i < 200; i++ {
