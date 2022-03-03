@@ -822,7 +822,7 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 	if !autoEncrypt {
 		// auto-encrypt doesn't modify the config but rather sets the value
 		// in the TLS configurator
-		require.True(t, cfg.VerifyServerHostname)
+		require.True(t, cfg.TLS.InternalRPC.VerifyServerHostname)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

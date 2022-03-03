@@ -93,7 +93,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
 
-	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.ToTLSUtilConfig(), d.Logger)
+	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.TLS, d.Logger)
 	if err != nil {
 		return d, err
 	}
