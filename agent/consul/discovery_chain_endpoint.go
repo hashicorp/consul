@@ -66,7 +66,7 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 				OverrideProtocol:       args.OverrideProtocol,
 				OverrideConnectTimeout: args.OverrideConnectTimeout,
 			}
-			index, chain, err := state.ServiceDiscoveryChain(ws, args.Name, entMeta, req)
+			index, chain, entries, err := state.ServiceDiscoveryChain(ws, args.Name, entMeta, req)
 			if err != nil {
 				return err
 			}
@@ -93,7 +93,7 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 			reply.Index = index
 			reply.Chain = chain
 
-			if chain.IsDefault() {
+			if entries.IsEmpty() {
 				return errNotFound
 			}
 
