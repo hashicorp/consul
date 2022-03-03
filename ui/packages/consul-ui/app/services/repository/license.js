@@ -25,7 +25,7 @@ export default class LicenseService extends RepositoryService {
         meta: {
           version: 2,
           uri: uri,
-          interval: 3 * SECONDS
+          interval: 30 * SECONDS
         },
         body: cache(
           bucket(body, { dc }),
