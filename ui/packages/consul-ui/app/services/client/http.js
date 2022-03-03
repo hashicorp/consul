@@ -257,11 +257,10 @@ export default class HttpService extends Service {
               };
               const respond = function(cb) {
                 let res = cb(headers, e.data.response, cache);
-                if(typeof res.meta !== 'undefined') {
-                  const Collection = Proxy;
-                  const meta = res.meta;
+                const meta = res.meta || {};
+                if(meta.version === 2) {
                   if(Array.isArray(res.body)) {
-                    res = new Collection(
+                    res = new Proxy(
                       res.body,
                       {
                         get: (target, prop) => {

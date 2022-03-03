@@ -23,6 +23,7 @@ export default class LicenseService extends RepositoryService {
     `)(
       (headers, body, cache) => ({
         meta: {
+          version: 2,
           uri: uri,
           interval: 3 * SECONDS
         },
