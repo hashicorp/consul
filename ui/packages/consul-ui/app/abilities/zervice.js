@@ -1,6 +1,6 @@
 import BaseAbility from './base';
 
-export default class ServiceAbility extends BaseAbility {
+export default class ZerviceAbility extends BaseAbility {
   resource = 'service';
 
   get isLinkable() {
