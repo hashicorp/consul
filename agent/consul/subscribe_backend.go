@@ -26,7 +26,7 @@ func (s subscribeBackend) ResolveTokenAndDefaultMeta(
 
 var _ subscribe.Backend = (*subscribeBackend)(nil)
 
-func (s subscribeBackend) Forward(info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error) {
+func (s subscribeBackend) Forward(info structs.RPCRequest, f func(*grpc.ClientConn) error) (handled bool, err error) {
 	return s.srv.ForwardGRPC(s.connPool, info, f)
 }
 

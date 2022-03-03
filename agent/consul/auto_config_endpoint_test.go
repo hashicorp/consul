@@ -45,7 +45,7 @@ func (m *mockAutoConfigBackend) DatacenterJoinAddresses(partition, segment strin
 	return addrs, ret.Error(1)
 }
 
-func (m *mockAutoConfigBackend) ForwardRPC(method string, req structs.RPCInfo, reply interface{}) (bool, error) {
+func (m *mockAutoConfigBackend) ForwardRPC(method string, req structs.RPCRequest, reply interface{}) (bool, error) {
 	ret := m.Called(method, req, reply)
 	return ret.Bool(0), ret.Error(1)
 }

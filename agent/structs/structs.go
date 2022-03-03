@@ -207,11 +207,11 @@ func ValidStatus(s string) bool {
 // This is relevant as we phase away from gogo-protobuf's embedding features.
 type RPCRequest interface {
 	RPCInfo() RPCInfo
+	RequestDatacenter() string
 }
 
 // RPCInfo is used to describe common information about query
 type RPCInfo interface {
-	RequestDatacenter() string
 	IsRead() bool
 	AllowStaleRead() bool
 	TokenSecret() string
@@ -329,6 +329,10 @@ func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime,
 	return time.Since(start) > rpcHoldTimeout
 }
 
+func (q QueryOptions) RPCInfo() RPCInfo {
+	return &q
+}
+
 type WriteRequest struct {
 	// Token is the ACL token ID. If not provided, the 'anonymous'
 	// token is assumed for backwards compatibility.
@@ -354,6 +358,10 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 
 func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
 	return time.Since(start) > rpcHoldTimeout
+}
+
+func (w WriteRequest) RPCInfo() RPCInfo {
+	return &w
 }
 
 type QueryBackend int

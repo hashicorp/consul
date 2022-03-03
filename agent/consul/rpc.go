@@ -577,7 +577,7 @@ func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) 
 // Returns a bool of if forwarding was performed, as well as any error. If
 // false is returned (with no error) it is assumed that the current server
 // should handle the request.
-func (s *Server) ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error) {
+func (s *Server) ForwardRPC(method string, info structs.RPCRequest, reply interface{}) (bool, error) {
 	forwardToDC := func(dc string) error {
 		return s.forwardDC(method, dc, info, reply)
 	}
@@ -594,7 +594,7 @@ func (s *Server) ForwardRPC(method string, info structs.RPCInfo, reply interface
 // Returns a bool of if forwarding was performed, as well as any error. If
 // false is returned (with no error) it is assumed that the current server
 // should handle the request.
-func (s *Server) ForwardGRPC(connPool GRPCClientConner, info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error) {
+func (s *Server) ForwardGRPC(connPool GRPCClientConner, info structs.RPCRequest, f func(*grpc.ClientConn) error) (handled bool, err error) {
 	forwardToDC := func(dc string) error {
 		conn, err := connPool.ClientConn(dc)
 		if err != nil {
@@ -626,29 +626,29 @@ func (s *Server) ForwardGRPC(connPool GRPCClientConner, info structs.RPCInfo, f 
 // false is returned (with no error) it is assumed that the current server
 // should handle the request.
 func (s *Server) forwardRPC(
-	info structs.RPCInfo,
+	req structs.RPCRequest,
 	forwardToDC func(dc string) error,
 	forwardToLeader func(leader *metadata.Server) error,
 ) (handled bool, err error) {
 	// Forward the request to the requested datacenter.
-	if handled, err := s.forwardRequestToOtherDatacenter(info, forwardToDC); handled || err != nil {
+	if handled, err := s.forwardRequestToOtherDatacenter(req, forwardToDC); handled || err != nil {
 		return handled, err
 	}
 
 	// See if we should let this server handle the read request without
 	// shipping the request to the leader.
-	if s.canServeReadRequest(info) {
+	if s.canServeReadRequest(req.RPCInfo()) {
 		return false, nil
 	}
 
-	return s.forwardRequestToLeader(info, forwardToLeader)
+	return s.forwardRequestToLeader(req.RPCInfo(), forwardToLeader)
 }
 
 // forwardRequestToOtherDatacenter is an implementation detail of forwardRPC.
 // See the comment for forwardRPC for more details.
-func (s *Server) forwardRequestToOtherDatacenter(info structs.RPCInfo, forwardToDC func(dc string) error) (handled bool, err error) {
+func (s *Server) forwardRequestToOtherDatacenter(req structs.RPCRequest, forwardToDC func(dc string) error) (handled bool, err error) {
 	// Handle DC forwarding
-	dc := info.RequestDatacenter()
+	dc := req.RequestDatacenter()
 	if dc == "" {
 		dc = s.config.Datacenter
 	}
@@ -656,7 +656,7 @@ func (s *Server) forwardRequestToOtherDatacenter(info structs.RPCInfo, forwardTo
 		// Local tokens only work within the current datacenter. Check to see
 		// if we are attempting to forward one to a remote datacenter and strip
 		// it, falling back on the anonymous token on the other end.
-		if token := info.TokenSecret(); token != "" {
+		if token := req.RPCInfo().TokenSecret(); token != "" {
 			done, ident, err := s.ResolveIdentityFromToken(token)
 			if done {
 				if err != nil && !acl.IsErrNotFound(err) {
@@ -664,8 +664,8 @@ func (s *Server) forwardRequestToOtherDatacenter(info structs.RPCInfo, forwardTo
 				}
 				if ident != nil && ident.IsLocal() {
 					// Strip it from the request.
-					info.SetTokenSecret("")
-					defer info.SetTokenSecret(token)
+					req.RPCInfo().SetTokenSecret("")
+					defer req.RPCInfo().SetTokenSecret(token)
 				}
 			}
 		}
@@ -674,7 +674,7 @@ func (s *Server) forwardRequestToOtherDatacenter(info structs.RPCInfo, forwardTo
 		// Unsetting the Partition ensures that the server that handles the request
 		// uses its Partition, or an empty value (aka doing nothing).
 		// For requests that are not Partition-aware, this is a no-op.
-		if v, ok := info.(partitionUnsetter); ok {
+		if v, ok := req.(partitionUnsetter); ok {
 			v.UnsetPartition()
 		}
 
@@ -1118,7 +1118,7 @@ func (s *Server) consistentRead() error {
 	defer metrics.MeasureSince([]string{"rpc", "consistentRead"}, time.Now())
 	future := s.raft.VerifyLeader()
 	if err := future.Error(); err != nil {
-		return err //fail fast if leader verification fails
+		return err // fail fast if leader verification fails
 	}
 	// poll consistent read readiness, wait for up to RPCHoldTimeout milliseconds
 	if s.isReadyForConsistentReads() {

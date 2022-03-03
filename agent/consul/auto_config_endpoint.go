@@ -119,7 +119,7 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 type AutoConfigBackend interface {
 	CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error)
 	DatacenterJoinAddresses(partition, segment string) ([]string, error)
-	ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error)
+	ForwardRPC(method string, info structs.RPCRequest, reply interface{}) (bool, error)
 	GetCARoots() (*structs.IndexedCARoots, error)
 	SignCertificate(csr *x509.CertificateRequest, id connect.CertURI) (*structs.IssuedCert, error)
 }

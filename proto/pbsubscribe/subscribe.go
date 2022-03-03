@@ -1,6 +1,10 @@
 package pbsubscribe
 
-import "time"
+import (
+	"time"
+
+	"github.com/hashicorp/consul/agent/structs"
+)
 
 // RequestDatacenter implements structs.RPCInfo
 func (req *SubscribeRequest) RequestDatacenter() string {
@@ -30,4 +34,8 @@ func (req *SubscribeRequest) SetTokenSecret(token string) {
 // HasTimedOut implements structs.RPCInfo
 func (req *SubscribeRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
 	return time.Since(start) > rpcHoldTimeout
+}
+
+func (req *SubscribeRequest) RPCInfo() structs.RPCInfo {
+	return req
 }

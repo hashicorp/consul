@@ -1,6 +1,10 @@
 package pbautoconf
 
-import "time"
+import (
+	"time"
+
+	"github.com/hashicorp/consul/agent/structs"
+)
 
 func (req *AutoConfigRequest) RequestDatacenter() string {
 	return req.Datacenter
@@ -24,4 +28,8 @@ func (req *AutoConfigRequest) SetTokenSecret(token string) {
 
 func (req *AutoConfigRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
 	return time.Since(start) > rpcHoldTimeout
+}
+
+func (req *AutoConfigRequest) RPCInfo() structs.RPCInfo {
+	return req
 }
