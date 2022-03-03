@@ -4,15 +4,22 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/mitchellh/mapstructure"
+	"github.com/hashicorp/consul/lib/decode"
 )
 
 func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderConfig, error) {
-	config := defaultConsulCAProviderConfig()
+	config := structs.ConsulCAProviderConfig{
+		CommonCAProviderConfig: defaultCommonConfig(),
+	}
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook:       structs.ParseDurationFunc(),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			structs.ParseDurationFunc(),
+			decode.HookTranslateKeys,
+		),
 		Result:           &config,
 		WeaklyTypedInput: true,
 	}
@@ -41,11 +48,6 @@ func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderC
 	return &config, nil
 }
 
-func defaultConsulCAProviderConfig() structs.ConsulCAProviderConfig {
-	return structs.ConsulCAProviderConfig{
-		CommonCAProviderConfig: defaultCommonConfig(),
-	}
-}
 func defaultCommonConfig() structs.CommonCAProviderConfig {
 	return structs.CommonCAProviderConfig{
 		LeafCertTTL:         3 * 24 * time.Hour,

@@ -370,9 +370,9 @@ func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
 }
 
 type CommonCAProviderConfig struct {
-	LeafCertTTL         time.Duration
-	IntermediateCertTTL time.Duration
-	RootCertTTL         time.Duration
+	LeafCertTTL         time.Duration `alias:"leaf_cert_ttl"`
+	IntermediateCertTTL time.Duration `alias:"intermediate_cert_ttl"`
+	RootCertTTL         time.Duration `alias:"root_cert_ttl"`
 
 	SkipValidate bool
 
@@ -386,7 +386,7 @@ type CommonCAProviderConfig struct {
 	// For large clusters with powerful servers it's advisable to increase this
 	// rate or to disable this limit and instead rely on CSRMaxConcurrent to only
 	// consume a subset of the server's cores.
-	CSRMaxPerSecond float32
+	CSRMaxPerSecond float32 `alias:"csr_max_per_second"`
 
 	// CSRMaxConcurrent is a limit on how many concurrent CSR signing requests
 	// will be processed in parallel. New incoming signing requests will try for
@@ -398,21 +398,21 @@ type CommonCAProviderConfig struct {
 	// rotation). Setting to 0 disables the limit, attempting to sign certs
 	// immediately in the RPC goroutine. This is 0 by default and CSRMaxPerSecond
 	// is used. This is ignored if CSRMaxPerSecond is non-zero.
-	CSRMaxConcurrent int
+	CSRMaxConcurrent int `alias:"csr_max_concurrent"`
 
 	// PrivateKeyType specifies which type of key the CA should generate. It only
 	// applies when the provider is generating its own key and is ignored if the
 	// provider already has a key or an external key is provided. Supported values
 	// are "ec" or "rsa". "ec" is the default and will generate a NIST P-256
 	// Elliptic key.
-	PrivateKeyType string
+	PrivateKeyType string `alias:"private_key_type"`
 
 	// PrivateKeyBits specifies the number of bits the CA's private key should
 	// use. For RSA, supported values are 2048 and 4096. For EC, supported values
 	// are 224, 256, 384 and 521 and correspond to the NIST P-* curve of the same
 	// name. As with PrivateKeyType this is only relevant whan the provier is
 	// generating new CA keys (root or intermediate).
-	PrivateKeyBits int
+	PrivateKeyBits int `alias:"private_key_bits"`
 }
 
 var MinLeafCertTTL = time.Hour
@@ -487,8 +487,8 @@ func (c CommonCAProviderConfig) Validate() error {
 type ConsulCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	PrivateKey string
-	RootCert   string
+	PrivateKey string `alias:"private_key"`
+	RootCert   string `alias:"root_cert"`
 
 	// DisableCrossSigning is really only useful in test code to use the built in
 	// provider while exercising logic that depends on the CA provider ability to
@@ -514,18 +514,18 @@ type CAConsulProviderState struct {
 type VaultCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	Address             string
-	Token               string
-	RootPKIPath         string
-	IntermediatePKIPath string
-	Namespace           string
+	Address             string `alias:"address"`
+	Token               string `alias:"token"`
+	RootPKIPath         string `alias:"root_pki_path"`
+	IntermediatePKIPath string `alias:"intermediate_pki_path"`
+	Namespace           string `alias:"namespace"`
 
-	CAFile        string
-	CAPath        string
-	CertFile      string
-	KeyFile       string
-	TLSServerName string
-	TLSSkipVerify bool
+	CAFile        string `alias:"ca_file"`
+	CAPath        string `alias:"ca_path"`
+	CertFile      string `alias:"cert_file"`
+	KeyFile       string `alias:"key_file"`
+	TLSServerName string `alias:"tls_server_name"`
+	TLSSkipVerify bool   `alias:"tls_skip_verify"`
 
 	AuthMethod *VaultAuthMethod `alias:"auth_method"`
 }
@@ -539,8 +539,8 @@ type VaultAuthMethod struct {
 type AWSCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	ExistingARN  string
-	DeleteOnExit bool
+	ExistingARN  string `alias:"existing_arn"`
+	DeleteOnExit bool   `alias:"delete_on_exit"`
 }
 
 // CALeafOp is the operation for a request related to leaf certificates.

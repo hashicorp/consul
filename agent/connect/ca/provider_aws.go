@@ -12,12 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acmpca"
-
 	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/decode"
 )
 
 const (
@@ -695,7 +695,10 @@ func ParseAWSCAConfig(raw map[string]interface{}) (*structs.AWSCAProviderConfig,
 	}
 
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook:       structs.ParseDurationFunc(),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			structs.ParseDurationFunc(),
+			decode.HookTranslateKeys,
+		),
 		Result:           &config,
 		WeaklyTypedInput: true,
 	}
