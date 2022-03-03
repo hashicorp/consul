@@ -245,7 +245,7 @@ Refer to the [Security](/docs/security) chapter for additional information about
 
 ```hcl
 node_name = "consul-server"
-server    = true
+server = true
 ui_config {
   enabled = true
 }
@@ -257,13 +257,21 @@ retry_join = [
   "consul-server2",
   "consul-server3"
 ]
-encrypt                = "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w="
-verify_incoming        = true
-verify_outgoing        = true
-verify_server_hostname = true
-ca_file                = "/consul/config/certs/consul-agent-ca.pem"
-cert_file              = "/consul/config/certs/dc1-server-consul-0.pem"
-key_file               = "/consul/config/certs/dc1-server-consul-0-key.pem"
+encrypt = "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w="
+
+tls {
+  defaults {
+    verify_incoming = true
+    verify_outgoing = true
+    ca_file = "/consul/config/certs/consul-agent-ca.pem"
+    cert_file = "/consul/config/certs/dc1-server-consul-0.pem"
+    key_file = "/consul/config/certs/dc1-server-consul-0-key.pem"
+  }
+
+  internal_rpc {
+    verify_server_hostname = true
+  }
+}
 
 ```
 
@@ -281,12 +289,18 @@ key_file               = "/consul/config/certs/dc1-server-consul-0-key.pem"
   },
   "retry_join": ["consul-server1", "consul-server2"],
   "encrypt": "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w=",
-  "verify_incoming": true,
-  "verify_outgoing": true,
-  "verify_server_hostname": true,
-  "ca_file": "/consul/config/certs/consul-agent-ca.pem",
-  "cert_file": "/consul/config/certs/dc1-server-consul-0.pem",
-  "key_file": "/consul/config/certs/dc1-server-consul-0-key.pem"
+  "tls": {
+    "defaults": {
+      "verify_incoming": true,
+      "verify_outgoing": true,
+      "ca_file": "/consul/config/certs/consul-agent-ca.pem",
+      "cert_file": "/consul/config/certs/dc1-server-consul-0.pem",
+      "key_file": "/consul/config/certs/dc1-server-consul-0-key.pem"
+    },
+    "internal_rpc": {
+      "verify_server_hostname": true
+    }
+  }
 }
 ```
 
