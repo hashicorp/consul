@@ -394,6 +394,19 @@ This will configure the injector to inject when the
 is set to `true`. Other values in the Helm chart can be used to limit the namespaces
 the injector runs in, enable injection by default, and more.
 
+### Verifying the Installation
+
+To verify the installation, run the
+["Accepting Inbound Connections"](/docs/k8s/connect#accepting-inbound-connections)
+example from the "Usage" section above. After running this example, run
+`kubectl get pod static-server --output yaml`. In the raw YAML output, you should
+see injected Connect containers and an annotation
+`consul.hashicorp.com/connect-inject-status` set to `injected`. This
+confirms that injection is working properly.
+
+If you do not see this, then use `kubectl logs` against the injector pod
+and note any errors.
+
 ### Controlling Injection Via Annotation
 
 By default, the injector will inject only when the
@@ -545,16 +558,3 @@ See [consul.hashicorp.com/connect-service-upstreams](#consul-hashicorp-com-conne
 -> **Note:** When you specify upstreams via an upstreams annotation, you will need to use
 `localhost:<port>` with the port from the upstreams annotation instead of KubeDNS to connect to your upstream
 application.
-
-### Verifying the Installation
-
-To verify the installation, run the
-["Accepting Inbound Connections"](/docs/k8s/connect#accepting-inbound-connections)
-example from the "Usage" section above. After running this example, run
-`kubectl get pod static-server --output yaml`. In the raw YAML output, you should
-see injected Connect containers and an annotation
-`consul.hashicorp.com/connect-inject-status` set to `injected`. This
-confirms that injection is working properly.
-
-If you do not see this, then use `kubectl logs` against the injector pod
-and note any errors.
