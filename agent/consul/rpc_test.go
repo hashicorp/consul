@@ -1690,13 +1690,13 @@ func channelCallRPC(
 	method string,
 	args interface{},
 	resp interface{},
-	responseInterceptor func(error) error,
+	responseInterceptor func() error,
 ) <-chan error {
 	errCh := make(chan error, 1)
 	go func() {
 		err := msgpackrpc.CallWithCodec(codec, method, args, resp)
-		if responseInterceptor != nil {
-			err = responseInterceptor(err)
+		if err == nil && responseInterceptor != nil {
+			err = responseInterceptor()
 		}
 		errCh <- err
 	}()

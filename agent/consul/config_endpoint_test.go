@@ -346,10 +346,7 @@ func TestConfigEntry_Get_BlockOnNonExistent(t *testing.T) {
 						Kind: structs.ServiceDefaults,
 						Name: fmt.Sprintf("other%d", i),
 					},
-				}, &out, func(err error) error {
-					if err != nil {
-						return err
-					}
+				}, &out, func() error {
 					if !out {
 						return fmt.Errorf("[%d] unexpectedly returned false", i)
 					}
@@ -496,10 +493,7 @@ func TestConfigEntry_List_BlockOnNoChange(t *testing.T) {
 						Name:           fmt.Sprintf(dataPrefix+"%d", i),
 						ConnectTimeout: 33 * time.Second,
 					},
-				}, &out, func(err error) error {
-					if err != nil {
-						return err
-					}
+				}, &out, func() error {
 					if !out {
 						return fmt.Errorf("[%d] unexpectedly returned false", i)
 					}
@@ -2159,10 +2153,7 @@ func TestConfigEntry_ResolveServiceConfig_BlockOnNoChange(t *testing.T) {
 						Kind: structs.ServiceDefaults,
 						Name: fmt.Sprintf(dataPrefix+"%d", i),
 					},
-				}, &out, func(err error) error {
-					if err != nil {
-						return err
-					}
+				}, &out, func() error {
 					if !out {
 						return fmt.Errorf("[%d] unexpectedly returned false", i)
 					}

@@ -285,14 +285,10 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 				args.QueryOptions.MinQueryIndex = minQueryIndex
 
 				var out structs.DiscoveryChainResponse
-				errCh := channelCallRPC(readerCodec, "DiscoveryChain.Get", &args, &out, func(err error) error {
-					if err != nil {
-						return err
-					}
+				errCh := channelCallRPC(readerCodec, "DiscoveryChain.Get", &args, &out, func() error {
 					if !out.Chain.IsDefault() {
 						return fmt.Errorf("expected default chain")
 					}
-
 					return nil
 				})
 				return &out.QueryMeta, errCh

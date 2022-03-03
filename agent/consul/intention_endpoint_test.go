@@ -1770,11 +1770,7 @@ func TestIntentionMatch_BlockOnNoChange(t *testing.T) {
 				args.QueryOptions.MinQueryIndex = minQueryIndex
 
 				var out structs.IndexedIntentionMatches
-				errCh := channelCallRPC(readerCodec, "Intention.Match", args, &out, func(err error) error {
-					if err != nil {
-						return err
-					}
-
+				errCh := channelCallRPC(readerCodec, "Intention.Match", args, &out, func() error {
 					if len(out.Matches) != 1 {
 						return fmt.Errorf("expected 1 match got %d", len(out.Matches))
 					}

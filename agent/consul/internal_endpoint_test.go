@@ -2358,10 +2358,7 @@ func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
 				args.QueryOptions.MinQueryIndex = minQueryIndex
 
 				var out structs.IndexedServiceList
-				errCh := channelCallRPC(readerCodec, "Internal.IntentionUpstreams", args, &out, func(err error) error {
-					if err != nil {
-						return err
-					}
+				errCh := channelCallRPC(readerCodec, "Internal.IntentionUpstreams", args, &out, func() error {
 					if len(out.Services) != expectServices {
 						return fmt.Errorf("expected %d services got %d", expectServices, len(out.Services))
 					}
