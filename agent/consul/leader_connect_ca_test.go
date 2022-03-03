@@ -693,6 +693,62 @@ func TestCAManager_Initialize_Vault_WithIntermediateAsPrimaryCA(t *testing.T) {
 	})
 }
 
+func TestCAManager_Verify_Vault_NoChangeToSecondaryConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	ca.SkipIfVaultNotPresent(t)
+
+	vault := ca.NewTestVaultServer(t)
+
+	_, sDC1 := testServerWithConfig(t, func(c *Config) {
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             vault.Addr,
+				"Token":               vault.RootToken,
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-intermediate/",
+			},
+		}
+	})
+	defer sDC1.Shutdown()
+	testrpc.WaitForActiveCARoot(t, sDC1.RPC, "dc1", nil)
+
+	_, sDC2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             vault.Addr,
+				"Token":               vault.RootToken,
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-intermediate-2/",
+			},
+		}
+	})
+	defer sDC2.Shutdown()
+	joinWAN(t, sDC2, sDC1)
+	testrpc.WaitForActiveCARoot(t, sDC2.RPC, "dc2", nil)
+
+	codec := rpcClient(t, sDC2)
+	var configBefore structs.CAConfiguration
+	err := msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", &structs.DCSpecificRequest{}, &configBefore)
+	require.NoError(t, err)
+
+	renewLeafSigningCert(t, sDC1.caManager, sDC1.caManager.primaryRenewIntermediate)
+
+	// Give the secondary some time to notice the update
+	time.Sleep(100 * time.Millisecond)
+
+	var configAfter structs.CAConfiguration
+	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", &structs.DCSpecificRequest{}, &configAfter)
+	require.NoError(t, err)
+
+	require.EqualValues(t, configBefore.ModifyIndex, configAfter.ModifyIndex)
+}
+
 func getLeafCert(t *testing.T, codec rpc.ClientCodec, trustDomain string, dc string) string {
 	pk, _, err := connect.GeneratePrivateKey()
 	require.NoError(t, err)

@@ -693,7 +693,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		return fmt.Errorf("local CA not initialized yet")
 	}
 	// Exit early if the change is a no-op.
-	if newActiveRoot == nil && config != nil && config.Provider == storedConfig.Provider && reflect.DeepEqual(config.Config, storedConfig.Config) {
+	if !shouldPersistNewRootAndConfig(newActiveRoot, storedConfig, config) {
 		return nil
 	}
 
@@ -756,6 +756,17 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 
 	c.logger.Info("updated root certificates from primary datacenter")
 	return nil
+}
+
+func shouldPersistNewRootAndConfig(newActiveRoot *structs.CARoot, oldConfig, newConfig *structs.CAConfiguration) bool {
+	if newActiveRoot != nil {
+		return true
+	}
+
+	if newConfig == nil {
+		return false
+	}
+	return newConfig.Provider == oldConfig.Provider && reflect.DeepEqual(newConfig.Config, oldConfig.Config)
 }
 
 func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) {
