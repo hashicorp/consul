@@ -21,7 +21,6 @@ import (
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/raft"
@@ -1686,7 +1685,7 @@ func getFirstSubscribeEventOrError(conn *grpc.ClientConn, req *pbsubscribe.Subsc
 // channelCallRPC lets you execute an RPC async. Helpful in some
 // tests.
 func channelCallRPC(
-	codec rpc.ClientCodec,
+	srv *Server,
 	method string,
 	args interface{},
 	resp interface{},
@@ -1694,7 +1693,14 @@ func channelCallRPC(
 ) <-chan error {
 	errCh := make(chan error, 1)
 	go func() {
-		err := msgpackrpc.CallWithCodec(codec, method, args, resp)
+		codec, err := rpcClientNoClose(srv)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		defer codec.Close()
+
+		err = msgpackrpc.CallWithCodec(codec, method, args, resp)
 		if err == nil && responseInterceptor != nil {
 			err = responseInterceptor()
 		}

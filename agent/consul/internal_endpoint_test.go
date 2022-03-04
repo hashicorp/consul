@@ -2323,7 +2323,11 @@ func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	_, s1 := testServerWithConfig(t)
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
 
 	codec := rpcClient(t, s1)
 
@@ -2347,8 +2351,6 @@ func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
 	}
 
 	run := func(t *testing.T, dataPrefix string, expectServices int) {
-		readerCodec := rpcClient(t, s1)
-		writerCodec := rpcClient(t, s1)
 		rpcBlockingQueryTestHarness(t,
 			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
 				args := &structs.ServiceSpecificRequest{
@@ -2358,7 +2360,7 @@ func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
 				args.QueryOptions.MinQueryIndex = minQueryIndex
 
 				var out structs.IndexedServiceList
-				errCh := channelCallRPC(readerCodec, "Internal.IntentionUpstreams", args, &out, func() error {
+				errCh := channelCallRPC(s1, "Internal.IntentionUpstreams", args, &out, func() error {
 					if len(out.Services) != expectServices {
 						return fmt.Errorf("expected %d services got %d", expectServices, len(out.Services))
 					}
@@ -2368,7 +2370,7 @@ func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
 			},
 			func(i int) <-chan error {
 				var out string
-				return channelCallRPC(writerCodec, "Intention.Apply", &structs.IntentionRequest{
+				return channelCallRPC(s1, "Intention.Apply", &structs.IntentionRequest{
 					Datacenter: "dc1",
 					Op:         structs.IntentionOpCreate,
 					Intention: &structs.Intention{

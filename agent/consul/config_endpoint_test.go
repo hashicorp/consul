@@ -309,11 +309,13 @@ func TestConfigEntry_Get_BlockOnNonExistent(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	_, s1 := testServerWithConfig(t)
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
 
 	codec := rpcClient(t, s1)
-	readerCodec := rpcClient(t, s1)
-	writerCodec := rpcClient(t, s1)
 
 	{ // create one relevant entry
 		var out bool
@@ -336,12 +338,12 @@ func TestConfigEntry_Get_BlockOnNonExistent(t *testing.T) {
 				args.QueryOptions.MinQueryIndex = minQueryIndex
 
 				var out structs.ConfigEntryResponse
-				errCh := channelCallRPC(readerCodec, "ConfigEntry.Get", &args, &out, nil)
+				errCh := channelCallRPC(s1, "ConfigEntry.Get", &args, &out, nil)
 				return &out.QueryMeta, errCh
 			},
 			func(i int) <-chan error {
 				var out bool
-				return channelCallRPC(writerCodec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
 					Entry: &structs.ServiceConfigEntry{
 						Kind: structs.ServiceDefaults,
 						Name: fmt.Sprintf("other%d", i),
@@ -465,13 +467,15 @@ func TestConfigEntry_List_BlockOnNoChange(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	_, s1 := testServerWithConfig(t)
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
 
 	codec := rpcClient(t, s1)
 
 	run := func(t *testing.T, dataPrefix string) {
-		readerCodec := rpcClient(t, s1)
-		writerCodec := rpcClient(t, s1)
 		rpcBlockingQueryTestHarness(t,
 			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
 				args := structs.ConfigEntryQuery{
@@ -482,12 +486,12 @@ func TestConfigEntry_List_BlockOnNoChange(t *testing.T) {
 
 				var out structs.IndexedConfigEntries
 
-				errCh := channelCallRPC(readerCodec, "ConfigEntry.List", &args, &out, nil)
+				errCh := channelCallRPC(s1, "ConfigEntry.List", &args, &out, nil)
 				return &out.QueryMeta, errCh
 			},
 			func(i int) <-chan error {
 				var out bool
-				return channelCallRPC(writerCodec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
 					Entry: &structs.ServiceResolverConfigEntry{
 						Kind:           structs.ServiceResolver,
 						Name:           fmt.Sprintf(dataPrefix+"%d", i),
@@ -2124,13 +2128,15 @@ func TestConfigEntry_ResolveServiceConfig_BlockOnNoChange(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	_, s1 := testServerWithConfig(t)
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
 
 	codec := rpcClient(t, s1)
 
 	run := func(t *testing.T, dataPrefix string) {
-		readerCodec := rpcClient(t, s1)
-		writerCodec := rpcClient(t, s1)
 		rpcBlockingQueryTestHarness(t,
 			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
 				args := structs.ServiceConfigRequest{
@@ -2143,12 +2149,12 @@ func TestConfigEntry_ResolveServiceConfig_BlockOnNoChange(t *testing.T) {
 
 				var out structs.ServiceConfigResponse
 
-				errCh := channelCallRPC(readerCodec, "ConfigEntry.ResolveServiceConfig", &args, &out, nil)
+				errCh := channelCallRPC(s1, "ConfigEntry.ResolveServiceConfig", &args, &out, nil)
 				return &out.QueryMeta, errCh
 			},
 			func(i int) <-chan error {
 				var out bool
-				return channelCallRPC(writerCodec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
 					Entry: &structs.ServiceConfigEntry{
 						Kind: structs.ServiceDefaults,
 						Name: fmt.Sprintf(dataPrefix+"%d", i),

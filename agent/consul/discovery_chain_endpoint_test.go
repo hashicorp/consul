@@ -248,7 +248,10 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
 		c.PrimaryDatacenter = "dc1"
 	})
 
@@ -271,8 +274,6 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 	}
 
 	run := func(t *testing.T, dataPrefix string) {
-		readerCodec := rpcClient(t, s1)
-		writerCodec := rpcClient(t, s1)
 		rpcBlockingQueryTestHarness(t,
 			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
 				args := &structs.DiscoveryChainRequest{
@@ -285,7 +286,7 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 				args.QueryOptions.MinQueryIndex = minQueryIndex
 
 				var out structs.DiscoveryChainResponse
-				errCh := channelCallRPC(readerCodec, "DiscoveryChain.Get", &args, &out, func() error {
+				errCh := channelCallRPC(s1, "DiscoveryChain.Get", &args, &out, func() error {
 					if !out.Chain.IsDefault() {
 						return fmt.Errorf("expected default chain")
 					}
@@ -295,7 +296,7 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 			},
 			func(i int) <-chan error {
 				var out bool
-				return channelCallRPC(writerCodec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
 					Datacenter: "dc1",
 					Entry: &structs.ServiceConfigEntry{
 						Kind: structs.ServiceDefaults,

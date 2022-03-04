@@ -1747,15 +1747,17 @@ func TestIntentionMatch_BlockOnNoChange(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	_, s1 := testServerWithConfig(t)
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
 
 	codec := rpcClient(t, s1)
 
 	waitForLeaderEstablishment(t, s1)
 
 	run := func(t *testing.T, dataPrefix string, expectMatches int) {
-		readerCodec := rpcClient(t, s1)
-		writerCodec := rpcClient(t, s1)
 		rpcBlockingQueryTestHarness(t,
 			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
 				args := &structs.IntentionQueryRequest{
@@ -1770,7 +1772,7 @@ func TestIntentionMatch_BlockOnNoChange(t *testing.T) {
 				args.QueryOptions.MinQueryIndex = minQueryIndex
 
 				var out structs.IndexedIntentionMatches
-				errCh := channelCallRPC(readerCodec, "Intention.Match", args, &out, func() error {
+				errCh := channelCallRPC(s1, "Intention.Match", args, &out, func() error {
 					if len(out.Matches) != 1 {
 						return fmt.Errorf("expected 1 match got %d", len(out.Matches))
 					}
@@ -1783,7 +1785,7 @@ func TestIntentionMatch_BlockOnNoChange(t *testing.T) {
 			},
 			func(i int) <-chan error {
 				var out string
-				return channelCallRPC(writerCodec, "Intention.Apply", &structs.IntentionRequest{
+				return channelCallRPC(s1, "Intention.Apply", &structs.IntentionRequest{
 					Datacenter: "dc1",
 					Op:         structs.IntentionOpCreate,
 					Intention: &structs.Intention{
