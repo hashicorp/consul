@@ -2,7 +2,6 @@ package consul
 
 import (
 	"bytes"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -60,11 +59,9 @@ func TestTxn_CheckNotExists(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -116,11 +113,9 @@ func TestTxn_Apply(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -314,14 +309,12 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -613,11 +606,9 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -705,11 +696,8 @@ func TestTxn_Read(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -830,16 +818,13 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 

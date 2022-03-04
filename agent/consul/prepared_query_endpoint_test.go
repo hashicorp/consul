@@ -3,7 +3,6 @@ package consul
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -32,11 +31,9 @@ func TestPreparedQuery_Apply(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -197,16 +194,14 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -467,19 +462,14 @@ func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Bootstrap = false
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec1 := rpcClient(t, s1)
-	defer codec1.Close()
 
-	dir2, s2 := testServer(t)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t)
 	codec2 := rpcClient(t, s2)
-	defer codec2.Close()
 
 	// Try to join.
 	joinLAN(t, s2, s1)
@@ -626,16 +616,14 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -828,16 +816,14 @@ func TestPreparedQuery_Get(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -1069,16 +1055,14 @@ func TestPreparedQuery_List(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -1290,16 +1274,14 @@ func TestPreparedQuery_Explain(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -1414,29 +1396,26 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	waitForLeaderEstablishment(t, s1)
 	codec1 := rpcClient(t, s1)
-	defer codec1.Close()
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	waitForLeaderEstablishment(t, s1)
+
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
-	waitForLeaderEstablishment(t, s2)
 	codec2 := rpcClient(t, s2)
-	defer codec2.Close()
+
+	waitForLeaderEstablishment(t, s2)
 
 	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 
@@ -2314,17 +2293,12 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec1 := rpcClient(t, s1)
-	defer codec1.Close()
 
-	dir2, s2 := testServer(t)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
+	codec1 := rpcClient(t, s1)
+
+	s2 := testServerWithConfigNoPersistence(t)
 	codec2 := rpcClient(t, s2)
-	defer codec2.Close()
 
 	// Try to join.
 	joinLAN(t, s2, s1)
@@ -2448,11 +2422,8 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// Setup 3 services on 3 nodes: one is non-Connect, one is Connect native,
 	// and one is a proxy to the non-Connect one.
@@ -2695,24 +2666,21 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
 	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))

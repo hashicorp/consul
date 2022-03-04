@@ -2,16 +2,16 @@ package consul
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/go-uuid"
 )
 
 func generateUUID() (ret string) {
@@ -28,9 +28,8 @@ func TestInitializeSessionTimers(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -65,9 +64,8 @@ func TestResetSessionTimer_NoTTL(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -99,9 +97,8 @@ func TestResetSessionTimer_NoTTL(t *testing.T) {
 
 func TestResetSessionTimer_InvalidTTL(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	// Create a session
 	session := &structs.Session{
@@ -123,9 +120,8 @@ func TestResetSessionTimerLocked(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -146,9 +142,7 @@ func TestResetSessionTimerLocked_Renew(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 
 	ttl := 100 * time.Millisecond
 
@@ -200,9 +194,8 @@ func TestInvalidateSession(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -236,9 +229,8 @@ func TestInvalidateSession(t *testing.T) {
 
 func TestClearSessionTimer(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	s1.createSessionTimer("foo", 5*time.Millisecond, nil)
 
@@ -254,9 +246,8 @@ func TestClearSessionTimer(t *testing.T) {
 
 func TestClearAllSessionTimers(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	s1.createSessionTimer("foo", 10*time.Millisecond, nil)
 	s1.createSessionTimer("bar", 10*time.Millisecond, nil)
@@ -276,18 +267,22 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = false
+	})
 
-	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = false
+	})
+
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join

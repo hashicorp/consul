@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -23,11 +22,9 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -69,16 +66,14 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -132,11 +127,9 @@ func TestOperator_RaftRemovePeerByAddress(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -196,16 +189,14 @@ func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -237,13 +228,11 @@ func TestOperator_RaftRemovePeerByID(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.RaftConfig.ProtocolVersion = 3
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -302,17 +291,15 @@ func TestOperator_RaftRemovePeerByID_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.RaftConfig.ProtocolVersion = 3
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 

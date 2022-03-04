@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -11,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
 
-	"github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 )
 
@@ -137,9 +136,8 @@ func TestRTT_sortNodesByDistanceFrom(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir, server := testServer(t)
-	defer os.RemoveAll(dir)
-	defer server.Shutdown()
+
+	server := testServerWithConfigNoPersistence(t)
 
 	codec := rpcClient(t, server)
 	defer codec.Close()
@@ -194,9 +192,8 @@ func TestRTT_sortNodesByDistanceFrom_Nodes(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir, server := testServer(t)
-	defer os.RemoveAll(dir)
-	defer server.Shutdown()
+
+	server := testServerWithConfigNoPersistence(t)
 
 	codec := rpcClient(t, server)
 	defer codec.Close()
@@ -248,13 +245,11 @@ func TestRTT_sortNodesByDistanceFrom_ServiceNodes(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir, server := testServer(t)
-	defer os.RemoveAll(dir)
-	defer server.Shutdown()
-	testrpc.WaitForTestAgent(t, server.RPC, "dc1")
 
+	server := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, server)
-	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, server.RPC, "dc1")
 
 	seedCoordinates(t, codec, server)
 	nodes := structs.ServiceNodes{
@@ -302,12 +297,10 @@ func TestRTT_sortNodesByDistanceFrom_HealthChecks(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir, server := testServer(t)
-	defer os.RemoveAll(dir)
-	defer server.Shutdown()
 
+	server := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, server)
-	defer codec.Close()
+
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
 
 	seedCoordinates(t, codec, server)
@@ -356,12 +349,10 @@ func TestRTT_sortNodesByDistanceFrom_CheckServiceNodes(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir, server := testServer(t)
-	defer os.RemoveAll(dir)
-	defer server.Shutdown()
 
+	server := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, server)
-	defer codec.Close()
+
 	testrpc.WaitForTestAgent(t, server.RPC, "dc1")
 
 	seedCoordinates(t, codec, server)

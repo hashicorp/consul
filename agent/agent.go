@@ -1049,6 +1049,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 
 	// Apply dev mode
 	cfg.DevMode = runtimeCfg.DevMode
+	cfg.DisablePersistence = cfg.DevMode
 
 	// Override with our runtimeCfg
 	// todo(fs): these are now always set in the runtime runtimeCfg so we can simplify this

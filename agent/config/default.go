@@ -175,6 +175,16 @@ func DevSource() Source {
 	}
 }
 
+func DisablePersistenceSource() Source {
+	return FileSource{
+		Name:   "dev",
+		Format: "hcl",
+		Data: `
+		disable_keyring_file = true
+	`,
+	}
+}
+
 // NonUserSource contains the values the user cannot configure.
 // This needs to be merged in the tail.
 // TODO: return a LiteralSource (no decoding) instead of a FileSource

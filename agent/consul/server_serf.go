@@ -218,7 +218,7 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 		}
 	}
 
-	if !s.config.DevMode {
+	if !s.config.DevMode && !s.config.DisablePersistence {
 		conf.SnapshotPath = filepath.Join(s.config.DataDir, opts.SnapshotPath)
 	}
 	if err := lib.EnsurePath(conf.SnapshotPath, false); err != nil {
@@ -375,15 +375,17 @@ func (s *Server) maybeBootstrap() {
 	// Bootstrap can only be done if there are no committed logs, remove our
 	// expectations of bootstrapping. This is slightly cheaper than the full
 	// check that BootstrapCluster will do, so this is a good pre-filter.
-	index, err := s.raftStore.LastIndex()
-	if err != nil {
-		s.logger.Error("Failed to read last raft index", "error", err)
-		return
-	}
-	if index != 0 {
-		s.logger.Info("Raft data found, disabling bootstrap mode")
-		s.config.BootstrapExpect = 0
-		return
+	if s.raftStore != nil {
+		index, err := s.raftStore.LastIndex()
+		if err != nil {
+			s.logger.Error("Failed to read last raft index", "error", err)
+			return
+		}
+		if index != 0 {
+			s.logger.Info("Raft data found, disabling bootstrap mode")
+			s.config.BootstrapExpect = 0
+			return
+		}
 	}
 
 	if s.config.ReadReplica {

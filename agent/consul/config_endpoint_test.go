@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"os"
 	"sort"
 	"testing"
 	"time"
@@ -25,22 +24,16 @@ func TestConfigEntry_Apply(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 	codec2 := rpcClient(t, s2)
-	defer codec2.Close()
 
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	joinWAN(t, s2, s1)
@@ -165,11 +158,8 @@ func TestConfigEntry_ProxyDefaultsMeshGateway(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	args := structs.ConfigEntryRequest{
 		Datacenter: "dc1",
@@ -199,17 +189,14 @@ func TestConfigEntry_Apply_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	rules := `
 service "foo" {
@@ -276,11 +263,8 @@ func TestConfigEntry_Get(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// Create a dummy service in the state store to look up.
 	entry := &structs.ServiceConfigEntry{
@@ -311,10 +295,7 @@ func TestConfigEntry_Get_BlockOnNonExistent(t *testing.T) {
 
 	t.Parallel()
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.DevMode = true // keep it in ram to make it 10x faster on macos
-	})
-
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
 
 	{ // create one relevant entry
@@ -366,17 +347,14 @@ func TestConfigEntry_Get_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	rules := `
 service "foo" {
@@ -427,11 +405,8 @@ func TestConfigEntry_List(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// Create some dummy services in the state store to look up.
 	state := s1.fsm.State()
@@ -469,10 +444,7 @@ func TestConfigEntry_List_BlockOnNoChange(t *testing.T) {
 
 	t.Parallel()
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.DevMode = true // keep it in ram to make it 10x faster on macos
-	})
-
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
 
 	run := func(t *testing.T, dataPrefix string) {
@@ -542,11 +514,8 @@ func TestConfigEntry_ListAll(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// Create some dummy services in the state store to look up.
 	state := s1.fsm.State()
@@ -635,17 +604,14 @@ func TestConfigEntry_List_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	rules := `
 service "foo" {
@@ -707,17 +673,14 @@ func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	rules := `
 service "foo" {
@@ -778,22 +741,16 @@ func TestConfigEntry_Delete(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 	codec2 := rpcClient(t, s2)
-	defer codec2.Close()
 
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	joinWAN(t, s2, s1)
@@ -873,12 +830,8 @@ func TestConfigEntry_DeleteCAS(t *testing.T) {
 	}
 	t.Parallel()
 
-	dir, s := testServer(t)
-	defer os.RemoveAll(dir)
-	defer s.Shutdown()
-
+	s := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s.RPC, "dc1")
 
@@ -930,17 +883,14 @@ func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	rules := `
 service "foo" {
@@ -1014,11 +964,8 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// Create a dummy proxy/service config in the state store to look up.
 	state := s1.fsm.State()
@@ -1167,12 +1114,8 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			dir1, s1 := testServer(t)
-			defer os.RemoveAll(dir1)
-			defer s1.Shutdown()
-
+			s1 := testServerWithConfigNoPersistence(t)
 			codec := rpcClient(t, s1)
-			defer codec.Close()
 
 			// Boostrap the config entries
 			idx := uint64(1)
@@ -1568,12 +1511,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			dir1, s1 := testServer(t)
-			defer os.RemoveAll(dir1)
-			defer s1.Shutdown()
-
+			s1 := testServerWithConfigNoPersistence(t)
 			codec := rpcClient(t, s1)
-			defer codec.Close()
 
 			state := s1.fsm.State()
 
@@ -1607,11 +1546,8 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// The main thing this should test is that information from one iteration
 	// of the blocking query does NOT bleed over into the next run. Concretely
@@ -1778,11 +1714,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// The main thing this should test is that information from one iteration
 	// of the blocking query does NOT bleed over into the next run. Concretely
@@ -1977,11 +1910,8 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// Create a dummy proxy/service config in the state store to look up.
 	state := s1.fsm.State()
@@ -2049,11 +1979,8 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// Create a dummy proxy/service config in the state store to look up.
 	state := s1.fsm.State()
@@ -2130,10 +2057,7 @@ func TestConfigEntry_ResolveServiceConfig_BlockOnNoChange(t *testing.T) {
 
 	t.Parallel()
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.DevMode = true // keep it in ram to make it 10x faster on macos
-	})
-
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
 
 	run := func(t *testing.T, dataPrefix string) {
@@ -2208,11 +2132,8 @@ func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// Don't create any config and make sure we don't nil panic (spoiler alert -
 	// we did in first RC)
@@ -2240,17 +2161,14 @@ func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	rules := `
 service "foo" {
@@ -2300,11 +2218,8 @@ func TestConfigEntry_ProxyDefaultsExposeConfig(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	expose := structs.ExposeConfig{
 		Checks: true,

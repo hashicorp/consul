@@ -104,6 +104,15 @@ func waitForLeaderEstablishment(t *testing.T, servers ...*Server) {
 
 func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
+	return testServerConfigWithDataDir(t, dir)
+}
+
+func testServerConfigNoPersistence(t *testing.T) *Config {
+	_, conf := testServerConfigWithDataDir(t, "")
+	return conf
+}
+
+func testServerConfigWithDataDir(t *testing.T, dir string) (string, *Config) {
 	config := DefaultConfig()
 
 	ports := freeport.GetN(t, 3)
@@ -112,6 +121,9 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.Datacenter = "dc1"
 	config.PrimaryDatacenter = "dc1"
 	config.DataDir = dir
+	if dir == "" {
+		config.DisablePersistence = true
+	}
 
 	// bind the rpc server to a random port. config.RPCAdvertise will be
 	// set to the listen address unless it was set in the configuration.
@@ -207,7 +219,12 @@ func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
 	})
 }
 
+// Deprecated: see either testServerWithConfigAndPersistence or testServerWithConfigNoPersistence
 func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *Server) {
+	return testServerWithConfigAndPersistence(t, configOpts...)
+}
+
+func testServerWithConfigAndPersistence(t *testing.T, configOpts ...func(*Config)) (string, *Server) {
 	var dir string
 	var srv *Server
 
@@ -233,6 +250,32 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		}
 	})
 	return dir, srv
+}
+
+func testServerWithConfigNoPersistence(t *testing.T, configOpts ...func(*Config)) *Server {
+	var srv *Server
+
+	// Retry added to avoid cases where bind addr is already in use
+	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
+		config := testServerConfigNoPersistence(t)
+		for _, fn := range configOpts {
+			fn(config)
+		}
+
+		// Apply config to copied fields because many tests only set the old
+		//values.
+		config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
+		config.ACLResolverSettings.NodeName = config.NodeName
+		config.ACLResolverSettings.Datacenter = config.Datacenter
+		config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
+
+		var err error
+		srv, err = newServer(t, config)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+	})
+	return srv
 }
 
 // cb is a function that can alter the test servers configuration prior to the server starting.
@@ -288,8 +331,9 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 
 func TestServer_StartStop(t *testing.T) {
 	t.Parallel()
+
 	// Start up a server and then stop it.
-	_, s1 := testServer(t)
+	s1 := testServerWithConfigNoPersistence(t)
 	if err := s1.Shutdown(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -307,19 +351,17 @@ func TestServer_fixupACLDatacenter(t *testing.T) {
 
 	t.Parallel()
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "aye"
 		c.PrimaryDatacenter = "aye"
 		c.ACLsEnabled = true
 	})
-	defer s1.Shutdown()
 
-	_, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "bee"
 		c.PrimaryDatacenter = "aye"
 		c.ACLsEnabled = true
 	})
-	defer s2.Shutdown()
 
 	// Try to join
 	joinWAN(t, s2, s1)
@@ -346,13 +388,10 @@ func TestServer_fixupACLDatacenter(t *testing.T) {
 
 func TestServer_JoinLAN(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServer(t)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
+
+	s2 := testServerWithConfigNoPersistence(t)
 
 	// Try to join
 	joinLAN(t, s2, s1)
@@ -382,7 +421,7 @@ func TestServer_JoinLAN_SerfAllowedCIDRs(t *testing.T) {
 
 	skipIfCannotBindToIP(t, targetAddr)
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.BootstrapExpect = 1
 		lan, err := memberlist.ParseCIDRs([]string{"127.0.0.1/32"})
 		require.NoError(t, err)
@@ -391,8 +430,6 @@ func TestServer_JoinLAN_SerfAllowedCIDRs(t *testing.T) {
 		require.NoError(t, err)
 		c.SerfWANConfig.MemberlistConfig.CIDRsAllowed = wan
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	dir2, a2 := testClientWithConfig(t, func(c *Config) {
 		c.SerfLANConfig.MemberlistConfig.BindAddr = targetAddr
@@ -400,12 +437,10 @@ func TestServer_JoinLAN_SerfAllowedCIDRs(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer a2.Shutdown()
 
-	dir3, rs3 := testServerWithConfig(t, func(c *Config) {
+	rs3 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.BootstrapExpect = 1
 		c.Datacenter = "dc2"
 	})
-	defer os.RemoveAll(dir3)
-	defer rs3.Shutdown()
 
 	leaderAddr := joinAddrLAN(s1)
 	if _, err := a2.JoinLAN([]string{leaderAddr}, nil); err != nil {
@@ -452,27 +487,23 @@ func TestServer_JoinWAN_SerfAllowedCIDRs(t *testing.T) {
 	wanCIDRs, err := memberlist.ParseCIDRs([]string{"127.0.0.1/32"})
 	require.NoError(t, err)
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Bootstrap = true
 		c.BootstrapExpect = 1
 		c.Datacenter = "dc1"
 		c.SerfWANConfig.MemberlistConfig.CIDRsAllowed = wanCIDRs
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	waitForLeaderEstablishment(t, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Bootstrap = true
 		c.BootstrapExpect = 1
 		c.PrimaryDatacenter = "dc1"
 		c.Datacenter = "dc2"
 		c.SerfWANConfig.MemberlistConfig.BindAddr = targetAddr
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
 	waitForLeaderEstablishment(t, s2)
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
@@ -515,28 +546,23 @@ func TestServer_LANReap(t *testing.T) {
 		c.SerfLANConfig.ReapInterval = 300 * time.Millisecond
 	}
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
 		configureServer(c)
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = false
 		configureServer(c)
 	})
-	defer os.RemoveAll(dir2)
 
-	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = false
 		configureServer(c)
 	})
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
 
 	// Try to join
 	joinLAN(t, s2, s1)
@@ -572,13 +598,13 @@ func TestServer_LANReap(t *testing.T) {
 
 func TestServer_JoinWAN(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerDC(t, "dc2")
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
+
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.Bootstrap = true
+	})
 
 	// Try to join
 	joinWAN(t, s2, s1)
@@ -608,7 +634,8 @@ func TestServer_WANReap(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
 		c.SerfFloodInterval = 100 * time.Millisecond
@@ -616,11 +643,11 @@ func TestServer_WANReap(t *testing.T) {
 		c.SerfWANConfig.TombstoneTimeout = 250 * time.Millisecond
 		c.SerfWANConfig.ReapInterval = 500 * time.Millisecond
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerDC(t, "dc2")
-	defer os.RemoveAll(dir2)
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.Bootstrap = true
+	})
 
 	// Try to join
 	joinWAN(t, s2, s1)
@@ -653,14 +680,18 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 	}
 
 	t.Parallel()
-	// Set up two servers in a WAN.
-	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerDCBootstrap(t, "dc2", true)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	// Set up two servers in a WAN.
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+	})
+
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.Bootstrap = true
+	})
 
 	joinWAN(t, s2, s1)
 
@@ -672,9 +703,10 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 		})
 	}
 
-	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+	})
 
 	// Do just a LAN join for the new server and make sure it
 	// shows up in the WAN.
@@ -702,7 +734,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 	port := freeport.GetOne(t)
 	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", port)
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.TLSConfig.Domain = "consul"
 		c.NodeName = "bob"
 		c.Datacenter = "dc1"
@@ -718,10 +750,8 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.TLSConfig.Domain = "consul"
 		c.NodeName = "betty"
 		c.Datacenter = "dc2"
@@ -737,10 +767,8 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
-	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.TLSConfig.Domain = "consul"
 		c.NodeName = "bonnie"
 		c.Datacenter = "dc3"
@@ -756,8 +784,6 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
 
 	// We'll use the same gateway for all datacenters since it doesn't care.
 	var p tcpproxy.Proxy
@@ -933,17 +959,16 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.NodeName = t.Name() + "-s1"
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
 		c.SerfFloodInterval = 100 * time.Millisecond
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	s2Name := t.Name() + "-s2"
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.NodeName = s2Name
 		c.Datacenter = "dc2"
 		c.Bootstrap = false
@@ -954,17 +979,12 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 		c.SerfFloodInterval = 100 * time.Millisecond
 	})
 
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
-
-	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.NodeName = t.Name() + "-s3"
 		c.Datacenter = "dc2"
 		c.Bootstrap = true
 		c.SerfFloodInterval = 100 * time.Millisecond
 	})
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
 
 	// Join s2 to s1 on wan
 	joinWAN(t, s2, s1)
@@ -1031,17 +1051,18 @@ func TestServer_LeaveLeader(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 
-	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+	})
+
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+	})
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	joinLAN(t, s2, s1)
@@ -1081,14 +1102,14 @@ func TestServer_Leave(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	// Second server not in bootstrap mode
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+	})
 
 	// Try to join
 	joinLAN(t, s2, s1)
@@ -1119,9 +1140,8 @@ func TestServer_Leave(t *testing.T) {
 
 func TestServer_RPC(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	var out struct{}
 	if err := s1.RPC("Status.Ping", struct{}{}, &out); err != nil {
@@ -1135,27 +1155,20 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
-	configureTLS(conf1)
-	s1, err := newServer(t, conf1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t, func(conf *Config) {
+		conf.TLSConfig.VerifyIncoming = true
+		conf.TLSConfig.VerifyOutgoing = true
+		configureTLS(conf)
+	})
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-	_, conf2 := testServerConfig(t)
-	conf2.Bootstrap = false
-	conf2.TLSConfig.VerifyIncoming = true
-	conf2.TLSConfig.VerifyOutgoing = true
-	configureTLS(conf2)
-	s2, err := newServer(t, conf2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer s2.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(conf *Config) {
+		conf.Bootstrap = false
+		conf.TLSConfig.VerifyIncoming = true
+		conf.TLSConfig.VerifyOutgoing = true
+		configureTLS(conf)
+	})
 
 	// Try to join
 	joinLAN(t, s2, s1)
@@ -1175,21 +1188,30 @@ func TestServer_Expect(t *testing.T) {
 	// All test servers should be in expect=3 mode, except for the 3rd one,
 	// but one with expect=0 can cause a bootstrap to occur from the other
 	// servers as currently implemented.
-	dir1, s1 := testServerDCExpect(t, "dc1", 3)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerDCExpect(t, "dc1", 3)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+	})
 
-	dir3, s3 := testServerDCExpect(t, "dc1", 0)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+	})
 
-	dir4, s4 := testServerDCExpect(t, "dc1", 3)
-	defer os.RemoveAll(dir4)
-	defer s4.Shutdown()
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.BootstrapExpect = 0
+	})
+
+	s4 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+	})
 
 	// Join the first two servers.
 	joinLAN(t, s2, s1)
@@ -1225,17 +1247,23 @@ func TestServer_AvoidReBootstrap(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	dir1, s1 := testServerDCExpect(t, "dc1", 2)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.BootstrapExpect = 2
+	})
 
-	dir2, s2 := testServerDCExpect(t, "dc1", 0)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.BootstrapExpect = 0
+	})
 
-	dir3, s3 := testServerDCExpect(t, "dc1", 2)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.BootstrapExpect = 2
+	})
 
 	// Join the first two servers
 	joinLAN(t, s2, s1)
@@ -1266,21 +1294,24 @@ func TestServer_Expect_NonVoters(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Bootstrap = false
 		c.BootstrapExpect = 2
 		c.ReadReplica = true
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerDCExpect(t, "dc1", 2)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.BootstrapExpect = 2
+	})
 
-	dir3, s3 := testServerDCExpect(t, "dc1", 2)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.BootstrapExpect = 2
+	})
 
 	// Join the first two servers.
 	joinLAN(t, s2, s1)
@@ -1310,20 +1341,27 @@ func TestServer_Expect_NonVoters(t *testing.T) {
 
 func TestServer_BadExpect(t *testing.T) {
 	t.Parallel()
+
 	// this one is in expect=3 mode
-	dir1, s1 := testServerDCExpect(t, "dc1", 3)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+	})
 
 	// this one is in expect=2 mode
-	dir2, s2 := testServerDCExpect(t, "dc1", 2)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.BootstrapExpect = 2
+	})
 
 	// and this one is in expect=3 mode
-	dir3, s3 := testServerDCExpect(t, "dc1", 3)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+	})
 
 	// Try to join
 	joinLAN(t, s2, s1)

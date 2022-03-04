@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -20,12 +19,9 @@ func TestSession_Apply(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -85,12 +81,9 @@ func TestSession_DeleteApply(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -154,17 +147,14 @@ func TestSession_Apply_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -222,12 +212,9 @@ func TestSession_Get(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -271,12 +258,9 @@ func TestSession_Get_Compat(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -321,12 +305,9 @@ func TestSession_List(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -379,17 +360,13 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -509,12 +486,9 @@ func TestSession_ApplyTimers(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -560,15 +534,12 @@ func TestSession_Renew(t *testing.T) {
 	ttl := 1 * time.Second
 	TTL := ttl.String()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.SessionTTLMin = ttl
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-
 	codec := rpcClient(t, s1)
-	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	ids := []string{}
@@ -725,17 +696,14 @@ func TestSession_Renew_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -792,15 +760,12 @@ func TestSession_Renew_Compat(t *testing.T) {
 	ttl := 5 * time.Second
 	TTL := ttl.String()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.SessionTTLMin = ttl
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-
 	codec := rpcClient(t, s1)
-	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	var id string
@@ -849,12 +814,9 @@ func TestSession_NodeSessions(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -913,12 +875,9 @@ func TestSession_Apply_BadTTL(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 

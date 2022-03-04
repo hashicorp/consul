@@ -104,9 +104,8 @@ func TestClient_JoinLAN(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	dir2, c1 := testClient(t)
 	defer os.RemoveAll(dir2)
@@ -135,8 +134,8 @@ func TestClient_LANReap(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	dir2, c1 := testClientWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
@@ -180,9 +179,8 @@ func TestClient_JoinLAN_Invalid(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	dir2, c1 := testClientDC(t, "other")
 	defer os.RemoveAll(dir2)
@@ -204,9 +202,8 @@ func TestClient_JoinLAN_Invalid(t *testing.T) {
 
 func TestClient_JoinWAN_Invalid(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	dir2, c1 := testClientDC(t, "dc2")
 	defer os.RemoveAll(dir2)
@@ -228,9 +225,8 @@ func TestClient_JoinWAN_Invalid(t *testing.T) {
 
 func TestClient_RPC(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	dir2, c1 := testClient(t)
 	defer os.RemoveAll(dir2)
@@ -292,9 +288,7 @@ func TestClient_RPC_Retry(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 
 	dir2, c1 := testClientWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
@@ -337,9 +331,8 @@ func TestClient_RPC_Retry(t *testing.T) {
 
 func TestClient_RPC_Pool(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	dir2, c1 := testClient(t)
 	defer os.RemoveAll(dir2)
@@ -389,11 +382,13 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 
 	for n := 0; n < numServers; n++ {
 		bootstrap := n == 0
-		dir, s := testServerDCBootstrap(t, "dc1", bootstrap)
-		defer os.RemoveAll(dir)
-		defer s.Shutdown()
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+			c.Bootstrap = bootstrap
+		})
 
-		servers = append(servers, s)
+		servers = append(servers, s1)
 	}
 
 	const numClients = 1
@@ -446,15 +441,12 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 
 func TestClient_RPC_TLS(t *testing.T) {
 	t.Parallel()
-	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
-	configureTLS(conf1)
-	s1, err := newServer(t, conf1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyOutgoing = true
+		configureTLS(c)
+	})
 
 	_, conf2 := testClientConfig(t)
 	conf2.TLSConfig.VerifyOutgoing = true
@@ -552,12 +544,9 @@ func TestClient_RPC_RateLimit(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, conf1 := testServerConfig(t)
-	s1, err := newServer(t, conf1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
+
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	_, conf2 := testClientConfig(t)
@@ -580,9 +569,8 @@ func TestClient_SnapshotRPC(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	dir2, c1 := testClient(t)
 	defer os.RemoveAll(dir2)
@@ -625,8 +613,8 @@ func TestClient_SnapshotRPC_RateLimit(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, s1 := testServer(t)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	_, conf1 := testClientConfig(t)
@@ -659,15 +647,12 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
-	configureTLS(conf1)
-	s1, err := newServer(t, conf1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyOutgoing = true
+		configureTLS(c)
+	})
 
 	_, conf2 := testClientConfig(t)
 	conf2.TLSConfig.VerifyOutgoing = true
@@ -726,13 +711,11 @@ func TestClientServer_UserEvent(t *testing.T) {
 	defer c1.Shutdown()
 
 	serverOut := make(chan serf.UserEvent, 2)
-	dir2, s1 := testServerWithConfig(t, func(conf *Config) {
-		conf.UserEventHandler = func(e serf.UserEvent) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.UserEventHandler = func(e serf.UserEvent) {
 			serverOut <- e
 		}
 	})
-	defer os.RemoveAll(dir2)
-	defer s1.Shutdown()
 
 	// Try to join
 	joinLAN(t, c1, s1)

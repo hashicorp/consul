@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -22,17 +21,14 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	waitForLeaderEstablishment(t, s1)
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
@@ -250,11 +246,9 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 
 	t.Parallel()
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 	})
-
 	codec := rpcClient(t, s1)
 
 	waitForLeaderEstablishment(t, s1)

@@ -28,14 +28,13 @@ func TestLeader_RegisterMember(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	dir2, c1 := testClient(t)
 	defer os.RemoveAll(dir2)
@@ -103,14 +102,13 @@ func TestLeader_FailedMember(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	dir2, c1 := testClient(t)
 	defer os.RemoveAll(dir2)
@@ -171,14 +169,13 @@ func TestLeader_LeftMember(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	dir2, c1 := testClient(t)
 	defer os.RemoveAll(dir2)
@@ -214,14 +211,13 @@ func TestLeader_ReapMember(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	dir2, c1 := testClient(t)
 	defer os.RemoveAll(dir2)
@@ -276,14 +272,13 @@ func TestLeader_ReapOrLeftMember_IgnoreSelf(t *testing.T) {
 
 	run := func(t *testing.T, status serf.MemberStatus, nameFn func(string) string) {
 		t.Parallel()
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.PrimaryDatacenter = "dc1"
 			c.ACLsEnabled = true
 			c.ACLInitialManagementToken = "root"
 			c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
 
 		nodeName := s1.config.NodeName
 		if nameFn != nil {
@@ -355,35 +350,30 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = true
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
-	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
 
 	// Try to join
 	joinLAN(t, s1, s2)
@@ -463,35 +453,30 @@ func TestLeader_ReapServer(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = true
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
-	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
 
 	// Try to join
 	joinLAN(t, s1, s2)
@@ -542,14 +527,13 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -595,14 +579,13 @@ func TestLeader_Reconcile(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	dir2, c1 := testClient(t)
 	defer os.RemoveAll(dir2)
@@ -639,9 +622,8 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -736,17 +718,20 @@ func TestLeader_LeftServer(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 
-	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = false
+	})
+
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = false
+	})
 
 	// Put s1 last so we don't trigger a leader election.
 	servers := []*Server{s2, s3, s1}
@@ -779,17 +764,21 @@ func TestLeader_LeftLeader(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 
-	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = false
+	})
+
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = false
+	})
+
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
@@ -845,13 +834,10 @@ func TestLeader_LeftLeader(t *testing.T) {
 
 func TestLeader_MultiBootstrap(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServer(t)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
+
+	s2 := testServerWithConfigNoPersistence(t)
 
 	servers := []*Server{s1, s2}
 
@@ -881,17 +867,21 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 
-	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = false
+	})
+
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = false
+	})
+
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
@@ -947,7 +937,8 @@ func TestLeader_ReapTombstones(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
@@ -955,8 +946,6 @@ func TestLeader_ReapTombstones(t *testing.T) {
 		c.TombstoneTTL = 50 * time.Millisecond
 		c.TombstoneTTLGranularity = 10 * time.Millisecond
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -1022,26 +1011,21 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Bootstrap = true
 		c.Datacenter = "dc1"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
-	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
 	})
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
 
 	servers := []*Server{s1, s2, s3}
 
@@ -1064,12 +1048,11 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	}
 
 	// Replace the dead server with a new one
-	dir4, s4 := testServerWithConfig(t, func(c *Config) {
+	s4 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
 	})
-	defer os.RemoveAll(dir4)
-	defer s4.Shutdown()
+
 	joinLAN(t, s4, s1)
 	servers[1] = s4
 
@@ -1092,17 +1075,9 @@ func TestLeader_ChangeServerID(t *testing.T) {
 		c.Datacenter = "dc1"
 		c.RaftConfig.ProtocolVersion = 3
 	}
-	dir1, s1 := testServerWithConfig(t, conf)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
-	dir2, s2 := testServerWithConfig(t, conf)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
-
-	dir3, s3 := testServerWithConfig(t, conf)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t, conf)
+	s2 := testServerWithConfigNoPersistence(t, conf)
+	s3 := testServerWithConfigNoPersistence(t, conf)
 
 	servers := []*Server{s1, s2, s3}
 
@@ -1130,7 +1105,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	})
 
 	// Bring up a new server with s3's address that will get a different ID
-	dir4, s4 := testServerWithConfig(t, func(c *Config) {
+	s4 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Bootstrap = false
 		c.BootstrapExpect = 3
 		c.Datacenter = "dc1"
@@ -1139,8 +1114,6 @@ func TestLeader_ChangeServerID(t *testing.T) {
 		c.RPCAddr = s3.config.RPCAddr
 		c.RPCAdvertise = s3.config.RPCAdvertise
 	})
-	defer os.RemoveAll(dir4)
-	defer s4.Shutdown()
 
 	joinLAN(t, s4, s1)
 	testrpc.WaitForLeader(t, s4.RPC, "dc1")
@@ -1168,17 +1141,20 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 
-	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = false
+	})
+
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = false
+	})
 
 	servers := []*Server{s1, s2, s3}
 
@@ -1204,13 +1180,12 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 	})
 
 	// Bring up a new server with s3's name that will get a different ID
-	dir4, s4 := testServerWithConfig(t, func(c *Config) {
+	s4 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
 		c.NodeName = s3.config.NodeName
 	})
-	defer os.RemoveAll(dir4)
-	defer s4.Shutdown()
+
 	joinLAN(t, s4, s1)
 	servers[2] = s4
 
@@ -1257,9 +1232,8 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				c.ACLsEnabled = true
 				c.ACLInitialManagementToken = tt.initialManagement
 			}
-			dir1, s1 := testServerWithConfig(t, conf)
-			defer os.RemoveAll(dir1)
-			defer s1.Shutdown()
+			s1 := testServerWithConfigNoPersistence(t, conf)
+
 			testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 			if tt.initialManagement != "" {
@@ -1296,7 +1270,7 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	// secondary. Hopefully it should transition to ENABLED instead of being
 	// stuck in LEGACY.
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	dir1, s1 := testServerWithConfigAndPersistence(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -1309,7 +1283,7 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 
 	waitForLeaderEstablishment(t, s1)
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	dir2, s2 := testServerWithConfigAndPersistence(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -1351,7 +1325,7 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 
 	// Restart just s2
 
-	dir2new, s2new := testServerWithConfig(t, func(c *Config) {
+	dir2new, s2new := testServerWithConfigAndPersistence(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -1385,14 +1359,13 @@ func TestLeader_ConfigEntryBootstrap(t *testing.T) {
 		},
 	}
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Build = "1.5.0"
 		c.ConfigEntryBootstrap = []structs.ConfigEntry{
 			global_entry_init,
 		}
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	retry.Run(t, func(t *retry.R) {
@@ -1511,7 +1484,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 				}
 			}()
 
-			_, config := testServerConfig(t)
+			config := testServerConfigNoPersistence(t)
 			config.Build = "1.6.0"
 			config.ConfigEntryBootstrap = tc.entries
 			if tc.serverCB != nil {
@@ -1568,13 +1541,11 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 	}
 
 	t.Run("one node primary with old version", func(t *testing.T) {
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
 
 		updateSerfTags(s1, "ft_fs", "0")
 
@@ -1590,13 +1561,11 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 	})
 
 	t.Run("one node primary with new version", func(t *testing.T) {
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1623,26 +1592,22 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 	})
 
 	t.Run("two node primary with mixed versions", func(t *testing.T) {
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
 
 		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
-		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node2"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 			c.Bootstrap = false
 		})
-		defer os.RemoveAll(dir2)
-		defer s2.Shutdown()
 
 		// Put s1 last so we don't trigger a leader election.
 		servers := []*Server{s2, s1}
@@ -1670,24 +1635,20 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 	})
 
 	t.Run("two node primary with new version", func(t *testing.T) {
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
 
 		waitForLeaderEstablishment(t, s1)
 
-		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node2"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 			c.Bootstrap = false
 		})
-		defer os.RemoveAll(dir2)
-		defer s2.Shutdown()
 
 		// Put s1 last so we don't trigger a leader election.
 		servers := []*Server{s2, s1}
@@ -1728,17 +1689,15 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 	})
 
 	t.Run("primary and secondary with new version", func(t *testing.T) {
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
 
 		waitForLeaderEstablishment(t, s1)
 
-		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node2"
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
@@ -1746,8 +1705,6 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			c.FederationStateReplicationBurst = 100
 			c.FederationStateReplicationApplyLimit = 1000000
 		})
-		defer os.RemoveAll(dir2)
-		defer s2.Shutdown()
 
 		waitForLeaderEstablishment(t, s2)
 
@@ -1798,19 +1755,17 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 	})
 
 	t.Run("primary and secondary with mixed versions", func(t *testing.T) {
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
 
 		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
-		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node2"
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
@@ -1818,8 +1773,6 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			c.FederationStateReplicationBurst = 100
 			c.FederationStateReplicationApplyLimit = 1000000
 		})
-		defer os.RemoveAll(dir2)
-		defer s2.Shutdown()
 
 		waitForLeaderEstablishment(t, s2)
 
@@ -1900,14 +1853,12 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	t.Run("one node primary with old version", func(t *testing.T) {
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 			c.OverrideInitialSerfTags = disableServiceIntentions
 		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1924,13 +1875,11 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 	})
 
 	t.Run("one node primary with new version", func(t *testing.T) {
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1979,25 +1928,21 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 	})
 
 	t.Run("two node primary with mixed versions", func(t *testing.T) {
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 			c.OverrideInitialSerfTags = disableServiceIntentions
 		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
 
 		waitForLeaderEstablishment(t, s1)
 
-		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node2"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 			c.Bootstrap = false
 		})
-		defer os.RemoveAll(dir2)
-		defer s2.Shutdown()
 
 		// Put s1 last so we don't trigger a leader election.
 		servers := []*Server{s2, s1}
@@ -2032,24 +1977,20 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 	})
 
 	t.Run("two node primary with new version", func(t *testing.T) {
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
 
 		waitForLeaderEstablishment(t, s1)
 
-		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node2"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 			c.Bootstrap = false
 		})
-		defer os.RemoveAll(dir2)
-		defer s2.Shutdown()
 
 		// Put s1 last so we don't trigger a leader election.
 		servers := []*Server{s2, s1}
@@ -2089,17 +2030,15 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 	})
 
 	t.Run("primary and secondary with new version", func(t *testing.T) {
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
 
 		waitForLeaderEstablishment(t, s1)
 
-		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node2"
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
@@ -2107,8 +2046,6 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 			c.ConfigReplicationBurst = 100
 			c.ConfigReplicationApplyLimit = 1000000
 		})
-		defer os.RemoveAll(dir2)
-		defer s2.Shutdown()
 
 		waitForLeaderEstablishment(t, s2)
 
@@ -2145,18 +2082,16 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 	})
 
 	t.Run("primary and secondary with mixed versions", func(t *testing.T) {
-		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
 			c.OverrideInitialSerfTags = disableServiceIntentions
 		})
-		defer os.RemoveAll(dir1)
-		defer s1.Shutdown()
 
 		waitForLeaderEstablishment(t, s1)
 
-		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.NodeName = "node2"
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
@@ -2164,8 +2099,6 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 			c.ConfigReplicationBurst = 100
 			c.ConfigReplicationApplyLimit = 1000000
 		})
-		defer os.RemoveAll(dir2)
-		defer s2.Shutdown()
 
 		waitForLeaderEstablishment(t, s2)
 
@@ -2211,22 +2144,15 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 		c.Datacenter = "dc1"
 		c.Build = "1.11.2"
 	}
-	dir1, s1 := testServerWithConfig(t, conf)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
-	dir2, s2 := testServerWithConfig(t, conf)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t, conf)
 
-	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, conf)
+
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		conf(c)
 		c.Build = "1.10.0"
 	})
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
 
 	// Try to join and wait for all servers to get promoted
 	joinLAN(t, s2, s1)
@@ -2353,17 +2279,13 @@ func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfigAndPersistence(t, func(c *Config) {
 		c.Bootstrap = true
 		c.Datacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -2395,7 +2317,7 @@ func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {
 
 	// Restart the server to re-initialize ACLs when establishing leadership
 	require.NoError(t, s1.Shutdown())
-	dir2, newS1 := testServerWithConfig(t, func(c *Config) {
+	_, newS1 := testServerWithConfigAndPersistence(t, func(c *Config) {
 		// Keep existing data dir and node info since it's a restart
 		c.DataDir = s1.config.DataDir
 		c.NodeName = s1.config.NodeName
@@ -2404,8 +2326,6 @@ func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {
 		c.Datacenter = "dc1"
 		c.ACLsEnabled = true
 	})
-	defer os.RemoveAll(dir2)
-	defer newS1.Shutdown()
 	testrpc.WaitForTestAgent(t, newS1.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {

@@ -31,11 +31,15 @@ func TestCatalog_Register(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	if false {
+		s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
+			// nop
+		})
+		_ = s1
+	}
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -65,11 +69,9 @@ func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	for _, addr := range []string{"0.0.0.0", "::", "[::]"} {
 		t.Run("addr "+addr, func(t *testing.T) {
@@ -99,11 +101,9 @@ func TestCatalog_RegisterService_SkipNodeUpdate(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// Register a node
 	arg := structs.RegisterRequest{
@@ -142,11 +142,9 @@ func TestCatalog_Register_NodeID(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -182,17 +180,15 @@ func TestCatalog_Register_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	rules := `
 service "foo" {
@@ -303,17 +299,12 @@ func TestCatalog_Register_ForwardLeader(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec1 := rpcClient(t, s1)
-	defer codec1.Close()
 
-	dir2, s2 := testServer(t)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
+	codec1 := rpcClient(t, s1)
+
+	s2 := testServerWithConfigNoPersistence(t)
 	codec2 := rpcClient(t, s2)
-	defer codec2.Close()
 
 	// Try to join
 	joinLAN(t, s2, s1)
@@ -351,15 +342,14 @@ func TestCatalog_Register_ForwardDC(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
-	dir2, s2 := testServerDC(t, "dc2")
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
+	codec := rpcClient(t, s1)
+
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.Bootstrap = true
+	})
 
 	// Try to join
 	joinWAN(t, s2, s1)
@@ -389,11 +379,8 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	args := structs.TestRegisterRequestProxy(t)
 
@@ -423,11 +410,8 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	args := structs.TestRegisterRequestProxy(t)
 	args.Service.Proxy.DestinationServiceName = ""
@@ -447,16 +431,13 @@ func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -502,11 +483,8 @@ func TestCatalog_Register_ConnectNative(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	args := structs.TestRegisterRequest(t)
 	args.Service.Connect.Native = true
@@ -534,11 +512,9 @@ func TestCatalog_Deregister(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	arg := structs.DeregisterRequest{
 		Datacenter: "dc1",
@@ -564,16 +540,14 @@ func TestCatalog_Deregister_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -726,15 +700,14 @@ func TestCatalog_ListDatacenters(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
-	dir2, s2 := testServerDC(t, "dc2")
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
+	codec := rpcClient(t, s1)
+
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.Bootstrap = true
+	})
 
 	// Try to join
 	joinWAN(t, s2, s1)
@@ -764,19 +737,19 @@ func TestCatalog_ListDatacenters_DistanceSort(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
-	dir2, s2 := testServerDC(t, "dc2")
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.Bootstrap = true
+	})
 
-	dir3, s3 := testServerDC(t, "acdc")
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "acdc2"
+		c.Bootstrap = true
+	})
 
 	// Try to join
 	joinWAN(t, s2, s1)
@@ -807,11 +780,9 @@ func TestCatalog_ListNodes(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	args := structs.DCSpecificRequest{
 		Datacenter: "dc1",
@@ -868,11 +839,9 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -935,11 +904,9 @@ func TestCatalog_RPC_Filter(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -1015,18 +982,16 @@ func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec1 := rpcClient(t, s1)
-	defer codec1.Close()
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+	})
 	codec2 := rpcClient(t, s2)
-	defer codec2.Close()
 
 	// Try to join
 	joinLAN(t, s2, s1)
@@ -1087,17 +1052,18 @@ func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 
-	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+	})
+
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+	})
 
 	// Try to join and wait for all servers to get promoted to voters.
 	joinLAN(t, s2, s1)
@@ -1147,17 +1113,15 @@ func TestCatalog_ListNodes_ConsistentRead(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec1 := rpcClient(t, s1)
-	defer codec1.Close()
 
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
+	codec1 := rpcClient(t, s1)
+
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+	})
 	codec2 := rpcClient(t, s2)
-	defer codec2.Close()
 
 	// Try to join
 	joinLAN(t, s2, s1)
@@ -1196,11 +1160,9 @@ func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "aaa", Address: "127.0.0.1"}); err != nil {
@@ -1291,16 +1253,14 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -1349,11 +1309,8 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 }
 
 func Benchmark_Catalog_ListNodes(t *testing.B) {
-	dir1, s1 := testServer(nil)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(nil)
 	codec := rpcClient(nil, s1)
-	defer codec.Close()
 
 	// Just add a node
 	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
@@ -1377,11 +1334,9 @@ func TestCatalog_ListServices(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	args := structs.DCSpecificRequest{
 		Datacenter: "dc1",
@@ -1448,11 +1403,9 @@ func TestCatalog_ListServices_NodeMetaFilter(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -1516,11 +1469,9 @@ func TestCatalog_ListServices_Blocking(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	args := structs.DCSpecificRequest{
 		Datacenter: "dc1",
@@ -1580,11 +1531,9 @@ func TestCatalog_ListServices_Timeout(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	args := structs.DCSpecificRequest{
 		Datacenter: "dc1",
@@ -1626,21 +1575,18 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1" // Enable ACLs!
 		c.ACLsEnabled = true
 		c.Bootstrap = false // Disable bootstrap
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
 	args := structs.DCSpecificRequest{
 		Datacenter: "dc1",
@@ -1654,7 +1600,6 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 	}
 
 	codec := rpcClient(t, s2)
-	defer codec.Close()
 
 	// Run the query, do not wait for leader, never any contact with leader, should fail
 	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err.Error() != structs.ErrNoLeader.Error() {
@@ -1716,11 +1661,9 @@ func TestCatalog_ListServiceNodes(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	args := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
@@ -1770,11 +1713,9 @@ func TestCatalog_ListServiceNodes_ByAddress(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -1857,11 +1798,9 @@ func TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -1938,11 +1877,9 @@ func TestCatalog_ListServiceNodes_NodeMetaFilter(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -2053,11 +1990,9 @@ func TestCatalog_ListServiceNodes_DistanceSort(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	args := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
@@ -2146,11 +2081,8 @@ func TestCatalog_ListServiceNodes_ConnectProxy(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -2180,12 +2112,8 @@ func TestCatalog_ServiceNodes_Gateway(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 	{
@@ -2300,11 +2228,8 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -2356,11 +2281,8 @@ func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -2400,16 +2322,13 @@ func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -2485,11 +2404,8 @@ func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -2518,11 +2434,10 @@ func TestCatalog_NodeServices(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
+
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	args := structs.NodeSpecificRequest{
@@ -2574,11 +2489,8 @@ func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -2608,11 +2520,8 @@ func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -2641,11 +2550,9 @@ func TestCatalog_Register_FailedCase1(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -2687,7 +2594,7 @@ func TestCatalog_Register_FailedCase1(t *testing.T) {
 }
 
 func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rpc.ClientCodec) {
-	dir, srv = testServerWithConfig(t, func(c *Config) {
+	srv = testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
@@ -2843,16 +2750,14 @@ func TestCatalog_NodeServices_ACL(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -2932,12 +2837,8 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 	{
@@ -3077,12 +2978,8 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 	{
@@ -3244,16 +3141,13 @@ func TestCatalog_GatewayServices_ACLFiltering(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -3963,13 +3857,11 @@ func TestCatalog_VirtualIPForService(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Build = "1.11.0"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -4000,17 +3892,15 @@ func TestCatalog_VirtualIPForService_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.Build = "1.11.0"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 

@@ -26,11 +26,9 @@ func TestInternal_NodeInfo(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -84,11 +82,9 @@ func TestInternal_NodeDump(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -180,11 +176,9 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -247,14 +241,12 @@ func TestInternal_KeyringOperation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.SerfLANConfig.MemberlistConfig.SecretKey = keyBytes1
 		c.SerfWANConfig.MemberlistConfig.SecretKey = keyBytes1
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -287,13 +279,11 @@ func TestInternal_KeyringOperation(t *testing.T) {
 	}
 
 	// Start a second agent to test cross-dc queries
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.SerfLANConfig.MemberlistConfig.SecretKey = keyBytes1
 		c.SerfWANConfig.MemberlistConfig.SecretKey = keyBytes1
 		c.Datacenter = "dc2"
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
 	// Try to join
 	joinWAN(t, s2, s1)
@@ -334,25 +324,21 @@ func TestInternal_KeyringOperationList_LocalOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.SerfLANConfig.MemberlistConfig.SecretKey = keyBytes1
 		c.SerfWANConfig.MemberlistConfig.SecretKey = keyBytes1
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Start a second agent to test cross-dc queries
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.SerfLANConfig.MemberlistConfig.SecretKey = keyBytes1
 		c.SerfWANConfig.MemberlistConfig.SecretKey = keyBytes1
 		c.Datacenter = "dc2"
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
 	// Try to join
 	joinWAN(t, s2, s1)
@@ -419,14 +405,12 @@ func TestInternal_KeyringOperationWrite_LocalOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.SerfLANConfig.MemberlistConfig.SecretKey = keyBytes1
 		c.SerfWANConfig.MemberlistConfig.SecretKey = keyBytes1
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -568,18 +552,15 @@ func TestInternal_EventFire_Token(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir, srv := testServerWithConfig(t, func(c *Config) {
+
+	srv := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDownPolicy = "deny"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
-
 	codec := rpcClient(t, srv)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, srv.RPC, "dc1")
 
@@ -608,11 +589,9 @@ func TestInternal_ServiceDump(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -705,11 +684,9 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -766,18 +743,15 @@ func TestInternal_ServiceDump_ACL(t *testing.T) {
 
 	t.Parallel()
 
-	dir, s := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir)
-	defer s.Shutdown()
-	codec := rpcClient(t, s)
-	defer codec.Close()
+	codec := rpcClient(t, s1)
 
-	testrpc.WaitForLeader(t, s.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	registrations := []*structs.RegisterRequest{
 		// Service `redis` on `node1`
@@ -971,11 +945,9 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -1175,16 +1147,14 @@ func TestInternal_GatewayServiceDump_Terminating_ACL(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -1306,11 +1276,9 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -1521,16 +1489,14 @@ func TestInternal_GatewayServiceDump_Ingress_ACL(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
@@ -1666,12 +1632,9 @@ func TestInternal_GatewayIntentions(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -1780,11 +1743,8 @@ func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	dir1, s1 := testServerWithConfig(t, testServerACLConfig)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t, testServerACLConfig)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
@@ -1904,14 +1864,11 @@ func TestInternal_ServiceTopology(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
+	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// wildcard deny intention
 	// ingress-gateway on node edge - upstream: api
@@ -2130,14 +2087,11 @@ func TestInternal_ServiceTopology_RoutingConfig(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
+	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// dashboard -> routing-config -> { counting, counting-v2 }
 	registerTestRoutingConfigTopologyEntries(t, codec)
@@ -2185,19 +2139,16 @@ func TestInternal_ServiceTopology_ACL(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = TestDefaultInitialManagementToken
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// wildcard deny intention
 	// ingress-gateway on node edge - upstream: api
@@ -2280,14 +2231,11 @@ func TestInternal_IntentionUpstreams(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
+	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// Services:
 	// api and api-proxy on node foo
@@ -2325,10 +2273,7 @@ func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
 
 	t.Parallel()
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.DevMode = true // keep it in ram to make it 10x faster on macos
-	})
-
+	s1 := testServerWithConfigNoPersistence(t) // keep it in ram to make it 10x faster on macos
 	codec := rpcClient(t, s1)
 
 	waitForLeaderEstablishment(t, s1)
@@ -2407,19 +2352,16 @@ func TestInternal_IntentionUpstreams_ACL(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = TestDefaultInitialManagementToken
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// Services:
 	// api and api-proxy on node foo

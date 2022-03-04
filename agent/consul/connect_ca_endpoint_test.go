@@ -4,7 +4,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"os"
 	"sync"
 	"testing"
 	"time"
@@ -38,11 +37,8 @@ func TestConnectCARoots(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -84,11 +80,8 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -157,17 +150,13 @@ func TestConnectCAConfig_GetSet_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = TestDefaultInitialManagementToken
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -253,13 +242,10 @@ func TestConnectCAConfig_GetSetForceNoCrossSigning(t *testing.T) {
 
 	// Setup a server with a built-in CA that as artificially disabled cross
 	// signing. This is simpler than running tests with external CA dependencies.
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.CAConfig.Config["DisableCrossSigning"] = true
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -408,11 +394,8 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			dir1, s1 := testServer(t)
-			defer os.RemoveAll(dir1)
-			defer s1.Shutdown()
+			s1 := testServerWithConfigNoPersistence(t)
 			codec := rpcClient(t, s1)
-			defer codec.Close()
 
 			testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -570,7 +553,7 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 		}
 	}
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "vault",
 			Config:   newConfig(connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits),
@@ -657,24 +640,19 @@ func TestConnectCAConfig_UpdateSecondary(t *testing.T) {
 	t.Parallel()
 
 	// Initialize primary as the primary DC
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "primary"
 		c.PrimaryDatacenter = "primary"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "primary")
 
 	// secondary as a secondary DC
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "secondary"
 		c.PrimaryDatacenter = "primary"
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 	codec := rpcClient(t, s2)
-	defer codec.Close()
 
 	// Create the WAN link
 	joinWAN(t, s2, s1)
@@ -829,15 +807,12 @@ func TestConnectCASign(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s-%d", tt.caKeyType, tt.caKeyBits), func(t *testing.T) {
-			dir1, s1 := testServerWithConfig(t, func(cfg *Config) {
-				cfg.PrimaryDatacenter = "dc1"
-				cfg.CAConfig.Config["PrivateKeyType"] = tt.caKeyType
-				cfg.CAConfig.Config["PrivateKeyBits"] = tt.caKeyBits
+			s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
+				c.PrimaryDatacenter = "dc1"
+				c.CAConfig.Config["PrivateKeyType"] = tt.caKeyType
+				c.CAConfig.Config["PrivateKeyBits"] = tt.caKeyBits
 			})
-			defer os.RemoveAll(dir1)
-			defer s1.Shutdown()
 			codec := rpcClient(t, s1)
-			defer codec.Close()
 
 			testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -886,11 +861,8 @@ func TestConnectCASign(t *testing.T) {
 func BenchmarkConnectCASign(b *testing.B) {
 	t := &testing.T{}
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -918,7 +890,7 @@ func TestConnectCASign_rateLimit(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
@@ -933,10 +905,7 @@ func TestConnectCASign_rateLimit(t *testing.T) {
 			"CSRMaxPerSecond": 1,
 		}
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -983,7 +952,7 @@ func TestConnectCASign_concurrencyLimit(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
@@ -993,8 +962,6 @@ func TestConnectCASign_concurrencyLimit(t *testing.T) {
 			"CSRMaxConcurrent": 1,
 		}
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -1091,16 +1058,13 @@ func TestConnectCASignValidation(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 

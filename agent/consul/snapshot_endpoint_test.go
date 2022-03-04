@@ -2,7 +2,6 @@ package consul
 
 import (
 	"bytes"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -162,9 +161,8 @@ func TestSnapshot(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	verifySnapshot(t, s1, "dc1", "")
@@ -181,14 +179,11 @@ func TestSnapshot_LeaderState(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
+	codec := rpcClient(t, s1)
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	// Make a before session.
 	var before string
@@ -268,16 +263,13 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -318,7 +310,7 @@ func TestSnapshot_Forward_Leader(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Bootstrap = true
 		c.SerfWANConfig = nil
 
@@ -333,17 +325,13 @@ func TestSnapshot_Forward_Leader(t *testing.T) {
 		// setting it much longer than the test, we avoid this case.
 		c.ReconcileInterval = 60 * time.Second
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Bootstrap = false
 		c.SerfWANConfig = nil
 		c.AutopilotInterval = 50 * time.Second
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
 	// Try to join.
 	joinLAN(t, s2, s1)
@@ -369,13 +357,16 @@ func TestSnapshot_Forward_Datacenter(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerDC(t, "dc1")
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerDC(t, "dc2")
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+	})
+
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.Bootstrap = true
+	})
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 	testrpc.WaitForTestAgent(t, s2.RPC, "dc2")
@@ -398,17 +389,14 @@ func TestSnapshot_Forward_Datacenter(t *testing.T) {
 
 func TestSnapshot_AllowStale(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Bootstrap = false
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Bootstrap = false
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Bootstrap = false
+	})
 
 	// Run against the servers which aren't haven't been set up to establish
 	// a leader and make sure we get a no leader error.

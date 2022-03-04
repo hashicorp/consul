@@ -161,6 +161,7 @@ func newBuilder(opts LoadOpts) (*builder, error) {
 
 	if boolVal(opts.DevMode) {
 		b.Head = append(b.Head, DevSource())
+		b.Head = append(b.Head, DisablePersistenceSource())
 	}
 
 	// Since the merge logic is to overwrite all fields with later

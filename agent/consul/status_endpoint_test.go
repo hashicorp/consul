@@ -2,7 +2,6 @@ package consul
 
 import (
 	"net"
-	"os"
 	"testing"
 	"time"
 
@@ -76,11 +75,9 @@ func TestStatusLeader(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	arg := struct{}{}
 	var leader string
@@ -107,15 +104,17 @@ func TestStatusLeader_ForwardDC(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerDC(t, "primary")
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
-	dir2, s2 := testServerDC(t, "secondary")
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "primary"
+		c.Bootstrap = true
+	})
+	codec := rpcClient(t, s1)
+
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "secondary"
+		c.Bootstrap = true
+	})
 
 	joinWAN(t, s2, s1)
 
@@ -133,11 +132,9 @@ func TestStatusLeader_ForwardDC(t *testing.T) {
 
 func TestStatusPeers(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	arg := struct{}{}
 	var peers []string
@@ -155,15 +152,17 @@ func TestStatusPeers_ForwardDC(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerDC(t, "primary")
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
-	dir2, s2 := testServerDC(t, "secondary")
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "primary"
+		c.Bootstrap = true
+	})
+	codec := rpcClient(t, s1)
+
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "secondary"
+		c.Bootstrap = true
+	})
 
 	joinWAN(t, s2, s1)
 

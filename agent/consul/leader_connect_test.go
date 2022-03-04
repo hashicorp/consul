@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -55,7 +54,7 @@ func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {
 				providerState := map[string]string{"foo": "dc1-value"}
 
 				// Initialize primary as the primary DC
-				dir1, srv := testServerWithConfig(t, func(c *Config) {
+				srv := testServerWithConfigNoPersistence(t, func(c *Config) {
 					c.Datacenter = "dc1"
 					c.PrimaryDatacenter = "dc1"
 					c.Build = "1.6.0"
@@ -63,10 +62,7 @@ func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {
 					c.CAConfig.Config["PrivateKeyBits"] = src.keyBits
 					c.CAConfig.Config["test_state"] = providerState
 				})
-				defer os.RemoveAll(dir1)
-				defer srv.Shutdown()
 				codec := rpcClient(t, srv)
-				defer codec.Close()
 
 				testrpc.WaitForLeader(t, srv.RPC, "dc1")
 				testrpc.WaitForActiveCARoot(t, srv.RPC, "dc1", nil)
@@ -201,7 +197,7 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 			initialManagementToken := "8a85f086-dd95-4178-b128-e10902767c5c"
 
 			// Initialize primary as the primary DC
-			dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 				c.Datacenter = "primary"
 				c.PrimaryDatacenter = "primary"
 				c.Build = "1.6.0"
@@ -212,15 +208,13 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
 				c.CAConfig.Config["test_state"] = dc1State
 			})
-			defer os.RemoveAll(dir1)
-			defer s1.Shutdown()
 
 			s1.tokens.UpdateAgentToken(initialManagementToken, token.TokenSourceConfig)
 
 			testrpc.WaitForLeader(t, s1.RPC, "primary")
 
 			// secondary as a secondary DC
-			dir2, s2 := testServerWithConfig(t, func(c *Config) {
+			s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 				c.Datacenter = "secondary"
 				c.PrimaryDatacenter = "primary"
 				c.Build = "1.6.0"
@@ -231,8 +225,6 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
 				c.CAConfig.Config["test_state"] = dc2State
 			})
-			defer os.RemoveAll(dir2)
-			defer s2.Shutdown()
 
 			s2.tokens.UpdateAgentToken(initialManagementToken, token.TokenSourceConfig)
 			s2.tokens.UpdateReplicationToken(initialManagementToken, token.TokenSourceConfig)
@@ -332,7 +324,7 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 
 	testVault := ca.NewTestVaultServer(t)
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "vault",
@@ -347,7 +339,6 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 		}
 	})
 	defer func() {
-		s1.Shutdown()
 		s1.leaderRoutineManager.Wait()
 	}()
 
@@ -427,7 +418,7 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	// no parallel execution because we change globals
 	patchIntermediateCertRenewInterval(t)
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Build = "1.6.0"
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "consul",
@@ -454,7 +445,7 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// dc2 as a secondary DC
-	_, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 	})
@@ -528,23 +519,19 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Build = "1.6.0"
 		c.PrimaryDatacenter = "dc1"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// dc2 as a secondary DC
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.Build = "1.6.0"
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
 	// Create the WAN link
 	joinWAN(t, s2, s1)
@@ -682,7 +669,7 @@ func TestCAManager_Initialize_Vault_FixesSigningKeyID_Primary(t *testing.T) {
 	testVault := ca.NewTestVaultServer(t)
 	defer testVault.Stop()
 
-	dir1pre, s1pre := testServerWithConfig(t, func(c *Config) {
+	_, s1pre := testServerWithConfigAndPersistence(t, func(c *Config) {
 		c.Build = "1.6.0"
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig = &structs.CAConfiguration{
@@ -695,8 +682,6 @@ func TestCAManager_Initialize_Vault_FixesSigningKeyID_Primary(t *testing.T) {
 			},
 		}
 	})
-	defer os.RemoveAll(dir1pre)
-	defer s1pre.Shutdown()
 
 	testrpc.WaitForLeader(t, s1pre.RPC, "dc1")
 
@@ -731,15 +716,13 @@ func TestCAManager_Initialize_Vault_FixesSigningKeyID_Primary(t *testing.T) {
 	// the SigningKeyID.
 	s1pre.Shutdown()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfigAndPersistence(t, func(c *Config) {
 		c.DataDir = s1pre.config.DataDir
 		c.Datacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
 		c.NodeName = s1pre.config.NodeName
 		c.NodeID = s1pre.config.NodeID
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -779,23 +762,19 @@ func TestCAManager_Initialize_FixesSigningKeyID_Secondary(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfigAndPersistence(t, func(c *Config) {
 		c.Build = "1.6.0"
 		c.PrimaryDatacenter = "dc1"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// dc2 as a secondary DC
-	dir2pre, s2pre := testServerWithConfig(t, func(c *Config) {
+	_, s2pre := testServerWithConfigAndPersistence(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.Build = "1.6.0"
 	})
-	defer os.RemoveAll(dir2pre)
-	defer s2pre.Shutdown()
 
 	// Create the WAN link
 	joinWAN(t, s2pre, s1)
@@ -832,15 +811,13 @@ func TestCAManager_Initialize_FixesSigningKeyID_Secondary(t *testing.T) {
 	// the SigningKeyID.
 	s2pre.Shutdown()
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	_, s2 := testServerWithConfigAndPersistence(t, func(c *Config) {
 		c.DataDir = s2pre.config.DataDir
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.NodeName = s2pre.config.NodeName
 		c.NodeID = s2pre.config.NodeID
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
@@ -883,27 +860,23 @@ func TestCAManager_Initialize_TransitionFromPrimaryToSecondary(t *testing.T) {
 	// Initialize dc1 as the primary DC
 	id1, err := uuid.GenerateUUID()
 	require.NoError(t, err)
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfigAndPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig.ClusterID = id1
 		c.Build = "1.6.0"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// dc2 as a primary DC initially
 	id2, err := uuid.GenerateUUID()
 	require.NoError(t, err)
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	_, s2 := testServerWithConfigAndPersistence(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
 		c.CAConfig.ClusterID = id2
 		c.Build = "1.6.0"
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
 	// Get the initial (primary) roots state for the secondary
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
@@ -914,15 +887,13 @@ func TestCAManager_Initialize_TransitionFromPrimaryToSecondary(t *testing.T) {
 
 	// Shutdown s2 and restart it with the dc1 as the primary
 	s2.Shutdown()
-	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+	_, s3 := testServerWithConfigAndPersistence(t, func(c *Config) {
 		c.DataDir = s2.config.DataDir
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.NodeName = s2.config.NodeName
 		c.NodeID = s2.config.NodeID
 	})
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
 
 	// Create the WAN link
 	joinWAN(t, s3, s1)
@@ -973,25 +944,21 @@ func TestCAManager_Initialize_SecondaryBeforePrimary(t *testing.T) {
 	t.Parallel()
 
 	// Initialize dc1 as the primary DC
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.Build = "1.3.0"
 		c.MaxQueryTime = 500 * time.Millisecond
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// dc2 as a secondary DC
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.Build = "1.6.0"
 		c.MaxQueryTime = 500 * time.Millisecond
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
 	// Create the WAN link
 	joinWAN(t, s2, s1)
@@ -1111,11 +1078,8 @@ func TestLeader_CARootPruning(t *testing.T) {
 		caRootPruneInterval = origPruneInterval
 	})
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
@@ -1173,19 +1137,20 @@ func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	s2 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = false
+	})
 
-	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+	s3 := testServerWithConfigNoPersistence(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = false
+	})
 
 	joinLAN(t, s2, s1)
 	joinLAN(t, s3, s1)
@@ -1438,7 +1403,7 @@ func TestCAManager_Initialize_Vault_BadCAConfigDoesNotPreventLeaderEstablishment
 	testVault := ca.NewTestVaultServer(t)
 	defer testVault.Stop()
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Build = "1.9.1"
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig = &structs.CAConfiguration{
@@ -1451,7 +1416,6 @@ func TestCAManager_Initialize_Vault_BadCAConfigDoesNotPreventLeaderEstablishment
 			},
 		}
 	})
-	defer s1.Shutdown()
 
 	waitForLeaderEstablishment(t, s1)
 
@@ -1490,7 +1454,7 @@ func TestCAManager_Initialize_Vault_BadCAConfigDoesNotPreventLeaderEstablishment
 }
 
 func TestCAManager_Initialize_BadCAConfigDoesNotPreventLeaderEstablishment(t *testing.T) {
-	_, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Build = "1.9.1"
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig = &structs.CAConfiguration{
@@ -1500,7 +1464,6 @@ func TestCAManager_Initialize_BadCAConfigDoesNotPreventLeaderEstablishment(t *te
 			},
 		}
 	})
-	defer s1.Shutdown()
 
 	waitForLeaderEstablishment(t, s1)
 
@@ -1532,11 +1495,8 @@ func TestCAManager_Initialize_BadCAConfigDoesNotPreventLeaderEstablishment(t *te
 }
 
 func TestConnectCA_ConfigurationSet_ForceWithoutCrossSigning(t *testing.T) {
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	s1 := testServerWithConfigNoPersistence(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	waitForLeaderEstablishment(t, s1)
 
@@ -1592,7 +1552,7 @@ func TestConnectCA_ConfigurationSet_Vault_ForceWithoutCrossSigning(t *testing.T)
 	testVault := ca.NewTestVaultServer(t)
 	defer testVault.Stop()
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Build = "1.9.1"
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig = &structs.CAConfiguration{
@@ -1605,9 +1565,7 @@ func TestConnectCA_ConfigurationSet_Vault_ForceWithoutCrossSigning(t *testing.T)
 			},
 		}
 	})
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	waitForLeaderEstablishment(t, s1)
 

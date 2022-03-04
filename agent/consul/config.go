@@ -98,6 +98,9 @@ type Config struct {
 	// DevMode is used to enable a development server mode.
 	DevMode bool
 
+	// DisablePersistence is used to disable use of the disk (for dev and testing purposes).
+	DisablePersistence bool
+
 	// NodeID is a unique identifier for this node across space and time.
 	NodeID types.NodeID
 

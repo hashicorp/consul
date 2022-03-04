@@ -44,7 +44,7 @@ func TestCAManager_Initialize_Vault_Secondary_SharedVault(t *testing.T) {
 
 	vault := ca.NewTestVaultServer(t)
 
-	_, serverDC1 := testServerWithConfig(t, func(c *Config) {
+	serverDC1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "vault",
 			Config: map[string]interface{}{
@@ -70,7 +70,7 @@ func TestCAManager_Initialize_Vault_Secondary_SharedVault(t *testing.T) {
 	})
 
 	runStep(t, "start secondary DC", func(t *testing.T) {
-		_, serverDC2 := testServerWithConfig(t, func(c *Config) {
+		serverDC2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
 			c.CAConfig = &structs.CAConfiguration{
@@ -540,7 +540,8 @@ func TestCAManager_Initialize_Logging(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, conf1 := testServerConfig(t)
+
+	conf1 := testServerConfigNoPersistence(t)
 
 	// Setup dummy logger to catch output
 	var buf bytes.Buffer
@@ -569,7 +570,7 @@ func TestCAManager_UpdateConfiguration_Vault_Primary(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 	vault := ca.NewTestVaultServer(t)
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "vault",
@@ -633,7 +634,7 @@ func TestCAManager_Initialize_Vault_WithIntermediateAsPrimaryCA(t *testing.T) {
 	meshRootPath := "pki-root"
 	primaryCert := setupPrimaryCA(t, vclient, meshRootPath, "")
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
+	s1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "vault",
 			Config: map[string]interface{}{
@@ -663,7 +664,7 @@ func TestCAManager_Initialize_Vault_WithIntermediateAsPrimaryCA(t *testing.T) {
 	// TODO: rotate root
 
 	runStep(t, "run secondary DC", func(t *testing.T) {
-		_, sDC2 := testServerWithConfig(t, func(c *Config) {
+		sDC2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
 			c.CAConfig = &structs.CAConfiguration{
@@ -701,7 +702,7 @@ func TestCAManager_Verify_Vault_NoChangeToSecondaryConfig(t *testing.T) {
 
 	vault := ca.NewTestVaultServer(t)
 
-	_, sDC1 := testServerWithConfig(t, func(c *Config) {
+	sDC1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "vault",
 			Config: map[string]interface{}{
@@ -715,7 +716,7 @@ func TestCAManager_Verify_Vault_NoChangeToSecondaryConfig(t *testing.T) {
 	defer sDC1.Shutdown()
 	testrpc.WaitForActiveCARoot(t, sDC1.RPC, "dc1", nil)
 
-	_, sDC2 := testServerWithConfig(t, func(c *Config) {
+	sDC2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig = &structs.CAConfiguration{
@@ -780,7 +781,7 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 	primaryCAPath := "pki-primary"
 	primaryCert := setupPrimaryCA(t, vclient, primaryCAPath, rootPEM)
 
-	_, serverDC1 := testServerWithConfig(t, func(c *Config) {
+	serverDC1 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "vault",
 			Config: map[string]interface{}{
@@ -808,7 +809,7 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 		origLeaf = leafCert
 	})
 
-	_, serverDC2 := testServerWithConfig(t, func(c *Config) {
+	serverDC2 := testServerWithConfigNoPersistence(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig = &structs.CAConfiguration{

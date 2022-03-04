@@ -344,7 +344,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
 	}
-	if config.DataDir == "" && !config.DevMode {
+	if config.DataDir == "" && !config.DevMode && !config.DisablePersistence {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
 	if err := config.CheckACL(); err != nil {
@@ -724,7 +724,7 @@ func (s *Server) setupRaft() error {
 	var log raft.LogStore
 	var stable raft.StableStore
 	var snap raft.SnapshotStore
-	if s.config.DevMode {
+	if s.config.DevMode || s.config.DisablePersistence {
 		store := raft.NewInmemStore()
 		s.raftInmem = store
 		stable = store
