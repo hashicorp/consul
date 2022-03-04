@@ -790,12 +790,10 @@ func TestConfig_ParseCiphers(t *testing.T) {
 	}, ",")
 	ciphers := []types.TLSCipherSuite{
 		types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
 		types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 		types.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
 		types.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 		types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
 		types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 		types.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
 		types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
@@ -1002,9 +1000,11 @@ func TestConfigurator_Validation(t *testing.T) {
 			},
 		}
 
-		for _, v := range tlsVersions() {
+		// TODO: should this be exposed from types/tls.go?
+		tlsVersions := []string{"", "TLSv1_0", "TLSv1_1", "TLSv1_2", "TLSv1_3"}
+		for _, v := range tlsVersions {
 			testCases[fmt.Sprintf("MinTLSVersion(%s)", v)] = testCase{
-				ProtocolConfig{TLSMinVersion: v},
+				ProtocolConfig{TLSMinVersion: types.TLSVersion(v)},
 				true,
 			}
 		}
@@ -1012,7 +1012,7 @@ func TestConfigurator_Validation(t *testing.T) {
 		// NOTE: checks for deprecated TLS version string warnings,
 		// should be removed when removing support for these config values
 		// for version := range types.DeprecatedAgentTLSVersions {
-		for _, v := range types.DeprecatedAgentTLSVersions() {
+		for _, v := range types.DeprecatedConsulAgentTLSVersions {
 			// TODO: check for warning log message? how?
 			testCases[fmt.Sprintf("MinTLSVersion(%s)", v)] = testCase{
 				ListenerConfig{TLSMinVersion: v},
@@ -1546,12 +1546,6 @@ func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
 		err = c.AuthorizeServerConn("dc1", s)
 		require.NoError(t, err)
 	})
-}
-
-func TestConfig_tlsVersions(t *testing.T) {
-	require.Equal(t, []string{"TLS_AUTO", "TLSv1_0", "TLSv1_1", "TLSv1_2", "TLSv1_3"}, tlsVersions())
-	expected := "TLS_AUTO, TLSv1_0, TLSv1_1, TLSv1_2, TLSv1_3"
-	require.Equal(t, expected, strings.Join(tlsVersions(), ", "))
 }
 
 func TestConfigurator_GRPCTLSConfigured(t *testing.T) {

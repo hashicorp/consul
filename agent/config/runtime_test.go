@@ -5455,21 +5455,22 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.InternalRPC.CAPath = "default_ca_path"
 			rt.TLS.InternalRPC.CertFile = "default_cert_file"
 			rt.TLS.InternalRPC.TLSMinVersion = "tls12"
-			rt.TLS.InternalRPC.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256}
+			rt.TLS.InternalRPC.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256}
 			rt.TLS.InternalRPC.VerifyIncoming = true
 
 			rt.TLS.HTTPS.CAFile = "default_ca_file"
 			rt.TLS.HTTPS.CAPath = "default_ca_path"
 			rt.TLS.HTTPS.CertFile = "https_cert_file"
 			rt.TLS.HTTPS.TLSMinVersion = "tls13"
-			rt.TLS.HTTPS.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256}
+			// FIXME: this should fail, TLS 1.3 cipher suites are not configurable
+			rt.TLS.HTTPS.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256}
 			rt.TLS.HTTPS.VerifyIncoming = true
 
 			rt.TLS.GRPC.CAFile = "default_ca_file"
 			rt.TLS.GRPC.CAPath = "default_ca_path"
 			rt.TLS.GRPC.CertFile = "default_cert_file"
 			rt.TLS.GRPC.TLSMinVersion = "tls12"
-			rt.TLS.GRPC.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA}
+			rt.TLS.GRPC.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA}
 			rt.TLS.GRPC.VerifyIncoming = false
 		},
 	})
@@ -6310,7 +6311,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				CertFile:             "dfJ4oPln",
 				KeyFile:              "aL1Knkpo",
 				TLSMinVersion:        types.TLSv1_1, // FIXME: add a separate test for config parsing error
-				CipherSuites:         []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				CipherSuites:         []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing:       true,
 				VerifyServerHostname: true,
 			},
@@ -6321,7 +6322,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				CertFile:       "a674klPn",
 				KeyFile:        "1y4prKjl",
 				TLSMinVersion:  types.TLSv1_0,
-				CipherSuites:   []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				CipherSuites:   []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing: false,
 			},
 			HTTPS: tlsutil.ProtocolConfig{
@@ -6331,7 +6332,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				CertFile:       "1yrhPlMk",
 				KeyFile:        "1bHapOkL",
 				TLSMinVersion:  types.TLSv1_3,
-				CipherSuites:   []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				CipherSuites:   []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing: true,
 			},
 			NodeName:                "otlLxGaI",
