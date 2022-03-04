@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -94,7 +95,13 @@ func (a TLSVersion) LessThan(b TLSVersion) (error, bool) {
 
 func ValidateTLSVersion(v TLSVersion) error {
 	if _, ok := tlsVersions[v]; !ok {
-		return fmt.Errorf("no matching TLS version found for %s", v.String())
+		versions := []string{}
+		for v := range tlsVersions {
+			versions = append(versions, string(v))
+		}
+		sort.Strings(versions)
+
+		return fmt.Errorf("no matching TLS version found for %s, please specify one of [%s]", v.String(), strings.Join(versions, ", "))
 	}
 
 	return nil
