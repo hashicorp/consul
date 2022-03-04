@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -9,7 +8,6 @@ import (
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -250,13 +248,14 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
 		c.PrimaryDatacenter = "dc1"
 	})
 
 	codec := rpcClient(t, s1)
-	readerCodec := rpcClient(t, s1)
-	writerCodec := rpcClient(t, s1)
 
 	waitForLeaderEstablishment(t, s1)
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
@@ -275,66 +274,37 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 	}
 
 	run := func(t *testing.T, dataPrefix string) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		rpcBlockingQueryTestHarness(t,
+			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
+				args := &structs.DiscoveryChainRequest{
+					Name:                 "web",
+					EvaluateInDatacenter: "dc1",
+					EvaluateInNamespace:  "default",
+					EvaluateInPartition:  "default",
+					Datacenter:           "dc1",
+				}
+				args.QueryOptions.MinQueryIndex = minQueryIndex
 
-		var count int
-
-		start := time.Now()
-		g, ctx := errgroup.WithContext(ctx)
-		g.Go(func() error {
-			args := &structs.DiscoveryChainRequest{
-				Name:                 "web",
-				EvaluateInDatacenter: "dc1",
-				EvaluateInNamespace:  "default",
-				EvaluateInPartition:  "default",
-				Datacenter:           "dc1",
-			}
-			args.QueryOptions.MaxQueryTime = time.Second
-
-			for ctx.Err() == nil {
 				var out structs.DiscoveryChainResponse
-				err := msgpackrpc.CallWithCodec(readerCodec, "DiscoveryChain.Get", &args, &out)
-				if err != nil {
-					return fmt.Errorf("error getting discovery chain: %w", err)
-				}
-				if !out.Chain.IsDefault() {
-					return fmt.Errorf("expected default chain")
-				}
-
-				t.Log("blocking query index", out.QueryMeta.Index, out.Chain)
-				count++
-				args.QueryOptions.MinQueryIndex = out.QueryMeta.Index
-			}
-			return nil
-		})
-
-		g.Go(func() error {
-			for i := 0; i < 200; i++ {
-				time.Sleep(5 * time.Millisecond)
-
+				errCh := channelCallRPC(s1, "DiscoveryChain.Get", &args, &out, func() error {
+					if !out.Chain.IsDefault() {
+						return fmt.Errorf("expected default chain")
+					}
+					return nil
+				})
+				return &out.QueryMeta, errCh
+			},
+			func(i int) <-chan error {
 				var out bool
-				err := msgpackrpc.CallWithCodec(writerCodec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
 					Datacenter: "dc1",
 					Entry: &structs.ServiceConfigEntry{
 						Kind: structs.ServiceDefaults,
 						Name: fmt.Sprintf(dataPrefix+"%d", i),
 					},
-				}, &out)
-				if err != nil {
-					return fmt.Errorf("[%d] unexpected error: %w", i, err)
-				}
-				if !out {
-					return fmt.Errorf("[%d] unexpectedly returned false", i)
-				}
-			}
-			cancel()
-			return nil
-		})
-
-		require.NoError(t, g.Wait())
-
-		assertBlockingQueryWakeupCount(t, time.Second, start, count)
+				}, &out, nil)
+			},
+		)
 	}
 
 	runStep(t, "test the errNotFound path", func(t *testing.T) {

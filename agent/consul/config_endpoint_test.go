@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"sort"
@@ -11,7 +10,6 @@ import (
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
@@ -311,11 +309,13 @@ func TestConfigEntry_Get_BlockOnNonExistent(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	_, s1 := testServerWithConfig(t)
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
 
 	codec := rpcClient(t, s1)
-	readerCodec := rpcClient(t, s1)
-	writerCodec := rpcClient(t, s1)
 
 	{ // create one relevant entry
 		var out bool
@@ -329,59 +329,33 @@ func TestConfigEntry_Get_BlockOnNonExistent(t *testing.T) {
 	}
 
 	runStep(t, "test the errNotFound path", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		var count int
-
-		start := time.Now()
-		g, ctx := errgroup.WithContext(ctx)
-		g.Go(func() error {
-			args := structs.ConfigEntryQuery{
-				Kind: structs.ServiceDefaults,
-				Name: "does-not-exist",
-			}
-			args.QueryOptions.MaxQueryTime = time.Second
-
-			for ctx.Err() == nil {
-				var out structs.ConfigEntryResponse
-
-				err := msgpackrpc.CallWithCodec(readerCodec, "ConfigEntry.Get", &args, &out)
-				if err != nil {
-					return err
+		rpcBlockingQueryTestHarness(t,
+			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
+				args := structs.ConfigEntryQuery{
+					Kind: structs.ServiceDefaults,
+					Name: "does-not-exist",
 				}
-				t.Log("blocking query index", out.QueryMeta.Index, out.Entry)
-				count++
-				args.QueryOptions.MinQueryIndex = out.QueryMeta.Index
-			}
-			return nil
-		})
+				args.QueryOptions.MinQueryIndex = minQueryIndex
 
-		g.Go(func() error {
-			for i := 0; i < 200; i++ {
-				time.Sleep(5 * time.Millisecond)
-
+				var out structs.ConfigEntryResponse
+				errCh := channelCallRPC(s1, "ConfigEntry.Get", &args, &out, nil)
+				return &out.QueryMeta, errCh
+			},
+			func(i int) <-chan error {
 				var out bool
-				err := msgpackrpc.CallWithCodec(writerCodec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
 					Entry: &structs.ServiceConfigEntry{
 						Kind: structs.ServiceDefaults,
 						Name: fmt.Sprintf("other%d", i),
 					},
-				}, &out)
-				if err != nil {
-					return fmt.Errorf("[%d] unexpected error: %w", i, err)
-				}
-				if !out {
-					return fmt.Errorf("[%d] unexpectedly returned false", i)
-				}
-			}
-			cancel()
-			return nil
-		})
-
-		require.NoError(t, g.Wait())
-
-		assertBlockingQueryWakeupCount(t, time.Second, start, count)
+				}, &out, func() error {
+					if !out {
+						return fmt.Errorf("[%d] unexpectedly returned false", i)
+					}
+					return nil
+				})
+			},
+		)
 	})
 }
 
@@ -493,67 +467,44 @@ func TestConfigEntry_List_BlockOnNoChange(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	_, s1 := testServerWithConfig(t)
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
 
 	codec := rpcClient(t, s1)
-	readerCodec := rpcClient(t, s1)
-	writerCodec := rpcClient(t, s1)
 
 	run := func(t *testing.T, dataPrefix string) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		rpcBlockingQueryTestHarness(t,
+			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
+				args := structs.ConfigEntryQuery{
+					Kind:       structs.ServiceDefaults,
+					Datacenter: "dc1",
+				}
+				args.QueryOptions.MinQueryIndex = minQueryIndex
 
-		var count int
-
-		start := time.Now()
-		g, ctx := errgroup.WithContext(ctx)
-		g.Go(func() error {
-			args := structs.ConfigEntryQuery{
-				Kind:       structs.ServiceDefaults,
-				Datacenter: "dc1",
-			}
-			args.QueryOptions.MaxQueryTime = time.Second
-
-			for ctx.Err() == nil {
 				var out structs.IndexedConfigEntries
 
-				err := msgpackrpc.CallWithCodec(readerCodec, "ConfigEntry.List", &args, &out)
-				if err != nil {
-					return err
-				}
-				t.Log("blocking query index", out.QueryMeta.Index, out, time.Now())
-				count++
-				args.QueryOptions.MinQueryIndex = out.QueryMeta.Index
-			}
-			return nil
-		})
-
-		g.Go(func() error {
-			for i := 0; i < 200; i++ {
-				time.Sleep(5 * time.Millisecond)
-
+				errCh := channelCallRPC(s1, "ConfigEntry.List", &args, &out, nil)
+				return &out.QueryMeta, errCh
+			},
+			func(i int) <-chan error {
 				var out bool
-				err := msgpackrpc.CallWithCodec(writerCodec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
 					Entry: &structs.ServiceResolverConfigEntry{
 						Kind:           structs.ServiceResolver,
 						Name:           fmt.Sprintf(dataPrefix+"%d", i),
 						ConnectTimeout: 33 * time.Second,
 					},
-				}, &out)
-				if err != nil {
-					return fmt.Errorf("[%d] unexpected error: %w", i, err)
-				}
-				if !out {
-					return fmt.Errorf("[%d] unexpectedly returned false", i)
-				}
-			}
-			cancel()
-			return nil
-		})
-
-		require.NoError(t, g.Wait())
-
-		assertBlockingQueryWakeupCount(t, time.Second, start, count)
+				}, &out, func() error {
+					if !out {
+						return fmt.Errorf("[%d] unexpectedly returned false", i)
+					}
+					return nil
+				})
+			},
+		)
 	}
 
 	runStep(t, "test the errNotFound path", func(t *testing.T) {
@@ -2177,68 +2128,45 @@ func TestConfigEntry_ResolveServiceConfig_BlockOnNoChange(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	_, s1 := testServerWithConfig(t)
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
 
 	codec := rpcClient(t, s1)
-	readerCodec := rpcClient(t, s1)
-	writerCodec := rpcClient(t, s1)
 
 	run := func(t *testing.T, dataPrefix string) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		rpcBlockingQueryTestHarness(t,
+			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
+				args := structs.ServiceConfigRequest{
+					Name: "foo",
+					UpstreamIDs: []structs.ServiceID{
+						structs.NewServiceID("bar", nil),
+					},
+				}
+				args.QueryOptions.MinQueryIndex = minQueryIndex
 
-		var count int
-
-		start := time.Now()
-		g, ctx := errgroup.WithContext(ctx)
-		g.Go(func() error {
-			args := structs.ServiceConfigRequest{
-				Name: "foo",
-				UpstreamIDs: []structs.ServiceID{
-					structs.NewServiceID("bar", nil),
-				},
-			}
-			args.QueryOptions.MaxQueryTime = time.Second
-
-			for ctx.Err() == nil {
 				var out structs.ServiceConfigResponse
 
-				err := msgpackrpc.CallWithCodec(readerCodec, "ConfigEntry.ResolveServiceConfig", &args, &out)
-				if err != nil {
-					return err
-				}
-				t.Log("blocking query index", out.QueryMeta.Index, out, time.Now())
-				count++
-				args.QueryOptions.MinQueryIndex = out.QueryMeta.Index
-			}
-			return nil
-		})
-
-		g.Go(func() error {
-			for i := 0; i < 200; i++ {
-				time.Sleep(5 * time.Millisecond)
-
+				errCh := channelCallRPC(s1, "ConfigEntry.ResolveServiceConfig", &args, &out, nil)
+				return &out.QueryMeta, errCh
+			},
+			func(i int) <-chan error {
 				var out bool
-				err := msgpackrpc.CallWithCodec(writerCodec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
 					Entry: &structs.ServiceConfigEntry{
 						Kind: structs.ServiceDefaults,
 						Name: fmt.Sprintf(dataPrefix+"%d", i),
 					},
-				}, &out)
-				if err != nil {
-					return fmt.Errorf("[%d] unexpected error: %w", i, err)
-				}
-				if !out {
-					return fmt.Errorf("[%d] unexpectedly returned false", i)
-				}
-			}
-			cancel()
-			return nil
-		})
-
-		require.NoError(t, g.Wait())
-
-		assertBlockingQueryWakeupCount(t, time.Second, start, count)
+				}, &out, func() error {
+					if !out {
+						return fmt.Errorf("[%d] unexpectedly returned false", i)
+					}
+					return nil
+				})
+			},
+		)
 	}
 
 	{ // create one unrelated entry

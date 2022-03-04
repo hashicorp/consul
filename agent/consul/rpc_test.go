@@ -1682,23 +1682,103 @@ func getFirstSubscribeEventOrError(conn *grpc.ClientConn, req *pbsubscribe.Subsc
 	return event, nil
 }
 
-// assertBlockingQueryWakeupCount is used to assist in assertions for
-// blockingQuery RPC tests involving the two sentinel errors errNotFound and
-// errNotChanged.
-//
-// Those tests are a bit racy because of the timing of the two goroutines, so
-// we relax the check for the count to be within a small range.
-//
-// The blocking query is going to wake up every interval, so use the elapsed test
-// time with that known timing value to gauge how many legit wakeups should
-// happen and then pad it out a smidge.
-func assertBlockingQueryWakeupCount(t testing.TB, interval time.Duration, start time.Time, gotCount int) {
+// channelCallRPC lets you execute an RPC async. Helpful in some
+// tests.
+func channelCallRPC(
+	srv *Server,
+	method string,
+	args interface{},
+	resp interface{},
+	responseInterceptor func() error,
+) <-chan error {
+	errCh := make(chan error, 1)
+	go func() {
+		codec, err := rpcClientNoClose(srv)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		defer codec.Close()
+
+		err = msgpackrpc.CallWithCodec(codec, method, args, resp)
+		if err == nil && responseInterceptor != nil {
+			err = responseInterceptor()
+		}
+		errCh <- err
+	}()
+	return errCh
+}
+
+// rpcBlockingQueryTestHarness is specifically meant to test the
+// errNotFound and errNotChanged mechanisms in blockingQuery()
+func rpcBlockingQueryTestHarness(
+	t *testing.T,
+	readQueryFn func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error),
+	noisyWriteFn func(i int) <-chan error,
+) {
 	t.Helper()
 
-	const buffer = 2
-	expectedQueries := int(time.Since(start)/interval) + buffer
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	if gotCount < 2 || gotCount > expectedQueries {
-		t.Fatalf("expected count to be >= 2 or < %d, got %d", expectedQueries, gotCount)
+	launchWriters := func() {
+		defer cancel()
+
+		for i := 0; i < 200; i++ {
+			time.Sleep(5 * time.Millisecond)
+
+			errCh := noisyWriteFn(i)
+			select {
+			case <-ctx.Done():
+				return
+			case err := <-errCh:
+				if err != nil {
+					t.Errorf("[%d] unexpected error: %w", i, err)
+					return
+				}
+			}
+		}
 	}
+
+	var (
+		count         int
+		minQueryIndex uint64
+	)
+
+	for ctx.Err() == nil {
+		// The first iteration is an orientation iteration, as we don't pass an
+		// index value so there is no actual blocking that will happen.
+		//
+		// Since the data is not changing, we don't expect the second iteration
+		// to return soon, so we wait a bit after kicking it off before
+		// launching the write-storm.
+		var timerCh <-chan time.Time
+		if count == 1 {
+			timerCh = time.After(50 * time.Millisecond)
+		}
+
+		qm, errCh := readQueryFn(minQueryIndex)
+
+	RESUME:
+		select {
+		case err := <-errCh:
+			if err != nil {
+				require.NoError(t, err)
+			}
+
+			t.Log("blocking query index", qm.Index)
+			count++
+			minQueryIndex = qm.Index
+
+		case <-timerCh:
+			timerCh = nil
+			go launchWriters()
+			goto RESUME
+
+		case <-ctx.Done():
+			break
+		}
+	}
+
+	require.Equal(t, 1, count, "if this fails, then the timer likely needs to be increased above")
 }
