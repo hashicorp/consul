@@ -286,7 +286,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 					TLS: &pbconfig.TLS{
 						VerifyOutgoing:       true,
 						VerifyServerHostname: true,
-						MinVersion:           "TLSv1_2",
+						MinVersion:           "tls12",
 					},
 				},
 			},
@@ -429,7 +429,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 					TLS: &pbconfig.TLS{
 						VerifyOutgoing:       true,
 						VerifyServerHostname: true,
-						MinVersion:           "TLSv1_2",
+						MinVersion:           "tls12",
 						CipherSuites:         "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
 					},
 				},
@@ -450,7 +450,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 					TLS: &pbconfig.TLS{
 						VerifyOutgoing:       true,
 						VerifyServerHostname: false,
-						MinVersion:           "TLSv1_0",
+						MinVersion:           "tls10",
 						CipherSuites:         "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
 					},
 				},
