@@ -1780,5 +1780,5 @@ func rpcBlockingQueryTestHarness(
 		}
 	}
 
-	require.Equal(t, 1, count)
+	require.Equal(t, 1, count, "if this fails, then the timer likely needs to be increased above")
 }
