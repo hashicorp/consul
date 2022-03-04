@@ -1,0 +1,3 @@
+```release-note:feature
+server: Ensure that service-defaults `Meta` to is included in `ServiceConfigResponse`.
+```
