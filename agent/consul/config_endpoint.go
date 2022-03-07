@@ -591,6 +591,8 @@ func (c *ConfigEntry) computeResolvedServiceConfig(
 		if serviceConf.Mode != structs.ProxyModeDefault {
 			thisReply.Mode = serviceConf.Mode
 		}
+
+		thisReply.Meta = serviceConf.Meta
 	}
 
 	// First collect all upstreams into a set of seen upstreams.
