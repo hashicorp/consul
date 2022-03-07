@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/hashicorp/consul/lib/stringslice"
+
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/lib"
@@ -152,7 +154,7 @@ func (c *CARoot) Clone() *CARoot {
 	}
 
 	newCopy := *c
-	newCopy.IntermediateCerts = CloneStringSlice(c.IntermediateCerts)
+	newCopy.IntermediateCerts = stringslice.CloneStringSlice(c.IntermediateCerts)
 	return &newCopy
 }
 

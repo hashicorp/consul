@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/lib/stringslice"
+
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
@@ -106,8 +108,7 @@ func Load(opts LoadOpts) (LoadResult, error) {
 	if err := b.validate(cfg); err != nil {
 		return r, err
 	}
-	watcherFiles := make([]string, len(opts.ConfigFiles))
-	copy(watcherFiles, opts.ConfigFiles)
+	watcherFiles := stringslice.CloneStringSlice(opts.ConfigFiles)
 	return LoadResult{RuntimeConfig: &cfg, Warnings: b.Warnings, WatchedFiles: watcherFiles}, nil
 }
 
@@ -965,18 +966,18 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 				c.Cache.EntryFetchMaxBurst, cache.DefaultEntryFetchMaxBurst,
 			),
 		},
-
+		AutoConfig:                             autoConfig,
+		AutoEncryptTLS:                         boolVal(c.AutoEncrypt.TLS),
+		AutoEncryptDNSSAN:                      autoEncryptDNSSAN,
+		AutoEncryptIPSAN:                       autoEncryptIPSAN,
+		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
+		AutoReloadConfig:                       boolVal(c.AutoReloadConfig),
 		CertFile:                               stringVal(c.CertFile),
 		CheckUpdateInterval:                    b.durationVal("check_update_interval", c.CheckUpdateInterval),
 		CheckOutputMaxSize:                     intValWithDefault(c.CheckOutputMaxSize, 4096),
 		Checks:                                 checks,
 		ClientAddrs:                            clientAddrs,
 		ConfigEntryBootstrap:                   configEntries,
-		AutoEncryptTLS:                         boolVal(c.AutoEncrypt.TLS),
-		AutoEncryptDNSSAN:                      autoEncryptDNSSAN,
-		AutoEncryptIPSAN:                       autoEncryptIPSAN,
-		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
-		AutoConfig:                             autoConfig,
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
@@ -1007,15 +1008,15 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		EnableLocalScriptChecks:    enableLocalScriptChecks,
 		EncryptKey:                 stringVal(c.EncryptKey),
 		StaticRuntimeConfig: StaticRuntimeConfig{
+			CAFile:                stringVal(c.CAFile),
+			CAPath:                stringVal(c.CAPath),
 			EncryptVerifyIncoming: boolVal(c.EncryptVerifyIncoming),
+			EncryptVerifyOutgoing: boolVal(c.EncryptVerifyOutgoing),
 			VerifyIncoming:        boolVal(c.VerifyIncoming),
 			VerifyIncomingHTTPS:   boolVal(c.VerifyIncomingHTTPS),
 			VerifyIncomingRPC:     boolVal(c.VerifyIncomingRPC),
 			VerifyOutgoing:        verifyOutgoing,
 			VerifyServerHostname:  verifyServerName,
-			EncryptVerifyOutgoing: boolVal(c.EncryptVerifyOutgoing),
-			CAFile:                stringVal(c.CAFile),
-			CAPath:                stringVal(c.CAPath),
 		},
 
 		GRPCPort:              grpcPort,
@@ -1084,7 +1085,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Services:                    services,
 		SessionTTLMin:               b.durationVal("session_ttl_min", c.SessionTTLMin),
 		SkipLeaveOnInt:              skipLeaveOnInt,
-		AutoReloadConfig:            boolVal(c.AutoReloadConfig),
 		StartJoinAddrsLAN:           b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
 		StartJoinAddrsWAN:           b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
 		TLSCipherSuites:             b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),

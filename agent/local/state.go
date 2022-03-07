@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/lib/stringslice"
+
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
@@ -1104,7 +1106,7 @@ func (l *State) updateSyncState() error {
 		// copy so that we don't retain a pointer to any actual state
 		// store info for in-memory RPCs.
 		if nextService.EnableTagOverride {
-			nextService.Tags = structs.CloneStringSlice(rs.Tags)
+			nextService.Tags = stringslice.CloneStringSlice(rs.Tags)
 			changed = true
 		}
 

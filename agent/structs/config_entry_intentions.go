@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/lib/stringslice"
+
 	"github.com/hashicorp/consul/acl"
 )
 
@@ -303,7 +305,7 @@ func (p *IntentionHTTPPermission) Clone() *IntentionHTTPPermission {
 		}
 	}
 
-	p2.Methods = CloneStringSlice(p.Methods)
+	p2.Methods = stringslice.CloneStringSlice(p.Methods)
 
 	return &p2
 }

@@ -68,3 +68,12 @@ func MergeSorted(a, b []string) []string {
 	}
 	return out
 }
+
+func CloneStringSlice(s []string) []string {
+	if len(s) == 0 {
+		return nil
+	}
+	out := make([]string, len(s))
+	copy(out, s)
+	return out
+}
