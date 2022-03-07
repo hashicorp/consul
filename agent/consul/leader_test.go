@@ -1299,7 +1299,6 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 
 	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	waitForLeaderEstablishment(t, s2)
 
 	// Create the WAN link
