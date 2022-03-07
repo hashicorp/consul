@@ -1094,7 +1094,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 			acl:         `service "not-ingress" { policy = "write" }`,
 			token:       "service-write-on-not-ingress",
 			wantDenied:  true,
-			cfgSnap:     proxycfg.TestConfigSnapshotIngressGateway(t),
+			cfgSnap:     proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil, nil, nil),
 		},
 	}
 
@@ -1384,7 +1384,7 @@ func TestServer_DeltaAggregatedResources_v3_IngressEmptyResponse(t *testing.T) {
 	assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 	// Deliver a new snapshot with no services
-	snap := proxycfg.TestConfigSnapshotIngressGatewayNoServices(t)
+	snap := proxycfg.TestConfigSnapshotIngressGateway(t, false, "tcp", "default", nil, nil, nil)
 	mgr.DeliverConfig(t, sid, snap)
 
 	// REQ: clusters
