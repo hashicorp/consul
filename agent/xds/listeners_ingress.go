@@ -22,7 +22,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
 		if !ok {
-			return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
+			return nil, fmt.Errorf("no listener config found for listener on proto/port %s/%d", listenerKey.Protocol, listenerKey.Port)
 		}
 
 		tlsContext, err := makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap, listenerCfg)

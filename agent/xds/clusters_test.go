@@ -6,7 +6,6 @@ import (
 	"sort"
 	"testing"
 	"text/template"
-	"time"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 
@@ -14,8 +13,6 @@ import (
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
@@ -28,229 +25,241 @@ func TestClustersFromSnapshot(t *testing.T) {
 	}
 
 	tests := []struct {
-		name   string
-		create func(t testinf.T) *proxycfg.ConfigSnapshot
-		// Setup is called before the test starts. It is passed the snapshot from
-		// create func and is allowed to modify it in any way to setup the
-		// test input.
-		setup              func(snap *proxycfg.ConfigSnapshot)
+		name               string
+		create             func(t testinf.T) *proxycfg.ConfigSnapshot
 		overrideGoldenName string
 	}{
 		{
-			name:   "defaults",
-			create: proxycfg.TestConfigSnapshot,
-			setup:  nil, // Default snapshot
-		},
-		{
-			name:   "custom-local-app",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["envoy_local_cluster_json"] =
-					customAppClusterJSON(t, customClusterJSONOptions{
-						Name: "mylocal",
-					})
+			name: "defaults",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, nil)
 			},
 		},
 		{
-			name:   "custom-upstream",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-					customAppClusterJSON(t, customClusterJSONOptions{
-						Name: "myservice",
-					})
+			name: "custom-local-app",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["envoy_local_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "mylocal",
+						})
+				}, nil)
 			},
 		},
 		{
-			name:   "custom-upstream-default-chain",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainDefault,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-					customAppClusterJSON(t, customClusterJSONOptions{
-						Name: "myservice",
-					})
-				snap.ConnectProxy.UpstreamConfig = map[proxycfg.UpstreamID]*structs.Upstream{
-					UID("db"): {
-						// The local bind port is overridden by the escape hatch, but is required for explicit upstreams.
-						LocalBindPort: 9191,
-						Config: map[string]interface{}{
-							"envoy_cluster_json": customAppClusterJSON(t, customClusterJSONOptions{
-								Name: "myservice",
-							}),
-						},
-					},
-				}
+			name: "custom-upstream",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "myservice",
+						})
+				}, nil)
+			},
+		},
+		{
+			name: "custom-upstream-default-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "myservice",
+						})
+				}, nil)
 			},
 		},
 		{
 			name:               "custom-upstream-ignores-tls",
-			create:             proxycfg.TestConfigSnapshot,
 			overrideGoldenName: "custom-upstream", // should be the same
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-					customAppClusterJSON(t, customClusterJSONOptions{
-						Name: "myservice",
-						// Attempt to override the TLS context should be ignored
-						TLSContext: `"allowRenegotiation": false`,
-					})
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "myservice",
+							// Attempt to override the TLS context should be ignored
+							TLSContext: `"allowRenegotiation": false`,
+						})
+				}, nil)
 			},
 		},
 		{
-			name:   "custom-timeouts",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["local_connect_timeout_ms"] = 1234
-				snap.Proxy.Upstreams[0].Config["connect_timeout_ms"] = 2345
+			name: "custom-timeouts",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["local_connect_timeout_ms"] = 1234
+					ns.Proxy.Upstreams[0].Config["connect_timeout_ms"] = 2345
+				}, nil)
 			},
 		},
 		{
-			name:   "custom-limits-max-connections-only",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				for i := range snap.Proxy.Upstreams {
-					// We check if Config is nil because the prepared_query upstream is
-					// initialized without a Config map. Use Upstreams[i] syntax to
-					// modify the actual ConfigSnapshot instead of copying the Upstream
-					// in the range.
-					if snap.Proxy.Upstreams[i].Config == nil {
-						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
-					}
+			name: "custom-limits-max-connections-only",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					for i := range ns.Proxy.Upstreams {
+						// We check if Config is nil because the prepared_query upstream is
+						// initialized without a Config map. Use Upstreams[i] syntax to
+						// modify the actual ConfigSnapshot instead of copying the Upstream
+						// in the range.
+						if ns.Proxy.Upstreams[i].Config == nil {
+							ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
+						}
 
-					snap.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
-						"max_connections": 500,
+						ns.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
+							"max_connections": 500,
+						}
 					}
-				}
+				}, nil)
 			},
 		},
 		{
-			name:   "custom-limits-set-to-zero",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				for i := range snap.Proxy.Upstreams {
-					if snap.Proxy.Upstreams[i].Config == nil {
-						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
-					}
+			name: "custom-limits-set-to-zero",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					for i := range ns.Proxy.Upstreams {
+						if ns.Proxy.Upstreams[i].Config == nil {
+							ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
+						}
 
-					snap.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
-						"max_connections":         0,
-						"max_pending_requests":    0,
-						"max_concurrent_requests": 0,
+						ns.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
+							"max_connections":         0,
+							"max_pending_requests":    0,
+							"max_concurrent_requests": 0,
+						}
 					}
-				}
+				}, nil)
 			},
 		},
 		{
-			name:   "custom-limits",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				for i := range snap.Proxy.Upstreams {
-					if snap.Proxy.Upstreams[i].Config == nil {
-						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
-					}
+			name: "custom-limits",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					for i := range ns.Proxy.Upstreams {
+						if ns.Proxy.Upstreams[i].Config == nil {
+							ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
+						}
 
-					snap.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
-						"max_connections":         500,
-						"max_pending_requests":    600,
-						"max_concurrent_requests": 700,
+						ns.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
+							"max_connections":         500,
+							"max_pending_requests":    600,
+							"max_concurrent_requests": 700,
+						}
 					}
-				}
+				}, nil)
 			},
 		},
 		{
-			name:   "connect-proxy-with-chain",
-			create: proxycfg.TestConfigSnapshotDiscoveryChain,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-chain-external-sni",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainExternalSNI,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-chain-and-overrides",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithOverrides,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-chain-and-failover",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGateway,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-tcp-chain-failover-through-remote-gateway-triggered",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGatewayTriggered,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughRemoteGateway,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway-triggered",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughRemoteGatewayTriggered,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-tcp-chain-failover-through-local-gateway",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughLocalGateway,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-tcp-chain-failover-through-local-gateway-triggered",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughLocalGatewayTriggered,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-tcp-chain-double-failover-through-local-gateway",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughLocalGateway,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-tcp-chain-double-failover-through-local-gateway-triggered",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughLocalGatewayTriggered,
-			setup:  nil,
-		},
-		{
-			name:   "splitter-with-resolver-redirect",
-			create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-lb-in-resolver",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithLB,
-			setup:  nil,
-		},
-		{
-			name:   "expose-paths-local-app-paths",
-			create: proxycfg.TestConfigSnapshotExposeConfig,
-		},
-		{
-			name:   "downstream-service-with-unix-sockets",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Address = ""
-				snap.Port = 0
-				snap.Proxy.LocalServiceAddress = ""
-				snap.Proxy.LocalServicePort = 0
-				snap.Proxy.LocalServiceSocketPath = "/tmp/downstream_proxy.sock"
+			name: "connect-proxy-with-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", nil, nil)
 			},
 		},
 		{
-			name:   "expose-paths-new-cluster-http2",
-			create: proxycfg.TestConfigSnapshotExposeConfig,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Expose.Paths[1] = structs.ExposePath{
-					LocalPathPort: 9090,
-					Path:          "/grpc.health.v1.Health/Check",
-					ListenerPort:  21501,
-					Protocol:      "http2",
-				}
+			name: "connect-proxy-with-chain-external-sni",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-chain-and-overrides",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-chain-and-failover",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway-triggered", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway-triggered", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway-triggered", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway-triggered", nil, nil)
+			},
+		},
+		{
+			name: "splitter-with-resolver-redirect",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-lb-in-resolver",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "lb-resolver", nil, nil)
+			},
+		},
+		{
+			name: "expose-paths-local-app-paths",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotExposeConfig(t, nil)
+			},
+		},
+		{
+			name: "downstream-service-with-unix-sockets",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Address = ""
+					ns.Port = 0
+					ns.Proxy.LocalServiceAddress = ""
+					ns.Proxy.LocalServicePort = 0
+					ns.Proxy.LocalServiceSocketPath = "/tmp/downstream_proxy.sock"
+				}, nil)
+			},
+		},
+		{
+			name: "expose-paths-new-cluster-http2",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotExposeConfig(t, func(ns *structs.NodeService) {
+					ns.Proxy.Expose.Paths[1] = structs.ExposePath{
+						LocalPathPort: 9090,
+						Path:          "/grpc.health.v1.Health/Check",
+						ListenerPort:  21501,
+						Protocol:      "http2",
+					}
+				})
 			},
 		},
 		{
@@ -258,460 +267,201 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotGRPCExposeHTTP1,
 		},
 		{
-			name:   "mesh-gateway",
-			create: proxycfg.TestConfigSnapshotMeshGateway,
-			setup:  nil,
-		},
-		{
-			name:   "mesh-gateway-using-federation-states",
-			create: proxycfg.TestConfigSnapshotMeshGatewayUsingFederationStates,
-			setup:  nil,
-		},
-		{
-			name:   "mesh-gateway-no-services",
-			create: proxycfg.TestConfigSnapshotMeshGatewayNoServices,
-			setup:  nil,
-		},
-		{
-			name:   "mesh-gateway-service-subsets",
-			create: proxycfg.TestConfigSnapshotMeshGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("bar", nil): {
-						Kind: structs.ServiceResolver,
-						Name: "bar",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": {
-								Filter: "Service.Meta.Version == 1",
-							},
-							"v2": {
-								Filter:      "Service.Meta.Version == 2",
-								OnlyPassing: true,
-							},
-						},
-					},
-				}
+			name: "mesh-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", nil, nil)
 			},
 		},
 		{
-			name:   "mesh-gateway-ignore-extra-resolvers",
-			create: proxycfg.TestConfigSnapshotMeshGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("bar", nil): {
-						Kind:          structs.ServiceResolver,
-						Name:          "bar",
-						DefaultSubset: "v2",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": {
-								Filter: "Service.Meta.Version == 1",
-							},
-							"v2": {
-								Filter:      "Service.Meta.Version == 2",
-								OnlyPassing: true,
-							},
-						},
-					},
-					structs.NewServiceName("notfound", nil): {
-						Kind:          structs.ServiceResolver,
-						Name:          "notfound",
-						DefaultSubset: "v2",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": {
-								Filter: "Service.Meta.Version == 1",
-							},
-							"v2": {
-								Filter:      "Service.Meta.Version == 2",
-								OnlyPassing: true,
-							},
-						},
-					},
-				}
+			name: "mesh-gateway-using-federation-states",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "federation-states", nil, nil)
 			},
 		},
 		{
-			name:   "mesh-gateway-service-timeouts",
-			create: proxycfg.TestConfigSnapshotMeshGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("bar", nil): {
-						Kind:           structs.ServiceResolver,
-						Name:           "bar",
-						ConnectTimeout: 10 * time.Second,
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": {
-								Filter: "Service.Meta.Version == 1",
-							},
-							"v2": {
-								Filter:      "Service.Meta.Version == 2",
-								OnlyPassing: true,
-							},
-						},
-					},
-				}
+			name: "mesh-gateway-no-services",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "no-services", nil, nil)
 			},
 		},
 		{
-			name:   "mesh-gateway-non-hash-lb-injected",
-			create: proxycfg.TestConfigSnapshotMeshGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("bar", nil): {
-						Kind: structs.ServiceResolver,
-						Name: "bar",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": {
-								Filter: "Service.Meta.Version == 1",
-							},
-							"v2": {
-								Filter:      "Service.Meta.Version == 2",
-								OnlyPassing: true,
-							},
-						},
-						LoadBalancer: &structs.LoadBalancer{
-							Policy: "least_request",
-							LeastRequestConfig: &structs.LeastRequestConfig{
-								ChoiceCount: 5,
-							},
-						},
-					},
-				}
+			name: "mesh-gateway-service-subsets",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "service-subsets", nil, nil)
 			},
 		},
 		{
-			name:   "mesh-gateway-hash-lb-ignored",
-			create: proxycfg.TestConfigSnapshotMeshGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("bar", nil): {
-						Kind: structs.ServiceResolver,
-						Name: "bar",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": {
-								Filter: "Service.Meta.Version == 1",
-							},
-							"v2": {
-								Filter:      "Service.Meta.Version == 2",
-								OnlyPassing: true,
-							},
-						},
-						LoadBalancer: &structs.LoadBalancer{
-							Policy: "ring_hash",
-							RingHashConfig: &structs.RingHashConfig{
-								MinimumRingSize: 20,
-								MaximumRingSize: 50,
-							},
-						},
-					},
-				}
+			name: "mesh-gateway-ignore-extra-resolvers",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "ignore-extra-resolvers", nil, nil)
 			},
 		},
 		{
-			name:   "ingress-gateway",
-			create: proxycfg.TestConfigSnapshotIngressGateway,
-			setup:  nil,
+			name: "mesh-gateway-service-timeouts",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "service-timeouts", nil, nil)
+			},
 		},
 		{
-			name:   "ingress-gateway-no-services",
-			create: proxycfg.TestConfigSnapshotIngressGatewayNoServices,
-			setup:  nil,
+			name: "mesh-gateway-non-hash-lb-injected",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "non-hash-lb-injected", nil, nil)
+			},
 		},
 		{
-			name:   "ingress-with-chain",
-			create: proxycfg.TestConfigSnapshotIngress,
-			setup:  nil,
+			name: "mesh-gateway-hash-lb-ignored",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "hash-lb-ignored", nil, nil)
+			},
 		},
 		{
-			name:   "ingress-with-chain-external-sni",
-			create: proxycfg.TestConfigSnapshotIngressExternalSNI,
-			setup:  nil,
+			name: "ingress-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"default", nil, nil, nil)
+			},
 		},
 		{
-			name:   "ingress-with-chain-and-overrides",
-			create: proxycfg.TestConfigSnapshotIngressWithOverrides,
-			setup:  nil,
+			name: "ingress-gateway-no-services",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, false, "tcp",
+					"default", nil, nil, nil)
+			},
 		},
 		{
-			name:   "ingress-with-chain-and-failover",
-			create: proxycfg.TestConfigSnapshotIngressWithFailover,
-			setup:  nil,
+			name: "ingress-with-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"simple", nil, nil, nil)
+			},
 		},
 		{
-			name:   "ingress-with-tcp-chain-failover-through-remote-gateway",
-			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughRemoteGateway,
-			setup:  nil,
+			name: "ingress-with-chain-external-sni",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"external-sni", nil, nil, nil)
+			},
 		},
 		{
-			name:   "ingress-with-tcp-chain-failover-through-remote-gateway-triggered",
-			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughRemoteGatewayTriggered,
-			setup:  nil,
+			name: "ingress-with-chain-and-failover",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover", nil, nil, nil)
+			},
 		},
 		{
-			name:   "ingress-with-tcp-chain-double-failover-through-remote-gateway",
-			create: proxycfg.TestConfigSnapshotIngressWithDoubleFailoverThroughRemoteGateway,
-			setup:  nil,
+			name: "ingress-with-tcp-chain-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-remote-gateway", nil, nil, nil)
+			},
 		},
 		{
-			name:   "ingress-with-tcp-chain-double-failover-through-remote-gateway-triggered",
-			create: proxycfg.TestConfigSnapshotIngressWithDoubleFailoverThroughRemoteGatewayTriggered,
-			setup:  nil,
+			name: "ingress-with-tcp-chain-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-remote-gateway-triggered", nil, nil, nil)
+			},
 		},
 		{
-			name:   "ingress-with-tcp-chain-failover-through-local-gateway",
-			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughLocalGateway,
-			setup:  nil,
+			name: "ingress-with-tcp-chain-double-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-double-remote-gateway", nil, nil, nil)
+			},
 		},
 		{
-			name:   "ingress-with-tcp-chain-failover-through-local-gateway-triggered",
-			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughLocalGatewayTriggered,
-			setup:  nil,
+			name: "ingress-with-tcp-chain-double-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-double-remote-gateway-triggered", nil, nil, nil)
+			},
 		},
 		{
-			name:   "ingress-with-tcp-chain-double-failover-through-local-gateway",
-			create: proxycfg.TestConfigSnapshotIngressWithDoubleFailoverThroughLocalGateway,
-			setup:  nil,
+			name: "ingress-with-tcp-chain-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-local-gateway", nil, nil, nil)
+			},
 		},
 		{
-			name:   "ingress-with-tcp-chain-double-failover-through-local-gateway-triggered",
-			create: proxycfg.TestConfigSnapshotIngressWithDoubleFailoverThroughLocalGatewayTriggered,
-			setup:  nil,
+			name: "ingress-with-tcp-chain-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-local-gateway-triggered", nil, nil, nil)
+			},
 		},
 		{
-			name:   "ingress-splitter-with-resolver-redirect",
-			create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
-			setup:  nil,
+			name: "ingress-with-tcp-chain-double-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-double-local-gateway", nil, nil, nil)
+			},
 		},
 		{
-			name:   "ingress-lb-in-resolver",
-			create: proxycfg.TestConfigSnapshotIngressWithLB,
-			setup:  nil,
+			name: "ingress-with-tcp-chain-double-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-double-local-gateway-triggered", nil, nil, nil)
+			},
 		},
 		{
-			name:   "terminating-gateway",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
-			setup:  nil,
+			name: "ingress-splitter-with-resolver-redirect",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
+					"splitter-with-resolver-redirect-multidc", nil, nil, nil)
+			},
 		},
 		{
-			name:   "terminating-gateway-no-services",
-			create: proxycfg.TestConfigSnapshotTerminatingGatewayNoServices,
-			setup:  nil,
+			name: "ingress-lb-in-resolver",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
+					"lb-resolver", nil, nil, nil)
+			},
+		},
+		{
+			name: "terminating-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+			},
+		},
+		{
+			name: "terminating-gateway-no-services",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, false, nil, nil)
+			},
 		},
 		{
 			name:   "terminating-gateway-service-subsets",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("web", nil): {
-						Kind: structs.ServiceResolver,
-						Name: "web",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": {
-								Filter: "Service.Meta.Version == 1",
-							},
-							"v2": {
-								Filter:      "Service.Meta.Version == 2",
-								OnlyPassing: true,
-							},
-						},
-					},
-					structs.NewServiceName("cache", nil): {
-						Kind: structs.ServiceResolver,
-						Name: "cache",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"prod": {
-								Filter: "Service.Meta.Env == prod",
-							},
-						},
-					},
-				}
-				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
-					ProxyConfig: map[string]interface{}{"protocol": "http"},
-				}
-				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("cache", nil)] = &structs.ServiceConfigResponse{
-					ProxyConfig: map[string]interface{}{"protocol": "http"},
-				}
-			},
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache,
 		},
 		{
 			name:   "terminating-gateway-hostname-service-subsets",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("api", nil): {
-						Kind: structs.ServiceResolver,
-						Name: "api",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"alt": {
-								Filter: "Service.Meta.domain == alt",
-							},
-						},
-					},
-					structs.NewServiceName("cache", nil): {
-						Kind: structs.ServiceResolver,
-						Name: "cache",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"prod": {
-								Filter: "Service.Meta.Env == prod",
-							},
-						},
-					},
-				}
-				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("api", nil)] = &structs.ServiceConfigResponse{
-					ProxyConfig: map[string]interface{}{"protocol": "http"},
-				}
-				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("cache", nil)] = &structs.ServiceConfigResponse{
-					ProxyConfig: map[string]interface{}{"protocol": "http"},
-				}
-			},
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayHostnameSubsets,
 		},
 		{
 			name:   "terminating-gateway-ignore-extra-resolvers",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("web", nil): {
-						Kind:          structs.ServiceResolver,
-						Name:          "web",
-						DefaultSubset: "v2",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": {
-								Filter: "Service.Meta.Version == 1",
-							},
-							"v2": {
-								Filter:      "Service.Meta.Version == 2",
-								OnlyPassing: true,
-							},
-						},
-					},
-					structs.NewServiceName("notfound", nil): {
-						Kind:          structs.ServiceResolver,
-						Name:          "notfound",
-						DefaultSubset: "v2",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": {
-								Filter: "Service.Meta.Version == 1",
-							},
-							"v2": {
-								Filter:      "Service.Meta.Version == 2",
-								OnlyPassing: true,
-							},
-						},
-					},
-				}
-				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
-					ProxyConfig: map[string]interface{}{"protocol": "http"},
-				}
-			},
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayIgnoreExtraResolvers,
 		},
 		{
 			name:   "terminating-gateway-lb-config",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("web", nil): {
-						Kind:          structs.ServiceResolver,
-						Name:          "web",
-						DefaultSubset: "v2",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": {
-								Filter: "Service.Meta.Version == 1",
-							},
-							"v2": {
-								Filter:      "Service.Meta.Version == 2",
-								OnlyPassing: true,
-							},
-						},
-						LoadBalancer: &structs.LoadBalancer{
-							Policy: "ring_hash",
-							RingHashConfig: &structs.RingHashConfig{
-								MinimumRingSize: 20,
-								MaximumRingSize: 50,
-							},
-						},
-					},
-				}
-				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
-					ProxyConfig: map[string]interface{}{"protocol": "http"},
-				}
-			},
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayLBConfigNoHashPolicies,
 		},
 		{
 			name:   "ingress-multiple-listeners-duplicate-service",
 			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersDuplicateService,
-			setup:  nil,
 		},
 		{
 			name:   "transparent-proxy",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Mode = structs.ProxyModeTransparent
-				snap.ConnectProxy.MeshConfigSet = true
-			},
+			create: proxycfg.TestConfigSnapshotTransparentProxy,
 		},
 		{
 			name:   "transparent-proxy-catalog-destinations-only",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Mode = structs.ProxyModeTransparent
-
-				snap.ConnectProxy.MeshConfigSet = true
-				snap.ConnectProxy.MeshConfig = &structs.MeshConfigEntry{
-					TransparentProxy: structs.TransparentProxyMeshConfig{
-						MeshDestinationsOnly: true,
-					},
-				}
-			},
+			create: proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
 		},
 		{
 			name:   "transparent-proxy-dial-instances-directly",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Mode = structs.ProxyModeTransparent
-				kafka := structs.NewServiceName("kafka", nil)
-				mongo := structs.NewServiceName("mongo", nil)
-				kafkaUID := proxycfg.NewUpstreamIDFromServiceName(kafka)
-				mongoUID := proxycfg.NewUpstreamIDFromServiceName(mongo)
-
-				snap.ConnectProxy.IntentionUpstreams = map[proxycfg.UpstreamID]struct{}{
-					kafkaUID: {},
-					mongoUID: {},
-				}
-
-				// We add a passthrough cluster for each upstream service name
-				snap.ConnectProxy.PassthroughUpstreams = map[proxycfg.UpstreamID]map[string]map[string]struct{}{
-					kafkaUID: {
-						"kafka.default.default.dc1": map[string]struct{}{
-							"9.9.9.9": {},
-						},
-					},
-					mongoUID: {
-						"mongo.default.default.dc1": map[string]struct{}{
-							"10.10.10.10": {},
-							"10.10.10.12": {},
-						},
-					},
-				}
-
-				// There should still be a cluster for non-passthrough requests
-				snap.ConnectProxy.DiscoveryChain[mongoUID] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
-				snap.ConnectProxy.WatchedUpstreamEndpoints[mongoUID] = map[string]structs.CheckServiceNodes{
-					"mongo.default.default.dc1": {
-						structs.CheckServiceNode{
-							Node: &structs.Node{
-								Datacenter: "dc1",
-							},
-							Service: &structs.NodeService{
-								Service: "mongo",
-								Address: "7.7.7.7",
-								Port:    27017,
-								TaggedAddresses: map[string]structs.ServiceAddress{
-									"virtual": {Address: "6.6.6.6"},
-								},
-							},
-						},
-					},
-				}
-			},
+			create: proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
 		},
 	}
 
@@ -729,10 +479,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 					// files workable. Note we don't update these otherwise they'd change
 					// golder files for every test case and so not be any use!
 					setupTLSRootsAndLeaf(t, snap)
-
-					if tt.setup != nil {
-						tt.setup(snap)
-					}
 
 					// Need server just for logger dependency
 					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
@@ -805,7 +551,7 @@ var customAppClusterJSONTpl = `{
 
 var customAppClusterJSONTemplate = template.Must(template.New("").Parse(customAppClusterJSONTpl))
 
-func customAppClusterJSON(t *testing.T, opts customClusterJSONOptions) string {
+func customAppClusterJSON(t testinf.T, opts customClusterJSONOptions) string {
 	t.Helper()
 	var buf bytes.Buffer
 	err := customAppClusterJSONTemplate.Execute(&buf, opts)
