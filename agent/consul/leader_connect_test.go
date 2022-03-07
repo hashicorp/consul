@@ -339,6 +339,7 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 		}
 	})
 	defer func() {
+		s1.Shutdown()
 		s1.leaderRoutineManager.Wait()
 	}()
 
