@@ -985,7 +985,7 @@ type ServiceConfigResponse struct {
 	Expose            ExposeConfig           `json:",omitempty"`
 	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
 	Mode              ProxyMode              `json:",omitempty"`
-	Meta              map[string]string
+	Meta              map[string]string      `json:",omitempty"`
 	QueryMeta
 }
 

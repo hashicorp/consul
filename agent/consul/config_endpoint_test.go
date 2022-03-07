@@ -1029,12 +1029,11 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 			"foo": 1,
 		},
 	}))
-	meta := map[string]string{"foo": "bar"}
 	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "foo",
 		Protocol: "http",
-		Meta:     meta,
+		Meta:     map[string]string{"foo": "bar"},
 	}))
 	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
@@ -1060,7 +1059,7 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 				"protocol": "grpc",
 			},
 		},
-		Meta: meta,
+		Meta: map[string]string{"foo": "bar"},
 		// Don't know what this is deterministically
 		QueryMeta: out.QueryMeta,
 	}
