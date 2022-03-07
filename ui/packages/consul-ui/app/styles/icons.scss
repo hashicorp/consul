@@ -1,3 +1,15 @@
+:root {
+  --icon-loading: icon-loading-motion;
+}
+.prefers-reduced-motion {
+  --icon-loading: icon-loading;
+}
+@media (prefers-reduced-motion) {
+  :root {
+    --icon-loading: icon-loading;
+  }
+}
+
 %theme-light {
   --icon-aws: icon-aws-color;
   --icon-vault: icon-vault;
