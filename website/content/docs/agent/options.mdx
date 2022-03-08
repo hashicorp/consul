@@ -2204,6 +2204,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
     A leading "**+**" will enable any metrics with the given prefix, and a leading "**-**" will block them. If there is overlap between two rules, the more specific rule will take precedence. Blocking will take priority if the same prefix is listed multiple times.
 
+// todo -- update
   - `prometheus_retention_time` ((#telemetry-prometheus_retention_time)) If the value is greater than `0s` (the default), this enables [Prometheus](https://prometheus.io/)
     export of metrics. The duration can be expressed using the duration semantics
     and will aggregates all counters for the duration specified (it might have an

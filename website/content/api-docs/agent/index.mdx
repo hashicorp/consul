@@ -436,22 +436,23 @@ This endpoint will dump the metrics for the most recent finished interval.
 For more information about metrics, see the [telemetry](/docs/agent/telemetry)
 page.
 
+// todo: update
 In order to enable [Prometheus](https://prometheus.io/) support, you need to use the
 configuration directive
 [`prometheus_retention_time`](/docs/agent/options#telemetry-prometheus_retention_time).
 
-Since Consul 1.7.2 this endpoint will also automatically switch output format if 
-the request contains an `Accept` header with a compatible MIME type such as 
+Since Consul 1.7.2 this endpoint will also automatically switch output format if
+the request contains an `Accept` header with a compatible MIME type such as
 `application/openmetrics-text`. Prometheus v2.5.0 and newer pass this header in scraping
-queries, and so will get a compatible format by default. Older versions of Prometheus may 
-work by default as several previously used MIME types are also detected, but the `?format` 
+queries, and so will get a compatible format by default. Older versions of Prometheus may
+work by default as several previously used MIME types are also detected, but the `?format`
 query parameter may also be used to specify the output format manually if needed.
 simplifying scrape configuration.
 
-Note: If using the default format and your metric includes labels that use the same key 
-name multiple times (i.e. tag=tag2 and tag=tag1), only the sorted last value (tag=tag2) 
-will be visible on this endpoint due to a display issue. The complete label set is correctly 
-applied and passed to external metrics providers even though it is not visible through this 
+Note: If using the default format and your metric includes labels that use the same key
+name multiple times (i.e. tag=tag2 and tag=tag1), only the sorted last value (tag=tag2)
+will be visible on this endpoint due to a display issue. The complete label set is correctly
+applied and passed to external metrics providers even though it is not visible through this
 endpoint.
 
 | Method | Path                               | Produces                                   |
@@ -723,7 +724,7 @@ The corresponding CLI command is [`consul force-leave`](/commands/force-leave).
 - `node` `(string: <required>)` - Specifies the name of the node to be forced into `left` state. This is specified as part of the URL.
 
 - `prune` `(bool: false)` - Specifies whether to forcibly remove the node from the list of members.
-  Pruning a node in the `left` or `failed` state removes it from the list altogether. 
+  Pruning a node in the `left` or `failed` state removes it from the list altogether.
   This is specified as part of the URL as a query parameter. Added in Consul 1.6.2.
 
 - `wan` `(bool: false)` - Specifies the node should only be removed from the WAN
