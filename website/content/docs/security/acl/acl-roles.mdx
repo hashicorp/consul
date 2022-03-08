@@ -3,7 +3,7 @@ layout: docs
 page_title: Roles
 description: >-
   This topic describes roles within the access control list (ACL) system. A role is a named set of policies and service identities.
-  They are intended to
+  They enable you to reuse policies by decoupling the policies from the token distributed to team members.
 ---
 
 # Roles
@@ -15,7 +15,7 @@ As a result, roles can provide a more convenient authentication infrastrcture th
 
 ## Workflow Overview
 
-Roles are configurations link several policies to a token. The following procedure describes the workflow for implementing roles.
+Roles are configurations linking several policies to a token. The following procedure describes the workflow for implementing roles.
 
 1. Assemble rules into policies (see [Policies](/docs/security/acl/acl-policies)) and register them in Consul.
 1. Define a role and include the policy IDs or names.
@@ -64,7 +64,8 @@ Roles may contain the following table describe the attributes:
 - `Policies`: Specifies a the list of policies that are applicable for the role. The object can reference the policy `ID` or `Name` attribute.
 - `ServiceIdentities`: Specifies a list of services that are applicable for the role. See [Service Identities](#service-identities) for details.
 - `NodeIdentities`: Specifies a list of nodes that are applicable for the role. See [Node Identities](#node-identities) for details.
-- `Namespace`: <EnterpriseAlert inline /> The namespace this policy resides within. Roles can only be linked to policies that are defined in the same namespace and admin partition. See [Namespaces](/docs/enterprise/namespaces) and [Admin Partitions](/docs/enterprise/admin-partitions) for additional information. Requires Consul Enterprise 1.7.0+.
+- `Namespace`: <EnterpriseAlert inline /> The namespace that the policy resides in. Roles can only be linked to policies that are defined in the same namespace. See [Namespaces](/docs/enterprise/namespaces) for additional information. Requires Consul Enterprise 1.7.0+
+- `Partition`: <EnterpriseAlert inline/> The admin partition that the policy resides in. Roles can only be linked to policies that are defined in the same admin partition. See [Admin Partitions](/docs/enterprise/admin-partitions) for additional information. Requires Consul Enterprise 1.10.0+.
 
 ## Service Identities
 
@@ -361,7 +362,7 @@ node "node-1" {
 }
 
 # Allows the agent to detect and diff services registered to itself. This is used during
-# anti-entropy to reconcile difference between the agents knowledge of registered
+# anti-entropy to reconcile differences between the agent's knowledge of registered
 # services and checks in comparison with what is known in the Catalog.
 service_prefix "" {
   policy = "read"

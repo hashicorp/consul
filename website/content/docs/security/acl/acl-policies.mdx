@@ -113,7 +113,7 @@ Use the `policy` keyword and one of the following access levels to set a policy 
 - `write`: Allows the resource to be read and modified.
 - `deny`: Denies read and write access to the resource.
 
-The special `list` access level provices access to all keys with the specified resource label in the Consul KV. The `list` access level can only be used with the `key_prefix` resource. The [`acl.enable_key_list_policy`](/docs/agent/options#acl_enable_key_list_policy) setting must be set to `true`.
+The special `list` access level provides access to all keys with the specified resource label in the Consul KV. The `list` access level can only be used with the `key_prefix` resource. The [`acl.enable_key_list_policy`](/docs/agent/options#acl_enable_key_list_policy) setting must be set to `true`.
 
 ### Matching and Prefix Values
 
@@ -198,7 +198,7 @@ When using prefix-based rules, the most specific prefix match determines the act
 
 - A rule that denies access to a specific resource label
 - A prefix-based rule that allows write access to a class of resources
-- An empty prefix that grants read-only access to all resource within the declared class
+- An empty prefix that grants read-only access to all resources within the declared class
 
 #### Matching Precedence
 
@@ -286,8 +286,8 @@ operator = "read"
 
 The rules from all policies, including roles and service identities, linked with a token are combined to form that token's effective rule set.
 Policy rules can be defined in either an `allowlist` or `denylist` mode, depending on the configuration of the [`acl_default_policy`](/docs/agent/options#acl_default_policy).
-If the default policy is configured to deny access to all resources, then policy rules can be set to `allowlist` access to specific resources.
-If the default policy is to allow then access to all resources, policy rules can be used to explicitly deny access to resources.
+If the default policy is configured to deny access to all resources, then you can specify `allowlist` in policy rules to explicitly allow access to resources.
+Conversely, if the default policy is configured to allow access to all resources, then you can specify `denylist` in policy rules to explicitly deny access to resources.
 
 ## Implementing Policies
 
@@ -424,7 +424,7 @@ The `Hash`, `CreateIndex`, and `ModifyIndex` attributes are also printed. These 
 
 ## Built-in Policies
 
-New installations of Consul ship with the following built-ib policies.
+New installations of Consul ship with the following built-in policies.
 
 ### Global Management
 
