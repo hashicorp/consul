@@ -1,7 +1,7 @@
 import I18nService, { formatOptionsSymbol } from 'consul-ui/services/i18n';
 import ucfirst from 'consul-ui/utils/ucfirst';
 
-import faker from 'faker';
+import { faker } from '@faker-js/faker';
 
 // we currently use HTML in translations, so anything 'word-like' with these
 // chars won't get translated

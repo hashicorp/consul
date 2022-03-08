@@ -146,7 +146,7 @@
     "eslint": "^7.12.1",
     "eslint-plugin-ember": "^7.7.2",
     "eslint-plugin-node": "^11.0.0",
-    "faker": "^5.5.3",
+    "@faker-js/faker": "^6.0.0-beta.0",
     "flat": "^5.0.0",
     "hast-util-to-string": "^1.0.4",
     "husky": "^4.2.5",
