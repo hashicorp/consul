@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -491,7 +492,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 						return clusters[i].(*envoy_cluster_v3.Cluster).Name < clusters[j].(*envoy_cluster_v3.Cluster).Name
 					})
 
-					r, err := createResponse(ClusterType, "00000001", "00000001", clusters)
+					r, err := createResponse(xdscommon.ClusterType, "00000001", "00000001", clusters)
 					require.NoError(t, err)
 
 					t.Run("current", func(t *testing.T) {

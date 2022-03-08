@@ -23,6 +23,7 @@ import (
 	agentgrpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -37,23 +38,6 @@ var StatsGauges = []prometheus.GaugeDefinition{
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
 const (
-	// Resource types in xDS v3. These are copied from
-	// envoyproxy/go-control-plane/pkg/resource/v3/resource.go since we don't need any of
-	// the rest of that package.
-	apiTypePrefix = "type.googleapis.com/"
-
-	// EndpointType is the TypeURL for Endpoint discovery responses.
-	EndpointType = apiTypePrefix + "envoy.config.endpoint.v3.ClusterLoadAssignment"
-
-	// ClusterType is the TypeURL for Cluster discovery responses.
-	ClusterType = apiTypePrefix + "envoy.config.cluster.v3.Cluster"
-
-	// RouteType is the TypeURL for Route discovery responses.
-	RouteType = apiTypePrefix + "envoy.config.route.v3.RouteConfiguration"
-
-	// ListenerType is the TypeURL for Listener discovery responses.
-	ListenerType = apiTypePrefix + "envoy.config.listener.v3.Listener"
-
 	// PublicListenerName is the name we give the public listener in Envoy config.
 	PublicListenerName = "public_listener"
 
@@ -145,7 +129,7 @@ type Server struct {
 	AuthCheckFrequency time.Duration
 
 	// ResourceMapMutateFn exclusively exists for testing purposes.
-	ResourceMapMutateFn func(resourceMap *IndexedResources)
+	ResourceMapMutateFn func(resourceMap *xdscommon.IndexedResources)
 
 	activeStreams *activeStreamCounters
 }

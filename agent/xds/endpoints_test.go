@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -512,7 +513,7 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 					sort.Slice(endpoints, func(i, j int) bool {
 						return endpoints[i].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName < endpoints[j].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName
 					})
-					r, err := createResponse(EndpointType, "00000001", "00000001", endpoints)
+					r, err := createResponse(xdscommon.EndpointType, "00000001", "00000001", endpoints)
 					require.NoError(t, err)
 
 					t.Run("current", func(t *testing.T) {

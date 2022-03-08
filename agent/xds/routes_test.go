@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -201,7 +202,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 					sort.Slice(routes, func(i, j int) bool {
 						return routes[i].(*envoy_route_v3.RouteConfiguration).Name < routes[j].(*envoy_route_v3.RouteConfiguration).Name
 					})
-					r, err := createResponse(RouteType, "00000001", "00000001", routes)
+					r, err := createResponse(xdscommon.RouteType, "00000001", "00000001", routes)
 					require.NoError(t, err)
 
 					t.Run("current", func(t *testing.T) {
