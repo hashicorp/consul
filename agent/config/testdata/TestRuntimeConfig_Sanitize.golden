@@ -127,6 +127,7 @@
     "ConnectCAProvider": "",
     "ConnectEnabled": false,
     "ConnectMeshGatewayWANFederationEnabled": false,
+    "ConnectServerlessPluginEnabled": false,
     "ConnectSidecarMaxPort": 0,
     "ConnectSidecarMinPort": 0,
     "ConnectTestCALeafRootChangeSpread": "0s",

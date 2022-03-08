@@ -209,7 +209,8 @@
       "csr_max_concurrent": 2
     },
     "enable_mesh_gateway_wan_federation": false,
-    "enabled": true
+    "enabled": true,
+    "enable_serverless_plugin": true
   },
   "gossip_lan" : {
     "gossip_nodes": 6,
