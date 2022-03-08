@@ -175,6 +175,41 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 	return s.agent.baseDeps.MetricsHandler.DisplayMetrics(resp, req)
 }
 
+func (s *HTTPHandlers) AgentMetricsPrometheus(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Fetch the ACL token, if any, and enforce agent policy.
+	var token string
+	s.parseToken(req, &token)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Authorize using the agent's own enterprise meta, not the token.
+	var authzContext acl.AuthorizerContext
+	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
+	if authz.AgentRead(s.agent.config.NodeName, &authzContext) != acl.Allow {
+		return nil, acl.ErrPermissionDenied
+	}
+
+	if s.agent.config.Telemetry.PrometheusOpts.Expiration < 1 {
+		return nil, CodeWithPayloadError{
+			StatusCode:  http.StatusUnsupportedMediaType,
+			Reason:      "Prometheus is not enabled since its retention time is not positive",
+			ContentType: "text/plain",
+		}
+	}
+	handlerOptions := promhttp.HandlerOpts{
+		ErrorLog: s.agent.logger.StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: true,
+		}),
+		ErrorHandling: promhttp.ContinueOnError,
+	}
+
+	handler := promhttp.HandlerFor(prometheus.DefaultGatherer, handlerOptions)
+	handler.ServeHTTP(resp, req)
+	return nil, nil
+}
+
 func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
