@@ -2,11 +2,13 @@ package agent
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/serf/serf"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/serf/serf"
 )
 
 // aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-

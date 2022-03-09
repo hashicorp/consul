@@ -266,7 +266,7 @@ func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot
 	if acl.IsErrNotFound(err) {
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
 	} else if acl.IsErrPermissionDenied(err) {
-		return status.Errorf(codes.PermissionDenied, "permission denied: %v", err)
+		return status.Error(codes.PermissionDenied, err.Error())
 	} else if err != nil {
 		return status.Errorf(codes.Internal, "error resolving acl token: %v", err)
 	}

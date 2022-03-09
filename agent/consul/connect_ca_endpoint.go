@@ -65,7 +65,7 @@ func (s *ConnectCA) ConfigurationGet(
 	if err != nil {
 		return err
 	}
-	if err := authz.ToAllowAuthorizer().ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
 		return err
 	}
 

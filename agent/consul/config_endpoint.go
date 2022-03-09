@@ -90,7 +90,7 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 	}
 
 	if !args.Entry.CanWrite(authz) {
-		return acl.ErrPermissionDenied // TODO: Better errors await refactoring of CanWrite above.
+		return acl.ErrPermissionDenied // TODO(acl-error-enhancements) Better errors await refactoring of CanWrite above.
 	}
 
 	if args.Op != structs.ConfigEntryUpsert && args.Op != structs.ConfigEntryUpsertCAS {

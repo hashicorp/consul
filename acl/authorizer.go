@@ -42,7 +42,6 @@ const (
 	ResourceEvent     Resource = "event"
 	ResourceIntention Resource = "intention"
 	ResourceKey       Resource = "key"
-	ResourceKeyPrefix Resource = "key prefix"
 	ResourceKeyring   Resource = "keyring"
 	ResourceNode      Resource = "node"
 	ResourceOperator  Resource = "operator"
@@ -229,7 +228,7 @@ func (a AllowAuthorizer) EventWriteAllowed(name string, ctx *AuthorizerContext) 
 func (a AllowAuthorizer) IntentionDefaultAllowAllowed(ctx *AuthorizerContext) error {
 	if a.Authorizer.IntentionDefaultAllow(ctx) != Allow {
 		// This is a bit nuanced, in that this isn't set by a rule, but inherited globally
-		// TODO revisit when we have full accessor info
+		// TODO(acl-error-enhancements) revisit when we have full accessor info
 		return PermissionDeniedError{Cause: "Denied by intention default"}
 	}
 	return nil
@@ -281,7 +280,7 @@ func (a AllowAuthorizer) KeyWriteAllowed(name string, ctx *AuthorizerContext) er
 // that deny a write.
 func (a AllowAuthorizer) KeyWritePrefixAllowed(name string, ctx *AuthorizerContext) error {
 	if a.Authorizer.KeyWritePrefix(name, ctx) != Allow {
-		// TODO revisit this message; we may need to do some extra plumbing inside of KeyWritePrefix to
+		// TODO(acl-error-enhancements) revisit this message; we may need to do some extra plumbing inside of KeyWritePrefix to
 		// return properly detailed information.
 		return PermissionDeniedByACL(a, ctx, ResourceKey, AccessWrite, name)
 	}
@@ -334,8 +333,8 @@ func (a AllowAuthorizer) NodeReadAllowed(name string, ctx *AuthorizerContext) er
 // NodeReadAllAllowed checks for permission to read (discover) all nodes.
 func (a AllowAuthorizer) NodeReadAllAllowed(ctx *AuthorizerContext) error {
 	if a.Authorizer.NodeReadAll(ctx) != Allow {
-		// TODO Revisit this to see if we can return a more detailed answer
-		return PermissionDeniedByACLUnnamed(a, ctx, ResourceNode, AccessRead)
+		// This is only used to gate certain UI functions right now (e.g metrics)
+		return PermissionDeniedByACL(a, ctx, ResourceNode, AccessRead, "all nodes")
 	}
 	return nil
 }
@@ -396,10 +395,10 @@ func (a AllowAuthorizer) ServiceReadAllowed(name string, ctx *AuthorizerContext)
 // ServiceReadAllAllowed checks for permission to read all services
 func (a AllowAuthorizer) ServiceReadAllAllowed(ctx *AuthorizerContext) error {
 	if a.Authorizer.ServiceReadAll(ctx) != Allow {
-		return PermissionDeniedByACLUnnamed(a, ctx, ResourceService, AccessRead) // read
+		// This is only used to gate certain UI functions right now (e.g metrics)
+		return PermissionDeniedByACL(a, ctx, ResourceService, AccessRead, "all services") // read
 	}
 	return nil
-
 }
 
 // ServiceWriteAllowed checks for permission to create or update a given
@@ -409,7 +408,6 @@ func (a AllowAuthorizer) ServiceWriteAllowed(name string, ctx *AuthorizerContext
 		return PermissionDeniedByACL(a, ctx, ResourceService, AccessWrite, name)
 	}
 	return nil
-
 }
 
 // SessionReadAllowed checks for permission to read sessions for a given node.
@@ -432,7 +430,7 @@ func (a AllowAuthorizer) SessionWriteAllowed(name string, ctx *AuthorizerContext
 // SnapshotAllowed checks for permission to take and restore snapshots.
 func (a AllowAuthorizer) SnapshotAllowed(ctx *AuthorizerContext) error {
 	if a.Authorizer.Snapshot(ctx) != Allow {
-		// Implimetation of this currently just checks acl write
+		// Implementation of this currently just checks acl write
 		return PermissionDeniedByACLUnnamed(a, ctx, ResourceACL, AccessWrite)
 	}
 	return nil
