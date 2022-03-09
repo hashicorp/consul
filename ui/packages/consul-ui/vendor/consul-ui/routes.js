@@ -397,7 +397,17 @@
       _options: { path: '/' },
     },
     settings: {
-      _options: { path: '/setting' },
+      _options: {
+        path: '/settings',
+      },
+    },
+    /* This was introduced in 1.12. By the time we get to 1.15 */
+    /* I'd say we are safe to remove, feel free to delete for 1.15 */
+    setting: {
+      _options: {
+        path: '/setting',
+        redirect: '../settings',
+      },
     },
     notfound: {
       _options: { path: '/*notfound' },

@@ -17,6 +17,12 @@ as |route|>
   {{document-attrs class="has-partitions"}}
 {{/if}}
 
+{{! Listen out for blocking query/client setting changes }}
+<DataSource
+  @src={{uri 'settings://consul:client'}}
+  @onchange={{route-action "onClientChanged"}}
+/>
+
 {{! Tell CSS about our theme }}
 <DataSource
   @src={{uri 'settings://consul:theme'}}
@@ -35,6 +41,7 @@ as |source|>
   @onchange={{action (mut token) value="data"}}
 />
 {{/if}}
+
 
 {{#if (not-eq route.currentName 'oauth-provider-debug')}}
 
