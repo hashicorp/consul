@@ -30,20 +30,16 @@ const container = new Map();
 // need to
 export default helper(([path = ''], { from }) => {
   const fullPath = resolve(from, path);
-  try {
-    switch(true) {
-      case fullPath.endsWith('.css'):
-        return fs[fullPath](css)
-      default: {
-        if(container.has(fullPath)) {
-          return container.get(fullPath);
-        }
-        const module = fs[fullPath](HTMLElement);
-        container.set(fullPath, module);
-        return module;
+  switch(true) {
+    case fullPath.endsWith('.css'):
+      return fs[fullPath](css)
+    default: {
+      if(container.has(fullPath)) {
+        return container.get(fullPath);
       }
+      const module = fs[fullPath](HTMLElement);
+      container.set(fullPath, module);
+      return module;
     }
-  } catch (e) {
-    throw e;
   }
 });
