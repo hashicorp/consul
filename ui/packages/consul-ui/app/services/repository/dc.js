@@ -10,6 +10,52 @@ import {
 const SECONDS = 1000;
 const MODEL_NAME = 'dc';
 
+const zero = {
+  Total: 0,
+  Passing: 0,
+  Warning: 0,
+  Critical: 0
+};
+const aggregate = (prev, body, type) => {
+
+  return body[type].reduce((prev, item) => {
+
+    // for each Partitions, Namespaces
+    ['Partition', 'Namespace'].forEach(bucket => {
+
+      // lazily initialize
+      let obj = prev[bucket][item[bucket]];
+      if(typeof obj === 'undefined') {
+        obj = prev[bucket][item[bucket]] = {
+          Name: item[bucket],
+        };
+      }
+      if(typeof obj[type] === 'undefined') {
+        obj[type] = {
+          ...zero
+        };
+      }
+      //
+
+      // accumulate
+      obj[type].Total += item.Total;
+      obj[type].Passing += item.Passing;
+      obj[type].Warning += item.Warning;
+      obj[type].Critical += item.Critical;
+
+    });
+
+    // also aggregate the Datacenter, without doubling up
+    // for Partitions/Namespaces
+    prev.Datacenter[type].Total += item.Total;
+    prev.Datacenter[type].Passing += item.Passing;
+    prev.Datacenter[type].Warning += item.Warning;
+    prev.Datacenter[type].Critical += item.Critical;
+    return prev;
+  }, prev);
+}
+
+
 export default class DcService extends RepositoryService {
   @service('env') env;
 
@@ -77,6 +123,53 @@ export default class DcService extends RepositoryService {
           uri => uri`${MODEL_NAME}:///${''}/${''}/${dc}/datacenter`
         )
       })
+    );
+  }
+
+  @dataSource('/:partition/:ns/:dc/catalog/health')
+  async fetchCatalogHealth({partition, ns, dc}, { uri }, request) {
+    return (await request`
+      GET /v1/internal/ui/catalog-overview?${{ dc, stale: null }}
+      X-Request-ID: ${uri}
+    `)(
+      (headers, body, cache) => {
+
+
+        // for each Services/Nodes/Checks aggregate
+        const agg = ['Nodes', 'Services', 'Checks']
+          .reduce((prev, item) => aggregate(prev, body, item), {
+            Datacenter: {
+              Name: dc,
+              Nodes: {
+                ...zero
+              },
+              Services: {
+                ...zero
+              },
+              Checks: {
+                ...zero
+              }
+            },
+            Partition: {},
+            Namespace: {}
+          });
+
+
+        return {
+          meta: {
+            version: 2,
+            uri: uri,
+            interval: 30 * SECONDS
+          },
+          body: {
+            Datacenter: agg.Datacenter,
+            Partitions: Object.values(agg.Partition),
+            Namespaces: Object.values(agg.Namespace),
+            ...body
+          }
+        };
+      }
+
     );
   }
 
