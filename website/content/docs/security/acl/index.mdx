@@ -1,70 +1,90 @@
 ---
 layout: docs
-page_title: ACL Guides
+page_title: Access Control List (ACL) Overview
 description: >-
-  Consul provides an optional Access Control List (ACL) system which can be used
-  to control access to data and APIs. Select the following guide for your use
-  case.
+  This topic describes provides an overview of the optional access control list (ACL) system shipped with Consul. The ACL system authenticates requests and authorizes access to resources. It is used by the UI, API, and CLI for service-to-service communication and agent-to-agent communication.
 ---
 
-# ACL Documentation and Guides
+# Access Control List (ACL) Overview
 
-Consul uses Access Control Lists (ACLs) to secure the UI, API, CLI, service
-communications, and agent communications. At the core, ACLs operate by grouping
-rules into policies, then associating one or more policies with a token.
+This topic describes core concepts associated with the optioal access control list (ACL) system shipped with Consul. ACLs authenticate requests and authorize access to resources. They also control access to the Consul UI, API, and CLI, as well as secure service-to-service and agent-to-agent communication.
 
-The following documentation and guides will help you understand and implement
-ACLs.
+Refer to the following tutorials for step-by-step instructions on how to get started using ACLs:
 
-## ACL Documentation
+- [Bootstrap and Explore ACLs]
+- [Secure Consul with ACLs]
+- [Troubleshoot the ACL System](https://learn.hashicorp.com/tutorials/consul/access-control-troubleshoot)
 
-### ACL System
+[bootstrap and explore acls]: https://learn.hashicorp.com/tutorials/consul/access-control-setup?utm_source=consul.io&utm_medium=docs
+[secure consul with acls]: https://learn.hashicorp.com/tutorials/consul/access-control-setup-production?utm_source=consul.io&utm_medium=docs
 
-Consul provides an optional Access Control List (ACL) system which can be used
-to control access to data and APIs. The ACL system is a Capability-based system
-that relies on tokens which can have fine grained rules applied to them. The
-[ACL System documentation](/docs/security/acl/acl-system) details the functionality
-of Consul ACLs.
+Refer to the [ACL API reference](/api-docs/acl) and [ACL CLI reference](/commands/acl) for additional usage information.
 
-### ACL Rules
+## Workflow Overview
 
-A core part of the ACL system is the rule language, which is used to describe
-the policy that must be enforced. Read the ACL rules
-[documentation](/docs/security/acl/acl-rules) to learn about rule specifications.
+Implementations may vary depending on the needs of the organization, but the following procedure describes the basic workflow for for creating and implementing ACLs:
 
-### ACL Auth Methods
+1. The person responsible for administrating ACLs in your organization specifies one or more authentication rules to define a [policy](#policies).
+1. The ACL administrator uses the Consul API to generate and link a [token](#tokens) to one or more policies. The following diagram illustrates the relationship between rules, policies, and tokens:
 
-An auth method is a component in Consul that performs authentication against a
-trusted external party to authorize the creation of an ACL tokens usable within
-the local datacenter. Read the ACL auth method
-[documentation](/docs/security/acl/auth-methods) to learn more about how they
-work and why you may want to use them.
+  ![ACL system component relationships](/img/acl-token-policy-rule-relationship.png)
 
-### ACL Legacy System
+  The ACL administrator can create and link additional artifacts to tokens, such as [service identities](#service-identities), [node identities](#node-identities), and [roles](#roles) that enable policies to accommodate more complex requirements.
 
-The ACL system in Consul 1.3.1 and older is now called legacy. For information
-on bootstrapping the legacy system, ACL rules, and a general ACL system
-overview, read the legacy [documentation](/docs/security/acl/acl-legacy).
+1. Tokens are distributed to end users and incorporated into their services.
+1. Agents and services present the token when making requests.
+1. Consul evaluates the token to determine if the request has permission to interact with the requested resource.
 
-### ACL Migration
+## Tokens
 
-[The migration documentation](/docs/security/acl/acl-migrate-tokens) details how to
-upgrade existing legacy tokens after upgrading to 1.4.0. It will briefly
-describe what changed, and then walk through the high-level migration process
-options, finally giving some specific examples of migration strategies. The new
-ACL system has improvements for the security and management of ACL tokens and
-policies.
+ACL tokens are the core method of authentication in Consul. Tokens contain several attributes, but the value of the `SecretID` field (sometimes referred to as the ACL token) is the attribute that you or your service must include to identify the person or system making the request. Your ACL administrator may also use the token's `AccessorID` for audit logging purposes.
 
-## Learn ACL Guide
+Refer to the following topics for details about tokens:
 
-~> Note: the following guide is located on HashiCorp Learn. By selecting it,
-you will be directed to a new site.
+- [Tokens](/docs/security/acl/acl-tokens)
+- [ACL token command line](/commands/acl/token)
+- [ACL tokens API](/api-docs/acl/tokens)
 
-### Securing Consul with ACLs
+## Policies
 
-In this guide, you will learn how to secure the UI, API, CLI, service
-communications, and agent communications with ACLs. When securing your cluster
-you should configure the ACLs first. The ACL documentation introduces basic
-concepts and syntax for the ACL system, and we recommend that you read it
-before you begin [this
-tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
+An ACL policy is a set of rules that grant or deny access to resources in the network.
+The person responsible for administrating ACLs in your organization will assemble and create policies and link them to tokens.
+Tokens are the artifacts distributed to users so that they can be implemented.
+In addition to the rules that authenticate access to services, several attributes may be assigned policies that determine their scope.
+
+Refer to the following topics for details about policies:
+
+- [Policies](/docs/security/acl/policies)
+- [ACL policy command line](/commands/acl/policy)
+- [ACL policy API](/api-docs/acl/policies)
+
+## Roles
+
+A role is a collection of policies that your ACL administrator can link to a token.
+They enable you to reuse policies by decoupling the policies from the token distributed to team members.
+Instead, the token is linked to the role, which is able to hold several policies that can be updated asynchronously without distributing new tokens to users.
+As a result, roles can provide a more convenient authentication infrastrcture than creating unique policies and tokens for each requester.
+
+Refer to the [Roles](/docs/security/acl/acl-roles) topic for additional information.
+
+## Service Identities
+
+Service identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. The are used during the authorization process to automatically generate a policy for the service(s) specifed. The policy will be linked to the role or token so that the service(s) can _be discovered_ and _discover other healthy service instances_ in a service mesh.
+
+Service identities enable you to quickly construct policies for services, rather than creating identical polices for each service.
+
+Refer to the following topics for additional information about service identities:
+
+- [Service Identities](/docs/security/acl/acl-roles#service-identities)
+- [API documentation for roles](/api/acl/roles#sample-payload)
+
+## Node Identities
+
+Node identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. The are used during the authorization process to automatically generate a policy for the node(s) specifed. You can specify the token linked to the policy in the [`acl_tokens_agent`](/docs/agent/options#acl_tokens_agent) field when configuring the agent.
+
+Node identities enable you to quickly construct policies for nodes, rather than creating identical polices for each service.
+
+Refer to the following topics for additional information about node identities:
+
+- [Node Identities](/docs/security/acl/acl-roles#node-identities)
+- [API documentation for roles](/api/acl/roles#sample-payload)
