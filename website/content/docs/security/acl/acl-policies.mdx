@@ -113,7 +113,7 @@ Use the `policy` keyword and one of the following access levels to set a policy 
 - `write`: Allows the resource to be read and modified.
 - `deny`: Denies read and write access to the resource.
 
-The special `list` access level provides access to all keys with the specified resource label in the Consul KV. The `list` access level can only be used with the `key_prefix` resource. The [`acl.enable_key_list_policy`](/docs/agent/options#acl_enable_key_list_policy) setting must be set to `true`.
+The special `list` access level provides access to all keys with the specified resource label in the [Consul KV](/commands/kv/). The `list` access level can only be used with the `key_prefix` resource. The [`acl.enable_key_list_policy`](/docs/agent/options#acl_enable_key_list_policy) setting must be set to `true`.
 
 ### Matching and Prefix Values
 

@@ -42,7 +42,7 @@ Issue the `consul acl role create` command to create roles. In the following exa
 $ consul acl role create -name "crawler" -description "web crawler role" -policy-name "crawler-kv" -policy-name "crawler-key"
 ```
 
-Refer to the [command line documentation](/command/acl/role) for details.
+Refer to the [command line documentation](/commands/acl/role) for details.
 
 ### API
 
@@ -56,7 +56,7 @@ Refer to the [API documentation](/api-docs/acl/roles) for details.
 
 ## Role Attributes
 
-Roles may contain the following table describe the attributes:
+Roles may contain the following attributes:
 
 - `ID`: The `ID` is an auto-generated public identifier. You can specify the role `ID` when linking it to tokens.
 - `Name`: A unique meaningful name for the role. You can specify the role `Name` when linking it to tokens.
@@ -277,7 +277,7 @@ NodeIdentities = {
 </CodeTabs>
 
 - `NodeIdentities`: Declares a node identity block.
-- `NodeIdentities.ServiceName`: String value that specifies the name of the node you want to associate with the policy.
+- `NodeIdentities.NodeName`: String value that specifies the name of the node you want to associate with the policy.
 - `NodeIdentitites.Datacenters`: Array that specifies the names of datacenters in which the node identity applies. This field is optional.
 
 Refer to the the [API documentation for roles](/api/acl/roles#sample-payload) for additional information and examples.
