@@ -113,7 +113,7 @@ as |dc dcs|}}
 
     {{! figure out our current DC and convert it to a model }}
     <DataSource
-      @src={{uri '/${partition}/*/${dc}/datacenter/${name}'
+      @src={{uri '/${partition}/*/${dc}/datacenter-cache/${name}'
         (hash
           dc=dc.Name
           partition=partition

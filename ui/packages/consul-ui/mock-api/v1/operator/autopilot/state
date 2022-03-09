@@ -1,0 +1,37 @@
+${[0].map(_ => {
+  const servers = range(env('CONSUL_SERVER_COUNT', 3)).map(_ => fake.random.uuid());
+  const failureTolerance = Math.ceil(servers.length / 2);
+  const optimisticTolerance = failureTolerance; // <== same for now
+  const leader = fake.random.number({min: 0, max: servers.length - 1});
+  return `
+{
+  "Healthy": true,
+  "FailureTolerance": ${failureTolerance},
+  "OptimisticFailureTolerance": ${optimisticTolerance},
+  "Servers": {${servers.map((item, i, items) => `
+    "${item}": {
+      "ID": "${item}",
+      "Name": "node-${i}",
+      "Address": "${fake.internet.ip()}:${fake.random.number({min: 0, max: 65535})}",
+      "NodeStatus": "alive",
+      "Version": "1.11.2",
+      "LastContact": "0s",
+      "LastTerm": 2,
+      "LastIndex": 91,
+      "Healthy": true,
+      "StableSince": "2022-02-02T11:59:01.0708146Z",
+      "ReadReplica": false,
+      "Status": "${i === leader ? `leader` : `voter`}",
+      "Meta": {
+        "consul-network-segment": ""
+      },
+      "NodeType": "voter"
+    }
+  `)}},
+  "Leader": "${servers[leader]}",
+  "Voters": [
+    ${servers.map(item => `"${item}"`)}
+  ]
+}
+  `;
+})}
