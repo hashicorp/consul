@@ -52,13 +52,22 @@
   margin-left: auto;
 }
 %main-nav-vertical-hoisted {
-  top: 11px;
+  top: 18px;
 }
-%main-nav-vertical-hoisted > .popover-menu > label > button {
+%main-nav-vertical-hoisted [aria-label]::before {
+  display: none !important;
+}
+%main-nav-horizontal [aria-haspopup='menu'] ~ * {
+  position: absolute;
+  right: 0;
+  min-width: 192px;
+}
+%main-nav-horizontal [aria-expanded],
+%main-nav-vertical-hoisted [aria-expanded] {
+  @extend %main-nav-horizontal-popover-menu-trigger;
   @extend %main-nav-horizontal-action;
-  border: none;
 }
-%main-nav-vertical-hoisted.is-active > label > * {
+%main-nav-horizontal-popover-menu-trigger {
   @extend %main-nav-horizontal-action-active;
 }
 %footer,

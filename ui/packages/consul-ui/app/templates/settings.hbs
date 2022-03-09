@@ -40,21 +40,33 @@ as |item|}}
       </Notice>
       <form>
       {{#if (not (env 'CONSUL_UI_DISABLE_REALTIME'))}}
+      <Disclosure as |disclosure|>
+        <disclosure.Details>
+          <DataSink
+            @data={{item}}
+            @sink='settings://consul:client'
+            @onchange={{action (fn disclosure.close)}}
+          />
+        </disclosure.Details>
         <fieldset data-test-blocking-queries>
           <h2>Blocking Queries</h2>
           <p>Keep catalog info up-to-date without refreshing the page. Any changes made to services, nodes and intentions would be reflected in real time.</p>
           <div class="type-toggle">
             <label>
               <input
+                {{on 'change' (queue
+                  (set item 'blocking' (not item.blocking))
+                  (fn disclosure.open)
+                )}}
                 type="checkbox"
                 name="client[blocking]"
                 checked={{if item.blocking 'checked'}}
-                onchange={{route-action 'change' 'client' item}}
               />
               <span>{{if item.blocking 'On' 'Off'}}</span>
             </label>
           </div>
         </fieldset>
+      </Disclosure>
       {{/if}}
       </form>
     </BlockSlot>

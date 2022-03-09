@@ -3,13 +3,13 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "9191",
+      "name": "8080",
       "virtualHosts": [
         {
           "name": "db",
           "domains": [
             "db.ingress.*",
-            "db.ingress.*:9191"
+            "db.ingress.*:8080"
           ],
           "routes": [
             {

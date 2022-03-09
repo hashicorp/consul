@@ -198,6 +198,7 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 				reply.Sessions = structs.Sessions{session}
 			} else {
 				reply.Sessions = nil
+				return errNotFound
 			}
 			s.srv.filterACLWithAuthorizer(authz, reply)
 			return nil

@@ -46,20 +46,46 @@ index is also given, corresponding to the responses from the
 ### Executable
 
 An executable handler reads the JSON invocation info from stdin. Additionally,
-the `CONSUL_INDEX` environment variable will be set to the Consul index
+the `CONSUL_INDEX` environment variable will be set to the Consul index.
 Anything written to stdout is logged.
 
 Here is an example configuration, where `handler_type` is optionally set to
 `script`:
 
+<CodeTabs heading="Consul watch with script handler defined in agent configuration">
+<CodeBlockConfig filename="agent-config.hcl">
+
+```hcl
+watches = [
+  {
+    type = "key"
+    key = "foo/bar/baz"
+    handler_type = "script"
+    args = ["/usr/bin/my-service-handler.sh", "-redis"]
+  }
+]
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="agent-config.json">
+
 ```json
 {
-  "type": "key",
-  "key": "foo/bar/baz",
-  "handler_type": "script",
-  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
+  "watches": [
+    {
+      "type": "key",
+      "key": "foo/bar/baz",
+      "handler_type": "script",
+      "args": ["/usr/bin/my-service-handler.sh", "-redis"]
+    }
+  ]
 }
 ```
+
+</CodeBlockConfig>
+
+</CodeTabs>
 
 Prior to Consul 1.0, watches used a single `handler` field to define the command to run, and
 would always run in a shell. In Consul 1.0, the `args` array was added so that handlers can be
@@ -80,20 +106,52 @@ always sent as a JSON payload.
 
 Here is an example configuration:
 
+<CodeTabs heading="Consul watch with HTTP handler defined in agent configuration">
+<CodeBlockConfig filename="agent-config.hcl">
+
+```hcl
+watches = [
+  {
+    type = "key"
+    key = "foo/bar/baz"
+    handler_type = "http"
+    http_handler_config {
+      path = "https://localhost:8000/watch"
+      method = "POST"
+      header = {
+        x-foo = ["bar", "baz"]
+      }
+      timeout = "10s"
+      tls_skip_verify = false
+    }
+  }
+]
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig filename="agent-config.json">
+
 ```json
 {
-  "type": "key",
-  "key": "foo/bar/baz",
-  "handler_type": "http",
-  "http_handler_config": {
-    "path": "https://localhost:8000/watch",
-    "method": "POST",
-    "header": { "x-foo": ["bar", "baz"] },
-    "timeout": "10s",
-    "tls_skip_verify": false
-  }
+  "watches": [
+    {
+      "type": "key",
+      "key": "foo/bar/baz",
+      "handler_type": "http",
+      "http_handler_config": {
+        "path": "https://localhost:8000/watch",
+        "method": "POST",
+        "header": { "x-foo": ["bar", "baz"] },
+        "timeout": "10s",
+        "tls_skip_verify": false
+      }
+    }
+  ]
 }
 ```
+
+</CodeBlockConfig>
+</CodeTabs>
 
 ## Global Parameters
 
@@ -120,11 +178,21 @@ The following types are supported. Detailed documentation on each is below:
 ### Type: key ((#key))
 
 The "key" watch type is used to watch a specific key in the KV store.
-It requires that the "key" parameter be specified.
+It requires that the `key` parameter be specified.
 
 This maps to the `/v1/kv/` API internally.
 
 Here is an example configuration:
+
+<CodeTabs heading="Example key watch type">
+
+```hcl
+{
+  type = "key"
+  key = "foo/bar/baz"
+  args = ["/usr/bin/my-service-handler.sh", "-redis"]
+}
+```
 
 ```json
 {
@@ -133,6 +201,8 @@ Here is an example configuration:
   "args": ["/usr/bin/my-service-handler.sh", "-redis"]
 }
 ```
+
+</CodeTabs>
 
 Or, using the watch command:
 
@@ -156,14 +226,24 @@ An example of the output of this command:
 
 ### Type: keyprefix ((#keyprefix))
 
-The "keyprefix" watch type is used to watch a prefix of keys in the KV store.
-It requires that the "prefix" parameter be specified. This watch
+The `keyprefix` watch type is used to watch a prefix of keys in the KV store.
+It requires that the `prefix` parameter be specified. This watch
 returns _all_ keys matching the prefix whenever _any_ key matching the prefix
 changes.
 
 This maps to the `/v1/kv/` API internally.
 
 Here is an example configuration:
+
+<CodeTabs heading="Example keyprefix watch type">
+
+```hcl
+{
+  type = "keyprefix"
+  prefix = "foo/"
+  args = ["/usr/bin/my-prefix-handler.sh", "-redis"]
+}
+```
 
 ```json
 {
@@ -173,6 +253,8 @@ Here is an example configuration:
 }
 ```
 
+</CodeTabs>
+
 Or, using the watch command:
 
 ```shell-session
@@ -181,35 +263,35 @@ $ consul watch -type=keyprefix -prefix=foo/ /usr/bin/my-prefix-handler.sh
 
 An example of the output of this command:
 
-```text
+```json
 [
   {
-    Key: 'foo/bar',
-    CreateIndex: 1796,
-    ModifyIndex: 1796,
-    LockIndex: 0,
-    Flags: 0,
-    Value: 'TU9BUg==',
-    Session: '',
+    "Key": "foo/bar",
+    "CreateIndex": 1796,
+    "ModifyIndex": 1796,
+    "LockIndex": 0,
+    "Flags": 0,
+    "Value": "TU9BUg==",
+    "Session": ""
   },
   {
-    Key: 'foo/baz',
-    CreateIndex: 1795,
-    ModifyIndex: 1795,
-    LockIndex: 0,
-    Flags: 0,
-    Value: 'YXNkZg==',
-    Session: '',
+    "Key": "foo/baz",
+    "CreateIndex": 1795,
+    "ModifyIndex": 1795,
+    "LockIndex": 0,
+    "Flags": 0,
+    "Value": "YXNkZg==",
+    "Session": ""
   },
   {
-    Key: 'foo/test',
-    CreateIndex: 1793,
-    ModifyIndex: 1793,
-    LockIndex: 0,
-    Flags: 0,
-    Value: 'aGV5',
-    Session: '',
-  },
+    "Key": "foo/test",
+    "CreateIndex": 1793,
+    "ModifyIndex": 1793,
+    "LockIndex": 0,
+    "Flags": 0,
+    "Value": "aGV5",
+    "Session": ""
+  }
 ]
 ```
 
@@ -219,6 +301,32 @@ The "services" watch type is used to watch the list of available
 services. It has no parameters.
 
 This maps to the `/v1/catalog/services` API internally.
+
+Below is an example configuration:
+
+<CodeTabs heading="Example services watch type">
+
+```hcl
+{
+  type = "services"
+  args = ["/usr/bin/my-services-handler.sh"]
+}
+```
+
+```json
+{
+  "type": "services",
+  "args": ["/usr/bin/my-services-handler.sh"]
+}
+```
+
+</CodeTabs>
+
+Or, using the watch command:
+
+```shell-session
+$ consul watch -type=services /usr/bin/my-services-handler.sh
+```
 
 An example of the output of this command:
 
@@ -237,33 +345,64 @@ nodes. It has no parameters.
 
 This maps to the `/v1/catalog/nodes` API internally.
 
+Below is an example configuration:
+
+<CodeTabs heading="Example nodes watch type">
+
+```hcl
+{
+  type = "nodes"
+  args = ["/usr/bin/my-nodes-handler.sh"]
+}
+```
+
+```json
+{
+  "type": "nodes",
+  "args": ["/usr/bin/my-nodes-handler.sh"]
+}
+```
+
+</CodeTabs>
+
+Or, using the watch command:
+
+```shell-session
+$ consul watch -type=nodes /usr/bin/my-nodes-handler.sh
+```
+
 An example of the output of this command:
 
-```text
+```json
 [
   {
-    Node: 'nyc1-consul-1',
-    Address: '192.241.159.115',
+    "ID": "8d3088b5-ce7d-0b94-f185-ae70c3445642",
+    "Node": "nyc1-consul-1",
+    "Address": "192.0.2.10",
+    "Datacenter": "dc1",
+    "TaggedAddresses": null,
+    "Meta": null,
+    "CreateIndex": 23792324,
+    "ModifyIndex": 23792324
   },
   {
-    Node: 'nyc1-consul-2',
-    Address: '192.241.158.205',
-  },
-  {
-    Node: 'nyc1-consul-3',
-    Address: '198.199.77.133',
-  },
-  {
-    Node: 'nyc1-worker-1',
-    Address: '162.243.162.228',
-  },
-  {
-    Node: 'nyc1-worker-2',
-    Address: '162.243.162.226',
-  },
-  {
-    Node: 'nyc1-worker-3',
-    Address: '162.243.162.229',
+    "ID": "1edb564e-65ee-9e60-5e8a-83eae4637357",
+    "Node": "nyc1-worker-1",
+    "Address": "192.0.2.20",
+    "Datacenter": "dc1",
+    "TaggedAddresses": {
+      "lan": "192.0.2.20",
+      "lan_ipv4": "192.0.2.20",
+      "wan": "192.0.2.20",
+      "wan_ipv4": "192.0.2.20"
+    },
+    "Meta": {
+      "consul-network-segment": "",
+      "host-ip": "192.0.2.20",
+      "pod-name": "hashicorp-consul-q7nth"
+    },
+    "CreateIndex": 23792336,
+    "ModifyIndex": 23792338
   }
 ]
 ```
@@ -271,16 +410,27 @@ An example of the output of this command:
 ### Type: service ((#service))
 
 The "service" watch type is used to monitor the providers
-of a single service. It requires the "service" parameter
-and optionally takes the parameters "tag" and
-"passingonly". The "tag" parameter will filter by one or more tags.
+of a single service. It requires the `service` parameter
+and optionally takes the parameters `tag` and
+`passingonly`. The `tag` parameter will filter by one or more tags.
 It may be either a single string value or a slice of strings.
-The "passingonly" is a boolean that will filter to only the
+The `passingonly` parameter is a boolean that will filter to only the
 instances passing all health checks.
 
 This maps to the `/v1/health/service` API internally.
 
 Here is an example configuration with a single tag:
+
+<CodeTabs heading="Example service watch type">
+
+```hcl
+{
+  type = "service"
+  service = "redis"
+  args = ["/usr/bin/my-service-handler.sh", "-redis"]
+  tag = "bar"
+}
+```
 
 ```json
 {
@@ -291,7 +441,20 @@ Here is an example configuration with a single tag:
 }
 ```
 
+</CodeTabs>
+
 Here is an example configuration with multiple tags:
+
+<CodeTabs heading="Example service watch type with multiple tags">
+
+```hcl
+{
+  type = "service"
+  service = "redis"
+  args = ["/usr/bin/my-service-handler.sh", "-redis"]
+  tag = ["bar", "foo"]
+}
+```
 
 ```json
 {
@@ -302,6 +465,8 @@ Here is an example configuration with multiple tags:
 }
 ```
 
+</CodeTabs>
+
 Or, using the watch command:
 
 Single tag:
@@ -310,7 +475,7 @@ Single tag:
 $ consul watch -type=service -service=redis -tag=bar /usr/bin/my-service-handler.sh
 ```
 
-Multiple tag:
+Multiple tags:
 
 ```shell-session
 $ consul watch -type=service -service=redis -tag=bar -tag=foo /usr/bin/my-service-handler.sh
@@ -318,41 +483,69 @@ $ consul watch -type=service -service=redis -tag=bar -tag=foo /usr/bin/my-servic
 
 An example of the output of this command:
 
-```text
+```json
 [
   {
-    Node: {
-      Node: 'foobar',
-      Address: '10.1.10.12',
+    "Node": {
+      "ID": "f013522f-aaa2-8fc6-c8ac-c84cb8a56405",
+      "Node": "hashicorp-consul-server-1",
+      "Address": "192.0.2.50",
+      "Datacenter": "dc1",
+      "TaggedAddresses": null,
+      "Meta": null,
+      "CreateIndex": 23785783,
+      "ModifyIndex": 23785783
     },
-    Service: {
-      ID: 'redis',
-      Service: 'redis',
-      Tags: ['bar', 'foo'],
-      Port: 8000,
+    "Service": {
+      "ID": "redis",
+      "Service": "redis",
+      "Tags": [],
+      "Meta": null,
+      "Port": 6379,
+      "Address": "",
+      "Weights": {
+        "Passing": 1,
+        "Warning": 1
+      },
+      "EnableTagOverride": false,
+      "CreateIndex": 23785794,
+      "ModifyIndex": 23785794,
+      "Proxy": {
+        "MeshGateway": {},
+        "Expose": {}
+      },
+      "Connect": {}
     },
-    Checks: [
+    "Checks": [
       {
-        Node: 'foobar',
-        CheckID: 'service:redis',
-        Name: "Service 'redis' check",
-        Status: 'passing',
-        Notes: '',
-        Output: '',
-        ServiceID: 'redis',
-        ServiceName: 'redis',
-      },
-      {
-        Node: 'foobar',
-        CheckID: 'serfHealth',
-        Name: 'Serf Health Status',
-        Status: 'passing',
-        Notes: '',
-        Output: '',
-        ServiceID: '',
-        ServiceName: '',
-      },
-    ],
+        "Node": "hashicorp-consul-server-1",
+        "CheckID": "serfHealth",
+        "Name": "Serf Health Status",
+        "Status": "passing",
+        "Notes": "",
+        "Output": "Agent alive and reachable",
+        "ServiceID": "",
+        "ServiceName": "",
+        "ServiceTags": [],
+        "Type": "",
+        "Definition": {
+          "Interval": "0s",
+          "Timeout": "0s",
+          "DeregisterCriticalServiceAfter": "0s",
+          "HTTP": "",
+          "Header": null,
+          "Method": "",
+          "Body": "",
+          "TLSServerName": "",
+          "TLSSkipVerify": false,
+          "TCP": "",
+          "GRPC": "",
+          "GRPCUseTLS": false
+        },
+        "CreateIndex": 23785783,
+        "ModifyIndex": 23791503
+      }
+    ]
   }
 ]
 ```
@@ -360,14 +553,24 @@ An example of the output of this command:
 ### Type: checks ((#checks))
 
 The "checks" watch type is used to monitor the checks of a given
-service or those in a specific state. It optionally takes the "service"
-parameter to filter to a specific service or the "state" parameter to
+service or those in a specific state. It optionally takes the `service`
+parameter to filter to a specific service or the `state` parameter to
 filter to a specific state. By default, it will watch all checks.
 
 This maps to the `/v1/health/state/` API if monitoring by state
 or `/v1/health/checks/` if monitoring by service.
 
 Here is an example configuration for monitoring by state:
+
+<CodeTabs heading="Example checks watch type for all services in the passing state">
+
+```hcl
+{
+  type = "checks"
+  state = "passing"
+  args = ["/usr/bin/my-check-handler.sh", "-passing"]
+}
+```
 
 ```json
 {
@@ -377,7 +580,19 @@ Here is an example configuration for monitoring by state:
 }
 ```
 
+</CodeTabs>
+
 Here is an example configuration for monitoring by service:
+
+<CodeTabs heading="Example checks watch type for a specific service">
+
+```hcl
+{
+  type = "checks"
+  service = "redis"
+  args = ["/usr/bin/my-check-handler.sh", "-redis"]
+}
+```
 
 ```json
 {
@@ -386,6 +601,8 @@ Here is an example configuration for monitoring by service:
   "args": ["/usr/bin/my-check-handler.sh", "-redis"]
 }
 ```
+
+</CodeTabs>
 
 Or, using the watch command:
 
@@ -422,12 +639,22 @@ An example of the output of this command:
 
 The "event" watch type is used to monitor for custom user
 events. These are fired using the [consul event](/commands/event) command.
-It takes only a single optional "name" parameter which restricts
+It takes only a single optional `name` parameter which restricts
 the watch to only events with the given name.
 
 This maps to the `/v1/event/list` API internally.
 
 Here is an example configuration:
+
+<CodeTabs heading="Example event watch type">
+
+```hcl
+{
+  type = "event"
+  name = "web-deploy"
+  args = ["/usr/bin/my-event-handler.sh", "-web-deploy"]
+}
+```
 
 ```json
 {
@@ -436,6 +663,8 @@ Here is an example configuration:
   "args": ["/usr/bin/my-event-handler.sh", "-web-deploy"]
 }
 ```
+
+</CodeTabs>
 
 Or, using the watch command:
 

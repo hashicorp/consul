@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"net/rpc"
 	"os"
 	"strings"
 	"testing"
@@ -10,7 +9,8 @@ import (
 
 	"github.com/hashicorp/go-uuid"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -388,7 +389,6 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -399,7 +399,7 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 
 	// Register
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -407,11 +407,11 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 		ServiceName: args.Service.Service,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
-	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
-	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
+	assert.Equal(t, structs.ServiceKindConnectProxy, v.ServiceKind)
+	assert.Equal(t, args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
 }
 
 // Test an invalid ConnectProxy. We don't need to exhaustively test because
@@ -423,7 +423,6 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -436,8 +435,8 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 	// Register
 	var out struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
-	assert.NotNil(err)
-	assert.Contains(err.Error(), "DestinationServiceName")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "DestinationServiceName")
 }
 
 // Test that write is required for the proxy destination to register a proxy.
@@ -448,7 +447,6 @@ func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -479,7 +477,7 @@ node "foo" {
 	args.WriteRequest.Token = token
 	var out struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
-	assert.True(acl.IsErrPermissionDenied(err))
+	assert.True(t, acl.IsErrPermissionDenied(err))
 
 	// Register should fail with the right destination but wrong name
 	args = structs.TestRegisterRequestProxy(t)
@@ -487,14 +485,14 @@ node "foo" {
 	args.Service.Proxy.DestinationServiceName = "foo"
 	args.WriteRequest.Token = token
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
-	assert.True(acl.IsErrPermissionDenied(err))
+	assert.True(t, acl.IsErrPermissionDenied(err))
 
 	// Register should work with the right destination
 	args = structs.TestRegisterRequestProxy(t)
 	args.Service.Service = "foo"
 	args.Service.Proxy.DestinationServiceName = "foo"
 	args.WriteRequest.Token = token
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 }
 
 func TestCatalog_Register_ConnectNative(t *testing.T) {
@@ -504,7 +502,6 @@ func TestCatalog_Register_ConnectNative(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -516,7 +513,7 @@ func TestCatalog_Register_ConnectNative(t *testing.T) {
 
 	// Register
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -524,11 +521,11 @@ func TestCatalog_Register_ConnectNative(t *testing.T) {
 		ServiceName: args.Service.Service,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
-	assert.Equal(structs.ServiceKindTypical, v.ServiceKind)
-	assert.True(v.ServiceConnect.Native)
+	assert.Equal(t, structs.ServiceKindTypical, v.ServiceKind)
+	assert.True(t, v.ServiceConnect.Native)
 }
 
 func TestCatalog_Deregister(t *testing.T) {
@@ -2149,7 +2146,6 @@ func TestCatalog_ListServiceNodes_ConnectProxy(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2161,7 +2157,7 @@ func TestCatalog_ListServiceNodes_ConnectProxy(t *testing.T) {
 	// Register the service
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -2170,11 +2166,11 @@ func TestCatalog_ListServiceNodes_ConnectProxy(t *testing.T) {
 		TagFilter:   false,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
-	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
-	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
+	assert.Equal(t, structs.ServiceKindConnectProxy, v.ServiceKind)
+	assert.Equal(t, args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
 }
 
 func TestCatalog_ServiceNodes_Gateway(t *testing.T) {
@@ -2304,7 +2300,6 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2316,7 +2311,7 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 	// Register the proxy service
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// Register the service
 	{
@@ -2324,7 +2319,7 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 		args := structs.TestRegisterRequest(t)
 		args.Service.Service = dst
 		var out struct{}
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 	}
 
 	// List
@@ -2334,22 +2329,22 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 		ServiceName: args.Service.Proxy.DestinationServiceName,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
-	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
-	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
+	assert.Equal(t, structs.ServiceKindConnectProxy, v.ServiceKind)
+	assert.Equal(t, args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
 
 	// List by non-Connect
 	req = structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: args.Service.Proxy.DestinationServiceName,
 	}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.ServiceNodes, 1)
 	v = resp.ServiceNodes[0]
-	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceName)
-	assert.Equal("", v.ServiceProxy.DestinationServiceName)
+	assert.Equal(t, args.Service.Proxy.DestinationServiceName, v.ServiceName)
+	assert.Equal(t, "", v.ServiceProxy.DestinationServiceName)
 }
 
 // Test that calling ServiceNodes with Connect: true will return
@@ -2361,7 +2356,6 @@ func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2374,7 +2368,7 @@ func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
 	args := structs.TestRegisterRequest(t)
 	args.Service.Connect.Native = true
 	var out struct{}
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -2383,20 +2377,20 @@ func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
 		ServiceName: args.Service.Service,
 	}
 	var resp structs.IndexedServiceNodes
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	require.Len(resp.ServiceNodes, 1)
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
-	require.Equal(args.Service.Service, v.ServiceName)
+	require.Equal(t, args.Service.Service, v.ServiceName)
 
 	// List by non-Connect
 	req = structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: args.Service.Service,
 	}
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	require.Len(resp.ServiceNodes, 1)
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.Len(t, resp.ServiceNodes, 1)
 	v = resp.ServiceNodes[0]
-	require.Equal(args.Service.Service, v.ServiceName)
+	require.Equal(t, args.Service.Service, v.ServiceName)
 }
 
 func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
@@ -2491,7 +2485,6 @@ func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2504,7 +2497,7 @@ func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
 	args := structs.TestRegisterRequest(t)
 	args.Service.Connect.Native = true
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -2513,10 +2506,10 @@ func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
 		TagFilter:   false,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
-	assert.Equal(args.Service.Connect.Native, v.ServiceConnect.Native)
+	assert.Equal(t, args.Service.Connect.Native, v.ServiceConnect.Native)
 }
 
 func TestCatalog_NodeServices(t *testing.T) {
@@ -2581,7 +2574,6 @@ func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2593,7 +2585,7 @@ func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
 	// Register the service
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.NodeSpecificRequest{
@@ -2601,12 +2593,12 @@ func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
 		Node:       args.Node,
 	}
 	var resp structs.IndexedNodeServices
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
 
-	assert.Len(resp.NodeServices.Services, 1)
+	assert.Len(t, resp.NodeServices.Services, 1)
 	v := resp.NodeServices.Services[args.Service.Service]
-	assert.Equal(structs.ServiceKindConnectProxy, v.Kind)
-	assert.Equal(args.Service.Proxy.DestinationServiceName, v.Proxy.DestinationServiceName)
+	assert.Equal(t, structs.ServiceKindConnectProxy, v.Kind)
+	assert.Equal(t, args.Service.Proxy.DestinationServiceName, v.Proxy.DestinationServiceName)
 }
 
 func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
@@ -2616,7 +2608,6 @@ func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2628,7 +2619,7 @@ func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
 	// Register the service
 	args := structs.TestRegisterRequest(t)
 	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.NodeSpecificRequest{
@@ -2636,11 +2627,11 @@ func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
 		Node:       args.Node,
 	}
 	var resp structs.IndexedNodeServices
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
 
-	assert.Len(resp.NodeServices.Services, 1)
+	assert.Len(t, resp.NodeServices.Services, 1)
 	v := resp.NodeServices.Services[args.Service.Service]
-	assert.Equal(args.Service.Connect.Native, v.Connect.Native)
+	assert.Equal(t, args.Service.Connect.Native, v.Connect.Native)
 }
 
 // Used to check for a regression against a known bug
@@ -2883,27 +2874,25 @@ func TestCatalog_NodeServices_ACL(t *testing.T) {
 	}
 
 	t.Run("deny", func(t *testing.T) {
-		require := require.New(t)
 
 		args.Token = token("deny")
 
 		var reply structs.IndexedNodeServices
 		err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
-		require.NoError(err)
-		require.Nil(reply.NodeServices)
-		require.True(reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.NoError(t, err)
+		require.Nil(t, reply.NodeServices)
+		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("allow", func(t *testing.T) {
-		require := require.New(t)
 
 		args.Token = token("read")
 
 		var reply structs.IndexedNodeServices
 		err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
-		require.NoError(err)
-		require.NotNil(reply.NodeServices)
-		require.False(reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.NoError(t, err)
+		require.NotNil(t, reply.NodeServices)
+		require.False(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 }
 
@@ -3443,42 +3432,49 @@ service "gateway" {
 }
 
 func TestVetRegisterWithACL(t *testing.T) {
-	t.Parallel()
+	appendAuthz := func(t *testing.T, defaultAuthz acl.Authorizer, rules string) acl.Authorizer {
+		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxCurrent, nil, nil)
+		require.NoError(t, err)
+
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(defaultAuthz, []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
+
+		return authz
+	}
+
+	t.Run("With an 'allow all' authorizer the update should be allowed", func(t *testing.T) {
+		args := &structs.RegisterRequest{
+			Node:    "nope",
+			Address: "127.0.0.1",
+		}
+
+		// With an "allow all" authorizer the update should be allowed.
+		require.NoError(t, vetRegisterWithACL(acl.ManageAll(), args, nil))
+	})
+
+	var perms acl.Authorizer = acl.DenyAll()
+
 	args := &structs.RegisterRequest{
 		Node:    "nope",
 		Address: "127.0.0.1",
 	}
 
-	// With an "allow all" authorizer the update should be allowed.
-	if err := vetRegisterWithACL(acl.ManageAll(), args, nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
 	// Create a basic node policy.
-	policy, err := acl.NewPolicyFromSource(`
-node "node" {
-  policy = "write"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	perms = appendAuthz(t, perms, `
+	node "node" {
+	  policy = "write"
+	} `)
 
 	// With that policy, the update should now be blocked for node reasons.
-	err = vetRegisterWithACL(perms, args, nil)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	err := vetRegisterWithACL(perms, args, nil)
+	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Now use a permitted node name.
-	args.Node = "node"
-	if err := vetRegisterWithACL(perms, args, nil); err != nil {
-		t.Fatalf("err: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
 	}
+	require.NoError(t, vetRegisterWithACL(perms, args, nil))
 
 	// Build some node info that matches what we have now.
 	ns := &structs.NodeServices{
@@ -3490,183 +3486,220 @@ node "node" {
 	}
 
 	// Try to register a service, which should be blocked.
-	args.Service = &structs.NodeService{
-		Service: "service",
-		ID:      "my-id",
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "service",
+			ID:      "my-id",
+		},
 	}
 	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Chain on a basic service policy.
-	policy, err = acl.NewPolicyFromSource(`
-service "service" {
-  policy = "write"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	perms = appendAuthz(t, perms, `
+	service "service" {
+	  policy = "write"
+	} `)
 
 	// With the service ACL, the update should go through.
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Add an existing service that they are clobbering and aren't allowed
 	// to write to.
-	ns.Services["my-id"] = &structs.NodeService{
-		Service: "other",
-		ID:      "my-id",
+	ns = &structs.NodeServices{
+		Node: &structs.Node{
+			Node:    "node",
+			Address: "127.0.0.1",
+		},
+		Services: map[string]*structs.NodeService{
+			"my-id": {
+				Service: "other",
+				ID:      "my-id",
+			},
+		},
 	}
 	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Chain on a policy that allows them to write to the other service.
-	policy, err = acl.NewPolicyFromSource(`
-service "other" {
-  policy = "write"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	perms = appendAuthz(t, perms, `
+	service "other" {
+	  policy = "write"
+	} `)
 
 	// Now it should go through.
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Try creating the node and the service at once by having no existing
 	// node record. This should be ok since we have node and service
 	// permissions.
-	if err := vetRegisterWithACL(perms, args, nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, vetRegisterWithACL(perms, args, nil))
 
 	// Add a node-level check to the member, which should be rejected.
-	args.Check = &structs.HealthCheck{
-		Node: "node",
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "service",
+			ID:      "my-id",
+		},
+		Check: &structs.HealthCheck{
+			Node: "node",
+		},
 	}
 	err = vetRegisterWithACL(perms, args, ns)
-	if err == nil || !strings.Contains(err.Error(), "check member must be nil") {
-		t.Fatalf("bad: %v", err)
-	}
+	testutil.RequireErrorContains(t, err, "check member must be nil")
 
 	// Move the check into the slice, but give a bad node name.
-	args.Check.Node = "nope"
-	args.Checks = append(args.Checks, args.Check)
-	args.Check = nil
-	err = vetRegisterWithACL(perms, args, ns)
-	if err == nil || !strings.Contains(err.Error(), "doesn't match register request node") {
-		t.Fatalf("bad: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "service",
+			ID:      "my-id",
+		},
+		Checks: []*structs.HealthCheck{
+			{
+				Node: "nope",
+			},
+		},
 	}
+	err = vetRegisterWithACL(perms, args, ns)
+	testutil.RequireErrorContains(t, err, "doesn't match register request node")
 
 	// Fix the node name, which should now go through.
-	args.Checks[0].Node = "node"
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "service",
+			ID:      "my-id",
+		},
+		Checks: []*structs.HealthCheck{
+			{
+				Node: "node",
+			},
+		},
 	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Add a service-level check.
-	args.Checks = append(args.Checks, &structs.HealthCheck{
-		Node:      "node",
-		ServiceID: "my-id",
-	})
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "service",
+			ID:      "my-id",
+		},
+		Checks: []*structs.HealthCheck{
+			{
+				Node: "node",
+			},
+			{
+				Node:      "node",
+				ServiceID: "my-id",
+			},
+		},
 	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Try creating everything at once. This should be ok since we have all
 	// the permissions we need. It also makes sure that we can register a
 	// new node, service, and associated checks.
-	if err := vetRegisterWithACL(perms, args, nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, vetRegisterWithACL(perms, args, nil))
 
 	// Nil out the service registration, which'll skip the special case
 	// and force us to look at the ns data (it will look like we are
 	// writing to the "other" service which also has "my-id").
-	args.Service = nil
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Checks: []*structs.HealthCheck{
+			{
+				Node: "node",
+			},
+			{
+				Node:      "node",
+				ServiceID: "my-id",
+			},
+		},
 	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Chain on a policy that forbids them to write to the other service.
-	policy, err = acl.NewPolicyFromSource(`
-service "other" {
-  policy = "deny"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	perms = appendAuthz(t, perms, `
+	service "other" {
+	  policy = "deny"
+	} `)
 
 	// This should get rejected.
 	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Change the existing service data to point to a service name they
-	// car write to. This should go through.
-	ns.Services["my-id"] = &structs.NodeService{
-		Service: "service",
-		ID:      "my-id",
+	// can write to. This should go through.
+	ns = &structs.NodeServices{
+		Node: &structs.Node{
+			Node:    "node",
+			Address: "127.0.0.1",
+		},
+		Services: map[string]*structs.NodeService{
+			"my-id": {
+				Service: "service",
+				ID:      "my-id",
+			},
+		},
 	}
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Chain on a policy that forbids them to write to the node.
-	policy, err = acl.NewPolicyFromSource(`
-node "node" {
-  policy = "deny"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	perms = appendAuthz(t, perms, `
+	node "node" {
+	  policy = "deny"
+	} `)
 
 	// This should get rejected because there's a node-level check in here.
 	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Change the node-level check into a service check, and then it should
 	// go through.
-	args.Checks[0].ServiceID = "my-id"
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.1",
+		Checks: []*structs.HealthCheck{
+			{
+				Node:      "node",
+				ServiceID: "my-id",
+			},
+			{
+				Node:      "node",
+				ServiceID: "my-id",
+			},
+		},
 	}
+	require.NoError(t, vetRegisterWithACL(perms, args, ns))
 
 	// Finally, attempt to update the node part of the data and make sure
 	// that gets rejected since they no longer have permissions.
-	args.Address = "127.0.0.2"
-	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
+	args = &structs.RegisterRequest{
+		Node:    "node",
+		Address: "127.0.0.2",
+		Checks: []*structs.HealthCheck{
+			{
+				Node:      "node",
+				ServiceID: "my-id",
+			},
+			{
+				Node:      "node",
+				ServiceID: "my-id",
+			},
+		},
 	}
+	err = vetRegisterWithACL(perms, args, ns)
+	require.True(t, acl.IsErrPermissionDenied(err))
 }
 
 func TestVetDeregisterWithACL(t *testing.T) {

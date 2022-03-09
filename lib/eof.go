@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/rpc"
 	"strings"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/yamux"
 )
 

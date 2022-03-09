@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"

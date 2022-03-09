@@ -21,6 +21,7 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/http2"
@@ -651,7 +652,10 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 
 	t.Parallel()
 	buf := &syncBuffer{b: new(bytes.Buffer)}
-	a := StartTestAgent(t, TestAgent{LogOutput: buf})
+	a := StartTestAgent(t, TestAgent{
+		LogOutput: buf,
+		LogLevel:  hclog.Debug,
+	})
 	defer a.Shutdown()
 
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -694,9 +698,7 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 			req, _ := http.NewRequest("GET", url, nil)
 			a.srv.wrap(handler, []string{"GET"})(resp, req)
 			bufout := buf.String()
-			if !strings.Contains(bufout, want) {
-				t.Fatalf("got %s want %s", bufout, want)
-			}
+			require.Contains(t, bufout, want)
 		})
 	}
 }
@@ -907,7 +909,6 @@ func TestParseCacheControl(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
 
 			r, _ := http.NewRequest("GET", "/foo/bar", nil)
 			if tt.headerVal != "" {
@@ -919,13 +920,13 @@ func TestParseCacheControl(t *testing.T) {
 
 			failed := parseCacheControl(rr, r, &got)
 			if tt.wantErr {
-				require.True(failed)
-				require.Equal(http.StatusBadRequest, rr.Code)
+				require.True(t, failed)
+				require.Equal(t, http.StatusBadRequest, rr.Code)
 			} else {
-				require.False(failed)
+				require.False(t, failed)
 			}
 
-			require.Equal(tt.want, got)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -990,7 +991,6 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 	}
 
 	t.Parallel()
-	assert := assert.New(t)
 	dc1 := "dc1"
 
 	a := NewTestAgent(t, `
@@ -1062,7 +1062,7 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", c.endpoint, c.token), nil)
 			resp := httptest.NewRecorder()
 			a.srv.handler(true).ServeHTTP(resp, req)
-			assert.Equal(c.code, resp.Code)
+			assert.Equal(t, c.code, resp.Code)
 		})
 	}
 }

@@ -1,3 +1,6 @@
+# For documentation on building consul from source, refer to:
+# https://www.consul.io/docs/install#compiling-from-source
+
 SHELL = bash
 GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
@@ -12,10 +15,10 @@ GOTOOLS = \
 	github.com/hashicorp/lint-consul-retry@master
 
 GOTAGS ?=
-GOOS?=$(shell go env GOOS)
-GOARCH?=$(shell go env GOARCH)
 GOPATH=$(shell go env GOPATH)
 MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
+
+export PATH := $(PWD)/bin:$(PATH)
 
 ASSETFS_PATH?=agent/uiserver/bindata_assetfs.go
 # Get the git commit
@@ -134,20 +137,18 @@ ifdef SKIP_DOCKER_BUILD
 ENVOY_INTEG_DEPS=noop
 endif
 
-# all builds binaries for all targets
-all: bin
+all: dev-build
 
 # used to make integration dependencies conditional
 noop: ;
 
-bin: tools
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh
-
-# dev creates binaries for testing locally - these are put into ./bin and $GOPATH
+# dev creates binaries for testing locally - these are put into ./bin
 dev: dev-build
 
 dev-build:
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o $(GOOS) -a $(GOARCH)
+	mkdir -p bin
+	CGO_ENABLED=0 go install -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+	cp -f ${MAIN_GOPATH}/bin/consul ./bin/consul
 
 dev-docker: linux
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
@@ -175,9 +176,10 @@ ifeq ($(CIRCLE_BRANCH), main)
 	@docker push $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):latest
 endif
 
-# linux builds a linux package independent of the source platform
+# linux builds a linux binary independent of the source platform
 linux:
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o linux -a amd64
+	@mkdir -p ./pkg/bin/linux_amd64
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./pkg/bin/linux_amd64 -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
@@ -328,15 +330,15 @@ ifeq ("$(CIRCLECI)","true")
 # Run in CI
 	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- -cover -coverprofile=coverage.txt ./agent/connect/ca
 # Run leader tests that require Vault
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-leader.xml" -- -cover -coverprofile=coverage-leader.txt -run '.*_Vault_' ./agent/consul
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-leader.xml" -- -cover -coverprofile=coverage-leader.txt -run Vault ./agent/consul
 # Run agent tests that require Vault
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-agent.xml" -- -cover -coverprofile=coverage-agent.txt -run '.*_Vault_' ./agent
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-agent.xml" -- -cover -coverprofile=coverage-agent.txt -run Vault ./agent
 else
 # Run locally
 	@echo "Running /agent/connect/ca tests in verbose mode"
 	@go test -v ./agent/connect/ca
-	@go test -v ./agent/consul -run '.*_Vault_'
-	@go test -v ./agent -run '.*_Vault_'
+	@go test -v ./agent/consul -run Vault
+	@go test -v ./agent -run Vault
 endif
 
 proto: $(PROTOGOFILES) $(PROTOGOBINFILES)

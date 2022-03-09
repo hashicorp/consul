@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/serf/serf"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -210,6 +211,10 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 		return err
 	}
 
+	var (
+		priorHash uint64
+		ranOnce   bool
+	)
 	return m.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -224,6 +229,23 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 
 			reply.Index, reply.Services = index, services
 			m.srv.filterACLWithAuthorizer(authz, reply)
+
+			// Generate a hash of the intentions content driving this response.
+			// Use it to determine if the response is identical to a prior
+			// wakeup.
+			newHash, err := hashstructure_v2.Hash(services, hashstructure_v2.FormatV2, nil)
+			if err != nil {
+				return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+			}
+
+			if ranOnce && priorHash == newHash {
+				priorHash = newHash
+				return errNotChanged
+			} else {
+				priorHash = newHash
+				ranOnce = true
+			}
+
 			return nil
 		})
 }
@@ -401,13 +423,13 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	}
 
 	// Check ACLs
-	authz, err := m.srv.ResolveToken(args.Token)
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, nil, nil)
 	if err != nil {
 		return err
 	}
 
 	if authz.EventWrite(args.Name, nil) != acl.Allow {
-		accessorID := m.aclAccessorID(args.Token)
+		accessorID := authz.AccessorID()
 		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
 		return acl.ErrPermissionDenied
 	}
@@ -433,11 +455,11 @@ func (m *Internal) KeyringOperation(
 	}
 
 	// Check ACLs
-	identity, authz, err := m.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	authz, err := m.srv.ACLResolver.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if err := m.srv.validateEnterpriseToken(identity); err != nil {
+	if err := m.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
 	switch args.Operation {
@@ -544,22 +566,4 @@ func (m *Internal) executeKeyringOpMgr(
 	}
 
 	return serfResp, err
-}
-
-// aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
-// critical purposes, such as logging. Therefore we interpret all errors as empty-string
-// so we can safely log it without handling non-critical errors at the usage site.
-func (m *Internal) aclAccessorID(secretID string) string {
-	_, ident, err := m.srv.ResolveIdentityFromToken(secretID)
-	if acl.IsErrNotFound(err) {
-		return ""
-	}
-	if err != nil {
-		m.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
-		return ""
-	}
-	if ident == nil {
-		return ""
-	}
-	return ident.ID()
 }

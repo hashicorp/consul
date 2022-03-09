@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/raft"
 

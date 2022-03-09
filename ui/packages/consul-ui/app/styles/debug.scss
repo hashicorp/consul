@@ -1,16 +1,20 @@
-@import './app';
 @import './base/icons/debug';
 @import 'prism-coldark-dark';
 
 // temporary component debugging setup
 @import 'consul-ui/components/main-nav-vertical/debug';
 @import 'consul-ui/components/badge/debug';
+@import 'consul-ui/components/panel/debug';
+@import 'consul-ui/components/shadow-template/debug';
 @import 'consul-ui/components/csv-list/debug';
 @import 'consul-ui/components/horizontal-kv-list/debug';
 @import 'consul-ui/components/icon-definition/debug';
 @import 'consul-ui/components/inline-alert/debug';
 @import 'consul-ui/components/definition-table/debug';
 
+.theme-dark {
+  @extend %theme-dark;
+}
 %debug-grid {
   display: flex;
   flex-wrap: wrap;

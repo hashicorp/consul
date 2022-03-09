@@ -1,3 +1,61 @@
+## 1.11.4 (February 28, 2022)
+
+FEATURES:
+
+* ca: support using an external root CA with the vault CA provider [[GH-11910](https://github.com/hashicorp/consul/issues/11910)]
+
+IMPROVEMENTS:
+
+* connect: Update supported Envoy versions to include 1.19.3 and 1.18.6 [[GH-12449](https://github.com/hashicorp/consul/issues/12449)]
+* connect: update Envoy supported version of 1.20 to 1.20.2 [[GH-12433](https://github.com/hashicorp/consul/issues/12433)]
+* connect: update Envoy supported version of 1.20 to 1.20.2 [[GH-12443](https://github.com/hashicorp/consul/issues/12443)]
+* debug: reduce the capture time for trace to only a single interval instead of the full duration to make trace.out easier to open without running into OOM errors. [[GH-12359](https://github.com/hashicorp/consul/issues/12359)]
+* raft: add additional logging of snapshot restore progress [[GH-12325](https://github.com/hashicorp/consul/issues/12325)]
+* rpc: improve blocking queries for items that do not exist, by continuing to block until they exist (or the timeout). [[GH-12110](https://github.com/hashicorp/consul/issues/12110)]
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+* server: conditionally avoid writing a config entry to raft if it was already the same [[GH-12321](https://github.com/hashicorp/consul/issues/12321)]
+* server: suppress spurious blocking query returns where multiple config entries are involved [[GH-12362](https://github.com/hashicorp/consul/issues/12362)]
+
+BUG FIXES:
+
+* agent: Parse datacenter from Create/Delete requests for AuthMethods and BindingRules. [[GH-12370](https://github.com/hashicorp/consul/issues/12370)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* catalog: compare node names case insensitively in more places [[GH-12444](https://github.com/hashicorp/consul/issues/12444)]
+* checks: populate interval and timeout when registering services [[GH-11138](https://github.com/hashicorp/consul/issues/11138)]
+* local: fixes a data race in anti-entropy sync that could cause the wrong tags to be applied to a service when EnableTagOverride is used [[GH-12324](https://github.com/hashicorp/consul/issues/12324)]
+* raft: fixed a race condition in leadership transfer that could result in reelection of the current leader [[GH-12325](https://github.com/hashicorp/consul/issues/12325)]
+* server: **(Enterprise only)** Namespace deletion will now attempt to delete as many namespaced config entries as possible instead of halting on the first deletion that failed.
+* server: partly fix config entry replication issue that prevents replication in some circumstances [[GH-12307](https://github.com/hashicorp/consul/issues/12307)]
+* state: fix bug blocking snapshot restore when a node check and node differed in casing of the node string [[GH-12444](https://github.com/hashicorp/consul/issues/12444)]
+* ui: Ensure we always display the Policy default preview in the Namespace editing form [[GH-12316](https://github.com/hashicorp/consul/issues/12316)]
+* ui: Fix missing helper javascript error [[GH-12358](https://github.com/hashicorp/consul/issues/12358)]
+* xds: Fixed Envoy http features such as outlier detection and retry policy not working correctly with transparent proxy. [[GH-12385](https://github.com/hashicorp/consul/issues/12385)]
+
+## 1.11.3 (February 11, 2022)
+
+IMPROVEMENTS:
+
+* connect: update Envoy supported version of 1.20 to 1.20.1 [[GH-11895](https://github.com/hashicorp/consul/issues/11895)]
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+* streaming: Improved performance when the server is handling many concurrent subscriptions and has a high number of CPU cores [[GH-12080](https://github.com/hashicorp/consul/issues/12080)]
+* systemd: Support starting/stopping the systemd service for linux packages when the optional EnvironmentFile does not exist. [[GH-12176](https://github.com/hashicorp/consul/issues/12176)]
+
+BUG FIXES:
+
+* Fix a data race when a service is added while the agent is shutting down.. [[GH-12302](https://github.com/hashicorp/consul/issues/12302)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* ca: adjust validation of PrivateKeyType/Bits with the Vault provider, to remove the error when the cert is created manually in Vault. [[GH-12267](https://github.com/hashicorp/consul/issues/12267)]
+* config-entry: fix a panic when creating an ingress gateway config-entry and a proxy service instance, where both provided the same upstream and downstream mapping. [[GH-12277](https://github.com/hashicorp/consul/issues/12277)]
+* connect: fixes bug where passthrough addressses for transparent proxies dialed directly weren't being cleaned up. [[GH-12223](https://github.com/hashicorp/consul/issues/12223)]
+* partitions: **(Enterprise only)** Do not leave a serf partition when the partition is deleted
+* serf: update serf v0.9.7, complete the leave process if broadcasting leave timeout. [[GH-12057](https://github.com/hashicorp/consul/issues/12057)]
+* ui: Fix up a problem where occasionally an intention can visually disappear from the listing after saving [[GH-12315](https://github.com/hashicorp/consul/issues/12315)]
+* ui: Fixed a bug with creating multiple nested KVs in one interaction [[GH-12081](https://github.com/hashicorp/consul/issues/12081)]
+* ui: Include partition data when saving an intention from the topology visualization [[GH-12317](https://github.com/hashicorp/consul/issues/12317)]
+* xds: allow only one outstanding delta request at a time [[GH-12236](https://github.com/hashicorp/consul/issues/12236)]
+* xds: fix for delta xDS reconnect bug in LDS/CDS [[GH-12174](https://github.com/hashicorp/consul/issues/12174)]
+* xds: prevents tight loop where the Consul client agent would repeatedly re-send config that Envoy has rejected. [[GH-12195](https://github.com/hashicorp/consul/issues/12195)]
+
 ## 1.11.2 (January 12, 2022)
 
 FEATURES:
@@ -6,9 +64,11 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* api: URL-encode/decode resource names for v1/agent endpoints in API. [[GH-11335](https://github.com/hashicorp/consul/issues/11335)]
 * api: Return 404 when de-registering a non-existent check [[GH-11950](https://github.com/hashicorp/consul/issues/11950)]
 * connect: Add support for connecting to services behind a terminating gateway when using a transparent proxy. [[GH-12049](https://github.com/hashicorp/consul/issues/12049)]
 * http: when a user attempts to access the UI but can't because it's disabled, explain this and how to fix it [[GH-11820](https://github.com/hashicorp/consul/issues/11820)]
+* raft: Consul leaders will attempt to transfer leadership to another server as part of gracefully leaving the cluster. [[GH-11376](https://github.com/hashicorp/consul/issues/11376)]
 * ui: Added a notice for non-primary intention creation [[GH-11985](https://github.com/hashicorp/consul/issues/11985)]
 
 BUG FIXES:
@@ -79,11 +139,14 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* acls: Show AuthMethodNamespace when reading/listing ACL tokens. [[GH-10598](https://github.com/hashicorp/consul/issues/10598)]
 * acl: replication routine to report the last error message. [[GH-10612](https://github.com/hashicorp/consul/issues/10612)]
 * agent: add variation of force-leave that exclusively works on the WAN [[GH-11722](https://github.com/hashicorp/consul/issues/11722)]
 * api: Enable setting query options on agent health and maintenance endpoints. [[GH-10691](https://github.com/hashicorp/consul/issues/10691)]
+* api: responses that contain only a partial subset of results, due to filtering by ACL policies, may now include an `X-Consul-Results-Filtered-By-ACLs` header [[GH-11569](https://github.com/hashicorp/consul/issues/11569)]
 * checks: add failures_before_warning setting for interval checks. [[GH-10969](https://github.com/hashicorp/consul/issues/10969)]
 * ci: Upgrade to use Go 1.17.5 [[GH-11799](https://github.com/hashicorp/consul/issues/11799)]
+* ci: Allow configuring graceful stop in testutil. [[GH-10566](https://github.com/hashicorp/consul/issues/10566)]
 * cli: Add `-cas` and `-modify-index` flags to the `consul config delete` command to support Check-And-Set (CAS) deletion of config entries [[GH-11419](https://github.com/hashicorp/consul/issues/11419)]
 * config: **(Enterprise Only)** Allow specifying permission mode for audit logs. [[GH-10732](https://github.com/hashicorp/consul/issues/10732)]
 * config: Support Check-And-Set (CAS) deletion of config entries [[GH-11419](https://github.com/hashicorp/consul/issues/11419)]
@@ -92,9 +155,7 @@ IMPROVEMENTS:
 * connect/ca: cease including the common name field in generated x509 non-CA certificates [[GH-10424](https://github.com/hashicorp/consul/issues/10424)]
 * connect: Add low-level feature to allow an Ingress to retrieve TLS certificates from SDS. [[GH-10903](https://github.com/hashicorp/consul/issues/10903)]
 * connect: Consul will now generate a unique virtual IP for each connect-enabled service (this will also differ across namespace/partition in Enterprise). [[GH-11724](https://github.com/hashicorp/consul/issues/11724)]
-* connect: Support Vault auth methods for the Connect CA Vault provider. Currently, we support any non-deprecated auth methods
-the latest version of Vault supports (v1.8.5), which include AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud,
-JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password. [[GH-11573](https://github.com/hashicorp/consul/issues/11573)]
+* connect: Support Vault auth methods for the Connect CA Vault provider. Currently, we support any non-deprecated auth methods the latest version of Vault supports (v1.8.5), which include AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud, JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password. [[GH-11573](https://github.com/hashicorp/consul/issues/11573)]
 * connect: Support manipulating HTTP headers in the mesh. [[GH-10613](https://github.com/hashicorp/consul/issues/10613)]
 * connect: add Namespace configuration setting for Vault CA provider [[GH-11477](https://github.com/hashicorp/consul/issues/11477)]
 * connect: ingress gateways may now enable built-in TLS for a subset of listeners. [[GH-11163](https://github.com/hashicorp/consul/issues/11163)]
@@ -112,7 +173,9 @@ JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius,
 * segments: **(Enterprise only)** ensure that the serf_lan_allowed_cidrs applies to network segments [[GH-11495](https://github.com/hashicorp/consul/issues/11495)]
 * telemetry: add a new `agent.tls.cert.expiry` metric for tracking when the Agent TLS certificate expires. [[GH-10768](https://github.com/hashicorp/consul/issues/10768)]
 * telemetry: add a new `mesh.active-root-ca.expiry` metric for tracking when the root certificate expires. [[GH-9924](https://github.com/hashicorp/consul/issues/9924)]
+* telemetry: added metrics to track certificates expiry. [[GH-10504](https://github.com/hashicorp/consul/issues/10504)]
 * types: add TLSVersion and TLSCipherSuite [[GH-11645](https://github.com/hashicorp/consul/issues/11645)]
+* ui: Change partition URL segment prefix from `-` to `_` [[GH-11801](https://github.com/hashicorp/consul/issues/11801)]
 * ui: Add upstream icons for upstreams and upstream instances [[GH-11556](https://github.com/hashicorp/consul/issues/11556)]
 * ui: Add uri guard to prevent future URL encoding issues [[GH-11117](https://github.com/hashicorp/consul/issues/11117)]
 * ui: Move the majority of our SASS variables to use native CSS custom
@@ -175,6 +238,62 @@ permissions errors rather than using UI capabilities 'pre-user-action' [[GH-1152
 NOTES:
 
 * Renamed the `agent_master` field to `agent_recovery` in the `acl-tokens.json` file in which tokens are persisted on-disk (when `acl.enable_token_persistence` is enabled) [[GH-11744](https://github.com/hashicorp/consul/issues/11744)]
+
+## 1.10.9 (February 28, 2022)
+
+SECURITY:
+
+* agent: Use SHA256 instead of MD5 to generate persistence file names.
+
+FEATURES:
+
+* ca: support using an external root CA with the vault CA provider [[GH-11910](https://github.com/hashicorp/consul/issues/11910)]
+
+IMPROVEMENTS:
+
+* connect: Update supported Envoy versions to include 1.18.6 [[GH-12450](https://github.com/hashicorp/consul/issues/12450)]
+* connect: update Envoy supported version of 1.20 to 1.20.2 [[GH-12434](https://github.com/hashicorp/consul/issues/12434)]
+* debug: reduce the capture time for trace to only a single interval instead of the full duration to make trace.out easier to open without running into OOM errors. [[GH-12359](https://github.com/hashicorp/consul/issues/12359)]
+* raft: add additional logging of snapshot restore progress [[GH-12325](https://github.com/hashicorp/consul/issues/12325)]
+* rpc: improve blocking queries for items that do not exist, by continuing to block until they exist (or the timeout). [[GH-12110](https://github.com/hashicorp/consul/issues/12110)]
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+* server: conditionally avoid writing a config entry to raft if it was already the same [[GH-12321](https://github.com/hashicorp/consul/issues/12321)]
+* server: suppress spurious blocking query returns where multiple config entries are involved [[GH-12362](https://github.com/hashicorp/consul/issues/12362)]
+
+BUG FIXES:
+
+* agent: Parse datacenter from Create/Delete requests for AuthMethods and BindingRules. [[GH-12370](https://github.com/hashicorp/consul/issues/12370)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* raft: fixed a race condition in leadership transfer that could result in reelection of the current leader [[GH-12325](https://github.com/hashicorp/consul/issues/12325)]
+* server: **(Enterprise only)** Namespace deletion will now attempt to delete as many namespaced config entries as possible instead of halting on the first deletion that failed.
+* server: partly fix config entry replication issue that prevents replication in some circumstances [[GH-12307](https://github.com/hashicorp/consul/issues/12307)]
+* ui: Ensure we always display the Policy default preview in the Namespace editing form [[GH-12316](https://github.com/hashicorp/consul/issues/12316)]
+* xds: Fixed Envoy http features such as outlier detection and retry policy not working correctly with transparent proxy. [[GH-12385](https://github.com/hashicorp/consul/issues/12385)]
+
+## 1.10.8 (February 11, 2022)
+
+SECURITY:
+
+* agent: Use SHA256 instead of MD5 to generate persistence file names.
+
+IMPROVEMENTS:
+
+* raft: Consul leaders will attempt to transfer leadership to another server as part of gracefully leaving the cluster. [[GH-11376](https://github.com/hashicorp/consul/issues/11376)]
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+
+BUG FIXES:
+
+* Fix a data race when a service is added while the agent is shutting down.. [[GH-12302](https://github.com/hashicorp/consul/issues/12302)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* config-entry: fix a panic when creating an ingress gateway config-entry and a proxy service instance, where both providedthe same upstream and downstrem mapping. [[GH-12277](https://github.com/hashicorp/consul/issues/12277)]
+* config: include all config errors in the error message, previously some could be hidden. [[GH-11918](https://github.com/hashicorp/consul/issues/11918)]
+* connect: fixes bug where passthrough addressses for transparent proxies dialed directly weren't being cleaned up. [[GH-12223](https://github.com/hashicorp/consul/issues/12223)]
+* memberlist: fixes a bug which prevented members from joining a cluster with
+large amounts of churn [[GH-253](https://github.com/hashicorp/memberlist/issues/253)] [[GH-12047](https://github.com/hashicorp/consul/issues/12047)]
+* snapshot: the `snapshot save` command now saves the snapshot with read permission for only the current user. [[GH-11918](https://github.com/hashicorp/consul/issues/11918)]
+* xds: allow only one outstanding delta request at a time [[GH-12236](https://github.com/hashicorp/consul/issues/12236)]
+* xds: fix for delta xDS reconnect bug in LDS/CDS [[GH-12174](https://github.com/hashicorp/consul/issues/12174)]
+* xds: prevents tight loop where the Consul client agent would repeatedly re-send config that Envoy has rejected. [[GH-12195](https://github.com/hashicorp/consul/issues/12195)]a
 
 ## 1.10.7 (January 12, 2022)
 
@@ -498,6 +617,39 @@ being expired. [[GH-10161](https://github.com/hashicorp/consul/issues/10161)]
 NOTES:
 
 * legal: **(Enterprise only)** Enterprise binary downloads will now include a copy of the EULA and Terms of Evaluation in the zip archive
+
+## 1.9.16 (February 28, 2022)
+
+FEATURES:
+
+* ca: support using an external root CA with the vault CA provider [[GH-11910](https://github.com/hashicorp/consul/issues/11910)]
+
+IMPROVEMENTS:
+
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+* server: conditionally avoid writing a config entry to raft if it was already the same [[GH-12321](https://github.com/hashicorp/consul/issues/12321)]
+
+BUG FIXES:
+
+* agent: Parse datacenter from Create/Delete requests for AuthMethods and BindingRules. [[GH-12370](https://github.com/hashicorp/consul/issues/12370)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* server: **(Enterprise only)** Namespace deletion will now attempt to delete as many namespaced config entries as possible instead of halting on the first deletion that failed.
+* server: partly fix config entry replication issue that prevents replication in some circumstances [[GH-12307](https://github.com/hashicorp/consul/issues/12307)]
+* ui: Ensure we always display the Policy default preview in the Namespace editing form [[GH-12316](https://github.com/hashicorp/consul/issues/12316)]
+
+## 1.9.15 (February 11, 2022)
+
+IMPROVEMENTS:
+
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+
+BUG FIXES:
+
+* Fix a data race when a service is added while the agent is shutting down.. [[GH-12302](https://github.com/hashicorp/consul/issues/12302)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* config-entry: fix a panic when creating an ingress gateway config-entry and a proxy service instance, where both provided the same upstream and downstream mapping. [[GH-12277](https://github.com/hashicorp/consul/issues/12277)]
+* config: include all config errors in the error message, previously some could be hidden. [[GH-11918](https://github.com/hashicorp/consul/issues/11918)]
+* snapshot: the `snapshot save` command now saves the snapshot with read permission for only the current user. [[GH-11918](https://github.com/hashicorp/consul/issues/11918)]
 
 ## 1.9.14 (January 12, 2022)
 

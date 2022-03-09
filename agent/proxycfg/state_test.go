@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
@@ -115,11 +114,10 @@ func TestStateChanged(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
 			state, err := newState(tt.ns, tt.token, stateConfig{logger: hclog.New(nil)})
-			require.NoError(err)
+			require.NoError(t, err)
 			otherNS, otherToken := tt.mutate(*tt.ns, tt.token)
-			require.Equal(tt.want, state.Changed(otherNS, otherToken))
+			require.Equal(t, tt.want, state.Changed(otherNS, otherToken))
 		})
 	}
 }
@@ -381,8 +379,9 @@ func ingressConfigWatchEvent(gwTLS bool, mixedTLS bool) cache.UpdateEvent {
 	}
 }
 
-func upstreamIDForDC2(name string) string {
-	return fmt.Sprintf("%s?dc=dc2", name)
+func upstreamIDForDC2(uid UpstreamID) UpstreamID {
+	uid.Datacenter = "dc2"
+	return uid
 }
 
 // This test is meant to exercise the various parts of the cache watching done by the state as
@@ -410,6 +409,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		db      = structs.NewServiceName("db", nil)
 		billing = structs.NewServiceName("billing", nil)
 		api     = structs.NewServiceName("api", nil)
+
+		apiUID = NewUpstreamIDFromServiceName(api)
+		dbUID  = NewUpstreamIDFromServiceName(db)
+		pqUID  = UpstreamIDFromString("prepared_query:query")
 	)
 
 	rootWatchEvent := func() cache.UpdateEvent {
@@ -498,11 +501,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 		stage0 := verificationStage{
 			requiredWatches: map[string]verifyWatchRequest{
-				rootsWatchID:                    genVerifyRootsWatch("dc1"),
-				leafWatchID:                     genVerifyLeafWatch("web", "dc1"),
-				intentionsWatchID:               genVerifyIntentionWatch("web", "dc1"),
-				"upstream:prepared_query:query": genVerifyPreparedQueryWatch("query", "dc1"),
-				fmt.Sprintf("discovery-chain:%s", api.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+				rootsWatchID:                 genVerifyRootsWatch("dc1"),
+				leafWatchID:                  genVerifyLeafWatch("web", "dc1"),
+				intentionsWatchID:            genVerifyIntentionWatch("web", "dc1"),
+				"upstream:" + pqUID.String(): genVerifyPreparedQueryWatch("query", "dc1"),
+				fmt.Sprintf("discovery-chain:%s", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api",
 					EvaluateInDatacenter: "dc1",
 					EvaluateInNamespace:  "default",
@@ -512,7 +515,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Mode: meshGatewayProxyConfigValue,
 					},
 				}),
-				fmt.Sprintf("discovery-chain:%s-failover-remote?dc=dc2", api.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+				fmt.Sprintf("discovery-chain:%s-failover-remote?dc=dc2", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-remote",
 					EvaluateInDatacenter: "dc2",
 					EvaluateInNamespace:  "default",
@@ -522,7 +525,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Mode: structs.MeshGatewayModeRemote,
 					},
 				}),
-				fmt.Sprintf("discovery-chain:%s-failover-local?dc=dc2", api.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+				fmt.Sprintf("discovery-chain:%s-failover-local?dc=dc2", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-local",
 					EvaluateInDatacenter: "dc2",
 					EvaluateInNamespace:  "default",
@@ -532,7 +535,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Mode: structs.MeshGatewayModeLocal,
 					},
 				}),
-				fmt.Sprintf("discovery-chain:%s-failover-direct?dc=dc2", api.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+				fmt.Sprintf("discovery-chain:%s-failover-direct?dc=dc2", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-direct",
 					EvaluateInDatacenter: "dc2",
 					EvaluateInNamespace:  "default",
@@ -542,7 +545,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Mode: structs.MeshGatewayModeNone,
 					},
 				}),
-				fmt.Sprintf("discovery-chain:%s-dc2", api.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+				fmt.Sprintf("discovery-chain:%s-dc2", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-dc2",
 					EvaluateInDatacenter: "dc1",
 					EvaluateInNamespace:  "default",
@@ -566,7 +569,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Err:           nil,
 				},
 				{
-					CorrelationID: fmt.Sprintf("discovery-chain:%s", api.String()),
+					CorrelationID: fmt.Sprintf("discovery-chain:%s", apiUID.String()),
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
@@ -576,7 +579,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Err: nil,
 				},
 				{
-					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-remote?dc=dc2", api.String()),
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-remote?dc=dc2", apiUID.String()),
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-remote", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
@@ -586,7 +589,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Err: nil,
 				},
 				{
-					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-local?dc=dc2", api.String()),
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-local?dc=dc2", apiUID.String()),
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-local", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
@@ -596,7 +599,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Err: nil,
 				},
 				{
-					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-direct?dc=dc2", api.String()),
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-direct?dc=dc2", apiUID.String()),
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-direct", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
@@ -606,7 +609,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Err: nil,
 				},
 				{
-					CorrelationID: fmt.Sprintf("discovery-chain:%s-dc2", api.String()),
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-dc2", apiUID.String()),
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "default", "dc1", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
@@ -645,12 +648,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 		stage1 := verificationStage{
 			requiredWatches: map[string]verifyWatchRequest{
-				fmt.Sprintf("upstream-target:api.default.default.dc1:%s", api.String()):                                        genVerifyServiceWatch("api", "", "dc1", true),
-				fmt.Sprintf("upstream-target:api-failover-remote.default.default.dc2:%s-failover-remote?dc=dc2", api.String()): genVerifyServiceWatch("api-failover-remote", "", "dc2", true),
-				fmt.Sprintf("upstream-target:api-failover-local.default.default.dc2:%s-failover-local?dc=dc2", api.String()):   genVerifyServiceWatch("api-failover-local", "", "dc2", true),
-				fmt.Sprintf("upstream-target:api-failover-direct.default.default.dc2:%s-failover-direct?dc=dc2", api.String()): genVerifyServiceWatch("api-failover-direct", "", "dc2", true),
-				fmt.Sprintf("mesh-gateway:dc2:%s-failover-remote?dc=dc2", api.String()):                                        genVerifyGatewayWatch("dc2"),
-				fmt.Sprintf("mesh-gateway:dc1:%s-failover-local?dc=dc2", api.String()):                                         genVerifyGatewayWatch("dc1"),
+				fmt.Sprintf("upstream-target:api.default.default.dc1:%s", apiUID.String()):                                        genVerifyServiceWatch("api", "", "dc1", true),
+				fmt.Sprintf("upstream-target:api-failover-remote.default.default.dc2:%s-failover-remote?dc=dc2", apiUID.String()): genVerifyServiceWatch("api-failover-remote", "", "dc2", true),
+				fmt.Sprintf("upstream-target:api-failover-local.default.default.dc2:%s-failover-local?dc=dc2", apiUID.String()):   genVerifyServiceWatch("api-failover-local", "", "dc2", true),
+				fmt.Sprintf("upstream-target:api-failover-direct.default.default.dc2:%s-failover-direct?dc=dc2", apiUID.String()): genVerifyServiceWatch("api-failover-direct", "", "dc2", true),
+				fmt.Sprintf("mesh-gateway:dc2:%s-failover-remote?dc=dc2", apiUID.String()):                                        genVerifyGatewayWatch("dc2"),
+				fmt.Sprintf("mesh-gateway:dc1:%s-failover-local?dc=dc2", apiUID.String()):                                         genVerifyGatewayWatch("dc1"),
 			},
 			verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 				require.True(t, snap.Valid())
@@ -673,7 +676,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		}
 
 		if meshGatewayProxyConfigValue == structs.MeshGatewayModeLocal {
-			stage1.requiredWatches[fmt.Sprintf("mesh-gateway:dc1:%s-dc2", api.String())] = genVerifyGatewayWatch("dc1")
+			stage1.requiredWatches[fmt.Sprintf("mesh-gateway:dc1:%s-dc2", apiUID.String())] = genVerifyGatewayWatch("dc1")
 		}
 
 		return testCase{
@@ -999,7 +1002,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 						})
 						require.Len(t, snap.IngressGateway.WatchedDiscoveryChains, 1)
-						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, api.String())
+						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, apiUID)
 					},
 				},
 				{
@@ -1020,7 +1023,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"discovery-chain:" + api.String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+						"discovery-chain:" + apiUID.String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 							Name:                 "api",
 							EvaluateInDatacenter: "dc1",
 							EvaluateInNamespace:  "default",
@@ -1030,7 +1033,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "discovery-chain:" + api.String(),
+							CorrelationID: "discovery-chain:" + apiUID.String(),
 							Result: &structs.DiscoveryChainResponse{
 								Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul", nil),
 							},
@@ -1039,16 +1042,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.Len(t, snap.IngressGateway.WatchedUpstreams, 1)
-						require.Len(t, snap.IngressGateway.WatchedUpstreams[api.String()], 1)
+						require.Len(t, snap.IngressGateway.WatchedUpstreams[apiUID], 1)
 					},
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"upstream-target:api.default.default.dc1:" + api.String(): genVerifyServiceWatch("api", "", "dc1", true),
+						"upstream-target:api.default.default.dc1:" + apiUID.String(): genVerifyServiceWatch("api", "", "dc1", true),
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "upstream-target:api.default.default.dc1:" + api.String(),
+							CorrelationID: "upstream-target:api.default.default.dc1:" + apiUID.String(),
 							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: structs.CheckServiceNodes{
 									{
@@ -1068,10 +1071,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.Len(t, snap.IngressGateway.WatchedUpstreamEndpoints, 1)
-						require.Contains(t, snap.IngressGateway.WatchedUpstreamEndpoints, api.String())
-						require.Len(t, snap.IngressGateway.WatchedUpstreamEndpoints[api.String()], 1)
-						require.Contains(t, snap.IngressGateway.WatchedUpstreamEndpoints[api.String()], "api.default.default.dc1")
-						require.Equal(t, snap.IngressGateway.WatchedUpstreamEndpoints[api.String()]["api.default.default.dc1"],
+						require.Contains(t, snap.IngressGateway.WatchedUpstreamEndpoints, apiUID)
+						require.Len(t, snap.IngressGateway.WatchedUpstreamEndpoints[apiUID], 1)
+						require.Contains(t, snap.IngressGateway.WatchedUpstreamEndpoints[apiUID], "api.default.default.dc1")
+						require.Equal(t, snap.IngressGateway.WatchedUpstreamEndpoints[apiUID]["api.default.default.dc1"],
 							structs.CheckServiceNodes{
 								{
 									Node: &structs.Node{
@@ -1135,7 +1138,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.IngressGateway.Hosts, 1)
 						require.Len(t, snap.IngressGateway.Upstreams, 1)
 						require.Len(t, snap.IngressGateway.WatchedDiscoveryChains, 1)
-						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, api.String())
+						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, apiUID)
 					},
 				},
 				{
@@ -1220,7 +1223,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.IngressGateway.Hosts, 1)
 						require.Len(t, snap.IngressGateway.Upstreams, 1)
 						require.Len(t, snap.IngressGateway.WatchedDiscoveryChains, 1)
-						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, api.String())
+						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, apiUID)
 					},
 				},
 				{
@@ -1682,8 +1685,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.TerminatingGateway.IsEmpty())
 
 						require.False(t, snap.ConnectProxy.IsEmpty())
-						expectUpstreams := map[string]*structs.Upstream{
-							db.String(): {
+						expectUpstreams := map[UpstreamID]*structs.Upstream{
+							dbUID: {
 								DestinationName:      "db",
 								DestinationNamespace: structs.IntentionDefaultNamespace,
 								DestinationPartition: structs.IntentionDefaultNamespace,
@@ -1771,7 +1774,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.ConnectProxy.UpstreamConfig, 1)
 
 						wc := structs.NewServiceName(structs.WildcardSpecifier, structs.WildcardEnterpriseMetaInDefaultPartition())
-						require.Contains(t, snap.ConnectProxy.UpstreamConfig, wc.String())
+						wcUID := NewUpstreamIDFromServiceName(wc)
+						require.Contains(t, snap.ConnectProxy.UpstreamConfig, wcUID)
 					},
 				},
 				// Valid snapshot after roots, leaf, and intentions
@@ -1833,16 +1837,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "should still be valid")
 
-						require.Equal(t, map[string]struct{}{db.String(): {}}, snap.ConnectProxy.IntentionUpstreams)
+						require.Equal(t, map[UpstreamID]struct{}{dbUID: {}}, snap.ConnectProxy.IntentionUpstreams)
 
 						// Should start watch for db's chain
-						require.Contains(t, snap.ConnectProxy.WatchedDiscoveryChains, db.String())
+						require.Contains(t, snap.ConnectProxy.WatchedDiscoveryChains, dbUID)
 
 						// Should not have results yet
 						require.Empty(t, snap.ConnectProxy.DiscoveryChain)
 
 						require.Len(t, snap.ConnectProxy.UpstreamConfig, 2)
-						cfg, ok := snap.ConnectProxy.UpstreamConfig[db.String()]
+						cfg, ok := snap.ConnectProxy.UpstreamConfig[dbUID]
 						require.True(t, ok)
 
 						// Upstream config should have been inherited from defaults under wildcard key
@@ -1852,7 +1856,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				// Discovery chain updates should be stored
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"discovery-chain:" + db.String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+						"discovery-chain:" + dbUID.String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 							Name:                   "db",
 							EvaluateInDatacenter:   "dc1",
 							EvaluateInNamespace:    "default",
@@ -1864,7 +1868,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "discovery-chain:" + db.String(),
+							CorrelationID: "discovery-chain:" + dbUID.String(),
 							Result: &structs.DiscoveryChainResponse{
 								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", nil),
 							},
@@ -1873,22 +1877,23 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.Len(t, snap.ConnectProxy.WatchedUpstreams, 1)
-						require.Len(t, snap.ConnectProxy.WatchedUpstreams[db.String()], 1)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreams[dbUID], 1)
 					},
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"upstream-target:db.default.default.dc1:" + db.String(): genVerifyServiceWatch("db", "", "dc1", true),
+						"upstream-target:db.default.default.dc1:" + dbUID.String(): genVerifyServiceWatch("db", "", "dc1", true),
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "upstream-target:db.default.default.dc1:" + db.String(),
+							CorrelationID: "upstream-target:db.default.default.dc1:" + dbUID.String(),
 							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: structs.CheckServiceNodes{
 									{
 										Node: &structs.Node{
-											Node:    "node1",
-											Address: "10.0.0.1",
+											Datacenter: "dc1",
+											Node:       "node1",
+											Address:    "10.0.0.1",
 										},
 										Service: &structs.NodeService{
 											Kind:    structs.ServiceKindConnectProxy,
@@ -1905,12 +1910,19 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 													DialedDirectly: true,
 												},
 											},
+											RaftIndex: structs.RaftIndex{
+												ModifyIndex: 12,
+											},
 										},
 									},
 									{
 										Node: &structs.Node{
-											Node:    "node2",
-											Address: "10.0.0.2",
+											Datacenter: "dc1",
+											Node:       "node2",
+											Address:    "10.0.0.2",
+											RaftIndex: structs.RaftIndex{
+												ModifyIndex: 21,
+											},
 										},
 										Service: &structs.NodeService{
 											Kind:    structs.ServiceKindConnectProxy,
@@ -1931,15 +1943,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 1)
-						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints, db.String())
-						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[db.String()], 1)
-						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints[db.String()], "db.default.default.dc1")
-						require.Equal(t, snap.ConnectProxy.WatchedUpstreamEndpoints[db.String()]["db.default.default.dc1"],
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints, dbUID)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbUID], 1)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbUID], "db.default.default.dc1")
+						require.Equal(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc1"],
 							structs.CheckServiceNodes{
 								{
 									Node: &structs.Node{
-										Node:    "node1",
-										Address: "10.0.0.1",
+										Datacenter: "dc1",
+										Node:       "node1",
+										Address:    "10.0.0.1",
 									},
 									Service: &structs.NodeService{
 										Kind:    structs.ServiceKindConnectProxy,
@@ -1956,12 +1969,19 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 												DialedDirectly: true,
 											},
 										},
+										RaftIndex: structs.RaftIndex{
+											ModifyIndex: 12,
+										},
 									},
 								},
 								{
 									Node: &structs.Node{
-										Node:    "node2",
-										Address: "10.0.0.2",
+										Datacenter: "dc1",
+										Node:       "node2",
+										Address:    "10.0.0.2",
+										RaftIndex: structs.RaftIndex{
+											ModifyIndex: 21,
+										},
 									},
 									Service: &structs.NodeService{
 										Kind:    structs.ServiceKindConnectProxy,
@@ -1980,20 +2000,24 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						// The LAN service address is used below because transparent proxying
 						// does not support querying service nodes in other DCs, and the WAN address
 						// should not be used in DC-local calls.
-						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[string]ServicePassthroughAddrs{
-							db.String(): {
-								SNI: connect.ServiceSNI("db", "", structs.IntentionDefaultNamespace, "", snap.Datacenter, snap.Roots.TrustDomain),
-								SpiffeID: connect.SpiffeIDService{
-									Host:       snap.Roots.TrustDomain,
-									Namespace:  db.NamespaceOrDefault(),
-									Partition:  db.PartitionOrDefault(),
-									Datacenter: snap.Datacenter,
-									Service:    "db",
-								},
-								Addrs: map[string]struct{}{
+						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[UpstreamID]map[string]map[string]struct{}{
+							dbUID: {
+								"db.default.default.dc1": map[string]struct{}{
 									"10.10.10.10": {},
 									"10.0.0.2":    {},
 								},
+							},
+						})
+						require.Equal(t, snap.ConnectProxy.PassthroughIndices, map[string]indexedTarget{
+							"10.0.0.2": {
+								upstreamID: dbUID,
+								targetID:   "db.default.default.dc1",
+								idx:        21,
+							},
+							"10.10.10.10": {
+								upstreamID: dbUID,
+								targetID:   "db.default.default.dc1",
+								idx:        12,
 							},
 						})
 					},
@@ -2001,7 +2025,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				// Discovery chain updates should be stored
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"discovery-chain:" + db.String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+						"discovery-chain:" + dbUID.String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 							Name:                   "db",
 							EvaluateInDatacenter:   "dc1",
 							EvaluateInNamespace:    "default",
@@ -2013,7 +2037,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "discovery-chain:" + db.String(),
+							CorrelationID: "discovery-chain:" + dbUID.String(),
 							Result: &structs.DiscoveryChainResponse{
 								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", nil, &structs.ServiceResolverConfigEntry{
 									Kind: structs.ServiceResolver,
@@ -2028,16 +2052,202 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.Len(t, snap.ConnectProxy.WatchedUpstreams, 1)
-						require.Len(t, snap.ConnectProxy.WatchedUpstreams[db.String()], 2)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreams[dbUID], 2)
 
 						// In transparent mode we watch the upstream's endpoints even if the upstream is not a target of its chain.
 						// This will happen in cases like redirects.
-						require.Contains(t, snap.ConnectProxy.WatchedUpstreams[db.String()], "db.default.default.dc1")
-						require.Contains(t, snap.ConnectProxy.WatchedUpstreams[db.String()], "mysql.default.default.dc1")
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreams[dbUID], "db.default.default.dc1")
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreams[dbUID], "mysql.default.default.dc1")
 					},
 				},
-				// Empty list of upstreams should clean everything up
 				{
+					// Receive a new upstream target event without proxy1.
+					events: []cache.UpdateEvent{
+						{
+							CorrelationID: "upstream-target:db.default.default.dc1:" + dbUID.String(),
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Datacenter: "dc1",
+											Node:       "node2",
+											Address:    "10.0.0.2",
+											RaftIndex: structs.RaftIndex{
+												ModifyIndex: 21,
+											},
+										},
+										Service: &structs.NodeService{
+											Kind:    structs.ServiceKindConnectProxy,
+											ID:      "db-sidecar-proxy2",
+											Service: "db-sidecar-proxy",
+											Proxy: structs.ConnectProxyConfig{
+												DestinationServiceName: "db",
+												TransparentProxy: structs.TransparentProxyConfig{
+													DialedDirectly: true,
+												},
+											},
+										},
+									},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 1)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints, dbUID)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbUID], 1)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbUID], "db.default.default.dc1")
+
+						// THe endpoint and passthrough address for proxy1 should be gone.
+						require.Equal(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc1"],
+							structs.CheckServiceNodes{
+								{
+									Node: &structs.Node{
+										Datacenter: "dc1",
+										Node:       "node2",
+										Address:    "10.0.0.2",
+										RaftIndex: structs.RaftIndex{
+											ModifyIndex: 21,
+										},
+									},
+									Service: &structs.NodeService{
+										Kind:    structs.ServiceKindConnectProxy,
+										ID:      "db-sidecar-proxy2",
+										Service: "db-sidecar-proxy",
+										Proxy: structs.ConnectProxyConfig{
+											DestinationServiceName: "db",
+											TransparentProxy: structs.TransparentProxyConfig{
+												DialedDirectly: true,
+											},
+										},
+									},
+								},
+							},
+						)
+						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[UpstreamID]map[string]map[string]struct{}{
+							dbUID: {
+								"db.default.default.dc1": map[string]struct{}{
+									"10.0.0.2": {},
+								},
+							},
+						})
+						require.Equal(t, snap.ConnectProxy.PassthroughIndices, map[string]indexedTarget{
+							"10.0.0.2": {
+								upstreamID: dbUID,
+								targetID:   "db.default.default.dc1",
+								idx:        21,
+							},
+						})
+					},
+				},
+				{
+					// Receive a new upstream target event with a conflicting passthrough address
+					events: []cache.UpdateEvent{
+						{
+							CorrelationID: "upstream-target:api.default.default.dc1:" + apiUID.String(),
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Datacenter: "dc1",
+											Node:       "node2",
+										},
+										Service: &structs.NodeService{
+											Kind:    structs.ServiceKindConnectProxy,
+											ID:      "api-sidecar-proxy",
+											Service: "api-sidecar-proxy",
+											Address: "10.0.0.2",
+											Proxy: structs.ConnectProxyConfig{
+												DestinationServiceName: "api",
+												TransparentProxy: structs.TransparentProxyConfig{
+													DialedDirectly: true,
+												},
+											},
+											RaftIndex: structs.RaftIndex{
+												ModifyIndex: 32,
+											},
+										},
+									},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 2)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints, apiUID)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[apiUID], 1)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints[apiUID], "api.default.default.dc1")
+
+						// THe endpoint and passthrough address for proxy1 should be gone.
+						require.Equal(t, snap.ConnectProxy.WatchedUpstreamEndpoints[apiUID]["api.default.default.dc1"],
+							structs.CheckServiceNodes{
+								{
+									Node: &structs.Node{
+										Datacenter: "dc1",
+										Node:       "node2",
+									},
+									Service: &structs.NodeService{
+										Kind:    structs.ServiceKindConnectProxy,
+										ID:      "api-sidecar-proxy",
+										Service: "api-sidecar-proxy",
+										Address: "10.0.0.2",
+										Proxy: structs.ConnectProxyConfig{
+											DestinationServiceName: "api",
+											TransparentProxy: structs.TransparentProxyConfig{
+												DialedDirectly: true,
+											},
+										},
+										RaftIndex: structs.RaftIndex{
+											ModifyIndex: 32,
+										},
+									},
+								},
+							},
+						)
+						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[UpstreamID]map[string]map[string]struct{}{
+							apiUID: {
+								// This target has a higher index so the old passthrough address should be discarded.
+								"api.default.default.dc1": map[string]struct{}{
+									"10.0.0.2": {},
+								},
+							},
+						})
+						require.Equal(t, snap.ConnectProxy.PassthroughIndices, map[string]indexedTarget{
+							"10.0.0.2": {
+								upstreamID: apiUID,
+								targetID:   "api.default.default.dc1",
+								idx:        32,
+							},
+						})
+					},
+				},
+				{
+					// Event with no nodes should clean up addrs
+					events: []cache.UpdateEvent{
+						{
+							CorrelationID: "upstream-target:api.default.default.dc1:" + apiUID.String(),
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 2)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints, apiUID)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[apiUID], 1)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints[apiUID], "api.default.default.dc1")
+
+						// The endpoint and passthrough address for proxy1 should be gone.
+						require.Empty(t, snap.ConnectProxy.WatchedUpstreamEndpoints[apiUID]["api.default.default.dc1"])
+						require.Empty(t, snap.ConnectProxy.PassthroughUpstreams[apiUID]["api.default.default.dc1"])
+						require.Empty(t, snap.ConnectProxy.PassthroughIndices)
+					},
+				},
+				{
+					// Empty list of upstreams should clean up map keys
 					requiredWatches: map[string]verifyWatchRequest{
 						rootsWatchID: genVerifyRootsWatch("dc1"),
 						intentionUpstreamsID: genVerifyServiceSpecificRequest(intentionUpstreamsID,
@@ -2065,6 +2275,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Empty(t, snap.ConnectProxy.WatchedGatewayEndpoints)
 						require.Empty(t, snap.ConnectProxy.DiscoveryChain)
 						require.Empty(t, snap.ConnectProxy.IntentionUpstreams)
+						require.Empty(t, snap.ConnectProxy.PassthroughUpstreams)
+						require.Empty(t, snap.ConnectProxy.PassthroughIndices)
 					},
 				},
 			},
@@ -2110,7 +2322,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						leafWatchID:       genVerifyLeafWatch("api", "dc1"),
 						intentionsWatchID: genVerifyIntentionWatch("api", "dc1"),
 						meshConfigEntryID: genVerifyMeshConfigWatch("dc1"),
-						"discovery-chain:" + upstreamIDForDC2(db.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+						"discovery-chain:" + upstreamIDForDC2(dbUID).String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 							Name:                 "db",
 							EvaluateInDatacenter: "dc2",
 							EvaluateInNamespace:  "default",
@@ -2129,8 +2341,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.ConnectProxy.UpstreamConfig, 2)
 
 						wc := structs.NewServiceName(structs.WildcardSpecifier, structs.WildcardEnterpriseMetaInDefaultPartition())
-						require.Contains(t, snap.ConnectProxy.UpstreamConfig, wc.String())
-						require.Contains(t, snap.ConnectProxy.UpstreamConfig, upstreamIDForDC2(db.String()))
+						wcUID := NewUpstreamIDFromServiceName(wc)
+						require.Contains(t, snap.ConnectProxy.UpstreamConfig, wcUID)
+						require.Contains(t, snap.ConnectProxy.UpstreamConfig, upstreamIDForDC2(dbUID))
 					},
 				},
 				// Valid snapshot after roots, leaf, and intentions
@@ -2172,7 +2385,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				// Discovery chain updates should be stored
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"discovery-chain:" + upstreamIDForDC2(db.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+						"discovery-chain:" + upstreamIDForDC2(dbUID).String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 							Name:                 "db",
 							EvaluateInDatacenter: "dc2",
 							EvaluateInNamespace:  "default",
@@ -2183,7 +2396,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "discovery-chain:" + upstreamIDForDC2(db.String()),
+							CorrelationID: "discovery-chain:" + upstreamIDForDC2(dbUID).String(),
 							Result: &structs.DiscoveryChainResponse{
 								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc2", "trustdomain.consul",
 									func(req *discoverychain.CompileRequest) {
@@ -2195,9 +2408,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.Len(t, snap.ConnectProxy.WatchedGateways, 1)
-						require.Len(t, snap.ConnectProxy.WatchedGateways[upstreamIDForDC2(db.String())], 1)
+						require.Len(t, snap.ConnectProxy.WatchedGateways[upstreamIDForDC2(dbUID)], 1)
 						require.Len(t, snap.ConnectProxy.WatchedUpstreams, 1)
-						require.Len(t, snap.ConnectProxy.WatchedUpstreams[upstreamIDForDC2(db.String())], 1)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreams[upstreamIDForDC2(dbUID)], 1)
 					},
 				},
 				// Empty list of upstreams should only clean up implicit upstreams. The explicit upstream db should not
@@ -2209,7 +2422,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							"api", "", "dc1", false),
 						leafWatchID:       genVerifyLeafWatch("api", "dc1"),
 						intentionsWatchID: genVerifyIntentionWatch("api", "dc1"),
-						"discovery-chain:" + upstreamIDForDC2(db.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+						"discovery-chain:" + upstreamIDForDC2(dbUID).String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 							Name:                 "db",
 							EvaluateInDatacenter: "dc2",
 							EvaluateInNamespace:  "default",
@@ -2238,11 +2451,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						// Explicit upstreams should not be deleted when the empty update event happens since that is
 						// for intention upstreams.
 						require.Len(t, snap.ConnectProxy.DiscoveryChain, 1)
-						require.Contains(t, snap.ConnectProxy.DiscoveryChain, upstreamIDForDC2(db.String()))
+						require.Contains(t, snap.ConnectProxy.DiscoveryChain, upstreamIDForDC2(dbUID))
 						require.Len(t, snap.ConnectProxy.WatchedGateways, 1)
-						require.Len(t, snap.ConnectProxy.WatchedGateways[upstreamIDForDC2(db.String())], 1)
+						require.Len(t, snap.ConnectProxy.WatchedGateways[upstreamIDForDC2(dbUID)], 1)
 						require.Len(t, snap.ConnectProxy.WatchedUpstreams, 1)
-						require.Len(t, snap.ConnectProxy.WatchedUpstreams[upstreamIDForDC2(db.String())], 1)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreams[upstreamIDForDC2(dbUID)], 1)
 					},
 				},
 			},

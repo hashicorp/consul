@@ -15,7 +15,7 @@ import (
 // critical purposes, such as logging. Therefore we interpret all errors as empty-string
 // so we can safely log it without handling non-critical errors at the usage site.
 func (a *Agent) aclAccessorID(secretID string) string {
-	ident, err := a.delegate.ResolveTokenToIdentity(secretID)
+	ident, err := a.delegate.ResolveTokenAndDefaultMeta(secretID, nil, nil)
 	if acl.IsErrNotFound(err) {
 		return ""
 	}
@@ -23,10 +23,7 @@ func (a *Agent) aclAccessorID(secretID string) string {
 		a.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
 		return ""
 	}
-	if ident == nil {
-		return ""
-	}
-	return ident.ID()
+	return ident.AccessorID()
 }
 
 // vetServiceRegister makes sure the service registration action is allowed by
@@ -47,16 +44,14 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	// Vet the service itself.
 	service.FillAuthzContext(&authzContext)
 	if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
-		return acl.PermissionDenied("Missing service:write on %s",
-			structs.ServiceIDString(service.Service, &service.EnterpriseMeta))
+		return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, service.Service)
 	}
 
 	// Vet any service that might be getting overwritten.
 	if existing := a.State.Service(service.CompoundServiceID()); existing != nil {
 		existing.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			return acl.PermissionDenied("Missing service:write on %s",
-				structs.ServiceIDString(service.Service, &service.EnterpriseMeta))
+			return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, existing.Service)
 		}
 	}
 
@@ -65,8 +60,7 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	if service.Kind == structs.ServiceKindConnectProxy {
 		service.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-			return acl.PermissionDenied("Missing service:write on %s",
-				structs.ServiceIDString(service.Proxy.DestinationServiceName, &service.EnterpriseMeta))
+			return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, service.Proxy.DestinationServiceName)
 		}
 	}
 
@@ -80,8 +74,7 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 	if existing := a.State.Service(serviceID); existing != nil {
 		existing.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			return acl.PermissionDenied("Missing service:write on %s",
-				structs.ServiceIDString(existing.Service, &existing.EnterpriseMeta))
+			return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, existing.Service)
 		}
 	} else {
 		// Take care if modifying this error message.
@@ -103,27 +96,26 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 	// Vet the check itself.
 	if len(check.ServiceName) > 0 {
 		if authz.ServiceWrite(check.ServiceName, &authzContext) != acl.Allow {
-			return acl.PermissionDenied("Missing service:write on %s",
-				structs.ServiceIDString(check.ServiceName, &check.EnterpriseMeta))
+			return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, check.ServiceName)
 		}
 	} else {
+		// N.B. Should this authzContext be derived from a.AgentEnterpriseMeta()
 		if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-			return acl.PermissionDenied("Missing node:write on %s",
-				structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
+			return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceNode, acl.AccessWrite, a.config.NodeName)
 		}
 	}
 
 	// Vet any check that might be getting overwritten.
 	if existing := a.State.Check(check.CompoundCheckID()); existing != nil {
 		if len(existing.ServiceName) > 0 {
+			// N.B. Should this authzContext be derived from existing.EnterpriseMeta?
 			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing service:write on %s",
-					structs.ServiceIDString(existing.ServiceName, &existing.EnterpriseMeta))
+				return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, existing.ServiceName)
 			}
 		} else {
+			// N.B. Should this authzContext be derived from a.AgentEnterpriseMeta()
 			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing node:write on %s",
-					structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
+				return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceNode, acl.AccessWrite, a.config.NodeName)
 			}
 		}
 	}
@@ -139,13 +131,11 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 	if existing := a.State.Check(checkID); existing != nil {
 		if len(existing.ServiceName) > 0 {
 			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing service:write on %s",
-					structs.ServiceIDString(existing.ServiceName, &existing.EnterpriseMeta))
+				return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceService, acl.AccessWrite, existing.ServiceName)
 			}
 		} else {
 			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing node:write on %s",
-					structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
+				return acl.PermissionDeniedByACL(authz, &authzContext, acl.ResourceNode, acl.AccessWrite, a.config.NodeName)
 			}
 		}
 	} else {
@@ -174,7 +164,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 		if authz.NodeRead(node, &authzContext) == acl.Allow {
 			continue
 		}
-		accessorID := a.aclAccessorID(token)
+		accessorID := authz.AccessorID()
 		a.logger.Debug("dropping node from result due to ACLs", "node", node, "accessorID", accessorID)
 		m = append(m[:i], m[i+1:]...)
 		i--

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
@@ -985,6 +985,7 @@ type ServiceConfigResponse struct {
 	Expose            ExposeConfig           `json:",omitempty"`
 	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
 	Mode              ProxyMode              `json:",omitempty"`
+	Meta              map[string]string      `json:",omitempty"`
 	QueryMeta
 }
 

@@ -7,10 +7,12 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -45,68 +47,115 @@ func TestConfigEntry_Apply(t *testing.T) {
 	// wait for cross-dc queries to work
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
-	updated := &structs.ServiceConfigEntry{
-		Name: "foo",
-	}
-	// originally target this as going to dc2
-	args := structs.ConfigEntryRequest{
-		Datacenter: "dc2",
-		Entry:      updated,
-	}
-	out := false
-	require.NoError(t, msgpackrpc.CallWithCodec(codec2, "ConfigEntry.Apply", &args, &out))
-	require.True(t, out)
-
-	// the previous RPC should not return until the primary has been updated but will return
-	// before the secondary has the data.
-	state := s1.fsm.State()
-	_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(t, err)
-
-	serviceConf, ok := entry.(*structs.ServiceConfigEntry)
-	require.True(t, ok)
-	require.Equal(t, "foo", serviceConf.Name)
-	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
-
-	retry.Run(t, func(r *retry.R) {
-		// wait for replication to happen
-		state := s2.fsm.State()
-		_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-		require.NoError(r, err)
-		require.NotNil(r, entry)
-		// this test is not testing that the config entries that are replicated are correct as thats done elsewhere.
+	runStep(t, "send the apply request to dc2 - it should get forwarded to dc1", func(t *testing.T) {
+		updated := &structs.ServiceConfigEntry{
+			Name: "foo",
+		}
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc2",
+			Entry:      updated,
+		}
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec2, "ConfigEntry.Apply", &args, &out))
+		require.True(t, out)
 	})
 
-	updated = &structs.ServiceConfigEntry{
-		Name: "foo",
-		MeshGateway: structs.MeshGatewayConfig{
-			Mode: structs.MeshGatewayModeLocal,
-		},
-	}
+	var originalModifyIndex uint64
+	runStep(t, "verify the entry was updated in the primary and secondary", func(t *testing.T) {
+		// the previous RPC should not return until the primary has been updated but will return
+		// before the secondary has the data.
+		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+		require.NoError(t, err)
 
-	args = structs.ConfigEntryRequest{
-		Datacenter: "dc1",
-		Op:         structs.ConfigEntryUpsertCAS,
-		Entry:      updated,
-	}
+		serviceConf, ok := entry.(*structs.ServiceConfigEntry)
+		require.True(t, ok)
+		require.Equal(t, "foo", serviceConf.Name)
+		require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
 
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
-	require.False(t, out)
+		retry.Run(t, func(r *retry.R) {
+			// wait for replication to happen
+			_, entry, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+			require.NoError(r, err)
+			require.NotNil(r, entry)
+			// this test is not testing that the config entries that are replicated are correct as thats done elsewhere.
+		})
+		originalModifyIndex = serviceConf.ModifyIndex
+	})
 
-	args.Entry.GetRaftIndex().ModifyIndex = serviceConf.ModifyIndex
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
-	require.True(t, out)
+	runStep(t, "update the entry again in the primary", func(t *testing.T) {
+		updated := &structs.ServiceConfigEntry{
+			Name: "foo",
+			MeshGateway: structs.MeshGatewayConfig{
+				Mode: structs.MeshGatewayModeLocal,
+			},
+		}
 
-	state = s1.fsm.State()
-	_, entry, err = state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(t, err)
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Op:         structs.ConfigEntryUpsertCAS,
+			Entry:      updated,
+		}
 
-	serviceConf, ok = entry.(*structs.ServiceConfigEntry)
-	require.True(t, ok)
-	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
-	require.Equal(t, "foo", serviceConf.Name)
-	require.Equal(t, "", serviceConf.Protocol)
-	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
+		runStep(t, "with the wrong CAS", func(t *testing.T) {
+			var out bool
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+			require.False(t, out)
+		})
+		runStep(t, "with the correct CAS", func(t *testing.T) {
+			var out bool
+			args.Entry.GetRaftIndex().ModifyIndex = originalModifyIndex
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+			require.True(t, out)
+		})
+	})
+
+	runStep(t, "verify the entry was updated in the state store", func(t *testing.T) {
+		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+		require.NoError(t, err)
+
+		serviceConf, ok := entry.(*structs.ServiceConfigEntry)
+		require.True(t, ok)
+		require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
+		require.Equal(t, "foo", serviceConf.Name)
+		require.Equal(t, "", serviceConf.Protocol)
+		require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
+	})
+
+	runStep(t, "verify no-op updates do not advance the raft indexes", func(t *testing.T) {
+		var modifyIndex uint64
+		for i := 0; i < 3; i++ {
+			runStep(t, fmt.Sprintf("iteration %d", i), func(t *testing.T) {
+				args := structs.ConfigEntryRequest{
+					Datacenter: "dc1",
+					Op:         structs.ConfigEntryUpsert,
+					Entry: &structs.ServiceConfigEntry{
+						Kind:     structs.ServiceDefaults,
+						Name:     "noop",
+						Protocol: "grpc",
+					},
+				}
+				var out bool
+				require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+				require.True(t, out)
+
+				getIndex, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "noop", nil)
+				require.NoError(t, err)
+				require.NotNil(t, entry)
+
+				listIndex, entries, err := s1.fsm.State().ConfigEntries(nil, nil)
+				require.NoError(t, err)
+				require.Len(t, entries, 2)
+
+				if i == 0 {
+					modifyIndex = entry.GetRaftIndex().ModifyIndex
+				} else {
+					require.Equal(t, modifyIndex, entry.GetRaftIndex().ModifyIndex)
+					require.Equal(t, modifyIndex, getIndex)
+					require.Equal(t, modifyIndex, listIndex)
+				}
+			})
+		}
+	})
 }
 
 func TestConfigEntry_ProxyDefaultsMeshGateway(t *testing.T) {
@@ -150,8 +199,6 @@ func TestConfigEntry_Apply_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -191,16 +238,16 @@ operator = "write"
 		Name: "foo",
 	}
 	err = msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	state := s1.fsm.State()
 	_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	serviceConf, ok := entry.(*structs.ServiceConfigEntry)
-	require.True(ok)
-	require.Equal("foo", serviceConf.Name)
-	require.Equal(structs.ServiceDefaults, serviceConf.Kind)
+	require.True(t, ok)
+	require.Equal(t, "foo", serviceConf.Name)
+	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
 
 	// Try to update the global proxy args with the anonymous token - this should fail.
 	proxyArgs := structs.ConfigEntryRequest{
@@ -219,7 +266,7 @@ operator = "write"
 	// Now with the privileged token.
 	proxyArgs.WriteRequest.Token = id
 	err = msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &proxyArgs, &out)
-	require.NoError(err)
+	require.NoError(t, err)
 }
 
 func TestConfigEntry_Get(t *testing.T) {
@@ -228,8 +275,6 @@ func TestConfigEntry_Get(t *testing.T) {
 	}
 
 	t.Parallel()
-
-	require := require.New(t)
 
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -243,7 +288,7 @@ func TestConfigEntry_Get(t *testing.T) {
 		Name: "foo",
 	}
 	state := s1.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, entry))
+	require.NoError(t, state.EnsureConfigEntry(1, entry))
 
 	args := structs.ConfigEntryQuery{
 		Kind:       structs.ServiceDefaults,
@@ -251,12 +296,67 @@ func TestConfigEntry_Get(t *testing.T) {
 		Datacenter: s1.config.Datacenter,
 	}
 	var out structs.ConfigEntryResponse
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Get", &args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Get", &args, &out))
 
 	serviceConf, ok := out.Entry.(*structs.ServiceConfigEntry)
-	require.True(ok)
-	require.Equal("foo", serviceConf.Name)
-	require.Equal(structs.ServiceDefaults, serviceConf.Kind)
+	require.True(t, ok)
+	require.Equal(t, "foo", serviceConf.Name)
+	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
+}
+
+func TestConfigEntry_Get_BlockOnNonExistent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
+
+	codec := rpcClient(t, s1)
+
+	{ // create one relevant entry
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "alpha",
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	runStep(t, "test the errNotFound path", func(t *testing.T) {
+		rpcBlockingQueryTestHarness(t,
+			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
+				args := structs.ConfigEntryQuery{
+					Kind: structs.ServiceDefaults,
+					Name: "does-not-exist",
+				}
+				args.QueryOptions.MinQueryIndex = minQueryIndex
+
+				var out structs.ConfigEntryResponse
+				errCh := channelCallRPC(s1, "ConfigEntry.Get", &args, &out, nil)
+				return &out.QueryMeta, errCh
+			},
+			func(i int) <-chan error {
+				var out bool
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+					Entry: &structs.ServiceConfigEntry{
+						Kind: structs.ServiceDefaults,
+						Name: fmt.Sprintf("other%d", i),
+					},
+				}, &out, func() error {
+					if !out {
+						return fmt.Errorf("[%d] unexpectedly returned false", i)
+					}
+					return nil
+				})
+			},
+		)
+	})
 }
 
 func TestConfigEntry_Get_ACLDeny(t *testing.T) {
@@ -265,8 +365,6 @@ func TestConfigEntry_Get_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-
-	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
@@ -290,11 +388,11 @@ operator = "read"
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 	}))
-	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
 	}))
@@ -314,12 +412,12 @@ operator = "read"
 
 	// The "foo" service should work.
 	args.Name = "foo"
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Get", &args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Get", &args, &out))
 
 	serviceConf, ok := out.Entry.(*structs.ServiceConfigEntry)
-	require.True(ok)
-	require.Equal("foo", serviceConf.Name)
-	require.Equal(structs.ServiceDefaults, serviceConf.Kind)
+	require.True(t, ok)
+	require.Equal(t, "foo", serviceConf.Name)
+	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
 }
 
 func TestConfigEntry_List(t *testing.T) {
@@ -328,8 +426,6 @@ func TestConfigEntry_List(t *testing.T) {
 	}
 
 	t.Parallel()
-
-	require := require.New(t)
 
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -351,19 +447,92 @@ func TestConfigEntry_List(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(state.EnsureConfigEntry(1, expected.Entries[0]))
-	require.NoError(state.EnsureConfigEntry(2, expected.Entries[1]))
+	require.NoError(t, state.EnsureConfigEntry(1, expected.Entries[0]))
+	require.NoError(t, state.EnsureConfigEntry(2, expected.Entries[1]))
 
 	args := structs.ConfigEntryQuery{
 		Kind:       structs.ServiceDefaults,
 		Datacenter: "dc1",
 	}
 	var out structs.IndexedConfigEntries
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.List", &args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.List", &args, &out))
 
 	expected.Kind = structs.ServiceDefaults
 	expected.QueryMeta = out.QueryMeta
-	require.Equal(expected, out)
+	require.Equal(t, expected, out)
+}
+
+func TestConfigEntry_List_BlockOnNoChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
+
+	codec := rpcClient(t, s1)
+
+	run := func(t *testing.T, dataPrefix string) {
+		rpcBlockingQueryTestHarness(t,
+			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
+				args := structs.ConfigEntryQuery{
+					Kind:       structs.ServiceDefaults,
+					Datacenter: "dc1",
+				}
+				args.QueryOptions.MinQueryIndex = minQueryIndex
+
+				var out structs.IndexedConfigEntries
+
+				errCh := channelCallRPC(s1, "ConfigEntry.List", &args, &out, nil)
+				return &out.QueryMeta, errCh
+			},
+			func(i int) <-chan error {
+				var out bool
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+					Entry: &structs.ServiceResolverConfigEntry{
+						Kind:           structs.ServiceResolver,
+						Name:           fmt.Sprintf(dataPrefix+"%d", i),
+						ConnectTimeout: 33 * time.Second,
+					},
+				}, &out, func() error {
+					if !out {
+						return fmt.Errorf("[%d] unexpectedly returned false", i)
+					}
+					return nil
+				})
+			},
+		)
+	}
+
+	runStep(t, "test the errNotFound path", func(t *testing.T) {
+		run(t, "other")
+	})
+
+	{ // Create some dummy services in the state store to look up.
+		for _, entry := range []structs.ConfigEntry{
+			&structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "bar",
+			},
+			&structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "foo",
+			},
+		} {
+			var out bool
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+				Entry: entry,
+			}, &out))
+			require.True(t, out)
+		}
+	}
+
+	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+		run(t, "completely-different-other")
+	})
 }
 
 func TestConfigEntry_ListAll(t *testing.T) {
@@ -466,8 +635,6 @@ func TestConfigEntry_List_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -490,15 +657,15 @@ operator = "read"
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 	}))
-	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
 	}))
-	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "db",
 	}))
@@ -511,26 +678,26 @@ operator = "read"
 	}
 	var out structs.IndexedConfigEntries
 	err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.List", &args, &out)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	serviceConf, ok := out.Entries[0].(*structs.ServiceConfigEntry)
-	require.Len(out.Entries, 1)
-	require.True(ok)
-	require.Equal("foo", serviceConf.Name)
-	require.Equal(structs.ServiceDefaults, serviceConf.Kind)
-	require.True(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	require.Len(t, out.Entries, 1)
+	require.True(t, ok)
+	require.Equal(t, "foo", serviceConf.Name)
+	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
+	require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	// Get the global proxy config.
 	args.Kind = structs.ProxyDefaults
 	err = msgpackrpc.CallWithCodec(codec, "ConfigEntry.List", &args, &out)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	proxyConf, ok := out.Entries[0].(*structs.ProxyConfigEntry)
-	require.Len(out.Entries, 1)
-	require.True(ok)
-	require.Equal(structs.ProxyConfigGlobal, proxyConf.Name)
-	require.Equal(structs.ProxyDefaults, proxyConf.Kind)
-	require.False(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	require.Len(t, out.Entries, 1)
+	require.True(t, ok)
+	require.Equal(t, structs.ProxyConfigGlobal, proxyConf.Name)
+	require.Equal(t, structs.ProxyDefaults, proxyConf.Kind)
+	require.False(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 }
 
 func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
@@ -539,8 +706,6 @@ func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-
-	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
@@ -564,15 +729,15 @@ operator = "read"
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 	}))
-	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
 	}))
-	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "db",
 	}))
@@ -585,8 +750,8 @@ operator = "read"
 	}
 	var out structs.IndexedGenericConfigEntries
 	err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.ListAll", &args, &out)
-	require.NoError(err)
-	require.Len(out.Entries, 2)
+	require.NoError(t, err)
+	require.Len(t, out.Entries, 2)
 	svcIndex := 0
 	proxyIndex := 1
 	if out.Entries[0].GetKind() == structs.ProxyDefaults {
@@ -595,15 +760,15 @@ operator = "read"
 	}
 
 	svcConf, ok := out.Entries[svcIndex].(*structs.ServiceConfigEntry)
-	require.True(ok)
+	require.True(t, ok)
 	proxyConf, ok := out.Entries[proxyIndex].(*structs.ProxyConfigEntry)
-	require.True(ok)
+	require.True(t, ok)
 
-	require.Equal("foo", svcConf.Name)
-	require.Equal(structs.ServiceDefaults, svcConf.Kind)
-	require.Equal(structs.ProxyConfigGlobal, proxyConf.Name)
-	require.Equal(structs.ProxyDefaults, proxyConf.Kind)
-	require.True(out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	require.Equal(t, "foo", svcConf.Name)
+	require.Equal(t, structs.ServiceDefaults, svcConf.Kind)
+	require.Equal(t, structs.ProxyConfigGlobal, proxyConf.Name)
+	require.Equal(t, structs.ProxyDefaults, proxyConf.Kind)
+	require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 }
 
 func TestConfigEntry_Delete(t *testing.T) {
@@ -635,48 +800,70 @@ func TestConfigEntry_Delete(t *testing.T) {
 	// wait for cross-dc queries to work
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
-	// Create a dummy service in the state store to look up.
-	entry := &structs.ServiceConfigEntry{
-		Kind: structs.ServiceDefaults,
-		Name: "foo",
-	}
-	state := s1.fsm.State()
-	require.NoError(t, state.EnsureConfigEntry(1, entry))
-
-	// Verify it's there.
-	_, existing, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(t, err)
-
-	serviceConf, ok := existing.(*structs.ServiceConfigEntry)
-	require.True(t, ok)
-	require.Equal(t, "foo", serviceConf.Name)
-	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
-
-	retry.Run(t, func(r *retry.R) {
-		// wait for it to be replicated into the secondary dc
-		_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-		require.NoError(r, err)
-		require.NotNil(r, existing)
+	runStep(t, "create a dummy service in the state store to look up", func(t *testing.T) {
+		entry := &structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "foo",
+		}
+		require.NoError(t, s1.fsm.State().EnsureConfigEntry(1, entry))
 	})
 
-	// send the delete request to dc2 - it should get forwarded to dc1.
-	args := structs.ConfigEntryRequest{
-		Datacenter: "dc2",
-	}
-	args.Entry = entry
-	var out struct{}
-	require.NoError(t, msgpackrpc.CallWithCodec(codec2, "ConfigEntry.Delete", &args, &out))
+	runStep(t, "verify it exists in the primary and is replicated to the secondary", func(t *testing.T) {
+		// Verify it's there.
+		_, existing, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+		require.NoError(t, err)
 
-	// Verify the entry was deleted.
-	_, existing, err = s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(t, err)
-	require.Nil(t, existing)
+		serviceConf, ok := existing.(*structs.ServiceConfigEntry)
+		require.True(t, ok)
+		require.Equal(t, "foo", serviceConf.Name)
+		require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
 
-	// verify it gets deleted from the secondary too
-	retry.Run(t, func(r *retry.R) {
-		_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-		require.NoError(r, err)
-		require.Nil(r, existing)
+		retry.Run(t, func(r *retry.R) {
+			// wait for it to be replicated into the secondary dc
+			_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+			require.NoError(r, err)
+			require.NotNil(r, existing)
+		})
+	})
+
+	runStep(t, "send the delete request to dc2 - it should get forwarded to dc1", func(t *testing.T) {
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc2",
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "foo",
+			},
+		}
+		var out structs.ConfigEntryDeleteResponse
+		require.NoError(t, msgpackrpc.CallWithCodec(codec2, "ConfigEntry.Delete", &args, &out))
+		require.True(t, out.Deleted)
+	})
+
+	runStep(t, "verify the entry was deleted in the primary and secondary", func(t *testing.T) {
+		// Verify the entry was deleted.
+		_, existing, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+		require.NoError(t, err)
+		require.Nil(t, existing)
+
+		// verify it gets deleted from the secondary too
+		retry.Run(t, func(r *retry.R) {
+			_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+			require.NoError(r, err)
+			require.Nil(r, existing)
+		})
+	})
+
+	runStep(t, "delete in dc1 again - should be fine", func(t *testing.T) {
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "foo",
+			},
+		}
+		var out structs.ConfigEntryDeleteResponse
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out))
+		require.True(t, out.Deleted)
 	})
 }
 
@@ -685,8 +872,6 @@ func TestConfigEntry_DeleteCAS(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 	t.Parallel()
-
-	require := require.New(t)
 
 	dir, s := testServer(t)
 	defer os.RemoveAll(dir)
@@ -703,11 +888,11 @@ func TestConfigEntry_DeleteCAS(t *testing.T) {
 		Name: "foo",
 	}
 	state := s.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, entry))
+	require.NoError(t, state.EnsureConfigEntry(1, entry))
 
 	// Verify it's there.
 	_, existing, err := state.ConfigEntry(nil, entry.Kind, entry.Name, nil)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Send a delete CAS request with an invalid index.
 	args := structs.ConfigEntryRequest{
@@ -718,24 +903,24 @@ func TestConfigEntry_DeleteCAS(t *testing.T) {
 	args.Entry.GetRaftIndex().ModifyIndex = existing.GetRaftIndex().ModifyIndex - 1
 
 	var rsp structs.ConfigEntryDeleteResponse
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &rsp))
-	require.False(rsp.Deleted)
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &rsp))
+	require.False(t, rsp.Deleted)
 
 	// Verify the entry was not deleted.
 	_, existing, err = s.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(err)
-	require.NotNil(existing)
+	require.NoError(t, err)
+	require.NotNil(t, existing)
 
 	// Restore the valid index and try again.
 	args.Entry.GetRaftIndex().ModifyIndex = existing.GetRaftIndex().ModifyIndex
 
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &rsp))
-	require.True(rsp.Deleted)
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &rsp))
+	require.True(t, rsp.Deleted)
 
 	// Verify the entry was deleted.
 	_, existing, err = s.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(err)
-	require.Nil(existing)
+	require.NoError(t, err)
+	require.Nil(t, existing)
 }
 
 func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
@@ -744,8 +929,6 @@ func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-
-	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
@@ -769,11 +952,11 @@ operator = "write"
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 	}))
-	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
 	}))
@@ -796,12 +979,12 @@ operator = "write"
 	args.Entry = &structs.ServiceConfigEntry{
 		Name: "foo",
 	}
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out))
 
 	// Verify the entry was deleted.
 	_, existing, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(err)
-	require.Nil(existing)
+	require.NoError(t, err)
+	require.Nil(t, existing)
 
 	// Try to delete the global proxy config without a token.
 	args = structs.ConfigEntryRequest{
@@ -817,11 +1000,11 @@ operator = "write"
 
 	// Now delete with a valid token.
 	args.WriteRequest.Token = id
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out))
 
 	_, existing, err = state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(err)
-	require.Nil(existing)
+	require.NoError(t, err)
+	require.Nil(t, existing)
 }
 
 func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
@@ -831,8 +1014,6 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -841,19 +1022,20 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 
 	// Create a dummy proxy/service config in the state store to look up.
 	state := s1.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"foo": 1,
 		},
 	}))
-	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "foo",
 		Protocol: "http",
+		Meta:     map[string]string{"foo": "bar"},
 	}))
-	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "bar",
 		Protocol: "grpc",
@@ -865,7 +1047,7 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 		Upstreams:  []string{"bar", "baz"},
 	}
 	var out structs.ServiceConfigResponse
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
 
 	expected := structs.ServiceConfigResponse{
 		ProxyConfig: map[string]interface{}{
@@ -877,17 +1059,18 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 				"protocol": "grpc",
 			},
 		},
+		Meta: map[string]string{"foo": "bar"},
 		// Don't know what this is deterministically
 		QueryMeta: out.QueryMeta,
 	}
-	require.Equal(expected, out)
+	require.Equal(t, expected, out)
 
 	_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, nil)
-	require.NoError(err)
-	require.NotNil(entry)
+	require.NoError(t, err)
+	require.NotNil(t, entry)
 	proxyConf, ok := entry.(*structs.ProxyConfigEntry)
-	require.True(ok)
-	require.Equal(map[string]interface{}{"foo": 1}, proxyConf.Config)
+	require.True(t, ok)
+	require.Equal(t, map[string]interface{}{"foo": 1}, proxyConf.Config)
 }
 
 func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
@@ -1426,8 +1609,6 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1443,19 +1624,19 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 	// TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking
 
 	state := s1.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"global": 1,
 		},
 	}))
-	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "foo",
 		Protocol: "grpc",
 	}))
-	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "bar",
 		Protocol: "http",
@@ -1465,7 +1646,7 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 
 	{ // Verify that we get the results of proxy-defaults and service-defaults for 'foo'.
 		var out structs.ServiceConfigResponse
-		require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
 			&structs.ServiceConfigRequest{
 				Name:       "foo",
 				Datacenter: "dc1",
@@ -1480,7 +1661,7 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 			},
 			QueryMeta: out.QueryMeta,
 		}
-		require.Equal(expected, out)
+		require.Equal(t, expected, out)
 		index = out.Index
 	}
 
@@ -1490,7 +1671,7 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 		start := time.Now()
 		go func() {
 			time.Sleep(100 * time.Millisecond)
-			require.NoError(state.DeleteConfigEntry(index+1,
+			require.NoError(t, state.DeleteConfigEntry(index+1,
 				structs.ServiceDefaults,
 				"foo",
 				nil,
@@ -1499,7 +1680,7 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 
 		// Re-run the query
 		var out structs.ServiceConfigResponse
-		require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
 			&structs.ServiceConfigRequest{
 				Name:       "foo",
 				Datacenter: "dc1",
@@ -1512,10 +1693,10 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 		))
 
 		// Should block at least 100ms
-		require.True(time.Since(start) >= 100*time.Millisecond, "too fast")
+		require.True(t, time.Since(start) >= 100*time.Millisecond, "too fast")
 
 		// Check the indexes
-		require.Equal(out.Index, index+1)
+		require.Equal(t, out.Index, index+1)
 
 		expected := structs.ServiceConfigResponse{
 			ProxyConfig: map[string]interface{}{
@@ -1523,14 +1704,14 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 			},
 			QueryMeta: out.QueryMeta,
 		}
-		require.Equal(expected, out)
+		require.Equal(t, expected, out)
 
 		index = out.Index
 	}
 
 	{ // Verify that we get the results of proxy-defaults and service-defaults for 'bar'.
 		var out structs.ServiceConfigResponse
-		require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
 			&structs.ServiceConfigRequest{
 				Name:       "bar",
 				Datacenter: "dc1",
@@ -1545,7 +1726,7 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 			},
 			QueryMeta: out.QueryMeta,
 		}
-		require.Equal(expected, out)
+		require.Equal(t, expected, out)
 		index = out.Index
 	}
 
@@ -1555,7 +1736,7 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 		start := time.Now()
 		go func() {
 			time.Sleep(100 * time.Millisecond)
-			require.NoError(state.DeleteConfigEntry(index+1,
+			require.NoError(t, state.DeleteConfigEntry(index+1,
 				structs.ProxyDefaults,
 				structs.ProxyConfigGlobal,
 				nil,
@@ -1564,7 +1745,7 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 
 		// Re-run the query
 		var out structs.ServiceConfigResponse
-		require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
 			&structs.ServiceConfigRequest{
 				Name:       "bar",
 				Datacenter: "dc1",
@@ -1577,10 +1758,10 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 		))
 
 		// Should block at least 100ms
-		require.True(time.Since(start) >= 100*time.Millisecond, "too fast")
+		require.True(t, time.Since(start) >= 100*time.Millisecond, "too fast")
 
 		// Check the indexes
-		require.Equal(out.Index, index+1)
+		require.Equal(t, out.Index, index+1)
 
 		expected := structs.ServiceConfigResponse{
 			ProxyConfig: map[string]interface{}{
@@ -1588,7 +1769,7 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 			},
 			QueryMeta: out.QueryMeta,
 		}
-		require.Equal(expected, out)
+		require.Equal(t, expected, out)
 	}
 }
 
@@ -1798,8 +1979,6 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1808,26 +1987,26 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 
 	// Create a dummy proxy/service config in the state store to look up.
 	state := s1.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
 	}))
-	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
 	}))
-	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "bar",
 	}))
-	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "other",
 	}))
-	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "alreadyprotocol",
 		Protocol: "grpc",
@@ -1839,7 +2018,7 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 		Upstreams:  []string{"bar", "other", "alreadyprotocol", "dne"},
 	}
 	var out structs.ServiceConfigResponse
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
 
 	expected := structs.ServiceConfigResponse{
 		ProxyConfig: map[string]interface{}{
@@ -1862,7 +2041,7 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 		// Don't know what this is deterministically
 		QueryMeta: out.QueryMeta,
 	}
-	require.Equal(expected, out)
+	require.Equal(t, expected, out)
 }
 
 func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstreams(t *testing.T) {
@@ -1872,8 +2051,6 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1882,7 +2059,7 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 
 	// Create a dummy proxy/service config in the state store to look up.
 	state := s1.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
@@ -1896,7 +2073,7 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 		Upstreams:  []string{"bar"},
 	}
 	var out structs.ServiceConfigResponse
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
 
 	expected := structs.ServiceConfigResponse{
 		ProxyConfig: map[string]interface{}{
@@ -1910,7 +2087,120 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 		// Don't know what this is deterministically
 		QueryMeta: out.QueryMeta,
 	}
-	require.Equal(expected, out)
+	require.Equal(t, expected, out)
+}
+
+func BenchmarkConfigEntry_ResolveServiceConfig_Hash(b *testing.B) {
+	res := &configentry.ResolvedServiceConfigSet{}
+
+	res.AddServiceDefaults(&structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "web",
+		Protocol: "http",
+	})
+	res.AddServiceDefaults(&structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "up1",
+		Protocol: "http",
+	})
+	res.AddServiceDefaults(&structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "up2",
+		Protocol: "http",
+	})
+	res.AddProxyDefaults(&structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "grpc",
+		},
+	})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := hashstructure_v2.Hash(res, hashstructure_v2.FormatV2, nil)
+		if err != nil {
+			b.Fatalf("error: %v", err)
+		}
+	}
+}
+
+func TestConfigEntry_ResolveServiceConfig_BlockOnNoChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
+
+	codec := rpcClient(t, s1)
+
+	run := func(t *testing.T, dataPrefix string) {
+		rpcBlockingQueryTestHarness(t,
+			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
+				args := structs.ServiceConfigRequest{
+					Name: "foo",
+					UpstreamIDs: []structs.ServiceID{
+						structs.NewServiceID("bar", nil),
+					},
+				}
+				args.QueryOptions.MinQueryIndex = minQueryIndex
+
+				var out structs.ServiceConfigResponse
+
+				errCh := channelCallRPC(s1, "ConfigEntry.ResolveServiceConfig", &args, &out, nil)
+				return &out.QueryMeta, errCh
+			},
+			func(i int) <-chan error {
+				var out bool
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+					Entry: &structs.ServiceConfigEntry{
+						Kind: structs.ServiceDefaults,
+						Name: fmt.Sprintf(dataPrefix+"%d", i),
+					},
+				}, &out, func() error {
+					if !out {
+						return fmt.Errorf("[%d] unexpectedly returned false", i)
+					}
+					return nil
+				})
+			},
+		)
+	}
+
+	{ // create one unrelated entry
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "unrelated",
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	runStep(t, "test the errNotFound path", func(t *testing.T) {
+		run(t, "other")
+	})
+
+	{ // create one relevant entry
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Entry: &structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "bar",
+				Protocol: "grpc",
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+		run(t, "completely-different-other")
+	})
 }
 
 func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
@@ -1919,8 +2209,6 @@ func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
 	}
 
 	t.Parallel()
-
-	require := require.New(t)
 
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1936,7 +2224,7 @@ func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
 		Upstreams:  []string{"bar", "baz"},
 	}
 	var out structs.ServiceConfigResponse
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
 
 	expected := structs.ServiceConfigResponse{
 		ProxyConfig:     nil,
@@ -1944,7 +2232,7 @@ func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
 		// Don't know what this is deterministically
 		QueryMeta: out.QueryMeta,
 	}
-	require.Equal(expected, out)
+	require.Equal(t, expected, out)
 }
 
 func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
@@ -1953,8 +2241,6 @@ func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
 	}
 
 	t.Parallel()
-
-	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
@@ -1978,15 +2264,15 @@ operator = "write"
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 	}))
-	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
 	}))
-	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
+	require.NoError(t, state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "db",
 	}))
@@ -2005,7 +2291,7 @@ operator = "write"
 
 	// The "foo" service should work.
 	args.Name = "foo"
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
 
 }
 

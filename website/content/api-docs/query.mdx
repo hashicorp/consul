@@ -17,7 +17,7 @@ would be possible given the limited entry points exposed by DNS.
 Check the [Geo Failover tutorial](https://learn.hashicorp.com/tutorials/consul/automate-geo-failover) for details and
 examples for using prepared queries to implement geo failover for services.
 
-Check the [prepared query rules](/docs/agent/acl-rules#prepared-query-rules)
+Check the [prepared query rules](/docs/security/acl/acl-rules#prepared-query-rules)
 section of the agent ACL documentation for more details about how prepared
 queries work with Consul's ACL system.
 
@@ -187,7 +187,7 @@ The table below shows this endpoint's support for
 
     - `NearestN` `(int: 0)` - Specifies that the query will be forwarded to up
       to `NearestN` other datacenters based on their estimated network round
-      trip time using [Network Coordinates](/docs/internals/coordinates)
+      trip time using [Network Coordinates](/docs/architecture/coordinates)
       from the WAN gossip pool. The median round trip time from the server
       handling the query to the servers in the remote datacenter is used to
       determine the priority.
@@ -214,7 +214,7 @@ The table below shows this endpoint's support for
     true, only nodes with checks in the passing state will be returned.
 
   - `Near` `(string: "")` - Specifies a node to sort near based on distance
-    sorting using [Network Coordinates](/docs/internals/coordinates). The
+    sorting using [Network Coordinates](/docs/architecture/coordinates). The
     nearest instance to the specified node will be returned first, and subsequent
     nodes in the response will be sorted in ascending order of estimated
     round-trip times. If the node given does not exist, the nodes in the response

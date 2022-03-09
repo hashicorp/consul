@@ -6,6 +6,7 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -363,7 +364,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 	// Purge the cache, since it could've changed while we were not the
 	// leader.
-	s.acls.cache.Purge()
+	s.ACLResolver.cache.Purge()
 
 	// Purge the auth method validators since they could've changed while we
 	// were not leader.
@@ -899,7 +900,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *structs
 		}
 
 		// Check if this node is "known" by serf
-		if _, ok := known[check.Node]; ok {
+		if _, ok := known[strings.ToLower(check.Node)]; ok {
 			continue
 		}
 
@@ -1204,7 +1205,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeE
 	// deregister us later.
 	//
 	// TODO(partitions): check partitions here too? server names should be unique in general though
-	if member.Name == s.config.NodeName {
+	if strings.EqualFold(member.Name, s.config.NodeName) {
 		s.logger.Warn("deregistering self should be done by follower",
 			"name", s.config.NodeName,
 			"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),

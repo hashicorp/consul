@@ -3,7 +3,7 @@
   @items={{@items}}
 as |item index|>
   <BlockSlot @name="header">
-    <dl class={{item.Status}}>
+    <dl data-test-status={{item.Status}} class={{item.Status}}>
       <dt>
         Health
       </dt>

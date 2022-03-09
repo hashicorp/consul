@@ -1,0 +1,3 @@
+```release-note:improvement
+debug: reduce the capture time for trace to only a single interval instead of the full duration to make trace.out easier to open without running into OOM errors.
+```

@@ -18,16 +18,17 @@ type handlerConnectProxy struct {
 // state.
 func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, error) {
 	snap := newConfigSnapshotFromServiceInstance(s.serviceInstance, s.stateConfig)
-	snap.ConnectProxy.DiscoveryChain = make(map[string]*structs.CompiledDiscoveryChain)
-	snap.ConnectProxy.WatchedDiscoveryChains = make(map[string]context.CancelFunc)
-	snap.ConnectProxy.WatchedUpstreams = make(map[string]map[string]context.CancelFunc)
-	snap.ConnectProxy.WatchedUpstreamEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
-	snap.ConnectProxy.WatchedGateways = make(map[string]map[string]context.CancelFunc)
-	snap.ConnectProxy.WatchedGatewayEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
+	snap.ConnectProxy.DiscoveryChain = make(map[UpstreamID]*structs.CompiledDiscoveryChain)
+	snap.ConnectProxy.WatchedDiscoveryChains = make(map[UpstreamID]context.CancelFunc)
+	snap.ConnectProxy.WatchedUpstreams = make(map[UpstreamID]map[string]context.CancelFunc)
+	snap.ConnectProxy.WatchedUpstreamEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
+	snap.ConnectProxy.WatchedGateways = make(map[UpstreamID]map[string]context.CancelFunc)
+	snap.ConnectProxy.WatchedGatewayEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
 	snap.ConnectProxy.WatchedServiceChecks = make(map[structs.ServiceID][]structs.CheckType)
-	snap.ConnectProxy.PreparedQueryEndpoints = make(map[string]structs.CheckServiceNodes)
-	snap.ConnectProxy.UpstreamConfig = make(map[string]*structs.Upstream)
-	snap.ConnectProxy.PassthroughUpstreams = make(map[string]ServicePassthroughAddrs)
+	snap.ConnectProxy.PreparedQueryEndpoints = make(map[UpstreamID]structs.CheckServiceNodes)
+	snap.ConnectProxy.UpstreamConfig = make(map[UpstreamID]*structs.Upstream)
+	snap.ConnectProxy.PassthroughUpstreams = make(map[UpstreamID]map[string]map[string]struct{})
+	snap.ConnectProxy.PassthroughIndices = make(map[string]indexedTarget)
 
 	// Watch for root changes
 	err := s.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
@@ -106,9 +107,11 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	for i := range s.proxyCfg.Upstreams {
 		u := s.proxyCfg.Upstreams[i]
 
+		uid := NewUpstreamID(&u)
+
 		// Store defaults keyed under wildcard so they can be applied to centrally configured upstreams
 		if u.DestinationName == structs.WildcardSpecifier {
-			snap.ConnectProxy.UpstreamConfig[u.DestinationID().String()] = &u
+			snap.ConnectProxy.UpstreamConfig[uid] = &u
 			continue
 		}
 
@@ -117,7 +120,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		if u.CentrallyConfigured {
 			continue
 		}
-		snap.ConnectProxy.UpstreamConfig[u.Identifier()] = &u
+		snap.ConnectProxy.UpstreamConfig[uid] = &u
 
 		dc := s.source.Datacenter
 		if u.Datacenter != "" {
@@ -144,7 +147,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			// the plain discovery chain if there is an error so it's safe to
 			// continue.
 			s.logger.Warn("failed to parse upstream config",
-				"upstream", u.Identifier(),
+				"upstream", uid.String(),
 				"error", err,
 			)
 		}
@@ -157,7 +160,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 				QueryIDOrName: u.DestinationName,
 				Connect:       true,
 				Source:        *s.source,
-			}, "upstream:"+u.Identifier(), s.ch)
+			}, "upstream:"+uid.String(), s.ch)
 			if err != nil {
 				return snap, err
 			}
@@ -176,9 +179,9 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 				OverrideMeshGateway:    s.proxyCfg.MeshGateway.OverlayWith(u.MeshGateway),
 				OverrideProtocol:       cfg.Protocol,
 				OverrideConnectTimeout: cfg.ConnectTimeout(),
-			}, "discovery-chain:"+u.Identifier(), s.ch)
+			}, "discovery-chain:"+uid.String(), s.ch)
 			if err != nil {
-				return snap, fmt.Errorf("failed to watch discovery chain for %s: %v", u.Identifier(), err)
+				return snap, fmt.Errorf("failed to watch discovery chain for %s: %v", uid.String(), err)
 			}
 
 		default:
@@ -220,12 +223,14 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 			return fmt.Errorf("invalid type for response %T", u.Result)
 		}
 
-		seenServices := make(map[string]struct{})
+		seenUpstreams := make(map[UpstreamID]struct{})
 		for _, svc := range resp.Services {
-			seenServices[svc.String()] = struct{}{}
+			uid := NewUpstreamIDFromServiceName(svc)
+
+			seenUpstreams[uid] = struct{}{}
 
 			cfgMap := make(map[string]interface{})
-			u, ok := snap.ConnectProxy.UpstreamConfig[svc.String()]
+			u, ok := snap.ConnectProxy.UpstreamConfig[uid]
 			if ok {
 				cfgMap = u.Config
 			} else {
@@ -233,11 +238,12 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				// This is only relevant to upstreams from intentions because for explicit upstreams the defaulting is handled
 				// by the ResolveServiceConfig endpoint.
 				wildcardSID := structs.NewServiceID(structs.WildcardSpecifier, s.proxyID.WithWildcardNamespace())
-				defaults, ok := snap.ConnectProxy.UpstreamConfig[wildcardSID.String()]
+				wildcardUID := NewUpstreamIDFromServiceID(wildcardSID)
+				defaults, ok := snap.ConnectProxy.UpstreamConfig[wildcardUID]
 				if ok {
 					u = defaults
 					cfgMap = defaults.Config
-					snap.ConnectProxy.UpstreamConfig[svc.String()] = defaults
+					snap.ConnectProxy.UpstreamConfig[uid] = defaults
 				}
 			}
 
@@ -247,7 +253,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				// the plain discovery chain if there is an error so it's safe to
 				// continue.
 				s.logger.Warn("failed to parse upstream config",
-					"upstream", u.Identifier(),
+					"upstream", uid,
 					"error", err,
 				)
 			}
@@ -257,7 +263,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				meshGateway = meshGateway.OverlayWith(u.MeshGateway)
 			}
 			watchOpts := discoveryChainWatchOpts{
-				id:          svc.String(),
+				id:          NewUpstreamIDFromServiceName(svc),
 				name:        svc.Name,
 				namespace:   svc.NamespaceOrDefault(),
 				partition:   svc.PartitionOrDefault(),
@@ -268,69 +274,80 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 			up := &handlerUpstreams{handlerState: s.handlerState}
 			err = up.watchDiscoveryChain(ctx, snap, watchOpts)
 			if err != nil {
-				return fmt.Errorf("failed to watch discovery chain for %s: %v", svc.String(), err)
+				return fmt.Errorf("failed to watch discovery chain for %s: %v", uid, err)
 			}
 		}
-		snap.ConnectProxy.IntentionUpstreams = seenServices
+		snap.ConnectProxy.IntentionUpstreams = seenUpstreams
 
 		// Clean up data from services that were not in the update
-		for sn, targets := range snap.ConnectProxy.WatchedUpstreams {
-			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+		for uid, targets := range snap.ConnectProxy.WatchedUpstreams {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
-			if _, ok := seenServices[sn]; !ok {
+			if _, ok := seenUpstreams[uid]; !ok {
 				for _, cancelFn := range targets {
 					cancelFn()
 				}
-				delete(snap.ConnectProxy.WatchedUpstreams, sn)
+				delete(snap.ConnectProxy.WatchedUpstreams, uid)
 			}
 		}
-		for sn := range snap.ConnectProxy.WatchedUpstreamEndpoints {
-			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+		for uid := range snap.ConnectProxy.WatchedUpstreamEndpoints {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
-			if _, ok := seenServices[sn]; !ok {
-				delete(snap.ConnectProxy.WatchedUpstreamEndpoints, sn)
+			if _, ok := seenUpstreams[uid]; !ok {
+				delete(snap.ConnectProxy.WatchedUpstreamEndpoints, uid)
 			}
 		}
-		for sn, cancelMap := range snap.ConnectProxy.WatchedGateways {
-			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+		for uid, cancelMap := range snap.ConnectProxy.WatchedGateways {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
-			if _, ok := seenServices[sn]; !ok {
+			if _, ok := seenUpstreams[uid]; !ok {
 				for _, cancelFn := range cancelMap {
 					cancelFn()
 				}
-				delete(snap.ConnectProxy.WatchedGateways, sn)
+				delete(snap.ConnectProxy.WatchedGateways, uid)
 			}
 		}
-		for sn := range snap.ConnectProxy.WatchedGatewayEndpoints {
-			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+		for uid := range snap.ConnectProxy.WatchedGatewayEndpoints {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
-			if _, ok := seenServices[sn]; !ok {
-				delete(snap.ConnectProxy.WatchedGatewayEndpoints, sn)
+			if _, ok := seenUpstreams[uid]; !ok {
+				delete(snap.ConnectProxy.WatchedGatewayEndpoints, uid)
 			}
 		}
-		for sn, cancelFn := range snap.ConnectProxy.WatchedDiscoveryChains {
-			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+		for uid, cancelFn := range snap.ConnectProxy.WatchedDiscoveryChains {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
-			if _, ok := seenServices[sn]; !ok {
+			if _, ok := seenUpstreams[uid]; !ok {
 				cancelFn()
-				delete(snap.ConnectProxy.WatchedDiscoveryChains, sn)
+				delete(snap.ConnectProxy.WatchedDiscoveryChains, uid)
 			}
 		}
+		for uid := range snap.ConnectProxy.PassthroughUpstreams {
+			if _, ok := seenUpstreams[uid]; !ok {
+				delete(snap.ConnectProxy.PassthroughUpstreams, uid)
+			}
+		}
+		for addr, indexed := range snap.ConnectProxy.PassthroughIndices {
+			if _, ok := seenUpstreams[indexed.upstreamID]; !ok {
+				delete(snap.ConnectProxy.PassthroughIndices, addr)
+			}
+		}
+
 		// These entries are intentionally handled separately from the WatchedDiscoveryChains above.
 		// There have been situations where a discovery watch was cancelled, then fired.
 		// That update event then re-populated the DiscoveryChain map entry, which wouldn't get cleaned up
 		// since there was no known watch for it.
-		for sn := range snap.ConnectProxy.DiscoveryChain {
-			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+		for uid := range snap.ConnectProxy.DiscoveryChain {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
-			if _, ok := seenServices[sn]; !ok {
-				delete(snap.ConnectProxy.DiscoveryChain, sn)
+			if _, ok := seenUpstreams[uid]; !ok {
+				delete(snap.ConnectProxy.DiscoveryChain, uid)
 			}
 		}
 
@@ -340,7 +357,8 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		pq := strings.TrimPrefix(u.CorrelationID, "upstream:")
-		snap.ConnectProxy.PreparedQueryEndpoints[pq] = resp.Nodes
+		uid := UpstreamIDFromString(pq)
+		snap.ConnectProxy.PreparedQueryEndpoints[uid] = resp.Nodes
 
 	case strings.HasPrefix(u.CorrelationID, svcChecksWatchIDPrefix):
 		resp, ok := u.Result.([]structs.CheckType)

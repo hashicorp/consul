@@ -56,6 +56,13 @@ func TestEventPublisher_SubscribeWithIndex0(t *testing.T) {
 		Payload: simplePayload{key: "sub-key", value: "the-published-event-payload"},
 	}
 	require.Equal(t, expected, next)
+
+	// Subscriber should not see events for other keys
+	publisher.Publish([]Event{{
+		Topic:   testTopic,
+		Payload: simplePayload{key: "other-key", value: "this-should-not-reach-the-subscriber"},
+	}})
+	assertNoResult(t, eventCh)
 }
 
 var testSnapshotEvent = Event{
@@ -70,16 +77,11 @@ type simplePayload struct {
 	noReadPerm bool
 }
 
-func (p simplePayload) MatchesKey(key, _, _ string) bool {
-	if key == "" {
-		return true
-	}
-	return p.key == key
-}
-
 func (p simplePayload) HasReadPermission(acl.Authorizer) bool {
 	return !p.noReadPerm
 }
+
+func (p simplePayload) Subject() Subject { return Subject("default/default/" + p.key) }
 
 func newTestSnapshotHandlers() SnapshotHandlers {
 	return SnapshotHandlers{
@@ -190,9 +192,10 @@ func TestEventPublisher_SubscribeWithIndex0_FromCache(t *testing.T) {
 
 	publisher := NewEventPublisher(newTestSnapshotHandlers(), time.Second)
 	go publisher.Run(ctx)
+
 	sub, err := publisher.Subscribe(req)
 	require.NoError(t, err)
-	sub.Unsubscribe()
+	defer sub.Unsubscribe()
 
 	publisher.snapshotHandlers[testTopic] = func(_ SubscribeRequest, _ SnapshotAppender) (uint64, error) {
 		return 0, fmt.Errorf("error should not be seen, cache should have been used")
@@ -200,6 +203,7 @@ func TestEventPublisher_SubscribeWithIndex0_FromCache(t *testing.T) {
 
 	sub, err = publisher.Subscribe(req)
 	require.NoError(t, err)
+	defer sub.Unsubscribe()
 
 	eventCh := runSubscription(ctx, sub)
 	next := getNextEvent(t, eventCh)
@@ -233,7 +237,11 @@ func TestEventPublisher_SubscribeWithIndexNotZero_CanResume(t *testing.T) {
 
 	publisher := NewEventPublisher(newTestSnapshotHandlers(), time.Second)
 	go publisher.Run(ctx)
-	// Include the same event in the topicBuffer
+
+	simulateExistingSubscriber(t, publisher, req)
+
+	// Publish the testSnapshotEvent, to ensure that it is skipped over when
+	// splicing the topic buffer onto the snapshot.
 	publisher.publishEvent([]Event{testSnapshotEvent})
 
 	runStep(t, "start a subscription and unsub", func(t *testing.T) {
@@ -338,7 +346,11 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 
 	publisher := NewEventPublisher(newTestSnapshotHandlers(), time.Second)
 	go publisher.Run(ctx)
-	// Include the same event in the topicBuffer
+
+	simulateExistingSubscriber(t, publisher, req)
+
+	// Publish the testSnapshotEvent, to ensure that it is skipped over when
+	// splicing the topic buffer onto the snapshot.
 	publisher.publishEvent([]Event{testSnapshotEvent})
 
 	runStep(t, "start a subscription and unsub", func(t *testing.T) {
@@ -421,7 +433,11 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot_WithCache(t *testi
 
 	publisher := NewEventPublisher(handlers, time.Second)
 	go publisher.Run(ctx)
-	// Include the same events in the topicBuffer
+
+	simulateExistingSubscriber(t, publisher, req)
+
+	// Publish the events, to ensure they are is skipped over when splicing the
+	// topic buffer onto the snapshot.
 	publisher.publishEvent([]Event{testSnapshotEvent})
 	publisher.publishEvent([]Event{nextEvent})
 
@@ -494,4 +510,61 @@ func TestEventPublisher_Unsubscribe_ClosesSubscription(t *testing.T) {
 	_, err = sub.Next(ctx)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "subscription was closed by unsubscribe")
+}
+
+func TestEventPublisher_Unsubscribe_FreesResourcesWhenThereAreNoSubscribers(t *testing.T) {
+	req := &SubscribeRequest{
+		Topic: testTopic,
+		Key:   "sub-key",
+	}
+
+	publisher := NewEventPublisher(newTestSnapshotHandlers(), time.Second)
+
+	sub1, err := publisher.Subscribe(req)
+	require.NoError(t, err)
+
+	// Expect a topic buffer and snapshot to have been created.
+	publisher.lock.Lock()
+	require.NotNil(t, publisher.topicBuffers[req.topicSubject()])
+	require.NotNil(t, publisher.snapCache[req.topicSubject()])
+	publisher.lock.Unlock()
+
+	// Create another subscription and close the old one, to ensure the buffer and
+	// snapshot stick around as long as there's at least one subscriber.
+	sub2, err := publisher.Subscribe(req)
+	require.NoError(t, err)
+
+	sub1.Unsubscribe()
+
+	publisher.lock.Lock()
+	require.NotNil(t, publisher.topicBuffers[req.topicSubject()])
+	require.NotNil(t, publisher.snapCache[req.topicSubject()])
+	publisher.lock.Unlock()
+
+	// Close the other subscription and expect the buffer and snapshot to have
+	// been cleaned up.
+	sub2.Unsubscribe()
+
+	publisher.lock.Lock()
+	require.Nil(t, publisher.topicBuffers[req.topicSubject()])
+	require.Nil(t, publisher.snapCache[req.topicSubject()])
+	publisher.lock.Unlock()
+}
+
+// simulateExistingSubscriber creates a subscription that remains open throughout
+// a test to prevent the topic buffer getting garbage-collected.
+//
+// It evicts the created snapshot from the cache immediately (simulating an
+// existing subscription that has been open long enough the snapshot's TTL has
+// been reached) so you can test snapshots getting created afresh.
+func simulateExistingSubscriber(t *testing.T, p *EventPublisher, r *SubscribeRequest) {
+	t.Helper()
+
+	sub, err := p.Subscribe(r)
+	require.NoError(t, err)
+	t.Cleanup(sub.Unsubscribe)
+
+	p.lock.Lock()
+	delete(p.snapCache, r.topicSubject())
+	p.lock.Unlock()
 }

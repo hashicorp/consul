@@ -28,7 +28,6 @@ func TestRoleListCommand(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -61,7 +60,7 @@ func TestRoleListCommand(t *testing.T) {
 		)
 		roleIDs = append(roleIDs, role.ID)
 
-		require.NoError(err)
+		require.NoError(t, err)
 	}
 
 	args := []string{
@@ -70,13 +69,13 @@ func TestRoleListCommand(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	require.Equal(code, 0)
-	require.Empty(ui.ErrorWriter.String())
+	require.Equal(t, code, 0)
+	require.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
 
 	for i, v := range roleIDs {
-		require.Contains(output, fmt.Sprintf("test-role-%d", i))
-		require.Contains(output, v)
+		require.Contains(t, output, fmt.Sprintf("test-role-%d", i))
+		require.Contains(t, output, v)
 	}
 }
 
@@ -86,7 +85,6 @@ func TestRoleListCommand_JSON(t *testing.T) {
 	}
 
 	t.Parallel()
-	require := require.New(t)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -119,7 +117,7 @@ func TestRoleListCommand_JSON(t *testing.T) {
 		)
 		roleIDs = append(roleIDs, role.ID)
 
-		require.NoError(err)
+		require.NoError(t, err)
 	}
 
 	args := []string{
@@ -129,13 +127,13 @@ func TestRoleListCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	require.Equal(code, 0)
-	require.Empty(ui.ErrorWriter.String())
+	require.Equal(t, code, 0)
+	require.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
 
 	for i, v := range roleIDs {
-		require.Contains(output, fmt.Sprintf("test-role-%d", i))
-		require.Contains(output, v)
+		require.Contains(t, output, fmt.Sprintf("test-role-%d", i))
+		require.Contains(t, output, v)
 	}
 
 	var jsonOutput json.RawMessage

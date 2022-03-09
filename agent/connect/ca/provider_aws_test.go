@@ -38,7 +38,6 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 	for _, tc := range KeyTestCases {
 		tc := tc
 		t.Run(tc.Desc, func(t *testing.T) {
-			require := require.New(t)
 			cfg := map[string]interface{}{
 				"PrivateKeyType": tc.KeyType,
 				"PrivateKeyBits": tc.KeyBits,
@@ -47,34 +46,31 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 			provider := testAWSProvider(t, testProviderConfigPrimary(t, cfg))
 			defer provider.Cleanup(true, nil)
 
-			// Generate the root
-			require.NoError(provider.GenerateRoot())
-
-			// Fetch Active Root
-			rootPEM, err := provider.ActiveRoot()
-			require.NoError(err)
+			root, err := provider.GenerateRoot()
+			require.NoError(t, err)
+			rootPEM := root.PEM
 
 			// Generate Intermediate (not actually needed for this provider for now
 			// but this simulates the calls in Server.initializeRoot).
 			interPEM, err := provider.GenerateIntermediate()
-			require.NoError(err)
+			require.NoError(t, err)
 
 			// Should be the same for now
-			require.Equal(rootPEM, interPEM)
+			require.Equal(t, rootPEM, interPEM)
 
 			// Ensure they use the right key type
 			rootCert, err := connect.ParseCert(rootPEM)
-			require.NoError(err)
+			require.NoError(t, err)
 
 			keyType, keyBits, err := connect.KeyInfoFromCert(rootCert)
-			require.NoError(err)
-			require.Equal(tc.KeyType, keyType)
-			require.Equal(tc.KeyBits, keyBits)
+			require.NoError(t, err)
+			require.Equal(t, tc.KeyType, keyType)
+			require.Equal(t, tc.KeyBits, keyBits)
 
 			// Ensure that the root cert ttl is withing the configured value
 			// computation is similar to how we are passing the TTL thru the aws client
 			expectedTime := time.Now().AddDate(0, 0, int(8761*60*time.Minute/day)).UTC()
-			require.WithinDuration(expectedTime, rootCert.NotAfter, 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
+			require.WithinDuration(t, expectedTime, rootCert.NotAfter, 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
 
 			// Sign a leaf with it
 			testSignAndValidate(t, provider, rootPEM, nil)
@@ -82,16 +78,12 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 	}
 
 	t.Run("Test default root ttl for aws ca provider", func(t *testing.T) {
-
 		provider := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 		defer provider.Cleanup(true, nil)
 
-		// Generate the root
-		require.NoError(t, provider.GenerateRoot())
-
-		// Fetch Active Root
-		rootPEM, err := provider.ActiveRoot()
+		root, err := provider.GenerateRoot()
 		require.NoError(t, err)
+		rootPEM := root.PEM
 
 		// Ensure they use the right key type
 		rootCert, err := connect.ParseCert(rootPEM)
@@ -124,8 +116,9 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 
 	p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 	defer p1.Cleanup(true, nil)
-	rootPEM, err := p1.ActiveRoot()
+	root, err := p1.GenerateRoot()
 	require.NoError(t, err)
+	rootPEM := root.PEM
 
 	p2 := testAWSProvider(t, testProviderConfigSecondary(t, nil))
 	defer p2.Cleanup(true, nil)
@@ -152,8 +145,9 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		cfg1 := testProviderConfigPrimary(t, nil)
 		cfg1.State = p1State
 		p1 = testAWSProvider(t, cfg1)
-		newRootPEM, err := p1.ActiveRoot()
+		root, err := p1.GenerateRoot()
 		require.NoError(t, err)
+		newRootPEM := root.PEM
 
 		cfg2 := testProviderConfigPrimary(t, nil)
 		cfg2.State = p2State
@@ -185,8 +179,9 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 			"ExistingARN": p1State[AWSStateCAARNKey],
 		})
 		p1 = testAWSProvider(t, cfg1)
-		newRootPEM, err := p1.ActiveRoot()
+		root, err := p1.GenerateRoot()
 		require.NoError(t, err)
+		newRootPEM := root.PEM
 
 		cfg2 := testProviderConfigPrimary(t, map[string]interface{}{
 			"ExistingARN": p2State[AWSStateCAARNKey],
@@ -223,8 +218,9 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		p2 = testAWSProvider(t, cfg2)
 		require.NoError(t, p2.SetIntermediate(newIntPEM, newRootPEM))
 
-		newRootPEM, err = p1.ActiveRoot()
+		root, err = p1.GenerateRoot()
 		require.NoError(t, err)
+		newRootPEM = root.PEM
 		newIntPEM, err = p2.ActiveIntermediate()
 		require.NoError(t, err)
 
@@ -244,7 +240,8 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 		p1 := TestConsulProvider(t, delegate)
 		cfg := testProviderConfig(conf)
 		require.NoError(t, p1.Configure(cfg))
-		require.NoError(t, p1.GenerateRoot())
+		_, err := p1.GenerateRoot()
+		require.NoError(t, err)
 
 		p2 := testAWSProvider(t, testProviderConfigSecondary(t, nil))
 		defer p2.Cleanup(true, nil)
@@ -255,7 +252,9 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 	t.Run("pri=aws,sec=consul", func(t *testing.T) {
 		p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 		defer p1.Cleanup(true, nil)
-		require.NoError(t, p1.GenerateRoot())
+
+		_, err := p1.GenerateRoot()
+		require.NoError(t, err)
 
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
@@ -316,11 +315,13 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 	}
 
 	requirePCADeleted := func(t *testing.T, provider *AWSProvider) {
+		t.Helper()
 		deleted, err := describeCA(t, provider)
 		require.True(t, err != nil || deleted, "The AWS PCA instance has not been deleted")
 	}
 
 	requirePCANotDeleted := func(t *testing.T, provider *AWSProvider) {
+		t.Helper()
 		deleted, err := describeCA(t, provider)
 		require.NoError(t, err)
 		require.False(t, deleted, "The AWS PCA instance should not have been deleted")

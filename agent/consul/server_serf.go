@@ -121,7 +121,7 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 
 	// TODO(ACL-Legacy-Compat): remove in phase 2. These are kept for now to
 	// allow for upgrades.
-	if s.acls.ACLsEnabled() {
+	if s.ACLResolver.ACLsEnabled() {
 		conf.Tags[metadata.TagACLs] = string(structs.ACLModeEnabled)
 	} else {
 		conf.Tags[metadata.TagACLs] = string(structs.ACLModeDisabled)
@@ -383,6 +383,11 @@ func (s *Server) maybeBootstrap() {
 	if index != 0 {
 		s.logger.Info("Raft data found, disabling bootstrap mode")
 		s.config.BootstrapExpect = 0
+		return
+	}
+
+	if s.config.ReadReplica {
+		s.logger.Info("Read replicas cannot bootstrap raft")
 		return
 	}
 
