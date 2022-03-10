@@ -79,7 +79,7 @@ connect {
 
 </CodeTabs>
 
-The following table describes the configuration options for the Valut CA provider.
+The following table describes the configuration options for the Vault CA provider.
 
 | API Key, Agent Key | Description | Type | Required |
 | :-- | :-- | :-- | :-- |
@@ -100,8 +100,8 @@ The following table describes the configuration options for the Valut CA provide
 
 Auth methods are components in Vault that perform authentication. They are responsible for assigning identity and a set of policies to a user. See [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for information about configuring individual auth methods in Vault.
 
-If auth method is provided, Consul will obtain a new token from Vault when the token can no longer be renewed. 
-Specify following parameters to define an `AuthMethod` / `auth_method` object.
+If an auth method is configured, Consul obtains a new token from Vault when the token can no longer be renewed.
+Specify the following parameters to define an `AuthMethod` / `auth_method` object.
 
 | API Key, Agent Key | Description | Type | Default |
 | :-- | :-- | :-- | :-- |
@@ -122,7 +122,7 @@ Consul uses the root certificate to sign an intermediate certificate for each Co
 When WAN Federation is enabled, each secondary datacenter must use the same Vault cluster and share the same `root_pki_path` with the primary datacenter.
 
 If the path does not exist, Consul will mount a new PKI secrets engine at the specified path with the `RootCertTTL` value as the root certificate's TTL. 
-Consul never modifies data within the root PKI path after the path has been mounted and initialized.
+Consul does not modify data within the root PKI path after the path has been mounted and initialized.
 
 #### Root Certificate Expiration
 
@@ -139,18 +139,18 @@ The bundle must contain a valid chain where each certificate is followed by the 
 ### Intermediate PKI Path
 
 The [`IntermediatePKIPath` (`intermediate_pki_path`)](#intermediatepkipath) is
-the PKI path used for storing the intermediate CA that was signed by the root certificate.
-The intermediate is used to sign all leaf certificates.
-Consul will periodically generate new intermediates before the existing certificate
-expires. Therefore, Consul requires write access to this path. This path is managed
-entirely by Consul, it should not be mounted or initialized.
+the PKI path used for storing the intermediate CA that is signed by the root certificate.
+The intermediate certificate is used to sign all subsequent leaf certificates.
+Consul periodically generates new intermediate certificates before the existing certificates
+expire. Consul requires write access to this path in Vault. This path is managed
+by Consul, and should not be mounted or initialized.
 
 If the intermediate PKI path does not exist, Consul will attempt to mount and initialize it. This requires additional privileges by the Vault token.
 
 ### Using an External Root CA
 
 To use an external root CA with the Vault provider, you must initialize the
-`RootPKIPath` before configuring Consul. The following steps describe how to initialize the path:
+`RootPKIPath` before configuring Consul.
 
 1. Enable the PKI secrets engine at the path (`connect_root`) that will be used as
    `RootPKIPath`. Optionally you may also tune the path using `vault secrets tune`.
