@@ -119,7 +119,7 @@ The Vault CA provider uses two separately-configured paths with the [PKI secrets
 
 The `RootPKIPath`, `root_pki_path` parameter specifies the PKI path to the root certificate. 
 Consul uses the root certificate to sign an intermediate certificate for each Consul datacenter, including the primary datacenter. 
-When WAN Federation is enabled, each secondary datacenter must use the same Vault cluster and share the same `root_pki_path` with the primary datacenter.
+When WAN Federation is enabled, secondary datacenters must be configured to use the same Vault cluster and share the same `root_pki_path` as the primary datacenter.
 
 If the path does not exist, Consul will mount a new PKI secrets engine at the specified path with the `RootCertTTL` value as the root certificate's TTL. 
 Consul does not modify data within the root PKI path after the path has been mounted and initialized.
