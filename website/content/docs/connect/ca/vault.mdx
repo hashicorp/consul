@@ -81,20 +81,20 @@ connect {
 
 The following table describes the configuration options for the Vault CA provider.
 
-| API Key, Agent Key | Description | Type | Required |
+| Parameter (API, Agent) | Description | Type | Required |
 | :-- | :-- | :-- | :-- |
-| `Address`, <br/>`address` | Specifies the address of the Vault server. | String | Required |
-| `Token`, <br/>`token` | Specifies an ACL token for accessing Vault. <br/>The value specified in the configuration is write-only and is not exposed when Vault reads the CA configuration. <br/>The token must be linked to a policy that provides access to the PKI path (see [Vault ACL Policies](#vault-acl-policies)). <br/>If the [`renewable`](https://www.vaultproject.io/api-docs/auth/token#renewable) flag is enabled for the token, Consul will periodically attempt to renew its lease after half of the duration has passed. <br/>_You must either provide a token or configure an `AuthMethod`, `auth_method`_. | String | Required unless `AuthMethod`, `auth_method` is configured. |  
-| `AuthMethod`, <br/>`auth_method` | Specifies a Vault auth method for logging into Vault. <br/>If an auth method is configured, Consul obtains a new token from Vault when the current token can no longer be renewed. <br/>See [Auth Methods](#auth-methods) for details. | Map | Required unless `Token`, `token` is configured. |
-| `RootPKIPath`, <br/>`root_pki_path` | Specifies the path to a PKI secrets engine so that Consul can access the root certificate. See [Root and Intermediate PKI Paths](#root-and-intermediate-pki-paths) for details. | String | Optional |
-| `IntermediatePKIPath`, <br/>`intermediate_pki_path` | Specifies the path to a PKI secrets engine for the generated intermediate certificate. <br/>The certificate is signed by the secrets engine specified with the `RootPKIPath`, `root_pki_path` parameter. If the engine is not specified, Consul will attempt to mount and configure the engine automatically. <br/> When WAN Federation is enabled, every secondary datacenter must specify a unique `intermediate_pki_path`. <br/>See [Root and Intermediate PKI Paths](#root-and-intermediate-pki-paths) for additional information. | String | Required |
-| `CAFile`, <br/>`ca_file` | Specifies a path to the CA certificate used for Vault communication. <br/>If unspecified, the default system CA bundle is used (refer to the documentation for your OS and version). | String | Optional |
-| `CAPath`, <br/>`ca_path` | Specifies a path to a folder containing CA certificates to be used for Vault communication. If unspecified, the default system CA bundle is used (refer to the documentation for your OS and version). | String | Optional |
-| `CertFile`, <br/>`cert_file` | Specifies the path to the certificate used for Vault communication. | String | Required when `KeyFile`, `key_file` is configured  |
-| `KeyFile`, <br/>`key_file` | Specifies the path to the private key used for Vault communication. | String | Required when `CertFile`, `cert_file` is configured. |
-| `TLSServerName`, <br/>`tls_server_name` | Specifies the SNI host when connecting to Vault via TLS. | String | Optional |
-| `TLSSkipVerify`, <br/>`tls_skip_verify` | Enables SSL peer validation enforcement. Default is `false`. | Boolean | Optional |
-| `Namespace`, <br/>`namespace` | Specifies the Vault namespace that the `Token` and PKI certificates are a part of. Requries Vault Enterprise (see [Namespaces](https://www.vaultproject.io/docs/enterprise/namespaces) for additional information). | String | Optional | 
+| `Address`, `address` | Specifies the address of the Vault server. | String | Required |
+| `Token`, `token` | Specifies an ACL token for accessing Vault. <br/>The value specified in the configuration is write-only and is not exposed when Vault reads the CA configuration. <br/>The token must be linked to a policy that provides access to the PKI path (see [Vault ACL Policies](#vault-acl-policies)). <br/>If the [`renewable`](https://www.vaultproject.io/api-docs/auth/token#renewable) flag is enabled for the token, Consul will periodically attempt to renew its lease after half of the duration has passed. <br/>_You must either provide a token or configure an `AuthMethod`, `auth_method`_. | String | Required unless `AuthMethod`, `auth_method` is configured. |  
+| `AuthMethod`, `auth_method` | Specifies a Vault auth method for logging into Vault. <br/>If an auth method is configured, Consul obtains a new token from Vault when the current token can no longer be renewed. <br/>See [Auth Methods](#auth-methods) for details. | Map | Required unless `Token`, `token` is configured. |
+| `RootPKIPath`, `root_pki_path` | Specifies the path to a PKI secrets engine so that Consul can access the root certificate. See [PKI Paths](#pki-paths) for details. | String | Optional |
+| `IntermediatePKIPath`, `intermediate_pki_path` | Specifies the path to a PKI secrets engine for the generated intermediate certificate. <br/>The certificate is signed by the secrets engine specified with the `RootPKIPath`, `root_pki_path` parameter. If the engine is not specified, Consul will attempt to mount and configure the engine automatically. <br/> When WAN Federation is enabled, every secondary datacenter must specify a unique `intermediate_pki_path`. <br/>See [PKI Paths](#pki-paths) for additional information. | String | Required |
+| `CAFile`, `ca_file` | Specifies a path to the CA certificate used for Vault communication. <br/>If unspecified, the default system CA bundle is used (refer to the documentation for your OS and version). | String | Optional |
+| `CAPath`, `ca_path` | Specifies a path to a folder containing CA certificates to be used for Vault communication. If unspecified, the default system CA bundle is used (refer to the documentation for your OS and version). | String | Optional |
+| `CertFile`, `cert_file` | Specifies the path to the certificate used for Vault communication. | String | Required when `KeyFile`, `key_file` is configured  |
+| `KeyFile`, `key_file` | Specifies the path to the private key used for Vault communication. | String | Required when `CertFile`, `cert_file` is configured. |
+| `TLSServerName`, `tls_server_name` | Specifies the SNI host when connecting to Vault via TLS. | String | Optional |
+| `TLSSkipVerify`, `tls_skip_verify` | Enables SSL peer validation enforcement. Default is `false`. | Boolean | Optional |
+| `Namespace`, `namespace` | Specifies the Vault namespace that the `Token` and PKI certificates are a part of. Requries Vault Enterprise (see [Namespaces](https://www.vaultproject.io/docs/enterprise/namespaces) for additional information). | String | Optional | 
 
 ### Auth Methods
 
@@ -103,17 +103,17 @@ Auth methods are components in Vault that perform authentication. They are respo
 If an auth method is configured, Consul obtains a new token from Vault when the token can no longer be renewed.
 Specify the following parameters to define an `AuthMethod` / `auth_method` object.
 
-| API Key, Agent Key | Description | Type | Default |
+| Parameter (API, Agent) | Description | Type | Default |
 | :-- | :-- | :-- | :-- |
-| `Type`, <br/>`type` | Specifies the type of Vault auth method.| String | None |
-| `MountPath`, <br/>`mount_path` | Specifies the mount path of the auth method. | String | `<AuthMethod.Type>` | 
-| `Params`, <br/>`params` | Specifies the configuration parameters for the auth method. See [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for information on how to configure the auth method you wish to use. <br/>If the Kubernetes auth method is specified, Consul reads the service account token from the default mount path `/var/run/secrets/kubernetes.io/serviceaccount/token` if the `jwt` parameter is not provided. | Map | `nil` |  
+| `Type`, `type` | Specifies the type of Vault auth method.| String | None |
+| `MountPath`, `mount_path` | Specifies the mount path of the auth method. | String | `<AuthMethod.Type>` | 
+| `Params`, `params` | Specifies the configuration parameters for the auth method. See [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for information on how to configure the auth method you wish to use. <br/>If the Kubernetes auth method is specified, Consul reads the service account token from the default mount path `/var/run/secrets/kubernetes.io/serviceaccount/token` if the `jwt` parameter is not provided. | Map | `nil` |  
 
 @include 'http_api_connect_ca_common_options.mdx'
 
-## Root and Intermediate PKI Paths
+## PKI Paths
 
-The Vault CA provider uses two separately-configured paths with the [PKI secrets engines](https://www.vaultproject.io/docs/secrets/pki) for managing Connect certificates.
+The Vault CA provider uses two separately-configured public key infrastructure (PKI) paths with the [PKI secrets engines](https://www.vaultproject.io/docs/secrets/pki) for managing Connect certificates.
 
 ### Root PKI Paths
 
@@ -121,18 +121,18 @@ The `RootPKIPath`, `root_pki_path` parameter specifies the PKI path to the root 
 Consul uses the root certificate to sign an intermediate certificate for each Consul datacenter, including the primary datacenter. 
 When WAN Federation is enabled, secondary datacenters must be configured to use the same Vault cluster and share the same `root_pki_path` as the primary datacenter.
 
-If the path does not exist, Consul will mount a new PKI secrets engine at the specified path with the `RootCertTTL` value as the root certificate's TTL. 
+If the specified path does not exist, Consul will mount a new PKI secrets engine at the path. Consul will also set the root certificate expiration period to the value specified for the `RootCertTTL` parameter. 
 Consul does not modify data within the root PKI path after the path has been mounted and initialized.
 
 #### Root Certificate Expiration
 
-If the `RootCertTTL` is not set, a [`max_lease_ttl`](https://www.vaultproject.io/api/system/mounts#max_lease_ttl) of 87600 hours, or 10 years is applied by default. The root certificate expires at the end of the specified period. 
+If the `RootCertTTL` is not specified, the maximum lease duration of 87600 hours (10 years) is applied by default. The root certificate will expire at the end of the period. Refer to the [`max_lease_ttl` documentation in Vault](https://www.vaultproject.io/api/system/mounts#max_lease_ttl) for information about how to configure the maximum lease duration.  
 
 #### Intermediate Certificate as the Primary CA
 
-To use an intermediate certificate as the primary CA in Consul, initialize the `RootPKIPath` in Vault with a PEM bundle. 
-The first certificate in the bundle must be the intermediate certificate that Consul will use as the primary CA. 
-The last certificate in the bundle must be a root certificate. 
+To use an intermediate certificate as the primary CA in Consul, initialize the `RootPKIPath` in Vault by including it in a  privacy enhanced mail (PEM) bundle. 
+
+Create a PEM bundle by concatenating the intermediate certificate that Consul will use as the primary CA and the root certificate. The first certificate in the bundle must be the intermediate certificate and the last certificate inmust be a root certificate. 
 
 The bundle must contain a valid chain where each certificate is followed by the certificate that authorized it. See [using an external root CA](#using-an-external-root-ca) for instructions.
 
