@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -667,7 +668,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						return listeners[i].(*envoy_listener_v3.Listener).Name < listeners[j].(*envoy_listener_v3.Listener).Name
 					})
 
-					r, err := createResponse(ListenerType, "00000001", "00000001", listeners)
+					r, err := createResponse(xdscommon.ListenerType, "00000001", "00000001", listeners)
 					require.NoError(t, err)
 
 					t.Run("current", func(t *testing.T) {
