@@ -612,6 +612,7 @@ type Connect struct {
 	CAProvider                      *string                `mapstructure:"ca_provider"`
 	CAConfig                        map[string]interface{} `mapstructure:"ca_config"`
 	MeshGatewayWANFederationEnabled *bool                  `mapstructure:"enable_mesh_gateway_wan_federation"`
+	EnableServerlessPlugin          *bool                  `mapstructure:"enable_serverless_plugin"`
 
 	// TestCALeafRootChangeSpread controls how long after a CA roots change before new leaft certs will be generated.
 	// This is only tuned in tests, generally set to 1ns to make tests deterministic with when to expect updated leaf
