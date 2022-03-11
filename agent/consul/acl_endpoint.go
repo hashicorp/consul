@@ -286,8 +286,8 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 		// secrets will be redacted
 		if authz, err = a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 			return err
-		} else if authz.ACLRead(&authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		} else if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+			return err
 		}
 	}
 
@@ -354,8 +354,8 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.ACLToken.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz.ACLWrite(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLWriteAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.ACLToken.AccessorID, &args.ACLToken.EnterpriseMeta)
@@ -425,8 +425,8 @@ func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken
 	var authzContext acl.AuthorizerContext
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.ACLToken.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz.ACLWrite(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLWriteAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	return a.tokenSetInternal(args, reply, false)
@@ -830,8 +830,8 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	var authzContext acl.AuthorizerContext
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz.ACLWrite(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLWriteAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	if _, err := uuid.ParseUUID(args.TokenID); err != nil {
@@ -919,8 +919,8 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	// merge the token default meta into the requests meta
 	args.EnterpriseMeta.Merge(&requestMeta)
 	args.EnterpriseMeta.FillAuthzContext(&authzContext)
-	if authz.ACLRead(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	var methodMeta *structs.EnterpriseMeta
@@ -1026,8 +1026,8 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyGetRequest, reply *structs.ACLPo
 	var authzContext acl.AuthorizerContext
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz.ACLRead(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
@@ -1107,8 +1107,8 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.Policy.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz.ACLWrite(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLWriteAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	policy := &args.Policy
@@ -1237,8 +1237,8 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz.ACLWrite(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLWriteAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	_, policy, err := a.srv.fsm.State().ACLPolicyGetByID(nil, args.PolicyID, &args.EnterpriseMeta)
@@ -1288,8 +1288,8 @@ func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLP
 	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz.ACLRead(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
@@ -1412,8 +1412,8 @@ func (a *ACL) RoleRead(args *structs.ACLRoleGetRequest, reply *structs.ACLRoleRe
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz.ACLRead(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
@@ -1493,8 +1493,8 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.Role.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz.ACLWrite(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLWriteAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	role := &args.Role
@@ -1651,8 +1651,8 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz.ACLWrite(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLWriteAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	_, role, err := a.srv.fsm.State().ACLRoleGetByID(nil, args.RoleID, &args.EnterpriseMeta)
@@ -1698,8 +1698,8 @@ func (a *ACL) RoleList(args *structs.ACLRoleListRequest, reply *structs.ACLRoleL
 	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz.ACLRead(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
@@ -1797,8 +1797,8 @@ func (a *ACL) BindingRuleRead(args *structs.ACLBindingRuleGetRequest, reply *str
 	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz.ACLRead(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
@@ -1840,8 +1840,8 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 	// Verify token is permitted to modify ACLs
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.BindingRule.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz.ACLWrite(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLWriteAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	var existing *structs.ACLBindingRule
@@ -1969,8 +1969,8 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 	// Verify token is permitted to modify ACLs
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz.ACLWrite(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLWriteAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	_, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, args.BindingRuleID, &args.EnterpriseMeta)
@@ -2017,8 +2017,8 @@ func (a *ACL) BindingRuleList(args *structs.ACLBindingRuleListRequest, reply *st
 	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz.ACLRead(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
@@ -2056,8 +2056,8 @@ func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *struc
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz.ACLRead(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
@@ -2101,8 +2101,8 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.AuthMethod.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz.ACLWrite(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLWriteAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	method := &args.AuthMethod
@@ -2213,8 +2213,8 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz.ACLWrite(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLWriteAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	_, method, err := a.srv.fsm.State().ACLAuthMethodGetByName(nil, args.AuthMethodName, &args.EnterpriseMeta)
@@ -2267,8 +2267,8 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz.ACLRead(&authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+		return err
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,

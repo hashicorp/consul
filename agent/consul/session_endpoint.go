@@ -82,13 +82,13 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		if existing == nil {
 			return nil
 		}
-		if authz.SessionWrite(existing.Node, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().SessionWriteAllowed(existing.Node, &authzContext); err != nil {
+			return err
 		}
 
 	case structs.SessionCreate:
-		if authz.SessionWrite(args.Session.Node, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().SessionWriteAllowed(args.Session.Node, &authzContext); err != nil {
+			return err
 		}
 
 	default:
@@ -303,8 +303,8 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 		return nil
 	}
 
-	if authz.SessionWrite(session.Node, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().SessionWriteAllowed(session.Node, &authzContext); err != nil {
+		return err
 	}
 
 	// Reset the session TTL timer.

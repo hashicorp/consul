@@ -90,7 +90,7 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 	}
 
 	if !args.Entry.CanWrite(authz) {
-		return acl.ErrPermissionDenied
+		return acl.ErrPermissionDenied // TODO(acl-error-enhancements) Better errors await refactoring of CanWrite above.
 	}
 
 	if args.Op != structs.ConfigEntryUpsert && args.Op != structs.ConfigEntryUpsertCAS {
@@ -439,8 +439,8 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 	if err != nil {
 		return err
 	}
-	if authz.ServiceRead(args.Name, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.Name, &authzContext); err != nil {
+		return err
 	}
 
 	var (

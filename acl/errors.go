@@ -106,7 +106,7 @@ func (e PermissionDeniedError) Error() string {
 	fmt.Fprintf(&message, " lacks permission '%s:%s'", e.Resource, e.AccessLevel.String())
 
 	if e.ResourceID.Name != "" {
-		fmt.Fprintf(&message, " %s", e.ResourceID.ToString())
+		fmt.Fprintf(&message, " on %s", e.ResourceID.ToString())
 	}
 	return message.String()
 }
