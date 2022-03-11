@@ -460,7 +460,7 @@ The agent configuration options below are all specified on the command-line.
   "trace", "debug", "info", "warn", and "err". You can always connect to an agent
   via [`consul monitor`](/commands/monitor) and use any log level. Also,
   the log level can be changed during a config reload.
-- `-auto-reload-config` ((#\_auto_reload_config)) - This flag set consul to automatically reload
+- `-auto-reload-config` ((#\_auto_reload_config)) - This flag set Consul to automatically reload
   [Reloadable Configuration](#reloadable-configuration) when configuration files change.
   Consul will also watch certificate and key files set in `cert_file` and `key_file` and reload the configuration
   if updated.
@@ -2776,6 +2776,18 @@ items which are reloaded include:
 - Services
 - TLS Configuration
   - Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
+  - To avoid a possible security issue, Some parameters part of the TLS Configuration are not automatically reloaded when [-auto-reload-config](#_auto_reload_config) is enabled.
+    - [-encrypt-verify-incoming](#_encrypt_verify_incoming)
+    - [-verify-incoming](#_verify_incoming)
+    - [-verify-incoming-rpc](#_verify_incoming_rpc)
+    - [-verify-incoming-https](#_verify_incoming_https)
+    - [-verify-outgoing](#_verify_outgoing)
+    - [-verify-server-hostname](#_verify_server_hostname)
+    - [-ca-file](#_ca_file)
+    - [-ca-path](#_ca_path)
+    If any of those configurations are changed while [-auto-reload-config](#_auto_reload_config) is enabled,
+    Consul will issue the following warning, `Static Runtime config has changed and need a manual config reload to be applied`.
+    A manual call to `consul reload` or a issuing a `SIGHUP` to Consul process would reload the new values.
 - Watches
 
 <!-- list of reference-style links -->
