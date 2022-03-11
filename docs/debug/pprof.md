@@ -125,3 +125,4 @@ Mouse-over boxes shows `cum` value and percentage, while clicking on boxes lets 
 * [GitHub - DataDog/go-profiler-notes: felixge's notes on the various go profiling methods that are available.](https://github.com/DataDog/go-profiler-notes)
 * [The Flame Graph - ACM Queue](https://queue.acm.org/detail.cfm?id=2927301)
 * [High Performance Go Workshop](https://dave.cheney.net/high-performance-go-workshop/dotgo-paris.html#pprof)
+* [Pprof and golang - how to interpret a results?](https://stackoverflow.com/a/56882137)
