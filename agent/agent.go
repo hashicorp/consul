@@ -733,7 +733,7 @@ func (a *Agent) Start(ctx context.Context) error {
 			a.baseDeps.Logger.Debug("starting file watcher")
 			a.FileWatcher.Start(context.Background())
 			go func() {
-				for events := range a.coalesceTimerShim(a.FileWatcher.EventsCh, 1*time.Millisecond) {
+				for events := range a.coalesceTimerShim(a.FileWatcher.EventsCh, 1*time.Second) {
 					a.baseDeps.Logger.Debug("auto-reload config triggered", "num-events", len(events))
 					err := a.ReloadConfig(true)
 					if err != nil {
