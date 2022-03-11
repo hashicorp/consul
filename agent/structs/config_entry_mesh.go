@@ -64,14 +64,14 @@ func (e *MeshConfigEntry) Validate() error {
 	return e.validateEnterpriseMeta()
 }
 
-func (e *MeshConfigEntry) CanRead(authz acl.Authorizer) bool {
-	return true
+func (e *MeshConfigEntry) CanRead(authz acl.Authorizer) error {
+	return nil
 }
 
-func (e *MeshConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *MeshConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.MeshWrite(&authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *MeshConfigEntry) GetRaftIndex() *RaftIndex {
