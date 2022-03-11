@@ -460,7 +460,10 @@ The agent configuration options below are all specified on the command-line.
   "trace", "debug", "info", "warn", and "err". You can always connect to an agent
   via [`consul monitor`](/commands/monitor) and use any log level. Also,
   the log level can be changed during a config reload.
-
+- `-auto-reload-config` ((#\_auto_reload_config)) - This flag set consul to automatically reload
+  [Reloadable Configuration](docs/agent/options#reloadable-configuration) when configuration files change.
+  Consul will also watch certificate and key files set in `cert_file` and `key_file` and reload the configuration
+  if updated.
 - `-log-json` ((#\_log_json)) - This flag enables the agent to output logs
   in a JSON format. By default this is false.
 
@@ -1832,6 +1835,8 @@ There are also a number of common configuration options supported by all provide
 - `log_rotate_max_files` Equivalent to the [`-log-rotate-max-files` command-line flag](#_log_rotate_max_files).
 
 - `log_level` Equivalent to the [`-log-level` command-line flag](#_log_level).
+
+- `auto-reload-config` Equivalent to the [`-auto-reload-config` command-line flag](#_auto_reload_config).
 
 - `log_json` Equivalent to the [`-log-json` command-line flag](#_log_json).
 
