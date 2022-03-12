@@ -1896,13 +1896,13 @@ type CheckID struct {
 	EnterpriseMeta
 }
 
-// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// NamespaceOrDefault exists because acl.EnterpriseMeta uses a pointer
 // receiver for this method. Remove once that is fixed.
 func (c CheckID) NamespaceOrDefault() string {
 	return c.EnterpriseMeta.NamespaceOrDefault()
 }
 
-// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// PartitionOrDefault exists because acl.EnterpriseMeta uses a pointer
 // receiver for this method. Remove once that is fixed.
 func (c CheckID) PartitionOrDefault() string {
 	return c.EnterpriseMeta.PartitionOrDefault()
