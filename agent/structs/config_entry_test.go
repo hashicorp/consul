@@ -2750,7 +2750,7 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 				// nothing else changes though during Normalize. So we ignore
 				// EnterpriseMeta Defaults.
 				opts := cmp.Options{
-					cmp.Comparer(func(a, b EnterpriseMeta) bool {
+					cmp.Comparer(func(a, b acl.EnterpriseMeta) bool {
 						return a.IsSame(&b)
 					}),
 				}

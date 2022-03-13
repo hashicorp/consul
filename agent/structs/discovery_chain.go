@@ -3,6 +3,7 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/consul/acl"
 	"time"
 
 	"github.com/hashicorp/consul/lib"
@@ -77,7 +78,7 @@ func (c *CompiledDiscoveryChain) ID() string {
 }
 
 func (c *CompiledDiscoveryChain) CompoundServiceName() ServiceName {
-	entMeta := NewEnterpriseMetaWithPartition(c.Partition, c.Namespace)
+	entMeta := acl.NewEnterpriseMetaWithPartition(c.Partition, c.Namespace)
 	return NewServiceName(c.ServiceName, &entMeta)
 }
 

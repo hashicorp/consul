@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 )
@@ -41,7 +42,7 @@ type HealthSummary struct {
 	Warning  int
 	Critical int
 
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (h *HealthSummary) Add(status string) {
