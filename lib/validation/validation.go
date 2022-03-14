@@ -1,7 +1,5 @@
-// Package validation provides miscellaneous standalone validation utilities
-// for validating inputs. For the most part, these utilities lived somewhere
-// else in the codebase before they were moved here when a more common location
-// was warranted.
+// Package validation provides standalone utility functions 
+// for validating inputs. 
 package validation
 
 import (
