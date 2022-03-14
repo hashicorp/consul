@@ -79,6 +79,7 @@
     "chalk": "^4.1.0",
     "clipboard": "^2.0.4",
     "consul-acls": "*",
+    "consul-lock-sessions": "*",
     "consul-nspaces": "*",
     "consul-partitions": "*",
     "css.escape": "^1.5.1",
