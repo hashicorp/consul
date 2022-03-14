@@ -1,0 +1,67 @@
+${[0].map(_ => {
+
+  const healthOf = num => {
+    return range(num).reduce((prev, _) => {
+      prev[fake.helpers.randomize(['Passing', 'Warning', 'Critical'])] ++;
+      return prev;
+    }, {Passing: 0, Warning: 0, Critical: 0});
+  }
+
+  const partitionCount = env('CONSUL_PARTITION_COUNT', Math.floor(Math.random() * 5));
+  const nspaceCount = env('CONSUL_NSPACE_COUNT', Math.floor(Math.random() * 10));
+  const nodes = env('CONSUL_NODE_COUNT', Math.floor(Math.random() * 10));
+  const services = env('CONSUL_SERVICE_COUNT', Math.floor(Math.random() * 10));
+  const checks = env('CONSUL_CHECK_COUNT', Math.floor(Math.random() * 10));
+
+  const partitions = range(partitionCount).map((_, i) => `${fake.hacker.noun()}-partition-${i}`);
+  const nspaces = range(nspaceCount).map((_, i) => `${fake.hacker.noun()}-nspace-${i}`);
+
+return `
+{
+  "Nodes": [
+${partitions.map(partition => {
+  const health = healthOf(nodes);
+return nspaces.map(nspace => `
+    {
+      "Total": ${nodes},
+      "Passing": ${health.Passing},
+      "Warning": ${health.Warning},
+      "Critical": ${health.Critical},
+      "Partition": "${partition}",
+      "Namespace": "${nspace}"
+    }
+`)}).flat()}
+  ],
+  "Services": [
+${partitions.map((partition, i) => {
+  const health = healthOf(services);
+return nspaces.map((nspace, j) => `
+    {
+      "Name": "${fake.hacker.noun()}-service-${i * j}",
+      "Total": ${services},
+      "Passing": ${health.Passing},
+      "Warning": ${health.Warning},
+      "Critical": ${health.Critical},
+      "Partition": "${partition}",
+      "Namespace": "${nspace}"
+    }
+`)}).flat()}
+  ],
+  "Checks": [
+${partitions.map((partition, i) => {
+  const health = healthOf(checks);
+return nspaces.map((nspace, j) => `
+    {
+      "Name": "${fake.hacker.noun()}-check-${i * j}",
+      "Total": ${services},
+      "Passing": ${health.Passing},
+      "Warning": ${health.Warning},
+      "Critical": ${health.Critical},
+      "Partition": "${partition}",
+      "Namespace": "${nspace}"
+    }
+`)}).flat()}
+  ]
+}
+`;
+})}

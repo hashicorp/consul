@@ -89,8 +89,8 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		return err
 	}
 
-	if !args.Entry.CanWrite(authz) {
-		return acl.ErrPermissionDenied
+	if err := args.Entry.CanWrite(authz); err != nil {
+		return err
 	}
 
 	if args.Op != structs.ConfigEntryUpsert && args.Op != structs.ConfigEntryUpsertCAS {
@@ -194,8 +194,8 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.ConfigE
 	}
 	lookupEntry.GetEnterpriseMeta().Merge(&args.EnterpriseMeta)
 
-	if !lookupEntry.CanRead(authz) {
-		return acl.ErrPermissionDenied
+	if err := lookupEntry.CanRead(authz); err != nil {
+		return err
 	}
 
 	return c.srv.blockingQuery(
@@ -254,7 +254,8 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 			// Filter the entries returned by ACL permissions.
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
-				if !entry.CanRead(authz) {
+				if err := entry.CanRead(authz); err != nil {
+					// TODO we may wish to extract more details from this error to aid user comprehension
 					reply.QueryMeta.ResultsFilteredByACLs = true
 					continue
 				}
@@ -335,7 +336,8 @@ func (c *ConfigEntry) ListAll(args *structs.ConfigEntryListAllRequest, reply *st
 			// Filter the entries returned by ACL permissions or by the provided kinds.
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
-				if !entry.CanRead(authz) {
+				if err := entry.CanRead(authz); err != nil {
+					// TODO we may wish to extract more details from this error to aid user comprehension
 					reply.QueryMeta.ResultsFilteredByACLs = true
 					continue
 				}
@@ -386,8 +388,8 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *structs.Co
 		return err
 	}
 
-	if !args.Entry.CanWrite(authz) {
-		return acl.ErrPermissionDenied
+	if err := args.Entry.CanWrite(authz); err != nil {
+		return err
 	}
 
 	// Only delete and delete-cas ops are supported. If the caller erroneously
@@ -439,8 +441,8 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 	if err != nil {
 		return err
 	}
-	if authz.ServiceRead(args.Name, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.Name, &authzContext); err != nil {
+		return err
 	}
 
 	var (

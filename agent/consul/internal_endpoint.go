@@ -163,8 +163,8 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
-	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.ServiceName, &authzContext); err != nil {
+		return err
 	}
 
 	return m.srv.blockingQuery(
@@ -272,8 +272,8 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 	}
 
 	// We need read access to the gateway we're trying to find services for, so check that first.
-	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.ServiceName, &authzContext); err != nil {
+		return err
 	}
 
 	err = m.srv.blockingQuery(
@@ -356,8 +356,8 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 	}
 
 	// We need read access to the gateway we're trying to find intentions for, so check that first.
-	if authz.ServiceRead(args.Match.Entries[0].Name, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.Match.Entries[0].Name, &authzContext); err != nil {
+		return err
 	}
 
 	return m.srv.blockingQuery(
@@ -428,10 +428,10 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 		return err
 	}
 
-	if authz.EventWrite(args.Name, nil) != acl.Allow {
+	if err := authz.ToAllowAuthorizer().EventWriteAllowed(args.Name, nil); err != nil {
 		accessorID := authz.AccessorID()
 		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
-		return acl.ErrPermissionDenied
+		return err
 	}
 
 	// Set the query meta data
@@ -464,16 +464,16 @@ func (m *Internal) KeyringOperation(
 	}
 	switch args.Operation {
 	case structs.KeyringList:
-		if authz.KeyringRead(nil) != acl.Allow {
-			return fmt.Errorf("Reading keyring denied by ACLs")
+		if err := authz.ToAllowAuthorizer().KeyringReadAllowed(nil); err != nil {
+			return err
 		}
 	case structs.KeyringInstall:
 		fallthrough
 	case structs.KeyringUse:
 		fallthrough
 	case structs.KeyringRemove:
-		if authz.KeyringWrite(nil) != acl.Allow {
-			return fmt.Errorf("Modifying keyring denied due to ACLs")
+		if err := authz.ToAllowAuthorizer().KeyringWriteAllowed(nil); err != nil {
+			return err
 		}
 	default:
 		panic("Invalid keyring operation")

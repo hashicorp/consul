@@ -9,7 +9,6 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	memdb "github.com/hashicorp/go-memdb"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -63,8 +62,8 @@ func (c *FederationState) Apply(args *structs.FederationStateRequest, reply *boo
 	if err != nil {
 		return err
 	}
-	if authz.OperatorWrite(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+		return err
 	}
 
 	if args.State == nil || args.State.Datacenter == "" {
@@ -109,8 +108,8 @@ func (c *FederationState) Get(args *structs.FederationStateQuery, reply *structs
 	if err != nil {
 		return err
 	}
-	if authz.OperatorRead(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(nil); err != nil {
+		return err
 	}
 
 	return c.srv.blockingQuery(
@@ -148,8 +147,8 @@ func (c *FederationState) List(args *structs.DCSpecificRequest, reply *structs.I
 	if err != nil {
 		return err
 	}
-	if authz.OperatorRead(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(nil); err != nil {
+		return err
 	}
 
 	return c.srv.blockingQuery(

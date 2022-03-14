@@ -192,15 +192,15 @@ func servicePreApply(service *structs.NodeService, authz acl.Authorizer, authzCt
 	// later if version 0.8 is enabled, so we can eventually just
 	// delete this and do all the ACL checks down there.
 	if service.Service != structs.ConsulServiceName {
-		if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Service, &authzContext); err != nil {
+			return err
 		}
 	}
 
 	// Proxies must have write permission on their destination
 	if service.Kind == structs.ServiceKindConnectProxy {
-		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Proxy.DestinationServiceName, &authzContext); err != nil {
+			return err
 		}
 	}
 
@@ -241,16 +241,18 @@ func vetRegisterWithACL(
 	// privileges.
 	needsNode := ns == nil || subj.ChangesNode(ns.Node)
 
-	if needsNode && authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if needsNode {
+		if err := authz.ToAllowAuthorizer().NodeWriteAllowed(subj.Node, &authzContext); err != nil {
+			return err
+		}
 	}
 
 	// Vet the service change. This includes making sure they can register
 	// the given service, and that we can write to any existing service that
 	// is being modified by id (if any).
 	if subj.Service != nil {
-		if authz.ServiceWrite(subj.Service.Service, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(subj.Service.Service, &authzContext); err != nil {
+			return err
 		}
 
 		if ns != nil {
@@ -263,7 +265,7 @@ func vetRegisterWithACL(
 				var secondaryCtx acl.AuthorizerContext
 				other.FillAuthzContext(&secondaryCtx)
 
-				if authz.ServiceWrite(other.Service, &secondaryCtx) != acl.Allow {
+				if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(other.Service, &secondaryCtx); err != nil {
 					return acl.ErrPermissionDenied
 				}
 			}
@@ -293,8 +295,8 @@ func vetRegisterWithACL(
 
 		// Node-level check.
 		if check.ServiceID == "" {
-			if authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
+			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(subj.Node, &authzContext); err != nil {
+				return err
 			}
 			continue
 		}
@@ -324,8 +326,8 @@ func vetRegisterWithACL(
 		var secondaryCtx acl.AuthorizerContext
 		other.FillAuthzContext(&secondaryCtx)
 
-		if authz.ServiceWrite(other.Service, &secondaryCtx) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(other.Service, &secondaryCtx); err != nil {
+			return err
 		}
 	}
 
@@ -408,7 +410,8 @@ func vetDeregisterWithACL(
 	// Allow service deregistration if the token has write permission for the node.
 	// This accounts for cases where the agent no longer has a token with write permission
 	// on the service to deregister it.
-	if authz.NodeWrite(subj.Node, &authzContext) == acl.Allow {
+	nodeWriteErr := authz.ToAllowAuthorizer().NodeWriteAllowed(subj.Node, &authzContext)
+	if nodeWriteErr == nil {
 		return nil
 	}
 
@@ -423,8 +426,8 @@ func vetDeregisterWithACL(
 
 		ns.FillAuthzContext(&authzContext)
 
-		if authz.ServiceWrite(ns.Service, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(ns.Service, &authzContext); err != nil {
+			return err
 		}
 	} else if subj.CheckID != "" {
 		if nc == nil {
@@ -434,18 +437,18 @@ func vetDeregisterWithACL(
 		nc.FillAuthzContext(&authzContext)
 
 		if nc.ServiceID != "" {
-			if authz.ServiceWrite(nc.ServiceName, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
+			if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(nc.ServiceName, &authzContext); err != nil {
+				return err
 			}
 		} else {
-			if authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
+			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(subj.Node, &authzContext); err != nil {
+				return err
 			}
 		}
 	} else {
 		// Since NodeWrite is not given - otherwise the earlier check
 		// would've returned already - we can deny here.
-		return acl.ErrPermissionDenied
+		return nodeWriteErr
 	}
 
 	return nil
@@ -647,6 +650,8 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	// If we're doing a connect query, we need read access to the service
 	// we're trying to find proxies for, so check that.
 	if args.Connect {
+		// TODO(acl-error-enhancements) can this be improved? What happens if we returned an error here?
+		// Is this similar to filters where we might want to return a hint?
 		if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 			// Just return nil, which will return an empty response (tested)
 			return nil
@@ -862,8 +867,8 @@ func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *s
 		return err
 	}
 
-	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.ServiceName, &authzContext); err != nil {
+		return err
 	}
 
 	return c.srv.blockingQuery(
@@ -926,8 +931,8 @@ func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, repl
 		return err
 	}
 
-	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.ServiceName, &authzContext); err != nil {
+		return err
 	}
 
 	state := c.srv.fsm.State()

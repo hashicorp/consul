@@ -204,6 +204,10 @@ func (m *mockAuthorizer) Snapshot(ctx *AuthorizerContext) EnforcementDecision {
 	return ret.Get(0).(EnforcementDecision)
 }
 
+func (p *mockAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
+	return AllowAuthorizer{Authorizer: p}
+}
+
 func TestACL_Enforce(t *testing.T) {
 	type testCase struct {
 		method   string

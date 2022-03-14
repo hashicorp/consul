@@ -1,0 +1,83 @@
+---
+type: custom-element
+---
+<!-- START component-docs:@tagName -->
+# DistributionMeter
+<!-- END component-docs:@tagName -->
+
+<!-- START component-docs:@description -->
+A meter-like component to show a distribution of values.
+<!-- END component-docs:@description -->
+
+```hbs preview-template
+<figure>
+  <figcaption>
+    Provide a widget so we can try switching between all types of meter
+  </figcaption>
+  <select
+    onchange={{action (mut this.type) value="target.value"}}
+  >
+    <option>linear</option>
+    <option>radial</option>
+    <option>circular</option>
+  </select>
+</figure>
+<figure>
+
+  <DataSource
+    @src={{uri '/partition/namespace/dc-1/services'}}
+  as |source|>
+    {{#let
+      (group-by "MeshStatus" (or source.data (array)))
+    as |grouped|}}
+      <DistributionMeter type={{or this.type 'linear'}} as |meter|>
+      {{#each (array 'passing' 'warning' 'critical') as |status|}}
+      {{#let
+        (concat (percentage-of (get grouped (concat status '.length')) source.data.length) '%')
+      as |percentage|}}
+        <meter.Meter
+          description={{capitalize status}}
+          percentage={{percentage}}
+          class={{class-map
+            status
+          }}
+        as |meter|></meter.Meter>
+      {{/let}}
+      {{/each}}
+      </DistributionMeter>
+    {{/let}}
+  </DataSource>
+</figure>
+```
+
+## Attributes
+
+<!-- START component-docs:@attrs -->
+| Attribute | Type                               | Default | Description                           |
+| :-------- | :--------------------------------- | :------ | :------------------------------------ |
+| type      | "linear" \| "radial" \| "circular" | linear  | The type of distribution meter to use |
+
+<!-- END component-docs:@attrs -->
+
+## Contextual Components
+
+<!-- START component-docs:@components -->
+
+### DistributionMeter::Meter
+
+#### Attributes
+
+| Attribute   | Type   | Default | Description                                |
+| :---------- | :----- | :------ | :----------------------------------------- |
+| percentage  | number | 0       | The percentage to be used for the meter    |
+| description | string |         | Textual value to describe the meters value |
+
+
+#### CSS Properties
+
+| Property                | Type       | Tracks       | Description                                                       |
+| :---------------------- | :--------- | :----------- | :---------------------------------------------------------------- |
+| --percentage            | percentage | [percentage] | Read-only alias of the percentage attribute                       |
+| --aggregated-percentage | percentage |              | Aggregated percentage of all meters within the distribution meter |
+
+<!-- END component-docs:@components -->

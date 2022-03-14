@@ -23,6 +23,7 @@ import (
 	agentgrpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -37,23 +38,6 @@ var StatsGauges = []prometheus.GaugeDefinition{
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
 const (
-	// Resource types in xDS v3. These are copied from
-	// envoyproxy/go-control-plane/pkg/resource/v3/resource.go since we don't need any of
-	// the rest of that package.
-	apiTypePrefix = "type.googleapis.com/"
-
-	// EndpointType is the TypeURL for Endpoint discovery responses.
-	EndpointType = apiTypePrefix + "envoy.config.endpoint.v3.ClusterLoadAssignment"
-
-	// ClusterType is the TypeURL for Cluster discovery responses.
-	ClusterType = apiTypePrefix + "envoy.config.cluster.v3.Cluster"
-
-	// RouteType is the TypeURL for Route discovery responses.
-	RouteType = apiTypePrefix + "envoy.config.route.v3.RouteConfiguration"
-
-	// ListenerType is the TypeURL for Listener discovery responses.
-	ListenerType = apiTypePrefix + "envoy.config.listener.v3.Listener"
-
 	// PublicListenerName is the name we give the public listener in Envoy config.
 	PublicListenerName = "public_listener"
 
@@ -145,7 +129,7 @@ type Server struct {
 	AuthCheckFrequency time.Duration
 
 	// ResourceMapMutateFn exclusively exists for testing purposes.
-	ResourceMapMutateFn func(resourceMap *IndexedResources)
+	ResourceMapMutateFn func(resourceMap *xdscommon.IndexedResources)
 
 	activeStreams *activeStreamCounters
 }
@@ -266,7 +250,7 @@ func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot
 	if acl.IsErrNotFound(err) {
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
 	} else if acl.IsErrPermissionDenied(err) {
-		return status.Errorf(codes.PermissionDenied, "permission denied: %v", err)
+		return status.Error(codes.PermissionDenied, err.Error())
 	} else if err != nil {
 		return status.Errorf(codes.Internal, "error resolving acl token: %v", err)
 	}
@@ -275,13 +259,13 @@ func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-			return status.Errorf(codes.PermissionDenied, "permission denied")
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(cfgSnap.Proxy.DestinationServiceName, &authzContext); err != nil {
+			return status.Errorf(codes.PermissionDenied, err.Error())
 		}
 	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
-			return status.Errorf(codes.PermissionDenied, "permission denied")
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(cfgSnap.Service, &authzContext); err != nil {
+			return status.Errorf(codes.PermissionDenied, err.Error())
 		}
 	default:
 		return status.Errorf(codes.Internal, "Invalid service kind")

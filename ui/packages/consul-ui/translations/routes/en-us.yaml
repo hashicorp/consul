@@ -2,6 +2,7 @@ dc:
   nodes:
     show:
       healthchecks:
+        title: Health Checks
         empty: |
           <p>
             This node has no health checks{items, select,
@@ -15,6 +16,14 @@ dc:
             <p>
               This node has a failing serf node check. The health statuses shown on this page are the statuses as they were known before the node became unreachable.
             </p>
+      services:
+        title: Service Instances
+      rtt:
+        title: Round Trip Time
+      sessions:
+        title: Lock Sessions
+      metadata:
+        title: Metadata
   services:
     show:
       topology:

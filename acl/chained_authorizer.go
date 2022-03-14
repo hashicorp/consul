@@ -256,3 +256,7 @@ func (c *ChainedAuthorizer) Snapshot(entCtx *AuthorizerContext) EnforcementDecis
 		return authz.Snapshot(entCtx)
 	})
 }
+
+func (c *ChainedAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
+	return AllowAuthorizer{Authorizer: c}
+}
