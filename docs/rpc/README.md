@@ -22,7 +22,7 @@ The "RPC Server" accepts requests to the [server port] and routes the requests b
 configuration of the Server and the the first byte in the request. The diagram below shows
 all the possible routing flows.
 
-[server port]: https://www.consul.io/docs/agent/options#server_rpc_port
+[server port]: https://www.consul.io/docs/agent/config/config-files#server_rpc_port
 
 ![RPC Routing](./routing.svg)
 

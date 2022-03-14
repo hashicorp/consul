@@ -208,10 +208,20 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 
 	// Check the content-length
 	if req.ContentLength > int64(s.agent.config.KVMaxValueSize) {
+<<<<<<< HEAD
 		return nil, EntityTooLargeError{
 			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
 				req.ContentLength, s.agent.config.KVMaxValueSize, "https://www.consul.io/docs/agent/options.html#kv_max_value_size"),
 		}
+=======
+		resp.WriteHeader(http.StatusRequestEntityTooLarge)
+		fmt.Fprintf(resp,
+			"Request body(%d bytes) too large, max size: %d bytes. See %s.",
+			req.ContentLength, s.agent.config.KVMaxValueSize,
+			"https://www.consul.io/docs/agent/config/config-files.html#kv_max_value_size",
+		)
+		return nil, nil
+>>>>>>> cd907b75cebdefe62a30986e0cdc7bd528c52159
 	}
 
 	// Copy the value

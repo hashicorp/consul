@@ -22,8 +22,13 @@ you want the clients to be exposed on the Kubernetes internal node IPs (`true`) 
 their pod IPs (`false`).
 
 Finally, `client.join` is set to an array of valid
+<<<<<<< HEAD
 [`-retry-join` values](/docs/agent/options#retry-join). In the
 example above, a fake [cloud auto-join](/docs/install/cloud-auto-join)
+=======
+[`-retry-join` values](/docs/agent/config/cli-flags#retry-join). In the
+example above, a fake [cloud auto-join](/docs/agent/cloud-auto-join)
+>>>>>>> cd907b75cebdefe62a30986e0cdc7bd528c52159
 value is specified. This should be set to resolve to the proper addresses of
 your existing Consul cluster.
 
