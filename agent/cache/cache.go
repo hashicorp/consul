@@ -557,6 +557,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	// If we already have an entry, it is actively fetching, and we don't need
 	// to revalidate the cache, then return the currently active waiter.
 	if ok && entry.Fetching {
+		// If we need to revalidate, return immediately
 		if r.Info.MustRevalidate {
 			ch := make(chan struct{})
 			close(ch)
