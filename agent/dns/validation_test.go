@@ -1,13 +1,13 @@
-package validation_test
+package dns_test
 
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/lib/validation"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/stretchr/testify/require"
 )
 
-func TestValidDNSLabel(t *testing.T) {
+func TestValidLabel(t *testing.T) {
 	cases := map[string]bool{
 		"CrEaTeD":           true,
 		"created":           true,
@@ -23,24 +23,24 @@ func TestValidDNSLabel(t *testing.T) {
 	}
 
 	t.Run("*", func(t *testing.T) {
-		t.Run("IsValidDNSLabel", func(t *testing.T) {
-			require.False(t, validation.IsValidDNSLabel("*"))
+		t.Run("IsValidLabel", func(t *testing.T) {
+			require.False(t, dns.IsValidLabel("*"))
 		})
-		t.Run("RequireValidDNSLabel", func(t *testing.T) {
-			require.Error(t, validation.RequireValidDNSLabel("*"))
+		t.Run("RequireValidLabel", func(t *testing.T) {
+			require.Error(t, dns.RequireValidLabel("*"))
 		})
 	})
 
 	for name, expect := range cases {
 		t.Run(name, func(t *testing.T) {
 			t.Run("IsValidDNSLabel", func(t *testing.T) {
-				require.Equal(t, expect, validation.IsValidDNSLabel(name))
+				require.Equal(t, expect, dns.IsValidLabel(name))
 			})
 			t.Run("RequireValidDNSLabel", func(t *testing.T) {
 				if expect {
-					require.NoError(t, validation.RequireValidDNSLabel(name))
+					require.NoError(t, dns.RequireValidLabel(name))
 				} else {
-					require.Error(t, validation.RequireValidDNSLabel(name))
+					require.Error(t, dns.RequireValidLabel(name))
 				}
 			})
 		})
