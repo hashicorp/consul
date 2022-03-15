@@ -47,7 +47,7 @@ as |source|>
 
 {{! redirect if we aren't on a URL with dc information }}
 {{#if (eq route.currentName 'index')}}
-  {{did-insert (route-action 'replaceWith' 'dc.services.index'
+  {{did-insert (route-action 'replaceWith' 'dc.show'
     (hash
       dc=(env 'CONSUL_DATACENTER_LOCAL')
     )

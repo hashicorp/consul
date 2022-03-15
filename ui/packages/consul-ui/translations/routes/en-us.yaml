@@ -1,4 +1,12 @@
 dc:
+  show:
+    title: Cluster Overview
+    serverstatus:
+      title: Server status
+    health:
+      title: Health
+    license:
+      title: License
   nodes:
     show:
       healthchecks:

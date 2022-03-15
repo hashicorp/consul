@@ -1,0 +1,38 @@
+<Route
+  @name={{routeName}}
+as |route|>
+  <AppView>
+    <BlockSlot @name="header">
+      <h1>
+        <route.Title @title={{compute (fn route.t 'title')}} />
+      </h1>
+    </BlockSlot>
+    <BlockSlot @name="toolbar">
+    </BlockSlot>
+    <BlockSlot @name="content">
+      <TabNav @items={{
+        compact
+          (array
+            (hash
+              label=(compute (fn route.t 'serverstatus.title'))
+              href=(href-to "dc.show.serverstatus")
+              selected=(is-href "dc.show.serverstatus")
+            )
+            (hash
+              label=(compute (fn route.t 'health.title'))
+              href=(href-to 'dc.show.health')
+              selected=(is-href 'dc.show.health')
+            )
+(if (and (can 'read license') (not (is 'hcp')))
+            (hash
+              label=(compute (fn route.t 'license.title'))
+              href=(href-to 'dc.show.license')
+              selected=(is-href 'dc.show.license')
+            )
+          )
+'')
+      }}/>
+    </BlockSlot>
+
+  </AppView>
+</Route>

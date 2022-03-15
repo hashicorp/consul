@@ -107,6 +107,20 @@
         @nspaces={{this.nspaces}}
         @onchange={{action (mut this.nspaces) value="data"}}
       />
+{{#if (can 'access overview')}}
+        <li
+          data-test-main-nav-overview
+          class={{class-map
+            (array 'is-active' (is-href 'dc.show' @dc.Name))
+          }}
+        >
+          <Action
+            @href={{href-to 'dc.show' @dc.Name}}
+          >
+            Overview
+          </Action>
+        </li>
+{{/if}}
 {{#if (can "read services")}}
         <li data-test-main-nav-services class={{if (is-href 'dc.services' @dc.Name) 'is-active'}}>
             <a href={{href-to 'dc.services' @dc.Name}}>Services</a>

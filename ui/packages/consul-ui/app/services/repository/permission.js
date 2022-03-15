@@ -59,7 +59,7 @@ const REQUIRED_PERMISSIONS = [
 ];
 export default class PermissionService extends RepositoryService {
   @service('env') env;
-  @service('can') _can;
+  @service('abilities') _can;
 
   // TODO: move this to the store, if we want it to use ember-data
   // currently this overwrites an inherited permissions service (this service)

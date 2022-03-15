@@ -7,8 +7,33 @@
       index: {
         _options: {
           path: '/',
-          redirect: '../services',
+          redirect: '../show/serverstatus',
         },
+      },
+      show: {
+        _options: {
+          path: '/overview',
+          redirect: './serverstatus',
+          abilities: ['access overview']
+        },
+        serverstatus: {
+          _options: {
+            path: '/server-status',
+            abilities: ['access overview', 'read raft']
+          },
+        },
+        health: {
+          _options: {
+            path: '/health',
+            abilities: ['access overview']
+          },
+        },
+        license: {
+          _options: {
+            path: '/license',
+            abilities: ['access overview', 'read licence']
+          },
+        }
       },
       services: {
         _options: { path: '/services' },
