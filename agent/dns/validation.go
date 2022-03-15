@@ -15,7 +15,7 @@ func IsValidLabel(name string) bool {
 	return validLabel.MatchString(name)
 }
 
-// RequireValidLabel is similar to IsValidDNSLabel except it returns an error
+// RequireValidLabel is similar to IsValidLabel except it returns an error
 // instead of false when name is not a valid DNS label. The error will contain
 // reference to what constitutes a valid DNS label.
 func RequireValidLabel(name string) error {
