@@ -1,6 +1,7 @@
 package health
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -71,13 +72,19 @@ func (s *healthView) Update(events []*pbsubscribe.Event) error {
 		id := serviceHealth.CheckServiceNode.UniqueID()
 		switch serviceHealth.Op {
 		case pbsubscribe.CatalogOp_Register:
-			csn := *pbservice.CheckServiceNodeToStructs(serviceHealth.CheckServiceNode)
-			passed, err := s.filter.Evaluate(csn)
+			csn, err := pbservice.CheckServiceNodeToStructs(serviceHealth.CheckServiceNode)
+			if err != nil {
+				return err
+			}
+			if csn == nil {
+				return errors.New("check service node was unexpectedly nil")
+			}
+			passed, err := s.filter.Evaluate(*csn)
 			switch {
 			case err != nil:
 				return err
 			case passed:
-				s.state[id] = csn
+				s.state[id] = *csn
 			}
 
 		case pbsubscribe.CatalogOp_Deregister:

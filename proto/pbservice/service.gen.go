@@ -86,7 +86,7 @@ func NewServiceConnectFromStructs(t structs.ServiceConnect) ServiceConnect {
 	s.SidecarService = NewServiceDefinitionPtrFromStructs(t.SidecarService)
 	return s
 }
-func ServiceDefinitionToStructs(s ServiceDefinition) structs.ServiceDefinition {
+func ServiceDefinitionToStructs(s ServiceDefinition) (structs.ServiceDefinition, error) {
 	var t structs.ServiceDefinition
 	t.Kind = s.Kind
 	t.ID = s.ID
@@ -97,15 +97,23 @@ func ServiceDefinitionToStructs(s ServiceDefinition) structs.ServiceDefinition {
 	t.Meta = s.Meta
 	t.Port = int(s.Port)
 	t.SocketPath = s.SocketPath
-	t.Check = CheckTypeToStructs(s.Check)
-	t.Checks = CheckTypesToStructs(s.Checks)
+	check, err := CheckTypeToStructs(s.Check)
+	if err != nil {
+		return t, err
+	}
+	t.Check = check
+	checks, err := CheckTypesToStructs(s.Checks)
+	if err != nil {
+		return t, err
+	}
+	t.Checks = checks
 	t.Weights = WeightsPtrToStructs(s.Weights)
 	t.Token = s.Token
 	t.EnableTagOverride = s.EnableTagOverride
 	t.Proxy = ConnectProxyConfigPtrToStructs(s.Proxy)
 	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
 	t.Connect = ServiceConnectPtrToStructs(s.Connect)
-	return t
+	return t, nil
 }
 func NewServiceDefinitionFromStructs(t structs.ServiceDefinition) ServiceDefinition {
 	var s ServiceDefinition
