@@ -12,5 +12,6 @@
 %csv:not(:last-child)::after {
   display: inline;
   content: var(--csv-list-separator);
+  vertical-align: initial;
   margin-right: 0.3em;
 }

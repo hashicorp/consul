@@ -9,7 +9,7 @@ Shadow DOM we have a `@shadowRoot` argument to which you would pass the actual
 Shadow DOM element (which itself either open or closed). You can get a reference
 to this by using the `{{attach-shadow}}` modifier.
 
-Additionally a `@stylesheets` argument is made available for you to optionally
+Additionally a `@styles` argument is made available for you to optionally
 pass completely isolated, scoped, constructable stylesheets to be used for the
 Shadow DOM tree (you can also continue to use `<style>` within the template
 itself also if necessary).
@@ -43,7 +43,7 @@ the example below).
 >
   <ShadowTemplate
     @shadowRoot={{this.shadow}}
-    @stylesheets={{css '
+    @styles={{css '
       :host {
         background-color: rgb(var(--tone-strawberry-500) / 20%);
         padding: 1rem; /* 16px */
@@ -107,7 +107,7 @@ using Glimmer syntax i.e. `<ComponentName />` not `<component-name />` but a
 >
   <ShadowTemplate
     @shadowRoot={{this.shadow}}
-    @stylesheets={{css '
+    @styles={{css '
       header {
         color: purple;
       }
@@ -159,4 +159,4 @@ component-name::part(header)::before {
 | Argument | Type | Default | Description |
 | --- | --- | --- | --- |
 | `shadowRoot` | `ShadowRoot` |  | A reference to a shadow root (probably retrived using the `{{attach-shadow}}` modifier |
-| `stylesheets` | `CSSResultGroup` | | Stylesheets to be adopted by the ShadowRoot |
+| `styles` | `CSSResultGroup` | | Styles to be adopted by the ShadowRoot |

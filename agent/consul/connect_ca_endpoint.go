@@ -65,8 +65,8 @@ func (s *ConnectCA) ConfigurationGet(
 	if err != nil {
 		return err
 	}
-	if authz.OperatorWrite(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+		return err
 	}
 
 	state := s.srv.fsm.State()
@@ -97,8 +97,8 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return err
 	}
-	if authz.OperatorWrite(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+		return err
 	}
 
 	return s.srv.caManager.UpdateConfiguration(args)
@@ -175,8 +175,8 @@ func (s *ConnectCA) Sign(
 	if isService {
 		entMeta.Merge(serviceID.GetEnterpriseMeta())
 		entMeta.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(serviceID.Service, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(serviceID.Service, &authzContext); err != nil {
+			return err
 		}
 
 		// Verify that the DC in the service URI matches us. We might relax this
@@ -187,8 +187,8 @@ func (s *ConnectCA) Sign(
 		}
 	} else if isAgent {
 		agentID.GetEnterpriseMeta().FillAuthzContext(&authzContext)
-		if authz.NodeWrite(agentID.Agent, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().NodeWriteAllowed(agentID.Agent, &authzContext); err != nil {
+			return err
 		}
 	}
 
@@ -223,8 +223,8 @@ func (s *ConnectCA) SignIntermediate(
 	if err != nil {
 		return err
 	}
-	if authz.OperatorWrite(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+		return err
 	}
 
 	provider, _ := s.srv.caManager.getCAProvider()

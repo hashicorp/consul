@@ -65,8 +65,8 @@ func (a *Agent) ConnectAuthorize(token string,
 		return returnErr(err)
 	}
 
-	if authz.ServiceWrite(req.Target, &authzContext) != acl.Allow {
-		return returnErr(acl.ErrPermissionDenied)
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(req.Target, &authzContext); err != nil {
+		return returnErr(err)
 	}
 
 	if !uriService.MatchesPartition(req.TargetPartition()) {

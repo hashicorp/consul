@@ -83,11 +83,31 @@ export default class HttpService extends Service {
   @service('client/connections') connections;
   @service('client/transports/xhr') transport;
   @service('settings') settings;
+  @service('encoder') encoder;
+  @service('store') store;
 
   init() {
     super.init(...arguments);
     this._listeners = this.dom.listeners();
     this.parseURL = createURL(encodeURIComponent, obj => QueryParams.stringify(this.sanitize(obj)));
+    const uriTag = this.encoder.uriTag();
+    this.cache = (data, id) => {
+      // interpolate the URI
+      data.uri = id(uriTag);
+      // save the time we received it for cache management purposes
+      data.SyncTime = new Date().getTime();
+      // save the data to the cache
+      return this.store.push(
+        {
+          data: {
+            id: data.uri,
+            // the model is encoded as the protocol in the URI
+            type: new URL(data.uri).protocol.slice(0, -1),
+            attributes: data
+          }
+        }
+      );
+    }
   }
 
   sanitize(obj) {
@@ -197,9 +217,9 @@ export default class HttpService extends Service {
       });
     });
   }
-
   request(cb) {
     const client = this;
+    const cache = this.cache;
     return cb(function(strs, ...values) {
       const params = client.requestParams(...arguments);
       return client.settings.findBySlug('token').then(token => {
@@ -236,7 +256,28 @@ export default class HttpService extends Service {
                 [CONSUL_PARTITION]: params.data.partition || token.Partition || 'default',
               };
               const respond = function(cb) {
-                return cb(headers, e.data.response);
+                let res = cb(headers, e.data.response, cache);
+                const meta = res.meta || {};
+                if(meta.version === 2) {
+                  if(Array.isArray(res.body)) {
+                    res = new Proxy(
+                      res.body,
+                      {
+                        get: (target, prop) => {
+                          switch(prop) {
+                            case 'meta':
+                              return meta;
+                          }
+                          return target[prop];
+                        }
+                      }
+                    );
+                  } else {
+                    res = res.body;
+                    res.meta = meta;
+                  }
+                }
+                return res;
               };
               next(() => resolve(respond));
             },

@@ -38,14 +38,12 @@ common usecase of having a floating menu.
   <DisclosureMenu as |disclosure|>
     <disclosure.Action
       {{on 'click' disclosure.toggle}}
-      {{css-prop 'height' returns=(set this 'height')}}
     >
       {{if disclosure.expanded 'Close' 'Open'}}
     </disclosure.Action>
     <disclosure.Menu
       style={{style-map
         (array 'position' 'absolute')
-        (array 'top' this.height)
         (array 'background-color' 'rgb(var(--tone-gray-000))')
       }}
     as |panel|>
@@ -62,11 +60,53 @@ common usecase of having a floating menu.
 </figure>
 ```
 
+`DisclosureMenu` also supports virtually scrolling its menu items for when you have 1000s of items to display in the menu whilst avoiding DOM stuttering. The set up is a tinsy bit more involved. but eesnetially you provide the data items for the menu using the `@items` argument, and then you can loop through these in the menu to make/use your menu items. The `menu.items` property is automatically paged for you depending on the scroll position of the menu panel. Importantly, right now, you should provide a height value for each menu.item using the `--paged-row-height` CSS property, you can do this inline or within your CSS (preferred). If you don't do this the component is unable to calculate the size of the scroll track/thumb. In the future (when needed) we will provide a callback for each item so you can specify a function to calculate the size of each individual item to give us a little more flexibility on what we can do with this component.
+
+```hbs preview-template
+<DataSource
+  @src={{uri
+  '/${partition}/${nspace}/${dc}/nodes'
+    (hash
+      nspace=''
+      partition=''
+      dc='dc-1'
+    )
+  }}
+as |source|>
+  <DisclosureMenu
+    @items={{source.data}}
+  as |disclosure|>
+    <disclosure.Action
+      {{on 'click' disclosure.toggle}}
+    >
+      {{if disclosure.expanded 'Close' 'Open'}}
+    </disclosure.Action>
+    <disclosure.Menu
+      style={{style-map
+        (array 'position' 'absolute')
+        (array 'max-height' '360' 'px')
+        (array 'width' '560' 'px')
+        (array '--paged-row-height' '42px')
+      }}
+    as |panel|>
+      <panel.Menu as |menu|>
+        {{#each menu.items as |item|}}
+          <menu.Item>
+            <menu.Action>{{item.Node}}</menu.Action>
+          </menu.Item>
+        {{/each}}
+      </panel.Menu>
+    </disclosure.Menu>
+  </DisclosureMenu>
+</DataSource>
+```
+
 ## Arguments
 
 | Argument | Type | Default | Description |
 | --- | --- | --- | --- |
 | `expanded` | `Boolean` | false | The _initial_ state of the disclosure. Please note: this is the _initial_ state only, please use the `disclosure.open` and `disclosure.close` for controling the state. |
+| `items` | `object[]` |  | When using a paginated menu you should add all possible items to this arguments and then uses the disclosure.Panel.Menu.items property for `each`ing through, see above example |
 
 ## Exported API
 

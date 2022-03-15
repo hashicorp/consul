@@ -3,8 +3,8 @@ import { get } from '@ember/object';
 
 import { camelize } from '@ember/string';
 export const is = (helper, [abilityString, model], properties) => {
-  let { abilityName, propertyName } = helper.can.parse(abilityString);
-  let ability = helper.can.abilityFor(abilityName, model, properties);
+  let { abilityName, propertyName } = helper.abilities.parse(abilityString);
+  let ability = helper.abilities.abilityFor(abilityName, model, properties);
 
   if(typeof ability.getCharacteristicProperty === 'function') {
     propertyName = ability.getCharacteristicProperty(propertyName);
@@ -17,8 +17,8 @@ export const is = (helper, [abilityString, model], properties) => {
 
   return get(ability, propertyName);
 }
-export default Helper.extend({
+export default class extends Helper {
   compute([abilityString, model], properties) {
     return is(this, [abilityString, model], properties);
-  },
-});
+  }
+}

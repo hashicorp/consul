@@ -5538,6 +5538,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			"CSRMaxConcurrent":    float64(2),
 		},
 		ConnectMeshGatewayWANFederationEnabled: false,
+		ConnectServerlessPluginEnabled:         true,
 		DNSAddrs:                               []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:                        29907,
 		DNSAllowStale:                          true,

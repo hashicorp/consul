@@ -30,23 +30,19 @@ Envoy must be run with the `--max-obj-name-len` option set to `256` or greater f
 
 ## Supported Versions
 
-Consul's Envoy support was added in version 1.3.0. The following table shows
-compatible Envoy versions.
+The following matrix describes Envoy compatibility for the currently supported **n-2 major Consul releases**. For previous Consul version compatability please view the respective versioned docs for this page. 
 
-| Consul Version      | Compatible Envoy Versions                              |
-| ------------------- | ------------------------------------------------------ |
-| 1.11.x              | 1.20.1, 1.19.1, 1.18.4, 1.17.4                         |
-| 1.10.x              | 1.18.4, 1.17.4, 1.16.5, 1.15.5                         |
-| 1.9.x               | 1.16.5, 1.15.5, 1.14.7<sup>1</sup>, 1.13.7<sup>1</sup> |
-| 1.8.x               | 1.14.7, 1.13.7, 1.12.7, 1.11.2                         |
-| 1.7.x               | 1.13.7, 1.12.7, 1.11.2, 1.10.0<sup>2</sup>             |
-| 1.6.x, 1.5.3, 1.5.2 | 1.11.1, 1.10.0, 1.9.1, 1.8.0<sup>3</sup>               |
-| 1.5.1, 1.5.0        | 1.9.1, 1.8.0<sup>3</sup>                               |
-| 1.4.x, 1.3.x        | 1.9.1, 1.8.0†, 1.7.0<sup>3</sup>                       |
+Consul supports **four major Envoy releases** at the beginning of each major Consul release. Consul maintains compatibility with Envoy patch releases for each major version so that users can benefit from bug and security fixes in Envoy. As a policy, Consul will add support for a new major versions of Envoy in a Consul major release. Support for newer versions of Envoy will not be added to existing releases.
 
+| Consul Version      | Compatible Envoy Versions                                                          |
+| ------------------- | -----------------------------------------------------------------------------------|
+| 1.11.x              | 1.20.2, 1.19.3, 1.18.6, 1.17.4<sup>1</sup>                                         |
+| 1.10.x              | 1.18.6, 1.17.4<sup>1</sup>, 1.16.5<sup>1</sup> , 1.15.5<sup>1</sup>                |
+| 1.9.x               | 1.16.5<sup>1</sup>, 1.15.5<sup>1</sup>, 1.14.7<sup>1,2</sup>, 1.13.7<sup>1,2</sup> |
+
+1. Envoy 1.20.1 and earlier are vulnerable to [CVE-2022-21654](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-21654) and [CVE-2022-21655](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-21655). Both CVEs were patched in Envoy versions 1.18.6, 1.19.3, and 1.20.2.
+Envoy 1.16.x and older releases are no longer supported (see [HCSEC-2022-07](https://discuss.hashicorp.com/t/hcsec-2022-07-consul-s-connect-service-mesh-affected-by-recent-envoy-security-releases/36332)). Consul 1.9.x clusters should be upgraded to 1.10.x and Envoy upgraded to the latest supported Envoy version for that release, 1.18.6.
 1. Use Consul 1.9.0+ with Envoy 1.15.0+ to ensure that intention enforcement is updated as quickly as possible after any changes. [Additional information](https://github.com/envoyproxy/envoy/pull/10662).
-1. Envoy 1.10.0 requires setting [`-envoy-version`](/commands/connect/envoy#envoy-version) in the `consul connect envoy` command. This was introduced in Consul 1.7.0.
-1. Envoy 1.9.1 and older are vulnerable to [CVE-2019-9900](https://github.com/envoyproxy/envoy/issues/6434) and [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both issues are related to parsing HTTP requests and only affect Consul Connect users if they have configured HTTP routing rules. We recommend that you use the most recent supported Envoy for your version of Consul when possible.
 
 ## Getting Started
 

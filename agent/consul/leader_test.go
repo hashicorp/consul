@@ -156,6 +156,9 @@ func TestLeader_FailedMember(t *testing.T) {
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
+		if len(checks) != 1 {
+			r.Fatalf("client missing check")
+		}
 		if got, want := checks[0].Status, api.HealthCritical; got != want {
 			r.Fatalf("got status %q want %q", got, want)
 		}
@@ -189,12 +192,8 @@ func TestLeader_LeftMember(t *testing.T) {
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
 		_, node, err := state.GetNode(c1.config.NodeName, nil)
-		if err != nil {
-			r.Fatalf("err: %v", err)
-		}
-		if node == nil {
-			r.Fatal("client not registered")
-		}
+		require.NoError(r, err)
+		require.NotNil(r, node, "client not registered")
 	})
 
 	// Node should leave
@@ -204,14 +203,11 @@ func TestLeader_LeftMember(t *testing.T) {
 	// Should be deregistered
 	retry.Run(t, func(r *retry.R) {
 		_, node, err := state.GetNode(c1.config.NodeName, nil)
-		if err != nil {
-			r.Fatalf("err: %v", err)
-		}
-		if node != nil {
-			r.Fatal("client still registered")
-		}
+		require.NoError(r, err)
+		require.Nil(r, node, "client still registered")
 	})
 }
+
 func TestLeader_ReapMember(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -239,12 +235,8 @@ func TestLeader_ReapMember(t *testing.T) {
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
 		_, node, err := state.GetNode(c1.config.NodeName, nil)
-		if err != nil {
-			r.Fatalf("err: %v", err)
-		}
-		if node == nil {
-			r.Fatal("client not registered")
-		}
+		require.NoError(r, err)
+		require.NotNil(r, node, "client not registered")
 	})
 
 	// Simulate a node reaping
@@ -264,9 +256,7 @@ func TestLeader_ReapMember(t *testing.T) {
 	reaped := false
 	for start := time.Now(); time.Since(start) < 5*time.Second; {
 		_, node, err := state.GetNode(c1.config.NodeName, nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		require.NoError(t, err)
 		if node == nil {
 			reaped = true
 			break
@@ -275,6 +265,88 @@ func TestLeader_ReapMember(t *testing.T) {
 	if !reaped {
 		t.Fatalf("client should not be registered")
 	}
+}
+
+func TestLeader_ReapOrLeftMember_IgnoreSelf(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	run := func(t *testing.T, status serf.MemberStatus, nameFn func(string) string) {
+		t.Parallel()
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.PrimaryDatacenter = "dc1"
+			c.ACLsEnabled = true
+			c.ACLInitialManagementToken = "root"
+			c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		nodeName := s1.config.NodeName
+		if nameFn != nil {
+			nodeName = nameFn(nodeName)
+		}
+
+		state := s1.fsm.State()
+
+		// Should be registered
+		retry.Run(t, func(r *retry.R) {
+			_, node, err := state.GetNode(nodeName, nil)
+			require.NoError(r, err)
+			require.NotNil(r, node, "server not registered")
+		})
+
+		// Simulate THIS node reaping or leaving
+		mems := s1.LANMembersInAgentPartition()
+		var s1mem serf.Member
+		for _, m := range mems {
+			if strings.EqualFold(m.Name, nodeName) {
+				s1mem = m
+				s1mem.Status = status
+				s1mem.Name = nodeName
+				break
+			}
+		}
+		s1.reconcileCh <- s1mem
+
+		// Should NOT be deregistered; we have to poll quickly here because
+		// anti-entropy will put it back if it did get deleted.
+		reaped := false
+		for start := time.Now(); time.Since(start) < 5*time.Second; {
+			_, node, err := state.GetNode(nodeName, nil)
+			require.NoError(t, err)
+			if node == nil {
+				reaped = true
+				break
+			}
+		}
+		if reaped {
+			t.Fatalf("server should still be registered")
+		}
+	}
+
+	t.Run("original name", func(t *testing.T) {
+		t.Parallel()
+		t.Run("left", func(t *testing.T) {
+			run(t, serf.StatusLeft, nil)
+		})
+		t.Run("reap", func(t *testing.T) {
+			run(t, StatusReap, nil)
+		})
+	})
+
+	t.Run("uppercased name", func(t *testing.T) {
+		t.Parallel()
+		t.Run("left", func(t *testing.T) {
+			run(t, serf.StatusLeft, strings.ToUpper)
+		})
+		t.Run("reap", func(t *testing.T) {
+			run(t, StatusReap, strings.ToUpper)
+		})
+	})
 }
 
 func TestLeader_CheckServersMeta(t *testing.T) {
@@ -636,6 +708,9 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 		_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
+		}
+		if len(checks) != 1 {
+			r.Fatalf("client missing check")
 		}
 		if got, want := checks[0].Status, api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)

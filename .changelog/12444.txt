@@ -1,0 +1,7 @@
+```release-note:bug
+catalog: compare node names case insensitively in more places
+```
+
+```release-note:bug
+state: fix bug blocking snapshot restore when a node check and node differed in casing of the node string
+```

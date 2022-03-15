@@ -7,10 +7,10 @@ export default path => (target, propertyKey, desc) => {
   runInDebug(() => {
     routes[path] = { cls: target, method: propertyKey };
   });
-  router.on(path, function(params, owner) {
+  router.on(path, function(params, owner, request) {
     const container = owner.lookup('service:container');
     const instance = container.get(target);
-    return configuration => desc.value.apply(instance, [params, configuration]);
+    return configuration => desc.value.apply(instance, [params, configuration, request]);
   });
   return desc;
 };

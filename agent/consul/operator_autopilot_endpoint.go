@@ -2,11 +2,9 @@ package consul
 
 import (
 	"fmt"
-
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/serf/serf"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -24,8 +22,9 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
-	if authz.OperatorRead(nil) != acl.Allow {
-		return acl.PermissionDeniedByACLUnnamed(authz, nil, acl.ResourceOperator, acl.AccessRead)
+
+	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(nil); err != nil {
+		return err
 	}
 
 	state := op.srv.fsm.State()
@@ -56,8 +55,9 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
-	if authz.OperatorWrite(nil) != acl.Allow {
-		return acl.PermissionDeniedByACLUnnamed(authz, nil, acl.ResourceOperator, acl.AccessWrite)
+
+	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+		return err
 	}
 
 	// Apply the update
@@ -91,8 +91,9 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
-	if authz.OperatorRead(nil) != acl.Allow {
-		return acl.PermissionDeniedByACLUnnamed(authz, nil, acl.ResourceOperator, acl.AccessRead)
+
+	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(nil); err != nil {
+		return err
 	}
 
 	state := op.srv.autopilot.GetState()
@@ -158,8 +159,9 @@ func (op *Operator) AutopilotState(args *structs.DCSpecificRequest, reply *autop
 	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
-	if authz.OperatorRead(nil) != acl.Allow {
-		return acl.PermissionDeniedByACLUnnamed(authz, nil, acl.ResourceOperator, acl.AccessRead)
+
+	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(nil); err != nil {
+		return err
 	}
 
 	state := op.srv.autopilot.GetState()

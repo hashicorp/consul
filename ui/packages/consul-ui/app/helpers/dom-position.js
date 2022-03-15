@@ -24,6 +24,16 @@ export default class DomPosition extends Helper {
           }
         }
         return target(rect);
+      } else {
+        // if we are using this as part of an on-resize
+        // provide and easy way to map coords to CSS props
+        const $el = e.target;
+        const rect = $el.getBoundingClientRect();
+        target.forEach(
+          ([prop, value]) => {
+            $el.style[value] = `${rect[prop]}px`;
+          }
+        );
       }
     };
   }

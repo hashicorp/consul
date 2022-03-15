@@ -66,7 +66,9 @@ service named `prometheus-server` so each Consul agent can reach it on
 
 A full configuration to enable Prometheus is given below.
 
-<CodeTabs>
+<CodeTabs heading="UI metrics configuration" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+<CodeBlockConfig filename="agent-config.hcl">
 
 ```hcl
 ui_config {
@@ -78,25 +80,40 @@ ui_config {
 }
 ```
 
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="helm-values.yaml">
+
+```yaml
+ui:
+  enabled: true
+  metrics:
+    enabled: true # by default, this inherits from the value global.metrics.enabled
+    provider: "prometheus"
+    baseURL: http://prometheus-server
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="agent-config.json">
+
 ```json
 {
-  "ui_config": [
-    {
-      "enabled": true,
-      "metrics_provider": "prometheus",
-      "metrics_proxy": [
-        {
-          "base_url": "http://prometheus-server"
-        }
-      ]
+  "ui_config": {
+    "enabled": true,
+    "metrics_provider": "prometheus",
+    "metrics_proxy": {
+      "base_url": "http://prometheus-server"
     }
-  ]
+  }
 }
 ```
 
+</CodeBlockConfig>
+
 </CodeTabs>
 
-Similarly, to configure the UI on Kubernetes, use this [reference](/docs/k8s/connect/observability/metrics).
+-> **Note**: For more information on configuring the observability UI on Kubernetes, use this [reference](/docs/k8s/connect/observability/metrics).
 
 ## Configuring Dashboard URLs
 
@@ -115,9 +132,9 @@ to the relevant information.
 
 An example with Grafana is shown below.
 
-<CodeTabs tabs={[ "HCL", "JSON", "YAML (Kubernetes)" ]}>
+<CodeTabs heading="Example dashboard URL template configuration for UI visualization"  tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
-<CodeBlockConfig>
+<CodeBlockConfig filename="agent-config.hcl">
 
 ```hcl
 ui_config {
@@ -130,31 +147,19 @@ ui_config {
 
 </CodeBlockConfig>
 
-<CodeBlockConfig>
-
-```json
-{
-  "ui_config": [
-    {
-      "dashboard_url_templates": [
-        {
-          "service": "https://grafana.example.com/d/lDlaj-NGz/service-overview?orgId=1\u0026var-service={{Service.Name}}\u0026var-namespace={{Service.Namespace}}\u0026var-partition={{Service.Partition}}\u0026var-dc={{Datacenter}}"
-        }
-      ],
-      "enabled": true
-    }
-  ]
-}
-```
-
-</CodeBlockConfig>
-
-<CodeBlockConfig>
+<CodeBlockConfig filename="helm-values.yaml">
 
 ```yaml
 # The UI is enabled by default so this stanza is not required.
 ui:
   enabled: true
+  # This configuration requires version 0.40.0 or later of the Helm chart.
+  dashboardURLTemplates:
+    service: "https://grafana.example.com/d/lDlaj-NGz/service-overview?orgId=1&var-service={{Service.Name}}&var-namespace={{Service.Namespace}}&var-dc={{Datacenter}}"
+
+# If you are using a version of the Helm chart older than 0.40.0, you must
+# configure the dashboard URL template using the `server.extraConfig` parameter
+# in the Helm chart's values file.
 server:
   extraConfig: |
     {
@@ -168,11 +173,26 @@ server:
 
 </CodeBlockConfig>
 
+<CodeBlockConfig filename="agent-config.json">
+
+```json
+{
+  "ui_config": {
+    "enabled": true,
+    "dashboard_url_templates": {
+      "service": "https://grafana.example.com/d/lDlaj-NGz/service-overview?orgId=1\u0026var-service={{Service.Name}}\u0026var-namespace={{Service.Namespace}}\u0026var-partition={{Service.Partition}}\u0026var-dc={{Datacenter}}"
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+
 </CodeTabs>
 
-~> **Note**: On Kubernetes, Consul Server configuration is set in your Helm
-config via the [`server.extraConfig`](/docs/k8s/helm#v-server-extraconfig) key as JSON.
-The `{{` characters in the URL must be escaped using `{{ "{{" }}` so that Helm
+~> **Note**: On Kubernetes, the Consul Server configuration set in the Helm config's
+[`server.extraConfig`](/docs/k8s/helm#v-server-extraconfig) key must be specified
+as JSON.  The `{{` characters in the URL must be escaped using `{{ "{{" }}` so that Helm
 doesn't try to template them.
 
 ![Consul UI Service Dashboard Link](/img/ui-dashboard-url-template.png)
@@ -206,18 +226,42 @@ un-authenticated workloads on the network**.
 With ACLs enabled, the proxy endpoint requires a valid token with read access
 to all nodes and services (across all namespaces in Enterprise):
 
-<CodeTabs>
+<Tabs>
+<Tab heading="Consul OSS">
+
+<CodeTabs heading="Example policy granting read-only access to all services and nodes">
 
 ```hcl
-# Consul OSS
 service_prefix "" {
   policy = "read"
 }
 node_prefix "" {
   policy = "read"
 }
+```
 
-# Consul Enterprise
+```json
+{
+  "service_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "node_prefix": {
+    "": {
+      "policy": "read"
+    }
+  }
+}
+```
+
+</CodeTabs>
+</Tab>
+
+<Tab heading="Consul Enterprise">
+<CodeTabs heading="Example policy granting read-only access to all services and nodes across all namespaces">
+
+```hcl
 namespace_prefix "" {
   service_prefix "" {
     policy = "read"
@@ -228,7 +272,29 @@ namespace_prefix "" {
 }
 ```
 
+```json
+{
+  "namespace_prefix": {
+    "": {
+      "service_prefix": {
+        "": {
+          "policy": "read"
+        }
+      },
+      "node_prefix": {
+        "": {
+          "policy": "read"
+        }
+      }
+    }
+  }
+}
+```
+
 </CodeTabs>
+
+</Tab>
+</Tabs>
 
 It's typical for most authenticated users to have this level of access in Consul
 as it's required for viewing the catalog or discovering services. If you use a
@@ -274,7 +340,9 @@ visible to Consul operators in the configuration file while UI users can query
 the metrics they need without separately obtaining a token for that provider or
 having a token exposed to them that they might be able to use elsewhere.
 
-<CodeTabs>
+<CodeTabs heading="Example configuration to add additional HTTP headers to the metrics endpoint">
+
+<CodeBlockConfig filename="agent-config.hcl">
 
 ```hcl
 ui_config {
@@ -292,27 +360,29 @@ ui_config {
 }
 ```
 
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="agent-config.json">
+
 ```json
 {
-  "ui_config": [
-    {
-      "enabled": true,
-      "metrics_provider": "example-apm",
-      "metrics_proxy": [
+  "ui_config": {
+    "enabled": true,
+    "metrics_provider": "example-apm",
+    "metrics_proxy": {
+      "base_url": "https://example-apm.com/api/v1/metrics",
+      "add_headers": [
         {
-          "add_headers": [
-            {
-              "name": "Authorization",
-              "value": "Bearer \u003ctoken\u003e"
-            }
-          ],
-          "base_url": "https://example-apm.com/api/v1/metrics"
+          "name": "Authorization",
+          "value": "Bearer \u003ctoken\u003e"
         }
       ]
     }
-  ]
+  }
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
@@ -331,9 +401,9 @@ feedback on [GitHub](https://github.com/hashicorp/consul) or
 
 The template for a complete provider JavaScript file is given below.
 
-<CodeTabs>
+<CodeTabs heading="Example JavaScript class template for a custom metrics plugin">
 
-```JavaScript
+```javascript
 (function () {
   var provider = {
     /**
@@ -553,7 +623,9 @@ named `example-provider`, which is defined in
 have been specified in the call to `consul.registerMetricsProvider` as in the
 code listing in the last section.
 
-<CodeTabs>
+<CodeTabs heading="Example configuration using a custom metrics provider">
+
+<CodeBlockConfig filename="agent-config.hcl">
 
 ```hcl
 ui_config {
@@ -568,6 +640,10 @@ ui_config {
 }
 ```
 
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="agent-config.json">
+
 ```json
 {
   "ui_config": {
@@ -579,6 +655,7 @@ ui_config {
 }
 ```
 
+</CodeBlockConfig>
 </CodeTabs>
 
 More than one JavaScript file may be specified in

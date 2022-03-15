@@ -13,9 +13,7 @@ This topic describes the supported parameters for configuring Consul agents in H
 
 You can create one or more files to configure the Consul agent on startup. 
 We recommend grouping similar configurations into separate files, such as ACL parameters, to make it easier to manage configuration changes. 
-Using external files may be easier than 
-configuring agents on the command-line when Consul is
-being configured using a configuration management system.
+Using external files may be easier than configuring agents on the command-line when Consul is being configured using a configuration management system.
 
 The configuration files are formatted as HCL or JSON. JSON-formatted configurations may be easier to read and edit by humans and computers. 
 JSON formatted configuration consists of a single JSON object with multiple configuration keys specified within it.
@@ -69,7 +67,7 @@ telemetry {
 
 ### TTL Values 
 
-All the TTL values are parsed by Go's `time` package, and have the following [formatting specification](https://golang.org/pkg/time/#ParseDuration): 
+All TTL values are parsed by Go's `time` package. Per the [Go documentation](https://golang.org/pkg/time/#ParseDuration), values must be formatted according to the following specification: 
 
 <blockquote>
 "A duration string is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix, such as '300ms', '-1.5h' or '2h45m'. Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
@@ -1648,9 +1646,26 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
       as well as permission to mount the backend at this path if it is not already
       mounted.
 
-    #### Common CA Config Options
+    - `auth_method` ((#vault_ca_auth_method))
+      Vault auth method to use for logging in to Vault.
+      Please see [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for more information
+      on how to configure individual auth methods. If auth method is provided, Consul will obtain a
+      new token from Vault when the token can no longer be renewed.
 
-    There are also a number of common configuration options supported by all providers:
+       - `type` The type of Vault auth method.
+
+       - `mount_path` The mount path of the auth method.
+      If not provided the auth method type will be used as the mount path.
+
+       - `params` The parameters to configure the auth method.
+      Please see [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for information on how
+      to configure the auth method you wish to use. If using the Kubernetes auth method, Consul will
+      read the service account token from the default mount path `/var/run/secrets/kubernetes.io/serviceaccount/token`
+      if the `jwt` parameter is not provided.
+
+#### Common CA Config Options
+
+There are also a number of common configuration options supported by all providers:
 
     - `csr_max_concurrent` ((#ca_csr_max_concurrent)) Sets a limit on the number
       of Certificate Signing Requests that can be processed concurrently. Defaults

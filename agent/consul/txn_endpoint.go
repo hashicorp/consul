@@ -113,8 +113,8 @@ func vetNodeTxnOp(op *structs.TxnNodeOp, authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	op.FillAuthzContext(&authzContext)
 
-	if authz.NodeWrite(op.Node.Node, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().NodeWriteAllowed(op.Node.Node, &authzContext); err != nil {
+		return err
 	}
 	return nil
 }
@@ -126,13 +126,13 @@ func vetCheckTxnOp(op *structs.TxnCheckOp, authz acl.Authorizer) error {
 
 	if op.Check.ServiceID == "" {
 		// Node-level check.
-		if authz.NodeWrite(op.Check.Node, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().NodeWriteAllowed(op.Check.Node, &authzContext); err != nil {
+			return err
 		}
 	} else {
 		// Service-level check.
-		if authz.ServiceWrite(op.Check.ServiceName, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(op.Check.ServiceName, &authzContext); err != nil {
+			return err
 		}
 	}
 	return nil

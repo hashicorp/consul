@@ -431,7 +431,7 @@ func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, serv
 		EvaluateInPartition:  source.PartitionOrDefault(),
 		EvaluateInDatacenter: dc,
 	}
-	idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, source.Name, entMeta, req)
+	idx, chain, _, err := s.serviceDiscoveryChainTxn(tx, ws, source.Name, entMeta, req)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", source.String(), err)
 	}
@@ -488,7 +488,7 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 			EvaluateInPartition:  sn.PartitionOrDefault(),
 			EvaluateInDatacenter: dc,
 		}
-		idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, req)
+		idx, chain, _, err := s.serviceDiscoveryChainTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, req)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", sn.String(), err)
 		}
@@ -772,7 +772,7 @@ func (s *Store) ServiceDiscoveryChain(
 	serviceName string,
 	entMeta *structs.EnterpriseMeta,
 	req discoverychain.CompileRequest,
-) (uint64, *structs.CompiledDiscoveryChain, error) {
+) (uint64, *structs.CompiledDiscoveryChain, *configentry.DiscoveryChainSet, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
@@ -785,19 +785,19 @@ func (s *Store) serviceDiscoveryChainTxn(
 	serviceName string,
 	entMeta *structs.EnterpriseMeta,
 	req discoverychain.CompileRequest,
-) (uint64, *structs.CompiledDiscoveryChain, error) {
+) (uint64, *structs.CompiledDiscoveryChain, *configentry.DiscoveryChainSet, error) {
 
 	index, entries, err := readDiscoveryChainConfigEntriesTxn(tx, ws, serviceName, nil, entMeta)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 	req.Entries = entries
 
 	_, config, err := s.CAConfig(ws)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	} else if config == nil {
-		return 0, nil, errors.New("no cluster ca config setup")
+		return 0, nil, nil, errors.New("no cluster ca config setup")
 	}
 
 	// Build TrustDomain based on the ClusterID stored.
@@ -805,17 +805,131 @@ func (s *Store) serviceDiscoveryChainTxn(
 	if signingID == nil {
 		// If CA is bootstrapped at all then this should never happen but be
 		// defensive.
-		return 0, nil, errors.New("no cluster trust domain setup")
+		return 0, nil, nil, errors.New("no cluster trust domain setup")
 	}
 	req.EvaluateInTrustDomain = signingID.Host()
 
 	// Then we compile it into something useful.
 	chain, err := discoverychain.Compile(req)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed to compile discovery chain: %v", err)
+		return 0, nil, nil, fmt.Errorf("failed to compile discovery chain: %v", err)
 	}
 
-	return index, chain, nil
+	return index, chain, entries, nil
+}
+
+func (s *Store) ReadResolvedServiceConfigEntries(
+	ws memdb.WatchSet,
+	serviceName string,
+	entMeta *structs.EnterpriseMeta,
+	upstreamIDs []structs.ServiceID,
+	proxyMode structs.ProxyMode,
+) (uint64, *configentry.ResolvedServiceConfigSet, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	var res configentry.ResolvedServiceConfigSet
+
+	// The caller will likely calculate this again, but we need to do it here
+	// to determine if we are going to traverse into implicit upstream
+	// definitions.
+	var inferredProxyMode structs.ProxyMode
+
+	index, proxyEntry, err := configEntryTxn(tx, ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+	maxIndex := index
+
+	if proxyEntry != nil {
+		var ok bool
+		proxyConf, ok := proxyEntry.(*structs.ProxyConfigEntry)
+		if !ok {
+			return 0, nil, fmt.Errorf("invalid proxy config type %T", proxyEntry)
+		}
+		res.AddProxyDefaults(proxyConf)
+
+		inferredProxyMode = proxyConf.Mode
+	}
+
+	index, serviceEntry, err := configEntryTxn(tx, ws, structs.ServiceDefaults, serviceName, entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	if index > maxIndex {
+		maxIndex = index
+	}
+
+	var serviceConf *structs.ServiceConfigEntry
+	if serviceEntry != nil {
+		var ok bool
+		serviceConf, ok = serviceEntry.(*structs.ServiceConfigEntry)
+		if !ok {
+			return 0, nil, fmt.Errorf("invalid service config type %T", serviceEntry)
+		}
+		res.AddServiceDefaults(serviceConf)
+
+		if serviceConf.Mode != structs.ProxyModeDefault {
+			inferredProxyMode = serviceConf.Mode
+		}
+	}
+
+	var (
+		noUpstreamArgs = len(upstreamIDs) == 0
+
+		// Check the args and the resolved value. If it was exclusively set via a config entry, then proxyMode
+		// will never be transparent because the service config request does not use the resolved value.
+		tproxy = proxyMode == structs.ProxyModeTransparent || inferredProxyMode == structs.ProxyModeTransparent
+	)
+
+	// The upstreams passed as arguments to this endpoint are the upstreams explicitly defined in a proxy registration.
+	// If no upstreams were passed, then we should only return the resolved config if the proxy is in transparent mode.
+	// Otherwise we would return a resolved upstream config to a proxy with no configured upstreams.
+	if noUpstreamArgs && !tproxy {
+		return maxIndex, &res, nil
+	}
+
+	// First collect all upstreams into a set of seen upstreams.
+	// Upstreams can come from:
+	// - Explicitly from proxy registrations, and therefore as an argument to this RPC endpoint
+	// - Implicitly from centralized upstream config in service-defaults
+	seenUpstreams := map[structs.ServiceID]struct{}{}
+
+	for _, sid := range upstreamIDs {
+		if _, ok := seenUpstreams[sid]; !ok {
+			seenUpstreams[sid] = struct{}{}
+		}
+	}
+
+	if serviceConf != nil && serviceConf.UpstreamConfig != nil {
+		for _, override := range serviceConf.UpstreamConfig.Overrides {
+			if override.Name == "" {
+				continue // skip this impossible condition
+			}
+			seenUpstreams[override.ServiceID()] = struct{}{}
+		}
+	}
+
+	for upstream := range seenUpstreams {
+		index, rawEntry, err := configEntryTxn(tx, ws, structs.ServiceDefaults, upstream.ID, &upstream.EnterpriseMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if index > maxIndex {
+			maxIndex = index
+		}
+
+		if rawEntry != nil {
+			entry, ok := rawEntry.(*structs.ServiceConfigEntry)
+			if !ok {
+				return 0, nil, fmt.Errorf("invalid service config type %T", rawEntry)
+			}
+			res.AddServiceDefaults(entry)
+		}
+	}
+
+	return maxIndex, &res, nil
 }
 
 // ReadDiscoveryChainConfigEntries will query for the full discovery chain for

@@ -242,3 +242,88 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 		require.Equal(t, expect, resp)
 	}
 }
+
+func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+		c.PrimaryDatacenter = "dc1"
+	})
+
+	codec := rpcClient(t, s1)
+
+	waitForLeaderEstablishment(t, s1)
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	{ // create one unrelated entry
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "unrelated",
+				ConnectTimeout: 33 * time.Second,
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	run := func(t *testing.T, dataPrefix string) {
+		rpcBlockingQueryTestHarness(t,
+			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
+				args := &structs.DiscoveryChainRequest{
+					Name:                 "web",
+					EvaluateInDatacenter: "dc1",
+					EvaluateInNamespace:  "default",
+					EvaluateInPartition:  "default",
+					Datacenter:           "dc1",
+				}
+				args.QueryOptions.MinQueryIndex = minQueryIndex
+
+				var out structs.DiscoveryChainResponse
+				errCh := channelCallRPC(s1, "DiscoveryChain.Get", &args, &out, func() error {
+					if !out.Chain.IsDefault() {
+						return fmt.Errorf("expected default chain")
+					}
+					return nil
+				})
+				return &out.QueryMeta, errCh
+			},
+			func(i int) <-chan error {
+				var out bool
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+					Datacenter: "dc1",
+					Entry: &structs.ServiceConfigEntry{
+						Kind: structs.ServiceDefaults,
+						Name: fmt.Sprintf(dataPrefix+"%d", i),
+					},
+				}, &out, nil)
+			},
+		)
+	}
+
+	runStep(t, "test the errNotFound path", func(t *testing.T) {
+		run(t, "other")
+	})
+
+	{ // create one relevant entry
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Entry: &structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "web",
+				Protocol: "grpc",
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+		run(t, "completely-different-other")
+	})
+}

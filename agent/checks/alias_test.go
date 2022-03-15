@@ -454,46 +454,55 @@ func TestCheckAlias_remoteNodeOnlyPassing(t *testing.T) {
 func TestCheckAlias_remoteNodeOnlyCritical(t *testing.T) {
 	t.Parallel()
 
-	notify := newMockAliasNotify()
-	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
-	rpc := &mockRPC{}
-	chk := &CheckAlias{
-		Node:    "remote",
-		CheckID: chkID,
-		Notify:  notify,
-		RPC:     rpc,
+	run := func(t *testing.T, responseNodeName string) {
+		notify := newMockAliasNotify()
+		chkID := structs.NewCheckID(types.CheckID("foo"), nil)
+		rpc := &mockRPC{}
+		chk := &CheckAlias{
+			Node:    "remote",
+			CheckID: chkID,
+			Notify:  notify,
+			RPC:     rpc,
+		}
+
+		rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
+			HealthChecks: []*structs.HealthCheck{
+				// Should ignore non-matching node
+				{
+					Node:      "A",
+					ServiceID: "web",
+					Status:    api.HealthCritical,
+				},
+
+				// Should ignore any services
+				{
+					Node:      responseNodeName,
+					ServiceID: "db",
+					Status:    api.HealthCritical,
+				},
+
+				// Match
+				{
+					Node:   responseNodeName,
+					Status: api.HealthCritical,
+				},
+			},
+		})
+
+		chk.Start()
+		defer chk.Stop()
+		retry.Run(t, func(r *retry.R) {
+			if got, want := notify.State(chkID), api.HealthCritical; got != want {
+				r.Fatalf("got state %q want %q", got, want)
+			}
+		})
 	}
 
-	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
-		HealthChecks: []*structs.HealthCheck{
-			// Should ignore non-matching node
-			{
-				Node:      "A",
-				ServiceID: "web",
-				Status:    api.HealthCritical,
-			},
-
-			// Should ignore any services
-			{
-				Node:      "remote",
-				ServiceID: "db",
-				Status:    api.HealthCritical,
-			},
-
-			// Match
-			{
-				Node:   "remote",
-				Status: api.HealthCritical,
-			},
-		},
+	t.Run("same case node name", func(t *testing.T) {
+		run(t, "remote")
 	})
-
-	chk.Start()
-	defer chk.Stop()
-	retry.Run(t, func(r *retry.R) {
-		if got, want := notify.State(chkID), api.HealthCritical; got != want {
-			r.Fatalf("got state %q want %q", got, want)
-		}
+	t.Run("lowercase node name", func(t *testing.T) {
+		run(t, "ReMoTe")
 	})
 }
 

@@ -430,16 +430,16 @@ func (e *IngressGatewayConfigEntry) ListRelatedServices() []ServiceID {
 	return out
 }
 
-func (e *IngressGatewayConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *IngressGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.ServiceRead(e.Name, &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
 }
 
-func (e *IngressGatewayConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *IngressGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.MeshWrite(&authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *IngressGatewayConfigEntry) GetRaftIndex() *RaftIndex {
@@ -572,16 +572,16 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 	return nil
 }
 
-func (e *TerminatingGatewayConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *TerminatingGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.ServiceRead(e.Name, &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
 }
 
-func (e *TerminatingGatewayConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *TerminatingGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.MeshWrite(&authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *TerminatingGatewayConfigEntry) GetRaftIndex() *RaftIndex {

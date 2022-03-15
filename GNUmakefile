@@ -178,8 +178,8 @@ endif
 
 # linux builds a linux binary independent of the source platform
 linux:
-	mkdir -p bin
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+	@mkdir -p ./pkg/bin/linux_amd64
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./pkg/bin/linux_amd64 -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
@@ -330,15 +330,15 @@ ifeq ("$(CIRCLECI)","true")
 # Run in CI
 	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- -cover -coverprofile=coverage.txt ./agent/connect/ca
 # Run leader tests that require Vault
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-leader.xml" -- -cover -coverprofile=coverage-leader.txt -run '.*_Vault_' ./agent/consul
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-leader.xml" -- -cover -coverprofile=coverage-leader.txt -run Vault ./agent/consul
 # Run agent tests that require Vault
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-agent.xml" -- -cover -coverprofile=coverage-agent.txt -run '.*_Vault_' ./agent
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-agent.xml" -- -cover -coverprofile=coverage-agent.txt -run Vault ./agent
 else
 # Run locally
 	@echo "Running /agent/connect/ca tests in verbose mode"
 	@go test -v ./agent/connect/ca
-	@go test -v ./agent/consul -run '.*_Vault_'
-	@go test -v ./agent -run '.*_Vault_'
+	@go test -v ./agent/consul -run Vault
+	@go test -v ./agent -run Vault
 endif
 
 proto: $(PROTOGOFILES) $(PROTOGOBINFILES)

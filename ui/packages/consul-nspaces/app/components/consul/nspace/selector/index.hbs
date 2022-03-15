@@ -2,18 +2,26 @@
   {{#if (can "choose nspaces")}}
     {{#let
       (or @nspace 'default')
-    as |nspace|}}
+      (is-href 'dc.nspaces' @dc.Name)
+    as |nspace isManaging|}}
         <li
           class="nspaces"
           data-test-nspace-menu
         >
           <DisclosureMenu
             aria-label="Namespace"
+            @items={{append 
+              (hash 
+                Name="Manage Namespaces"
+                href=(href-to 'dc.nspaces' @dc.Name)
+              ) 
+              (reject-by 'DeletedAt' @nspaces)
+            }}
           as |disclosure|>
             <disclosure.Action
               {{on 'click' disclosure.toggle}}
             >
-              {{nspace}}
+              {{if isManaging 'Manage Namespaces' nspace}}
             </disclosure.Action>
             <disclosure.Menu as |panel|>
               {{#if (gt @nspaces.length 0)}}
@@ -40,34 +48,39 @@
                 />
               {{/if}}
               <panel.Menu as |menu|>
-                {{#each (reject-by 'DeletedAt' @nspaces) as |item|}}
+                {{#each menu.items as |item|}}
+
                   <menu.Item
-                    aria-current={{if (eq nspace item.Name) 'true'}}
+                    data-test-main-nav-nspaces={{not-eq item.href undefined}}
+                    aria-current={{if 
+                      (or 
+                        (and isManaging item.href)
+                        (and (not isManaging) (eq nspace item.Name))
+                      )
+                      'true'
+                    }}
                   >
                     <menu.Action
                       {{on 'click' disclosure.close}}
-                      @href={{href-to '.' params=(hash
-                        partition=(if (gt @partition.length 0) @partition undefined)
-                        nspace=item.Name
-                      )}}
+                      @href={{if item.href 
+                        item.href 
+                        (if isManaging 
+                          (href-to 'dc.services.index' params=(hash
+                            partition=(if (gt @partition.length 0) @partition undefined)
+                            nspace=item.Name
+                            dc=@dc.Name
+                          ))
+                          (href-to '.' params=(hash
+                            partition=(if (gt @partition.length 0) @partition undefined)
+                            nspace=item.Name
+                          ))
+                        )
+                      }}
                     >
                       {{item.Name}}
                     </menu.Action>
                   </menu.Item>
                 {{/each}}
-                {{#if (can 'manage nspaces')}}
-                  <menu.Separator />
-                  <menu.Item
-                    data-test-main-nav-nspaces
-                  >
-                    <menu.Action
-                      {{on 'click' disclosure.close}}
-                      @href={{href-to 'dc.nspaces' @dc.Name}}
-                    >
-                      Manage Namespaces
-                    </menu.Action>
-                  </menu.Item>
-                {{/if}}
               </panel.Menu>
             </disclosure.Menu>
           </DisclosureMenu>

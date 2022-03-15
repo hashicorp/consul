@@ -10,7 +10,7 @@ readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
 DEBUG=${DEBUG:-}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.20.1"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.20.2"}
 export ENVOY_VERSION
 
 if [ ! -z "$DEBUG" ] ; then

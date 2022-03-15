@@ -375,8 +375,21 @@
     ]
   },
   {
-    "title": "Consul API Gateway <sup>BETA</sup>",
-    "path": "api-gateway"
+    "title": "Consul API Gateway",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "api-gateway"
+      },
+      {
+        "title": "Usage",
+        "path": "api-gateway/api-gateway-usage"
+      },
+      {
+        "title": "Technical Specifications",
+        "path": "api-gateway/tech-specs"
+      }
+    ]
   },
   {
     "title": "Kubernetes",
@@ -477,6 +490,10 @@
               {
                 "title": "Gossip Encryption Key",
                 "path": "k8s/installation/vault/gossip"
+              },
+              {
+                "title": "Enterprise License",
+                "path": "k8s/installation/vault/enterprise-license"
               },
               {
                 "title": "Server TLS",
@@ -628,6 +645,10 @@
       {
         "title": "Requirements",
         "path": "ecs/requirements"
+      },
+      {
+        "title": "Task Resource Usage",
+        "path": "ecs/task-resource-usage"
       },
       {
         "title": "Install with Terraform",
@@ -789,6 +810,15 @@
       {
         "title": "Compatibility",
         "path": "nia/compatibility"
+      },
+      {
+        "title": "Release Notes",
+        "routes": [
+          {
+            "title": "v0.5.0",
+            "path": "nia/release-notes/0-5-0"
+          }
+        ]
       }
     ]
   },
@@ -863,15 +893,23 @@
         "title": "Access Control (ACLs)",
         "routes": [
           {
-            "title": "Overview",
+            "title": "ACL System Overview",
             "path": "security/acl"
           },
           {
-            "title": "ACL System",
-            "path": "security/acl/acl-system"
+            "title": "Tokens",
+            "path": "security/acl/acl-tokens"
           },
           {
-            "title": "ACL Rules",
+            "title": "Policies",
+            "path": "security/acl/acl-policies"
+          },
+          {
+            "title": "Roles",
+            "path": "security/acl/acl-roles"
+          },
+          {
+            "title": "Rules Reference",
             "path": "security/acl/acl-rules"
           },
           {

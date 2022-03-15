@@ -3,11 +3,11 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "db:10.0.0.1:9191",
+      "name": "db:10.0.0.1:8080",
       "address": {
         "socketAddress": {
           "address": "10.0.0.1",
-          "portValue": 9191
+          "portValue": 8080
         }
       },
       "filterChains": [
@@ -28,11 +28,11 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "db:172.16.0.1:9191",
+      "name": "db:172.16.0.1:8080",
       "address": {
         "socketAddress": {
           "address": "172.16.0.1",
-          "portValue": 9191
+          "portValue": 8080
         }
       },
       "filterChains": [
@@ -53,11 +53,11 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "db:8.8.8.8:9191",
+      "name": "db:8.8.8.8:8080",
       "address": {
         "socketAddress": {
           "address": "8.8.8.8",
-          "portValue": 9191
+          "portValue": 8080
         }
       },
       "filterChains": [

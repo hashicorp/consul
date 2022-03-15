@@ -7,11 +7,11 @@ description: >-
 
 # Consul-Terraform-Sync Command (CLI)
 
-Consul-Terraform-Sync is controlled via an easy to use command-line interface (CLI). Consul-Terraform-Sync is only a single command-line application: `consul-terraform-sync`. Consul-Terraform-Sync can be run as a daemon and execute CLI commands. When Consul-Terraform-Sync is run as a daemon, it acts as a server to the CLI commands. Users can use the commands to interact and modify the daemon as it is running. The complete list of commands is in the navigation to the left. Both the daemon and commands return a non-zero exit status on error.
+Consul-Terraform-Sync (CTS) is controlled via an easy to use command-line interface (CLI). CTS is only a single command-line application: `consul-terraform-sync`. CTS can be run as a daemon and execute CLI commands. When CTS is run as a daemon, it acts as a server to the CLI commands. Users can use the commands to interact and modify the daemon as it is running. The complete list of commands is in the navigation to the left. Both the daemon and commands return a non-zero exit status on error.
 
 ## Daemon
 
-When running as a daemon, there is no default configuration to run Consul-Terraform-Sync in a meaningful way. Setting a configuration flag `-config-file` or `-config-dir` is required. For example:
+When running as a daemon, there is no default configuration to run CTS in a meaningful way. Setting a configuration flag `-config-file` or `-config-dir` is required. For example:
 
 ```shell-session
 $ consul-terraform-sync -config-file=config.hcl
@@ -21,13 +21,13 @@ To view a list of available flags, use the `-help` or `-h` flag.
 
 ### Modes
 
-Consul-Terraform-Sync can be run as a daemon in different modes.
+CTS can be run as a daemon in different modes.
 
 #### Long-running Mode
 
 Flag: none
 
-Behavior: This is the default mode in which Consul-Terraform-Sync passes through a once-mode phase and then turns into a long running process. During the once-mode phase, the daemon will exit with a non-zero status if it encounters an error. After successfully passing through once-mode phase, it will begin a long-running process in which errors are logged and exiting is not expected behavior. Once beginning the long-running process, the daemon serves any API and command requests.
+Behavior: This is the default mode in which CTS passes through a once-mode phase and then turns into a long running process. During the once-mode phase, the daemon will exit with a non-zero status if it encounters an error. After successfully passing through once-mode phase, it will begin a long-running process in which errors are logged and exiting is not expected behavior. Once beginning the long-running process, the daemon serves any API and command requests.
 
 Usage: Intended to be run as a long running process after running once-mode successfully for given configuration and tasks.
 
@@ -35,7 +35,7 @@ Usage: Intended to be run as a long running process after running once-mode succ
 
 Flag: `-inspect`
 
-Behavior: Consul-Terraform-Sync will display the proposed state changes for all tasks once and exit. No changes are applied in this mode. On encountering an error before completing, Consul-Terraform-Sync will exit with a non-zero status.
+Behavior: CTS will display the proposed state changes for all tasks once and exit. No changes are applied in this mode. On encountering an error before completing, CTS will exit with a non-zero status.
 
 Usage: Intended to be run before daemon-mode in order to confirm configuration is accurate and tasks would update network infrastructure as expected.
 
@@ -51,20 +51,20 @@ Usage: Useful to debug one or more tasks to confirm configuration is accurate an
 
 Flag: `-once`
 
-Behavior: Consul-Terraform-Sync will run all tasks once with buffer periods disabled and exit. On encountering an error before completing, Consul-Terraform-Sync will exit with a non-zero status.
+Behavior: CTS will run all tasks once with buffer periods disabled and exit. On encountering an error before completing, CTS will exit with a non-zero status.
 
 Usage: Intended to be run before daemon-mode in order to confirm configuration is accurate and tasks update network infrastructure as expected.
 
 ## Commands
 
-In addition to running the daemon, Consul-Terraform-Sync has a set of commands that act as a client to the daemon server. The commands provide a user-friendly experience interacting with the daemon. The commands use the Consul-Terraform-Sync's APIs but does not correspond one-to-one with it. Please see the individual commands in the left navigation for more details.
+In addition to running the daemon, CTS has a set of commands that act as a client to the daemon server. The commands provide a user-friendly experience interacting with the daemon. The commands use the CTS APIs but does not correspond one-to-one with it. Please see the individual commands in the left navigation for more details.
 
 To get help for a command, run: `consul-terraform-sync <command> -h`
 
 
 ### CLI Structure
 
-Consul-Terraform-Sync commands follow the below structure
+CTS commands follow the below structure
 
 ```shell-session
 consul-terraform-sync <command> [options] [args]
@@ -75,19 +75,19 @@ consul-terraform-sync <command> [options] [args]
 Example:
 
 ```shell-session
-consul-terraform-sync task disable -port=2000 task_a
+consul-terraform-sync task disable -http-addr=http://localhost:2000 task_a
 ```
 
 ### General Options
 
 Below are options that can be used across all commands:
 
-| Option         | Description                                                                                                                                                                                                                                                                                             | Required | Default            |
-|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|--------------------|
-| `-port`        | Integer value that specifies the port from which the Consul-Terraform-Sync daemon serves its API.<br/>The value is prepended with `http://localhost:`, but you can specify a different scheme or address with the `-http-addr` if necessary.                                                            | Optional | `8558`             |
-| `-http-addr`   | String value that specifies the address and port of the Consul-Terraform-Sync API. You can specify an IP or DNS address.<br/><br/> Alternatively, you can specify a value using the `CTS_HTTP_ADDR` environment variable.                                                                               | Optional | `http://localhost:8558` |
-| `-ssl-verify`  | Boolean value that configures Consul-Terraform-Sync to enable verification for TLS/SSL connections to the API. This does not affect insecure HTTP connections.<br/><br/>Alternatively, you can specify the value using the `CTS_SSL_VERIFY` environment variable.                                                                                        | Optional | `true`             |
-| `-ca-cert`     | String value that specifies the path to a PEM-encoded certificate authority file that is used to verify TLS/SSL connections. Takes precedence over `-ca-path` if both are provided.<br/><br/>Alternatively, you can specify the value using the `CTS_CACERT` environment variable.                                                                                 | Optional        | `""`                 |
-| `-ca-path`     | String value that specifies the path to a directory containing a PEM-encoded certificate authority file that is used to verify TLS/SSL connections.<br/><br/>Alternatively, you can specify the value using the `CTS_CAPATH` environment variable.                                                          | Optional        |  `""`                |
-| `-client-cert`  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | String value that specifies the path to a PEM-encoded client certificate that the Consul-Terraform-Sync API requires when [`verify_incoming`](/docs/nia/configuration#verify_incoming) is set to `true` on the API.<br/><br/>Alternatively, you can specify the value using the `CTS_CLIENT_CERT` environment variable.                                | Optional        | `""`                 |
-| `-client-key`  | String value that specifies the path to a PEM-encoded client key for the certificate configured with the `-client-cert` option. This is required if `-client-cert` is set and if [`verify_incoming`](/docs/nia/configuration#verify_incoming) is set to `true` on the Consul-Terraform-Sync API.<br/><br/>Alternatively, you can specify the value using the `CTS_CLIENT_KEY` environment variable. | Optional        | `""`                 |
+| Option | Required | Type | Description  | Default |
+| ------ | -------- | ---- | ------------ | --------|
+| `-port`| Optional | integer | **Deprecated in Consul-Terraform-Sync 0.5.0 and will be removed in a later version.** Use `-http-addr` option instead to specify the address and port of the Consul-Terraform-Sync API.<br/><br/>Port from which the CTS daemon serves its API.<br/>The value is prepended with `http://localhost:`, but you can specify a different scheme or address with the `-http-addr` if necessary. | `8558` |
+| `-http-addr` | Optional | string | Address and port of the CTS API. You can specify an IP or DNS address.<br/><br/> Alternatively, you can specify a value using the `CTS_HTTP_ADDR` environment variable. | `http://localhost:8558` |
+| `-ssl-verify` | Optional | boolean | Enables verification for TLS/SSL connections to the API if set to true. This does not affect insecure HTTP connections.<br/><br/>Alternatively, you can specify the value using the `CTS_SSL_VERIFY` environment variable. | `true` |
+| `-ca-cert` | Optional | string | Path to a PEM-encoded certificate authority file that is used to verify TLS/SSL connections. Takes precedence over `-ca-path` if both are provided.<br/><br/>Alternatively, you can specify the value using the `CTS_CACERT` environment variable.  | none |
+| `-ca-path` | Optional | string | Path to a directory containing a PEM-encoded certificate authority file that is used to verify TLS/SSL connections.<br/><br/>Alternatively, you can specify the value using the `CTS_CAPATH` environment variable. | none |
+| `-client-cert`  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string | Path to a PEM-encoded client certificate that the CTS API requires when [`verify_incoming`](/docs/nia/configuration#verify_incoming) is set to `true` on the API.<br/><br/>Alternatively, you can specify the value using the `CTS_CLIENT_CERT` environment variable. | none |
+| `-client-key`  | Optional | string | Path to a PEM-encoded client key for the certificate configured with the `-client-cert` option. This is required if `-client-cert` is set and if [`verify_incoming`](/docs/nia/configuration#verify_incoming) is set to `true` on the CTS API.<br/><br/>Alternatively, you can specify the value using the `CTS_CLIENT_KEY` environment variable. | none |

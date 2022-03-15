@@ -122,7 +122,7 @@ as |items item dc|}}
       instances=true
       intentions=(and (not-eq item.Service.Kind 'terminating-gateway') (can 'read intention for service' item=item.Service))
       routing=(and dc.MeshEnabled item.IsOrigin)
-      tags=(not item.Service.Kind)
+      tags=true
   )
   as |tabs|}}
         <AppView>

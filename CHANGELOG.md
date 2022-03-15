@@ -1,3 +1,36 @@
+## 1.11.4 (February 28, 2022)
+
+FEATURES:
+
+* ca: support using an external root CA with the vault CA provider [[GH-11910](https://github.com/hashicorp/consul/issues/11910)]
+
+IMPROVEMENTS:
+
+* connect: Update supported Envoy versions to include 1.19.3 and 1.18.6 [[GH-12449](https://github.com/hashicorp/consul/issues/12449)]
+* connect: update Envoy supported version of 1.20 to 1.20.2 [[GH-12433](https://github.com/hashicorp/consul/issues/12433)]
+* connect: update Envoy supported version of 1.20 to 1.20.2 [[GH-12443](https://github.com/hashicorp/consul/issues/12443)]
+* debug: reduce the capture time for trace to only a single interval instead of the full duration to make trace.out easier to open without running into OOM errors. [[GH-12359](https://github.com/hashicorp/consul/issues/12359)]
+* raft: add additional logging of snapshot restore progress [[GH-12325](https://github.com/hashicorp/consul/issues/12325)]
+* rpc: improve blocking queries for items that do not exist, by continuing to block until they exist (or the timeout). [[GH-12110](https://github.com/hashicorp/consul/issues/12110)]
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+* server: conditionally avoid writing a config entry to raft if it was already the same [[GH-12321](https://github.com/hashicorp/consul/issues/12321)]
+* server: suppress spurious blocking query returns where multiple config entries are involved [[GH-12362](https://github.com/hashicorp/consul/issues/12362)]
+
+BUG FIXES:
+
+* agent: Parse datacenter from Create/Delete requests for AuthMethods and BindingRules. [[GH-12370](https://github.com/hashicorp/consul/issues/12370)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* catalog: compare node names case insensitively in more places [[GH-12444](https://github.com/hashicorp/consul/issues/12444)]
+* checks: populate interval and timeout when registering services [[GH-11138](https://github.com/hashicorp/consul/issues/11138)]
+* local: fixes a data race in anti-entropy sync that could cause the wrong tags to be applied to a service when EnableTagOverride is used [[GH-12324](https://github.com/hashicorp/consul/issues/12324)]
+* raft: fixed a race condition in leadership transfer that could result in reelection of the current leader [[GH-12325](https://github.com/hashicorp/consul/issues/12325)]
+* server: **(Enterprise only)** Namespace deletion will now attempt to delete as many namespaced config entries as possible instead of halting on the first deletion that failed.
+* server: partly fix config entry replication issue that prevents replication in some circumstances [[GH-12307](https://github.com/hashicorp/consul/issues/12307)]
+* state: fix bug blocking snapshot restore when a node check and node differed in casing of the node string [[GH-12444](https://github.com/hashicorp/consul/issues/12444)]
+* ui: Ensure we always display the Policy default preview in the Namespace editing form [[GH-12316](https://github.com/hashicorp/consul/issues/12316)]
+* ui: Fix missing helper javascript error [[GH-12358](https://github.com/hashicorp/consul/issues/12358)]
+* xds: Fixed Envoy http features such as outlier detection and retry policy not working correctly with transparent proxy. [[GH-12385](https://github.com/hashicorp/consul/issues/12385)]
+
 ## 1.11.3 (February 11, 2022)
 
 IMPROVEMENTS:
@@ -205,6 +238,37 @@ permissions errors rather than using UI capabilities 'pre-user-action' [[GH-1152
 NOTES:
 
 * Renamed the `agent_master` field to `agent_recovery` in the `acl-tokens.json` file in which tokens are persisted on-disk (when `acl.enable_token_persistence` is enabled) [[GH-11744](https://github.com/hashicorp/consul/issues/11744)]
+
+## 1.10.9 (February 28, 2022)
+
+SECURITY:
+
+* agent: Use SHA256 instead of MD5 to generate persistence file names.
+
+FEATURES:
+
+* ca: support using an external root CA with the vault CA provider [[GH-11910](https://github.com/hashicorp/consul/issues/11910)]
+
+IMPROVEMENTS:
+
+* connect: Update supported Envoy versions to include 1.18.6 [[GH-12450](https://github.com/hashicorp/consul/issues/12450)]
+* connect: update Envoy supported version of 1.20 to 1.20.2 [[GH-12434](https://github.com/hashicorp/consul/issues/12434)]
+* debug: reduce the capture time for trace to only a single interval instead of the full duration to make trace.out easier to open without running into OOM errors. [[GH-12359](https://github.com/hashicorp/consul/issues/12359)]
+* raft: add additional logging of snapshot restore progress [[GH-12325](https://github.com/hashicorp/consul/issues/12325)]
+* rpc: improve blocking queries for items that do not exist, by continuing to block until they exist (or the timeout). [[GH-12110](https://github.com/hashicorp/consul/issues/12110)]
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+* server: conditionally avoid writing a config entry to raft if it was already the same [[GH-12321](https://github.com/hashicorp/consul/issues/12321)]
+* server: suppress spurious blocking query returns where multiple config entries are involved [[GH-12362](https://github.com/hashicorp/consul/issues/12362)]
+
+BUG FIXES:
+
+* agent: Parse datacenter from Create/Delete requests for AuthMethods and BindingRules. [[GH-12370](https://github.com/hashicorp/consul/issues/12370)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* raft: fixed a race condition in leadership transfer that could result in reelection of the current leader [[GH-12325](https://github.com/hashicorp/consul/issues/12325)]
+* server: **(Enterprise only)** Namespace deletion will now attempt to delete as many namespaced config entries as possible instead of halting on the first deletion that failed.
+* server: partly fix config entry replication issue that prevents replication in some circumstances [[GH-12307](https://github.com/hashicorp/consul/issues/12307)]
+* ui: Ensure we always display the Policy default preview in the Namespace editing form [[GH-12316](https://github.com/hashicorp/consul/issues/12316)]
+* xds: Fixed Envoy http features such as outlier detection and retry policy not working correctly with transparent proxy. [[GH-12385](https://github.com/hashicorp/consul/issues/12385)]
 
 ## 1.10.8 (February 11, 2022)
 
@@ -553,6 +617,25 @@ being expired. [[GH-10161](https://github.com/hashicorp/consul/issues/10161)]
 NOTES:
 
 * legal: **(Enterprise only)** Enterprise binary downloads will now include a copy of the EULA and Terms of Evaluation in the zip archive
+
+## 1.9.16 (February 28, 2022)
+
+FEATURES:
+
+* ca: support using an external root CA with the vault CA provider [[GH-11910](https://github.com/hashicorp/consul/issues/11910)]
+
+IMPROVEMENTS:
+
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+* server: conditionally avoid writing a config entry to raft if it was already the same [[GH-12321](https://github.com/hashicorp/consul/issues/12321)]
+
+BUG FIXES:
+
+* agent: Parse datacenter from Create/Delete requests for AuthMethods and BindingRules. [[GH-12370](https://github.com/hashicorp/consul/issues/12370)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* server: **(Enterprise only)** Namespace deletion will now attempt to delete as many namespaced config entries as possible instead of halting on the first deletion that failed.
+* server: partly fix config entry replication issue that prevents replication in some circumstances [[GH-12307](https://github.com/hashicorp/consul/issues/12307)]
+* ui: Ensure we always display the Policy default preview in the Namespace editing form [[GH-12316](https://github.com/hashicorp/consul/issues/12316)]
 
 ## 1.9.15 (February 11, 2022)
 

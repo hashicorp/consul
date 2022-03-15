@@ -789,16 +789,16 @@ func (e *ServiceIntentionsConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
-func (e *ServiceIntentionsConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ServiceIntentionsConfigEntry) CanRead(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.IntentionRead(e.GetName(), &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().IntentionReadAllowed(e.GetName(), &authzContext)
 }
 
-func (e *ServiceIntentionsConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceIntentionsConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.IntentionWrite(e.GetName(), &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().IntentionWriteAllowed(e.GetName(), &authzContext)
 }
 
 func MigrateIntentions(ixns Intentions) []*ServiceIntentionsConfigEntry {

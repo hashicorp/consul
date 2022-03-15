@@ -17,6 +17,12 @@ as |route|>
   {{document-attrs class="has-partitions"}}
 {{/if}}
 
+{{! Listen out for blocking query/client setting changes }}
+<DataSource
+  @src={{uri 'settings://consul:client'}}
+  @onchange={{route-action "onClientChanged"}}
+/>
+
 {{! Tell CSS about our theme }}
 <DataSource
   @src={{uri 'settings://consul:theme'}}
@@ -36,11 +42,12 @@ as |source|>
 />
 {{/if}}
 
+
 {{#if (not-eq route.currentName 'oauth-provider-debug')}}
 
 {{! redirect if we aren't on a URL with dc information }}
 {{#if (eq route.currentName 'index')}}
-  {{did-insert (route-action 'replaceWith' 'dc.services.index'
+  {{did-insert (route-action 'replaceWith' 'dc.show'
     (hash
       dc=(env 'CONSUL_DATACENTER_LOCAL')
     )
@@ -106,7 +113,7 @@ as |dc dcs|}}
 
     {{! figure out our current DC and convert it to a model }}
     <DataSource
-      @src={{uri '/${partition}/*/${dc}/datacenter/${name}'
+      @src={{uri '/${partition}/*/${dc}/datacenter-cache/${name}'
         (hash
           dc=dc.Name
           partition=partition

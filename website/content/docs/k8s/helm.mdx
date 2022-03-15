@@ -139,11 +139,11 @@ Use these links to navigate to a particular top-level stanza.
 
     The Vault cluster _must_ not have the Consul cluster installed by this Helm chart as its storage backend
     as that would cause a circular dependency.
-    It can have Consul as its storage backend as long as that Consul cluster is not running on this Kubernetes cluster
+    Vault can have Consul as its storage backend as long as that Consul cluster is not running on this Kubernetes cluster
     and is being managed separately from this Helm installation.
 
     Note: When using Vault KV2 secrets engines the "data" field is implicitly required for Vault API calls,
-    secretName should be in the form of "vault-kv2-mount-path/data/secret-name".
+    secretName should be in the form of  "vault-kv2-mount-path/data/secret-name".
     secretKey should be in the form of "key".
 
     - `vault` ((#v-global-secretsbackend-vault))
@@ -153,20 +153,44 @@ Use these links to navigate to a particular top-level stanza.
       - `consulServerRole` ((#v-global-secretsbackend-vault-consulserverrole)) (`string: ""`) - The Vault role for the Consul server.
         The role must be connected to the Consul server's service account and
         have a policy with read capabilities for the following secrets:
-
-        - gossip encryption key defined by `global.gossipEncryption.secretName`.
-          To discover the service account name of the Consul server, run
-          ` helm template -s templates/server-serviceaccount.yaml <release-name> hashicorp/consul `
-          and check the name of `metadata.name`.
+        - gossip encryption key defined by `global.gossipEncryption.secretName`
+        - certificate issue path defined by `server.serverCert.secretName`
+        - CA certificate defined by `global.tls.caCert.secretName`
+        - replication token defined by `global.acls.replicationToken.secretName` if `global.federation.enabled` is `true`
+        To discover the service account name of the Consul server, run
+            ```shell-session
+            $ helm template --show-only templates/server-serviceaccount.yaml <release-name> hashicorp/consul
+            ```
+        and check the name of `metadata.name`.
 
       - `consulClientRole` ((#v-global-secretsbackend-vault-consulclientrole)) (`string: ""`) - The Vault role for the Consul client.
         The role must be connected to the Consul client's service account and
         have a policy with read capabilities for the following secrets:
-
         - gossip encryption key defined by `global.gossipEncryption.secretName`.
-          To discover the service account name of the Consul server, run
-          ` helm template -s templates/client-daemonset.yaml <release-name> charts/consul `
-          and check the name of `metadata.name`.
+        To discover the service account name of the Consul client, run
+            ```shell-session
+            $ helm template --show-only templates/client-serviceaccount.yaml <release-name> charts/consul
+            ```
+        and check the name of `metadata.name`.
+
+      - `manageSystemACLsRole` ((#v-global-secretsbackend-vault-managesystemaclsrole)) (`string: ""`) - A Vault role to allow Kubernetes job that manages ACLs for this Helm chart (`server-acl-init`)
+        to read and update Vault secrets for the Consul's bootstrap and replication tokens.
+        This role must be bound the `server-acl-init`'s service account.
+        To discover the service account name of the `server-acl-init` job, run
+            ```shell-session
+            $ helm template --show-only templates/server-acl-init-serviceaccount.yaml <release-name> charts/consul
+            ```
+        and check the name of `metadata.name`.
+
+      - `agentAnnotations` ((#v-global-secretsbackend-vault-agentannotations)) (`string: null`) - This value defines additional annotations for
+        Vault agent on any pods where it'll be running.
+        This should be formatted as a multi-line string.
+
+        ```yaml
+        annotations: |
+          "sample/annotation1": "foo"
+          "sample/annotation2": "bar"
+        ```
 
       - `consulCARole` ((#v-global-secretsbackend-vault-consulcarole)) (`string: ""`) - The Vault role for all Consul components to read the Consul's server's CA Certificate (unauthenticated).
         The role should be connected to the service accounts of all Consul components, or alternatively `*` since it
@@ -189,6 +213,8 @@ Use these links to navigate to a particular top-level stanza.
         for information on how to configure the Vault policies.
 
         - `address` ((#v-global-secretsbackend-vault-connectca-address)) (`string: ""`) - The address of the Vault server.
+
+        - `authMethodPath` ((#v-global-secretsbackend-vault-connectca-authmethodpath)) (`string: kubernetes`) - The mount path of the Kubernetes auth method in Vault.
 
         - `rootPKIPath` ((#v-global-secretsbackend-vault-connectca-rootpkipath)) (`string: ""`) - The path to a PKI secrets engine for the root certificate.
           Please see https://www.consul.io/docs/connect/ca/vault#rootpkipath.
@@ -224,16 +250,14 @@ Use these links to navigate to a particular top-level stanza.
     If `global.secretsBackend.vault.enabled=true`, be sure to add the "data" component of the secretName path as required by
     the Vault KV-2 secrets engine [see example].
 
-    ```
+    ```shell-session
     $ kubectl create secret generic consul-gossip-encryption-key --from-literal=key=$(consul keygen)
     ```
 
     Vault CLI Example:
-
-    ```
+    ```shell-session
     $ vault kv put consul/secrets/gossip key=$(consul keygen)
     ```
-
     `gossipEncryption.secretName="consul/data/secrets/gossip"`
     `gossipEncryption.secretKey="key"`
 
@@ -283,11 +307,10 @@ Use these links to navigate to a particular top-level stanza.
       If you have generated the CA yourself with the consul CLI, you could use the following command to create the secret
       in Kubernetes:
 
-      ```bash
-      kubectl create secret generic consul-ca-cert \
+      ```shell-session
+      $ kubectl create secret generic consul-ca-cert \
           --from-file='tls.crt=./consul-agent-ca.pem'
       ```
-
       If you are using Vault as a secrets backend with TLS, `caCert.secretName` must be provided and should reference
       the CA path for your PKI secrets engine. This should be of the form `pki/cert/ca` where `pki` is the mount point of your PKI secrets engine.
       A read policy must be created and associated with the CA cert path for `global.tls.caCert.secretName`.
@@ -303,8 +326,8 @@ Use these links to navigate to a particular top-level stanza.
       with the consul CLI, you could use the following command to create the secret
       in Kubernetes:
 
-      ```bash
-      kubectl create secret generic consul-ca-key \
+      ```shell-session
+      $ kubectl create secret generic consul-ca-key \
           --from-file='tls.key=./consul-agent-ca-key.pem'
       ```
 
@@ -351,9 +374,9 @@ Use these links to navigate to a particular top-level stanza.
       and create ACL tokens and policies.
       This value is ignored if `bootstrapToken` is also set.
 
-      - `secretName` ((#v-global-acls-replicationtoken-secretname)) (`string: null`) - The name of the Kubernetes secret.
+      - `secretName` ((#v-global-acls-replicationtoken-secretname)) (`string: null`) - The name of the Kubernetes secret or the path of the secret in Vault.
 
-      - `secretKey` ((#v-global-acls-replicationtoken-secretkey)) (`string: null`) - The key of the Kubernetes secret.
+      - `secretKey` ((#v-global-acls-replicationtoken-secretkey)) (`string: null`) - The key of the Kubernetes or Vault secret.
 
   - `enterpriseLicense` ((#v-global-enterpriselicense)) - <EnterpriseAlert inline /> This value refers to a Kubernetes secret that you have created
     that contains your enterprise license. It is required if you are using an
@@ -362,10 +385,10 @@ Use these links to navigate to a particular top-level stanza.
     introduce the license key via another route, then set these fields to null.
     Note: the job to apply license runs on both Helm installs and upgrades.
 
-    - `secretName` ((#v-global-enterpriselicense-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the enterprise license.
-      The secret must be in the same namespace that Consul is installed into.
+    - `secretName` ((#v-global-enterpriselicense-secretname)) (`string: null`) - secretName is the name of the Kubernetes secret or Vault secret path that holds the enterprise license.
+      A Kubernetes secret must be in the same namespace that Consul is installed into.
 
-    - `secretKey` ((#v-global-enterpriselicense-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the enterprise license.
+    - `secretKey` ((#v-global-enterpriselicense-secretkey)) (`string: null`) - secretKey is the key within the Kubernetes secret or Vault secret key that holds the enterprise license.
 
     - `enableLicenseAutoload` ((#v-global-enterpriselicense-enablelicenseautoload)) (`boolean: true`) - Manages license autoload. Required in Consul 1.10.0+, 1.9.7+ and 1.8.12+.
 
@@ -384,6 +407,11 @@ Use these links to navigate to a particular top-level stanza.
       in your primary datacenter. The secret name is
       `<global.name>-federation` (if setting `global.name`), otherwise
       `<helm-release-name>-consul-federation`.
+
+    - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: ""`) - The name of the primary datacenter.
+
+    - `primaryGateways` ((#v-global-federation-primarygateways)) (`array<string>: []`) - A list of addresses of the primary mesh gateways in the form `<ip>:<port>`.
+      (e.g. ["1.1.1.1:443", "2.3.4.5:443"]
 
   - `metrics` ((#v-global-metrics)) - Configures metrics for Consul service mesh
 
@@ -455,7 +483,6 @@ Use these links to navigate to a particular top-level stanza.
     additional DNS name SANs so that it will work within the Kubernetes cluster:
 
     Kubernetes Secrets backend:
-
     ```bash
     consul tls cert create -server -days=730 -domain=consul -ca=consul-agent-ca.pem \
         -key=consul-agent-ca-key.pem -dc={{datacenter}} \
@@ -478,7 +505,7 @@ Use these links to navigate to a particular top-level stanza.
 
     Vault Secrets backend:
     If you are using Vault as a secrets backend, a Vault Policy must be created which allows `["create", "update"]`
-    capabilities on the PKI issuing endpoint, which is usually of the form `pki/issue/consul-server`.
+    capabilities on the PKI issuing endpoint, which is usually of the form `pki/issue/consul-server`. 
     Please see the following guide for steps to generate a compatible certificate:
     https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-secure-tls
     Note: when using TLS, both the `server.serverCert` and `global.tls.caCert` which points to the CA endpoint of this PKI engine
@@ -563,7 +590,7 @@ Use these links to navigate to a particular top-level stanza.
     Note: if running on OpenShift, this setting is ignored because the user and group are set automatically
     by the OpenShift platform.
 
-  - `containerSecurityContext` ((#v-server-containersecuritycontext)) (`map`) - The container securityContext for each container in the server pods. In
+  - `containerSecurityContext` ((#v-server-containersecuritycontext)) (`map`) - The container securityContext for each container in the server pods.  In
     addition to the Pod's SecurityContext this can
     set the capabilities of processes running in the container and ensure the
     root file systems in the container is read-only.
@@ -605,7 +632,7 @@ Use these links to navigate to a particular top-level stanza.
 
     This can also be set using Helm's `--set` flag using the following syntax:
 
-    ```shell
+    ```shell-session
     --set 'server.extraConfig="{"log_level": "DEBUG"}"'
     ```
 
@@ -639,10 +666,10 @@ Use these links to navigate to a particular top-level stanza.
 
     ```yaml
     extraContainers:
-      - name: extra-container
-        image: example-image:latest
-        command:
-          - ...
+    - name: extra-container
+      image: example-image:latest
+      command:
+       - ...
     ```
 
   - `affinity` ((#v-server-affinity)) (`string`) - This value defines the affinity (https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
@@ -775,8 +802,8 @@ Use these links to navigate to a particular top-level stanza.
     You could retrieve this value from your `kubeconfig` by running:
 
     ```shell-session
-  $ kubectl config view \
-      --output jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
+    $ kubectl config view \
+      -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
     ```
 
 ### client
@@ -844,7 +871,7 @@ Use these links to navigate to a particular top-level stanza.
     Note: if running on OpenShift, this setting is ignored because the user and group are set automatically
     by the OpenShift platform.
 
-  - `containerSecurityContext` ((#v-client-containersecuritycontext)) (`map`) - The container securityContext for each container in the client pods. In
+  - `containerSecurityContext` ((#v-client-containersecuritycontext)) (`map`) - The container securityContext for each container in the client pods.  In
     addition to the Pod's SecurityContext this can
     set the capabilities of processes running in the container and ensure the
     root file systems in the container is read-only.
@@ -871,7 +898,7 @@ Use these links to navigate to a particular top-level stanza.
 
     This can also be set using Helm's `--set` flag using the following syntax:
 
-    ```shell
+    ```shell-session
     --set 'client.extraConfig="{"log_level": "DEBUG"}"'
     ```
 
@@ -905,10 +932,10 @@ Use these links to navigate to a particular top-level stanza.
 
     ```yaml
     extraContainers:
-      - name: extra-container
-        image: example-image:latest
-        command:
-          - ...
+    - name: extra-container
+      image: example-image:latest
+      command:
+       - ...
     ```
 
   - `tolerations` ((#v-client-tolerations)) (`string: ""`) - Toleration Settings for Client pods
@@ -1145,7 +1172,7 @@ Use these links to navigate to a particular top-level stanza.
       ```yaml
       tls:
         - hosts:
-            - chart-example.local
+          - chart-example.local
           secretName: testsecret-tls
       ```
 
@@ -1385,14 +1412,13 @@ Use these links to navigate to a particular top-level stanza.
       add prometheus annotations to connect-injected pods. It will also
       add a listener on the Envoy sidecar to expose metrics. The exposed
       metrics will depend on whether metrics merging is enabled:
-
-      - If metrics merging is enabled:
-        the Consul sidecar will run a merged metrics server
-        combining Envoy sidecar and Connect service metrics,
-        i.e. if your service exposes its own Prometheus metrics.
-      - If metrics merging is disabled:
-        the listener will just expose Envoy sidecar metrics.
-        This will inherit from `global.metrics.enabled`.
+        - If metrics merging is enabled:
+          the Consul sidecar will run a merged metrics server
+          combining Envoy sidecar and Connect service metrics,
+          i.e. if your service exposes its own Prometheus metrics.
+        - If metrics merging is disabled:
+          the listener will just expose Envoy sidecar metrics.
+      This will inherit from `global.metrics.enabled`.
 
     - `defaultEnableMerging` ((#v-connectinject-metrics-defaultenablemerging)) (`boolean: false`) - Configures the Consul sidecar to run a merged metrics server
       to combine and serve both Envoy and Connect service metrics.
@@ -1405,14 +1431,14 @@ Use these links to navigate to a particular top-level stanza.
     - `defaultPrometheusScrapePort` ((#v-connectinject-metrics-defaultprometheusscrapeport)) (`integer: 20200`) - Configures the port Prometheus will scrape metrics from, by configuring
       the Pod annotation `prometheus.io/port` and the corresponding listener in
       the Envoy sidecar.
-      NOTE: This is _not_ the port that your application exposes metrics on.
+      NOTE: This is *not* the port that your application exposes metrics on.
       That can be configured with the
       `consul.hashicorp.com/service-metrics-port` annotation.
 
     - `defaultPrometheusScrapePath` ((#v-connectinject-metrics-defaultprometheusscrapepath)) (`string: /metrics`) - Configures the path Prometheus will scrape metrics from, by configuring the pod
       annotation `prometheus.io/path` and the corresponding handler in the Envoy
       sidecar.
-      NOTE: This is _not_ the path that your application exposes metrics on.
+      NOTE: This is *not* the path that your application exposes metrics on.
       That can be configured with the
       `consul.hashicorp.com/service-metrics-path` annotation.
 
@@ -1447,7 +1473,7 @@ Use these links to navigate to a particular top-level stanza.
     which can lead to hangs. In these environments it is recommend to use "Ignore" instead.
     This setting can be safely disabled by setting to "Ignore".
 
-  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string`) - Selector for restricting the webhook to only specific namespaces.
+  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string`) - Selector for restricting the webhook to only specific namespaces. 
     Use with `connectInject.default: true` to automatically inject all pods in namespaces that match the selector. This should be set to a multiline string.
     See https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-namespaceselector
     for more details.
@@ -1619,7 +1645,6 @@ Use these links to navigate to a particular top-level stanza.
     `global.acls.manageSystemACLs`).
 
     If running Consul OSS, requires permissions:
-
     ```hcl
     operator = "write"
     service_prefix "" {
@@ -1627,7 +1652,6 @@ Use these links to navigate to a particular top-level stanza.
       intentions = "write"
     }
     ```
-
     If running Consul Enterprise, talk to your account manager for assistance.
 
     - `secretName` ((#v-controller-acltoken-secretname)) (`string: null`) - The name of the Kubernetes secret.
@@ -1979,6 +2003,26 @@ Use these links to navigate to a particular top-level stanza.
         service: |
         - external-dns.alpha.kubernetes.io/hostname
         ```
+
+  - `consulNamespaces` ((#v-apigateway-consulnamespaces)) - <EnterpriseAlert inline /> These settings manage the API Gateway's interaction with
+    Consul namespaces (requires consul-ent v1.7+).
+    Also, `global.enableConsulNamespaces` must be true.
+
+    - `consulDestinationNamespace` ((#v-apigateway-consulnamespaces-consuldestinationnamespace)) (`string: default`) - Name of the Consul namespace to register all
+      k8s services into. If the Consul namespace does not already exist,
+      it will be created. This will be ignored if `mirroringK8S` is true.
+
+    - `mirroringK8S` ((#v-apigateway-consulnamespaces-mirroringk8s)) (`boolean: false`) - If true, k8s services will be registered into a Consul namespace
+      of the same name as their k8s namespace, optionally prefixed if
+      `mirroringK8SPrefix` is set below. If the Consul namespace does not
+      already exist, it will be created. Turning this on overrides the
+      `consulDestinationNamespace` setting.
+      `addK8SNamespaceSuffix` may no longer be needed if enabling this option.
+
+    - `mirroringK8SPrefix` ((#v-apigateway-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace
+      to be given a prefix. For example, if `mirroringK8SPrefix` is set to "k8s-", a
+      service in the k8s `staging` namespace will be registered into the
+      `k8s-staging` Consul namespace.
 
   - `serviceAccount` ((#v-apigateway-serviceaccount)) - Configuration for the ServiceAccount created for the api-gateway component
 

@@ -3,11 +3,11 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "http:1.2.3.4:9191",
+      "name": "http:1.2.3.4:8080",
       "address": {
         "socketAddress": {
           "address": "1.2.3.4",
-          "portValue": 9191
+          "portValue": 8080
         }
       },
       "filterChains": [
@@ -17,7 +17,7 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "ingress_upstream_9191",
+                "statPrefix": "ingress_upstream_8080",
                 "rds": {
                   "configSource": {
                     "ads": {
@@ -25,7 +25,7 @@
                     },
                     "resourceApiVersion": "V3"
                   },
-                  "routeConfigName": "9191"
+                  "routeConfigName": "8080"
                 },
                 "httpFilters": [
                   {

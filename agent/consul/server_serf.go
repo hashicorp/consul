@@ -386,6 +386,11 @@ func (s *Server) maybeBootstrap() {
 		return
 	}
 
+	if s.config.ReadReplica {
+		s.logger.Info("Read replicas cannot bootstrap raft")
+		return
+	}
+
 	// Scan for all the known servers.
 	members := s.serfLAN.Members()
 	var servers []metadata.Server

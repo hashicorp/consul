@@ -642,8 +642,11 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	wildcardEntMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
 	wildcardEntMeta.FillAuthzContext(&authzContext)
 
-	if authz.NodeReadAll(&authzContext) != acl.Allow || authz.ServiceReadAll(&authzContext) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().NodeReadAllAllowed(&authzContext); err != nil {
+		return nil, err
+	}
+	if err := authz.ToAllowAuthorizer().ServiceReadAllAllowed(&authzContext); err != nil {
+		return nil, err
 	}
 
 	log := s.agent.logger.Named(logging.UIMetricsProxy)
