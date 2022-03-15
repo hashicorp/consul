@@ -20,3 +20,15 @@ span.policy-node-identity::before {
 span.policy-service-identity::before {
   content: 'Service Identity: ';
 }
+%pill.leader::before {
+  @extend %with-star-outline-mask, %as-pseudo;
+}
+%pill.jwt::before {
+  @extend %with-logo-jwt-color-icon, %as-pseudo;
+}
+%pill.oidc::before {
+  @extend %with-logo-oidc-color-icon, %as-pseudo;
+}
+%pill.kubernetes::before {
+  @extend %with-logo-kubernetes-color-icon, %as-pseudo;
+}

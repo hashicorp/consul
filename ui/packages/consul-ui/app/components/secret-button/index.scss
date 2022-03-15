@@ -9,13 +9,14 @@
 %secret-button span {
   visibility: hidden;
   position: absolute;
+  --icon-color: rgb(var(--tone-gray-500));
 }
 %secret-button em {
   margin-left: 22px;
 }
 %secret-button span::before {
   @extend %with-visibility-show-mask, %as-pseudo;
-  background-color: rgb(var(--tone-gray-500));
+  visibility: visible;
 }
 %secret-button input:checked + span::before {
   @extend %with-visibility-hide-mask;
