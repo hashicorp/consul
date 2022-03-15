@@ -689,7 +689,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 		if denied {
 			log.Error("target URL path is not allowed",
 				"base_url", cfg.BaseURL,
-				"path", subPath,
+				"path", u.Path,
 				"target_url", u.String(),
 				"path_allowlist", cfg.PathAllowlist,
 			)
