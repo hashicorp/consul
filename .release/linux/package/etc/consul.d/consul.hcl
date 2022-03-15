@@ -1,4 +1,4 @@
-# Fullconfiguration options can be found at https://www.consul.io/docs/agent/config.html
+# Fullconfiguration options can be found at https://www.consul.io/docs/agent/options.html
 
 # datacenter
 # This flag controls the datacenter in which the agent is running. If not provided,

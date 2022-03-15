@@ -6,21 +6,26 @@ description: Running Consul servers outside of Kubernetes
 
 # Consul Servers Outside of Kubernetes
 
-This topic describes how to configure your Consul clients inside Kubernetes to join an existing cluster.
+If you have a Consul cluster already running, you can configure your
+Consul clients inside Kubernetes to join this existing cluster.
 
-## Configuration Overview
+The below `config.yaml` file shows how to configure the Helm chart to install
+Consul clients that will join an existing cluster.
 
-In the following example `config.yaml` file, the Helm chart is configured to install Consul clients that will join an existing cluster. It includes the following parameters:
+The `global.enabled` value first disables all chart components by default
+so that each component is opt-in. This allows us to _only_ setup the client
+agents. We then opt-in to the client agents by setting `client.enabled` to
+`true`.
 
-* The `global.enabled` parameter is set to `false`. This configuration disables all chart components by default so that each component must opt-in. As a result, only client agents will be set up when the configuraiton is applied. 
+Next, `client.exposeGossipPorts` can be set to `true` or `false` depending on if
+you want the clients to be exposed on the Kubernetes internal node IPs (`true`) or
+their pod IPs (`false`).
 
-* The `client.enabled` parameter is set to `true`. This configuration opts the client agents into the cluster.
-
-* The `client.exposeGossipPorts` parameter is set to `true` or `false`. Setting the parameter to `true` exposes the clients on the Kubernetes internal node IPs. Setting to `false` exposes the clients on their pod IPs.
-
-* The `client.join` is set to an array of valid
-[`-retry-join` values](/docs/agent/config/cli-flags#retry-join). The
-following example includes a [cloud auto-join](/docs/agent/cloud-auto-join) value resolve to the proper addresses of the existing Consul cluster.
+Finally, `client.join` is set to an array of valid
+[`-retry-join` values](/docs/agent/options#retry-join). In the
+example above, a fake [cloud auto-join](/docs/install/cloud-auto-join)
+value is specified. This should be set to resolve to the proper addresses of
+your existing Consul cluster.
 
 <CodeBlockConfig filename="config.yaml">
 
