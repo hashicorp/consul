@@ -56,9 +56,8 @@ See [Kubernetes Custom Resource Definitions](/docs/k8s/crds).
 
 Configuration entries outside of Kubernetes should be managed with the Consul
 [CLI](/commands/config) or [API](/api/config). Additionally, as a
-convenience for initial cluster bootstrapping, configuration entries can be
-specified in the Consul servers agent's
-[configuration files](/docs/agent/options#config_entries_bootstrap)
+convenience for initial cluster bootstrapping, configuration entries can be specified in all of the Consul servers's
+[configuration files](/docs/agent/config/config-files#config_entries_bootstrap)
 
 ### Managing Configuration Entries with the CLI
 
@@ -162,7 +161,7 @@ api
 ### Bootstrapping From A Configuration File
 
 Configuration entries can be bootstrapped by adding them [inline to each Consul
-server's configuration file](/docs/agent/options#config_entries). When a
+server's configuration file](/docs/agent/config/config-files#config_entries). When a
 server gains leadership, it will attempt to initialize the configuration entries.
 If a configuration entry does not already exist outside of the servers
 configuration, then it will create it. If a configuration entry does exist, that

@@ -23,10 +23,16 @@ Ensure that your Consul environment meets the following requirements.
 ### Consul
 
 * Consul Enterprise version 1.11.0 or newer.
+
 * A local Consul agent is required to manage its configuration.
-* Consul service mesh must be enabled in all partitions. Refer to the [`connect` documentation](/docs/agent/options#connect) for details.
+
 * Each partition must have a unique name. Refer to the [admin partitions documentation](/docs/enterprise/admin-partitions) for details.
-* If you want to [enable gateways globally](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/options#enable_central_service_config).
+
+* Consul service mesh must be enabled in all partitions. Refer to the [`connect` documentation](/docs/agent/config/config-files#connect) for details.
+
+* Each partition must have a unique name. Refer to the [admin partitions documentation](/docs/enteprise/admin-partitions) for details.
+
+* If you want to [enable gateways globally](/docs/connect/mesh-gateway#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/config/config-files#enable_central_service_config).
 
 ### Proxy
 
