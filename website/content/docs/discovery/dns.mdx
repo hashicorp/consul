@@ -447,14 +447,8 @@ machine.node.dc1.test-domain. 0	IN	A	127.0.0.1
 machine.node.dc1.test-domain. 0	IN	TXT	"consul-network-segment="
 ```
 
-<<<<<<< HEAD
--> **PTR queries:** Responses to PTR queries (`<ip>.in-addr.arpa.`) will always use the
-[primary domain](/docs/agent/options#domain) (not the alternative domain),
-=======
--> **PTR queries:**  Responses to PTR queries (`<ip>.in-addr.arpa.`) will always use the
-[primary domain](/docs/agent/config/config-files#domain) (not the alternative domain),
->>>>>>> cd907b75cebdefe62a30986e0cdc7bd528c52159
-as there is no way for the query to specify a domain.
+-> **PTR queries:**  Responses to PTR queries (`<ip>.in-addr.arpa.`) always use the
+[primary domain](/docs/agent/config/config-files#domain) and not the alternative domain. This is because the query cannot specify a domain.
 
 ## Caching
 
