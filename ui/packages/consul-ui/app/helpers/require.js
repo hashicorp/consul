@@ -4,16 +4,23 @@ import { css } from '@lit/reactive-element';
 
 import resolve from 'consul-ui/utils/path/resolve';
 
+
+import panel from 'consul-ui/components/panel/index.css';
 import distributionMeter from 'consul-ui/components/distribution-meter/index.css';
 import distributionMeterMeter from 'consul-ui/components/distribution-meter/meter/index.css';
 import distributionMeterMeterElement from 'consul-ui/components/distribution-meter/meter/element';
 import visuallyHidden from 'consul-ui/styles/base/decoration/visually-hidden.css';
+import baseKeyframes from 'consul-ui/styles/base/icons/base-keyframes.css';
+import chevronDown from 'consul-ui/styles/base/icons/icons/chevron-down/index.css';
 
 const fs = {
+  ['/components/panel/index.css']: panel,
   ['/components/distribution-meter/index.css']: distributionMeter,
   ['/components/distribution-meter/meter/index.css']: distributionMeterMeter,
   ['/components/distribution-meter/meter/element']: distributionMeterMeterElement,
-  ['/styles/base/decoration/visually-hidden.css']: visuallyHidden
+  ['/styles/base/decoration/visually-hidden.css']: visuallyHidden,
+  ['/styles/base/icons/base-keyframes.css']: baseKeyframes,
+  ['/styles/base/icons/icons/chevron-down/index.css']: chevronDown
 };
 
 const container = new Map();
