@@ -641,3 +641,15 @@ func TestConfigSnapshotTerminatingGatewayIgnoreExtraResolvers(t testing.T) *Conf
 		},
 	})
 }
+
+func TestConfigSnapshotTerminatingGatewayWithServiceDefaultsMeta(t testing.T) *ConfigSnapshot {
+	web := structs.NewServiceName("web", nil)
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, []agentcache.UpdateEvent{
+		{
+			CorrelationID: serviceConfigIDPrefix + web.String(),
+			Result: &structs.ServiceConfigResponse{
+				Meta: map[string]string{"a": "b"},
+			},
+		},
+	})
+}
