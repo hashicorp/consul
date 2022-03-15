@@ -131,7 +131,8 @@ type Server struct {
 	// ResourceMapMutateFn exclusively exists for testing purposes.
 	ResourceMapMutateFn func(resourceMap *xdscommon.IndexedResources)
 
-	activeStreams *activeStreamCounters
+	activeStreams           *activeStreamCounters
+	serverlessPluginEnabled bool
 }
 
 // activeStreamCounters simply encapsulates two counters accessed atomically to
@@ -166,19 +167,21 @@ func (c *activeStreamCounters) Increment(xdsVersion string) func() {
 
 func NewServer(
 	logger hclog.Logger,
+	serverlessPluginEnabled bool,
 	cfgMgr ConfigManager,
 	resolveToken ACLResolverFunc,
 	checkFetcher HTTPCheckFetcher,
 	cfgFetcher ConfigFetcher,
 ) *Server {
 	return &Server{
-		Logger:             logger,
-		CfgMgr:             cfgMgr,
-		ResolveToken:       resolveToken,
-		CheckFetcher:       checkFetcher,
-		CfgFetcher:         cfgFetcher,
-		AuthCheckFrequency: DefaultAuthCheckFrequency,
-		activeStreams:      &activeStreamCounters{},
+		Logger:                  logger,
+		CfgMgr:                  cfgMgr,
+		ResolveToken:            resolveToken,
+		CheckFetcher:            checkFetcher,
+		CfgFetcher:              cfgFetcher,
+		AuthCheckFrequency:      DefaultAuthCheckFrequency,
+		activeStreams:           &activeStreamCounters{},
+		serverlessPluginEnabled: serverlessPluginEnabled,
 	}
 }
 

@@ -131,6 +131,7 @@ func newTestServerDeltaScenario(
 	proxyID string,
 	token string,
 	authCheckFrequency time.Duration,
+	serverlessPluginEnabled bool,
 ) *testServerScenario {
 	mgr := newTestManager(t)
 	envoy := NewTestEnvoy(t, proxyID, token)
@@ -151,6 +152,7 @@ func newTestServerDeltaScenario(
 
 	s := NewServer(
 		testutil.Logger(t),
+		serverlessPluginEnabled,
 		mgr,
 		resolveToken,
 		nil, /*checkFetcher HTTPCheckFetcher*/

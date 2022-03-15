@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -874,9 +875,14 @@ func (ct *ControllableCacheType) RegisterOptions() cache.RegisterOptions {
 func golden(t testing.T, name string) string {
 	t.Helper()
 
-	golden := filepath.Join("../xds/testdata", name+".golden")
+	golden := filepath.Join(projectRoot(), "../", "/xds/testdata", name+".golden")
 	expected, err := ioutil.ReadFile(golden)
 	require.NoError(t, err)
 
 	return string(expected)
+}
+
+func projectRoot() string {
+	_, base, _, _ := runtime.Caller(0)
+	return filepath.Dir(base)
 }
