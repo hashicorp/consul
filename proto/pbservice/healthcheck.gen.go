@@ -2,9 +2,12 @@
 
 package pbservice
 
-import structs "github.com/hashicorp/consul/agent/structs"
+import (
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbutil"
+)
 
-func CheckTypeToStructs(s CheckType) structs.CheckType {
+func CheckTypeToStructs(s CheckType) (structs.CheckType, error) {
 	var t structs.CheckType
 	t.CheckID = s.CheckID
 	t.Name = s.Name
@@ -18,7 +21,12 @@ func CheckTypeToStructs(s CheckType) structs.CheckType {
 	t.Method = s.Method
 	t.Body = s.Body
 	t.TCP = s.TCP
-	t.Interval = s.Interval
+	interval, err := pbutil.DurationFromProto(&s.Interval)
+	if err != nil {
+		return t, err
+	}
+	t.Interval = interval
+
 	t.AliasNode = s.AliasNode
 	t.AliasService = s.AliasService
 	t.DockerContainerID = s.DockerContainerID
@@ -27,16 +35,28 @@ func CheckTypeToStructs(s CheckType) structs.CheckType {
 	t.GRPCUseTLS = s.GRPCUseTLS
 	t.TLSServerName = s.TLSServerName
 	t.TLSSkipVerify = s.TLSSkipVerify
-	t.Timeout = s.Timeout
-	t.TTL = s.TTL
+	timeout, err := pbutil.DurationFromProto(&s.Timeout)
+	if err != nil {
+		return t, err
+	}
+	t.Timeout = timeout
+	ttl, err := pbutil.DurationFromProto(&s.TTL)
+	if err != nil {
+		return t, err
+	}
+	t.TTL = ttl
 	t.SuccessBeforePassing = int(s.SuccessBeforePassing)
 	t.FailuresBeforeCritical = int(s.FailuresBeforeCritical)
 	t.FailuresBeforeWarning = int(s.FailuresBeforeWarning)
 	t.ProxyHTTP = s.ProxyHTTP
 	t.ProxyGRPC = s.ProxyGRPC
-	t.DeregisterCriticalServiceAfter = s.DeregisterCriticalServiceAfter
+	deregisterCriticalServiceAfter, err := pbutil.DurationFromProto(&s.DeregisterCriticalServiceAfter)
+	if err != nil {
+		return t, err
+	}
+	t.DeregisterCriticalServiceAfter = deregisterCriticalServiceAfter
 	t.OutputMaxSize = int(s.OutputMaxSize)
-	return t
+	return t, nil
 }
 func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	var s CheckType
@@ -52,7 +72,7 @@ func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	s.Method = t.Method
 	s.Body = t.Body
 	s.TCP = t.TCP
-	s.Interval = t.Interval
+	s.Interval = *pbutil.DurationToProto(t.Interval)
 	s.AliasNode = t.AliasNode
 	s.AliasService = t.AliasService
 	s.DockerContainerID = t.DockerContainerID
@@ -61,18 +81,18 @@ func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	s.GRPCUseTLS = t.GRPCUseTLS
 	s.TLSServerName = t.TLSServerName
 	s.TLSSkipVerify = t.TLSSkipVerify
-	s.Timeout = t.Timeout
-	s.TTL = t.TTL
+	s.Timeout = *pbutil.DurationToProto(t.Timeout)
+	s.TTL = *pbutil.DurationToProto(t.TTL)
 	s.SuccessBeforePassing = int32(t.SuccessBeforePassing)
 	s.FailuresBeforeCritical = int32(t.FailuresBeforeCritical)
 	s.FailuresBeforeWarning = int32(t.FailuresBeforeWarning)
 	s.ProxyHTTP = t.ProxyHTTP
 	s.ProxyGRPC = t.ProxyGRPC
-	s.DeregisterCriticalServiceAfter = t.DeregisterCriticalServiceAfter
+	s.DeregisterCriticalServiceAfter = *pbutil.DurationToProto(t.DeregisterCriticalServiceAfter)
 	s.OutputMaxSize = int32(t.OutputMaxSize)
 	return s
 }
-func HealthCheckToStructs(s HealthCheck) structs.HealthCheck {
+func HealthCheckToStructs(s HealthCheck) (structs.HealthCheck, error) {
 	var t structs.HealthCheck
 	t.Node = s.Node
 	t.CheckID = s.CheckID
@@ -85,12 +105,16 @@ func HealthCheckToStructs(s HealthCheck) structs.HealthCheck {
 	t.ServiceTags = s.ServiceTags
 	t.Type = s.Type
 	t.ExposedPort = int(s.ExposedPort)
-	t.Definition = HealthCheckDefinitionToStructs(s.Definition)
+	definition, err := HealthCheckDefinitionToStructs(s.Definition)
+	if err != nil {
+		return t, err
+	}
+	t.Definition = definition
 	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
 	t.RaftIndex = RaftIndexToStructs(s.RaftIndex)
 	t.Interval = s.Interval
 	t.Timeout = s.Timeout
-	return t
+	return t, nil
 }
 func NewHealthCheckFromStructs(t structs.HealthCheck) HealthCheck {
 	var s HealthCheck
@@ -112,7 +136,7 @@ func NewHealthCheckFromStructs(t structs.HealthCheck) HealthCheck {
 	s.Timeout = t.Timeout
 	return s
 }
-func HealthCheckDefinitionToStructs(s HealthCheckDefinition) structs.HealthCheckDefinition {
+func HealthCheckDefinitionToStructs(s HealthCheckDefinition) (structs.HealthCheckDefinition, error) {
 	var t structs.HealthCheckDefinition
 	t.HTTP = s.HTTP
 	t.TLSServerName = s.TLSServerName
@@ -123,10 +147,22 @@ func HealthCheckDefinitionToStructs(s HealthCheckDefinition) structs.HealthCheck
 	t.TCP = s.TCP
 	t.H2PING = s.H2PING
 	t.H2PingUseTLS = s.H2PingUseTLS
-	t.Interval = s.Interval
+	interval, err := pbutil.DurationFromProto(&s.Interval)
+	if err != nil {
+		return t, err
+	}
+	t.Interval = interval
 	t.OutputMaxSize = uint(s.OutputMaxSize)
-	t.Timeout = s.Timeout
-	t.DeregisterCriticalServiceAfter = s.DeregisterCriticalServiceAfter
+	timeout, err := pbutil.DurationFromProto(&s.Timeout)
+	if err != nil {
+		return t, err
+	}
+	t.Timeout = timeout
+	deregisterCriticalServiceAfter, err := pbutil.DurationFromProto(&s.DeregisterCriticalServiceAfter)
+	if err != nil {
+		return t, err
+	}
+	t.DeregisterCriticalServiceAfter = deregisterCriticalServiceAfter
 	t.ScriptArgs = s.ScriptArgs
 	t.DockerContainerID = s.DockerContainerID
 	t.Shell = s.Shell
@@ -134,8 +170,12 @@ func HealthCheckDefinitionToStructs(s HealthCheckDefinition) structs.HealthCheck
 	t.GRPCUseTLS = s.GRPCUseTLS
 	t.AliasNode = s.AliasNode
 	t.AliasService = s.AliasService
-	t.TTL = s.TTL
-	return t
+	ttl, err := pbutil.DurationFromProto(&s.TTL)
+	if err != nil {
+		return t, err
+	}
+	t.TTL = ttl
+	return t, nil
 }
 func NewHealthCheckDefinitionFromStructs(t structs.HealthCheckDefinition) HealthCheckDefinition {
 	var s HealthCheckDefinition
@@ -148,10 +188,10 @@ func NewHealthCheckDefinitionFromStructs(t structs.HealthCheckDefinition) Health
 	s.TCP = t.TCP
 	s.H2PING = t.H2PING
 	s.H2PingUseTLS = t.H2PingUseTLS
-	s.Interval = t.Interval
+	s.Interval = *pbutil.DurationToProto(t.Interval)
 	s.OutputMaxSize = uint32(t.OutputMaxSize)
-	s.Timeout = t.Timeout
-	s.DeregisterCriticalServiceAfter = t.DeregisterCriticalServiceAfter
+	s.Timeout = *pbutil.DurationToProto(t.Timeout)
+	s.DeregisterCriticalServiceAfter = *pbutil.DurationToProto(t.DeregisterCriticalServiceAfter)
 	s.ScriptArgs = t.ScriptArgs
 	s.DockerContainerID = t.DockerContainerID
 	s.Shell = t.Shell
@@ -159,6 +199,6 @@ func NewHealthCheckDefinitionFromStructs(t structs.HealthCheckDefinition) Health
 	s.GRPCUseTLS = t.GRPCUseTLS
 	s.AliasNode = t.AliasNode
 	s.AliasService = t.AliasService
-	s.TTL = t.TTL
+	s.TTL = *pbutil.DurationToProto(t.TTL)
 	return s
 }
