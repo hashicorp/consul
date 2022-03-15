@@ -15,11 +15,11 @@ func IsValidLabel(name string) bool {
 	return validLabel.MatchString(name)
 }
 
-// RequireValidLabel is similar to IsValidLabel except it returns an error
+// ValidateLabel is similar to IsValidLabel except it returns an error
 // instead of false when name is not a valid DNS label. The error will contain
 // reference to what constitutes a valid DNS label.
-func RequireValidLabel(name string) error {
-	if !validLabel.MatchString(name) {
+func ValidateLabel(name string) error {
+	if !IsValidLabel(name) {
 		return errors.New("a valid DNS label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character")
 	}
 	return nil
