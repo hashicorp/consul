@@ -10,10 +10,10 @@ specified using command line flags, and some can be loaded with [Auto-Config].
 See also the [checklist for adding a new field] to the configuration.
 
 [hcl]: https://github.com/hashicorp/hcl/tree/hcl1
-[Agent Configuration]: https://www.consul.io/docs/agent/config
+[Agent Configuration]: https://www.consul.io/docs/agent/options
 [checklist for adding a new field]: ./checklist-adding-config-fields.md
 [Auto-Config]: #auto-config
-[Config Entries]: https://www.consul.io/docs/agent/config/config-files#config_entries
+[Config Entries]: https://www.consul.io/docs/agent/options#config_entries
 [Services]: https://www.consul.io/docs/discovery/services
 [Checks]: https://www.consul.io/docs/discovery/checks
 
@@ -53,6 +53,6 @@ implemented in a couple packages.
 * the server RPC endpoint is in [agent/consul/auto_config_endpoint.go]
 * the client that receives and applies the config is implemented in [agent/auto-config]
 
-[auto_config]: https://www.consul.io/docs/agent/config/config-files#auto_config
+[auto_config]: https://www.consul.io/docs/agent/options#auto_config
 [agent/consul/auto_config_endpoint.go]: https://github.com/hashicorp/consul/blob/main/agent/consul/auto_config_endpoint.go
 [agent/auto-config]: https://github.com/hashicorp/consul/tree/main/agent/auto-config

@@ -49,7 +49,7 @@ target destination. After verifying the TLS client certificate, the cached
 intentions should be consulted for each incoming connection/request to
 determine if it should be accepted or rejected.
 
-The default intention behavior is defined by the [`default_policy`](/docs/agent/config/config-files#acl_default_policy) configuration.
+The default intention behavior is defined by the [`default_policy`](/docs/agent/options#acl_default_policy) configuration.
 If the configuration is set `allow`, then all service mesh Connect connections will be allowed by default.
 If is set to `deny`, then all connections or requests will be denied by default.
 

@@ -87,20 +87,10 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 
 	// Check Content-Length first before decoding to return early
 	if req.ContentLength > maxTxnLen {
-<<<<<<< HEAD
 		return nil, 0, EntityTooLargeError{
 			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
 				req.ContentLength, maxTxnLen, "https://www.consul.io/docs/agent/options.html#txn_max_req_len"),
 		}
-=======
-		resp.WriteHeader(http.StatusRequestEntityTooLarge)
-		fmt.Fprintf(resp,
-			"Request body(%d bytes) too large, max size: %d bytes. See %s.",
-			req.ContentLength, maxTxnLen,
-			"https://www.consul.io/docs/agent/config/config-files.html#txn_max_req_len",
-		)
-		return nil, 0, false
->>>>>>> cd907b75cebdefe62a30986e0cdc7bd528c52159
 	}
 
 	var ops api.TxnOps
@@ -109,19 +99,10 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 		if err.Error() == "http: request body too large" {
 			// The request size is also verified during decoding to double check
 			// if the Content-Length header was not set by the client.
-<<<<<<< HEAD
 			return nil, 0, EntityTooLargeError{
 				Reason: fmt.Sprintf("Request body too large, max size: %d bytes. See %s.",
 					maxTxnLen, "https://www.consul.io/docs/agent/options.html#txn_max_req_len"),
 			}
-=======
-			resp.WriteHeader(http.StatusRequestEntityTooLarge)
-			fmt.Fprintf(resp,
-				"Request body too large, max size: %d bytes. See %s.",
-				maxTxnLen,
-				"https://www.consul.io/docs/agent/config/config-files.html#txn_max_req_len",
-			)
->>>>>>> cd907b75cebdefe62a30986e0cdc7bd528c52159
 		} else {
 			// Note the body is in API format, and not the RPC format. If we can't
 			// decode it, we will return a 400 since we don't have enough context to

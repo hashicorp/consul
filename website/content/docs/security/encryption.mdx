@@ -75,17 +75,17 @@ CA then signs keys for each of the agents, as in
 ~> Certificates need to be created with x509v3 extendedKeyUsage attributes for both clientAuth and serverAuth since Consul uses a single cert/key pair for both server and client communications.
 
 TLS can be used to verify the authenticity of the servers or verify the authenticity of clients.
-These modes are controlled by the [`verify_outgoing`](/docs/agent/config/config-files#verify_outgoing),
-[`verify_server_hostname`](/docs/agent/config/config-files#verify_server_hostname),
-and [`verify_incoming`](/docs/agent/config/config-files#verify_incoming) options, respectively.
+These modes are controlled by the [`verify_outgoing`](/docs/agent/options#verify_outgoing),
+[`verify_server_hostname`](/docs/agent/options#verify_server_hostname),
+and [`verify_incoming`](/docs/agent/options#verify_incoming) options, respectively.
 
-If [`verify_outgoing`](/docs/agent/config/config-files#verify_outgoing) is set, agents verify the
+If [`verify_outgoing`](/docs/agent/options#verify_outgoing) is set, agents verify the
 authenticity of Consul for outgoing connections. Server nodes must present a certificate signed
 by a common certificate authority present on all agents, set via the agent's
-[`ca_file`](/docs/agent/config/config-files#ca_file) and [`ca_path`](/docs/agent/config/config-files#ca_path)
-options. All server nodes must have an appropriate key pair set using [`cert_file`](/docs/agent/config/config-files#cert_file) and [`key_file`](/docs/agent/config/config-files#key_file).
+[`ca_file`](/docs/agent/options#ca_file) and [`ca_path`](/docs/agent/options#ca_path)
+options. All server nodes must have an appropriate key pair set using [`cert_file`](/docs/agent/options#cert_file) and [`key_file`](/docs/agent/options#key_file).
 
-If [`verify_server_hostname`](/docs/agent/config/config-files#verify_server_hostname) is set, then
+If [`verify_server_hostname`](/docs/agent/options#verify_server_hostname) is set, then
 outgoing connections perform hostname verification. All servers must have a certificate
 valid for `server.<datacenter>.<domain>` or the client will reject the handshake. This is
 a new configuration as of 0.5.1, and it is used to prevent a compromised client from being
@@ -93,12 +93,12 @@ able to restart in server mode and perform a MITM (Man-In-The-Middle) attack. Ne
 to true, and generate the proper certificates, but this is defaulted to false to avoid breaking
 existing deployments.
 
-If [`verify_incoming`](/docs/agent/config/config-files#verify_incoming) is set, the servers verify the
+If [`verify_incoming`](/docs/agent/options#verify_incoming) is set, the servers verify the
 authenticity of all incoming connections. All clients must have a valid key pair set using
-[`cert_file`](/docs/agent/config/config-files#cert_file) and
-[`key_file`](/docs/agent/config/config-files#key_file). Servers will
+[`cert_file`](/docs/agent/options#cert_file) and
+[`key_file`](/docs/agent/options#key_file). Servers will
 also disallow any non-TLS connections. To force clients to use TLS,
-[`verify_outgoing`](/docs/agent/config/config-files#verify_outgoing) must also be set.
+[`verify_outgoing`](/docs/agent/options#verify_outgoing) must also be set.
 
 TLS is used to secure the RPC calls between agents, but gossip between nodes is done over UDP
 and is secured using a symmetric key. See above for enabling gossip encryption.

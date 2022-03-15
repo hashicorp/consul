@@ -102,7 +102,7 @@ The following example starts an agent in dev mode and stores agent state data in
 $ consul agent -data-dir=tmp/consul -dev
 ```
 
-Agents are highly configurable, which enables you to deploy Consul to any infrastructure. Many of the default options for the `agent` command are suitable for becoming familiar with a local instance of Consul. In practice, however, several additional configuration options must be specified for Consul to function as expected. Refer to [Agent Configuration](/docs/agent/config) topic for a complete list of configuration options.
+Agents are highly configurable, which enables you to deploy Consul to any infrastructure. Many of the default options for the `agent` command are suitable for becoming familiar with a local instance of Consul. In practice, however, several additional configuration options must be specified for Consul to function as expected. Refer to [Agent Configuration](/docs/agent/options) topic for a complete list of configuration options.
 
 ### Understanding the Agent Startup Output
 
@@ -127,15 +127,16 @@ $ consul agent -data-dir=/tmp/consul
 
 - **Node name**: This is a unique name for the agent. By default, this
   is the hostname of the machine, but you may customize it using the
-  [`-node`](/docs/agent/config/cli-flags#_node) flag.
+  [`-node`](/docs/agent/options#_node) flag.
 
 - **Datacenter**: This is the datacenter in which the agent is configured to
-  run. For single-DC configurations, the agent will default to `dc1`, but you can configure which datacenter the agent reports to with the [`-datacenter`](/docs/agent/config/cli-flags#_datacenter) flag.
+  run. For single-DC configurations, the agent will default to `dc1`, but you can configure which datacenter the agent reports to with the [`-datacenter`](/docs/agent/options#_datacenter) flag.
   Consul has first-class support for multiple datacenters, but configuring each node to report its datacenter improves agent efficiency.
 
 - **Server**: This indicates whether the agent is running in server or client
   mode.
-  Running an agent in server mode requires additional overhead. This is because they participate in the consensus quorum, store cluster state, and handle queries. A server may also be in [`bootstrap`](/docs/agent/config/cli-flags#_bootstrap_expect) mode, which enables the server to elect itself as the raft leader. Multiple servers cannot be in bootstrap mode because it would put the cluster in an inconsistent state.
+  Running an agent in server mode requires additional overhead. This is because they participate in the consensus quorum, store cluster state, and handle queries. A server may also be
+  in ["bootstrap"](/docs/agent/options#_bootstrap_expect) mode, which enables the server to elect itself as the Raft leader. Multiple servers cannot be in bootstrap mode because it would put the cluster in an inconsistent state.
 
 - **Client Addr**: This is the address used for client interfaces to the agent.
   This includes the ports for the HTTP and DNS interfaces. By default, this
@@ -178,18 +179,18 @@ The following settings are commonly used in the configuration file (also called 
 
 | Parameter    | Description                                                                                                                                                                                                                                                                | Default                                                                                                          |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `node_name`  | String value that specifies a name for the agent node. <br/>See [`-node-id`](/docs/agent/config/cli-flags#_node_id) for details.                                                                                                                                                    | Hostname of the machine                                                                                          |
-| `server`     | Boolean value that determines if the agent runs in server mode. <br/>See [`-server`](/docs/agent/config/cli-flags#_server) for details.                                                                                                                                             | `false`                                                                                                          |
-| `datacenter` | String value that specifies which datacenter the agent runs in. <br/>See [-datacenter](/docs/agent/config/cli-flags#_datacenter) for details.                                                                                                                                       | `dc1`                                                                                                            |
-| `data_dir`   | String value that specifies a directory for storing agent state data. <br/>See [`-data-dir`](/docs/agent/config/cli-flags#_data_dir) for details.                                                                                                                                   | none                                                                                                             |
-| `log_level`  | String value that specifies the level of logging the agent reports. <br/>See [`-log-level`](/docs/agent/config/cli-flags#_log_level) for details.                                                                                                                                    | `info`                                                                                                           |
-| `retry_join` | Array of string values that specify one or more agent addresses to join after startup. The agent will continue trying to join the specified agents until it has successfully joined another member. <br/>See [`-retry-join`](/docs/agent/config/cli-flags#_retry_join) for details. | none                                                                                                             |
-| `addresses`  | Block of nested objects that define addresses bound to the agent for internal cluster communication.                                                                                                                                                                       | `"http": "0.0.0.0"` See the Agent Configuration page for [default address values](/docs/agent/config/config-files#addresses) |
-| `ports`      | Block of nested objects that define ports bound to agent addresses. <br/>See (link to addresses option) for details.                                                                                                                                                       | See the Agent Configuration page for [default port values](/docs/agent/config/config-files#ports)                            |
+| `node_name`  | String value that specifies a name for the agent node. <br/>See [`-node-id`](/docs/agent/options#_node_id) for details.                                                                                                                                                    | Hostname of the machine                                                                                          |
+| `server`     | Boolean value that determines if the agent runs in server mode. <br/>See [`-server`](/docs/agent/options#_server) for details.                                                                                                                                             | `false`                                                                                                          |
+| `datacenter` | String value that specifies which datacenter the agent runs in. <br/>See [-datacenter](/docs/agent/options#_datacenter) for details.                                                                                                                                       | `dc1`                                                                                                            |
+| `data_dir`   | String value that specifies a directory for storing agent state data. <br/>See [`-data-dir`](/docs/agent/options#_data_dir) for details.                                                                                                                                   | none                                                                                                             |
+| `log_level`  | String value that specifies the level of logging the agent reports. <br/>See [`-log-level`](docs/agent/options#_log_level) for details.                                                                                                                                    | `info`                                                                                                           |
+| `retry_join` | Array of string values that specify one or more agent addresses to join after startup. The agent will continue trying to join the specified agents until it has successfully joined another member. <br/>See [`-retry-join`](/docs/agent/options#_retry_join) for details. | none                                                                                                             |
+| `addresses`  | Block of nested objects that define addresses bound to the agent for internal cluster communication.                                                                                                                                                                       | `"http": "0.0.0.0"` See the Agent Configuration page for [default address values](/docs/agent/options#addresses) |
+| `ports`      | Block of nested objects that define ports bound to agent addresses. <br/>See (link to addresses option) for details.                                                                                                                                                       | See the Agent Configuration page for [default port values](/docs/agent/options#ports)                            |
 
 ### Server Node in a Service Mesh
 
-The following example configuration is for a server agent named "`consul-server`". The server is [bootstrapped](/docs/agent/config/cli-flags#_bootstrap) and the Consul GUI is enabled.
+The following example configuration is for a server agent named "`consul-server`". The server is [bootstrapped](/docs/agent/options#_bootstrap) and the Consul GUI is enabled.
 The reason this server agent is configured for a service mesh is that the `connect` configuration is enabled. Connect is Consul's service mesh component that provides service-to-service connection authorization and encryption using mutual Transport Layer Security (TLS). Applications can use sidecar proxies in a service mesh configuration to establish TLS connections for inbound and outbound connections without being aware of Connect at all. See [Connect](/docs/connect) for details.
 
 <CodeTabs>
@@ -433,8 +434,8 @@ may not be important for your use case. For example, for a web server and load
 balancer setup, both result in the same outcome: the web node is removed
 from the load balancer pool.
 
-The [`skip_leave_on_interrupt`](/docs/agent/config/config-files#skip_leave_on_interrupt) and
-[`leave_on_terminate`](/docs/agent/config/config-files#leave_on_terminate) configuration
+The [`skip_leave_on_interrupt`](/docs/agent/options#skip_leave_on_interrupt) and
+[`leave_on_terminate`](/docs/agent/options#leave_on_terminate) configuration
 options allow you to adjust this behavior.
 
 <!-- list of reference-style links -->

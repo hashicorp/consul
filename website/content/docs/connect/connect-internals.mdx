@@ -109,10 +109,10 @@ externally routable IPs at the service level.
 ## Intention Replication
 
 Intention replication happens automatically but requires the
-[`primary_datacenter`](/docs/agent/config/config-files#primary_datacenter)
+[`primary_datacenter`](/docs/agent/options#primary_datacenter)
 configuration to be set to specify a datacenter that is authoritative
 for intentions. In production setups with ACLs enabled, the
-[replication token](/docs/agent/config/config-files#acl_tokens_replication) must also
+[replication token](/docs/agent/options#acl_tokens_replication) must also
 be set in the secondary datacenter server's configuration.
 
 ## Certificate Authority Federation

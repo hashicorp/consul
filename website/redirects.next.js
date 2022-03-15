@@ -1239,9 +1239,4 @@ module.exports = [
     destination: '/docs/k8s/operations/tls-on-existing-cluster',
     permanent: true,
   },
-  {
-    source: '/docs/agent/options',
-    destination: '/docs/agent/config',
-    permanent: true,
-  },
 ]

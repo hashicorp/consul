@@ -24,14 +24,15 @@ greater insight into Consul access and usage patterns.
 For more experience leveraging Consul's audit logging functionality, explore our
 HashiCorp Learn tutorial [Capture Consul Events with Audit Logging](https://learn.hashicorp.com/tutorials/consul/audit-logging).
 
-For detailed configuration information on configuring the Consul Enterprise's audit logging, review the Consul [Audit Log](/docs/agent/config/config-files#audit)
+For detailed configuration information on configuring the Consul Enterprise's audit
+logging, review the Consul [Audit Log](/docs/agent/options#audit)
 documentation.
 
 ## Example Configuration
 
 Audit logging must be enabled on every agent in order to accurately capture all
 operations performed through the HTTP API. To enable logging, add
-the [`audit`](/docs/agent/config/config-files#audit) stanza to the agent's configuration.
+the [`audit`](/docs/agent/options#audit) stanza to the agent's configuration.
 
 -> **Note**: Consul only logs operations which are initiated via the HTTP API.
 The audit log does not record operations that take place over the internal RPC
