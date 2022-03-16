@@ -770,13 +770,18 @@ func setLastContact(resp http.ResponseWriter, last time.Duration) {
 }
 
 // setMeta is used to set the query response meta data
-func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) {
+func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) error {
+	lastContact, err := m.GetLastContact()
+	if err != nil {
+		return err
+	}
+	setLastContact(resp, lastContact)
 	setIndex(resp, m.GetIndex())
-	setLastContact(resp, m.GetLastContact())
 	setKnownLeader(resp, m.GetKnownLeader())
 	setConsistency(resp, m.GetConsistencyLevel())
 	setQueryBackend(resp, m.GetBackend())
 	setResultsFilteredByACLs(resp, m.GetResultsFilteredByACLs())
+	return nil
 }
 
 func setQueryBackend(resp http.ResponseWriter, backend structs.QueryBackend) {

@@ -64,7 +64,7 @@ message QueryOptions {
 
    // Provided with MinQueryIndex to wait for change.
    google.protobuf.Duration MaxQueryTime = 3
-      [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+      [(gogoproto.nullable) = false];
 
    // If set, any follower can service the request. Results
    // may be arbitrarily stale.
@@ -87,7 +87,7 @@ message QueryOptions {
    // read, and then will perform a consistent read if stale
    // read is older than value.
    google.protobuf.Duration MaxStaleDuration = 7
-      [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+      [(gogoproto.nullable) = false];
 
    // MaxAge limits how old a cached value will be returned if UseCache is true.
    // If there is a cached response that is older than the MaxAge, it is treated
@@ -97,7 +97,7 @@ message QueryOptions {
    // if the endpoint supports background refresh caching. See
    // https://www.consul.io/api/index.html#agent-caching for more details.
    google.protobuf.Duration MaxAge = 8
-      [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+      [(gogoproto.nullable) = false];
 
    // MustRevalidate forces the agent to fetch a fresh version of a cached
    // resource or at least validate that the cached version is still fresh. It is
@@ -112,7 +112,7 @@ message QueryOptions {
    // ignored if the endpoint supports background refresh caching. See
    // https://www.consul.io/api/index.html#agent-caching for more details.
    google.protobuf.Duration StaleIfError = 10
-      [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+      [(gogoproto.nullable) = false];
 
    // Filter specifies the go-bexpr filter expression to be used for
    // filtering the data prior to returning a response
@@ -129,7 +129,7 @@ message QueryMeta  {
    // last contact between the follower and leader. This
    // can be used to gauge staleness.
    google.protobuf.Duration LastContact = 2
-      [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+      [(gogoproto.nullable) = false];
 
    // Used to indicate if there is a known leader node
    bool KnownLeader = 3;

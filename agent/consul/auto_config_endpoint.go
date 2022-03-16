@@ -7,10 +7,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/proto"
 
 	bexpr "github.com/hashicorp/go-bexpr"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
@@ -166,7 +164,7 @@ func (ac *AutoConfig) updateTLSCertificatesInConfig(opts AutoConfigOptions, resp
 		}
 
 		// convert to the protobuf form of the issued certificate
-		pbcert, err := translateIssuedCertToProtobuf(cert)
+		pbcert, err := pbconnect.NewIssuedCertFromStructs(cert)
 		if err != nil {
 			return err
 		}
@@ -179,7 +177,7 @@ func (ac *AutoConfig) updateTLSCertificatesInConfig(opts AutoConfigOptions, resp
 	}
 
 	// convert to the protobuf form of the issued certificate
-	pbroots, err := translateCARootsToProtobuf(connectRoots)
+	pbroots, err := pbconnect.NewCARootsFromStructs(connectRoots)
 	if err != nil {
 		return err
 	}
@@ -401,37 +399,6 @@ func parseAutoConfigCSR(csr string) (*x509.CertificateRequest, *connect.SpiffeID
 	}
 
 	return x509CSR, agentID, nil
-}
-
-func translateCARootsToProtobuf(in *structs.IndexedCARoots) (*pbconnect.CARoots, error) {
-	var out pbconnect.CARoots
-	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-
-	return &out, nil
-}
-
-func translateIssuedCertToProtobuf(in *structs.IssuedCert) (*pbconnect.IssuedCert, error) {
-	var out pbconnect.IssuedCert
-	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-
-	return &out, nil
-}
-
-func mapstructureTranslateToProtobuf(in interface{}, out interface{}) error {
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook: proto.HookTimeToPBTimestamp,
-		Result:     out,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return decoder.Decode(in)
 }
 
 func printNodeName(nodeName, partition string) string {

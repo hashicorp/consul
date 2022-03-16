@@ -548,10 +548,18 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 
 // canRetry returns true if the request and error indicate that a retry is safe.
 func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) bool {
-	if info != nil && info.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime) {
-		// RPCInfo timeout may include extra time for MaxQueryTime
-		return false
-	} else if info == nil && time.Since(start) > config.RPCHoldTimeout {
+	if info != nil {
+		timedOut, timeoutError := info.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime)
+		if timeoutError != nil {
+			return false
+		}
+
+		if timedOut {
+			return false
+		}
+	}
+
+	if info == nil && time.Since(start) > config.RPCHoldTimeout {
 		// When not RPCInfo, timeout is only RPCHoldTimeout
 		return false
 	}
@@ -920,7 +928,7 @@ type queryFn func(memdb.WatchSet, *state.Store) error
 type blockingQueryOptions interface {
 	GetToken() string
 	GetMinQueryIndex() uint64
-	GetMaxQueryTime() time.Duration
+	GetMaxQueryTime() (time.Duration, error)
 	GetRequireConsistent() bool
 }
 
@@ -1012,7 +1020,11 @@ func (s *Server) blockingQuery(
 		return err
 	}
 
-	timeout := s.rpcQueryTimeout(opts.GetMaxQueryTime())
+	maxQueryTimeout, err := opts.GetMaxQueryTime()
+	if err != nil {
+		return err
+	}
+	timeout := s.rpcQueryTimeout(maxQueryTimeout)
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 

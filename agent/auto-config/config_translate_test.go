@@ -1,7 +1,6 @@
 package autoconf
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -20,34 +19,26 @@ func boolPointer(b bool) *bool {
 	return &b
 }
 
-func translateCARootToProtobuf(in *structs.CARoot) (*pbconnect.CARoot, error) {
-	var out pbconnect.CARoot
-	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-	return &out, nil
-}
-
 func mustTranslateCARootToProtobuf(t *testing.T, in *structs.CARoot) *pbconnect.CARoot {
-	out, err := translateCARootToProtobuf(in)
+	out, err := pbconnect.NewCARootFromStructs(in)
 	require.NoError(t, err)
 	return out
 }
 
 func mustTranslateCARootsToStructs(t *testing.T, in *pbconnect.CARoots) *structs.IndexedCARoots {
-	out, err := translateCARootsToStructs(in)
+	out, err := pbconnect.CARootsToStructs(in)
 	require.NoError(t, err)
 	return out
 }
 
 func mustTranslateCARootsToProtobuf(t *testing.T, in *structs.IndexedCARoots) *pbconnect.CARoots {
-	out, err := translateCARootsToProtobuf(in)
+	out, err := pbconnect.NewCARootsFromStructs(in)
 	require.NoError(t, err)
 	return out
 }
 
 func mustTranslateIssuedCertToProtobuf(t *testing.T, in *structs.IssuedCert) *pbconnect.IssuedCert {
-	out, err := translateIssuedCertToProtobuf(in)
+	out, err := pbconnect.NewIssuedCertFromStructs(in)
 	require.NoError(t, err)
 	return out
 }
@@ -158,4 +149,27 @@ func TestCArootsTranslation(t *testing.T) {
 	_, indexedRoots, _ := testCerts(t, "autoconf", "dc1")
 	protoRoots := mustTranslateCARootsToProtobuf(t, indexedRoots)
 	require.Equal(t, indexedRoots, mustTranslateCARootsToStructs(t, protoRoots))
+}
+
+func caRootRoundtrip(t *testing.T, s *structs.CARoot) *structs.CARoot {
+	pbRoot, err := pbconnect.NewCARootFromStructs(s)
+	require.NoError(t, err)
+	root, err := pbconnect.CARootToStructs(pbRoot)
+	require.NoError(t, err)
+	return root
+}
+func caRootsRoundtrip(t *testing.T, s *structs.IndexedCARoots) *structs.IndexedCARoots {
+	pbRoot, err := pbconnect.NewCARootsFromStructs(s)
+	require.NoError(t, err)
+	root, err := pbconnect.CARootsToStructs(pbRoot)
+	require.NoError(t, err)
+	return root
+}
+
+func issuedCertRoundtrip(t *testing.T, s *structs.IssuedCert) *structs.IssuedCert {
+	pbCert, err := pbconnect.NewIssuedCertFromStructs(s)
+	require.NoError(t, err)
+	cert, err := pbconnect.IssuedCertToStructs(pbCert)
+	require.NoError(t, err)
+	return cert
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/proto/pbconfig"
+	"github.com/hashicorp/consul/proto/pbconnect"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 
@@ -199,7 +200,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 	roots, err := s.getCARoots(nil, s.fsm.State())
 	require.NoError(t, err)
 
-	pbroots, err := translateCARootsToProtobuf(roots)
+	pbroots, err := pbconnect.NewCARootsFromStructs(roots)
 	require.NoError(t, err)
 
 	joinAddr := &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: s.config.SerfLANConfig.MemberlistConfig.AdvertisePort}
@@ -595,7 +596,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 
 	// translate the fake cert to the protobuf equivalent
 	// for embedding in expected results
-	pbcert, err := translateIssuedCertToProtobuf(&fakeCert)
+	pbcert, err := pbconnect.NewIssuedCertFromStructs(&fakeCert)
 	require.NoError(t, err)
 
 	// generate a CA certificate to use for specifying non-Connect
@@ -613,7 +614,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 
 	// translate the roots response to protobuf to be embedded
 	// into the expected results
-	pbroots, err := translateCARootsToProtobuf(&roots)
+	pbroots, err := pbconnect.NewCARootsFromStructs(&roots)
 	require.NoError(t, err)
 
 	type testCase struct {

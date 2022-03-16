@@ -12,7 +12,7 @@ type QueryOptionsCompat interface {
 	SetToken(string)
 	GetMinQueryIndex() uint64
 	SetMinQueryIndex(uint64)
-	GetMaxQueryTime() time.Duration
+	GetMaxQueryTime() (time.Duration, error)
 	SetMaxQueryTime(time.Duration)
 	GetAllowStale() bool
 	SetAllowStale(bool)
@@ -20,13 +20,13 @@ type QueryOptionsCompat interface {
 	SetRequireConsistent(bool)
 	GetUseCache() bool
 	SetUseCache(bool)
-	GetMaxStaleDuration() time.Duration
+	GetMaxStaleDuration() (time.Duration, error)
 	SetMaxStaleDuration(time.Duration)
-	GetMaxAge() time.Duration
+	GetMaxAge() (time.Duration, error)
 	SetMaxAge(time.Duration)
 	GetMustRevalidate() bool
 	SetMustRevalidate(bool)
-	GetStaleIfError() time.Duration
+	GetStaleIfError() (time.Duration, error)
 	SetStaleIfError(time.Duration)
 	GetFilter() string
 	SetFilter(string)
@@ -36,7 +36,7 @@ type QueryOptionsCompat interface {
 // and the proto/pbcommon.QueryMeta structs need to implement so that they
 // can be operated on interchangeably
 type QueryMetaCompat interface {
-	GetLastContact() time.Duration
+	GetLastContact() (time.Duration, error)
 	SetLastContact(time.Duration)
 	GetKnownLeader() bool
 	SetKnownLeader(bool)
@@ -69,11 +69,11 @@ func (m *QueryOptions) GetMinQueryIndex() uint64 {
 
 // GetMaxQueryTime helps implement the QueryOptionsCompat interface
 // Copied from proto/pbcommon/common.pb.go
-func (m *QueryOptions) GetMaxQueryTime() time.Duration {
+func (m *QueryOptions) GetMaxQueryTime() (time.Duration, error) {
 	if m != nil {
-		return m.MaxQueryTime
+		return m.MaxQueryTime, nil
 	}
-	return 0
+	return 0, nil
 }
 
 // GetAllowStale helps implement the QueryOptionsCompat interface
@@ -105,20 +105,20 @@ func (m *QueryOptions) GetUseCache() bool {
 
 // GetMaxStaleDuration helps implement the QueryOptionsCompat interface
 // Copied from proto/pbcommon/common.pb.go
-func (m *QueryOptions) GetMaxStaleDuration() time.Duration {
+func (m *QueryOptions) GetMaxStaleDuration() (time.Duration, error) {
 	if m != nil {
-		return m.MaxStaleDuration
+		return m.MaxStaleDuration, nil
 	}
-	return 0
+	return 0, nil
 }
 
 // GetMaxAge helps implement the QueryOptionsCompat interface
 // Copied from proto/pbcommon/common.pb.go
-func (m *QueryOptions) GetMaxAge() time.Duration {
+func (m *QueryOptions) GetMaxAge() (time.Duration, error) {
 	if m != nil {
-		return m.MaxAge
+		return m.MaxAge, nil
 	}
-	return 0
+	return 0, nil
 }
 
 // GetMustRevalidate helps implement the QueryOptionsCompat interface
@@ -132,11 +132,11 @@ func (m *QueryOptions) GetMustRevalidate() bool {
 
 // GetStaleIfError helps implement the QueryOptionsCompat interface
 // Copied from proto/pbcommon/common.pb.go
-func (m *QueryOptions) GetStaleIfError() time.Duration {
+func (m *QueryOptions) GetStaleIfError() (time.Duration, error) {
 	if m != nil {
-		return m.StaleIfError
+		return m.StaleIfError, nil
 	}
-	return 0
+	return 0, nil
 }
 
 // GetFilter helps implement the QueryOptionsCompat interface
@@ -224,11 +224,11 @@ func (m *QueryMeta) GetIndex() uint64 {
 
 // GetLastContact helps implement the QueryMetaCompat interface
 // Copied from proto/pbcommon/common.pb.go
-func (m *QueryMeta) GetLastContact() time.Duration {
+func (m *QueryMeta) GetLastContact() (time.Duration, error) {
 	if m != nil {
-		return m.LastContact
+		return m.LastContact, nil
 	}
-	return 0
+	return 0, nil
 }
 
 // GetKnownLeader helps implement the QueryMetaCompat interface
