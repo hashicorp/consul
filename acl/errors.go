@@ -127,11 +127,13 @@ func PermissionDeniedByACLUnnamed(authz Authorizer, context *AuthorizerContext, 
 	return PermissionDeniedError{Accessor: ExtractAccessorInformation(authz), Resource: resource, AccessLevel: accessLevel, ResourceID: desc}
 }
 
-func ExtractAccessorInformation(authz Authorizer) string {
+func ExtractAccessorInformation(authz interface{}) string {
 	var accessor string
 	switch v := authz.(type) {
 	case AllowAuthorizer:
 		accessor = v.AccessorID
+	case string:
+		accessor = v
 	}
 	return accessor
 }

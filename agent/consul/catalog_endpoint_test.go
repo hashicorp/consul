@@ -262,12 +262,16 @@ node "foo" {
 	}
 }
 
-func createToken(t *testing.T, cc rpc.ClientCodec, policyRules string) string {
+func createTokenFull(t *testing.T, cc rpc.ClientCodec, policyRules string) *structs.ACLToken {
 	t.Helper()
-	return createTokenWithPolicyName(t, cc, "the-policy", policyRules, "root")
+	return createTokenWithPolicyNameFull(t, cc, "the-policy", policyRules, "root")
 }
 
-func createTokenWithPolicyName(t *testing.T, cc rpc.ClientCodec, policyName string, policyRules string, token string) string {
+func createToken(t *testing.T, cc rpc.ClientCodec, policyRules string) string {
+	return createTokenFull(t, cc, policyRules).SecretID
+}
+
+func createTokenWithPolicyNameFull(t *testing.T, cc rpc.ClientCodec, policyName string, policyRules string, token string) *structs.ACLToken {
 	t.Helper()
 
 	reqPolicy := structs.ACLPolicySetRequest{
@@ -292,9 +296,16 @@ func createTokenWithPolicyName(t *testing.T, cc rpc.ClientCodec, policyName stri
 		},
 		WriteRequest: structs.WriteRequest{Token: token},
 	}
-	err = msgpackrpc.CallWithCodec(cc, "ACL.TokenSet", &reqToken, &structs.ACLToken{})
+
+	resp := &structs.ACLToken{}
+
+	err = msgpackrpc.CallWithCodec(cc, "ACL.TokenSet", &reqToken, &resp)
 	require.NoError(t, err)
-	return secretId
+	return resp
+}
+
+func createTokenWithPolicyName(t *testing.T, cc rpc.ClientCodec, policyName string, policyRules string, token string) string {
+	return createTokenWithPolicyNameFull(t, cc, policyName, policyRules, token).SecretID
 }
 
 func TestCatalog_Register_ForwardLeader(t *testing.T) {

@@ -345,7 +345,8 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 	check := structs.HealthCheck{Node: "nope", CheckID: types.CheckID("nope")}
 	state.EnsureCheck(4, &check)
 
-	id := createToken(t, rpcClient(t, s1), testTxnRules)
+	token := createTokenFull(t, rpcClient(t, s1), testTxnRules)
+	id := token.SecretID
 
 	// Set up a transaction where every operation should get blocked due to
 	// ACLs.
@@ -564,11 +565,11 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				// These get filtered but won't result in an error.
 			case api.KVSet, api.KVDelete, api.KVDeleteCAS, api.KVDeleteTree, api.KVCAS, api.KVLock, api.KVUnlock, api.KVCheckNotExists:
 				require.Equal(t, err.OpIndex, i)
-				acl.RequirePermissionDeniedMessage(t, err.What, nil, nil, acl.ResourceKey, acl.AccessWrite, "nope")
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceKey, acl.AccessWrite, "nope")
 				outPos++
 			default:
 				require.Equal(t, err.OpIndex, i)
-				acl.RequirePermissionDeniedMessage(t, err.What, nil, nil, acl.ResourceKey, acl.AccessRead, "nope")
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceKey, acl.AccessRead, "nope")
 				outPos++
 			}
 		case op.Node != nil:
@@ -577,11 +578,11 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				// These get filtered but won't result in an error.
 			case api.NodeSet, api.NodeDelete, api.NodeDeleteCAS, api.NodeCAS:
 				require.Equal(t, err.OpIndex, i)
-				acl.RequirePermissionDeniedMessage(t, err.What, nil, nil, acl.ResourceNode, acl.AccessWrite, "nope")
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceNode, acl.AccessWrite, "nope")
 				outPos++
 			default:
 				require.Equal(t, err.OpIndex, i)
-				acl.RequirePermissionDeniedMessage(t, err.What, nil, nil, acl.ResourceNode, acl.AccessRead, "nope")
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceNode, acl.AccessRead, "nope")
 				outPos++
 			}
 		case op.Service != nil:
@@ -590,11 +591,11 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				// These get filtered but won't result in an error.
 			case api.ServiceSet, api.ServiceCAS, api.ServiceDelete, api.ServiceDeleteCAS:
 				require.Equal(t, err.OpIndex, i)
-				acl.RequirePermissionDeniedMessage(t, err.What, nil, nil, acl.ResourceService, acl.AccessWrite, "nope")
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceService, acl.AccessWrite, "nope")
 				outPos++
 			default:
 				require.Equal(t, err.OpIndex, i)
-				acl.RequirePermissionDeniedMessage(t, err.What, nil, nil, acl.ResourceService, acl.AccessRead, "nope")
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceService, acl.AccessRead, "nope")
 				outPos++
 			}
 		case op.Check != nil:
@@ -603,11 +604,11 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				// These get filtered but won't result in an error.
 			case api.CheckSet, api.CheckCAS, api.CheckDelete, api.CheckDeleteCAS:
 				require.Equal(t, err.OpIndex, i)
-				acl.RequirePermissionDeniedMessage(t, err.What, nil, nil, acl.ResourceNode, acl.AccessWrite, "nope")
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceNode, acl.AccessWrite, "nope")
 				outPos++
 			default:
 				require.Equal(t, err.OpIndex, i)
-				acl.RequirePermissionDeniedMessage(t, err.What, nil, nil, acl.ResourceNode, acl.AccessRead, "nope")
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceNode, acl.AccessRead, "nope")
 				outPos++
 			}
 		}
@@ -873,7 +874,8 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 	check := structs.HealthCheck{Node: "nope", CheckID: types.CheckID("nope")}
 	state.EnsureCheck(4, &check)
 
-	id := createToken(t, codec, testTxnRules)
+	token := createTokenFull(t, codec, testTxnRules)
+	id := token.AccessorID
 
 	t.Run("simple read operations (results get filtered out)", func(t *testing.T) {
 		arg := structs.TxnReadRequest{
@@ -934,8 +936,8 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 		var out structs.TxnReadResponse
 		err := msgpackrpc.CallWithCodec(codec, "Txn.Read", &arg, &out)
 		require.NoError(t, err)
-		acl.RequirePermissionDeniedMessage(t, out.Errors[0].What, nil, nil, acl.ResourceKey, acl.AccessRead, "nope")
-		acl.RequirePermissionDeniedMessage(t, out.Errors[1].What, nil, nil, acl.ResourceKey, acl.AccessRead, "nope")
+		acl.RequirePermissionDeniedMessage(t, out.Errors[0].What, token.AccessorID, nil, acl.ResourceKey, acl.AccessRead, "nope")
+		acl.RequirePermissionDeniedMessage(t, out.Errors[1].What, token.AccessorID, nil, acl.ResourceKey, acl.AccessRead, "nope")
 
 		require.Empty(t, out.Results)
 	})

@@ -20,7 +20,7 @@ func RequirePermissionDeniedError(t testing.TB, err error, authz *Authorizer, _ 
 	}
 }
 
-func RequirePermissionDeniedMessage(t testing.TB, msg string, authz *Authorizer, _ *AuthorizerContext, resource Resource, accessLevel AccessLevel, resourceID string) {
+func RequirePermissionDeniedMessage(t testing.TB, msg string, authz interface{}, _ *AuthorizerContext, resource Resource, accessLevel AccessLevel, resourceID string) {
 	require.NotEmpty(t, msg, "expected non-empty error message")
 
 	var resourceIDFound string
@@ -37,7 +37,7 @@ func RequirePermissionDeniedMessage(t testing.TB, msg string, authz *Authorizer,
 		re, _ := regexp.Compile(expr)
 		matched := re.FindStringSubmatch(msg)
 
-		require.Equal(t, ExtractAccessorInformation(*authz), matched[1], "auth")
+		require.Equal(t, ExtractAccessorInformation(authz), matched[1], "auth")
 		require.Equal(t, string(resource), matched[2], "resource")
 		require.Equal(t, accessLevel.String(), matched[3], "access level")
 		resourceIDFound = matched[4]
