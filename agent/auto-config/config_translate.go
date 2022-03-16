@@ -1,13 +1,8 @@
 package autoconf
 
 import (
-	"fmt"
-
-	"github.com/mitchellh/mapstructure"
-
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto"
 	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/proto/pbconnect"
@@ -104,12 +99,12 @@ func stringPtrOrNil(v string) *string {
 }
 
 func extractSignedResponse(resp *pbautoconf.AutoConfigResponse) (*structs.SignedResponse, error) {
-	roots, err := translateCARootsToStructs(resp.CARoots)
+	roots, err := pbconnect.CARootsToStructs(resp.CARoots)
 	if err != nil {
 		return nil, err
 	}
 
-	cert, err := translateIssuedCertToStructs(resp.Certificate)
+	cert, err := pbconnect.IssuedCertToStructs(resp.Certificate)
 	if err != nil {
 		return nil, err
 	}
@@ -125,72 +120,4 @@ func extractSignedResponse(resp *pbautoconf.AutoConfigResponse) (*structs.Signed
 	}
 
 	return out, err
-}
-
-// translateCARootsToStructs will create a structs.IndexedCARoots object from the corresponding
-// protobuf struct. Those structs are intended to be identical so the conversion just uses
-// mapstructure to go from one to the other.
-func translateCARootsToStructs(in *pbconnect.CARoots) (*structs.IndexedCARoots, error) {
-	var out structs.IndexedCARoots
-	if err := mapstructureTranslateToStructs(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-
-	return &out, nil
-}
-
-// translateIssuedCertToStructs will create a structs.IssuedCert object from the corresponding
-// protobuf struct. Those structs are intended to be identical so the conversion just uses
-// mapstructure to go from one to the other.
-func translateIssuedCertToStructs(in *pbconnect.IssuedCert) (*structs.IssuedCert, error) {
-	var out structs.IssuedCert
-	if err := mapstructureTranslateToStructs(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-
-	return &out, nil
-}
-
-func mapstructureTranslateToStructs(in interface{}, out interface{}) error {
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook: proto.HookPBTimestampToTime,
-		Result:     out,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return decoder.Decode(in)
-}
-
-func translateCARootsToProtobuf(in *structs.IndexedCARoots) (*pbconnect.CARoots, error) {
-	var out pbconnect.CARoots
-	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-
-	return &out, nil
-}
-
-func translateIssuedCertToProtobuf(in *structs.IssuedCert) (*pbconnect.IssuedCert, error) {
-	var out pbconnect.IssuedCert
-	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-
-	return &out, nil
-}
-
-func mapstructureTranslateToProtobuf(in interface{}, out interface{}) error {
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook: proto.HookTimeToPBTimestamp,
-		Result:     out,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return decoder.Decode(in)
 }

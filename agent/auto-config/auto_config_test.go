@@ -1007,8 +1007,8 @@ func TestFallback(t *testing.T) {
 	// waiting for events. We are going to send a new cert that is basically
 	// already expired and then allow the fallback routine to kick in.
 	secondCert := newLeaf(t, "autoconf", "dc1", testAC.initialRoots.Roots[0], 100, time.Nanosecond)
-	secondCA := connect.TestCA(t, testAC.initialRoots.Roots[0])
-	secondRoots := structs.IndexedCARoots{
+	secondCA := caRootRoundtrip(t, connect.TestCA(t, testAC.initialRoots.Roots[0]))
+	secondRoots := caRootsRoundtrip(t, &structs.IndexedCARoots{
 		ActiveRootID: secondCA.ID,
 		TrustDomain:  connect.TestClusterID,
 		Roots: []*structs.CARoot{
@@ -1018,7 +1018,7 @@ func TestFallback(t *testing.T) {
 		QueryMeta: structs.QueryMeta{
 			Index: 101,
 		},
-	}
+	})
 	thirdCert := newLeaf(t, "autoconf", "dc1", secondCA, 102, 10*time.Minute)
 
 	// setup the expectation for when the certs got updated initially
@@ -1063,7 +1063,7 @@ func TestFallback(t *testing.T) {
 			},
 		}
 
-		resp.CARoots = mustTranslateCARootsToProtobuf(t, &secondRoots)
+		resp.CARoots = mustTranslateCARootsToProtobuf(t, secondRoots)
 		resp.Certificate = mustTranslateIssuedCertToProtobuf(t, thirdCert)
 		resp.ExtraCACertificates = testAC.extraCerts
 
@@ -1089,7 +1089,7 @@ func TestFallback(t *testing.T) {
 	// auto-config response which is how the Fallback for auto-config works
 	testAC.mcfg.tokens.On("UpdateAgentToken", testAC.originalToken, token.TokenSourceConfig).Return(true).Once()
 
-	testAC.mcfg.expectInitialTLS(t, "autoconf", "dc1", testAC.originalToken, secondCA, &secondRoots, thirdCert, testAC.extraCerts)
+	testAC.mcfg.expectInitialTLS(t, "autoconf", "dc1", testAC.originalToken, secondCA, secondRoots, thirdCert, testAC.extraCerts)
 
 	// after the second RPC we now will use the new certs validity period in the next run loop iteration
 	testAC.mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{
