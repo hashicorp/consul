@@ -544,6 +544,17 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 		} else {
 			err = s.checkWriteAccess(req)
 
+			// Give the user a hint that they might be doing something wrong if they issue a GET request
+			// with a non-empty body (e.g., parameters placed in body rather than query string).
+			if req.Method == http.MethodGet {
+				if req.ContentLength > 0 {
+					httpLogger.Warn("GET request has a non-empty body that will be ignored; "+
+						"check whether parameters meant for the query string were accidentally placed in the body",
+						"url", logURL,
+						"from", req.RemoteAddr)
+				}
+			}
+
 			if err == nil {
 				// Invoke the handler
 				obj, err = handler(resp, req)
