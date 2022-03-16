@@ -1241,7 +1241,7 @@ BUG FIXES:
 * server: When wan federating via mesh gateways only do heuristic primary DC bypass on the leader. [[GH-9366](https://github.com/hashicorp/consul/issues/9366)]
 * xds: deduplicate mesh gateway listeners by address in a stable way to prevent some LDS churn [[GH-9650](https://github.com/hashicorp/consul/issues/9650)]
 * xds: prevent LDS flaps in mesh gateways due to unstable datacenter lists; also prevent some flaps in terminating gateways as well [[GH-9651](https://github.com/hashicorp/consul/issues/9651)]
-* 
+*
 ## 1.8.8 (January 22, 2021)
 
 BUG FIXES:
@@ -2559,7 +2559,7 @@ IMPROVEMENTS:
 
 * agent: (Consul Enterprise) Added [AWS KMS support](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingKMSEncryption.html) for S3 snapshots using the snapshot agent.
 * agent: Watches in the Consul agent can now be configured to invoke an HTTP endpoint instead of an executable. [[GH-3305](https://github.com/hashicorp/consul/issues/3305)]
-* agent: Added a new [`-config-format`](https://www.consul.io/docs/agent/config/cli-flags.html#_config_format) command line option which can be set to `hcl` or `json` to specify the format of configuration files. This is useful for cases where the file name cannot be controlled in order to provide the required extension. [[GH-3620](https://github.com/hashicorp/consul/issues/3620)]
+* agent: Added a new [`-config-format`](https://www.consul.io/docs/agent/config/cli-flags#_config_format) command line option which can be set to `hcl` or `json` to specify the format of configuration files. This is useful for cases where the file name cannot be controlled in order to provide the required extension. [[GH-3620](https://github.com/hashicorp/consul/issues/3620)]
 * agent: DNS recursors can now be specified as [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) templates. [[GH-2932](https://github.com/hashicorp/consul/issues/2932)]
 * agent: Serf snapshots no longer save network coordinate information. This enables recovery from errors upon agent restart. [[GH-489](https://github.com/hashicorp/serf/issues/489)]
 * agent: Added defensive code to prevent out of range ping times from infecting network coordinates. Updates to the coordinate system with negative round trip times or round trip times higher than 10 seconds will log an error but will be ignored.
@@ -2590,8 +2590,8 @@ SECURITY:
 
 BREAKING CHANGES:
 
-* **Raft Protocol Now Defaults to 3:** The [`-raft-protocol`](https://www.consul.io/docs/agent/config/cli-flags.html#_raft_protocol) default has been changed from 2 to 3, enabling all [Autopilot](https://www.consul.io/docs/guides/autopilot.html) features by default. Version 3 requires Consul running 0.8.0 or newer on all servers in order to work, so if you are upgrading with older servers in a cluster then you will need to set this back to 2 in order to upgrade. See [Raft Protocol Version Compatibility](https://www.consul.io/docs/upgrade-specific.html#raft-protocol-version-compatibility) for more details. Also the format of `peers.json` used for outage recovery is different when running with the lastest Raft protocol. See [Manual Recovery Using peers.json](https://www.consul.io/docs/guides/outage.html#manual-recovery-using-peers-json) for a description of the required format. [[GH-3477](https://github.com/hashicorp/consul/issues/3477)]
-* **Config Files Require an Extension:** As part of supporting the [HCL](https://github.com/hashicorp/hcl#syntax) format for Consul's config files, an `.hcl` or `.json` extension is required for all config files loaded by Consul, even when using the [`-config-file`](https://www.consul.io/docs/agent/config/cli-flags.html#_config_file) argument to specify a file directly. [[GH-3480](https://github.com/hashicorp/consul/issues/3480)]
+* **Raft Protocol Now Defaults to 3:** The [`-raft-protocol`](https://www.consul.io/docs/agent/config/cli-flags#_raft_protocol) default has been changed from 2 to 3, enabling all [Autopilot](https://www.consul.io/docs/guides/autopilot.html) features by default. Version 3 requires Consul running 0.8.0 or newer on all servers in order to work, so if you are upgrading with older servers in a cluster then you will need to set this back to 2 in order to upgrade. See [Raft Protocol Version Compatibility](https://www.consul.io/docs/upgrade-specific.html#raft-protocol-version-compatibility) for more details. Also the format of `peers.json` used for outage recovery is different when running with the lastest Raft protocol. See [Manual Recovery Using peers.json](https://www.consul.io/docs/guides/outage.html#manual-recovery-using-peers-json) for a description of the required format. [[GH-3477](https://github.com/hashicorp/consul/issues/3477)]
+* **Config Files Require an Extension:** As part of supporting the [HCL](https://github.com/hashicorp/hcl#syntax) format for Consul's config files, an `.hcl` or `.json` extension is required for all config files loaded by Consul, even when using the [`-config-file`](https://www.consul.io/docs/agent/config/cli-flags#_config_file) argument to specify a file directly. [[GH-3480](https://github.com/hashicorp/consul/issues/3480)]
 * **Deprecated Options Have Been Removed:** All of Consul's previously deprecated command line flags and config options have been removed, so these will need to be mapped to their equivalents before upgrading. [[GH-3480](https://github.com/hashicorp/consul/issues/3480)]
 
     <details><summary>Detailed List of Removed Options and their Equivalents</summary>
@@ -2602,16 +2602,16 @@ BREAKING CHANGES:
     | `-atlas-token`| None, Atlas is no longer supported. |
     | `-atlas-join` | None, Atlas is no longer supported. |
     | `-atlas-endpoint` | None, Atlas is no longer supported. |
-    | `-dc` | [`-datacenter`](https://www.consul.io/docs/agent/config/cli-flags.html#_datacenter) |
-    | `-retry-join-azure-tag-name` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) |
-    | `-retry-join-azure-tag-value` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) |
-    | `-retry-join-ec2-region` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) |
-    | `-retry-join-ec2-tag-key` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) |
-    | `-retry-join-ec2-tag-value` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) |
-    | `-retry-join-gce-credentials-file` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) |
-    | `-retry-join-gce-project-name` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) |
-    | `-retry-join-gce-tag-name` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) |
-    | `-retry-join-gce-zone-pattern` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) |
+    | `-dc` | [`-datacenter`](https://www.consul.io/docs/agent/config/cli-flags#_datacenter) |
+    | `-retry-join-azure-tag-name` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) |
+    | `-retry-join-azure-tag-value` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) |
+    | `-retry-join-ec2-region` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) |
+    | `-retry-join-ec2-tag-key` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) |
+    | `-retry-join-ec2-tag-value` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) |
+    | `-retry-join-gce-credentials-file` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) |
+    | `-retry-join-gce-project-name` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) |
+    | `-retry-join-gce-tag-name` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) |
+    | `-retry-join-gce-zone-pattern` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) |
     | `addresses.rpc` | None, the RPC server for CLI commands is no longer supported. |
     | `advertise_addrs` | [`ports`](https://www.consul.io/docs/agent/config/config-files.html#ports) with [`advertise_addr`](https://www.consul/io/docs/agent/config/config-files.html#advertise_addr) and/or [`advertise_addr_wan`](https://www.consul.io/docs/agent/config/config-files.html#advertise_addr_wan) |
     | `atlas_infrastructure` | None, Atlas is no longer supported. |
@@ -2624,9 +2624,9 @@ BREAKING CHANGES:
     | `http_api_response_headers` | [`http_config.response_headers`](https://www.consul.io/docs/agent/config/config-files.html#response_headers) |
     | `ports.rpc` | None, the RPC server for CLI commands is no longer supported. |
     | `recursor` | [`recursors`](https://github.com/hashicorp/consul/blob/main/website/source/docs/agent/config/config-files.html.md#recursors) |
-    | `retry_join_azure` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) |
-    | `retry_join_ec2` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) |
-    | `retry_join_gce` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) |
+    | `retry_join_azure` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) |
+    | `retry_join_ec2` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) |
+    | `retry_join_gce` | [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) |
     | `statsd_addr` | [`telemetry.statsd_address`](https://github.com/hashicorp/consul/blob/main/website/source/docs/agent/config/config-files.html.md#telemetry-statsd_address) |
     | `statsite_addr` | [`telemetry.statsite_address`](https://github.com/hashicorp/consul/blob/main/website/source/docs/agent/config/config-files.html.md#telemetry-statsite_address) |
     | `statsite_prefix` | [`telemetry.metrics_prefix`](https://www.consul.io/docs/agent/config/config-files.html#telemetry-metrics_prefix) |
@@ -2640,7 +2640,7 @@ BREAKING CHANGES:
 
 * **`statsite_prefix` Renamed to `metrics_prefix`:** Since the `statsite_prefix` configuration option applied to all telemetry providers, `statsite_prefix` was renamed to [`metrics_prefix`](https://www.consul.io/docs/agent/config/config-files.html#telemetry-metrics_prefix). Configuration files will need to be updated when upgrading to this version of Consul. [[GH-3498](https://github.com/hashicorp/consul/issues/3498)]
 * **`advertise_addrs` Removed:** This configuration option was removed since it was redundant with `advertise_addr` and `advertise_addr_wan` in combination with `ports` and also wrongly stated that you could configure both host and port. [[GH-3516](https://github.com/hashicorp/consul/issues/3516)]
-* **Escaping Behavior Changed for go-discover Configs:** The format for [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) and [`-retry-join-wan`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join_wan) values that use [go-discover](https://github.com/hashicorp/go-discover) Cloud auto joining has changed. Values in `key=val` sequences must no longer be URL encoded and can be provided as literals as long as they do not contain spaces, backslashes `\` or double quotes `"`. If values contain these characters then use double quotes as in `"some key"="some value"`. Special characters within a double quoted string can be escaped with a backslash `\`. [[GH-3417](https://github.com/hashicorp/consul/issues/3417)]
+* **Escaping Behavior Changed for go-discover Configs:** The format for [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) and [`-retry-join-wan`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join_wan) values that use [go-discover](https://github.com/hashicorp/go-discover) Cloud auto joining has changed. Values in `key=val` sequences must no longer be URL encoded and can be provided as literals as long as they do not contain spaces, backslashes `\` or double quotes `"`. If values contain these characters then use double quotes as in `"some key"="some value"`. Special characters within a double quoted string can be escaped with a backslash `\`. [[GH-3417](https://github.com/hashicorp/consul/issues/3417)]
 * **HTTP Verbs are Enforced in Many HTTP APIs:** Many endpoints in the HTTP API that previously took any HTTP verb now check for specific HTTP verbs and enforce them. This may break clients relying on the old behavior. [[GH-3405](https://github.com/hashicorp/consul/issues/3405)]
 
     <details><summary>Detailed List of Updated Endpoints and Required HTTP Verbs</summary>
@@ -2721,7 +2721,7 @@ BREAKING CHANGES:
 FEATURES:
 
 * **Support for HCL Config Files:** Consul now supports HashiCorp's [HCL](https://github.com/hashicorp/hcl#syntax) format for config files. This is easier to work with than JSON and supports comments. As part of this change, all config files will need to have either an `.hcl` or `.json` extension in order to specify their format. [[GH-3480](https://github.com/hashicorp/consul/issues/3480)]
-* **Support for Binding to Multiple Addresses:** Consul now supports binding to multiple addresses for its HTTP, HTTPS, and DNS services. You can provide a space-separated list of addresses to [`-client`](https://www.consul.io/docs/agent/config/cli-flags.html#_client) and [`addresses`](https://www.consul.io/docs/agent/config/config-files.html#addresses) configurations, or specify a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template that resolves to multiple addresses. [[GH-3480](https://github.com/hashicorp/consul/issues/3480)]
+* **Support for Binding to Multiple Addresses:** Consul now supports binding to multiple addresses for its HTTP, HTTPS, and DNS services. You can provide a space-separated list of addresses to [`-client`](https://www.consul.io/docs/agent/config/cli-flags#_client) and [`addresses`](https://www.consul.io/docs/agent/config/config-files.html#addresses) configurations, or specify a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template that resolves to multiple addresses. [[GH-3480](https://github.com/hashicorp/consul/issues/3480)]
 * **Support for RFC1464 DNS TXT records:** Consul DNS responses now contain the node meta data encoded according to RFC1464 as TXT records. [[GH-3343](https://github.com/hashicorp/consul/issues/3343)]
 * **Support for Running Subproccesses Directly Without a Shell:** Consul agent checks and watches now support an `args` configuration which is a list of arguments to run for the subprocess, which runs the subprocess directly without a shell. The old `script` and `handler` configurations are now deprecated (specify a shell explicitly if you require one). A `-shell=false` option is also available on `consul lock`, `consul watch`, and `consul exec` to run the subprocesses associated with those without a shell. [[GH-3509](https://github.com/hashicorp/consul/issues/3509)]
 * **Sentinel Integration:** (Consul Enterprise) Consul's ACL system integrates with [Sentinel](https://www.consul.io/docs/guides/sentinel.html) to enable code policies that apply to KV writes.
@@ -2796,7 +2796,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
-* agent: Retry Join for Amazon AWS, Microsoft Azure, Google Cloud, and (new) SoftLayer is now handled through the https://github.com/hashicorp/go-discover library. With this all `-retry-join-{ec2,azure,gce}-*` parameters have been deprecated in favor of a unified configuration. See [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags.html#_retry_join) for details. [GH-3282,GH-3351]
+* agent: Retry Join for Amazon AWS, Microsoft Azure, Google Cloud, and (new) SoftLayer is now handled through the https://github.com/hashicorp/go-discover library. With this all `-retry-join-{ec2,azure,gce}-*` parameters have been deprecated in favor of a unified configuration. See [`-retry-join`](https://www.consul.io/docs/agent/config/cli-flags#_retry_join) for details. [GH-3282,GH-3351]
 * agent: Reports a more detailed error message if the LAN or WAN Serf instance fails to bind to an address. [[GH-3312](https://github.com/hashicorp/consul/issues/3312)]
 * agent: Added NS records and corrected SOA records to allow Consul's DNS interface to work properly with zone delegation. [[GH-1301](https://github.com/hashicorp/consul/issues/1301)]
 * agent: Added support for sending metrics with labels/tags to supported backends. [[GH-3369](https://github.com/hashicorp/consul/issues/3369)]
@@ -2820,7 +2820,7 @@ BUG FIXES:
 
 BREAKING CHANGES:
 
-* agent: Added a new [`enable_script_checks`](https://www.consul.io/docs/agent/config/cli-flags.html#_enable_script_checks) configuration option that defaults to `false`, meaning that in order to allow an agent to run health checks that execute scripts, this will need to be configured and set to `true`. This provides a safer out-of-the-box configuration for Consul where operators must opt-in to allow script-based health checks. [[GH-3087](https://github.com/hashicorp/consul/issues/3087)]
+* agent: Added a new [`enable_script_checks`](https://www.consul.io/docs/agent/config/cli-flags#_enable_script_checks) configuration option that defaults to `false`, meaning that in order to allow an agent to run health checks that execute scripts, this will need to be configured and set to `true`. This provides a safer out-of-the-box configuration for Consul where operators must opt-in to allow script-based health checks. [[GH-3087](https://github.com/hashicorp/consul/issues/3087)]
 * api: Reworked `context` support in the API client to more closely match the Go standard library, and added context support to write requests in addition to read requests. [GH-3273, GH-2992]
 * ui: Since the UI is now bundled with the application we no longer provide a separate UI package for downloading. [[GH-3292](https://github.com/hashicorp/consul/issues/3292)]
 
@@ -2854,7 +2854,7 @@ BUG FIXES:
 * agent: Fixed an issue in the Docker client where Docker checks would get EOF errors trying to connect to a volume-mounted Docker socket. [[GH-3254](https://github.com/hashicorp/consul/issues/3254)]
 * agent: Fixed a crash when using Azure auto discovery. [[GH-3193](https://github.com/hashicorp/consul/issues/3193)]
 * agent: Added `node` read privileges to the `acl_agent_master_token` by default so it can see all nodes, which enables it to be used with operations like `consul members`. [[GH-3113](https://github.com/hashicorp/consul/issues/3113)]
-* agent: Fixed an issue where enabling [`-disable-keyring-file`](https://www.consul.io/docs/agent/config/cli-flags.html#_disable_keyring_file) would cause gossip encryption to be disabled. [[GH-3243](https://github.com/hashicorp/consul/issues/3243)]
+* agent: Fixed an issue where enabling [`-disable-keyring-file`](https://www.consul.io/docs/agent/config/cli-flags#_disable_keyring_file) would cause gossip encryption to be disabled. [[GH-3243](https://github.com/hashicorp/consul/issues/3243)]
 * agent: Fixed a race condition where checks that are not associated with any existing services were allowed to persist. [[GH-3297](https://github.com/hashicorp/consul/issues/3297)]
 * agent: Stop docker checks on service deregistration and on shutdown. [GH-3265, GH-3295]
 * server: Updated the Raft library to pull in a fix where servers that are very far behind in replication can get stuck in a loop trying to install snapshots. [[GH-3201](https://github.com/hashicorp/consul/issues/3201)]
@@ -2871,7 +2871,7 @@ BUG FIXES:
 BREAKING CHANGES:
 
 * agent: Parse values given to `?passing` for health endpoints. Previously Consul only checked for the existence of the querystring, not the value. That means using `?passing=false` would actually still include passing values. Consul now parses the value given to passing as a boolean. If no value is provided, the old behavior remains. This may be a breaking change for some users, but the old experience was incorrect and caused enough confusion to warrant changing it. [GH-2212, GH-3136]
-* agent: The default value of [`-disable-host-node-id`](https://www.consul.io/docs/agent/config/cli-flags.html#_disable_host_node_id) has been changed from false to true. This means you need to opt-in to host-based node IDs and by default Consul will generate a random node ID. A high number of users struggled to deploy newer versions of Consul with host-based IDs because of various edge cases of how the host IDs work in Docker, on specially-provisioned machines, etc. so changing this from opt-out to opt-in will ease operations for many Consul users. [[GH-3171](https://github.com/hashicorp/consul/issues/3171)]
+* agent: The default value of [`-disable-host-node-id`](https://www.consul.io/docs/agent/config/cli-flags#_disable_host_node_id) has been changed from false to true. This means you need to opt-in to host-based node IDs and by default Consul will generate a random node ID. A high number of users struggled to deploy newer versions of Consul with host-based IDs because of various edge cases of how the host IDs work in Docker, on specially-provisioned machines, etc. so changing this from opt-out to opt-in will ease operations for many Consul users. [[GH-3171](https://github.com/hashicorp/consul/issues/3171)]
 
 IMPROVEMENTS:
 
