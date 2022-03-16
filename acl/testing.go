@@ -37,7 +37,7 @@ func RequirePermissionDeniedMessage(t testing.TB, msg string, authz interface{},
 		re, _ := regexp.Compile(expr)
 		matched := re.FindStringSubmatch(msg)
 
-		require.Equal(t, ExtractAccessorInformation(authz), matched[1], "auth")
+		require.Equal(t, ExtractAccessorID(authz), matched[1], "auth")
 		require.Equal(t, string(resource), matched[2], "resource")
 		require.Equal(t, accessLevel.String(), matched[3], "access level")
 		resourceIDFound = matched[4]
