@@ -28,7 +28,7 @@ func TestValidLabel(t *testing.T) {
 		t.Run("IsValidLabel", func(t *testing.T) {
 			require.False(t, dns.IsValidLabel("*"))
 		})
-		t.Run("RequireValidLabel", func(t *testing.T) {
+		t.Run("ValidateLabel", func(t *testing.T) {
 			require.Error(t, dns.ValidateLabel("*"))
 		})
 	})
@@ -38,7 +38,7 @@ func TestValidLabel(t *testing.T) {
 			t.Run("IsValidDNSLabel", func(t *testing.T) {
 				require.Equal(t, expect, dns.IsValidLabel(name))
 			})
-			t.Run("RequireValidDNSLabel", func(t *testing.T) {
+			t.Run("ValidateLabel", func(t *testing.T) {
 				if expect {
 					require.NoError(t, dns.ValidateLabel(name))
 				} else {
