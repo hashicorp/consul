@@ -45,8 +45,8 @@ var tlsLookup = map[string]uint16{
 	"tls13": tls.VersionTLS13,
 }
 
-// ListenerConfig contains configuration for a given listener.
-type ListenerConfig struct {
+// ProtocolConfig contains configuration for a given protocol.
+type ProtocolConfig struct {
 	// VerifyIncoming is used to verify the authenticity of incoming
 	// connections.  This means that TCP requests are forbidden, only
 	// allowing for TLS. TLS connections must match a provided certificate
@@ -100,7 +100,7 @@ type ListenerConfig struct {
 	// nodes.
 	//
 	// Note: this setting doesn't apply to the gRPC configuration, as Consul
-	// makes no outgoing connections on this listener.
+	// makes no outgoing connections using this protocol.
 	VerifyOutgoing bool
 
 	// VerifyServerHostname is used to enable hostname verification of
@@ -117,14 +117,14 @@ type ListenerConfig struct {
 
 // Config configures the Configurator.
 type Config struct {
-	// InternalRPC is used to configure the internal multiplexed RPC listener.
-	InternalRPC ListenerConfig
+	// InternalRPC is used to configure the internal multiplexed RPC protocol.
+	InternalRPC ProtocolConfig
 
-	// GRPC is used to configure the external (e.g. xDS) gRPC listener.
-	GRPC ListenerConfig
+	// GRPC is used to configure the external (e.g. xDS) gRPC protocol.
+	GRPC ProtocolConfig
 
-	// HTTPS is used to configure the external HTTPS listener.
-	HTTPS ListenerConfig
+	// HTTPS is used to configure the external HTTPS protocol.
+	HTTPS ProtocolConfig
 
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string
@@ -170,9 +170,9 @@ func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
 	}
 }
 
-// listenerConfig contains the loaded state (e.g. x509 certificates) for a given
-// ListenerConfig.
-type listenerConfig struct {
+// protocolConfig contains the loaded state (e.g. x509 certificates) for a given
+// ProtocolConfig.
+type protocolConfig struct {
 	// cert is the TLS certificate configured manually by the cert_file/key_file
 	// options in the configuration file.
 	cert *tls.Certificate
@@ -209,9 +209,9 @@ type Configurator struct {
 	// uses TLS for RPC requests.
 	peerDatacenterUseTLS map[string]bool
 
-	grpc        listenerConfig
-	https       listenerConfig
-	internalRPC listenerConfig
+	grpc        protocolConfig
+	https       protocolConfig
+	internalRPC protocolConfig
 
 	// autoTLS stores configuration that is received from the auto-encrypt or
 	// auto-config features.
@@ -247,7 +247,7 @@ func NewConfigurator(config Config, logger hclog.Logger) (*Configurator, error) 
 	return c, nil
 }
 
-// ManualCAPems returns the currently loaded CAs for the internal RPC listener
+// ManualCAPems returns the currently loaded CAs for the internal RPC protocol
 // in PEM format. It is used in the auto-config/auto-encrypt endpoints.
 func (c *Configurator) ManualCAPems() []string {
 	c.lock.RLock()
@@ -262,17 +262,17 @@ func (c *Configurator) Update(config Config) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	grpc, err := c.loadListenerConfig(config, config.GRPC)
+	grpc, err := c.loadProtocolConfig(config, config.GRPC)
 	if err != nil {
 		return err
 	}
 
-	https, err := c.loadListenerConfig(config, config.HTTPS)
+	https, err := c.loadProtocolConfig(config, config.HTTPS)
 	if err != nil {
 		return err
 	}
 
-	internalRPC, err := c.loadListenerConfig(config, config.InternalRPC)
+	internalRPC, err := c.loadProtocolConfig(config, config.InternalRPC)
 	if err != nil {
 		return err
 	}
@@ -287,9 +287,9 @@ func (c *Configurator) Update(config Config) error {
 	return nil
 }
 
-// loadListenerConfig loads the certificates etc. for a given ListenerConfig
+// loadProtocolConfig loads the certificates etc. for a given ProtocolConfig
 // and performs validation.
-func (c *Configurator) loadListenerConfig(base Config, lc ListenerConfig) (*listenerConfig, error) {
+func (c *Configurator) loadProtocolConfig(base Config, lc ProtocolConfig) (*protocolConfig, error) {
 	if min := lc.TLSMinVersion; min != "" {
 		if _, ok := tlsLookup[min]; !ok {
 			versions := strings.Join(tlsVersions(), ", ")
@@ -340,7 +340,7 @@ func (c *Configurator) loadListenerConfig(base Config, lc ListenerConfig) (*list
 		return nil, fmt.Errorf("VerifyOutgoing set but no CA certificates were provided")
 	}
 
-	return &listenerConfig{
+	return &protocolConfig{
 		cert:           cert,
 		manualCAPEMs:   pems,
 		manualCAPool:   manualPool,
@@ -356,7 +356,7 @@ func (c *Configurator) UpdateAutoTLSCA(connectCAPems []string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	makePool := func(l listenerConfig) (*x509.CertPool, error) {
+	makePool := func(l protocolConfig) (*x509.CertPool, error) {
 		return newX509CertPool(l.manualCAPEMs, c.autoTLS.extraCAPems, connectCAPems)
 	}
 
@@ -412,7 +412,7 @@ func (c *Configurator) UpdateAutoTLS(manualCAPems, connectCAPems []string, pub, 
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	makePool := func(l listenerConfig) (*x509.CertPool, error) {
+	makePool := func(l protocolConfig) (*x509.CertPool, error) {
 		return newX509CertPool(l.manualCAPEMs, manualCAPems, connectCAPems)
 	}
 
@@ -547,7 +547,7 @@ func LoadCAs(caFile, caPath string) ([]string, error) {
 	return pems, nil
 }
 
-// internalRPCTLSConfig generates a *tls.Config for the internal RPC listener.
+// internalRPCTLSConfig generates a *tls.Config for the internal RPC protocol.
 //
 // This function acquires a read lock because it reads from the config.
 func (c *Configurator) internalRPCTLSConfig(verifyIncoming bool) *tls.Config {
@@ -567,7 +567,7 @@ func (c *Configurator) internalRPCTLSConfig(verifyIncoming bool) *tls.Config {
 // commonTLSConfig generates a *tls.Config from the base configuration the
 // Configurator has. It accepts an additional flag in case a config is needed
 // for incoming TLS connections.
-func (c *Configurator) commonTLSConfig(state listenerConfig, cfg ListenerConfig, verifyIncoming bool) *tls.Config {
+func (c *Configurator) commonTLSConfig(state protocolConfig, cfg ProtocolConfig, verifyIncoming bool) *tls.Config {
 	var tlsConfig tls.Config
 
 	// Set the cipher suites
@@ -620,7 +620,7 @@ func (c *Configurator) commonTLSConfig(state listenerConfig, cfg ListenerConfig,
 	return &tlsConfig
 }
 
-// Cert returns the certificate used for connections on the internal RPC listener.
+// Cert returns the certificate used for connections on the internal RPC protocol.
 //
 // This function acquires a read lock because it reads from the config.
 func (c *Configurator) Cert() *tls.Certificate {
@@ -646,7 +646,7 @@ func (c *Configurator) GRPCTLSConfigured() bool {
 }
 
 // VerifyIncomingRPC returns true if we should verify incoming connnections to
-// the internal RPC listener.
+// the internal RPC protocol.
 func (c *Configurator) VerifyIncomingRPC() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -663,7 +663,7 @@ func (c *Configurator) outgoingRPCTLSEnabled() bool {
 }
 
 // MutualTLSCapable returns true if Configurator has a CA and a local TL
-// certificate configured on the internal RPC listener.
+// certificate configured on the internal RPC protocol.
 func (c *Configurator) MutualTLSCapable() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()

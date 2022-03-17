@@ -114,12 +114,12 @@ func TestTranslateConfig(t *testing.T) {
 		EncryptVerifyIncoming: boolPointer(true),
 		EncryptVerifyOutgoing: boolPointer(true),
 		TLS: config.TLS{
-			Defaults: config.TLSListener{
+			Defaults: config.TLSProtocolConfig{
 				VerifyOutgoing:  boolPointer(true),
 				TLSCipherSuites: stringPointer("stuff"),
 				TLSMinVersion:   stringPointer("tls13"),
 			},
-			InternalRPC: config.TLSListener{
+			InternalRPC: config.TLSProtocolConfig{
 				VerifyServerHostname: boolPointer(true),
 			},
 		},

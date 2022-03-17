@@ -186,7 +186,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 
 	// TODO: use s.config.TLSConfig directly instead of creating a new one?
 	conf := tlsutil.Config{
-		InternalRPC: tlsutil.ListenerConfig{
+		InternalRPC: tlsutil.ProtocolConfig{
 			CAFile:               s.config.TLSConfig.InternalRPC.CAFile,
 			VerifyServerHostname: s.config.TLSConfig.InternalRPC.VerifyServerHostname,
 			VerifyOutgoing:       s.config.TLSConfig.InternalRPC.VerifyOutgoing,
@@ -414,7 +414,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 	cases := map[string]testCase{
 		"secure": {
 			tlsConfig: tlsutil.Config{
-				InternalRPC: tlsutil.ListenerConfig{
+				InternalRPC: tlsutil.ProtocolConfig{
 					VerifyServerHostname: true,
 					VerifyOutgoing:       true,
 					TLSMinVersion:        "tls12",
@@ -435,7 +435,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 		},
 		"less-secure": {
 			tlsConfig: tlsutil.Config{
-				InternalRPC: tlsutil.ListenerConfig{
+				InternalRPC: tlsutil.ProtocolConfig{
 					VerifyServerHostname: false,
 					VerifyOutgoing:       true,
 					TLSMinVersion:        "tls10",
@@ -631,7 +631,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 				ConnectEnabled: true,
 			},
 			tlsConfig: tlsutil.Config{
-				InternalRPC: tlsutil.ListenerConfig{
+				InternalRPC: tlsutil.ProtocolConfig{
 					VerifyServerHostname: true,
 					VerifyOutgoing:       true,
 					TLSMinVersion:        "tls12",
@@ -650,7 +650,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 				ConnectEnabled: true,
 			},
 			tlsConfig: tlsutil.Config{
-				InternalRPC: tlsutil.ListenerConfig{
+				InternalRPC: tlsutil.ProtocolConfig{
 					VerifyServerHostname: true,
 					VerifyOutgoing:       true,
 					TLSMinVersion:        "tls12",

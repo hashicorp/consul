@@ -86,7 +86,7 @@ func translateConfig(c *pbconfig.Config) config.Config {
 	}
 
 	if t := c.TLS; t != nil {
-		result.TLS.Defaults = config.TLSListener{
+		result.TLS.Defaults = config.TLSProtocolConfig{
 			VerifyOutgoing:  &t.VerifyOutgoing,
 			TLSMinVersion:   stringPtrOrNil(t.MinVersion),
 			TLSCipherSuites: stringPtrOrNil(t.CipherSuites),

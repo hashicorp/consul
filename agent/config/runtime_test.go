@@ -6303,7 +6303,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			},
 		},
 		TLS: tlsutil.Config{
-			InternalRPC: tlsutil.ListenerConfig{
+			InternalRPC: tlsutil.ProtocolConfig{
 				VerifyIncoming:       true,
 				CAFile:               "mKl19Utl",
 				CAPath:               "lOp1nhPa",
@@ -6314,7 +6314,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				VerifyOutgoing:       true,
 				VerifyServerHostname: true,
 			},
-			GRPC: tlsutil.ListenerConfig{
+			GRPC: tlsutil.ProtocolConfig{
 				VerifyIncoming: true,
 				CAFile:         "lOp1nhJk",
 				CAPath:         "fLponKpl",
@@ -6324,7 +6324,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				CipherSuites:   []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
 				VerifyOutgoing: false,
 			},
-			HTTPS: tlsutil.ListenerConfig{
+			HTTPS: tlsutil.ProtocolConfig{
 				VerifyIncoming: true,
 				CAFile:         "7Yu1PolM",
 				CAPath:         "nu4PlHzn",
@@ -6729,7 +6729,7 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 		},
 		Datacenter: "dc-test",
 		TLS: tlsutil.Config{
-			HTTPS: tlsutil.ListenerConfig{
+			HTTPS: tlsutil.ProtocolConfig{
 				CAFile:         "/etc/consul/ca.crt",
 				CAPath:         "/etc/consul/ca.dir",
 				CertFile:       "/etc/consul/server.crt",

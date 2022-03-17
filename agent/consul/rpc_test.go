@@ -1510,7 +1510,7 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 		certPath := tc.setupCert(t)
 
 		cfg := tlsutil.Config{
-			InternalRPC: tlsutil.ListenerConfig{
+			InternalRPC: tlsutil.ProtocolConfig{
 				VerifyOutgoing:       true,
 				VerifyServerHostname: true,
 				CAFile:               filepath.Join(dir, "ca.pem"),

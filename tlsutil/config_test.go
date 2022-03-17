@@ -25,19 +25,19 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
 	testCases := map[string]struct {
-		setupFn  func(ListenerConfig) Config
+		setupFn  func(ProtocolConfig) Config
 		configFn func(*Configurator) *tls.Config
 	}{
 		"Internal RPC": {
-			func(lc ListenerConfig) Config { return Config{InternalRPC: lc} },
+			func(lc ProtocolConfig) Config { return Config{InternalRPC: lc} },
 			func(c *Configurator) *tls.Config { return c.IncomingRPCConfig() },
 		},
 		"gRPC": {
-			func(lc ListenerConfig) Config { return Config{GRPC: lc} },
+			func(lc ProtocolConfig) Config { return Config{GRPC: lc} },
 			func(c *Configurator) *tls.Config { return c.IncomingGRPCConfig() },
 		},
 		"HTTPS": {
-			func(lc ListenerConfig) Config { return Config{HTTPS: lc} },
+			func(lc ProtocolConfig) Config { return Config{HTTPS: lc} },
 			func(c *Configurator) *tls.Config { return c.IncomingHTTPSConfig() },
 		},
 	}
@@ -45,7 +45,7 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
 			t.Run("MinTLSVersion", func(t *testing.T) {
-				cfg := ListenerConfig{
+				cfg := ProtocolConfig{
 					TLSMinVersion: "tls13",
 					CertFile:      "../test/hostname/Alice.crt",
 					KeyFile:       "../test/hostname/Alice.key",
@@ -68,7 +68,7 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 			})
 
 			t.Run("CipherSuites", func(t *testing.T) {
-				cfg := ListenerConfig{
+				cfg := ProtocolConfig{
 					CipherSuites: []uint16{tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384},
 					CertFile:     "../test/hostname/Alice.crt",
 					KeyFile:      "../test/hostname/Alice.key",
@@ -92,7 +92,7 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 
 			t.Run("manually configured certificate is preferred over AutoTLS", func(t *testing.T) {
 				// Manually configure Alice's certifcate.
-				cfg := ListenerConfig{
+				cfg := ProtocolConfig{
 					CertFile: "../test/hostname/Alice.crt",
 					KeyFile:  "../test/hostname/Alice.key",
 				}
@@ -147,7 +147,7 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 			})
 
 			t.Run("VerifyIncoming enabled - successful handshake", func(t *testing.T) {
-				cfg := ListenerConfig{
+				cfg := ProtocolConfig{
 					CAFile:         "../test/hostname/CertAuth.crt",
 					CertFile:       "../test/hostname/Alice.crt",
 					KeyFile:        "../test/hostname/Alice.key",
@@ -172,7 +172,7 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 			})
 
 			t.Run("VerifyIncoming enabled - client provides no certificate", func(t *testing.T) {
-				cfg := ListenerConfig{
+				cfg := ProtocolConfig{
 					CAFile:         "../test/hostname/CertAuth.crt",
 					CertFile:       "../test/hostname/Alice.crt",
 					KeyFile:        "../test/hostname/Alice.key",
@@ -194,7 +194,7 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 			})
 
 			t.Run("VerifyIncoming enabled - client certificate signed by an unknown CA", func(t *testing.T) {
-				cfg := ListenerConfig{
+				cfg := ProtocolConfig{
 					CAFile:         "../test/ca/root.cer",
 					CertFile:       "../test/hostname/Alice.crt",
 					KeyFile:        "../test/hostname/Alice.key",
@@ -228,7 +228,7 @@ func TestConfigurator_IncomingInsecureRPCConfig(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
 	cfg := Config{
-		InternalRPC: ListenerConfig{
+		InternalRPC: ProtocolConfig{
 			CAFile:         "../test/hostname/CertAuth.crt",
 			CertFile:       "../test/hostname/Alice.crt",
 			KeyFile:        "../test/hostname/Alice.key",
@@ -255,7 +255,7 @@ func TestConfigurator_ALPNRPCConfig(t *testing.T) {
 	// use the procedure in test/CA-GENERATION.md
 	t.Run("successful protocol negotiation", func(t *testing.T) {
 		serverCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:   "../test/hostname/CertAuth.crt",
 				CertFile: "../test/hostname/Bob.crt",
 				KeyFile:  "../test/hostname/Bob.key",
@@ -268,7 +268,7 @@ func TestConfigurator_ALPNRPCConfig(t *testing.T) {
 		}
 
 		clientCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:   "../test/hostname/CertAuth.crt",
 				CertFile: "../test/hostname/Alice.crt",
 				KeyFile:  "../test/hostname/Alice.key",
@@ -291,7 +291,7 @@ func TestConfigurator_ALPNRPCConfig(t *testing.T) {
 
 	t.Run("protocol negotiation fails", func(t *testing.T) {
 		serverCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:   "../test/hostname/CertAuth.crt",
 				CertFile: "../test/hostname/Bob.crt",
 				KeyFile:  "../test/hostname/Bob.key",
@@ -304,7 +304,7 @@ func TestConfigurator_ALPNRPCConfig(t *testing.T) {
 		}
 
 		clientCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:   "../test/hostname/CertAuth.crt",
 				CertFile: "../test/hostname/Alice.crt",
 				KeyFile:  "../test/hostname/Alice.key",
@@ -321,7 +321,7 @@ func TestConfigurator_ALPNRPCConfig(t *testing.T) {
 	t.Run("no node name in SAN", func(t *testing.T) {
 		// Note: Alice.crt has server.dc1.consul as its SAN (as apposed to alice.server.dc1.consul).
 		serverCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:   "../test/hostname/CertAuth.crt",
 				CertFile: "../test/hostname/Alice.crt",
 				KeyFile:  "../test/hostname/Alice.key",
@@ -334,7 +334,7 @@ func TestConfigurator_ALPNRPCConfig(t *testing.T) {
 		}
 
 		clientCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:   "../test/hostname/CertAuth.crt",
 				CertFile: "../test/hostname/Bob.crt",
 				KeyFile:  "../test/hostname/Bob.key",
@@ -350,7 +350,7 @@ func TestConfigurator_ALPNRPCConfig(t *testing.T) {
 
 	t.Run("client certificate is always required", func(t *testing.T) {
 		cfg := Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				VerifyIncoming: false, // this setting is ignored
 				CAFile:         "../test/hostname/CertAuth.crt",
 				CertFile:       "../test/hostname/Alice.crt",
@@ -377,7 +377,7 @@ func TestConfigurator_ALPNRPCConfig(t *testing.T) {
 
 	t.Run("bad DC", func(t *testing.T) {
 		serverCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:   "../test/hostname/CertAuth.crt",
 				CertFile: "../test/hostname/Alice.crt",
 				KeyFile:  "../test/hostname/Alice.key",
@@ -390,7 +390,7 @@ func TestConfigurator_ALPNRPCConfig(t *testing.T) {
 		}
 
 		clientCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:   "../test/hostname/CertAuth.crt",
 				CertFile: "../test/hostname/Bob.crt",
 				KeyFile:  "../test/hostname/Bob.key",
@@ -410,7 +410,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 	// use the procedure in test/CA-GENERATION.md
 	t.Run("AutoTLS", func(t *testing.T) {
 		serverCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:         "../test/hostname/CertAuth.crt",
 				CertFile:       "../test/hostname/Alice.crt",
 				KeyFile:        "../test/hostname/Alice.key",
@@ -446,7 +446,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 
 	t.Run("VerifyOutgoing and a manually configured certificate", func(t *testing.T) {
 		serverCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:         "../test/hostname/CertAuth.crt",
 				CertFile:       "../test/hostname/Alice.crt",
 				KeyFile:        "../test/hostname/Alice.key",
@@ -460,7 +460,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 		}
 
 		clientCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				VerifyOutgoing: true,
 				CAFile:         "../test/hostname/CertAuth.crt",
 				CertFile:       "../test/hostname/Bob.crt",
@@ -484,7 +484,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 
 	t.Run("outgoing TLS not enabled", func(t *testing.T) {
 		serverCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:         "../test/hostname/CertAuth.crt",
 				CertFile:       "../test/hostname/Alice.crt",
 				KeyFile:        "../test/hostname/Alice.key",
@@ -512,7 +512,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 
 	t.Run("VerifyServerHostname = true", func(t *testing.T) {
 		serverCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:   "../test/client_certs/rootca.crt",
 				CertFile: "../test/client_certs/client.crt",
 				KeyFile:  "../test/client_certs/client.key",
@@ -525,7 +525,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 		}
 
 		clientCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				VerifyOutgoing:       true,
 				VerifyServerHostname: true,
 				CAFile:               "../test/client_certs/rootca.crt",
@@ -549,7 +549,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 
 	t.Run("VerifyServerHostname = true and incorrect DC name", func(t *testing.T) {
 		serverCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:   "../test/client_certs/rootca.crt",
 				CertFile: "../test/client_certs/client.crt",
 				KeyFile:  "../test/client_certs/client.key",
@@ -562,7 +562,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 		}
 
 		clientCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				VerifyServerHostname: true,
 				VerifyOutgoing:       true,
 				CAFile:               "../test/client_certs/rootca.crt",
@@ -586,7 +586,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 
 	t.Run("VerifyServerHostname = false", func(t *testing.T) {
 		serverCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:   "../test/client_certs/rootca.crt",
 				CertFile: "../test/client_certs/client.crt",
 				KeyFile:  "../test/client_certs/client.key",
@@ -599,7 +599,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 		}
 
 		clientCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				VerifyServerHostname: false,
 				VerifyOutgoing:       true,
 				CAFile:               "../test/client_certs/rootca.crt",
@@ -625,7 +625,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 
 	t.Run("AutoTLS certificate preferred over manually configured certificate", func(t *testing.T) {
 		serverCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:         "../test/hostname/CertAuth.crt",
 				CertFile:       "../test/hostname/Alice.crt",
 				KeyFile:        "../test/hostname/Alice.key",
@@ -639,7 +639,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 		}
 
 		clientCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				VerifyServerHostname: true,
 				VerifyOutgoing:       true,
 				CAFile:               "../test/hostname/CertAuth.crt",
@@ -673,7 +673,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 
 	t.Run("manually configured certificate is presented if there's no AutoTLS certificate", func(t *testing.T) {
 		serverCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:         "../test/hostname/CertAuth.crt",
 				CertFile:       "../test/hostname/Alice.crt",
 				KeyFile:        "../test/hostname/Alice.key",
@@ -687,7 +687,7 @@ func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 		}
 
 		clientCfg := makeConfigurator(t, Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				VerifyServerHostname: true,
 				VerifyOutgoing:       true,
 				CAFile:               "../test/hostname/CertAuth.crt",
@@ -720,7 +720,7 @@ func TestConfigurator_outgoingWrapperALPN_serverHasNoNodeNameInSAN(t *testing.T)
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
 	srvConfig := Config{
-		InternalRPC: ListenerConfig{
+		InternalRPC: ProtocolConfig{
 			CAFile:               "../test/hostname/CertAuth.crt",
 			CertFile:             "../test/hostname/Alice.crt",
 			KeyFile:              "../test/hostname/Alice.key",
@@ -736,7 +736,7 @@ func TestConfigurator_outgoingWrapperALPN_serverHasNoNodeNameInSAN(t *testing.T)
 	}
 
 	config := Config{
-		InternalRPC: ListenerConfig{
+		InternalRPC: ProtocolConfig{
 			CAFile:               "../test/hostname/CertAuth.crt",
 			CertFile:             "../test/hostname/Bob.crt",
 			KeyFile:              "../test/hostname/Bob.key",
@@ -861,43 +861,43 @@ func TestConfigurator_Validation(t *testing.T) {
 
 	t.Run("common fields", func(t *testing.T) {
 		type testCase struct {
-			config  ListenerConfig
+			config  ProtocolConfig
 			isValid bool
 		}
 
 		testCases := map[string]testCase{
 			"invalid TLSMinVersion": {
-				ListenerConfig{TLSMinVersion: "tls9"},
+				ProtocolConfig{TLSMinVersion: "tls9"},
 				false,
 			},
 			"default TLSMinVersion": {
-				ListenerConfig{TLSMinVersion: ""},
+				ProtocolConfig{TLSMinVersion: ""},
 				true,
 			},
 			"invalid CAFile": {
-				ListenerConfig{CAFile: "bogus"},
+				ProtocolConfig{CAFile: "bogus"},
 				false,
 			},
 			"invalid CAPath": {
-				ListenerConfig{CAPath: "bogus"},
+				ProtocolConfig{CAPath: "bogus"},
 				false,
 			},
 			"invalid CertFile": {
-				ListenerConfig{
+				ProtocolConfig{
 					CertFile: "bogus",
 					KeyFile:  keyFile,
 				},
 				false,
 			},
 			"invalid KeyFile": {
-				ListenerConfig{
+				ProtocolConfig{
 					CertFile: certFile,
 					KeyFile:  "bogus",
 				},
 				false,
 			},
 			"VerifyIncoming set but no CA": {
-				ListenerConfig{
+				ProtocolConfig{
 					VerifyIncoming: true,
 					CAFile:         "",
 					CAPath:         "",
@@ -907,7 +907,7 @@ func TestConfigurator_Validation(t *testing.T) {
 				false,
 			},
 			"VerifyIncoming set but no CertFile": {
-				ListenerConfig{
+				ProtocolConfig{
 					VerifyIncoming: true,
 					CAFile:         caFile,
 					CertFile:       "",
@@ -916,7 +916,7 @@ func TestConfigurator_Validation(t *testing.T) {
 				false,
 			},
 			"VerifyIncoming set but no KeyFile": {
-				ListenerConfig{
+				ProtocolConfig{
 					VerifyIncoming: true,
 					CAFile:         caFile,
 					CertFile:       certFile,
@@ -925,7 +925,7 @@ func TestConfigurator_Validation(t *testing.T) {
 				false,
 			},
 			"VerifyIncoming + CAFile": {
-				ListenerConfig{
+				ProtocolConfig{
 					VerifyIncoming: true,
 					CAFile:         caFile,
 					CertFile:       certFile,
@@ -934,7 +934,7 @@ func TestConfigurator_Validation(t *testing.T) {
 				true,
 			},
 			"VerifyIncoming + CAPath": {
-				ListenerConfig{
+				ProtocolConfig{
 					VerifyIncoming: true,
 					CAPath:         caPath,
 					CertFile:       certFile,
@@ -943,7 +943,7 @@ func TestConfigurator_Validation(t *testing.T) {
 				true,
 			},
 			"VerifyIncoming + invalid CAFile": {
-				ListenerConfig{
+				ProtocolConfig{
 					VerifyIncoming: true,
 					CAFile:         "bogus",
 					CertFile:       certFile,
@@ -952,7 +952,7 @@ func TestConfigurator_Validation(t *testing.T) {
 				false,
 			},
 			"VerifyIncoming + invalid CAPath": {
-				ListenerConfig{
+				ProtocolConfig{
 					VerifyIncoming: true,
 					CAPath:         "bogus",
 					CertFile:       certFile,
@@ -961,15 +961,15 @@ func TestConfigurator_Validation(t *testing.T) {
 				false,
 			},
 			"VerifyOutgoing + CAFile": {
-				ListenerConfig{VerifyOutgoing: true, CAFile: caFile},
+				ProtocolConfig{VerifyOutgoing: true, CAFile: caFile},
 				true,
 			},
 			"VerifyOutgoing + CAPath": {
-				ListenerConfig{VerifyOutgoing: true, CAPath: caPath},
+				ProtocolConfig{VerifyOutgoing: true, CAPath: caPath},
 				true,
 			},
 			"VerifyOutgoing + CAFile + CAPath": {
-				ListenerConfig{
+				ProtocolConfig{
 					VerifyOutgoing: true,
 					CAFile:         caFile,
 					CAPath:         caPath,
@@ -977,7 +977,7 @@ func TestConfigurator_Validation(t *testing.T) {
 				true,
 			},
 			"VerifyOutgoing but no CA": {
-				ListenerConfig{
+				ProtocolConfig{
 					VerifyOutgoing: true,
 					CAFile:         "",
 					CAPath:         "",
@@ -988,17 +988,17 @@ func TestConfigurator_Validation(t *testing.T) {
 
 		for _, v := range tlsVersions() {
 			testCases[fmt.Sprintf("MinTLSVersion(%s)", v)] = testCase{
-				ListenerConfig{TLSMinVersion: v},
+				ProtocolConfig{TLSMinVersion: v},
 				true,
 			}
 		}
 
 		for desc, tc := range testCases {
-			for _, ln := range []string{"internal", "grpc", "https"} {
-				info := fmt.Sprintf("%s => %s", ln, desc)
+			for _, p := range []string{"internal", "grpc", "https"} {
+				info := fmt.Sprintf("%s => %s", p, desc)
 
 				var cfg Config
-				switch ln {
+				switch p {
 				case "internal":
 					cfg.InternalRPC = tc.config
 				case "grpc":
@@ -1006,7 +1006,7 @@ func TestConfigurator_Validation(t *testing.T) {
 				case "https":
 					cfg.HTTPS = tc.config
 				default:
-					t.Fatalf("unknown listener: %s", ln)
+					t.Fatalf("unknown protocol: %s", p)
 				}
 
 				_, err1 := NewConfigurator(cfg, nil)
@@ -1025,15 +1025,15 @@ func TestConfigurator_Validation(t *testing.T) {
 
 	t.Run("VerifyIncoming + AutoTLS", func(t *testing.T) {
 		cfg := Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				VerifyIncoming: true,
 				CAFile:         caFile,
 			},
-			GRPC: ListenerConfig{
+			GRPC: ProtocolConfig{
 				VerifyIncoming: true,
 				CAFile:         caFile,
 			},
-			HTTPS: ListenerConfig{
+			HTTPS: ProtocolConfig{
 				VerifyIncoming: true,
 				CAFile:         caFile,
 			},
@@ -1121,7 +1121,7 @@ func TestConfigurator_InternalRPCMutualTLSCapable(t *testing.T) {
 
 	t.Run("ca and no keys", func(t *testing.T) {
 		config := Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile: "../test/hostname/CertAuth.crt",
 			},
 			Domain: "consul",
@@ -1134,7 +1134,7 @@ func TestConfigurator_InternalRPCMutualTLSCapable(t *testing.T) {
 
 	t.Run("ca and manual key", func(t *testing.T) {
 		config := Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				CAFile:   "../test/hostname/CertAuth.crt",
 				CertFile: "../test/hostname/Bob.crt",
 				KeyFile:  "../test/hostname/Bob.key",
@@ -1228,7 +1228,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "default tls, skip verify, no server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					InternalRPC: ListenerConfig{
+					InternalRPC: ProtocolConfig{
 						TLSMinVersion: "tls12",
 					},
 					EnableAgentTLSForChecks: false,
@@ -1241,7 +1241,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "default tls, skip verify, default server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					InternalRPC: ListenerConfig{
+					InternalRPC: ProtocolConfig{
 						TLSMinVersion: "tls12",
 					},
 					EnableAgentTLSForChecks: false,
@@ -1256,7 +1256,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "default tls, skip verify, check server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					InternalRPC: ListenerConfig{
+					InternalRPC: ProtocolConfig{
 						TLSMinVersion: "tls12",
 					},
 					EnableAgentTLSForChecks: false,
@@ -1274,7 +1274,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "agent tls, default server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					InternalRPC: ListenerConfig{
+					InternalRPC: ProtocolConfig{
 						TLSMinVersion: "tls12",
 					},
 					EnableAgentTLSForChecks: true,
@@ -1291,7 +1291,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "agent tls, skip verify, node name for server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					InternalRPC: ListenerConfig{
+					InternalRPC: ProtocolConfig{
 						TLSMinVersion: "tls12",
 					},
 					EnableAgentTLSForChecks: true,
@@ -1309,7 +1309,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "agent tls, skip verify, with server name override",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					InternalRPC: ListenerConfig{
+					InternalRPC: ProtocolConfig{
 						TLSMinVersion: "tls12",
 					},
 					EnableAgentTLSForChecks: true,
@@ -1408,7 +1408,7 @@ func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := Config{
-		InternalRPC: ListenerConfig{
+		InternalRPC: ProtocolConfig{
 			VerifyServerHostname: true,
 			VerifyIncoming:       true,
 			CAFile:               caPath,
@@ -1501,7 +1501,7 @@ func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
 
 	t.Run("disabled by verify_incoming_rpc", func(t *testing.T) {
 		cfg := Config{
-			InternalRPC: ListenerConfig{
+			InternalRPC: ProtocolConfig{
 				VerifyServerHostname: true,
 				VerifyIncoming:       false,
 				CAFile:               caPath,
@@ -1526,7 +1526,7 @@ func TestConfig_tlsVersions(t *testing.T) {
 func TestConfigurator_GRPCTLSConfigured(t *testing.T) {
 	t.Run("certificate manually configured", func(t *testing.T) {
 		c := makeConfigurator(t, Config{
-			GRPC: ListenerConfig{
+			GRPC: ProtocolConfig{
 				CertFile: "../test/hostname/Alice.crt",
 				KeyFile:  "../test/hostname/Alice.key",
 			},

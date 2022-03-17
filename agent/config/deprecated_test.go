@@ -85,7 +85,7 @@ tls_prefer_server_cipher_suites = true
 	require.Equal(t, 3*time.Hour, rt.ACLResolverSettings.ACLTokenTTL)
 	require.Equal(t, true, rt.ACLEnableKeyListPolicy)
 
-	for _, l := range []tlsutil.ListenerConfig{rt.TLS.InternalRPC, rt.TLS.GRPC, rt.TLS.HTTPS} {
+	for _, l := range []tlsutil.ProtocolConfig{rt.TLS.InternalRPC, rt.TLS.GRPC, rt.TLS.HTTPS} {
 		require.Equal(t, "some-ca-file", l.CAFile)
 		require.Equal(t, "some-ca-path", l.CAPath)
 		require.Equal(t, "some-cert-file", l.CertFile)

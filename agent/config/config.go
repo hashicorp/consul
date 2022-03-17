@@ -848,7 +848,7 @@ type RPC struct {
 	EnableStreaming *bool `mapstructure:"enable_streaming"`
 }
 
-type TLSListener struct {
+type TLSProtocolConfig struct {
 	CAFile               *string `mapstructure:"ca_file"`
 	CAPath               *string `mapstructure:"ca_path"`
 	CertFile             *string `mapstructure:"cert_file"`
@@ -861,8 +861,8 @@ type TLSListener struct {
 }
 
 type TLS struct {
-	Defaults    TLSListener `mapstructure:"defaults"`
-	InternalRPC TLSListener `mapstructure:"internal_rpc"`
-	HTTPS       TLSListener `mapstructure:"https"`
-	GRPC        TLSListener `mapstructure:"grpc"`
+	Defaults    TLSProtocolConfig `mapstructure:"defaults"`
+	InternalRPC TLSProtocolConfig `mapstructure:"internal_rpc"`
+	HTTPS       TLSProtocolConfig `mapstructure:"https"`
+	GRPC        TLSProtocolConfig `mapstructure:"grpc"`
 }

@@ -39,11 +39,11 @@ func TestAutoEncryptSign(t *testing.T) {
 
 	tests := []test{
 		{Name: "Works with defaults", Config: tlsutil.Config{}, ConnError: false},
-		{Name: "Works with good root", Config: tlsutil.Config{InternalRPC: tlsutil.ListenerConfig{CAFile: root}}, ConnError: false},
-		{Name: "VerifyOutgoing fails because of bad root", Config: tlsutil.Config{InternalRPC: tlsutil.ListenerConfig{CAFile: badRoot}}, ConnError: true},
-		{Name: "VerifyServerHostname fails", Config: tlsutil.Config{InternalRPC: tlsutil.ListenerConfig{CAFile: root, VerifyServerHostname: true}}, ConnError: false, RPCError: true},
+		{Name: "Works with good root", Config: tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{CAFile: root}}, ConnError: false},
+		{Name: "VerifyOutgoing fails because of bad root", Config: tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{CAFile: badRoot}}, ConnError: true},
+		{Name: "VerifyServerHostname fails", Config: tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{CAFile: root, VerifyServerHostname: true}}, ConnError: false, RPCError: true},
 		{Name: "VerifyServerHostname succeeds", Cert: "../../test/key/ourdomain_server.cer", Key: "../../test/key/ourdomain_server.key",
-			Config: tlsutil.Config{InternalRPC: tlsutil.ListenerConfig{VerifyServerHostname: true, CAFile: root}}, ConnError: false, RPCError: false},
+			Config: tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{VerifyServerHostname: true, CAFile: root}}, ConnError: false, RPCError: false},
 	}
 
 	for i, test := range tests {

@@ -143,7 +143,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	registerWithGRPC(t, res)
 
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
-		InternalRPC: tlsutil.ListenerConfig{
+		InternalRPC: tlsutil.ProtocolConfig{
 			VerifyIncoming: true,
 			CAFile:         "../../test/hostname/CertAuth.crt",
 			CertFile:       "../../test/hostname/Alice.crt",
@@ -190,7 +190,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	registerWithGRPC(t, res)
 
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
-		InternalRPC: tlsutil.ListenerConfig{
+		InternalRPC: tlsutil.ProtocolConfig{
 			VerifyIncoming:       true,
 			CAFile:               "../../test/hostname/CertAuth.crt",
 			CertFile:             "../../test/hostname/Bob.crt",
@@ -220,7 +220,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	t.Cleanup(srv.shutdown)
 
 	clientTLSConf, err := tlsutil.NewConfigurator(tlsutil.Config{
-		InternalRPC: tlsutil.ListenerConfig{
+		InternalRPC: tlsutil.ProtocolConfig{
 			VerifyIncoming:       true,
 			CAFile:               "../../test/hostname/CertAuth.crt",
 			CertFile:             "../../test/hostname/Betty.crt",
