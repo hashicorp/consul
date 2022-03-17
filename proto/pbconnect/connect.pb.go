@@ -25,6 +25,12 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // CARoots is the list of all currently trusted CA Roots.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IndexedCARoots
+// output=connect.gen.go
+// name=Structs
 type CARoots struct {
 	// ActiveRootID is the ID of a root in Roots that is the active CA root.
 	// Other roots are still valid if they're in the Roots list but are in
@@ -57,6 +63,7 @@ type CARoots struct {
 	Roots []*CARoot `protobuf:"bytes,3,rep,name=Roots,proto3" json:"Roots,omitempty"`
 	// QueryMeta here is mainly used to contain the latest Raft Index that could
 	// be used to perform a blocking query.
+	// mog: func-to=QueryMetaTo func-from=QueryMetaFrom
 	QueryMeta            *pbcommon.QueryMeta `protobuf:"bytes,4,opt,name=QueryMeta,proto3" json:"QueryMeta,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
@@ -124,6 +131,13 @@ func (m *CARoots) GetQueryMeta() *pbcommon.QueryMeta {
 	return nil
 }
 
+// CARoot is the trusted CA Root.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.CARoot
+// output=connect.gen.go
+// name=Structs
 type CARoot struct {
 	// ID is a globally unique ID (UUID) representing this CA root.
 	ID string `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
@@ -146,8 +160,10 @@ type CARoot struct {
 	// future flexibility.
 	ExternalTrustDomain string `protobuf:"bytes,5,opt,name=ExternalTrustDomain,proto3" json:"ExternalTrustDomain,omitempty"`
 	// Time validity bounds.
+	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
 	NotBefore *types.Timestamp `protobuf:"bytes,6,opt,name=NotBefore,proto3" json:"NotBefore,omitempty"`
-	NotAfter  *types.Timestamp `protobuf:"bytes,7,opt,name=NotAfter,proto3" json:"NotAfter,omitempty"`
+	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
+	NotAfter *types.Timestamp `protobuf:"bytes,7,opt,name=NotAfter,proto3" json:"NotAfter,omitempty"`
 	// RootCert is the PEM-encoded public certificate.
 	RootCert string `protobuf:"bytes,8,opt,name=RootCert,proto3" json:"RootCert,omitempty"`
 	// IntermediateCerts is a list of PEM-encoded intermediate certs to
@@ -166,6 +182,7 @@ type CARoot struct {
 	// RotatedOutAt is the time at which this CA was removed from the state.
 	// This will only be set on roots that have been rotated out from being the
 	// active root.
+	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
 	RotatedOutAt *types.Timestamp `protobuf:"bytes,13,opt,name=RotatedOutAt,proto3" json:"RotatedOutAt,omitempty"`
 	// PrivateKeyType is the type of the private key used to sign certificates. It
 	// may be "rsa" or "ec". This is provided as a convenience to avoid parsing
@@ -174,7 +191,9 @@ type CARoot struct {
 	// PrivateKeyBits is the length of the private key used to sign certificates.
 	// This is provided as a convenience to avoid parsing the public key from the
 	// certificate to infer the type.
-	PrivateKeyBits       int32               `protobuf:"varint,15,opt,name=PrivateKeyBits,proto3" json:"PrivateKeyBits,omitempty"`
+	// mog: func-to=int func-from=int32
+	PrivateKeyBits int32 `protobuf:"varint,15,opt,name=PrivateKeyBits,proto3" json:"PrivateKeyBits,omitempty"`
+	// mog: func-to=RaftIndexTo func-from=RaftIndexFrom
 	RaftIndex            *pbcommon.RaftIndex `protobuf:"bytes,16,opt,name=RaftIndex,proto3" json:"RaftIndex,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
@@ -345,14 +364,17 @@ type IssuedCert struct {
 	AgentURI string `protobuf:"bytes,7,opt,name=AgentURI,proto3" json:"AgentURI,omitempty"`
 	// ValidAfter and ValidBefore are the validity periods for the
 	// certificate.
-	ValidAfter  *types.Timestamp `protobuf:"bytes,8,opt,name=ValidAfter,proto3" json:"ValidAfter,omitempty"`
+	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
+	ValidAfter *types.Timestamp `protobuf:"bytes,8,opt,name=ValidAfter,proto3" json:"ValidAfter,omitempty"`
+	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
 	ValidBefore *types.Timestamp `protobuf:"bytes,9,opt,name=ValidBefore,proto3" json:"ValidBefore,omitempty"`
 	// EnterpriseMeta is the Consul Enterprise specific metadata
-	EnterpriseMeta       *pbcommon.EnterpriseMeta `protobuf:"bytes,10,opt,name=EnterpriseMeta,proto3" json:"EnterpriseMeta,omitempty"`
-	RaftIndex            *pbcommon.RaftIndex      `protobuf:"bytes,11,opt,name=RaftIndex,proto3" json:"RaftIndex,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
-	XXX_unrecognized     []byte                   `json:"-"`
-	XXX_sizecache        int32                    `json:"-"`
+	EnterpriseMeta *pbcommon.EnterpriseMeta `protobuf:"bytes,10,opt,name=EnterpriseMeta,proto3" json:"EnterpriseMeta,omitempty"`
+	// mog: func-to=RaftIndexTo func-from=RaftIndexFrom
+	RaftIndex            *pbcommon.RaftIndex `protobuf:"bytes,11,opt,name=RaftIndex,proto3" json:"RaftIndex,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
+	XXX_unrecognized     []byte              `json:"-"`
+	XXX_sizecache        int32               `json:"-"`
 }
 
 func (m *IssuedCert) Reset()         { *m = IssuedCert{} }
