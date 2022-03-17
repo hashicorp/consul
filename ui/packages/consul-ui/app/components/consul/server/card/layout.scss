@@ -1,0 +1,24 @@
+%consul-server-card {
+  position: relative;
+  overflow: hidden;
+
+  @extend %panel;
+  --padding-x: 24px;
+  --padding-y: 24px;
+  padding: var(--padding-y) var(--padding-x);
+
+  --tile-size: 3rem; /* 48px */
+}
+%consul-server-card.voting-status-leader .name {
+  position: absolute !important;
+}
+%consul-server-card dd:not(:last-of-type) {
+  margin-bottom: calc(var(--padding-y) / 2);
+}
+%consul-server-card.voting-status-leader dd {
+  margin-left: calc(var(--tile-size) + var(--padding-x));
+}
+
+
+
+
