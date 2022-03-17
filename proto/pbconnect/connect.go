@@ -28,3 +28,51 @@ func RaftIndexTo(f *pbcommon.RaftIndex) structs.RaftIndex {
 	pbcommon.RaftIndexToStructs(f, t)
 	return *t
 }
+
+func EnterpriseMetaFrom(f structs.EnterpriseMeta) *pbcommon.EnterpriseMeta {
+	t := new(pbcommon.EnterpriseMeta)
+	pbcommon.EnterpriseMetaFromStructs(&f, t)
+	return t
+}
+
+func EnterpriseMetaTo(f *pbcommon.EnterpriseMeta) structs.EnterpriseMeta {
+	t := new(structs.EnterpriseMeta)
+	pbcommon.EnterpriseMetaToStructs(f, t)
+	return *t
+}
+
+func NewIssuedCertFromStructs(in *structs.IssuedCert) (*IssuedCert, error) {
+	t := new(IssuedCert)
+	IssuedCertFromStructsIssuedCert(in, t)
+	return t, nil
+}
+
+func NewCARootsFromStructs(in *structs.IndexedCARoots) (*CARoots, error) {
+	t := new(CARoots)
+	CARootsFromStructsIndexedCARoots(in, t)
+	return t, nil
+}
+
+func CARootsToStructs(in *CARoots) (*structs.IndexedCARoots, error) {
+	t := new(structs.IndexedCARoots)
+	CARootsToStructsIndexedCARoots(in, t)
+	return t, nil
+}
+
+func NewCARootFromStructs(in *structs.CARoot) (*CARoot, error) {
+	t := new(CARoot)
+	CARootFromStructsCARoot(in, t)
+	return t, nil
+}
+
+func CARootToStructs(in *CARoot) (*structs.CARoot, error) {
+	t := new(structs.CARoot)
+	CARootToStructsCARoot(in, t)
+	return t, nil
+}
+
+func IssuedCertToStructs(in *IssuedCert) (*structs.IssuedCert, error) {
+	t := new(structs.IssuedCert)
+	IssuedCertToStructsIssuedCert(in, t)
+	return t, nil
+}

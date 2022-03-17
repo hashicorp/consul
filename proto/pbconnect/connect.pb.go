@@ -30,7 +30,7 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 //
 // target=github.com/hashicorp/consul/agent/structs.IndexedCARoots
 // output=connect.gen.go
-// name=Structs
+// name=StructsIndexedCARoots
 type CARoots struct {
 	// ActiveRootID is the ID of a root in Roots that is the active CA root.
 	// Other roots are still valid if they're in the Roots list but are in
@@ -137,7 +137,7 @@ func (m *CARoots) GetQueryMeta() *pbcommon.QueryMeta {
 //
 // target=github.com/hashicorp/consul/agent/structs.CARoot
 // output=connect.gen.go
-// name=Structs
+// name=StructsCARoot
 type CARoot struct {
 	// ID is a globally unique ID (UUID) representing this CA root.
 	ID string `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
@@ -345,6 +345,14 @@ func (m *CARoot) GetRaftIndex() *pbcommon.RaftIndex {
 	return nil
 }
 
+// RaftIndex is used to track the index used while creating
+// or modifying a given struct type.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IssuedCert
+// output=connect.gen.go
+// name=StructsIssuedCert
 type IssuedCert struct {
 	// SerialNumber is the unique serial number for this certificate.
 	// This is encoded in standard hex separated by :.
@@ -369,6 +377,7 @@ type IssuedCert struct {
 	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
 	ValidBefore *types.Timestamp `protobuf:"bytes,9,opt,name=ValidBefore,proto3" json:"ValidBefore,omitempty"`
 	// EnterpriseMeta is the Consul Enterprise specific metadata
+	// mog: func-to=EnterpriseMetaTo func-from=EnterpriseMetaFrom
 	EnterpriseMeta *pbcommon.EnterpriseMeta `protobuf:"bytes,10,opt,name=EnterpriseMeta,proto3" json:"EnterpriseMeta,omitempty"`
 	// mog: func-to=RaftIndexTo func-from=RaftIndexFrom
 	RaftIndex            *pbcommon.RaftIndex `protobuf:"bytes,11,opt,name=RaftIndex,proto3" json:"RaftIndex,omitempty"`

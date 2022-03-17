@@ -38,7 +38,7 @@ func mustTranslateCARootsToProtobuf(t *testing.T, in *structs.IndexedCARoots) *p
 }
 
 func mustTranslateIssuedCertToProtobuf(t *testing.T, in *structs.IssuedCert) *pbconnect.IssuedCert {
-	out, err := pbconnect.NewIssuedCertFromStructs(in)
+	var out, err = pbconnect.NewIssuedCertFromStructs(in)
 	require.NoError(t, err)
 	return out
 }
