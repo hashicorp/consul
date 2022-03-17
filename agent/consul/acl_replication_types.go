@@ -86,7 +86,7 @@ func (r *aclTokenReplicator) DeleteLocalBatch(srv *Server, batch []string) error
 		TokenIDs: batch,
 	}
 
-	_, err := srv.raftApply(structs.ACLTokenDeleteRequestType, &req)
+	_, err := srv.leaderRaftApply("ACL.TokenDelete", structs.ACLTokenDeleteRequestType, &req)
 	return err
 }
 
@@ -110,7 +110,7 @@ func (r *aclTokenReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, 
 		FromReplication:   true,
 	}
 
-	_, err := srv.raftApply(structs.ACLTokenSetRequestType, &req)
+	_, err := srv.leaderRaftApply("ACL.TokenSet", structs.ACLTokenSetRequestType, &req)
 	return err
 }
 
@@ -186,7 +186,7 @@ func (r *aclPolicyReplicator) DeleteLocalBatch(srv *Server, batch []string) erro
 		PolicyIDs: batch,
 	}
 
-	_, err := srv.raftApply(structs.ACLPolicyDeleteRequestType, &req)
+	_, err := srv.leaderRaftApply("ACL.PolicyDelete", structs.ACLPolicyDeleteRequestType, &req)
 	return err
 }
 
@@ -207,7 +207,7 @@ func (r *aclPolicyReplicator) UpdateLocalBatch(ctx context.Context, srv *Server,
 		Policies: r.updated[start:end],
 	}
 
-	_, err := srv.raftApply(structs.ACLPolicySetRequestType, &req)
+	_, err := srv.leaderRaftApply("ACL.PolicySet", structs.ACLPolicySetRequestType, &req)
 	return err
 }
 
@@ -307,7 +307,7 @@ func (r *aclRoleReplicator) DeleteLocalBatch(srv *Server, batch []string) error 
 		RoleIDs: batch,
 	}
 
-	_, err := srv.raftApply(structs.ACLRoleDeleteRequestType, &req)
+	_, err := srv.leaderRaftApply("ACL.RoleDelete", structs.ACLRoleDeleteRequestType, &req)
 	return err
 }
 
@@ -329,6 +329,7 @@ func (r *aclRoleReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, s
 		AllowMissingLinks: true,
 	}
 
-	_, err := srv.raftApply(structs.ACLRoleSetRequestType, &req)
+	_, err := srv.leaderRaftApply("ACL.RoleSet", structs.ACLRoleSetRequestType, &req)
+
 	return err
 }

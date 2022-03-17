@@ -16,6 +16,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/agent/rpc/middleware"
+
 	"github.com/hashicorp/go-version"
 	"go.etcd.io/bbolt"
 
@@ -255,6 +257,9 @@ type Server struct {
 	// Endpoint that is available at the time of writing.
 	insecureRPCServer *rpc.Server
 
+	// rpcRecorder is a middleware component that can emit RPC request metrics.
+	rpcRecorder *middleware.RequestRecorder
+
 	// tlsConfigurator holds the agent configuration relevant to TLS and
 	// configures everything related to it.
 	tlsConfigurator *tlsutil.Configurator
@@ -363,21 +368,24 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 
+	recorder := middleware.NewRequestRecorder(serverLogger)
 	// Create server.
 	s := &Server{
-		config:                  config,
-		tokens:                  flat.Tokens,
-		connPool:                flat.ConnPool,
-		grpcConnPool:            flat.GRPCConnPool,
-		eventChLAN:              make(chan serf.Event, serfEventChSize),
-		eventChWAN:              make(chan serf.Event, serfEventChSize),
-		logger:                  serverLogger,
-		loggers:                 loggers,
-		leaveCh:                 make(chan struct{}),
-		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  flat.Router,
-		rpcServer:               rpc.NewServer(),
-		insecureRPCServer:       rpc.NewServer(),
+		config:       config,
+		tokens:       flat.Tokens,
+		connPool:     flat.ConnPool,
+		grpcConnPool: flat.GRPCConnPool,
+		eventChLAN:   make(chan serf.Event, serfEventChSize),
+		eventChWAN:   make(chan serf.Event, serfEventChSize),
+		logger:       serverLogger,
+		loggers:      loggers,
+		leaveCh:      make(chan struct{}),
+		reconcileCh:  make(chan serf.Member, reconcileChSize),
+		router:       flat.Router,
+		rpcRecorder:  recorder,
+		// TODO(rpc-metrics-improv): consider pulling out the interceptor from config in order to isolate testing
+		rpcServer:               rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(middleware.GetNetRPCInterceptor(recorder))),
+		insecureRPCServer:       rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(middleware.GetNetRPCInterceptor(recorder))),
 		tlsConfigurator:         flat.TLSConfigurator,
 		reassertLeaderCh:        make(chan chan error),
 		sessionTimers:           NewSessionTimers(),
