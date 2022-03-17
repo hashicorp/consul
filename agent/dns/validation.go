@@ -5,8 +5,9 @@ import (
 	"regexp"
 )
 
-// matches valid DNS labels according to RFC 1123
-var validLabel = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,62}[a-zA-Z0-9])?$`)
+// matches valid DNS labels according to RFC 1123, should be at most 63
+// characters according to the RFC
+var validLabel = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$`)
 
 // IsValidLabel returns true if the string given is a valid DNS label (RFC 1123).
 // Note: the only difference between RFC 1035 and RFC 1123 labels is that in

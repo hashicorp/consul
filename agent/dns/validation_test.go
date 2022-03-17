@@ -20,6 +20,8 @@ func TestValidLabel(t *testing.T) {
 		"-foo-":             false,
 		"-foo-bar-":         false,
 		"no spaces allowed": false,
+		"thisvaluecontainsalotofcharactersbutnottoomanyandthecaseisatrue":  true,  // 63 chars
+		"thisvaluecontainstoomanycharactersandisthusinvalidandtestisfalse": false, // 64 chars
 	}
 
 	t.Run("*", func(t *testing.T) {
