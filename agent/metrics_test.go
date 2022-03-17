@@ -33,6 +33,16 @@ func recordPromMetrics(t *testing.T, a *TestAgent, respRec *httptest.ResponseRec
 
 }
 
+func assertMetricExists(t *testing.T, respRec *httptest.ResponseRecorder, metric string) {
+	if respRec.Body.String() == "" {
+		t.Fatalf("Response body is empty.")
+	}
+
+	if !strings.Contains(respRec.Body.String(), metric) {
+		t.Fatalf("Could not find the metric \"%s\" in the /v1/agent/metrics response", metric)
+	}
+}
+
 func assertMetricExistsWithValue(t *testing.T, respRec *httptest.ResponseRecorder, metric string, value string) {
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
@@ -54,6 +64,36 @@ func assertMetricNotExists(t *testing.T, respRec *httptest.ResponseRecorder, met
 	if strings.Contains(respRec.Body.String(), metric) {
 		t.Fatalf("Didn't expect to find the metric \"%s\" in the /v1/agent/metrics response", metric)
 	}
+}
+
+// TestAgent_NewRPCMetrics test for the new RPC metrics presence. These are the labeled metrics coming from
+// agent.rpc.middleware.interceptors package.
+func TestAgent_NewRPCMetrics(t *testing.T) {
+	skipIfShortTesting(t)
+	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
+
+	t.Run("Check new rpc metrics are being emitted", func(t *testing.T) {
+		metricsPrefix := "new_rpc_metrics"
+		hcl := fmt.Sprintf(`
+		telemetry = {
+			prometheus_retention_time = "5s"
+			disable_hostname = true
+			metrics_prefix = "%s"
+		}
+		`, metricsPrefix)
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+
+		var out struct{}
+		err := a.RPC("Status.Ping", struct{}{}, &out)
+		require.NoError(t, err)
+
+		respRec := httptest.NewRecorder()
+		recordPromMetrics(t, a, respRec)
+
+		assertMetricExists(t, respRec, metricsPrefix+"_rpc_server_request")
+	})
 }
 
 // TestHTTPHandlers_AgentMetrics_ConsulAutopilot_Prometheus adds testing around

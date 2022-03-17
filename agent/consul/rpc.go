@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -841,6 +842,17 @@ func (s *Server) keyringRPCs(method string, args interface{}, dcs []string) (*st
 }
 
 type raftEncoder func(structs.MessageType, interface{}) ([]byte, error)
+
+// leaderRaftApply is used by the leader to persist data to Raft for internal cluster management activities.
+// This method MUST not be called from RPC endpoints, since it would result in duplicated RPC metrics.
+func (s *Server) leaderRaftApply(method string, t structs.MessageType, msg interface{}) (interface{}, error) {
+	start := time.Now()
+
+	resp, err := s.raftApplyMsgpack(t, msg)
+	s.rpcRecorder.Record(method, middleware.RPCTypeInternal, start, &msg, err != nil)
+
+	return resp, err
+}
 
 // raftApplyMsgpack encodes the msg using msgpack and calls raft.Apply. See
 // raftApplyWithEncoder.
