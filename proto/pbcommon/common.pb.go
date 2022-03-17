@@ -26,6 +26,12 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // RaftIndex is used to track the index used while creating
 // or modifying a given struct type.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.RaftIndex
+// output=common.gen.go
+// name=Structs
 type RaftIndex struct {
 	CreateIndex uint64 `protobuf:"varint,1,opt,name=CreateIndex,proto3" json:"CreateIndex,omitempty" bexpr:"-"`
 	ModifyIndex uint64 `protobuf:"varint,2,opt,name=ModifyIndex,proto3" json:"ModifyIndex,omitempty" bexpr:"-"`
@@ -190,6 +196,13 @@ func (m *ReadRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_ReadRequest proto.InternalMessageInfo
 
 // QueryOptions is used to specify various flags for read queries
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.QueryOptions
+// output=common.gen.go
+// name=Structs
+// ignore-fields=StaleIfError,AllowNotModifiedResponse
 type QueryOptions struct {
 	// Token is the ACL token ID. If not provided, the 'anonymous'
 	// token is assumed for backwards compatibility.
@@ -198,6 +211,7 @@ type QueryOptions struct {
 	// with MaxQueryTime.
 	MinQueryIndex uint64 `protobuf:"varint,2,opt,name=MinQueryIndex,proto3" json:"MinQueryIndex,omitempty"`
 	// Provided with MinQueryIndex to wait for change.
+	// mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
 	MaxQueryTime types.Duration `protobuf:"bytes,3,opt,name=MaxQueryTime,proto3" json:"MaxQueryTime"`
 	// If set, any follower can service the request. Results
 	// may be arbitrarily stale.
@@ -216,6 +230,7 @@ type QueryOptions struct {
 	// If set and AllowStale is true, will try first a stale
 	// read, and then will perform a consistent read if stale
 	// read is older than value.
+	// mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
 	MaxStaleDuration types.Duration `protobuf:"bytes,7,opt,name=MaxStaleDuration,proto3" json:"MaxStaleDuration"`
 	// MaxAge limits how old a cached value will be returned if UseCache is true.
 	// If there is a cached response that is older than the MaxAge, it is treated
@@ -224,6 +239,7 @@ type QueryOptions struct {
 	// StaleIfError to a longer duration to change this behavior. It is ignored
 	// if the endpoint supports background refresh caching. See
 	// https://www.consul.io/api/index.html#agent-caching for more details.
+	// mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
 	MaxAge types.Duration `protobuf:"bytes,8,opt,name=MaxAge,proto3" json:"MaxAge"`
 	// MustRevalidate forces the agent to fetch a fresh version of a cached
 	// resource or at least validate that the cached version is still fresh. It is
@@ -277,12 +293,20 @@ var xxx_messageInfo_QueryOptions proto.InternalMessageInfo
 
 // QueryMeta allows a query response to include potentially
 // useful metadata about a query
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.QueryMeta
+// output=common.gen.go
+// name=Structs
+// ignore-fields=NotModified,Backend
 type QueryMeta struct {
 	// This is the index associated with the read
 	Index uint64 `protobuf:"varint,1,opt,name=Index,proto3" json:"Index,omitempty"`
 	// If AllowStale is used, this is time elapsed since
 	// last contact between the follower and leader. This
 	// can be used to gauge staleness.
+	// mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
 	LastContact types.Duration `protobuf:"bytes,2,opt,name=LastContact,proto3" json:"LastContact"`
 	// Used to indicate if there is a known leader node
 	KnownLeader bool `protobuf:"varint,3,opt,name=KnownLeader,proto3" json:"KnownLeader,omitempty"`
