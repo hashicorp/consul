@@ -720,19 +720,20 @@ func (a *Agent) Start(ctx context.Context) error {
 		w, err := config.NewFileWatcher(a.baseDeps.WatchedFiles, a.baseDeps.Logger)
 		if err != nil {
 			a.baseDeps.Logger.Error("error loading config", "error", err)
-		} else {
-			a.FileWatcher = w
-			a.baseDeps.Logger.Debug("starting file watcher")
-			a.FileWatcher.Start(context.Background())
-			go func() {
+			} else {
+				a.FileWatcher = w
+				a.baseDeps.Logger.Debug("starting file watcher")
+				a.FileWatcher.Start(context.Background())
+				go func() {
 				for events := range a.coalesceTimerShim(a.FileWatcher.EventsCh(), 1*time.Second) {
-					a.baseDeps.Logger.Debug("auto-reload config triggered", "num-events", len(events))
+						a.baseDeps.Logger.Debug("auto-reload config triggered", "num-events", len(events))
 					err := a.AutoReloadConfig()
-					if err != nil {
-						a.baseDeps.Logger.Error("error loading config", "error", err)
+						if err != nil {
+							a.baseDeps.Logger.Error("error loading config", "error", err)
+						}
 					}
-				}
-			}()
+				}()
+			}
 		}
 	}
 	return nil
