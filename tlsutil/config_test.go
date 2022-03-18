@@ -1015,7 +1015,7 @@ func TestConfigurator_Validation(t *testing.T) {
 		for _, v := range types.DeprecatedConsulAgentTLSVersions {
 			// TODO: check for warning log message? how?
 			testCases[fmt.Sprintf("MinTLSVersion(%s)", v)] = testCase{
-				ListenerConfig{TLSMinVersion: v},
+				ProtocolConfig{TLSMinVersion: v},
 				true,
 			}
 			// TODO: how could this check that the actual config set is valid?
