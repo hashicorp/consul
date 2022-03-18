@@ -1992,15 +1992,28 @@ func (b *builder) tlsVersion(name string, v *string) types.TLSVersion {
 	return a
 }
 
+// tlsCipherSuites parses cipher suites from a comma-separated string into a
+// recognized slice
 func (b *builder) tlsCipherSuites(name string, v *string) []types.TLSCipherSuite {
 	if v == nil {
 		return nil
 	}
 
-	var a []types.TLSCipherSuite
-	a, err := tlsutil.ParseCiphers(*v)
+	*v = strings.TrimSpace(*v)
+	if *v == "" {
+		return []types.TLSCipherSuite{}
+	}
+	ciphers := strings.Split(*v, ",")
+
+	a := make([]types.TLSCipherSuite, len(ciphers))
+	for i, cipher := range ciphers {
+		a[i] = types.TLSCipherSuite(cipher)
+	}
+
+	err := types.ValidateConsulAgentCipherSuites(a)
 	if err != nil {
 		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid TLS cipher suites: %s", name, err))
+		return []types.TLSCipherSuite{}
 	}
 	return a
 }

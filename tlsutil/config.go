@@ -1104,28 +1104,6 @@ func cipherSuiteLookup(ciphers []types.TLSCipherSuite) ([]uint16, error) {
 	return suites, nil
 }
 
-// ParseCiphers parse cipher suites from the comma-separated string into
-// recognized slice
-func ParseCiphers(cipherStr string) ([]types.TLSCipherSuite, error) {
-	cipherStr = strings.TrimSpace(cipherStr)
-	if cipherStr == "" {
-		return []types.TLSCipherSuite{}, nil
-	}
-	ciphers := strings.Split(cipherStr, ",")
-
-	suites := make([]types.TLSCipherSuite, len(ciphers))
-	for i, cipher := range ciphers {
-		suites[i] = types.TLSCipherSuite(cipher)
-	}
-
-	err := types.ValidateConsulAgentCipherSuites(suites)
-	if err != nil {
-		return []types.TLSCipherSuite{}, err
-	}
-
-	return suites, nil
-}
-
 // CipherString performs the inverse operation of types.ParseCiphers
 func CipherString(ciphers []types.TLSCipherSuite) (string, error) {
 	err := types.ValidateConsulAgentCipherSuites(ciphers)
