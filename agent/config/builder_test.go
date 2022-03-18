@@ -327,3 +327,21 @@ func TestBuilder_ServiceVal_MultiError(t *testing.T) {
 func intPtr(v int) *int {
 	return &v
 }
+
+func TestBuilder_tlsVersion(t *testing.T) {
+	b := builder{}
+
+	validTLSVersion := "TLSv1_3"
+	b.tlsVersion("tls.defaults.tls_min_version", &validTLSVersion)
+
+	deprecatedTLSVersion := "tls11"
+	b.tlsVersion("tls.defaults.tls_min_version", &deprecatedTLSVersion)
+
+	invalidTLSVersion := "tls9"
+	b.tlsVersion("tls.defaults.tls_min_version", &invalidTLSVersion)
+
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "2 errors")
+	require.Contains(t, b.err.Error(), deprecatedTLSVersion)
+	require.Contains(t, b.err.Error(), invalidTLSVersion)
+}

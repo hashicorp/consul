@@ -5394,8 +5394,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					ca_file = "default_ca_file"
 					ca_path = "default_ca_path"
 					cert_file = "default_cert_file"
-					tls_min_version = "tls12"
-					tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+					tls_min_version = "TLSv1_2"
+					tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"
 					verify_incoming = true
 				}
 
@@ -5405,7 +5405,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 				https {
 					cert_file = "https_cert_file"
-					tls_min_version = "tls13"
+					tls_min_version = "TLSv1_3"
 				}
 
 				grpc {
@@ -5424,8 +5424,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						"ca_file": "default_ca_file",
 						"ca_path": "default_ca_path",
 						"cert_file": "default_cert_file",
-						"tls_min_version": "tls12",
-						"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+						"tls_min_version": "TLSv1_2",
+						"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
 						"verify_incoming": true
 					},
 					"internal_rpc": {
@@ -5433,7 +5433,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					},
 					"https": {
 						"cert_file": "https_cert_file",
-						"tls_min_version": "tls13"
+						"tls_min_version": "TLSv1_3"
 					},
 					"grpc": {
 						"verify_incoming": false,
@@ -5454,14 +5454,14 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.InternalRPC.CAFile = "internal_rpc_ca_file"
 			rt.TLS.InternalRPC.CAPath = "default_ca_path"
 			rt.TLS.InternalRPC.CertFile = "default_cert_file"
-			rt.TLS.InternalRPC.TLSMinVersion = "tls12"
+			rt.TLS.InternalRPC.TLSMinVersion = "TLSv1_2"
 			rt.TLS.InternalRPC.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256}
 			rt.TLS.InternalRPC.VerifyIncoming = true
 
 			rt.TLS.HTTPS.CAFile = "default_ca_file"
 			rt.TLS.HTTPS.CAPath = "default_ca_path"
 			rt.TLS.HTTPS.CertFile = "https_cert_file"
-			rt.TLS.HTTPS.TLSMinVersion = "tls13"
+			rt.TLS.HTTPS.TLSMinVersion = "TLSv1_3"
 			// FIXME: this should fail, TLS 1.3 cipher suites are not configurable
 			rt.TLS.HTTPS.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256}
 			rt.TLS.HTTPS.VerifyIncoming = true
@@ -5469,7 +5469,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.GRPC.CAFile = "default_ca_file"
 			rt.TLS.GRPC.CAPath = "default_ca_path"
 			rt.TLS.GRPC.CertFile = "default_cert_file"
-			rt.TLS.GRPC.TLSMinVersion = "tls12"
+			rt.TLS.GRPC.TLSMinVersion = "TLSv1_2"
 			rt.TLS.GRPC.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA}
 			rt.TLS.GRPC.VerifyIncoming = false
 		},
