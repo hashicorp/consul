@@ -1,7 +1,7 @@
 //go:build !consulent
 // +build !consulent
 
-package pbcommon
+package pbcommongogo
 
 import (
 	"github.com/hashicorp/consul/agent/structs"

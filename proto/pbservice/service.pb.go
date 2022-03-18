@@ -9,7 +9,7 @@ import (
 	types "github.com/gogo/protobuf/types"
 	proto "github.com/golang/protobuf/proto"
 	github_com_hashicorp_consul_agent_structs "github.com/hashicorp/consul/agent/structs"
-	pbcommon "github.com/hashicorp/consul/proto/pbcommon"
+	pbcommon "github.com/hashicorp/consul/proto/pbcommongogo"
 	io "io"
 	math "math"
 	math_bits "math/bits"

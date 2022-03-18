@@ -24,7 +24,7 @@ import (
 	grpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbcommongogo"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
@@ -122,7 +122,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
 			Topic:     pbsubscribe.Topic_ServiceHealth,
 			Key:       "redis",
-			Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
+			Namespace: pbcommongogo.DefaultEnterpriseMeta.Namespace,
 		})
 		require.NoError(t, err)
 
@@ -159,7 +159,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 									Expose:      pbservice.ExposeConfig{},
 								},
 								RaftIndex:      raftIndex(ids, "reg2", "reg2"),
-								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
 							},
 						},
 					},
@@ -190,7 +190,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 									Expose:      pbservice.ExposeConfig{},
 								},
 								RaftIndex:      raftIndex(ids, "reg3", "reg3"),
-								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
 							},
 						},
 					},
@@ -240,7 +240,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								Expose:      pbservice.ExposeConfig{},
 							},
 							RaftIndex:      raftIndex(ids, "reg3", "reg3"),
-							EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+							EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
 						},
 						Checks: []*pbservice.HealthCheck{
 							{
@@ -251,7 +251,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								ServiceID:      "redis1",
 								ServiceName:    "redis",
 								RaftIndex:      raftIndex(ids, "update", "update"),
-								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
 							},
 						},
 					},
@@ -395,8 +395,8 @@ func newCounter() *counter {
 	return &counter{labels: make(map[string]uint64)}
 }
 
-func raftIndex(ids *counter, created, modified string) pbcommon.RaftIndex {
-	return pbcommon.RaftIndex{
+func raftIndex(ids *counter, created, modified string) pbcommongogo.RaftIndex {
+	return pbcommongogo.RaftIndex{
 		CreateIndex: ids.For(created),
 		ModifyIndex: ids.For(modified),
 	}
@@ -475,7 +475,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 			Topic:      pbsubscribe.Topic_ServiceHealth,
 			Key:        "redis",
 			Datacenter: "dc2",
-			Namespace:  pbcommon.DefaultEnterpriseMeta.Namespace,
+			Namespace:  pbcommongogo.DefaultEnterpriseMeta.Namespace,
 		})
 		require.NoError(t, err)
 		go recvEvents(chEvents, streamHandle)
@@ -511,7 +511,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 									MeshGateway: pbservice.MeshGatewayConfig{},
 									Expose:      pbservice.ExposeConfig{},
 								},
-								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
 								RaftIndex:      raftIndex(ids, "reg2", "reg2"),
 							},
 						},
@@ -542,7 +542,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 									MeshGateway: pbservice.MeshGatewayConfig{},
 									Expose:      pbservice.ExposeConfig{},
 								},
-								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
 								RaftIndex:      raftIndex(ids, "reg3", "reg3"),
 							},
 						},
@@ -593,7 +593,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								MeshGateway: pbservice.MeshGatewayConfig{},
 								Expose:      pbservice.ExposeConfig{},
 							},
-							EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+							EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
 						},
 						Checks: []*pbservice.HealthCheck{
 							{
@@ -604,7 +604,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								ServiceID:      "redis1",
 								ServiceName:    "redis",
 								RaftIndex:      raftIndex(ids, "update", "update"),
-								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
 							},
 						},
 					},
@@ -720,7 +720,7 @@ node "node1" {
 			Topic:     pbsubscribe.Topic_ServiceHealth,
 			Key:       "foo",
 			Token:     token,
-			Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
+			Namespace: pbcommongogo.DefaultEnterpriseMeta.Namespace,
 		})
 		require.NoError(t, err)
 

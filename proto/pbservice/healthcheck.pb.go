@@ -8,7 +8,7 @@ import (
 	_ "github.com/gogo/protobuf/gogoproto"
 	types "github.com/gogo/protobuf/types"
 	proto "github.com/golang/protobuf/proto"
-	pbcommon "github.com/hashicorp/consul/proto/pbcommon"
+	pbcommon "github.com/hashicorp/consul/proto/pbcommongogo"
 	github_com_hashicorp_consul_types "github.com/hashicorp/consul/types"
 	io "io"
 	math "math"

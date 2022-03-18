@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib/ttlcache"
-	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbcommongogo"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -25,7 +25,7 @@ func TestStore_Get(t *testing.T) {
 	go store.Run(ctx)
 
 	req := &fakeRequest{
-		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
+		client: NewTestStreamingClient(pbcommongogo.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(
 		newEndOfSnapshotEvent(2),
@@ -232,7 +232,7 @@ func (r *fakeRequest) NewMaterializer() (*Materializer, error) {
 				Token:      "abcd",
 				Datacenter: "dc1",
 				Index:      index,
-				Namespace:  pbcommon.DefaultEnterpriseMeta.Namespace,
+				Namespace:  pbcommongogo.DefaultEnterpriseMeta.Namespace,
 			}
 			return req
 		},
@@ -292,7 +292,7 @@ func TestStore_Notify(t *testing.T) {
 	go store.Run(ctx)
 
 	req := &fakeRequest{
-		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
+		client: NewTestStreamingClient(pbcommongogo.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(
 		newEndOfSnapshotEvent(2),
@@ -361,7 +361,7 @@ func TestStore_Notify_ManyRequests(t *testing.T) {
 	go store.Run(ctx)
 
 	req := &fakeRequest{
-		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
+		client: NewTestStreamingClient(pbcommongogo.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(newEndOfSnapshotEvent(2))
 
@@ -473,7 +473,7 @@ func TestStore_Run_ExpiresEntries(t *testing.T) {
 	go store.Run(ctx)
 
 	req := &fakeRequest{
-		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
+		client: NewTestStreamingClient(pbcommongogo.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(newEndOfSnapshotEvent(2))
 

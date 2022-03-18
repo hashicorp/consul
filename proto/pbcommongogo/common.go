@@ -1,4 +1,4 @@
-package pbcommon
+package pbcommongogo
 
 import (
 	"time"
