@@ -1972,16 +1972,22 @@ func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
 }
 
 func (b *builder) tlsVersion(name string, v *string) types.TLSVersion {
-	// TODO: should the nil check be moved into ParseTLSVersion and the arguments
-	// switched to take a pointer?
-	if v == nil {
+	// Handles unspecified config and empty string case.
+	//
+	// This check is not inside types.ValidateTLSVersionString because Envoy config
+	// distinguishes between an unset empty string which inherits parent config and
+	// an explicit TLS_AUTO which allows overriding parent config with the proxy
+	// defaults.
+	if v == nil || *v == "" {
 		return types.TLSVersionAuto
 	}
 
-	a, err := tlsutil.ParseTLSVersion(*v)
+	a := types.TLSVersion(*v)
+
+	err := types.ValidateTLSVersion(a)
 	if err != nil {
-		// TODO: should a warning for deprecated config values be surfaced here somehow?
 		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid TLS version: %s", name, err))
+		return types.TLSVersionInvalid
 	}
 	return a
 }

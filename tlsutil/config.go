@@ -45,28 +45,6 @@ var goTLSVersions = map[types.TLSVersion]uint16{
 	types.TLSv1_3:        tls.VersionTLS13,
 }
 
-// ParseTLSVersion maps a TLS version configuration string to the internal type
-func ParseTLSVersion(tlsVersionString string) (types.TLSVersion, error) {
-	// Handle empty string case for unspecified config.
-	//
-	// This check is not inside types.ValidateTLSVersionString because Envoy config
-	// distinguishes between an unset empty string which inherits parent config and
-	// an explicit TLS_AUTO which allows overriding parent config with the proxy
-	// defaults.
-	if tlsVersionString == "" {
-		return types.TLSVersionAuto, nil
-	}
-
-	v := types.TLSVersion(tlsVersionString)
-
-	tlsVersionErr := types.ValidateTLSVersion(v)
-	if tlsVersionErr != nil {
-		// Only suggest non-deprecated values if configured value is invalid
-		return types.TLSVersionInvalid, tlsVersionErr
-	}
-	return v, nil
-}
-
 // ProtocolConfig contains configuration for a given protocol.
 type ProtocolConfig struct {
 	// VerifyIncoming is used to verify the authenticity of incoming
