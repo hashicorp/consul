@@ -2,7 +2,8 @@ package config
 
 import (
 	"fmt"
-	"types"
+
+	"github.com/hashicorp/consul/types"
 )
 
 type DeprecatedConfig struct {
