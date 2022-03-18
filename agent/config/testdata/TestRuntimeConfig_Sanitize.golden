@@ -74,14 +74,11 @@
     "BindAddr": "127.0.0.1",
     "Bootstrap": false,
     "BootstrapExpect": 0,
-    "CAFile": "",
-    "CAPath": "",
     "Cache": {
         "EntryFetchMaxBurst": 42,
         "EntryFetchRate": 0.334,
         "Logger": null
     },
-    "CertFile": "",
     "CheckDeregisterIntervalMin": "0s",
     "CheckOutputMaxSize": 4096,
     "CheckReapInterval": "0s",
@@ -218,7 +215,6 @@
     "HTTPSPort": 0,
     "HTTPUseCache": false,
     "KVMaxValueSize": 1234567800000000,
-    "KeyFile": "hidden",
     "LeaveDrainTime": "0s",
     "LeaveOnTerm": false,
     "Logging": {
@@ -354,9 +350,46 @@
     "StartJoinAddrsWAN": [],
     "SyncCoordinateIntervalMin": "0s",
     "SyncCoordinateRateTarget": 0,
-    "TLSCipherSuites": [],
-    "TLSMinVersion": "",
-    "TLSPreferServerCipherSuites": false,
+    "TLS": {
+        "AutoTLS": false,
+        "Domain": "",
+        "EnableAgentTLSForChecks": false,
+        "GRPC": {
+            "CAFile": "",
+            "CAPath": "",
+            "CertFile": "",
+            "CipherSuites": [],
+            "KeyFile": "hidden",
+            "TLSMinVersion": "",
+            "VerifyIncoming": false,
+            "VerifyOutgoing": false,
+            "VerifyServerHostname": false
+        },
+        "HTTPS": {
+            "CAFile": "",
+            "CAPath": "",
+            "CertFile": "",
+            "CipherSuites": [],
+            "KeyFile": "hidden",
+            "TLSMinVersion": "",
+            "VerifyIncoming": false,
+            "VerifyOutgoing": false,
+            "VerifyServerHostname": false
+        },
+        "InternalRPC": {
+            "CAFile": "",
+            "CAPath": "",
+            "CertFile": "",
+            "CipherSuites": [],
+            "KeyFile": "hidden",
+            "TLSMinVersion": "",
+            "VerifyIncoming": false,
+            "VerifyOutgoing": false,
+            "VerifyServerHostname": false
+        },
+        "NodeName": "",
+        "ServerName": ""
+    },
     "TaggedAddresses": {},
     "Telemetry": {
         "AllowedPrefixes": [],
@@ -417,11 +450,6 @@
     "UnixSocketMode": "",
     "UnixSocketUser": "",
     "UseStreamingBackend": false,
-    "VerifyIncoming": false,
-    "VerifyIncomingHTTPS": false,
-    "VerifyIncomingRPC": false,
-    "VerifyOutgoing": false,
-    "VerifyServerHostname": false,
     "Version": "",
     "VersionPrerelease": "",
     "Watches": []

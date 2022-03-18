@@ -280,19 +280,8 @@ func (ac *AutoConfig) updateTLSSettingsInConfig(_ AutoConfigOptions, resp *pbaut
 		return nil
 	}
 
-	// add in TLS configuration
-	if resp.Config.TLS == nil {
-		resp.Config.TLS = &pbconfig.TLS{}
-	}
-
-	resp.Config.TLS.VerifyServerHostname = ac.tlsConfigurator.VerifyServerHostname()
-	base := ac.tlsConfigurator.Base()
-	resp.Config.TLS.VerifyOutgoing = base.VerifyOutgoing
-	resp.Config.TLS.MinVersion = base.TLSMinVersion
-	resp.Config.TLS.PreferServerCipherSuites = base.PreferServerCipherSuites
-
 	var err error
-	resp.Config.TLS.CipherSuites, err = tlsutil.CipherString(base.CipherSuites)
+	resp.Config.TLS, err = ac.tlsConfigurator.AutoConfigTLSSettings()
 	return err
 }
 

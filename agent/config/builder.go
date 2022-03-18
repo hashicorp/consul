@@ -747,18 +747,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	enableRemoteScriptChecks := boolVal(c.EnableScriptChecks)
 	enableLocalScriptChecks := boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
 
-	// VerifyServerHostname implies VerifyOutgoing
-	verifyServerName := boolVal(c.VerifyServerHostname)
-	verifyOutgoing := boolVal(c.VerifyOutgoing)
-	if verifyServerName {
-		// Setting only verify_server_hostname is documented to imply
-		// verify_outgoing. If it doesn't then we risk sending communication over TCP
-		// when we documented it as forcing TLS for RPCs. Enforce this here rather
-		// than in several different places through the code that need to reason
-		// about it. (See CVE-2018-19653)
-		verifyOutgoing = true
-	}
-
 	var configEntries []structs.ConfigEntry
 
 	if len(c.ConfigEntries.Bootstrap) > 0 {
@@ -963,9 +951,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 				c.Cache.EntryFetchMaxBurst, cache.DefaultEntryFetchMaxBurst,
 			),
 		},
-		CAFile:                                 stringVal(c.CAFile),
-		CAPath:                                 stringVal(c.CAPath),
-		CertFile:                               stringVal(c.CertFile),
 		CheckUpdateInterval:                    b.durationVal("check_update_interval", c.CheckUpdateInterval),
 		CheckOutputMaxSize:                     intValWithDefault(c.CheckOutputMaxSize, 4096),
 		Checks:                                 checks,
@@ -1012,7 +997,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		GRPCAddrs:                  grpcAddrs,
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
 		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
-		KeyFile:                    stringVal(c.KeyFile),
 		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
 		LeaveDrainTime:             b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                leaveOnTerm,
@@ -1026,72 +1010,69 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			LogRotateBytes:    intVal(c.LogRotateBytes),
 			LogRotateMaxFiles: intVal(c.LogRotateMaxFiles),
 		},
-		MaxQueryTime:                b.durationVal("max_query_time", c.MaxQueryTime),
-		NodeID:                      types.NodeID(stringVal(c.NodeID)),
-		NodeMeta:                    c.NodeMeta,
-		NodeName:                    b.nodeName(c.NodeName),
-		ReadReplica:                 boolVal(c.ReadReplica),
-		PidFile:                     stringVal(c.PidFile),
-		PrimaryDatacenter:           primaryDatacenter,
-		PrimaryGateways:             b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
-		PrimaryGatewaysInterval:     b.durationVal("primary_gateways_interval", c.PrimaryGatewaysInterval),
-		RPCAdvertiseAddr:            rpcAdvertiseAddr,
-		RPCBindAddr:                 rpcBindAddr,
-		RPCHandshakeTimeout:         b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
-		RPCHoldTimeout:              b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
-		RPCMaxBurst:                 intVal(c.Limits.RPCMaxBurst),
-		RPCMaxConnsPerClient:        intVal(c.Limits.RPCMaxConnsPerClient),
-		RPCProtocol:                 intVal(c.RPCProtocol),
-		RPCRateLimit:                rate.Limit(float64Val(c.Limits.RPCRate)),
-		RPCConfig:                   consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
-		RaftProtocol:                intVal(c.RaftProtocol),
-		RaftSnapshotThreshold:       intVal(c.RaftSnapshotThreshold),
-		RaftSnapshotInterval:        b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
-		RaftTrailingLogs:            intVal(c.RaftTrailingLogs),
-		ReconnectTimeoutLAN:         b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
-		ReconnectTimeoutWAN:         b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
-		RejoinAfterLeave:            boolVal(c.RejoinAfterLeave),
-		RetryJoinIntervalLAN:        b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
-		RetryJoinIntervalWAN:        b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
-		RetryJoinLAN:                b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
-		RetryJoinMaxAttemptsLAN:     intVal(c.RetryJoinMaxAttemptsLAN),
-		RetryJoinMaxAttemptsWAN:     intVal(c.RetryJoinMaxAttemptsWAN),
-		RetryJoinWAN:                b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
-		SegmentName:                 stringVal(c.SegmentName),
-		Segments:                    segments,
-		SegmentLimit:                intVal(c.SegmentLimit),
-		SerfAdvertiseAddrLAN:        serfAdvertiseAddrLAN,
-		SerfAdvertiseAddrWAN:        serfAdvertiseAddrWAN,
-		SerfAllowedCIDRsLAN:         serfAllowedCIDRSLAN,
-		SerfAllowedCIDRsWAN:         serfAllowedCIDRSWAN,
-		SerfBindAddrLAN:             serfBindAddrLAN,
-		SerfBindAddrWAN:             serfBindAddrWAN,
-		SerfPortLAN:                 serfPortLAN,
-		SerfPortWAN:                 serfPortWAN,
-		ServerMode:                  serverMode,
-		ServerName:                  stringVal(c.ServerName),
-		ServerPort:                  serverPort,
-		Services:                    services,
-		SessionTTLMin:               b.durationVal("session_ttl_min", c.SessionTTLMin),
-		SkipLeaveOnInt:              skipLeaveOnInt,
-		StartJoinAddrsLAN:           b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
-		StartJoinAddrsWAN:           b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
-		TLSCipherSuites:             b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
-		TLSMinVersion:               stringVal(c.TLSMinVersion),
-		TLSPreferServerCipherSuites: boolVal(c.TLSPreferServerCipherSuites),
-		TaggedAddresses:             c.TaggedAddresses,
-		TranslateWANAddrs:           boolVal(c.TranslateWANAddrs),
-		TxnMaxReqLen:                uint64Val(c.Limits.TxnMaxReqLen),
-		UIConfig:                    b.uiConfigVal(c.UIConfig),
-		UnixSocketGroup:             stringVal(c.UnixSocket.Group),
-		UnixSocketMode:              stringVal(c.UnixSocket.Mode),
-		UnixSocketUser:              stringVal(c.UnixSocket.User),
-		VerifyIncoming:              boolVal(c.VerifyIncoming),
-		VerifyIncomingHTTPS:         boolVal(c.VerifyIncomingHTTPS),
-		VerifyIncomingRPC:           boolVal(c.VerifyIncomingRPC),
-		VerifyOutgoing:              verifyOutgoing,
-		VerifyServerHostname:        verifyServerName,
-		Watches:                     c.Watches,
+		MaxQueryTime:            b.durationVal("max_query_time", c.MaxQueryTime),
+		NodeID:                  types.NodeID(stringVal(c.NodeID)),
+		NodeMeta:                c.NodeMeta,
+		NodeName:                b.nodeName(c.NodeName),
+		ReadReplica:             boolVal(c.ReadReplica),
+		PidFile:                 stringVal(c.PidFile),
+		PrimaryDatacenter:       primaryDatacenter,
+		PrimaryGateways:         b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
+		PrimaryGatewaysInterval: b.durationVal("primary_gateways_interval", c.PrimaryGatewaysInterval),
+		RPCAdvertiseAddr:        rpcAdvertiseAddr,
+		RPCBindAddr:             rpcBindAddr,
+		RPCHandshakeTimeout:     b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
+		RPCHoldTimeout:          b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
+		RPCMaxBurst:             intVal(c.Limits.RPCMaxBurst),
+		RPCMaxConnsPerClient:    intVal(c.Limits.RPCMaxConnsPerClient),
+		RPCProtocol:             intVal(c.RPCProtocol),
+		RPCRateLimit:            rate.Limit(float64Val(c.Limits.RPCRate)),
+		RPCConfig:               consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
+		RaftProtocol:            intVal(c.RaftProtocol),
+		RaftSnapshotThreshold:   intVal(c.RaftSnapshotThreshold),
+		RaftSnapshotInterval:    b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
+		RaftTrailingLogs:        intVal(c.RaftTrailingLogs),
+		ReconnectTimeoutLAN:     b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
+		ReconnectTimeoutWAN:     b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
+		RejoinAfterLeave:        boolVal(c.RejoinAfterLeave),
+		RetryJoinIntervalLAN:    b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
+		RetryJoinIntervalWAN:    b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
+		RetryJoinLAN:            b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
+		RetryJoinMaxAttemptsLAN: intVal(c.RetryJoinMaxAttemptsLAN),
+		RetryJoinMaxAttemptsWAN: intVal(c.RetryJoinMaxAttemptsWAN),
+		RetryJoinWAN:            b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
+		SegmentName:             stringVal(c.SegmentName),
+		Segments:                segments,
+		SegmentLimit:            intVal(c.SegmentLimit),
+		SerfAdvertiseAddrLAN:    serfAdvertiseAddrLAN,
+		SerfAdvertiseAddrWAN:    serfAdvertiseAddrWAN,
+		SerfAllowedCIDRsLAN:     serfAllowedCIDRSLAN,
+		SerfAllowedCIDRsWAN:     serfAllowedCIDRSWAN,
+		SerfBindAddrLAN:         serfBindAddrLAN,
+		SerfBindAddrWAN:         serfBindAddrWAN,
+		SerfPortLAN:             serfPortLAN,
+		SerfPortWAN:             serfPortWAN,
+		ServerMode:              serverMode,
+		ServerName:              stringVal(c.ServerName),
+		ServerPort:              serverPort,
+		Services:                services,
+		SessionTTLMin:           b.durationVal("session_ttl_min", c.SessionTTLMin),
+		SkipLeaveOnInt:          skipLeaveOnInt,
+		StartJoinAddrsLAN:       b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
+		StartJoinAddrsWAN:       b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
+		TaggedAddresses:         c.TaggedAddresses,
+		TranslateWANAddrs:       boolVal(c.TranslateWANAddrs),
+		TxnMaxReqLen:            uint64Val(c.Limits.TxnMaxReqLen),
+		UIConfig:                b.uiConfigVal(c.UIConfig),
+		UnixSocketGroup:         stringVal(c.UnixSocket.Group),
+		UnixSocketMode:          stringVal(c.UnixSocket.Mode),
+		UnixSocketUser:          stringVal(c.UnixSocket.User),
+		Watches:                 c.Watches,
+	}
+
+	rt.TLS, err = b.buildTLSConfig(rt, c.TLS)
+	if err != nil {
+		return RuntimeConfig{}, err
 	}
 
 	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
@@ -1477,10 +1458,8 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		b.warn("rpc.enable_streaming = true has no effect when not running in server mode")
 	}
 
-	if rt.AutoEncryptAllowTLS {
-		if !rt.VerifyIncoming && !rt.VerifyIncomingRPC {
-			b.warn("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
-		}
+	if rt.AutoEncryptAllowTLS && !rt.TLS.InternalRPC.VerifyIncoming {
+		b.warn("if auto_encrypt.allow_tls is turned on, tls.internal_rpc.verify_incoming should be enabled (either explicitly or via tls.defaults.verify_incoming). It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
 	}
 
 	if err := checkLimitsFromMaxConnsPerClient(rt.HTTPMaxConnsPerClient); err != nil {
@@ -2319,7 +2298,7 @@ func (b *builder) validateAutoConfig(rt RuntimeConfig) error {
 
 	// Right now we require TLS as everything we are going to transmit via auto-config is sensitive. Signed Certificates, Tokens
 	// and other encryption keys. This must be transmitted over a secure connection so we don't allow doing otherwise.
-	if !rt.VerifyOutgoing {
+	if !rt.TLS.InternalRPC.VerifyOutgoing {
 		return fmt.Errorf("auto_config.enabled cannot be set without configuring TLS for server communications")
 	}
 
@@ -2366,7 +2345,7 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 
 	// Right now we require TLS as everything we are going to transmit via auto-config is sensitive. Signed Certificates, Tokens
 	// and other encryption keys. This must be transmitted over a secure connection so we don't allow doing otherwise.
-	if rt.CertFile == "" {
+	if rt.TLS.InternalRPC.CertFile == "" {
 		return fmt.Errorf("auto_config.authorization.enabled cannot be set without providing a TLS certificate for the server")
 	}
 
@@ -2474,4 +2453,76 @@ func validateAbsoluteURLPath(p string) error {
 	}
 
 	return nil
+}
+
+func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error) {
+	var c tlsutil.Config
+
+	// Consul makes no outgoing connections to the public gRPC port (internal gRPC
+	// traffic goes through the multiplexed internal RPC port) so return an error
+	// rather than let the user think this setting is going to do anything useful.
+	if t.GRPC.VerifyOutgoing != nil {
+		return c, errors.New("verify_outgoing is not valid in the tls.grpc stanza")
+	}
+
+	// Similarly, only the internal RPC configuration honors VerifyServerHostname
+	// so we call it out here too.
+	if t.Defaults.VerifyServerHostname != nil || t.GRPC.VerifyServerHostname != nil || t.HTTPS.VerifyServerHostname != nil {
+		return c, errors.New("verify_server_hostname is only valid in the tls.internal_rpc stanza")
+	}
+
+	// TLS is only enabled on the gRPC listener if there's an HTTPS port configured
+	// for historic and backwards-compatibility reasons.
+	if rt.HTTPSPort <= 0 && (t.GRPC != TLSProtocolConfig{}) {
+		b.warn("tls.grpc was provided but TLS will NOT be enabled on the gRPC listener without an HTTPS listener configured (e.g. via ports.https)")
+	}
+
+	defaultCipherSuites := b.tlsCipherSuites("tls.defaults.tls_cipher_suites", t.Defaults.TLSCipherSuites)
+
+	mapCommon := func(name string, src TLSProtocolConfig, dst *tlsutil.ProtocolConfig) {
+		dst.CAPath = stringValWithDefault(src.CAPath, stringVal(t.Defaults.CAPath))
+		dst.CAFile = stringValWithDefault(src.CAFile, stringVal(t.Defaults.CAFile))
+		dst.CertFile = stringValWithDefault(src.CertFile, stringVal(t.Defaults.CertFile))
+		dst.KeyFile = stringValWithDefault(src.KeyFile, stringVal(t.Defaults.KeyFile))
+		dst.TLSMinVersion = stringValWithDefault(src.TLSMinVersion, stringVal(t.Defaults.TLSMinVersion))
+		dst.VerifyIncoming = boolValWithDefault(src.VerifyIncoming, boolVal(t.Defaults.VerifyIncoming))
+
+		// We prevent this from being set explicity in the tls.grpc stanza above, but
+		// let's also prevent it from getting the tls.defaults value to avoid confusion
+		// if we decide to support it in the future.
+		if name != "grpc" {
+			dst.VerifyOutgoing = boolValWithDefault(src.VerifyOutgoing, boolVal(t.Defaults.VerifyOutgoing))
+		}
+
+		if src.TLSCipherSuites == nil {
+			dst.CipherSuites = defaultCipherSuites
+		} else {
+			dst.CipherSuites = b.tlsCipherSuites(
+				fmt.Sprintf("tls.%s.tls_cipher_suites", name),
+				src.TLSCipherSuites,
+			)
+		}
+	}
+
+	mapCommon("internal_rpc", t.InternalRPC, &c.InternalRPC)
+	c.InternalRPC.VerifyServerHostname = boolVal(t.InternalRPC.VerifyServerHostname)
+
+	// Setting only verify_server_hostname is documented to imply verify_outgoing.
+	// If it doesn't then we risk sending communication over plain TCP when we
+	// documented it as forcing TLS for RPCs. Enforce this here rather than in
+	// several different places through the code that need to reason about it.
+	//
+	// See: CVE-2018-19653
+	c.InternalRPC.VerifyOutgoing = c.InternalRPC.VerifyOutgoing || c.InternalRPC.VerifyServerHostname
+
+	mapCommon("https", t.HTTPS, &c.HTTPS)
+	mapCommon("grpc", t.GRPC, &c.GRPC)
+
+	c.ServerName = rt.ServerName
+	c.NodeName = rt.NodeName
+	c.Domain = rt.DNSDomain
+	c.EnableAgentTLSForChecks = rt.EnableAgentTLSForChecks
+	c.AutoTLS = rt.AutoEncryptTLS || rt.AutoConfig.Enabled
+
+	return c, nil
 }

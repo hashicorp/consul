@@ -489,7 +489,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	c.NodeID = a.config.NodeID
 	a.config = c
 
-	if err := a.tlsConfigurator.Update(a.config.ToTLSUtilConfig()); err != nil {
+	if err := a.tlsConfigurator.Update(a.config.TLS); err != nil {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
 
@@ -1218,7 +1218,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	}
 	cfg.Build = fmt.Sprintf("%s%s:%s", runtimeCfg.Version, runtimeCfg.VersionPrerelease, revision)
 
-	cfg.TLSConfig = runtimeCfg.ToTLSUtilConfig()
+	cfg.TLSConfig = runtimeCfg.TLS
 
 	cfg.DefaultQueryTime = runtimeCfg.DefaultQueryTime
 	cfg.MaxQueryTime = runtimeCfg.MaxQueryTime
@@ -3748,7 +3748,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	// the checks and service registrations.
 	a.tokens.Load(newCfg.ACLTokens, a.logger)
 
-	if err := a.tlsConfigurator.Update(newCfg.ToTLSUtilConfig()); err != nil {
+	if err := a.tlsConfigurator.Update(newCfg.TLS); err != nil {
 		return fmt.Errorf("Failed reloading tls configuration: %s", err)
 	}
 

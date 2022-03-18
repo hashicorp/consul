@@ -19,14 +19,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -565,12 +566,12 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHandshakeTimeout = 10 * time.Millisecond
-		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-		c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
-		c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
-		c.TLSConfig.VerifyServerHostname = true
-		c.TLSConfig.VerifyOutgoing = true
-		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Alice.key"
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -661,12 +662,12 @@ func TestRPC_PreventsTLSNesting(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
-				c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-				c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
-				c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
-				c.TLSConfig.VerifyServerHostname = true
-				c.TLSConfig.VerifyOutgoing = true
-				c.TLSConfig.VerifyIncoming = false // saves us getting client cert setup
+				c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+				c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
+				c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Alice.key"
+				c.TLSConfig.InternalRPC.VerifyServerHostname = true
+				c.TLSConfig.InternalRPC.VerifyOutgoing = true
+				c.TLSConfig.InternalRPC.VerifyIncoming = false // saves us getting client cert setup
 				c.TLSConfig.Domain = "consul"
 			})
 			defer os.RemoveAll(dir1)
@@ -818,12 +819,12 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
 				c.RPCMaxConnsPerClient = 2
 				if tc.tlsEnabled {
-					c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-					c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
-					c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
-					c.TLSConfig.VerifyServerHostname = true
-					c.TLSConfig.VerifyOutgoing = true
-					c.TLSConfig.VerifyIncoming = false // saves us getting client cert setup
+					c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+					c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
+					c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Alice.key"
+					c.TLSConfig.InternalRPC.VerifyServerHostname = true
+					c.TLSConfig.InternalRPC.VerifyOutgoing = true
+					c.TLSConfig.InternalRPC.VerifyIncoming = false // saves us getting client cert setup
 					c.TLSConfig.Domain = "consul"
 				}
 			})
@@ -1416,11 +1417,11 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 
 	_, srv := testServerWithConfig(t, func(c *Config) {
 		c.TLSConfig.Domain = "consul." // consul. is the default value in agent/config
-		c.TLSConfig.CAFile = filepath.Join(dir, "ca.pem")
-		c.TLSConfig.CertFile = filepath.Join(dir, "srv1-server.dc1.consul.pem")
-		c.TLSConfig.KeyFile = filepath.Join(dir, "srv1-server.dc1.consul.key")
-		c.TLSConfig.VerifyIncoming = true
-		c.TLSConfig.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.CAFile = filepath.Join(dir, "ca.pem")
+		c.TLSConfig.InternalRPC.CertFile = filepath.Join(dir, "srv1-server.dc1.consul.pem")
+		c.TLSConfig.InternalRPC.KeyFile = filepath.Join(dir, "srv1-server.dc1.consul.key")
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
 		// Enable Auto-Encrypt so that Connect CA roots are added to the
 		// tlsutil.Configurator.
 		c.AutoEncryptAllowTLS = true
@@ -1509,12 +1510,14 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 		certPath := tc.setupCert(t)
 
 		cfg := tlsutil.Config{
-			VerifyOutgoing:       true,
-			VerifyServerHostname: true,
-			CAFile:               filepath.Join(dir, "ca.pem"),
-			CertFile:             certPath + ".pem",
-			KeyFile:              certPath + ".key",
-			Domain:               "consul",
+			InternalRPC: tlsutil.ProtocolConfig{
+				VerifyOutgoing:       true,
+				VerifyServerHostname: true,
+				CAFile:               filepath.Join(dir, "ca.pem"),
+				CertFile:             certPath + ".pem",
+				KeyFile:              certPath + ".key",
+			},
+			Domain: "consul",
 		}
 		c, err := tlsutil.NewConfigurator(cfg, hclog.New(nil))
 		require.NoError(t, err)

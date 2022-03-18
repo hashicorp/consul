@@ -147,9 +147,6 @@ type Config struct {
 	Bootstrap                        *bool               `mapstructure:"bootstrap"`
 	BootstrapExpect                  *int                `mapstructure:"bootstrap_expect"`
 	Cache                            Cache               `mapstructure:"cache"`
-	CAFile                           *string             `mapstructure:"ca_file"`
-	CAPath                           *string             `mapstructure:"ca_path"`
-	CertFile                         *string             `mapstructure:"cert_file"`
 	Check                            *CheckDefinition    `mapstructure:"check"` // needs to be a pointer to avoid partial merges
 	CheckOutputMaxSize               *int                `mapstructure:"check_output_max_size"`
 	CheckUpdateInterval              *string             `mapstructure:"check_update_interval"`
@@ -186,7 +183,6 @@ type Config struct {
 	GossipLAN                        GossipLANConfig     `mapstructure:"gossip_lan"`
 	GossipWAN                        GossipWANConfig     `mapstructure:"gossip_wan"`
 	HTTPConfig                       HTTPConfig          `mapstructure:"http_config"`
-	KeyFile                          *string             `mapstructure:"key_file"`
 	LeaveOnTerm                      *bool               `mapstructure:"leave_on_terminate"`
 	LicensePath                      *string             `mapstructure:"license_path"`
 	Limits                           Limits              `mapstructure:"limits"`
@@ -233,9 +229,7 @@ type Config struct {
 	StartJoinAddrsLAN                []string            `mapstructure:"start_join"`
 	StartJoinAddrsWAN                []string            `mapstructure:"start_join_wan"`
 	SyslogFacility                   *string             `mapstructure:"syslog_facility"`
-	TLSCipherSuites                  *string             `mapstructure:"tls_cipher_suites"`
-	TLSMinVersion                    *string             `mapstructure:"tls_min_version"`
-	TLSPreferServerCipherSuites      *bool               `mapstructure:"tls_prefer_server_cipher_suites"`
+	TLS                              TLS                 `mapstructure:"tls"`
 	TaggedAddresses                  map[string]string   `mapstructure:"tagged_addresses"`
 	Telemetry                        Telemetry           `mapstructure:"telemetry"`
 	TranslateWANAddrs                *bool               `mapstructure:"translate_wan_addrs"`
@@ -248,13 +242,8 @@ type Config struct {
 	UIDir    *string     `mapstructure:"ui_dir"`
 	UIConfig RawUIConfig `mapstructure:"ui_config"`
 
-	UnixSocket           UnixSocket               `mapstructure:"unix_sockets"`
-	VerifyIncoming       *bool                    `mapstructure:"verify_incoming"`
-	VerifyIncomingHTTPS  *bool                    `mapstructure:"verify_incoming_https"`
-	VerifyIncomingRPC    *bool                    `mapstructure:"verify_incoming_rpc"`
-	VerifyOutgoing       *bool                    `mapstructure:"verify_outgoing"`
-	VerifyServerHostname *bool                    `mapstructure:"verify_server_hostname"`
-	Watches              []map[string]interface{} `mapstructure:"watches"`
+	UnixSocket UnixSocket               `mapstructure:"unix_sockets"`
+	Watches    []map[string]interface{} `mapstructure:"watches"`
 
 	RPC RPC `mapstructure:"rpc"`
 
@@ -858,4 +847,23 @@ type RawUIMetricsProxyAddHeader struct {
 
 type RPC struct {
 	EnableStreaming *bool `mapstructure:"enable_streaming"`
+}
+
+type TLSProtocolConfig struct {
+	CAFile               *string `mapstructure:"ca_file"`
+	CAPath               *string `mapstructure:"ca_path"`
+	CertFile             *string `mapstructure:"cert_file"`
+	KeyFile              *string `mapstructure:"key_file"`
+	TLSMinVersion        *string `mapstructure:"tls_min_version"`
+	TLSCipherSuites      *string `mapstructure:"tls_cipher_suites"`
+	VerifyIncoming       *bool   `mapstructure:"verify_incoming"`
+	VerifyOutgoing       *bool   `mapstructure:"verify_outgoing"`
+	VerifyServerHostname *bool   `mapstructure:"verify_server_hostname"`
+}
+
+type TLS struct {
+	Defaults    TLSProtocolConfig `mapstructure:"defaults"`
+	InternalRPC TLSProtocolConfig `mapstructure:"internal_rpc"`
+	HTTPS       TLSProtocolConfig `mapstructure:"https"`
+	GRPC        TLSProtocolConfig `mapstructure:"grpc"`
 }

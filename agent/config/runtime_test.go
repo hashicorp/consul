@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -386,6 +387,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.DNSDomain = "a"
+			rt.TLS.Domain = "a"
 			rt.DataDir = dataDir
 		},
 	})
@@ -590,6 +592,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.NodeName = "a"
+			rt.TLS.NodeName = "a"
 			rt.DataDir = dataDir
 		},
 	})
@@ -2506,6 +2509,98 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expectedErr: `invalid meta for service a: Node metadata cannot contain more than 64 key`,
 	})
 	run(t, testCase{
+		desc: "verify_outgoing in the grpc stanza",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		hcl: []string{`
+			tls {
+				grpc {
+					verify_outgoing = true
+				}
+			}
+		`},
+		json: []string{`
+			{
+				"tls": {
+					"grpc": {
+						"verify_outgoing": true
+					}
+				}
+			}
+		`},
+		expectedErr: "verify_outgoing is not valid in the tls.grpc stanza",
+	})
+	run(t, testCase{
+		desc: "verify_server_hostname in the defaults stanza",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		hcl: []string{`
+			tls {
+				defaults {
+					verify_server_hostname = true
+				}
+			}
+		`},
+		json: []string{`
+			{
+				"tls": {
+					"defaults": {
+						"verify_server_hostname": true
+					}
+				}
+			}
+		`},
+		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
+	})
+	run(t, testCase{
+		desc: "verify_server_hostname in the grpc stanza",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		hcl: []string{`
+			tls {
+				grpc {
+					verify_server_hostname = true
+				}
+			}
+		`},
+		json: []string{`
+			{
+				"tls": {
+					"grpc": {
+						"verify_server_hostname": true
+					}
+				}
+			}
+		`},
+		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
+	})
+	run(t, testCase{
+		desc: "verify_server_hostname in the https stanza",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		hcl: []string{`
+			tls {
+				https {
+					verify_server_hostname = true
+				}
+			}
+		`},
+		json: []string{`
+			{
+				"tls": {
+					"https": {
+						"verify_server_hostname": true
+					}
+				}
+			}
+		`},
+		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
+	})
+	run(t, testCase{
 		desc: "translated keys",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -2920,8 +3015,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.VerifyServerHostname = true
-			rt.VerifyOutgoing = true
+			rt.TLS.InternalRPC.VerifyServerHostname = true
+			rt.TLS.InternalRPC.VerifyOutgoing = true
+		},
+		expectedWarnings: []string{
+			deprecationWarning("verify_server_hostname", "tls.internal_rpc.verify_server_hostname"),
 		},
 	})
 	run(t, testCase{
@@ -2930,18 +3028,18 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		json: []string{`{
-			  "verify_incoming": true,
+			  "tls": { "internal_rpc": { "verify_incoming": true } },
 			  "auto_encrypt": { "allow_tls": true },
 			  "server": true
 			}`},
 		hcl: []string{`
-			  verify_incoming = true
+			  tls { internal_rpc { verify_incoming = true } }
 			  auto_encrypt { allow_tls = true }
 			  server = true
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.VerifyIncoming = true
+			rt.TLS.InternalRPC.VerifyIncoming = true
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
 
@@ -2953,25 +3051,28 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "auto_encrypt.allow_tls works with verify_incoming",
+		desc: "auto_encrypt.allow_tls works with tls.defaults.verify_incoming",
 		args: []string{
 			`-data-dir=` + dataDir,
 		},
 		json: []string{`{
-			  "verify_incoming": true,
+			  "tls": { "defaults": { "verify_incoming": true } },
 			  "auto_encrypt": { "allow_tls": true },
 			  "server": true
 			}`},
 		hcl: []string{`
-			  verify_incoming = true
+			  tls { defaults { verify_incoming = true } }
 			  auto_encrypt { allow_tls = true }
 			  server = true
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.VerifyIncoming = true
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
+
+			rt.TLS.InternalRPC.VerifyIncoming = true
+			rt.TLS.GRPC.VerifyIncoming = true
+			rt.TLS.HTTPS.VerifyIncoming = true
 
 			// server things
 			rt.ServerMode = true
@@ -2981,25 +3082,25 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "auto_encrypt.allow_tls works with verify_incoming_rpc",
+		desc: "auto_encrypt.allow_tls works with tls.internal_rpc.verify_incoming",
 		args: []string{
 			`-data-dir=` + dataDir,
 		},
 		json: []string{`{
-			  "verify_incoming_rpc": true,
+			  "tls": { "internal_rpc": { "verify_incoming": true } },
 			  "auto_encrypt": { "allow_tls": true },
 			  "server": true
 			}`},
 		hcl: []string{`
-			  verify_incoming_rpc = true
+			  tls { internal_rpc { verify_incoming = true } }
 			  auto_encrypt { allow_tls = true }
 			  server = true
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.VerifyIncomingRPC = true
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
+			rt.TLS.InternalRPC.VerifyIncoming = true
 
 			// server things
 			rt.ServerMode = true
@@ -3009,7 +3110,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "auto_encrypt.allow_tls warns without verify_incoming or verify_incoming_rpc",
+		desc: "auto_encrypt.allow_tls warns without tls.defaults.verify_incoming or tls.internal_rpc.verify_incoming",
 		args: []string{
 			`-data-dir=` + dataDir,
 		},
@@ -3021,7 +3122,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			  auto_encrypt { allow_tls = true }
 			  server = true
 			`},
-		expectedWarnings: []string{"if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards."},
+		expectedWarnings: []string{"if auto_encrypt.allow_tls is turned on, tls.internal_rpc.verify_incoming should be enabled (either explicitly or via tls.defaults.verify_incoming). It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards."},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.AutoEncryptAllowTLS = true
@@ -4436,7 +4537,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				auto_encrypt {
 					tls = true
 				}
-				verify_outgoing = true
+				tls {
+					internal_rpc {
+						verify_outgoing = true
+					}
+				}
 			`},
 		json: []string{`{
 				"auto_config": {
@@ -4447,7 +4552,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				"auto_encrypt": {
 					"tls": true
 				},
-				"verify_outgoing": true
+				"tls": {
+					"internal_rpc": {
+						"verify_outgoing": true
+					}
+				}
 			}`},
 		expectedErr: "both auto_encrypt.tls and auto_config.enabled cannot be set to true.",
 	})
@@ -4463,7 +4572,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					intro_token = "blah"
 					server_addresses = ["198.18.0.1"]
 				}
-				verify_outgoing = true
+				tls {
+					internal_rpc {
+						verify_outgoing = true
+					}
+				}
 			`},
 		json: []string{`
 			{
@@ -4473,7 +4586,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					"intro_token": "blah",
 					"server_addresses": ["198.18.0.1"]
 				},
-				"verify_outgoing": true
+				"tls": {
+					"internal_rpc": {
+						"verify_outgoing": true
+					}
+				}
 			}`},
 		expectedErr: "auto_config.enabled cannot be set to true for server agents",
 	})
@@ -4536,7 +4653,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					enabled = true
 				 	server_addresses = ["198.18.0.1"]
 				}
-				verify_outgoing = true
+				tls {
+					internal_rpc {
+						verify_outgoing = true
+					}
+				}
 			`},
 		json: []string{`
 			{
@@ -4544,7 +4665,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					"enabled": true,
 					"server_addresses": ["198.18.0.1"]
 				},
-				"verify_outgoing": true
+				"tls": {
+					"internal_rpc": {
+						"verify_outgoing": true
+					}
+				}
 			}`},
 		expectedErr: "One of auto_config.intro_token, auto_config.intro_token_file or the CONSUL_INTRO_TOKEN environment variable must be set to enable auto_config",
 	})
@@ -4559,7 +4684,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					enabled = true
 					intro_token = "blah"
 				}
-				verify_outgoing = true
+				tls {
+					internal_rpc {
+						verify_outgoing = true
+					}
+				}
 			`},
 		json: []string{`
 			{
@@ -4567,7 +4696,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					"enabled": true,
 					"intro_token": "blah"
 				},
-				"verify_outgoing": true
+				"tls": {
+					"internal_rpc": {
+						"verify_outgoing": true
+					}
+				}
 			}`},
 		expectedErr: "auto_config.enabled is set without providing a list of addresses",
 	})
@@ -4586,7 +4719,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					dns_sans = ["foo"]
 					ip_sans = ["invalid", "127.0.0.1"]
 				}
-				verify_outgoing = true
+				tls {
+					internal_rpc {
+						verify_outgoing = true
+					}
+				}
 			`},
 		json: []string{`
 			{
@@ -4598,7 +4735,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					"dns_sans": ["foo"],
 					"ip_sans": ["invalid", "127.0.0.1"]
 				},
-				"verify_outgoing": true
+				"tls": {
+					"internal_rpc": {
+						"verify_outgoing": true
+					}
+				}
 			}`},
 		expectedWarnings: []string{
 			"Cannot parse ip \"invalid\" from auto_config.ip_sans",
@@ -4613,7 +4754,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.AutoConfig.DNSSANs = []string{"foo"}
 			rt.AutoConfig.IPSANs = []net.IP{net.IPv4(127, 0, 0, 1)}
 			rt.DataDir = dataDir
-			rt.VerifyOutgoing = true
+			rt.TLS.InternalRPC.VerifyOutgoing = true
+			rt.TLS.AutoTLS = true
 		},
 	})
 
@@ -4652,7 +4794,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						enabled = true
 					}
 				}
-				cert_file = "foo"
+				tls {
+					internal_rpc {
+						cert_file = "foo"
+					}
+				}
 			`},
 		json: []string{`
 			{
@@ -4661,7 +4807,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						"enabled": true
 					}
 				},
-				"cert_file": "foo"
+				"tls": {
+					"internal_rpc": {
+						"cert_file": "foo"
+					}
+				}
 			}`},
 		expectedErr: `auto_config.authorization.static has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
 	})
@@ -4682,7 +4832,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						}
 					}
 				}
-				cert_file = "foo"
+				tls {
+					internal_rpc {
+						cert_file = "foo"
+					}
+				}
 			`},
 		json: []string{`
 			{
@@ -4695,7 +4849,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						}
 					}
 				},
-				"cert_file": "foo"
+				"tls": {
+					"internal_rpc": {
+						"cert_file": "foo"
+					}
+				}
 			}`},
 		expectedErr: `auto_config.authorization.static has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
 	})
@@ -4720,7 +4878,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						}
 					}
 				}
-				cert_file = "foo"
+				tls {
+					internal_rpc {
+						cert_file = "foo"
+					}
+				}
 			`},
 		json: []string{`
 			{
@@ -4737,7 +4899,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						}
 					}
 				},
-				"cert_file": "foo"
+				"tls": {
+					"internal_rpc": {
+						"cert_file": "foo"
+					}
+				}
 			}`},
 		expectedErr: `Enabling auto-config authorization (auto_config.authorization.enabled) in non primary datacenters with ACLs enabled (acl.enabled) requires also enabling ACL token replication (acl.enable_token_replication)`,
 	})
@@ -4760,7 +4926,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						}
 					}
 				}
-				cert_file = "foo"
+				tls {
+					internal_rpc {
+						cert_file = "foo"
+					}
+				}
 			`},
 		json: []string{`
 			{
@@ -4775,7 +4945,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						}
 					}
 				},
-				"cert_file": "foo"
+				"tls": {
+					"internal_rpc": {
+						"cert_file": "foo"
+					}
+				}
 			}`},
 		expectedErr: `auto_config.authorization.static.claim_assertion "values.node == ${node}" is invalid: Selector "values" is not valid`,
 	})
@@ -4800,7 +4974,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						}
 					}
 				}
-				cert_file = "foo"
+				tls {
+					internal_rpc {
+						cert_file = "foo"
+					}
+				}
 			`},
 		json: []string{`
 			{
@@ -4818,7 +4996,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						}
 					}
 				},
-				"cert_file": "foo"
+				"tls": {
+					"internal_rpc": {
+						"cert_file": "foo"
+					}
+				}
 			}`},
 		expected: func(rt *RuntimeConfig) {
 			rt.AutoConfig.Authorizer.Enabled = true
@@ -4831,7 +5013,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
 			rt.SkipLeaveOnInt = true
-			rt.CertFile = "foo"
+			rt.TLS.InternalRPC.CertFile = "foo"
 			rt.RPCConfig.EnableStreaming = true
 		},
 	})
@@ -5197,6 +5379,165 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			}`},
 		expectedErr: "advertise_reconnect_timeout can only be used on a client",
 	})
+
+	run(t, testCase{
+		desc: "TLS defaults and overrides",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		hcl: []string{`
+			ports {
+				https = 4321
+			}
+
+			tls {
+				defaults {
+					ca_file = "default_ca_file"
+					ca_path = "default_ca_path"
+					cert_file = "default_cert_file"
+					tls_min_version = "tls12"
+					tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+					verify_incoming = true
+				}
+
+				internal_rpc {
+					ca_file = "internal_rpc_ca_file"
+				}
+
+				https {
+					cert_file = "https_cert_file"
+					tls_min_version = "tls13"
+				}
+
+				grpc {
+					verify_incoming = false
+					tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+				}
+			}
+		`},
+		json: []string{`
+			{
+				"ports": {
+					"https": 4321
+				},
+				"tls": {
+					"defaults": {
+						"ca_file": "default_ca_file",
+						"ca_path": "default_ca_path",
+						"cert_file": "default_cert_file",
+						"tls_min_version": "tls12",
+						"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+						"verify_incoming": true
+					},
+					"internal_rpc": {
+						"ca_file": "internal_rpc_ca_file"
+					},
+					"https": {
+						"cert_file": "https_cert_file",
+						"tls_min_version": "tls13"
+					},
+					"grpc": {
+						"verify_incoming": false,
+						"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+					}
+				}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+
+			rt.HTTPSPort = 4321
+			rt.HTTPSAddrs = []net.Addr{tcpAddr("127.0.0.1:4321")}
+
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+
+			rt.TLS.InternalRPC.CAFile = "internal_rpc_ca_file"
+			rt.TLS.InternalRPC.CAPath = "default_ca_path"
+			rt.TLS.InternalRPC.CertFile = "default_cert_file"
+			rt.TLS.InternalRPC.TLSMinVersion = "tls12"
+			rt.TLS.InternalRPC.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256}
+			rt.TLS.InternalRPC.VerifyIncoming = true
+
+			rt.TLS.HTTPS.CAFile = "default_ca_file"
+			rt.TLS.HTTPS.CAPath = "default_ca_path"
+			rt.TLS.HTTPS.CertFile = "https_cert_file"
+			rt.TLS.HTTPS.TLSMinVersion = "tls13"
+			rt.TLS.HTTPS.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256}
+			rt.TLS.HTTPS.VerifyIncoming = true
+
+			rt.TLS.GRPC.CAFile = "default_ca_file"
+			rt.TLS.GRPC.CAPath = "default_ca_path"
+			rt.TLS.GRPC.CertFile = "default_cert_file"
+			rt.TLS.GRPC.TLSMinVersion = "tls12"
+			rt.TLS.GRPC.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA}
+			rt.TLS.GRPC.VerifyIncoming = false
+		},
+	})
+	run(t, testCase{
+		desc: "tls.internal_rpc.verify_server_hostname implies tls.internal_rpc.verify_outgoing",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"tls": {
+					"internal_rpc": {
+						"verify_server_hostname": true
+					}
+				}
+			}
+		`},
+		hcl: []string{`
+			tls {
+				internal_rpc {
+					verify_server_hostname = true
+				}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+
+			rt.TLS.InternalRPC.VerifyServerHostname = true
+			rt.TLS.InternalRPC.VerifyOutgoing = true
+		},
+	})
+	run(t, testCase{
+		desc: "tls.grpc without ports.https",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"tls": {
+					"grpc": {
+						"cert_file": "cert-1234"
+					}
+				}
+			}
+		`},
+		hcl: []string{`
+			tls {
+				grpc {
+					cert_file = "cert-1234"
+				}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+
+			rt.TLS.GRPC.CertFile = "cert-1234"
+		},
+		expectedWarnings: []string{
+			"tls.grpc was provided but TLS will NOT be enabled on the gRPC listener without an HTTPS listener configured (e.g. via ports.https)",
+		},
+	})
 }
 
 func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
@@ -5382,9 +5723,6 @@ func TestLoad_FullConfig(t *testing.T) {
 			EntryFetchMaxBurst: 42,
 			EntryFetchRate:     0.334,
 		},
-		CAFile:             "erA7T0PM",
-		CAPath:             "mQEN1Mfp",
-		CertFile:           "7s4QAzDk",
 		CheckOutputMaxSize: checks.DefaultBufSize,
 		Checks: []*structs.CheckDefinition{
 			{
@@ -5592,7 +5930,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		HTTPSHandshakeTimeout:                  2391 * time.Millisecond,
 		HTTPSPort:                              15127,
 		HTTPUseCache:                           false,
-		KeyFile:                                "IEkkwgIA",
 		KVMaxValueSize:                         1234567800,
 		LeaveDrainTime:                         8265 * time.Second,
 		LeaveOnTerm:                            true,
@@ -5966,9 +6303,43 @@ func TestLoad_FullConfig(t *testing.T) {
 				Name:       "ftO6DySn", // notice this is the same as the metrics prefix
 			},
 		},
-		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
-		TLSMinVersion:               "pAOWafkR",
-		TLSPreferServerCipherSuites: true,
+		TLS: tlsutil.Config{
+			InternalRPC: tlsutil.ProtocolConfig{
+				VerifyIncoming:       true,
+				CAFile:               "mKl19Utl",
+				CAPath:               "lOp1nhPa",
+				CertFile:             "dfJ4oPln",
+				KeyFile:              "aL1Knkpo",
+				TLSMinVersion:        "lPo1MklP",
+				CipherSuites:         []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				VerifyOutgoing:       true,
+				VerifyServerHostname: true,
+			},
+			GRPC: tlsutil.ProtocolConfig{
+				VerifyIncoming: true,
+				CAFile:         "lOp1nhJk",
+				CAPath:         "fLponKpl",
+				CertFile:       "a674klPn",
+				KeyFile:        "1y4prKjl",
+				TLSMinVersion:  "lPo4fNkl",
+				CipherSuites:   []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				VerifyOutgoing: false,
+			},
+			HTTPS: tlsutil.ProtocolConfig{
+				VerifyIncoming: true,
+				CAFile:         "7Yu1PolM",
+				CAPath:         "nu4PlHzn",
+				CertFile:       "1yrhPlMk",
+				KeyFile:        "1bHapOkL",
+				TLSMinVersion:  "mK14iOpz",
+				CipherSuites:   []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				VerifyOutgoing: true,
+			},
+			NodeName:                "otlLxGaI",
+			ServerName:              "Oerr9n1G",
+			Domain:                  "7W1xXSqd",
+			EnableAgentTLSForChecks: true,
+		},
 		TaggedAddresses: map[string]string{
 			"7MYgHrYH": "dALJAhLD",
 			"h6DdBy6K": "ebrr9zZ8",
@@ -5997,14 +6368,9 @@ func TestLoad_FullConfig(t *testing.T) {
 			},
 			DashboardURLTemplates: map[string]string{"u2eziu2n_lower_case": "http://lkjasd.otr"},
 		},
-		UnixSocketUser:       "E0nB1DwA",
-		UnixSocketGroup:      "8pFodrV8",
-		UnixSocketMode:       "E8sAwOv4",
-		VerifyIncoming:       true,
-		VerifyIncomingHTTPS:  true,
-		VerifyIncomingRPC:    true,
-		VerifyOutgoing:       true,
-		VerifyServerHostname: true,
+		UnixSocketUser:  "E0nB1DwA",
+		UnixSocketGroup: "8pFodrV8",
+		UnixSocketMode:  "E8sAwOv4",
 		Watches: []map[string]interface{}{
 			{
 				"type":       "key",
@@ -6038,6 +6404,18 @@ func TestLoad_FullConfig(t *testing.T) {
 		deprecationWarning("acl_ttl", "acl.token_ttl"),
 		deprecationWarning("acl_enable_key_list_policy", "acl.enable_key_list_policy"),
 		`bootstrap_expect > 0: expecting 53 servers`,
+		deprecationWarning("ca_file", "tls.defaults.ca_file"),
+		deprecationWarning("ca_path", "tls.defaults.ca_path"),
+		deprecationWarning("cert_file", "tls.defaults.cert_file"),
+		deprecationWarning("key_file", "tls.defaults.key_file"),
+		deprecationWarning("tls_cipher_suites", "tls.defaults.tls_cipher_suites"),
+		deprecationWarning("tls_min_version", "tls.defaults.tls_min_version"),
+		deprecationWarning("verify_incoming", "tls.defaults.verify_incoming"),
+		deprecationWarning("verify_incoming_https", "tls.https.verify_incoming"),
+		deprecationWarning("verify_incoming_rpc", "tls.internal_rpc.verify_incoming"),
+		deprecationWarning("verify_outgoing", "tls.defaults.verify_outgoing"),
+		deprecationWarning("verify_server_hostname", "tls.internal_rpc.verify_server_hostname"),
+		"The 'tls_prefer_server_cipher_suites' field is deprecated and will be ignored.",
 	}
 	expectedWarns = append(expectedWarns, enterpriseConfigKeyWarnings...)
 
@@ -6350,34 +6728,38 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 		HTTPSAddrs: []net.Addr{
 			&net.TCPAddr{IP: net.ParseIP("198.18.0.2"), Port: 5678},
 		},
-		Datacenter:     "dc-test",
-		CAFile:         "/etc/consul/ca.crt",
-		CAPath:         "/etc/consul/ca.dir",
-		CertFile:       "/etc/consul/server.crt",
-		KeyFile:        "/etc/consul/ssl/server.key",
-		VerifyOutgoing: false,
+		Datacenter: "dc-test",
+		TLS: tlsutil.Config{
+			HTTPS: tlsutil.ProtocolConfig{
+				CAFile:         "/etc/consul/ca.crt",
+				CAPath:         "/etc/consul/ca.dir",
+				CertFile:       "/etc/consul/server.crt",
+				KeyFile:        "/etc/consul/ssl/server.key",
+				VerifyOutgoing: false,
+			},
+		},
 	}
 
 	cfg, err := rt.APIConfig(false)
 	require.NoError(t, err)
 	require.Equal(t, "198.18.0.2:5678", cfg.Address)
 	require.Equal(t, "https", cfg.Scheme)
-	require.Equal(t, rt.CAFile, cfg.TLSConfig.CAFile)
-	require.Equal(t, rt.CAPath, cfg.TLSConfig.CAPath)
+	require.Equal(t, rt.TLS.HTTPS.CAFile, cfg.TLSConfig.CAFile)
+	require.Equal(t, rt.TLS.HTTPS.CAPath, cfg.TLSConfig.CAPath)
 	require.Equal(t, "", cfg.TLSConfig.CertFile)
 	require.Equal(t, "", cfg.TLSConfig.KeyFile)
 	require.Equal(t, rt.Datacenter, cfg.Datacenter)
 	require.Equal(t, true, cfg.TLSConfig.InsecureSkipVerify)
 
-	rt.VerifyOutgoing = true
+	rt.TLS.HTTPS.VerifyOutgoing = true
 	cfg, err = rt.APIConfig(true)
 	require.NoError(t, err)
 	require.Equal(t, "198.18.0.2:5678", cfg.Address)
 	require.Equal(t, "https", cfg.Scheme)
-	require.Equal(t, rt.CAFile, cfg.TLSConfig.CAFile)
-	require.Equal(t, rt.CAPath, cfg.TLSConfig.CAPath)
-	require.Equal(t, rt.CertFile, cfg.TLSConfig.CertFile)
-	require.Equal(t, rt.KeyFile, cfg.TLSConfig.KeyFile)
+	require.Equal(t, rt.TLS.HTTPS.CAFile, cfg.TLSConfig.CAFile)
+	require.Equal(t, rt.TLS.HTTPS.CAPath, cfg.TLSConfig.CAPath)
+	require.Equal(t, rt.TLS.HTTPS.CertFile, cfg.TLSConfig.CertFile)
+	require.Equal(t, rt.TLS.HTTPS.KeyFile, cfg.TLSConfig.KeyFile)
 	require.Equal(t, rt.Datacenter, cfg.Datacenter)
 	require.Equal(t, false, cfg.TLSConfig.InsecureSkipVerify)
 }
@@ -6513,86 +6895,6 @@ func TestRuntime_ClientAddressAnyV6(t *testing.T) {
 	require.Equal(t, "unix:///var/run/foo", unix)
 	require.Equal(t, "[::1]:5678", http)
 	require.Equal(t, "[::1]:5688", https)
-}
-
-func TestRuntime_ToTLSUtilConfig(t *testing.T) {
-	c := &RuntimeConfig{
-		VerifyIncoming:              true,
-		VerifyIncomingRPC:           true,
-		VerifyIncomingHTTPS:         true,
-		VerifyOutgoing:              true,
-		VerifyServerHostname:        true,
-		CAFile:                      "a",
-		CAPath:                      "b",
-		CertFile:                    "c",
-		KeyFile:                     "d",
-		NodeName:                    "e",
-		ServerName:                  "f",
-		DNSDomain:                   "g",
-		TLSMinVersion:               "tls12",
-		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA},
-		TLSPreferServerCipherSuites: true,
-		EnableAgentTLSForChecks:     true,
-		AutoEncryptTLS:              true,
-	}
-	r := c.ToTLSUtilConfig()
-	require.True(t, r.VerifyIncoming)
-	require.True(t, r.VerifyIncomingRPC)
-	require.True(t, r.VerifyIncomingHTTPS)
-	require.True(t, r.VerifyOutgoing)
-	require.True(t, r.EnableAgentTLSForChecks)
-	require.True(t, r.AutoTLS)
-	require.True(t, r.VerifyServerHostname)
-	require.True(t, r.PreferServerCipherSuites)
-	require.Equal(t, "a", r.CAFile)
-	require.Equal(t, "b", r.CAPath)
-	require.Equal(t, "c", r.CertFile)
-	require.Equal(t, "d", r.KeyFile)
-	require.Equal(t, "e", r.NodeName)
-	require.Equal(t, "f", r.ServerName)
-	require.Equal(t, "g", r.Domain)
-	require.Equal(t, "tls12", r.TLSMinVersion)
-	require.Equal(t, []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA}, r.CipherSuites)
-}
-
-func TestRuntime_ToTLSUtilConfig_AutoConfig(t *testing.T) {
-	c := &RuntimeConfig{
-		VerifyIncoming:              true,
-		VerifyIncomingRPC:           true,
-		VerifyIncomingHTTPS:         true,
-		VerifyOutgoing:              true,
-		VerifyServerHostname:        true,
-		CAFile:                      "a",
-		CAPath:                      "b",
-		CertFile:                    "c",
-		KeyFile:                     "d",
-		NodeName:                    "e",
-		ServerName:                  "f",
-		DNSDomain:                   "g",
-		TLSMinVersion:               "tls12",
-		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA},
-		TLSPreferServerCipherSuites: true,
-		EnableAgentTLSForChecks:     true,
-		AutoConfig:                  AutoConfig{Enabled: true},
-	}
-	r := c.ToTLSUtilConfig()
-	require.True(t, r.VerifyIncoming)
-	require.True(t, r.VerifyIncomingRPC)
-	require.True(t, r.VerifyIncomingHTTPS)
-	require.True(t, r.VerifyOutgoing)
-	require.True(t, r.EnableAgentTLSForChecks)
-	require.True(t, r.AutoTLS)
-	require.True(t, r.VerifyServerHostname)
-	require.True(t, r.PreferServerCipherSuites)
-	require.Equal(t, "a", r.CAFile)
-	require.Equal(t, "b", r.CAPath)
-	require.Equal(t, "c", r.CertFile)
-	require.Equal(t, "d", r.KeyFile)
-	require.Equal(t, "e", r.NodeName)
-	require.Equal(t, "f", r.ServerName)
-	require.Equal(t, "g", r.Domain)
-	require.Equal(t, "tls12", r.TLSMinVersion)
-	require.Equal(t, []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA}, r.CipherSuites)
 }
 
 func Test_UIPathBuilder(t *testing.T) {

@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -38,11 +39,11 @@ func TestAutoEncryptSign(t *testing.T) {
 
 	tests := []test{
 		{Name: "Works with defaults", Config: tlsutil.Config{}, ConnError: false},
-		{Name: "Works with good root", Config: tlsutil.Config{CAFile: root}, ConnError: false},
-		{Name: "VerifyOutgoing fails because of bad root", Config: tlsutil.Config{CAFile: badRoot}, ConnError: true},
-		{Name: "VerifyServerHostname fails", Config: tlsutil.Config{VerifyServerHostname: true, CAFile: root}, ConnError: false, RPCError: true},
+		{Name: "Works with good root", Config: tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{CAFile: root}}, ConnError: false},
+		{Name: "VerifyOutgoing fails because of bad root", Config: tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{CAFile: badRoot}}, ConnError: true},
+		{Name: "VerifyServerHostname fails", Config: tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{CAFile: root, VerifyServerHostname: true}}, ConnError: false, RPCError: true},
 		{Name: "VerifyServerHostname succeeds", Cert: "../../test/key/ourdomain_server.cer", Key: "../../test/key/ourdomain_server.key",
-			Config: tlsutil.Config{VerifyServerHostname: true, CAFile: root}, ConnError: false, RPCError: false},
+			Config: tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{VerifyServerHostname: true, CAFile: root}}, ConnError: false, RPCError: false},
 	}
 
 	for i, test := range tests {
@@ -59,10 +60,10 @@ func TestAutoEncryptSign(t *testing.T) {
 				c.AutoEncryptAllowTLS = true
 				c.PrimaryDatacenter = "dc1"
 				c.Bootstrap = true
-				c.TLSConfig.CAFile = root
-				c.TLSConfig.VerifyOutgoing = true
-				c.TLSConfig.CertFile = cert
-				c.TLSConfig.KeyFile = key
+				c.TLSConfig.InternalRPC.CAFile = root
+				c.TLSConfig.InternalRPC.VerifyOutgoing = true
+				c.TLSConfig.InternalRPC.CertFile = cert
+				c.TLSConfig.InternalRPC.KeyFile = key
 			})
 			defer os.RemoveAll(dir)
 			defer s.Shutdown()

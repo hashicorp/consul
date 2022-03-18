@@ -11,10 +11,11 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/memberlist"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -166,14 +167,13 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		err = ioutil.WriteFile(keyfile, []byte(key), 0600)
 		require.NoError(t, err)
 
-		c.TLSConfig.CAFile = cafile
-		c.TLSConfig.CertFile = certfile
-		c.TLSConfig.KeyFile = keyfile
-		c.TLSConfig.VerifyOutgoing = true
-		c.TLSConfig.VerifyIncoming = true
-		c.TLSConfig.VerifyServerHostname = true
-		c.TLSConfig.TLSMinVersion = "tls12"
-		c.TLSConfig.PreferServerCipherSuites = true
+		c.TLSConfig.InternalRPC.CAFile = cafile
+		c.TLSConfig.InternalRPC.CertFile = certfile
+		c.TLSConfig.InternalRPC.KeyFile = keyfile
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.TLSMinVersion = "tls12"
 
 		c.ConnectEnabled = true
 		c.AutoEncryptAllowTLS = true
@@ -187,10 +187,12 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 
 	// TODO: use s.config.TLSConfig directly instead of creating a new one?
 	conf := tlsutil.Config{
-		CAFile:               s.config.TLSConfig.CAFile,
-		VerifyServerHostname: s.config.TLSConfig.VerifyServerHostname,
-		VerifyOutgoing:       s.config.TLSConfig.VerifyOutgoing,
-		Domain:               s.config.TLSConfig.Domain,
+		InternalRPC: tlsutil.ProtocolConfig{
+			CAFile:               s.config.TLSConfig.InternalRPC.CAFile,
+			VerifyServerHostname: s.config.TLSConfig.InternalRPC.VerifyServerHostname,
+			VerifyOutgoing:       s.config.TLSConfig.InternalRPC.VerifyOutgoing,
+		},
+		Domain: s.config.TLSConfig.Domain,
 	}
 	codec, err := insecureRPCClient(s, conf)
 	require.NoError(t, err)
@@ -281,10 +283,9 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 						RetryJoinLAN: []string{joinAddr.String()},
 					},
 					TLS: &pbconfig.TLS{
-						VerifyOutgoing:           true,
-						VerifyServerHostname:     true,
-						MinVersion:               "tls12",
-						PreferServerCipherSuites: true,
+						VerifyOutgoing:       true,
+						VerifyServerHostname: true,
+						MinVersion:           "tls12",
 					},
 				},
 			},
@@ -414,42 +415,42 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 	cases := map[string]testCase{
 		"secure": {
 			tlsConfig: tlsutil.Config{
-				VerifyOutgoing:           true,
-				VerifyServerHostname:     true,
-				TLSMinVersion:            "tls12",
-				PreferServerCipherSuites: true,
-				CAFile:                   cafile,
-				CipherSuites:             parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+				InternalRPC: tlsutil.ProtocolConfig{
+					VerifyServerHostname: true,
+					VerifyOutgoing:       true,
+					TLSMinVersion:        "tls12",
+					CAFile:               cafile,
+					CipherSuites:         parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+				},
 			},
 			expected: pbautoconf.AutoConfigResponse{
 				Config: &pbconfig.Config{
 					TLS: &pbconfig.TLS{
-						VerifyOutgoing:           true,
-						VerifyServerHostname:     true,
-						MinVersion:               "tls12",
-						PreferServerCipherSuites: true,
-						CipherSuites:             "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+						VerifyOutgoing:       true,
+						VerifyServerHostname: true,
+						MinVersion:           "tls12",
+						CipherSuites:         "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
 					},
 				},
 			},
 		},
 		"less-secure": {
 			tlsConfig: tlsutil.Config{
-				VerifyOutgoing:           true,
-				VerifyServerHostname:     false,
-				TLSMinVersion:            "tls10",
-				PreferServerCipherSuites: false,
-				CAFile:                   cafile,
-				CipherSuites:             parseCiphers(t, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+				InternalRPC: tlsutil.ProtocolConfig{
+					VerifyServerHostname: false,
+					VerifyOutgoing:       true,
+					TLSMinVersion:        "tls10",
+					CAFile:               cafile,
+					CipherSuites:         parseCiphers(t, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+				},
 			},
 			expected: pbautoconf.AutoConfigResponse{
 				Config: &pbconfig.Config{
 					TLS: &pbconfig.TLS{
-						VerifyOutgoing:           true,
-						VerifyServerHostname:     false,
-						MinVersion:               "tls10",
-						PreferServerCipherSuites: false,
-						CipherSuites:             "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+						VerifyOutgoing:       true,
+						VerifyServerHostname: false,
+						MinVersion:           "tls10",
+						CipherSuites:         "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
 					},
 				},
 			},
@@ -631,12 +632,13 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 				ConnectEnabled: true,
 			},
 			tlsConfig: tlsutil.Config{
-				VerifyOutgoing:           true,
-				VerifyServerHostname:     true,
-				TLSMinVersion:            "tls12",
-				PreferServerCipherSuites: true,
-				CAFile:                   cafile,
-				CipherSuites:             parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+				InternalRPC: tlsutil.ProtocolConfig{
+					VerifyServerHostname: true,
+					VerifyOutgoing:       true,
+					TLSMinVersion:        "tls12",
+					CAFile:               cafile,
+					CipherSuites:         parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+				},
 			},
 			expected: pbautoconf.AutoConfigResponse{
 				CARoots:             pbroots,
@@ -649,12 +651,13 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 				ConnectEnabled: true,
 			},
 			tlsConfig: tlsutil.Config{
-				VerifyOutgoing:           true,
-				VerifyServerHostname:     true,
-				TLSMinVersion:            "tls12",
-				PreferServerCipherSuites: true,
-				CAFile:                   cafile,
-				CipherSuites:             parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+				InternalRPC: tlsutil.ProtocolConfig{
+					VerifyServerHostname: true,
+					VerifyOutgoing:       true,
+					TLSMinVersion:        "tls12",
+					CAFile:               cafile,
+					CipherSuites:         parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+				},
 			},
 			opts: AutoConfigOptions{
 				NodeName: "test",

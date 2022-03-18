@@ -143,11 +143,13 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	registerWithGRPC(t, res)
 
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
-		VerifyIncoming: true,
-		VerifyOutgoing: true,
-		CAFile:         "../../test/hostname/CertAuth.crt",
-		CertFile:       "../../test/hostname/Alice.crt",
-		KeyFile:        "../../test/hostname/Alice.key",
+		InternalRPC: tlsutil.ProtocolConfig{
+			VerifyIncoming: true,
+			CAFile:         "../../test/hostname/CertAuth.crt",
+			CertFile:       "../../test/hostname/Alice.crt",
+			KeyFile:        "../../test/hostname/Alice.key",
+			VerifyOutgoing: true,
+		},
 	}, hclog.New(nil))
 	require.NoError(t, err)
 
@@ -188,14 +190,16 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	registerWithGRPC(t, res)
 
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
-		VerifyIncoming:       true,
-		VerifyOutgoing:       true,
-		VerifyServerHostname: true,
-		CAFile:               "../../test/hostname/CertAuth.crt",
-		CertFile:             "../../test/hostname/Bob.crt",
-		KeyFile:              "../../test/hostname/Bob.key",
-		Domain:               "consul",
-		NodeName:             "bob",
+		InternalRPC: tlsutil.ProtocolConfig{
+			VerifyIncoming:       true,
+			CAFile:               "../../test/hostname/CertAuth.crt",
+			CertFile:             "../../test/hostname/Bob.crt",
+			KeyFile:              "../../test/hostname/Bob.key",
+			VerifyOutgoing:       true,
+			VerifyServerHostname: true,
+		},
+		Domain:   "consul",
+		NodeName: "bob",
 	}, hclog.New(nil))
 	require.NoError(t, err)
 
@@ -216,14 +220,16 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	t.Cleanup(srv.shutdown)
 
 	clientTLSConf, err := tlsutil.NewConfigurator(tlsutil.Config{
-		VerifyIncoming:       true,
-		VerifyOutgoing:       true,
-		VerifyServerHostname: true,
-		CAFile:               "../../test/hostname/CertAuth.crt",
-		CertFile:             "../../test/hostname/Betty.crt",
-		KeyFile:              "../../test/hostname/Betty.key",
-		Domain:               "consul",
-		NodeName:             "betty",
+		InternalRPC: tlsutil.ProtocolConfig{
+			VerifyIncoming:       true,
+			CAFile:               "../../test/hostname/CertAuth.crt",
+			CertFile:             "../../test/hostname/Betty.crt",
+			KeyFile:              "../../test/hostname/Betty.key",
+			VerifyOutgoing:       true,
+			VerifyServerHostname: true,
+		},
+		Domain:   "consul",
+		NodeName: "betty",
 	}, hclog.New(nil))
 	require.NoError(t, err)
 

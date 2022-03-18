@@ -294,11 +294,11 @@ Use these links to navigate to a particular top-level stanza.
       in the server certificate. This is useful when you need to access the
       Consul server(s) externally, for example, if you're using the UI.
 
-    - `verify` ((#v-global-tls-verify)) (`boolean: true`) - If true, `verify_outgoing`, `verify_server_hostname`,
-      and `verify_incoming_rpc` will be set to `true` for Consul servers and clients.
-      Set this to false to incrementally roll out TLS on an existing Consul cluster.
-      Please see https://consul.io/docs/k8s/operations/tls-on-existing-cluster
-      for more details.
+    - `verify` ((#v-global-tls-verify)) (`boolean: true`) - If true, `tls.defaults.verify_outgoing`,
+      `tls.internal_rpc.verify_server_hostname`, and `tls.internal_rpc.verify_incoming` will be set
+      to `true` for Consul servers and clients. Set this to false to incrementally roll out TLS
+      on an existing Consul cluster.
+      Please see https://consul.io/docs/k8s/operations/tls-on-existing-cluster for more details.
 
     - `httpsOnly` ((#v-global-tls-httpsonly)) (`boolean: true`) - If true, the Helm chart will configure Consul to disable the HTTP port on
       both clients and servers and to only accept HTTPS connections.

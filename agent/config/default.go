@@ -55,7 +55,12 @@ func DefaultSource() Source {
 
 		server = false
 		syslog_facility = "LOCAL0"
-		tls_min_version = "tls12"
+
+		tls = {
+			defaults = {
+				tls_min_version = "tls12"
+			}
+		}
 
 		// TODO (slackpad) - Until #3744 is done, we need to keep these
 		// in sync with agent/consul/config.go.

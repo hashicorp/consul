@@ -222,11 +222,9 @@ func NewGRPCServer(s *Server, tlsConfigurator *tlsutil.Configurator) *grpc.Serve
 			recovery.StreamServerInterceptor(recoveryOpts...),
 		),
 	}
-	if tlsConfigurator != nil {
-		if tlsConfigurator.Cert() != nil {
-			creds := credentials.NewTLS(tlsConfigurator.IncomingGRPCConfig())
-			opts = append(opts, grpc.Creds(creds))
-		}
+	if tlsConfigurator != nil && tlsConfigurator.GRPCTLSConfigured() {
+		creds := credentials.NewTLS(tlsConfigurator.IncomingGRPCConfig())
+		opts = append(opts, grpc.Creds(creds))
 	}
 	srv := grpc.NewServer(opts...)
 	envoy_discovery_v3.RegisterAggregatedDiscoveryServiceServer(srv, s)

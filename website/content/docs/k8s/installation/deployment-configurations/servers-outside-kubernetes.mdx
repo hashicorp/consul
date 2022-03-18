@@ -56,7 +56,7 @@ You may also consider adopting Consul Enterprise for
 
 -> **Note:** Consul on Kubernetes currently does not support external servers that require mutual authentication
 for the HTTPS clients of the Consul servers, that is when servers have either
-`verify_incoming` or `verify_incoming_https` set to `true`.
+`tls.defaults.verify_incoming` or `tls.https.verify_incoming` set to `true`.
 As noted in the [Security Model](/docs/security#secure-configuration),
 that setting isn't strictly necessary to support Consul's threat model as it is recommended that
 all requests contain a valid ACL token.

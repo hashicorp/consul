@@ -72,29 +72,33 @@ environment and adapt these configurations accordingly.
 - **mTLS** - Mutual authentication of both the TLS server and client x509 certificates prevents internal abuse through
   unauthorized access to Consul agents within the cluster.
 
-  - [`verify_incoming`](/docs/agent/options#verify_incoming) - By default this is false, and should almost always be set
-    to true to require TLS verification for incoming client connections. This applies to both server RPC and to the
-    HTTPS API.
+  - [`tls.defaults.verify_incoming`](/docs/agent/options#tls_defaults_verify_incoming) - By default this is false, and
+    should almost always be set to true to require TLS verification for incoming client connections. This applies to the
+    internal RPC, HTTPS and gRPC APIs.
 
-  - [`verify_incoming_https`](/docs/agent/options#verify_incoming_https) - By default this is false, and should be set
-    to true to require clients to provide a valid TLS certificate when the Consul HTTPS API is enabled. TLS for the API
-    may be not be necessary if it is exclusively served over a loopback interface such as `localhost`.
+  - [`tls.https.verify_incoming`](/docs/agent/options#tls_https_verify_incoming) - By default this is false, and should
+    be set to true to require clients to provide a valid TLS certificate when the Consul HTTPS API is enabled. TLS for
+    the API may be not be necessary if it is exclusively served over a loopback interface such as `localhost`.
 
-  - [`verify_incoming_rpc`](/docs/agent/options#verify_incoming_rpc) - By default this is false, and should almost
-    always be set to true to require clients to provide a valid TLS certificate for Consul agent RPCs.
+  - [`tls.internal_rpc.verify_incoming`](/docs/agent/options#tls_internal_rpc_verify_incoming) - By default this is false,
+    and should almost always be set to true to require clients to provide a valid TLS certificate for Consul agent RPCs.
 
-  - [`verify_outgoing`](/docs/agent/options#verify_outgoing) - By default this is false, and should be set to true to
-    require TLS for outgoing connections from server or client agents. Servers that specify `verify_outgoing = true`
-    will always talk to other servers over TLS, but they still accept non-TLS connections to allow for a transition of
-    all clients to TLS. Currently the only way to enforce that no client can communicate with a server unencrypted is
-    to also enable `verify_incoming` which requires client certificates too.
+  - [`tls.grpc.verify_incoming`](/docs/agent/options#tls_grpc_verify_incoming) - By default this is false, and should
+    be set to true to require clients to provide a valid TLS certificate when the Consul gRPC API is enabled. TLS for
+    the API may be not be necessary if it is exclusively served over a loopback interface such as `localhost`.
+
+  - [`tls.internal_rpc.verify_outgoing`](/docs/agent/options#tls_internal_rpc_verify_outgoing) - By default this is false,
+    and should be set to true to require TLS for outgoing connections from server or client agents. Servers that specify
+    `verify_outgoing = true` will always talk to other servers over TLS, but they still accept non-TLS connections to allow
+    for a transition of all clients to TLS. Currently the only way to enforce that no client can communicate with a server
+    unencrypted is to also enable `verify_incoming` which requires client certificates too.
 
   - [`enable_agent_tls_for_checks`](/docs/agent/options#enable_agent_tls_for_checks) - By default this is false, and
     should almost always be set to true to require mTLS to set up the client for HTTP or gRPC health checks. This was
     added in Consul 1.0.1.
 
-  - [`verify_server_hostname`](/docs/agent/options#verify_server_hostname) - By default this is false, and should be
-    set to true to require that the TLS certificate presented by the servers matches
+  - [`tls.internal_rpc.verify_server_hostname`](/docs/agent/options#tls_internal_rpc_verify_server_hostname) - By default
+    this is false, and should be set to true to require that the TLS certificate presented by the servers matches
     `server.<datacenter>.<domain>` hostname for outgoing TLS connections. The default configuration does not verify the
     hostname of the certificate, only that it is signed by a trusted CA. This setting is critical to prevent a
     compromised client agent from being restarted as a server and having all cluster state including all ACL tokens and
@@ -105,7 +109,7 @@ environment and adapt these configurations accordingly.
     in 1.4.1.
 
   - [`auto_encrypt`](/docs/agent/options#auto_encrypt) - Enables automated TLS certificate distribution for client
-    agent RPC communication using the Connect CA. Using this configuration a [`ca_file`](/docs/agent/options#ca_file)
+    agent RPC communication using the Connect CA. Using this configuration a [`ca_file`](/docs/agent/options#tls_defaults_ca_file)
     and ACL token would still need to be distributed to client agents.
 
     - [`allow_tls`](/docs/agent/options#allow_tls) - By default this is false, and should be set to true on server
@@ -117,35 +121,48 @@ environment and adapt these configurations accordingly.
     **Example Server Agent TLS Configuration**
 
     ```hcl
-    verify_incoming        = true
-    verify_outgoing        = true
-    verify_server_hostname = true
+    tls {
+      defaults {
+        verify_incoming = true
+        verify_outgoing = true
+        ca_file = "consul-agent-ca.pem"
+        cert_file = "dc1-server-consul-0.pem"
+        key_file = "dc1-server-consul-0-key.pem"
+      }
 
-    ca_file   = "consul-agent-ca.pem"
-    cert_file = "dc1-server-consul-0.pem"
-    key_file  = "dc1-server-consul-0-key.pem"
+      internal_rpc {
+        verify_server_hostname = true
+      }
+    }
 
     auto_encrypt {
-    	allow_tls = true
+      allow_tls = true
     }
     ```
 
     **Example Client Agent TLS Configuration**
 
     ```hcl
-    verify_incoming        = false
-    verify_outgoing        = true
-    verify_server_hostname = true
+    tls {
+      defaults {
+        verify_incoming = false
+        verify_outgoing = true
+        ca_file = "consul-agent-ca.pem"
+      }
 
-    ca_file = "consul-agent-ca.pem"
+      internal_rpc {
+        verify_server_hostname = true
+      }
+    }
+
 
     auto_encrypt {
-    	tls = true
+      tls = true
     }
     ```
 
-    -> The client agent TLS configuration from above sets [`verify_incoming`](/docs/agent/options#verify_incoming) to
-    false which assumes all incoming traffic is restricted to `localhost`. The primary benefit for this configuration
+    -> The client agent TLS configuration from above sets [`verify_incoming`](/docs/agent/options#tls_defaults_verify_incoming)
+    to false which assumes all incoming traffic is restricted to `localhost`. The primary benefit for this configuration
     would be to avoid provisioning client TLS certificates (in addition to ACL tokens) for all tools or applications
     using the local Consul agent. In this case ACLs should be enabled to provide authorization and only ACL tokens would
     need to be distributed.
@@ -223,15 +240,12 @@ environment and adapt these configurations accordingly.
 - **Linux Security Modules** - Use of security modules that can be directly integrated into operating systems such as
   AppArmor, SElinux, and Seccomp on Consul agent hosts.
 
-- **Customize TLS Settings** - TLS settings such as the [available cipher suites](/docs/agent/options#tls_cipher_suites),
+- **Customize TLS Settings** - TLS settings such as the [available cipher suites](/docs/agent/options#tls_defaults_tls_cipher_suites),
   should be tuned to fit the needs of your environment.
 
-  - [`tls_min_version`](/docs/agent/options#tls_min_version) - Used to specify the minimum TLS version to use.
+  - [`tls_min_version`](/docs/agent/options#tls_defaults_tls_min_version) - Used to specify the minimum TLS version to use.
 
-  - [`tls_cipher_suites`](/docs/agent/options#tls_cipher_suites) - Used to specify which TLS cipher suites are allowed.
-
-  - [`tls_prefer_server_cipher_suites`](/docs/agent/options#tls_prefer_server_cipher_suites) - Used to specify which TLS
-    cipher suites are preferred on the server side.
+  - [`tls_cipher_suites`](/docs/agent/options#tls_defaults_tls_cipher_suites) - Used to specify which TLS cipher suites are allowed.
 
 - **Customize HTTP Response Headers** - Additional security headers, such as
   [`X-XSS-Protection`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection), can be

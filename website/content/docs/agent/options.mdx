@@ -2446,114 +2446,197 @@ There are also a number of common configuration options supported by all provide
 ## TLS Configuration Reference
 
 This section documents all of the configuration settings that apply to Agent TLS. Agent
-TLS is used by the HTTP API, server RPC, and xDS interfaces. Some of these settings may also be
-applied automatically by [auto_config](#auto_config) or [auto_encrypt](#auto_encrypt).
+TLS is used by the HTTP API, internal RPC, and gRPC/xDS interfaces. Some of these settings
+may also be applied automatically by [auto_config](#auto_config) or [auto_encrypt](#auto_encrypt).
 
-~> **Security Note:** The Certificate Authority (CA) specified by `ca_file` or `ca_path`
-should be a private CA, not a public one. We recommend using a dedicated CA
-which should not be used with any other systems. Any certificate signed by the
-CA will be allowed to communicate with the cluster and a specially crafted certificate
-signed by the CA can be used to gain full access to Consul.
+~> **Security Note:** The Certificate Authority (CA) configured on the internal RPC interface
+(either explicitly by `tls.internal_rpc` or implicitly by `tls.defaults`) should be a private
+CA, not a public one. We recommend using a dedicated CA which should not be used with any other
+systems. Any certificate signed by the CA will be allowed to communicate with the cluster and a
+specially crafted certificate signed by the CA can be used to gain full access to Consul.
 
-- `ca_file` This provides a file path to a PEM-encoded certificate
-  authority. The certificate authority is used to check the authenticity of client
-  and server connections with the appropriate [`verify_incoming`](#verify_incoming)
-  or [`verify_outgoing`](#verify_outgoing) flags.
+- `tls` Added in Consul 1.12, for previous versions see
+  [Deprecated Options](#tls_deprecated_options).
 
-- `ca_path` This provides a path to a directory of PEM-encoded
-  certificate authority files. These certificate authorities are used to check the
-  authenticity of client and server connections with the appropriate [`verify_incoming`](#verify_incoming) or [`verify_outgoing`](#verify_outgoing) flags.
+  - `defaults` ((#tls_defaults)) Provides default settings that will be applied
+    to every interface unless explicitly overridden by `tls.grpc`, `tls.https`,
+    or `tls.internal_rpc`.
 
-- `cert_file` This provides a file path to a PEM-encoded
-  certificate. The certificate is provided to clients or servers to verify the agent's
-  authenticity. It must be provided along with [`key_file`](#key_file).
+    - `ca_file` ((#tls_defaults_ca_file)) This provides a file path to a
+      PEM-encoded certificate authority. The certificate authority is used to
+      check the authenticity of client and server connections with the
+      appropriate [`verify_incoming`](#tls_defaults_verify_incoming) or
+      [`verify_outgoing`](#tls_defaults_verify_outgoing) flags.
 
-- `key_file` This provides a the file path to a PEM-encoded
-  private key. The key is used with the certificate to verify the agent's authenticity.
-  This must be provided along with [`cert_file`](#cert_file).
+    - `ca_path` ((#tls_defaults_ca_path)) This provides a path to a directory
+      of PEM-encoded certificate authority files. These certificate authorities
+      are used to check the authenticity of client and server connections with
+      the appropriate [`verify_incoming`](#tls_defaults_verify_incoming) or
+      [`verify_outgoing`](#tls_defaults_verify_outgoing) flags.
+
+    - `cert_file` ((#tls_defaults_cert_file)) This provides a file path to a
+      PEM-encoded certificate. The certificate is provided to clients or servers
+      to verify the agent's authenticity. It must be provided along with
+      [`key_file`](#tls_defaults_key_file).
+
+    - `key_file` ((#tls_defaults_key_file)) This provides a the file path to a
+      PEM-encoded private key. The key is used with the certificate to verify
+      the agent's authenticity. This must be provided along with
+      [`cert_file`](#tls_defaults_cert_file).
+
+    - `tls_min_version` ((#tls_defaults_tls_min_version)) This specifies the
+      minimum supported version of TLS. Accepted values are "tls10", "tls11",
+      "tls12", or "tls13". This defaults to "tls12". **WARNING: TLS 1.1 and
+      lower are generally considered less secure; avoid using these if
+      possible.**
+
+    - `tls_cipher_suites` ((#tls_defaults_tls_cipher_suites)) This specifies
+      the list of supported ciphersuites as a comma-separated-list. Applicable
+      to TLS 1.2 and below only. The list of all supported ciphersuites is
+      available through [this search](https://github.com/hashicorp/consul/search?q=cipherMap+%3A%3D+map&unscoped_q=cipherMap+%3A%3D+map).
+
+      ~> **Note:** The ordering of cipher suites will not be guaranteed from
+      Consul 1.11 onwards. See this [post](https://go.dev/blog/tls-cipher-suites)
+      for details.
+
+    - `verify_incoming` - ((#tls_defaults_verify_incoming)) If set to true,
+      Consul requires that all incoming connections make use of TLS and that
+      the client provides a certificate signed by a Certificate Authority from
+      the [`ca_file`](#tls_defaults_ca_file) or [`ca_path`](#tls_defaults_ca_path).
+      By default, this is false, and Consul will not enforce the use of TLS or
+      verify a client's authenticity.
+
+    - `verify_outgoing` - ((#tls_defaults_verify_outgoing)) If set to true,
+      Consul requires that all outgoing connections from this agent make use
+      of TLS and that the server provides a certificate that is signed by a
+      Certificate Authority from the [`ca_file`](#tls_defaults_ca_file) or
+      [`ca_path`](#tls_defaults_ca_path). By default, this is false, and Consul
+      will not make use of TLS for outgoing connections. This applies to clients
+      and servers as both will make outgoing connections. This setting *does not*
+      apply to the gRPC interface as Consul makes no outgoing connections on this
+      interface.
+
+  - `grpc` ((#tls_grpc)) Provides settings for the gRPC/xDS interface. To enable
+    the gRPC interface you must define a port via [`ports.grpc`](#grpc_port).
+    To enable TLS on the gRPC interface you also must define an HTTPS port via
+    [`ports.https`](#https_port).
+
+    - `ca_file` ((#tls_grpc_ca_file)) Overrides [`tls.defaults.ca_file`](#tls_defaults_ca_file).
+
+    - `ca_path` ((#tls_grpc_ca_path)) Overrides [`tls.defaults.ca_path`](#tls_defaults_ca_path).
+
+    - `cert_file` ((#tls_grpc_cert_file)) Overrides [`tls.defaults.cert_file`](#tls_defaults_cert_file).
+
+    - `key_file` ((#tls_grpc_key_file)) Overrides [`tls.defaults.key_file`](#tls_defaults_key_file).
+
+    - `tls_min_version` ((#tls_grpc_tls_min_version)) Overrides [`tls.defaults.tls_min_version`](#tls_defaults_tls_min_version).
+
+    - `tls_cipher_suites` ((#tls_grpc_tls_cipher_suites)) Overrides [`tls.defaults.tls_cipher_suites`](#tls_defaults_tls_cipher_suites).
+
+    - `verify_incoming` - ((#tls_grpc_verify_incoming)) Overrides [`tls.defaults.verify_incoming`](#tls_defaults_verify_incoming).
+
+  - `https` ((#tls_https)) Provides settings for the HTTPS interface. To enable
+    the HTTPS interface you must define a port via [`ports.https`](#https_port).
+
+    - `ca_file` ((#tls_https_ca_file)) Overrides [`tls.defaults.ca_file`](#tls_defaults_ca_file).
+
+    - `ca_path` ((#tls_https_ca_path)) Overrides [`tls.defaults.ca_path`](#tls_defaults_ca_path).
+
+    - `cert_file` ((#tls_https_cert_file)) Overrides [`tls.defaults.cert_file`](#tls_defaults_cert_file).
+
+    - `key_file` ((#tls_https_key_file)) Overrides [`tls.defaults.key_file`](#tls_defaults_key_file).
+
+    - `tls_min_version` ((#tls_https_tls_min_version)) Overrides [`tls.defaults.tls_min_version`](#tls_defaults_tls_min_version).
+
+    - `tls_cipher_suites` ((#tls_https_tls_cipher_suites)) Overrides [`tls.defaults.tls_cipher_suites`](#tls_defaults_tls_cipher_suites).
+
+    - `verify_incoming` - ((#tls_https_verify_incoming)) Overrides [`tls.defaults.verify_incoming`](#tls_defaults_verify_incoming).
+
+    - `verify_outgoing` - ((#tls_https_verify_outgoing)) Overrides [`tls.defaults.verify_outgoing`](#tls_defaults_verify_outgoing).
+
+  - `internal_rpc` ((#tls_internal_rpc)) Provides settings for the internal
+    "server" RPC interface configured by [`ports.server`](#server_rpc_port).
+
+    - `ca_file` ((#tls_internal_rpc_ca_file)) Overrides [`tls.defaults.ca_file`](#tls_defaults_ca_file).
+
+    - `ca_path` ((#tls_internal_rpc_ca_path)) Overrides [`tls.defaults.ca_path`](#tls_defaults_ca_path).
+
+    - `cert_file` ((#tls_internal_rpc_cert_file)) Overrides [`tls.defaults.cert_file`](#tls_defaults_cert_file).
+
+    - `key_file` ((#tls_internal_rpc_key_file)) Overrides [`tls.defaults.key_file`](#tls_defaults_key_file).
+
+    - `tls_min_version` ((#tls_internal_rpc_tls_min_version)) Overrides [`tls.defaults.tls_min_version`](#tls_defaults_tls_min_version).
+
+    - `tls_cipher_suites` ((#tls_internal_rpc_tls_cipher_suites)) Overrides [`tls.defaults.tls_cipher_suites`](#tls_defaults_tls_cipher_suites).
+
+    - `verify_incoming` - ((#tls_internal_rpc_verify_incoming)) Overrides [`tls.defaults.verify_incoming`](#tls_defaults_verify_incoming).
+
+      ~> **Security Note:** `verify_incoming` *must* be set to true to prevent
+      anyone with access to the internal RPC port from gaining full access to
+      the Consul cluster.
+
+    - `verify_outgoing` ((#tls_internal_rpc_verify_outgoing)) Overrides [`tls.defaults.verify_outgoing`](#tls_defaults_verify_outgoing).
+
+      ~> **Security Note:** Servers that specify `verify_outgoing = true` will
+      always talk to other servers over TLS, but they still _accept_ non-TLS
+      connections to allow for a transition of all clients to TLS. Currently the
+      only way to enforce that no client can communicate with a server unencrypted
+      is to also enable `verify_incoming` which requires client certificates too.
+
+    - `verify_server_hostname` ((#tls_internal_rpc_verify_server_hostname)) When
+      set to true, Consul verifies the TLS certificate presented by the servers
+      match the hostname `server.<datacenter>.<domain>`. By default this is false,
+      and Consul does not verify the hostname of the certificate, only that it
+      is signed by a trusted CA. This setting *must* be enabled to prevent a
+      compromised client from gaining full read and write access to all cluster
+      data *including all ACL tokens and Connect CA root keys*.
 
 - `server_name` When provided, this overrides the [`node_name`](#_node)
   for the TLS certificate. It can be used to ensure that the certificate name matches
   the hostname we declare.
 
-- `tls_min_version` Added in Consul 0.7.4, this specifies
-  the minimum supported version of TLS. Accepted values are "tls10", "tls11", "tls12",
-  or "tls13". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally
-  considered less secure; avoid using these if possible.
+### Deprecated Options ((#tls_deprecated_options))
 
-- `tls_cipher_suites` Added in Consul 0.8.2, this specifies the list of
-  supported ciphersuites as a comma-separated-list. Applicable to TLS 1.2 and below only.
-  The list of all supported ciphersuites is available through
-  [this search](https://github.com/hashicorp/consul/search?q=cipherMap+%3A%3D+map&unscoped_q=cipherMap+%3A%3D+map).
+The following options were deprecated in Consul 1.12, please use the
+[`tls`](#tls) stanza instead.
 
-  ~> **Note:** The ordering of cipher suites will not be guaranteed from Consul 1.11 onwards. See this
-  [post](https://go.dev/blog/tls-cipher-suites) for details.
+- `ca_file` See: [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 
-- `tls_prefer_server_cipher_suites` Added in Consul 0.8.2, this
-  will cause Consul to prefer the server's ciphersuite over the client ciphersuites.
+- `ca_path` See: [`tls.defaults.ca_path`](#tls_defaults_ca_path).
 
-  ~> **Note:** This config will be deprecated in Consul 1.11. See this
-  [post](https://go.dev/blog/tls-cipher-suites) for details.
+- `cert_file` See: [`tls.defaults.cert_file`](#tls_defaults_cert_file).
 
-- `verify_incoming` - If set to true, Consul
-  requires that all incoming connections make use of TLS and that the client
-  provides a certificate signed by a Certificate Authority from the
-  [`ca_file`](#ca_file) or [`ca_path`](#ca_path). This applies to both server
-  RPC and to the HTTPS API. By default, this is false, and Consul will not
-  enforce the use of TLS or verify a client's authenticity. Turning on
-  `verify_incoming` on consul clients protects the HTTPS endpoint, by ensuring
-  that the certificate that is presented by a 3rd party tool to the HTTPS
-  endpoint was created by the CA that the consul client was setup with. If the
-  UI is served, the same checks are performed.
+- `key_file` See: [`tls.defaults.key_file`](#tls_defaults_key_file).
 
-- `verify_incoming_rpc` - When set to true, Consul
-  requires that all incoming RPC connections use TLS and that the client
-  provides a certificate signed by a Certificate Authority from the [`ca_file`](#ca_file)
-  or [`ca_path`](#ca_path). By default, this is false, and Consul will not enforce
-  the use of TLS or verify a client's authenticity.
+- `tls_min_version` Added in Consul 0.7.4.
+  See: [`tls.defaults.tls_min_version`](#tls_defaults_tls_min_version).
 
-  ~> **Security Note:** `verify_incoming_rpc` _must_ be set to true to prevent anyone
-  with access to the RPC port from gaining full access to the Consul cluster.
+- `tls_cipher_suites` Added in Consul 0.8.2.
+  See: [`tls.defaults.tls_cipher_suites`](#tls_defaults_tls_cipher_suites).
 
-- `verify_incoming_https` - If set to true,
-  Consul requires that all incoming HTTPS connections make use of TLS and that the
-  client provides a certificate signed by a Certificate Authority from the [`ca_file`](#ca_file)
-  or [`ca_path`](#ca_path). By default, this is false, and Consul will not enforce
-  the use of TLS or verify a client's authenticity. To enable the HTTPS API, you
-  must define an HTTPS port via the [`ports`](#ports) configuration. By default,
-  HTTPS is disabled.
+- `tls_prefer_server_cipher_suites` Added in Consul 0.8.2. This setting will
+  be ignored (see [this post](https://go.dev/blog/tls-cipher-suites) for details).
 
-- `verify_outgoing` - If set to true, Consul requires
-  that all outgoing connections from this agent make use of TLS and that the server
-  provides a certificate that is signed by a Certificate Authority from the [`ca_file`](#ca_file)
-  or [`ca_path`](#ca_path). By default, this is false, and Consul will not make use
-  of TLS for outgoing connections. This applies to clients and servers as both will
-  make outgoing connections.
+- `verify_incoming` See: [`tls.defaults.verify_incoming`](#tls_defaults_verify_incoming).
 
-  ~> **Security Note:** Note that servers that specify `verify_outgoing = true` will always talk to other servers over TLS, but they still _accept_
-  non-TLS connections to allow for a transition of all clients to TLS.
-  Currently the only way to enforce that no client can communicate with a
-  server unencrypted is to also enable `verify_incoming` which requires client
-  certificates too.
+- `verify_incoming_rpc` See: [`tls.internal_rpc.verify_incoming`](#tls_internal_rpc_verify_incoming).
 
-- `verify_server_hostname` - When set to true, Consul verifies the TLS certificate
-  presented by the servers match the hostname `server.<datacenter>.<domain>`.
-  By default this is false, and Consul does not verify the hostname
-  of the certificate, only that it is signed by a trusted CA. This setting _must_ be enabled
-  to prevent a compromised client from gaining full read and write access to all
-  cluster data _including all ACL tokens and Connect CA root keys_. This is new in 0.5.1.
+- `verify_incoming_https` See: [`tls.https.verify_incoming`](#tls_https_verify_incoming).
 
-  ~> **Security Note:** From versions 0.5.1 to 1.4.0, due to a bug, setting
-  this flag alone _does not_ imply `verify_outgoing` and leaves client to server
-  and server to server RPCs unencrypted despite the documentation stating otherwise. See
-  [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653)
-  for more details. For those versions you **must also set `verify_outgoing = true`** to ensure encrypted RPC connections.
+- `verify_outgoing` See: [`tls.defaults.verify_outgoing`](#tls_defaults_verify_outgoing).
+
+- `verify_server_hostname` See: [`tls.internal_rpc.verify_server_hostname`](#tls_internal_rpc_verify_server_hostname).
 
 ### Example Configuration File, with TLS
 
-~> **Security Note:** all three verify options should be set as `true` to enable secure mTLS communication, enabling both
-encryption and authentication. Failing to set [`verify_incoming`](#verify_incoming) or [`verify_outgoing`](#verify_outgoing)
-will result in TLS not being enabled at all, even when specifying a [`ca_file`](#ca_file), [`cert_file`](#cert_file), and [`key_file`](#key_file).
+~> **Security Note:** all three verify options should be set as `true` to enable
+secure mTLS communication, enabling both encryption and authentication. Failing
+to set [`verify_incoming`](#tls_defaults_verify_incoming) or
+[`verify_outgoing`](#tls_defaults_verify_outgoing) either in the
+interface-specific stanza (e.g. `tls.internal_rpc`, `tls.https`) or in
+`tls.defaults` will result in TLS not being enabled at all, even when specifying
+a [`ca_file`](#tls_defaults_ca_file), [`cert_file`](#tls_defaults_cert_file),
+and [`key_file`](#tls_defaults_key_file).
 
 See, especially, the use of the `ports` setting highlighted below.
 
@@ -2575,12 +2658,19 @@ ports {
   https = 8501
 }
 
-key_file = "/etc/pki/tls/private/my.key"
-cert_file = "/etc/pki/tls/certs/my.crt"
-ca_file = "/etc/pki/tls/certs/ca-bundle.crt"
-verify_incoming = true
-verify_outgoing = true
-verify_server_hostname = true
+tls {
+  defaults {
+    key_file = "/etc/pki/tls/private/my.key"
+    cert_file = "/etc/pki/tls/certs/my.crt"
+    ca_file = "/etc/pki/tls/certs/ca-bundle.crt"
+    verify_incoming = true
+    verify_outgoing = true
+  }
+
+  internal_rpc {
+    verify_server_hostname = true
+  }
+}
 ```
 
 </CodeBlockConfig>
@@ -2600,12 +2690,18 @@ verify_server_hostname = true
   "ports": {
     "https": 8501
   },
-  "key_file": "/etc/pki/tls/private/my.key",
-  "cert_file": "/etc/pki/tls/certs/my.crt",
-  "ca_file": "/etc/pki/tls/certs/ca-bundle.crt",
-  "verify_incoming": true,
-  "verify_outgoing": true,
-  "verify_server_hostname": true
+  "tls": {
+    "defaults": {
+      "key_file": "/etc/pki/tls/private/my.key",
+      "cert_file": "/etc/pki/tls/certs/my.crt",
+      "ca_file": "/etc/pki/tls/certs/ca-bundle.crt",
+      "verify_incoming": true,
+      "verify_outgoing": true
+    },
+    "internal_rpc": {
+      "verify_server_hostname": true
+    }
+  }
 }
 ```
 
@@ -2613,8 +2709,8 @@ verify_server_hostname = true
 
 </CodeTabs>
 
-Consul will not enable TLS for the HTTP API unless the `https` port has been
-assigned a port number `> 0`. We recommend using `8501` for `https` as this
+Consul will not enable TLS for the HTTP or gRPC API unless the `https` port has
+been assigned a port number `> 0`. We recommend using `8501` for `https` as this
 default will automatically work with some tooling.
 
 ## Ports Used

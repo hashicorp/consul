@@ -81,11 +81,12 @@ func translateConfig(c *pbconfig.Config) config.Config {
 	}
 
 	if t := c.TLS; t != nil {
-		result.VerifyOutgoing = &t.VerifyOutgoing
-		result.VerifyServerHostname = &t.VerifyServerHostname
-		result.TLSMinVersion = stringPtrOrNil(t.MinVersion)
-		result.TLSCipherSuites = stringPtrOrNil(t.CipherSuites)
-		result.TLSPreferServerCipherSuites = &t.PreferServerCipherSuites
+		result.TLS.Defaults = config.TLSProtocolConfig{
+			VerifyOutgoing:  &t.VerifyOutgoing,
+			TLSMinVersion:   stringPtrOrNil(t.MinVersion),
+			TLSCipherSuites: stringPtrOrNil(t.CipherSuites),
+		}
+		result.TLS.InternalRPC.VerifyServerHostname = &t.VerifyServerHostname
 	}
 
 	return result

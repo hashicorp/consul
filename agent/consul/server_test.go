@@ -16,9 +16,10 @@ import (
 
 	"github.com/hashicorp/consul/ipaddr"
 
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -75,9 +76,9 @@ func testServerACLConfig(c *Config) {
 }
 
 func configureTLS(config *Config) {
-	config.TLSConfig.CAFile = "../../test/ca/root.cer"
-	config.TLSConfig.CertFile = "../../test/key/ourdomain.cer"
-	config.TLSConfig.KeyFile = "../../test/key/ourdomain.key"
+	config.TLSConfig.InternalRPC.CAFile = "../../test/ca/root.cer"
+	config.TLSConfig.InternalRPC.CertFile = "../../test/key/ourdomain.cer"
+	config.TLSConfig.InternalRPC.KeyFile = "../../test/key/ourdomain.key"
 }
 
 var id int64
@@ -709,12 +710,12 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		// tls
-		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-		c.TLSConfig.CertFile = "../../test/hostname/Bob.crt"
-		c.TLSConfig.KeyFile = "../../test/hostname/Bob.key"
-		c.TLSConfig.VerifyIncoming = true
-		c.TLSConfig.VerifyOutgoing = true
-		c.TLSConfig.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Bob.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Bob.key"
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
@@ -728,12 +729,12 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		// tls
-		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-		c.TLSConfig.CertFile = "../../test/hostname/Betty.crt"
-		c.TLSConfig.KeyFile = "../../test/hostname/Betty.key"
-		c.TLSConfig.VerifyIncoming = true
-		c.TLSConfig.VerifyOutgoing = true
-		c.TLSConfig.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Betty.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Betty.key"
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
@@ -747,12 +748,12 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		// tls
-		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-		c.TLSConfig.CertFile = "../../test/hostname/Bonnie.crt"
-		c.TLSConfig.KeyFile = "../../test/hostname/Bonnie.key"
-		c.TLSConfig.VerifyIncoming = true
-		c.TLSConfig.VerifyOutgoing = true
-		c.TLSConfig.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Bonnie.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Bonnie.key"
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
@@ -1136,8 +1137,8 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
+	conf1.TLSConfig.InternalRPC.VerifyIncoming = true
+	conf1.TLSConfig.InternalRPC.VerifyOutgoing = true
 	configureTLS(conf1)
 	s1, err := newServer(t, conf1)
 	if err != nil {
@@ -1148,8 +1149,8 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	_, conf2 := testServerConfig(t)
 	conf2.Bootstrap = false
-	conf2.TLSConfig.VerifyIncoming = true
-	conf2.TLSConfig.VerifyOutgoing = true
+	conf2.TLSConfig.InternalRPC.VerifyIncoming = true
+	conf2.TLSConfig.InternalRPC.VerifyOutgoing = true
 	configureTLS(conf2)
 	s2, err := newServer(t, conf2)
 	if err != nil {
@@ -1410,9 +1411,9 @@ func TestServer_TLSToNoTLS(t *testing.T) {
 	// Add a second server with TLS configured
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
-		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
-		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
-		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.InternalRPC.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/client_certs/server.key"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -1442,10 +1443,10 @@ func TestServer_TLSForceOutgoingToNoTLS(t *testing.T) {
 	// Add a second server with TLS and VerifyOutgoing set
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
-		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
-		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
-		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
-		c.TLSConfig.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -1464,10 +1465,10 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 	t.Parallel()
 	// Set up a server with TLS and VerifyIncoming set
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
-		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
-		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
-		c.TLSConfig.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1477,9 +1478,9 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 	// Add a second server with TLS configured
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
-		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
-		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
-		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.InternalRPC.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/client_certs/server.key"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()

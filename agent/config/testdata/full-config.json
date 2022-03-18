@@ -644,6 +644,47 @@
     "statsite_address": "HpFwKB8R",
     "disable_compat_1.9": true
   },
+  "tls": {
+    "defaults": {
+      "ca_file": "a5tY0opl",
+      "ca_path": "bN63LpXu",
+      "cert_file": "hB4PoxkL",
+      "key_file": "Po0hB1tY",
+      "tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+      "tls_min_version": "yU0uIp1A",
+      "verify_incoming": true,
+      "verify_outgoing": true
+    },
+    "internal_rpc": {
+      "ca_file": "mKl19Utl",
+      "ca_path": "lOp1nhPa",
+      "cert_file": "dfJ4oPln",
+      "key_file": "aL1Knkpo",
+      "tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+      "tls_min_version": "lPo1MklP",
+      "verify_incoming": true,
+      "verify_outgoing": true
+    },
+    "https": {
+      "ca_file": "7Yu1PolM",
+      "ca_path": "nu4PlHzn",
+      "cert_file": "1yrhPlMk",
+      "key_file": "1bHapOkL",
+      "tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+      "tls_min_version": "mK14iOpz",
+      "verify_incoming": true,
+      "verify_outgoing": true
+    },
+    "grpc": {
+      "ca_file": "lOp1nhJk",
+      "ca_path": "fLponKpl",
+      "cert_file": "a674klPn",
+      "key_file": "1y4prKjl",
+      "tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+      "tls_min_version": "lPo4fNkl",
+      "verify_incoming": true
+    }
+  },
   "tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
   "tls_min_version": "pAOWafkR",
   "tls_prefer_server_cipher_suites": true,

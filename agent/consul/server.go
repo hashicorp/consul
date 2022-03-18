@@ -22,7 +22,6 @@ import (
 	"go.etcd.io/bbolt"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -32,6 +31,8 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"

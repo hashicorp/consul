@@ -29,8 +29,8 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 	// TODO(rb): add tests for the wanfed/alpn variations
 
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
+	conf1.TLSConfig.InternalRPC.VerifyIncoming = true
+	conf1.TLSConfig.InternalRPC.VerifyOutgoing = true
 	conf1.RPCConfig.EnableStreaming = true
 	configureTLS(conf1)
 	server, err := newServer(t, conf1)
@@ -161,11 +161,11 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 
 	// Set up a server with initially bad certificates.
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
-	conf1.TLSConfig.CAFile = "../../test/ca/root.cer"
-	conf1.TLSConfig.CertFile = "../../test/key/ssl-cert-snakeoil.pem"
-	conf1.TLSConfig.KeyFile = "../../test/key/ssl-cert-snakeoil.key"
+	conf1.TLSConfig.InternalRPC.VerifyIncoming = true
+	conf1.TLSConfig.InternalRPC.VerifyOutgoing = true
+	conf1.TLSConfig.InternalRPC.CAFile = "../../test/ca/root.cer"
+	conf1.TLSConfig.InternalRPC.CertFile = "../../test/key/ssl-cert-snakeoil.pem"
+	conf1.TLSConfig.InternalRPC.KeyFile = "../../test/key/ssl-cert-snakeoil.key"
 	conf1.RPCConfig.EnableStreaming = true
 
 	server, err := newServer(t, conf1)
@@ -199,8 +199,8 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 
 	// Reload the server with valid certs
 	newConf := server.config.TLSConfig
-	newConf.CertFile = "../../test/key/ourdomain.cer"
-	newConf.KeyFile = "../../test/key/ourdomain.key"
+	newConf.InternalRPC.CertFile = "../../test/key/ourdomain.cer"
+	newConf.InternalRPC.KeyFile = "../../test/key/ourdomain.key"
 	server.tlsConfigurator.Update(newConf)
 
 	// Try the subscribe call again
@@ -212,7 +212,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 }
 
 func clientConfigVerifyOutgoing(config *Config) {
-	config.TLSConfig.VerifyOutgoing = true
+	config.TLSConfig.InternalRPC.VerifyOutgoing = true
 }
 
 // retryFailedConn forces the ClientConn to reset its backoff timer and retry the connection,
