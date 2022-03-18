@@ -38,7 +38,7 @@ type Wrapper func(conn net.Conn) (net.Conn, error)
 
 // goTLSVersions maps types.TLSVersion to the Go internal value
 var goTLSVersions = map[types.TLSVersion]uint16{
-	types.TLSVersionAuto: tls.VersionTLS10, // default in golang
+	types.TLSVersionAuto: tls.VersionTLS12,
 	types.TLSv1_0:        tls.VersionTLS10,
 	types.TLSv1_1:        tls.VersionTLS11,
 	types.TLSv1_2:        tls.VersionTLS12,
@@ -596,10 +596,9 @@ func (c *Configurator) commonTLSConfig(state protocolConfig, cfg ProtocolConfig,
 	tlsConfig.RootCAs = state.combinedCAPool
 
 	// Error handling is not needed here because ParseTLSConfig handles "" as
-	// TLSVersionAuto with goTLSVersions mapping TLSVersionAuto to Go's
-	// default (TLS 1.0) and because the initial check in loadListenerConfig makes
-	// sure the version is not invalid.
-	// FIXME: should this be updated to set TLSVersionAuto to TLS 1.2 instead?
+	// TLSVersionAuto with goTLSVersions mapping TLSVersionAuto to TLS 1.2 and
+	// because the initial check in loadListenerConfig makes sure the version is not
+	// invalid.
 	tlsConfig.MinVersion = goTLSVersions[cfg.TLSMinVersion]
 
 	// Set ClientAuth if necessary
