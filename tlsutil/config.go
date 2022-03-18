@@ -61,13 +61,6 @@ func ParseTLSVersion(tlsVersionString string) (types.TLSVersion, error) {
 
 	tlsVersionErr := types.ValidateTLSVersion(v)
 	if tlsVersionErr != nil {
-		// NOTE: This inner check for deprecated values should eventually be
-		// removed
-		if v, ok := types.DeprecatedConsulAgentTLSVersions[tlsVersionString]; ok {
-			// TODO: log warning about deprecated config
-			return v, nil
-		}
-
 		// Only suggest non-deprecated values if configured value is invalid
 		return types.TLSVersionInvalid, tlsVersionErr
 	}
