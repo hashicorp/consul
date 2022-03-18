@@ -8,8 +8,6 @@ import (
 	"io/ioutil"
 	"net"
 	"path/filepath"
-	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
