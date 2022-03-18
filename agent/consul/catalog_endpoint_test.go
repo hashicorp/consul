@@ -262,12 +262,16 @@ node "foo" {
 	}
 }
 
-func createToken(t *testing.T, cc rpc.ClientCodec, policyRules string) string {
+func createTokenFull(t *testing.T, cc rpc.ClientCodec, policyRules string) *structs.ACLToken {
 	t.Helper()
-	return createTokenWithPolicyName(t, cc, "the-policy", policyRules, "root")
+	return createTokenWithPolicyNameFull(t, cc, "the-policy", policyRules, "root")
 }
 
-func createTokenWithPolicyName(t *testing.T, cc rpc.ClientCodec, policyName string, policyRules string, token string) string {
+func createToken(t *testing.T, cc rpc.ClientCodec, policyRules string) string {
+	return createTokenFull(t, cc, policyRules).SecretID
+}
+
+func createTokenWithPolicyNameFull(t *testing.T, cc rpc.ClientCodec, policyName string, policyRules string, token string) *structs.ACLToken {
 	t.Helper()
 
 	reqPolicy := structs.ACLPolicySetRequest{
@@ -292,9 +296,16 @@ func createTokenWithPolicyName(t *testing.T, cc rpc.ClientCodec, policyName stri
 		},
 		WriteRequest: structs.WriteRequest{Token: token},
 	}
-	err = msgpackrpc.CallWithCodec(cc, "ACL.TokenSet", &reqToken, &structs.ACLToken{})
+
+	resp := &structs.ACLToken{}
+
+	err = msgpackrpc.CallWithCodec(cc, "ACL.TokenSet", &reqToken, &resp)
 	require.NoError(t, err)
-	return secretId
+	return resp
+}
+
+func createTokenWithPolicyName(t *testing.T, cc rpc.ClientCodec, policyName string, policyRules string, token string) string {
+	return createTokenWithPolicyNameFull(t, cc, policyName, policyRules, token).SecretID
 }
 
 func TestCatalog_Register_ForwardLeader(t *testing.T) {
@@ -3449,10 +3460,11 @@ func TestVetRegisterWithACL(t *testing.T) {
 		}
 
 		// With an "allow all" authorizer the update should be allowed.
-		require.NoError(t, vetRegisterWithACL(acl.ManageAll(), args, nil))
+		require.NoError(t, vetRegisterWithACL(ACLResolveResult{Authorizer: acl.ManageAll()}, args, nil))
 	})
 
 	var perms acl.Authorizer = acl.DenyAll()
+	var resolvedPerms ACLResolveResult
 
 	args := &structs.RegisterRequest{
 		Node:    "nope",
@@ -3464,9 +3476,10 @@ func TestVetRegisterWithACL(t *testing.T) {
 	node "node" {
 	  policy = "write"
 	} `)
+	resolvedPerms = ACLResolveResult{Authorizer: perms}
 
 	// With that policy, the update should now be blocked for node reasons.
-	err := vetRegisterWithACL(perms, args, nil)
+	err := vetRegisterWithACL(resolvedPerms, args, nil)
 	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Now use a permitted node name.
@@ -3474,7 +3487,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 		Node:    "node",
 		Address: "127.0.0.1",
 	}
-	require.NoError(t, vetRegisterWithACL(perms, args, nil))
+	require.NoError(t, vetRegisterWithACL(resolvedPerms, args, nil))
 
 	// Build some node info that matches what we have now.
 	ns := &structs.NodeServices{
@@ -3494,7 +3507,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 			ID:      "my-id",
 		},
 	}
-	err = vetRegisterWithACL(perms, args, ns)
+	err = vetRegisterWithACL(ACLResolveResult{Authorizer: perms}, args, ns)
 	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Chain on a basic service policy.
@@ -3502,9 +3515,10 @@ func TestVetRegisterWithACL(t *testing.T) {
 	service "service" {
 	  policy = "write"
 	} `)
+	resolvedPerms = ACLResolveResult{Authorizer: perms}
 
 	// With the service ACL, the update should go through.
-	require.NoError(t, vetRegisterWithACL(perms, args, ns))
+	require.NoError(t, vetRegisterWithACL(resolvedPerms, args, ns))
 
 	// Add an existing service that they are clobbering and aren't allowed
 	// to write to.
@@ -3520,7 +3534,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 			},
 		},
 	}
-	err = vetRegisterWithACL(perms, args, ns)
+	err = vetRegisterWithACL(resolvedPerms, args, ns)
 	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Chain on a policy that allows them to write to the other service.
@@ -3528,14 +3542,15 @@ func TestVetRegisterWithACL(t *testing.T) {
 	service "other" {
 	  policy = "write"
 	} `)
+	resolvedPerms = ACLResolveResult{Authorizer: perms}
 
 	// Now it should go through.
-	require.NoError(t, vetRegisterWithACL(perms, args, ns))
+	require.NoError(t, vetRegisterWithACL(resolvedPerms, args, ns))
 
 	// Try creating the node and the service at once by having no existing
 	// node record. This should be ok since we have node and service
 	// permissions.
-	require.NoError(t, vetRegisterWithACL(perms, args, nil))
+	require.NoError(t, vetRegisterWithACL(resolvedPerms, args, nil))
 
 	// Add a node-level check to the member, which should be rejected.
 	args = &structs.RegisterRequest{
@@ -3549,7 +3564,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 			Node: "node",
 		},
 	}
-	err = vetRegisterWithACL(perms, args, ns)
+	err = vetRegisterWithACL(resolvedPerms, args, ns)
 	testutil.RequireErrorContains(t, err, "check member must be nil")
 
 	// Move the check into the slice, but give a bad node name.
@@ -3566,7 +3581,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 			},
 		},
 	}
-	err = vetRegisterWithACL(perms, args, ns)
+	err = vetRegisterWithACL(resolvedPerms, args, ns)
 	testutil.RequireErrorContains(t, err, "doesn't match register request node")
 
 	// Fix the node name, which should now go through.
@@ -3583,7 +3598,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, vetRegisterWithACL(perms, args, ns))
+	require.NoError(t, vetRegisterWithACL(resolvedPerms, args, ns))
 
 	// Add a service-level check.
 	args = &structs.RegisterRequest{
@@ -3603,12 +3618,12 @@ func TestVetRegisterWithACL(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, vetRegisterWithACL(perms, args, ns))
+	require.NoError(t, vetRegisterWithACL(resolvedPerms, args, ns))
 
 	// Try creating everything at once. This should be ok since we have all
 	// the permissions we need. It also makes sure that we can register a
 	// new node, service, and associated checks.
-	require.NoError(t, vetRegisterWithACL(perms, args, nil))
+	require.NoError(t, vetRegisterWithACL(resolvedPerms, args, nil))
 
 	// Nil out the service registration, which'll skip the special case
 	// and force us to look at the ns data (it will look like we are
@@ -3626,16 +3641,17 @@ func TestVetRegisterWithACL(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, vetRegisterWithACL(perms, args, ns))
+	require.NoError(t, vetRegisterWithACL(resolvedPerms, args, ns))
 
 	// Chain on a policy that forbids them to write to the other service.
 	perms = appendAuthz(t, perms, `
 	service "other" {
 	  policy = "deny"
 	} `)
+	resolvedPerms = ACLResolveResult{Authorizer: perms}
 
 	// This should get rejected.
-	err = vetRegisterWithACL(perms, args, ns)
+	err = vetRegisterWithACL(resolvedPerms, args, ns)
 	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Change the existing service data to point to a service name they
@@ -3652,16 +3668,17 @@ func TestVetRegisterWithACL(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, vetRegisterWithACL(perms, args, ns))
+	require.NoError(t, vetRegisterWithACL(resolvedPerms, args, ns))
 
 	// Chain on a policy that forbids them to write to the node.
 	perms = appendAuthz(t, perms, `
 	node "node" {
 	  policy = "deny"
 	} `)
+	resolvedPerms = ACLResolveResult{Authorizer: perms}
 
 	// This should get rejected because there's a node-level check in here.
-	err = vetRegisterWithACL(perms, args, ns)
+	err = vetRegisterWithACL(resolvedPerms, args, ns)
 	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Change the node-level check into a service check, and then it should
@@ -3680,7 +3697,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, vetRegisterWithACL(perms, args, ns))
+	require.NoError(t, vetRegisterWithACL(resolvedPerms, args, ns))
 
 	// Finally, attempt to update the node part of the data and make sure
 	// that gets rejected since they no longer have permissions.
@@ -3698,7 +3715,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 			},
 		},
 	}
-	err = vetRegisterWithACL(perms, args, ns)
+	err = vetRegisterWithACL(resolvedPerms, args, ns)
 	require.True(t, acl.IsErrPermissionDenied(err))
 }
 
@@ -3709,7 +3726,7 @@ func TestVetDeregisterWithACL(t *testing.T) {
 	}
 
 	// With an "allow all" authorizer the update should be allowed.
-	if err := vetDeregisterWithACL(acl.ManageAll(), args, nil, nil); err != nil {
+	if err := vetDeregisterWithACL(ACLResolveResult{Authorizer: acl.ManageAll()}, args, nil, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -3942,7 +3959,7 @@ node "node" {
 		},
 	} {
 		t.Run(args.Name, func(t *testing.T) {
-			err = vetDeregisterWithACL(args.Perms, &args.DeregisterRequest, args.Service, args.Check)
+			err = vetDeregisterWithACL(ACLResolveResult{Authorizer: args.Perms}, &args.DeregisterRequest, args.Service, args.Check)
 			if !args.Expected {
 				if err == nil {
 					t.Errorf("expected error with %+v", args.DeregisterRequest)

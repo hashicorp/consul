@@ -276,7 +276,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 		return err
 	}
 
-	var authz acl.Authorizer
+	var authz ACLResolveResult
 
 	if args.TokenIDType == structs.ACLTokenAccessor {
 		var err error

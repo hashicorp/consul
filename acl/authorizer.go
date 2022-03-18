@@ -171,6 +171,7 @@ type Authorizer interface {
 // is moved into acl.
 type AllowAuthorizer struct {
 	Authorizer
+	AccessorID string
 }
 
 // ACLReadAllowed checks for permission to list all the ACLs

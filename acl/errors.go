@@ -117,12 +117,23 @@ func PermissionDenied(msg string, args ...interface{}) PermissionDeniedError {
 }
 
 // TODO Extract information from Authorizer
-func PermissionDeniedByACL(_ Authorizer, context *AuthorizerContext, resource Resource, accessLevel AccessLevel, resourceID string) PermissionDeniedError {
+func PermissionDeniedByACL(authz Authorizer, context *AuthorizerContext, resource Resource, accessLevel AccessLevel, resourceID string) PermissionDeniedError {
 	desc := NewResourceDescriptor(resourceID, context)
-	return PermissionDeniedError{Accessor: "", Resource: resource, AccessLevel: accessLevel, ResourceID: desc}
+	return PermissionDeniedError{Accessor: extractAccessorID(authz), Resource: resource, AccessLevel: accessLevel, ResourceID: desc}
 }
 
-func PermissionDeniedByACLUnnamed(_ Authorizer, context *AuthorizerContext, resource Resource, accessLevel AccessLevel) PermissionDeniedError {
+func PermissionDeniedByACLUnnamed(authz Authorizer, context *AuthorizerContext, resource Resource, accessLevel AccessLevel) PermissionDeniedError {
 	desc := NewResourceDescriptor("", context)
-	return PermissionDeniedError{Accessor: "", Resource: resource, AccessLevel: accessLevel, ResourceID: desc}
+	return PermissionDeniedError{Accessor: extractAccessorID(authz), Resource: resource, AccessLevel: accessLevel, ResourceID: desc}
+}
+
+func extractAccessorID(authz interface{}) string {
+	var accessor string
+	switch v := authz.(type) {
+	case AllowAuthorizer:
+		accessor = v.AccessorID
+	case string:
+		accessor = v
+	}
+	return accessor
 }

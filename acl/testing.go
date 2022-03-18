@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func RequirePermissionDeniedError(t testing.TB, err error, _ Authorizer, _ *AuthorizerContext, resource Resource, accessLevel AccessLevel, resourceID string) {
+func RequirePermissionDeniedError(t testing.TB, err error, authz Authorizer, _ *AuthorizerContext, resource Resource, accessLevel AccessLevel, resourceID string) {
 	t.Helper()
 	if err == nil {
 		t.Fatal("An error is expected but got nil.")
@@ -20,11 +20,11 @@ func RequirePermissionDeniedError(t testing.TB, err error, _ Authorizer, _ *Auth
 	}
 }
 
-func RequirePermissionDeniedMessage(t testing.TB, msg string, auth Authorizer, _ *AuthorizerContext, resource Resource, accessLevel AccessLevel, resourceID string) {
+func RequirePermissionDeniedMessage(t testing.TB, msg string, authz interface{}, _ *AuthorizerContext, resource Resource, accessLevel AccessLevel, resourceID string) {
 	require.NotEmpty(t, msg, "expected non-empty error message")
 
 	var resourceIDFound string
-	if auth == nil {
+	if authz == nil {
 		expr := "^Permission denied" + `: provided accessor lacks permission '(\S*):(\S*)' on (.*)\s*$`
 		re, _ := regexp.Compile(expr)
 		matched := re.FindStringSubmatch(msg)
@@ -37,7 +37,7 @@ func RequirePermissionDeniedMessage(t testing.TB, msg string, auth Authorizer, _
 		re, _ := regexp.Compile(expr)
 		matched := re.FindStringSubmatch(msg)
 
-		require.Equal(t, auth, matched[1], "auth")
+		require.Equal(t, extractAccessorID(authz), matched[1], "auth")
 		require.Equal(t, string(resource), matched[2], "resource")
 		require.Equal(t, accessLevel.String(), matched[3], "access level")
 		resourceIDFound = matched[4]
