@@ -282,8 +282,6 @@ func (ac *AutoConfig) updateTLSSettingsInConfig(_ AutoConfigOptions, resp *pbaut
 
 	var err error
 
-	// FIXME: is the response from this not actually validated in
-	// auto_config_endpoint_test.go?
 	resp.Config.TLS, err = ac.tlsConfigurator.AutoConfigTLSSettings()
 	return err
 }
