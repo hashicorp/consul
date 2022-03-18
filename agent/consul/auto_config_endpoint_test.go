@@ -392,13 +392,6 @@ func TestAutoConfig_baseConfig(t *testing.T) {
 	}
 }
 
-func parseCiphers(t *testing.T, cipherStr string) []types.TLSCipherSuite {
-	t.Helper()
-	ciphers, err := tlsutil.ParseCiphers(cipherStr)
-	require.NoError(t, err)
-	return ciphers
-}
-
 func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 	_, _, cacert, err := testTLSCertificates("server.dc1.consul")
 	require.NoError(t, err)
@@ -421,7 +414,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 					VerifyOutgoing:       true,
 					TLSMinVersion:        types.TLSv1_2,
 					CAFile:               cafile,
-					CipherSuites:         parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+					CipherSuites:         []types.TLSCipherSuite{"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
 				},
 			},
 			expected: pbautoconf.AutoConfigResponse{
@@ -442,7 +435,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 					VerifyOutgoing:       true,
 					TLSMinVersion:        types.TLSv1_0,
 					CAFile:               cafile,
-					CipherSuites:         parseCiphers(t, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+					CipherSuites:         []types.TLSCipherSuite{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
 				},
 			},
 			expected: pbautoconf.AutoConfigResponse{
@@ -638,7 +631,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 					VerifyOutgoing:       true,
 					TLSMinVersion:        types.TLSv1_2,
 					CAFile:               cafile,
-					CipherSuites:         parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+					CipherSuites:         []types.TLSCipherSuite{"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
 				},
 			},
 			expected: pbautoconf.AutoConfigResponse{
@@ -657,7 +650,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 					VerifyOutgoing:       true,
 					TLSMinVersion:        types.TLSv1_2,
 					CAFile:               cafile,
-					CipherSuites:         parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+					CipherSuites:         []types.TLSCipherSuite{"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
 				},
 			},
 			opts: AutoConfigOptions{
