@@ -36,7 +36,7 @@ func (q *QueryOptions) SetMinQueryIndex(minQueryIndex uint64) {
 
 // SetMaxQueryTime is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetMaxQueryTime(maxQueryTime time.Duration) {
-	q.MaxQueryTime = structs.DurationToProto(maxQueryTime)
+	q.MaxQueryTime = structs.DurationToProtoGogo(maxQueryTime)
 }
 
 // SetAllowStale is needed to implement the structs.QueryOptionsCompat interface
@@ -56,12 +56,12 @@ func (q *QueryOptions) SetUseCache(useCache bool) {
 
 // SetMaxStaleDuration is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetMaxStaleDuration(maxStaleDuration time.Duration) {
-	q.MaxStaleDuration = structs.DurationToProto(maxStaleDuration)
+	q.MaxStaleDuration = structs.DurationToProtoGogo(maxStaleDuration)
 }
 
 // SetMaxAge is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetMaxAge(maxAge time.Duration) {
-	q.MaxAge = structs.DurationToProto(maxAge)
+	q.MaxAge = structs.DurationToProtoGogo(maxAge)
 }
 
 // SetMustRevalidate is needed to implement the structs.QueryOptionsCompat interface
@@ -71,11 +71,11 @@ func (q *QueryOptions) SetMustRevalidate(mustRevalidate bool) {
 
 // SetStaleIfError is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetStaleIfError(staleIfError time.Duration) {
-	q.StaleIfError = structs.DurationToProto(staleIfError)
+	q.StaleIfError = structs.DurationToProtoGogo(staleIfError)
 }
 
 func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
-	maxTime := structs.DurationFromProto(q.MaxQueryTime)
+	maxTime := structs.DurationFromProtoGogo(q.MaxQueryTime)
 	o := structs.QueryOptions{
 		MaxQueryTime:  maxTime,
 		MinQueryIndex: q.MinQueryIndex,
@@ -90,7 +90,7 @@ func (q *QueryOptions) SetFilter(filter string) {
 
 // GetMaxQueryTime is required to implement blockingQueryOptions
 func (q *QueryOptions) GetMaxQueryTime() (time.Duration, error) {
-	return structs.DurationFromProto(q.MaxQueryTime), nil
+	return structs.DurationFromProtoGogo(q.MaxQueryTime), nil
 }
 
 // GetMinQueryIndex is required to implement blockingQueryOptions
@@ -136,7 +136,7 @@ func (q *QueryOptions) GetFilter() string {
 // GetMaxAge is required to implement structs.QueryOptionsCompat
 func (q *QueryOptions) GetMaxAge() (time.Duration, error) {
 	if q != nil {
-		return structs.DurationFromProto(q.MaxAge), nil
+		return structs.DurationFromProtoGogo(q.MaxAge), nil
 	}
 	return 0, nil
 }
@@ -144,7 +144,7 @@ func (q *QueryOptions) GetMaxAge() (time.Duration, error) {
 // GetMaxStaleDuration is required to implement structs.QueryOptionsCompat
 func (q *QueryOptions) GetMaxStaleDuration() (time.Duration, error) {
 	if q != nil {
-		return structs.DurationFromProto(q.MaxStaleDuration), nil
+		return structs.DurationFromProtoGogo(q.MaxStaleDuration), nil
 	}
 	return 0, nil
 }
@@ -160,7 +160,7 @@ func (q *QueryOptions) GetMustRevalidate() bool {
 // GetStaleIfError is required to implement structs.QueryOptionsCompat
 func (q *QueryOptions) GetStaleIfError() (time.Duration, error) {
 	if q != nil {
-		return structs.DurationFromProto(q.StaleIfError), nil
+		return structs.DurationFromProtoGogo(q.StaleIfError), nil
 	}
 	return 0, nil
 }
@@ -175,7 +175,7 @@ func (q *QueryOptions) GetUseCache() bool {
 
 // SetLastContact is needed to implement the structs.QueryMetaCompat interface
 func (q *QueryMeta) SetLastContact(lastContact time.Duration) {
-	q.LastContact = structs.DurationToProto(lastContact)
+	q.LastContact = structs.DurationToProtoGogo(lastContact)
 }
 
 // SetKnownLeader is needed to implement the structs.QueryMetaCompat interface
@@ -229,7 +229,7 @@ func (q *QueryMeta) GetKnownLeader() bool {
 // GetLastContact is required to implement structs.QueryMetaCompat
 func (q *QueryMeta) GetLastContact() (time.Duration, error) {
 	if q != nil {
-		return structs.DurationFromProto(q.LastContact), nil
+		return structs.DurationFromProtoGogo(q.LastContact), nil
 	}
 	return 0, nil
 }
