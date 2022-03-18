@@ -14,7 +14,7 @@ Refer to the standard [production deployment guide](https://learn.hashicorp.com/
 
 ## Server Agents
 
-The server agents are run as a **StatefulSet**, using persistent volume
+The server agents are deployed as **StatefulSets** and use persistent volume
 claims to store the server state. This also ensures that the
 [node ID](/docs/agent/options#_node_id) is persisted so that servers
 can be rescheduled onto new IP addresses without causing issues. The server agents
