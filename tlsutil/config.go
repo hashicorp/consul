@@ -553,12 +553,9 @@ func (c *Configurator) commonTLSConfig(state protocolConfig, cfg ProtocolConfig,
 
 	// Set the cipher suites
 	if len(cfg.CipherSuites) != 0 {
-		// TODO: is it safe to ignore the error case here?
-		// Should be checked on input, same as tlsConfig.MinVersion
+		// TLS cipher suites are validated on input in agent config builder,
+		// so it's safe to ignore the error case here.
 
-		// FIXME: move cipherSuiteLookup to be called externally, maybe
-		// in agent/config/runtime parsing before the tlsutil.Config struct is
-		// created?
 		cipherSuites, _ := cipherSuiteLookup(cfg.CipherSuites)
 		tlsConfig.CipherSuites = cipherSuites
 	}
@@ -595,10 +592,10 @@ func (c *Configurator) commonTLSConfig(state protocolConfig, cfg ProtocolConfig,
 	tlsConfig.ClientCAs = state.combinedCAPool
 	tlsConfig.RootCAs = state.combinedCAPool
 
-	// Error handling is not needed here because ParseTLSConfig handles "" as
-	// TLSVersionAuto with goTLSVersions mapping TLSVersionAuto to TLS 1.2 and
-	// because the initial check in loadListenerConfig makes sure the version is not
-	// invalid.
+	// Error handling is not needed here because agent config builder handles ""
+	// or a nil value as TLSVersionAuto with goTLSVersions mapping TLSVersionAuto
+	// to TLS 1.2 and because the initial check makes sure a specified version is
+	// not invalid.
 	tlsConfig.MinVersion = goTLSVersions[cfg.TLSMinVersion]
 
 	// Set ClientAuth if necessary
