@@ -345,3 +345,37 @@ func TestBuilder_tlsVersion(t *testing.T) {
 	require.Contains(t, b.err.Error(), deprecatedTLSVersion)
 	require.Contains(t, b.err.Error(), invalidTLSVersion)
 }
+
+func TestBuilder_tlsCipherSuites(t *testing.T) {
+	b := builder{}
+
+	testOk := strings.Join([]string{
+		"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
+		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+		"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+	}, ",")
+	b.tlsCipherSuites("tls.defaults.tls_cipher_suites", &testOk)
+	require.NoError(t, b.err)
+
+	unsupportedCipherSuite := strings.Join([]string{
+		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+	}, ",")
+	b.tlsCipherSuites("tls.defaults.tls_cipher_suites", &unsupportedCipherSuite)
+
+	invalidCipherSuite := strings.Join([]string{
+		"cipherX",
+	}, ",")
+	b.tlsCipherSuites("tls.defaults.tls_cipher_suites", &invalidCipherSuite)
+
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "2 errors")
+	require.Contains(t, b.err.Error(), unsupportedCipherSuite)
+	require.Contains(t, b.err.Error(), invalidCipherSuite)
+}

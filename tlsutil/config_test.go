@@ -775,43 +775,6 @@ func TestConfigurator_outgoingWrapperALPN_serverHasNoNodeNameInSAN(t *testing.T)
 	<-errc
 }
 
-func TestConfig_ParseCiphers(t *testing.T) {
-	testOk := strings.Join([]string{
-		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-	}, ",")
-	ciphers := []types.TLSCipherSuite{
-		types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-		types.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-		types.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-		types.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-	}
-	v, err := ParseCiphers(testOk)
-	require.NoError(t, err)
-	if got, want := v, ciphers; !reflect.DeepEqual(got, want) {
-		t.Fatalf("got ciphers %#v want %#v", got, want)
-	}
-
-	_, err = ParseCiphers("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,cipherX")
-	require.Error(t, err)
-
-	v, err = ParseCiphers("")
-	require.NoError(t, err)
-	require.Equal(t, []types.TLSCipherSuite{}, v)
-}
-
 func TestLoadKeyPair(t *testing.T) {
 	type variant struct {
 		cert, key string
