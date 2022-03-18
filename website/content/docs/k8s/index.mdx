@@ -17,17 +17,6 @@ This section documents the official integrations between Consul and Kubernetes.
 
 ## Use Cases
 
-**Running a Consul server cluster:** The Consul server cluster can run directly
-on Kubernetes. This can be used by both nodes within Kubernetes as well as
-nodes external to Kubernetes, as long as they can communicate to the server
-nodes via the network.
-
-**Running Consul clients:** Consul clients can run as pods on every node
-and expose the Consul API to running pods. This enables many Consul tools
-such as envconsul, consul-template, and more to work on Kubernetes since a
-local agent is available. This will also register each Kubernetes node with
-the Consul catalog for full visibility into your infrastructure.
-
 **Consul Connect Service Mesh:**
 Consul can automatically inject the [Consul Connect](/docs/connect)
 sidecar into pods so that they can accept and establish encrypted
@@ -45,82 +34,13 @@ to use Consul service discovery to discover and connect to Kubernetes services.
 native integrations provided by Consul itself, any other tool built for
 Kubernetes can choose to leverage Consul.
 
-## Architecture
-
-Consul runs on Kubernetes with the same
-[architecture](/docs/architecture)
-as other platforms. There are some benefits Kubernetes can provide
-that eases operating a Consul cluster and we document those below. The standard
-[production deployment guide](https://learn.hashicorp.com/consul/datacenter-deploy/deployment-guide) is still an
-important read even if running Consul within Kubernetes.
-
-Each section below will outline the different components of running Consul
-on Kubernetes and an overview of the resources that are used within the
-Kubernetes cluster.
-
-### Server Agents
-
-The server agents are run as a **StatefulSet**, using persistent volume
-claims to store the server state. This also ensures that the
-[node ID](/docs/agent/options#_node_id) is persisted so that servers
-can be rescheduled onto new IP addresses without causing issues. The server agents
-are configured with
-[anti-affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
-rules so that they are placed on different nodes. A readiness probe is
-configured that marks the pod as ready only when it has established a leader.
-
-A **Service** is registered to represent the servers and expose the various
-ports. The DNS address of this service is used to join the servers to each
-other without requiring any other access to the Kubernetes cluster. The
-service is configured to publish non-ready endpoints so that it can be used
-for joining during bootstrap and upgrades.
-
-Additionally, a **PodDisruptionBudget** is configured so the Consul server
-cluster maintains quorum during voluntary operational events. The maximum
-unavailable is `(n/2)-1` where `n` is the number of server agents.
-
--> **Note:** Kubernetes and Helm do not delete Persistent Volumes or Persistent
-Volume Claims when a
-[StatefulSet is deleted](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#stable-storage),
-so this must done manually when removing servers.
-
-### Client Agents
-
-The client agents are run as a **DaemonSet**. This places one agent
-(within its own pod) on each Kubernetes node.
-The clients expose the Consul HTTP API via a static port (8500)
-bound to the host port. This enables all other pods on the node to connect
-to the node-local agent using the host IP that can be retrieved via the
-Kubernetes downward API. See
-[accessing the Consul HTTP API](/docs/k8s/installation/install#accessing-the-consul-http-api)
-for an example.
-
-We do not use a **NodePort** Kubernetes service because requests to node ports get randomly routed
-to any pod in the service and we need to be able to route directly to the Consul
-client running on our node.
-
--> **Note:** There is no way to bind to a local-only
-host port. Therefore, any other node can connect to the agent. This should be
-considered for security. For a properly production-secured agent with TLS
-and ACLs, this is safe.
-
-We run Consul clients as a **DaemonSet** instead of running a client in each
-application pod as a sidecar because this would turn
-a pod into a "node" in Consul and also causes an explosion of resource usage
-since every pod needs a Consul agent. Service registration should be handled via the
-catalog syncing feature with Services rather than pods.
-
--> **Note:** Due to a limitation of anti-affinity rules with DaemonSets,
-a client-mode agent runs alongside server-mode agents in Kubernetes. This
-duplication wastes some resources, but otherwise functions perfectly fine.
-
 ## Getting Started With Consul and Kubernetes
 
 There are several ways to try Consul with Kubernetes in different environments.
 
 **Tutorials**
 
-- The [Getting Started with Consul Service Mesh track](https://learn.hashicorp.com/tutorials/consul/service-mesh?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+- The [Getting Started with Consul Service Mesh track](https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?in=consul/gs-consul-service-mesh?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
   provides guidance for installing Consul as service mesh for Kubernetes using the Helm
   chart, deploying services in the service mesh, and using intentions to secure service
   communications.
