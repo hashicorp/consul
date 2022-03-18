@@ -1103,18 +1103,3 @@ func cipherSuiteLookup(ciphers []types.TLSCipherSuite) ([]uint16, error) {
 
 	return suites, nil
 }
-
-// CipherString performs the inverse operation of types.ParseCiphers
-func CipherString(ciphers []types.TLSCipherSuite) (string, error) {
-	err := types.ValidateConsulAgentCipherSuites(ciphers)
-	if err != nil {
-		return "", err
-	}
-
-	cipherStrings := make([]string, len(ciphers))
-	for i, cipher := range ciphers {
-		cipherStrings[i] = string(cipher)
-	}
-
-	return strings.Join(cipherStrings, ","), nil
-}
