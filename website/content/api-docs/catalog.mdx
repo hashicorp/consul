@@ -285,6 +285,8 @@ $ curl \
 
 This endpoint and returns the nodes registered in a given datacenter.
 
+@include 'http_api_results_filtered_by_acls.mdx'
+
 | Method | Path             | Produces           |
 | ------ | ---------------- | ------------------ |
 | `GET`  | `/catalog/nodes` | `application/json` |
@@ -382,6 +384,8 @@ the following selectors and filter operations being supported:
 
 This endpoint returns the services registered in a given datacenter.
 
+@include 'http_api_results_filtered_by_acls.mdx'
+
 | Method | Path                | Produces           |
 | ------ | ------------------- | ------------------ |
 | `GET`  | `/catalog/services` | `application/json` |
@@ -437,6 +441,8 @@ a given service.
 ## List Nodes for Service
 
 This endpoint returns the nodes providing a service in a given datacenter.
+
+@include 'http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                        | Produces           |
 | ------ | --------------------------- | ------------------ |
@@ -651,6 +657,8 @@ This will include both proxies and native integrations. A service may
 register both Connect-capable and incapable services at the same time,
 so this endpoint may be used to filter only the Connect-capable endpoints.
 
+@include 'http_api_results_filtered_by_acls.mdx'
+
 | Method | Path                        | Produces           |
 | ------ | --------------------------- | ------------------ |
 | `GET`  | `/catalog/connect/:service` | `application/json` |
@@ -661,6 +669,8 @@ Parameters and response format are the same as
 ## Retrieve Map of Services for a Node
 
 This endpoint returns the node's registered services.
+
+@include 'http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                  | Produces           |
 | ------ | --------------------- | ------------------ |
@@ -790,6 +800,8 @@ top level Node object. The following selectors and filter operations are support
 ## List Services for Node
 
 This endpoint returns the node's registered services.
+
+@include 'http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                           | Produces           |
 | ------ | ------------------------------ | ------------------ |
@@ -924,6 +936,8 @@ top level object. The following selectors and filter operations are supported:
 -> **1.8.0+:** This API is available in Consul versions 1.8.0 and later.
 
 This endpoint returns the services associated with an ingress gateway or terminating gateway.
+
+@include 'http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                                 | Produces           |
 | ------ | ------------------------------------ | ------------------ |

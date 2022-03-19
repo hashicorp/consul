@@ -93,6 +93,8 @@ agent may have a different view of the events. Events are broadcast using the
 [gossip protocol](/docs/architecture/gossip), so they have no global ordering
 nor do they make a promise of delivery.
 
+@include 'http_api_results_filtered_by_acls.mdx'
+
 | Method | Path          | Produces           |
 | ------ | ------------- | ------------------ |
 | `GET`  | `/event/list` | `application/json` |
