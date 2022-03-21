@@ -268,16 +268,6 @@ func (c *Configurator) Update(config Config) error {
 // loadProtocolConfig loads the certificates etc. for a given ProtocolConfig
 // and performs validation.
 func (c *Configurator) loadProtocolConfig(base Config, pc ProtocolConfig) (*protocolConfig, error) {
-	// TODO: is this already validated in agent/config/builder.go?
-	// if min := pc.TLSMinVersion; min != "" {
-	// 	_, err := ParseTLSVersion(min)
-	// 	if err != nil {
-	// return nil, err
-	// 	}
-	// }
-
-	// TODO: error and return valid values for CipherSuites if unsupported values are specified
-
 	cert, err := loadKeyPair(pc.CertFile, pc.KeyFile)
 	if err != nil {
 		return nil, err
