@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-hclog"
 )
@@ -21,6 +22,13 @@ const RPCTypeInternal = "internal"
 
 var metricRPCRequest = []string{"rpc", "server", "request"}
 var requestLogName = "rpc.server.request"
+
+var NewRPCCounters = []prometheus.CounterDefinition{
+	{
+		Name: metricRPCRequest,
+		Help: "Increments when a server makes an RPC service call. The labels on the metric have more information",
+	},
+}
 
 type RequestRecorder struct {
 	Logger hclog.Logger
