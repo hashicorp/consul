@@ -211,7 +211,7 @@ type QueryOptions struct {
 	// with MaxQueryTime.
 	MinQueryIndex uint64 `protobuf:"varint,2,opt,name=MinQueryIndex,proto3" json:"MinQueryIndex,omitempty"`
 	// Provided with MinQueryIndex to wait for change.
-	// mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+	// mog: func-to=structs.DurationFromProtoGogo func-from=structs.DurationToProtoGogo
 	MaxQueryTime types.Duration `protobuf:"bytes,3,opt,name=MaxQueryTime,proto3" json:"MaxQueryTime"`
 	// If set, any follower can service the request. Results
 	// may be arbitrarily stale.
@@ -230,7 +230,7 @@ type QueryOptions struct {
 	// If set and AllowStale is true, will try first a stale
 	// read, and then will perform a consistent read if stale
 	// read is older than value.
-	// mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+	// mog: func-to=structs.DurationFromProtoGogo func-from=structs.DurationToProtoGogo
 	MaxStaleDuration types.Duration `protobuf:"bytes,7,opt,name=MaxStaleDuration,proto3" json:"MaxStaleDuration"`
 	// MaxAge limits how old a cached value will be returned if UseCache is true.
 	// If there is a cached response that is older than the MaxAge, it is treated
@@ -239,7 +239,7 @@ type QueryOptions struct {
 	// StaleIfError to a longer duration to change this behavior. It is ignored
 	// if the endpoint supports background refresh caching. See
 	// https://www.consul.io/api/index.html#agent-caching for more details.
-	// mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+	// mog: func-to=structs.DurationFromProtoGogo func-from=structs.DurationToProtoGogo
 	MaxAge types.Duration `protobuf:"bytes,8,opt,name=MaxAge,proto3" json:"MaxAge"`
 	// MustRevalidate forces the agent to fetch a fresh version of a cached
 	// resource or at least validate that the cached version is still fresh. It is
@@ -306,7 +306,7 @@ type QueryMeta struct {
 	// If AllowStale is used, this is time elapsed since
 	// last contact between the follower and leader. This
 	// can be used to gauge staleness.
-	// mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+	// mog: func-to=structs.DurationFromProtoGogo func-from=structs.DurationToProtoGogo
 	LastContact types.Duration `protobuf:"bytes,2,opt,name=LastContact,proto3" json:"LastContact"`
 	// Used to indicate if there is a known leader node
 	KnownLeader bool `protobuf:"varint,3,opt,name=KnownLeader,proto3" json:"KnownLeader,omitempty"`
