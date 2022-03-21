@@ -4,20 +4,6 @@ package pbcommon
 
 import "github.com/hashicorp/consul/agent/structs"
 
-func EnterpriseMetaToStructs(s *EnterpriseMeta, t *structs.EnterpriseMeta) {
-	if s == nil {
-		return
-	}
-	t.Partition = s.Partition
-	t.Namespace = s.Namespace
-}
-func EnterpriseMetaFromStructs(t *structs.EnterpriseMeta, s *EnterpriseMeta) {
-	if s == nil {
-		return
-	}
-	s.Partition = t.Partition
-	s.Namespace = t.Namespace
-}
 func QueryMetaToStructs(s *QueryMeta, t *structs.QueryMeta) {
 	if s == nil {
 		return

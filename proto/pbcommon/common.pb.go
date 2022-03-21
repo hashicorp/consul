@@ -477,13 +477,6 @@ func (m *QueryMeta) GetResultsFilteredByACLs() bool {
 
 // EnterpriseMeta contains metadata that is only used by the Enterprise version
 // of Consul.
-//
-// mog annotation:
-//
-// target=github.com/hashicorp/consul/agent/structs.EnterpriseMeta
-// output=common.gen.go
-// name=Structs
-// ignore-fields=state,sizeCache,unknownFields
 type EnterpriseMeta struct {
 	// Namespace in which the entity exists.
 	Namespace string `protobuf:"bytes,1,opt,name=Namespace,proto3" json:"Namespace,omitempty"`
