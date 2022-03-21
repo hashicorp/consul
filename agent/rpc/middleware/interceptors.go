@@ -18,16 +18,18 @@ import (
 // Really what we are measuring here is a "cluster operation". The term we have
 // used for this historically is "RPC", so we continue to use that here.
 const RPCTypeInternal = "internal"
+const RPCTypeNetRPC = "net/rpc"
 
 var metricRPCRequest = []string{"rpc", "server", "request"}
 var requestLogName = "rpc.server.request"
 
 type RequestRecorder struct {
-	Logger hclog.Logger
+	Logger       hclog.Logger
+	recorderFunc func(key []string, start time.Time, labels []metrics.Label)
 }
 
 func NewRequestRecorder(logger hclog.Logger) *RequestRecorder {
-	return &RequestRecorder{Logger: logger}
+	return &RequestRecorder{Logger: logger, recorderFunc: metrics.MeasureSinceWithLabels}
 }
 
 func (r *RequestRecorder) Record(requestName string, rpcType string, start time.Time, request interface{}, respErrored bool) {
@@ -42,9 +44,8 @@ func (r *RequestRecorder) Record(requestName string, rpcType string, start time.
 		{Name: "rpc_type", Value: rpcType},
 	}
 
-	// TODO(rpc-metrics-improv): consider using Telemetry API call here
-	// It'd be neat if we could actually pass the elapsed observed above
-	metrics.MeasureSinceWithLabels(metricRPCRequest, start, labels)
+	// TODO(FFMMM): it'd be neat if we could actually pass the elapsed observed above
+	r.recorderFunc(metricRPCRequest, start, labels)
 
 	r.Logger.Debug(requestLogName,
 		"method", requestName,
@@ -67,11 +68,6 @@ func GetNetRPCInterceptor(recorder *RequestRecorder) rpc.ServerServiceCallInterc
 
 		err := handler()
 
-		responseErr := false
-		if err != nil {
-			responseErr = true
-		}
-
-		recorder.Record(reqServiceMethod, "net/rpc", reqStart, argv.Interface(), responseErr)
+		recorder.Record(reqServiceMethod, RPCTypeNetRPC, reqStart, argv.Interface(), err != nil)
 	}
 }
