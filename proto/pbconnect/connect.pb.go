@@ -160,9 +160,9 @@ type CARoot struct {
 	// future flexibility.
 	ExternalTrustDomain string `protobuf:"bytes,5,opt,name=ExternalTrustDomain,proto3" json:"ExternalTrustDomain,omitempty"`
 	// Time validity bounds.
-	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
+	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
 	NotBefore *types.Timestamp `protobuf:"bytes,6,opt,name=NotBefore,proto3" json:"NotBefore,omitempty"`
-	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
+	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
 	NotAfter *types.Timestamp `protobuf:"bytes,7,opt,name=NotAfter,proto3" json:"NotAfter,omitempty"`
 	// RootCert is the PEM-encoded public certificate.
 	RootCert string `protobuf:"bytes,8,opt,name=RootCert,proto3" json:"RootCert,omitempty"`
@@ -182,7 +182,7 @@ type CARoot struct {
 	// RotatedOutAt is the time at which this CA was removed from the state.
 	// This will only be set on roots that have been rotated out from being the
 	// active root.
-	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
+	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
 	RotatedOutAt *types.Timestamp `protobuf:"bytes,13,opt,name=RotatedOutAt,proto3" json:"RotatedOutAt,omitempty"`
 	// PrivateKeyType is the type of the private key used to sign certificates. It
 	// may be "rsa" or "ec". This is provided as a convenience to avoid parsing
@@ -372,9 +372,9 @@ type IssuedCert struct {
 	AgentURI string `protobuf:"bytes,7,opt,name=AgentURI,proto3" json:"AgentURI,omitempty"`
 	// ValidAfter and ValidBefore are the validity periods for the
 	// certificate.
-	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
+	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
 	ValidAfter *types.Timestamp `protobuf:"bytes,8,opt,name=ValidAfter,proto3" json:"ValidAfter,omitempty"`
-	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
+	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
 	ValidBefore *types.Timestamp `protobuf:"bytes,9,opt,name=ValidBefore,proto3" json:"ValidBefore,omitempty"`
 	// EnterpriseMeta is the Consul Enterprise specific metadata
 	// mog: func-to=EnterpriseMetaTo func-from=EnterpriseMetaFrom

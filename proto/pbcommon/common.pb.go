@@ -31,8 +31,10 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 // name=Structs
 // ignore-fields=state,sizeCache,unknownFields
 type RaftIndex struct {
-	CreateIndex          uint64   `protobuf:"varint,1,opt,name=CreateIndex,proto3" json:"CreateIndex,omitempty"`
-	ModifyIndex          uint64   `protobuf:"varint,2,opt,name=ModifyIndex,proto3" json:"ModifyIndex,omitempty"`
+	// @gotags: bexpr:"-"
+	CreateIndex uint64 `protobuf:"varint,1,opt,name=CreateIndex,proto3" json:"CreateIndex,omitempty" bexpr:"-"`
+	// @gotags: bexpr:"-"
+	ModifyIndex          uint64   `protobuf:"varint,2,opt,name=ModifyIndex,proto3" json:"ModifyIndex,omitempty" bexpr:"-"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
