@@ -840,15 +840,6 @@ func TestConfigurator_Validation(t *testing.T) {
 		}
 
 		testCases := map[string]testCase{
-			// FIXME: move these parsing checks out to agent/config/builder
-			// "invalid TLSMinVersion": {
-			// 	ProtocolConfig{TLSMinVersion: "tls9"},
-			// 	false,
-			// },
-			// "default TLSMinVersion": {
-			// 	ProtocolConfig{TLSMinVersion: ""},
-			// 	true,
-			// },
 			"invalid CAFile": {
 				ProtocolConfig{CAFile: "bogus"},
 				false,
