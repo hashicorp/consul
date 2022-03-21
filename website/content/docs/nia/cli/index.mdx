@@ -39,7 +39,7 @@ Behavior: CTS will display the proposed state changes for all tasks once and exi
 
 Usage: Intended to be run before daemon-mode in order to confirm configuration is accurate and tasks would update network infrastructure as expected.
 
------
+---
 
 Flag: `-inspect-task [task-name]`
 
@@ -61,7 +61,6 @@ In addition to running the daemon, CTS has a set of commands that act as a clien
 
 To get help for a command, run: `consul-terraform-sync <command> -h`
 
-
 ### CLI Structure
 
 CTS commands follow the below structure
@@ -69,6 +68,7 @@ CTS commands follow the below structure
 ```shell-session
 consul-terraform-sync <command> [options] [args]
 ```
+
 - `options`: Flags to specify additional settings. There are general options that can be used across all commands and command-specific options.
 - `args`: Required arguments specific to a commands
 
@@ -82,12 +82,12 @@ consul-terraform-sync task disable -http-addr=http://localhost:2000 task_a
 
 Below are options that can be used across all commands:
 
-| Option | Required | Type | Description  | Default |
-| ------ | -------- | ---- | ------------ | --------|
-| `-port`| Optional | integer | **Deprecated in Consul-Terraform-Sync 0.5.0 and will be removed in a later version.** Use `-http-addr` option instead to specify the address and port of the Consul-Terraform-Sync API.<br/><br/>Port from which the CTS daemon serves its API.<br/>The value is prepended with `http://localhost:`, but you can specify a different scheme or address with the `-http-addr` if necessary. | `8558` |
-| `-http-addr` | Optional | string | Address and port of the CTS API. You can specify an IP or DNS address.<br/><br/> Alternatively, you can specify a value using the `CTS_HTTP_ADDR` environment variable. | `http://localhost:8558` |
-| `-ssl-verify` | Optional | boolean | Enables verification for TLS/SSL connections to the API if set to true. This does not affect insecure HTTP connections.<br/><br/>Alternatively, you can specify the value using the `CTS_SSL_VERIFY` environment variable. | `true` |
-| `-ca-cert` | Optional | string | Path to a PEM-encoded certificate authority file that is used to verify TLS/SSL connections. Takes precedence over `-ca-path` if both are provided.<br/><br/>Alternatively, you can specify the value using the `CTS_CACERT` environment variable.  | none |
-| `-ca-path` | Optional | string | Path to a directory containing a PEM-encoded certificate authority file that is used to verify TLS/SSL connections.<br/><br/>Alternatively, you can specify the value using the `CTS_CAPATH` environment variable. | none |
-| `-client-cert`  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string | Path to a PEM-encoded client certificate that the CTS API requires when [`verify_incoming`](/docs/nia/configuration#verify_incoming) is set to `true` on the API.<br/><br/>Alternatively, you can specify the value using the `CTS_CLIENT_CERT` environment variable. | none |
-| `-client-key`  | Optional | string | Path to a PEM-encoded client key for the certificate configured with the `-client-cert` option. This is required if `-client-cert` is set and if [`verify_incoming`](/docs/nia/configuration#verify_incoming) is set to `true` on the CTS API.<br/><br/>Alternatively, you can specify the value using the `CTS_CLIENT_KEY` environment variable. | none |
+| Option                                                                                                                                                                                        | Required | Type    | Description                                                                                                                                                                                                                                                                                                                                                                                | Default                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
+| `-port`                                                                                                                                                                                       | Optional | integer | **Deprecated in Consul-Terraform-Sync 0.5.0 and will be removed in a later version.** Use `-http-addr` option instead to specify the address and port of the Consul-Terraform-Sync API.<br/><br/>Port from which the CTS daemon serves its API.<br/>The value is prepended with `http://localhost:`, but you can specify a different scheme or address with the `-http-addr` if necessary. | `8558`                  |
+| `-http-addr`                                                                                                                                                                                  | Optional | string  | Address and port of the CTS API. You can specify an IP or DNS address.<br/><br/> Alternatively, you can specify a value using the `CTS_ADDRESS` environment variable.                                                                                                                                                                                                                      | `http://localhost:8558` |
+| `-ssl-verify`                                                                                                                                                                                 | Optional | boolean | Enables verification for TLS/SSL connections to the API if set to true. This does not affect insecure HTTP connections.<br/><br/>Alternatively, you can specify the value using the `CTS_SSL_VERIFY` environment variable.                                                                                                                                                                 | `true`                  |
+| `-ca-cert`                                                                                                                                                                                    | Optional | string  | Path to a PEM-encoded certificate authority file that is used to verify TLS/SSL connections. Takes precedence over `-ca-path` if both are provided.<br/><br/>Alternatively, you can specify the value using the `CTS_CACERT` environment variable.                                                                                                                                         | none                    |
+| `-ca-path`                                                                                                                                                                                    | Optional | string  | Path to a directory containing a PEM-encoded certificate authority file that is used to verify TLS/SSL connections.<br/><br/>Alternatively, you can specify the value using the `CTS_CAPATH` environment variable.                                                                                                                                                                         | none                    |
+| `-client-cert` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string  | Path to a PEM-encoded client certificate that the CTS API requires when [`verify_incoming`](/docs/nia/configuration#verify_incoming) is set to `true` on the API.<br/><br/>Alternatively, you can specify the value using the `CTS_CLIENT_CERT` environment variable.                                                                                                                      | none                    |
+| `-client-key`                                                                                                                                                                                 | Optional | string  | Path to a PEM-encoded client key for the certificate configured with the `-client-cert` option. This is required if `-client-cert` is set and if [`verify_incoming`](/docs/nia/configuration#verify_incoming) is set to `true` on the CTS API.<br/><br/>Alternatively, you can specify the value using the `CTS_CLIENT_KEY` environment variable.                                          | none                    |
