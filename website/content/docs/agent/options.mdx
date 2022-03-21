@@ -2485,13 +2485,21 @@ specially crafted certificate signed by the CA can be used to gain full access t
       [`cert_file`](#tls_defaults_cert_file).
 
     - `tls_min_version` ((#tls_defaults_tls_min_version)) This specifies the
-      minimum supported version of TLS. Accepted values as of Consul 1.12.0 are
-      "TLSv1_0", "TLSv1_1", "TLSv1_2", or "TLSv1_3". This defaults to "TLSv1_2".
-      Deprecated values of "tls10", "tls11", "tls12" and "tls13" are currently
-      accepted only when using the [deprecated top-level `tls_min_version`
-      config](#tls_deprecated_options), will emit a warning during configuration,
-      and will be removed in a future release. **WARNING: TLS 1.1 and lower are
-      generally considered less secure; avoid using these if possible.**
+      minimum supported version of TLS. The following values are accepted:
+      * `TLSv1_0`
+      * `TLSv1_1`
+      * `TLSv1_2` (default)
+      * `TLSv1_3`
+      **WARNING: TLS 1.1 and lower are generally considered less secure and
+      should not be used if possible.**
+      The following values are also valid, but only when using the
+      [deprecated top-level `tls_min_version` config](#tls_deprecated_options),
+      and will be removed in a future release:
+      * `tls10`
+      * `tls11`
+      * `tls12`
+      * `tls13`
+      A warning message will appear if a deprecated value is specified.
 
     - `tls_cipher_suites` ((#tls_defaults_tls_cipher_suites)) This specifies
       the list of supported ciphersuites as a comma-separated-list. Applicable
