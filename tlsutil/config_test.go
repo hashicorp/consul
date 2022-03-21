@@ -67,20 +67,6 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 			})
 
 			t.Run("CipherSuites", func(t *testing.T) {
-				// TODO: re-add test that should error with a valid but unsupported cipher suite
-				// cfg := ProtocolConfig{
-				// 	CipherSuites: []types.TLSCipherSuite{types.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256},
-				// 	CertFile:     "../test/hostname/Alice.crt",
-				// 	KeyFile:      "../test/hostname/Alice.key",
-				// }
-				// c := makeConfigurator(t, tc.setupFn(cfg))
-				// // empty config set for unrecognized values, error?
-				// require.Equal(t, []uint16{}, tlsConf.CipherSuites)
-				// // negotiated cipher suite is _not_ the specified option (may change with new Go versions,
-				// // so checking a negative case rather than positive)
-				// cipherSuite := tlsClient.ConnectionState().CipherSuite
-				// require.NotEqual(t, tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256, cipherSuite)
-
 				cfg := ProtocolConfig{
 					CipherSuites: []types.TLSCipherSuite{types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384},
 					CertFile:     "../test/hostname/Alice.crt",
@@ -950,30 +936,6 @@ func TestConfigurator_Validation(t *testing.T) {
 				},
 				false,
 			},
-		}
-
-		// TODO: should this be exposed from types/tls.go?
-		tlsVersions := []string{"", "TLSv1_0", "TLSv1_1", "TLSv1_2", "TLSv1_3"}
-		for _, v := range tlsVersions {
-			testCases[fmt.Sprintf("MinTLSVersion(%s)", v)] = testCase{
-				ProtocolConfig{TLSMinVersion: types.TLSVersion(v)},
-				true,
-			}
-		}
-
-		// NOTE: checks for deprecated TLS version string warnings,
-		// should be removed when removing support for these config values
-		// for version := range types.DeprecatedAgentTLSVersions {
-		for _, v := range types.DeprecatedConsulAgentTLSVersions {
-			// TODO: check for warning log message? how?
-			testCases[fmt.Sprintf("MinTLSVersion(%s)", v)] = testCase{
-				ProtocolConfig{TLSMinVersion: v},
-				true,
-			}
-			// TODO: how could this check that the actual config set is valid?
-			// tlsVersion, _ := ParseTLSVersion(version)
-			// require.Equal(t, c.commonTLSConfig(false).MinVersion,
-			//     goTLSVersions[tlsVersion])
 		}
 
 		for desc, tc := range testCases {
