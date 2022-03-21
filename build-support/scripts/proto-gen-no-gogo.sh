@@ -107,6 +107,8 @@ function main {
       --go_out="${go_proto_out}${SOURCE_DIR}" \
       --go-binary_out="${SOURCE_DIR}" \
       "${proto_path}"
+   debug_run protoc-go-inject-tag \
+   	   -input="${proto_go_path}"
 
     echo "debug_run protoc \
           -I=\"${golang_proto_path}\" \
