@@ -2490,15 +2490,19 @@ specially crafted certificate signed by the CA can be used to gain full access t
       * `TLSv1_1`
       * `TLSv1_2` (default)
       * `TLSv1_3`
+
       **WARNING: TLS 1.1 and lower are generally considered less secure and
       should not be used if possible.**
+
       The following values are also valid, but only when using the
       [deprecated top-level `tls_min_version` config](#tls_deprecated_options),
       and will be removed in a future release:
+
       * `tls10`
       * `tls11`
       * `tls12`
       * `tls13`
+
       A warning message will appear if a deprecated value is specified.
 
     - `tls_cipher_suites` ((#tls_defaults_tls_cipher_suites)) This specifies
