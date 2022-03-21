@@ -5462,8 +5462,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.HTTPS.CAPath = "default_ca_path"
 			rt.TLS.HTTPS.CertFile = "https_cert_file"
 			rt.TLS.HTTPS.TLSMinVersion = "TLSv1_3"
-			// FIXME: this should fail, TLS 1.3 cipher suites are not configurable
-			rt.TLS.HTTPS.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256}
 			rt.TLS.HTTPS.VerifyIncoming = true
 
 			rt.TLS.GRPC.CAFile = "default_ca_file"
@@ -6332,7 +6330,6 @@ func TestLoad_FullConfig(t *testing.T) {
 				CertFile:       "1yrhPlMk",
 				KeyFile:        "1bHapOkL",
 				TLSMinVersion:  types.TLSv1_3,
-				CipherSuites:   []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing: true,
 			},
 			NodeName:                "otlLxGaI",

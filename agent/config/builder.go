@@ -1992,10 +1992,24 @@ func (b *builder) tlsVersion(name string, v *string) types.TLSVersion {
 	return a
 }
 
+// validateTLSVersionCipherSuitesCompat checks that the specified TLS version supports
+// specifying cipher suites
+func validateTLSVersionCipherSuitesCompat(tlsMinVersion types.TLSVersion) error {
+	if tlsMinVersion == types.TLSv1_3 {
+		return fmt.Errorf("TLS 1.3 cipher suites are not configurable")
+	}
+	return nil
+}
+
 // tlsCipherSuites parses cipher suites from a comma-separated string into a
 // recognized slice
-func (b *builder) tlsCipherSuites(name string, v *string) []types.TLSCipherSuite {
+func (b *builder) tlsCipherSuites(name string, v *string, tlsMinVersion types.TLSVersion) []types.TLSCipherSuite {
 	if v == nil {
+		return nil
+	}
+
+	if err := validateTLSVersionCipherSuitesCompat(tlsMinVersion); err != nil {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: %s", name, err))
 		return nil
 	}
 
@@ -2512,7 +2526,7 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 	}
 
 	defaultTLSMinVersion := b.tlsVersion("tls.defaults.tls_min_version", t.Defaults.TLSMinVersion)
-	defaultCipherSuites := b.tlsCipherSuites("tls.defaults.tls_cipher_suites", t.Defaults.TLSCipherSuites)
+	defaultCipherSuites := b.tlsCipherSuites("tls.defaults.tls_cipher_suites", t.Defaults.TLSCipherSuites, defaultTLSMinVersion)
 
 	mapCommon := func(name string, src TLSProtocolConfig, dst *tlsutil.ProtocolConfig) {
 		dst.CAPath = stringValWithDefault(src.CAPath, stringVal(t.Defaults.CAPath))
@@ -2538,11 +2552,16 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 		}
 
 		if src.TLSCipherSuites == nil {
-			dst.CipherSuites = defaultCipherSuites
+			// If cipher suite config incompatible with a specified TLS min version
+			// would be inherited, omit it but don't return an error in the builder.
+			if validateTLSVersionCipherSuitesCompat(dst.TLSMinVersion) == nil {
+				dst.CipherSuites = defaultCipherSuites
+			}
 		} else {
 			dst.CipherSuites = b.tlsCipherSuites(
 				fmt.Sprintf("tls.%s.tls_cipher_suites", name),
 				src.TLSCipherSuites,
+				dst.TLSMinVersion,
 			)
 		}
 	}
