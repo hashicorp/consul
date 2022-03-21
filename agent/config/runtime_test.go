@@ -6308,7 +6308,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				CAPath:               "lOp1nhPa",
 				CertFile:             "dfJ4oPln",
 				KeyFile:              "aL1Knkpo",
-				TLSMinVersion:        types.TLSv1_1, // FIXME: add a separate test for config parsing error
+				TLSMinVersion:        types.TLSv1_1,
 				CipherSuites:         []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing:       true,
 				VerifyServerHostname: true,
