@@ -29,6 +29,12 @@ This endpoint returns the specified key. If no key exists at the given path, a
 For multi-key reads (up to a limit of 64 KV operations) please consider using
 [transactions](/api/txn) instead.
 
+If the [`recurse`](#recurse) or [`keys`](#keys) query parameters are `true`,
+this endpoint will return an array of keys. In this case,
+the HTTP response includes the `X-Consul-Results-Filtered-By-ACLs: true` header
+if the response array excludes results due to ACL policy configuration.
+Refer to the [HTTP API documentation](/api-docs#results-filtered-by-acls) for more information.
+
 | Method | Path       | Produces           |
 | ------ | ---------- | ------------------ |
 | `GET`  | `/kv/:key` | `application/json` |
