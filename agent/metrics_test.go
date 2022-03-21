@@ -92,7 +92,7 @@ func TestAgent_NewRPCMetrics(t *testing.T) {
 		respRec := httptest.NewRecorder()
 		recordPromMetrics(t, a, respRec)
 
-		assertMetricExists(t, respRec, metricsPrefix+"_rpc_server_request")
+		assertMetricExists(t, respRec, metricsPrefix+"_rpc_server_call")
 	})
 }
 

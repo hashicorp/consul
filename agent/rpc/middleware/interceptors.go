@@ -20,7 +20,7 @@ import (
 // used for this historically is "RPC", so we continue to use that here.
 const RPCTypeInternal = "internal"
 
-var metricRPCRequest = []string{"rpc", "server", "request"}
+var metricRPCRequest = []string{"rpc", "server", "call"}
 var requestLogName = "rpc.server.request"
 
 var NewRPCCounters = []prometheus.CounterDefinition{
