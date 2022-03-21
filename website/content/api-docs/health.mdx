@@ -18,6 +18,8 @@ raw entries.
 
 This endpoint returns the checks specific to the node provided on the path.
 
+@include 'http_api_results_filtered_by_acls.mdx'
+
 | Method | Path                 | Produces           |
 | ------ | -------------------- | ------------------ |
 | `GET`  | `/health/node/:node` | `application/json` |
@@ -113,6 +115,8 @@ the following selectors and filter operations being supported:
 This endpoint returns the checks associated with the service provided on the
 path.
 
+@include 'http_api_results_filtered_by_acls.mdx'
+
 | Method | Path                      | Produces           |
 | ------ | ------------------------- | ------------------ |
 | `GET`  | `/health/checks/:service` | `application/json` |
@@ -202,6 +206,8 @@ the following selectors and filter operations being supported:
 This endpoint returns the service instances providing the service indicated on the path.
 Users can also build in support for dynamic load balancing and other features by
 incorporating the use of health checks.
+
+@include 'http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                       | Produces           |
 | ------ | -------------------------- | ------------------ |
@@ -409,6 +415,8 @@ This will include both proxies and native integrations. A service may
 register both Connect-capable and incapable services at the same time,
 so this endpoint may be used to filter only the Connect-capable endpoints.
 
+@include 'http_api_results_filtered_by_acls.mdx'
+
 | Method | Path                       | Produces           |
 | ------ | -------------------------- | ------------------ |
 | `GET`  | `/health/connect/:service` | `application/json` |
@@ -422,6 +430,8 @@ Parameters and response format are the same as
 
 This endpoint returns the service instances providing an [ingress
 gateway](/docs/connect/gateways/ingress-gateway) for a service in a given datacenter.
+
+@include 'http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                       | Produces           |
 | ------ | -------------------------- | ------------------ |
@@ -437,6 +447,8 @@ endpoint does not support the [streaming backend](/api/features/blocking#streami
 ## List Checks in State
 
 This endpoint returns the checks in the state provided on the path.
+
+@include 'http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                   | Produces           |
 | ------ | ---------------------- | ------------------ |
