@@ -427,6 +427,8 @@ $ curl --request DELETE \
 This endpoint lists all the Namespaces. The output will be filtered based on the
 privileges of the ACL token used for the request.
 
+@include 'http_api_results_filtered_by_acls.mdx'
+
 | Method | Path          | Produces           |
 | ------ | ------------- | ------------------ |
 | `GET`  | `/namespaces` | `application/json` |
