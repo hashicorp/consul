@@ -37,14 +37,6 @@ type LoginInput struct {
 // GenerateLoginData populates the necessary data to send for the bearer token.
 // https://github.com/hashicorp/go-secure-stdlib/blob/main/awsutil/generate_credentials.go#L232-L301
 func GenerateLoginData(in *LoginInput) (map[string]interface{}, error) {
-
-	// Use the credentials we've found to construct an STS session
-	// TODO: Do we need this? Or can just assume the region from the credentials?
-	// region, err := GetRegion(configuredRegion)
-	//if err != nil {
-	//	logger.Warn(fmt.Sprintf("defaulting region to %q due to %s", DefaultRegion, err.Error()))
-	//	region = DefaultRegion
-	//}
 	cfg := aws.Config{
 		Credentials: in.Creds,
 		Region:      aws.String(in.STSRegion),
@@ -136,7 +128,6 @@ func formatSignedEntityRequest(svc *sts.STS, in *LoginInput) (*request.Request, 
 		return nil, err
 	}
 
-	// TODO: custom endpoint?
 	iamSession, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
 			Credentials: svc.Config.Credentials,

@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/hashicorp/go-secure-stdlib/strutil"
+	"github.com/hashicorp/consul/lib/stringslice"
 )
 
 const (
@@ -44,20 +44,12 @@ type BearerToken struct {
 	getIAMEntityHeader http.Header
 	getIAMEntityBody   string
 
-	iamEntityType           IAMEntityType
+	entityRequestType       string
 	parsedCallerIdentityURL *url.URL
 	parsedIAMEntityURL      *url.URL
 }
 
 var _ json.Unmarshaler = (*BearerToken)(nil)
-
-type IAMEntityType string
-
-const (
-	IAMEntityTypeNone IAMEntityType = ""
-	IAMEntityTypeRole               = "role"
-	IAMEntityTypeUser               = "user"
-)
 
 func NewBearerToken(loginToken string, config *Config) (*BearerToken, error) {
 	token := &BearerToken{config: config}
@@ -75,7 +67,7 @@ func NewBearerToken(loginToken string, config *Config) (*BearerToken, error) {
 			return nil, err
 		}
 
-		url, err := token.getHeader(token.config.GetEntityURLHeader)
+		rawUrl, err := token.getHeader(token.config.GetEntityURLHeader)
 		if err != nil {
 			return nil, err
 		}
@@ -95,31 +87,22 @@ func NewBearerToken(loginToken string, config *Config) (*BearerToken, error) {
 			return nil, err
 		}
 
-		parsedUrl, err := token.parsedCallerIdentityURL.Parse(url)
+		parsedUrl, err := parseUrl(rawUrl)
 		if err != nil {
 			return nil, err
 		}
 
 		token.getIAMEntityMethod = method
 		token.getIAMEntityBody = body
-		token.getIAMEntityURL = url
+		token.getIAMEntityURL = rawUrl
 		token.getIAMEntityHeader = header
 		token.parsedIAMEntityURL = parsedUrl
 
-		entityType, err := token.validateIAMEntityBody()
+		reqType, err := token.validateIAMEntityBody()
 		if err != nil {
 			return nil, err
 		}
-		token.iamEntityType = entityType
-
-		// TODO:
-		// if err := t.validateServerIDHeader(); err != nil {
-		// 	return err
-		// }
-		// if err := t.validateAllowedSTSHeaderValues(); err != nil {
-		// 	return err
-		// }
-
+		token.entityRequestType = reqType
 	}
 	return token, nil
 }
@@ -140,66 +123,76 @@ func (t *BearerToken) validate() error {
 
 // https://github.com/hashicorp/vault/blob/b17e3256dde937a6248c9a2fa56206aac93d07de/builtin/credential/aws/path_login.go#L1439
 func (t *BearerToken) validateGetCallerIdentityBody() error {
-	qs, err := url.ParseQuery(t.getCallerIdentityBody)
-	if err != nil {
-		return err
-	}
-	for k, v := range qs {
-		switch k {
-		case "Action":
-			if len(v) != 1 || v[0] != "GetCallerIdentity" {
-				return fmt.Errorf("iam_request_body must have 'Action=GetCallerIdentity'")
-			}
-		case "Version":
+	allowedValues := url.Values{
+		"Action": []string{"GetCallerIdentity"},
 		// Will assume for now that future versions don't change
 		// the semantics
-		default:
-			// Not expecting any other values
-			return fmt.Errorf("iam_request_body contains unexpected values")
-		}
+		"Version": nil, // any value is allowed
 	}
+	if _, err := parseRequestBody(t.getCallerIdentityBody, allowedValues); err != nil {
+		return fmt.Errorf("iam_request_body error: %s", err)
+	}
+
 	return nil
 }
 
-func (t *BearerToken) validateIAMEntityBody() (IAMEntityType, error) {
-	qs, err := url.ParseQuery(t.getIAMEntityBody)
-	if err != nil {
-		return IAMEntityTypeNone, err
+func (t *BearerToken) validateIAMEntityBody() (string, error) {
+	allowedValues := url.Values{
+		"Action":   []string{"GetRole", "GetUser"},
+		"RoleName": nil, // any value is allowed
+		"UserName": nil,
+		"Version":  nil,
 	}
-	action := ""
-	nameType := ""
-loop:
+	body, err := parseRequestBody(t.getIAMEntityBody, allowedValues)
+	if err != nil {
+		return "", fmt.Errorf("iam_request_headers[%s] error: %s", t.config.GetEntityBodyHeader, err)
+	}
+
+	// Disallow GetRole+UserName and GetUser+RoleName.
+	action := body["Action"][0]
+	_, hasRoleName := body["RoleName"]
+	_, hasUserName := body["UserName"]
+	if action == "GetUser" && hasUserName && !hasRoleName {
+		return action, nil
+	} else if action == "GetRole" && hasRoleName && !hasUserName {
+		return action, nil
+	}
+	return "", fmt.Errorf("iam_request_headers[%q] error: invalid request body %q", t.config.GetEntityBodyHeader, t.getIAMEntityBody)
+}
+
+// parseRequestBody parses the AWS STS or IAM request body, such as 'Action=GetRole&RoleName=my-role'.
+// A key-value pair in the body is allowed if:
+//  - It is a single value (i.e. no bodies like 'Action=1&Action=2'
+//  - allowedValues[key] is an empty slice or nil (any value is allowed for the key)
+//  - allowedValues[key] is non-empty and contains the exact value
+// This always requires an 'Action' field is present.
+func parseRequestBody(body string, allowedValues url.Values) (url.Values, error) {
+	qs, err := url.ParseQuery(body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure the body does not have extra fields and each
+	// field in the body matches the expected fields.
 	for k, v := range qs {
-		switch k {
-		case "Action":
-			// Check for Action=GetRole or Action=GetUser, but allow nothing else.
-			if len(v) == 1 {
-				switch v[0] {
-				case "GetRole", "GetUser":
-					action = v[0]
-					continue loop
-				}
-			}
-			// invalid body
-			action = ""
-			break loop
-		case "RoleName", "UserName":
-			nameType = k
-		case "Version":
-		// Will assume for now that future versions don't change
-		// the semantics
-		default:
-			// Not expecting any other values
-			return IAMEntityTypeNone, fmt.Errorf("iam_request_headers[%q] contains unexpected value", t.config.GetEntityBodyHeader)
+		exp, ok := allowedValues[k]
+		if !ok {
+			return nil, fmt.Errorf("unexpected field %q", k)
+		}
+		if len(exp) == 0 {
+			// empty indicates any value is okay
+			continue
+		} else if len(v) != 1 || !stringslice.Contains(exp, v[0]) {
+			return nil, fmt.Errorf("unexpected value %s=%v", k, v)
 		}
 	}
-	if action == "GetUser" && nameType == "UserName" {
-		return IAMEntityTypeUser, nil
+
+	// Action field is always required.
+	if _, ok := qs["Action"]; !ok || len(qs["Action"]) == 0 {
+		return nil, fmt.Errorf(`missing field "Action"`)
 	}
-	if action == "GetRole" && nameType == "RoleName" {
-		return IAMEntityTypeRole, nil
-	}
-	return IAMEntityTypeNone, fmt.Errorf("iam_request_headers[%q] contains unexpected value", t.config.GetEntityBodyHeader)
+
+	return qs, nil
 }
 
 // https://github.com/hashicorp/vault/blob/861454e0ed1390d67ddaf1a53c1798e5e291728c/builtin/credential/aws/path_config_client.go#L349
@@ -207,8 +200,8 @@ func (t *BearerToken) validateAllowedSTSHeaderValues() error {
 	for k := range t.getCallerIdentityHeader {
 		h := textproto.CanonicalMIMEHeaderKey(k)
 		if strings.HasPrefix(h, amzHeaderPrefix) &&
-			!strutil.StrListContains(defaultAllowedSTSRequestHeaders, h) &&
-			!strutil.StrListContains(t.config.AllowedSTSHeaderValues, h) {
+			!stringslice.Contains(defaultAllowedSTSRequestHeaders, h) &&
+			!stringslice.Contains(t.config.AllowedSTSHeaderValues, h) {
 			return fmt.Errorf("invalid request header: %s", h)
 		}
 	}
@@ -255,12 +248,27 @@ func (t *BearerToken) UnmarshalJSON(data []byte) error {
 	t.getCallerIdentityHeader = headers
 	t.getCallerIdentityURL = string(rawUrl)
 
-	parsedUrl, err := url.Parse(t.getCallerIdentityURL)
+	fmt.Printf("url = %q\n", t.getCallerIdentityURL)
+
+	// url.Parse does not error on empty string
+	parsedUrl, err := parseUrl(t.getCallerIdentityURL)
 	if err != nil {
 		return err
 	}
 	t.parsedCallerIdentityURL = parsedUrl
 	return nil
+}
+
+func parseUrl(s string) (*url.URL, error) {
+	u, err := url.Parse(s)
+	if err != nil {
+		return nil, err
+	}
+	// url.Parse doesn't error on empty string
+	if u == nil || u.Scheme == "" || u.Host == "" || u.Path == "" {
+		return nil, fmt.Errorf("url is invalid: %q", s)
+	}
+	return u, nil
 }
 
 // GetCallerIdentityRequest returns the sts:GetCallerIdentity request decoded

@@ -132,6 +132,5 @@ func (a *AWSLogin) createAWSBearerToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	return string(loginDataJson), err
 }

@@ -575,7 +575,6 @@ func TestLoginCommand_aws_iam(t *testing.T) {
 					roleName, entityId, accountId),
 			},
 			expServiceIdentities: []*api.ACLServiceIdentity{
-				// TODO: why is this lowercased?
 				{ServiceName: fmt.Sprintf("%s-%s-%s", "my-role", strings.ToLower(entityId), accountId)},
 			},
 		},
@@ -593,7 +592,6 @@ func TestLoginCommand_aws_iam(t *testing.T) {
 				BindName: "${entity_name}",
 				Selector: fmt.Sprintf(`entity_name==%q and entity_path==%q`, roleName, "some/path"),
 			},
-			// TODO: why is this lowercased?
 			expServiceIdentities: []*api.ACLServiceIdentity{{ServiceName: roleName}},
 		},
 		"success - login with role and role tags": {

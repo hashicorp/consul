@@ -36,7 +36,7 @@ type cmd struct {
 	tokenSinkFile   string
 	meta            map[string]string
 
-	aws *AWSLogin
+	aws AWSLogin
 
 	enterpriseCmd
 }
@@ -61,7 +61,6 @@ func (c *cmd) init() {
 			"may be specified multiple times to set multiple meta fields.")
 	c.initEnterpriseFlags()
 
-	c.aws = &AWSLogin{}
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.aws.flags())
 	flags.Merge(c.flags, c.http.ClientFlags())

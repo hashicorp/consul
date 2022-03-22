@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/internal/iamauth/responses"
-
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/hashicorp/go-secure-stdlib/strutil"
 )
 
 const (
@@ -100,7 +100,7 @@ func (a *Authenticator) ValidateLogin(ctx context.Context, loginToken string) (*
 			}
 		}
 
-		iamEntityDetails, err := a.submitGetIAMEntityRequest(ctx, iamReq, token.iamEntityType)
+		iamEntityDetails, err := a.submitGetIAMEntityRequest(ctx, iamReq, token.entityRequestType)
 		if err != nil {
 			return nil, err
 		}
@@ -126,13 +126,13 @@ func (a *Authenticator) ValidateLogin(ctx context.Context, loginToken string) (*
 
 // https://github.com/hashicorp/vault/blob/ba533d006f2244103648785ebfe8a9a9763d2b6e/builtin/credential/aws/path_login.go#L1321-L1361
 func (a *Authenticator) validateIdentity(clientArn string) error {
-	if strutil.StrListContains(a.config.BoundIAMPrincipalARNs, clientArn) {
+	if stringslice.Contains(a.config.BoundIAMPrincipalARNs, clientArn) {
 		// Matches one of BoundIAMPrincipalARNs, so it is trusted
 		return nil
 	}
 	if a.config.EnableIAMEntityDetails {
 		for _, principalArn := range a.config.BoundIAMPrincipalARNs {
-			if strings.HasSuffix(principalArn, "*") && strutil.GlobbedStringsMatch(principalArn, clientArn) {
+			if strings.HasSuffix(principalArn, "*") && lib.GlobbedStringsMatch(principalArn, clientArn) {
 				// Wildcard match, so it is trusted
 				return nil
 			}
@@ -193,7 +193,7 @@ func (a *Authenticator) submitCallerIdentityRequest(ctx context.Context, req *ht
 	return &callerIdentityResponse.GetCallerIdentityResult[0], nil
 }
 
-func (a *Authenticator) submitGetIAMEntityRequest(ctx context.Context, req *http.Request, entityType IAMEntityType) (responses.IAMEntity, error) {
+func (a *Authenticator) submitGetIAMEntityRequest(ctx context.Context, req *http.Request, reqType string) (responses.IAMEntity, error) {
 	retryableReq, err := retryablehttp.FromRequest(req)
 	if err != nil {
 		return nil, err
@@ -233,7 +233,7 @@ func (a *Authenticator) submitGetIAMEntityRequest(ctx context.Context, req *http
 		return nil, fmt.Errorf("received error code %d from IAM: %s", response.StatusCode, string(responseBody))
 	}
 
-	iamResponse, err := parseGetIAMEntityResponse(string(responseBody), entityType)
+	iamResponse, err := parseGetIAMEntityResponse(string(responseBody), reqType)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing IAM response: %s", err)
 	}
@@ -253,7 +253,7 @@ func parseGetCallerIdentityResponse(response string) (responses.GetCallerIdentit
 	return result, err
 }
 
-func parseGetIAMEntityResponse(response string, responseType IAMEntityType) (responses.IAMEntity, error) {
+func parseGetIAMEntityResponse(response string, reqType string) (responses.IAMEntity, error) {
 	if !strings.HasPrefix(response, "<GetRoleResponse") &&
 		!strings.HasPrefix(response, "<GetUserResponse") &&
 		!strings.HasPrefix(response, "<?xml") {
@@ -262,8 +262,8 @@ func parseGetIAMEntityResponse(response string, responseType IAMEntityType) (res
 
 	decoder := xml.NewDecoder(strings.NewReader(response))
 
-	switch responseType {
-	case IAMEntityTypeRole:
+	switch reqType {
+	case "GetRole":
 		result := &responses.GetRoleResponse{}
 		err := decoder.Decode(&result)
 		if err != nil {
@@ -273,7 +273,7 @@ func parseGetIAMEntityResponse(response string, responseType IAMEntityType) (res
 			return nil, fmt.Errorf("received %d identities in iam:GetRole response but expected 1", n)
 		}
 		return &result.GetRoleResult[0].Role, nil
-	case IAMEntityTypeUser:
+	case "GetUser":
 		result := &responses.GetUserResponse{}
 		err := decoder.Decode(&result)
 		if err != nil {
@@ -284,7 +284,7 @@ func parseGetIAMEntityResponse(response string, responseType IAMEntityType) (res
 		}
 		return &result.GetUserResult[0].User, nil
 	}
-	return nil, fmt.Errorf("invalid IAM entity type")
+	return nil, fmt.Errorf("invalid IAM request: %s", reqType)
 }
 
 // https://github.com/hashicorp/vault/blob/b17e3256dde937a6248c9a2fa56206aac93d07de/builtin/credential/aws/path_login.go#L1532
