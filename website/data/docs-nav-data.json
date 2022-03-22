@@ -761,6 +761,10 @@
           {
             "title": "task",
             "path": "nia/cli/task"
+          },
+          {
+            "title": "start",
+            "path": "nia/cli/start"
           }
         ]
       },
