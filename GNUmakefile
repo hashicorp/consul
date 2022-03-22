@@ -12,7 +12,8 @@ GOTOOLS = \
 	github.com/hashicorp/protoc-gen-go-binary@master \
 	github.com/vektra/mockery/cmd/mockery@master \
 	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1 \
-	github.com/hashicorp/lint-consul-retry@master
+	github.com/hashicorp/lint-consul-retry@master \
+	github.com/favadi/protoc-go-inject-tag@v1.3.0
 
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
@@ -346,7 +347,7 @@ proto: $(PROTOGOFILES) $(PROTOGOBINFILES)
 
 
 %.pb.go %.pb.binary.go: %.proto
-	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace "$<"
+	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen-entry.sh --grpc --import-replace "$<"
 
 .PHONY: module-versions
 # Print a list of modules which can be updated.

@@ -6,6 +6,8 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"math/rand"
 	"reflect"
 	"regexp"
@@ -19,6 +21,8 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
 
+	gtype "github.com/gogo/protobuf/types"
+	ptypes "github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
@@ -2676,4 +2680,43 @@ func (m MessageType) String() string {
 	}
 	return "Unknown(" + strconv.Itoa(int(m)) + ")"
 
+}
+
+func DurationToProtoGogo(d time.Duration) gtype.Duration {
+	return *gtype.DurationProto(d)
+}
+
+func DurationFromProtoGogo(d gtype.Duration) time.Duration {
+	duration, _ := gtype.DurationFromProto(&d)
+	return duration
+}
+
+func TimeFromProtoGogo(s *gtype.Timestamp) time.Time {
+	time, _ := gtype.TimestampFromProto(s)
+	return time
+}
+
+func TimeToProtoGogo(s time.Time) *gtype.Timestamp {
+	proto, _ := gtype.TimestampProto(s)
+	return proto
+}
+
+func DurationToProto(d time.Duration) *duration.Duration {
+	return ptypes.DurationProto(d)
+}
+
+func DurationFromProto(d *duration.Duration) time.Duration {
+	ret, _ := ptypes.Duration(d)
+	return ret
+
+}
+
+func TimeFromProto(s *timestamp.Timestamp) time.Time {
+	ret, _ := ptypes.Timestamp(s)
+	return ret
+}
+
+func TimeToProto(s time.Time) *timestamp.Timestamp {
+	ret, _ := ptypes.TimestampProto(s)
+	return ret
 }

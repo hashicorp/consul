@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbcommongogo"
 )
 
 func TestCheckServiceNode_UniqueID(t *testing.T) {
@@ -25,7 +25,7 @@ func TestCheckServiceNode_UniqueID(t *testing.T) {
 				Node: &Node{Node: "the-node-name"},
 				Service: &NodeService{
 					ID:             "the-service-id",
-					EnterpriseMeta: pbcommon.EnterpriseMeta{Namespace: "the-namespace"},
+					EnterpriseMeta: pbcommongogo.EnterpriseMeta{Namespace: "the-namespace"},
 				},
 			},
 			expected: "/the-node-name/the-namespace/the-service-id",
@@ -35,7 +35,7 @@ func TestCheckServiceNode_UniqueID(t *testing.T) {
 			csn: CheckServiceNode{
 				Service: &NodeService{
 					ID:             "the-service-id",
-					EnterpriseMeta: pbcommon.EnterpriseMeta{Namespace: "the-namespace"},
+					EnterpriseMeta: pbcommongogo.EnterpriseMeta{Namespace: "the-namespace"},
 				},
 			},
 			expected: "/the-namespace/the-service-id",

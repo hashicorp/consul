@@ -5,7 +5,7 @@ package pbservice;
 option go_package = "github.com/hashicorp/consul/proto/pbservice";
 
 import "google/protobuf/duration.proto";
-import "proto/pbcommon/common.proto";
+import "proto/pbcommongogo/common.proto";
 
 // This fake import path is replaced by the build script with a versioned path
 import "gogoproto/gogo.proto";
@@ -37,10 +37,10 @@ message HealthCheck {
     HealthCheckDefinition Definition = 10 [(gogoproto.nullable) = false];
 
     // mog: func-to=RaftIndexToStructs func-from=NewRaftIndexFromStructs
-    common.RaftIndex RaftIndex = 11 [(gogoproto.embed) = true, (gogoproto.nullable) = false];
+    commongogo.RaftIndex RaftIndex = 11 [(gogoproto.embed) = true, (gogoproto.nullable) = false];
 
     // mog: func-to=EnterpriseMetaToStructs func-from=NewEnterpriseMetaFromStructs
-    common.EnterpriseMeta EnterpriseMeta = 13  [(gogoproto.nullable) = false];
+    commongogo.EnterpriseMeta EnterpriseMeta = 13  [(gogoproto.nullable) = false];
 
     // mog: func-to=int func-from=int32
     int32 ExposedPort = 14;

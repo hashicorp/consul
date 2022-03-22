@@ -5,9 +5,15 @@ package connect;
 option go_package = "github.com/hashicorp/consul/proto/pbconnect";
 
 import "google/protobuf/timestamp.proto";
-import "proto/pbcommon/common.proto";
+import "proto/pbcommongogo/common.proto";
 
 // CARoots is the list of all currently trusted CA Roots.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IndexedCARoots
+// output=connect.gen.go
+// name=StructsIndexedCARoots
 message CARoots {
    // ActiveRootID is the ID of a root in Roots that is the active CA root.
 	// Other roots are still valid if they're in the Roots list but are in
@@ -43,9 +49,17 @@ message CARoots {
 	
 	// QueryMeta here is mainly used to contain the latest Raft Index that could
 	// be used to perform a blocking query.
-	common.QueryMeta QueryMeta = 4;
+	// mog: func-to=QueryMetaTo func-from=QueryMetaFrom
+	commongogo.QueryMeta QueryMeta = 4;
 }
 
+// CARoot is the trusted CA Root.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.CARoot
+// output=connect.gen.go
+// name=StructsCARoot
 message CARoot {
    // ID is a globally unique ID (UUID) representing this CA root.
 	string ID = 1;
@@ -73,7 +87,9 @@ message CARoot {
 	string ExternalTrustDomain = 5;
 
 	// Time validity bounds.
+	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
 	google.protobuf.Timestamp NotBefore = 6;
+	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
 	google.protobuf.Timestamp NotAfter = 7;
 
 	// RootCert is the PEM-encoded public certificate.
@@ -98,6 +114,7 @@ message CARoot {
 	// RotatedOutAt is the time at which this CA was removed from the state.
 	// This will only be set on roots that have been rotated out from being the
 	// active root.
+	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
 	google.protobuf.Timestamp RotatedOutAt = 13;
 
 	// PrivateKeyType is the type of the private key used to sign certificates. It
@@ -108,11 +125,19 @@ message CARoot {
 	// PrivateKeyBits is the length of the private key used to sign certificates.
 	// This is provided as a convenience to avoid parsing the public key from the
 	// certificate to infer the type.
+	// mog: func-to=int func-from=int32
 	int32 PrivateKeyBits = 15;
-   
-   common.RaftIndex RaftIndex = 16;
+
+	// mog: func-to=RaftIndexTo func-from=RaftIndexFrom
+	commongogo.RaftIndex RaftIndex = 16;
 }
 
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IssuedCert
+// output=connect.gen.go
+// name=StructsIssuedCert
 message IssuedCert {
    // SerialNumber is the unique serial number for this certificate.
 	// This is encoded in standard hex separated by :.
@@ -136,11 +161,15 @@ message IssuedCert {
 
 	// ValidAfter and ValidBefore are the validity periods for the
 	// certificate.
+	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
 	google.protobuf.Timestamp ValidAfter = 8;
+	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
 	google.protobuf.Timestamp ValidBefore = 9;
 
 	// EnterpriseMeta is the Consul Enterprise specific metadata
-	common.EnterpriseMeta EnterpriseMeta = 10;
+	// mog: func-to=EnterpriseMetaTo func-from=EnterpriseMetaFrom
+	commongogo.EnterpriseMeta EnterpriseMeta = 10;
 
-	common.RaftIndex RaftIndex = 11;
+	// mog: func-to=RaftIndexTo func-from=RaftIndexFrom
+	commongogo.RaftIndex RaftIndex = 11;
 }

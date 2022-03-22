@@ -1,19 +1,33 @@
 syntax = "proto3";
 
-package common;
+package commongogo;
 
-option go_package = "github.com/hashicorp/consul/proto/pbcommon";
+option go_package = "github.com/hashicorp/consul/proto/pbcommongogo";
 
 import "google/protobuf/duration.proto";
+// Go Modules now includes the version in the filepath for packages within GOPATH/pkg/mode
+// Therefore unless we want to hardcode a version here like
+// github.com/gogo/protobuf@v1.3.0/gogoproto/gogo.proto then the only other choice is to
+// have a more relative import and pass the right import path to protoc. I don't like it
+// but its necessary.
+import "gogoproto/gogo.proto";
 
+option (gogoproto.goproto_unkeyed_all) = false;
+option (gogoproto.goproto_unrecognized_all) = false;
+option (gogoproto.goproto_getters_all) = false;
+option (gogoproto.goproto_sizecache_all) = false;
 
 // RaftIndex is used to track the index used while creating
 // or modifying a given struct type.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.RaftIndex
+// output=common.gen.go
+// name=Structs
 message RaftIndex {
-   // @gotags: bexpr:"-"
-   uint64 CreateIndex = 1;
-   // @gotags: bexpr:"-"
-   uint64 ModifyIndex = 2;
+   uint64 CreateIndex = 1 [(gogoproto.moretags) = "bexpr:\"-\""];
+   uint64 ModifyIndex = 2 [(gogoproto.moretags) = "bexpr:\"-\""];
 }
 
 // TargetDatacenter is intended to be used within other messages used for RPC routing
@@ -51,7 +65,7 @@ message ReadRequest {
 // target=github.com/hashicorp/consul/agent/structs.QueryOptions
 // output=common.gen.go
 // name=Structs
-// ignore-fields=StaleIfError,AllowNotModifiedResponse,state,sizeCache,unknownFields
+// ignore-fields=StaleIfError,AllowNotModifiedResponse
 message QueryOptions {
    // Token is the ACL token ID. If not provided, the 'anonymous'
    // token is assumed for backwards compatibility.
@@ -62,8 +76,9 @@ message QueryOptions {
    uint64 MinQueryIndex = 2;
 
    // Provided with MinQueryIndex to wait for change.
-   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
-   google.protobuf.Duration MaxQueryTime = 3;
+   // mog: func-to=structs.DurationFromProtoGogo func-from=structs.DurationToProtoGogo
+   google.protobuf.Duration MaxQueryTime = 3
+      [(gogoproto.nullable) = false];
 
    // If set, any follower can service the request. Results
    // may be arbitrarily stale.
@@ -85,8 +100,9 @@ message QueryOptions {
    // If set and AllowStale is true, will try first a stale
    // read, and then will perform a consistent read if stale
    // read is older than value.
-   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
-   google.protobuf.Duration MaxStaleDuration = 7;
+   // mog: func-to=structs.DurationFromProtoGogo func-from=structs.DurationToProtoGogo
+   google.protobuf.Duration MaxStaleDuration = 7
+      [(gogoproto.nullable) = false];
 
    // MaxAge limits how old a cached value will be returned if UseCache is true.
    // If there is a cached response that is older than the MaxAge, it is treated
@@ -95,8 +111,9 @@ message QueryOptions {
    // StaleIfError to a longer duration to change this behavior. It is ignored
    // if the endpoint supports background refresh caching. See
    // https://www.consul.io/api/index.html#agent-caching for more details.
-   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
-   google.protobuf.Duration MaxAge = 8;
+   // mog: func-to=structs.DurationFromProtoGogo func-from=structs.DurationToProtoGogo
+   google.protobuf.Duration MaxAge = 8
+      [(gogoproto.nullable) = false];
 
    // MustRevalidate forces the agent to fetch a fresh version of a cached
    // resource or at least validate that the cached version is still fresh. It is
@@ -110,7 +127,8 @@ message QueryOptions {
    // UseCache is true and MaxAge is set to a lower, non-zero value. It is
    // ignored if the endpoint supports background refresh caching. See
    // https://www.consul.io/api/index.html#agent-caching for more details.
-   google.protobuf.Duration StaleIfError = 10;
+   google.protobuf.Duration StaleIfError = 10
+      [(gogoproto.nullable) = false];
 
    // Filter specifies the go-bexpr filter expression to be used for
    // filtering the data prior to returning a response
@@ -125,7 +143,7 @@ message QueryOptions {
 // target=github.com/hashicorp/consul/agent/structs.QueryMeta
 // output=common.gen.go
 // name=Structs
-// ignore-fields=NotModified,Backend,state,sizeCache,unknownFields
+// ignore-fields=NotModified,Backend
 message QueryMeta  {
    // This is the index associated with the read
    uint64 Index = 1;
@@ -133,8 +151,9 @@ message QueryMeta  {
    // If AllowStale is used, this is time elapsed since
    // last contact between the follower and leader. This
    // can be used to gauge staleness.
-   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
-   google.protobuf.Duration LastContact = 2;
+   // mog: func-to=structs.DurationFromProtoGogo func-from=structs.DurationToProtoGogo
+   google.protobuf.Duration LastContact = 2
+      [(gogoproto.nullable) = false];
 
    // Used to indicate if there is a known leader node
    bool KnownLeader = 3;

@@ -5,13 +5,13 @@ package pbservice
 
 import (
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbcommongogo"
 )
 
-func EnterpriseMetaToStructs(_ pbcommon.EnterpriseMeta) structs.EnterpriseMeta {
+func EnterpriseMetaToStructs(_ pbcommongogo.EnterpriseMeta) structs.EnterpriseMeta {
 	return structs.EnterpriseMeta{}
 }
 
-func NewEnterpriseMetaFromStructs(_ structs.EnterpriseMeta) pbcommon.EnterpriseMeta {
-	return pbcommon.EnterpriseMeta{}
+func NewEnterpriseMetaFromStructs(_ structs.EnterpriseMeta) pbcommongogo.EnterpriseMeta {
+	return pbcommongogo.EnterpriseMeta{}
 }

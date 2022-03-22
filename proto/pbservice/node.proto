@@ -4,7 +4,7 @@ package pbservice;
 
 option go_package = "github.com/hashicorp/consul/proto/pbservice";
 
-import "proto/pbcommon/common.proto";
+import "proto/pbcommongogo/common.proto";
 import "proto/pbservice/healthcheck.proto";
 import "proto/pbservice/service.proto";
 
@@ -42,7 +42,7 @@ message Node {
   map<string, string> Meta = 6;
 
   // mog: func-to=RaftIndexToStructs func-from=NewRaftIndexFromStructs
-  common.RaftIndex RaftIndex = 7 [(gogoproto.embed) = true, (gogoproto.nullable) = false];
+  commongogo.RaftIndex RaftIndex = 7 [(gogoproto.embed) = true, (gogoproto.nullable) = false];
 }
 
 // NodeService is a service provided by a node
@@ -109,8 +109,8 @@ message NodeService {
   bool LocallyRegisteredAsSidecar = 13;
 
   // mog: func-to=EnterpriseMetaToStructs func-from=NewEnterpriseMetaFromStructs
-  common.EnterpriseMeta EnterpriseMeta = 16 [(gogoproto.nullable) = false];
+  commongogo.EnterpriseMeta EnterpriseMeta = 16 [(gogoproto.nullable) = false];
 
   // mog: func-to=RaftIndexToStructs func-from=NewRaftIndexFromStructs
-  common.RaftIndex RaftIndex = 14 [(gogoproto.embed) = true, (gogoproto.nullable) = false];
+  commongogo.RaftIndex RaftIndex = 14 [(gogoproto.embed) = true, (gogoproto.nullable) = false];
 }
