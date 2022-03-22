@@ -394,7 +394,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"CipherSuites": [
 						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
 						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-					],
+					]
 				},
 				"TransparentProxy": {
 					"OutboundListenerPort": 808,
@@ -460,7 +460,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"CipherSuites": [
 						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
 						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-					],
+					]
 				},
 				"UpstreamConfig": {
 					"Overrides": [
