@@ -48,11 +48,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
 					{
-						CorrelationID: "service-defaults",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.ServiceConfigEntry{
-								Kind:          structs.ServiceDefaults,
-								Name:          "db",
+						CorrelationID: "resolved-service-config",
+						Result: &structs.ServiceConfigResponse{
+							TLS: &structs.ProxyTLSConfig{
 								TLSMinVersion: types.TLSv1_3,
 							},
 						},
@@ -65,11 +63,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
 					{
-						CorrelationID: "service-defaults",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.ServiceConfigEntry{
-								Kind:          structs.ServiceDefaults,
-								Name:          "db",
+						CorrelationID: "resolved-service-config",
+						Result: &structs.ServiceConfigResponse{
+							TLS: &structs.ProxyTLSConfig{
 								TLSMaxVersion: types.TLSv1_2,
 							},
 						},
@@ -82,11 +78,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
 					{
-						CorrelationID: "service-defaults",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.ServiceConfigEntry{
-								Kind: structs.ServiceDefaults,
-								Name: "db",
+						CorrelationID: "resolved-service-config",
+						Result: &structs.ServiceConfigResponse{
+							TLS: &structs.ProxyTLSConfig{
 								CipherSuites: []types.TLSCipherSuite{
 									types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 									types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,

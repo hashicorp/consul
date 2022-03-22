@@ -388,6 +388,14 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"Mode": "remote"
 				},
 				"Mode": "transparent",
+				"TLS": {
+					"TLSMinVersion": "TLSv1_1",
+					"TLSMaxVersion": "TLSv1_2",
+					"CipherSuites": [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					],
+				},
 				"TransparentProxy": {
 					"OutboundListenerPort": 808,
 					"DialedDirectly": true
@@ -412,6 +420,14 @@ func TestDecodeConfigEntry(t *testing.T) {
 					Mode: MeshGatewayModeRemote,
 				},
 				Mode: ProxyModeTransparent,
+				TLS: &ProxyTLSConfig{
+					TLSMinVersion: "TLSv1_1",
+					TLSMaxVersion: "TLSv1_2",
+					CipherSuites: []string{
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+					},
+				},
 				TransparentProxy: &TransparentProxyConfig{
 					OutboundListenerPort: 808,
 					DialedDirectly:       true,
@@ -438,12 +454,14 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"OutboundListenerPort": 808,
 					"DialedDirectly": true
 				},
-				"TLSMinVersion": "TLSv1_1",
-				"TLSMaxVersion": "TLSv1_2",
-				"CipherSuites": [
-					"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-					"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-				],
+				"TLS": {
+					"TLSMinVersion": "TLSv1_1",
+					"TLSMaxVersion": "TLSv1_2",
+					"CipherSuites": [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					],
+				},
 				"UpstreamConfig": {
 					"Overrides": [
 						{
@@ -490,12 +508,14 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
-				Mode:          ProxyModeTransparent,
-				TLSMinVersion: "TLSv1_1",
-				TLSMaxVersion: "TLSv1_2",
-				CipherSuites: []string{
-					"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-					"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+				Mode: ProxyModeTransparent,
+				TLS: &ProxyTLSConfig{
+					TLSMinVersion: "TLSv1_1",
+					TLSMaxVersion: "TLSv1_2",
+					CipherSuites: []string{
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+					},
 				},
 				TransparentProxy: &TransparentProxyConfig{
 					OutboundListenerPort: 808,

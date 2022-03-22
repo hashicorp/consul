@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 )
 
 var ConfigSummaries = []prometheus.SummaryDefinition{
@@ -445,6 +446,15 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 		return err
 	}
 
+	if args.NoUpstreams {
+		if len(args.UpstreamIDs) > 0 {
+			return fmt.Errorf("cannot specify both NoUpstreams and UpstreamIDs at once")
+		}
+		if len(args.Upstreams) > 0 {
+			return fmt.Errorf("cannot specify both NoUpstreams and Upstreams at once")
+		}
+	}
+
 	var (
 		priorHash uint64
 		ranOnce   bool
@@ -481,6 +491,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				&args.EnterpriseMeta,
 				upstreamIDs,
 				args.Mode,
+				args.NoUpstreams,
 			)
 			if err != nil {
 				return err
@@ -509,6 +520,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				args,
 				upstreamIDs,
 				legacyUpstreams,
+				args.NoUpstreams,
 				entries,
 			)
 			if err != nil {
@@ -530,6 +542,7 @@ func (c *ConfigEntry) computeResolvedServiceConfig(
 	args *structs.ServiceConfigRequest,
 	upstreamIDs []structs.ServiceID,
 	legacyUpstreams bool,
+	noUpstreamsDesired bool,
 	entries *configentry.ResolvedServiceConfigSet,
 ) (*structs.ServiceConfigResponse, error) {
 	var thisReply structs.ServiceConfigResponse
@@ -553,6 +566,14 @@ func (c *ConfigEntry) computeResolvedServiceConfig(
 		thisReply.TransparentProxy = proxyConf.TransparentProxy
 		thisReply.MeshGateway = proxyConf.MeshGateway
 		thisReply.Expose = proxyConf.Expose
+
+		if proxyConf.TLS != nil {
+			thisReply.TLS = &structs.ProxyTLSConfig{
+				TLSMinVersion: proxyConf.TLS.TLSMinVersion,
+				TLSMaxVersion: proxyConf.TLS.TLSMaxVersion,
+				CipherSuites:  proxyConf.TLS.CipherSuites,
+			}
+		}
 
 		// Extract the global protocol from proxyConf for upstream configs.
 		rawProtocol := proxyConf.Config["protocol"]
@@ -594,6 +615,21 @@ func (c *ConfigEntry) computeResolvedServiceConfig(
 			thisReply.Mode = serviceConf.Mode
 		}
 
+		if serviceConf.TLS != nil {
+			if thisReply.TLS == nil {
+				thisReply.TLS = &structs.ProxyTLSConfig{}
+			}
+			if serviceConf.TLS.TLSMinVersion == types.TLSVersionUnspecified {
+				thisReply.TLS.TLSMinVersion = serviceConf.TLS.TLSMinVersion
+			}
+			if serviceConf.TLS.TLSMaxVersion == types.TLSVersionUnspecified {
+				thisReply.TLS.TLSMaxVersion = serviceConf.TLS.TLSMaxVersion
+			}
+			if len(serviceConf.TLS.CipherSuites) > 0 {
+				thisReply.TLS.CipherSuites = serviceConf.TLS.CipherSuites
+			}
+		}
+
 		thisReply.Meta = serviceConf.Meta
 	}
 
@@ -614,7 +650,7 @@ func (c *ConfigEntry) computeResolvedServiceConfig(
 	// The upstreams passed as arguments to this endpoint are the upstreams explicitly defined in a proxy registration.
 	// If no upstreams were passed, then we should only return the resolved config if the proxy is in transparent mode.
 	// Otherwise we would return a resolved upstream config to a proxy with no configured upstreams.
-	if noUpstreamArgs && !tproxy {
+	if (noUpstreamArgs && !tproxy) || noUpstreamsDesired {
 		return &thisReply, nil
 	}
 

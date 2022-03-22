@@ -121,8 +121,8 @@ type configSnapshotConnectProxy struct {
 	MeshConfig    *structs.MeshConfigEntry
 	MeshConfigSet bool
 
-	ServiceDefaults    *structs.ServiceConfigEntry
-	ServiceDefaultsSet bool
+	TLSConfig    *structs.ProxyTLSConfig
+	TLSConfigSet bool
 }
 
 func (c *configSnapshotConnectProxy) IsEmpty() bool {
@@ -143,7 +143,7 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 		len(c.PassthroughUpstreams) == 0 &&
 		len(c.IntentionUpstreams) == 0 &&
 		!c.MeshConfigSet &&
-		!c.ServiceDefaultsSet
+		!c.TLSConfigSet
 }
 
 type configSnapshotTerminatingGateway struct {
@@ -456,7 +456,7 @@ func (s *ConfigSnapshot) Valid() bool {
 		return s.Roots != nil &&
 			s.ConnectProxy.Leaf != nil &&
 			s.ConnectProxy.IntentionsSet &&
-			s.ConnectProxy.ServiceDefaultsSet
+			s.ConnectProxy.TLSConfigSet
 
 	case structs.ServiceKindTerminatingGateway:
 		return s.Roots != nil

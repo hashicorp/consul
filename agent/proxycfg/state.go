@@ -45,7 +45,7 @@ const (
 	serviceIntentionsIDPrefix          = "service-intentions:"
 	intentionUpstreamsID               = "intention-upstreams"
 	meshConfigEntryID                  = "mesh"
-	serviceDefaultsWatchID             = "service-defaults"
+	resolvedServiceConfigWatchID       = "resolved-service-config"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
 	defaultPreparedQueryPollInterval   = 30 * time.Second

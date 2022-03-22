@@ -214,6 +214,14 @@ func TestParseConfigEntry(t *testing.T) {
 					mode = "remote"
 				}
 				mode = "direct"
+				tls {
+					tls_min_version = "TLSv1_1"
+					tls_max_version = "TLSv1_2"
+					cipher_suites = [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
+				}
 				transparent_proxy = {
 					outbound_listener_port = 10101
 					dialed_directly = true
@@ -237,6 +245,14 @@ func TestParseConfigEntry(t *testing.T) {
 					Mode = "remote"
 				}
 				Mode = "direct"
+				TLS {
+					TLSMinVersion = "TLSv1_1"
+					TLSMaxVersion = "TLSv1_2"
+					CipherSuites = [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
+				}
 				TransparentProxy = {
 					outbound_listener_port = 10101
 					dialed_directly = true
@@ -261,6 +277,14 @@ func TestParseConfigEntry(t *testing.T) {
 					"mode": "remote"
 				},
 				"mode": "direct",
+				"tls": {
+					"tls_min_version": "TLSv1_1",
+					"tls_max_version": "TLSv1_2",
+					"cipher_suites": [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
+				},
 				"transparent_proxy": {
 					"outbound_listener_port": 10101,
 					"dialed_directly": true
@@ -286,6 +310,14 @@ func TestParseConfigEntry(t *testing.T) {
 					"Mode": "remote"
 				},
 				"Mode": "direct",
+				"TLS": {
+					"TLSMinVersion": "TLSv1_1",
+					"TLSMaxVersion": "TLSv1_2",
+					"CipherSuites": [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
+				},
 				"TransparentProxy": {
 					"OutboundListenerPort": 10101,
 					"DialedDirectly": true
@@ -310,6 +342,14 @@ func TestParseConfigEntry(t *testing.T) {
 					Mode: api.MeshGatewayModeRemote,
 				},
 				Mode: api.ProxyModeDirect,
+				TLS: &api.ProxyTLSConfig{
+					TLSMinVersion: "TLSv1_1",
+					TLSMaxVersion: "TLSv1_2",
+					CipherSuites: []string{
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+					},
+				},
 				TransparentProxy: &api.TransparentProxyConfig{
 					OutboundListenerPort: 10101,
 					DialedDirectly:       true,
@@ -333,6 +373,14 @@ func TestParseConfigEntry(t *testing.T) {
 					Mode: api.MeshGatewayModeRemote,
 				},
 				Mode: api.ProxyModeDirect,
+				TLS: &api.ProxyTLSConfig{
+					TLSMinVersion: "TLSv1_1",
+					TLSMaxVersion: "TLSv1_2",
+					CipherSuites: []string{
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+					},
+				},
 				TransparentProxy: &api.TransparentProxyConfig{
 					OutboundListenerPort: 10101,
 					DialedDirectly:       true,
@@ -503,12 +551,14 @@ func TestParseConfigEntry(t *testing.T) {
 					outbound_listener_port = 10101
 					dialed_directly = true
 				}
-				tls_min_version = "TLSv1_1"
-				tls_max_version = "TLSv1_2"
-				cipher_suites = [
-					"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-					"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-				]
+				tls {
+					tls_min_version = "TLSv1_1"
+					tls_max_version = "TLSv1_2"
+					cipher_suites = [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
+				}
 				upstream_config {
 					overrides = [
 						{
@@ -568,12 +618,14 @@ func TestParseConfigEntry(t *testing.T) {
 					outbound_listener_port = 10101
 					dialed_directly = true
 				}
-				TLSMinVersion = "TLSv1_1"
-				TLSMaxVersion = "TLSv1_2"
-				CipherSuites = [
-					"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-					"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-				]
+				TLS {
+					TLSMinVersion = "TLSv1_1"
+					TLSMaxVersion = "TLSv1_2"
+					CipherSuites = [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
+				}
 				UpstreamConfig {
 					Overrides = [
 						{
@@ -634,12 +686,14 @@ func TestParseConfigEntry(t *testing.T) {
 					"outbound_listener_port": 10101,
 					"dialed_directly": true
 				},
-				"tls_min_version": "TLSv1_1",
-				"tls_max_version": "TLSv1_2",
-				"cipher_suites": [
-					"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-					"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-				],
+				"tls": {
+					"tls_min_version": "TLSv1_1",
+					"tls_max_version": "TLSv1_2",
+					"cipher_suites": [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
+				},
 				"upstream_config": {
 					"overrides": [
 						{
@@ -701,12 +755,14 @@ func TestParseConfigEntry(t *testing.T) {
 					"OutboundListenerPort": 10101,
 					"DialedDirectly": true
 				},
-				"TLSMinVersion": "TLSv1_1",
-				"TLSMaxVersion": "TLSv1_2",
-				"CipherSuites": [
-					"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-					"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-				],
+				"TLS": {
+					"TLSMinVersion": "TLSv1_1",
+					"TLSMaxVersion": "TLSv1_2",
+					"CipherSuites": [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
+				},
 				"UpstreamConfig": {
 					"Overrides": [
 						{
@@ -767,11 +823,13 @@ func TestParseConfigEntry(t *testing.T) {
 					OutboundListenerPort: 10101,
 					DialedDirectly:       true,
 				},
-				TLSMinVersion: "TLSv1_1",
-				TLSMaxVersion: "TLSv1_2",
-				CipherSuites: []string{
-					"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-					"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+				TLS: &api.ProxyTLSConfig{
+					TLSMinVersion: "TLSv1_1",
+					TLSMaxVersion: "TLSv1_2",
+					CipherSuites: []string{
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+					},
 				},
 				UpstreamConfig: &api.UpstreamConfiguration{
 					Overrides: []*api.UpstreamConfig{

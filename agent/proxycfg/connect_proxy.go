@@ -70,14 +70,14 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		return snap, err
 	}
 
-	// Watch for service defaults explicitly.
-	err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
-		Kind:           structs.ServiceDefaults,
-		Name:           s.proxyCfg.DestinationServiceName,
+	// Get additional information about the service itself.
+	err = s.cache.Notify(ctx, cachetype.ResolvedServiceConfigName, &structs.ServiceConfigRequest{
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
+		NoUpstreams:    true,
+		Name:           s.proxyCfg.DestinationServiceName,
 		EnterpriseMeta: s.proxyID.EnterpriseMeta,
-	}, serviceDefaultsWatchID, s.ch)
+	}, resolvedServiceConfigWatchID, s.ch)
 	if err != nil {
 		return snap, err
 	}
@@ -397,22 +397,18 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 		}
 		snap.ConnectProxy.MeshConfigSet = true
 
-	case u.CorrelationID == serviceDefaultsWatchID:
-		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+	case u.CorrelationID == resolvedServiceConfigWatchID:
+		resp, ok := u.Result.(*structs.ServiceConfigResponse)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
-		if resp.Entry != nil {
-			serviceConf, ok := resp.Entry.(*structs.ServiceConfigEntry)
-			if !ok {
-				return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
-			}
-			snap.ConnectProxy.ServiceDefaults = serviceConf
+		if resp.TLS != nil {
+			snap.ConnectProxy.TLSConfig = resp.TLS
 		} else {
-			snap.ConnectProxy.ServiceDefaults = nil
+			snap.ConnectProxy.TLSConfig = nil
 		}
-		snap.ConnectProxy.ServiceDefaultsSet = true
+		snap.ConnectProxy.TLSConfigSet = true
 
 	default:
 		return (*handlerUpstreams)(s).handleUpdateUpstreams(ctx, u, snap)

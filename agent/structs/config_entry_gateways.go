@@ -240,7 +240,7 @@ func (e *IngressGatewayConfigEntry) validateServiceSDS(lis IngressListener, svc 
 }
 
 func validateGatewayTLSConfig(tlsCfg GatewayTLSConfig) error {
-	return validateProxyTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
+	return validateTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
 }
 
 func (e *IngressGatewayConfigEntry) Validate() error {

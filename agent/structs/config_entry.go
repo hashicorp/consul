@@ -95,13 +95,7 @@ type ServiceConfigEntry struct {
 	Expose           ExposeConfig           `json:",omitempty"`
 	ExternalSNI      string                 `json:",omitempty" alias:"external_sni"`
 	UpstreamConfig   *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
-
-	TLSMinVersion types.TLSVersion `json:",omitempty" alias:"tls_min_version"`
-	TLSMaxVersion types.TLSVersion `json:",omitempty" alias:"tls_max_version"`
-
-	// Define a subset of cipher suites to restrict
-	// Only applicable to connections negotiated via TLS 1.2 or earlier
-	CipherSuites []types.TLSCipherSuite `json:",omitempty" alias:"cipher_suites"`
+	TLS              *ProxyTLSConfig        `json:",omitempty"`
 
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -174,7 +168,7 @@ func (e *ServiceConfigEntry) Validate() error {
 
 	validationErr := validateConfigEntryMeta(e.Meta)
 
-	if err := validateProxyTLSConfig(e.TLSMinVersion, e.TLSMaxVersion, e.CipherSuites); err != nil {
+	if err := validateProxyTLSConfig(e.TLS); err != nil {
 		validationErr = multierror.Append(validationErr, fmt.Errorf("error in TLS configuration: %v", err))
 	}
 
@@ -265,6 +259,7 @@ type ProxyConfigEntry struct {
 	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
 	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig           `json:",omitempty"`
+	TLS              *ProxyTLSConfig        `json:",omitempty"`
 
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -314,6 +309,10 @@ func (e *ProxyConfigEntry) Validate() error {
 
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
 		return err
+	}
+
+	if err := validateProxyTLSConfig(e.TLS); err != nil {
+		return fmt.Errorf("error in TLS configuration: %v", err)
 	}
 
 	return e.validateEnterpriseMeta()
@@ -625,6 +624,9 @@ type ServiceConfigRequest struct {
 	// Mode indicates how the requesting proxy's listeners are dialed
 	Mode ProxyMode
 
+	// NoUpstreams forces just data about the specified service to be returned and no related data.
+	NoUpstreams bool
+
 	UpstreamIDs []ServiceID
 
 	// DEPRECATED
@@ -663,6 +665,7 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 		UpstreamIDs       []ServiceID `hash:"set"`
 		MeshGatewayConfig MeshGatewayConfig
 		ProxyMode         ProxyMode
+		NoUpstreams       bool
 		Filter            string
 	}{
 		Name:              r.Name,
@@ -671,6 +674,7 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 		UpstreamIDs:       r.UpstreamIDs,
 		ProxyMode:         r.Mode,
 		MeshGatewayConfig: r.MeshGateway,
+		NoUpstreams:       r.NoUpstreams,
 		Filter:            r.QueryOptions.Filter,
 	}, nil)
 	if err == nil {
@@ -998,6 +1002,7 @@ type ServiceConfigResponse struct {
 	Expose            ExposeConfig           `json:",omitempty"`
 	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
 	Mode              ProxyMode              `json:",omitempty"`
+	TLS               *ProxyTLSConfig        `json:",omitempty"`
 	Meta              map[string]string      `json:",omitempty"`
 	QueryMeta
 }
@@ -1137,7 +1142,14 @@ func validateConfigEntryMeta(meta map[string]string) error {
 	return err
 }
 
-func validateProxyTLSConfig(
+func validateProxyTLSConfig(cfg *ProxyTLSConfig) error {
+	if cfg == nil {
+		return nil
+	}
+	return validateTLSConfig(cfg.TLSMinVersion, cfg.TLSMaxVersion, cfg.CipherSuites)
+}
+
+func validateTLSConfig(
 	tlsMinVersion types.TLSVersion,
 	tlsMaxVersion types.TLSVersion,
 	cipherSuites []types.TLSCipherSuite,
@@ -1173,6 +1185,15 @@ func validateProxyTLSConfig(
 	}
 
 	return nil
+}
+
+type ProxyTLSConfig struct {
+	TLSMinVersion types.TLSVersion `json:",omitempty" alias:"tls_min_version"`
+	TLSMaxVersion types.TLSVersion `json:",omitempty" alias:"tls_max_version"`
+
+	// Define a subset of cipher suites to restrict
+	// Only applicable to connections negotiated via TLS 1.2 or earlier
+	CipherSuites []types.TLSCipherSuite `json:",omitempty" alias:"cipher_suites"`
 }
 
 type ConfigEntryDeleteResponse struct {

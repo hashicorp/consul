@@ -316,12 +316,14 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
-				tls_min_version = "TLSv1_1"
-				tls_max_version = "TLSv1_2"
-				cipher_suites = [
-					"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-					"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-				]
+				tls {
+					tls_min_version = "TLSv1_1"
+					tls_max_version = "TLSv1_2"
+					cipher_suites = [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
+				}
 				upstream_config {
 					overrides = [
 						{
@@ -363,12 +365,14 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
-				TLSMinVersion = "TLSv1_1"
-				TLSMaxVersion = "TLSv1_2"
-				CipherSuites = [
-					"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-					"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-				]
+				TLS {
+					TLSMinVersion = "TLSv1_1"
+					TLSMaxVersion = "TLSv1_2"
+					CipherSuites = [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
+				}
 				UpstreamConfig {
 					Overrides = [
 						{
@@ -410,11 +414,13 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
-				TLSMinVersion: types.TLSv1_1,
-				TLSMaxVersion: types.TLSv1_2,
-				CipherSuites: []types.TLSCipherSuite{
-					types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-					types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				TLS: &ProxyTLSConfig{
+					TLSMinVersion: types.TLSv1_1,
+					TLSMaxVersion: types.TLSv1_2,
+					CipherSuites: []types.TLSCipherSuite{
+						types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+						types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+					},
 				},
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{

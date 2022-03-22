@@ -753,7 +753,7 @@ func (s *ResourceGenerator) injectConnectTLSOnFilterChains(cfgSnap *proxycfg.Con
 			CommonTlsContext: makeCommonTLSContextFromLeaf(
 				cfgSnap,
 				cfgSnap.Leaf(),
-				makeTLSParametersFromProxyTLSConfig(cfgSnap.ConnectProxy.ServiceDefaults),
+				makeTLSParametersFromProxyTLSConfig(cfgSnap.ConnectProxy.TLSConfig),
 			),
 			RequireClientCertificate: &wrappers.BoolValue{Value: true},
 		}
@@ -1691,12 +1691,12 @@ var tlsVersionsWithConfigurableCipherSuites = map[types.TLSVersion]struct{}{
 	types.TLSv1_2: {},
 }
 
-func makeTLSParametersFromProxyTLSConfig(serviceConf *structs.ServiceConfigEntry) *envoy_tls_v3.TlsParameters {
-	if serviceConf == nil {
+func makeTLSParametersFromProxyTLSConfig(tlsConf *structs.ProxyTLSConfig) *envoy_tls_v3.TlsParameters {
+	if tlsConf == nil {
 		return &envoy_tls_v3.TlsParameters{}
 	}
 
-	return makeTLSParametersFromTLSConfig(serviceConf.TLSMinVersion, serviceConf.TLSMaxVersion, serviceConf.CipherSuites)
+	return makeTLSParametersFromTLSConfig(tlsConf.TLSMinVersion, tlsConf.TLSMaxVersion, tlsConf.CipherSuites)
 }
 
 func makeTLSParametersFromTLSConfig(

@@ -25,13 +25,14 @@ import (
 // TestCacheTypes encapsulates all the different cache types proxycfg.State will
 // watch/request for controlling one during testing.
 type TestCacheTypes struct {
-	roots             *ControllableCacheType
-	leaf              *ControllableCacheType
-	intentions        *ControllableCacheType
-	health            *ControllableCacheType
-	query             *ControllableCacheType
-	compiledChain     *ControllableCacheType
-	serviceHTTPChecks *ControllableCacheType
+	roots                 *ControllableCacheType
+	leaf                  *ControllableCacheType
+	intentions            *ControllableCacheType
+	health                *ControllableCacheType
+	query                 *ControllableCacheType
+	compiledChain         *ControllableCacheType
+	serviceHTTPChecks     *ControllableCacheType
+	resolvedServiceConfig *ControllableCacheType
 }
 
 // NewTestCacheTypes creates a set of ControllableCacheTypes for all types that
@@ -39,13 +40,14 @@ type TestCacheTypes struct {
 func NewTestCacheTypes(t testing.T) *TestCacheTypes {
 	t.Helper()
 	ct := &TestCacheTypes{
-		roots:             NewControllableCacheType(t),
-		leaf:              NewControllableCacheType(t),
-		intentions:        NewControllableCacheType(t),
-		health:            NewControllableCacheType(t),
-		query:             NewControllableCacheType(t),
-		compiledChain:     NewControllableCacheType(t),
-		serviceHTTPChecks: NewControllableCacheType(t),
+		roots:                 NewControllableCacheType(t),
+		leaf:                  NewControllableCacheType(t),
+		intentions:            NewControllableCacheType(t),
+		health:                NewControllableCacheType(t),
+		query:                 NewControllableCacheType(t),
+		compiledChain:         NewControllableCacheType(t),
+		serviceHTTPChecks:     NewControllableCacheType(t),
+		resolvedServiceConfig: NewControllableCacheType(t),
 	}
 	ct.query.blocking = false
 	return ct
@@ -62,6 +64,7 @@ func TestCacheWithTypes(t testing.T, types *TestCacheTypes) *cache.Cache {
 	c.RegisterType(cachetype.PreparedQueryName, types.query)
 	c.RegisterType(cachetype.CompiledDiscoveryChainName, types.compiledChain)
 	c.RegisterType(cachetype.ServiceHTTPChecksName, types.serviceHTTPChecks)
+	c.RegisterType(cachetype.ResolvedServiceConfigName, types.resolvedServiceConfig)
 
 	return c
 }

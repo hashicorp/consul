@@ -824,6 +824,7 @@ func (s *Store) ReadResolvedServiceConfigEntries(
 	entMeta *structs.EnterpriseMeta,
 	upstreamIDs []structs.ServiceID,
 	proxyMode structs.ProxyMode,
+	noUpstreamsDesired bool,
 ) (uint64, *configentry.ResolvedServiceConfigSet, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -886,7 +887,7 @@ func (s *Store) ReadResolvedServiceConfigEntries(
 	// The upstreams passed as arguments to this endpoint are the upstreams explicitly defined in a proxy registration.
 	// If no upstreams were passed, then we should only return the resolved config if the proxy is in transparent mode.
 	// Otherwise we would return a resolved upstream config to a proxy with no configured upstreams.
-	if noUpstreamArgs && !tproxy {
+	if (noUpstreamArgs && !tproxy) || noUpstreamsDesired {
 		return maxIndex, &res, nil
 	}
 

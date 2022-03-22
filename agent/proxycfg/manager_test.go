@@ -147,6 +147,13 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			},
 		},
 	})
+	resolvedServiceConfigCacheKey := testGenCacheKey(&structs.ServiceConfigRequest{
+		Datacenter:     "dc1",
+		QueryOptions:   structs.QueryOptions{Token: "my-token"},
+		Name:           "web",
+		NoUpstreams:    true,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	})
 
 	dbChainCacheKey := testGenCacheKey(&structs.DiscoveryChainRequest{
 		Name:                 "db",
@@ -241,6 +248,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
 					Intentions:             TestIntentions().Matches[0],
 					IntentionsSet:          true,
+					TLSConfigSet:           true,
 				},
 				Datacenter: "dc1",
 				Locality:   GatewayKey{Datacenter: "dc1", Partition: structs.PartitionOrDefault("")},
@@ -300,6 +308,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
 					Intentions:             TestIntentions().Matches[0],
 					IntentionsSet:          true,
+					TLSConfigSet:           true,
 				},
 				Datacenter: "dc1",
 				Locality:   GatewayKey{Datacenter: "dc1", Partition: structs.PartitionOrDefault("")},
@@ -319,6 +328,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			types.roots.Set(rootsCacheKey, roots)
 			types.leaf.Set(leafCacheKey, leaf)
 			types.intentions.Set(intentionCacheKey, TestIntentions())
+			types.resolvedServiceConfig.Set(resolvedServiceConfigCacheKey, &structs.ServiceConfigResponse{})
 			tt.setup(t, types)
 
 			expectSnapCopy, err := copystructure.Copy(tt.expectSnap)
