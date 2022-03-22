@@ -1145,19 +1145,32 @@
     ]
   },
   {
-    "title": "Release Notes",
+    "title": "Releases",
     "routes": [
       {
-        "title": "1.11.0",
-        "path": "release-notes/1-11-0"
+        "title": "Overview",
+        "path": "releases"
       },
       {
-        "title": "1.10.0",
-        "path": "release-notes/1-10-0"
-      },
-      {
-        "title": "1.9.0",
-        "path": "release-notes/1-9-0"
+        "title": "Release Notes",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "releases/release-notes"
+          },
+          {
+            "title": "v1.9.0",
+            "path": "releases/release-notes/v1_9_0"
+          },
+          {
+            "title": "v1.10.0",
+            "path": "releases/release-notes/v1_10_0"
+          },
+          {
+            "title": "v1.11.0",
+            "path": "releases/release-notes/v1_11_0"
+          }
+        ]
       }
     ]
   },
