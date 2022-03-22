@@ -100,6 +100,18 @@ func (w *FileWatcher) Remove(filename string) {
 	delete(w.configFiles, filename)
 }
 
+// Replace a file in the file watcher
+// Replace will lock the file watcher during the replace
+func (w *FileWatcher) Replace(oldFile, newFile string) error {
+	if oldFile == newFile {
+		return nil
+	}
+	w.configFilesLock.Lock()
+	defer w.configFilesLock.Unlock()
+	delete(w.configFiles, oldFile)
+	return w.add(newFile)
+}
+
 func (w *FileWatcher) add(filename string) error {
 	filename = filepath.Clean(filename)
 	w.logger.Trace("adding file", "file", filename)
@@ -152,7 +164,6 @@ func (w *FileWatcher) watch(ctx context.Context) {
 		case <-ticker.C:
 			w.reconcile(ctx)
 		case <-ctx.Done():
-			w.logger.Error("context done", "Err", ctx.Err())
 			return
 		}
 	}

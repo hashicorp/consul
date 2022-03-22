@@ -714,23 +714,24 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// start a go routine to reload config based on file watcher events
 	if a.baseDeps.RuntimeConfig.AutoReloadConfig {
-		if a.baseDeps.WatchedFiles != nil {
+		if len(a.baseDeps.WatchedFiles) > 0 {
 			w, err := config.NewFileWatcher(a.baseDeps.WatchedFiles, a.baseDeps.Logger)
 			if err != nil {
 				a.baseDeps.Logger.Error("error loading config", "error", err)
-			}
-			a.FileWatcher = w
-			a.baseDeps.Logger.Debug("starting file watcher")
-			a.FileWatcher.Start(context.Background())
-			go func() {
-				for event := range a.FileWatcher.EventsCh {
-					a.baseDeps.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
-					err := a.ReloadConfig(true)
-					if err != nil {
-						a.baseDeps.Logger.Error("error loading config", "error", err)
+			} else {
+				a.FileWatcher = w
+				a.baseDeps.Logger.Debug("starting file watcher")
+				a.FileWatcher.Start(context.Background())
+				go func() {
+					for event := range a.FileWatcher.EventsCh {
+						a.baseDeps.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
+						err := a.ReloadConfig(true)
+						if err != nil {
+							a.baseDeps.Logger.Error("error loading config", "error", err)
+						}
 					}
-				}
-			}()
+				}()
+			}
 		}
 	}
 	return nil
@@ -3765,21 +3766,19 @@ func (a *Agent) ReloadConfig(autoReload bool) error {
 			{a.config.TLS.HTTPS, newCfg.TLS.HTTPS},
 		} {
 			if f.oldCfg.KeyFile != f.newCfg.KeyFile {
-				a.FileWatcher.Remove(f.oldCfg.KeyFile)
-				err = a.FileWatcher.Add(f.newCfg.KeyFile)
+				a.FileWatcher.Replace(f.oldCfg.KeyFile, f.newCfg.KeyFile)
 				if err != nil {
 					return err
 				}
 			}
 			if f.oldCfg.CertFile != f.newCfg.CertFile {
-				a.FileWatcher.Remove(f.oldCfg.CertFile)
-				err = a.FileWatcher.Add(f.newCfg.CertFile)
+				a.FileWatcher.Replace(f.oldCfg.CertFile, f.newCfg.CertFile)
 				if err != nil {
 					return err
 				}
 			}
 			if revertStaticConfig(f.oldCfg, f.newCfg) {
-				a.logger.Warn("Static Runtime config has changed and need a manual config reload to be applied", "StaticRuntimeConfig", f.oldCfg, "StaticRuntimeConfig From file", f.newCfg)
+				a.logger.Warn("Changes to your configuration were detected that for security reasons cannot be automatically applied by 'auto_reload_config'. Manually reload your configuration (e.g. with 'consul reload') to apply these changes.", "StaticRuntimeConfig", f.oldCfg, "StaticRuntimeConfig From file", f.newCfg)
 			}
 		}
 		if !reflect.DeepEqual(newCfg.StaticRuntimeConfig, a.config.StaticRuntimeConfig) {
