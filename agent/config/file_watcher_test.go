@@ -351,8 +351,8 @@ func TestEventWatcherMoveSoftLink(t *testing.T) {
 	require.NoError(t, err)
 
 	w, err := NewFileWatcher([]string{name}, hclog.New(&hclog.LoggerOptions{}))
-	require.Error(t, err, "symbolic link are not supported")
-	require.Nil(t, w)
+	require.NoError(t, err)
+	require.NotNil(t, w)
 
 }
 
