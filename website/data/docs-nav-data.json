@@ -1159,16 +1159,16 @@
             "path": "releases/release-notes"
           },
           {
-            "title": "v1.9.0",
-            "path": "releases/release-notes/v1_9_0"
+            "title": "v1.11.0",
+            "path": "releases/release-notes/v1_11_0"
           },
           {
             "title": "v1.10.0",
             "path": "releases/release-notes/v1_10_0"
           },
           {
-            "title": "v1.11.0",
-            "path": "releases/release-notes/v1_11_0"
+            "title": "v1.9.0",
+            "path": "releases/release-notes/v1_9_0"
           }
         ]
       }
