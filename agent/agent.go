@@ -365,6 +365,9 @@ type Agent struct {
 	// changed
 	FileWatcher *config.FileWatcher
 
+	// xdsServer serves the XDS protocol for configuring Envoy proxies.
+	xdsServer *xds.Server
+
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
 }
