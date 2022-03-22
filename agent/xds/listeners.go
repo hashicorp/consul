@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/types"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -749,7 +750,11 @@ func injectHTTPFilterOnFilterChains(
 func (s *ResourceGenerator) injectConnectTLSOnFilterChains(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
 	for idx := range listener.FilterChains {
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf()),
+			CommonTlsContext: makeCommonTLSContextFromLeaf(
+				cfgSnap,
+				cfgSnap.Leaf(),
+				makeTLSParametersFromProxyTLSConfig(cfgSnap.ConnectProxy.ServiceDefaults),
+			),
 			RequireClientCertificate: &wrappers.BoolValue{Value: true},
 		}
 		transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -1661,4 +1666,67 @@ func makeCommonTLSContextFromFiles(caFile, certFile, keyFile string) *envoy_tls_
 	}
 
 	return &ctx
+}
+
+func validateListenerTLSConfig(tlsMinVersion types.TLSVersion, cipherSuites []types.TLSCipherSuite) error {
+	// Validate. Configuring cipher suites is only applicable to connections negotiated
+	// via TLS 1.2 or earlier. Other cases shouldn't be possible as we validate them at
+	// input but be resilient to bugs later.
+	if len(cipherSuites) != 0 {
+		if _, ok := tlsVersionsWithConfigurableCipherSuites[tlsMinVersion]; !ok {
+			return fmt.Errorf("configuring CipherSuites is only applicable to connections negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s in listener or gateway config", tlsMinVersion)
+		}
+	}
+
+	return nil
+}
+
+var tlsVersionsWithConfigurableCipherSuites = map[types.TLSVersion]struct{}{
+	// Remove these two if Envoy ever sets TLS 1.3 as default minimum
+	types.TLSVersionUnspecified: {},
+	types.TLSVersionAuto:        {},
+
+	types.TLSv1_0: {},
+	types.TLSv1_1: {},
+	types.TLSv1_2: {},
+}
+
+func makeTLSParametersFromProxyTLSConfig(serviceConf *structs.ServiceConfigEntry) *envoy_tls_v3.TlsParameters {
+	if serviceConf == nil {
+		return &envoy_tls_v3.TlsParameters{}
+	}
+
+	return makeTLSParametersFromTLSConfig(serviceConf.TLSMinVersion, serviceConf.TLSMaxVersion, serviceConf.CipherSuites)
+}
+
+func makeTLSParametersFromTLSConfig(
+	tlsMinVersion types.TLSVersion,
+	tlsMaxVersion types.TLSVersion,
+	cipherSuites []types.TLSCipherSuite,
+) *envoy_tls_v3.TlsParameters {
+	tlsParams := envoy_tls_v3.TlsParameters{}
+
+	if tlsMinVersion != types.TLSVersionUnspecified {
+		if minVersion, ok := envoyTLSVersions[tlsMinVersion]; ok {
+			tlsParams.TlsMinimumProtocolVersion = minVersion
+		}
+	}
+	if tlsMaxVersion != types.TLSVersionUnspecified {
+		if maxVersion, ok := envoyTLSVersions[tlsMaxVersion]; ok {
+			tlsParams.TlsMaximumProtocolVersion = maxVersion
+		}
+	}
+	if len(cipherSuites) != 0 {
+		tlsParams.CipherSuites = types.MarshalEnvoyTLSCipherSuiteStrings(cipherSuites)
+	}
+
+	return &tlsParams
+}
+
+var envoyTLSVersions = map[types.TLSVersion]envoy_tls_v3.TlsParameters_TlsProtocol{
+	types.TLSVersionAuto: envoy_tls_v3.TlsParameters_TLS_AUTO,
+	types.TLSv1_0:        envoy_tls_v3.TlsParameters_TLSv1_0,
+	types.TLSv1_1:        envoy_tls_v3.TlsParameters_TLSv1_1,
+	types.TLSv1_2:        envoy_tls_v3.TlsParameters_TLSv1_2,
+	types.TLSv1_3:        envoy_tls_v3.TlsParameters_TLSv1_3,
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
+	"github.com/hashicorp/consul/types"
 )
 
 const (
@@ -95,6 +96,13 @@ type ServiceConfigEntry struct {
 	ExternalSNI      string                 `json:",omitempty" alias:"external_sni"`
 	UpstreamConfig   *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
 
+	TLSMinVersion types.TLSVersion `json:",omitempty" alias:"tls_min_version"`
+	TLSMaxVersion types.TLSVersion `json:",omitempty" alias:"tls_max_version"`
+
+	// Define a subset of cipher suites to restrict
+	// Only applicable to connections negotiated via TLS 1.2 or earlier
+	CipherSuites []types.TLSCipherSuite `json:",omitempty" alias:"cipher_suites"`
+
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
@@ -165,6 +173,10 @@ func (e *ServiceConfigEntry) Validate() error {
 	}
 
 	validationErr := validateConfigEntryMeta(e.Meta)
+
+	if err := validateProxyTLSConfig(e.TLSMinVersion, e.TLSMaxVersion, e.CipherSuites); err != nil {
+		validationErr = multierror.Append(validationErr, fmt.Errorf("error in TLS configuration: %v", err))
+	}
 
 	if e.UpstreamConfig != nil {
 		for _, override := range e.UpstreamConfig.Overrides {
@@ -1123,6 +1135,44 @@ func validateConfigEntryMeta(meta map[string]string) error {
 		}
 	}
 	return err
+}
+
+func validateProxyTLSConfig(
+	tlsMinVersion types.TLSVersion,
+	tlsMaxVersion types.TLSVersion,
+	cipherSuites []types.TLSCipherSuite,
+) error {
+	if tlsMinVersion != types.TLSVersionUnspecified {
+		if err := types.ValidateTLSVersion(tlsMinVersion); err != nil {
+			return err
+		}
+	}
+
+	if tlsMaxVersion != types.TLSVersionUnspecified {
+		if err := types.ValidateTLSVersion(tlsMaxVersion); err != nil {
+			return err
+		}
+
+		if tlsMinVersion != types.TLSVersionUnspecified {
+			if err, maxLessThanMin := tlsMaxVersion.LessThan(tlsMinVersion); err == nil && maxLessThanMin {
+				return fmt.Errorf("configuring max version %s less than the configured min version %s is invalid", tlsMaxVersion, tlsMinVersion)
+			}
+		}
+	}
+
+	if len(cipherSuites) != 0 {
+		if _, ok := types.TLSVersionsWithConfigurableCipherSuites[tlsMinVersion]; !ok {
+			return fmt.Errorf("configuring CipherSuites is only applicable to connections negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s", tlsMinVersion)
+		}
+
+		// NOTE: it would be nice to emit a warning but not return an error from
+		// here if TLSMaxVersion is unspecified, TLS_AUTO or TLSv1_3
+		if err := types.ValidateEnvoyCipherSuites(cipherSuites); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type ConfigEntryDeleteResponse struct {

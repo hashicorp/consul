@@ -221,6 +221,12 @@ type ServiceConfigEntry struct {
 	ExternalSNI      string                  `json:",omitempty" alias:"external_sni"`
 	UpstreamConfig   *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
 
+	TLSMinVersion string `json:",omitempty" alias:"tls_min_version"`
+	TLSMaxVersion string `json:",omitempty" alias:"tls_max_version"`
+	// Define a subset of cipher suites to restrict
+	// Only applicable to connections negotiated via TLS 1.2 or earlier
+	CipherSuites []string `json:",omitempty" alias:"cipher_suites"`
+
 	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
