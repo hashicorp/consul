@@ -147,6 +147,13 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			},
 		},
 	})
+	meshCacheKey := testGenCacheKey(&structs.ConfigEntryQuery{
+		Datacenter:     "dc1",
+		QueryOptions:   structs.QueryOptions{Token: "my-token"},
+		Kind:           structs.MeshConfig,
+		Name:           structs.MeshConfigMesh,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	})
 
 	dbChainCacheKey := testGenCacheKey(&structs.DiscoveryChainRequest{
 		Name:                 "db",
@@ -214,7 +221,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				Roots:           roots,
 				ConnectProxy: configSnapshotConnectProxy{
 					ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
-						Leaf: leaf,
+						Leaf:          leaf,
+						MeshConfigSet: true,
 						DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
 							dbUID: dbDefaultChain(),
 						},
@@ -272,7 +280,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				Roots:           roots,
 				ConnectProxy: configSnapshotConnectProxy{
 					ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
-						Leaf: leaf,
+						Leaf:          leaf,
+						MeshConfigSet: true,
 						DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
 							dbUID: dbSplitChain(),
 						},
@@ -319,6 +328,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			types.roots.Set(rootsCacheKey, roots)
 			types.leaf.Set(leafCacheKey, leaf)
 			types.intentions.Set(intentionCacheKey, TestIntentions())
+			types.configEntry.Set(meshCacheKey, &structs.ConfigEntryResponse{Entry: nil})
 			tt.setup(t, types)
 
 			expectSnapCopy, err := copystructure.Copy(tt.expectSnap)
@@ -680,6 +690,22 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	notifyCH <- cache.UpdateEvent{
 		CorrelationID: rootsWatchID,
 		Result:        roots,
+		Err:           nil,
+	}
+
+	// at this point the snapshot should not be valid and not be sent
+	after = time.After(200 * time.Millisecond)
+	select {
+	case <-snapSent:
+		t.Fatal("snap should not be valid")
+	case <-after:
+
+	}
+
+	// update the mesh config entry
+	notifyCH <- cache.UpdateEvent{
+		CorrelationID: meshConfigEntryID,
+		Result:        &structs.ConfigEntryResponse{},
 		Err:           nil,
 	}
 

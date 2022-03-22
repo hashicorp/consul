@@ -32,6 +32,7 @@ type TestCacheTypes struct {
 	query             *ControllableCacheType
 	compiledChain     *ControllableCacheType
 	serviceHTTPChecks *ControllableCacheType
+	configEntry       *ControllableCacheType
 }
 
 // NewTestCacheTypes creates a set of ControllableCacheTypes for all types that
@@ -46,6 +47,7 @@ func NewTestCacheTypes(t testing.T) *TestCacheTypes {
 		query:             NewControllableCacheType(t),
 		compiledChain:     NewControllableCacheType(t),
 		serviceHTTPChecks: NewControllableCacheType(t),
+		configEntry:       NewControllableCacheType(t),
 	}
 	ct.query.blocking = false
 	return ct
@@ -62,6 +64,7 @@ func TestCacheWithTypes(t testing.T, types *TestCacheTypes) *cache.Cache {
 	c.RegisterType(cachetype.PreparedQueryName, types.query)
 	c.RegisterType(cachetype.CompiledDiscoveryChainName, types.compiledChain)
 	c.RegisterType(cachetype.ServiceHTTPChecksName, types.serviceHTTPChecks)
+	c.RegisterType(cachetype.ConfigEntryName, types.configEntry)
 
 	return c
 }
