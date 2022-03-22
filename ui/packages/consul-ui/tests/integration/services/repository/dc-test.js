@@ -1,4 +1,4 @@
-import { moduleFor, test } from 'ember-qunit';
+import { moduleFor } from 'ember-qunit';
 import { skip } from 'qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 const NAME = 'dc';
@@ -7,7 +7,7 @@ moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   integration: true,
 });
 skip("findBySlug (doesn't interact with the API) but still needs an int test");
-test('findAll returns the correct data for list endpoint', function(assert) {
+skip('findAll returns the correct data for list endpoint', function(assert) {
   return repo(
     'Dc',
     'findAll',

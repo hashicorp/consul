@@ -1,11 +1,14 @@
 package config
 
 import (
+	"crypto/tls"
 	"sort"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 func TestLoad_DeprecatedConfig(t *testing.T) {
@@ -26,6 +29,18 @@ acl_down_policy = "async-cache"
 acl_ttl = "3h"
 acl_enable_key_list_policy = true
 
+ca_file = "some-ca-file"
+ca_path = "some-ca-path"
+cert_file = "some-cert-file"
+key_file = "some-key-file"
+tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+tls_min_version = "some-tls-version"
+verify_incoming = true
+verify_incoming_https = false
+verify_incoming_rpc = false
+verify_outgoing = true
+verify_server_hostname = true
+tls_prefer_server_cipher_suites = true
 `},
 	}
 	patchLoadOptsShims(&opts)
@@ -41,9 +56,20 @@ acl_enable_key_list_policy = true
 		deprecationWarning("acl_replication_token", "acl.tokens.replication"),
 		deprecationWarning("acl_token", "acl.tokens.default"),
 		deprecationWarning("acl_ttl", "acl.token_ttl"),
+		deprecationWarning("ca_file", "tls.defaults.ca_file"),
+		deprecationWarning("ca_path", "tls.defaults.ca_path"),
+		deprecationWarning("cert_file", "tls.defaults.cert_file"),
+		deprecationWarning("key_file", "tls.defaults.key_file"),
+		deprecationWarning("tls_cipher_suites", "tls.defaults.tls_cipher_suites"),
+		deprecationWarning("tls_min_version", "tls.defaults.tls_min_version"),
+		deprecationWarning("verify_incoming", "tls.defaults.verify_incoming"),
+		deprecationWarning("verify_incoming_https", "tls.https.verify_incoming"),
+		deprecationWarning("verify_incoming_rpc", "tls.internal_rpc.verify_incoming"),
+		deprecationWarning("verify_outgoing", "tls.defaults.verify_outgoing"),
+		deprecationWarning("verify_server_hostname", "tls.internal_rpc.verify_server_hostname"),
+		"The 'tls_prefer_server_cipher_suites' field is deprecated and will be ignored.",
 	}
-	sort.Strings(result.Warnings)
-	require.Equal(t, expectWarns, result.Warnings)
+	require.ElementsMatch(t, expectWarns, result.Warnings)
 	// Ideally this would compare against the entire result.RuntimeConfig, but
 	// we have so many non-zero defaults in that response that the noise of those
 	// defaults makes this test difficult to read. So as a workaround, compare
@@ -58,6 +84,22 @@ acl_enable_key_list_policy = true
 	require.Equal(t, "async-cache", rt.ACLResolverSettings.ACLDownPolicy)
 	require.Equal(t, 3*time.Hour, rt.ACLResolverSettings.ACLTokenTTL)
 	require.Equal(t, true, rt.ACLEnableKeyListPolicy)
+
+	for _, l := range []tlsutil.ProtocolConfig{rt.TLS.InternalRPC, rt.TLS.GRPC, rt.TLS.HTTPS} {
+		require.Equal(t, "some-ca-file", l.CAFile)
+		require.Equal(t, "some-ca-path", l.CAPath)
+		require.Equal(t, "some-cert-file", l.CertFile)
+		require.Equal(t, "some-key-file", l.KeyFile)
+		require.Equal(t, "some-tls-version", l.TLSMinVersion)
+		require.Equal(t, []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256}, l.CipherSuites)
+	}
+
+	require.False(t, rt.TLS.InternalRPC.VerifyIncoming)
+	require.False(t, rt.TLS.HTTPS.VerifyIncoming)
+	require.True(t, rt.TLS.GRPC.VerifyIncoming)
+	require.True(t, rt.TLS.InternalRPC.VerifyOutgoing)
+	require.True(t, rt.TLS.HTTPS.VerifyOutgoing)
+	require.True(t, rt.TLS.InternalRPC.VerifyServerHostname)
 }
 
 func TestLoad_DeprecatedConfig_ACLReplication(t *testing.T) {

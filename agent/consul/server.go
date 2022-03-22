@@ -16,11 +16,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/agent/rpc/middleware"
+
 	"github.com/hashicorp/go-version"
 	"go.etcd.io/bbolt"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -31,6 +32,8 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
@@ -38,11 +41,11 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
-	agentgrpc "github.com/hashicorp/consul/agent/grpc"
+	agentgrpc "github.com/hashicorp/consul/agent/grpc/private"
+	"github.com/hashicorp/consul/agent/grpc/private/services/subscribe"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
-	"github.com/hashicorp/consul/agent/rpc/subscribe"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
@@ -232,6 +235,10 @@ type Server struct {
 	// is only ever closed.
 	leaveCh chan struct{}
 
+	// publicGRPCServer is the gRPC server exposed on the dedicated gRPC port, as
+	// opposed to the multiplexed "server" port which is served by grpcHandler.
+	publicGRPCServer *grpc.Server
+
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
 	router *router.Router
@@ -254,6 +261,9 @@ type Server struct {
 	// a client cert and thus cannot present it. This is the only RPC
 	// Endpoint that is available at the time of writing.
 	insecureRPCServer *rpc.Server
+
+	// rpcRecorder is a middleware component that can emit RPC request metrics.
+	rpcRecorder *middleware.RequestRecorder
 
 	// tlsConfigurator holds the agent configuration relevant to TLS and
 	// configures everything related to it.
@@ -339,7 +349,7 @@ type connHandler interface {
 
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps) (*Server, error) {
+func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -363,22 +373,26 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 
+	recorder := middleware.NewRequestRecorder(serverLogger)
 	// Create server.
 	s := &Server{
-		config:                  config,
-		tokens:                  flat.Tokens,
-		connPool:                flat.ConnPool,
-		grpcConnPool:            flat.GRPCConnPool,
-		eventChLAN:              make(chan serf.Event, serfEventChSize),
-		eventChWAN:              make(chan serf.Event, serfEventChSize),
-		logger:                  serverLogger,
-		loggers:                 loggers,
-		leaveCh:                 make(chan struct{}),
-		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  flat.Router,
-		rpcServer:               rpc.NewServer(),
-		insecureRPCServer:       rpc.NewServer(),
+		config:       config,
+		tokens:       flat.Tokens,
+		connPool:     flat.ConnPool,
+		grpcConnPool: flat.GRPCConnPool,
+		eventChLAN:   make(chan serf.Event, serfEventChSize),
+		eventChWAN:   make(chan serf.Event, serfEventChSize),
+		logger:       serverLogger,
+		loggers:      loggers,
+		leaveCh:      make(chan struct{}),
+		reconcileCh:  make(chan serf.Member, reconcileChSize),
+		router:       flat.Router,
+		rpcRecorder:  recorder,
+		// TODO(rpc-metrics-improv): consider pulling out the interceptor from config in order to isolate testing
+		rpcServer:               rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(middleware.GetNetRPCInterceptor(recorder))),
+		insecureRPCServer:       rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(middleware.GetNetRPCInterceptor(recorder))),
 		tlsConfigurator:         flat.TLSConfigurator,
+		publicGRPCServer:        publicGRPCServer,
 		reassertLeaderCh:        make(chan chan error),
 		sessionTimers:           NewSessionTimers(),
 		tombstoneGC:             gc,
@@ -822,7 +836,7 @@ func (s *Server) setupRaft() error {
 
 	// If we are in bootstrap or dev mode and the state is clean then we can
 	// bootstrap now.
-	if s.config.Bootstrap || s.config.DevMode {
+	if (s.config.Bootstrap || s.config.DevMode) && !s.config.ReadReplica {
 		hasState, err := raft.HasExistingState(log, stable, snap)
 		if err != nil {
 			return err

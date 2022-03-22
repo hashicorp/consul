@@ -1,9 +1,9 @@
 {{#if @shadowRoot}}
   {{#in-element @shadowRoot}}
-    {{#if @stylesheets}}
+    {{#if @styles}}
       {{adopt-styles
         @shadowRoot
-        @stylesheets
+        @styles
       }}
     {{/if}}
   {{yield}}

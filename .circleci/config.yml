@@ -22,7 +22,7 @@ references:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
 
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v6-{{ checksum "ui/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v7-{{ checksum "ui/yarn.lock" }}
 
   environment: &ENVIRONMENT
     TEST_RESULTS_DIR: *TEST_RESULTS_DIR
@@ -889,20 +889,20 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_18_4:
+  envoy-integration-test-1_18_6:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.18.4"
+      ENVOY_VERSION: "1.18.6"
 
-  envoy-integration-test-1_19_1:
+  envoy-integration-test-1_19_3:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.19.1"
+      ENVOY_VERSION: "1.19.3"
 
-  envoy-integration-test-1_20_1:
+  envoy-integration-test-1_20_2:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.20.1"
+      ENVOY_VERSION: "1.20.2"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -1148,13 +1148,13 @@ workflows:
       - envoy-integration-test-1_17_4:
           requires:
             - dev-build
-      - envoy-integration-test-1_18_4:
+      - envoy-integration-test-1_18_6:
           requires:
             - dev-build
-      - envoy-integration-test-1_19_1:
+      - envoy-integration-test-1_19_3:
           requires:
             - dev-build
-      - envoy-integration-test-1_20_1:
+      - envoy-integration-test-1_20_2:
           requires:
             - dev-build
 

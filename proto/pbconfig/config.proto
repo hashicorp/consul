@@ -32,7 +32,9 @@ message TLS {
    bool   VerifyServerHostname = 2;
    string CipherSuites = 3; 
    string MinVersion = 4;      
-   bool   PreferServerCipherSuites = 5;
+   // Deprecated_PreferServerCipherSuites is deprecated. It is no longer
+   // populated and should be ignored by clients.
+   bool   Deprecated_PreferServerCipherSuites = 5 [deprecated = true];
 }
 
 message ACL {

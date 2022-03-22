@@ -79,6 +79,7 @@
     "chalk": "^4.1.0",
     "clipboard": "^2.0.4",
     "consul-acls": "*",
+    "consul-lock-sessions": "*",
     "consul-nspaces": "*",
     "consul-partitions": "*",
     "css.escape": "^1.5.1",
@@ -91,7 +92,7 @@
     "deepmerge": "^4.2.2",
     "ember-assign-helper": "^0.3.0",
     "ember-auto-import": "^1.5.3",
-    "ember-can": "^3.0.0",
+    "ember-can": "^4.1.0",
     "ember-changeset-conditional-validations": "^0.6.0",
     "ember-changeset-validations": "~3.9.0",
     "ember-cli": "~3.20.2",
@@ -185,6 +186,7 @@
       "lib/block-slots",
       "lib/colocated-components",
       "lib/commands",
+      "lib/custom-element",
       "lib/startup"
     ]
   }

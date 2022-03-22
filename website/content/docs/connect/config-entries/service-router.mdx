@@ -8,15 +8,22 @@ description: >-
 
 # Service Router
 
--> **v1.8.4+:** On Kubernetes, the `ServiceRouter` custom resource is supported in Consul versions 1.8.4+.<br />
-**v1.6.0+:** On other platforms, this config entry is supported in Consul versions 1.6.0+.
-
 The `service-router` config entry kind (`ServiceRouter` on Kubernetes) controls Connect traffic routing and
 manipulation at networking layer 7 (e.g. HTTP).
 
 If a router is not explicitly configured or is configured with no routes then
 the system behaves as if a router were configured sending all traffic to a
 service of the same name.
+
+## Requirements
+
+- Consul [service mesh connect](/docs/connect/configuration) enabled services
+- Service to service communication over the protocol `http`
+- Consul 1.8.4+ on Kubernetes.
+- Consul 1.5.0+ on other platforms.
+
+-> **v1.8.4+:** On Kubernetes, the `ServiceRouter` custom resource is supported in Consul versions 1.8.4+.<br />
+**v1.6.0+:** On other platforms, this config entry is supported in Consul versions 1.6.0+.
 
 ## Interaction with other Config Entries
 
@@ -280,6 +287,112 @@ spec:
 }
 ```
 
+</CodeTabs>
+
+### Retry logic
+
+Enable retry logic by delagating this resposbility to Consul and the proxy.  Review the [`ServiceRouteDestination`](#serviceroutedestination) block for more details.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+
+```hcl
+Kind = "service-router"
+Name = "orders"
+Routes = [
+  {
+    Match{
+        HTTP {
+            PathPrefix = "/coffees"
+        }  
+    }
+
+    Destination {
+        Service = "products"
+        RequestTimeout = "10s"
+        NumRetries = 3
+        RetryOnConnectFailure = true
+    }
+  },
+  {
+    Match{
+        HTTP {
+            PathPrefix = "/orders"
+        }  
+    }
+
+    Destination {
+        Service = "procurement"
+        RequestTimeout = "10s"
+        NumRetries = 3
+        RetryOnConnectFailure = true
+    }
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceRouter
+metadata:
+  name: orders
+spec:
+  routes:
+    - match:
+        http:
+          pathExact: /coffees
+      destination:
+        service: products
+        requestTimeout: 10s
+        numRetries: 3
+        retryOnConnectFailure: true
+    - match:
+        http:
+          pathExact: /orders
+      destination:
+        service: procurement
+        requestTimeout: 10s
+        numRetries: 3
+        retryOnConnectFailure: true
+
+```
+
+
+```json
+{
+    "Kind": "service-router",
+    "Name": "orders",
+    "Routes": [
+        {
+            "Match": {
+                "HTTP": {
+                    "PathPrefix": "/coffees"
+                }
+            },
+            "Destination": {
+                "NumRetries": 3,
+                "RequestTimeout": "10s",
+                "RetryOnConnectFailure": true,
+                "Service": "procurement"
+            }
+        },
+        {
+            "Match": {
+                "HTTP": {
+                    "PathPrefix": "/orders"
+                }
+            },
+            "Destination": {
+                "NumRetries": 3,
+                "RequestTimeout": "10s",
+                "RetryOnConnectFailure": true,
+                "Service": "procurement"
+            }
+        }
+    ]
+}
+
+```
 </CodeTabs>
 
 ## Available Fields

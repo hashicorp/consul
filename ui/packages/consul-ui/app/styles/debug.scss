@@ -1,4 +1,3 @@
-@import './base/icons/debug';
 @import 'prism-coldark-dark';
 
 // temporary component debugging setup
@@ -47,11 +46,11 @@
   border-color: rgb(var(--tone-gray-300));
   height: 80px;
 }
+
 [id^='docfy-demo-preview-icons'] figure::before {
   position: relative;
   top: 20px;
 }
-
 [id^='docfy-demo-preview-color'] figure {
   height: 40px;
 }

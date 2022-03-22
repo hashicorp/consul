@@ -273,6 +273,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			// If the token provided does not have the necessary permissions,
 			// write a forbidden response
 			// TODO(partitions): should this be possible in a partition?
+			// TODO(acl-error-enhancements): We should return error details somehow here.
 			if authz.OperatorRead(nil) != acl.Allow {
 				resp.WriteHeader(http.StatusForbidden)
 				return
@@ -543,6 +544,17 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 		} else {
 			err = s.checkWriteAccess(req)
 
+			// Give the user a hint that they might be doing something wrong if they issue a GET request
+			// with a non-empty body (e.g., parameters placed in body rather than query string).
+			if req.Method == http.MethodGet {
+				if req.ContentLength > 0 {
+					httpLogger.Warn("GET request has a non-empty body that will be ignored; "+
+						"check whether parameters meant for the query string were accidentally placed in the body",
+						"url", logURL,
+						"from", req.RemoteAddr)
+				}
+			}
+
 			if err == nil {
 				// Invoke the handler
 				obj, err = handler(resp, req)
@@ -769,13 +781,18 @@ func setLastContact(resp http.ResponseWriter, last time.Duration) {
 }
 
 // setMeta is used to set the query response meta data
-func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) {
+func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) error {
+	lastContact, err := m.GetLastContact()
+	if err != nil {
+		return err
+	}
+	setLastContact(resp, lastContact)
 	setIndex(resp, m.GetIndex())
-	setLastContact(resp, m.GetLastContact())
 	setKnownLeader(resp, m.GetKnownLeader())
 	setConsistency(resp, m.GetConsistencyLevel())
 	setQueryBackend(resp, m.GetBackend())
 	setResultsFilteredByACLs(resp, m.GetResultsFilteredByACLs())
+	return nil
 }
 
 func setQueryBackend(resp http.ResponseWriter, backend structs.QueryBackend) {

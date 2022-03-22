@@ -7,26 +7,26 @@ description: >-
 
 # Network Drivers
 
-Consul-Terraform-Sync uses network drivers to execute and update network infrastructure. Drivers transform Consul service-level information into downstream changes by processing and abstracting API and resource details tied to specific network infrastructure.
+Consul-Terraform-Sync (CTS) uses network drivers to execute and update network infrastructure. Drivers transform Consul service-level information into downstream changes by processing and abstracting API and resource details tied to specific network infrastructure.
 
-Consul-Terraform-Sync is a HashiCorp solution to Network Infrastructure Automation. It bridges Consul's networking features and Terraform infrastructure management capabilities. The solution seamlessly embeds Terraform as network drivers to manage automation of Terraform modules. This expands the Consul ecosystem and taps into the rich features and community of Terraform and Terraform providers.
+CTS is a HashiCorp solution to Network Infrastructure Automation. It bridges Consul's networking features and Terraform infrastructure management capabilities. The solution seamlessly embeds Terraform as network drivers to manage automation of Terraform modules. This expands the Consul ecosystem and taps into the rich features and community of Terraform and Terraform providers.
 
-The following table highlights some of the additional features Terraform and Terraform Cloud offer when used as a network driver for Consul-Terraform-Sync. Visit the [Terraform product page](https://www.hashicorp.com/products/terraform) or [contact our sales team](https://www.hashicorp.com/contact-sales) for a comprehensive list of features.
+The following table highlights some of the additional features Terraform and Terraform Cloud offer when used as a network driver for CTS. Visit the [Terraform product page](https://www.hashicorp.com/products/terraform) or [contact our sales team](https://www.hashicorp.com/contact-sales) for a comprehensive list of features.
 
 | Network Driver | Description | Features |
 | -------------- | ----------- | -------- |
-| [Terraform driver](/docs/nia/network-drivers/terraform) | Consul-Terraform-Sync automates a local installation of the [Terraform CLI](https://www.terraform.io/) | - Local Terraform execution <br/> - Local workspace directories <br/> - [Backend options](/docs/nia/configuration#backend) available for state storage <br/> |
-| [Terraform Cloud driver](/docs/nia/network-drivers/terraform-cloud) | Consul-Terraform-Sync Enterprise automates remote workspaces on [Terraform Cloud](https://www.terraform.io/docs/cloud/index.html) | - [Remote Terraform execution](https://www.terraform.io/docs/cloud/run/index.html) <br/> - Concurrent runs <br/> - [Secured variables](https://www.terraform.io/docs/cloud/workspaces/variables.html) <br/> - [State versions](https://www.terraform.io/docs/cloud/workspaces/state.html) <br/> - [Sentinel](https://www.terraform.io/docs/cloud/sentinel/index.html) to enforce governance policies as code <br/> - Audit [logs](https://www.terraform.io/docs/enterprise/admin/logging.html) and [trails](https://www.terraform.io/docs/cloud/api/audit-trails.html) <br/> - Run [history](https://www.terraform.io/docs/cloud/run/manage.html), [triggers](https://www.terraform.io/docs/cloud/workspaces/run-triggers.html), and [notifications](https://www.terraform.io/docs/cloud/workspaces/notifications.html) <br/> - [Terraform Cloud Agents](https://www.terraform.io/docs/cloud/agents/index.html) |
+| [Terraform driver](/docs/nia/network-drivers/terraform) | CTS automates a local installation of the [Terraform CLI](https://www.terraform.io/) | - Local Terraform execution <br/> - Local workspace directories <br/> - [Backend options](/docs/nia/configuration#backend) available for state storage <br/> |
+| [Terraform Cloud driver](/docs/nia/network-drivers/terraform-cloud) | CTS Enterprise automates remote workspaces on [Terraform Cloud](https://www.terraform.io/docs/cloud/index.html) | - [Remote Terraform execution](https://www.terraform.io/docs/cloud/run/index.html) <br/> - Concurrent runs <br/> - [Secured variables](https://www.terraform.io/docs/cloud/workspaces/variables.html) <br/> - [State versions](https://www.terraform.io/docs/cloud/workspaces/state.html) <br/> - [Sentinel](https://www.terraform.io/docs/cloud/sentinel/index.html) to enforce governance policies as code <br/> - Audit [logs](https://www.terraform.io/docs/enterprise/admin/logging.html) and [trails](https://www.terraform.io/docs/cloud/api/audit-trails.html) <br/> - Run [history](https://www.terraform.io/docs/cloud/run/manage.html), [triggers](https://www.terraform.io/docs/cloud/workspaces/run-triggers.html), and [notifications](https://www.terraform.io/docs/cloud/workspaces/notifications.html) <br/> - [Terraform Cloud Agents](https://www.terraform.io/docs/cloud/agents/index.html) |
 
 ## Understanding Terraform Automation
 
-Consul-Terraform-Sync automates Terraform execution using a templated configuration to carry out infrastructure changes. The auto-generated configuration leverages input variables sourced from Consul and builds on top of reusable Terraform modules published and maintained by HashiCorp partners and the community. Consul-Terraform-Sync can also run your custom built modules that suit your team's specific network automation needs.
+CTS automates Terraform execution using a templated configuration to carry out infrastructure changes. The auto-generated configuration leverages input variables sourced from Consul and builds on top of reusable Terraform modules published and maintained by HashiCorp partners and the community. CTS can also run your custom built modules that suit your team's specific network automation needs.
 
-The network driver for Consul-Terraform-Sync determines how the Terraform automation operates. Visit the driver pages to read more about the [Terraform driver](/docs/nia/network-drivers/terraform) and the [Terraform Cloud driver](/docs/nia/network-drivers/terraform-cloud).
+The network driver for CTS determines how the Terraform automation operates. Visit the driver pages to read more about the [Terraform driver](/docs/nia/network-drivers/terraform) and the [Terraform Cloud driver](/docs/nia/network-drivers/terraform-cloud).
 
 ### Upgrading Terraform
 
-Upgrading the Terraform version used by Consul-Terraform-Sync may introduce breaking changes that can impact the Terraform modules. Refer to the Terraform [upgrade guides](https://www.terraform.io/upgrade-guides/index.html) for details before upgrading.
+Upgrading the Terraform version used by CTS may introduce breaking changes that can impact the Terraform modules. Refer to the Terraform [upgrade guides](https://www.terraform.io/upgrade-guides/index.html) for details before upgrading.
 
 The following versions were identified as containing changes that may impact Terraform modules.
 

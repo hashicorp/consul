@@ -787,3 +787,7 @@ func (p *policyAuthorizer) SessionWrite(node string, _ *AuthorizerContext) Enfor
 	}
 	return Default
 }
+
+func (p *policyAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
+	return AllowAuthorizer{Authorizer: p}
+}

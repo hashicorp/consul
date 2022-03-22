@@ -60,8 +60,9 @@ type ConfigEntry interface {
 
 	// CanRead and CanWrite return whether or not the given Authorizer
 	// has permission to read or write to the config entry, respectively.
-	CanRead(acl.Authorizer) bool
-	CanWrite(acl.Authorizer) bool
+	// TODO(acl-error-enhancements) This should be ACLResolveResult or similar but we have to wait until we move things to the acl package
+	CanRead(acl.Authorizer) error
+	CanWrite(acl.Authorizer) error
 
 	GetMeta() map[string]string
 	GetEnterpriseMeta() *EnterpriseMeta
@@ -183,16 +184,16 @@ func (e *ServiceConfigEntry) Validate() error {
 	return validationErr
 }
 
-func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.ServiceRead(e.Name, &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
 }
 
-func (e *ServiceConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.ServiceWrite(e.Name, &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().ServiceWriteAllowed(e.Name, &authzContext)
 }
 
 func (e *ServiceConfigEntry) GetRaftIndex() *RaftIndex {
@@ -306,14 +307,14 @@ func (e *ProxyConfigEntry) Validate() error {
 	return e.validateEnterpriseMeta()
 }
 
-func (e *ProxyConfigEntry) CanRead(authz acl.Authorizer) bool {
-	return true
+func (e *ProxyConfigEntry) CanRead(authz acl.Authorizer) error {
+	return nil
 }
 
-func (e *ProxyConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ProxyConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.MeshWrite(&authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
@@ -985,6 +986,7 @@ type ServiceConfigResponse struct {
 	Expose            ExposeConfig           `json:",omitempty"`
 	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
 	Mode              ProxyMode              `json:",omitempty"`
+	Meta              map[string]string      `json:",omitempty"`
 	QueryMeta
 }
 

@@ -6,17 +6,6 @@
   --theme-dark-none: initial;
   --theme-light-none: ;
 }
-%with-icon {
-  background-repeat: no-repeat;
-  background-position: center;
-}
-%with-mask {
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-repeat: no-repeat;
-  mask-position: center;
-  background-color: currentColor;
-}
 %with-glyph-icon {
   font-weight: var(--typo-weight-normal);
   background-color: rgb(var(--tone-gray-100));
@@ -24,13 +13,7 @@
   padding: 0 4px;
 }
 %as-pseudo {
-  display: inline-block;
   content: '';
-  visibility: visible;
-  background-size: contain;
-  width: 1rem; /* 16px */
-  height: 1rem; /* 16px */
-  vertical-align: text-top;
 }
 %led-icon {
   position: relative;

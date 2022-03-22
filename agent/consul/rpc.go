@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -548,10 +549,18 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 
 // canRetry returns true if the request and error indicate that a retry is safe.
 func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) bool {
-	if info != nil && info.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime) {
-		// RPCInfo timeout may include extra time for MaxQueryTime
-		return false
-	} else if info == nil && time.Since(start) > config.RPCHoldTimeout {
+	if info != nil {
+		timedOut, timeoutError := info.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime)
+		if timeoutError != nil {
+			return false
+		}
+
+		if timedOut {
+			return false
+		}
+	}
+
+	if info == nil && time.Since(start) > config.RPCHoldTimeout {
 		// When not RPCInfo, timeout is only RPCHoldTimeout
 		return false
 	}
@@ -834,6 +843,17 @@ func (s *Server) keyringRPCs(method string, args interface{}, dcs []string) (*st
 
 type raftEncoder func(structs.MessageType, interface{}) ([]byte, error)
 
+// leaderRaftApply is used by the leader to persist data to Raft for internal cluster management activities.
+// This method MUST not be called from RPC endpoints, since it would result in duplicated RPC metrics.
+func (s *Server) leaderRaftApply(method string, t structs.MessageType, msg interface{}) (interface{}, error) {
+	start := time.Now()
+
+	resp, err := s.raftApplyMsgpack(t, msg)
+	s.rpcRecorder.Record(method, middleware.RPCTypeInternal, start, &msg, err != nil)
+
+	return resp, err
+}
+
 // raftApplyMsgpack encodes the msg using msgpack and calls raft.Apply. See
 // raftApplyWithEncoder.
 // Deprecated: use raftApplyMsgpack
@@ -920,7 +940,7 @@ type queryFn func(memdb.WatchSet, *state.Store) error
 type blockingQueryOptions interface {
 	GetToken() string
 	GetMinQueryIndex() uint64
-	GetMaxQueryTime() time.Duration
+	GetMaxQueryTime() (time.Duration, error)
 	GetRequireConsistent() bool
 }
 
@@ -953,6 +973,19 @@ type blockingQueryResponseMeta interface {
 // nil in these cases, otherwise when blockingQuery times out it may return
 // a previous result. errNotFound will never be returned to the caller, it is
 // converted to nil before returning.
+//
+// The query function can return errNotChanged, which is a sentinel error. This
+// can only be returned on calls AFTER the first call, as it would not be
+// possible to detect the absence of a change on the first call. Returning
+// errNotChanged indicates that the query results are identical to the prior
+// results which allows blockingQuery to keep blocking until the query returns
+// a real changed result.
+//
+// The query function must take care to ensure the actual result of the query
+// is either left unmodified or explicitly left in a good state before
+// returning, otherwise when blockingQuery times out it may return an
+// incomplete or unexpected result. errNotChanged will never be returned to the
+// caller, it is converted to nil before returning.
 //
 // If query function returns any other error, the error is returned to the caller
 // immediately.
@@ -993,13 +1026,17 @@ func (s *Server) blockingQuery(
 		var ws memdb.WatchSet
 		err := query(ws, s.fsm.State())
 		s.setQueryMeta(responseMeta, opts.GetToken())
-		if errors.Is(err, errNotFound) {
+		if errors.Is(err, errNotFound) || errors.Is(err, errNotChanged) {
 			return nil
 		}
 		return err
 	}
 
-	timeout := s.rpcQueryTimeout(opts.GetMaxQueryTime())
+	maxQueryTimeout, err := opts.GetMaxQueryTime()
+	if err != nil {
+		return err
+	}
+	timeout := s.rpcQueryTimeout(maxQueryTimeout)
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -1008,7 +1045,10 @@ func (s *Server) blockingQuery(
 	// decrement the count when the function returns.
 	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
 
-	var notFound bool
+	var (
+		notFound bool
+		ranOnce  bool
+	)
 
 	for {
 		if opts.GetRequireConsistent() {
@@ -1029,17 +1069,23 @@ func (s *Server) blockingQuery(
 
 		err := query(ws, state)
 		s.setQueryMeta(responseMeta, opts.GetToken())
+
 		switch {
 		case errors.Is(err, errNotFound):
 			if notFound {
 				// query result has not changed
 				minQueryIndex = responseMeta.GetIndex()
 			}
-
 			notFound = true
+		case errors.Is(err, errNotChanged):
+			if ranOnce {
+				// query result has not changed
+				minQueryIndex = responseMeta.GetIndex()
+			}
 		case err != nil:
 			return err
 		}
+		ranOnce = true
 
 		if responseMeta.GetIndex() > minQueryIndex {
 			return nil
@@ -1060,7 +1106,10 @@ func (s *Server) blockingQuery(
 	}
 }
 
-var errNotFound = fmt.Errorf("no data found for query")
+var (
+	errNotFound   = fmt.Errorf("no data found for query")
+	errNotChanged = fmt.Errorf("data did not change for query")
+)
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
 //

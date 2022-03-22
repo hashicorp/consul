@@ -44,6 +44,7 @@ ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.oper
   </script>
   <script src="${rootURL}assets/consul-ui/services.js"></script>
   <script src="${rootURL}assets/consul-ui/routes.js"></script>
+  <script src="${rootURL}assets/consul-lock-sessions/routes.js"></script>
 ${
   environment === 'development' || environment === 'staging'
     ? `

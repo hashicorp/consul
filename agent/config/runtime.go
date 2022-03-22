@@ -38,66 +38,11 @@ type StaticRuntimeConfig struct {
 	// hcl: encrypt_verify_incoming = (true|false)
 	EncryptVerifyIncoming bool
 
-	// VerifyIncomingRPC is used to verify the authenticity of incoming RPC
-	// connections. This means that TCP requests are forbidden, only allowing
-	// for TLS. TLS connections must match a provided certificate authority.
-	// This can be used to force client auth.
-	//
-	// hcl: verify_incoming_rpc = (true|false)
-	VerifyIncomingRPC bool
-
-	// VerifyIncoming is used to verify the authenticity of incoming
-	// connections. This means that TCP requests are forbidden, only allowing
-	// for TLS. TLS connections must match a provided certificate authority.
-	// This can be used to force client auth.
-	//
-	// hcl: verify_incoming = (true|false)
-	VerifyIncoming bool
-
-	// VerifyIncomingHTTPS is used to verify the authenticity of incoming HTTPS
-	// connections. This means that TCP requests are forbidden, only allowing
-	// for TLS. TLS connections must match a provided certificate authority.
-	// This can be used to force client auth.
-	//
-	// hcl: verify_incoming_https = (true|false)
-	VerifyIncomingHTTPS bool
-
-	// VerifyOutgoing is used to verify the authenticity of outgoing
-	// connections. This means that TLS requests are used. TLS connections must
-	// match a provided certificate authority. This is used to verify
-	// authenticity of server nodes.
-	//
-	// hcl: verify_outgoing = (true|false)
-	VerifyOutgoing bool
-
-	// VerifyServerHostname is used to enable hostname verification of servers.
-	// This ensures that the certificate presented is valid for
-	// server.<datacenter>.<domain>. This prevents a compromised client from
-	// being restarted as a server, and then intercepting request traffic as
-	// well as being added as a raft peer. This should be enabled by default
-	// with VerifyOutgoing, but for legacy reasons we cannot break existing
-	// clients.
-	//
-	// hcl: verify_server_hostname = (true|false)
-	VerifyServerHostname bool
-
 	// EncryptVerifyOutgoing enforces outgoing gossip encryption and can be
 	// used to upshift to encrypted gossip on a running cluster.
 	//
 	// hcl: encrypt_verify_outgoing = (true|false)
 	EncryptVerifyOutgoing bool
-
-	// CAFile is a path to a certificate authority file. This is used with
-	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.
-	//
-	// hcl: ca_file = string
-	CAFile string
-
-	// CAPath is a path to a directory of certificate authority files. This is
-	// used with VerifyIncoming or VerifyOutgoing to verify the TLS connection.
-	//
-	// hcl: ca_path = string
-	CAPath string
 }
 
 // RuntimeConfig specifies the configuration the consul agent actually
@@ -448,12 +393,6 @@ type RuntimeConfig struct {
 	// Cache represent cache configuration of agent
 	Cache cache.Options
 
-	// CertFile is used to provide a TLS certificate that is used for serving
-	// TLS connections. Must be provided to serve TLS connections.
-	//
-	// hcl: cert_file = string
-	CertFile string
-
 	// CheckUpdateInterval controls the interval on which the output of a health check
 	// is updated if there is no change to the state. For example, a check in a steady
 	// state may run every 5 second generating a unique output (timestamp, etc), forcing
@@ -544,6 +483,12 @@ type RuntimeConfig struct {
 	// ConnectEnabled opts the agent into connect. It should be set on all clients
 	// and servers in a cluster for correct connect operation.
 	ConnectEnabled bool
+
+	// ConnectServerlessPluginEnabled opts the agent into the serverless plugin.
+	// This plugin allows services to be configured as AWS Lambdas. After the
+	// Lambda service is configured, Connect services can invoke the Lambda
+	// service like any other upstream.
+	ConnectServerlessPluginEnabled bool
 
 	// ConnectSidecarMinPort is the inclusive start of the range of ports
 	// allocated to the agent for asigning to sidecar services where no port is
@@ -807,12 +752,6 @@ type RuntimeConfig struct {
 	// hcl: ports { https = int }
 	// flags: -https-port int
 	HTTPSPort int
-
-	// KeyFile is used to provide a TLS key that is used for serving TLS
-	// connections. Must be provided to serve TLS connections.
-	//
-	// hcl: key_file = string
-	KeyFile string
 
 	// KVMaxValueSize controls the max allowed value size. If not set defaults
 	// to raft's suggested max value size.
@@ -1384,40 +1323,11 @@ type RuntimeConfig struct {
 	// flag: -join-wan string -join-wan string
 	StartJoinAddrsWAN []string
 
-	// TLSCipherSuites is used to specify the list of supported ciphersuites.
+	// TLS configures certificates, CA, cipher suites, and other TLS settings
+	// on Consul's listeners (i.e. Internal multiplexed RPC, HTTPS and gRPC).
 	//
-	// The values should be a list of the following values:
-	//
-	//   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
-	//   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
-	//   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-	//   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
-	//   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
-	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
-	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
-	//   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-	//   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
-	//   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-	//
-	// todo(fs): IMHO, we should also support the raw 0xNNNN values from
-	// todo(fs): https://golang.org/pkg/crypto/tls/#pkg-constants
-	// todo(fs): since they are standardized by IANA.
-	//
-	// hcl: tls_cipher_suites = []string
-	TLSCipherSuites []uint16
-
-	// TLSMinVersion is used to set the minimum TLS version used for TLS
-	// connections. Should be either "tls10", "tls11", "tls12" or "tls13".
-	// Defaults to tls12.
-	//
-	// hcl: tls_min_version = string
-	TLSMinVersion string
-
-	// TLSPreferServerCipherSuites specifies whether to prefer the server's
-	// cipher suite over the client cipher suites.
-	//
-	// hcl: tls_prefer_server_cipher_suites = (true|false)
-	TLSPreferServerCipherSuites bool
+	// hcl: tls { ... }
+	TLS tlsutil.Config
 
 	// TaggedAddresses are used to publish a set of addresses for
 	// for a node, which can be used by the remote agent. We currently
@@ -1681,9 +1591,11 @@ func (c *RuntimeConfig) ConnectCAConfiguration() (*structs.CAConfiguration, erro
 }
 
 func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) {
+	tls := c.TLS.HTTPS
+
 	cfg := &api.Config{
 		Datacenter: c.Datacenter,
-		TLSConfig:  api.TLSConfig{InsecureSkipVerify: !c.StaticRuntimeConfig.VerifyOutgoing},
+		TLSConfig:  api.TLSConfig{InsecureSkipVerify: !tls.VerifyOutgoing},
 	}
 
 	unixAddr, httpAddr, httpsAddr := c.ClientAddress()
@@ -1691,11 +1603,11 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 	if httpsAddr != "" {
 		cfg.Address = httpsAddr
 		cfg.Scheme = "https"
-		cfg.TLSConfig.CAFile = c.StaticRuntimeConfig.CAFile
-		cfg.TLSConfig.CAPath = c.StaticRuntimeConfig.CAPath
+		cfg.TLSConfig.CAFile = tls.CAFile
+		cfg.TLSConfig.CAPath = tls.CAPath
 		if includeClientCerts {
-			cfg.TLSConfig.CertFile = c.CertFile
-			cfg.TLSConfig.KeyFile = c.KeyFile
+			cfg.TLSConfig.CertFile = tls.CertFile
+			cfg.TLSConfig.KeyFile = tls.KeyFile
 		}
 	} else if httpAddr != "" {
 		cfg.Address = httpAddr
@@ -1718,28 +1630,6 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 // time.Duration values are formatted to improve readability.
 func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 	return sanitize("rt", reflect.ValueOf(c)).Interface().(map[string]interface{})
-}
-
-func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
-	return tlsutil.Config{
-		VerifyIncoming:           c.StaticRuntimeConfig.VerifyIncoming,
-		VerifyIncomingRPC:        c.StaticRuntimeConfig.VerifyIncomingRPC,
-		VerifyIncomingHTTPS:      c.StaticRuntimeConfig.VerifyIncomingHTTPS,
-		VerifyOutgoing:           c.StaticRuntimeConfig.VerifyOutgoing,
-		VerifyServerHostname:     c.StaticRuntimeConfig.VerifyServerHostname,
-		CAFile:                   c.StaticRuntimeConfig.CAFile,
-		CAPath:                   c.StaticRuntimeConfig.CAPath,
-		CertFile:                 c.CertFile,
-		KeyFile:                  c.KeyFile,
-		NodeName:                 c.NodeName,
-		Domain:                   c.DNSDomain,
-		ServerName:               c.ServerName,
-		TLSMinVersion:            c.TLSMinVersion,
-		CipherSuites:             c.TLSCipherSuites,
-		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
-		EnableAgentTLSForChecks:  c.EnableAgentTLSForChecks,
-		AutoTLS:                  c.AutoEncryptTLS || c.AutoConfig.Enabled,
-	}
 }
 
 // isSecret determines whether a field name represents a field which

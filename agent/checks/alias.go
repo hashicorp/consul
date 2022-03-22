@@ -2,6 +2,7 @@ package checks
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -246,7 +247,7 @@ func (c *CheckAlias) processChecks(checks []*structs.HealthCheck, CheckIfService
 	msg := "No checks found."
 	serviceFound := false
 	for _, chk := range checks {
-		if c.Node != "" && c.Node != chk.Node {
+		if c.Node != "" && !strings.EqualFold(c.Node, chk.Node) {
 			continue
 		}
 		serviceMatch := c.ServiceID.Matches(chk.CompoundServiceID())

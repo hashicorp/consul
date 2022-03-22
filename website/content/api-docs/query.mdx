@@ -299,6 +299,8 @@ $ curl \
 
 This endpoint returns a list of all prepared queries.
 
+@include 'http_api_results_filtered_by_acls.mdx'
+
 | Method | Path     | Produces           |
 | ------ | -------- | ------------------ |
 | `GET`  | `/query` | `application/json` |
@@ -477,6 +479,10 @@ $ curl \
 
 This endpoint executes an existing prepared query. If no query exists by the
 given ID, an error is returned.
+
+The HTTP response includes the `X-Consul-Results-Filtered-By-ACLs: true` header
+if the [`Nodes`](#nodes) response array excludes results due to ACL policy configuration.
+Refer to the [HTTP API documentation](/api-docs#results-filtered-by-acls) for more information.
 
 | Method | Path                   | Produces           |
 | ------ | ---------------------- | ------------------ |

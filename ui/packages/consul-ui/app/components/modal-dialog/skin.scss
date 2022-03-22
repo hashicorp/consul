@@ -47,12 +47,16 @@
   border-width: 1px;
 }
 
-%modal-window > header [data-a11y-dialog-hide] {
-  @extend %with-cancel-plain-icon;
+%modal-window > header button {
   cursor: pointer;
   border: var(--decor-border-100);
   /*%frame-gray-050??*/
   background-color: rgb(var(--tone-gray-050));
   border-color: rgb(var(--tone-gray-300));
   border-radius: var(--decor-radius-100);
+}
+%modal-window > header button::before {
+  @extend %with-cancel-plain-icon, %as-pseudo;
+  margin-left: -7px;
+  margin-top: -3px;
 }

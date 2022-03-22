@@ -71,14 +71,14 @@ message HealthCheckDefinition {
     string Body = 18;
     string TCP = 5;
     google.protobuf.Duration Interval = 6
-    [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+    [(gogoproto.nullable) = false];
 
     // mog: func-to=uint func-from=uint32
     uint32 OutputMaxSize = 9;
     google.protobuf.Duration Timeout = 7
-    [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+    [(gogoproto.nullable) = false];
     google.protobuf.Duration DeregisterCriticalServiceAfter = 8
-    [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+    [(gogoproto.nullable) = false];
     repeated string ScriptArgs = 10;
     string DockerContainerID = 11;
     string Shell = 12;
@@ -89,7 +89,7 @@ message HealthCheckDefinition {
     string AliasNode = 15;
     string AliasService = 16;
     google.protobuf.Duration TTL = 17
-    [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+    [(gogoproto.nullable) = false];
 }
 
 // CheckType is used to create either the CheckMonitor or the CheckTTL.
@@ -118,7 +118,7 @@ message CheckType {
     string Body = 26;
     string TCP = 8;
     google.protobuf.Duration Interval = 9
-    [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+    [(gogoproto.nullable) = false];
 
     string AliasNode = 10;
     string AliasService = 11;
@@ -131,9 +131,9 @@ message CheckType {
     string TLSServerName = 27;
     bool TLSSkipVerify = 16;
     google.protobuf.Duration Timeout = 17
-    [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+    [(gogoproto.nullable) = false];
     google.protobuf.Duration TTL = 18
-    [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+    [(gogoproto.nullable) = false];
 
     // mog: func-to=int func-from=int32
     int32 SuccessBeforePassing = 21;
@@ -150,7 +150,7 @@ message CheckType {
     // service, if any, to be deregistered if this check is critical for
     // longer than this duration.
     google.protobuf.Duration DeregisterCriticalServiceAfter = 19
-    [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+    [(gogoproto.nullable) = false];
 
     // mog: func-to=int func-from=int32
     int32 OutputMaxSize = 25;

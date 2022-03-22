@@ -36,9 +36,9 @@ func NewMapHeadersFromStructs(t map[string][]string) map[string]HeaderValue {
 }
 
 // TODO: use mog once it supports pointers and slices
-func CheckServiceNodeToStructs(s *CheckServiceNode) *structs.CheckServiceNode {
+func CheckServiceNodeToStructs(s *CheckServiceNode) (*structs.CheckServiceNode, error) {
 	if s == nil {
-		return nil
+		return nil, nil
 	}
 	var t structs.CheckServiceNode
 	if s.Node != nil {
@@ -54,10 +54,13 @@ func CheckServiceNodeToStructs(s *CheckServiceNode) *structs.CheckServiceNode {
 		if c == nil {
 			continue
 		}
-		h := HealthCheckToStructs(*c)
+		h, err := HealthCheckToStructs(*c)
+		if err != nil {
+			return &t, err
+		}
 		t.Checks[i] = &h
 	}
-	return &t
+	return &t, nil
 }
 
 // TODO: use mog once it supports pointers and slices
@@ -162,16 +165,19 @@ func NewUpstreamsFromStructs(t structs.Upstreams) []Upstream {
 }
 
 // TODO: handle this with mog
-func CheckTypesToStructs(s []*CheckType) structs.CheckTypes {
+func CheckTypesToStructs(s []*CheckType) (structs.CheckTypes, error) {
 	t := make(structs.CheckTypes, len(s))
 	for i, v := range s {
 		if v == nil {
 			continue
 		}
-		newV := CheckTypeToStructs(*v)
+		newV, err := CheckTypeToStructs(*v)
+		if err != nil {
+			return t, err
+		}
 		t[i] = &newV
 	}
-	return t
+	return t, nil
 }
 
 // TODO: handle this with mog
@@ -228,7 +234,10 @@ func ServiceDefinitionPtrToStructs(s *ServiceDefinition) *structs.ServiceDefinit
 	if s == nil {
 		return nil
 	}
-	t := ServiceDefinitionToStructs(*s)
+	t, err := ServiceDefinitionToStructs(*s)
+	if err != nil {
+		return nil
+	}
 	return &t
 }
 

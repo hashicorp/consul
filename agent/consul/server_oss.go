@@ -5,6 +5,7 @@ package consul
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -138,10 +139,11 @@ func (s *Server) reconcile() (err error) {
 	members := s.serfLAN.Members()
 	knownMembers := make(map[string]struct{})
 	for _, member := range members {
+		memberName := strings.ToLower(member.Name)
 		if err := s.reconcileMember(member); err != nil {
 			return err
 		}
-		knownMembers[member.Name] = struct{}{}
+		knownMembers[memberName] = struct{}{}
 	}
 
 	// Reconcile any members that have been reaped while we were not the

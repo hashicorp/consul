@@ -108,5 +108,5 @@
 %composite-row-header .policy-management dd::before,
 %composite-row-detail .policy-management::before {
   @extend %with-star-fill-mask, %as-pseudo;
-  background-color: rgb(var(--tone-brand-600));
+  --icon-color: rgb(var(--tone-brand-600));
 }

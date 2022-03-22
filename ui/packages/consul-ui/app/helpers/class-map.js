@@ -9,6 +9,7 @@ import { helper } from '@ember/component/helper';
  */
 const classMap = entries => {
   const str = entries
+    .filter(Boolean)
     .filter(entry => (typeof entry === 'string' ? true : entry[entry.length - 1]))
     .map(entry => (typeof entry === 'string' ? entry : entry[0]))
     .join(' ');

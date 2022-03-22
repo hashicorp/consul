@@ -1,0 +1,15 @@
+@keyframes icon-docs {
+  50% {
+
+    background-color: var(--icon-color, var(--color-docs-500, currentColor));
+    -webkit-mask-image: var(--icon-docs-24);
+    mask-image: var(--icon-docs-24);
+  }
+
+  100% {
+
+    background-color: var(--icon-color, var(--color-docs-500, currentColor));
+    -webkit-mask-image: var(--icon-docs-16);
+    mask-image: var(--icon-docs-16);
+  }
+}

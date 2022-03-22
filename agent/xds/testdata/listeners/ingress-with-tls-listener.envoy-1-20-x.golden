@@ -3,11 +3,11 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "db:1.2.3.4:9191",
+      "name": "db:1.2.3.4:8080",
       "address": {
         "socketAddress": {
           "address": "1.2.3.4",
-          "portValue": 9191
+          "portValue": 8080
         }
       },
       "filterChains": [

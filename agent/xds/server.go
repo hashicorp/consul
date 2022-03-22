@@ -7,23 +7,19 @@ import (
 	"time"
 
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
-	agentgrpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 )
 
 var StatsGauges = []prometheus.GaugeDefinition{
@@ -37,23 +33,6 @@ var StatsGauges = []prometheus.GaugeDefinition{
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
 const (
-	// Resource types in xDS v3. These are copied from
-	// envoyproxy/go-control-plane/pkg/resource/v3/resource.go since we don't need any of
-	// the rest of that package.
-	apiTypePrefix = "type.googleapis.com/"
-
-	// EndpointType is the TypeURL for Endpoint discovery responses.
-	EndpointType = apiTypePrefix + "envoy.config.endpoint.v3.ClusterLoadAssignment"
-
-	// ClusterType is the TypeURL for Cluster discovery responses.
-	ClusterType = apiTypePrefix + "envoy.config.cluster.v3.Cluster"
-
-	// RouteType is the TypeURL for Route discovery responses.
-	RouteType = apiTypePrefix + "envoy.config.route.v3.RouteConfiguration"
-
-	// ListenerType is the TypeURL for Listener discovery responses.
-	ListenerType = apiTypePrefix + "envoy.config.listener.v3.Listener"
-
 	// PublicListenerName is the name we give the public listener in Envoy config.
 	PublicListenerName = "public_listener"
 
@@ -145,9 +124,10 @@ type Server struct {
 	AuthCheckFrequency time.Duration
 
 	// ResourceMapMutateFn exclusively exists for testing purposes.
-	ResourceMapMutateFn func(resourceMap *IndexedResources)
+	ResourceMapMutateFn func(resourceMap *xdscommon.IndexedResources)
 
-	activeStreams *activeStreamCounters
+	activeStreams           *activeStreamCounters
+	serverlessPluginEnabled bool
 }
 
 // activeStreamCounters simply encapsulates two counters accessed atomically to
@@ -182,19 +162,21 @@ func (c *activeStreamCounters) Increment(xdsVersion string) func() {
 
 func NewServer(
 	logger hclog.Logger,
+	serverlessPluginEnabled bool,
 	cfgMgr ConfigManager,
 	resolveToken ACLResolverFunc,
 	checkFetcher HTTPCheckFetcher,
 	cfgFetcher ConfigFetcher,
 ) *Server {
 	return &Server{
-		Logger:             logger,
-		CfgMgr:             cfgMgr,
-		ResolveToken:       resolveToken,
-		CheckFetcher:       checkFetcher,
-		CfgFetcher:         cfgFetcher,
-		AuthCheckFrequency: DefaultAuthCheckFrequency,
-		activeStreams:      &activeStreamCounters{},
+		Logger:                  logger,
+		CfgMgr:                  cfgMgr,
+		ResolveToken:            resolveToken,
+		CheckFetcher:            checkFetcher,
+		CfgFetcher:              cfgFetcher,
+		AuthCheckFrequency:      DefaultAuthCheckFrequency,
+		activeStreams:           &activeStreamCounters{},
+		serverlessPluginEnabled: serverlessPluginEnabled,
 	}
 }
 
@@ -219,32 +201,9 @@ func tokenFromContext(ctx context.Context) string {
 	return ""
 }
 
-// NewGRPCServer creates a grpc.Server, registers the Server, and then returns
-// the grpc.Server.
-func NewGRPCServer(s *Server, tlsConfigurator *tlsutil.Configurator) *grpc.Server {
-	recoveryOpts := agentgrpc.PanicHandlerMiddlewareOpts(s.Logger)
-
-	opts := []grpc.ServerOption{
-		grpc.MaxConcurrentStreams(2048),
-		middleware.WithUnaryServerChain(
-			// Add middlware interceptors to recover in case of panics.
-			recovery.UnaryServerInterceptor(recoveryOpts...),
-		),
-		middleware.WithStreamServerChain(
-			// Add middlware interceptors to recover in case of panics.
-			recovery.StreamServerInterceptor(recoveryOpts...),
-		),
-	}
-	if tlsConfigurator != nil {
-		if tlsConfigurator.Cert() != nil {
-			creds := credentials.NewTLS(tlsConfigurator.IncomingGRPCConfig())
-			opts = append(opts, grpc.Creds(creds))
-		}
-	}
-	srv := grpc.NewServer(opts...)
+// Register the XDS server handlers to the given gRPC server.
+func (s *Server) Register(srv *grpc.Server) {
 	envoy_discovery_v3.RegisterAggregatedDiscoveryServiceServer(srv, s)
-
-	return srv
 }
 
 // authorize the xDS request using the token stored in ctx. This authorization is
@@ -266,7 +225,7 @@ func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot
 	if acl.IsErrNotFound(err) {
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
 	} else if acl.IsErrPermissionDenied(err) {
-		return status.Errorf(codes.PermissionDenied, "permission denied: %v", err)
+		return status.Error(codes.PermissionDenied, err.Error())
 	} else if err != nil {
 		return status.Errorf(codes.Internal, "error resolving acl token: %v", err)
 	}
@@ -275,13 +234,13 @@ func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-			return status.Errorf(codes.PermissionDenied, "permission denied")
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(cfgSnap.Proxy.DestinationServiceName, &authzContext); err != nil {
+			return status.Errorf(codes.PermissionDenied, err.Error())
 		}
 	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
-			return status.Errorf(codes.PermissionDenied, "permission denied")
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(cfgSnap.Service, &authzContext); err != nil {
+			return status.Errorf(codes.PermissionDenied, err.Error())
 		}
 	default:
 		return status.Errorf(codes.Internal, "Invalid service kind")

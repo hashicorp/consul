@@ -1134,6 +1134,10 @@ func (a ACLResolveResult) Identity() structs.ACLIdentity {
 	return a.ACLIdentity
 }
 
+func (a ACLResolveResult) ToAllowAuthorizer() acl.AllowAuthorizer {
+	return acl.AllowAuthorizer{Authorizer: a, AccessorID: a.AccessorID()}
+}
+
 func (r *ACLResolver) ACLsEnabled() bool {
 	// Whether we desire ACLs to be enabled according to configuration
 	if !r.config.ACLsEnabled {

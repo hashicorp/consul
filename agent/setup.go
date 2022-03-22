@@ -20,8 +20,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
-	"github.com/hashicorp/consul/agent/grpc"
-	"github.com/hashicorp/consul/agent/grpc/resolver"
+	grpc "github.com/hashicorp/consul/agent/grpc/private"
+	"github.com/hashicorp/consul/agent/grpc/private/resolver"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -94,7 +94,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
 
-	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.ToTLSUtilConfig(), d.Logger)
+	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.TLS, d.Logger)
 	if err != nil {
 		return d, err
 	}

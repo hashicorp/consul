@@ -194,8 +194,20 @@ func testConfigEntries_ListRelatedServices_AndACLs(t *testing.T, cases []configE
 				for _, a := range tc.expectACLs {
 					require.NotEmpty(t, a.name)
 					t.Run(a.name, func(t *testing.T) {
-						require.Equal(t, a.canRead, tc.entry.CanRead(a.authorizer), "unexpected CanRead result")
-						require.Equal(t, a.canWrite, tc.entry.CanWrite(a.authorizer), "unexpected CanWrite result")
+						canRead := tc.entry.CanRead(a.authorizer)
+						if a.canRead {
+							require.Nil(t, canRead)
+						} else {
+							require.Error(t, canRead)
+							require.True(t, acl.IsErrPermissionDenied(canRead))
+						}
+						canWrite := tc.entry.CanWrite(a.authorizer)
+						if a.canWrite {
+							require.Nil(t, canWrite)
+						} else {
+							require.Error(t, canWrite)
+							require.True(t, acl.IsErrPermissionDenied(canWrite))
+						}
 					})
 				}
 			}

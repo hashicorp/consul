@@ -1,6 +1,8 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type DeprecatedConfig struct {
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
@@ -28,6 +30,42 @@ type DeprecatedConfig struct {
 	ACLDownPolicy *string `mapstructure:"acl_down_policy"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved to "acl.token_ttl"
 	ACLTTL *string `mapstructure:"acl_ttl"`
+
+	// DEPRECATED(TLS) - moved to "tls.defaults.ca_file"
+	CAFile *string `mapstructure:"ca_file"`
+
+	// DEPRECATED(TLS) - moved to "tls.defaults.ca_path"
+	CAPath *string `mapstructure:"ca_path"`
+
+	// DEPRECATED(TLS) - moved to "tls.defaults.cert_file"
+	CertFile *string `mapstructure:"cert_file"`
+
+	// DEPRECATED(TLS) - moved to "tls.defaults.key_file"
+	KeyFile *string `mapstructure:"key_file"`
+
+	// DEPRECATED(TLS) - moved to "tls.defaults.tls_cipher_suites"
+	TLSCipherSuites *string `mapstructure:"tls_cipher_suites"`
+
+	// DEPRECATED(TLS) - moved to "tls.defaults.tls_min_version"
+	TLSMinVersion *string `mapstructure:"tls_min_version"`
+
+	// DEPRECATED(TLS) - moved to "tls.defaults.verify_incoming"
+	VerifyIncoming *bool `mapstructure:"verify_incoming"`
+
+	// DEPRECATED(TLS) - moved to "tls.https.verify_incoming"
+	VerifyIncomingHTTPS *bool `mapstructure:"verify_incoming_https"`
+
+	// DEPRECATED(TLS) - moved to "tls.internal_rpc.verify_incoming"
+	VerifyIncomingRPC *bool `mapstructure:"verify_incoming_rpc"`
+
+	// DEPRECATED(TLS) - moved to "tls.defaults.verify_outgoing"
+	VerifyOutgoing *bool `mapstructure:"verify_outgoing"`
+
+	// DEPRECATED(TLS) - moved to "tls.internal_rpc.verify_server_hostname"
+	VerifyServerHostname *bool `mapstructure:"verify_server_hostname"`
+
+	// DEPRECATED(TLS) - this isn't honored by crypto/tls anymore.
+	TLSPreferServerCipherSuites *bool `mapstructure:"tls_prefer_server_cipher_suites"`
 }
 
 func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
@@ -132,7 +170,100 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 		warns = append(warns, deprecationWarning("acl_enable_key_list_policy", "acl.enable_key_list_policy"))
 	}
 
+	warns = append(warns, applyDeprecatedTLSConfig(dep, &d.Config)...)
+
 	return d.Config, warns
+}
+
+func applyDeprecatedTLSConfig(dep DeprecatedConfig, cfg *Config) []string {
+	var warns []string
+
+	defaults := &cfg.TLS.Defaults
+	internalRPC := &cfg.TLS.InternalRPC
+	https := &cfg.TLS.HTTPS
+
+	if v := dep.CAFile; v != nil {
+		if defaults.CAFile == nil {
+			defaults.CAFile = v
+		}
+		warns = append(warns, deprecationWarning("ca_file", "tls.defaults.ca_file"))
+	}
+
+	if v := dep.CAPath; v != nil {
+		if defaults.CAPath == nil {
+			defaults.CAPath = v
+		}
+		warns = append(warns, deprecationWarning("ca_path", "tls.defaults.ca_path"))
+	}
+
+	if v := dep.CertFile; v != nil {
+		if defaults.CertFile == nil {
+			defaults.CertFile = v
+		}
+		warns = append(warns, deprecationWarning("cert_file", "tls.defaults.cert_file"))
+	}
+
+	if v := dep.KeyFile; v != nil {
+		if defaults.KeyFile == nil {
+			defaults.KeyFile = v
+		}
+		warns = append(warns, deprecationWarning("key_file", "tls.defaults.key_file"))
+	}
+
+	if v := dep.TLSCipherSuites; v != nil {
+		if defaults.TLSCipherSuites == nil {
+			defaults.TLSCipherSuites = v
+		}
+		warns = append(warns, deprecationWarning("tls_cipher_suites", "tls.defaults.tls_cipher_suites"))
+	}
+
+	if v := dep.TLSMinVersion; v != nil {
+		if defaults.TLSMinVersion == nil {
+			defaults.TLSMinVersion = v
+		}
+		warns = append(warns, deprecationWarning("tls_min_version", "tls.defaults.tls_min_version"))
+	}
+
+	if v := dep.VerifyIncoming; v != nil {
+		if defaults.VerifyIncoming == nil {
+			defaults.VerifyIncoming = v
+		}
+		warns = append(warns, deprecationWarning("verify_incoming", "tls.defaults.verify_incoming"))
+	}
+
+	if v := dep.VerifyIncomingHTTPS; v != nil {
+		if https.VerifyIncoming == nil {
+			https.VerifyIncoming = v
+		}
+		warns = append(warns, deprecationWarning("verify_incoming_https", "tls.https.verify_incoming"))
+	}
+
+	if v := dep.VerifyIncomingRPC; v != nil {
+		if internalRPC.VerifyIncoming == nil {
+			internalRPC.VerifyIncoming = v
+		}
+		warns = append(warns, deprecationWarning("verify_incoming_rpc", "tls.internal_rpc.verify_incoming"))
+	}
+
+	if v := dep.VerifyOutgoing; v != nil {
+		if defaults.VerifyOutgoing == nil {
+			defaults.VerifyOutgoing = v
+		}
+		warns = append(warns, deprecationWarning("verify_outgoing", "tls.defaults.verify_outgoing"))
+	}
+
+	if v := dep.VerifyServerHostname; v != nil {
+		if internalRPC.VerifyServerHostname == nil {
+			internalRPC.VerifyServerHostname = v
+		}
+		warns = append(warns, deprecationWarning("verify_server_hostname", "tls.internal_rpc.verify_server_hostname"))
+	}
+
+	if dep.TLSPreferServerCipherSuites != nil {
+		warns = append(warns, "The 'tls_prefer_server_cipher_suites' field is deprecated and will be ignored.")
+	}
+
+	return warns
 }
 
 func deprecationWarning(old, new string) string {

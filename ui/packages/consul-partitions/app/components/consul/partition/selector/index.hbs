@@ -1,6 +1,7 @@
 {{#let
   (or @partition 'default')
-as |partition|}}
+  (is-href 'dc.partitions' @dc.Name)
+as |partition isManaging|}}
   {{#if (can "choose partitions" dc=@dc)}}
       <li
         class="partitions"
@@ -8,11 +9,18 @@ as |partition|}}
       >
         <DisclosureMenu
           aria-label="Admin Partition"
+          @items={{append 
+            (hash 
+              Name="Manage Partitions"
+              href=(href-to 'dc.partitions' @dc.Name)
+            ) 
+            (reject-by 'DeletedAt' @partitions)
+          }}
         as |disclosure|>
           <disclosure.Action
             {{on 'click' disclosure.toggle}}
           >
-            {{partition}}
+            {{if isManaging 'Manage Partition' partition}}
           </disclosure.Action>
           <disclosure.Menu as |panel|>
             <DataSource
@@ -25,34 +33,37 @@ as |partition|}}
               @onchange={{fn (optional @onchange)}}
             />
             <panel.Menu as |menu|>
-              {{#each (reject-by 'DeletedAt' @partitions) as |item|}}
+              {{#each menu.items as |item|}}
                 <menu.Item
-                  class={{if (eq partition item.Name) 'is-active'}}
+                  aria-current={{if 
+                    (or 
+                      (and isManaging item.href)
+                      (and (not isManaging) (eq partition item.Name))
+                    )
+                    'true'
+                  }}
                 >
                   <menu.Action
                     {{on 'click' disclosure.close}}
-                    @href={{href-to '.' params=(hash
-                      partition=item.Name
-                      nspace=undefined
-                    )}}
+                    @href={{if item.href 
+                      item.href 
+                      (if isManaging 
+                        (href-to 'dc.services.index' params=(hash
+                          partition=item.Name
+                          nspace=undefined
+                          dc=@dc.Name
+                        ))
+                        (href-to '.' params=(hash
+                          partition=item.Name
+                          nspace=undefined
+                        ))
+                      )
+                    }}
                   >
                     {{item.Name}}
                   </menu.Action>
                 </menu.Item>
               {{/each}}
-              {{#if (can 'manage partitions')}}
-                <menu.Separator />
-                <menu.Item
-                  data-test-main-nav-partitions
-                >
-                  <menu.Action
-                    {{on 'click' disclosure.close}}
-                    @href={{href-to 'dc.partitions.index' @dc.Name}}
-                  >
-                    Manage Partitions
-                  </menu.Action>
-                </menu.Item>
-              {{/if}}
             </panel.Menu>
           </disclosure.Menu>
         </DisclosureMenu>

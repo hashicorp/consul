@@ -251,11 +251,11 @@ func isValidHTTPMethod(method string) bool {
 	}
 }
 
-func (e *ServiceRouterConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ServiceRouterConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceRouterConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceRouterConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -594,11 +594,11 @@ func scaleWeight(v float32) int {
 	return int(math.Round(float64(v * 100.0)))
 }
 
-func (e *ServiceSplitterConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ServiceSplitterConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceSplitterConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceSplitterConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -1069,11 +1069,11 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	return nil
 }
 
-func (e *ServiceResolverConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ServiceResolverConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceResolverConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceResolverConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -1300,13 +1300,13 @@ type discoveryChainConfigEntry interface {
 	ListRelatedServices() []ServiceID
 }
 
-func canReadDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) bool {
+func canReadDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	entry.GetEnterpriseMeta().FillAuthzContext(&authzContext)
-	return authz.ServiceRead(entry.GetName(), &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(entry.GetName(), &authzContext)
 }
 
-func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) bool {
+func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) error {
 	entryID := NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())
 
 	var authzContext acl.AuthorizerContext
@@ -1314,8 +1314,8 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorize
 
 	name := entry.GetName()
 
-	if authz.ServiceWrite(name, &authzContext) != acl.Allow {
-		return false
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(name, &authzContext); err != nil {
+		return err
 	}
 
 	for _, svc := range entry.ListRelatedServices() {
@@ -1326,148 +1326,11 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorize
 		svc.FillAuthzContext(&authzContext)
 		// You only need read on related services to redirect traffic flow for
 		// your own service.
-		if authz.ServiceRead(svc.ID, &authzContext) != acl.Allow {
-			return false
+		if err := authz.ToAllowAuthorizer().ServiceReadAllowed(svc.ID, &authzContext); err != nil {
+			return err
 		}
 	}
-	return true
-}
-
-// DiscoveryChainConfigEntries wraps just the raw cross-referenced config
-// entries. None of these are defaulted.
-type DiscoveryChainConfigEntries struct {
-	Routers       map[ServiceID]*ServiceRouterConfigEntry
-	Splitters     map[ServiceID]*ServiceSplitterConfigEntry
-	Resolvers     map[ServiceID]*ServiceResolverConfigEntry
-	Services      map[ServiceID]*ServiceConfigEntry
-	ProxyDefaults map[string]*ProxyConfigEntry
-}
-
-func NewDiscoveryChainConfigEntries() *DiscoveryChainConfigEntries {
-	return &DiscoveryChainConfigEntries{
-		Routers:       make(map[ServiceID]*ServiceRouterConfigEntry),
-		Splitters:     make(map[ServiceID]*ServiceSplitterConfigEntry),
-		Resolvers:     make(map[ServiceID]*ServiceResolverConfigEntry),
-		Services:      make(map[ServiceID]*ServiceConfigEntry),
-		ProxyDefaults: make(map[string]*ProxyConfigEntry),
-	}
-}
-
-func (e *DiscoveryChainConfigEntries) GetRouter(sid ServiceID) *ServiceRouterConfigEntry {
-	if e.Routers != nil {
-		return e.Routers[sid]
-	}
 	return nil
-}
-
-func (e *DiscoveryChainConfigEntries) GetSplitter(sid ServiceID) *ServiceSplitterConfigEntry {
-	if e.Splitters != nil {
-		return e.Splitters[sid]
-	}
-	return nil
-}
-
-func (e *DiscoveryChainConfigEntries) GetResolver(sid ServiceID) *ServiceResolverConfigEntry {
-	if e.Resolvers != nil {
-		return e.Resolvers[sid]
-	}
-	return nil
-}
-
-func (e *DiscoveryChainConfigEntries) GetService(sid ServiceID) *ServiceConfigEntry {
-	if e.Services != nil {
-		return e.Services[sid]
-	}
-	return nil
-}
-
-func (e *DiscoveryChainConfigEntries) GetProxyDefaults(partition string) *ProxyConfigEntry {
-	if e.ProxyDefaults != nil {
-		return e.ProxyDefaults[partition]
-	}
-	return nil
-}
-
-// AddRouters adds router configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddRouters(entries ...*ServiceRouterConfigEntry) {
-	if e.Routers == nil {
-		e.Routers = make(map[ServiceID]*ServiceRouterConfigEntry)
-	}
-	for _, entry := range entries {
-		e.Routers[NewServiceID(entry.Name, &entry.EnterpriseMeta)] = entry
-	}
-}
-
-// AddSplitters adds splitter configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddSplitters(entries ...*ServiceSplitterConfigEntry) {
-	if e.Splitters == nil {
-		e.Splitters = make(map[ServiceID]*ServiceSplitterConfigEntry)
-	}
-	for _, entry := range entries {
-		e.Splitters[NewServiceID(entry.Name, entry.GetEnterpriseMeta())] = entry
-	}
-}
-
-// AddResolvers adds resolver configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddResolvers(entries ...*ServiceResolverConfigEntry) {
-	if e.Resolvers == nil {
-		e.Resolvers = make(map[ServiceID]*ServiceResolverConfigEntry)
-	}
-	for _, entry := range entries {
-		e.Resolvers[NewServiceID(entry.Name, entry.GetEnterpriseMeta())] = entry
-	}
-}
-
-// AddServices adds service configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddServices(entries ...*ServiceConfigEntry) {
-	if e.Services == nil {
-		e.Services = make(map[ServiceID]*ServiceConfigEntry)
-	}
-	for _, entry := range entries {
-		e.Services[NewServiceID(entry.Name, entry.GetEnterpriseMeta())] = entry
-	}
-}
-
-// AddProxyDefaults adds proxy-defaults configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddProxyDefaults(entries ...*ProxyConfigEntry) {
-	if e.ProxyDefaults == nil {
-		e.ProxyDefaults = make(map[string]*ProxyConfigEntry)
-	}
-	for _, entry := range entries {
-		e.ProxyDefaults[entry.PartitionOrDefault()] = entry
-	}
-}
-
-// AddEntries adds generic configs. Convenience function for testing. Panics on
-// operator error.
-func (e *DiscoveryChainConfigEntries) AddEntries(entries ...ConfigEntry) {
-	for _, entry := range entries {
-		switch entry.GetKind() {
-		case ServiceRouter:
-			e.AddRouters(entry.(*ServiceRouterConfigEntry))
-		case ServiceSplitter:
-			e.AddSplitters(entry.(*ServiceSplitterConfigEntry))
-		case ServiceResolver:
-			e.AddResolvers(entry.(*ServiceResolverConfigEntry))
-		case ServiceDefaults:
-			e.AddServices(entry.(*ServiceConfigEntry))
-		case ProxyDefaults:
-			if entry.GetName() != ProxyConfigGlobal {
-				panic("the only supported proxy-defaults name is '" + ProxyConfigGlobal + "'")
-			}
-			e.AddProxyDefaults(entry.(*ProxyConfigEntry))
-		default:
-			panic("unhandled config entry kind: " + entry.GetKind())
-		}
-	}
-}
-
-func (e *DiscoveryChainConfigEntries) IsEmpty() bool {
-	return e.IsChainEmpty() && len(e.Services) == 0 && len(e.ProxyDefaults) == 0
-}
-
-func (e *DiscoveryChainConfigEntries) IsChainEmpty() bool {
-	return len(e.Routers) == 0 && len(e.Splitters) == 0 && len(e.Resolvers) == 0
 }
 
 // DiscoveryChainRequest is used when requesting the discovery chain for a

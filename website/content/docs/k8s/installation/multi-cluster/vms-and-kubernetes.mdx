@@ -75,9 +75,13 @@ The following sections detail how to export this data.
    <CodeBlockConfig filename="server.hcl">
 
    ```hcl
-   cert_file = "vm-dc-server-consul-0.pem"
-   key_file = "vm-dc-server-consul-0-key.pem"
-   ca_file = "consul-agent-ca.pem"
+   tls {
+     defaults {
+       cert_file = "vm-dc-server-consul-0.pem"
+       key_file = "vm-dc-server-consul-0-key.pem"
+       ca_file = "consul-agent-ca.pem"
+     }
+   }
    ```
 
    </CodeBlockConfig>
@@ -160,9 +164,19 @@ A final example server config file might look like:
 
 ```hcl
 # From above
-cert_file = "vm-dc-server-consul-0.pem"
-key_file = "vm-dc-server-consul-0-key.pem"
-ca_file = "consul-agent-ca.pem"
+tls {
+  defaults {
+    cert_file = "vm-dc-server-consul-0.pem"
+    key_file = "vm-dc-server-consul-0-key.pem"
+    ca_file = "consul-agent-ca.pem"
+  }
+
+  internal_rpc {
+    verify_incoming = true
+    verify_outgoing = true
+    verify_server_hostname = true
+  }
+}
 primary_gateways = ["1.2.3.4:443"]
 acl {
   enabled = true
@@ -185,9 +199,6 @@ connect {
   enabled = true
   enable_mesh_gateway_wan_federation = true
 }
-verify_incoming_rpc = true
-verify_outgoing = true
-verify_server_hostname = true
 ports {
   https = 8501
   http = -1

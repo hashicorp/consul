@@ -6,6 +6,7 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -795,7 +796,7 @@ func (s *Server) getOrCreateAutopilotConfig() *structs.AutopilotConfig {
 
 	config = s.config.AutopilotConfig
 	req := structs.AutopilotSetConfigRequest{Config: *config}
-	if _, err = s.raftApply(structs.AutopilotRequestType, req); err != nil {
+	if _, err = s.leaderRaftApply("AutopilotRequest.Apply", structs.AutopilotRequestType, req); err != nil {
 		logger.Error("failed to initialize config", "error", err)
 		return nil
 	}
@@ -870,7 +871,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 				Entry:      entry,
 			}
 
-			_, err := s.raftApply(structs.ConfigEntryRequestType, &req)
+			_, err := s.leaderRaftApply("ConfigEntry.Apply", structs.ConfigEntryRequestType, &req)
 			if err != nil {
 				return fmt.Errorf("Failed to apply configuration entry %q / %q: %v", entry.GetKind(), entry.GetName(), err)
 			}
@@ -899,7 +900,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *structs
 		}
 
 		// Check if this node is "known" by serf
-		if _, ok := known[check.Node]; ok {
+		if _, ok := known[strings.ToLower(check.Node)]; ok {
 			continue
 		}
 
@@ -1204,7 +1205,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeE
 	// deregister us later.
 	//
 	// TODO(partitions): check partitions here too? server names should be unique in general though
-	if member.Name == s.config.NodeName {
+	if strings.EqualFold(member.Name, s.config.NodeName) {
 		s.logger.Warn("deregistering self should be done by follower",
 			"name", s.config.NodeName,
 			"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),

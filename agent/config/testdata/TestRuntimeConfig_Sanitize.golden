@@ -80,7 +80,6 @@
         "EntryFetchRate": 0.334,
         "Logger": null
     },
-    "CertFile": "",
     "CheckDeregisterIntervalMin": "0s",
     "CheckOutputMaxSize": 4096,
     "CheckReapInterval": "0s",
@@ -126,6 +125,7 @@
     "ConnectCAProvider": "",
     "ConnectEnabled": false,
     "ConnectMeshGatewayWANFederationEnabled": false,
+    "ConnectServerlessPluginEnabled": false,
     "ConnectSidecarMaxPort": 0,
     "ConnectSidecarMinPort": 0,
     "ConnectTestCALeafRootChangeSpread": "0s",
@@ -214,7 +214,6 @@
     "HTTPSPort": 0,
     "HTTPUseCache": false,
     "KVMaxValueSize": 1234567800000000,
-    "KeyFile": "hidden",
     "LeaveDrainTime": "0s",
     "LeaveOnTerm": false,
     "Logging": {
@@ -232,17 +231,6 @@
     "NodeID": "",
     "NodeMeta": {},
     "NodeName": "",
-    "StaticRuntimeConfig": {
-        "CAFile": "",
-        "CAPath": "",
-        "EncryptVerifyIncoming": false,
-        "EncryptVerifyOutgoing": false,
-        "VerifyIncoming": false,
-        "VerifyIncomingHTTPS": false,
-        "VerifyIncomingRPC": false,
-        "VerifyOutgoing": false,
-        "VerifyServerHostname": false
-    },
     "PidFile": "",
     "PrimaryDatacenter": "",
     "PrimaryGateways": [
@@ -359,11 +347,52 @@
     "SkipLeaveOnInt": false,
     "StartJoinAddrsLAN": [],
     "StartJoinAddrsWAN": [],
+    "StaticRuntimeConfig": {
+        "EncryptVerifyIncoming": false,
+        "EncryptVerifyOutgoing": false
+    },
     "SyncCoordinateIntervalMin": "0s",
     "SyncCoordinateRateTarget": 0,
-    "TLSCipherSuites": [],
-    "TLSMinVersion": "",
-    "TLSPreferServerCipherSuites": false,
+    "TLS": {
+        "AutoTLS": false,
+        "Domain": "",
+        "EnableAgentTLSForChecks": false,
+        "GRPC": {
+            "CAFile": "",
+            "CAPath": "",
+            "CertFile": "",
+            "CipherSuites": [],
+            "KeyFile": "hidden",
+            "TLSMinVersion": "",
+            "VerifyIncoming": false,
+            "VerifyOutgoing": false,
+            "VerifyServerHostname": false
+        },
+        "HTTPS": {
+            "CAFile": "",
+            "CAPath": "",
+            "CertFile": "",
+            "CipherSuites": [],
+            "KeyFile": "hidden",
+            "TLSMinVersion": "",
+            "VerifyIncoming": false,
+            "VerifyOutgoing": false,
+            "VerifyServerHostname": false
+        },
+        "InternalRPC": {
+            "CAFile": "",
+            "CAPath": "",
+            "CertFile": "",
+            "CipherSuites": [],
+            "KeyFile": "hidden",
+            "TLSMinVersion": "",
+            "VerifyIncoming": false,
+            "VerifyOutgoing": false,
+            "VerifyServerHostname": false
+        },
+        "NodeName": "",
+        "ServerName": ""
+    },
     "TaggedAddresses": {},
     "Telemetry": {
         "AllowedPrefixes": [],

@@ -37,6 +37,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/dns"
+	publicgrpc "github.com/hashicorp/consul/agent/grpc/public"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
@@ -207,6 +208,10 @@ type Agent struct {
 	// depending on the configuration
 	delegate delegate
 
+	// publicGRPCServer is the gRPC server exposed on the dedicated gRPC port (as
+	// opposed to the multiplexed "server" port).
+	publicGRPCServer *grpc.Server
+
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
 	State *local.State
@@ -335,10 +340,6 @@ type Agent struct {
 	// serviceManager is the manager for combining local service registrations with
 	// the centrally configured proxy/service defaults.
 	serviceManager *ServiceManager
-
-	// grpcServer is the server instance used currently to serve xDS API for
-	// Envoy.
-	grpcServer *grpc.Server
 
 	// tlsConfigurator is the central instance to provide a *tls.Config
 	// based on the current consul configuration.
@@ -501,9 +502,13 @@ func (a *Agent) Start(ctx context.Context) error {
 	c.NodeID = a.config.NodeID
 	a.config = c
 
-	if err := a.tlsConfigurator.Update(a.config.ToTLSUtilConfig()); err != nil {
+	if err := a.tlsConfigurator.Update(a.config.TLS); err != nil {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
+
+	// This needs to happen after the initial auto-config is loaded, because TLS
+	// can only be configured on the gRPC server at the point of creation.
+	a.buildPublicGRPCServer()
 
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
@@ -542,7 +547,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps)
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.publicGRPCServer)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
@@ -733,13 +738,23 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
+func (a *Agent) buildPublicGRPCServer() {
+	// TLS is only enabled on the gRPC server if there's an HTTPS port configured.
+	var tls *tlsutil.Configurator
+	if a.config.HTTPSPort > 0 {
+		tls = a.tlsConfigurator
+	}
+	a.publicGRPCServer = publicgrpc.NewServer(a.logger.Named("grpc.public"), tls)
+}
+
 func (a *Agent) listenAndServeGRPC() error {
 	if len(a.config.GRPCAddrs) < 1 {
 		return nil
 	}
 
-	xdsServer := xds.NewServer(
+	a.xdsServer = xds.NewServer(
 		a.logger.Named(logging.Envoy),
+		a.config.ConnectServerlessPluginEnabled,
 		a.proxyConfig,
 		func(id string) (acl.Authorizer, error) {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
@@ -747,15 +762,7 @@ func (a *Agent) listenAndServeGRPC() error {
 		a,
 		a,
 	)
-
-	tlsConfig := a.tlsConfigurator
-	// gRPC uses the same TLS settings as the HTTPS API. If HTTPS is not enabled
-	// then gRPC should not use TLS.
-	if a.config.HTTPSPort <= 0 {
-		tlsConfig = nil
-	}
-	var err error
-	a.grpcServer = xds.NewGRPCServer(xdsServer, tlsConfig)
+	a.xdsServer.Register(a.publicGRPCServer)
 
 	ln, err := a.startListeners(a.config.GRPCAddrs)
 	if err != nil {
@@ -768,7 +775,7 @@ func (a *Agent) listenAndServeGRPC() error {
 				"address", innerL.Addr().String(),
 				"network", innerL.Addr().Network(),
 			)
-			err := a.grpcServer.Serve(innerL)
+			err := a.publicGRPCServer.Serve(innerL)
 			if err != nil {
 				a.logger.Error("gRPC server failed", "error", err)
 			}
@@ -1250,7 +1257,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	}
 	cfg.Build = fmt.Sprintf("%s%s:%s", runtimeCfg.Version, runtimeCfg.VersionPrerelease, revision)
 
-	cfg.TLSConfig = runtimeCfg.ToTLSUtilConfig()
+	cfg.TLSConfig = runtimeCfg.TLS
 
 	cfg.DefaultQueryTime = runtimeCfg.DefaultQueryTime
 	cfg.MaxQueryTime = runtimeCfg.MaxQueryTime
@@ -1440,9 +1447,7 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	// Stop gRPC
-	if a.grpcServer != nil {
-		a.grpcServer.Stop()
-	}
+	a.publicGRPCServer.Stop()
 
 	// Stop the proxy config manager
 	if a.proxyConfig != nil {
@@ -3757,6 +3762,8 @@ func (a *Agent) ReloadConfig(autoReload bool) error {
 			// reset not reloadable fields
 			newCfg.StaticRuntimeConfig = a.config.StaticRuntimeConfig
 		}
+
+		// Reload TLS certificate.
 	}
 
 	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
@@ -3806,7 +3813,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	// the checks and service registrations.
 	a.tokens.Load(newCfg.ACLTokens, a.logger)
 
-	if err := a.tlsConfigurator.Update(newCfg.ToTLSUtilConfig()); err != nil {
+	if err := a.tlsConfigurator.Update(newCfg.TLS); err != nil {
 		return fmt.Errorf("Failed reloading tls configuration: %s", err)
 	}
 

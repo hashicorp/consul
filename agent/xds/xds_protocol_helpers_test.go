@@ -42,7 +42,7 @@ func newTestSnapshot(
 	dbServiceProtocol string,
 	additionalEntries ...structs.ConfigEntry,
 ) *proxycfg.ConfigSnapshot {
-	snap := proxycfg.TestConfigSnapshotDiscoveryChainDefaultWithEntries(t, additionalEntries...)
+	snap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, additionalEntries...)
 	snap.ConnectProxy.PreparedQueryEndpoints = map[proxycfg.UpstreamID]structs.CheckServiceNodes{
 		UID("prepared_query:geo-cache"): proxycfg.TestPreparedQueryNodes(t, "geo-cache"),
 	}
@@ -131,6 +131,7 @@ func newTestServerDeltaScenario(
 	proxyID string,
 	token string,
 	authCheckFrequency time.Duration,
+	serverlessPluginEnabled bool,
 ) *testServerScenario {
 	mgr := newTestManager(t)
 	envoy := NewTestEnvoy(t, proxyID, token)
@@ -151,6 +152,7 @@ func newTestServerDeltaScenario(
 
 	s := NewServer(
 		testutil.Logger(t),
+		serverlessPluginEnabled,
 		mgr,
 		resolveToken,
 		nil, /*checkFetcher HTTPCheckFetcher*/
