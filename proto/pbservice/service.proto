@@ -5,7 +5,7 @@ package pbservice;
 option go_package = "github.com/hashicorp/consul/proto/pbservice";
 
 import "google/protobuf/struct.proto";
-import "proto/pbcommon/common.proto";
+import "proto/pbcommongogo/common.proto";
 import "proto/pbservice/healthcheck.proto";
 
 // This fake import path is replaced by the build script with a versioned path
@@ -269,7 +269,7 @@ message ServiceDefinition {
     ConnectProxyConfig Proxy = 14;
 
     // mog: func-to=EnterpriseMetaToStructs func-from=NewEnterpriseMetaFromStructs
-    common.EnterpriseMeta EnterpriseMeta = 17 [(gogoproto.nullable) = false];
+    commongogo.EnterpriseMeta EnterpriseMeta = 17 [(gogoproto.nullable) = false];
 
     // mog: func-to=ServiceConnectPtrToStructs func-from=NewServiceConnectPtrFromStructs
     ServiceConnect Connect = 15;

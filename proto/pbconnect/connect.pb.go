@@ -345,8 +345,6 @@ func (m *CARoot) GetRaftIndex() *pbcommongogo.RaftIndex {
 	return nil
 }
 
-// RaftIndex is used to track the index used while creating
-// or modifying a given struct type.
 //
 // mog annotation:
 //
