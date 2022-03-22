@@ -11,6 +11,8 @@ Consul-Terraform-Sync (CTS) is controlled via an easy to use command-line interf
 
 ## Daemon
 
+~> Running daemon mode without a command is deprecated in CTS 0.6.0 and will be removed at a much later date in a major release. For information on the preferred way to run daemon mode see the [`start` command docs](/docs/nia/cli/start)
+
 When running as a daemon, there is no default configuration to run CTS in a meaningful way. Setting a configuration flag `-config-file` or `-config-dir` is required. For example:
 
 ```shell-session
@@ -77,6 +79,25 @@ Example:
 ```shell-session
 consul-terraform-sync task disable -http-addr=http://localhost:2000 task_a
 ```
+
+## Autocompletion
+
+The `consul-terraform-sync` command features opt-in autocompletion for flags, subcommands, and
+arguments (where supported).
+
+Enable autocompletion by running:
+
+```shell-session
+$ consul-terraform-sync -autocomplete-install
+```
+
+~> Be sure to **restart your shell** after installing autocompletion!
+
+When you start typing a CTS command, press the `<tab>` character to show a
+list of available completions. Type `-<tab>` to show available flag completions.
+
+If the `CTS_*` environment variables are set, the autocompletion will
+automatically query the running CTS server and return helpful argument suggestions.
 
 ### General Options
 
