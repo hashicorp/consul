@@ -7,24 +7,19 @@ import (
 	"time"
 
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
-	agentgrpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
-	"github.com/hashicorp/consul/tlsutil"
 )
 
 var StatsGauges = []prometheus.GaugeDefinition{
@@ -206,30 +201,9 @@ func tokenFromContext(ctx context.Context) string {
 	return ""
 }
 
-// NewGRPCServer creates a grpc.Server, registers the Server, and then returns
-// the grpc.Server.
-func NewGRPCServer(s *Server, tlsConfigurator *tlsutil.Configurator) *grpc.Server {
-	recoveryOpts := agentgrpc.PanicHandlerMiddlewareOpts(s.Logger)
-
-	opts := []grpc.ServerOption{
-		grpc.MaxConcurrentStreams(2048),
-		middleware.WithUnaryServerChain(
-			// Add middlware interceptors to recover in case of panics.
-			recovery.UnaryServerInterceptor(recoveryOpts...),
-		),
-		middleware.WithStreamServerChain(
-			// Add middlware interceptors to recover in case of panics.
-			recovery.StreamServerInterceptor(recoveryOpts...),
-		),
-	}
-	if tlsConfigurator != nil && tlsConfigurator.GRPCTLSConfigured() {
-		creds := credentials.NewTLS(tlsConfigurator.IncomingGRPCConfig())
-		opts = append(opts, grpc.Creds(creds))
-	}
-	srv := grpc.NewServer(opts...)
+// Register the XDS server handlers to the given gRPC server.
+func (s *Server) Register(srv *grpc.Server) {
 	envoy_discovery_v3.RegisterAggregatedDiscoveryServiceServer(srv, s)
-
-	return srv
 }
 
 // authorize the xDS request using the token stored in ctx. This authorization is

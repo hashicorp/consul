@@ -1,4 +1,4 @@
-package grpc
+package private
 
 import (
 	"context"
@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
-	"github.com/hashicorp/consul/agent/grpc/resolver"
+	"github.com/hashicorp/consul/agent/grpc/private/internal/testservice"
+	"github.com/hashicorp/consul/agent/grpc/private/resolver"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
@@ -145,9 +145,9 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
 		InternalRPC: tlsutil.ProtocolConfig{
 			VerifyIncoming: true,
-			CAFile:         "../../test/hostname/CertAuth.crt",
-			CertFile:       "../../test/hostname/Alice.crt",
-			KeyFile:        "../../test/hostname/Alice.key",
+			CAFile:         "../../../test/hostname/CertAuth.crt",
+			CertFile:       "../../../test/hostname/Alice.crt",
+			KeyFile:        "../../../test/hostname/Alice.key",
 			VerifyOutgoing: true,
 		},
 	}, hclog.New(nil))
@@ -192,9 +192,9 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
 		InternalRPC: tlsutil.ProtocolConfig{
 			VerifyIncoming:       true,
-			CAFile:               "../../test/hostname/CertAuth.crt",
-			CertFile:             "../../test/hostname/Bob.crt",
-			KeyFile:              "../../test/hostname/Bob.key",
+			CAFile:               "../../../test/hostname/CertAuth.crt",
+			CertFile:             "../../../test/hostname/Bob.crt",
+			KeyFile:              "../../../test/hostname/Bob.key",
 			VerifyOutgoing:       true,
 			VerifyServerHostname: true,
 		},
@@ -222,9 +222,9 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	clientTLSConf, err := tlsutil.NewConfigurator(tlsutil.Config{
 		InternalRPC: tlsutil.ProtocolConfig{
 			VerifyIncoming:       true,
-			CAFile:               "../../test/hostname/CertAuth.crt",
-			CertFile:             "../../test/hostname/Betty.crt",
-			KeyFile:              "../../test/hostname/Betty.key",
+			CAFile:               "../../../test/hostname/CertAuth.crt",
+			CertFile:             "../../../test/hostname/Betty.crt",
+			KeyFile:              "../../../test/hostname/Betty.key",
 			VerifyOutgoing:       true,
 			VerifyServerHostname: true,
 		},

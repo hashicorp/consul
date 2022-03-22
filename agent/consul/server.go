@@ -41,11 +41,11 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
-	agentgrpc "github.com/hashicorp/consul/agent/grpc"
+	agentgrpc "github.com/hashicorp/consul/agent/grpc/private"
+	"github.com/hashicorp/consul/agent/grpc/private/services/subscribe"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
-	"github.com/hashicorp/consul/agent/rpc/subscribe"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
@@ -235,6 +235,10 @@ type Server struct {
 	// is only ever closed.
 	leaveCh chan struct{}
 
+	// publicGRPCServer is the gRPC server exposed on the dedicated gRPC port, as
+	// opposed to the multiplexed "server" port which is served by grpcHandler.
+	publicGRPCServer *grpc.Server
+
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
 	router *router.Router
@@ -345,7 +349,7 @@ type connHandler interface {
 
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps) (*Server, error) {
+func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -388,6 +392,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		rpcServer:               rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(middleware.GetNetRPCInterceptor(recorder))),
 		insecureRPCServer:       rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(middleware.GetNetRPCInterceptor(recorder))),
 		tlsConfigurator:         flat.TLSConfigurator,
+		publicGRPCServer:        publicGRPCServer,
 		reassertLeaderCh:        make(chan chan error),
 		sessionTimers:           NewSessionTimers(),
 		tombstoneGC:             gc,

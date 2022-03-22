@@ -36,6 +36,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/dns"
+	publicgrpc "github.com/hashicorp/consul/agent/grpc/public"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
@@ -206,6 +207,10 @@ type Agent struct {
 	// depending on the configuration
 	delegate delegate
 
+	// publicGRPCServer is the gRPC server exposed on the dedicated gRPC port (as
+	// opposed to the multiplexed "server" port).
+	publicGRPCServer *grpc.Server
+
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
 	State *local.State
@@ -335,10 +340,6 @@ type Agent struct {
 	// the centrally configured proxy/service defaults.
 	serviceManager *ServiceManager
 
-	// grpcServer is the server instance used currently to serve xDS API for
-	// Envoy.
-	grpcServer *grpc.Server
-
 	// tlsConfigurator is the central instance to provide a *tls.Config
 	// based on the current consul configuration.
 	tlsConfigurator *tlsutil.Configurator
@@ -358,6 +359,9 @@ type Agent struct {
 	// routineManager is responsible for managing longer running go routines
 	// run by the Agent
 	routineManager *routine.Manager
+
+	// xdsServer serves the XDS protocol for configuring Envoy proxies.
+	xdsServer *xds.Server
 
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
@@ -493,6 +497,10 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
 
+	// This needs to happen after the initial auto-config is loaded, because TLS
+	// can only be configured on the gRPC server at the point of creation.
+	a.buildPublicGRPCServer()
+
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
 	}
@@ -530,7 +538,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps)
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.publicGRPCServer)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
@@ -700,12 +708,21 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
+func (a *Agent) buildPublicGRPCServer() {
+	// TLS is only enabled on the gRPC server if there's an HTTPS port configured.
+	var tls *tlsutil.Configurator
+	if a.config.HTTPSPort > 0 {
+		tls = a.tlsConfigurator
+	}
+	a.publicGRPCServer = publicgrpc.NewServer(a.logger.Named("grpc.public"), tls)
+}
+
 func (a *Agent) listenAndServeGRPC() error {
 	if len(a.config.GRPCAddrs) < 1 {
 		return nil
 	}
 
-	xdsServer := xds.NewServer(
+	a.xdsServer = xds.NewServer(
 		a.logger.Named(logging.Envoy),
 		a.config.ConnectServerlessPluginEnabled,
 		a.proxyConfig,
@@ -715,15 +732,7 @@ func (a *Agent) listenAndServeGRPC() error {
 		a,
 		a,
 	)
-
-	tlsConfig := a.tlsConfigurator
-	// gRPC uses the same TLS settings as the HTTPS API. If HTTPS is not enabled
-	// then gRPC should not use TLS.
-	if a.config.HTTPSPort <= 0 {
-		tlsConfig = nil
-	}
-	var err error
-	a.grpcServer = xds.NewGRPCServer(xdsServer, tlsConfig)
+	a.xdsServer.Register(a.publicGRPCServer)
 
 	ln, err := a.startListeners(a.config.GRPCAddrs)
 	if err != nil {
@@ -736,7 +745,7 @@ func (a *Agent) listenAndServeGRPC() error {
 				"address", innerL.Addr().String(),
 				"network", innerL.Addr().Network(),
 			)
-			err := a.grpcServer.Serve(innerL)
+			err := a.publicGRPCServer.Serve(innerL)
 			if err != nil {
 				a.logger.Error("gRPC server failed", "error", err)
 			}
@@ -1403,9 +1412,7 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	// Stop gRPC
-	if a.grpcServer != nil {
-		a.grpcServer.Stop()
-	}
+	a.publicGRPCServer.Stop()
 
 	// Stop the proxy config manager
 	if a.proxyConfig != nil {

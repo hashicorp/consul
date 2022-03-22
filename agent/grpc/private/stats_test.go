@@ -1,4 +1,4 @@
-package grpc
+package private
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
+	"github.com/hashicorp/consul/agent/grpc/private/internal/testservice"
 	"github.com/hashicorp/go-hclog"
 )
 

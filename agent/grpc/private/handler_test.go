@@ -1,4 +1,4 @@
-package grpc
+package private
 
 import (
 	"bytes"
@@ -13,8 +13,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
-	"github.com/hashicorp/consul/agent/grpc/resolver"
+	"github.com/hashicorp/consul/agent/grpc/private/internal/testservice"
+	"github.com/hashicorp/consul/agent/grpc/private/resolver"
 )
 
 func TestHandler_PanicRecoveryInterceptor(t *testing.T) {
@@ -57,5 +57,5 @@ func TestHandler_PanicRecoveryInterceptor(t *testing.T) {
 	// Checking the entire stack trace is not possible, let's
 	// make sure that it contains a couple of expected strings.
 	require.Contains(t, strLog, `[ERROR] panic serving grpc request: panic="panic from Something`)
-	require.Contains(t, strLog, `github.com/hashicorp/consul/agent/grpc.(*simplePanic).Something`)
+	require.Contains(t, strLog, `github.com/hashicorp/consul/agent/grpc/private.(*simplePanic).Something`)
 }
