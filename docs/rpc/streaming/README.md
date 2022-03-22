@@ -34,7 +34,7 @@ and sent to any active subscriptions.
 [rpcclient/health.Health]: https://github.com/hashicorp/consul/blob/main/agent/rpcclient/health/health.go
 [StreamingHealthServices cache-type]: https://github.com/hashicorp/consul/blob/main/agent/cache-types/streaming_health_services.go
 [materialized view]: https://github.com/hashicorp/consul/blob/main/agent/submatview/materializer.go
-[SubscribeEndpoint]: https://github.com/hashicorp/consul/blob/main/agent/rpc/subscribe/subscribe.go
+[SubscribeEndpoint]: https://github.com/hashicorp/consul/blob/main/agent/grpc/private/services/subscribe/subscribe.go
 [EventPublisher]: https://github.com/hashicorp/consul/blob/main/agent/consul/stream/event_publisher.go
 [state.Store commits]: https://github.com/hashicorp/consul/blob/main/agent/consul/state/memdb.go
 
@@ -98,4 +98,3 @@ and filtering happens.
 ![event filtering](./event-filtering.svg)
 
 <sup>[source](./event-filtering.mmd)</sup>
-

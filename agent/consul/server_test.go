@@ -67,7 +67,6 @@ func testTLSCertificates(serverName string) (cert string, key string, cacert str
 	return cert, privateKey, ca, nil
 }
 
-// testServerACLConfig setup some common ACL configurations.
 func testServerACLConfig(c *Config) {
 	c.PrimaryDatacenter = "dc1"
 	c.ACLsEnabled = true
@@ -264,7 +263,7 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 		}
 	}
 
-	srv, err := NewServer(c, newDefaultDeps(t, c))
+	srv, err := NewServer(c, newDefaultDeps(t, c), nil)
 	if err != nil {
 		return nil, err
 	}

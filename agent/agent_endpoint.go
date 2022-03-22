@@ -73,7 +73,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	var xds *XDSSelf
-	if s.agent.grpcServer != nil {
+	if s.agent.xdsServer != nil {
 		xds = &XDSSelf{
 			SupportedProxies: map[string][]string{
 				"envoy": proxysupport.EnvoyVersions,
