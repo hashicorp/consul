@@ -907,6 +907,18 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 
+	run(t, testCase{
+		desc: "-datacenter empty",
+		args: []string{
+			`-auto-reload-config`,
+			`-data-dir=` + dataDir,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.AutoReloadConfig = true
+			rt.DataDir = dataDir
+		},
+	})
+
 	// ------------------------------------------------------------
 	// ports and addresses
 	//

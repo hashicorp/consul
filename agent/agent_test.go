@@ -5328,32 +5328,6 @@ func uniqueAddrs(srvs []apiServer) map[string]struct{} {
 	return result
 }
 
-func TestAgent_AutoReloadConfigEnable(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-
-	a := NewTestAgent(t, `auto_reload_config = true`)
-	defer a.Shutdown()
-
-	require.True(t, a.Agent.config.AutoReloadConfig)
-}
-
-func TestAgent_AutoReloadConfigDefaultDisable(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-
-	a := NewTestAgent(t, ``)
-	defer a.Shutdown()
-
-	require.False(t, a.Agent.config.AutoReloadConfig)
-}
-
 func TestAgent_AutoReloadDoReload_WhenCertAndKeyUpdated(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
