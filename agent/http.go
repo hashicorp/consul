@@ -98,12 +98,13 @@ func (e CodeWithPayloadError) Error() string {
 	return e.Reason
 }
 
-type ForbiddenError struct {
-	Reason string
+type HTTPError struct {
+	StatusCode int
+	Reason     string
 }
 
-func (e ForbiddenError) Error() string {
-	return e.Reason
+func (h HTTPError) Error() string {
+	return h.Reason
 }
 
 // HTTPHandlers provides an HTTP api for an agent.
@@ -424,8 +425,7 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			if acl.IsErrPermissionDenied(err) || acl.IsErrNotFound(err) {
 				return true
 			}
-			_, ok := err.(ForbiddenError)
-			return ok
+			return false
 		}
 
 		isMethodNotAllowed := func(err error) bool {
@@ -462,6 +462,11 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			resp.Header().Add("Allow", strings.Join(methods, ","))
 		}
 
+		isHTTPError := func(err error) bool {
+			_, ok := err.(HTTPError)
+			return ok
+		}
+
 		handleErr := func(err error) {
 			if req.Context().Err() != nil {
 				httpLogger.Info("Request cancelled",
@@ -490,6 +495,10 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
 				addAllowHeader(err.(MethodNotAllowedError).Allow)
 				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+				fmt.Fprint(resp, err.Error())
+			case isHTTPError(err):
+				err := err.(HTTPError)
+				resp.WriteHeader(err.StatusCode)
 				fmt.Fprint(resp, err.Error())
 			case isBadRequest(err):
 				resp.WriteHeader(http.StatusBadRequest)
@@ -1170,7 +1179,7 @@ func (s *HTTPHandlers) checkWriteAccess(req *http.Request) error {
 		}
 	}
 
-	return ForbiddenError{Reason: "Access is restricted"}
+	return HTTPError{StatusCode: http.StatusForbidden, Reason: "Access is restricted"}
 }
 
 func (s *HTTPHandlers) parseFilter(req *http.Request, filter *string) {
