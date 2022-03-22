@@ -87,7 +87,8 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 
 	// Check Content-Length first before decoding to return early
 	if req.ContentLength > maxTxnLen {
-		return nil, 0, EntityTooLargeError{
+		return nil, 0, HTTPError{
+			StatusCode: http.StatusRequestEntityTooLarge,
 			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
 				req.ContentLength, maxTxnLen, "https://www.consul.io/docs/agent/options.html#txn_max_req_len"),
 		}
@@ -99,7 +100,8 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 		if err.Error() == "http: request body too large" {
 			// The request size is also verified during decoding to double check
 			// if the Content-Length header was not set by the client.
-			return nil, 0, EntityTooLargeError{
+			return nil, 0, HTTPError{
+				StatusCode: http.StatusRequestEntityTooLarge,
 				Reason: fmt.Sprintf("Request body too large, max size: %d bytes. See %s.",
 					maxTxnLen, "https://www.consul.io/docs/agent/options.html#txn_max_req_len"),
 			}
@@ -114,8 +116,9 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 	// Enforce a reasonable upper limit on the number of operations in a
 	// transaction in order to curb abuse.
 	if size := len(ops); size > maxTxnOps {
-		return nil, 0, EntityTooLargeError{
-			Reason: fmt.Sprintf("Transaction contains too many operations (%d > %d)", size, maxTxnOps),
+		return nil, 0, HTTPError{
+			StatusCode: http.StatusRequestEntityTooLarge,
+			Reason:     fmt.Sprintf("Transaction contains too many operations (%d > %d)", size, maxTxnOps),
 		}
 	}
 
@@ -129,8 +132,9 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 		case in.KV != nil:
 			size := len(in.KV.Value)
 			if int64(size) > kvMaxValueSize {
-				return nil, 0, EntityTooLargeError{
-					Reason: fmt.Sprintf("Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, s.agent.config.KVMaxValueSize),
+				return nil, 0, HTTPError{
+					StatusCode: http.StatusRequestEntityTooLarge,
+					Reason:     fmt.Sprintf("Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, s.agent.config.KVMaxValueSize),
 				}
 			}
 

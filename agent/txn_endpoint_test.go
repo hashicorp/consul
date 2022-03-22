@@ -63,11 +63,19 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 		resp := httptest.NewRecorder()
 		_, err := agent.srv.Txn(resp, req)
-		if err, ok := err.(EntityTooLargeError); !ok && !wantPass {
-			t.Fatalf("expected too large error but got %v", err)
-		}
-		if err != nil && wantPass {
-			t.Fatalf("err: %v", err)
+
+		if wantPass {
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		} else {
+			if err, ok := err.(HTTPError); ok {
+				if err.StatusCode != 413 {
+					t.Fatalf("expected 413 but got %d", err.StatusCode)
+				}
+			} else {
+				t.Fatalf("excected HTTP error but go %v", err)
+			}
 		}
 	}
 
@@ -138,11 +146,19 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 		resp := httptest.NewRecorder()
 		_, err := agent.srv.Txn(resp, req)
-		if err, ok := err.(EntityTooLargeError); !ok && !wantPass {
-			t.Fatalf("expected too large error but got %v", err)
-		}
-		if err != nil && wantPass {
-			t.Fatalf("err: %v", err)
+
+		if wantPass {
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		} else {
+			if err, ok := err.(HTTPError); ok {
+				if err.StatusCode != 413 {
+					t.Fatalf("expected 413 but got %d", err.StatusCode)
+				}
+			} else {
+				t.Fatalf("excected HTTP error but go %v", err)
+			}
 		}
 	}
 
@@ -205,8 +221,13 @@ func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 	resp := httptest.NewRecorder()
 	_, err := a.srv.Txn(resp, req)
-	if err, ok := err.(EntityTooLargeError); !ok {
-		t.Fatalf("expected too large error but got %v", err)
+
+	if err, ok := err.(HTTPError); ok {
+		if err.StatusCode != 413 {
+			t.Fatalf("expected 413 but got %d", err.StatusCode)
+		}
+	} else {
+		t.Fatalf("expected HTTP error but got %v", err)
 	}
 }
 
