@@ -1,3 +1,6 @@
+//go:build consulent
+// +build consulent
+
 package acl
 
 import (
@@ -6,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPermissionDeniedError(t *testing.T) {
+func TestPermissionDeniedErrorEnt(t *testing.T) {
 	type testCase struct {
 		err      PermissionDeniedError
 		expected string
@@ -16,23 +19,16 @@ func TestPermissionDeniedError(t *testing.T) {
 		return t.expected
 	}
 
+	var ctx = &AuthorizerContext{Namespace: "bar", Partition: "foo"}
 	auth1 := mockAuthorizer{}
 
 	cases := []testCase{
 		{
-			err:      PermissionDeniedError{},
-			expected: "Permission denied",
+			err:      PermissionDeniedByACL(&auth1, ctx, ResourceService, AccessRead, "foobar"),
+			expected: "Permission denied: provided token lacks permission 'service:read' on \"foobar\" in partition \"foo\" in namespace \"bar\"",
 		},
 		{
-			err:      PermissionDeniedError{Cause: "simon says"},
-			expected: "Permission denied: simon says",
-		},
-		{
-			err:      PermissionDeniedByACL(&auth1, nil, ResourceService, AccessRead, "foobar"),
-			expected: "Permission denied: provided token lacks permission 'service:read' on \"foobar\"",
-		},
-		{
-			err:      PermissionDeniedByACLUnnamed(&auth1, nil, ResourceService, AccessRead),
+			err:      PermissionDeniedByACLUnnamed(&auth1, ctx, ResourceService, AccessRead),
 			expected: "Permission denied: provided token lacks permission 'service:read'",
 		},
 	}

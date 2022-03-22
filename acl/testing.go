@@ -25,7 +25,7 @@ func RequirePermissionDeniedMessage(t testing.TB, msg string, authz interface{},
 
 	var resourceIDFound string
 	if authz == nil {
-		expr := "^Permission denied" + `: provided accessor lacks permission '(\S*):(\S*)' on (.*)\s*$`
+		expr := "^Permission denied" + `: provided token lacks permission '(\S*):(\S*)' on \"([^\"]*)\s*$`
 		re, _ := regexp.Compile(expr)
 		matched := re.FindStringSubmatch(msg)
 
@@ -33,7 +33,7 @@ func RequirePermissionDeniedMessage(t testing.TB, msg string, authz interface{},
 		require.Equal(t, accessLevel.String(), matched[2], "access level")
 		resourceIDFound = matched[3]
 	} else {
-		expr := "^Permission denied" + `: accessor '(\S*)' lacks permission '(\S*):(\S*)' on (.*)\s*$`
+		expr := "^Permission denied" + `: token with AccessorID '(\S*)' lacks permission '(\S*):(\S*)' on \"([^\"]*)"\s*$`
 		re, _ := regexp.Compile(expr)
 		matched := re.FindStringSubmatch(msg)
 

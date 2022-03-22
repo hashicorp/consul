@@ -14,5 +14,5 @@ func NewResourceDescriptor(name string, _ *AuthorizerContext) ResourceDescriptor
 }
 
 func (od *ResourceDescriptor) ToString() string {
-	return od.Name
+	return "\"" + od.Name + "\""
 }
