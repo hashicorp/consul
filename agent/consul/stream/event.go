@@ -19,6 +19,11 @@ type Topic fmt.Stringer
 // normalized resource name (including partition and namespace if applicable).
 type Subject string
 
+// SubjectNone is used when all events on a given topic are "global" and not
+// further partitioned by subject. For example: the "CA Roots" topic which is
+// used to notify subscribers when the global set CA root certificates changes.
+const SubjectNone Subject = "none"
+
 // Event is a structure with identifiers and a payload. Events are Published to
 // EventPublisher and returned to Subscribers.
 type Event struct {

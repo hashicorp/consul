@@ -187,6 +187,7 @@ func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 	var events []stream.Event
 	fns := []func(tx ReadTxn, changes Changes) ([]stream.Event, error){
 		aclChangeUnsubscribeEvent,
+		caRootsChangeEvents,
 		ServiceHealthEventsFromChanges,
 		// TODO: add other table handlers here.
 	}
@@ -204,5 +205,6 @@ func newSnapshotHandlers(db ReadDB) stream.SnapshotHandlers {
 	return stream.SnapshotHandlers{
 		topicServiceHealth:        serviceHealthSnapshot(db, topicServiceHealth),
 		topicServiceHealthConnect: serviceHealthSnapshot(db, topicServiceHealthConnect),
+		EventTopicCARoots:         caRootsSnapshot(db),
 	}
 }
