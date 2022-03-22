@@ -702,6 +702,22 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 
 	}
 
+	// update the resolved service config
+	notifyCH <- cache.UpdateEvent{
+		CorrelationID: resolvedServiceConfigWatchID,
+		Result:        &structs.ServiceConfigResponse{},
+		Err:           nil,
+	}
+
+	// at this point the snapshot should not be valid and not be sent
+	after = time.After(200 * time.Millisecond)
+	select {
+	case <-snapSent:
+		t.Fatal("snap should not be valid")
+	case <-after:
+
+	}
+
 	// prepare to read a snapshot update as the next update should make the snapshot valid
 	readEvent <- true
 

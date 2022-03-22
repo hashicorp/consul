@@ -504,6 +504,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				rootsWatchID:                 genVerifyRootsWatch("dc1"),
 				leafWatchID:                  genVerifyLeafWatch("web", "dc1"),
 				intentionsWatchID:            genVerifyIntentionWatch("web", "dc1"),
+				resolvedServiceConfigWatchID: genVerifyResolvedConfigWatch("web", "dc1"),
 				"upstream:" + pqUID.String(): genVerifyPreparedQueryWatch("query", "dc1"),
 				fmt.Sprintf("discovery-chain:%s", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api",
@@ -567,6 +568,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					CorrelationID: intentionsWatchID,
 					Result:        ixnMatch,
 					Err:           nil,
+				},
+				{
+					CorrelationID: resolvedServiceConfigWatchID,
+					Result:        &structs.ServiceConfigResponse{},
 				},
 				{
 					CorrelationID: fmt.Sprintf("discovery-chain:%s", apiUID.String()),
@@ -643,6 +648,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch.Matches[0], snap.ConnectProxy.Intentions)
+				require.True(t, snap.ConnectProxy.TLSConfigSet)
 			},
 		}
 
@@ -1674,9 +1680,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						rootsWatchID: genVerifyRootsWatch("dc1"),
 						intentionUpstreamsID: genVerifyServiceSpecificRequest(intentionUpstreamsID,
 							"api", "", "dc1", false),
-						leafWatchID:       genVerifyLeafWatch("api", "dc1"),
-						intentionsWatchID: genVerifyIntentionWatch("api", "dc1"),
-						meshConfigEntryID: genVerifyMeshConfigWatch("dc1"),
+						leafWatchID:                  genVerifyLeafWatch("api", "dc1"),
+						intentionsWatchID:            genVerifyIntentionWatch("api", "dc1"),
+						meshConfigEntryID:            genVerifyMeshConfigWatch("dc1"),
+						resolvedServiceConfigWatchID: genVerifyResolvedConfigWatch("api", "dc1"),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "proxy without roots/leaf/intentions is not valid")
@@ -1715,6 +1722,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 							Err: nil,
 						},
+						{
+							CorrelationID: resolvedServiceConfigWatchID,
+							Result:        &structs.ServiceConfigResponse{},
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "proxy with roots/leaf/intentions is valid")
@@ -1726,6 +1737,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.TerminatingGateway.IsEmpty())
 						require.True(t, snap.ConnectProxy.MeshConfigSet)
 						require.Nil(t, snap.ConnectProxy.MeshConfig)
+						require.True(t, snap.ConnectProxy.TLSConfigSet)
 					},
 				},
 			},
@@ -1760,9 +1772,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						rootsWatchID: genVerifyRootsWatch("dc1"),
 						intentionUpstreamsID: genVerifyServiceSpecificRequest(intentionUpstreamsID,
 							"api", "", "dc1", false),
-						leafWatchID:       genVerifyLeafWatch("api", "dc1"),
-						intentionsWatchID: genVerifyIntentionWatch("api", "dc1"),
-						meshConfigEntryID: genVerifyMeshConfigWatch("dc1"),
+						leafWatchID:                  genVerifyLeafWatch("api", "dc1"),
+						intentionsWatchID:            genVerifyIntentionWatch("api", "dc1"),
+						meshConfigEntryID:            genVerifyMeshConfigWatch("dc1"),
+						resolvedServiceConfigWatchID: genVerifyResolvedConfigWatch("api", "dc1"),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "proxy without roots/leaf/intentions is not valid")
@@ -1801,6 +1814,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 							Err: nil,
 						},
+						{
+							CorrelationID: resolvedServiceConfigWatchID,
+							Result:        &structs.ServiceConfigResponse{},
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "proxy with roots/leaf/intentions is valid")
@@ -1812,6 +1829,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.TerminatingGateway.IsEmpty())
 						require.True(t, snap.ConnectProxy.MeshConfigSet)
 						require.NotNil(t, snap.ConnectProxy.MeshConfig)
+						require.True(t, snap.ConnectProxy.TLSConfigSet)
 					},
 				},
 				// Receiving an intention should lead to spinning up a discovery chain watch
@@ -2319,9 +2337,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						rootsWatchID: genVerifyRootsWatch("dc1"),
 						intentionUpstreamsID: genVerifyServiceSpecificRequest(intentionUpstreamsID,
 							"api", "", "dc1", false),
-						leafWatchID:       genVerifyLeafWatch("api", "dc1"),
-						intentionsWatchID: genVerifyIntentionWatch("api", "dc1"),
-						meshConfigEntryID: genVerifyMeshConfigWatch("dc1"),
+						leafWatchID:                  genVerifyLeafWatch("api", "dc1"),
+						intentionsWatchID:            genVerifyIntentionWatch("api", "dc1"),
+						meshConfigEntryID:            genVerifyMeshConfigWatch("dc1"),
+						resolvedServiceConfigWatchID: genVerifyResolvedConfigWatch("api", "dc1"),
 						"discovery-chain:" + upstreamIDForDC2(dbUID).String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 							Name:                 "db",
 							EvaluateInDatacenter: "dc2",
@@ -2369,6 +2388,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 							Err: nil,
 						},
+						{
+							CorrelationID: resolvedServiceConfigWatchID,
+							Result:        &structs.ServiceConfigResponse{},
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "proxy with roots/leaf/intentions is valid")
@@ -2380,6 +2403,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.TerminatingGateway.IsEmpty())
 						require.True(t, snap.ConnectProxy.MeshConfigSet)
 						require.NotNil(t, snap.ConnectProxy.MeshConfig)
+						require.True(t, snap.ConnectProxy.TLSConfigSet)
 					},
 				},
 				// Discovery chain updates should be stored
