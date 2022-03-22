@@ -448,11 +448,19 @@ func New(bd BaseDeps) (*Agent, error) {
 	// TODO: pass in a fully populated apiServers into Agent.New
 	a.apiServers = NewAPIServers(a.logger)
 
-	if a.baseDeps.RuntimeConfig.KeyFile != "" {
-		a.baseDeps.WatchedFiles = append(a.baseDeps.WatchedFiles, bd.RuntimeConfig.KeyFile)
-	}
-	if a.baseDeps.RuntimeConfig.CertFile != "" {
-		a.baseDeps.WatchedFiles = append(a.baseDeps.WatchedFiles, bd.RuntimeConfig.CertFile)
+	for _, f := range []struct {
+		Cfg tlsutil.ProtocolConfig
+	}{
+		{a.baseDeps.RuntimeConfig.TLS.InternalRPC},
+		{a.baseDeps.RuntimeConfig.TLS.GRPC},
+		{a.baseDeps.RuntimeConfig.TLS.HTTPS},
+	} {
+		if f.Cfg.KeyFile != "" {
+			a.baseDeps.WatchedFiles = append(a.baseDeps.WatchedFiles, f.Cfg.KeyFile)
+		}
+		if f.Cfg.CertFile != "" {
+			a.baseDeps.WatchedFiles = append(a.baseDeps.WatchedFiles, f.Cfg.CertFile)
+		}
 	}
 
 	return &a, nil
@@ -3749,15 +3757,29 @@ func (a *Agent) ReloadConfig(autoReload bool) error {
 	//if auto reload is enabled, make sure we have the right certs file watched.
 	if autoReload {
 		for _, f := range []struct {
-			oldCfg string
-			newCfg string
-		}{{a.config.KeyFile, newCfg.KeyFile}, {a.config.CertFile, newCfg.CertFile}} {
-			if f.oldCfg != f.newCfg {
-				a.FileWatcher.Remove(f.oldCfg)
-				err = a.FileWatcher.Add(f.newCfg)
+			oldCfg tlsutil.ProtocolConfig
+			newCfg tlsutil.ProtocolConfig
+		}{
+			{a.config.TLS.InternalRPC, newCfg.TLS.InternalRPC},
+			{a.config.TLS.GRPC, newCfg.TLS.GRPC},
+			{a.config.TLS.HTTPS, newCfg.TLS.HTTPS},
+		} {
+			if f.oldCfg.KeyFile != f.newCfg.KeyFile {
+				a.FileWatcher.Remove(f.oldCfg.KeyFile)
+				err = a.FileWatcher.Add(f.newCfg.KeyFile)
 				if err != nil {
 					return err
 				}
+			}
+			if f.oldCfg.CertFile != f.newCfg.CertFile {
+				a.FileWatcher.Remove(f.oldCfg.CertFile)
+				err = a.FileWatcher.Add(f.newCfg.CertFile)
+				if err != nil {
+					return err
+				}
+			}
+			if revertStaticConfig(f.oldCfg, f.newCfg) {
+				a.logger.Warn("Static Runtime config has changed and need a manual config reload to be applied", "StaticRuntimeConfig", f.oldCfg, "StaticRuntimeConfig From file", f.newCfg)
 			}
 		}
 		if !reflect.DeepEqual(newCfg.StaticRuntimeConfig, a.config.StaticRuntimeConfig) {
@@ -3765,8 +3787,6 @@ func (a *Agent) ReloadConfig(autoReload bool) error {
 			// reset not reloadable fields
 			newCfg.StaticRuntimeConfig = a.config.StaticRuntimeConfig
 		}
-
-		// Reload TLS certificate.
 	}
 
 	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
@@ -3776,6 +3796,19 @@ func (a *Agent) ReloadConfig(autoReload bool) error {
 	}
 
 	return a.reloadConfigInternal(newCfg)
+}
+
+func revertStaticConfig(oldCfg tlsutil.ProtocolConfig, newCfg tlsutil.ProtocolConfig) bool {
+	newNewCfg := oldCfg
+	newNewCfg.CertFile = newCfg.CertFile
+	newNewCfg.KeyFile = newCfg.KeyFile
+	newOldcfg := newCfg
+	newOldcfg.CertFile = oldCfg.CertFile
+	newOldcfg.KeyFile = oldCfg.KeyFile
+	if !reflect.DeepEqual(newOldcfg, oldCfg) {
+		return true
+	}
+	return false
 }
 
 // reloadConfigInternal is mainly needed for some unit tests. Instead of parsing

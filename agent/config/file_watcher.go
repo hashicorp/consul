@@ -101,9 +101,6 @@ func (w *FileWatcher) Remove(filename string) {
 }
 
 func (w *FileWatcher) add(filename string) error {
-	if isSymLink(filename) {
-		return fmt.Errorf("symbolic links are not supported %s", filename)
-	}
 	filename = filepath.Clean(filename)
 	w.logger.Trace("adding file", "file", filename)
 	if err := w.watcher.Add(filename); err != nil {
