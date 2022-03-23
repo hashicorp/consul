@@ -1,0 +1,37 @@
+
+%with-tile {
+  position: relative;
+  width: var(--tile-size, 3rem);
+  height: var(--tile-size, 3rem);
+}
+%with-tile::before {
+  display: block;
+  content: '';
+  width: 100%;
+  height: 100%;
+  border-radius: var(--decor-radius-250);
+  border: var(--decor-border-100);
+}
+%with-tile::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--tile-size, 3rem) / 4);
+  left: calc(var(--tile-size, 3rem) / 4);
+}
+
+%with-leader-tile {
+  @extend %with-tile;
+}
+%with-leader-tile::before {
+  background-image: linear-gradient(135deg,
+    rgb(var(--strawberry-010)) 0%,
+    rgb(var(--strawberry-200)) 100%
+  );
+  border-color: rgb(var(--tone-gray-999) / 10%);
+}
+%with-leader-tile::after {
+  --icon-name: icon-star-circle;
+  --icon-size: icon-700;
+  color: rgb(var(--strawberry-500));
+}
+
