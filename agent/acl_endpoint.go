@@ -16,7 +16,7 @@ type aclBootstrapResponse struct {
 	structs.ACLToken
 }
 
-var aclDisabled = UnauthorizedError{Reason: "ACL support disabled"}
+var aclDisabled = HTTPError{StatusCode: http.StatusUnauthorized, Reason: "ACL support disabled"}
 
 // checkACLDisabled will return a standard response if ACLs are disabled. This
 // returns true if they are disabled and we should not continue.

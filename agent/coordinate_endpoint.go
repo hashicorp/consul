@@ -14,7 +14,7 @@ func (s *HTTPHandlers) checkCoordinateDisabled() error {
 	if !s.agent.config.DisableCoordinates {
 		return nil
 	}
-	return UnauthorizedError{Reason: "Coordinate support disabled"}
+	return HTTPError{StatusCode: http.StatusUnauthorized, Reason: "Coordinate support disabled"}
 }
 
 // sorter wraps a coordinate list and implements the sort.Interface to sort by

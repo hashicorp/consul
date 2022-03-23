@@ -1488,13 +1488,16 @@ func TestAllowedNets(t *testing.T) {
 			t.Fatalf("bad checkWriteAccess for values %+v, got %v", v, err)
 		}
 
-		if err, ok := err.(HTTPError); ok {
-			if err.StatusCode == 403 {
-				t.Fatalf("expected 403 but got %d", err.StatusCode)
+		if err != nil {
+			if err, ok := err.(HTTPError); ok {
+				if err.StatusCode != 403 {
+					t.Fatalf("expected 403 but got %d", err.StatusCode)
+				}
+			} else {
+				t.Fatalf("expected HTTP Error but got %v", err)
 			}
-		} else {
-			t.Fatalf("expected HTTP Error %v", err)
 		}
+
 	}
 }
 

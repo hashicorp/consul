@@ -69,15 +69,6 @@ func (e NotFoundError) Error() string {
 	return e.Reason
 }
 
-// UnauthorizedError should be returned by a handler when the request lacks valid authorization.
-type UnauthorizedError struct {
-	Reason string
-}
-
-func (e UnauthorizedError) Error() string {
-	return e.Reason
-}
-
 // CodeWithPayloadError allow returning non HTTP 200
 // Error codes while not returning PlainText payload
 type CodeWithPayloadError struct {
@@ -435,11 +426,6 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			return ok
 		}
 
-		isUnauthorized := func(err error) bool {
-			_, ok := err.(UnauthorizedError)
-			return ok
-		}
-
 		isTooManyRequests := func(err error) bool {
 			// Sadness net/rpc can't do nice typed errors so this is all we got
 			return err.Error() == consul.ErrRateLimited.Error()
@@ -492,9 +478,6 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				fmt.Fprint(resp, err.Error())
 			case isNotFound(err):
 				resp.WriteHeader(http.StatusNotFound)
-				fmt.Fprint(resp, err.Error())
-			case isUnauthorized(err):
-				resp.WriteHeader(http.StatusUnauthorized)
 				fmt.Fprint(resp, err.Error())
 			case isTooManyRequests(err):
 				resp.WriteHeader(http.StatusTooManyRequests)

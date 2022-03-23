@@ -71,7 +71,7 @@ func TestACL_Disabled_Response(t *testing.T) {
 			resp := httptest.NewRecorder()
 			obj, err := tt.fn(resp, req)
 			require.Nil(t, obj)
-			require.ErrorIs(t, err, UnauthorizedError{Reason: "ACL support disabled"})
+			require.ErrorIs(t, err, HTTPError{StatusCode: http.StatusUnauthorized, Reason: "ACL support disabled"})
 		})
 	}
 }
