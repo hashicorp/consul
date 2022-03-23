@@ -1,0 +1,240 @@
+<Route
+  @name={{routeName}}
+as |route|>
+  <DataLoader
+    @src={{
+      uri '/${partition}/${nspace}/${dc}/datacenter'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+      )
+    }}
+  as |loader|>
+
+{{#let
+  loader.data
+as |item|}}
+    <BlockSlot @name="error">
+      <ErrorState
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="disconnected" as |after|>
+      {{#if (eq loader.error.status "404")}}
+        <Notice
+          {{notification
+            sticky=true
+          }}
+          class="notification-update"
+          @type="warning"
+        as |notice|>
+          <notice.Header>
+            <strong>Warning!</strong>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              This service has been deregistered and no longer exists in the catalog.
+            </p>
+          </notice.Body>
+        </Notice>
+      {{else if (eq loader.error.status "403")}}
+        <Notice
+          {{notification
+            sticky=true
+          }}
+          class="notification-update"
+          @type="error"
+        as |notice|>
+          <notice.Header>
+            <strong>Error!</strong>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              You no longer have access to this service
+            </p>
+          </notice.Body>
+        </Notice>
+      {{else}}
+        <Notice
+          {{notification
+            sticky=true
+          }}
+          class="notification-update"
+          @type="warning"
+        as |notice|>
+          <notice.Header>
+            <strong>Warning!</strong>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              An error was returned whilst loading this data, refresh to try again.
+            </p>
+          </notice.Body>
+        </Notice>
+      {{/if}}
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+      <div class="tab-section">
+
+          <section
+            class={{class-map
+              'server-failure-tolerance'
+            }}
+          >
+
+            <header>
+              <h2>
+                {{compute (fn route.t 'tolerance.header')}}
+              </h2>
+            </header>
+
+            <section
+              class={{class-map
+                (array 'immediate-tolerance')
+              }}
+            >
+              <header>
+                <h3>
+                  {{compute (fn route.t 'tolerance.immediate.header')}}
+                </h3>
+              </header>
+              <dl
+                class={{class-map
+                  (array 'warning' (and
+                    (eq item.FailureTolerance 0)
+                    (eq item.OptimisticFailureTolerance 0)
+                  ))
+                }}
+              >
+                <dt>
+                  {{compute (fn route.t 'tolerance.immediate.body')}}
+                </dt>
+                <dd>
+                  {{item.FailureTolerance}}
+                </dd>
+              </dl>
+            </section>
+
+            <section
+              class={{class-map
+                (array 'optimistic-tolerance')
+              }}
+            >
+              <header>
+                <h3>
+                  {{compute (fn route.t 'tolerance.optimistic.header')}}
+              {{#if (not (can 'read zones'))}}
+                  <em>
+                    {{t 'common.ui.enterprisefeature'}}
+                  </em>
+              {{/if}}
+                  <span
+                    {{tooltip 'With > 30 seconds between server failures, Consul can restore the Immediate Fault Tolerance by replacing failed active voters with healthy back-up voters when using redundancy zones.'}}
+                  >
+                  </span>
+                </h3>
+              </header>
+              <dl
+                class={{class-map
+                  (array 'warning' (eq item.OptimisticFailureTolerance 0))
+                }}
+              >
+                <dt>
+                  {{compute (fn route.t 'tolerance.optimistic.body')}}
+                </dt>
+                <dd>
+                  {{item.OptimisticFailureTolerance}}
+                </dd>
+              </dl>
+
+            </section>
+
+          </section>
+
+    {{#if (gt item.RedundancyZones.length 0)}}
+          <section
+            class={{class-map
+              'redundancy-zones'
+            }}
+          >
+            <header>
+              <h2>
+                {{pluralize (t 'common.consul.redundancyzone')}}
+              </h2>
+            </header>
+
+      {{#each item.RedundancyZones as |item|}}
+        {{#if (gt item.Servers.length 0) }}
+              <section>
+                <header>
+                  <h3>
+                    {{item.Name}}
+                  </h3>
+                  <dl
+                    class={{class-map
+                      (array 'warning' (eq item.FailureTolerance 0))
+                    }}
+                  >
+                      <dt
+                      >{{t 'common.consul.failuretolerance'}}</dt>
+                      <dd>{{item.FailureTolerance}}</dd>
+                  </dl>
+                </header>
+                <Consul::Server::List
+                  @items={{item.Servers}}
+                />
+              </section>
+        {{/if}}
+      {{/each}}
+
+      {{#if (gt item.Default.Servers.length 0)}}
+              <section>
+                <header>
+                  <h3>
+                    {{compute (fn route.t 'unassigned')}}
+                  </h3>
+                </header>
+                <Consul::Server::List
+                  @items={{item.Default.Servers}}
+                />
+              </section>
+      {{/if}}
+
+          </section>
+    {{else}}
+          <section>
+            <header>
+              <h2>
+                {{compute (fn route.t 'servers')}}
+              </h2>
+            </header>
+            <Consul::Server::List
+              @items={{item.Default.Servers}}
+            />
+          </section>
+    {{/if}}
+
+    {{#if (gt item.ReadReplicas.length 0)}}
+          <section>
+            <header>
+              <h2>
+                {{pluralize (t 'common.consul.readreplica')}}
+              </h2>
+            </header>
+
+            <Consul::Server::List
+              @items={{item.ReadReplicas}}
+            />
+          </section>
+    {{/if}}
+
+      </div>
+    </BlockSlot>
+{{/let}}
+  </DataLoader>
+</Route>
+

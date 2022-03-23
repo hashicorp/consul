@@ -47,6 +47,9 @@ as |source|>
 
 {{! redirect if we aren't on a URL with dc information }}
 {{#if (eq route.currentName 'index')}}
+{{! until we get to the dc route we don't know any permissions }}
+{{! as we don't know the dc, any inital permission based }}
+{{! redirects are in the dc.show route}}
   {{did-insert (route-action 'replaceWith' 'dc.show'
     (hash
       dc=(env 'CONSUL_DATACENTER_LOCAL')
