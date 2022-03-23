@@ -1,0 +1,17 @@
+<div
+  class={{class-map
+    'consul-server-list'
+  }}
+  ...attributes
+>
+  <ul>
+{{#each @items as |item|}}
+    <li>
+      <Consul::Server::Card
+        @item={{item}}
+      />
+    </li>
+{{/each}}
+  </ul>
+</div>
+
