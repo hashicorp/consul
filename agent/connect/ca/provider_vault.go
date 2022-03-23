@@ -12,13 +12,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/decode"
 )
 
 const (
@@ -43,6 +44,8 @@ const (
 	VaultAuthMethodTypeUserpass     = "userpass"
 
 	defaultK8SServiceAccountTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+	restartJitter = 1 * time.Second
 )
 
 var ErrBackendNotMounted = fmt.Errorf("backend not mounted")
@@ -204,6 +207,11 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 			return
 
 		case err := <-watcher.DoneCh():
+			// In the event we fail to login to Vault or our token is no longer valid we can overwhelm a Vault
+			// instance with rate limit configured. We would make these requests to Vault as fast as we possibly
+			// could and start causing all client's to receive 429 response codes. To mitigate that we're sleeping 1
+			// second or less before restarting the LifetimeWatcher. Once we can upgrade to
+			// github.com/hashicorp/vault/api@v1.1.1 or later the LifetimeWatcher _should_ perform that backoff for us.
 			if err != nil {
 				v.logger.Error("Error renewing token for Vault provider", "error", err)
 			}
@@ -215,7 +223,8 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 				loginResp, err := vaultLogin(v.client, v.config.AuthMethod)
 				if err != nil {
 					v.logger.Error("Error login in to Vault with %q auth method", v.config.AuthMethod.Type)
-					// Restart the watcher.
+					// Restart the watcher with some jitter.
+					time.Sleep(lib.RandomStagger(restartJitter))
 					go watcher.Start()
 					continue
 				}
@@ -231,12 +240,16 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 				})
 				if err != nil {
 					v.logger.Error("Error starting token renewal process")
+					time.Sleep(lib.RandomStagger(restartJitter))
 					go watcher.Start()
 					continue
 				}
+			} else {
+				time.Sleep(lib.RandomStagger(restartJitter))
 			}
 
 			// Restart the watcher.
+
 			go watcher.Start()
 
 		case <-watcher.RenewCh():
