@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-var DefaultEnterpriseMeta = EnterpriseMeta{}
+var DefaultEnterpriseMeta = &EnterpriseMeta{}
 
 func NewEnterpriseMetaFromStructs(_ structs.EnterpriseMeta) *EnterpriseMeta {
 	return &EnterpriseMeta{}

@@ -4,7 +4,8 @@ import (
 	fmt "fmt"
 	"reflect"
 
-	types "github.com/gogo/protobuf/types"
+	//TODO(gogo-remove): remove the types alias
+	types "github.com/golang/protobuf/ptypes/struct"
 )
 
 // ProtobufTypesStructToMapStringInterface converts a protobuf/types.Struct into a

@@ -2,24 +2,28 @@ package pbservice
 
 import (
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbcommongogo"
+	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/types"
 )
 
-func RaftIndexToStructs(s pbcommongogo.RaftIndex) structs.RaftIndex {
+type CheckIDType = types.CheckID
+type NodeIDType = types.NodeID
+
+func RaftIndexToStructs(s *pbcommon.RaftIndex) structs.RaftIndex {
 	return structs.RaftIndex{
 		CreateIndex: s.CreateIndex,
 		ModifyIndex: s.ModifyIndex,
 	}
 }
 
-func NewRaftIndexFromStructs(s structs.RaftIndex) pbcommongogo.RaftIndex {
-	return pbcommongogo.RaftIndex{
+func NewRaftIndexFromStructs(s structs.RaftIndex) *pbcommon.RaftIndex {
+	return &pbcommon.RaftIndex{
 		CreateIndex: s.CreateIndex,
 		ModifyIndex: s.ModifyIndex,
 	}
 }
 
-func MapHeadersToStructs(s map[string]HeaderValue) map[string][]string {
+func MapHeadersToStructs(s map[string]*HeaderValue) map[string][]string {
 	t := make(map[string][]string, len(s))
 	for k, v := range s {
 		t[k] = v.Value
@@ -27,10 +31,10 @@ func MapHeadersToStructs(s map[string]HeaderValue) map[string][]string {
 	return t
 }
 
-func NewMapHeadersFromStructs(t map[string][]string) map[string]HeaderValue {
-	s := make(map[string]HeaderValue, len(t))
+func NewMapHeadersFromStructs(t map[string][]string) map[string]*HeaderValue {
+	s := make(map[string]*HeaderValue, len(t))
 	for k, v := range t {
-		s[k] = HeaderValue{Value: v}
+		s[k] = &HeaderValue{Value: v}
 	}
 	return s
 }
@@ -42,23 +46,23 @@ func CheckServiceNodeToStructs(s *CheckServiceNode) (*structs.CheckServiceNode, 
 	}
 	var t structs.CheckServiceNode
 	if s.Node != nil {
-		n := NodeToStructs(*s.Node)
-		t.Node = &n
+		n := new(structs.Node)
+		NodeToStructs(s.Node, n)
+		t.Node = n
 	}
 	if s.Service != nil {
-		r := NodeServiceToStructs(*s.Service)
-		t.Service = &r
+		r := new(structs.NodeService)
+		NodeServiceToStructs(s.Service, r)
+		t.Service = r
 	}
 	t.Checks = make(structs.HealthChecks, len(s.Checks))
 	for i, c := range s.Checks {
 		if c == nil {
 			continue
 		}
-		h, err := HealthCheckToStructs(*c)
-		if err != nil {
-			return &t, err
-		}
-		t.Checks[i] = &h
+		h := new(structs.HealthCheck)
+		HealthCheckToStructs(c, h)
+		t.Checks[i] = h
 	}
 	return &t, nil
 }
@@ -70,20 +74,23 @@ func NewCheckServiceNodeFromStructs(t *structs.CheckServiceNode) *CheckServiceNo
 	}
 	var s CheckServiceNode
 	if t.Node != nil {
-		n := NewNodeFromStructs(*t.Node)
-		s.Node = &n
+		n := new(Node)
+		NodeFromStructs(t.Node, n)
+		s.Node = n
 	}
 	if t.Service != nil {
-		r := NewNodeServiceFromStructs(*t.Service)
-		s.Service = &r
+		r := new(NodeService)
+		NodeServiceFromStructs(t.Service, r)
+		s.Service = r
 	}
 	s.Checks = make([]*HealthCheck, len(t.Checks))
 	for i, c := range t.Checks {
 		if c == nil {
 			continue
 		}
-		h := NewHealthCheckFromStructs(*c)
-		s.Checks[i] = &h
+		h := new(HealthCheck)
+		HealthCheckFromStructs(c, h)
+		s.Checks[i] = h
 	}
 	return &s
 }
@@ -111,7 +118,7 @@ func NewWeightsPtrFromStructs(t *structs.Weights) *Weights {
 }
 
 // TODO: handle this with mog
-func MapStringServiceAddressToStructs(s map[string]ServiceAddress) map[string]structs.ServiceAddress {
+func MapStringServiceAddressToStructs(s map[string]*ServiceAddress) map[string]structs.ServiceAddress {
 	t := make(map[string]structs.ServiceAddress, len(s))
 	for k, v := range s {
 		t[k] = structs.ServiceAddress{Address: v.Address, Port: int(v.Port)}
@@ -120,64 +127,70 @@ func MapStringServiceAddressToStructs(s map[string]ServiceAddress) map[string]st
 }
 
 // TODO: handle this with mog
-func NewMapStringServiceAddressFromStructs(t map[string]structs.ServiceAddress) map[string]ServiceAddress {
-	s := make(map[string]ServiceAddress, len(t))
+func NewMapStringServiceAddressFromStructs(t map[string]structs.ServiceAddress) map[string]*ServiceAddress {
+	s := make(map[string]*ServiceAddress, len(t))
 	for k, v := range t {
-		s[k] = ServiceAddress{Address: v.Address, Port: int32(v.Port)}
+		s[k] = &ServiceAddress{Address: v.Address, Port: int32(v.Port)}
 	}
 	return s
 }
 
 // TODO: handle this with mog
-func ExposePathSliceToStructs(s []ExposePath) []structs.ExposePath {
+func ExposePathSliceToStructs(s []*ExposePath) []structs.ExposePath {
 	t := make([]structs.ExposePath, len(s))
 	for i, v := range s {
-		t[i] = ExposePathToStructs(v)
+		e := new(structs.ExposePath)
+		ExposePathToStructs(v, e)
+		t[i] = *e
 	}
 	return t
 }
 
 // TODO: handle this with mog
-func NewExposePathSliceFromStructs(t []structs.ExposePath) []ExposePath {
-	s := make([]ExposePath, len(t))
+func NewExposePathSliceFromStructs(t []structs.ExposePath) []*ExposePath {
+	s := make([]*ExposePath, len(t))
 	for i, v := range t {
-		s[i] = NewExposePathFromStructs(v)
+		ep := new(ExposePath)
+		ExposePathFromStructs(&v, ep)
+		s[i] = ep
 	}
 	return s
 }
 
 // TODO: handle this with mog
-func UpstreamsToStructs(s []Upstream) structs.Upstreams {
+func UpstreamsToStructs(s []*Upstream) structs.Upstreams {
 	t := make(structs.Upstreams, len(s))
 	for i, v := range s {
-		t[i] = UpstreamToStructs(v)
+		u := new(structs.Upstream)
+		UpstreamToStructs(v, u)
+		t[i] = *u
 	}
 	return t
 }
 
 // TODO: handle this with mog
-func NewUpstreamsFromStructs(t structs.Upstreams) []Upstream {
-	s := make([]Upstream, len(t))
+func NewUpstreamsFromStructs(t structs.Upstreams) []*Upstream {
+	s := make([]*Upstream, len(t))
 	for i, v := range t {
-		s[i] = NewUpstreamFromStructs(v)
+		u := new(Upstream)
+		UpstreamFromStructs(&v, u)
+		s[i] = u
 	}
 	return s
 }
 
 // TODO: handle this with mog
-func CheckTypesToStructs(s []*CheckType) (structs.CheckTypes, error) {
+func CheckTypesToStructs(s []*CheckType) structs.CheckTypes {
 	t := make(structs.CheckTypes, len(s))
 	for i, v := range s {
 		if v == nil {
 			continue
 		}
-		newV, err := CheckTypeToStructs(*v)
-		if err != nil {
-			return t, err
-		}
-		t[i] = &newV
+		c := new(structs.CheckType)
+		CheckTypeToStructs(v, c)
+		t[i] = c
 	}
-	return t, nil
+	return t
 }
 
 // TODO: handle this with mog
@@ -187,8 +200,9 @@ func NewCheckTypesFromStructs(t structs.CheckTypes) []*CheckType {
 		if v == nil {
 			continue
 		}
-		newV := NewCheckTypeFromStructs(*v)
-		s[i] = &newV
+		newV := new(CheckType)
+		CheckTypeFromStructs(v, newV)
+		s[i] = newV
 	}
 	return s
 }
@@ -198,8 +212,9 @@ func ConnectProxyConfigPtrToStructs(s *ConnectProxyConfig) *structs.ConnectProxy
 	if s == nil {
 		return nil
 	}
-	t := ConnectProxyConfigToStructs(*s)
-	return &t
+	c := new(structs.ConnectProxyConfig)
+	ConnectProxyConfigToStructs(s, c)
+	return c
 }
 
 // TODO: handle this with mog
@@ -207,8 +222,9 @@ func NewConnectProxyConfigPtrFromStructs(t *structs.ConnectProxyConfig) *Connect
 	if t == nil {
 		return nil
 	}
-	s := NewConnectProxyConfigFromStructs(*t)
-	return &s
+	cp := new(ConnectProxyConfig)
+	ConnectProxyConfigFromStructs(t, cp)
+	return cp
 }
 
 // TODO: handle this with mog
@@ -216,8 +232,9 @@ func ServiceConnectPtrToStructs(s *ServiceConnect) *structs.ServiceConnect {
 	if s == nil {
 		return nil
 	}
-	t := ServiceConnectToStructs(*s)
-	return &t
+	sc := new(structs.ServiceConnect)
+	ServiceConnectToStructs(s, sc)
+	return sc
 }
 
 // TODO: handle this with mog
@@ -225,8 +242,9 @@ func NewServiceConnectPtrFromStructs(t *structs.ServiceConnect) *ServiceConnect 
 	if t == nil {
 		return nil
 	}
-	s := NewServiceConnectFromStructs(*t)
-	return &s
+	sc := new(ServiceConnect)
+	ServiceConnectFromStructs(t, sc)
+	return sc
 }
 
 // TODO: handle this with mog
@@ -234,11 +252,9 @@ func ServiceDefinitionPtrToStructs(s *ServiceDefinition) *structs.ServiceDefinit
 	if s == nil {
 		return nil
 	}
-	t, err := ServiceDefinitionToStructs(*s)
-	if err != nil {
-		return nil
-	}
-	return &t
+	sd := new(structs.ServiceDefinition)
+	ServiceDefinitionToStructs(s, sd)
+	return sd
 }
 
 // TODO: handle this with mog
@@ -246,6 +262,7 @@ func NewServiceDefinitionPtrFromStructs(t *structs.ServiceDefinition) *ServiceDe
 	if t == nil {
 		return nil
 	}
-	s := NewServiceDefinitionFromStructs(*t)
-	return &s
+	sd := new(ServiceDefinition)
+	ServiceDefinitionFromStructs(t, sd)
+	return sd
 }

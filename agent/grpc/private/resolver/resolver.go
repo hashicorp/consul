@@ -85,7 +85,7 @@ func (s *ServerResolverBuilder) ServerForGlobalAddr(globalAddr string) (*metadat
 
 // Build returns a new serverResolver for the given ClientConn. The resolver
 // will keep the ClientConn's state updated based on updates from Serf.
-func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ resolver.BuildOption) (resolver.Resolver, error) {
+func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ resolver.BuildOptions) (resolver.Resolver, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -221,7 +221,6 @@ func (s *ServerResolverBuilder) getDCAddrs(dc string) []resolver.Address {
 			addrs = append(addrs, resolver.Address{
 				// NOTE: the address persisted here is only dialable using our custom dialer
 				Addr:       DCPrefix(server.Datacenter, server.Addr.String()),
-				Type:       resolver.Backend,
 				ServerName: server.Name,
 			})
 		}
@@ -294,14 +293,14 @@ func (r *serverResolver) Close() {
 }
 
 // ResolveNow is not used
-func (*serverResolver) ResolveNow(resolver.ResolveNowOption) {}
+func (*serverResolver) ResolveNow(options resolver.ResolveNowOptions) {}
 
 type leaderResolver struct {
 	globalAddr string
 	clientConn resolver.ClientConn
 }
 
-func (l leaderResolver) ResolveNow(resolver.ResolveNowOption) {}
+func (l leaderResolver) ResolveNow(resolver.ResolveNowOptions) {}
 
 func (l leaderResolver) Close() {}
 
@@ -313,7 +312,6 @@ func (l leaderResolver) updateClientConn() {
 		{
 			// NOTE: the address persisted here is only dialable using our custom dialer
 			Addr:       l.globalAddr,
-			Type:       resolver.Backend,
 			ServerName: "leader",
 		},
 	}

@@ -3,6 +3,8 @@ package subscribe
 import (
 	"context"
 	"errors"
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"io"
 	"net"
 	"testing"
@@ -154,12 +156,14 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								Port:    8080,
 								Weights: &pbservice.Weights{Passing: 1, Warning: 1},
 								// Sad empty state
-								Proxy: pbservice.ConnectProxyConfig{
-									MeshGateway: pbservice.MeshGatewayConfig{},
-									Expose:      pbservice.ExposeConfig{},
+								Proxy: &pbservice.ConnectProxyConfig{
+									MeshGateway:      &pbservice.MeshGatewayConfig{},
+									Expose:           &pbservice.ExposeConfig{},
+									TransparentProxy: &pbservice.TransparentProxyConfig{},
 								},
+								Connect:        &pbservice.ServiceConnect{},
 								RaftIndex:      raftIndex(ids, "reg2", "reg2"),
-								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 							},
 						},
 					},
@@ -185,12 +189,14 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								Port:    8080,
 								Weights: &pbservice.Weights{Passing: 1, Warning: 1},
 								// Sad empty state
-								Proxy: pbservice.ConnectProxyConfig{
-									MeshGateway: pbservice.MeshGatewayConfig{},
-									Expose:      pbservice.ExposeConfig{},
+								Proxy: &pbservice.ConnectProxyConfig{
+									MeshGateway:      &pbservice.MeshGatewayConfig{},
+									Expose:           &pbservice.ExposeConfig{},
+									TransparentProxy: &pbservice.TransparentProxyConfig{},
 								},
+								Connect:        &pbservice.ServiceConnect{},
 								RaftIndex:      raftIndex(ids, "reg3", "reg3"),
-								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 							},
 						},
 					},
@@ -235,12 +241,14 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 							Port:    8080,
 							Weights: &pbservice.Weights{Passing: 1, Warning: 1},
 							// Sad empty state
-							Proxy: pbservice.ConnectProxyConfig{
-								MeshGateway: pbservice.MeshGatewayConfig{},
-								Expose:      pbservice.ExposeConfig{},
+							Proxy: &pbservice.ConnectProxyConfig{
+								MeshGateway:      &pbservice.MeshGatewayConfig{},
+								Expose:           &pbservice.ExposeConfig{},
+								TransparentProxy: &pbservice.TransparentProxyConfig{},
 							},
+							Connect:        &pbservice.ServiceConnect{},
 							RaftIndex:      raftIndex(ids, "reg3", "reg3"),
-							EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+							EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 						},
 						Checks: []*pbservice.HealthCheck{
 							{
@@ -251,7 +259,13 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								ServiceID:      "redis1",
 								ServiceName:    "redis",
 								RaftIndex:      raftIndex(ids, "update", "update"),
-								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+								Definition: &pbservice.HealthCheckDefinition{
+									Interval:                       &duration.Duration{},
+									Timeout:                        &duration.Duration{},
+									DeregisterCriticalServiceAfter: &duration.Duration{},
+									TTL:                            &duration.Duration{},
+								},
 							},
 						},
 					},
@@ -395,8 +409,8 @@ func newCounter() *counter {
 	return &counter{labels: make(map[string]uint64)}
 }
 
-func raftIndex(ids *counter, created, modified string) pbcommongogo.RaftIndex {
-	return pbcommongogo.RaftIndex{
+func raftIndex(ids *counter, created, modified string) *pbcommon.RaftIndex {
+	return &pbcommon.RaftIndex{
 		CreateIndex: ids.For(created),
 		ModifyIndex: ids.For(modified),
 	}
@@ -507,11 +521,13 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								Port:    8080,
 								Weights: &pbservice.Weights{Passing: 1, Warning: 1},
 								// Sad empty state
-								Proxy: pbservice.ConnectProxyConfig{
-									MeshGateway: pbservice.MeshGatewayConfig{},
-									Expose:      pbservice.ExposeConfig{},
+								Proxy: &pbservice.ConnectProxyConfig{
+									MeshGateway:      &pbservice.MeshGatewayConfig{},
+									Expose:           &pbservice.ExposeConfig{},
+									TransparentProxy: &pbservice.TransparentProxyConfig{},
 								},
-								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+								Connect:        &pbservice.ServiceConnect{},
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 								RaftIndex:      raftIndex(ids, "reg2", "reg2"),
 							},
 						},
@@ -538,11 +554,13 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								Port:    8080,
 								Weights: &pbservice.Weights{Passing: 1, Warning: 1},
 								// Sad empty state
-								Proxy: pbservice.ConnectProxyConfig{
-									MeshGateway: pbservice.MeshGatewayConfig{},
-									Expose:      pbservice.ExposeConfig{},
+								Proxy: &pbservice.ConnectProxyConfig{
+									MeshGateway:      &pbservice.MeshGatewayConfig{},
+									Expose:           &pbservice.ExposeConfig{},
+									TransparentProxy: &pbservice.TransparentProxyConfig{},
 								},
-								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+								Connect:        &pbservice.ServiceConnect{},
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 								RaftIndex:      raftIndex(ids, "reg3", "reg3"),
 							},
 						},
@@ -589,11 +607,13 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 							RaftIndex: raftIndex(ids, "reg3", "reg3"),
 							Weights:   &pbservice.Weights{Passing: 1, Warning: 1},
 							// Sad empty state
-							Proxy: pbservice.ConnectProxyConfig{
-								MeshGateway: pbservice.MeshGatewayConfig{},
-								Expose:      pbservice.ExposeConfig{},
+							Proxy: &pbservice.ConnectProxyConfig{
+								MeshGateway:      &pbservice.MeshGatewayConfig{},
+								Expose:           &pbservice.ExposeConfig{},
+								TransparentProxy: &pbservice.TransparentProxyConfig{},
 							},
-							EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+							Connect:        &pbservice.ServiceConnect{},
+							EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 						},
 						Checks: []*pbservice.HealthCheck{
 							{
@@ -604,7 +624,13 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								ServiceID:      "redis1",
 								ServiceName:    "redis",
 								RaftIndex:      raftIndex(ids, "update", "update"),
-								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+								Definition: &pbservice.HealthCheckDefinition{
+									Interval:                       &duration.Duration{},
+									Timeout:                        &duration.Duration{},
+									DeregisterCriticalServiceAfter: &duration.Duration{},
+									TTL:                            &duration.Duration{},
+								},
 							},
 						},
 					},
@@ -986,8 +1012,18 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 									ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
 										Op: pbsubscribe.CatalogOp_Register,
 										CheckServiceNode: &pbservice.CheckServiceNode{
-											Node:    &pbservice.Node{Node: "node1"},
-											Service: &pbservice.NodeService{Service: "web1"},
+											Node: &pbservice.Node{Node: "node1", RaftIndex: &pbcommon.RaftIndex{}},
+											Service: &pbservice.NodeService{
+												Service: "web1",
+												Proxy: &pbservice.ConnectProxyConfig{
+													MeshGateway:      &pbservice.MeshGatewayConfig{},
+													Expose:           &pbservice.ExposeConfig{},
+													TransparentProxy: &pbservice.TransparentProxyConfig{},
+												},
+												Connect:        &pbservice.ServiceConnect{},
+												EnterpriseMeta: &pbcommon.EnterpriseMeta{},
+												RaftIndex:      &pbcommon.RaftIndex{},
+											},
 										},
 									},
 								},
@@ -998,8 +1034,18 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 									ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
 										Op: pbsubscribe.CatalogOp_Deregister,
 										CheckServiceNode: &pbservice.CheckServiceNode{
-											Node:    &pbservice.Node{Node: "node2"},
-											Service: &pbservice.NodeService{Service: "web1"},
+											Node: &pbservice.Node{Node: "node2", RaftIndex: &pbcommon.RaftIndex{}},
+											Service: &pbservice.NodeService{
+												Service: "web1",
+												Proxy: &pbservice.ConnectProxyConfig{
+													MeshGateway:      &pbservice.MeshGatewayConfig{},
+													Expose:           &pbservice.ExposeConfig{},
+													TransparentProxy: &pbservice.TransparentProxyConfig{},
+												},
+												Connect:        &pbservice.ServiceConnect{},
+												EnterpriseMeta: &pbcommon.EnterpriseMeta{},
+												RaftIndex:      &pbcommon.RaftIndex{},
+											},
 										},
 									},
 								},
@@ -1027,8 +1073,18 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 					ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
 						Op: pbsubscribe.CatalogOp_Register,
 						CheckServiceNode: &pbservice.CheckServiceNode{
-							Node:    &pbservice.Node{Node: "node1"},
-							Service: &pbservice.NodeService{Service: "web1"},
+							Node: &pbservice.Node{Node: "node1", RaftIndex: &pbcommon.RaftIndex{}},
+							Service: &pbservice.NodeService{
+								Service: "web1",
+								Proxy: &pbservice.ConnectProxyConfig{
+									MeshGateway:      &pbservice.MeshGatewayConfig{},
+									Expose:           &pbservice.ExposeConfig{},
+									TransparentProxy: &pbservice.TransparentProxyConfig{},
+								},
+								Connect:        &pbservice.ServiceConnect{},
+								EnterpriseMeta: &pbcommon.EnterpriseMeta{},
+								RaftIndex:      &pbcommon.RaftIndex{},
+							},
 						},
 					},
 				},

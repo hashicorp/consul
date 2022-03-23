@@ -14,6 +14,12 @@ elif [[ "$FILENAME" =~ .*pbconfig/.* ]]; then
 elif [[ "$FILENAME" =~ .*pbautoconf/.* ]]; then
     echo "$FILENAME no gogo"
         ./build-support/scripts/proto-gen-no-gogo.sh $1 $2 $3
+elif [[ "$FILENAME" =~ .*pbservice/.* ]]; then
+    echo "$FILENAME no gogo"
+        ./build-support/scripts/proto-gen-no-gogo.sh $1 $2 $3
+elif [[ "$FILENAME" =~ .*pbsubscribe/.* ]]; then
+    echo "$FILENAME no gogo"
+        ./build-support/scripts/proto-gen-no-gogo.sh $1 $2 $3
 else
     echo "$FILENAME gogo"
     ./build-support/scripts/proto-gen.sh $1 $2 $3
