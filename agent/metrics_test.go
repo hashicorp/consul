@@ -66,7 +66,7 @@ func assertMetricNotExists(t *testing.T, respRec *httptest.ResponseRecorder, met
 	}
 }
 
-// TestAgent_NewRPCMetrics test for the new RPC metrics presence. These are the labeled metrics coming from
+// TestAgent_NewRPCMetrics test for the new RPC metrics. These are the labeled metrics coming from
 // agent.rpc.middleware.interceptors package.
 func TestAgent_NewRPCMetrics(t *testing.T) {
 	skipIfShortTesting(t)
@@ -93,6 +93,30 @@ func TestAgent_NewRPCMetrics(t *testing.T) {
 		recordPromMetrics(t, a, respRec)
 
 		assertMetricExists(t, respRec, metricsPrefix+"_rpc_server_call")
+	})
+
+	t.Run("Check that new rpc metrics can be filtered out", func(t *testing.T) {
+		metricsPrefix := "new_rpc_metrics_2"
+		hcl := fmt.Sprintf(`
+		telemetry = {
+			prometheus_retention_time = "5s"
+			disable_hostname = true
+			metrics_prefix = "%s"
+			prefix_filter = ["-%s.rpc.server.call"]
+		}
+		`, metricsPrefix, metricsPrefix)
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+
+		var out struct{}
+		err := a.RPC("Status.Ping", struct{}{}, &out)
+		require.NoError(t, err)
+
+		respRec := httptest.NewRecorder()
+		recordPromMetrics(t, a, respRec)
+
+		assertMetricNotExists(t, respRec, metricsPrefix+"_rpc_server_call")
 	})
 }
 
