@@ -23,14 +23,22 @@ func (m *CheckServiceNode) UniqueID() string {
 	case m.Node != nil:
 		builder.WriteString(m.Node.Partition + "/")
 	case m.Service != nil:
-		builder.WriteString(m.Service.EnterpriseMeta.Partition + "/")
+		partition := ""
+		if m.Service.EnterpriseMeta != nil {
+			partition = m.Service.EnterpriseMeta.Partition
+		}
+		builder.WriteString(partition + "/")
 	}
 
 	if m.Node != nil {
 		builder.WriteString(m.Node.Node + "/")
 	}
 	if m.Service != nil {
-		builder.WriteString(m.Service.EnterpriseMeta.Namespace + "/")
+		namespace := ""
+		if m.Service.EnterpriseMeta != nil {
+			namespace = m.Service.EnterpriseMeta.Namespace
+		}
+		builder.WriteString(namespace + "/")
 		builder.WriteString(m.Service.ID)
 	}
 	return builder.String()

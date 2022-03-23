@@ -4,17 +4,9 @@ package pbservice;
 
 option go_package = "github.com/hashicorp/consul/proto/pbservice";
 
-import "proto/pbcommongogo/common.proto";
+import "proto/pbcommon/common.proto";
 import "proto/pbservice/healthcheck.proto";
 import "proto/pbservice/service.proto";
-
-// This fake import path is replaced by the build script with a versioned path
-import "gogoproto/gogo.proto";
-
-option (gogoproto.goproto_unkeyed_all) = false;
-option (gogoproto.goproto_unrecognized_all) = false;
-option (gogoproto.goproto_getters_all) = false;
-option (gogoproto.goproto_sizecache_all) = false;
 
 // CheckServiceNode is used to provide the node, its service
 // definition, as well as a HealthCheck that is associated.
@@ -32,7 +24,8 @@ message CheckServiceNode {
 // output=node.gen.go
 // name=Structs
 message Node {
-  string ID = 1 [(gogoproto.casttype) = "github.com/hashicorp/consul/types.NodeID"];
+  // mog: func-to=NodeIDType func-from=string
+  string ID = 1;
 
   string Node = 2;
   string Partition = 8;
@@ -42,7 +35,7 @@ message Node {
   map<string, string> Meta = 6;
 
   // mog: func-to=RaftIndexToStructs func-from=NewRaftIndexFromStructs
-  commongogo.RaftIndex RaftIndex = 7 [(gogoproto.embed) = true, (gogoproto.nullable) = false];
+  common.RaftIndex RaftIndex = 7;
 }
 
 // NodeService is a service provided by a node
@@ -56,14 +49,15 @@ message NodeService {
   // Kind is the kind of service this is. Different kinds of services may
   // have differing validation, DNS behavior, etc. An empty kind will default
   // to the Default kind. See ServiceKind for the full list of kinds.
-  string Kind = 1 [(gogoproto.casttype) = "github.com/hashicorp/consul/agent/structs.ServiceKind"];
+  // mog: func-to=structs.ServiceKind func-from=string
+  string Kind = 1;
 
   string ID = 2;
   string Service = 3;
   repeated string Tags = 4;
   string Address = 5;
   // mog: func-to=MapStringServiceAddressToStructs func-from=NewMapStringServiceAddressFromStructs
-  map<string, ServiceAddress> TaggedAddresses = 15 [(gogoproto.nullable) = false];
+  map<string, ServiceAddress> TaggedAddresses = 15;
   map<string, string> Meta = 6;
   // mog: func-to=int func-from=int32
   int32 Port = 7;
@@ -83,11 +77,11 @@ message NodeService {
   // in the other case. ProxyConfig may be a more natural name here, but it's
   // confusing for the UX because one of the fields in ConnectProxyConfig is
   // also called just "Config"
-  ConnectProxyConfig Proxy = 11 [(gogoproto.nullable) = false];
+  ConnectProxyConfig Proxy = 11;
 
   // Connect are the Connect settings for a service. This is purposely NOT
   // a pointer so that we never have to nil-check this.
-  ServiceConnect Connect = 12 [(gogoproto.nullable) = false];
+  ServiceConnect Connect = 12;
 
   // LocallyRegisteredAsSidecar is private as it is only used by a local agent
   // state to track if the service was registered from a nested sidecar_service
@@ -109,8 +103,8 @@ message NodeService {
   bool LocallyRegisteredAsSidecar = 13;
 
   // mog: func-to=EnterpriseMetaToStructs func-from=NewEnterpriseMetaFromStructs
-  commongogo.EnterpriseMeta EnterpriseMeta = 16 [(gogoproto.nullable) = false];
+  common.EnterpriseMeta EnterpriseMeta = 16;
 
   // mog: func-to=RaftIndexToStructs func-from=NewRaftIndexFromStructs
-  commongogo.RaftIndex RaftIndex = 14 [(gogoproto.embed) = true, (gogoproto.nullable) = false];
+  common.RaftIndex RaftIndex = 14;
 }

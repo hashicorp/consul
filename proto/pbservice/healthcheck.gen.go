@@ -2,14 +2,13 @@
 
 package pbservice
 
-import (
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbutil"
-)
+import "github.com/hashicorp/consul/agent/structs"
 
-func CheckTypeToStructs(s CheckType) (structs.CheckType, error) {
-	var t structs.CheckType
-	t.CheckID = s.CheckID
+func CheckTypeToStructs(s *CheckType, t *structs.CheckType) {
+	if s == nil {
+		return
+	}
+	t.CheckID = CheckIDType(s.CheckID)
 	t.Name = s.Name
 	t.Status = s.Status
 	t.Notes = s.Notes
@@ -21,12 +20,7 @@ func CheckTypeToStructs(s CheckType) (structs.CheckType, error) {
 	t.Method = s.Method
 	t.Body = s.Body
 	t.TCP = s.TCP
-	interval, err := pbutil.DurationFromProto(&s.Interval)
-	if err != nil {
-		return t, err
-	}
-	t.Interval = interval
-
+	t.Interval = structs.DurationFromProto(s.Interval)
 	t.AliasNode = s.AliasNode
 	t.AliasService = s.AliasService
 	t.DockerContainerID = s.DockerContainerID
@@ -35,32 +29,21 @@ func CheckTypeToStructs(s CheckType) (structs.CheckType, error) {
 	t.GRPCUseTLS = s.GRPCUseTLS
 	t.TLSServerName = s.TLSServerName
 	t.TLSSkipVerify = s.TLSSkipVerify
-	timeout, err := pbutil.DurationFromProto(&s.Timeout)
-	if err != nil {
-		return t, err
-	}
-	t.Timeout = timeout
-	ttl, err := pbutil.DurationFromProto(&s.TTL)
-	if err != nil {
-		return t, err
-	}
-	t.TTL = ttl
+	t.Timeout = structs.DurationFromProto(s.Timeout)
+	t.TTL = structs.DurationFromProto(s.TTL)
 	t.SuccessBeforePassing = int(s.SuccessBeforePassing)
-	t.FailuresBeforeCritical = int(s.FailuresBeforeCritical)
 	t.FailuresBeforeWarning = int(s.FailuresBeforeWarning)
+	t.FailuresBeforeCritical = int(s.FailuresBeforeCritical)
 	t.ProxyHTTP = s.ProxyHTTP
 	t.ProxyGRPC = s.ProxyGRPC
-	deregisterCriticalServiceAfter, err := pbutil.DurationFromProto(&s.DeregisterCriticalServiceAfter)
-	if err != nil {
-		return t, err
-	}
-	t.DeregisterCriticalServiceAfter = deregisterCriticalServiceAfter
+	t.DeregisterCriticalServiceAfter = structs.DurationFromProto(s.DeregisterCriticalServiceAfter)
 	t.OutputMaxSize = int(s.OutputMaxSize)
-	return t, nil
 }
-func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
-	var s CheckType
-	s.CheckID = t.CheckID
+func CheckTypeFromStructs(t *structs.CheckType, s *CheckType) {
+	if s == nil {
+		return
+	}
+	s.CheckID = string(t.CheckID)
 	s.Name = t.Name
 	s.Status = t.Status
 	s.Notes = t.Notes
@@ -72,7 +55,7 @@ func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	s.Method = t.Method
 	s.Body = t.Body
 	s.TCP = t.TCP
-	s.Interval = *pbutil.DurationToProto(t.Interval)
+	s.Interval = structs.DurationToProto(t.Interval)
 	s.AliasNode = t.AliasNode
 	s.AliasService = t.AliasService
 	s.DockerContainerID = t.DockerContainerID
@@ -81,21 +64,22 @@ func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	s.GRPCUseTLS = t.GRPCUseTLS
 	s.TLSServerName = t.TLSServerName
 	s.TLSSkipVerify = t.TLSSkipVerify
-	s.Timeout = *pbutil.DurationToProto(t.Timeout)
-	s.TTL = *pbutil.DurationToProto(t.TTL)
+	s.Timeout = structs.DurationToProto(t.Timeout)
+	s.TTL = structs.DurationToProto(t.TTL)
 	s.SuccessBeforePassing = int32(t.SuccessBeforePassing)
-	s.FailuresBeforeCritical = int32(t.FailuresBeforeCritical)
 	s.FailuresBeforeWarning = int32(t.FailuresBeforeWarning)
+	s.FailuresBeforeCritical = int32(t.FailuresBeforeCritical)
 	s.ProxyHTTP = t.ProxyHTTP
 	s.ProxyGRPC = t.ProxyGRPC
-	s.DeregisterCriticalServiceAfter = *pbutil.DurationToProto(t.DeregisterCriticalServiceAfter)
+	s.DeregisterCriticalServiceAfter = structs.DurationToProto(t.DeregisterCriticalServiceAfter)
 	s.OutputMaxSize = int32(t.OutputMaxSize)
-	return s
 }
-func HealthCheckToStructs(s HealthCheck) (structs.HealthCheck, error) {
-	var t structs.HealthCheck
+func HealthCheckToStructs(s *HealthCheck, t *structs.HealthCheck) {
+	if s == nil {
+		return
+	}
 	t.Node = s.Node
-	t.CheckID = s.CheckID
+	t.CheckID = CheckIDType(s.CheckID)
 	t.Name = s.Name
 	t.Status = s.Status
 	t.Notes = s.Notes
@@ -104,22 +88,21 @@ func HealthCheckToStructs(s HealthCheck) (structs.HealthCheck, error) {
 	t.ServiceName = s.ServiceName
 	t.ServiceTags = s.ServiceTags
 	t.Type = s.Type
-	t.ExposedPort = int(s.ExposedPort)
-	definition, err := HealthCheckDefinitionToStructs(s.Definition)
-	if err != nil {
-		return t, err
-	}
-	t.Definition = definition
-	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
-	t.RaftIndex = RaftIndexToStructs(s.RaftIndex)
 	t.Interval = s.Interval
 	t.Timeout = s.Timeout
-	return t, nil
+	t.ExposedPort = int(s.ExposedPort)
+	if s.Definition != nil {
+		HealthCheckDefinitionToStructs(s.Definition, &t.Definition)
+	}
+	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
+	t.RaftIndex = RaftIndexToStructs(s.RaftIndex)
 }
-func NewHealthCheckFromStructs(t structs.HealthCheck) HealthCheck {
-	var s HealthCheck
+func HealthCheckFromStructs(t *structs.HealthCheck, s *HealthCheck) {
+	if s == nil {
+		return
+	}
 	s.Node = t.Node
-	s.CheckID = t.CheckID
+	s.CheckID = string(t.CheckID)
 	s.Name = t.Name
 	s.Status = t.Status
 	s.Notes = t.Notes
@@ -128,16 +111,21 @@ func NewHealthCheckFromStructs(t structs.HealthCheck) HealthCheck {
 	s.ServiceName = t.ServiceName
 	s.ServiceTags = t.ServiceTags
 	s.Type = t.Type
-	s.ExposedPort = int32(t.ExposedPort)
-	s.Definition = NewHealthCheckDefinitionFromStructs(t.Definition)
-	s.EnterpriseMeta = NewEnterpriseMetaFromStructs(t.EnterpriseMeta)
-	s.RaftIndex = NewRaftIndexFromStructs(t.RaftIndex)
 	s.Interval = t.Interval
 	s.Timeout = t.Timeout
-	return s
+	s.ExposedPort = int32(t.ExposedPort)
+	{
+		var x HealthCheckDefinition
+		HealthCheckDefinitionFromStructs(&t.Definition, &x)
+		s.Definition = &x
+	}
+	s.EnterpriseMeta = NewEnterpriseMetaFromStructs(t.EnterpriseMeta)
+	s.RaftIndex = NewRaftIndexFromStructs(t.RaftIndex)
 }
-func HealthCheckDefinitionToStructs(s HealthCheckDefinition) (structs.HealthCheckDefinition, error) {
-	var t structs.HealthCheckDefinition
+func HealthCheckDefinitionToStructs(s *HealthCheckDefinition, t *structs.HealthCheckDefinition) {
+	if s == nil {
+		return
+	}
 	t.HTTP = s.HTTP
 	t.TLSServerName = s.TLSServerName
 	t.TLSSkipVerify = s.TLSSkipVerify
@@ -147,22 +135,10 @@ func HealthCheckDefinitionToStructs(s HealthCheckDefinition) (structs.HealthChec
 	t.TCP = s.TCP
 	t.H2PING = s.H2PING
 	t.H2PingUseTLS = s.H2PingUseTLS
-	interval, err := pbutil.DurationFromProto(&s.Interval)
-	if err != nil {
-		return t, err
-	}
-	t.Interval = interval
+	t.Interval = structs.DurationFromProto(s.Interval)
 	t.OutputMaxSize = uint(s.OutputMaxSize)
-	timeout, err := pbutil.DurationFromProto(&s.Timeout)
-	if err != nil {
-		return t, err
-	}
-	t.Timeout = timeout
-	deregisterCriticalServiceAfter, err := pbutil.DurationFromProto(&s.DeregisterCriticalServiceAfter)
-	if err != nil {
-		return t, err
-	}
-	t.DeregisterCriticalServiceAfter = deregisterCriticalServiceAfter
+	t.Timeout = structs.DurationFromProto(s.Timeout)
+	t.DeregisterCriticalServiceAfter = structs.DurationFromProto(s.DeregisterCriticalServiceAfter)
 	t.ScriptArgs = s.ScriptArgs
 	t.DockerContainerID = s.DockerContainerID
 	t.Shell = s.Shell
@@ -170,15 +146,12 @@ func HealthCheckDefinitionToStructs(s HealthCheckDefinition) (structs.HealthChec
 	t.GRPCUseTLS = s.GRPCUseTLS
 	t.AliasNode = s.AliasNode
 	t.AliasService = s.AliasService
-	ttl, err := pbutil.DurationFromProto(&s.TTL)
-	if err != nil {
-		return t, err
-	}
-	t.TTL = ttl
-	return t, nil
+	t.TTL = structs.DurationFromProto(s.TTL)
 }
-func NewHealthCheckDefinitionFromStructs(t structs.HealthCheckDefinition) HealthCheckDefinition {
-	var s HealthCheckDefinition
+func HealthCheckDefinitionFromStructs(t *structs.HealthCheckDefinition, s *HealthCheckDefinition) {
+	if s == nil {
+		return
+	}
 	s.HTTP = t.HTTP
 	s.TLSServerName = t.TLSServerName
 	s.TLSSkipVerify = t.TLSSkipVerify
@@ -188,10 +161,10 @@ func NewHealthCheckDefinitionFromStructs(t structs.HealthCheckDefinition) Health
 	s.TCP = t.TCP
 	s.H2PING = t.H2PING
 	s.H2PingUseTLS = t.H2PingUseTLS
-	s.Interval = *pbutil.DurationToProto(t.Interval)
+	s.Interval = structs.DurationToProto(t.Interval)
 	s.OutputMaxSize = uint32(t.OutputMaxSize)
-	s.Timeout = *pbutil.DurationToProto(t.Timeout)
-	s.DeregisterCriticalServiceAfter = *pbutil.DurationToProto(t.DeregisterCriticalServiceAfter)
+	s.Timeout = structs.DurationToProto(t.Timeout)
+	s.DeregisterCriticalServiceAfter = structs.DurationToProto(t.DeregisterCriticalServiceAfter)
 	s.ScriptArgs = t.ScriptArgs
 	s.DockerContainerID = t.DockerContainerID
 	s.Shell = t.Shell
@@ -199,6 +172,5 @@ func NewHealthCheckDefinitionFromStructs(t structs.HealthCheckDefinition) Health
 	s.GRPCUseTLS = t.GRPCUseTLS
 	s.AliasNode = t.AliasNode
 	s.AliasService = t.AliasService
-	s.TTL = *pbutil.DurationToProto(t.TTL)
-	return s
+	s.TTL = structs.DurationToProto(t.TTL)
 }
