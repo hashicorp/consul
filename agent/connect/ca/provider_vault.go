@@ -52,7 +52,7 @@ type VaultProvider struct {
 	config *structs.VaultCAProviderConfig
 	client *vaultapi.Client
 
-	shutdown func()
+	stopWatcher func()
 
 	isPrimary                    bool
 	clusterID                    string
@@ -63,8 +63,8 @@ type VaultProvider struct {
 
 func NewVaultProvider(logger hclog.Logger) *VaultProvider {
 	return &VaultProvider{
-		shutdown: func() {},
-		logger:   logger,
+		stopWatcher: func() {},
+		logger:      logger,
 	}
 }
 
@@ -153,7 +153,10 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())
-		v.shutdown = cancel
+		if v.stopWatcher != nil {
+			v.stopWatcher()
+		}
+		v.stopWatcher = cancel
 		go v.renewToken(ctx, lifetimeWatcher)
 	}
 
@@ -677,7 +680,7 @@ func (v *VaultProvider) Cleanup(providerTypeChange bool, otherConfig map[string]
 
 // Stop shuts down the token renew goroutine.
 func (v *VaultProvider) Stop() {
-	v.shutdown()
+	v.stopWatcher()
 }
 
 func (v *VaultProvider) PrimaryUsesIntermediate() {}
