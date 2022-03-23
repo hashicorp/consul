@@ -1391,8 +1391,8 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
       if servers have more than one CPU core. Setting this to zero disables rate limiting.
       Added in 1.4.1.
 
-    - `leaf_cert_ttl` ((#ca_leaf_cert_ttl)) The upper bound on the lease
-      duration of a leaf certificate issued for a service. In most cases a new leaf
+    - `leaf_cert_ttl` ((#ca_leaf_cert_ttl)) Specifies the upper bound on the expiry
+      of a leaf certificate issued for a service. In most cases a new leaf
       certificate will be requested by a proxy before this limit is reached. This
       is also the effective limit on how long a server outage can last (with no leader)
       before network connections will start being rejected. Defaults to `72h`.
@@ -1406,10 +1406,10 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
       for more than twice the _current_ `leaf_cert_ttl`, it will be removed
       from the trusted list.
 
-    - `intermediate_cert_ttl` ((#ca_intermediate_cert_ttl)) The time to live (TTL) for the
+    - `intermediate_cert_ttl` ((#ca_intermediate_cert_ttl)) Specifies the expiry for the
       intermediate certificates. Defaults to `8760h` (1 year). Must be at least 3 times `leaf_cert_ttl`.
 
-    - `root_cert_ttl` ((#ca_root_cert_ttl)) The time to live (TTL) for a root certificate.
+    - `root_cert_ttl` ((#ca_root_cert_ttl)) Specifies the expiry for a root certificate.
       Defaults to 10 years as `87600h`. This value, if provided, needs to be higher than the
       intermediate certificate TTL.
 
