@@ -2,42 +2,42 @@ package pbconnect
 
 import (
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbcommongogo"
+	"github.com/hashicorp/consul/proto/pbcommon"
 )
 
-func QueryMetaFrom(f structs.QueryMeta) *pbcommongogo.QueryMeta {
-	t := new(pbcommongogo.QueryMeta)
-	pbcommongogo.QueryMetaFromStructs(&f, t)
+func QueryMetaFrom(f structs.QueryMeta) *pbcommon.QueryMeta {
+	t := new(pbcommon.QueryMeta)
+	pbcommon.QueryMetaFromStructs(&f, t)
 	return t
 }
 
-func QueryMetaTo(f *pbcommongogo.QueryMeta) structs.QueryMeta {
+func QueryMetaTo(f *pbcommon.QueryMeta) structs.QueryMeta {
 	t := new(structs.QueryMeta)
-	pbcommongogo.QueryMetaToStructs(f, t)
+	pbcommon.QueryMetaToStructs(f, t)
 	return *t
 }
 
-func RaftIndexFrom(f structs.RaftIndex) *pbcommongogo.RaftIndex {
-	t := new(pbcommongogo.RaftIndex)
-	pbcommongogo.RaftIndexFromStructs(&f, t)
+func RaftIndexFrom(f structs.RaftIndex) *pbcommon.RaftIndex {
+	t := new(pbcommon.RaftIndex)
+	pbcommon.RaftIndexFromStructs(&f, t)
 	return t
 }
 
-func RaftIndexTo(f *pbcommongogo.RaftIndex) structs.RaftIndex {
+func RaftIndexTo(f *pbcommon.RaftIndex) structs.RaftIndex {
 	t := new(structs.RaftIndex)
-	pbcommongogo.RaftIndexToStructs(f, t)
+	pbcommon.RaftIndexToStructs(f, t)
 	return *t
 }
 
-func EnterpriseMetaFrom(f structs.EnterpriseMeta) *pbcommongogo.EnterpriseMeta {
-	t := new(pbcommongogo.EnterpriseMeta)
-	pbcommongogo.EnterpriseMetaFromStructs(&f, t)
+func EnterpriseMetaFrom(f structs.EnterpriseMeta) *pbcommon.EnterpriseMeta {
+	t := new(pbcommon.EnterpriseMeta)
+	pbcommon.EnterpriseMetaFromStructs(&f, t)
 	return t
 }
 
-func EnterpriseMetaTo(f *pbcommongogo.EnterpriseMeta) structs.EnterpriseMeta {
+func EnterpriseMetaTo(f *pbcommon.EnterpriseMeta) structs.EnterpriseMeta {
 	t := new(structs.EnterpriseMeta)
-	pbcommongogo.EnterpriseMetaToStructs(f, t)
+	pbcommon.EnterpriseMetaToStructs(f, t)
 	return *t
 }
 
