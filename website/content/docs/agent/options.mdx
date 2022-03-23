@@ -1408,19 +1408,25 @@ There are also a number of common configuration options supported by all provide
       if servers have more than one CPU core. Setting this to zero disables rate limiting.
       Added in 1.4.1.
 
-    - `leaf_cert_ttl` ((#ca_leaf_cert_ttl)) The upper bound on the lease
-      duration of a leaf certificate issued for a service. In most cases a new leaf
+    - `leaf_cert_ttl` ((#ca_leaf_cert_ttl)) Specifies the upper bound on the expiry
+      of a leaf certificate issued for a service. In most cases a new leaf
       certificate will be requested by a proxy before this limit is reached. This
       is also the effective limit on how long a server outage can last (with no leader)
       before network connections will start being rejected. Defaults to `72h`.
-      This value cannot be lower than 1 hour or higher than 1 year.
+      
+      You can specify a range from one hour (minimum) up to one year (maximum) using
+      the following units: `h`, `m`, `s`, `ms`, `us` (or `µs`), `ns`, or a combination
+      of those units, e.g. `1h5m`.
 
       This value is also used when rotating out old root certificates from
       the cluster. When a root certificate has been inactive (rotated out)
       for more than twice the _current_ `leaf_cert_ttl`, it will be removed
       from the trusted list.
 
-    - `root_cert_ttl` ((#ca_root_cert_ttl)) The time to live (TTL) for a root certificate.
+    - `intermediate_cert_ttl` ((#ca_intermediate_cert_ttl)) Specifies the expiry for the
+      intermediate certificates. Defaults to `8760h` (1 year). Must be at least 3 times `leaf_cert_ttl`.
+
+    - `root_cert_ttl` ((#ca_root_cert_ttl)) Specifies the expiry for a root certificate.
       Defaults to 10 years as `87600h`. This value, if provided, needs to be higher than the
       intermediate certificate TTL.
 
@@ -2212,7 +2218,11 @@ There are also a number of common configuration options supported by all provide
     ```json
     {
       "telemetry": {
-        "prefix_filter": ["+consul.raft.apply", "-consul.http", "+consul.http.GET"]
+        "prefix_filter": [
+          "+consul.raft.apply",
+          "-consul.http",
+          "+consul.http.GET"
+        ]
       }
     }
     ```
