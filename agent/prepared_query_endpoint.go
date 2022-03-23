@@ -23,7 +23,7 @@ func (s *HTTPHandlers) preparedQueryCreate(resp http.ResponseWriter, req *http.R
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if err := decodeBody(req.Body, &args.Query); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	var reply string
@@ -247,7 +247,7 @@ func (s *HTTPHandlers) preparedQueryUpdate(id string, resp http.ResponseWriter, 
 	s.parseToken(req, &args.Token)
 	if req.ContentLength > 0 {
 		if err := decodeBody(req.Body, &args.Query); err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 		}
 	}
 

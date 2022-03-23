@@ -555,7 +555,7 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 			// key are ok, otherwise the argument doesn't apply to
 			// the WAN.
 		default:
-			return nil, BadRequestError{Reason: "Cannot provide a segment with wan=true"}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot provide a segment with wan=true"}
 		}
 	}
 
@@ -732,16 +732,16 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	}
 
 	if err := decodeBody(req.Body, &args); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Verify the check has a name.
 	if args.Name == "" {
-		return nil, BadRequestError{Reason: "Missing check name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing check name"}
 	}
 
 	if args.Status != "" && !structs.ValidStatus(args.Status) {
-		return nil, BadRequestError{Reason: "Bad check status"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Bad check status"}
 	}
 
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
@@ -760,7 +760,7 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	chkType := args.CheckType()
 	err = chkType.Validate()
 	if err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid check: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid check: %v", err)}
 	}
 
 	// Store the type of check based on the definition
@@ -878,7 +878,7 @@ type checkUpdate struct {
 func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var update checkUpdate
 	if err := decodeBody(req.Body, &update); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	switch update.Status {
@@ -886,7 +886,7 @@ func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Requ
 	case api.HealthWarning:
 	case api.HealthCritical:
 	default:
-		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid check status: '%s'", update.Status)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid check status: '%s'", update.Status)}
 	}
 
 	ID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/agent/check/update/")
@@ -981,7 +981,7 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 		return nil, err
 	}
 	if serviceID == "" {
-		return nil, &BadRequestError{Reason: "Missing serviceID"}
+		return nil, &HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing serviceID"}
 	}
 
 	var entMeta structs.EnterpriseMeta
@@ -1043,7 +1043,7 @@ func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *h
 	}
 
 	if serviceName == "" {
-		return nil, &BadRequestError{Reason: "Missing service Name"}
+		return nil, &HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service Name"}
 	}
 
 	var entMeta structs.EnterpriseMeta
@@ -1114,18 +1114,18 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	}
 
 	if err := decodeBody(req.Body, &args); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Verify the service has a name.
 	if args.Name == "" {
-		return nil, BadRequestError{Reason: "Missing service name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
 	}
 
 	// Check the service address here and in the catalog RPC endpoint
 	// since service registration isn't synchronous.
 	if ipaddr.IsAny(args.Address) {
-		return nil, BadRequestError{Reason: "Invalid service address"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid service address"}
 	}
 
 	var token string
@@ -1144,27 +1144,27 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	ns := args.NodeService()
 	if ns.Weights != nil {
 		if err := structs.ValidateWeights(ns.Weights); err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Invalid Weights: %v", err)}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid Weights: %v", err)}
 		}
 	}
 	if err := structs.ValidateServiceMetadata(ns.Kind, ns.Meta, false); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid Service Meta: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid Service Meta: %v", err)}
 	}
 
 	// Run validation. This is the same validation that would happen on
 	// the catalog endpoint so it helps ensure the sync will work properly.
 	if err := ns.Validate(); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Validation failed: %v", err.Error())}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Validation failed: %v", err.Error())}
 	}
 
 	// Verify the check type.
 	chkTypes, err := args.CheckTypes()
 	if err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid check: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid check: %v", err)}
 	}
 	for _, check := range chkTypes {
 		if check.Status != "" && !structs.ValidStatus(check.Status) {
-			return nil, BadRequestError{Reason: "Status for checks must 'passing', 'warning', 'critical'"}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Status for checks must 'passing', 'warning', 'critical'"}
 		}
 	}
 
@@ -1172,15 +1172,11 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	if args.Connect != nil && args.Connect.SidecarService != nil {
 		chkTypes, err := args.Connect.SidecarService.CheckTypes()
 		if err != nil {
-			return nil, &BadRequestError{
-				Reason: fmt.Sprintf("Invalid check in sidecar_service: %v", err),
-			}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid check in sidecar_service: %v", err)}
 		}
 		for _, check := range chkTypes {
 			if check.Status != "" && !structs.ValidStatus(check.Status) {
-				return nil, &BadRequestError{
-					Reason: "Status for checks must 'passing', 'warning', 'critical'",
-				}
+				return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Status for checks must 'passing', 'warning', 'critical'"}
 			}
 		}
 	}
@@ -1193,12 +1189,11 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	// See if we have a sidecar to register too
 	sidecar, sidecarChecks, sidecarToken, err := s.agent.sidecarServiceFromNodeService(ns, token)
 	if err != nil {
-		return nil, &BadRequestError{
-			Reason: fmt.Sprintf("Invalid SidecarService: %s", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid SidecarService: %s", err)}
 	}
 	if sidecar != nil {
 		if err := sidecar.Validate(); err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Failed Validation: %v", err.Error())}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Failed Validation: %v", err.Error())}
 		}
 		// Make sure we are allowed to register the sidecar using the token
 		// specified (might be specific to sidecar or the same one as the overall
@@ -1299,19 +1294,19 @@ func (s *HTTPHandlers) AgentServiceMaintenance(resp http.ResponseWriter, req *ht
 	sid := structs.NewServiceID(serviceID, nil)
 
 	if sid.ID == "" {
-		return nil, BadRequestError{Reason: "Missing service ID"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service ID"}
 	}
 
 	// Ensure we have some action
 	params := req.URL.Query()
 	if _, ok := params["enable"]; !ok {
-		return nil, BadRequestError{Reason: "Missing value for enable"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing value for enable"}
 	}
 
 	raw := params.Get("enable")
 	enable, err := strconv.ParseBool(raw)
 	if err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid value for enable: %q", raw)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid value for enable: %q", raw)}
 	}
 
 	// Get the provided token, if any, and vet against any ACL policies.
@@ -1355,13 +1350,13 @@ func (s *HTTPHandlers) AgentNodeMaintenance(resp http.ResponseWriter, req *http.
 	// Ensure we have some action
 	params := req.URL.Query()
 	if _, ok := params["enable"]; !ok {
-		return nil, BadRequestError{Reason: "Missing value for enable"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing value for enable"}
 	}
 
 	raw := params.Get("enable")
 	enable, err := strconv.ParseBool(raw)
 	if err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Invalid value for enable: %q", raw)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid value for enable: %q", raw)}
 	}
 
 	// Get the provided token, if any, and vet against any ACL policies.
@@ -1416,9 +1411,7 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 	}
 
 	if !logging.ValidateLogLevel(logLevel) {
-		return nil, BadRequestError{
-			Reason: fmt.Sprintf("Unknown log level: %s", logLevel),
-		}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Unknown log level: %s", logLevel)}
 	}
 
 	flusher, ok := resp.(http.Flusher)
@@ -1491,7 +1484,7 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 	// fields to this later if needed.
 	var args api.AgentToken
 	if err := decodeBody(req.Body, &args); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Figure out the target token.
@@ -1641,7 +1634,7 @@ func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http
 	}
 
 	if err := decodeBody(req.Body, &authReq); err != nil {
-		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	if !s.validateRequestPartition(resp, &authReq.EnterpriseMeta) {

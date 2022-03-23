@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -31,10 +32,7 @@ func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 	resp := httptest.NewRecorder()
 	_, err := a.srv.Txn(resp, req)
-	err, ok := err.(BadRequestError)
-	if !ok {
-		t.Fatalf("expected bad request error but got %v", err)
-	}
+	require.True(t, isHTTPBadRequest(err), fmt.Sprintf("Expected bad request HTTP error but got %v", err))
 	if !strings.Contains(err.Error(), "Failed to parse") {
 		t.Fatalf("expected conflicting args error")
 	}

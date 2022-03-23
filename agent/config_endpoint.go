@@ -95,7 +95,7 @@ func (s *HTTPHandlers) configDelete(resp http.ResponseWriter, req *http.Request)
 
 	entry, err := structs.MakeConfigEntry(pathArgs[0], pathArgs[1])
 	if err != nil {
-		return nil, BadRequestError{Reason: err.Error()}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
 	}
 	args.Entry = entry
 	// Parse enterprise meta.
@@ -138,13 +138,13 @@ func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) 
 
 	var raw map[string]interface{}
 	if err := decodeBodyDeprecated(req, &raw, nil); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 	}
 
 	if entry, err := structs.DecodeConfigEntry(raw); err == nil {
 		args.Entry = entry
 	} else {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 	}
 
 	// Parse enterprise meta.

@@ -25,7 +25,7 @@ func (s *HTTPHandlers) EventFire(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 	if event.Name == "" {
-		return nil, BadRequestError{Reason: "Missing name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing name"}
 	}
 
 	// Get the ACL token

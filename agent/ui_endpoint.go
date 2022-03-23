@@ -140,7 +140,7 @@ func (s *HTTPHandlers) UINodeInfo(resp http.ResponseWriter, req *http.Request) (
 		return nil, err
 	}
 	if args.Node == "" {
-		return nil, BadRequestError{Reason: "Missing node name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing node name"}
 	}
 
 	// Make the RPC request
@@ -254,7 +254,7 @@ func (s *HTTPHandlers) UIGatewayServicesNodes(resp http.ResponseWriter, req *htt
 		return nil, err
 	}
 	if args.ServiceName == "" {
-		return nil, BadRequestError{Reason: "Missing gateway name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing gateway name"}
 	}
 
 	// Make the RPC request
@@ -298,12 +298,12 @@ func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Req
 		return nil, err
 	}
 	if args.ServiceName == "" {
-		return nil, BadRequestError{Reason: "Missing service name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
 	}
 
 	kind, ok := req.URL.Query()["kind"]
 	if !ok {
-		return nil, BadRequestError{Reason: "Missing service kind"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service kind"}
 	}
 	args.ServiceKind = structs.ServiceKind(kind[0])
 
@@ -311,7 +311,7 @@ func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Req
 	case structs.ServiceKindTypical, structs.ServiceKindIngressGateway:
 		// allowed
 	default:
-		return nil, BadRequestError{Reason: fmt.Sprintf("Unsupported service kind %q", args.ServiceKind)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Unsupported service kind %q", args.ServiceKind)}
 	}
 
 	// Make the RPC request
@@ -576,7 +576,7 @@ func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.R
 		return nil, err
 	}
 	if name == "" {
-		return nil, BadRequestError{Reason: "Missing gateway name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing gateway name"}
 	}
 	args.Match = &structs.IntentionQueryMatch{
 		Type: structs.IntentionMatchDestination,
@@ -668,7 +668,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	u, err := url.Parse(newURL)
 	if err != nil {
 		log.Error("couldn't parse target URL", "base_url", cfg.BaseURL, "path", subPath)
-		return nil, BadRequestError{Reason: "Invalid path."}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid path."}
 	}
 
 	// Clean the new URL path to prevent path traversal attacks and remove any
@@ -717,7 +717,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 			"path", subPath,
 			"target_url", u.String(),
 		)
-		return nil, BadRequestError{Reason: "Invalid path."}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid path."}
 	}
 
 	// Add any configured headers

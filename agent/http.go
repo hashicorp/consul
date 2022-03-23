@@ -51,15 +51,6 @@ func (e MethodNotAllowedError) Error() string {
 	return fmt.Sprintf("method %s not allowed", e.Method)
 }
 
-// BadRequestError should be returned by a handler when parameters or the payload are not valid
-type BadRequestError struct {
-	Reason string
-}
-
-func (e BadRequestError) Error() string {
-	return fmt.Sprintf("Bad request: %s", e.Reason)
-}
-
 // CodeWithPayloadError allow returning non HTTP 200
 // Error codes while not returning PlainText payload
 type CodeWithPayloadError struct {
@@ -407,11 +398,6 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			return ok
 		}
 
-		isBadRequest := func(err error) bool {
-			_, ok := err.(BadRequestError)
-			return ok
-		}
-
 		isTooManyRequests := func(err error) bool {
 			// Sadness net/rpc can't do nice typed errors so this is all we got
 			return err.Error() == consul.ErrRateLimited.Error()
@@ -458,9 +444,6 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			case isHTTPError(err):
 				err := err.(HTTPError)
 				resp.WriteHeader(err.StatusCode)
-				fmt.Fprint(resp, err.Error())
-			case isBadRequest(err):
-				resp.WriteHeader(http.StatusBadRequest)
 				fmt.Fprint(resp, err.Error())
 			case isTooManyRequests(err):
 				resp.WriteHeader(http.StatusTooManyRequests)

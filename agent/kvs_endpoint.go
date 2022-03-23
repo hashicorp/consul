@@ -56,7 +56,7 @@ func (s *HTTPHandlers) KVSGet(resp http.ResponseWriter, req *http.Request, args 
 	if _, ok := params["recurse"]; ok {
 		method = "KVS.List"
 	} else if args.Key == "" {
-		return nil, BadRequestError{Reason: "Missing key name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing key name"}
 	}
 
 	// Do not allow wildcard NS on GET reqs
@@ -157,7 +157,7 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 		return nil, err
 	}
 	if args.Key == "" {
-		return nil, BadRequestError{Reason: "Missing key name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing key name"}
 	}
 	if conflictingFlags(resp, req, "cas", "acquire", "release") {
 		return nil, nil
@@ -258,7 +258,7 @@ func (s *HTTPHandlers) KVSDelete(resp http.ResponseWriter, req *http.Request, ar
 	if _, ok := params["recurse"]; ok {
 		applyReq.Op = api.KVDeleteTree
 	} else if args.Key == "" {
-		return nil, BadRequestError{Reason: "Missing key name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing key name"}
 	}
 
 	// Check for cas value

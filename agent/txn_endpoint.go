@@ -109,7 +109,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 			// Note the body is in API format, and not the RPC format. If we can't
 			// decode it, we will return a 400 since we don't have enough context to
 			// associate the error with a given operation.
-			return nil, 0, BadRequestError{Reason: fmt.Sprintf("Failed to parse body: %v", err)}
+			return nil, 0, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Failed to parse body: %v", err)}
 		}
 	}
 
