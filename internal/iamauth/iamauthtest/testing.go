@@ -21,7 +21,6 @@ func NewTestServer(s *Server) *httptest.Server {
 
 // Server contains configuration for the fake AWS API server.
 type Server struct {
-	// interface{} types to avoid import cycle
 	GetCallerIdentityResponse responses.GetCallerIdentityResponse
 	GetRoleResponse           responses.GetRoleResponse
 	GetUserResponse           responses.GetUserResponse
@@ -29,7 +28,7 @@ type Server struct {
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, r)
 		return
 	}
 
@@ -48,9 +47,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, r)
 	default:
-		w.WriteHeader(http.StatusNotFound)
+		writeError(w, http.StatusNotFound, r)
 	}
 }
 
@@ -58,9 +57,20 @@ func writeXML(w http.ResponseWriter, val interface{}) {
 	str, err := xml.MarshalIndent(val, "", " ")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintln(w, err.Error())
+		fmt.Fprint(w, err.Error())
+		return
 	}
 	w.Header().Add("Content-Type", "text/xml")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(str))
+	fmt.Fprint(w, string(str))
+}
+
+func writeError(w http.ResponseWriter, code int, r *http.Request) {
+	w.WriteHeader(code)
+	msg := fmt.Sprintf("%s %s", r.Method, r.URL)
+	fmt.Fprintf(w, `<ErrorResponse xmlns="https://fakeaws/">
+  <Error>
+	<Message>Fake AWS Server Error: %s</Message>
+  </Error>
+</ErrorResponse>`, msg)
 }

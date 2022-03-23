@@ -525,19 +525,20 @@ func TestLoginCommand_aws_iam(t *testing.T) {
 	t.Parallel()
 
 	var (
-		assumedRoleArn   = "arn:aws:sts::1234567890:assumed-role/my-role/some-session"
-		canonicalRoleArn = "arn:aws:iam::1234567890:role/my-role"
-		roleArnWithPath  = "arn:aws:iam::1234567890:role/some/path/my-role"
-		roleArnWildcard  = "arn:aws:iam::1234567890:role/some/path/*"
-		roleName         = "my-role"
-		userArn          = "arn:aws:sts::1234567890:user/my-user"
-		userArnWildcard  = "arn:aws:sts::1234567890:user/*"
-		userName         = "my-user"
-		entityId         = "AAAsameuniqueid"
-		accountId        = "1234567890"
+		assumedRoleArn      = "arn:aws:sts::1234567890:assumed-role/my-role/some-session"
+		canonicalRoleArn    = "arn:aws:iam::1234567890:role/my-role"
+		roleArnWithPath     = "arn:aws:iam::1234567890:role/some/path/my-role"
+		roleArnWildcard     = "arn:aws:iam::1234567890:role/some/path/*"
+		roleName            = "my-role"
+		userArn             = "arn:aws:sts::1234567890:user/my-user"
+		userArnWildcard     = "arn:aws:sts::1234567890:user/*"
+		userName            = "my-user"
+		entityId            = "AAAsameuniqueid"
+		entityIdWithSession = entityId + ":some-session"
+		accountId           = "1234567890"
 
 		serverForRole = &iamauthtest.Server{
-			GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(assumedRoleArn, entityId, accountId),
+			GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(assumedRoleArn, entityIdWithSession, accountId),
 			GetRoleResponse: responsestest.MakeGetRoleResponse(
 				roleArnWithPath,
 				entityId,

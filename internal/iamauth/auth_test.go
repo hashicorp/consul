@@ -23,11 +23,13 @@ func TestValidateLogin(t *testing.T) {
 		userArn = "arn:aws:sts::1234567890:user/my-user"
 		// userArnWildcard  = "arn:aws:sts::1234567890:user/*"
 		// userName  = "my-user"
-		entityId  = "AAAsameuniqueid"
-		accountId = "1234567890"
+		entityId = "AAAsameuniqueid"
+		// https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_variables.html#principaltable
+		entityIdWithSession = entityId + ":some-session"
+		accountId           = "1234567890"
 
 		serverForRole = &iamauthtest.Server{
-			GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(assumedRoleArn, entityId, accountId),
+			GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(assumedRoleArn, entityIdWithSession, accountId),
 			GetRoleResponse: responsestest.MakeGetRoleResponse(
 				roleArnWithPath,
 				entityId,
@@ -42,6 +44,14 @@ func TestValidateLogin(t *testing.T) {
 				entityId,
 				responses.Tag{Key: "user-group", Value: "my-group"},
 			),
+		}
+		serverForRoleMismatchedIds = &iamauthtest.Server{
+			GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(assumedRoleArn, entityIdWithSession, accountId),
+			GetRoleResponse:           responsestest.MakeGetRoleResponse(roleArnWithPath, "AAAAsomenonmatchingid"),
+		}
+		serverForUserMismatchedIds = &iamauthtest.Server{
+			GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(userArn, entityId, accountId),
+			GetUserResponse:           responsestest.MakeGetUserResponse(userArn, "AAAAsomenonmatchingid"),
 		}
 	)
 
@@ -75,6 +85,24 @@ func TestValidateLogin(t *testing.T) {
 				ServerIDHeaderName:    "X-Test-ServerID",
 			},
 		},
+		"role unique id mismatch": {
+			expError: "unique id mismatch in login token",
+			// The RoleId in the GetRole response must match the UserId in the GetCallerIdentity response
+			// during login. If not, the RoleId cannot be used.
+			server: serverForRoleMismatchedIds,
+			config: &Config{
+				BoundIAMPrincipalARNs:  []string{roleArnWithPath},
+				EnableIAMEntityDetails: true,
+			},
+		},
+		"user unique id mismatch": {
+			expError: "unique id mismatch in login token",
+			server:   serverForUserMismatchedIds,
+			config: &Config{
+				BoundIAMPrincipalARNs:  []string{userArn},
+				EnableIAMEntityDetails: true,
+			},
+		},
 	}
 	logger := hclog.New(nil)
 	for name, c := range cases {
@@ -93,7 +121,7 @@ func TestValidateLogin(t *testing.T) {
 			loginInput := &LoginInput{
 				Creds:               credentials.NewStaticCredentials("fake", "fake", ""),
 				IncludeIAMEntity:    c.config.EnableIAMEntityDetails,
-				STSEndpoint:         fakeAws.URL,
+				STSEndpoint:         c.config.STSEndpoint,
 				STSRegion:           "fake-region",
 				Logger:              logger,
 				ServerIDHeaderValue: "server.id.example.com",

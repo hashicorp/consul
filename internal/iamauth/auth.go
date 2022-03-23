@@ -72,6 +72,7 @@ func (a *Authenticator) ValidateLogin(ctx context.Context, loginToken string) (*
 	if err != nil {
 		return nil, err
 	}
+	a.logger.Info("iamauth login attempt", "arn", callerIdentity.Arn)
 
 	entity, err := responses.ParseArn(callerIdentity.Arn)
 	if err != nil {
@@ -80,8 +81,10 @@ func (a *Authenticator) ValidateLogin(ctx context.Context, loginToken string) (*
 
 	identityDetails := &IdentityDetails{
 		EntityName: entity.FriendlyName,
-		EntityId:   callerIdentity.UserId,
-		AccountId:  callerIdentity.Account,
+		// This could either be a "userID:SessionID" (in the case of an assumed role) or just a "userID"
+		// (in the case of an IAM user).
+		EntityId:  strings.Split(callerIdentity.UserId, ":")[0],
+		AccountId: callerIdentity.Account,
 	}
 	clientArn := entity.CanonicalArn()
 
@@ -107,7 +110,7 @@ func (a *Authenticator) ValidateLogin(ctx context.Context, loginToken string) (*
 
 		// Only the CallerIdentity response is a guarantee of the client's identity.
 		// The role/user details must have a unique id match to the CallerIdentity before use.
-		if iamEntityDetails.EntityId() != callerIdentity.UserId {
+		if iamEntityDetails.EntityId() != identityDetails.EntityId {
 			return nil, fmt.Errorf("unique id mismatch in login token")
 		}
 
@@ -117,7 +120,6 @@ func (a *Authenticator) ValidateLogin(ctx context.Context, loginToken string) (*
 		identityDetails.EntityTags = iamEntityDetails.EntityTags()
 	}
 
-	a.logger.Info("iamauth login attempt", "arn", clientArn)
 	if err := a.validateIdentity(clientArn); err != nil {
 		return nil, err
 	}
