@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+
+	"github.com/hashicorp/consul/internal/iamauth/responses"
 )
 
 // NewTestServer returns a fake AWS API server for local tests:
@@ -20,9 +22,9 @@ func NewTestServer(s *Server) *httptest.Server {
 // Server contains configuration for the fake AWS API server.
 type Server struct {
 	// interface{} types to avoid import cycle
-	GetCallerIdentityResponse interface{}
-	GetRoleResponse           interface{}
-	GetUserResponse           interface{}
+	GetCallerIdentityResponse responses.GetCallerIdentityResponse
+	GetRoleResponse           responses.GetRoleResponse
+	GetUserResponse           responses.GetUserResponse
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {

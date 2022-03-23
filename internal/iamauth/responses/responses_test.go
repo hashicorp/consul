@@ -90,7 +90,6 @@ func TestParseArn(t *testing.T) {
 		},
 
 		// Invalid cases
-		// "arn:aws:sts::000000000000:assumed-role/my-role/session-name"
 		"empty string":               {arn: ""},
 		"wildcard":                   {arn: "*"},
 		"missing prefix":             {arn: ":aws:sts::000000000000:assumed-role/my-role/session-name"},
@@ -102,7 +101,7 @@ func TestParseArn(t *testing.T) {
 		"assumed-role missing parts": {arn: "arn:aws:sts::000000000000:assumed-role/my-role"},
 		"role missing parts":         {arn: "arn:aws:sts::000000000000:role"},
 		"role missing parts 2":       {arn: "arn:aws:sts::000000000000:role/"},
-		"user missing parts":         {arn: "arn:aws:sts::000000000000:user/"},
+		"user missing parts":         {arn: "arn:aws:sts::000000000000:user"},
 		"user missing parts 2":       {arn: "arn:aws:sts::000000000000:user/"},
 		"unsupported service":        {arn: "arn:aws:ecs:us-east-1:000000000000:task/my-task/00000000000000000000000000000000"},
 	}

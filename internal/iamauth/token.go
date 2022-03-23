@@ -161,35 +161,38 @@ func (t *BearerToken) validateIAMEntityBody() (string, error) {
 }
 
 // parseRequestBody parses the AWS STS or IAM request body, such as 'Action=GetRole&RoleName=my-role'.
+// It returns the parsed values, or an error if there are unexpected fields based on allowedValues.
+//
 // A key-value pair in the body is allowed if:
-//  - It is a single value (i.e. no bodies like 'Action=1&Action=2'
+//  - It is a single value (i.e. no bodies like 'Action=1&Action=2')
 //  - allowedValues[key] is an empty slice or nil (any value is allowed for the key)
 //  - allowedValues[key] is non-empty and contains the exact value
-// This always requires an 'Action' field is present.
+// This always requires an 'Action' field is present and non-empty.
 func parseRequestBody(body string, allowedValues url.Values) (url.Values, error) {
 	qs, err := url.ParseQuery(body)
 	if err != nil {
 		return nil, err
 	}
 
+	// Action field is always required.
+	if _, ok := qs["Action"]; !ok || len(qs["Action"]) == 0 || qs["Action"][0] == "" {
+		return nil, fmt.Errorf(`missing field "Action"`)
+	}
+
 	// Ensure the body does not have extra fields and each
-	// field in the body matches the expected fields.
+	// field in the body matches the allowed values.
 	for k, v := range qs {
 		exp, ok := allowedValues[k]
-		if !ok {
+		if k != "Action" && !ok {
 			return nil, fmt.Errorf("unexpected field %q", k)
 		}
+
 		if len(exp) == 0 {
 			// empty indicates any value is okay
 			continue
 		} else if len(v) != 1 || !stringslice.Contains(exp, v[0]) {
 			return nil, fmt.Errorf("unexpected value %s=%v", k, v)
 		}
-	}
-
-	// Action field is always required.
-	if _, ok := qs["Action"]; !ok || len(qs["Action"]) == 0 {
-		return nil, fmt.Errorf(`missing field "Action"`)
 	}
 
 	return qs, nil
@@ -248,9 +251,6 @@ func (t *BearerToken) UnmarshalJSON(data []byte) error {
 	t.getCallerIdentityHeader = headers
 	t.getCallerIdentityURL = string(rawUrl)
 
-	fmt.Printf("url = %q\n", t.getCallerIdentityURL)
-
-	// url.Parse does not error on empty string
 	parsedUrl, err := parseUrl(t.getCallerIdentityURL)
 	if err != nil {
 		return err

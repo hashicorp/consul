@@ -141,45 +141,10 @@ func (a *Authenticator) validateIdentity(clientArn string) error {
 	return fmt.Errorf("IAM principal %s is not trusted", clientArn)
 }
 
-// https://github.com/hashicorp/vault/blob/b17e3256dde937a6248c9a2fa56206aac93d07de/builtin/credential/aws/path_login.go#L1636
 func (a *Authenticator) submitCallerIdentityRequest(ctx context.Context, req *http.Request) (*responses.GetCallerIdentityResult, error) {
-	retryableReq, err := retryablehttp.FromRequest(req)
+	responseBody, err := a.submitRequest(ctx, req)
 	if err != nil {
 		return nil, err
-	}
-	retryableReq = retryableReq.WithContext(ctx)
-	client := cleanhttp.DefaultClient()
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-	retryingClient := &retryablehttp.Client{
-		HTTPClient:   client,
-		RetryWaitMin: retryWaitMin,
-		RetryWaitMax: retryWaitMax,
-		RetryMax:     a.config.MaxRetries,
-		CheckRetry:   retryablehttp.DefaultRetryPolicy,
-		Backoff:      retryablehttp.DefaultBackoff,
-	}
-
-	response, err := retryingClient.Do(retryableReq)
-	if err != nil {
-		return nil, fmt.Errorf("error making request: %w", err)
-	}
-	if response != nil {
-		defer response.Body.Close()
-	}
-	// Validate that the response type is XML
-	if ct := response.Header.Get("Content-Type"); ct != "text/xml" {
-		return nil, fmt.Errorf("body of GetCallerIdentity is invalid")
-	}
-
-	// we check for status code afterwards to also print out response body
-	responseBody, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-	if response.StatusCode != 200 {
-		return nil, fmt.Errorf("received error code %d from STS: %s", response.StatusCode, string(responseBody))
 	}
 	callerIdentityResponse, err := parseGetCallerIdentityResponse(string(responseBody))
 	if err != nil {
@@ -189,14 +154,27 @@ func (a *Authenticator) submitCallerIdentityRequest(ctx context.Context, req *ht
 	if n := len(callerIdentityResponse.GetCallerIdentityResult); n != 1 {
 		return nil, fmt.Errorf("received %d identities in STS response but expected 1", n)
 	}
-
 	return &callerIdentityResponse.GetCallerIdentityResult[0], nil
 }
 
 func (a *Authenticator) submitGetIAMEntityRequest(ctx context.Context, req *http.Request, reqType string) (responses.IAMEntity, error) {
-	retryableReq, err := retryablehttp.FromRequest(req)
+	responseBody, err := a.submitRequest(ctx, req)
 	if err != nil {
 		return nil, err
+	}
+	iamResponse, err := parseGetIAMEntityResponse(string(responseBody), reqType)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing IAM response: %s", err)
+	}
+	return iamResponse, nil
+
+}
+
+// https://github.com/hashicorp/vault/blob/b17e3256dde937a6248c9a2fa56206aac93d07de/builtin/credential/aws/path_login.go#L1636
+func (a *Authenticator) submitRequest(ctx context.Context, req *http.Request) (string, error) {
+	retryableReq, err := retryablehttp.FromRequest(req)
+	if err != nil {
+		return "", err
 	}
 	retryableReq = retryableReq.WithContext(ctx)
 	client := cleanhttp.DefaultClient()
@@ -214,30 +192,25 @@ func (a *Authenticator) submitGetIAMEntityRequest(ctx context.Context, req *http
 
 	response, err := retryingClient.Do(retryableReq)
 	if err != nil {
-		return nil, fmt.Errorf("error making request: %w", err)
+		return "", fmt.Errorf("error making request: %w", err)
 	}
 	if response != nil {
 		defer response.Body.Close()
 	}
 	// Validate that the response type is XML
 	if ct := response.Header.Get("Content-Type"); ct != "text/xml" {
-		return nil, fmt.Errorf("body of iam:GetUser or iam:GetRole is invalid")
+		return "", fmt.Errorf("response body is invalid")
 	}
 
 	// we check for status code afterwards to also print out response body
 	responseBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if response.StatusCode != 200 {
-		return nil, fmt.Errorf("received error code %d from IAM: %s", response.StatusCode, string(responseBody))
+		return "", fmt.Errorf("received error code %d: %s", response.StatusCode, string(responseBody))
 	}
-
-	iamResponse, err := parseGetIAMEntityResponse(string(responseBody), reqType)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing IAM response: %s", err)
-	}
-	return iamResponse, nil
+	return string(responseBody), nil
 
 }
 
@@ -257,7 +230,7 @@ func parseGetIAMEntityResponse(response string, reqType string) (responses.IAMEn
 	if !strings.HasPrefix(response, "<GetRoleResponse") &&
 		!strings.HasPrefix(response, "<GetUserResponse") &&
 		!strings.HasPrefix(response, "<?xml") {
-		return nil, fmt.Errorf("body of iam:GetRole or iam:GetUser is invalid")
+		return nil, fmt.Errorf("body of GetRole or GetUser is invalid")
 	}
 
 	decoder := xml.NewDecoder(strings.NewReader(response))
@@ -270,7 +243,7 @@ func parseGetIAMEntityResponse(response string, reqType string) (responses.IAMEn
 			return nil, err
 		}
 		if n := len(result.GetRoleResult); n != 1 {
-			return nil, fmt.Errorf("received %d identities in iam:GetRole response but expected 1", n)
+			return nil, fmt.Errorf("received %d identities in GetRole response but expected 1", n)
 		}
 		return &result.GetRoleResult[0].Role, nil
 	case "GetUser":
@@ -280,11 +253,11 @@ func parseGetIAMEntityResponse(response string, reqType string) (responses.IAMEn
 			return nil, err
 		}
 		if n := len(result.GetUserResult); n != 1 {
-			return nil, fmt.Errorf("received %d identities in iam:GetUser response but expected 1", n)
+			return nil, fmt.Errorf("received %d identities in GetUser response but expected 1", n)
 		}
 		return &result.GetUserResult[0].User, nil
 	}
-	return nil, fmt.Errorf("invalid IAM request: %s", reqType)
+	return nil, fmt.Errorf("invalid %s request: %s", reqType, response)
 }
 
 // https://github.com/hashicorp/vault/blob/b17e3256dde937a6248c9a2fa56206aac93d07de/builtin/credential/aws/path_login.go#L1532
@@ -320,7 +293,7 @@ func validateHeaderValue(headers http.Header, headerName string, requiredHeaderV
 		signedHeaders := string(matches[1])
 		return ensureHeaderIsSigned(signedHeaders, headerName)
 	}
-	// TODO: If we support GET requests, then we need to parse the X-Amz-SignedHeaders
+	// NOTE: If we support GET requests, then we need to parse the X-Amz-SignedHeaders
 	// argument out of the query string and search in there for the header value
 	return fmt.Errorf("missing Authorization header")
 }

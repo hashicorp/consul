@@ -37,20 +37,22 @@ func (a *AWSLogin) flags() *flag.FlagSet {
 		"URL for AWS STS API calls. [aws-iam only]")
 
 	fs.StringVar(&a.region, "aws-region", "",
-		"Region for AWS STS API calls. Should only be set if -aws-sts-endpoint is set. If set, should "+
-			"match the region of -aws-sts-endpoint. [aws-iam only]")
+		"Region for AWS STS API calls. If set, should match the region of -aws-sts-endpoint. [aws-iam only]")
 
 	fs.StringVar(&a.serverIDHeaderValue, "aws-server-id-header-value", "",
-		"If set, the X-Consul-IAM-ServerID header is included in the signed AWS API request(s) that form "+
-			"the bearer token. This value must match the server-side configured value for the aws-iam auth method in order "+
-			"to login. This is optional and helps protect against replay attacks. [aws-iam only]")
+		"If set, an X-Consul-IAM-ServerID header is included in signed AWS API request(s) that form "+
+			"the bearer token. This value must match the server-side configured value for the auth method "+
+			"in order to login. This is optional and helps protect against replay attacks. [aws-iam only]")
 
 	fs.StringVar(&a.accessKeyId, "aws-access-key-id", "",
-		"The AWS credential to use instead of automatically dsicovering credentials. [aws-iam only]")
+		"AWS access key id to use. Requires -aws-secret-access-key if specified. [aws-iam only]")
+
 	fs.StringVar(&a.secretAccessKey, "aws-secret-access-key", "",
-		"The AWS credential to use instead of automatically dsicovering credentials. [aws-iam only]")
+		"AWS secret access key to use. Requires -aws-access-key-id if specified. [aws-iam only]")
+
 	fs.StringVar(&a.sessionToken, "aws-session-token", "",
-		"The AWS credential to use instead of automatically dsicovering credentials. [aws-iam only]")
+		"AWS session token to use. Requires -aws-access-key-id and -aws-secret-access-key if "+
+			"specified. [aws-iam only]")
 	return fs
 }
 
