@@ -143,7 +143,7 @@ func (s *HTTPHandlers) preparedQueryExecute(id string, resp http.ResponseWriter,
 			// We have to check the string since the RPC sheds
 			// the specific error type.
 			if structs.IsErrQueryNotFound(err) {
-				return nil, NotFoundError{Reason: err.Error()}
+				return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
 			}
 			return nil, err
 		}
@@ -196,7 +196,7 @@ RETRY_ONCE:
 		// We have to check the string since the RPC sheds
 		// the specific error type.
 		if structs.IsErrQueryNotFound(err) {
-			return nil, NotFoundError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
 		}
 		return nil, err
 	}
@@ -225,7 +225,7 @@ RETRY_ONCE:
 		// We have to check the string since the RPC sheds
 		// the specific error type.
 		if structs.IsErrQueryNotFound(err) {
-			return nil, NotFoundError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
 		}
 		return nil, err
 	}

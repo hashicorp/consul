@@ -323,7 +323,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds the error type
 		if err.Error() == consul.ErrIntentionNotFound.Error() {
-			return nil, NotFoundError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
 		}
 
 		// Not ideal, but there are a number of error scenarios that are not
@@ -519,7 +519,7 @@ func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter,
 	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds the error type
 		if err.Error() == consul.ErrIntentionNotFound.Error() {
-			return nil, NotFoundError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
 		}
 
 		// Not ideal, but there are a number of error scenarios that are not

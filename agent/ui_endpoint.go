@@ -606,14 +606,14 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// Check the UI was enabled at agent startup (note this is not reloadable
 	// currently).
 	if !s.IsUIEnabled() {
-		return nil, NotFoundError{Reason: "UI is not enabled"}
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "UI is not enabled"}
 	}
 
 	// Load reloadable proxy config
 	cfg, ok := s.metricsProxyCfg.Load().(config.UIMetricsProxy)
 	if !ok || cfg.BaseURL == "" {
 		// Proxy not configured
-		return nil, NotFoundError{Reason: "Metrics proxy is not enabled"}
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Metrics proxy is not enabled"}
 	}
 
 	// Fetch the ACL token, if provided, but ONLY from headers since other

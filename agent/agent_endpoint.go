@@ -425,7 +425,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 
 			svcState := s.agent.State.ServiceState(sid)
 			if svcState == nil {
-				return "", nil, NotFoundError{Reason: fmt.Sprintf("unknown service ID: %s", sid.String())}
+				return "", nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("unknown service ID: %s", sid.String())}
 			}
 
 			svc := svcState.Service
@@ -773,7 +773,7 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 		if service != nil {
 			health.ServiceName = service.Service
 		} else {
-			return nil, NotFoundError{fmt.Sprintf("ServiceID %q does not exist", cid.String())}
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("ServiceID %q does not exist", cid.String())}
 		}
 	}
 
@@ -1340,11 +1340,11 @@ func (s *HTTPHandlers) AgentServiceMaintenance(resp http.ResponseWriter, req *ht
 	if enable {
 		reason := params.Get("reason")
 		if err = s.agent.EnableServiceMaintenance(sid, reason, token); err != nil {
-			return nil, NotFoundError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
 		}
 	} else {
 		if err = s.agent.DisableServiceMaintenance(sid); err != nil {
-			return nil, NotFoundError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
 		}
 	}
 	s.syncChanges()
@@ -1522,7 +1522,7 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 			s.agent.tokens.UpdateReplicationToken(args.Token, token_store.TokenSourceAPI)
 
 		default:
-			return NotFoundError{Reason: fmt.Sprintf("Token %q is unknown", target)}
+			return HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Token %q is unknown", target)}
 		}
 
 		// TODO: is it safe to move this out of WithPersistenceLock?
