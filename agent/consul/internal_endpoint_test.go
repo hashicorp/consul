@@ -2485,13 +2485,10 @@ func TestInternal_CatalogOverview(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.MetricsReportingInterval = 100 * time.Millisecond
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -2540,17 +2537,13 @@ func TestInternal_CatalogOverview_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = TestDefaultInitialManagementToken
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 

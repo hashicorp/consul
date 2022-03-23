@@ -69,11 +69,15 @@ func getCatalogOverview(catalog *structs.CatalogContents) *structs.CatalogSummar
 	serviceInstanceChecks := make(map[string][]*structs.HealthCheck)
 	checkSummaries := make(map[string]structs.HealthSummary)
 
+	entMetaIDString := func(id string, entMeta structs.EnterpriseMeta) string {
+		return fmt.Sprintf("%s/%s/%s", id, entMeta.PartitionOrEmpty(), entMeta.NamespaceOrEmpty())
+	}
+
 	// Compute the health check summaries by taking the pass/warn/fail counts
 	// of each unique part/ns/checkname combo and storing them. Also store the
 	// per-node and per-service instance checks for their respective summaries below.
 	for _, check := range catalog.Checks {
-		checkID := fmt.Sprintf("%s/%s", check.EnterpriseMeta.String(), check.Name)
+		checkID := entMetaIDString(check.Name, check.EnterpriseMeta)
 		summary, ok := checkSummaries[checkID]
 		if !ok {
 			summary = structs.HealthSummary{
@@ -86,11 +90,10 @@ func getCatalogOverview(catalog *structs.CatalogContents) *structs.CatalogSummar
 		checkSummaries[checkID] = summary
 
 		if check.ServiceID != "" {
-			serviceInstanceID := fmt.Sprintf("%s/%s/%s", check.EnterpriseMeta.String(), check.Node, check.ServiceID)
+			serviceInstanceID := entMetaIDString(fmt.Sprintf("%s/%s", check.Node, check.ServiceID), check.EnterpriseMeta)
 			serviceInstanceChecks[serviceInstanceID] = append(serviceInstanceChecks[serviceInstanceID], check)
 		} else {
-			nodeMeta := check.NodeIdentity().EnterpriseMeta
-			nodeID := fmt.Sprintf("%s/%s", nodeMeta.String(), check.Node)
+			nodeID := structs.NodeNameString(check.Node, &check.EnterpriseMeta)
 			nodeChecks[nodeID] = append(nodeChecks[nodeID], check)
 		}
 	}
@@ -110,7 +113,7 @@ func getCatalogOverview(catalog *structs.CatalogContents) *structs.CatalogSummar
 		}
 
 		// Compute whether this service instance is healthy based on its associated checks.
-		serviceInstanceID := fmt.Sprintf("%s/%s/%s", svc.EnterpriseMeta.String(), svc.Node, svc.ServiceID)
+		serviceInstanceID := entMetaIDString(fmt.Sprintf("%s/%s", svc.Node, svc.ServiceID), svc.EnterpriseMeta)
 		status := api.HealthPassing
 		for _, checks := range serviceInstanceChecks[serviceInstanceID] {
 			if checks.Status == api.HealthWarning && status == api.HealthPassing {
@@ -130,8 +133,7 @@ func getCatalogOverview(catalog *structs.CatalogContents) *structs.CatalogSummar
 	// each partition.
 	nodeSummaries := make(map[string]structs.HealthSummary)
 	for _, node := range catalog.Nodes {
-		nodeMeta := structs.NodeEnterpriseMetaInPartition(node.Partition)
-		summary, ok := nodeSummaries[nodeMeta.String()]
+		summary, ok := nodeSummaries[node.Partition]
 		if !ok {
 			summary = structs.HealthSummary{
 				EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(node.Partition),
@@ -140,7 +142,7 @@ func getCatalogOverview(catalog *structs.CatalogContents) *structs.CatalogSummar
 
 		// Compute whether this node is healthy based on its associated checks.
 		status := api.HealthPassing
-		nodeID := fmt.Sprintf("%s/%s", nodeMeta.String(), node.Node)
+		nodeID := structs.NodeNameString(node.Node, structs.NodeEnterpriseMetaInPartition(node.Partition))
 		for _, checks := range nodeChecks[nodeID] {
 			if checks.Status == api.HealthWarning && status == api.HealthPassing {
 				status = api.HealthWarning
@@ -151,7 +153,7 @@ func getCatalogOverview(catalog *structs.CatalogContents) *structs.CatalogSummar
 		}
 
 		summary.Add(status)
-		nodeSummaries[nodeMeta.String()] = summary
+		nodeSummaries[node.Partition] = summary
 	}
 
 	// Construct the summary.
@@ -171,7 +173,10 @@ func getCatalogOverview(catalog *structs.CatalogContents) *structs.CatalogSummar
 			if slice[i].Name < slice[j].Name {
 				return true
 			}
-			return slice[i].EnterpriseMeta.String() < slice[j].EnterpriseMeta.String()
+			if slice[i].NamespaceOrEmpty() < slice[j].NamespaceOrEmpty() {
+				return true
+			}
+			return slice[i].PartitionOrEmpty() < slice[j].PartitionOrEmpty()
 		}
 	}
 	sort.Slice(summary.Nodes, summarySort(summary.Nodes))
