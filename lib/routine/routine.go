@@ -109,6 +109,10 @@ func (m *Manager) execute(ctx context.Context, name string, routine Routine, don
 	}
 }
 
+// Caveat: The returned stoppedCh indicates that the routine is completed
+//         It's possible that ctx is canceled, but stoppedCh not yet closed
+//         Use mgr.IsRunning(name) than this stoppedCh to tell whether the
+//         instance is still running (not cancelled or completed).
 func (m *Manager) Stop(name string) <-chan struct{} {
 	instance := m.stopInstance(name)
 	if instance == nil {
