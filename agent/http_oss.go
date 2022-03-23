@@ -15,13 +15,13 @@ func (s *HTTPHandlers) parseEntMeta(req *http.Request, entMeta *structs.Enterpri
 	if headerNS := req.Header.Get("X-Consul-Namespace"); headerNS != "" {
 		return HTTPError{
 			StatusCode: http.StatusBadRequest,
-			Reason: "Invalid header: \"X-Consul-Namespace\" - Namespaces are a Consul Enterprise feature",
+			Reason:     "Invalid header: \"X-Consul-Namespace\" - Namespaces are a Consul Enterprise feature",
 		}
 	}
 	if queryNS := req.URL.Query().Get("ns"); queryNS != "" {
 		return HTTPError{
 			StatusCode: http.StatusBadRequest,
-			Reason: "Invalid query parameter: \"ns\" - Namespaces are a Consul Enterprise feature",
+			Reason:     "Invalid query parameter: \"ns\" - Namespaces are a Consul Enterprise feature",
 		}
 	}
 
@@ -39,7 +39,7 @@ func (s *HTTPHandlers) validateEnterpriseIntentionPartition(logName, partition s
 
 	return HTTPError{
 		StatusCode: http.StatusBadRequest,
-		Reason: "Invalid " + logName + "(" + partition + ")" + ": Partitions is a Consul Enterprise feature",
+		Reason:     "Invalid " + logName + "(" + partition + ")" + ": Partitions is a Consul Enterprise feature",
 	}
 }
 
@@ -54,7 +54,7 @@ func (s *HTTPHandlers) validateEnterpriseIntentionNamespace(logName, ns string, 
 
 	return HTTPError{
 		StatusCode: http.StatusBadRequest,
-		Reason: "Invalid " + logName + "(" + ns + ")" + ": Namespaces is a Consul Enterprise feature",
+		Reason:     "Invalid " + logName + "(" + ns + ")" + ": Namespaces is a Consul Enterprise feature",
 	}
 }
 
@@ -85,7 +85,7 @@ func parseACLAuthMethodEnterpriseMeta(req *http.Request, _ *structs.ACLAuthMetho
 	if methodNS := req.URL.Query().Get("authmethod-ns"); methodNS != "" {
 		return HTTPError{
 			StatusCode: http.StatusBadRequest,
-			Reason: "Invalid query parameter: \"authmethod-ns\" - Namespaces are a Consul Enterprise feature",
+			Reason:     "Invalid query parameter: \"authmethod-ns\" - Namespaces are a Consul Enterprise feature",
 		}
 	}
 
@@ -107,13 +107,13 @@ func (s *HTTPHandlers) parseEntMetaPartition(req *http.Request, meta *structs.En
 	if headerAP := req.Header.Get("X-Consul-Partition"); headerAP != "" {
 		return HTTPError{
 			StatusCode: http.StatusBadRequest,
-			Reason: "Invalid header: \"X-Consul-Partition\" - Partitions are a Consul Enterprise feature",
+			Reason:     "Invalid header: \"X-Consul-Partition\" - Partitions are a Consul Enterprise feature",
 		}
 	}
 	if queryAP := req.URL.Query().Get("partition"); queryAP != "" {
 		return HTTPError{
 			StatusCode: http.StatusBadRequest,
-			Reason: "Invalid query parameter: \"partition\" - Partitions are a Consul Enterprise feature",
+			Reason:     "Invalid query parameter: \"partition\" - Partitions are a Consul Enterprise feature",
 		}
 	}
 

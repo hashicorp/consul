@@ -26,7 +26,6 @@ import (
 //       They are not intended to thoroughly test the backing RPC
 //       functionality as that will be done with other tests.
 
-
 func isHTTPBadRequest(err error) bool {
 	if err, ok := err.(HTTPError); ok {
 		if err.StatusCode != 400 {
