@@ -23,6 +23,13 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // RaftIndex is used to track the index used while creating
 // or modifying a given struct type.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.RaftIndex
+// output=common.gen.go
+// name=Structs
+// ignore-fields=state,sizeCache,unknownFields
 type RaftIndex struct {
 	// @gotags: bexpr:"-"
 	CreateIndex uint64 `protobuf:"varint,1,opt,name=CreateIndex,proto3" json:"CreateIndex,omitempty" bexpr:"-"`

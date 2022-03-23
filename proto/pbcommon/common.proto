@@ -9,6 +9,13 @@ import "google/protobuf/duration.proto";
 
 // RaftIndex is used to track the index used while creating
 // or modifying a given struct type.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.RaftIndex
+// output=common.gen.go
+// name=Structs
+// ignore-fields=state,sizeCache,unknownFields
 message RaftIndex {
    // @gotags: bexpr:"-"
    uint64 CreateIndex = 1;

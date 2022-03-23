@@ -5,7 +5,7 @@ package connect;
 option go_package = "github.com/hashicorp/consul/proto/pbconnect";
 
 import "google/protobuf/timestamp.proto";
-import "proto/pbcommongogo/common.proto";
+import "proto/pbcommon/common.proto";
 
 // CARoots is the list of all currently trusted CA Roots.
 //
@@ -50,7 +50,7 @@ message CARoots {
 	// QueryMeta here is mainly used to contain the latest Raft Index that could
 	// be used to perform a blocking query.
 	// mog: func-to=QueryMetaTo func-from=QueryMetaFrom
-	commongogo.QueryMeta QueryMeta = 4;
+	common.QueryMeta QueryMeta = 4;
 }
 
 // CARoot is the trusted CA Root.
@@ -87,9 +87,9 @@ message CARoot {
 	string ExternalTrustDomain = 5;
 
 	// Time validity bounds.
-	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
+	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
 	google.protobuf.Timestamp NotBefore = 6;
-	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
+	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
 	google.protobuf.Timestamp NotAfter = 7;
 
 	// RootCert is the PEM-encoded public certificate.
@@ -114,7 +114,7 @@ message CARoot {
 	// RotatedOutAt is the time at which this CA was removed from the state.
 	// This will only be set on roots that have been rotated out from being the
 	// active root.
-	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
+	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
 	google.protobuf.Timestamp RotatedOutAt = 13;
 
 	// PrivateKeyType is the type of the private key used to sign certificates. It
@@ -129,9 +129,11 @@ message CARoot {
 	int32 PrivateKeyBits = 15;
 
 	// mog: func-to=RaftIndexTo func-from=RaftIndexFrom
-	commongogo.RaftIndex RaftIndex = 16;
+	common.RaftIndex RaftIndex = 16;
 }
 
+// RaftIndex is used to track the index used while creating
+// or modifying a given struct type.
 //
 // mog annotation:
 //
@@ -161,15 +163,15 @@ message IssuedCert {
 
 	// ValidAfter and ValidBefore are the validity periods for the
 	// certificate.
-	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
+	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
 	google.protobuf.Timestamp ValidAfter = 8;
-	// mog: func-to=structs.TimeFromProtoGogo func-from=structs.TimeToProtoGogo
+	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
 	google.protobuf.Timestamp ValidBefore = 9;
 
 	// EnterpriseMeta is the Consul Enterprise specific metadata
 	// mog: func-to=EnterpriseMetaTo func-from=EnterpriseMetaFrom
-	commongogo.EnterpriseMeta EnterpriseMeta = 10;
+	common.EnterpriseMeta EnterpriseMeta = 10;
 
 	// mog: func-to=RaftIndexTo func-from=RaftIndexFrom
-	commongogo.RaftIndex RaftIndex = 11;
+	common.RaftIndex RaftIndex = 11;
 }
