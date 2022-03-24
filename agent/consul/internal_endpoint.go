@@ -147,6 +147,28 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 		})
 }
 
+func (m *Internal) CatalogOverview(args *structs.DCSpecificRequest, reply *structs.CatalogSummary) error {
+	if done, err := m.srv.ForwardRPC("Internal.CatalogOverview", args, reply); done {
+		return err
+	}
+
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if authz.OperatorRead(nil) != acl.Allow {
+		return acl.PermissionDeniedByACLUnnamed(authz, nil, acl.ResourceOperator, acl.AccessRead)
+	}
+
+	summary := m.srv.overviewManager.GetCurrentSummary()
+	if summary != nil {
+		*reply = *summary
+	}
+
+	return nil
+}
+
 func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceTopology) error {
 	if done, err := m.srv.ForwardRPC("Internal.ServiceTopology", args, reply); done {
 		return err
