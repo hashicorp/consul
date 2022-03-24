@@ -1,0 +1,3 @@
+```release-note:bug
+connect/ca: cancel old Vault renewal on CA configuration. Provide a backoff on token renewal requests when there is an error.
+```
