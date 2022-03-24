@@ -519,6 +519,53 @@ These metrics are used to monitor the health of the Consul servers.
 | `consul.grpc.server.streams`                        | Measures the number of active gRPC streams handled by the server.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | streams                           | gauge   |
 | `consul.xds.server.streams`                         | Measures the number of active xDS streams handled by the server split by protocol version.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | streams                           | gauge   |
 
+
+## Server Workload
+
+** Requirements: **
+* Consul 1.12.0+
+
+We added new RPC metrics as of 1.12 to better understand A) the workload on a Consul server and B) where that workload is coming from. These metrics give insight into that:
+
+| Metric                                | Description                                               | Unit   | Type    |
+| ------------------------------------- | --------------------------------------------------------- | ------ | ------- |
+| `consul.rpc.server.call`              | Measures the elapsed time taken to complete an RPC call.  | ms     | gauge   |
+
+### New RPC Metric Labels
+
+The new metrics above come with the following labels:
+
+| Label Name                            | Description                                               | Possible values                         |
+| ------------------------------------- | --------------------------------------------------------- | --------------------------------------- |
+| `method`                              | The name of the RPC method.                               | The value of any RPC request in Consul. |
+| `errored`                             | Indicates whether the RPC call errored.                   | `True` or `False`.                      |
+| `request_type`                        | Whether it is a `read` or `write` request.                | `read` or `write`.                      |
+| `rpc_type`                            | The RPC implementation.                                   | `net/rpc` or `internal`.                |
+
+The `internal` value for the `rpc_type` in the table above refers to leader and cluster management RPC operations that Consul performs.
+Historically, `internal` RPC operation metrics were accounted under the same metric names.
+
+Here's an example of a new RPC metric and its labels:
+
+<CodeBlockConfig heading="Sample output of telemetry dump">
+
+```json
+    {
+      "Name": "consul.rpc.server.call",
+      "Value": 36,
+      "Labels": {
+        "errored": "false",
+        "method": "ConnectCA.ConfigurationSet",
+        "request_type": "write",
+        "rpc_type": "net/rpc"
+      }
+    },
+```
+
+</CodeBlockConfig>
+
+While we don't encourage it, any metric in this section can be turned off with the [`prefix_filter`]((/docs/agent/options##telemetry-prefix_filter)).
+
 ## Cluster Health
 
 These metrics give insight into the health of the cluster as a whole.
