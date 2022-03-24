@@ -63,6 +63,8 @@ func (e CodeWithPayloadError) Error() string {
 	return e.Reason
 }
 
+// HTTPError is returned by the handler when a specific http error
+// code is needed alongside a plain text response.
 type HTTPError struct {
 	StatusCode int
 	Reason     string
@@ -443,8 +445,16 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				fmt.Fprint(resp, err.Error())
 			case isHTTPError(err):
 				err := err.(HTTPError)
-				resp.WriteHeader(err.StatusCode)
-				fmt.Fprint(resp, err.Error())
+				code := http.StatusInternalServerError
+				if err.StatusCode != 0 {
+					code = err.StatusCode
+				}
+				reason := "An unexpected error occurred"
+				if err.Error() != "" {
+					reason = err.Error()
+				}
+				resp.WriteHeader(code)
+				fmt.Fprint(resp, reason)
 			case isTooManyRequests(err):
 				resp.WriteHeader(http.StatusTooManyRequests)
 				fmt.Fprint(resp, err.Error())
