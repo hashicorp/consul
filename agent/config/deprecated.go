@@ -225,7 +225,7 @@ func applyDeprecatedTLSConfig(dep DeprecatedConfig, cfg *Config) []string {
 			// removed
 			if version, ok := types.DeprecatedConsulAgentTLSVersions[*v]; ok {
 				// Log warning about deprecated config values
-				warns = append(warns, fmt.Sprintf("'tls_min_version' value '%s' is deprecated, please specify '%s' instead", v, version))
+				warns = append(warns, fmt.Sprintf("'tls_min_version' value '%s' is deprecated, please specify '%s' instead", *v, version))
 				versionString := version.String()
 				defaults.TLSMinVersion = &versionString
 			} else {
