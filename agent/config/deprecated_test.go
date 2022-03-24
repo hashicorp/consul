@@ -1,7 +1,7 @@
 package config
 
 import (
-	"crypto/tls"
+	"fmt"
 	"sort"
 	"testing"
 	"time"
@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestLoad_DeprecatedConfig(t *testing.T) {
@@ -33,8 +34,8 @@ ca_file = "some-ca-file"
 ca_path = "some-ca-path"
 cert_file = "some-cert-file"
 key_file = "some-key-file"
-tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-tls_min_version = "some-tls-version"
+tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+tls_min_version = "tls11"
 verify_incoming = true
 verify_incoming_https = false
 verify_incoming_rpc = false
@@ -61,6 +62,7 @@ tls_prefer_server_cipher_suites = true
 		deprecationWarning("cert_file", "tls.defaults.cert_file"),
 		deprecationWarning("key_file", "tls.defaults.key_file"),
 		deprecationWarning("tls_cipher_suites", "tls.defaults.tls_cipher_suites"),
+		fmt.Sprintf("'tls_min_version' value 'tls11' is deprecated, please specify 'TLSv1_1' instead"),
 		deprecationWarning("tls_min_version", "tls.defaults.tls_min_version"),
 		deprecationWarning("verify_incoming", "tls.defaults.verify_incoming"),
 		deprecationWarning("verify_incoming_https", "tls.https.verify_incoming"),
@@ -90,8 +92,8 @@ tls_prefer_server_cipher_suites = true
 		require.Equal(t, "some-ca-path", l.CAPath)
 		require.Equal(t, "some-cert-file", l.CertFile)
 		require.Equal(t, "some-key-file", l.KeyFile)
-		require.Equal(t, "some-tls-version", l.TLSMinVersion)
-		require.Equal(t, []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256}, l.CipherSuites)
+		require.Equal(t, types.TLSVersion("TLSv1_1"), l.TLSMinVersion)
+		require.Equal(t, []types.TLSCipherSuite{types.TLSCipherSuite("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA")}, l.CipherSuites)
 	}
 
 	require.False(t, rt.TLS.InternalRPC.VerifyIncoming)

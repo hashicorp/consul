@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -5395,8 +5394,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					ca_file = "default_ca_file"
 					ca_path = "default_ca_path"
 					cert_file = "default_cert_file"
-					tls_min_version = "tls12"
-					tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+					tls_min_version = "TLSv1_2"
+					tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"
 					verify_incoming = true
 				}
 
@@ -5406,7 +5405,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 				https {
 					cert_file = "https_cert_file"
-					tls_min_version = "tls13"
+					tls_min_version = "TLSv1_3"
 				}
 
 				grpc {
@@ -5425,8 +5424,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						"ca_file": "default_ca_file",
 						"ca_path": "default_ca_path",
 						"cert_file": "default_cert_file",
-						"tls_min_version": "tls12",
-						"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+						"tls_min_version": "TLSv1_2",
+						"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
 						"verify_incoming": true
 					},
 					"internal_rpc": {
@@ -5434,7 +5433,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					},
 					"https": {
 						"cert_file": "https_cert_file",
-						"tls_min_version": "tls13"
+						"tls_min_version": "TLSv1_3"
 					},
 					"grpc": {
 						"verify_incoming": false,
@@ -5455,22 +5454,21 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.InternalRPC.CAFile = "internal_rpc_ca_file"
 			rt.TLS.InternalRPC.CAPath = "default_ca_path"
 			rt.TLS.InternalRPC.CertFile = "default_cert_file"
-			rt.TLS.InternalRPC.TLSMinVersion = "tls12"
-			rt.TLS.InternalRPC.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256}
+			rt.TLS.InternalRPC.TLSMinVersion = "TLSv1_2"
+			rt.TLS.InternalRPC.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256}
 			rt.TLS.InternalRPC.VerifyIncoming = true
 
 			rt.TLS.HTTPS.CAFile = "default_ca_file"
 			rt.TLS.HTTPS.CAPath = "default_ca_path"
 			rt.TLS.HTTPS.CertFile = "https_cert_file"
-			rt.TLS.HTTPS.TLSMinVersion = "tls13"
-			rt.TLS.HTTPS.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256}
+			rt.TLS.HTTPS.TLSMinVersion = "TLSv1_3"
 			rt.TLS.HTTPS.VerifyIncoming = true
 
 			rt.TLS.GRPC.CAFile = "default_ca_file"
 			rt.TLS.GRPC.CAPath = "default_ca_path"
 			rt.TLS.GRPC.CertFile = "default_cert_file"
-			rt.TLS.GRPC.TLSMinVersion = "tls12"
-			rt.TLS.GRPC.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA}
+			rt.TLS.GRPC.TLSMinVersion = "TLSv1_2"
+			rt.TLS.GRPC.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA}
 			rt.TLS.GRPC.VerifyIncoming = false
 		},
 	})
@@ -6310,8 +6308,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				CAPath:               "lOp1nhPa",
 				CertFile:             "dfJ4oPln",
 				KeyFile:              "aL1Knkpo",
-				TLSMinVersion:        "lPo1MklP",
-				CipherSuites:         []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				TLSMinVersion:        types.TLSv1_1,
+				CipherSuites:         []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing:       true,
 				VerifyServerHostname: true,
 			},
@@ -6321,8 +6319,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				CAPath:         "fLponKpl",
 				CertFile:       "a674klPn",
 				KeyFile:        "1y4prKjl",
-				TLSMinVersion:  "lPo4fNkl",
-				CipherSuites:   []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				TLSMinVersion:  types.TLSv1_0,
+				CipherSuites:   []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing: false,
 			},
 			HTTPS: tlsutil.ProtocolConfig{
@@ -6331,8 +6329,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				CAPath:         "nu4PlHzn",
 				CertFile:       "1yrhPlMk",
 				KeyFile:        "1bHapOkL",
-				TLSMinVersion:  "mK14iOpz",
-				CipherSuites:   []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				TLSMinVersion:  types.TLSv1_3,
 				VerifyOutgoing: true,
 			},
 			NodeName:                "otlLxGaI",

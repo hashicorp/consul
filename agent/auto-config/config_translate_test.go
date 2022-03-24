@@ -108,7 +108,7 @@ func TestTranslateConfig(t *testing.T) {
 			Defaults: config.TLSProtocolConfig{
 				VerifyOutgoing:  boolPointer(true),
 				TLSCipherSuites: stringPointer("stuff"),
-				TLSMinVersion:   stringPointer("tls13"),
+				TLSMinVersion:   stringPointer("TLSv1_3"),
 			},
 			InternalRPC: config.TLSProtocolConfig{
 				VerifyServerHostname: boolPointer(true),
