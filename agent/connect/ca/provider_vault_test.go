@@ -849,5 +849,5 @@ func vaultProviderConfig(t *testing.T, addr, token string, rawConf map[string]in
 		RawConfig:  conf,
 	}
 
-    return cfg
+	return cfg
 }
