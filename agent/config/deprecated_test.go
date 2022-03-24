@@ -62,7 +62,7 @@ tls_prefer_server_cipher_suites = true
 		deprecationWarning("cert_file", "tls.defaults.cert_file"),
 		deprecationWarning("key_file", "tls.defaults.key_file"),
 		deprecationWarning("tls_cipher_suites", "tls.defaults.tls_cipher_suites"),
-		fmt.Sprintf("The value for 'tls_min_version' field is deprecated, please specify one of %v", types.TLSVersions()),
+		fmt.Sprintf("'tls_min_version' value 'tls11' is deprecated, please specify 'TLSv1_1' instead"),
 		deprecationWarning("tls_min_version", "tls.defaults.tls_min_version"),
 		deprecationWarning("verify_incoming", "tls.defaults.verify_incoming"),
 		deprecationWarning("verify_incoming_https", "tls.https.verify_incoming"),
