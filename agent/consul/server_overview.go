@@ -170,13 +170,13 @@ func getCatalogOverview(catalog *structs.CatalogContents) *structs.CatalogSummar
 
 	summarySort := func(slice []structs.HealthSummary) func(int, int) bool {
 		return func(i, j int) bool {
-			if slice[i].Name < slice[j].Name {
+			if slice[i].PartitionOrEmpty() < slice[j].PartitionOrEmpty() {
 				return true
 			}
 			if slice[i].NamespaceOrEmpty() < slice[j].NamespaceOrEmpty() {
 				return true
 			}
-			return slice[i].PartitionOrEmpty() < slice[j].PartitionOrEmpty()
+			return slice[i].Name < slice[j].Name
 		}
 	}
 	sort.Slice(summary.Nodes, summarySort(summary.Nodes))
