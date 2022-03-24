@@ -1757,7 +1757,6 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.TerminatingGateway.isEmpty())
 						require.True(t, snap.ConnectProxy.MeshConfigSet)
 						require.Nil(t, snap.ConnectProxy.MeshConfig)
-						require.True(t, snap.ConnectProxy.MeshConfigSet)
 					},
 				},
 			},
@@ -1844,7 +1843,6 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.TerminatingGateway.isEmpty())
 						require.True(t, snap.ConnectProxy.MeshConfigSet)
 						require.NotNil(t, snap.ConnectProxy.MeshConfig)
-						require.True(t, snap.ConnectProxy.MeshConfigSet)
 					},
 				},
 				// Receiving an intention should lead to spinning up a discovery chain watch
@@ -2413,7 +2411,6 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.TerminatingGateway.isEmpty())
 						require.True(t, snap.ConnectProxy.MeshConfigSet)
 						require.NotNil(t, snap.ConnectProxy.MeshConfig)
-						require.True(t, snap.ConnectProxy.MeshConfigSet)
 					},
 				},
 				// Discovery chain updates should be stored
