@@ -98,6 +98,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 			Datacenter:  "dc1",
 			Protocol:    "tcp",
 			StartNode:   "resolver:web.default.default.dc1",
+			Default:     true,
 			Nodes: map[string]*structs.DiscoveryGraphNode{
 				"resolver:web.default.default.dc1": {
 					Type: structs.DiscoveryGraphNodeTypeResolver,
@@ -286,12 +287,7 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 				args.QueryOptions.MinQueryIndex = minQueryIndex
 
 				var out structs.DiscoveryChainResponse
-				errCh := channelCallRPC(s1, "DiscoveryChain.Get", &args, &out, func() error {
-					if !out.Chain.IsDefault() {
-						return fmt.Errorf("expected default chain")
-					}
-					return nil
-				})
+				errCh := channelCallRPC(s1, "DiscoveryChain.Get", &args, &out, nil)
 				return &out.QueryMeta, errCh
 			},
 			func(i int) <-chan error {

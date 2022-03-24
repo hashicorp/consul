@@ -612,7 +612,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 
 	var escapeHatchCluster *envoy_cluster_v3.Cluster
 	if cfg.EnvoyClusterJSON != "" {
-		if chain.IsDefault() {
+		if chain.Default {
 			// If you haven't done anything to setup the discovery chain, then
 			// you can use the envoy_cluster_json escape hatch.
 			escapeHatchCluster, err = makeClusterFromUserConfig(cfg.EnvoyClusterJSON)

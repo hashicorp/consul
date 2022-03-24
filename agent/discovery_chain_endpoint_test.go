@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/require"
 )
 
 func TestDiscoveryChainRead(t *testing.T) {
@@ -79,6 +80,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 				Partition:   "default",
 				Datacenter:  "dc1",
 				Protocol:    "tcp",
+				Default:     true,
 				StartNode:   "resolver:web.default.default.dc1",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
 					"resolver:web.default.default.dc1": {
@@ -122,6 +124,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 				Namespace:   "default",
 				Partition:   "default",
 				Datacenter:  "dc2",
+				Default:     true,
 				Protocol:    "tcp",
 				StartNode:   "resolver:web.default.default.dc2",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
@@ -175,6 +178,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 				Namespace:   "default",
 				Partition:   "default",
 				Datacenter:  "dc1",
+				Default:     true,
 				Protocol:    "tcp",
 				StartNode:   "resolver:web.default.default.dc1",
 				Nodes: map[string]*structs.DiscoveryGraphNode{

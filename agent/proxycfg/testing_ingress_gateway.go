@@ -685,10 +685,10 @@ func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot
 		quxChain = discoverychain.TestCompileConfigEntries(t, "qux", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 	)
 
-	require.False(t, fooChain.IsDefault())
-	require.False(t, barChain.IsDefault())
-	require.True(t, bazChain.IsDefault())
-	require.True(t, quxChain.IsDefault())
+	require.False(t, fooChain.Default)
+	require.False(t, barChain.Default)
+	require.True(t, bazChain.Default)
+	require.True(t, quxChain.Default)
 
 	return TestConfigSnapshotIngressGateway(t, false, "http", "default", nil, func(entry *structs.IngressGatewayConfigEntry) {
 		entry.Listeners = []structs.IngressListener{
