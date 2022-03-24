@@ -43,6 +43,47 @@ func assertMetricExists(t *testing.T, respRec *httptest.ResponseRecorder, metric
 	}
 }
 
+// new_rpc_metrics_rpc_server_call{errored="false",method="Status.Ping",request_type="unknown",rpc_type="net/rpc"} 0
+func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecorder, metric string, labelNames []string) {
+	if respRec.Body.String() == "" {
+		t.Fatalf("Response body is empty.")
+	}
+
+	if !strings.Contains(respRec.Body.String(), metric) {
+		t.Fatalf("Could not find the metric \"%s\" in the /v1/agent/metrics response", metric)
+	}
+
+	foundAllLabels := false
+	metrics := respRec.Body.String()
+	for _, line := range strings.Split(metrics, "\n") {
+		// skip help lines
+		if line[0] == '#' {
+			continue
+		}
+
+		if strings.Contains(line, metric) {
+			hasAllLabels := true
+			for _, labelName := range labelNames {
+				if !strings.Contains(line, labelName) {
+					hasAllLabels = false
+					break
+				}
+			}
+
+			if hasAllLabels {
+				foundAllLabels = true
+
+				// done!
+				break
+			}
+		}
+	}
+
+	if !foundAllLabels {
+		t.Fatalf("Could not verify that all named labels \"%s\" exist for the metric \"%s\" in the /v1/agent/metrics response", strings.Join(labelNames, ", "), metric)
+	}
+}
+
 func assertMetricExistsWithValue(t *testing.T, respRec *httptest.ResponseRecorder, metric string, value string) {
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
@@ -92,7 +133,7 @@ func TestAgent_NewRPCMetrics(t *testing.T) {
 		respRec := httptest.NewRecorder()
 		recordPromMetrics(t, a, respRec)
 
-		assertMetricExists(t, respRec, metricsPrefix+"_rpc_server_call")
+		assertMetricExistsWithLabels(t, respRec, metricsPrefix+"_rpc_server_call", []string{"errored", "method", "request_type", "rpc_type"})
 	})
 }
 
