@@ -13,9 +13,9 @@ import (
 
 // obs holds all the things we want to assert on that we recorded correctly in our tests.
 type obs struct {
-	key    []string
-	start  time.Time
-	labels []metrics.Label
+	key     []string
+	elapsed float32
+	labels  []metrics.Label
 }
 
 // recorderStore acts as an in-mem mock storage for all the RequestRecorder.Record() recorderFunc calls.
@@ -41,9 +41,8 @@ func (rs *recorderStore) get(key []string) obs {
 }
 
 var store = recorderStore{store: make(map[string]obs)}
-var simpleRecorderFunc = func(key []string, start time.Time, labels []metrics.Label) {
-	o := obs{key: key, start: start, labels: labels}
-
+var simpleRecorderFunc = func(key []string, val float32, labels []metrics.Label) {
+	o := obs{key: key, elapsed: val, labels: labels}
 	store.put(key, o)
 }
 
@@ -71,13 +70,13 @@ func TestRequestRecorder_SimpleOK(t *testing.T) {
 	expectedLabels := []metrics.Label{
 		{Name: "method", Value: "A.B"},
 		{Name: "errored", Value: "false"},
-		{Name: "request_type", Value: "write"},
+		{Name: "request_type", Value: "unreported"},
 		{Name: "rpc_type", Value: RPCTypeInternal},
 	}
 
 	o := store.get(append(metricRPCRequest, expectedLabels[0].Value))
 	require.Equal(t, o.key, metricRPCRequest)
-	require.Equal(t, o.start, start)
+	require.LessOrEqual(t, o.elapsed, float32(start.Sub(time.Now()).Milliseconds()))
 	require.Equal(t, o.labels, expectedLabels)
 }
 
