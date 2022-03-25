@@ -98,9 +98,9 @@ func (e PermissionDeniedError) Error() string {
 	}
 
 	if e.Accessor == "" {
-		message.WriteString(": provided accessor")
+		message.WriteString(": provided token")
 	} else {
-		fmt.Fprintf(&message, ": accessor '%s'", e.Accessor)
+		fmt.Fprintf(&message, ": token with AccessorID '%s'", e.Accessor)
 	}
 
 	fmt.Fprintf(&message, " lacks permission '%s:%s'", e.Resource, e.AccessLevel.String())
