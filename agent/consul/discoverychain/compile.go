@@ -353,10 +353,6 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 // worked (roughly) in consul 1.5 pre-discovery chain, not that there are zero
 // config entries in play (like service-defaults).
 func (c *compiler) determineIfDefaultChain() bool {
-	if false {
-		return c.entries.IsChainEmpty()
-	}
-
 	if c.startNode == "" || len(c.nodes) == 0 {
 		return true
 	}
