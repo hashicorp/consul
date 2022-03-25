@@ -39,7 +39,6 @@ Add the name and key of the secret you just created to `server.enterpriseLicense
 ```yaml
 global:
   image: 'hashicorp/consul-enterprise:1.10.0-ent'
-server:
   enterpriseLicense:
     secretName: 'consul-ent-license'
     secretKey: 'key'
@@ -57,7 +56,6 @@ If the version of Consul is < 1.10, use the following config with the name and k
 ```yaml
 global:
   image: 'hashicorp/consul-enterprise:1.8.3-ent'
-server:
   enterpriseLicense:
     secretName: 'consul-ent-license'
     secretKey: 'key'
