@@ -2581,7 +2581,7 @@ func (b *builder) parsePrefixFilter(telemetry *Telemetry) ([]string, []string) {
 
 	// TODO(FFMMM): Once one twelve style RPC metrics get out of Beta, don't remove them by default.
 	operatorPassedOneTwelveRPCMetric := false
-	oneTwelveRPCMetric := *telemetry.MetricsPrefix + "." + strings.Join(middleware.NewRPCGauges[0].Name, ".")
+	oneTwelveRPCMetric := *telemetry.MetricsPrefix + "." + strings.Join(middleware.OneTwelveRPCGauges[0].Name, ".")
 
 	for _, rule := range telemetry.PrefixFilter {
 		if rule == "" {

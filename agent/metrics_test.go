@@ -108,9 +108,9 @@ func assertMetricNotExists(t *testing.T, respRec *httptest.ResponseRecorder, met
 	}
 }
 
-// TestAgent_NewRPCMetrics test for the new RPC metrics. These are the labeled metrics coming from
+// TestAgent_OneTwelveRPCMetrics test for the 1.12 style RPC metrics. These are the labeled metrics coming from
 // agent.rpc.middleware.interceptors package.
-func TestAgent_NewRPCMetrics(t *testing.T) {
+func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 	skipIfShortTesting(t)
 	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 
@@ -139,7 +139,7 @@ func TestAgent_NewRPCMetrics(t *testing.T) {
 
 	t.Run("Check that 1.12 rpc metrics are emitted when specified by operator.", func(t *testing.T) {
 		metricsPrefix := "new_rpc_metrics_2"
-		addRPCMetric := metricsPrefix + "." + strings.Join(middleware.NewRPCGauges[0].Name, ".")
+		addRPCMetric := metricsPrefix + "." + strings.Join(middleware.OneTwelveRPCGauges[0].Name, ".")
 		hcl := fmt.Sprintf(`
 		telemetry = {
 			prometheus_retention_time = "5s"

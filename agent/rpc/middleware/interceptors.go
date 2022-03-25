@@ -25,7 +25,7 @@ const RPCTypeNetRPC = "net/rpc"
 var metricRPCRequest = []string{"rpc", "server", "call"}
 var requestLogName = strings.Join(metricRPCRequest, ".")
 
-var NewRPCGauges = []prometheus.GaugeDefinition{
+var OneTwelveRPCGauges = []prometheus.GaugeDefinition{
 	{
 		Name: metricRPCRequest,
 		Help: "Measures the time an RPC service call takes to make in milliseconds. Labels mark which RPC method was called and metadata about the call.",
