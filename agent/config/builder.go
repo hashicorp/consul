@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/dns"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/ipaddr"
@@ -641,6 +642,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	// Parse the metric filters
 	var telemetryAllowedPrefixes, telemetryBlockedPrefixes []string
+
+	operatorEnableOneTwelveRPCMetric := false
+	oneTwelveRPCMetric := *c.Telemetry.MetricsPrefix + "." + strings.Join(middleware.NewRPCGauges[0].Name, ".")
+
 	for _, rule := range c.Telemetry.PrefixFilter {
 		if rule == "" {
 			b.warn("Cannot have empty filter rule in prefix_filter")
@@ -648,12 +653,19 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		}
 		switch rule[0] {
 		case '+':
+			if rule[1:] == oneTwelveRPCMetric {
+				operatorEnableOneTwelveRPCMetric = true
+			}
 			telemetryAllowedPrefixes = append(telemetryAllowedPrefixes, rule[1:])
 		case '-':
 			telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, rule[1:])
 		default:
 			b.warn("Filter rule must begin with either '+' or '-': %q", rule)
 		}
+	}
+
+	if !operatorEnableOneTwelveRPCMetric {
+		telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, oneTwelveRPCMetric)
 	}
 
 	// raft performance scaling

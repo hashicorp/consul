@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
@@ -113,7 +114,7 @@ func TestAgent_NewRPCMetrics(t *testing.T) {
 	skipIfShortTesting(t)
 	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 
-	t.Run("Check new rpc metrics are being emitted", func(t *testing.T) {
+	t.Run("Check that 1.12 rpc metrics are not emitted by default.", func(t *testing.T) {
 		metricsPrefix := "new_rpc_metrics"
 		hcl := fmt.Sprintf(`
 		telemetry = {
@@ -122,6 +123,31 @@ func TestAgent_NewRPCMetrics(t *testing.T) {
 			metrics_prefix = "%s"
 		}
 		`, metricsPrefix)
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+
+		var out struct{}
+		err := a.RPC("Status.Ping", struct{}{}, &out)
+		require.NoError(t, err)
+
+		respRec := httptest.NewRecorder()
+		recordPromMetrics(t, a, respRec)
+
+		assertMetricNotExists(t, respRec, metricsPrefix+"_rpc_server_call")
+	})
+
+	t.Run("Check that 1.12 rpc metrics are emitted when specified by operator.", func(t *testing.T) {
+		metricsPrefix := "new_rpc_metrics_2"
+		addRPCMetric := metricsPrefix + "." + strings.Join(middleware.NewRPCGauges[0].Name, ".")
+		hcl := fmt.Sprintf(`
+		telemetry = {
+			prometheus_retention_time = "5s"
+			disable_hostname = true
+			metrics_prefix = "%s"
+			prefix_filter = ["+%s"]
+		}
+		`, metricsPrefix, addRPCMetric)
 
 		a := StartTestAgent(t, TestAgent{HCL: hcl})
 		defer a.Shutdown()
