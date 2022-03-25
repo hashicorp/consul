@@ -64,8 +64,6 @@ type Config struct {
 	// AllowedSTSHeaderValues is a list of additional allowed headers on the sts:GetCallerIdentity
 	// request in the bearer token. A default list of necessary headers is allowed in any case.
 	AllowedSTSHeaderValues []string `json:",omitempty"`
-
-	enterpriseConfig `mapstructure:",squash"`
 }
 
 func (c *Config) convertForLibrary() *iamauth.Config {
@@ -164,21 +162,25 @@ func (v *Validator) ValidateLogin(ctx context.Context, loginToken string) (*auth
 }
 
 func (v *Validator) NewIdentity() *authmethod.Identity {
-	result := &authmethod.Identity{
-		SelectableFields: &awsSelectableFields{},
-		ProjectedVars: map[string]string{
-			"entity_name": "",
-			"entity_id":   "",
-			"account_id":  "",
-		},
+	fields := &awsSelectableFields{
+		EntityTags: map[string]string{},
+	}
+	vars := map[string]string{
+		"entity_name": "",
+		"entity_id":   "",
+		"account_id":  "",
 	}
 	if v.config.EnableIAMEntityDetails {
-		result.ProjectedVars["entity_path"] = ""
+		vars["entity_path"] = ""
 		for _, tag := range v.config.IAMEntityTags {
-			result.ProjectedVars["entity_tags."+tag] = ""
+			vars["entity_tags."+tag] = ""
+			fields.EntityTags[tag] = ""
 		}
 	}
-	return result
+	return &authmethod.Identity{
+		SelectableFields: fields,
+		ProjectedVars:    vars,
+	}
 }
 
 type awsSelectableFields struct {

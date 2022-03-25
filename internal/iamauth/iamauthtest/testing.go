@@ -6,17 +6,23 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
+	"testing"
 
 	"github.com/hashicorp/consul/internal/iamauth/responses"
+	"github.com/hashicorp/consul/internal/iamauth/responsestest"
 )
 
 // NewTestServer returns a fake AWS API server for local tests:
 // It supports the following paths:
 //   /sts returns STS API responses
 //   /iam returns IAM API responses
-func NewTestServer(s *Server) *httptest.Server {
-	return httptest.NewUnstartedServer(s)
+func NewTestServer(t *testing.T, s *Server) *httptest.Server {
+	server := httptest.NewUnstartedServer(s)
+	t.Cleanup(server.Close)
+	server.Start()
+	return server
 }
 
 // Server contains configuration for the fake AWS API server.
@@ -73,4 +79,109 @@ func writeError(w http.ResponseWriter, code int, r *http.Request) {
 	<Message>Fake AWS Server Error: %s</Message>
   </Error>
 </ErrorResponse>`, msg)
+}
+
+type Fixture struct {
+	AssumedRoleARN   string
+	CanonicalRoleARN string
+	RoleARN          string
+	RoleARNWildcard  string
+	RoleName         string
+	RolePath         string
+	RoleTags         map[string]string
+
+	EntityID            string
+	EntityIDWithSession string
+	AccountID           string
+
+	UserARN         string
+	UserARNWildcard string
+	UserName        string
+	UserPath        string
+	UserTags        map[string]string
+
+	ServerForRole *Server
+	ServerForUser *Server
+}
+
+func MakeFixture() Fixture {
+	f := Fixture{
+		AssumedRoleARN:   "arn:aws:sts::1234567890:assumed-role/my-role/some-session",
+		CanonicalRoleARN: "arn:aws:iam::1234567890:role/my-role",
+		RoleARN:          "arn:aws:iam::1234567890:role/some/path/my-role",
+		RoleARNWildcard:  "arn:aws:iam::1234567890:role/some/path/*",
+		RoleName:         "my-role",
+		RolePath:         "some/path",
+		RoleTags: map[string]string{
+			"service-name": "my-service",
+			"env":          "my-env",
+		},
+
+		EntityID:            "AAAsomeuniqueid",
+		EntityIDWithSession: "AAAsomeuniqueid:some-session",
+		AccountID:           "1234567890",
+
+		UserARN:         "arn:aws:iam::1234567890:user/my-user",
+		UserARNWildcard: "arn:aws:iam::1234567890:user/*",
+		UserName:        "my-user",
+		UserPath:        "",
+		UserTags:        map[string]string{"user-group": "my-group"},
+	}
+
+	f.ServerForRole = &Server{
+		GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(
+			f.AssumedRoleARN, f.EntityIDWithSession, f.AccountID,
+		),
+		GetRoleResponse: responsestest.MakeGetRoleResponse(
+			f.RoleARN, f.EntityID, toTags(f.RoleTags)...,
+		),
+	}
+
+	f.ServerForUser = &Server{
+		GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(
+			f.UserARN, f.EntityID, f.AccountID,
+		),
+		GetUserResponse: responsestest.MakeGetUserResponse(
+			f.UserARN, f.EntityID, toTags(f.UserTags)...,
+		),
+	}
+
+	return f
+}
+
+func (f *Fixture) RoleTagKeys() []string   { return keys(f.RoleTags) }
+func (f *Fixture) UserTagKeys() []string   { return keys(f.UserTags) }
+func (f *Fixture) RoleTagValues() []string { return values(f.RoleTags) }
+func (f *Fixture) UserTagValues() []string { return values(f.UserTags) }
+
+// toTags converts the map to a slice of responses.Tag
+func toTags(tags map[string]string) []responses.Tag {
+	result := []responses.Tag{}
+	for k, v := range tags {
+		result = append(result, responses.Tag{
+			Key:   k,
+			Value: v,
+		})
+	}
+	return result
+
+}
+
+// keys returns the keys in sorted order
+func keys(tags map[string]string) []string {
+	result := []string{}
+	for k := range tags {
+		result = append(result, k)
+	}
+	sort.Strings(result)
+	return result
+}
+
+// values returns values in tags, ordered by sorted keys
+func values(tags map[string]string) []string {
+	result := []string{}
+	for _, k := range keys(tags) { // ensures sorted by key
+		result = append(result, tags[k])
+	}
+	return result
 }

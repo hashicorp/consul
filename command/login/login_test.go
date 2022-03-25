@@ -20,8 +20,6 @@ import (
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/internal/iamauth/iamauthtest"
-	"github.com/hashicorp/consul/internal/iamauth/responses"
-	"github.com/hashicorp/consul/internal/iamauth/responsestest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -524,108 +522,94 @@ func TestLoginCommand_aws_iam(t *testing.T) {
 
 	t.Parallel()
 
-	var (
-		assumedRoleArn      = "arn:aws:sts::1234567890:assumed-role/my-role/some-session"
-		canonicalRoleArn    = "arn:aws:iam::1234567890:role/my-role"
-		roleArnWithPath     = "arn:aws:iam::1234567890:role/some/path/my-role"
-		roleArnWildcard     = "arn:aws:iam::1234567890:role/some/path/*"
-		roleName            = "my-role"
-		userArn             = "arn:aws:sts::1234567890:user/my-user"
-		userArnWildcard     = "arn:aws:sts::1234567890:user/*"
-		userName            = "my-user"
-		entityId            = "AAAsameuniqueid"
-		entityIdWithSession = entityId + ":some-session"
-		accountId           = "1234567890"
+	// Formats an HIL template for a BindName, and the expected value for entity tags.
+	// Input:   string{"a", "b"}, []string{"1", "2"}
+	// Return: "${entity_tags.a}-${entity_tags.b}",  "1-2"
+	entityTagsBind := func(keys, values []string) (string, string) {
+		parts := []string{}
+		for _, k := range keys {
+			parts = append(parts, fmt.Sprintf("${entity_tags.%s}", k))
+		}
+		return strings.Join(parts, "-"), strings.Join(values, "-")
+	}
 
-		serverForRole = &iamauthtest.Server{
-			GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(assumedRoleArn, entityIdWithSession, accountId),
-			GetRoleResponse: responsestest.MakeGetRoleResponse(
-				roleArnWithPath,
-				entityId,
-				responses.Tag{Key: "service-name", Value: "my-service"},
-				responses.Tag{Key: "env", Value: "my-env"},
-			),
-		}
-		serverForUser = &iamauthtest.Server{
-			GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(userArn, entityId, accountId),
-			GetUserResponse: responsestest.MakeGetUserResponse(
-				userArn,
-				entityId,
-				responses.Tag{Key: "user-group", Value: "my-group"},
-			),
-		}
-	)
+	f := iamauthtest.MakeFixture()
+	roleTagsBindName, roleTagsBindValue := entityTagsBind(f.RoleTagKeys(), f.RoleTagValues())
+	userTagsBindName, userTagsBindValue := entityTagsBind(f.UserTagKeys(), f.UserTagValues())
 
 	cases := map[string]struct {
-		awsServer            *iamauthtest.Server
-		cmdArgs              []string
-		config               map[string]interface{}
-		bindingRule          *api.ACLBindingRule
-		expServiceIdentities []*api.ACLServiceIdentity
+		awsServer          *iamauthtest.Server
+		cmdArgs            []string
+		config             map[string]interface{}
+		bindingRule        *api.ACLBindingRule
+		expServiceIdentity *api.ACLServiceIdentity
 	}{
 		"success - login with role": {
-			awsServer: serverForRole,
+			awsServer: f.ServerForRole,
 			cmdArgs:   []string{"-aws-auto-bearer-token"},
 			config: map[string]interface{}{
-				"BoundIAMPrincipalARNs": []string{canonicalRoleArn},
+				// Test that an assumed-role arn is translated to the canonical role arn.
+				"BoundIAMPrincipalARNs": []string{f.CanonicalRoleARN},
 			},
 			bindingRule: &api.ACLBindingRule{
 				BindType: api.BindingRuleBindTypeService,
 				BindName: "${entity_name}-${entity_id}-${account_id}",
 				Selector: fmt.Sprintf(`entity_name==%q and entity_id==%q and account_id==%q`,
-					roleName, entityId, accountId),
+					f.RoleName, f.EntityID, f.AccountID),
 			},
-			expServiceIdentities: []*api.ACLServiceIdentity{
-				{ServiceName: fmt.Sprintf("%s-%s-%s", "my-role", strings.ToLower(entityId), accountId)},
+			expServiceIdentity: &api.ACLServiceIdentity{
+				ServiceName: fmt.Sprintf("%s-%s-%s", f.RoleName, strings.ToLower(f.EntityID), f.AccountID),
 			},
 		},
 		"success - login with role and entity details enabled": {
-			awsServer: serverForRole,
+			awsServer: f.ServerForRole,
 			cmdArgs:   []string{"-aws-auto-bearer-token", "-aws-include-entity"},
 			config: map[string]interface{}{
 				// Test that we can login with full user path.
-				"BoundIAMPrincipalARNs":  []string{roleArnWithPath},
+				"BoundIAMPrincipalARNs":  []string{f.RoleARN},
 				"EnableIAMEntityDetails": true,
 			},
 			bindingRule: &api.ACLBindingRule{
 				BindType: api.BindingRuleBindTypeService,
 				// TODO: Path cannot be used as service name if it contains a '/'
 				BindName: "${entity_name}",
-				Selector: fmt.Sprintf(`entity_name==%q and entity_path==%q`, roleName, "some/path"),
+				Selector: fmt.Sprintf(`entity_name==%q and entity_path==%q`, f.RoleName, f.RolePath),
 			},
-			expServiceIdentities: []*api.ACLServiceIdentity{{ServiceName: roleName}},
+			expServiceIdentity: &api.ACLServiceIdentity{ServiceName: f.RoleName},
 		},
 		"success - login with role and role tags": {
-			awsServer: serverForRole,
+			awsServer: f.ServerForRole,
 			cmdArgs:   []string{"-aws-auto-bearer-token", "-aws-include-entity"},
 			config: map[string]interface{}{
 				// Test that we can login with a wildcard.
-				"BoundIAMPrincipalARNs":  []string{roleArnWildcard},
+				"BoundIAMPrincipalARNs":  []string{f.RoleARNWildcard},
 				"EnableIAMEntityDetails": true,
-				"IAMEntityTags":          []string{"service-name", "env"},
+				"IAMEntityTags":          f.RoleTagKeys(),
 			},
 			bindingRule: &api.ACLBindingRule{
 				BindType: api.BindingRuleBindTypeService,
-				BindName: "${entity_tags.service-name}-${entity_tags.env}",
-				Selector: fmt.Sprintf(`entity_name==%q and entity_path==%q`, roleName, "some/path"),
+				BindName: roleTagsBindName,
+				Selector: fmt.Sprintf(`entity_name==%q and entity_path==%q`, f.RoleName, f.RolePath),
 			},
-			expServiceIdentities: []*api.ACLServiceIdentity{{ServiceName: "my-service-my-env"}},
+			expServiceIdentity: &api.ACLServiceIdentity{ServiceName: roleTagsBindValue},
 		},
 		"success - login with user and user tags": {
-			awsServer: serverForUser,
+			awsServer: f.ServerForUser,
 			cmdArgs:   []string{"-aws-auto-bearer-token", "-aws-include-entity"},
 			config: map[string]interface{}{
 				// Test that we can login with a wildcard.
-				"BoundIAMPrincipalARNs":  []string{userArnWildcard},
+				"BoundIAMPrincipalARNs":  []string{f.UserARNWildcard},
 				"EnableIAMEntityDetails": true,
-				"IAMEntityTags":          []string{"user-group"},
+				"IAMEntityTags":          f.UserTagKeys(),
 			},
 			bindingRule: &api.ACLBindingRule{
 				BindType: api.BindingRuleBindTypeService,
-				BindName: "${entity_name}-${entity_tags.user-group}",
-				Selector: fmt.Sprintf(`entity_name==%q and entity_path==%q`, userName, ""),
+				BindName: "${entity_name}-" + userTagsBindName,
+				Selector: fmt.Sprintf(`entity_name==%q and entity_path==%q`, f.UserName, f.UserPath),
 			},
-			expServiceIdentities: []*api.ACLServiceIdentity{{ServiceName: "my-user-my-group"}},
+			expServiceIdentity: &api.ACLServiceIdentity{
+				ServiceName: fmt.Sprintf("%s-%s", f.UserName, userTagsBindValue),
+			},
 		},
 	}
 
@@ -634,9 +618,7 @@ func TestLoginCommand_aws_iam(t *testing.T) {
 			a := newTestAgent(t)
 			client := a.Client()
 
-			fakeAws := iamauthtest.NewTestServer(c.awsServer)
-			t.Cleanup(fakeAws.Close)
-			fakeAws.Start()
+			fakeAws := iamauthtest.NewTestServer(t, c.awsServer)
 
 			c.config["STSEndpoint"] = fakeAws.URL + "/sts"
 			c.config["IAMEndpoint"] = fakeAws.URL + "/iam"
@@ -669,14 +651,12 @@ func TestLoginCommand_aws_iam(t *testing.T) {
 				"-token=root",
 				"-method=iam-test",
 				"-token-sink-file", tokenSinkFile,
-			}
-			args = append(args, c.cmdArgs...)
-			args = append(args,
-				"-aws-sts-endpoint", fakeAws.URL+"/sts",
+				"-aws-sts-endpoint", fakeAws.URL + "/sts",
 				"-aws-region", "fake-region",
 				"-aws-access-key-id", "fake-key-id",
 				"-aws-secret-access-key", "fake-secret-key",
-			)
+			}
+			args = append(args, c.cmdArgs...)
 			code := cmd.Run(args)
 			require.Equal(t, 0, code, ui.ErrorWriter.String())
 
@@ -688,9 +668,9 @@ func TestLoginCommand_aws_iam(t *testing.T) {
 
 			// Validate correct BindName was interpolated.
 			tokenRead, _, err := client.ACL().TokenReadSelf(&api.QueryOptions{Token: token})
-			t.Logf("tokenRead = %+v", tokenRead)
 			require.NoError(t, err)
-			require.Equal(t, c.expServiceIdentities, tokenRead.ServiceIdentities)
+			require.Len(t, tokenRead.ServiceIdentities, 1)
+			require.Equal(t, c.expServiceIdentity, tokenRead.ServiceIdentities[0])
 
 		})
 	}

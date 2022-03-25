@@ -54,7 +54,7 @@ var _ json.Unmarshaler = (*BearerToken)(nil)
 func NewBearerToken(loginToken string, config *Config) (*BearerToken, error) {
 	token := &BearerToken{config: config}
 	if err := json.Unmarshal([]byte(loginToken), &token); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid token: %s", err)
 	}
 
 	if err := token.validate(); err != nil {

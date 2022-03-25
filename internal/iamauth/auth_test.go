@@ -7,51 +7,22 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/hashicorp/consul/internal/iamauth/iamauthtest"
-	"github.com/hashicorp/consul/internal/iamauth/responses"
 	"github.com/hashicorp/consul/internal/iamauth/responsestest"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 )
 
 func TestValidateLogin(t *testing.T) {
-	var (
-		assumedRoleArn   = "arn:aws:sts::1234567890:assumed-role/my-role/some-session"
-		canonicalRoleArn = "arn:aws:iam::1234567890:role/my-role"
-		roleArnWithPath  = "arn:aws:iam::1234567890:role/some/path/my-role"
-		// roleArnWildcard  = "arn:aws:iam::1234567890:role/some/path/*"
-		// roleName = "my-role"
-		userArn = "arn:aws:sts::1234567890:user/my-user"
-		// userArnWildcard  = "arn:aws:sts::1234567890:user/*"
-		// userName  = "my-user"
-		entityId = "AAAsameuniqueid"
-		// https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_variables.html#principaltable
-		entityIdWithSession = entityId + ":some-session"
-		accountId           = "1234567890"
+	f := iamauthtest.MakeFixture()
 
-		serverForRole = &iamauthtest.Server{
-			GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(assumedRoleArn, entityIdWithSession, accountId),
-			GetRoleResponse: responsestest.MakeGetRoleResponse(
-				roleArnWithPath,
-				entityId,
-				responses.Tag{Key: "service-name", Value: "my-service"},
-				responses.Tag{Key: "env", Value: "my-env"},
-			),
-		}
-		serverForUser = &iamauthtest.Server{
-			GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(userArn, entityId, accountId),
-			GetUserResponse: responsestest.MakeGetUserResponse(
-				userArn,
-				entityId,
-				responses.Tag{Key: "user-group", Value: "my-group"},
-			),
-		}
+	var (
 		serverForRoleMismatchedIds = &iamauthtest.Server{
-			GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(assumedRoleArn, entityIdWithSession, accountId),
-			GetRoleResponse:           responsestest.MakeGetRoleResponse(roleArnWithPath, "AAAAsomenonmatchingid"),
+			GetCallerIdentityResponse: f.ServerForRole.GetCallerIdentityResponse,
+			GetRoleResponse:           responsestest.MakeGetRoleResponse(f.RoleARN, "AAAAsomenonmatchingid"),
 		}
 		serverForUserMismatchedIds = &iamauthtest.Server{
-			GetCallerIdentityResponse: responsestest.MakeGetCallerIdentityResponse(userArn, entityId, accountId),
-			GetUserResponse:           responsestest.MakeGetUserResponse(userArn, "AAAAsomenonmatchingid"),
+			GetCallerIdentityResponse: f.ServerForUser.GetCallerIdentityResponse,
+			GetUserResponse:           responsestest.MakeGetUserResponse(f.UserARN, "AAAAsomenonmatchingid"),
 		}
 	)
 
@@ -63,12 +34,12 @@ func TestValidateLogin(t *testing.T) {
 	}{
 		"no bound principals": {
 			expError: "not trusted",
-			server:   serverForRole,
+			server:   f.ServerForRole,
 			config:   &Config{},
 		},
 		"no matching principal": {
 			expError: "not trusted",
-			server:   serverForUser,
+			server:   f.ServerForUser,
 			config: &Config{
 				BoundIAMPrincipalARNs: []string{
 					"arn:aws:iam::1234567890:user/some-other-role",
@@ -78,9 +49,9 @@ func TestValidateLogin(t *testing.T) {
 		},
 		"mismatched server id header": {
 			expError: `expected "some-non-matching-value" but got "server.id.example.com"`,
-			server:   serverForRole,
+			server:   f.ServerForRole,
 			config: &Config{
-				BoundIAMPrincipalARNs: []string{canonicalRoleArn},
+				BoundIAMPrincipalARNs: []string{f.CanonicalRoleARN},
 				ServerIDHeaderValue:   "some-non-matching-value",
 				ServerIDHeaderName:    "X-Test-ServerID",
 			},
@@ -91,7 +62,7 @@ func TestValidateLogin(t *testing.T) {
 			// during login. If not, the RoleId cannot be used.
 			server: serverForRoleMismatchedIds,
 			config: &Config{
-				BoundIAMPrincipalARNs:  []string{roleArnWithPath},
+				BoundIAMPrincipalARNs:  []string{f.RoleARN},
 				EnableIAMEntityDetails: true,
 			},
 		},
@@ -99,7 +70,7 @@ func TestValidateLogin(t *testing.T) {
 			expError: "unique id mismatch in login token",
 			server:   serverForUserMismatchedIds,
 			config: &Config{
-				BoundIAMPrincipalARNs:  []string{userArn},
+				BoundIAMPrincipalARNs:  []string{f.UserARN},
 				EnableIAMEntityDetails: true,
 			},
 		},
@@ -107,9 +78,7 @@ func TestValidateLogin(t *testing.T) {
 	logger := hclog.New(nil)
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			fakeAws := iamauthtest.NewTestServer(c.server)
-			t.Cleanup(fakeAws.Close)
-			fakeAws.Start()
+			fakeAws := iamauthtest.NewTestServer(t, c.server)
 
 			c.config.STSEndpoint = fakeAws.URL + "/sts"
 			c.config.IAMEndpoint = fakeAws.URL + "/iam"
