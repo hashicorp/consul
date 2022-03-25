@@ -24,7 +24,7 @@ import (
 // The ACL token and the auth request are provided and the auth decision (true
 // means authorized) and reason string are returned.
 //
-// If the request input is invalid the error returned will be ann BadRequest HTTPError,
+// If the request input is invalid the error returned will be a BadRequest HTTPError,
 // if the token doesn't grant necessary access then an acl.ErrPermissionDenied
 // error is returned, otherwise error indicates an unexpected server failure. If
 // access is denied, no error is returned but the first return value is false.

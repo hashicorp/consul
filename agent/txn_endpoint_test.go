@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -72,7 +72,7 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 					t.Fatalf("expected 413 but got %d", err.StatusCode)
 				}
 			} else {
-				t.Fatalf("excected HTTP error but go %v", err)
+				t.Fatalf("excected HTTP error but got %v", err)
 			}
 		}
 	}
@@ -155,7 +155,7 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 					t.Fatalf("expected 413 but got %d", err.StatusCode)
 				}
 			} else {
-				t.Fatalf("excected HTTP error but go %v", err)
+				t.Fatalf("excected HTTP error but got %v", err)
 			}
 		}
 	}
