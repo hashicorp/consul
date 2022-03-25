@@ -320,12 +320,12 @@ func getAnnotation(doc []*ast.Comment) (Annotation, error) {
 		case part == "ReadRequest":
 			ann.ReadRequest = "ReadRequest"
 		case strings.HasPrefix(part, "ReadRequest"):
-			ann.TargetDatacenter = strings.TrimPrefix(part, "ReadRequest")
+			ann.ReadRequest = strings.TrimPrefix(part, "ReadRequest")
 
 		case part == "WriteRequest":
 			ann.WriteRequest = "WriteRequest"
 		case strings.HasPrefix(part, "WriteRequest"):
-			ann.TargetDatacenter = strings.TrimPrefix(part, "WriteRequest")
+			ann.WriteRequest = strings.TrimPrefix(part, "WriteRequest")
 
 		case part == "TargetDatacenter":
 			ann.TargetDatacenter = "TargetDatacenter"
