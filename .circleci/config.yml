@@ -232,6 +232,7 @@ jobs:
             wget https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protoc-3.12.3-linux-x86_64.zip
             sudo unzip -d /usr/local protoc-*.zip
             sudo chmod +x /usr/local/bin/protoc
+            sudo chmod -R a+Xr /usr/local/include/google/
             rm protoc-*.zip
       - run:
           name: Install gogo/protobuf
@@ -239,6 +240,8 @@ jobs:
             gogo_version=$(go list -m github.com/gogo/protobuf | awk '{print $2}')
             go install -v github.com/hashicorp/protoc-gen-go-binary@master
             go install -v github.com/gogo/protobuf/protoc-gen-gofast@${gogo_version}
+            go install -v github.com/favadi/protoc-go-inject-tag@v1.3.0
+            go install -v github.com/golang/protobuf/protoc-gen-go@v1.3.5
 
       - run:
           command: make --always-make proto
@@ -278,7 +281,7 @@ jobs:
             fi
       - run-go-test-full:
           go_test_flags: 'if ! [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
-      
+
   go-test:
     docker:
       - image: *GOLANG_IMAGE
@@ -330,9 +333,9 @@ jobs:
           path: /tmp/jsonfile
       - run: *notify-slack-failure
 
-  # go-test-32bit is to catch problems where 64-bit ints must be 64-bit aligned 
+  # go-test-32bit is to catch problems where 64-bit ints must be 64-bit aligned
   # to use them with sync/atomic. See https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
-  # Running tests with GOARCH=386 seems to be the best way to detect this 
+  # Running tests with GOARCH=386 seems to be the best way to detect this
   # problem. Only runs tests that are -short to limit the time we spend checking
   # for these bugs.
   go-test-32bit:
@@ -747,11 +750,11 @@ jobs:
             if ! git diff --quiet --exit-code HEAD^! ui/; then
               git config --local user.email "github-team-consul-core@hashicorp.com"
               git config --local user.name "hc-github-team-consul-core"
-            
+
               # -B resets the CI branch to main which may diverge history
               # but we will force push anyways.
               git checkout -B ci/main-assetfs-build main
-            
+
               short_sha=$(git rev-parse --short HEAD)
               git add agent/uiserver/bindata_assetfs.go
               git commit -m "auto-updated agent/uiserver/bindata_assetfs.go from commit ${short_sha}"

@@ -68,3 +68,15 @@ func RaftIndexFromStructs(t *structs.RaftIndex, s *RaftIndex) {
 	s.CreateIndex = t.CreateIndex
 	s.ModifyIndex = t.ModifyIndex
 }
+func WriteRequestToStructs(s *WriteRequest, t *structs.WriteRequest) {
+	if s == nil {
+		return
+	}
+	t.Token = s.Token
+}
+func WriteRequestFromStructs(t *structs.WriteRequest, s *WriteRequest) {
+	if s == nil {
+		return
+	}
+	s.Token = t.Token
+}

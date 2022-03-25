@@ -32,23 +32,6 @@ type QueryOptionsCompat interface {
 	SetFilter(string)
 }
 
-// QueryMetaCompat is the interface that both the structs.QueryMeta
-// and the proto/pbcommongogo.QueryMeta structs need to implement so that they
-// can be operated on interchangeably
-type QueryMetaCompat interface {
-	GetLastContact() (time.Duration, error)
-	SetLastContact(time.Duration)
-	GetKnownLeader() bool
-	SetKnownLeader(bool)
-	GetIndex() uint64
-	SetIndex(uint64)
-	GetConsistencyLevel() string
-	SetConsistencyLevel(string)
-	GetBackend() QueryBackend
-	GetResultsFilteredByACLs() bool
-	SetResultsFilteredByACLs(bool)
-}
-
 // GetToken helps implement the QueryOptionsCompat interface
 // Copied from proto/pbcommongogo/common.pb.go
 func (m *QueryOptions) GetToken() string {
