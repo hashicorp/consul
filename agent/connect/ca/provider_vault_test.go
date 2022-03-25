@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -232,9 +233,9 @@ func TestVaultCAProvider_RenewTokenStopWatcherOnConfigure(t *testing.T) {
 	provider, err := createVaultProvider(t, true, testVault.Addr, providerToken, nil)
 	require.NoError(t, err)
 
-	var gotStopped = false
+	var gotStopped = uint32(0)
 	provider.stopWatcher = func() {
-		gotStopped = true
+		atomic.StoreUint32(&gotStopped, 1)
 	}
 
 	// Check the last renewal time.
@@ -255,7 +256,7 @@ func TestVaultCAProvider_RenewTokenStopWatcherOnConfigure(t *testing.T) {
 	providerConfig := vaultProviderConfig(t, testVault.Addr, providerToken, nil)
 
 	require.NoError(t, provider.Configure(providerConfig))
-	require.True(t, gotStopped)
+	require.Equal(t, uint32(1), atomic.LoadUint32(&gotStopped))
 }
 
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
