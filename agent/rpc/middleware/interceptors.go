@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-hclog"
 )
@@ -25,12 +24,13 @@ const RPCTypeNetRPC = "net/rpc"
 var metricRPCRequest = []string{"rpc", "server", "call"}
 var requestLogName = strings.Join(metricRPCRequest, ".")
 
-var NewRPCGauges = []prometheus.GaugeDefinition{
-	{
-		Name: metricRPCRequest,
-		Help: "Measures the time an RPC service call takes to make in milliseconds. Labels mark which RPC method was called and metadata about the call.",
-	},
-}
+// todo(rpc-metrics-improv): remove if unused for predeclaration in the end
+//var NewRPCGauges = []prometheus.GaugeDefinition{
+//	{
+//		Name: metricRPCRequest,
+//		Help: "Measures the time an RPC service call takes to make in milliseconds. Labels mark which RPC method was called and metadata about the call.",
+//	},
+//}
 
 type RequestRecorder struct {
 	Logger       hclog.Logger
