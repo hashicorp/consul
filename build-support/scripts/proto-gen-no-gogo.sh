@@ -68,6 +68,8 @@ function main {
       return 1
    fi
 
+   go mod download
+
    local golang_proto_path=$(go list -f '{{ .Dir }}' -m github.com/golang/protobuf)
    local golang_proto_mod_path=$(sed -e 's,\(.*\)github.com.*,\1,' <<< "${golang_proto_path}")
 
@@ -77,7 +79,7 @@ function main {
 
    local proto_go_path=${proto_path%%.proto}.pb.go
    local proto_go_bin_path=${proto_path%%.proto}.pb.binary.go
-   
+
    local go_proto_out="paths=source_relative"
    if is_set "${grpc}"
    then
@@ -96,10 +98,17 @@ function main {
 
    # How we run protoc probably needs some documentation.
    #
-   # This is the path to where 
+   # This is the path to where
    #  -I="${golang_proto_path}/protobuf" \
    local -i ret=0
    status_stage "Generating ${proto_path} into ${proto_go_path} and ${proto_go_bin_path} (NO GOGO)"
+    echo "debug_run protoc \
+          -I=\"${golang_proto_path}\" \
+          -I=\"${golang_proto_mod_path}\" \
+          -I=\"${SOURCE_DIR}\" \
+          --go_out=\"${go_proto_out}${SOURCE_DIR}\" \
+          --go-binary_out=\"${SOURCE_DIR}\" \
+          \"${proto_path}\""
    debug_run protoc \
       -I="${golang_proto_path}" \
       -I="${golang_proto_mod_path}" \
@@ -107,8 +116,21 @@ function main {
       --go_out="${go_proto_out}${SOURCE_DIR}" \
       --go-binary_out="${SOURCE_DIR}" \
       "${proto_path}"
+
+   if test $? -ne 0
+   then
+      err "Failed to run protoc for ${proto_path}"
+      return 1
+   fi
+
    debug_run protoc-go-inject-tag \
    	   -input="${proto_go_path}"
+
+   if test $? -ne 0
+   then
+      err "Failed to run protoc-go-inject-tag for ${proto_path}"
+      return 1
+   fi
 
     echo "debug_run protoc \
           -I=\"${golang_proto_path}\" \
@@ -117,11 +139,6 @@ function main {
           --go_out=\"${go_proto_out}${SOURCE_DIR}\" \
           --go-binary_out=\"${SOURCE_DIR}\" \
           \"${proto_path}\""
-   if test $? -ne 0
-   then
-      err "Failed to generate outputs from ${proto_path}"
-      return 1
-   fi
 
    BUILD_TAGS=$(sed -e '/^[[:space:]]*$/,$d' < "${proto_path}" | grep '// +build')
    if test -n "${BUILD_TAGS}"
@@ -129,7 +146,7 @@ function main {
       echo -e "${BUILD_TAGS}\n" >> "${proto_go_path}.new"
       cat "${proto_go_path}" >> "${proto_go_path}.new"
       mv "${proto_go_path}.new" "${proto_go_path}"
-      
+
       echo -e "${BUILD_TAGS}\n" >> "${proto_go_bin_path}.new"
       cat "${proto_go_bin_path}" >> "${proto_go_bin_path}.new"
       mv "${proto_go_bin_path}.new" "${proto_go_bin_path}"

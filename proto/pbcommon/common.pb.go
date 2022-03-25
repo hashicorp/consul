@@ -120,6 +120,12 @@ func (m *TargetDatacenter) GetDatacenter() string {
 	return ""
 }
 
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.WriteRequest
+// output=common.gen.go
+// name=Structs
+// ignore-fields=state,sizeCache,unknownFields
 type WriteRequest struct {
 	// Token is the ACL token ID. If not provided, the 'anonymous'
 	// token is assumed for backwards compatibility.

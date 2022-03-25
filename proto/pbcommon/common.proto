@@ -29,6 +29,12 @@ message TargetDatacenter {
    string Datacenter = 1;
 }
 
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.WriteRequest
+// output=common.gen.go
+// name=Structs
+// ignore-fields=state,sizeCache,unknownFields
 message WriteRequest {
    // Token is the ACL token ID. If not provided, the 'anonymous'
    // token is assumed for backwards compatibility.
