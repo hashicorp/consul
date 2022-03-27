@@ -1,0 +1,32 @@
+// Package dataplane provides a service on Consul servers for the Consul Dataplane
+
+syntax = "proto3";
+
+package dataplane;
+
+option go_package = "github.com/hashicorp/consul/proto-public/pbdataplane";
+
+
+message SupportedDataplaneFeaturesRequest {}
+
+enum DataplaneFeatures {
+    UNKNOWN = 0;
+    WATCH_SERVERS = 1;
+    EDGE_CERTIFICATE_MANAGEMENT = 2;
+    ENVOY_BOOTSTRAP_CONFIGURATION = 3;
+}
+
+
+message DataplaneFeatureSupport {
+    DataplaneFeatures feature_name = 1;
+    bool supported = 2;
+}
+
+message SupportedDataplaneFeaturesResponse {
+    repeated DataplaneFeatureSupport supported_dataplane_features = 1;
+}
+
+
+service DataplaneService {
+    rpc SupportedDataplaneFeatures(SupportedDataplaneFeaturesRequest) returns (SupportedDataplaneFeaturesResponse) {};
+}

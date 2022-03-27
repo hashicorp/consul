@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/grpc/public"
+	"github.com/hashicorp/consul/agent/grpc/public/testutils"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
 )
@@ -39,7 +40,7 @@ func TestWatchRoots_Success(t *testing.T) {
 	// Mock the ACL Resolver to return an authorizer with `service:write`.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testAuthorizer(t), nil)
+		Return(testutils.TestAuthorizer(t), nil)
 
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
@@ -121,7 +122,7 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 	// first two times it is called (initial connect and first re-auth).
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testAuthorizer(t), nil).Twice()
+		Return(testutils.TestAuthorizer(t), nil).Twice()
 
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
@@ -187,7 +188,7 @@ func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
 	// Mock the ACL Resolver to return an authorizer with `service:write`.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testAuthorizer(t), nil)
+		Return(testutils.TestAuthorizer(t), nil)
 
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
