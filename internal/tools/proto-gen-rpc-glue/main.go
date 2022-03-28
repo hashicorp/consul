@@ -319,18 +319,18 @@ func getAnnotation(doc []*ast.Comment) (Annotation, error) {
 		switch {
 		case part == "ReadRequest":
 			ann.ReadRequest = "ReadRequest"
-		case strings.HasPrefix(part, "ReadRequest"):
-			ann.TargetDatacenter = strings.TrimPrefix(part, "ReadRequest")
+		case strings.HasPrefix(part, "ReadRequest="):
+			ann.ReadRequest = strings.TrimPrefix(part, "ReadRequest=")
 
 		case part == "WriteRequest":
 			ann.WriteRequest = "WriteRequest"
-		case strings.HasPrefix(part, "WriteRequest"):
-			ann.TargetDatacenter = strings.TrimPrefix(part, "WriteRequest")
+		case strings.HasPrefix(part, "WriteRequest="):
+			ann.WriteRequest = strings.TrimPrefix(part, "WriteRequest=")
 
 		case part == "TargetDatacenter":
 			ann.TargetDatacenter = "TargetDatacenter"
-		case strings.HasPrefix(part, "TargetDatacenter"):
-			ann.TargetDatacenter = strings.TrimPrefix(part, "TargetDatacenter")
+		case strings.HasPrefix(part, "TargetDatacenter="):
+			ann.TargetDatacenter = strings.TrimPrefix(part, "TargetDatacenter=")
 
 		default:
 			return Annotation{}, fmt.Errorf("unexpected annotation part: %s", part)
