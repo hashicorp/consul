@@ -52,7 +52,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						Result: &structs.ConfigEntryResponse{
 							Entry: &structs.MeshConfigEntry{
 								TLS: &structs.MeshTLSConfig{
-									Incoming: &structs.MeshDirectionTLSConfig{
+									Incoming: &structs.MeshDirectionalTLSConfig{
 										TLSMinVersion: types.TLSv1_3,
 									},
 								},
@@ -71,7 +71,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						Result: &structs.ConfigEntryResponse{
 							Entry: &structs.MeshConfigEntry{
 								TLS: &structs.MeshTLSConfig{
-									Incoming: &structs.MeshDirectionTLSConfig{
+									Incoming: &structs.MeshDirectionalTLSConfig{
 										TLSMaxVersion: types.TLSv1_2,
 									},
 								},
@@ -90,7 +90,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						Result: &structs.ConfigEntryResponse{
 							Entry: &structs.MeshConfigEntry{
 								TLS: &structs.MeshTLSConfig{
-									Incoming: &structs.MeshDirectionTLSConfig{
+									Incoming: &structs.MeshDirectionalTLSConfig{
 										CipherSuites: []types.TLSCipherSuite{
 											types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 											types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
@@ -546,7 +546,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						Result: &structs.ConfigEntryResponse{
 							Entry: &structs.MeshConfigEntry{
 								TLS: &structs.MeshTLSConfig{
-									Incoming: &structs.MeshDirectionTLSConfig{
+									Incoming: &structs.MeshDirectionalTLSConfig{
 										TLSMinVersion: types.TLSv1_3,
 									},
 								},
@@ -565,7 +565,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						Result: &structs.ConfigEntryResponse{
 							Entry: &structs.MeshConfigEntry{
 								TLS: &structs.MeshTLSConfig{
-									Incoming: &structs.MeshDirectionTLSConfig{
+									Incoming: &structs.MeshDirectionalTLSConfig{
 										TLSMaxVersion: types.TLSv1_2,
 									},
 								},
@@ -584,7 +584,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						Result: &structs.ConfigEntryResponse{
 							Entry: &structs.MeshConfigEntry{
 								TLS: &structs.MeshTLSConfig{
-									Incoming: &structs.MeshDirectionTLSConfig{
+									Incoming: &structs.MeshDirectionalTLSConfig{
 										CipherSuites: []types.TLSCipherSuite{
 											types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 											types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,

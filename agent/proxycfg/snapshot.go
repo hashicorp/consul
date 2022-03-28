@@ -545,7 +545,7 @@ func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {
 	}
 }
 
-func (s *ConfigSnapshot) MeshConfigTLSIncoming() *structs.MeshDirectionTLSConfig {
+func (s *ConfigSnapshot) MeshConfigTLSIncoming() *structs.MeshDirectionalTLSConfig {
 	mesh := s.MeshConfig()
 	if mesh == nil || mesh.TLS == nil {
 		return nil
@@ -553,7 +553,7 @@ func (s *ConfigSnapshot) MeshConfigTLSIncoming() *structs.MeshDirectionTLSConfig
 	return mesh.TLS.Incoming
 }
 
-func (s *ConfigSnapshot) MeshConfigTLSOutgoing() *structs.MeshDirectionTLSConfig {
+func (s *ConfigSnapshot) MeshConfigTLSOutgoing() *structs.MeshDirectionalTLSConfig {
 	mesh := s.MeshConfig()
 	if mesh == nil || mesh.TLS == nil {
 		return nil

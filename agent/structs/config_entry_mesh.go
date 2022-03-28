@@ -29,11 +29,11 @@ type TransparentProxyMeshConfig struct {
 }
 
 type MeshTLSConfig struct {
-	Incoming *MeshDirectionTLSConfig `json:",omitempty"`
-	Outgoing *MeshDirectionTLSConfig `json:",omitempty"`
+	Incoming *MeshDirectionalTLSConfig `json:",omitempty"`
+	Outgoing *MeshDirectionalTLSConfig `json:",omitempty"`
 }
 
-type MeshDirectionTLSConfig struct {
+type MeshDirectionalTLSConfig struct {
 	TLSMinVersion types.TLSVersion `json:",omitempty" alias:"tls_min_version"`
 	TLSMaxVersion types.TLSVersion `json:",omitempty" alias:"tls_max_version"`
 
@@ -81,12 +81,12 @@ func (e *MeshConfigEntry) Validate() error {
 
 	if e.TLS != nil {
 		if e.TLS.Incoming != nil {
-			if err := validateMeshDirectionTLSConfig(e.TLS.Incoming); err != nil {
+			if err := validateMeshDirectionalTLSConfig(e.TLS.Incoming); err != nil {
 				return fmt.Errorf("error in incoming TLS configuration: %v", err)
 			}
 		}
 		if e.TLS.Outgoing != nil {
-			if err := validateMeshDirectionTLSConfig(e.TLS.Outgoing); err != nil {
+			if err := validateMeshDirectionalTLSConfig(e.TLS.Outgoing); err != nil {
 				return fmt.Errorf("error in outgoing TLS configuration: %v", err)
 			}
 		}
@@ -137,7 +137,7 @@ func (e *MeshConfigEntry) MarshalJSON() ([]byte, error) {
 	return json.Marshal(source)
 }
 
-func validateMeshDirectionTLSConfig(cfg *MeshDirectionTLSConfig) error {
+func validateMeshDirectionalTLSConfig(cfg *MeshDirectionalTLSConfig) error {
 	if cfg == nil {
 		return nil
 	}

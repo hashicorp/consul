@@ -1731,7 +1731,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					MeshDestinationsOnly: true,
 				},
 				TLS: &MeshTLSConfig{
-					Incoming: &MeshDirectionTLSConfig{
+					Incoming: &MeshDirectionalTLSConfig{
 						TLSMinVersion: types.TLSv1_1,
 						TLSMaxVersion: types.TLSv1_2,
 						CipherSuites: []types.TLSCipherSuite{
@@ -1739,7 +1739,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 						},
 					},
-					Outgoing: &MeshDirectionTLSConfig{
+					Outgoing: &MeshDirectionalTLSConfig{
 						TLSMinVersion: types.TLSv1_1,
 						TLSMaxVersion: types.TLSv1_2,
 						CipherSuites: []types.TLSCipherSuite{

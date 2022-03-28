@@ -36,11 +36,11 @@ type TransparentProxyMeshConfig struct {
 }
 
 type MeshTLSConfig struct {
-	Incoming *MeshDirectionTLSConfig `json:",omitempty"`
-	Outgoing *MeshDirectionTLSConfig `json:",omitempty"`
+	Incoming *MeshDirectionalTLSConfig `json:",omitempty"`
+	Outgoing *MeshDirectionalTLSConfig `json:",omitempty"`
 }
 
-type MeshDirectionTLSConfig struct {
+type MeshDirectionalTLSConfig struct {
 	TLSMinVersion string   `json:",omitempty" alias:"tls_min_version"`
 	TLSMaxVersion string   `json:",omitempty" alias:"tls_max_version"`
 	CipherSuites  []string `json:",omitempty" alias:"cipher_suites"`

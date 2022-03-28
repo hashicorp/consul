@@ -1695,7 +1695,7 @@ var tlsVersionsWithConfigurableCipherSuites = map[types.TLSVersion]struct{}{
 	types.TLSv1_2: {},
 }
 
-func makeTLSParametersFromProxyTLSConfig(tlsConf *structs.MeshDirectionTLSConfig) *envoy_tls_v3.TlsParameters {
+func makeTLSParametersFromProxyTLSConfig(tlsConf *structs.MeshDirectionalTLSConfig) *envoy_tls_v3.TlsParameters {
 	if tlsConf == nil {
 		return &envoy_tls_v3.TlsParameters{}
 	}
