@@ -1239,4 +1239,19 @@ module.exports = [
     destination: '/docs/k8s/operations/tls-on-existing-cluster',
     permanent: true,
   },
+  {
+    source: '/docs/release-notes/1-11-0',
+    destination: '/docs/releases/release-notes/v1_11_0',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-10-0',
+    destination: '/docs/releases/release-notes/v1_10_0',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-9-0',
+    destination: '/docs/releases/release-notes/v1_9_0',
+    permanent: true,
+  },
 ]
