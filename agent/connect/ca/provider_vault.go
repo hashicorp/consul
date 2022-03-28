@@ -227,7 +227,7 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 				v.logger.Error("Error renewing token for Vault provider", "error", err)
 			}
 
-			// wait after getting an error or the lifetime watcher returns
+			// wait at least 1 second after returning from the lifetime watcher
 			retrier.Wait(ctx)
 
 			// If the watcher has exited and auth method is enabled,
