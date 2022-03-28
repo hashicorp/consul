@@ -235,11 +235,9 @@ jobs:
             sudo chmod -R a+Xr /usr/local/include/google/
             rm protoc-*.zip
       - run:
-          name: Install gogo/protobuf
+          name: Install protobuf
           command: |
-            gogo_version=$(go list -m github.com/gogo/protobuf | awk '{print $2}')
             go install -v github.com/hashicorp/protoc-gen-go-binary@master
-            go install -v github.com/gogo/protobuf/protoc-gen-gofast@${gogo_version}
             go install -v github.com/favadi/protoc-go-inject-tag@v1.3.0
             go install -v github.com/golang/protobuf/protoc-gen-go@v1.3.5
 

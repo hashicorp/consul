@@ -4,7 +4,6 @@ import (
 	fmt "fmt"
 	"reflect"
 
-	//TODO(gogo-remove): remove the types alias
 	types "github.com/golang/protobuf/ptypes/struct"
 )
 
