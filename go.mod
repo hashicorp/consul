@@ -34,7 +34,7 @@ require (
 	github.com/hashicorp/consul-net-rpc v0.0.0-20220307172752-3602954411b4
 	github.com/hashicorp/consul/api v1.11.0
 	github.com/hashicorp/consul/sdk v0.8.0
-	github.com/hashicorp/go-bexpr v0.1.2
+	github.com/hashicorp/go-bexpr v0.1.11
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-connlimit v0.3.0
