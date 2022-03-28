@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
@@ -20,7 +21,13 @@ import (
 	"github.com/hashicorp/consul/logging"
 )
 
-const VaultCALeafCertRole = "leaf-cert"
+const (
+	VaultCALeafCertRole = "leaf-cert"
+
+	retryMin    = 1 * time.Second
+	retryMax    = 5 * time.Second
+	retryJitter = 20
+)
 
 var ErrBackendNotMounted = fmt.Errorf("backend not mounted")
 var ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
@@ -29,7 +36,7 @@ type VaultProvider struct {
 	config *structs.VaultCAProviderConfig
 	client *vaultapi.Client
 
-	shutdown func()
+	stopWatcher func()
 
 	isPrimary                    bool
 	clusterID                    string
@@ -39,7 +46,7 @@ type VaultProvider struct {
 }
 
 func NewVaultProvider() *VaultProvider {
-	return &VaultProvider{shutdown: func() {}}
+	return &VaultProvider{stopWatcher: func() {}}
 }
 
 func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
@@ -112,7 +119,10 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 		}
 
 		ctx, cancel := context.WithCancel(context.TODO())
-		v.shutdown = cancel
+		if v.stopWatcher != nil {
+			v.stopWatcher()
+		}
+		v.stopWatcher = cancel
 		go v.renewToken(ctx, lifetimeWatcher)
 	}
 
@@ -124,20 +134,38 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 	go watcher.Start()
 	defer watcher.Stop()
 
+	// TODO: Once we've upgraded to a later version of protobuf we can upgrade to github.com/hashicorp/vault/api@1.1.1
+	// or later and rip this out.
+	retrier := retry.Waiter{
+		MinFailures: 5,
+		MinWait:     retryMin,
+		MaxWait:     retryMax,
+		Jitter:      retry.NewJitter(retryJitter),
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 
 		case err := <-watcher.DoneCh():
+			// In the event we fail to login to Vault or our token is no longer valid we can overwhelm a Vault instance
+			// with rate limit configured. We would make these requests to Vault as fast as we possibly could and start
+			// causing all client's to receive 429 response codes. To mitigate that we're sleeping 1 second or less
+			// before moving on to login again and restart the lifetime watcher. Once we can upgrade to
+			// github.com/hashicorp/vault/api@v1.1.1 or later the LifetimeWatcher _should_ perform that backoff for us.
 			if err != nil {
 				v.logger.Error("Error renewing token for Vault provider", "error", err)
 			}
+
+			// wait at least 1 second after returning from the lifetime watcher
+			retrier.Wait(ctx)
 
 			// Watcher routine has finished, so start it again.
 			go watcher.Start()
 
 		case <-watcher.RenewCh():
+			retrier.Reset()
 			v.logger.Info("Successfully renewed token for Vault provider")
 		}
 	}
@@ -581,7 +609,7 @@ func (v *VaultProvider) Cleanup(providerTypeChange bool, otherConfig map[string]
 
 // Stop shuts down the token renew goroutine.
 func (v *VaultProvider) Stop() {
-	v.shutdown()
+	v.stopWatcher()
 }
 
 func (v *VaultProvider) PrimaryUsesIntermediate() {}
