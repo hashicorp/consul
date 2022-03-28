@@ -7,12 +7,19 @@ package e2e
 
 import (
 	"time"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
+// Reference imports to suppress errors if they are not otherwise used.
+var _ structs.RPCInfo
+
+// AllowStaleRead implements structs.RPCInfo
 func (msg *ExampleWriteRequest) AllowStaleRead() bool {
 	return false
 }
 
+// HasTimedOut implements structs.RPCInfo
 func (msg *ExampleWriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
 	if msg == nil || msg.WriteRequest == nil {
 		return false, nil
@@ -20,14 +27,18 @@ func (msg *ExampleWriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout time
 	return msg.WriteRequest.HasTimedOut(start, rpcHoldTimeout, a, b)
 }
 
+// IsRead implements structs.RPCInfo
 func (msg *ExampleWriteRequest) IsRead() bool {
 	return false
 }
 
+// SetTokenSecret implements structs.RPCInfo
 func (msg *ExampleWriteRequest) SetTokenSecret(s string) {
+	// TODO: initialize if nil
 	msg.WriteRequest.SetTokenSecret(s)
 }
 
+// TokenSecret implements structs.RPCInfo
 func (msg *ExampleWriteRequest) TokenSecret() string {
 	if msg == nil || msg.WriteRequest == nil {
 		return ""
@@ -35,6 +46,7 @@ func (msg *ExampleWriteRequest) TokenSecret() string {
 	return msg.WriteRequest.TokenSecret()
 }
 
+// Token implements structs.RPCInfo
 func (msg *ExampleWriteRequest) Token() string {
 	if msg.WriteRequest == nil {
 		return ""
@@ -42,6 +54,7 @@ func (msg *ExampleWriteRequest) Token() string {
 	return msg.WriteRequest.Token
 }
 
+// RequestDatacenter implements structs.RPCInfo
 func (msg *ExampleWriteRequest) RequestDatacenter() string {
 	if msg == nil || msg.TargetDatacenter == nil {
 		return ""
@@ -49,14 +62,18 @@ func (msg *ExampleWriteRequest) RequestDatacenter() string {
 	return msg.TargetDatacenter.GetDatacenter()
 }
 
+// IsRead implements structs.RPCInfo
 func (msg *ExampleReadRequest) IsRead() bool {
 	return true
 }
 
+// AllowStaleRead implements structs.RPCInfo
 func (msg *ExampleReadRequest) AllowStaleRead() bool {
+	// TODO: initialize if nil
 	return msg.ReadRequest.AllowStaleRead()
 }
 
+// HasTimedOut implements structs.RPCInfo
 func (msg *ExampleReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
 	if msg == nil || msg.ReadRequest == nil {
 		return false, nil
@@ -64,10 +81,13 @@ func (msg *ExampleReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout time.
 	return msg.ReadRequest.HasTimedOut(start, rpcHoldTimeout, a, b)
 }
 
+// SetTokenSecret implements structs.RPCInfo
 func (msg *ExampleReadRequest) SetTokenSecret(s string) {
+	// TODO: initialize if nil
 	msg.ReadRequest.SetTokenSecret(s)
 }
 
+// TokenSecret implements structs.RPCInfo
 func (msg *ExampleReadRequest) TokenSecret() string {
 	if msg == nil || msg.ReadRequest == nil {
 		return ""
@@ -75,6 +95,7 @@ func (msg *ExampleReadRequest) TokenSecret() string {
 	return msg.ReadRequest.TokenSecret()
 }
 
+// Token implements structs.RPCInfo
 func (msg *ExampleReadRequest) Token() string {
 	if msg.ReadRequest == nil {
 		return ""
@@ -82,6 +103,7 @@ func (msg *ExampleReadRequest) Token() string {
 	return msg.ReadRequest.Token
 }
 
+// RequestDatacenter implements structs.RPCInfo
 func (msg *ExampleReadRequest) RequestDatacenter() string {
 	if msg == nil || msg.TargetDatacenter == nil {
 		return ""
@@ -89,10 +111,135 @@ func (msg *ExampleReadRequest) RequestDatacenter() string {
 	return msg.TargetDatacenter.GetDatacenter()
 }
 
+// RequestDatacenter implements structs.RPCInfo
+func (msg *ExampleQueryOptions) RequestDatacenter() string {
+	if msg == nil || msg.TargetDatacenter == nil {
+		return ""
+	}
+	return msg.TargetDatacenter.GetDatacenter()
+}
+
+// IsRead implements structs.RPCInfo
+func (msg *ExampleQueryOptions) IsRead() bool {
+	return true
+}
+
+// AllowStaleRead implements structs.RPCInfo
+func (msg *ExampleQueryOptions) AllowStaleRead() bool {
+	return msg.QueryOptions.AllowStaleRead()
+}
+
+// HasTimedOut implements structs.RPCInfo
+func (msg *ExampleQueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
+	if msg == nil || msg.QueryOptions == nil {
+		return false, nil
+	}
+	return msg.QueryOptions.HasTimedOut(start, rpcHoldTimeout, a, b)
+}
+
+// SetTokenSecret implements structs.RPCInfo
+func (msg *ExampleQueryOptions) SetTokenSecret(s string) {
+	// TODO: initialize if nil
+	msg.QueryOptions.SetTokenSecret(s)
+}
+
+// TokenSecret implements structs.RPCInfo
+func (msg *ExampleQueryOptions) TokenSecret() string {
+	if msg == nil || msg.QueryOptions == nil {
+		return ""
+	}
+	return msg.QueryOptions.TokenSecret()
+}
+
+// Token implements structs.RPCInfo
+func (msg *ExampleQueryOptions) Token() string {
+	if msg.QueryOptions == nil {
+		return ""
+	}
+	return msg.QueryOptions.Token
+}
+
+// GetToken is required to implement blockingQueryOptions
+func (msg *ExampleQueryOptions) GetToken() string {
+	if msg == nil || msg.QueryOptions == nil {
+		return ""
+	}
+
+	return msg.QueryOptions.GetToken()
+}
+
+// GetMinQueryIndex is required to implement blockingQueryOptions
+func (msg *ExampleQueryOptions) GetMinQueryIndex() uint64 {
+	if msg == nil || msg.QueryOptions == nil {
+		return 0
+	}
+
+	return msg.QueryOptions.GetMinQueryIndex()
+}
+
+// GetMaxQueryTime is required to implement blockingQueryOptions
+func (msg *ExampleQueryOptions) GetMaxQueryTime() (time.Duration, error) {
+	if msg == nil || msg.QueryOptions == nil {
+		return 0, nil
+	}
+
+	return structs.DurationFromProto(msg.QueryOptions.GetMaxQueryTime()), nil
+}
+
+// GetRequireConsistent is required to implement blockingQueryOptions
+func (msg *ExampleQueryOptions) GetRequireConsistent() bool {
+	if msg == nil || msg.QueryOptions == nil {
+		return false
+	}
+	return msg.QueryOptions.RequireConsistent
+}
+
+// SetLastContact is required to implement blockingQueryResponseMeta
+func (msg *ExampleQueryMeta) SetLastContact(d time.Duration) {
+	if msg == nil || msg.QueryMeta == nil {
+		return
+	}
+	msg.QueryMeta.SetLastContact(d)
+}
+
+// SetKnownLeader is required to implement blockingQueryResponseMeta
+func (msg *ExampleQueryMeta) SetKnownLeader(b bool) {
+	if msg == nil || msg.QueryMeta == nil {
+		return
+	}
+	msg.QueryMeta.SetKnownLeader(b)
+}
+
+// GetIndex is required to implement blockingQueryResponseMeta
+func (msg *ExampleQueryMeta) GetIndex() uint64 {
+	if msg == nil || msg.QueryMeta == nil {
+		return 0
+	}
+	return msg.QueryMeta.GetIndex()
+}
+
+// SetIndex is required to implement blockingQueryResponseMeta
+func (msg *ExampleQueryMeta) SetIndex(i uint64) {
+	if msg == nil || msg.QueryMeta == nil {
+		return
+	}
+	msg.QueryMeta.SetIndex(i)
+}
+
+// SetResultsFilteredByACLs is required to implement blockingQueryResponseMeta
+func (msg *ExampleQueryMeta) SetResultsFilteredByACLs(b bool) {
+	if msg == nil || msg.QueryMeta == nil {
+		return
+	}
+	msg.QueryMeta.SetResultsFilteredByACLs(b)
+}
+
+// AllowStaleRead implements structs.RPCInfo
 func (msg *AltExampleWriteRequest) AllowStaleRead() bool {
 	return false
 }
 
+// HasTimedOut implements structs.RPCInfo
 func (msg *AltExampleWriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
 	if msg == nil || msg.AltWriteRequest == nil {
 		return false, nil
@@ -100,14 +247,18 @@ func (msg *AltExampleWriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout t
 	return msg.AltWriteRequest.HasTimedOut(start, rpcHoldTimeout, a, b)
 }
 
+// IsRead implements structs.RPCInfo
 func (msg *AltExampleWriteRequest) IsRead() bool {
 	return false
 }
 
+// SetTokenSecret implements structs.RPCInfo
 func (msg *AltExampleWriteRequest) SetTokenSecret(s string) {
+	// TODO: initialize if nil
 	msg.AltWriteRequest.SetTokenSecret(s)
 }
 
+// TokenSecret implements structs.RPCInfo
 func (msg *AltExampleWriteRequest) TokenSecret() string {
 	if msg == nil || msg.AltWriteRequest == nil {
 		return ""
@@ -115,6 +266,7 @@ func (msg *AltExampleWriteRequest) TokenSecret() string {
 	return msg.AltWriteRequest.TokenSecret()
 }
 
+// Token implements structs.RPCInfo
 func (msg *AltExampleWriteRequest) Token() string {
 	if msg.AltWriteRequest == nil {
 		return ""
@@ -122,14 +274,18 @@ func (msg *AltExampleWriteRequest) Token() string {
 	return msg.AltWriteRequest.Token
 }
 
+// IsRead implements structs.RPCInfo
 func (msg *AltExampleReadRequest) IsRead() bool {
 	return true
 }
 
+// AllowStaleRead implements structs.RPCInfo
 func (msg *AltExampleReadRequest) AllowStaleRead() bool {
+	// TODO: initialize if nil
 	return msg.AltReadRequest.AllowStaleRead()
 }
 
+// HasTimedOut implements structs.RPCInfo
 func (msg *AltExampleReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
 	if msg == nil || msg.AltReadRequest == nil {
 		return false, nil
@@ -137,10 +293,13 @@ func (msg *AltExampleReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout ti
 	return msg.AltReadRequest.HasTimedOut(start, rpcHoldTimeout, a, b)
 }
 
+// SetTokenSecret implements structs.RPCInfo
 func (msg *AltExampleReadRequest) SetTokenSecret(s string) {
+	// TODO: initialize if nil
 	msg.AltReadRequest.SetTokenSecret(s)
 }
 
+// TokenSecret implements structs.RPCInfo
 func (msg *AltExampleReadRequest) TokenSecret() string {
 	if msg == nil || msg.AltReadRequest == nil {
 		return ""
@@ -148,9 +307,125 @@ func (msg *AltExampleReadRequest) TokenSecret() string {
 	return msg.AltReadRequest.TokenSecret()
 }
 
+// Token implements structs.RPCInfo
 func (msg *AltExampleReadRequest) Token() string {
 	if msg.AltReadRequest == nil {
 		return ""
 	}
 	return msg.AltReadRequest.Token
+}
+
+// IsRead implements structs.RPCInfo
+func (msg *AltExampleQueryOptions) IsRead() bool {
+	return true
+}
+
+// AllowStaleRead implements structs.RPCInfo
+func (msg *AltExampleQueryOptions) AllowStaleRead() bool {
+	return msg.AltQueryOptions.AllowStaleRead()
+}
+
+// HasTimedOut implements structs.RPCInfo
+func (msg *AltExampleQueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
+	if msg == nil || msg.AltQueryOptions == nil {
+		return false, nil
+	}
+	return msg.AltQueryOptions.HasTimedOut(start, rpcHoldTimeout, a, b)
+}
+
+// SetTokenSecret implements structs.RPCInfo
+func (msg *AltExampleQueryOptions) SetTokenSecret(s string) {
+	// TODO: initialize if nil
+	msg.AltQueryOptions.SetTokenSecret(s)
+}
+
+// TokenSecret implements structs.RPCInfo
+func (msg *AltExampleQueryOptions) TokenSecret() string {
+	if msg == nil || msg.AltQueryOptions == nil {
+		return ""
+	}
+	return msg.AltQueryOptions.TokenSecret()
+}
+
+// Token implements structs.RPCInfo
+func (msg *AltExampleQueryOptions) Token() string {
+	if msg.AltQueryOptions == nil {
+		return ""
+	}
+	return msg.AltQueryOptions.Token
+}
+
+// GetToken is required to implement blockingQueryOptions
+func (msg *AltExampleQueryOptions) GetToken() string {
+	if msg == nil || msg.AltQueryOptions == nil {
+		return ""
+	}
+
+	return msg.AltQueryOptions.GetToken()
+}
+
+// GetMinQueryIndex is required to implement blockingQueryOptions
+func (msg *AltExampleQueryOptions) GetMinQueryIndex() uint64 {
+	if msg == nil || msg.AltQueryOptions == nil {
+		return 0
+	}
+
+	return msg.AltQueryOptions.GetMinQueryIndex()
+}
+
+// GetMaxQueryTime is required to implement blockingQueryOptions
+func (msg *AltExampleQueryOptions) GetMaxQueryTime() (time.Duration, error) {
+	if msg == nil || msg.AltQueryOptions == nil {
+		return 0, nil
+	}
+
+	return structs.DurationFromProto(msg.AltQueryOptions.GetMaxQueryTime()), nil
+}
+
+// GetRequireConsistent is required to implement blockingQueryOptions
+func (msg *AltExampleQueryOptions) GetRequireConsistent() bool {
+	if msg == nil || msg.AltQueryOptions == nil {
+		return false
+	}
+	return msg.AltQueryOptions.RequireConsistent
+}
+
+// SetLastContact is required to implement blockingQueryResponseMeta
+func (msg *AltExampleQueryMeta) SetLastContact(d time.Duration) {
+	if msg == nil || msg.AltQueryMeta == nil {
+		return
+	}
+	msg.AltQueryMeta.SetLastContact(d)
+}
+
+// SetKnownLeader is required to implement blockingQueryResponseMeta
+func (msg *AltExampleQueryMeta) SetKnownLeader(b bool) {
+	if msg == nil || msg.AltQueryMeta == nil {
+		return
+	}
+	msg.AltQueryMeta.SetKnownLeader(b)
+}
+
+// GetIndex is required to implement blockingQueryResponseMeta
+func (msg *AltExampleQueryMeta) GetIndex() uint64 {
+	if msg == nil || msg.AltQueryMeta == nil {
+		return 0
+	}
+	return msg.AltQueryMeta.GetIndex()
+}
+
+// SetIndex is required to implement blockingQueryResponseMeta
+func (msg *AltExampleQueryMeta) SetIndex(i uint64) {
+	if msg == nil || msg.AltQueryMeta == nil {
+		return
+	}
+	msg.AltQueryMeta.SetIndex(i)
+}
+
+// SetResultsFilteredByACLs is required to implement blockingQueryResponseMeta
+func (msg *AltExampleQueryMeta) SetResultsFilteredByACLs(b bool) {
+	if msg == nil || msg.AltQueryMeta == nil {
+		return
+	}
+	msg.AltQueryMeta.SetResultsFilteredByACLs(b)
 }
