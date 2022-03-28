@@ -2575,24 +2575,11 @@ type ProtoMarshaller interface {
 }
 
 func EncodeProtoInterface(t MessageType, message interface{}) ([]byte, error) {
-	if marshaller, ok := message.(ProtoMarshaller); ok {
-		return EncodeProtoGogo(t, marshaller)
-	}
-
 	if marshaller, ok := message.(proto.Message); ok {
 		return EncodeProto(t, marshaller)
 	}
 
 	return nil, fmt.Errorf("message does not implement the ProtoMarshaller interface: %T", message)
-}
-
-func EncodeProtoGogo(t MessageType, message ProtoMarshaller) ([]byte, error) {
-	data := make([]byte, message.Size()+1)
-	data[0] = uint8(t)
-	if _, err := message.MarshalTo(data[1:]); err != nil {
-		return nil, err
-	}
-	return data, nil
 }
 
 func EncodeProto(t MessageType, pb proto.Message) ([]byte, error) {
@@ -2610,11 +2597,6 @@ func EncodeProto(t MessageType, pb proto.Message) ([]byte, error) {
 func DecodeProto(buf []byte, pb proto.Message) error {
 	// Note that this assumes the leading byte indicating the type as already been stripped off.
 	return proto.Unmarshal(buf, pb)
-}
-
-func DecodeProtoGogo(buf []byte, out ProtoMarshaller) error {
-	// Note that this assumes the leading byte indicating the type as already been stripped off.
-	return out.Unmarshal(buf)
 }
 
 // CompoundResponse is an interface for gathering multiple responses. It is

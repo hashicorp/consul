@@ -147,3 +147,32 @@ func (r *ReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime,
 func (td TargetDatacenter) RequestDatacenter() string {
 	return td.Datacenter
 }
+
+// SetLastContact is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetLastContact(lastContact time.Duration) {
+	q.LastContact = structs.DurationToProto(lastContact)
+}
+
+// SetKnownLeader is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetKnownLeader(knownLeader bool) {
+	q.KnownLeader = knownLeader
+}
+
+// SetIndex is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetIndex(index uint64) {
+	q.Index = index
+}
+
+// SetConsistencyLevel is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetConsistencyLevel(consistencyLevel string) {
+	q.ConsistencyLevel = consistencyLevel
+}
+
+func (q *QueryMeta) GetBackend() structs.QueryBackend {
+	return structs.QueryBackend(0)
+}
+
+// SetResultsFilteredByACLs is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetResultsFilteredByACLs(v bool) {
+	q.ResultsFilteredByACLs = v
+}

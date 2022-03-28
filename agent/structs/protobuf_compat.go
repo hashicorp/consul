@@ -4,34 +4,6 @@ import (
 	"time"
 )
 
-// QueryOptionsCompat is the interface that both the structs.QueryOptions
-// and the proto/pbcommongogo.QueryOptions structs need to implement so that they
-// can be operated on interchangeably
-type QueryOptionsCompat interface {
-	GetToken() string
-	SetToken(string)
-	GetMinQueryIndex() uint64
-	SetMinQueryIndex(uint64)
-	GetMaxQueryTime() (time.Duration, error)
-	SetMaxQueryTime(time.Duration)
-	GetAllowStale() bool
-	SetAllowStale(bool)
-	GetRequireConsistent() bool
-	SetRequireConsistent(bool)
-	GetUseCache() bool
-	SetUseCache(bool)
-	GetMaxStaleDuration() (time.Duration, error)
-	SetMaxStaleDuration(time.Duration)
-	GetMaxAge() (time.Duration, error)
-	SetMaxAge(time.Duration)
-	GetMustRevalidate() bool
-	SetMustRevalidate(bool)
-	GetStaleIfError() (time.Duration, error)
-	SetStaleIfError(time.Duration)
-	GetFilter() string
-	SetFilter(string)
-}
-
 // GetToken helps implement the QueryOptionsCompat interface
 // Copied from proto/pbcommongogo/common.pb.go
 func (m *QueryOptions) GetToken() string {

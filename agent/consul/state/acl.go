@@ -126,7 +126,7 @@ func (s *Store) CanBootstrapACLToken() (bool, uint64, error) {
 // to update the name. Unlike the older functions to operate specifically on role or policy links
 // this function does not itself handle the case where the id cannot be found. Instead the
 // getName function should handle that and return an error if necessary
-func resolveACLLinks(tx ReadTxn, links []pbacl.ACLLink, getName func(ReadTxn, string) (string, error)) (int, error) {
+func resolveACLLinks(tx ReadTxn, links []*pbacl.ACLLink, getName func(ReadTxn, string) (string, error)) (int, error) {
 	var numValid int
 	for linkIndex, link := range links {
 		if link.ID != "" {
@@ -152,12 +152,12 @@ func resolveACLLinks(tx ReadTxn, links []pbacl.ACLLink, getName func(ReadTxn, st
 // associated with the ID of the link. Ideally this will be a no-op if the names are already correct
 // however if a linked resource was renamed it might be stale. This function will treat the incoming
 // links with copy-on-write semantics and its output will indicate whether any modifications were made.
-func fixupACLLinks(tx ReadTxn, original []pbacl.ACLLink, getName func(ReadTxn, string) (string, error)) ([]pbacl.ACLLink, bool, error) {
+func fixupACLLinks(tx ReadTxn, original []*pbacl.ACLLink, getName func(ReadTxn, string) (string, error)) ([]*pbacl.ACLLink, bool, error) {
 	owned := false
 	links := original
 
-	cloneLinks := func(l []pbacl.ACLLink, copyNumLinks int) []pbacl.ACLLink {
-		clone := make([]pbacl.ACLLink, copyNumLinks)
+	cloneLinks := func(l []*pbacl.ACLLink, copyNumLinks int) []*pbacl.ACLLink {
+		clone := make([]*pbacl.ACLLink, copyNumLinks)
 		copy(clone, l[:copyNumLinks])
 		return clone
 	}
@@ -183,7 +183,7 @@ func fixupACLLinks(tx ReadTxn, original []pbacl.ACLLink, getName func(ReadTxn, s
 			}
 
 			// append the corrected link
-			links = append(links, pbacl.ACLLink{ID: link.ID, Name: name})
+			links = append(links, &pbacl.ACLLink{ID: link.ID, Name: name})
 		} else if owned {
 			links = append(links, link)
 		}
