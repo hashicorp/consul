@@ -96,6 +96,12 @@ func processFile(path string) error {
 			if ann.TargetDatacenter != "" {
 				log.Printf("    TargetDatacenter from %s", ann.TargetDatacenter)
 			}
+			if ann.QueryOptions != "" {
+				log.Printf("    QueryOptions from %s", ann.QueryOptions)
+			}
+			if ann.QueryMeta != "" {
+				log.Printf("    QueryMeta from %s", ann.QueryMeta)
+			}
 		}
 	}
 
@@ -114,91 +120,29 @@ func processFile(path string) error {
 	buf.WriteString(`
 import (
 	"time"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ structs.RPCInfo
 
 `)
 	for _, typ := range v.Types {
 		if typ.Annotation.WriteRequest != "" {
-			buf.WriteString(fmt.Sprintf(`
-func (msg *%[1]s) AllowStaleRead() bool {
-	return false
-}
-
-func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
-	if msg == nil || msg.%[2]s == nil {
-		return false, nil
-	}
-	return msg.%[2]s.HasTimedOut(start, rpcHoldTimeout, a, b)
-}
-
-func (msg *%[1]s) IsRead() bool {
-	return false
-}
-
-func (msg *%[1]s) SetTokenSecret(s string) {
-	msg.%[2]s.SetTokenSecret(s)
-}
-
-func (msg *%[1]s) TokenSecret() string {
-	if msg == nil || msg.%[2]s == nil {
-		return ""
-	}
-	return msg.%[2]s.TokenSecret()
-}
-
-func (msg *%[1]s) Token() string {
-	if msg.%[2]s == nil {
-		return ""
-	}
-	return msg.%[2]s.Token
-}
-`, typ.Name, typ.Annotation.WriteRequest))
+			buf.WriteString(fmt.Sprintf(tmplWriteRequest, typ.Name, typ.Annotation.WriteRequest))
 		}
 		if typ.Annotation.ReadRequest != "" {
-			buf.WriteString(fmt.Sprintf(`
-func (msg *%[1]s) IsRead() bool {
-	return true
-}
-
-func (msg *%[1]s) AllowStaleRead() bool {
-	return msg.%[2]s.AllowStaleRead()
-}
-
-func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
-	if msg == nil || msg.%[2]s == nil {
-		return false, nil
-	}
-	return msg.%[2]s.HasTimedOut(start, rpcHoldTimeout, a, b)
-}
-
-func (msg *%[1]s) SetTokenSecret(s string) {
-	msg.%[2]s.SetTokenSecret(s)
-}
-
-func (msg *%[1]s) TokenSecret() string {
-	if msg == nil || msg.%[2]s == nil {
-		return ""
-	}
-	return msg.%[2]s.TokenSecret()
-}
-
-func (msg *%[1]s) Token() string {
-	if msg.%[2]s == nil {
-		return ""
-	}
-	return msg.%[2]s.Token
-}
-`, typ.Name, typ.Annotation.ReadRequest))
+			buf.WriteString(fmt.Sprintf(tmplReadRequest, typ.Name, typ.Annotation.ReadRequest))
 		}
 		if typ.Annotation.TargetDatacenter != "" {
-			buf.WriteString(fmt.Sprintf(`
-func (msg *%[1]s) RequestDatacenter() string {
-	if msg == nil || msg.%[2]s == nil {
-		return ""
-	}
-	return msg.%[2]s.GetDatacenter()
-}
-`, typ.Name, typ.Annotation.TargetDatacenter))
+			buf.WriteString(fmt.Sprintf(tmplTargetDatacenter, typ.Name, typ.Annotation.TargetDatacenter))
+		}
+		if typ.Annotation.QueryOptions != "" {
+			buf.WriteString(fmt.Sprintf(tmplQueryOptions, typ.Name, typ.Annotation.QueryOptions))
+		}
+		if typ.Annotation.QueryMeta != "" {
+			buf.WriteString(fmt.Sprintf(tmplQueryMeta, typ.Name, typ.Annotation.QueryMeta))
 		}
 	}
 
@@ -296,6 +240,8 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 }
 
 type Annotation struct {
+	QueryMeta        string
+	QueryOptions     string
 	ReadRequest      string
 	WriteRequest     string
 	TargetDatacenter string
@@ -331,6 +277,16 @@ func getAnnotation(doc []*ast.Comment) (Annotation, error) {
 			ann.TargetDatacenter = "TargetDatacenter"
 		case strings.HasPrefix(part, "TargetDatacenter="):
 			ann.TargetDatacenter = strings.TrimPrefix(part, "TargetDatacenter=")
+
+		case part == "QueryOptions":
+			ann.QueryOptions = "QueryOptions"
+		case strings.HasPrefix(part, "QueryOptions="):
+			ann.QueryOptions = strings.TrimPrefix(part, "QueryOptions=")
+
+		case part == "QueryMeta":
+			ann.QueryMeta = "QueryMeta"
+		case strings.HasPrefix(part, "QueryMeta="):
+			ann.QueryMeta = strings.TrimPrefix(part, "QueryMeta=")
 
 		default:
 			return Annotation{}, fmt.Errorf("unexpected annotation part: %s", part)
@@ -373,3 +329,213 @@ func getRawBuildTags(file *ast.File) []string {
 
 	return out
 }
+
+const tmplWriteRequest = `
+// AllowStaleRead implements structs.RPCInfo
+func (msg *%[1]s) AllowStaleRead() bool {
+	return false
+}
+
+// HasTimedOut implements structs.RPCInfo
+func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
+	if msg == nil || msg.%[2]s == nil {
+		return false, nil
+	}
+	return msg.%[2]s.HasTimedOut(start, rpcHoldTimeout, a, b)
+}
+
+// IsRead implements structs.RPCInfo
+func (msg *%[1]s) IsRead() bool {
+	return false
+}
+
+// SetTokenSecret implements structs.RPCInfo
+func (msg *%[1]s) SetTokenSecret(s string) {
+    // TODO: initialize if nil
+	msg.%[2]s.SetTokenSecret(s)
+}
+
+// TokenSecret implements structs.RPCInfo
+func (msg *%[1]s) TokenSecret() string {
+	if msg == nil || msg.%[2]s == nil {
+		return ""
+	}
+	return msg.%[2]s.TokenSecret()
+}
+
+// Token implements structs.RPCInfo
+func (msg *%[1]s) Token() string {
+	if msg.%[2]s == nil {
+		return ""
+	}
+	return msg.%[2]s.Token
+}
+`
+
+const tmplReadRequest = `
+// IsRead implements structs.RPCInfo
+func (msg *%[1]s) IsRead() bool {
+	return true
+}
+
+// AllowStaleRead implements structs.RPCInfo
+func (msg *%[1]s) AllowStaleRead() bool {
+    // TODO: initialize if nil
+	return msg.%[2]s.AllowStaleRead()
+}
+
+// HasTimedOut implements structs.RPCInfo
+func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
+	if msg == nil || msg.%[2]s == nil {
+		return false, nil
+	}
+	return msg.%[2]s.HasTimedOut(start, rpcHoldTimeout, a, b)
+}
+
+// SetTokenSecret implements structs.RPCInfo
+func (msg *%[1]s) SetTokenSecret(s string) {
+    // TODO: initialize if nil
+	msg.%[2]s.SetTokenSecret(s)
+}
+
+// TokenSecret implements structs.RPCInfo
+func (msg *%[1]s) TokenSecret() string {
+	if msg == nil || msg.%[2]s == nil {
+		return ""
+	}
+	return msg.%[2]s.TokenSecret()
+}
+
+// Token implements structs.RPCInfo
+func (msg *%[1]s) Token() string {
+	if msg.%[2]s == nil {
+		return ""
+	}
+	return msg.%[2]s.Token
+}
+`
+
+const tmplTargetDatacenter = `
+// RequestDatacenter implements structs.RPCInfo
+func (msg *%[1]s) RequestDatacenter() string {
+	if msg == nil || msg.%[2]s == nil {
+		return ""
+	}
+	return msg.%[2]s.GetDatacenter()
+}
+`
+
+const tmplQueryOptions = `
+// IsRead implements structs.RPCInfo
+func (msg *%[1]s) IsRead() bool {
+	return true
+}
+
+// AllowStaleRead implements structs.RPCInfo
+func (msg *%[1]s) AllowStaleRead() bool {
+	return msg.%[2]s.AllowStaleRead()
+}
+
+// HasTimedOut implements structs.RPCInfo
+func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
+	if msg == nil || msg.%[2]s == nil {
+		return false, nil
+	}
+	return msg.%[2]s.HasTimedOut(start, rpcHoldTimeout, a, b)
+}
+// SetTokenSecret implements structs.RPCInfo
+func (msg *%[1]s) SetTokenSecret(s string) {
+    // TODO: initialize if nil
+	msg.%[2]s.SetTokenSecret(s)
+}
+
+// TokenSecret implements structs.RPCInfo
+func (msg *%[1]s) TokenSecret() string {
+	if msg == nil || msg.%[2]s == nil {
+		return ""
+	}
+	return msg.%[2]s.TokenSecret()
+}
+
+// Token implements structs.RPCInfo
+func (msg *%[1]s) Token() string {
+	if msg.%[2]s == nil {
+		return ""
+	}
+	return msg.%[2]s.Token
+}
+// GetToken is required to implement blockingQueryOptions
+func (msg *%[1]s) GetToken() string {
+	if msg == nil || msg.%[2]s == nil {
+		return ""
+	}
+
+	return msg.%[2]s.GetToken()
+}
+// GetMinQueryIndex is required to implement blockingQueryOptions
+func (msg *%[1]s) GetMinQueryIndex() uint64 {
+	if msg == nil || msg.%[2]s == nil {
+		return 0
+	}
+
+	return msg.%[2]s.GetMinQueryIndex()
+}
+// GetMaxQueryTime is required to implement blockingQueryOptions
+func (msg *%[1]s) GetMaxQueryTime() (time.Duration, error) {
+	if msg == nil || msg.%[2]s == nil {
+		return 0, nil
+	}
+
+	return structs.DurationFromProto(msg.%[2]s.GetMaxQueryTime()), nil
+}
+
+// GetRequireConsistent is required to implement blockingQueryOptions
+func (msg *%[1]s) GetRequireConsistent() bool {
+	if msg == nil || msg.%[2]s == nil {
+		return false
+	}
+	return msg.%[2]s.RequireConsistent
+}
+`
+
+const tmplQueryMeta = `
+// SetLastContact is required to implement blockingQueryResponseMeta
+func (msg *%[1]s) SetLastContact(d time.Duration) {
+	if msg == nil || msg.%[2]s == nil {
+		return
+	}
+	msg.%[2]s.SetLastContact(d)
+}
+
+// SetKnownLeader is required to implement blockingQueryResponseMeta
+func (msg *%[1]s) SetKnownLeader(b bool) {
+	if msg == nil || msg.%[2]s == nil {
+		return
+	}
+	msg.%[2]s.SetKnownLeader(b)
+}
+
+// GetIndex is required to implement blockingQueryResponseMeta
+func (msg *%[1]s) GetIndex() uint64 {
+	if msg == nil || msg.%[2]s == nil {
+		return 0
+	}
+	return msg.%[2]s.GetIndex()
+}
+
+// SetIndex is required to implement blockingQueryResponseMeta
+func (msg *%[1]s) SetIndex(i uint64) {
+	if msg == nil || msg.%[2]s == nil {
+		return
+	}
+	msg.%[2]s.SetIndex(i)
+}
+
+// SetResultsFilteredByACLs is required to implement blockingQueryResponseMeta
+func (msg *%[1]s) SetResultsFilteredByACLs(b bool) {
+	if msg == nil || msg.%[2]s == nil {
+		return
+	}
+	msg.%[2]s.SetResultsFilteredByACLs(b)
+}
+`

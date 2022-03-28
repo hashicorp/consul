@@ -1,1 +1,1 @@
-./e2e/source.rpcglue.pb.go
+e2e/*.rpcglue.pb.go

@@ -19,6 +19,19 @@ type ExampleReadRequest struct {
 	TargetDatacenter *pbcommon.TargetDatacenter
 }
 
+// @consul-rpc-glue: QueryOptions,TargetDatacenter
+type ExampleQueryOptions struct {
+	Value            string
+	QueryOptions     *pbcommon.QueryOptions
+	TargetDatacenter *pbcommon.TargetDatacenter
+}
+
+// @consul-rpc-glue: QueryMeta
+type ExampleQueryMeta struct {
+	Value     string
+	QueryMeta *pbcommon.QueryMeta
+}
+
 // @consul-rpc-glue: WriteRequest=AltWriteRequest
 type AltExampleWriteRequest struct {
 	Value           int
@@ -29,4 +42,15 @@ type AltExampleWriteRequest struct {
 type AltExampleReadRequest struct {
 	Value          int
 	AltReadRequest *pbcommon.ReadRequest
+}
+
+// @consul-rpc-glue: QueryOptions=AltQueryOptions
+type AltExampleQueryOptions struct {
+	Value           string
+	AltQueryOptions *pbcommon.QueryOptions
+}
+
+// @consul-rpc-glue: QueryMeta=AltQueryMeta
+type AltExampleQueryMeta struct {
+	AltQueryMeta *pbcommon.QueryMeta
 }
