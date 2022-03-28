@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/require"
 
@@ -528,6 +529,11 @@ func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawCo
 	cfg := vaultProviderConfig(t, addr, token, rawConf)
 
 	provider := NewVaultProvider()
+
+	logger := hclog.New(&hclog.LoggerOptions{
+		Output: ioutil.Discard,
+	})
+	provider.SetLogger(logger)
 
 	if !isPrimary {
 		cfg.IsPrimary = false
