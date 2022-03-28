@@ -121,8 +121,14 @@ resolved by name using the [`Targets`](#targets) field.
   balancer data plane objects to avoid sharing customized and non-customized
   versions.
 
+- `Default` `(bool: <optional>)` -  Indicates if this discovery chain is based on no
+   `service-resolver`, `service-splitter`, or `service-router` config entries.
+
 - `Protocol` `(string)` - The overall protocol shared by everything in the
   chain.
+
+- `ServiceMeta` `(map<string|string>)` - The metadata from the underlying `service-defaults` config
+   entry for the service named `ServiceName`.
 
 - `StartNode` `(string)` - The first key into the `Nodes` map that should be
   followed when traversing the discovery chain.
