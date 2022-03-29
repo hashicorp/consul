@@ -37,7 +37,6 @@ function err_usage {
 
 function main {
    local -i grpc=0
-   local -i imp_replace=0
    local    proto_path=
 
    while test $# -gt 0
@@ -49,10 +48,6 @@ function main {
             ;;
          --grpc )
             grpc=1
-            shift
-            ;;
-         --import-replace )
-            imp_replace=1
             shift
             ;;
          * )
@@ -73,13 +68,10 @@ function main {
    local golang_proto_path=$(go list -f '{{ .Dir }}' -m github.com/golang/protobuf)
    local golang_proto_mod_path=$(sed -e 's,\(.*\)github.com.*,\1,' <<< "${golang_proto_path}")
 
-
-   local golang_proto_imp_replace="Mgoogle/protobuf/timestamp.proto=github.com/golang/protobuf/ptypes/timestamp"
-   golang_proto_imp_replace="${golang_proto_imp_replace},Mgoogle/protobuf/duration.proto=github.com/golang/protobuf/ptypes/duration"
-
    local proto_go_path=${proto_path%%.proto}.pb.go
    local proto_go_bin_path=${proto_path%%.proto}.pb.binary.go
    local proto_go_rpcglue_path=${proto_path%%.proto}.rpcglue.pb.go
+   local mog_input_path="$(dirname "${proto_path}")"
 
    local go_proto_out="paths=source_relative"
    if is_set "${grpc}"
@@ -87,23 +79,20 @@ function main {
       go_proto_out="${go_proto_out},plugins=grpc"
    fi
 
-   if is_set "${imp_replace}"
-   then
-      go_proto_out="${go_proto_out},${golang_proto_imp_replace}"
-   fi
-
    if test -n "${go_proto_out}"
    then
       go_proto_out="${go_proto_out}:"
    fi
+
+   rm -f "${proto_go_path}" ${proto_go_bin_path}" ${proto_go_rpcglue_path}" "${mog_input_path}/*.gen.go"
 
    # How we run protoc probably needs some documentation.
    #
    # This is the path to where
    #  -I="${golang_proto_path}/protobuf" \
    local -i ret=0
-   status_stage "Generating ${proto_path} into ${proto_go_path} and ${proto_go_bin_path}"
-    echo "debug_run protoc \
+   status_stage "Generating ${proto_path} into ${proto_go_path} and ${proto_go_bin_path} ${mog_input_path}/*.gen.go"
+   echo "debug_run protoc \
           -I=\"${golang_proto_path}\" \
           -I=\"${golang_proto_mod_path}\" \
           -I=\"${SOURCE_DIR}\" \
@@ -133,13 +122,13 @@ function main {
       return 1
    fi
 
-   echo "debug_run protoc \
-         -I=\"${golang_proto_path}\" \
-         -I=\"${golang_proto_mod_path}\" \
-         -I=\"${SOURCE_DIR}\" \
-         --go_out=\"${go_proto_out}${SOURCE_DIR}\" \
-         --go-binary_out=\"${SOURCE_DIR}\" \
-         \"${proto_path}\""
+   debug_run mog -source ./${mog_input_path} -tags ${GOTAGS} -ignore-package-load-errors
+
+   if test $? -ne 0
+   then
+      err "Failed to generate mog outputs from ${mog_input_path}"
+      return 1
+   fi
 
    BUILD_TAGS=$(sed -e '/^[[:space:]]*$/,$d' < "${proto_path}" | grep '// +build')
    if test -n "${BUILD_TAGS}"

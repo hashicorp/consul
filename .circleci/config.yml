@@ -237,11 +237,7 @@ jobs:
             rm protoc-*.zip
       - run:
           name: Install protobuf
-          command: |
-            goproto_version=$(go list -m github.com/golang/protobuf | awk '{print $2}')
-            go install -v github.com/hashicorp/protoc-gen-go-binary@master
-            go install -v github.com/favadi/protoc-go-inject-tag@v1.3.0
-            go install -v github.com/golang/protobuf/protoc-gen-go@${goproto_version}
+          command: make proto-tools
 
       - run:
           command: make --always-make proto

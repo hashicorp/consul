@@ -2,19 +2,22 @@
 # https://www.consul.io/docs/install#compiling-from-source
 
 SHELL = bash
-PROTOC_VERSION=3.12.3
-GOPROTOVERSION?=$(shell grep github.com/golang/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
 	github.com/hashicorp/go-bindata/go-bindata@master \
 	golang.org/x/tools/cmd/cover@master \
 	golang.org/x/tools/cmd/stringer@master \
-	github.com/golang/protobuf/protoc-gen-go@$(GOPROTOVERSION) \
-	github.com/hashicorp/protoc-gen-go-binary@master \
 	github.com/vektra/mockery/cmd/mockery@master \
 	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1 \
-	github.com/hashicorp/lint-consul-retry@master \
-	github.com/favadi/protoc-go-inject-tag@v1.3.0
+	github.com/hashicorp/lint-consul-retry@master
+
+PROTOC_VERSION=3.12.3
+GOPROTOVERSION?=$(shell grep github.com/golang/protobuf go.mod | awk '{print $$2}')
+GOPROTOTOOLS = \
+	github.com/golang/protobuf/protoc-gen-go@$(GOPROTOVERSION) \
+	github.com/hashicorp/protoc-gen-go-binary@master \
+	github.com/favadi/protoc-go-inject-tag@v1.3.0 \
+	github.com/hashicorp/mog@v0.1.1
 
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
@@ -287,9 +290,16 @@ static-assets:
 # Build the static web ui and build static assets inside a Docker container
 ui: ui-docker static-assets-docker
 
-tools:
+tools: proto-tools
 	@if [[ -d .gotools ]]; then rm -rf .gotools ; fi
 	@for TOOL in $(GOTOOLS); do \
+		echo "=== TOOL: $$TOOL" ; \
+		go install -v $$TOOL ; \
+	done
+
+proto-tools:
+	@if [[ -d .gotools ]]; then rm -rf .gotools ; fi
+	@for TOOL in $(GOPROTOTOOLS); do \
 		echo "=== TOOL: $$TOOL" ; \
 		go install -v $$TOOL ; \
 	done
@@ -358,7 +368,7 @@ proto: protoc-check $(PROTOGOFILES) $(PROTOGOBINFILES)
 	@echo "Generated all protobuf Go files"
 
 %.pb.go %.pb.binary.go: %.proto
-	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace "$<"
+	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc "$<"
 
 # utility to echo a makefile variable (i.e. 'make print-PROTOC_VERSION')
 print-%  : ; @echo $($*)
@@ -385,6 +395,6 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
-.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools
+.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools proto-tools protoc-check
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
 .PHONY: version proto test-envoy-integ
