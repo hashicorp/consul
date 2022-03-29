@@ -2,11 +2,13 @@
 # https://www.consul.io/docs/install#compiling-from-source
 
 SHELL = bash
+GOPROTOVERSION?=$(shell grep github.com/golang/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
 	github.com/hashicorp/go-bindata/go-bindata@master \
 	golang.org/x/tools/cmd/cover@master \
 	golang.org/x/tools/cmd/stringer@master \
+	github.com/golang/protobuf/protoc-gen-go@$(GOPROTOVERSION) \
 	github.com/hashicorp/protoc-gen-go-binary@master \
 	github.com/vektra/mockery/cmd/mockery@master \
 	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1 \
