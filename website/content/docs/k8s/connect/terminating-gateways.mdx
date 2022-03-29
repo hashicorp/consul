@@ -171,7 +171,7 @@ service "example-https" {
 Now fetch the ID of the terminating gateway token
 
 ```shell-session
-consul acl role list | grep -B 6 -- "- RELEASE_NAME-terminating-gateway-terminating-gateway-policy" | grep ID
+consul acl role list | grep -B 6 -- "- RELEASE_NAME-terminating-gateway-policy" | grep ID
 
 ID:       <role id>
 ```
@@ -182,11 +182,11 @@ Update the terminating gateway acl token with the new policy
 $ consul acl role update -id <role id> -policy-name example-https-write-policy
 AccessorID:       <role id>
 SecretID:         <secret id>
-Description:      RELEASE_NAME-terminating-gateway-terminating-gateway-acl-role
+Description:      RELEASE_NAME-terminating-gateway-acl-role
 Local:            true
 Create Time:      2021-01-08 21:18:47.957450486 +0000 UTC
 Policies:
-   63bf1d9b-a87d-8672-ddcb-d25e2d88adb8 - RELEASE_NAME-terminating-gateway-terminating-gateway-policy
+   63bf1d9b-a87d-8672-ddcb-d25e2d88adb8 - RELEASE_NAME-terminating-gateway-policy
    f63d1ae6-ffe7-44bd-bf7a-704a86939a63 - example-https-write-policy
 ```
 
