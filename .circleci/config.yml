@@ -229,7 +229,8 @@ jobs:
       - run:
           name: Install protobuf
           command: |
-            wget https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protoc-3.12.3-linux-x86_64.zip
+            protoc_version="$(make print-PROTOC_VERSION)"
+            wget https://github.com/protocolbuffers/protobuf/releases/download/v${protoc_version}/protoc-${protoc_version}-linux-x86_64.zip
             sudo unzip -d /usr/local protoc-*.zip
             sudo chmod +x /usr/local/bin/protoc
             sudo chmod -R a+Xr /usr/local/include/google/
