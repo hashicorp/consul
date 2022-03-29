@@ -23,6 +23,7 @@ Description:
    generated code.
 
 Options:
+   --protoc-bin             Path to protoc.
    --import-replace         Replace imports of google types with those from the protobuf repo.
    --grpc                   Enable the gRPC plugin
    -h | --help              Print this help text.
@@ -38,6 +39,7 @@ function err_usage {
 function main {
    local -i grpc=0
    local    proto_path=
+   local    protoc_bin=
 
    while test $# -gt 0
    do
@@ -49,6 +51,10 @@ function main {
          --grpc )
             grpc=1
             shift
+            ;;
+         --protoc-bin )
+            protoc_bin="$2"
+            shift 2
             ;;
          * )
             proto_path="$1"
@@ -62,6 +68,17 @@ function main {
       err_usage "ERROR: No proto file specified"
       return 1
    fi
+
+   if test -z "${protoc_bin}"
+   then
+       protoc_bin="$(command -v protoc)"
+       if test -z "${protoc_bin}"
+       then
+           err_usage "ERROR: no proto-bin specified and protoc could not be discovered"
+           return 1
+       fi
+   fi
+
 
    go mod download
 
@@ -92,14 +109,14 @@ function main {
    #  -I="${golang_proto_path}/protobuf" \
    local -i ret=0
    status_stage "Generating ${proto_path} into ${proto_go_path} and ${proto_go_bin_path} ${mog_input_path}/*.gen.go"
-   echo "debug_run protoc \
+   echo "debug_run ${protoc_bin} \
           -I=\"${golang_proto_path}\" \
           -I=\"${golang_proto_mod_path}\" \
           -I=\"${SOURCE_DIR}\" \
           --go_out=\"${go_proto_out}${SOURCE_DIR}\" \
           --go-binary_out=\"${SOURCE_DIR}\" \
           \"${proto_path}\""
-   debug_run protoc \
+   debug_run ${protoc_bin} \
       -I="${golang_proto_path}" \
       -I="${golang_proto_mod_path}" \
       -I="${SOURCE_DIR}" \

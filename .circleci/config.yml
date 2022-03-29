@@ -228,15 +228,6 @@ jobs:
       - checkout
       - run:
           name: Install protobuf
-          command: |
-            protoc_version="$(make print-PROTOC_VERSION)"
-            wget https://github.com/protocolbuffers/protobuf/releases/download/v${protoc_version}/protoc-${protoc_version}-linux-x86_64.zip
-            sudo unzip -d /usr/local protoc-*.zip
-            sudo chmod +x /usr/local/bin/protoc
-            sudo chmod -R a+Xr /usr/local/include/google/
-            rm protoc-*.zip
-      - run:
-          name: Install protobuf
           command: make proto-tools
 
       - run:
