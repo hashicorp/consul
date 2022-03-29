@@ -21,12 +21,4 @@ done
 find . -name \*.go | xargs fgrep 'acl.' -l | xargs $GOIMPORTS -local "github.com/hashicorp/consul" -w
 
 make --always-make proto
-
-
-go get google.golang.org/protobuf/reflect/protoreflect
-go get google.golang.org/protobuf/types/known/structpb
-go get google.golang.org/protobuf/runtime/protoimpl
-go get github.com/hashicorp/consul/agent/xds
-go get github.com/hashicorp/consul/agent/structs
-go get google.golang.org/protobuf
-
+make go-mod-tidy
