@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
 pushd $(dirname ${BASH_SOURCE[0]}) > /dev/null
 SCRIPT_DIR=$(pwd)
@@ -22,7 +23,7 @@ Description:
    generated code.
 
 Options:
-   --import-replace         Replace imports of google types with those from the gogo/protobuf repo.
+   --import-replace         Replace imports of google types with those from the protobuf repo.
    --grpc                   Enable the gRPC plugin
    -h | --help              Print this help text.
 EOF
@@ -67,21 +68,19 @@ function main {
       return 1
    fi
 
-   local gogo_proto_path=$(go list -f '{{ .Dir }}' -m github.com/gogo/protobuf)
-   local gogo_proto_mod_path=$(sed -e 's,\(.*\)github.com.*,\1,' <<< "${gogo_proto_path}")
+   go mod download
 
-   local gogo_proto_imp_replace="Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types"
-   gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types"
-   gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types"
-   gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/struct.proto=github.com/gogo/protobuf/types"
-   gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/wrappers.proto=github.com/gogo/protobuf/types"
-   gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/api/annotations.proto=github.com/gogo/googleapis/google/api"
-   gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/field_mask.proto=github.com/gogo/protobuf/types"
-   gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types"
+   local golang_proto_path=$(go list -f '{{ .Dir }}' -m github.com/golang/protobuf)
+   local golang_proto_mod_path=$(sed -e 's,\(.*\)github.com.*,\1,' <<< "${golang_proto_path}")
+
+
+   local golang_proto_imp_replace="Mgoogle/protobuf/timestamp.proto=github.com/golang/protobuf/ptypes/timestamp"
+   golang_proto_imp_replace="${golang_proto_imp_replace},Mgoogle/protobuf/duration.proto=github.com/golang/protobuf/ptypes/duration"
 
    local proto_go_path=${proto_path%%.proto}.pb.go
    local proto_go_bin_path=${proto_path%%.proto}.pb.binary.go
-   
+   local proto_go_rpcglue_path=${proto_path%%.proto}.rpcglue.pb.go
+
    local go_proto_out="paths=source_relative"
    if is_set "${grpc}"
    then
@@ -90,7 +89,7 @@ function main {
 
    if is_set "${imp_replace}"
    then
-      go_proto_out="${go_proto_out},${gogo_proto_imp_replace}"
+      go_proto_out="${go_proto_out},${golang_proto_imp_replace}"
    fi
 
    if test -n "${go_proto_out}"
@@ -100,23 +99,47 @@ function main {
 
    # How we run protoc probably needs some documentation.
    #
-   # This is the path to where 
-   #  -I="${gogo_proto_path}/protobuf" \
+   # This is the path to where
+   #  -I="${golang_proto_path}/protobuf" \
    local -i ret=0
    status_stage "Generating ${proto_path} into ${proto_go_path} and ${proto_go_bin_path}"
+    echo "debug_run protoc \
+          -I=\"${golang_proto_path}\" \
+          -I=\"${golang_proto_mod_path}\" \
+          -I=\"${SOURCE_DIR}\" \
+          --go_out=\"${go_proto_out}${SOURCE_DIR}\" \
+          --go-binary_out=\"${SOURCE_DIR}\" \
+          \"${proto_path}\""
    debug_run protoc \
-      -I="${gogo_proto_path}/protobuf" \
-      -I="${gogo_proto_path}" \
-      -I="${gogo_proto_mod_path}" \
+      -I="${golang_proto_path}" \
+      -I="${golang_proto_mod_path}" \
       -I="${SOURCE_DIR}" \
-      --gofast_out="${go_proto_out}${SOURCE_DIR}" \
+      --go_out="${go_proto_out}${SOURCE_DIR}" \
       --go-binary_out="${SOURCE_DIR}" \
       "${proto_path}"
+
    if test $? -ne 0
    then
-      err "Failed to generate outputs from ${proto_path}"
+      err "Failed to run protoc for ${proto_path}"
       return 1
    fi
+
+   debug_run protoc-go-inject-tag \
+   	   -input="${proto_go_path}"
+
+   if test $? -ne 0
+   then
+      err "Failed to run protoc-go-inject-tag for ${proto_path}"
+      return 1
+   fi
+
+   echo "debug_run protoc \
+         -I=\"${golang_proto_path}\" \
+         -I=\"${golang_proto_mod_path}\" \
+         -I=\"${SOURCE_DIR}\" \
+         --go_out=\"${go_proto_out}${SOURCE_DIR}\" \
+         --go-binary_out=\"${SOURCE_DIR}\" \
+         \"${proto_path}\""
 
    BUILD_TAGS=$(sed -e '/^[[:space:]]*$/,$d' < "${proto_path}" | grep '// +build')
    if test -n "${BUILD_TAGS}"
@@ -124,10 +147,19 @@ function main {
       echo -e "${BUILD_TAGS}\n" >> "${proto_go_path}.new"
       cat "${proto_go_path}" >> "${proto_go_path}.new"
       mv "${proto_go_path}.new" "${proto_go_path}"
-      
+
       echo -e "${BUILD_TAGS}\n" >> "${proto_go_bin_path}.new"
       cat "${proto_go_bin_path}" >> "${proto_go_bin_path}.new"
       mv "${proto_go_bin_path}.new" "${proto_go_bin_path}"
+   fi
+
+   # note: this has to run after we fix up the build tags above
+   rm -f "${proto_go_rpcglue_path}"
+   debug_run go run ./internal/tools/proto-gen-rpc-glue/main.go -path "${proto_go_path}"
+   if test $? -ne 0
+      then
+         err "Failed to generate consul rpc glue outputs from ${proto_path}"
+         return 1
    fi
 
    return 0

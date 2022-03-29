@@ -26,7 +26,6 @@ import (
 	grpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbcommongogo"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
@@ -124,7 +123,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
 			Topic:     pbsubscribe.Topic_ServiceHealth,
 			Key:       "redis",
-			Namespace: pbcommongogo.DefaultEnterpriseMeta.Namespace,
+			Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
 		})
 		require.NoError(t, err)
 
@@ -489,7 +488,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 			Topic:      pbsubscribe.Topic_ServiceHealth,
 			Key:        "redis",
 			Datacenter: "dc2",
-			Namespace:  pbcommongogo.DefaultEnterpriseMeta.Namespace,
+			Namespace:  pbcommon.DefaultEnterpriseMeta.Namespace,
 		})
 		require.NoError(t, err)
 		go recvEvents(chEvents, streamHandle)
@@ -746,7 +745,7 @@ node "node1" {
 			Topic:     pbsubscribe.Topic_ServiceHealth,
 			Key:       "foo",
 			Token:     token,
-			Namespace: pbcommongogo.DefaultEnterpriseMeta.Namespace,
+			Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
 		})
 		require.NoError(t, err)
 

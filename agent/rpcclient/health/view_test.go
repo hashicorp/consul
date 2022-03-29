@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/proto/pbcommon"
 	"strings"
 	"testing"
 	"time"
@@ -18,7 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/pbcommongogo"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
@@ -75,7 +74,7 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	namespace := getNamespace(pbcommongogo.DefaultEnterpriseMeta.Namespace)
+	namespace := getNamespace(pbcommon.DefaultEnterpriseMeta.Namespace)
 	streamClient := newStreamClient(validateNamespace(namespace))
 
 	ctx, cancel := context.WithCancel(context.Background())
