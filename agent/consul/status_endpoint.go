@@ -55,7 +55,7 @@ func (s *Status) Peers(args *structs.DCSpecificRequest, reply *[]string) error {
 	return nil
 }
 
-// EmptyReadRequest implements the interface used by ServiceCallObserver
+// EmptyReadRequest implements the interface used by middleware.RequestRecorder
 // to communicate properties of requests.
 type EmptyReadRequest struct{}
 
@@ -63,7 +63,7 @@ func (e EmptyReadRequest) IsRead() bool {
 	return true
 }
 
-// Used by Autopilot to query the raft stats of the local server.
+// RaftStats is used by Autopilot to query the raft stats of the local server.
 func (s *Status) RaftStats(args EmptyReadRequest, reply *structs.RaftStats) error {
 	stats := s.server.raft.Stats()
 
