@@ -381,8 +381,8 @@ mog:
 	@for FULL_PKG in $(PROTO_MOG_ORDER); do \
 		PKG="$${FULL_PKG/#github.com\/hashicorp\/consul\//.\/}" ; \
 		find "$$PKG" -name '*.gen.go' -delete ; \
-		echo "mog -ignore-package-load-errors -tags '$(GOTAGS)' -source \"$${PKG}/*.pb.go\"" ; \
-		mog -ignore-package-load-errors -tags '$(GOTAGS)' -source "$${PKG}/*.pb.go" ; \
+		echo "mog -tags '$(GOTAGS)' -source \"$${PKG}/*.pb.go\"" ; \
+		mog -tags '$(GOTAGS)' -source "$${PKG}/*.pb.go" ; \
 	done
 	@echo "Generated all mog Go files"
 
