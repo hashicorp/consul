@@ -449,10 +449,11 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 				},
 			},
 		}
-		typedExtensionProtocolOptionsEncoded, err := anypb.New(typedExtensionProtocolOptions)
+		typedExtensionProtocolOptionsEncoded, err := ptypes.MarshalAny(typedExtensionProtocolOptions)
 		require.NoError(t, err)
-		c.TypedExtensionProtocolOptions = make(map[string]*anypb.Any)
-		c.TypedExtensionProtocolOptions["envoy.extensions.upstreams.http.v3.HttpProtocolOptions"] = typedExtensionProtocolOptionsEncoded
+		c.TypedExtensionProtocolOptions = map[string]*anypb.Any{
+			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": typedExtensionProtocolOptionsEncoded,
+		}
 		return c
 	case "http:db":
 		return &envoy_cluster_v3.Cluster{
