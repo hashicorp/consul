@@ -273,9 +273,10 @@ This metric should be monitored to ensure that the license doesn't expire to pre
 
 | Metric Name                       | Description                                                      | Unit  | Type  |
 | :-------------------------------- | :--------------------------------------------------------------- | :---- | :---- |
-| `consul.raft.boltdb.freelistBytes`                  | Represents the number of bytes necessary to encode the freelist metadata. When [`raft_boltdb.NoFreelistSync`](/docs/agent/options#NoFreelistSync) is set to `false` these metadata bytes must also be written to disk for each committed log. | bytes | gauge   |
-| `consul.raft.boltdb.logsPerBatch`                   | Measures the number of logs being written per batch to the db. | logs | sample |
-| `consul.raft.boltdb.storeLogs`                      | Measures the amount of time spent writing logs to the db. | ms | timer |
+| `consul.raft.boltdb.freelistBytes` | Represents the number of bytes necessary to encode the freelist metadata. When [`raft_boltdb.NoFreelistSync`](/docs/agent/options#NoFreelistSync) is set to `false` these metadata bytes must also be written to disk for each committed log. | bytes | gauge   |
+| `consul.raft.boltdb.logsPerBatch`  | Measures the number of logs being written per batch to the db. | logs | sample |
+| `consul.raft.boltdb.storeLogs`     | Measures the amount of time spent writing logs to the db. | ms | timer |
+| `consul.raft.boltdb.writeCapacity` | Theoretical write capacity in terms of the number of logs that can be written per second. Each sample outputs what the capacity would be if future batched log write operations were similar to this one. This similarity encompasses 4 things: batch size, byte size, disk performance and boltdb performance. While none of these will be static and its highly likely individual samples of this metric will vary, aggregating this metric over a larger time window should provide a decent picture into how this BoltDB store can perform | logs/second  | sample |
 
 
 ** Requirements: **
@@ -293,15 +294,13 @@ upper limit to the throughput of write operations within Consul.
 
 In Consul each write operation will turn into a single Raft log to be committed. Raft will process these
 logs and store them within Bolt DB in batches. Each call to store logs within Bolt DB is measured to record how long
-it took as well as how many logs were contained in the batch. Writing logs is this fashion is serialized so that
-a subsequent log storage operation can only be started after the previous one completed. Therefore the maximum number
-of log storage operations that can be performed each second can be calculated with the following equation: 
-`(1000 ms) / (consul.raft.boltdb.storeLogs ms/op)`. From there we can extrapolate the maximum number of Consul writes
-per second by multiplying that value by the `consul.raft.boltdb.logsPerBatch` metric's value. When log storage 
-operations are becoming slower you may not see an immediate decrease in write throughput to Consul due to increased 
-batch sizes of the each operation. However, the max batch size allowed is 64 logs. Therefore if the `logsPerBatch`
-metric is near 64 and the `storeLogs` metric is seeing increased time to write each batch to disk, then it is likely 
-that increased write latencies and other errors may occur.
+it took as well as how many logs were contained in the batch. Writing logs in this fashion is serialized so that
+a subsequent log storage operation can only be started after the previous one completed. The maximum number
+of log storage operations that can be performed each second is represented with the `consul.raft.boltdb.writeCapacity`
+metric. When log storage operations are becoming slower you may not see an immediate decrease in write capacity
+due to increased batch sizes of the each operation. However, the max batch size allowed is 64 logs. Therefore if 
+the `logsPerBatch` metric is near 64 and the `storeLogs` metric is seeing increased time to write each batch to disk,
+then it is likely that increased write latencies and other errors may occur.
 
 There can be a number of potential issues that can cause this. Often times it could be performance of the underlying
 disks that is the issue. Other times it may be caused by Bolt DB behavior. Bolt DB keeps track of free space within
@@ -421,6 +420,7 @@ These metrics are used to monitor the health of the Consul servers.
 | `consul.raft.boltdb.txstats.split`                  | Counts the number of nodes split in the db since Consul was started. | splits | counter |
 | `consul.raft.boltdb.txstats.write`                  | Counts the number of writes to the db since Consul was started. | writes | counter |
 | `consul.raft.boltdb.txstats.writeTime`              | Measures the amount of time spent performing writes to the db. | ms  | timer |
+| `consul.raft.boltdb.writeCapacity`                  | Theoretical write capacity in terms of the number of logs that can be written per second. Each sample outputs what the capacity would be if future batched log write operations were similar to this one. This similarity encompasses 4 things: batch size, byte size, disk performance and boltdb performance. While none of these will be static and its highly likely individual samples of this metric will vary, aggregating this metric over a larger time window should provide a decent picture into how this BoltDB store can perform | logs/second  | sample |
 | `consul.raft.commitNumLogs`                         | Measures the count of logs processed for application to the FSM in a single batch.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | logs                              | gauge   |
 | `consul.raft.commitTime`                            | Measures the time it takes to commit a new entry to the Raft log on the leader.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | ms                                | timer   |
 | `consul.raft.fsm.lastRestoreDuration`               | Measures the time taken to restore the FSM from a snapshot on an agent restart or from the leader calling installSnapshot. This is a gauge that holds it's value since most servers only restore during restarts which are typically infrequent.                                                                                                                                                                                                                                                                                                                                                                                                              | ms                                | gauge   |
