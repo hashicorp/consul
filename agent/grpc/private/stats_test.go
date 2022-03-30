@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/grpc/private/internal/testservice"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -86,21 +87,14 @@ func TestHandler_EmitsStats(t *testing.T) {
 		{key: []string{"testing", "grpc", "server", "connections"}, val: 0},
 		{key: []string{"testing", "grpc", "server", "streams"}, val: 0},
 	}
-	assertDeepEqual(t, expectedGauge, sink.gaugeCalls, cmpMetricCalls)
+	prototest.AssertDeepEqual(t, expectedGauge, sink.gaugeCalls, cmpMetricCalls)
 
 	expectedCounter := []metricCall{
 		{key: []string{"testing", "grpc", "server", "connection", "count"}, val: 1},
 		{key: []string{"testing", "grpc", "server", "request", "count"}, val: 1},
 		{key: []string{"testing", "grpc", "server", "stream", "count"}, val: 1},
 	}
-	assertDeepEqual(t, expectedCounter, sink.incrCounterCalls, cmpMetricCalls)
-}
-
-func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
-	t.Helper()
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
-		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
-	}
+	prototest.AssertDeepEqual(t, expectedCounter, sink.incrCounterCalls, cmpMetricCalls)
 }
 
 func patchGlobalMetrics(t *testing.T) (*fakeMetricsSink, func()) {

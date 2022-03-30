@@ -21,9 +21,9 @@ type MaterializerDeps struct {
 	Logger hclog.Logger
 }
 
-func newMaterializerRequest(srvReq structs.ServiceSpecificRequest) func(index uint64) pbsubscribe.SubscribeRequest {
-	return func(index uint64) pbsubscribe.SubscribeRequest {
-		req := pbsubscribe.SubscribeRequest{
+func newMaterializerRequest(srvReq structs.ServiceSpecificRequest) func(index uint64) *pbsubscribe.SubscribeRequest {
+	return func(index uint64) *pbsubscribe.SubscribeRequest {
+		req := &pbsubscribe.SubscribeRequest{
 			Topic:      pbsubscribe.Topic_ServiceHealth,
 			Key:        srvReq.ServiceName,
 			Token:      srvReq.Token,

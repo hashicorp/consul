@@ -11,7 +11,7 @@ GOTOOLS = \
 	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1 \
 	github.com/hashicorp/lint-consul-retry@master
 
-PROTOC_VERSION=3.12.3
+PROTOC_VERSION=3.15.8
 PROTOC_OS := $(shell if test "$$(uname)" == "Darwin"; then echo osx; else echo linux; fi)
 PROTOC_ZIP := protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-x86_64.zip
 PROTOC_URL := https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/$(PROTOC_ZIP)
@@ -22,7 +22,7 @@ GOPROTOTOOLS = \
 	github.com/golang/protobuf/protoc-gen-go@$(GOPROTOVERSION) \
 	github.com/hashicorp/protoc-gen-go-binary@master \
 	github.com/favadi/protoc-go-inject-tag@v1.3.0 \
-	github.com/hashicorp/mog@v0.1.1
+	github.com/hashicorp/mog@v0.1.2
 
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
