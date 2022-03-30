@@ -12,7 +12,7 @@ GOTOOLS = \
 	github.com/hashicorp/lint-consul-retry@master
 
 PROTOC_VERSION=3.12.3
-PROTOC_OS := $(shell if test "$(uname)" == "Darwin"; then echo osx; else echo linux; fi)
+PROTOC_OS := $(shell if test "$$(uname)" == "Darwin"; then echo osx; else echo linux; fi)
 PROTOC_ZIP := protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-x86_64.zip
 PROTOC_URL := https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/$(PROTOC_ZIP)
 PROTOC_ROOT := .protobuf/protoc-$(PROTOC_OS)-$(PROTOC_VERSION)
