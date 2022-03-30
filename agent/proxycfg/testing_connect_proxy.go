@@ -16,7 +16,7 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 
 	// no entries implies we'll get a default chain
 	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
-	assert.True(t, dbChain.IsDefault())
+	assert.True(t, dbChain.Default)
 
 	var (
 		upstreams   = structs.TestUpstreams(t)

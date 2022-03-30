@@ -115,7 +115,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 
 		// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
-		useRDS := chain.Protocol != "tcp" && !chain.IsDefault()
+		useRDS := chain.Protocol != "tcp" && !chain.Default
 
 		var clusterName string
 		if !useRDS {
@@ -1303,7 +1303,7 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(
 	if u != nil {
 		configMap = u.Config
 	}
-	if chain == nil || chain.IsDefault() {
+	if chain == nil || chain.Default {
 		cfg, err = structs.ParseUpstreamConfigNoDefaults(configMap)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns

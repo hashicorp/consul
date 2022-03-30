@@ -45,7 +45,7 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		if chain.IsDefault() {
+		if chain.Default {
 			continue
 		}
 

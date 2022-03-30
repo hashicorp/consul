@@ -26,8 +26,16 @@ type CompiledDiscoveryChain struct {
 	// non-customized versions.
 	CustomizationHash string `json:",omitempty"`
 
+	// Default indicates if this discovery chain is based on no
+	// service-resolver, service-splitter, or service-router config entries.
+	Default bool `json:",omitempty"`
+
 	// Protocol is the overall protocol shared by everything in the chain.
 	Protocol string `json:",omitempty"`
+
+	// ServiceMeta is the metadata from the underlying service-defaults config
+	// entry for the service named ServiceName.
+	ServiceMeta map[string]string `json:",omitempty"`
 
 	// StartNode is the first key into the Nodes map that should be followed
 	// when walking the discovery chain.
@@ -60,33 +68,6 @@ func (c *CompiledDiscoveryChain) WillFailoverThroughMeshGateway(node *DiscoveryG
 		}
 	}
 	return false
-}
-
-// IsDefault returns true if the compiled chain represents no routing, no
-// splitting, and only the default resolution.  We have to be careful here to
-// avoid returning "yep this is default" when the only resolver action being
-// applied is redirection to another resolver that is default, so we double
-// check the resolver matches the requested resolver.
-func (c *CompiledDiscoveryChain) IsDefault() bool {
-	if c.StartNode == "" || len(c.Nodes) == 0 {
-		return true
-	}
-
-	node := c.Nodes[c.StartNode]
-	if node == nil {
-		panic("not possible: missing node named '" + c.StartNode + "' in chain '" + c.ServiceName + "'")
-	}
-
-	if node.Type != DiscoveryGraphNodeTypeResolver {
-		return false
-	}
-	if !node.Resolver.Default {
-		return false
-	}
-
-	target := c.Targets[node.Resolver.Target]
-
-	return target.Service == c.ServiceName && target.Namespace == c.Namespace && target.Partition == c.Partition
 }
 
 // ID returns an ID that encodes the service, namespace, partition, and datacenter.
