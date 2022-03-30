@@ -488,7 +488,9 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 		protocol = cfg.Protocol
 	}
 	if protocol == "http2" || protocol == "grpc" {
-		s.setHttp2ProtocolOptions(c)
+		if err := s.setHttp2ProtocolOptions(c); err != nil {
+			return c, err
+		}
 	}
 
 	return c, err
@@ -539,7 +541,9 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck),
 		}
 		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
-			s.setHttp2ProtocolOptions(c)
+			if err := s.setHttp2ProtocolOptions(c); err != nil {
+				return c, err
+			}
 		}
 	}
 
@@ -744,7 +748,9 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		if proto == "http2" || proto == "grpc" {
-			s.setHttp2ProtocolOptions(c)
+			if err := s.setHttp2ProtocolOptions(c); err != nil {
+				return nil, err
+			}
 		}
 
 		commonTLSContext := makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf())
@@ -1040,8 +1046,8 @@ func injectLBToCluster(ec *structs.LoadBalancer, c *envoy_cluster_v3.Cluster) er
 	return nil
 }
 
-func (s *ResourceGenerator) setHttp2ProtocolOptions(c *envoy_cluster_v3.Cluster) {
-	typedExtensionProtocolOptions := &envoy_upstreams_v3.HttpProtocolOptions{
+func (s *ResourceGenerator) setHttp2ProtocolOptions(c *envoy_cluster_v3.Cluster) error {
+	cfg := &envoy_upstreams_v3.HttpProtocolOptions{
 		UpstreamProtocolOptions: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig_{
 			ExplicitHttpConfig: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig{
 				ProtocolConfig: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{
@@ -1050,10 +1056,13 @@ func (s *ResourceGenerator) setHttp2ProtocolOptions(c *envoy_cluster_v3.Cluster)
 			},
 		},
 	}
-	typedExtensionProtocolOptionsEncoded, err := anypb.New(typedExtensionProtocolOptions)
+	any, err := ptypes.MarshalAny(cfg)
 	if err != nil {
-		s.Logger.Warn("failed to convert http protocol options to anypb")
+		return err
 	}
-	c.TypedExtensionProtocolOptions = make(map[string]*anypb.Any)
-	c.TypedExtensionProtocolOptions["envoy.extensions.upstreams.http.v3.HttpProtocolOptions"] = typedExtensionProtocolOptionsEncoded
+	c.TypedExtensionProtocolOptions = map[string]*anypb.Any{
+		"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": any,
+	}
+
+	return nil
 }
