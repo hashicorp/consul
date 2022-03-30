@@ -403,7 +403,7 @@ will not upgrade more than one batch per second so on a cluster with 10,000
 tokens, this may take several minutes.
 
 While this is happening both old and new ACLs will work correctly with the
-caveat that new ACL [Token APIs](/api/acl/tokens) may not return an
+caveat that new ACL [Token APIs](/api-docs/acl/tokens) may not return an
 accessor ID for legacy tokens that are not yet migrated.
 
 #### Migrating Existing ACLs
@@ -417,8 +417,8 @@ API so existing integrations that create tokens (e.g. Vault) will continue to
 work. The "legacy" tokens generated though will not be able to take advantage of
 new policy features. It's recommended that you complete migration of all tokens
 as soon as possible after upgrade, as well as updating any integrations to work
-with the the new ACL [Token](/api/acl/tokens) and
-[Policy](/api/acl/policies) APIs.
+with the the new ACL [Token](/api-docs/acl/tokens) and
+[Policy](/api-docs/acl/policies) APIs.
 
 More complete details on how to upgrade "legacy" tokens is available [here](/docs/security/acl/acl-migrate-tokens).
 
@@ -718,7 +718,7 @@ directly returning one of Consul's internal data structures. This configuration
 structure has been moved under `DebugConfig`, and is documents as for debugging
 use and subject to change, and a small set of elements of `Config` have been
 maintained and documented. See [Read
-Configuration](/api/agent#read-configuration) endpoint documentation for
+Configuration](/api-docs/agent#read-configuration) endpoint documentation for
 details.
 
 #### Deprecated `configtest` Command Removed
@@ -950,7 +950,7 @@ to upgrade all agents to a newer version of Consul before upgrading to Consul
 #### Prepared Query Changes
 
 Consul version 0.7 adds a feature which allows prepared queries to store a
-[`Near` parameter](/api/query#near) in the query definition
+[`Near` parameter](/api-docs/query#near) in the query definition
 itself. This feature enables using the distance sorting features of prepared
 queries without explicitly providing the node to sort near in requests, but
 requires the agent servicing a request to send additional information about

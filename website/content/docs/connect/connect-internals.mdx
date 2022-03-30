@@ -30,14 +30,14 @@ This enables Connect services to establish and accept connections with
 other SPIFFE-compliant systems.
 
 The client service verifies the destination service certificate
-against the [public CA bundle](/api/connect/ca#list-ca-root-certificates).
+against the [public CA bundle](/api-docs/connect/ca#list-ca-root-certificates).
 This is very similar to a typical HTTPS web browser connection. In addition
 to this, the client provides its own client certificate to show its
 identity to the destination service. If the connection handshake succeeds,
 the connection is encrypted and authorized.
 
 The destination service verifies the client certificate against the [public CA
-bundle](/api/connect/ca#list-ca-root-certificates). After verifying the
+bundle](/api-docs/connect/ca#list-ca-root-certificates). After verifying the
 certificate, the next step depends upon the configured application protocol of
 the destination service. TCP (L4) services must authorize incoming _connections_
 against the configured set of Consul [intentions](/docs/connect/intentions),
@@ -54,15 +54,15 @@ and can be extended to support any system by adding additional CA providers.
 All APIs required for Connect typically respond in microseconds and impose
 minimal overhead to existing services. To ensure this, Connect-related API calls
 are all made to the local Consul agent over a loopback interface, and all [agent
-Connect endpoints](/api/agent/connect) implement local caching, background
+Connect endpoints](/api-docs/agent/connect) implement local caching, background
 updating, and support blocking queries. Most API calls operate on purely local
 in-memory data.
 
 ## Agent Caching and Performance
 
 To enable fast responses on endpoints such as the [agent Connect
-API](/api/agent/connect), the Consul agent locally caches most Connect-related
-data and sets up background [blocking queries](/api/features/blocking) against
+API](/api-docs/agent/connect), the Consul agent locally caches most Connect-related
+data and sets up background [blocking queries](/api-docs/features/blocking) against
 the server to update the cache in the background. This allows most API calls
 such as retrieving certificates or authorizing connections to use in-memory
 data and respond very quickly.
