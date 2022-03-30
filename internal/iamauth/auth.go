@@ -72,7 +72,7 @@ func (a *Authenticator) ValidateLogin(ctx context.Context, loginToken string) (*
 	if err != nil {
 		return nil, err
 	}
-	a.logger.Info("iamauth login attempt", "arn", callerIdentity.Arn)
+	a.logger.Debug("iamauth login attempt", "arn", callerIdentity.Arn)
 
 	entity, err := responses.ParseArn(callerIdentity.Arn)
 	if err != nil {
