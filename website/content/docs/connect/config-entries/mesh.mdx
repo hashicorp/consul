@@ -282,7 +282,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
               yaml: false,
               type: 'string: ""',
               description:
-                "Set the default minimum TLS version supported. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.",
+                "Set the default minimum TLS version supported. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0. Future Envoy releases [may change this to TLS 1.3](https://github.com/envoyproxy/envoy/issues/9300).",
             },
             {
               name: 'TLSMaxVersion',
@@ -326,7 +326,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
               yaml: false,
               type: 'string: ""',
               description:
-                "Set the default minimum TLS version supported. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.",
+                "Set the default minimum TLS version supported. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0. Future Envoy releases [may change this to TLS 1.3](https://github.com/envoyproxy/envoy/issues/9300).",
             },
             {
               name: 'TLSMaxVersion',
