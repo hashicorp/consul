@@ -7,9 +7,11 @@
   <ul>
 {{#each @items as |item|}}
     <li>
-      <Consul::Server::Card
-        @item={{item}}
-      />
+      <a href={{href-to 'dc.nodes.show' item.Name}}>
+        <Consul::Server::Card
+          @item={{item}}
+        />
+      </a>
     </li>
 {{/each}}
   </ul>
