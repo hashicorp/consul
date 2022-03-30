@@ -134,12 +134,23 @@ func TestManager_StopBlocking(t *testing.T) {
 		require.Equal(r, uint32(1), atomic.LoadUint32(&running))
 	})
 
+	// New routine should be able to replace old "cancelled but running" routine.
+	require.NoError(t, mgr.Start(context.Background(), "blocking", func(ctx context.Context) error {
+		<-ctx.Done()
+		return nil
+	}))
+	defer mgr.Stop("blocking")
+
+	retry.Run(t, func(r *retry.R) {
+		require.True(r, mgr.IsRunning("blocking"))               // New routine
+		require.Equal(r, uint32(1), atomic.LoadUint32(&running)) // Old routine
+	})
+
 	// Complete the blocking routine
 	close(unblock)
 	<-doneCh
 
 	retry.Run(t, func(r *retry.R) {
-		require.False(r, mgr.IsRunning("blocking"))
 		require.Equal(r, uint32(0), atomic.LoadUint32(&running))
 	})
 }
