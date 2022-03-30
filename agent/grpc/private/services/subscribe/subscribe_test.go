@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
@@ -28,6 +27,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -206,7 +206,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 				Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
 			},
 		}
-		assertDeepEqual(t, expected, snapshotEvents)
+		prototest.AssertDeepEqual(t, expected, snapshotEvents)
 	})
 
 	runStep(t, "update the registration by adding a check", func(t *testing.T) {
@@ -271,7 +271,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 				},
 			},
 		}
-		assertDeepEqual(t, expectedEvent, event)
+		prototest.AssertDeepEqual(t, expectedEvent, event)
 	})
 }
 
@@ -309,13 +309,6 @@ func getEvent(t *testing.T, ch chan eventOrError) *pbsubscribe.Event {
 		t.Fatalf("timeout waiting on event from server")
 	}
 	return nil
-}
-
-func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
-	t.Helper()
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
-		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
-	}
 }
 
 type testBackend struct {
@@ -571,7 +564,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 				Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
 			},
 		}
-		assertDeepEqual(t, expected, snapshotEvents)
+		prototest.AssertDeepEqual(t, expected, snapshotEvents)
 	})
 
 	runStep(t, "update the registration by adding a check", func(t *testing.T) {
@@ -636,7 +629,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 				},
 			},
 		}
-		assertDeepEqual(t, expectedEvent, event)
+		prototest.AssertDeepEqual(t, expectedEvent, event)
 	})
 }
 
@@ -949,20 +942,20 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 	type testCase struct {
 		name     string
 		event    stream.Event
-		expected pbsubscribe.Event
+		expected *pbsubscribe.Event
 	}
 
 	fn := func(t *testing.T, tc testCase) {
 		expected := tc.expected
 		actual := newEventFromStreamEvent(tc.event)
-		assertDeepEqual(t, &expected, actual, cmpopts.EquateEmpty())
+		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 	}
 
 	var testCases = []testCase{
 		{
 			name:  "end of snapshot",
 			event: newEventFromSubscription(t, 0),
-			expected: pbsubscribe.Event{
+			expected: &pbsubscribe.Event{
 				Index:   1,
 				Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
 			},
@@ -970,7 +963,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 		{
 			name:  "new snapshot to follow",
 			event: newEventFromSubscription(t, 22),
-			expected: pbsubscribe.Event{
+			expected: &pbsubscribe.Event{
 				Payload: &pbsubscribe.Event_NewSnapshotToFollow{NewSnapshotToFollow: true},
 			},
 		},
@@ -1000,7 +993,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 						},
 					}),
 			},
-			expected: pbsubscribe.Event{
+			expected: &pbsubscribe.Event{
 				Index: 2002,
 				Payload: &pbsubscribe.Event_EventBatch{
 					EventBatch: &pbsubscribe.EventBatch{
@@ -1066,7 +1059,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 					},
 				},
 			},
-			expected: pbsubscribe.Event{
+			expected: &pbsubscribe.Event{
 				Index: 2002,
 				Payload: &pbsubscribe.Event_ServiceHealth{
 					ServiceHealth: &pbsubscribe.ServiceHealthUpdate{

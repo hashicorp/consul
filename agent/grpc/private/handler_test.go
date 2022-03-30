@@ -49,7 +49,7 @@ func TestHandler_PanicRecoveryInterceptor(t *testing.T) {
 
 	resp, err := client.Something(ctx, &testservice.Req{})
 	expectedErr := status.Errorf(codes.Internal, "grpc: panic serving request")
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, expectedErr.Error(), err.Error())
 	require.Nil(t, resp)
 
 	// Read the log

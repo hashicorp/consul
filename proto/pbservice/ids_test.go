@@ -11,17 +11,17 @@ import (
 func TestCheckServiceNode_UniqueID(t *testing.T) {
 	type testCase struct {
 		name     string
-		csn      CheckServiceNode
+		csn      *CheckServiceNode
 		expected string
 	}
-	fn := func(t *testing.T, tc testCase) {
+	fn := func(t *testing.T, tc *testCase) {
 		require.Equal(t, tc.expected, tc.csn.UniqueID())
 	}
 
 	var testCases = []testCase{
 		{
 			name: "full",
-			csn: CheckServiceNode{
+			csn: &CheckServiceNode{
 				Node: &Node{Node: "the-node-name"},
 				Service: &NodeService{
 					ID:             "the-service-id",
@@ -32,7 +32,7 @@ func TestCheckServiceNode_UniqueID(t *testing.T) {
 		},
 		{
 			name: "without node",
-			csn: CheckServiceNode{
+			csn: &CheckServiceNode{
 				Service: &NodeService{
 					ID:             "the-service-id",
 					EnterpriseMeta: &pbcommon.EnterpriseMeta{Namespace: "the-namespace"},
@@ -42,14 +42,14 @@ func TestCheckServiceNode_UniqueID(t *testing.T) {
 		},
 		{
 			name: "without service",
-			csn: CheckServiceNode{
+			csn: &CheckServiceNode{
 				Node: &Node{Node: "the-node-name"},
 			},
 			expected: "/the-node-name/",
 		},
 		{
 			name: "without namespace",
-			csn: CheckServiceNode{
+			csn: &CheckServiceNode{
 				Node: &Node{Node: "the-node-name"},
 				Service: &NodeService{
 					ID: "the-service-id",
@@ -60,7 +60,7 @@ func TestCheckServiceNode_UniqueID(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			fn(t, tc)
+			fn(t, &tc)
 		})
 	}
 

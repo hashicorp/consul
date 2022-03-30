@@ -147,13 +147,9 @@ function main {
       return 1
    fi
 
-   BUILD_TAGS=$(sed -e '/^[[:space:]]*$/,$d' < "${proto_path}" | grep '// +build')
+   BUILD_TAGS=$(head -n 2 "${proto_path}" | grep '^//go:build\|// +build')
    if test -n "${BUILD_TAGS}"
    then
-      echo -e "${BUILD_TAGS}\n" >> "${proto_go_path}.new"
-      cat "${proto_go_path}" >> "${proto_go_path}.new"
-      mv "${proto_go_path}.new" "${proto_go_path}"
-
       echo -e "${BUILD_TAGS}\n" >> "${proto_go_bin_path}.new"
       cat "${proto_go_bin_path}" >> "${proto_go_bin_path}.new"
       mv "${proto_go_bin_path}.new" "${proto_go_bin_path}"

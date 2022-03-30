@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -162,7 +163,7 @@ func TestServiceHealthSnapshot(t *testing.T) {
 			}),
 		},
 	}
-	assertDeepEqual(t, expected, buf.events, cmpEvents)
+	prototest.AssertDeepEqual(t, expected, buf.events, cmpEvents)
 }
 
 func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
@@ -263,7 +264,7 @@ func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 				}),
 		},
 	}
-	assertDeepEqual(t, expected, buf.events, cmpEvents)
+	prototest.AssertDeepEqual(t, expected, buf.events, cmpEvents)
 }
 
 type snapshotAppender struct {
@@ -1762,7 +1763,7 @@ func (tc eventsTestCase) run(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	assertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents, cmpopts.EquateEmpty())
+	prototest.AssertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents, cmpopts.EquateEmpty())
 }
 
 func runCase(t *testing.T, name string, fn func(t *testing.T)) bool {
@@ -1852,13 +1853,6 @@ func evServiceIndex(idx uint64) func(e *stream.Event) error {
 		e.Payload = payload
 
 		return nil
-	}
-}
-
-func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
-	t.Helper()
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
-		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
 	}
 }
 

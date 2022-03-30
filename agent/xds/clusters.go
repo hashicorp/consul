@@ -10,6 +10,7 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -486,7 +488,7 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 		protocol = cfg.Protocol
 	}
 	if protocol == "http2" || protocol == "grpc" {
-		c.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
+		s.setHttp2ProtocolOptions(c)
 	}
 
 	return c, err
@@ -537,7 +539,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck),
 		}
 		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
-			c.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
+			s.setHttp2ProtocolOptions(c)
 		}
 	}
 
@@ -742,7 +744,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		if proto == "http2" || proto == "grpc" {
-			c.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
+			s.setHttp2ProtocolOptions(c)
 		}
 
 		commonTLSContext := makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf())
@@ -1036,4 +1038,22 @@ func injectLBToCluster(ec *structs.LoadBalancer, c *envoy_cluster_v3.Cluster) er
 		return fmt.Errorf("unsupported load balancer policy %q for cluster %q", ec.Policy, c.Name)
 	}
 	return nil
+}
+
+func (s *ResourceGenerator) setHttp2ProtocolOptions(c *envoy_cluster_v3.Cluster) {
+	typedExtensionProtocolOptions := &envoy_upstreams_v3.HttpProtocolOptions{
+		UpstreamProtocolOptions: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig_{
+			ExplicitHttpConfig: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig{
+				ProtocolConfig: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{
+					Http2ProtocolOptions: &envoy_core_v3.Http2ProtocolOptions{},
+				},
+			},
+		},
+	}
+	typedExtensionProtocolOptionsEncoded, err := anypb.New(typedExtensionProtocolOptions)
+	if err != nil {
+		s.Logger.Warn("failed to convert http protocol options to anypb")
+	}
+	c.TypedExtensionProtocolOptions = make(map[string]*anypb.Any)
+	c.TypedExtensionProtocolOptions["envoy.extensions.upstreams.http.v3.HttpProtocolOptions"] = typedExtensionProtocolOptionsEncoded
 }

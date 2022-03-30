@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
@@ -30,6 +29,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -5604,7 +5604,7 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.NodeName = expected.NodeName
 		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
-		assertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
+		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 	}
 }
 
@@ -5615,13 +5615,6 @@ func runCase(t *testing.T, name string, fn func(t *testing.T)) {
 		t.Log("case:", name)
 		fn(t)
 	})
-}
-
-func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
-	t.Helper()
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
-		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
-	}
 }
 
 func TestLoad_InvalidConfigFormat(t *testing.T) {
@@ -6432,7 +6425,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			opts.Overrides = append(opts.Overrides, versionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn"))
 			r, err := Load(opts)
 			require.NoError(t, err)
-			assertDeepEqual(t, expected, r.RuntimeConfig)
+			prototest.AssertDeepEqual(t, expected, r.RuntimeConfig)
 			require.ElementsMatch(t, expectedWarns, r.Warnings, "Warnings: %#v", r.Warnings)
 		})
 	}

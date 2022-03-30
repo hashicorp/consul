@@ -2566,19 +2566,12 @@ func Encode(t MessageType, msg interface{}) ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-type ProtoMarshaller interface {
-	Size() int
-	MarshalTo([]byte) (int, error)
-	Unmarshal([]byte) error
-	ProtoMessage()
-}
-
 func EncodeProtoInterface(t MessageType, message interface{}) ([]byte, error) {
 	if marshaller, ok := message.(proto.Message); ok {
 		return EncodeProto(t, marshaller)
 	}
 
-	return nil, fmt.Errorf("message does not implement the ProtoMarshaller interface: %T", message)
+	return nil, fmt.Errorf("message does not implement proto.Message: %T", message)
 }
 
 func EncodeProto(t MessageType, pb proto.Message) ([]byte, error) {
