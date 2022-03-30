@@ -44,6 +44,25 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "connect-proxy-with-tls-outgoing-min-version-auto",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Outgoing: &structs.MeshDirectionalTLSConfig{
+										TLSMinVersion: types.TLSVersionAuto,
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+		},
+		{
 			name: "connect-proxy-with-tls-incoming-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
