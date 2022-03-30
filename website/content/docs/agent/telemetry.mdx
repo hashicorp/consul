@@ -525,7 +525,7 @@ These metrics are used to monitor the health of the Consul servers.
 ** Requirements: **
 * Consul 1.12.0+
 
-We added new RPC metrics as of 1.12 to better understand A) the workload on a Consul server and B) where that workload is coming from. These metrics give insight into that:
+A new RPC metrics was added in Consul 1.1.12 to better understand the workload on a Consul server and, where that workload is coming from. These metrics give insight into that:
 
 | Metric                                | Description                                               | Unit   | Type    |
 | ------------------------------------- | --------------------------------------------------------- | ------ | ------- |
@@ -545,7 +545,7 @@ The new metrics above come with the following labels:
 The `internal` value for the `rpc_type` in the table above refers to leader and cluster management RPC operations that Consul performs.
 Historically, `internal` RPC operation metrics were accounted under the same metric names.
 
-Here's an example of a new RPC metric and its labels:
+Here is an example of an RPC metric and its labels:
 
 <CodeBlockConfig heading="Sample output of telemetry dump">
 
