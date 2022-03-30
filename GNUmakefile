@@ -12,6 +12,11 @@ GOTOOLS = \
 	github.com/hashicorp/lint-consul-retry@master
 
 PROTOC_VERSION=3.12.3
+PROTOC_OS := $(shell if test "$(uname)" == "Darwin"; then echo osx; else echo linux; fi)
+PROTOC_ZIP := protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-x86_64.zip
+PROTOC_URL := https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/$(PROTOC_ZIP)
+PROTOC_ROOT := .protobuf/protoc-$(PROTOC_OS)-$(PROTOC_VERSION)
+PROTOC_BIN := $(PROTOC_ROOT)/bin/protoc
 GOPROTOVERSION?=$(shell grep github.com/golang/protobuf go.mod | awk '{print $$2}')
 GOPROTOTOOLS = \
 	github.com/golang/protobuf/protoc-gen-go@$(GOPROTOVERSION) \
@@ -33,7 +38,7 @@ GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)
 
-PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/')
+PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/' | grep -v '.protobuf' )
 PROTOGOFILES=$(PROTOFILES:.proto=.pb.go)
 PROTOGOBINFILES=$(PROTOFILES:.proto=.pb.binary.go)
 
@@ -353,22 +358,25 @@ else
 	@go test -v ./agent -run Vault
 endif
 
-.PHONY: protoc-check
-protoc-check:
-	$(info checking protocol buffer compiler version (expect: $(PROTOC_VERSION)))
-	@if ! command -v protoc &>/dev/null; then \
-		echo "ERROR: protoc is not installed; please install version $(PROTOC_VERSION)" >&2 ; \
-		exit 1 ; \
-	fi
-	@if [[ "$$(protoc --version | cut -d' ' -f2)" != "$(PROTOC_VERSION)" ]]; then \
-		echo "ERROR: protoc version $(PROTOC_VERSION) is required" >&2 ; \
+.PHONY: protoc-install
+protoc-install:
+	$(info locally installing protocol buffer compiler version if needed (expect: $(PROTOC_VERSION)))
+	@if [[ ! -x $(PROTOC_ROOT)/bin/protoc ]]; then \
+		mkdir -p .protobuf/tmp ; \
+		if [[ ! -f .protobuf/tmp/$(PROTOC_ZIP) ]]; then \
+			( cd .protobuf/tmp && curl -sSL "$(PROTOC_URL)" -o "$(PROTOC_ZIP)" ) ; \
+		fi ; \
+		mkdir -p $(PROTOC_ROOT) ; \
+		unzip -d $(PROTOC_ROOT) .protobuf/tmp/$(PROTOC_ZIP) ; \
+		chmod -R a+Xr $(PROTOC_ROOT) ; \
+		chmod +x $(PROTOC_ROOT)/bin/protoc ; \
 	fi
 
-proto: protoc-check $(PROTOGOFILES) $(PROTOGOBINFILES)
+proto: protoc-install $(PROTOGOFILES) $(PROTOGOBINFILES)
 	@echo "Generated all protobuf Go files"
 
 %.pb.go %.pb.binary.go: %.proto
-	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc "$<"
+	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --protoc-bin "$(PROTOC_BIN)" "$<"
 
 # utility to echo a makefile variable (i.e. 'make print-PROTOC_VERSION')
 print-%  : ; @echo $($*)
