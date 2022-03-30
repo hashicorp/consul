@@ -525,7 +525,7 @@ These metrics are used to monitor the health of the Consul servers.
 ** Requirements: **
 * Consul 1.12.0+
 
-We added labeled based RPC metrics in 1.12 to better understand A) the workload on a Consul server and B) where that workload is coming from. The following metric(s) provide that insight.
+Label based RPC metrics were added in Consul 1.12 to better understand the workload on a Consul server and, where that workload is coming from. The following metric(s) provide that insight
 
 | Metric                                | Description                                               | Unit   | Type    |
 | ------------------------------------- | --------------------------------------------------------- | ------ | ------- |
@@ -551,7 +551,7 @@ Historically, `internal` RPC operation metrics were accounted under the same met
 
 The `unreported` value for the `request_type` in the table above refers to RPC requests within Consul where it is difficult to ascertain whether a request is `read` or `write` type.
 
-Here's an example of a new RPC metric and its labels:
+Here is an example of an RPC metric and its labels:
 
 <CodeBlockConfig heading="Sample output of telemetry dump">
 
