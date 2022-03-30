@@ -94,30 +94,6 @@ func TestAgent_NewRPCMetrics(t *testing.T) {
 
 		assertMetricExists(t, respRec, metricsPrefix+"_rpc_server_call")
 	})
-
-	t.Run("Check that new rpc metrics can be filtered out", func(t *testing.T) {
-		metricsPrefix := "new_rpc_metrics_2"
-		hcl := fmt.Sprintf(`
-		telemetry = {
-			prometheus_retention_time = "5s"
-			disable_hostname = true
-			metrics_prefix = "%s"
-			prefix_filter = ["-%s.rpc.server.call"]
-		}
-		`, metricsPrefix, metricsPrefix)
-
-		a := StartTestAgent(t, TestAgent{HCL: hcl})
-		defer a.Shutdown()
-
-		var out struct{}
-		err := a.RPC("Status.Ping", struct{}{}, &out)
-		require.NoError(t, err)
-
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
-
-		assertMetricNotExists(t, respRec, metricsPrefix+"_rpc_server_call")
-	})
 }
 
 // TestHTTPHandlers_AgentMetrics_ConsulAutopilot_Prometheus adds testing around

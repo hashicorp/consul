@@ -16,12 +16,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
 
-	gtype "github.com/gogo/protobuf/types"
 	ptypes "github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -2566,33 +2566,29 @@ func Encode(t MessageType, msg interface{}) ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-type ProtoMarshaller interface {
-	Size() int
-	MarshalTo([]byte) (int, error)
-	Unmarshal([]byte) error
-	ProtoMessage()
-}
-
 func EncodeProtoInterface(t MessageType, message interface{}) ([]byte, error) {
-	if marshaller, ok := message.(ProtoMarshaller); ok {
+	if marshaller, ok := message.(proto.Message); ok {
 		return EncodeProto(t, marshaller)
 	}
 
-	return nil, fmt.Errorf("message does not implement the ProtoMarshaller interface: %T", message)
+	return nil, fmt.Errorf("message does not implement proto.Message: %T", message)
 }
 
-func EncodeProto(t MessageType, message ProtoMarshaller) ([]byte, error) {
-	data := make([]byte, message.Size()+1)
+func EncodeProto(t MessageType, pb proto.Message) ([]byte, error) {
+	data := make([]byte, proto.Size(pb)+1)
 	data[0] = uint8(t)
-	if _, err := message.MarshalTo(data[1:]); err != nil {
+
+	buf := proto.NewBuffer(data[1:1])
+	if err := buf.Marshal(pb); err != nil {
 		return nil, err
 	}
+
 	return data, nil
 }
 
-func DecodeProto(buf []byte, out ProtoMarshaller) error {
+func DecodeProto(buf []byte, pb proto.Message) error {
 	// Note that this assumes the leading byte indicating the type as already been stripped off.
-	return out.Unmarshal(buf)
+	return proto.Unmarshal(buf, pb)
 }
 
 // CompoundResponse is an interface for gathering multiple responses. It is
@@ -2682,25 +2678,6 @@ func (m MessageType) String() string {
 
 }
 
-func DurationToProtoGogo(d time.Duration) gtype.Duration {
-	return *gtype.DurationProto(d)
-}
-
-func DurationFromProtoGogo(d gtype.Duration) time.Duration {
-	duration, _ := gtype.DurationFromProto(&d)
-	return duration
-}
-
-func TimeFromProtoGogo(s *gtype.Timestamp) time.Time {
-	time, _ := gtype.TimestampFromProto(s)
-	return time
-}
-
-func TimeToProtoGogo(s time.Time) *gtype.Timestamp {
-	proto, _ := gtype.TimestampProto(s)
-	return proto
-}
-
 func DurationToProto(d time.Duration) *duration.Duration {
 	return ptypes.DurationProto(d)
 }
@@ -2719,4 +2696,10 @@ func TimeFromProto(s *timestamp.Timestamp) time.Time {
 func TimeToProto(s time.Time) *timestamp.Timestamp {
 	ret, _ := ptypes.TimestampProto(s)
 	return ret
+}
+
+// IsZeroProtoTime returns true if the time is the minimum protobuf timestamp
+// (the Unix epoch).
+func IsZeroProtoTime(t *timestamp.Timestamp) bool {
+	return t.Seconds == 0 && t.Nanos == 0
 }

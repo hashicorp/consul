@@ -17,6 +17,9 @@ import (
 type ConfigSnapshotUpstreams struct {
 	Leaf *structs.IssuedCert
 
+	MeshConfig    *structs.MeshConfigEntry
+	MeshConfigSet bool
+
 	// DiscoveryChain is a map of UpstreamID -> CompiledDiscoveryChain's, and
 	// is used to determine what services could be targeted by this upstream.
 	// We then instantiate watches for those targets.
@@ -117,12 +120,10 @@ type configSnapshotConnectProxy struct {
 	// intentions.
 	Intentions    structs.Intentions
 	IntentionsSet bool
-
-	MeshConfig    *structs.MeshConfigEntry
-	MeshConfigSet bool
 }
 
-func (c *configSnapshotConnectProxy) IsEmpty() bool {
+// isEmpty is a test helper
+func (c *configSnapshotConnectProxy) isEmpty() bool {
 	if c == nil {
 		return true
 	}
@@ -143,6 +144,9 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 }
 
 type configSnapshotTerminatingGateway struct {
+	MeshConfig    *structs.MeshConfigEntry
+	MeshConfigSet bool
+
 	// WatchedServices is a map of service name to a cancel function. This cancel
 	// function is tied to the watch of linked service instances for the given
 	// id. If the linked services watch would indicate the removal of
@@ -241,7 +245,8 @@ func (c *configSnapshotTerminatingGateway) ValidServices() []structs.ServiceName
 	return out
 }
 
-func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
+// isEmpty is a test helper
+func (c *configSnapshotTerminatingGateway) isEmpty() bool {
 	if c == nil {
 		return true
 	}
@@ -257,7 +262,8 @@ func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
 		len(c.ServiceConfigs) == 0 &&
 		len(c.WatchedConfigs) == 0 &&
 		len(c.GatewayServices) == 0 &&
-		len(c.HostnameServices) == 0
+		len(c.HostnameServices) == 0 &&
+		!c.MeshConfigSet
 }
 
 type configSnapshotMeshGateway struct {
@@ -335,7 +341,8 @@ func (c *configSnapshotMeshGateway) GatewayKeys() []GatewayKey {
 	return keys
 }
 
-func (c *configSnapshotMeshGateway) IsEmpty() bool {
+// isEmpty is a test helper
+func (c *configSnapshotMeshGateway) isEmpty() bool {
 	if c == nil {
 		return true
 	}
@@ -382,7 +389,8 @@ type configSnapshotIngressGateway struct {
 	Listeners map[IngressListenerKey]structs.IngressListener
 }
 
-func (c *configSnapshotIngressGateway) IsEmpty() bool {
+// isEmpty is a test helper
+func (c *configSnapshotIngressGateway) isEmpty() bool {
 	if c == nil {
 		return true
 	}
@@ -390,7 +398,8 @@ func (c *configSnapshotIngressGateway) IsEmpty() bool {
 		len(c.UpstreamsSet) == 0 &&
 		len(c.DiscoveryChain) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
-		len(c.WatchedUpstreamEndpoints) == 0
+		len(c.WatchedUpstreamEndpoints) == 0 &&
+		!c.MeshConfigSet
 }
 
 type IngressListenerKey struct {
@@ -451,10 +460,12 @@ func (s *ConfigSnapshot) Valid() bool {
 		}
 		return s.Roots != nil &&
 			s.ConnectProxy.Leaf != nil &&
-			s.ConnectProxy.IntentionsSet
+			s.ConnectProxy.IntentionsSet &&
+			s.ConnectProxy.MeshConfigSet
 
 	case structs.ServiceKindTerminatingGateway:
-		return s.Roots != nil
+		return s.Roots != nil &&
+			s.TerminatingGateway.MeshConfigSet
 
 	case structs.ServiceKindMeshGateway:
 		if s.ServiceMeta[structs.MetaWANFederationKey] == "1" {
@@ -469,7 +480,8 @@ func (s *ConfigSnapshot) Valid() bool {
 		return s.Roots != nil &&
 			s.IngressGateway.Leaf != nil &&
 			s.IngressGateway.GatewayConfigLoaded &&
-			s.IngressGateway.HostsSet
+			s.IngressGateway.HostsSet &&
+			s.IngressGateway.MeshConfigSet
 	default:
 		return false
 	}
@@ -518,4 +530,33 @@ func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
 	default:
 		return nil
 	}
+}
+
+func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {
+	switch s.Kind {
+	case structs.ServiceKindConnectProxy:
+		return s.ConnectProxy.MeshConfig
+	case structs.ServiceKindIngressGateway:
+		return s.IngressGateway.MeshConfig
+	case structs.ServiceKindTerminatingGateway:
+		return s.TerminatingGateway.MeshConfig
+	default:
+		return nil
+	}
+}
+
+func (s *ConfigSnapshot) MeshConfigTLSIncoming() *structs.MeshDirectionalTLSConfig {
+	mesh := s.MeshConfig()
+	if mesh == nil || mesh.TLS == nil {
+		return nil
+	}
+	return mesh.TLS.Incoming
+}
+
+func (s *ConfigSnapshot) MeshConfigTLSOutgoing() *structs.MeshDirectionalTLSConfig {
+	mesh := s.MeshConfig()
+	if mesh == nil || mesh.TLS == nil {
+		return nil
+	}
+	return mesh.TLS.Outgoing
 }

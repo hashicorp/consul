@@ -2495,15 +2495,30 @@ specially crafted certificate signed by the CA can be used to gain full access t
       [`cert_file`](#tls_defaults_cert_file).
 
     - `tls_min_version` ((#tls_defaults_tls_min_version)) This specifies the
-      minimum supported version of TLS. Accepted values are "tls10", "tls11",
-      "tls12", or "tls13". This defaults to "tls12". **WARNING: TLS 1.1 and
-      lower are generally considered less secure; avoid using these if
-      possible.**
+      minimum supported version of TLS. The following values are accepted:
+      * `TLSv1_0`
+      * `TLSv1_1`
+      * `TLSv1_2` (default)
+      * `TLSv1_3`
+
+      **WARNING: TLS 1.1 and lower are generally considered less secure and
+      should not be used if possible.**
+
+      The following values are also valid, but only when using the
+      [deprecated top-level `tls_min_version` config](#tls_deprecated_options),
+      and will be removed in a future release:
+
+      * `tls10`
+      * `tls11`
+      * `tls12`
+      * `tls13`
+
+      A warning message will appear if a deprecated value is specified.
 
     - `tls_cipher_suites` ((#tls_defaults_tls_cipher_suites)) This specifies
       the list of supported ciphersuites as a comma-separated-list. Applicable
       to TLS 1.2 and below only. The list of all supported ciphersuites is
-      available through [this search](https://github.com/hashicorp/consul/search?q=cipherMap+%3A%3D+map&unscoped_q=cipherMap+%3A%3D+map).
+      available through [this search](https://github.com/hashicorp/consul/search?q=goTLSCipherSuites+%3D+map).
 
       ~> **Note:** The ordering of cipher suites will not be guaranteed from
       Consul 1.11 onwards. See this [post](https://go.dev/blog/tls-cipher-suites)

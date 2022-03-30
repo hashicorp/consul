@@ -5,12 +5,15 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/types"
 )
 
 type MeshConfigEntry struct {
 	// TransparentProxy contains cluster-wide options pertaining to TPROXY mode
 	// when enabled.
 	TransparentProxy TransparentProxyMeshConfig `alias:"transparent_proxy"`
+
+	TLS *MeshTLSConfig `json:",omitempty"`
 
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -23,6 +26,20 @@ type TransparentProxyMeshConfig struct {
 	// MeshDestinationsOnly can be used to disable the pass-through that
 	// allows traffic to destinations outside of the mesh.
 	MeshDestinationsOnly bool `alias:"mesh_destinations_only"`
+}
+
+type MeshTLSConfig struct {
+	Incoming *MeshDirectionalTLSConfig `json:",omitempty"`
+	Outgoing *MeshDirectionalTLSConfig `json:",omitempty"`
+}
+
+type MeshDirectionalTLSConfig struct {
+	TLSMinVersion types.TLSVersion `json:",omitempty" alias:"tls_min_version"`
+	TLSMaxVersion types.TLSVersion `json:",omitempty" alias:"tls_max_version"`
+
+	// Define a subset of cipher suites to restrict
+	// Only applicable to connections negotiated via TLS 1.2 or earlier
+	CipherSuites []types.TLSCipherSuite `json:",omitempty" alias:"cipher_suites"`
 }
 
 func (e *MeshConfigEntry) GetKind() string {
@@ -57,8 +74,22 @@ func (e *MeshConfigEntry) Validate() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
 	}
+
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
 		return err
+	}
+
+	if e.TLS != nil {
+		if e.TLS.Incoming != nil {
+			if err := validateMeshDirectionalTLSConfig(e.TLS.Incoming); err != nil {
+				return fmt.Errorf("error in incoming TLS configuration: %v", err)
+			}
+		}
+		if e.TLS.Outgoing != nil {
+			if err := validateMeshDirectionalTLSConfig(e.TLS.Outgoing); err != nil {
+				return fmt.Errorf("error in outgoing TLS configuration: %v", err)
+			}
+		}
 	}
 
 	return e.validateEnterpriseMeta()
@@ -104,4 +135,49 @@ func (e *MeshConfigEntry) MarshalJSON() ([]byte, error) {
 		Alias: (*Alias)(e),
 	}
 	return json.Marshal(source)
+}
+
+func validateMeshDirectionalTLSConfig(cfg *MeshDirectionalTLSConfig) error {
+	if cfg == nil {
+		return nil
+	}
+	return validateTLSConfig(cfg.TLSMinVersion, cfg.TLSMaxVersion, cfg.CipherSuites)
+}
+
+func validateTLSConfig(
+	tlsMinVersion types.TLSVersion,
+	tlsMaxVersion types.TLSVersion,
+	cipherSuites []types.TLSCipherSuite,
+) error {
+	if tlsMinVersion != types.TLSVersionUnspecified {
+		if err := types.ValidateTLSVersion(tlsMinVersion); err != nil {
+			return err
+		}
+	}
+
+	if tlsMaxVersion != types.TLSVersionUnspecified {
+		if err := types.ValidateTLSVersion(tlsMaxVersion); err != nil {
+			return err
+		}
+
+		if tlsMinVersion != types.TLSVersionUnspecified {
+			if err, maxLessThanMin := tlsMaxVersion.LessThan(tlsMinVersion); err == nil && maxLessThanMin {
+				return fmt.Errorf("configuring max version %s less than the configured min version %s is invalid", tlsMaxVersion, tlsMinVersion)
+			}
+		}
+	}
+
+	if len(cipherSuites) != 0 {
+		if _, ok := types.TLSVersionsWithConfigurableCipherSuites[tlsMinVersion]; !ok {
+			return fmt.Errorf("configuring CipherSuites is only applicable to connections negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s", tlsMinVersion)
+		}
+
+		// NOTE: it would be nice to emit a warning but not return an error from
+		// here if TLSMaxVersion is unspecified, TLS_AUTO or TLSv1_3
+		if err := types.ValidateEnvoyCipherSuites(cipherSuites); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

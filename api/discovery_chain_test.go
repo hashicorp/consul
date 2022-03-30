@@ -32,6 +32,7 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				Namespace:   "default",
 				Datacenter:  "dc1",
 				Protocol:    "tcp",
+				Default:     true,
 				StartNode:   "resolver:web.default.default.dc1",
 				Nodes: map[string]*DiscoveryGraphNode{
 					"resolver:web.default.default.dc1": {
@@ -72,6 +73,7 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				Namespace:   "default",
 				Datacenter:  "dc2",
 				Protocol:    "tcp",
+				Default:     true,
 				StartNode:   "resolver:web.default.default.dc2",
 				Nodes: map[string]*DiscoveryGraphNode{
 					"resolver:web.default.default.dc2": {

@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
@@ -2476,4 +2477,87 @@ service_prefix "mongo" { policy = "read" }
 			require.Empty(r, out.Services)
 		})
 	})
+}
+
+func TestInternal_CatalogOverview(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.MetricsReportingInterval = 100 * time.Millisecond
+	})
+	codec := rpcClient(t, s1)
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	arg := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	retry.Run(t, func(r *retry.R) {
+		var out structs.CatalogSummary
+		if err := msgpackrpc.CallWithCodec(codec, "Internal.CatalogOverview", &arg, &out); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		expected := structs.CatalogSummary{
+			Nodes: []structs.HealthSummary{
+				{
+					Total:          1,
+					Passing:        1,
+					EnterpriseMeta: *structs.NodeEnterpriseMetaInDefaultPartition(),
+				},
+			},
+			Services: []structs.HealthSummary{
+				{
+					Name:           "consul",
+					Total:          1,
+					Passing:        1,
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+			},
+			Checks: []structs.HealthSummary{
+				{
+					Name:           "Serf Health Status",
+					Total:          1,
+					Passing:        1,
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+			},
+		}
+		require.Equal(r, expected, out)
+	})
+}
+
+func TestInternal_CatalogOverview_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = TestDefaultInitialManagementToken
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	codec := rpcClient(t, s1)
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	arg := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var out structs.CatalogSummary
+	err := msgpackrpc.CallWithCodec(codec, "Internal.CatalogOverview", &arg, &out)
+	require.True(t, acl.IsErrPermissionDenied(err))
+
+	opReadToken, err := upsertTestTokenWithPolicyRules(
+		codec, TestDefaultInitialManagementToken, "dc1", `operator = "read"`)
+	require.NoError(t, err)
+
+	arg.Token = opReadToken.SecretID
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.CatalogOverview", &arg, &out))
 }

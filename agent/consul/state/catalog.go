@@ -4106,3 +4106,39 @@ func cleanupKindServiceName(tx WriteTxn, idx uint64, name structs.ServiceName, k
 	}
 	return nil
 }
+
+// CatalogDump returns all the contents of the node, service and check tables.
+// In Enterprise, this will return entries across all partitions and namespaces.
+func (s *Store) CatalogDump() (*structs.CatalogContents, error) {
+	tx := s.db.Txn(false)
+	contents := &structs.CatalogContents{}
+
+	nodes, err := tx.Get(tableNodes, indexID)
+	if err != nil {
+		return nil, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+	for node := nodes.Next(); node != nil; node = nodes.Next() {
+		n := node.(*structs.Node)
+		contents.Nodes = append(contents.Nodes, n)
+	}
+
+	services, err := tx.Get(tableServices, indexID)
+	if err != nil {
+		return nil, fmt.Errorf("failed services lookup: %s", err)
+	}
+	for service := services.Next(); service != nil; service = services.Next() {
+		svc := service.(*structs.ServiceNode)
+		contents.Services = append(contents.Services, svc)
+	}
+
+	checks, err := tx.Get(tableChecks, indexID)
+	if err != nil {
+		return nil, fmt.Errorf("failed checks lookup: %s", err)
+	}
+	for check := checks.Next(); check != nil; check = checks.Next() {
+		c := check.(*structs.HealthCheck)
+		contents.Checks = append(contents.Checks, c)
+	}
+
+	return contents, nil
+}

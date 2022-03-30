@@ -12,14 +12,12 @@ import (
 )
 
 type compileTestCase struct {
-	entries *configentry.DiscoveryChainSet
-	setup   func(req *CompileRequest)
-	expect  *structs.CompiledDiscoveryChain
-	// expectIsDefault tests behavior of CompiledDiscoveryChain.IsDefault()
-	expectIsDefault bool
-	expectCustom    bool
-	expectErr       string
-	expectGraphErr  bool
+	entries        *configentry.DiscoveryChainSet
+	setup          func(req *CompileRequest)
+	expect         *structs.CompiledDiscoveryChain
+	expectCustom   bool
+	expectErr      string
+	expectGraphErr bool
 }
 
 func TestCompile(t *testing.T) {
@@ -56,6 +54,8 @@ func TestCompile(t *testing.T) {
 		"loadbalancer splitter and resolver":               testcase_LBSplitterAndResolver(),
 		"loadbalancer resolver":                            testcase_LBResolver(),
 		"service redirect to service with default resolver is not a default chain": testcase_RedirectToDefaultResolverIsNotDefaultChain(),
+		"service meta projection":               testcase_ServiceMetaProjection(),
+		"service meta projection with redirect": testcase_ServiceMetaProjectionWithRedirect(),
 
 		"all the bells and whistles": testcase_AllBellsAndWhistles(),
 		"multi dc canary":            testcase_MultiDatacenterCanary(),
@@ -141,7 +141,6 @@ func TestCompile(t *testing.T) {
 				}
 
 				require.Equal(t, tc.expect, res)
-				require.Equal(t, tc.expectIsDefault, res.IsDefault())
 			}
 		})
 	}
@@ -1429,6 +1428,7 @@ func testcase_DefaultResolver() compileTestCase {
 
 	expect := &structs.CompiledDiscoveryChain{
 		Protocol:  "tcp",
+		Default:   true,
 		StartNode: "resolver:main.default.default.dc1",
 		Nodes: map[string]*structs.DiscoveryGraphNode{
 			"resolver:main.default.default.dc1": {
@@ -1446,7 +1446,7 @@ func testcase_DefaultResolver() compileTestCase {
 			"main.default.default.dc1": newTarget("main", "", "default", "default", "dc1", nil),
 		},
 	}
-	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true}
+	return compileTestCase{entries: entries, expect: expect}
 }
 
 func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
@@ -1465,6 +1465,7 @@ func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
 
 	expect := &structs.CompiledDiscoveryChain{
 		Protocol:  "grpc",
+		Default:   true,
 		StartNode: "resolver:main.default.default.dc1",
 		Nodes: map[string]*structs.DiscoveryGraphNode{
 			"resolver:main.default.default.dc1": {
@@ -1485,11 +1486,69 @@ func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
 			}),
 		},
 	}
-	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true}
+	return compileTestCase{entries: entries, expect: expect}
 }
 
-func testcase_RedirectToDefaultResolverIsNotDefaultChain() compileTestCase {
+func testcase_ServiceMetaProjection() compileTestCase {
 	entries := newEntries()
+	entries.AddServices(
+		&structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "main",
+			Meta: map[string]string{
+				"foo": "bar",
+				"abc": "123",
+			},
+		},
+	)
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol: "tcp",
+		Default:  true,
+		ServiceMeta: map[string]string{
+			"foo": "bar",
+			"abc": "123",
+		},
+		StartNode: "resolver:main.default.default.dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main.default.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main.default.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "main.default.default.dc1",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"main.default.default.dc1": newTarget("main", "", "default", "default", "dc1", nil),
+		},
+	}
+
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_ServiceMetaProjectionWithRedirect() compileTestCase {
+	entries := newEntries()
+	entries.AddServices(
+		&structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "main",
+			Meta: map[string]string{
+				"foo": "bar",
+				"abc": "123",
+			},
+		},
+		&structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "other",
+			Meta: map[string]string{
+				"zim": "gir",
+				"abc": "456",
+				"xyz": "999",
+			},
+		},
+	)
 	entries.AddResolvers(
 		&structs.ServiceResolverConfigEntry{
 			Kind: structs.ServiceResolver,
@@ -1501,7 +1560,12 @@ func testcase_RedirectToDefaultResolverIsNotDefaultChain() compileTestCase {
 	)
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol:  "tcp",
+		Protocol: "tcp",
+		ServiceMeta: map[string]string{
+			// Note this is main's meta, not other's.
+			"foo": "bar",
+			"abc": "123",
+		},
 		StartNode: "resolver:other.default.default.dc1",
 		Nodes: map[string]*structs.DiscoveryGraphNode{
 			"resolver:other.default.default.dc1": {
@@ -1519,7 +1583,42 @@ func testcase_RedirectToDefaultResolverIsNotDefaultChain() compileTestCase {
 		},
 	}
 
-	return compileTestCase{entries: entries, expect: expect, expectIsDefault: false /*being explicit here because this is the whole point of this test*/}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_RedirectToDefaultResolverIsNotDefaultChain() compileTestCase {
+	entries := newEntries()
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "main",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "other",
+			},
+		},
+	)
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		StartNode: "resolver:other.default.default.dc1",
+		Default:   false, /*being explicit here because this is the whole point of this test*/
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:other.default.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "other.default.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "other.default.default.dc1",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"other.default.default.dc1": newTarget("other", "", "default", "default", "dc1", nil),
+		},
+	}
+
+	return compileTestCase{entries: entries, expect: expect}
 }
 
 func testcase_Resolve_WithDefaultSubset() compileTestCase {
@@ -1570,6 +1669,7 @@ func testcase_DefaultResolver_ExternalSNI() compileTestCase {
 
 	expect := &structs.CompiledDiscoveryChain{
 		Protocol:  "tcp",
+		Default:   true,
 		StartNode: "resolver:main.default.default.dc1",
 		Nodes: map[string]*structs.DiscoveryGraphNode{
 			"resolver:main.default.default.dc1": {
@@ -1589,7 +1689,7 @@ func testcase_DefaultResolver_ExternalSNI() compileTestCase {
 			}),
 		},
 	}
-	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true}
+	return compileTestCase{entries: entries, expect: expect}
 }
 
 func testcase_Resolver_ExternalSNI_FailoverNotAllowed() compileTestCase {
@@ -2249,6 +2349,7 @@ func testcase_ResolverProtocolOverride() compileTestCase {
 
 	expect := &structs.CompiledDiscoveryChain{
 		Protocol:  "http2",
+		Default:   true,
 		StartNode: "resolver:main.default.default.dc1",
 		Nodes: map[string]*structs.DiscoveryGraphNode{
 			"resolver:main.default.default.dc1": {
@@ -2266,7 +2367,7 @@ func testcase_ResolverProtocolOverride() compileTestCase {
 			"main.default.default.dc1": newTarget("main", "", "default", "default", "dc1", nil),
 		},
 	}
-	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true,
+	return compileTestCase{entries: entries, expect: expect,
 		expectCustom: true,
 		setup: func(req *CompileRequest) {
 			req.OverrideProtocol = "http2"
@@ -2282,6 +2383,7 @@ func testcase_ResolverProtocolOverrideIgnored() compileTestCase {
 
 	expect := &structs.CompiledDiscoveryChain{
 		Protocol:  "http2",
+		Default:   true,
 		StartNode: "resolver:main.default.default.dc1",
 		Nodes: map[string]*structs.DiscoveryGraphNode{
 			"resolver:main.default.default.dc1": {
@@ -2299,7 +2401,7 @@ func testcase_ResolverProtocolOverrideIgnored() compileTestCase {
 			"main.default.default.dc1": newTarget("main", "", "default", "default", "dc1", nil),
 		},
 	}
-	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true,
+	return compileTestCase{entries: entries, expect: expect,
 		setup: func(req *CompileRequest) {
 			req.OverrideProtocol = "http2"
 		},
@@ -2320,6 +2422,7 @@ func testcase_RouterIgnored_ResolverProtocolOverride() compileTestCase {
 	expect := &structs.CompiledDiscoveryChain{
 		Protocol:  "tcp",
 		StartNode: "resolver:main.default.default.dc1",
+		Default:   true,
 		Nodes: map[string]*structs.DiscoveryGraphNode{
 			"resolver:main.default.default.dc1": {
 				Type: structs.DiscoveryGraphNodeTypeResolver,
@@ -2336,7 +2439,7 @@ func testcase_RouterIgnored_ResolverProtocolOverride() compileTestCase {
 			"main.default.default.dc1": newTarget("main", "", "default", "default", "dc1", nil),
 		},
 	}
-	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true,
+	return compileTestCase{entries: entries, expect: expect,
 		expectCustom: true,
 		setup: func(req *CompileRequest) {
 			req.OverrideProtocol = "tcp"

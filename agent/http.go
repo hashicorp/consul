@@ -31,7 +31,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbcommongogo"
+	"github.com/hashicorp/consul/proto/pbcommon"
 )
 
 var HTTPSummaries = []prometheus.SummaryDefinition{
@@ -781,7 +781,7 @@ func setLastContact(resp http.ResponseWriter, last time.Duration) {
 }
 
 // setMeta is used to set the query response meta data
-func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) error {
+func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) error {
 	lastContact, err := m.GetLastContact()
 	if err != nil {
 		return err
@@ -843,7 +843,7 @@ func serveHandlerWithHeaders(h http.Handler, headers map[string]string) http.Han
 
 // parseWait is used to parse the ?wait and ?index query params
 // Returns true on error
-func parseWait(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func parseWait(resp http.ResponseWriter, req *http.Request, b QueryOptionsCompat) bool {
 	query := req.URL.Query()
 	if wait := query.Get("wait"); wait != "" {
 		dur, err := time.ParseDuration(wait)
@@ -868,7 +868,7 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b structs.QueryOptio
 
 // parseCacheControl parses the CacheControl HTTP header value. So far we only
 // support maxage directive.
-func parseCacheControl(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func parseCacheControl(resp http.ResponseWriter, req *http.Request, b QueryOptionsCompat) bool {
 	raw := strings.ToLower(req.Header.Get("Cache-Control"))
 
 	if raw == "" {
@@ -926,7 +926,7 @@ func parseCacheControl(resp http.ResponseWriter, req *http.Request, b structs.Qu
 
 // parseConsistency is used to parse the ?stale and ?consistent query params.
 // Returns true on error
-func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Request, b QueryOptionsCompat) bool {
 	query := req.URL.Query()
 	defaults := true
 	if _, ok := query["stale"]; ok {
@@ -981,7 +981,7 @@ func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Requ
 }
 
 // parseConsistencyReadRequest is used to parse the ?consistent query param.
-func parseConsistencyReadRequest(resp http.ResponseWriter, req *http.Request, b *pbcommongogo.ReadRequest) {
+func parseConsistencyReadRequest(resp http.ResponseWriter, req *http.Request, b *pbcommon.ReadRequest) {
 	query := req.URL.Query()
 	if _, ok := query["consistent"]; ok {
 		b.RequireConsistent = true
@@ -1130,7 +1130,7 @@ func parseMetaPair(raw string) (string, string) {
 
 // parse is a convenience method for endpoints that need to use both parseWait
 // and parseDC.
-func (s *HTTPHandlers) parse(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parse(resp http.ResponseWriter, req *http.Request, dc *string, b QueryOptionsCompat) bool {
 	s.parseDC(req, dc)
 	var token string
 	s.parseTokenWithDefault(req, &token)
@@ -1189,4 +1189,32 @@ func getPathSuffixUnescaped(path string, prefixToTrim string) (string, error) {
 	}
 
 	return suffixUnescaped, nil
+}
+
+func setMetaProtobuf(resp http.ResponseWriter, queryMeta *pbcommon.QueryMeta) {
+	qm := new(structs.QueryMeta)
+	pbcommon.QueryMetaToStructs(queryMeta, qm)
+	setMeta(resp, qm)
+}
+
+type QueryOptionsCompat interface {
+	GetAllowStale() bool
+	SetAllowStale(bool)
+
+	GetRequireConsistent() bool
+	SetRequireConsistent(bool)
+
+	GetUseCache() bool
+	SetUseCache(bool)
+
+	SetFilter(string)
+	SetToken(string)
+
+	SetMustRevalidate(bool)
+	SetMaxAge(time.Duration)
+	SetMaxStaleDuration(time.Duration)
+	SetStaleIfError(time.Duration)
+
+	SetMaxQueryTime(time.Duration)
+	SetMinQueryIndex(uint64)
 }

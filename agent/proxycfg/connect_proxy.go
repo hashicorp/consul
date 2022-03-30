@@ -70,6 +70,18 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		return snap, err
 	}
 
+	// Get information about the entire service mesh.
+	err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+		Kind:           structs.MeshConfig,
+		Name:           structs.MeshConfigMesh,
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
+	}, meshConfigEntryID, s.ch)
+	if err != nil {
+		return snap, err
+	}
+
 	// Watch for service check updates
 	err = s.cache.Notify(ctx, cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecksRequest{
 		ServiceID:      s.proxyCfg.DestinationServiceID,
@@ -87,17 +99,6 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			ServiceName:    s.proxyCfg.DestinationServiceName,
 			EnterpriseMeta: s.proxyID.EnterpriseMeta,
 		}, intentionUpstreamsID, s.ch)
-		if err != nil {
-			return snap, err
-		}
-
-		err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
-			Kind:           structs.MeshConfig,
-			Name:           structs.MeshConfigMesh,
-			Datacenter:     s.source.Datacenter,
-			QueryOptions:   structs.QueryOptions{Token: s.token},
-			EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
-		}, meshConfigEntryID, s.ch)
 		if err != nil {
 			return snap, err
 		}
@@ -367,23 +368,6 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 		}
 		svcID := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, svcChecksWatchIDPrefix))
 		snap.ConnectProxy.WatchedServiceChecks[svcID] = resp
-
-	case u.CorrelationID == meshConfigEntryID:
-		resp, ok := u.Result.(*structs.ConfigEntryResponse)
-		if !ok {
-			return fmt.Errorf("invalid type for response: %T", u.Result)
-		}
-
-		if resp.Entry != nil {
-			meshConf, ok := resp.Entry.(*structs.MeshConfigEntry)
-			if !ok {
-				return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
-			}
-			snap.ConnectProxy.MeshConfig = meshConf
-		} else {
-			snap.ConnectProxy.MeshConfig = nil
-		}
-		snap.ConnectProxy.MeshConfigSet = true
 
 	default:
 		return (*handlerUpstreams)(s).handleUpdateUpstreams(ctx, u, snap)

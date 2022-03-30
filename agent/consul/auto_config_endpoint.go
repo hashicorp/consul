@@ -281,6 +281,7 @@ func (ac *AutoConfig) updateTLSSettingsInConfig(_ AutoConfigOptions, resp *pbaut
 	}
 
 	var err error
+
 	resp.Config.TLS, err = ac.tlsConfigurator.AutoConfigTLSSettings()
 	return err
 }

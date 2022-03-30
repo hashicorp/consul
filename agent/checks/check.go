@@ -644,8 +644,7 @@ func (c *CheckTCP) Start() {
 	if c.dialer == nil {
 		// Create the socket dialer
 		c.dialer = &net.Dialer{
-			Timeout:   10 * time.Second,
-			DualStack: true,
+			Timeout: 10 * time.Second,
 		}
 		if c.Timeout > 0 {
 			c.dialer.Timeout = c.Timeout

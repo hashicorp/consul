@@ -24,7 +24,7 @@ const RPCTypeNetRPC = "net/rpc"
 var metricRPCRequest = []string{"rpc", "server", "call"}
 var requestLogName = "rpc.server.request"
 
-var NewRPCCounters = []prometheus.CounterDefinition{
+var NewRPCGauges = []prometheus.GaugeDefinition{
 	{
 		Name: metricRPCRequest,
 		Help: "Increments when a server makes an RPC service call. The labels on the metric have more information",
