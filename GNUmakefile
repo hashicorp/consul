@@ -364,7 +364,7 @@ protoc-install:
 	@if [[ ! -x $(PROTOC_ROOT)/bin/protoc ]]; then \
 		mkdir -p .protobuf/tmp ; \
 		if [[ ! -f .protobuf/tmp/$(PROTOC_ZIP) ]]; then \
-			( cd .protobuf/tmp && wget $(PROTOC_URL) ) ; \
+			( cd .protobuf/tmp && curl -sSL "$(PROTOC_URL)" -o "$(PROTOC_ZIP)" ) ; \
 		fi ; \
 		mkdir -p $(PROTOC_ROOT) ; \
 		unzip -d $(PROTOC_ROOT) .protobuf/tmp/$(PROTOC_ZIP) ; \
