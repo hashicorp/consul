@@ -1678,7 +1678,7 @@ func validateListenerTLSConfig(tlsMinVersion types.TLSVersion, cipherSuites []ty
 	// input but be resilient to bugs later.
 	if len(cipherSuites) != 0 {
 		if _, ok := tlsVersionsWithConfigurableCipherSuites[tlsMinVersion]; !ok {
-			return fmt.Errorf("configuring CipherSuites is only applicable to connections negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s in listener or gateway config", tlsMinVersion)
+			return fmt.Errorf("configuring CipherSuites is only applicable to connections negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s in config", tlsMinVersion)
 		}
 	}
 
