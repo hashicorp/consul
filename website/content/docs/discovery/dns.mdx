@@ -335,11 +335,11 @@ The `datacenter` is optional, and if not provided, the datacenter of this Consul
 agent is assumed.
 
 The `query or name` is the ID or given name of an existing
-[Prepared Query](/api/query). These behave like standard service
+[Prepared Query](/api-docs/query). These behave like standard service
 queries but provide a much richer set of features, such as filtering by multiple
 tags and automatically failing over to look for services in remote datacenters if
 no healthy nodes are available in the local datacenter. Consul 0.6.4 and later also
-added support for [prepared query templates](/api/query#prepared-query-templates)
+added support for [prepared query templates](/api-docs/query#prepared-query-templates)
 which can match names using a prefix match, allowing one template to apply to
 potentially many services.
 
@@ -369,7 +369,7 @@ applications.
 This endpoint currently only finds services within the same datacenter
 and doesn't support tags. This DNS interface will be expanded over time.
 If you need more complex behavior, please use the
-[catalog API](/api/catalog).
+[catalog API](/api-docs/catalog).
 
 ### Service Virtual IP Lookups
 
@@ -400,7 +400,7 @@ endpoints for the given `service`.
 This endpoint currently only finds services within the same datacenter
 and doesn't support tags. This DNS interface will be expanded over time.
 If you need more complex behavior, please use the
-[catalog API](/api/catalog).
+[catalog API](/api-docs/catalog).
 
 ### UDP Based DNS Queries
 
@@ -508,7 +508,7 @@ DNS lookups and required policies when ACLs are enabled:
 | ------------------------------------------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `*.node.consul`                                                                | [Node](#node-lookups)                              | Allow resolving DNS requests for the target node (i.e., `<target>.node.consul`)                                                                                                   | [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                                                                                  |
 | `*.service.consul`, `*.connect.consul`, `*.ingress.consul`, `*.virtual.consul` | [Service: standard](#service-lookups)              | Allow resolving DNS requests for target service (e.g., `<target>.service.consul`) instances running on ACL-authorized nodes                                                       | [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                    |
-| `*.query.consul`                                                               | [Service: prepared query](#prepared-query-lookups) | Allow resolving DNS requests for [service instances specified](/api/query#service-1) by the target prepared query (i.e., `<target>.query.consul`) running on ACL-authorized nodes | [`query:read`](/docs/security/acl/acl-rules#prepared-query-rules), [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules) |
+| `*.query.consul`                                                               | [Service: prepared query](#prepared-query-lookups) | Allow resolving DNS requests for [service instances specified](/api-docs/query#service-1) by the target prepared query (i.e., `<target>.query.consul`) running on ACL-authorized nodes | [`query:read`](/docs/security/acl/acl-rules#prepared-query-rules), [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules) |
 
 For guidance on how to configure an appropriate token for DNS, refer to the
 securing Consul with ACLs guides for:

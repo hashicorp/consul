@@ -709,7 +709,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `enable_token_replication` ((#acl_enable_token_replication)) - By default
     secondary Consul datacenters will perform replication of only ACL policies and
     roles. Setting this configuration will will enable ACL token replication and
-    allow for the creation of both [local tokens](/api/acl/tokens#local) and
+    allow for the creation of both [local tokens](/api-docs/acl/tokens#local) and
     [auth methods](/docs/security/acl/auth-methods) in connected secondary datacenters.
 
     ~> **Warning:** When enabling ACL token replication on the secondary datacenter,
@@ -761,7 +761,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     - `agent_recovery` ((#acl_tokens_agent_recovery)) - This is available in Consul 1.11
       and later. In prior versions, use [`acl.tokens.agent_master`](#acl_tokens_agent_master).
 
-      Used to access [agent endpoints](/api/agent) that require agent read or write privileges,
+      Used to access [agent endpoints](/api-docs/agent) that require agent read or write privileges,
       or node read privileges, even if Consul servers aren't present to validate any tokens.
       This should only be used by operators during outages, regular ACL tokens should normally
       be used by applications.
@@ -771,7 +771,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
     - `replication` ((#acl_tokens_replication)) - The ACL token used to
       authorize secondary datacenters with the primary datacenter for replication
-      operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when ACLs are enabled. This token may be provided later using the [agent token API](/api/agent#update-acl-tokens) on each server. This token must have at least "read" permissions on ACL data but if ACL token replication is enabled then it must have "write" permissions. This also enables Connect replication, for which the token will require both operator "write" and intention "read" permissions for replicating CA and Intention data.
+      operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when ACLs are enabled. This token may be provided later using the [agent token API](/api-docs/agent#update-acl-tokens) on each server. This token must have at least "read" permissions on ACL data but if ACL token replication is enabled then it must have "write" permissions. This also enables Connect replication, for which the token will require both operator "write" and intention "read" permissions for replicating CA and Intention data.
 
       ~> **Warning:** When enabling ACL token replication on the secondary datacenter,
       policies and roles already present in the secondary datacenter will be lost. For
@@ -828,7 +828,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `acl_agent_master_token` ((#acl_agent_master_token_legacy)) - **Deprecated
   in Consul 1.4.0. See the [`acl.tokens.agent_master`](#acl_tokens_agent_master)
-  field instead.** Used to access [agent endpoints](/api/agent) that
+  field instead.** Used to access [agent endpoints](/api-docs/agent) that
   require agent read or write privileges, or node read privileges, even if Consul
   servers aren't present to validate any tokens. This should only be used by operators
   during outages, regular ACL tokens should normally be used by applications. This
@@ -859,7 +859,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   using this ACL replication using this token to retrieve and replicate the ACLs
   to the non-authoritative local datacenter. In Consul 0.9.1 and later you can enable
   ACL replication using [`acl.enable_token_replication`](#acl_enable_token_replication) and then
-  set the token later using the [agent token API](/api/agent#update-acl-tokens)
+  set the token later using the [agent token API](/api-docs/agent#update-acl-tokens)
   on each server. If the `acl_replication_token` is set in the config, it will automatically
   set [`acl.enable_token_replication`](#acl_enable_token_replication) to true for backward compatibility.
 
@@ -1164,7 +1164,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       - `claim_assertions` (Defaults to `[]`) List of assertions about the mapped
         claims required to authorize the incoming RPC request. The syntax uses
         [github.com/hashicorp/go-bexpr](https://github.com/hashicorp/go-bexpr) which is shared with the
-        [API filtering feature](/api/features/filtering). For example, the following
+        [API filtering feature](/api-docs/features/filtering). For example, the following
         configurations when combined will ensure that the JWT `sub` matches the node
         name requested by the client.
 
@@ -1319,12 +1319,12 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   - `ca_provider` ((#connect_ca_provider)) Controls which CA provider to
     use for Connect's CA. Currently only the `aws-pca`, `consul`, and `vault` providers are supported.
     This is only used when initially bootstrapping the cluster. For an existing cluster,
-    use the [Update CA Configuration Endpoint](/api/connect/ca#update-ca-configuration).
+    use the [Update CA Configuration Endpoint](/api-docs/connect/ca#update-ca-configuration).
 
   - `ca_config` ((#connect_ca_config)) An object which allows setting different
     config options based on the CA provider chosen. This is only used when initially
     bootstrapping the cluster. For an existing cluster, use the [Update CA Configuration
-    Endpoint](/api/connect/ca#update-ca-configuration).
+    Endpoint](/api-docs/connect/ca#update-ca-configuration).
 
     The following providers are supported:
 
@@ -1598,12 +1598,12 @@ There are also a number of common configuration options supported by all provide
       in seconds, default value is 600, ie: 10 minutes.
 
   - `use_cache` ((#dns_use_cache)) - When set to true, DNS resolution will
-    use the agent cache described in [agent caching](/api/features/caching).
+    use the agent cache described in [agent caching](/api-docs/features/caching).
     This setting affects all service and prepared queries DNS requests. Implies [`allow_stale`](#allow_stale)
 
   - `cache_max_age` ((#dns_cache_max_age)) - When [use_cache](#dns_use_cache)
     is enabled, the agent will attempt to re-fetch the result from the servers if
-    the cached value is older than this duration. See: [agent caching](/api/features/caching).
+    the cached value is older than this duration. See: [agent caching](/api-docs/features/caching).
 
     **Note** that unlike the `max-age` HTTP header, a value of 0 for this field is
     equivalent to "no max age". To get a fresh value from the cache use a very small value
@@ -1622,7 +1622,7 @@ There are also a number of common configuration options supported by all provide
 - `enable_acl_replication` **Deprecated in Consul 1.11. Use the [`acl.enable_token_replication`](#acl_enable_token_replication) field instead.**
   When set on a Consul server, enables ACL replication without having to set
   the replication token via [`acl_replication_token`](#acl_replication_token). Instead, enable ACL replication
-  and then introduce the token using the [agent token API](/api/agent#update-acl-tokens) on each server.
+  and then introduce the token using the [agent token API](/api-docs/agent#update-acl-tokens) on each server.
   See [`acl_replication_token`](#acl_replication_token) for more details.
 
   ~> **Warning:** When enabling ACL token replication on the secondary datacenter,
@@ -1801,7 +1801,7 @@ There are also a number of common configuration options supported by all provide
 
   - `allow_write_http_from` This object is a list of networks in CIDR notation (eg "127.0.0.0/8") that are allowed to call the agent write endpoints. It defaults to an empty list, which means all networks are allowed. This is used to make the agent read-only, except for select ip ranges. - To block write calls from anywhere, use `[ "255.255.255.255/32" ]`. - To only allow write calls from localhost, use `[ "127.0.0.0/8" ]` - To only allow specific IPs, use `[ "10.0.0.1/32", "10.0.0.2/32" ]`
 
-  - `use_cache` ((#http_config_use_cache)) Defaults to true. If disabled, the agent won't be using [agent caching](/api/features/caching) to answer the request. Even when the url parameter is provided.
+  - `use_cache` ((#http_config_use_cache)) Defaults to true. If disabled, the agent won't be using [agent caching](/api-docs/features/caching) to answer the request. Even when the url parameter is provided.
 
   - `max_header_bytes` This setting controls the maximum number of bytes the consul http server will read parsing the request header's keys and values, including the request line. It does not limit the size of the request body. If zero, or negative, http.DefaultMaxHeaderBytes is used, which equates to 1 Megabyte.
 
@@ -1820,8 +1820,8 @@ There are also a number of common configuration options supported by all provide
   - `rpc_max_conns_per_client` - Configures a limit of how many concurrent TCP connections a single source IP address is allowed to open to a single server. It affects both clients connections and other server connections. In general Consul clients multiplex many RPC calls over a single TCP connection so this can typically be kept low. It needs to be more than one though since servers open at least one additional connection for raft RPC, possibly more for WAN federation when using network areas, and snapshot requests from clients run over a separate TCP conn. A reasonably low limit significantly reduces the ability of an unauthenticated attacker to consume unbounded resources by holding open many connections. You may need to increase this if WAN federated servers connect via proxies or NAT gateways or similar causing many legitimate connections from a single source IP. Default value is `100` which is designed to be extremely conservative to limit issues with certain deployment patterns. Most deployments can probably reduce this safely. 100 connections on modern server hardware should not cause a significant impact on resource usage from an unauthenticated attacker though.
   - `rpc_rate` - Configures the RPC rate limiter on Consul _clients_ by setting the maximum request rate that this agent is allowed to make for RPC requests to Consul servers, in requests per second. Defaults to infinite, which disables rate limiting.
   - `rpc_max_burst` - The size of the token bucket used to recharge the RPC rate limiter on Consul _clients_. Defaults to 1000 tokens, and each token is good for a single RPC call to a Consul server. See https://en.wikipedia.org/wiki/Token_bucket for more details about how token bucket rate limiters operate.
-  - `kv_max_value_size` - **(Advanced)** Configures the maximum number of bytes for a kv request body to the [`/v1/kv`](/api/kv) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration. This option affects the txn endpoint too, but Consul 1.7.2 introduced `txn_max_req_len` which is the preferred way to set the limit for the txn endpoint. If both limits are set, the higher one takes precedence.
-  - `txn_max_req_len` - **(Advanced)** Configures the maximum number of bytes for a transaction request body to the [`/v1/txn`](/api/txn) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration.
+  - `kv_max_value_size` - **(Advanced)** Configures the maximum number of bytes for a kv request body to the [`/v1/kv`](/api-docs/kv) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration. This option affects the txn endpoint too, but Consul 1.7.2 introduced `txn_max_req_len` which is the preferred way to set the limit for the txn endpoint. If both limits are set, the higher one takes precedence.
+  - `txn_max_req_len` - **(Advanced)** Configures the maximum number of bytes for a transaction request body to the [`/v1/txn`](/api-docs/txn) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration.
 
 - `log_file` Equivalent to the [`-log-file` command-line flag](#_log_file).
 
@@ -2238,7 +2238,7 @@ There are also a number of common configuration options supported by all provide
     2 times the interval of scrape of Prometheus, but you might also put a very high
     retention time such as a few days (for instance 744h to enable retention to 31
     days). Fetching the metrics using prometheus can then be performed using the
-    [`/v1/agent/metrics?format=prometheus`](/api/agent#view-metrics) endpoint.
+    [`/v1/agent/metrics?format=prometheus`](/api-docs/agent#view-metrics) endpoint.
     The format is compatible natively with prometheus. When running in this mode,
     it is recommended to also enable the option [`disable_hostname`](#telemetry-disable_hostname)
     to avoid having prefixed metrics with hostname. Consul does not use the default
@@ -2288,11 +2288,11 @@ There are also a number of common configuration options supported by all provide
 
   The following endpoints translate addresses:
 
-  - [`/v1/catalog/nodes`](/api/catalog#list-nodes)
-  - [`/v1/catalog/node/<node>`](/api/catalog#retrieve-map-of-services-for-a-node)
-  - [`/v1/catalog/service/<service>`](/api/catalog#list-nodes-for-service)
-  - [`/v1/health/service/<service>`](/api/health#list-nodes-for-service)
-  - [`/v1/query/<query or name>/execute`](/api/query#execute-prepared-query)
+  - [`/v1/catalog/nodes`](/api-docs/catalog#list-nodes)
+  - [`/v1/catalog/node/<node>`](/api-docs/catalog#retrieve-map-of-services-for-a-node)
+  - [`/v1/catalog/service/<service>`](/api-docs/catalog#list-nodes-for-service)
+  - [`/v1/health/service/<service>`](/api-docs/health#list-nodes-for-service)
+  - [`/v1/query/<query or name>/execute`](/api-docs/query#execute-prepared-query)
 
 - `ui` - **This field is deprecated in Consul 1.9.0. See the [`ui_config.enabled`](#ui_config_enabled) field instead.**
   Equivalent to the [`-ui`](#_ui) command-line flag.

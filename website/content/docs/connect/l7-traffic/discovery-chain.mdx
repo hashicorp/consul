@@ -11,7 +11,7 @@ description: >-
 
 -> **1.6.0+:** This feature is available in Consul versions 1.6.0 and newer.
 
-~> This topic is part of a [low-level API](/api/discovery-chain)
+~> This topic is part of a [low-level API](/api-docs/discovery-chain)
 primarily targeted at developers building external [Connect proxy
 integrations](/docs/connect/proxies/integrate).
 
@@ -74,7 +74,7 @@ discovery chain, we first compile them into a form more directly usable by the
 layers responsible for configuring Connect sidecar proxies.
 
 You can interact with the compiler directly using the [discovery-chain
-API](/api/discovery-chain).
+API](/api-docs/discovery-chain).
 
 ### Compilation Parameters
 
@@ -102,7 +102,7 @@ The response is a single wrapped `CompiledDiscoveryChain` field:
 The chain encodes a digraph of [nodes](#discoverygraphnode) and
 [targets](#discoverytarget). Nodes are the compiled representation of various
 discovery chain stages and targets are instructions on how to use the [health
-API](/api/health#list-nodes-for-connect-capable-service) to retrieve
+API](/api-docs/health#list-nodes-for-connect-capable-service) to retrieve
 relevant service instance lists.
 
 You should traverse the nodes starting with [`StartNode`](#startnode). The
@@ -219,7 +219,7 @@ A single node in the compiled discovery chain.
   definition for this target.
 
   - `Filter` `(string: "")` - The
-    [filter expression](/api/features/filtering) to be used for selecting
+    [filter expression](/api-docs/features/filtering) to be used for selecting
     instances of the requested service. If empty all healthy instances are
     returned.
 

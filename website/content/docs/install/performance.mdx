@@ -118,7 +118,7 @@ Here are some general recommendations:
   respect them.
 
 - In other applications that perform high volumes of reads against Consul, consider using the
-  [stale consistency mode](/api/features/consistency#stale) available to allow reads to scale
+  [stale consistency mode](/api-docs/features/consistency#stale) available to allow reads to scale
   across all the servers and not just be forwarded to the leader.
 
 - In Consul 0.9.3 and later, a new [`limits`](/docs/agent/options#limits) configuration is
@@ -158,7 +158,7 @@ RAM NEEDED = number of keys * average key size * 2-3x
 
 Since writes must be synced to disk (persistent storage) on a quorum of servers before they are committed, deploying a disk with high write throughput (or an SSD) will enhance performance on the write side. ([Documentation](/docs/agent/options#_data_dir))
 
-For a **read-heavy** workload, configure all Consul server agents with the `allow_stale` DNS option, or query the API with the `stale` [consistency mode](/api/features/consistency). By default, all queries made to the server are RPC forwarded to and serviced by the leader. By enabling stale reads, any server will respond to any query, thereby reducing overhead on the leader. Typically, the stale response is `100ms` or less from consistent mode but it drastically improves performance and reduces latency under high load.
+For a **read-heavy** workload, configure all Consul server agents with the `allow_stale` DNS option, or query the API with the `stale` [consistency mode](/api-docs/features/consistency). By default, all queries made to the server are RPC forwarded to and serviced by the leader. By enabling stale reads, any server will respond to any query, thereby reducing overhead on the leader. Typically, the stale response is `100ms` or less from consistent mode but it drastically improves performance and reduces latency under high load.
 
 If the leader server is out of memory or the disk is full, the server eventually stops responding, loses its election and cannot move past its last commit time. However, by configuring `max_stale` and setting it to a large value, Consul will continue to respond to queries during such outage scenarios. ([max_stale documentation](/docs/agent/options#max_stale)).
 
