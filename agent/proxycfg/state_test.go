@@ -1313,6 +1313,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.MeshGateway.isEmpty())
 						require.True(t, snap.IngressGateway.isEmpty())
 						require.False(t, snap.TerminatingGateway.isEmpty())
+						require.Nil(t, snap.TerminatingGateway.MeshConfig)
 						require.Equal(t, indexedRoots, snap.Roots)
 					},
 				},
