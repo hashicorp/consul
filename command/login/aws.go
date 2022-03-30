@@ -28,7 +28,10 @@ type AWSLogin struct {
 func (a *AWSLogin) flags() *flag.FlagSet {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
 	fs.BoolVar(&a.autoBearerToken, "aws-auto-bearer-token", false,
-		"Automatically discover AWS credentials, construct the bearer token, and login. [aws-iam only]")
+		"Construct a bearer token and login to the AWS IAM auth method. This requires AWS credentials. "+
+			"AWS credentials are automatically discovered from standard sources supported by the Go SDK for "+
+			"AWS. Alternatively, explicit credentials can be passed using the -aws-acesss-key-id and "+
+			"-aws-secret-access-key flags. [aws-iam only]")
 
 	fs.BoolVar(&a.includeEntity, "aws-include-entity", false,
 		"Include a signed request to get the IAM role or IAM user in the bearer token. [aws-iam only]")
@@ -37,7 +40,9 @@ func (a *AWSLogin) flags() *flag.FlagSet {
 		"URL for AWS STS API calls. [aws-iam only]")
 
 	fs.StringVar(&a.region, "aws-region", "",
-		"Region for AWS STS API calls. If set, should match the region of -aws-sts-endpoint. [aws-iam only]")
+		"Region for AWS API calls. If set, should match the region of -aws-sts-endpoint. "+
+			"If not provided, the region will be discovered from standard sources, such as "+
+			"the AWS_REGION environment variable. [aws-iam only]")
 
 	fs.StringVar(&a.serverIDHeaderValue, "aws-server-id-header-value", "",
 		"If set, an X-Consul-IAM-ServerID header is included in signed AWS API request(s) that form "+
@@ -92,26 +97,31 @@ func (a *AWSLogin) createAWSBearerToken() (string, error) {
 		CredentialsChainVerboseErrors: aws.Bool(true),
 	}
 
-	var creds *credentials.Credentials
 	if a.accessKeyId != "" {
 		// Use creds from flags.
-		creds = credentials.NewStaticCredentials(
+		cfg.Credentials = credentials.NewStaticCredentials(
 			a.accessKeyId, a.secretAccessKey, a.sessionToken,
 		)
-	} else {
-		// Session loads creds from standard sources (env vars, file, EC2 metadata, ...)
-		sess, err := session.NewSessionWithOptions(session.Options{Config: cfg})
-		if err != nil {
-			return "", err
-		}
-		if sess.Config.Region == nil || *sess.Config.Region == "" {
-			return "", fmt.Errorf("AWS region is required (-aws-region or AWS_REGION)")
-		}
-		if sess.Config.Credentials == nil {
-			return "", fmt.Errorf("Failed to discover AWS credentials")
-		}
-		creds = sess.Config.Credentials
 	}
+
+	// Session loads creds from standard sources (env vars, file, EC2 metadata, ...)
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: cfg,
+		// Allow loading from config files by default:
+		//   ~/.aws/config or AWS_CONFIG_FILE
+		//   ~/.aws/credentials or AWS_SHARED_CREDENTIALS_FILE
+		SharedConfigState: session.SharedConfigEnable,
+	})
+	if err != nil {
+		return "", err
+	}
+	if sess.Config.Region == nil || *sess.Config.Region == "" {
+		return "", fmt.Errorf("AWS region not found")
+	}
+	if sess.Config.Credentials == nil {
+		return "", fmt.Errorf("AWS credentials not found")
+	}
+	creds := sess.Config.Credentials
 
 	loginData, err := iamauth.GenerateLoginData(&iamauth.LoginInput{
 		Creds:                  creds,

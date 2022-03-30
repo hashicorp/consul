@@ -148,7 +148,7 @@ func (a *Authenticator) submitCallerIdentityRequest(ctx context.Context, req *ht
 	if err != nil {
 		return nil, err
 	}
-	callerIdentityResponse, err := parseGetCallerIdentityResponse(string(responseBody))
+	callerIdentityResponse, err := parseGetCallerIdentityResponse(responseBody)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing STS response")
 	}
@@ -164,7 +164,7 @@ func (a *Authenticator) submitGetIAMEntityRequest(ctx context.Context, req *http
 	if err != nil {
 		return nil, err
 	}
-	iamResponse, err := parseGetIAMEntityResponse(string(responseBody), reqType)
+	iamResponse, err := parseGetIAMEntityResponse(responseBody, reqType)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing IAM response: %s", err)
 	}
