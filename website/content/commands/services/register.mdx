@@ -20,10 +20,10 @@ in the Consul agent configuration directory and issuing a
 [reload](/commands/reload). This approach is easiest for
 configuration management systems that other systems that have access to
 the configuration directory. Clients may also use the
-[HTTP API](/api/agent/service) directly.
+[HTTP API](/api-docs/agent/service) directly.
 
 The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required    |
@@ -44,7 +44,7 @@ This command returns after registration succeeds. It must be paired with
 a deregistration command or API call to remove the service. To ensure that
 services are properly deregistered, it is **highly recommended** that
 a check is created with the
-[`DeregisterCriticalServiceAfter`](/api/agent/check#deregistercriticalserviceafter)
+[`DeregisterCriticalServiceAfter`](/api-docs/agent/check#deregistercriticalserviceafter)
 configuration set. This will ensure that even if deregistration failed for
 any reason, the agent will automatically deregister the service instance after
 it is unhealthy for the specified period of time.

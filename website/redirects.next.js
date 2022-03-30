@@ -357,10 +357,10 @@ module.exports = [
   },
   {
     source: '/docs/agent/http/:path*',
-    destination: '/api/:path*',
+    destination: '/api-docs/:path*',
     permanent: true,
   },
-  { source: '/docs/agent/http', destination: '/api', permanent: true },
+  { source: '/docs/agent/http', destination: '/api-docs', permanent: true },
   // CLI Redirects
   { source: '/docs/commands', destination: '/commands', permanent: true },
   {
@@ -1252,6 +1252,11 @@ module.exports = [
   {
     source: '/docs/release-notes/1-9-0',
     destination: '/docs/releases/release-notes/v1_9_0',
+    permanent: true,
+  },
+  {
+    source: '/api/:path*',
+    destination: '/api-docs/:path*',
     permanent: true,
   },
 ]
