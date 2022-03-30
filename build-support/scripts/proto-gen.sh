@@ -22,6 +22,7 @@ Description:
    generated code.
 
 Options:
+   --protoc-bin             Path to protoc.
    --import-replace         Replace imports of google types with those from the gogo/protobuf repo.
    --grpc                   Enable the gRPC plugin
    -h | --help              Print this help text.
@@ -38,6 +39,7 @@ function main {
    local -i grpc=0
    local -i imp_replace=0
    local    proto_path=
+   local    protoc_bin=
 
    while test $# -gt 0
    do
@@ -54,6 +56,10 @@ function main {
             imp_replace=1
             shift
             ;;
+         --protoc-bin )
+            protoc_bin="$2"
+            shift 2
+            ;;
          * )
             proto_path="$1"
             shift
@@ -65,6 +71,16 @@ function main {
    then
       err_usage "ERROR: No proto file specified"
       return 1
+   fi
+
+   if test -z "${protoc_bin}"
+   then
+       protoc_bin="$(command -v protoc)"
+       if test -z "${protoc_bin}"
+       then
+           err_usage "ERROR: no proto-bin specified and protoc could not be discovered"
+           return 1
+       fi
    fi
 
    local gogo_proto_path=$(go list -f '{{ .Dir }}' -m github.com/gogo/protobuf)
@@ -104,7 +120,7 @@ function main {
    #  -I="${gogo_proto_path}/protobuf" \
    local -i ret=0
    status_stage "Generating ${proto_path} into ${proto_go_path} and ${proto_go_bin_path}"
-   debug_run protoc \
+   debug_run ${protoc_bin} \
       -I="${gogo_proto_path}/protobuf" \
       -I="${gogo_proto_path}" \
       -I="${gogo_proto_mod_path}" \

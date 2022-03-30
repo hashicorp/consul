@@ -2,18 +2,25 @@
 # https://www.consul.io/docs/install#compiling-from-source
 
 SHELL = bash
-PROTOC_VERSION=3.12.3
-GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
 	github.com/hashicorp/go-bindata/go-bindata@master \
 	golang.org/x/tools/cmd/cover@master \
 	golang.org/x/tools/cmd/stringer@master \
-	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
-	github.com/hashicorp/protoc-gen-go-binary@master \
 	github.com/vektra/mockery/cmd/mockery@master \
 	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1 \
 	github.com/hashicorp/lint-consul-retry@master
+
+PROTOC_VERSION=3.12.3
+PROTOC_OS := $(shell if test "$(uname)" == "Darwin"; then echo osx; else echo linux; fi)
+PROTOC_ZIP := protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-x86_64.zip
+PROTOC_URL := https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/$(PROTOC_ZIP)
+PROTOC_ROOT := .protobuf/protoc-$(PROTOC_OS)-$(PROTOC_VERSION)
+PROTOC_BIN := $(PROTOC_ROOT)/bin/protoc
+GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
+GOPROTOTOOLS = \
+	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
+	github.com/hashicorp/protoc-gen-go-binary@master
 
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
@@ -286,9 +293,16 @@ static-assets:
 # Build the static web ui and build static assets inside a Docker container
 ui: ui-docker static-assets-docker
 
-tools:
+tools: proto-tools
 	@if [[ -d .gotools ]]; then rm -rf .gotools ; fi
 	@for TOOL in $(GOTOOLS); do \
+		echo "=== TOOL: $$TOOL" ; \
+		go install -v $$TOOL ; \
+	done
+
+proto-tools:
+	@if [[ -d .gotools ]]; then rm -rf .gotools ; fi
+	@for TOOL in $(GOPROTOTOOLS); do \
 		echo "=== TOOL: $$TOOL" ; \
 		go install -v $$TOOL ; \
 	done
@@ -342,22 +356,25 @@ else
 	@go test -v ./agent -run '.*_Vault_'
 endif
 
-.PHONY: protoc-check
-protoc-check:
-	$(info checking protocol buffer compiler version (expect: $(PROTOC_VERSION)))
-	@if ! command -v protoc &>/dev/null; then \
-		echo "ERROR: protoc is not installed; please install version $(PROTOC_VERSION)" >&2 ; \
-		exit 1 ; \
-	fi
-	@if [[ "$$(protoc --version | cut -d' ' -f2)" != "$(PROTOC_VERSION)" ]]; then \
-		echo "ERROR: protoc version $(PROTOC_VERSION) is required" >&2 ; \
-	fi
+.PHONY: protoc-install
+protoc-install:
+	$(info locally installing protocol buffer compiler version if needed (expect: $(PROTOC_VERSION)))
+	@if [[ ! -x $(PROTOC_ROOT)/bin/protoc ]]; then \
+		mkdir -p .protobuf/tmp ; \
+		if [[ ! -f .protobuf/tmp/$(PROTOC_ZIP) ]]; then \
+			( cd .protobuf/tmp && curl -sSL "$(PROTOC_URL)" -o "$(PROTOC_ZIP)" ) ; \
+		fi ; \
+		mkdir -p $(PROTOC_ROOT) ; \
+		unzip -d $(PROTOC_ROOT) .protobuf/tmp/$(PROTOC_ZIP) ; \
+		chmod -R a+Xr $(PROTOC_ROOT) ; \
+		chmod +x $(PROTOC_ROOT)/bin/protoc ; \
+ 	fi
 
-proto: protoc-check $(PROTOGOFILES) $(PROTOGOBINFILES)
+proto: protoc-install $(PROTOGOFILES) $(PROTOGOBINFILES)
 	@echo "Generated all protobuf Go files"
 
 %.pb.go %.pb.binary.go: %.proto
-	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace "$<"
+	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace --protoc-bin "$(PROTOC_BIN)" "$<"
 
 # utility to echo a makefile variable (i.e. 'make print-PROTOC_VERSION')
 print-%  : ; @echo $($*)

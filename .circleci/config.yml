@@ -174,19 +174,7 @@ jobs:
       - checkout
       - run:
           name: Install protobuf
-          command: |
-            protoc_version="$(make print-PROTOC_VERSION)"
-            wget https://github.com/protocolbuffers/protobuf/releases/download/v${protoc_version}/protoc-${protoc_version}-linux-x86_64.zip
-            sudo unzip -d /usr/local protoc-*.zip
-            sudo chmod +x /usr/local/bin/protoc
-            rm protoc-*.zip
-      - run:
-          name: Install gogo/protobuf
-          command: |
-            gogo_version=$(go list -m github.com/gogo/protobuf | awk '{print $2}')
-            go install -v github.com/hashicorp/protoc-gen-go-binary@master
-            go install -v github.com/gogo/protobuf/protoc-gen-gofast@${gogo_version}
-
+          command: make proto-tools
       - run:
           command: make --always-make proto
       - run: |
