@@ -126,6 +126,12 @@ func TestConfigSnapshotDiscoveryChain(
 			},
 		},
 		{
+			CorrelationID: meshConfigEntryID,
+			Result: &structs.ConfigEntryResponse{
+				Entry: nil,
+			},
+		},
+		{
 			CorrelationID: svcChecksWatchIDPrefix + webSN,
 			Result:        []structs.CheckType{},
 		},

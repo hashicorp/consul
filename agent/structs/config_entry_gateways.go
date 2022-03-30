@@ -240,37 +240,7 @@ func (e *IngressGatewayConfigEntry) validateServiceSDS(lis IngressListener, svc 
 }
 
 func validateGatewayTLSConfig(tlsCfg GatewayTLSConfig) error {
-	if tlsCfg.TLSMinVersion != types.TLSVersionUnspecified {
-		if err := types.ValidateTLSVersion(tlsCfg.TLSMinVersion); err != nil {
-			return err
-		}
-	}
-
-	if tlsCfg.TLSMaxVersion != types.TLSVersionUnspecified {
-		if err := types.ValidateTLSVersion(tlsCfg.TLSMaxVersion); err != nil {
-			return err
-		}
-
-		if tlsCfg.TLSMinVersion != types.TLSVersionUnspecified {
-			if err, maxLessThanMin := tlsCfg.TLSMaxVersion.LessThan(tlsCfg.TLSMinVersion); err == nil && maxLessThanMin {
-				return fmt.Errorf("configuring max version %s less than the configured min version %s is invalid", tlsCfg.TLSMaxVersion, tlsCfg.TLSMinVersion)
-			}
-		}
-	}
-
-	if len(tlsCfg.CipherSuites) != 0 {
-		if _, ok := types.TLSVersionsWithConfigurableCipherSuites[tlsCfg.TLSMinVersion]; !ok {
-			return fmt.Errorf("configuring CipherSuites is only applicable to conncetions negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s", tlsCfg.TLSMinVersion)
-		}
-
-		// NOTE: it would be nice to emit a warning but not return an error from
-		// here if TLSMaxVersion is unspecified, TLS_AUTO or TLSv1_3
-		if err := types.ValidateEnvoyCipherSuites(tlsCfg.CipherSuites); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return validateTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
 }
 
 func (e *IngressGatewayConfigEntry) Validate() error {

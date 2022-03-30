@@ -158,8 +158,8 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 	// This size is an upper bound.
 	clusters := make([]proto.Message, 0, len(cfgSnap.ConnectProxy.PassthroughUpstreams)+1)
 
-	if cfgSnap.ConnectProxy.MeshConfig == nil ||
-		!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.MeshDestinationsOnly {
+	if meshConf := cfgSnap.MeshConfig(); meshConf == nil ||
+		!meshConf.TransparentProxy.MeshDestinationsOnly {
 
 		clusters = append(clusters, &envoy_cluster_v3.Cluster{
 			Name: OriginalDestinationClusterName,
@@ -200,7 +200,11 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 				Service:    uid.Name,
 			}
 
-			commonTLSContext := makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf())
+			commonTLSContext := makeCommonTLSContextFromLeaf(
+				cfgSnap,
+				cfgSnap.Leaf(),
+				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
+			)
 			err := injectSANMatcher(commonTLSContext, spiffeID)
 			if err != nil {
 				return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
@@ -567,7 +571,11 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 	}
 
 	// Enable TLS upstream with the configured client certificate.
-	commonTLSContext := makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf())
+	commonTLSContext := makeCommonTLSContextFromLeaf(
+		cfgSnap,
+		cfgSnap.Leaf(),
+		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
+	)
 	err = injectSANMatcher(commonTLSContext, spiffeIDs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
@@ -745,7 +753,12 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			c.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
 		}
 
-		commonTLSContext := makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf())
+		commonTLSContext := makeCommonTLSContextFromLeaf(
+			cfgSnap,
+			cfgSnap.Leaf(),
+			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
+		)
+
 		err = injectSANMatcher(commonTLSContext, spiffeIDs...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)

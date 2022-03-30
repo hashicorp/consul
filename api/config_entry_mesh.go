@@ -17,6 +17,8 @@ type MeshConfigEntry struct {
 	// in transparent mode.
 	TransparentProxy TransparentProxyMeshConfig `alias:"transparent_proxy"`
 
+	TLS *MeshTLSConfig `json:",omitempty"`
+
 	Meta map[string]string `json:",omitempty"`
 
 	// CreateIndex is the Raft index this entry was created at. This is a
@@ -31,6 +33,17 @@ type MeshConfigEntry struct {
 
 type TransparentProxyMeshConfig struct {
 	MeshDestinationsOnly bool `alias:"mesh_destinations_only"`
+}
+
+type MeshTLSConfig struct {
+	Incoming *MeshDirectionalTLSConfig `json:",omitempty"`
+	Outgoing *MeshDirectionalTLSConfig `json:",omitempty"`
+}
+
+type MeshDirectionalTLSConfig struct {
+	TLSMinVersion string   `json:",omitempty" alias:"tls_min_version"`
+	TLSMaxVersion string   `json:",omitempty" alias:"tls_max_version"`
+	CipherSuites  []string `json:",omitempty" alias:"cipher_suites"`
 }
 
 func (e *MeshConfigEntry) GetKind() string            { return MeshConfig }

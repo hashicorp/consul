@@ -35,6 +35,23 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 		}
 		upstreamsSnapshot.Leaf = leaf
 
+	case u.CorrelationID == meshConfigEntryID:
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		if resp.Entry != nil {
+			meshConf, ok := resp.Entry.(*structs.MeshConfigEntry)
+			if !ok {
+				return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
+			}
+			upstreamsSnapshot.MeshConfig = meshConf
+		} else {
+			upstreamsSnapshot.MeshConfig = nil
+		}
+		upstreamsSnapshot.MeshConfigSet = true
+
 	case strings.HasPrefix(u.CorrelationID, "discovery-chain:"):
 		resp, ok := u.Result.(*structs.DiscoveryChainResponse)
 		if !ok {
