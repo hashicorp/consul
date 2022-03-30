@@ -388,6 +388,10 @@
       {
         "title": "Technical Specifications",
         "path": "api-gateway/tech-specs"
+      },
+      {
+        "title": "Common Errors",
+        "path": "api-gateway/common-errors"
       }
     ]
   },
