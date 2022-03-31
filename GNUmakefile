@@ -374,10 +374,10 @@ protoc-install:
 	fi
 
 .PHONY: proto
-proto: -protoc-files mog
+proto: -protoc-files -mog-files
 
-.PHONY: mog
-mog:
+.PHONY: -mog-files
+-mog-files:
 	@for FULL_PKG in $(PROTO_MOG_ORDER); do \
 		PKG="$${FULL_PKG/#github.com\/hashicorp\/consul\//.\/}" ; \
 		find "$$PKG" -name '*.gen.go' -delete ; \
