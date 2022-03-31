@@ -526,6 +526,30 @@ func testConfigSnapshotTerminatingGatewayLBConfig(t testing.T, variant string) *
 	})
 }
 
+func TestConfigSnapshotTerminatingGatewaySNI(t testing.T) *ConfigSnapshot {
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+		{
+			CorrelationID: "gateway-services",
+			Result: &structs.IndexedGatewayServices{
+				Services: []*structs.GatewayService{
+					{
+						Service: structs.NewServiceName("web", nil),
+						CAFile:  "ca.cert.pem",
+						SNI:     "foo.com",
+					},
+					{
+						Service:  structs.NewServiceName("api", nil),
+						CAFile:   "ca.cert.pem",
+						CertFile: "api.cert.pem",
+						KeyFile:  "api.key.pem",
+						SNI:      "bar.com",
+					},
+				},
+			},
+		},
+	})
+}
+
 func TestConfigSnapshotTerminatingGatewayHostnameSubsets(t testing.T) *ConfigSnapshot {
 	var (
 		api   = structs.NewServiceName("api", nil)

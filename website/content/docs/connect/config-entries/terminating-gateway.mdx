@@ -166,6 +166,7 @@ Services = [
   {
     Name   = "billing"
     CAFile = "/etc/certs/ca-chain.cert.pem"
+    SNI    = "billing.service.com"
   }
 ]
 ```
@@ -179,6 +180,7 @@ spec:
   services:
     - name: billing
       caFile: /etc/certs/ca-chain.cert.pem
+      sni: billing.service.com
 ```
 
 ```json
@@ -189,6 +191,7 @@ spec:
     {
       "Name": "billing",
       "CAFile": "/etc/certs/ca-chain.cert.pem"
+      "SNI": "billing.service.com"
     }
   ]
 }
@@ -217,6 +220,7 @@ Services = [
     Namespace = "finance"
     Name      = "billing"
     CAFile    = "/etc/certs/ca-chain.cert.pem"
+    SNI       = "billing.service.com"
   }
 ]
 ```
@@ -231,6 +235,7 @@ spec:
     - name: billing
       namespace: finance
       caFile: /etc/certs/ca-chain.cert.pem
+      sni: billing.service.com
 ```
 
 ```json
@@ -242,7 +247,8 @@ spec:
     {
       "Namespace": "finance",
       "Name": "billing",
-      "CAFile": "/etc/certs/ca-chain.cert.pem"
+      "CAFile": "/etc/certs/ca-chain.cert.pem",
+      "SNI": "billing.service.com"
     }
   ]
 }
@@ -276,6 +282,7 @@ Services = [
     CAFile   = "/etc/certs/ca-chain.cert.pem"
     KeyFile  = "/etc/certs/gateway.key.pem"
     CertFile = "/etc/certs/gateway.cert.pem"
+    SNI      = "billing.service.com"
   }
 ]
 ```
@@ -291,6 +298,7 @@ spec:
       caFile: /etc/certs/ca-chain.cert.pem
       keyFile: /etc/certs/gateway.key.pem
       certFile: /etc/certs/gateway.cert.pem
+      sni: billing.service.com
 ```
 
 ```json
@@ -302,7 +310,8 @@ spec:
       "Name": "billing",
       "CAFile": "/etc/certs/ca-chain.cert.pem",
       "KeyFile": "/etc/certs/gateway.key.pem",
-      "CertFile": "/etc/certs/gateway.cert.pem"
+      "CertFile": "/etc/certs/gateway.cert.pem",
+      "SNI": "billing.service.com"
     }
   ]
 }
@@ -333,6 +342,7 @@ Services = [
     CAFile    = "/etc/certs/ca-chain.cert.pem"
     KeyFile   = "/etc/certs/gateway.key.pem"
     CertFile  = "/etc/certs/gateway.cert.pem"
+    SNI       = "billing.service.com"
   }
 ]
 ```
@@ -349,6 +359,7 @@ spec:
       caFile: /etc/certs/ca-chain.cert.pem
       keyFile: /etc/certs/gateway.key.pem
       certFile: /etc/certs/gateway.cert.pem
+      sni: billing.service.com
 ```
 
 ```json
@@ -362,7 +373,8 @@ spec:
       "Name": "billing",
       "CAFile": "/etc/certs/ca-chain.cert.pem",
       "KeyFile": "/etc/certs/gateway.key.pem",
-      "CertFile": "/etc/certs/gateway.cert.pem"
+      "CertFile": "/etc/certs/gateway.cert.pem",
+      "SNI": "billing.service.com"
     }
   ]
 }
@@ -399,7 +411,7 @@ Services = [
   },
   {
     Name      = "billing"
-    CAFile    = "/etc/billing-ca/ca-chain.cert.pem",
+    CAFile    = "/etc/billing-ca/ca-chain.cert.pem"
     SNI       =  "billing.service.com"
   }
 ]
