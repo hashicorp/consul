@@ -678,7 +678,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	// DEPRECATED: Warn users if they're emitting deprecated metrics. Remove this warning and the flagged metrics in a
 	// future release of Consul.
 	if !a.config.Telemetry.DisableCompatOneNine {
-		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
+		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in Consul 1.13. Consider not using this flag and rework instrumentation for 1.10 style http metrics.")
 	}
 
 	if a.tlsConfigurator.Cert() != nil {
@@ -3711,7 +3711,7 @@ func (a *Agent) ReloadConfig() error {
 	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
 	// metrics in a future release of Consul.
 	if !a.config.Telemetry.DisableCompatOneNine {
-		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
+		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in Consul 1.13. Consider not using this flag and rework instrumentation for 1.10 style http metrics.")
 	}
 
 	return a.reloadConfigInternal(newCfg)
