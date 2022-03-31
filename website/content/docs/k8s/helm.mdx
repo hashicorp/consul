@@ -169,16 +169,35 @@ Use these links to navigate to a particular top-level stanza.
         - gossip encryption key defined by `global.gossipEncryption.secretName`.
         To discover the service account name of the Consul client, run
             ```shell-session
-            $ helm template --show-only templates/client-serviceaccount.yaml <release-name> charts/consul
+            $ helm template --show-only templates/client-serviceaccount.yaml <release-name> hashicorp/consul
+            ```
+        and check the name of `metadata.name`.
+
+      - `consulSnapshotAgentRole` ((#v-global-secretsbackend-vault-consulsnapshotagentrole)) (`string: ""`) - <EnterpriseAlert inline /> The Vault role for the Consul client snapshot agent.
+        The role must be connected to the Consul client snapshot agent's service account and
+        have a policy with read capabilities for the snapshot agent config defined by `client.snapshotAgent.configSecret.secretName`.
+        To discover the service account name of the Consul client, run
+            ```shell-session
+            $ helm template --show-only templates/client-snapshot-agent-serviceaccount.yaml --set client.snapshotAgent.enabled=true <release-name> hashicorp/consul
             ```
         and check the name of `metadata.name`.
 
       - `manageSystemACLsRole` ((#v-global-secretsbackend-vault-managesystemaclsrole)) (`string: ""`) - A Vault role to allow Kubernetes job that manages ACLs for this Helm chart (`server-acl-init`)
-        to read and update Vault secrets for the Consul's bootstrap and replication tokens.
+        to read and update Vault secrets for the Consul's bootstrap, replication or partition tokens.
         This role must be bound the `server-acl-init`'s service account.
         To discover the service account name of the `server-acl-init` job, run
             ```shell-session
-            $ helm template --show-only templates/server-acl-init-serviceaccount.yaml <release-name> charts/consul
+            $ helm template --show-only templates/server-acl-init-serviceaccount.yaml \
+                  --set global.acls.manageSystemACLs=true <release-name> hashicorp/consul
+            ```
+        and check the name of `metadata.name`.
+
+      - `adminPartitionsRole` ((#v-global-secretsbackend-vault-adminpartitionsrole)) (`string: ""`) - <EnterpriseAlert inline /> A Vault role to allow Kubernetes job that creates a Consul partition for this Helm chart (`partition-init`)
+        to read Vault secret for the partition ACL token.
+        This role must be bound the `partition-init`'s service account.
+        To discover the service account name of the `partition-init` job, run with Helm values for the client cluster:
+            ```shell-session
+            $ helm template --show-only templates/partition-init-serviceaccount.yaml -f client-cluster-values.yaml <release-name> hashicorp/consul
             ```
         and check the name of `metadata.name`.
 
@@ -294,11 +313,11 @@ Use these links to navigate to a particular top-level stanza.
       in the server certificate. This is useful when you need to access the
       Consul server(s) externally, for example, if you're using the UI.
 
-    - `verify` ((#v-global-tls-verify)) (`boolean: true`) - If true, `tls.defaults.verify_outgoing`,
-      `tls.internal_rpc.verify_server_hostname`, and `tls.internal_rpc.verify_incoming` will be set
-      to `true` for Consul servers and clients. Set this to false to incrementally roll out TLS
-      on an existing Consul cluster.
-      Please see https://consul.io/docs/k8s/operations/tls-on-existing-cluster for more details.
+    - `verify` ((#v-global-tls-verify)) (`boolean: true`) - If true, `verify_outgoing`, `verify_server_hostname`,
+      and `verify_incoming_rpc` will be set to `true` for Consul servers and clients.
+      Set this to false to incrementally roll out TLS on an existing Consul cluster.
+      Please see https://consul.io/docs/k8s/operations/tls-on-existing-cluster
+      for more details.
 
     - `httpsOnly` ((#v-global-tls-httpsonly)) (`boolean: true`) - If true, the Helm chart will configure Consul to disable the HTTP port on
       both clients and servers and to only accept HTTPS connections.
@@ -378,6 +397,17 @@ Use these links to navigate to a particular top-level stanza.
 
       - `secretKey` ((#v-global-acls-replicationtoken-secretkey)) (`string: null`) - The key of the Kubernetes or Vault secret.
 
+    - `partitionToken` ((#v-global-acls-partitiontoken)) - partitionToken references a Vault secret containing the ACL token to be used in non-default partitions.
+      This value should only be provided in the default partition and only when setting
+      `global.secretsBackend.vault.enabled` to true.
+      We will use the value of the secret stored in Vault to create an ACL token in Consul with the value of the
+      secret as the secretID for the token.
+      In non-default, partitions set this secret as the `bootstrapToken`.
+
+      - `secretName` ((#v-global-acls-partitiontoken-secretname)) (`string: null`) - The name of the path of the secret in Vault.
+
+      - `secretKey` ((#v-global-acls-partitiontoken-secretkey)) (`string: null`) - The key of the Vault secret.
+
   - `enterpriseLicense` ((#v-global-enterpriselicense)) - <EnterpriseAlert inline /> This value refers to a Kubernetes secret that you have created
     that contains your enterprise license. It is required if you are using an
     enterprise binary. Defining it here applies it to your cluster once a leader
@@ -408,10 +438,24 @@ Use these links to navigate to a particular top-level stanza.
       `<global.name>-federation` (if setting `global.name`), otherwise
       `<helm-release-name>-consul-federation`.
 
-    - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: ""`) - The name of the primary datacenter.
+    - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: null`) - The name of the primary datacenter.
 
     - `primaryGateways` ((#v-global-federation-primarygateways)) (`array<string>: []`) - A list of addresses of the primary mesh gateways in the form `<ip>:<port>`.
       (e.g. ["1.1.1.1:443", "2.3.4.5:443"]
+
+    - `k8sAuthMethodHost` ((#v-global-federation-k8sauthmethodhost)) (`string: null`) - If you are setting `global.federation.enabled` to true and are in a secondary datacenter,
+      set `k8sAuthMethodHost` to the address of the Kubernetes API server of the secondary datacenter.
+      This address must be reachable from the Consul servers in the primary datacenter.
+      This authmethod will be used to provision ACL tokens for Consul components and is different
+      from the one used by the Consul Service Mesh.
+      Please see the Kubernetes Auth Method documentation (https://consul.io/docs/acl/auth-methods/kubernetes).
+
+      You could retrieve this value from your `kubeconfig` by running:
+
+      ```shell-session
+      $ kubectl config view \
+        -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
+      ```
 
   - `metrics` ((#v-global-metrics)) - Configures metrics for Consul service mesh
 
@@ -1033,15 +1077,15 @@ Use these links to navigate to a particular top-level stanza.
 
     - `replicas` ((#v-client-snapshotagent-replicas)) (`integer: 2`) - The number of snapshot agents to run.
 
-    - `configSecret` ((#v-client-snapshotagent-configsecret)) - A Kubernetes secret that should be manually created to contain the entire
+    - `configSecret` ((#v-client-snapshotagent-configsecret)) - A Kubernetes or Vault secret that should be manually created to contain the entire
       config to be used on the snapshot agent.
       This is the preferred method of configuration since there are usually storage
       credentials present. Please see Snapshot agent config (https://consul.io/commands/snapshot/agent#config-file-options)
       for details.
 
-      - `secretName` ((#v-client-snapshotagent-configsecret-secretname)) (`string: null`) - The name of the Kubernetes secret.
+      - `secretName` ((#v-client-snapshotagent-configsecret-secretname)) (`string: null`) - secretName is the name of the Kubernetes secret or Vault secret path that holds the snapshot agentconfig.
 
-      - `secretKey` ((#v-client-snapshotagent-configsecret-secretkey)) (`string: null`) - The key of the Kubernetes secret.
+      - `secretKey` ((#v-client-snapshotagent-configsecret-secretkey)) (`string: null`) - secretKey is the key within the Kubernetes secret or Vault secret key that holds the snapshot agentconfig.
 
     - `serviceAccount` ((#v-client-snapshotagent-serviceaccount))
 
@@ -2068,6 +2112,10 @@ Use these links to navigate to a particular top-level stanza.
         annotations: |
           "annotation-key": "annotation-value"
         ```
+
+  - `resources` ((#v-apigateway-resources)) (`map`) - Resource settings for api gateway pods.
+
+  - `initCopyConsulContainer` ((#v-apigateway-initcopyconsulcontainer)) (`map`) - Resource settings for the `copy-consul-bin` init container.
 
 ### webhookCertManager
 
