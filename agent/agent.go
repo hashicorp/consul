@@ -363,7 +363,7 @@ type Agent struct {
 
 	// FileWatcher is the watcher responsible to report events when a config file
 	// changed
-	FileWatcher *config.FileWatcher
+	FileWatcher *config.Watcher
 
 	// xdsServer serves the XDS protocol for configuring Envoy proxies.
 	xdsServer *xds.Server
