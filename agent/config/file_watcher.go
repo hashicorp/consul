@@ -55,7 +55,7 @@ func NewFileWatcher(configFiles []string, logger hclog.Logger) (*FileWatcher, er
 		done:             make(chan interface{}),
 	}
 	for _, f := range configFiles {
-		err = w.add(f)
+		err = w.Add(f)
 		if err != nil {
 			return nil, fmt.Errorf("error adding file %q: %w", f, err)
 		}
@@ -89,7 +89,19 @@ func (w *FileWatcher) Stop() error {
 // Add a file to the file watcher
 // Add will lock the file watcher during the add
 func (w *FileWatcher) Add(filename string) error {
-	return w.add(filename)
+	filename = filepath.Clean(filename)
+	w.logger.Trace("adding file", "file", filename)
+	if err := w.watcher.Add(filename); err != nil {
+		return err
+	}
+	modTime, err := w.getFileModifiedTime(filename)
+	if err != nil {
+		return err
+	}
+	w.configFilesLock.Lock()
+	defer w.configFilesLock.Unlock()
+	w.configFiles[filename] = &watchedFile{modTime: modTime}
+	return nil
 }
 
 // Remove a file from the file watcher
@@ -106,37 +118,20 @@ func (w *FileWatcher) Replace(oldFile, newFile string) error {
 	if oldFile == newFile {
 		return nil
 	}
+	newFile = filepath.Clean(newFile)
+	w.logger.Trace("adding file", "file", newFile)
+	if err := w.watcher.Add(newFile); err != nil {
+		return err
+	}
+	modTime, err := w.getFileModifiedTime(newFile)
+	if err != nil {
+		return err
+	}
 	w.configFilesLock.Lock()
 	defer w.configFilesLock.Unlock()
 	delete(w.configFiles, oldFile)
-	return w.add(newFile)
-}
-
-func (w *FileWatcher) add(filename string) error {
-	filename = filepath.Clean(filename)
-	w.logger.Trace("adding file", "file", filename)
-	if err := w.watcher.Add(filename); err != nil {
-		return err
-	}
-	modTime, err := w.getFileModifiedTime(filename)
-	if err != nil {
-		return err
-	}
-	w.configFilesLock.Lock()
-	defer w.configFilesLock.Unlock()
-	w.configFiles[filename] = &watchedFile{modTime: modTime}
+	w.configFiles[newFile] = &watchedFile{modTime: modTime}
 	return nil
-}
-
-func isSymLink(filename string) bool {
-	fi, err := os.Lstat(filename)
-	if err != nil {
-		return false
-	}
-	if fi.Mode()&os.ModeSymlink != 0 {
-		return true
-	}
-	return false
 }
 
 func (w *FileWatcher) watch(ctx context.Context) {
