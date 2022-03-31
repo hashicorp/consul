@@ -570,6 +570,22 @@ func (e *TerminatingGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
+func (e *TerminatingGatewayConfigEntry) Warnings() []string {
+	if e == nil {
+		return nil
+	}
+
+	warnings := make([]string, 0)
+	for _, svc := range e.Services {
+		if (svc.CAFile != "" || svc.CertFile != "" || svc.KeyFile != "") && svc.SNI == "" {
+			warning := fmt.Sprintf("TLS is configured but SNI is not set for service %q. Enabling SNI is strongly recommended when using TLS.", svc.Name)
+			warnings = append(warnings, warning)
+		}
+	}
+
+	return warnings
+}
+
 // GatewayService is used to associate gateways with their linked services.
 type GatewayService struct {
 	Gateway      ServiceName
