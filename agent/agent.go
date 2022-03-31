@@ -713,25 +713,23 @@ func (a *Agent) Start(ctx context.Context) error {
 	})
 
 	// start a go routine to reload config based on file watcher events
-	if a.baseDeps.RuntimeConfig.AutoReloadConfig {
-		if len(a.baseDeps.WatchedFiles) > 0 {
-			w, err := config.NewFileWatcher(a.baseDeps.WatchedFiles, a.baseDeps.Logger)
-			if err != nil {
-				a.baseDeps.Logger.Error("error loading config", "error", err)
-			} else {
-				a.FileWatcher = w
-				a.baseDeps.Logger.Debug("starting file watcher")
-				a.FileWatcher.Start(context.Background())
-				go func() {
-					for event := range a.FileWatcher.EventsCh() {
-						a.baseDeps.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
-						err := a.AutoReloadConfig()
-						if err != nil {
-							a.baseDeps.Logger.Error("error loading config", "error", err)
-						}
+	if a.baseDeps.RuntimeConfig.AutoReloadConfig && len(a.baseDeps.WatchedFiles) > 0 {
+		w, err := config.NewFileWatcher(a.baseDeps.WatchedFiles, a.baseDeps.Logger)
+		if err != nil {
+			a.baseDeps.Logger.Error("error loading config", "error", err)
+		} else {
+			a.FileWatcher = w
+			a.baseDeps.Logger.Debug("starting file watcher")
+			a.FileWatcher.Start(context.Background())
+			go func() {
+				for event := range a.FileWatcher.EventsCh() {
+					a.baseDeps.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
+					err := a.AutoReloadConfig()
+					if err != nil {
+						a.baseDeps.Logger.Error("error loading config", "error", err)
 					}
-				}()
-			}
+				}
+			}()
 		}
 	}
 	return nil

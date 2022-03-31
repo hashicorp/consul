@@ -107,18 +107,14 @@ func (w *fileWatcher) Add(filename string) error {
 	if err != nil {
 		return err
 	}
-	w.configFilesLock.Lock()
-	defer w.configFilesLock.Unlock()
-	w.configFiles[filename] = &watchedFile{modTime: modTime}
+	w.addFile(filename, modTime)
 	return nil
 }
 
 // Remove a file from the file watcher
 // Remove will lock the file watcher during the remove
 func (w *fileWatcher) Remove(filename string) {
-	w.configFilesLock.Lock()
-	defer w.configFilesLock.Unlock()
-	delete(w.configFiles, filename)
+	w.removeFile(filename)
 }
 
 // Replace a file in the file watcher
@@ -136,11 +132,27 @@ func (w *fileWatcher) Replace(oldFile, newFile string) error {
 	if err != nil {
 		return err
 	}
+	w.replaceFile(oldFile, newFile, modTime)
+	return nil
+}
+
+func (w *fileWatcher) replaceFile(oldFile, newFile string, modTime time.Time) {
 	w.configFilesLock.Lock()
 	defer w.configFilesLock.Unlock()
 	delete(w.configFiles, oldFile)
 	w.configFiles[newFile] = &watchedFile{modTime: modTime}
-	return nil
+}
+
+func (w *fileWatcher) addFile(filename string, modTime time.Time) {
+	w.configFilesLock.Lock()
+	defer w.configFilesLock.Unlock()
+	w.configFiles[filename] = &watchedFile{modTime: modTime}
+}
+
+func (w *fileWatcher) removeFile(filename string) {
+	w.configFilesLock.Lock()
+	defer w.configFilesLock.Unlock()
+	delete(w.configFiles, filename)
 }
 
 func (w *fileWatcher) EventsCh() chan *FileWatcherEvent {
