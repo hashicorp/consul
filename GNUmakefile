@@ -22,7 +22,7 @@ GOPROTOTOOLS = \
 	github.com/golang/protobuf/protoc-gen-go@$(GOPROTOVERSION) \
 	github.com/hashicorp/protoc-gen-go-binary@master \
 	github.com/favadi/protoc-go-inject-tag@v1.3.0 \
-	github.com/hashicorp/mog@v0.1.2
+	github.com/hashicorp/mog@v0.2.0
 
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
@@ -41,6 +41,7 @@ GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)
 PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/' | grep -v '.protobuf' )
 PROTOGOFILES=$(PROTOFILES:.proto=.pb.go)
 PROTOGOBINFILES=$(PROTOFILES:.proto=.pb.binary.go)
+PROTO_MOG_ORDER=$(shell go list -tags '$(GOTAGS)' -deps ./proto/pb... | grep "consul/proto")
 
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
@@ -372,7 +373,21 @@ protoc-install:
 		chmod +x $(PROTOC_ROOT)/bin/protoc ; \
 	fi
 
-proto: protoc-install $(PROTOGOFILES) $(PROTOGOBINFILES)
+.PHONY: proto
+proto: -protoc-files -mog-files
+
+.PHONY: -mog-files
+-mog-files:
+	@for FULL_PKG in $(PROTO_MOG_ORDER); do \
+		PKG="$${FULL_PKG/#github.com\/hashicorp\/consul\//.\/}" ; \
+		find "$$PKG" -name '*.gen.go' -delete ; \
+		echo "mog -tags '$(GOTAGS)' -source \"$${PKG}/*.pb.go\"" ; \
+		mog -tags '$(GOTAGS)' -source "$${PKG}/*.pb.go" ; \
+	done
+	@echo "Generated all mog Go files"
+
+.PHONY: -protoc-files
+-protoc-files: protoc-install $(PROTOGOFILES) $(PROTOGOBINFILES)
 	@echo "Generated all protobuf Go files"
 
 %.pb.go %.pb.binary.go: %.proto
@@ -403,6 +418,6 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
-.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools proto-tools protoc-check
+.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools proto-tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
-.PHONY: version proto test-envoy-integ
+.PHONY: version test-envoy-integ
