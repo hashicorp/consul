@@ -146,7 +146,6 @@ func TestHTTPHandlers_AgentMetrics_ConsulAutopilot_Prometheus(t *testing.T) {
 	})
 }
 
-
 // TestHTTPHandlers_AgentMetrics_Disable1Dot9MetricsChange adds testing around the 1.9 style metrics
 // https://www.consul.io/docs/agent/options#telemetry-disable_compat_1.9
 func TestHTTPHandlers_AgentMetrics_Disable1Dot9MetricsChange(t *testing.T) {
@@ -204,7 +203,7 @@ func TestHTTPHandlers_AgentMetrics_Disable1Dot9MetricsChange(t *testing.T) {
 		respRec := httptest.NewRecorder()
 		recordPromMetrics(t, a, respRec)
 
-		assertMetricExists(t,respRec,"agent_http_2_http_GET_v1_agent_members")
+		assertMetricExists(t, respRec, "agent_http_2_http_GET_v1_agent_members")
 	})
 }
 
