@@ -363,7 +363,7 @@ type Agent struct {
 
 	// FileWatcher is the watcher responsible to report events when a config file
 	// changed
-	FileWatcher *config.Watcher
+	FileWatcher config.Watcher
 
 	// xdsServer serves the XDS protocol for configuring Envoy proxies.
 	xdsServer *xds.Server
@@ -723,7 +723,7 @@ func (a *Agent) Start(ctx context.Context) error {
 				a.baseDeps.Logger.Debug("starting file watcher")
 				a.FileWatcher.Start(context.Background())
 				go func() {
-					for event := range a.FileWatcher.EventsCh {
+					for event := range a.FileWatcher.EventCh() {
 						a.baseDeps.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
 						err := a.AutoReloadConfig()
 						if err != nil {

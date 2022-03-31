@@ -20,6 +20,7 @@ type Watcher interface {
 	Add(filename string) error
 	Remove(filename string)
 	Replace(oldFile, newFile string) error
+	EventCh() chan *FileWatcherEvent
 }
 
 type fileWatcher struct {
@@ -140,6 +141,10 @@ func (w *fileWatcher) Replace(oldFile, newFile string) error {
 	delete(w.configFiles, oldFile)
 	w.configFiles[newFile] = &watchedFile{modTime: modTime}
 	return nil
+}
+
+func (w *fileWatcher) EventCh() chan *FileWatcherEvent {
+	return w.EventsCh
 }
 
 func (w *fileWatcher) watch(ctx context.Context) {
