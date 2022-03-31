@@ -88,7 +88,6 @@ function main {
    local proto_go_path=${proto_path%%.proto}.pb.go
    local proto_go_bin_path=${proto_path%%.proto}.pb.binary.go
    local proto_go_rpcglue_path=${proto_path%%.proto}.rpcglue.pb.go
-   local mog_input_path="$(dirname "${proto_path}")"
 
    local go_proto_out="paths=source_relative"
    if is_set "${grpc}"
@@ -101,14 +100,14 @@ function main {
       go_proto_out="${go_proto_out}:"
    fi
 
-   rm -f "${proto_go_path}" ${proto_go_bin_path}" ${proto_go_rpcglue_path}" "${mog_input_path}/*.gen.go"
+   rm -f "${proto_go_path}" ${proto_go_bin_path}" ${proto_go_rpcglue_path}"
 
    # How we run protoc probably needs some documentation.
    #
    # This is the path to where
    #  -I="${golang_proto_path}/protobuf" \
    local -i ret=0
-   status_stage "Generating ${proto_path} into ${proto_go_path} and ${proto_go_bin_path} ${mog_input_path}/*.gen.go"
+   status_stage "Generating ${proto_path} into ${proto_go_path} and ${proto_go_bin_path}"
    echo "debug_run ${protoc_bin} \
           -I=\"${golang_proto_path}\" \
           -I=\"${golang_proto_mod_path}\" \
@@ -136,14 +135,6 @@ function main {
    if test $? -ne 0
    then
       err "Failed to run protoc-go-inject-tag for ${proto_path}"
-      return 1
-   fi
-
-   debug_run mog -source ./${mog_input_path} -tags ${GOTAGS} -ignore-package-load-errors
-
-   if test $? -ne 0
-   then
-      err "Failed to generate mog outputs from ${mog_input_path}"
       return 1
    fi
 
