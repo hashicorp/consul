@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/lib/stringslice"
+
 	"golang.org/x/crypto/blake2b"
 
 	"github.com/hashicorp/consul/acl"
@@ -128,7 +130,7 @@ type ACLServiceIdentity struct {
 
 func (s *ACLServiceIdentity) Clone() *ACLServiceIdentity {
 	s2 := *s
-	s2.Datacenters = CloneStringSlice(s.Datacenters)
+	s2.Datacenters = stringslice.CloneStringSlice(s.Datacenters)
 	return &s2
 }
 
@@ -606,7 +608,7 @@ func (t *ACLPolicy) UnmarshalJSON(data []byte) error {
 
 func (p *ACLPolicy) Clone() *ACLPolicy {
 	p2 := *p
-	p2.Datacenters = CloneStringSlice(p.Datacenters)
+	p2.Datacenters = stringslice.CloneStringSlice(p.Datacenters)
 	return &p2
 }
 
@@ -1413,15 +1415,6 @@ type ACLPolicyBatchSetRequest struct {
 // This is particularly useful during replication
 type ACLPolicyBatchDeleteRequest struct {
 	PolicyIDs []string
-}
-
-func CloneStringSlice(s []string) []string {
-	if len(s) == 0 {
-		return nil
-	}
-	out := make([]string, len(s))
-	copy(out, s)
-	return out
 }
 
 // ACLRoleSetRequest is used at the RPC layer for creation and update requests

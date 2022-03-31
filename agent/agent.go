@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -360,6 +361,10 @@ type Agent struct {
 	// run by the Agent
 	routineManager *routine.Manager
 
+	// FileWatcher is the watcher responsible to report events when a config file
+	// changed
+	FileWatcher config.Watcher
+
 	// xdsServer serves the XDS protocol for configuring Envoy proxies.
 	xdsServer *xds.Server
 
@@ -442,6 +447,21 @@ func New(bd BaseDeps) (*Agent, error) {
 
 	// TODO: pass in a fully populated apiServers into Agent.New
 	a.apiServers = NewAPIServers(a.logger)
+
+	for _, f := range []struct {
+		Cfg tlsutil.ProtocolConfig
+	}{
+		{a.baseDeps.RuntimeConfig.TLS.InternalRPC},
+		{a.baseDeps.RuntimeConfig.TLS.GRPC},
+		{a.baseDeps.RuntimeConfig.TLS.HTTPS},
+	} {
+		if f.Cfg.KeyFile != "" {
+			a.baseDeps.WatchedFiles = append(a.baseDeps.WatchedFiles, f.Cfg.KeyFile)
+		}
+		if f.Cfg.CertFile != "" {
+			a.baseDeps.WatchedFiles = append(a.baseDeps.WatchedFiles, f.Cfg.CertFile)
+		}
+	}
 
 	return &a, nil
 }
@@ -692,6 +712,26 @@ func (a *Agent) Start(ctx context.Context) error {
 		{Name: "pre_release", Value: a.config.VersionPrerelease},
 	})
 
+	// start a go routine to reload config based on file watcher events
+	if a.baseDeps.RuntimeConfig.AutoReloadConfig && len(a.baseDeps.WatchedFiles) > 0 {
+		w, err := config.NewFileWatcher(a.baseDeps.WatchedFiles, a.baseDeps.Logger)
+		if err != nil {
+			a.baseDeps.Logger.Error("error loading config", "error", err)
+		} else {
+			a.FileWatcher = w
+			a.baseDeps.Logger.Debug("starting file watcher")
+			a.FileWatcher.Start(context.Background())
+			go func() {
+				for event := range a.FileWatcher.EventsCh() {
+					a.baseDeps.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
+					err := a.AutoReloadConfig()
+					if err != nil {
+						a.baseDeps.Logger.Error("error loading config", "error", err)
+					}
+				}
+			}()
+		}
+	}
 	return nil
 }
 
@@ -1084,8 +1124,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.SerfWANConfig.MemberlistConfig.CIDRsAllowed = runtimeCfg.SerfAllowedCIDRsWAN
 	cfg.SerfLANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrLAN.IP.String()
 	cfg.SerfLANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrLAN.Port
-	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.EncryptVerifyIncoming
-	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.EncryptVerifyOutgoing
+	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.StaticRuntimeConfig.EncryptVerifyIncoming
+	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.StaticRuntimeConfig.EncryptVerifyOutgoing
 	cfg.SerfLANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipLANGossipInterval
 	cfg.SerfLANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipLANGossipNodes
 	cfg.SerfLANConfig.MemberlistConfig.ProbeInterval = runtimeCfg.GossipLANProbeInterval
@@ -1101,8 +1141,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 		cfg.SerfWANConfig.MemberlistConfig.BindPort = runtimeCfg.SerfBindAddrWAN.Port
 		cfg.SerfWANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrWAN.IP.String()
 		cfg.SerfWANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrWAN.Port
-		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.EncryptVerifyIncoming
-		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.EncryptVerifyOutgoing
+		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.StaticRuntimeConfig.EncryptVerifyIncoming
+		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.StaticRuntimeConfig.EncryptVerifyOutgoing
 		cfg.SerfWANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipWANGossipInterval
 		cfg.SerfWANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipWANGossipNodes
 		cfg.SerfWANConfig.MemberlistConfig.ProbeInterval = runtimeCfg.GossipWANProbeInterval
@@ -1294,11 +1334,11 @@ func segmentConfig(config *config.RuntimeConfig) ([]consul.NetworkSegment, error
 		if config.ReconnectTimeoutLAN != 0 {
 			serfConf.ReconnectTimeout = config.ReconnectTimeoutLAN
 		}
-		if config.EncryptVerifyIncoming {
-			serfConf.MemberlistConfig.GossipVerifyIncoming = config.EncryptVerifyIncoming
+		if config.StaticRuntimeConfig.EncryptVerifyIncoming {
+			serfConf.MemberlistConfig.GossipVerifyIncoming = config.StaticRuntimeConfig.EncryptVerifyIncoming
 		}
-		if config.EncryptVerifyOutgoing {
-			serfConf.MemberlistConfig.GossipVerifyOutgoing = config.EncryptVerifyOutgoing
+		if config.StaticRuntimeConfig.EncryptVerifyOutgoing {
+			serfConf.MemberlistConfig.GossipVerifyOutgoing = config.StaticRuntimeConfig.EncryptVerifyOutgoing
 		}
 
 		var rpcAddr *net.TCPAddr
@@ -1371,6 +1411,11 @@ func (a *Agent) ShutdownAgent() error {
 	a.logger.Info("Requesting shutdown")
 	// Stop the watches to avoid any notification/state change during shutdown
 	a.stopAllWatches()
+
+	// Stop config file watcher
+	if a.FileWatcher != nil {
+		a.FileWatcher.Stop()
+	}
 
 	a.stopLicenseManager()
 
@@ -3694,10 +3739,18 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Info("Node left maintenance mode")
 }
 
+func (a *Agent) AutoReloadConfig() error {
+	return a.reloadConfig(true)
+}
+
+func (a *Agent) ReloadConfig() error {
+	return a.reloadConfig(false)
+}
+
 // ReloadConfig will atomically reload all configuration, including
 // all services, checks, tokens, metadata, dnsServer configs, etc.
 // It will also reload all ongoing watches.
-func (a *Agent) ReloadConfig() error {
+func (a *Agent) reloadConfig(autoReload bool) error {
 	newCfg, err := a.baseDeps.AutoConfig.ReadConfig()
 	if err != nil {
 		return err
@@ -3708,6 +3761,39 @@ func (a *Agent) ReloadConfig() error {
 	// breaking some existing behavior.
 	newCfg.NodeID = a.config.NodeID
 
+	//if auto reload is enabled, make sure we have the right certs file watched.
+	if autoReload {
+		for _, f := range []struct {
+			oldCfg tlsutil.ProtocolConfig
+			newCfg tlsutil.ProtocolConfig
+		}{
+			{a.config.TLS.InternalRPC, newCfg.TLS.InternalRPC},
+			{a.config.TLS.GRPC, newCfg.TLS.GRPC},
+			{a.config.TLS.HTTPS, newCfg.TLS.HTTPS},
+		} {
+			if f.oldCfg.KeyFile != f.newCfg.KeyFile {
+				a.FileWatcher.Replace(f.oldCfg.KeyFile, f.newCfg.KeyFile)
+				if err != nil {
+					return err
+				}
+			}
+			if f.oldCfg.CertFile != f.newCfg.CertFile {
+				a.FileWatcher.Replace(f.oldCfg.CertFile, f.newCfg.CertFile)
+				if err != nil {
+					return err
+				}
+			}
+			if revertStaticConfig(f.oldCfg, f.newCfg) {
+				a.logger.Warn("Changes to your configuration were detected that for security reasons cannot be automatically applied by 'auto_reload_config'. Manually reload your configuration (e.g. with 'consul reload') to apply these changes.", "StaticRuntimeConfig", f.oldCfg, "StaticRuntimeConfig From file", f.newCfg)
+			}
+		}
+		if !reflect.DeepEqual(newCfg.StaticRuntimeConfig, a.config.StaticRuntimeConfig) {
+			a.logger.Warn("Changes to your configuration were detected that for security reasons cannot be automatically applied by 'auto_reload_config'. Manually reload your configuration (e.g. with 'consul reload') to apply these changes.", "StaticRuntimeConfig", a.config.StaticRuntimeConfig, "StaticRuntimeConfig From file", newCfg.StaticRuntimeConfig)
+			// reset not reloadable fields
+			newCfg.StaticRuntimeConfig = a.config.StaticRuntimeConfig
+		}
+	}
+
 	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
 	// metrics in a future release of Consul.
 	if !a.config.Telemetry.DisableCompatOneNine {
@@ -3715,6 +3801,19 @@ func (a *Agent) ReloadConfig() error {
 	}
 
 	return a.reloadConfigInternal(newCfg)
+}
+
+func revertStaticConfig(oldCfg tlsutil.ProtocolConfig, newCfg tlsutil.ProtocolConfig) bool {
+	newNewCfg := oldCfg
+	newNewCfg.CertFile = newCfg.CertFile
+	newNewCfg.KeyFile = newCfg.KeyFile
+	newOldcfg := newCfg
+	newOldcfg.CertFile = oldCfg.CertFile
+	newOldcfg.KeyFile = oldCfg.KeyFile
+	if !reflect.DeepEqual(newOldcfg, oldCfg) {
+		return true
+	}
+	return false
 }
 
 // reloadConfigInternal is mainly needed for some unit tests. Instead of parsing

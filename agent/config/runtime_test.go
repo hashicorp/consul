@@ -906,6 +906,18 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 
+	run(t, testCase{
+		desc: "-datacenter empty",
+		args: []string{
+			`-auto-reload-config`,
+			`-data-dir=` + dataDir,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.AutoReloadConfig = true
+			rt.DataDir = dataDir
+		},
+	})
+
 	// ------------------------------------------------------------
 	// ports and addresses
 	//
@@ -5906,24 +5918,27 @@ func TestLoad_FullConfig(t *testing.T) {
 		EnableRemoteScriptChecks:               true,
 		EnableLocalScriptChecks:                true,
 		EncryptKey:                             "A4wELWqH",
-		EncryptVerifyIncoming:                  true,
-		EncryptVerifyOutgoing:                  true,
-		GRPCPort:                               4881,
-		GRPCAddrs:                              []net.Addr{tcpAddr("32.31.61.91:4881")},
-		HTTPAddrs:                              []net.Addr{tcpAddr("83.39.91.39:7999")},
-		HTTPBlockEndpoints:                     []string{"RBvAFcGD", "fWOWFznh"},
-		AllowWriteHTTPFrom:                     []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
-		HTTPPort:                               7999,
-		HTTPResponseHeaders:                    map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
-		HTTPSAddrs:                             []net.Addr{tcpAddr("95.17.17.19:15127")},
-		HTTPMaxConnsPerClient:                  100,
-		HTTPMaxHeaderBytes:                     10,
-		HTTPSHandshakeTimeout:                  2391 * time.Millisecond,
-		HTTPSPort:                              15127,
-		HTTPUseCache:                           false,
-		KVMaxValueSize:                         1234567800,
-		LeaveDrainTime:                         8265 * time.Second,
-		LeaveOnTerm:                            true,
+		StaticRuntimeConfig: StaticRuntimeConfig{
+			EncryptVerifyIncoming: true,
+			EncryptVerifyOutgoing: true,
+		},
+
+		GRPCPort:              4881,
+		GRPCAddrs:             []net.Addr{tcpAddr("32.31.61.91:4881")},
+		HTTPAddrs:             []net.Addr{tcpAddr("83.39.91.39:7999")},
+		HTTPBlockEndpoints:    []string{"RBvAFcGD", "fWOWFznh"},
+		AllowWriteHTTPFrom:    []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
+		HTTPPort:              7999,
+		HTTPResponseHeaders:   map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
+		HTTPSAddrs:            []net.Addr{tcpAddr("95.17.17.19:15127")},
+		HTTPMaxConnsPerClient: 100,
+		HTTPMaxHeaderBytes:    10,
+		HTTPSHandshakeTimeout: 2391 * time.Millisecond,
+		HTTPSPort:             15127,
+		HTTPUseCache:          false,
+		KVMaxValueSize:        1234567800,
+		LeaveDrainTime:        8265 * time.Second,
+		LeaveOnTerm:           true,
 		Logging: logging.Config{
 			LogLevel:       "k1zo9Spt",
 			LogJSON:        true,
@@ -6760,7 +6775,8 @@ func TestRuntime_APIConfigHTTP(t *testing.T) {
 			&net.UnixAddr{Name: "/var/run/foo"},
 			&net.TCPAddr{IP: net.ParseIP("198.18.0.1"), Port: 5678},
 		},
-		Datacenter: "dc-test",
+		Datacenter:          "dc-test",
+		StaticRuntimeConfig: StaticRuntimeConfig{},
 	}
 
 	cfg, err := rt.APIConfig(false)

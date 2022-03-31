@@ -63,6 +63,7 @@
     "AutoEncryptDNSSAN": [],
     "AutoEncryptIPSAN": [],
     "AutoEncryptTLS": false,
+    "AutoReloadConfig": false,
     "AutopilotCleanupDeadServers": false,
     "AutopilotDisableUpgradeMigration": false,
     "AutopilotLastContactThreshold": "0s",
@@ -182,8 +183,6 @@
     "EnableLocalScriptChecks": false,
     "EnableRemoteScriptChecks": false,
     "EncryptKey": "hidden",
-    "EncryptVerifyIncoming": false,
-    "EncryptVerifyOutgoing": false,
     "EnterpriseRuntimeConfig": {},
     "ExposeMaxPort": 0,
     "ExposeMinPort": 0,
@@ -348,6 +347,10 @@
     "SkipLeaveOnInt": false,
     "StartJoinAddrsLAN": [],
     "StartJoinAddrsWAN": [],
+    "StaticRuntimeConfig": {
+        "EncryptVerifyIncoming": false,
+        "EncryptVerifyOutgoing": false
+    },
     "SyncCoordinateIntervalMin": "0s",
     "SyncCoordinateRateTarget": 0,
     "TLS": {

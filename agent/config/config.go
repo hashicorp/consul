@@ -210,6 +210,7 @@ type Config struct {
 	ReconnectTimeoutLAN              *string             `mapstructure:"reconnect_timeout"`
 	ReconnectTimeoutWAN              *string             `mapstructure:"reconnect_timeout_wan"`
 	RejoinAfterLeave                 *bool               `mapstructure:"rejoin_after_leave"`
+	AutoReloadConfig                 *bool               `mapstructure:"auto_reload_config"`
 	RetryJoinIntervalLAN             *string             `mapstructure:"retry_interval"`
 	RetryJoinIntervalWAN             *string             `mapstructure:"retry_interval_wan"`
 	RetryJoinLAN                     []string            `mapstructure:"retry_join"`

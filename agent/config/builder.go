@@ -37,6 +37,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	libtempl "github.com/hashicorp/consul/lib/template"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
@@ -107,7 +108,8 @@ func Load(opts LoadOpts) (LoadResult, error) {
 	if err := b.validate(cfg); err != nil {
 		return r, err
 	}
-	return LoadResult{RuntimeConfig: &cfg, Warnings: b.Warnings}, nil
+	watcherFiles := stringslice.CloneStringSlice(opts.ConfigFiles)
+	return LoadResult{RuntimeConfig: &cfg, Warnings: b.Warnings, WatchedFiles: watcherFiles}, nil
 }
 
 // LoadResult is the result returned from Load. The caller is responsible for
@@ -115,6 +117,7 @@ func Load(opts LoadOpts) (LoadResult, error) {
 type LoadResult struct {
 	RuntimeConfig *RuntimeConfig
 	Warnings      []string
+	WatchedFiles  []string
 }
 
 // builder constructs and validates a runtime configuration from multiple
@@ -938,6 +941,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 				c.Cache.EntryFetchMaxBurst, cache.DefaultEntryFetchMaxBurst,
 			),
 		},
+		AutoReloadConfig:                       boolVal(c.AutoReloadConfig),
 		CheckUpdateInterval:                    b.durationVal("check_update_interval", c.CheckUpdateInterval),
 		CheckOutputMaxSize:                     intValWithDefault(c.CheckOutputMaxSize, 4096),
 		Checks:                                 checks,
@@ -978,8 +982,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		EnableRemoteScriptChecks:   enableRemoteScriptChecks,
 		EnableLocalScriptChecks:    enableLocalScriptChecks,
 		EncryptKey:                 stringVal(c.EncryptKey),
-		EncryptVerifyIncoming:      boolVal(c.EncryptVerifyIncoming),
-		EncryptVerifyOutgoing:      boolVal(c.EncryptVerifyOutgoing),
 		GRPCPort:                   grpcPort,
 		GRPCAddrs:                  grpcAddrs,
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
@@ -987,6 +989,11 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
 		LeaveDrainTime:             b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                leaveOnTerm,
+		StaticRuntimeConfig: StaticRuntimeConfig{
+			EncryptVerifyIncoming: boolVal(c.EncryptVerifyIncoming),
+			EncryptVerifyOutgoing: boolVal(c.EncryptVerifyOutgoing),
+		},
+
 		Logging: logging.Config{
 			LogLevel:          stringVal(c.LogLevel),
 			LogJSON:           boolVal(c.LogJSON),

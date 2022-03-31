@@ -45,6 +45,7 @@ type BaseDeps struct {
 	AutoConfig     *autoconf.AutoConfig // TODO: use an interface
 	Cache          *cache.Cache
 	ViewStore      *submatview.Store
+	WatchedFiles   []string
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.
@@ -61,7 +62,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	if err != nil {
 		return d, err
 	}
-
+	d.WatchedFiles = result.WatchedFiles
 	cfg := result.RuntimeConfig
 	logConf := cfg.Logging
 	logConf.Name = logging.Agent
