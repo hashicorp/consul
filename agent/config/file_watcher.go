@@ -20,7 +20,7 @@ type Watcher interface {
 	Add(filename string) error
 	Remove(filename string)
 	Replace(oldFile, newFile string) error
-	EventCh() chan *FileWatcherEvent
+	EventsCh() chan *FileWatcherEvent
 }
 
 type fileWatcher struct {
@@ -33,10 +33,10 @@ type fileWatcher struct {
 	done             chan interface{}
 	stopOnce         sync.Once
 
-	//EventsCh Channel where an event will be emitted when a file change is detected
+	//eventsCh Channel where an event will be emitted when a file change is detected
 	// a call to Start is needed before any event is emitted
 	// after a Call to Stop succeed, the channel will be closed
-	EventsCh chan *FileWatcherEvent
+	eventsCh chan *FileWatcherEvent
 }
 
 type watchedFile struct {
@@ -59,7 +59,7 @@ func NewFileWatcher(configFiles []string, logger hclog.Logger) (Watcher, error) 
 		watcher:          ws,
 		logger:           logger.Named("file-watcher"),
 		configFiles:      make(map[string]*watchedFile),
-		EventsCh:         make(chan *FileWatcherEvent),
+		eventsCh:         make(chan *FileWatcherEvent),
 		reconcileTimeout: timeoutDuration,
 		done:             make(chan interface{}),
 	}
@@ -143,15 +143,15 @@ func (w *fileWatcher) Replace(oldFile, newFile string) error {
 	return nil
 }
 
-func (w *fileWatcher) EventCh() chan *FileWatcherEvent {
-	return w.EventsCh
+func (w *fileWatcher) EventsCh() chan *FileWatcherEvent {
+	return w.eventsCh
 }
 
 func (w *fileWatcher) watch(ctx context.Context) {
 	ticker := time.NewTicker(w.reconcileTimeout)
 	defer ticker.Stop()
 	defer close(w.done)
-	defer close(w.EventsCh)
+	defer close(w.eventsCh)
 
 	for {
 		select {
@@ -201,7 +201,7 @@ func (w *fileWatcher) handleEvent(ctx context.Context, event fsnotify.Event) err
 	if isCreateEvent(event) || isWriteEvent(event) || isRenameEvent(event) {
 		w.logger.Trace("call the handler", "filename", event.Name, "OP", event.Op)
 		select {
-		case w.EventsCh <- &FileWatcherEvent{Filename: filename}:
+		case w.eventsCh <- &FileWatcherEvent{Filename: filename}:
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -253,7 +253,7 @@ func (w *fileWatcher) reconcile(ctx context.Context) {
 			w.logger.Trace("call the handler", "filename", filename, "old modTime", configFile.modTime, "new modTime", newModTime)
 			configFile.modTime = newModTime
 			select {
-			case w.EventsCh <- &FileWatcherEvent{Filename: filename}:
+			case w.eventsCh <- &FileWatcherEvent{Filename: filename}:
 			case <-ctx.Done():
 				return
 			}

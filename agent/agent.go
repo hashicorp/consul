@@ -723,7 +723,7 @@ func (a *Agent) Start(ctx context.Context) error {
 				a.baseDeps.Logger.Debug("starting file watcher")
 				a.FileWatcher.Start(context.Background())
 				go func() {
-					for event := range a.FileWatcher.EventCh() {
+					for event := range a.FileWatcher.EventsCh() {
 						a.baseDeps.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
 						err := a.AutoReloadConfig()
 						if err != nil {
