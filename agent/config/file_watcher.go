@@ -200,8 +200,8 @@ func (w *FileWatcher) handleEvent(ctx context.Context, event fsnotify.Event) err
 func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 	path := filename
 	w.configFilesLock.RLock()
-	defer w.configFilesLock.RUnlock()
 	configFile, ok := w.configFiles[path]
+	w.configFilesLock.RUnlock()
 	if ok {
 		return configFile, path, true
 	}
@@ -215,8 +215,8 @@ func (w *FileWatcher) isWatched(filename string) (*watchedFile, string, bool) {
 		newPath := filepath.Dir(path)
 		w.logger.Trace("get dir", "dir", newPath)
 		w.configFilesLock.RLock()
-		defer w.configFilesLock.RUnlock()
 		configFile, ok = w.configFiles[newPath]
+		w.configFilesLock.RUnlock()
 	}
 	return configFile, path, ok
 }
