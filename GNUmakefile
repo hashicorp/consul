@@ -22,7 +22,7 @@ GOPROTOTOOLS = \
 	github.com/golang/protobuf/protoc-gen-go@$(GOPROTOVERSION) \
 	github.com/hashicorp/protoc-gen-go-binary@master \
 	github.com/favadi/protoc-go-inject-tag@v1.3.0 \
-	github.com/hashicorp/mog@glob-match
+	github.com/hashicorp/mog@v0.2.0
 
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
