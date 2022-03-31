@@ -43,7 +43,7 @@ At any given point in time, between any pair of services **only one intention
 controls authorization**. This may be either an L4 intention or an L7
 intention, but at any given point in time only one of those applies.
 
-The [intention match API](/api/connect/intentions#list-matching-intentions)
+The [intention match API](/api-docs/connect/intentions#list-matching-intentions)
 should be periodically called to retrieve all relevant intentions for the
 target destination. After verifying the TLS client certificate, the cached
 intentions should be consulted for each incoming connection/request to

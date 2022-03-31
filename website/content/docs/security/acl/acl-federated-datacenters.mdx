@@ -67,7 +67,7 @@ acl = {
 
 ~> **Warning:** Note that most enterprise deployments have security requirements that prevent specifying tokens in configuration files.
 The `enable_token_persistence` flag is also set in the configuration example so that the token is stored to disk in the agent's
-[data directory](/docs/agent/options#_data_dir). Any future changes to the token that are made through the [API](/api/agent#update-acl-tokens) will
+[data directory](/docs/agent/options#_data_dir). Any future changes to the token that are made through the [API](/api-docs/agent#update-acl-tokens) will
 be persisted to the same location, and the value in the config file will be ignored.
 
 The ACL agent token can also be set using the [`consul acl set-agent-token`](/commands/acl/set-agent-token) CLI as shown below.

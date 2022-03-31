@@ -88,9 +88,9 @@ There are several different kinds of checks:
   dead man's switch, relies on the application to directly report its health. For
   example, a healthy app can periodically `PUT` a status update to the HTTP endpoint;
   if the app fails, the TTL will expire and the health check enters a critical state.
-  The endpoints used to update health information for a given check are: [pass](/api/agent/check#ttl-check-pass),
-  [warn](/api/agent/check#ttl-check-warn), [fail](/api/agent/check#ttl-check-fail),
-  and [update](/api/agent/check#ttl-check-update). TTL checks also persist their
+  The endpoints used to update health information for a given check are: [pass](/api-docs/agent/check#ttl-check-pass),
+  [warn](/api-docs/agent/check#ttl-check-warn), [fail](/api-docs/agent/check#ttl-check-fail),
+  and [update](/api-docs/agent/check#ttl-check-update). TTL checks also persist their
   last known status to disk. This allows the Consul agent to restore the last known
   status of the check across restarts. Persisted check status is valid through the
   end of the TTL from the time of the last check.

@@ -8,7 +8,7 @@ description: Configuring a Connect CA Provider
 
 ~> **NOTE:** The instructions below should only be used for initially bootstrapping a cluster with **Consul K8s 0.38.0+.**
 To update the Connect CA provider on an existing cluster or to update any properties, such as tokens, of the CA provider,
-please use the [Update CA Configuration Endpoint](/api/connect/ca#update-ca-configuration).
+please use the [Update CA Configuration Endpoint](/api-docs/connect/ca#update-ca-configuration).
 
 Consul has support for different certificate authority (CA) providers to be used with the Consul Service Mesh.
 Please see [Connect Certificate Management](/docs/connect/ca) for the information on the providers
@@ -193,7 +193,7 @@ The [`ca_config`] and [`ca_provider`] options defined in the Consul agent
 configuration are only used when initially bootstrapping the cluster. Once the
 cluster is running, subsequent changes to the [`ca_provider`] config are **ignored**–even if `consul reload` is run or the servers are restarted.
 
-To update any settings under these keys, you must use Consul's [Update CA Configuration](/api/connect/ca#update-ca-configuration) API or the [`consul connect ca set-config`](/commands/connect/ca#set-config) command.
+To update any settings under these keys, you must use Consul's [Update CA Configuration](/api-docs/connect/ca#update-ca-configuration) API or the [`consul connect ca set-config`](/commands/connect/ca#set-config) command.
 
 #### Renewing Vault Token
 

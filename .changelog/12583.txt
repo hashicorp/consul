@@ -1,0 +1,3 @@
+```release-note:feature
+acl: Added an AWS IAM auth method that allows authenticating to Consul using AWS IAM identities
+```

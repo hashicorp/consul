@@ -2326,7 +2326,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.Telemetry.AllowedPrefixes = []string{"foo"}
-			rt.Telemetry.BlockedPrefixes = []string{"bar"}
+			rt.Telemetry.BlockedPrefixes = []string{"bar", "consul.rpc.server.call"}
 		},
 		expectedWarnings: []string{`Filter rule must begin with either '+' or '-': "nix"`},
 	})
@@ -6285,7 +6285,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			DogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
 			FilterDefault:                      true,
 			AllowedPrefixes:                    []string{"oJotS8XJ"},
-			BlockedPrefixes:                    []string{"cazlEhGn"},
+			BlockedPrefixes:                    []string{"cazlEhGn", "ftO6DySn.rpc.server.call"},
 			MetricsPrefix:                      "ftO6DySn",
 			StatsdAddr:                         "drce87cy",
 			StatsiteAddr:                       "HpFwKB8R",

@@ -384,3 +384,54 @@ func TestBuilder_tlsCipherSuites(t *testing.T) {
 	require.Contains(t, b.err.Error(), invalidCipherSuites)
 	require.Contains(t, b.err.Error(), "cipher suites are not configurable")
 }
+
+func TestBuilder_parsePrefixFilter(t *testing.T) {
+	t.Run("Check that 1.12 rpc metrics are parsed correctly.", func(t *testing.T) {
+		type testCase struct {
+			name                  string
+			metricsPrefix         string
+			prefixFilter          []string
+			expectedAllowedPrefix []string
+			expectedBlockedPrefix []string
+		}
+
+		var testCases = []testCase{
+			{
+				name:                  "no prefix filter",
+				metricsPrefix:         "somePrefix",
+				prefixFilter:          []string{},
+				expectedAllowedPrefix: nil,
+				expectedBlockedPrefix: []string{"somePrefix.rpc.server.call"},
+			},
+			{
+				name:                  "operator enables 1.12 rpc metrics",
+				metricsPrefix:         "somePrefix",
+				prefixFilter:          []string{"+somePrefix.rpc.server.call"},
+				expectedAllowedPrefix: []string{"somePrefix.rpc.server.call"},
+				expectedBlockedPrefix: nil,
+			},
+			{
+				name:                  "operator enables 1.12 rpc metrics",
+				metricsPrefix:         "somePrefix",
+				prefixFilter:          []string{"-somePrefix.rpc.server.call"},
+				expectedAllowedPrefix: nil,
+				expectedBlockedPrefix: []string{"somePrefix.rpc.server.call"},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				b := builder{}
+				telemetry := &Telemetry{
+					MetricsPrefix: &tc.metricsPrefix,
+					PrefixFilter:  tc.prefixFilter,
+				}
+
+				allowedPrefix, blockedPrefix := b.parsePrefixFilter(telemetry)
+
+				require.Equal(t, tc.expectedAllowedPrefix, allowedPrefix)
+				require.Equal(t, tc.expectedBlockedPrefix, blockedPrefix)
+			})
+		}
+	})
+}

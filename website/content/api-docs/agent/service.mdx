@@ -30,9 +30,9 @@ everything will be in sync within a few seconds.
 | `GET`  | `/agent/services` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
@@ -147,9 +147,9 @@ everything will be in sync within a few seconds.
 | `GET`  | `/agent/service/:service_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries  | Consistency Modes | Agent Caching | ACL Required   |
@@ -235,7 +235,7 @@ $ curl \
 The response has the same structure as the [service
 definition](/docs/discovery/services) with one extra field `ContentHash` which
 contains the [hash-based blocking
-query](/api/features/blocking#hash-based-blocking-queries) hash for the result. The
+query](/api-docs/features/blocking#hash-based-blocking-queries) hash for the result. The
 same hash is also present in `X-Consul-ContentHash`.
 
 ## Get local service health
@@ -253,9 +253,9 @@ the URL or use Mime Content negotiation by specifying a HTTP Header
 | `GET`  | `/agent/health/service/name/:service_name?format=text` | `text/plain`       |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
@@ -294,7 +294,7 @@ Those endpoints might be useful for the following use-cases:
 ##### Note
 
 If you know the ID of service you want to target, it is recommended to use
-[`/v1/agent/health/service/id/:service_id`](/api/agent/service#get-local-service-health-by-id)
+[`/v1/agent/health/service/id/:service_id`](/api-docs/agent/service#get-local-service-health-by-id)
 so you have the result for the service only. When requesting
 `/v1/agent/health/service/name/:service_name`, the caller will receive the
 worst state of all services having the given name.
@@ -430,7 +430,7 @@ Retrieve the health state of a specific service on the local agent by ID.
 | `GET`  | `/agent/health/service/id/:service_id?format=text` | `text/plain`       |
 
 The supported request parameters are the same as
-[`/v1/agent/health/service/name/:service_name`](/api/agent/service#get-local-service-health).
+[`/v1/agent/health/service/name/:service_name`](/api-docs/agent/service#get-local-service-health).
 
 ### Sample Requests
 
@@ -586,9 +586,9 @@ For "connect-proxy" kind services, the `service:write` ACL for the
 | `PUT`  | `/agent/service/register` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
@@ -655,13 +655,13 @@ service definition keys for compatibility with the config file format.
   [Connect Structure](#connect-structure) section below for supported fields.
 
 - `Check` `(Check: nil)` - Specifies a check. Please see the
-  [check documentation](/api/agent/check) for more information about the
+  [check documentation](/api-docs/agent/check) for more information about the
   accepted fields. If you don't provide a name or id for the check then they
   will be generated. To provide a custom id and/or name set the `CheckID`
   and/or `Name` field.
 
 - `Checks` `(array<Check>: nil)` - Specifies a list of checks. Please see the
-  [check documentation](/api/agent/check) for more information about the
+  [check documentation](/api-docs/agent/check) for more information about the
   accepted fields. If you don't provide a name or id for the check then they
   will be generated. To provide a custom id and/or name set the `CheckID`
   and/or `Name` field. The automatically generated `Name` and `CheckID` depend
@@ -671,7 +671,7 @@ service definition keys for compatibility with the config file format.
 
 - `EnableTagOverride` `(bool: false)` - Specifies to disable the anti-entropy
   feature for this service's tags. If `EnableTagOverride` is set to `true` then
-  external agents can update this service in the [catalog](/api/catalog)
+  external agents can update this service in the [catalog](/api-docs/catalog)
   and modify the tags. Subsequent local sync operations by this agent will
   ignore the updated tags. For instance, if an external agent modified both the
   tags and the port for this service and `EnableTagOverride` was set to `true`
@@ -761,9 +761,9 @@ is an associated check, that is also deregistered.
 | `PUT`  | `/agent/service/deregister/:service_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
@@ -803,9 +803,9 @@ will be automatically restored on agent restart.
 | `PUT`  | `/agent/service/maintenance/:service_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |

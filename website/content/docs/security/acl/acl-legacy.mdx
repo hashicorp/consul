@@ -72,18 +72,18 @@ key_prefix "foo" { policy = "write" }
 The "old" API endpoints below continue to work for backwards compatibility but
 will continue to create or show only "legacy" tokens that can't take full
 advantage of the new ACL system improvements. They are documented fully under
-[Legacy Tokens](/api/acl/legacy).
+[Legacy Tokens](/api-docs/acl/legacy).
 
-- [`PUT /acl/create` - Create Legacy Token](/api/acl/legacy#create-acl-token)
-- [`PUT /acl/update` - Update Legacy Token](/api/acl/legacy#update-acl-token)
-- [`PUT /acl/destroy/:uuid` - Delete Legacy Token](/api/acl/legacy#delete-acl-token)
-- [`GET /acl/info/:uuid` - Read Legacy Token](/api/acl/legacy#read-acl-token)
-- [`PUT /acl/clone/:uuid` - Clone Legacy Token](/api/acl/legacy#clone-acl-token)
-- [`GET /acl/list` - List Legacy Tokens](/api/acl/legacy#list-acls)
+- [`PUT /acl/create` - Create Legacy Token](/api-docs/acl/legacy#create-acl-token)
+- [`PUT /acl/update` - Update Legacy Token](/api-docs/acl/legacy#update-acl-token)
+- [`PUT /acl/destroy/:uuid` - Delete Legacy Token](/api-docs/acl/legacy#delete-acl-token)
+- [`GET /acl/info/:uuid` - Read Legacy Token](/api-docs/acl/legacy#read-acl-token)
+- [`PUT /acl/clone/:uuid` - Clone Legacy Token](/api-docs/acl/legacy#clone-acl-token)
+- [`GET /acl/list` - List Legacy Tokens](/api-docs/acl/legacy#list-acls)
 
 The new ACL system includes new API endpoints to manage
-the [ACL System](/api-docs/acl), [Tokens](/api/acl/tokens)
-and [Policies](/api/acl/policies).
+the [ACL System](/api-docs/acl), [Tokens](/api-docs/acl/tokens)
+and [Policies](/api-docs/acl/policies).
 
 # Legacy ACL System
 
@@ -139,28 +139,28 @@ rules:
 
 | Policy                           | Scope                                                                                                                                                                                                 |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`agent`](#agent-rules)          | Utility operations in the [Agent API](/api/agent), other than service and check registration                                                                                                          |
-| [`event`](#event-rules)          | Listing and firing events in the [Event API](/api/event)                                                                                                                                              |
-| [`key`](#key-value-rules)        | Key/value store operations in the [KV Store API](/api/kv)                                                                                                                                             |
-| [`keyring`](#keyring-rules)      | Keyring operations in the [Keyring API](/api/operator/keyring)                                                                                                                                        |
-| [`node`](#node-rules)            | Node-level catalog operations in the [Catalog API](/api/catalog), [Health API](/api/health), [Prepared Query API](/api/query), [Network Coordinate API](/api/coordinate), and [Agent API](/api/agent) |
-| [`operator`](#operator-rules)    | Cluster-level operations in the [Operator API](/api/operator), other than the [Keyring API](/api/operator/keyring)                                                                                    |
-| [`query`](#prepared-query-rules) | Prepared query operations in the [Prepared Query API](/api/query)                                                                                                                                     |
-| [`service`](#service-rules)      | Service-level catalog operations in the [Catalog API](/api/catalog), [Health API](/api/health), [Prepared Query API](/api/query), and [Agent API](/api/agent)                                         |
-| [`session`](#session-rules)      | Session operations in the [Session API](/api/session)                                                                                                                                                 |
+| [`agent`](#agent-rules)          | Utility operations in the [Agent API](/api-docs/agent), other than service and check registration                                                                                                          |
+| [`event`](#event-rules)          | Listing and firing events in the [Event API](/api-docs/event)                                                                                                                                              |
+| [`key`](#key-value-rules)        | Key/value store operations in the [KV Store API](/api-docs/kv)                                                                                                                                             |
+| [`keyring`](#keyring-rules)      | Keyring operations in the [Keyring API](/api-docs/operator/keyring)                                                                                                                                        |
+| [`node`](#node-rules)            | Node-level catalog operations in the [Catalog API](/api-docs/catalog), [Health API](/api-docs/health), [Prepared Query API](/api-docs/query), [Network Coordinate API](/api-docs/coordinate), and [Agent API](/api-docs/agent) |
+| [`operator`](#operator-rules)    | Cluster-level operations in the [Operator API](/api-docs/operator), other than the [Keyring API](/api-docs/operator/keyring)                                                                                    |
+| [`query`](#prepared-query-rules) | Prepared query operations in the [Prepared Query API](/api-docs/query)                                                                                                                                     |
+| [`service`](#service-rules)      | Service-level catalog operations in the [Catalog API](/api-docs/catalog), [Health API](/api-docs/health), [Prepared Query API](/api-docs/query), and [Agent API](/api-docs/agent)                                         |
+| [`session`](#session-rules)      | Session operations in the [Session API](/api-docs/session)                                                                                                                                                 |
 
 Since Consul snapshots actually contain ACL tokens, the
-[Snapshot API](/api/snapshot) requires a management token for snapshot operations
+[Snapshot API](/api-docs/snapshot) requires a management token for snapshot operations
 and does not use a special policy.
 
 The following resources are not covered by ACL policies:
 
-1. The [Status API](/api/status) is used by servers when bootstrapping and exposes
+1. The [Status API](/api-docs/status) is used by servers when bootstrapping and exposes
    basic IP and port information about the servers, and does not allow modification
    of any state.
 
 2. The datacenter listing operation of the
-   [Catalog API](/api/catalog#list-datacenters) similarly exposes the names of known
+   [Catalog API](/api-docs/catalog#list-datacenters) similarly exposes the names of known
    Consul datacenters, and does not allow modification of any state.
 
 Constructing rules from these policies is covered in detail in the
@@ -212,13 +212,13 @@ system, or accessing Consul in special situations:
 
 | Special Token                                                                 | Servers    | Clients    | Purpose                                                                                                                                                                                                                                                                                                   |
 | ----------------------------------------------------------------------------- | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`acl_agent_master_token`](/docs/agent/options#acl_agent_master_token_legacy) | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent) when the ACL datacenter isn't available, or servers are offline (for clients); used for setting up the cluster such as doing initial join operations, see the [ACL Agent Master Token](#acl-agent-master-token) section for more details |
+| [`acl_agent_master_token`](/docs/agent/options#acl_agent_master_token_legacy) | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api-docs/agent) when the ACL datacenter isn't available, or servers are offline (for clients); used for setting up the cluster such as doing initial join operations, see the [ACL Agent Master Token](#acl-agent-master-token) section for more details |
 | [`acl_agent_token`](/docs/agent/options#acl_agent_token_legacy)               | `OPTIONAL` | `OPTIONAL` | Special token that is used for an agent's internal operations, see the [ACL Agent Token](#acl-agent-token) section for more details                                                                                                                                                                       |
 | [`acl_master_token`](/docs/agent/options#acl_master_token_legacy)             | `REQUIRED` | `N/A`      | Special token used to bootstrap the ACL system, see the [Bootstrapping ACLs](#bootstrapping-acls) section for more details                                                                                                                                                                                |
 | [`acl_token`](/docs/agent/options#acl_token_legacy)                           | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents                                                                                                                                 |
 
 In Consul 0.9.1 and later, the agent ACL tokens can be introduced or updated via the
-[/v1/agent/token API](/api/agent#update-acl-tokens).
+[/v1/agent/token API](/api-docs/agent#update-acl-tokens).
 
 #### ACL Agent Master Token
 
@@ -234,13 +234,13 @@ node "" {
 ```
 
 In Consul 0.9.1 and later, the agent ACL tokens can be introduced or updated via the
-[/v1/agent/token API](/api/agent#update-acl-tokens).
+[/v1/agent/token API](/api-docs/agent#update-acl-tokens).
 
 #### ACL Agent Token
 
 The [`acl_agent_token`](/docs/agent/options#acl_agent_token) is a special token that is used for an agent's internal operations. It isn't used directly for any user-initiated operations like the [`acl_token`](/docs/agent/options#acl_token), though if the `acl_agent_token` isn't configured the `acl_token` will be used. The ACL agent token is used for the following operations by the agent:
 
-1. Updating the agent's node entry using the [Catalog API](/api/catalog), including updating its node metadata, tagged addresses, and network coordinates
+1. Updating the agent's node entry using the [Catalog API](/api-docs/catalog), including updating its node metadata, tagged addresses, and network coordinates
 2. Performing [anti-entropy](/docs/architecture/anti-entropy) syncing, in particular reading the node metadata and services registered with the catalog
 3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/commands/exec) commands
 
@@ -261,7 +261,7 @@ key "_rexec" {
 The `service` policy needs `read` access for any services that can be registered on the agent. If [remote exec is disabled](/docs/agent/options#disable_remote_exec), the default, then the `key` policy can be omitted.
 
 In Consul 0.9.1 and later, the agent ACL tokens can be introduced or updated via the
-[/v1/agent/token API](/api/agent#update-acl-tokens).
+[/v1/agent/token API](/api-docs/agent#update-acl-tokens).
 
 ## Bootstrapping ACLs
 
@@ -556,7 +556,7 @@ supplied, the [`acl_token`](/docs/agent/options#acl_token) will be used for the 
 instead of being left empty which would normally invoke the anonymous token.
 
 In Consul 0.9.1 and later, the agent ACL tokens can be introduced or updated via the
-[/v1/agent/token API](/api/agent#update-acl-tokens).
+[/v1/agent/token API](/api-docs/agent#update-acl-tokens).
 
 This behaves very similarly to the anonymous token, but can be configured differently on each
 agent, if desired. For example, this allows more fine grained control of what DNS requests a
@@ -702,7 +702,7 @@ or the `CONSUL_HTTP_TOKEN` environment variable.
 
 #### Agent Rules
 
-The `agent` policy controls access to the utility operations in the [Agent API](/api/agent),
+The `agent` policy controls access to the utility operations in the [Agent API](/api-docs/agent),
 such as join and leave. All of the catalog-related operations are covered by the [`node`](#node-rules)
 and [`service`](#service-rules) policies instead.
 
@@ -725,14 +725,14 @@ the example above, the rules allow read-only access to any node name with the em
 read-write access to any node name that starts with "foo", and deny all access to any node name that
 starts with "bar".
 
-Since [Agent API](/api/agent) utility operations may be required before an agent is joined to
+Since [Agent API](/api-docs/agent) utility operations may be required before an agent is joined to
 a cluster, or during an outage of the Consul servers or ACL datacenter, a special token may be
 configured with [`acl_agent_master_token`](/docs/agent/options#acl_agent_master_token) to allow
 write access to these operations even if no ACL resolution capability is available.
 
 #### Event Rules
 
-The `event` policy controls access to event operations in the [Event API](/api/event), such as
+The `event` policy controls access to event operations in the [Event API](/api-docs/event), such as
 firing events and listing events.
 
 Event rules look like this:
@@ -757,7 +757,7 @@ give agents a token with access to this event prefix, in addition to configuring
 
 #### Key/Value Rules
 
-The `key` policy controls access to key/value store operations in the [KV API](/api/kv). Key
+The `key` policy controls access to key/value store operations in the [KV API](/api-docs/kv). Key
 rules look like this:
 
 ```hcl
@@ -781,7 +781,7 @@ starts with "bar".
 
 Consul 1.0 introduces a new `list` policy for keys that is only enforced when opted in via the boolean config param "acl_enable_key_list_policy".
 `list` controls access to recursively list entries and keys, and enables more fine grained policies. With "acl_enable_key_list_policy",
-recursive reads via [the KV API](/api/kv#recurse) with an invalid token result in a 403. Example:
+recursive reads via [the KV API](/api-docs/kv#recurse) with an invalid token result in a 403. Example:
 
 ```hcl
 key "" {
@@ -825,7 +825,7 @@ For more detailed information, see the [Consul Sentinel documentation](/docs/age
 #### Keyring Rules
 
 The `keyring` policy controls access to keyring operations in the
-[Keyring API](/api/operator/keyring).
+[Keyring API](/api-docs/operator/keyring).
 
 Keyring rules look like this:
 
@@ -838,8 +838,8 @@ dispositions. In the example above, the keyring may be read and updated.
 
 #### Node Rules
 
-The `node` policy controls node-level registration and read access to the [Catalog API](/api/catalog),
-service discovery with the [Health API](/api/health), and filters results in [Agent API](/api/agent)
+The `node` policy controls node-level registration and read access to the [Catalog API](/api-docs/catalog),
+service discovery with the [Health API](/api-docs/health), and filters results in [Agent API](/api-docs/agent)
 operations like fetching the list of cluster members.
 
 Node rules look like this:
@@ -874,7 +874,7 @@ When reading from the catalog or retrieving information from the health endpoint
 used to filter the results of the query. This allows for configurations where a token has access
 to a given service name, but only on an allowed subset of node names.
 
-Node rules come into play when using the [Agent API](/api/agent) to register node-level
+Node rules come into play when using the [Agent API](/api-docs/agent) to register node-level
 checks. The agent will check tokens locally as a check is registered, and Consul also performs
 periodic [anti-entropy](/docs/architecture/anti-entropy) syncs, which may require an
 ACL token to complete. To accommodate this, Consul provides two methods of configuring ACL tokens
@@ -897,7 +897,7 @@ script checks.
 #### Operator Rules
 
 The `operator` policy controls access to cluster-level operations in the
-[Operator API](/api/operator), other than the [Keyring API](/api/operator/keyring).
+[Operator API](/api-docs/operator), other than the [Keyring API](/api-docs/operator/keyring).
 
 Operator rules look like this:
 
@@ -912,7 +912,7 @@ diagnostic purposes but not make any changes.
 #### Prepared Query Rules
 
 The `query` policy controls access to create, update, and delete prepared queries in the
-[Prepared Query API](/api/query). Executing queries is subject to `node` and `service`
+[Prepared Query API](/api-docs/query). Executing queries is subject to `node` and `service`
 policies, as will be explained below.
 
 Query rules look like this:
@@ -955,7 +955,7 @@ here, with examples:
   that is used and known by many clients to provide geo-failover behavior for
   a database.
 
-- [Template queries](/api/query#prepared-query-templates)
+- [Template queries](/api-docs/query#prepared-query-templates)
   queries work like static queries with a `Name` defined, except that a catch-all
   template with an empty `Name` requires an ACL token that can write to any query
   prefix.
@@ -1002,8 +1002,8 @@ These differences are outlined in the table below:
 
 #### Service Rules
 
-The `service` policy controls service-level registration and read access to the [Catalog API](/api/catalog)
-and service discovery with the [Health API](/api/health).
+The `service` policy controls service-level registration and read access to the [Catalog API](/api-docs/catalog)
+and service discovery with the [Health API](/api-docs/health).
 
 Service rules look like this:
 
@@ -1031,7 +1031,7 @@ given service, then the DNS interface will return no records when queried for it
 When reading from the catalog or retrieving information from the health endpoints, service rules are
 used to filter the results of the query.
 
-Service rules come into play when using the [Agent API](/api/agent) to register services or
+Service rules come into play when using the [Agent API](/api-docs/agent) to register services or
 checks. The agent will check tokens locally as a service or check is registered, and Consul also
 performs periodic [anti-entropy](/docs/architecture/anti-entropy) syncs, which may require an
 ACL token to complete. To accommodate this, Consul provides two methods of configuring ACL tokens
@@ -1058,7 +1058,7 @@ set to `true` in order to enable script checks.
 
 #### Session Rules
 
-The `session` policy controls access to [Session API](/api/session) operations.
+The `session` policy controls access to [Session API](/api-docs/session) operations.
 
 Session rules look like this:
 
@@ -1099,7 +1099,7 @@ configuration on the servers in the non-authoritative datacenters. In Consul
 0.9.1 and later you can enable ACL replication using
 [`enable_acl_replication`](/docs/agent/options#enable_acl_replication) and
 then set the token later using the
-[agent token API](/api/agent#update-acl-tokens) on each server. This can
+[agent token API](/api-docs/agent#update-acl-tokens) on each server. This can
 also be used to rotate the token without restarting the Consul servers.
 
 With replication enabled, the servers will maintain a replica of the authoritative
