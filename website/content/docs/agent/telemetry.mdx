@@ -525,13 +525,13 @@ These metrics are used to monitor the health of the Consul servers.
 ** Requirements: **
 * Consul 1.12.0+
 
-Label based RPC metrics were added in Consul 1.12 to better understand the workload on a Consul server and, where that workload is coming from. The following metric(s) provide that insight
+Label based RPC metrics were added in Consul 1.12.0 as a Beta feature to better understand the workload on a Consul server and, where that workload is coming from. The following metric(s) provide that insight
 
-| Metric                                | Description                                               | Unit   | Type    |
-| ------------------------------------- | --------------------------------------------------------- | ------ | ------- |
-| `consul.rpc.server.call`              | Measures the elapsed time taken to complete an RPC call.  | ms     | gauge   |
+| Metric                                | Description                                               | Unit   | Type      |
+| ------------------------------------- | --------------------------------------------------------- | ------ | --------- |
+| `consul.rpc.server.call`              | Measures the elapsed time taken to complete an RPC call.  | ms     | summary   |
 
-Note that values of the `consul.rpc.server.call` gauge may emit as `0 ms`. That means that the elapsed time < `1 ms`.
+Note that values of the `consul.rpc.server.call` may emit as `0 ms`. That means that the elapsed time < `1 ms`.
 
 ### Labels
 
@@ -551,22 +551,13 @@ Historically, `internal` RPC operation metrics were accounted under the same met
 
 The `unreported` value for the `request_type` in the table above refers to RPC requests within Consul where it is difficult to ascertain whether a request is `read` or `write` type.
 
-Here is an example of an RPC metric and its labels:
+Here is a Prometheus style example of an RPC metric and its labels:
 
 <CodeBlockConfig heading="Sample output of telemetry dump">
 
 ```json
     ...
-    {
-      "Name": "consul.rpc.server.call",
-      "Value": 36,
-      "Labels": {
-        "errored": "false",
-        "method": "ConnectCA.ConfigurationSet",
-        "request_type": "write",
-        "rpc_type": "net/rpc"
-      }
-    },
+    consul_rpc_server_call{errored="false",method="Catalog.ListNodes",request_type="read",rpc_type="net/rpc",quantile="0.5"} 255
     ...
 ```
 
