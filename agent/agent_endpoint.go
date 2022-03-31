@@ -244,7 +244,7 @@ func (s *HTTPHandlers) AgentReload(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
-	return nil, s.agent.ReloadConfig(false)
+	return nil, s.agent.ReloadConfig()
 }
 
 func buildAgentService(s *structs.NodeService, dc string) api.AgentService {

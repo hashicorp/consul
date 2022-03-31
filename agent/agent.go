@@ -725,7 +725,7 @@ func (a *Agent) Start(ctx context.Context) error {
 				go func() {
 					for event := range a.FileWatcher.EventsCh {
 						a.baseDeps.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
-						err := a.ReloadConfig(true)
+						err := a.AutoReloadConfig()
 						if err != nil {
 							a.baseDeps.Logger.Error("error loading config", "error", err)
 						}
@@ -3741,10 +3741,18 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Info("Node left maintenance mode")
 }
 
+func (a *Agent) AutoReloadConfig() error {
+	return a.reloadConfig(true)
+}
+
+func (a *Agent) ReloadConfig() error {
+	return a.reloadConfig(false)
+}
+
 // ReloadConfig will atomically reload all configuration, including
 // all services, checks, tokens, metadata, dnsServer configs, etc.
 // It will also reload all ongoing watches.
-func (a *Agent) ReloadConfig(autoReload bool) error {
+func (a *Agent) reloadConfig(autoReload bool) error {
 	newCfg, err := a.baseDeps.AutoConfig.ReadConfig()
 	if err != nil {
 		return err

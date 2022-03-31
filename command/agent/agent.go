@@ -305,7 +305,7 @@ func (c *cmd) run(args []string) int {
 		case syscall.SIGHUP:
 			c.logger.Info("Caught", "signal", sig)
 
-			err := agent.ReloadConfig(false)
+			err := agent.ReloadConfig()
 			if err != nil {
 				c.logger.Error("Reload config failed", "error", err)
 			}
