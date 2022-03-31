@@ -84,6 +84,13 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		return err
 	}
 
+	// Log any applicable warnings about the contents of the config entry.
+	if warnEntry, ok := args.Entry.(structs.WarningConfigEntry); ok {
+		warnings := warnEntry.Warnings()
+		for _, warning := range warnings {
+			c.logger.Warn(warning)
+		}
+	}
 	if authz != nil && !args.Entry.CanWrite(authz) {
 		return acl.ErrPermissionDenied
 	}
