@@ -44,7 +44,8 @@ func assertMetricExists(t *testing.T, respRec *httptest.ResponseRecorder, metric
 	}
 }
 
-// new_rpc_metrics_rpc_server_call{errored="false",method="Status.Ping",request_type="unknown",rpc_type="net/rpc"} 0
+// assertMetricExistsWithLabels looks in the prometheus metrics reponse for the metric name and all the labels. eg:
+// new_rpc_metrics_rpc_server_call{errored="false",method="Status.Ping",request_type="unknown",rpc_type="net/rpc"}
 func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecorder, metric string, labelNames []string) {
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
@@ -58,7 +59,7 @@ func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecord
 	metrics := respRec.Body.String()
 	for _, line := range strings.Split(metrics, "\n") {
 		// skip help lines
-		if line[0] == '#' {
+		if len(line) < 1 || line[0] == '#' {
 			continue
 		}
 
@@ -82,6 +83,40 @@ func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecord
 
 	if !foundAllLabels {
 		t.Fatalf("Could not verify that all named labels \"%s\" exist for the metric \"%s\" in the /v1/agent/metrics response", strings.Join(labelNames, ", "), metric)
+	}
+}
+
+func assertLabelWithValueForMetricExistsNTime(t *testing.T, respRec *httptest.ResponseRecorder, metric string, label string, labelValue string, occurrences int) {
+	if respRec.Body.String() == "" {
+		t.Fatalf("Response body is empty.")
+	}
+
+	if !strings.Contains(respRec.Body.String(), metric) {
+		t.Fatalf("Could not find the metric \"%s\" in the /v1/agent/metrics response", metric)
+	}
+
+	metrics := respRec.Body.String()
+	// don't look at _sum or _count or other aggregates
+	metricTarget := metric + "{"
+	// eg method="Status.Ping"
+	labelWithValueTarget := label + "=" + "\"" + labelValue + "\""
+
+	matchesFound := 0
+	for _, line := range strings.Split(metrics, "\n") {
+		// skip help lines
+		if len(line) < 1 || line[0] == '#' {
+			continue
+		}
+
+		if strings.Contains(line, metricTarget) {
+			if strings.Contains(line, labelWithValueTarget) {
+				matchesFound++
+			}
+		}
+	}
+
+	if matchesFound < occurrences {
+		t.Fatalf("Only found metric \"%s\" %d times. Wanted %d times.", metric, matchesFound, occurrences)
 	}
 }
 
@@ -139,7 +174,7 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 
 	t.Run("Check that 1.12 rpc metrics are emitted when specified by operator.", func(t *testing.T) {
 		metricsPrefix := "new_rpc_metrics_2"
-		addRPCMetric := metricsPrefix + "." + strings.Join(middleware.OneTwelveRPCGauges[0].Name, ".")
+		allowRPCMetricRule := metricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
 		hcl := fmt.Sprintf(`
 		telemetry = {
 			prometheus_retention_time = "5s"
@@ -147,7 +182,7 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 			metrics_prefix = "%s"
 			prefix_filter = ["+%s"]
 		}
-		`, metricsPrefix, addRPCMetric)
+		`, metricsPrefix, allowRPCMetricRule)
 
 		a := StartTestAgent(t, TestAgent{HCL: hcl})
 		defer a.Shutdown()
@@ -155,11 +190,18 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 		var out struct{}
 		err := a.RPC("Status.Ping", struct{}{}, &out)
 		require.NoError(t, err)
+		err = a.RPC("Status.Ping", struct{}{}, &out)
+		require.NoError(t, err)
+		err = a.RPC("Status.Ping", struct{}{}, &out)
+		require.NoError(t, err)
 
 		respRec := httptest.NewRecorder()
 		recordPromMetrics(t, a, respRec)
 
+		// make sure the labels exist for this metric
 		assertMetricExistsWithLabels(t, respRec, metricsPrefix+"_rpc_server_call", []string{"errored", "method", "request_type", "rpc_type"})
+		// make sure we see 3 Status.Ping metrics corresponding to the calls we made above
+		assertLabelWithValueForMetricExistsNTime(t, respRec, metricsPrefix+"_rpc_server_call", "method", "Status.Ping", 3)
 	})
 }
 

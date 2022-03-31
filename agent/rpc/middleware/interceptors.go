@@ -23,9 +23,9 @@ const RPCTypeInternal = "internal"
 const RPCTypeNetRPC = "net/rpc"
 
 var metricRPCRequest = []string{"rpc", "server", "call"}
-var requestLogName = strings.Join(metricRPCRequest, ".")
+var requestLogName = strings.Join(metricRPCRequest, "_")
 
-var OneTwelveRPCGauges = []prometheus.GaugeDefinition{
+var OneTwelveRPCSummary = []prometheus.SummaryDefinition{
 	{
 		Name: metricRPCRequest,
 		Help: "Measures the time an RPC service call takes to make in milliseconds. Labels mark which RPC method was called and metadata about the call.",
@@ -38,11 +38,11 @@ type RequestRecorder struct {
 }
 
 func NewRequestRecorder(logger hclog.Logger) *RequestRecorder {
-	return &RequestRecorder{Logger: logger, recorderFunc: metrics.SetGaugeWithLabels}
+	return &RequestRecorder{Logger: logger, recorderFunc: metrics.AddSampleWithLabels}
 }
 
 func (r *RequestRecorder) Record(requestName string, rpcType string, start time.Time, request interface{}, respErrored bool) {
-	elapsed := time.Since(start)
+	elapsed := time.Since(start).Milliseconds()
 	reqType := requestType(request)
 
 	labels := []metrics.Label{
@@ -53,7 +53,7 @@ func (r *RequestRecorder) Record(requestName string, rpcType string, start time.
 	}
 
 	// math.MaxInt64 < math.MaxFloat32 is true so we should be good!
-	r.recorderFunc(metricRPCRequest, float32(elapsed.Milliseconds()), labels)
+	r.recorderFunc(metricRPCRequest, float32(elapsed), labels)
 	r.Logger.Debug(requestLogName,
 		"method", requestName,
 		"errored", respErrored,
