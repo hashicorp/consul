@@ -653,8 +653,8 @@ tls {
         ca_path = "bN63LpXu"
         cert_file = "hB4PoxkL"
         key_file = "Po0hB1tY"
-        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-        tls_min_version = "yU0uIp1A"
+        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+        tls_min_version = "TLSv1_2"
         verify_incoming = true
         verify_outgoing = true
     }
@@ -663,8 +663,8 @@ tls {
         ca_path = "lOp1nhPa"
         cert_file = "dfJ4oPln"
         key_file = "aL1Knkpo"
-        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-        tls_min_version = "lPo1MklP"
+        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+        tls_min_version = "TLSv1_1"
         verify_incoming = true
         verify_outgoing = true
         verify_server_hostname = true
@@ -674,8 +674,7 @@ tls {
         ca_path = "nu4PlHzn"
         cert_file = "1yrhPlMk"
         key_file = "1bHapOkL"
-        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-        tls_min_version = "mK14iOpz"
+        tls_min_version = "TLSv1_3"
         verify_incoming = true
         verify_outgoing = true
     }
@@ -684,13 +683,13 @@ tls {
         ca_path = "fLponKpl"
         cert_file = "a674klPn"
         key_file = "1y4prKjl"
-        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-        tls_min_version = "lPo4fNkl"
+        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+        tls_min_version = "TLSv1_0"
         verify_incoming = true
     }
 }
-tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-tls_min_version = "pAOWafkR"
+tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+tls_min_version = "tls11"
 tls_prefer_server_cipher_suites = true
 translate_wan_addrs = true
 ui_config {

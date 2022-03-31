@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/dns"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/ipaddr"
@@ -643,21 +644,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 
 	// Parse the metric filters
-	var telemetryAllowedPrefixes, telemetryBlockedPrefixes []string
-	for _, rule := range c.Telemetry.PrefixFilter {
-		if rule == "" {
-			b.warn("Cannot have empty filter rule in prefix_filter")
-			continue
-		}
-		switch rule[0] {
-		case '+':
-			telemetryAllowedPrefixes = append(telemetryAllowedPrefixes, rule[1:])
-		case '-':
-			telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, rule[1:])
-		default:
-			b.warn("Filter rule must begin with either '+' or '-': %q", rule)
-		}
-	}
+	telemetryAllowedPrefixes, telemetryBlockedPrefixes := b.parsePrefixFilter(&c.Telemetry)
 
 	// raft performance scaling
 	performanceRaftMultiplier := intVal(c.Performance.RaftMultiplier)
@@ -1978,15 +1965,63 @@ func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
 	return
 }
 
-func (b *builder) tlsCipherSuites(name string, v *string) []uint16 {
+func (b *builder) tlsVersion(name string, v *string) types.TLSVersion {
+	// Handles unspecified config and empty string case.
+	//
+	// This check is not inside types.ValidateTLSVersionString because Envoy config
+	// distinguishes between an unset empty string which inherits parent config and
+	// an explicit TLS_AUTO which allows overriding parent config with the proxy
+	// defaults.
+	if v == nil || *v == "" {
+		return types.TLSVersionAuto
+	}
+
+	a := types.TLSVersion(*v)
+
+	err := types.ValidateTLSVersion(a)
+	if err != nil {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid TLS version: %s", name, err))
+		return types.TLSVersionInvalid
+	}
+	return a
+}
+
+// validateTLSVersionCipherSuitesCompat checks that the specified TLS version supports
+// specifying cipher suites
+func validateTLSVersionCipherSuitesCompat(tlsMinVersion types.TLSVersion) error {
+	if tlsMinVersion == types.TLSv1_3 {
+		return fmt.Errorf("TLS 1.3 cipher suites are not configurable")
+	}
+	return nil
+}
+
+// tlsCipherSuites parses cipher suites from a comma-separated string into a
+// recognized slice
+func (b *builder) tlsCipherSuites(name string, v *string, tlsMinVersion types.TLSVersion) []types.TLSCipherSuite {
 	if v == nil {
 		return nil
 	}
 
-	var a []uint16
-	a, err := tlsutil.ParseCiphers(*v)
+	if err := validateTLSVersionCipherSuitesCompat(tlsMinVersion); err != nil {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: %s", name, err))
+		return nil
+	}
+
+	*v = strings.TrimSpace(*v)
+	if *v == "" {
+		return []types.TLSCipherSuite{}
+	}
+	ciphers := strings.Split(*v, ",")
+
+	a := make([]types.TLSCipherSuite, len(ciphers))
+	for i, cipher := range ciphers {
+		a[i] = types.TLSCipherSuite(cipher)
+	}
+
+	err := types.ValidateConsulAgentCipherSuites(a)
 	if err != nil {
-		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid tls cipher suites: %s", name, err))
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid TLS cipher suites: %s", name, err))
+		return []types.TLSCipherSuite{}
 	}
 	return a
 }
@@ -2484,14 +2519,14 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 		b.warn("tls.grpc was provided but TLS will NOT be enabled on the gRPC listener without an HTTPS listener configured (e.g. via ports.https)")
 	}
 
-	defaultCipherSuites := b.tlsCipherSuites("tls.defaults.tls_cipher_suites", t.Defaults.TLSCipherSuites)
+	defaultTLSMinVersion := b.tlsVersion("tls.defaults.tls_min_version", t.Defaults.TLSMinVersion)
+	defaultCipherSuites := b.tlsCipherSuites("tls.defaults.tls_cipher_suites", t.Defaults.TLSCipherSuites, defaultTLSMinVersion)
 
 	mapCommon := func(name string, src TLSProtocolConfig, dst *tlsutil.ProtocolConfig) {
 		dst.CAPath = stringValWithDefault(src.CAPath, stringVal(t.Defaults.CAPath))
 		dst.CAFile = stringValWithDefault(src.CAFile, stringVal(t.Defaults.CAFile))
 		dst.CertFile = stringValWithDefault(src.CertFile, stringVal(t.Defaults.CertFile))
 		dst.KeyFile = stringValWithDefault(src.KeyFile, stringVal(t.Defaults.KeyFile))
-		dst.TLSMinVersion = stringValWithDefault(src.TLSMinVersion, stringVal(t.Defaults.TLSMinVersion))
 		dst.VerifyIncoming = boolValWithDefault(src.VerifyIncoming, boolVal(t.Defaults.VerifyIncoming))
 
 		// We prevent this from being set explicity in the tls.grpc stanza above, but
@@ -2501,12 +2536,26 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 			dst.VerifyOutgoing = boolValWithDefault(src.VerifyOutgoing, boolVal(t.Defaults.VerifyOutgoing))
 		}
 
+		if src.TLSMinVersion == nil {
+			dst.TLSMinVersion = defaultTLSMinVersion
+		} else {
+			dst.TLSMinVersion = b.tlsVersion(
+				fmt.Sprintf("tls.%s.tls_min_version", name),
+				src.TLSMinVersion,
+			)
+		}
+
 		if src.TLSCipherSuites == nil {
-			dst.CipherSuites = defaultCipherSuites
+			// If cipher suite config incompatible with a specified TLS min version
+			// would be inherited, omit it but don't return an error in the builder.
+			if validateTLSVersionCipherSuitesCompat(dst.TLSMinVersion) == nil {
+				dst.CipherSuites = defaultCipherSuites
+			}
 		} else {
 			dst.CipherSuites = b.tlsCipherSuites(
 				fmt.Sprintf("tls.%s.tls_cipher_suites", name),
 				src.TLSCipherSuites,
+				dst.TLSMinVersion,
 			)
 		}
 	}
@@ -2532,4 +2581,39 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 	c.AutoTLS = rt.AutoEncryptTLS || rt.AutoConfig.Enabled
 
 	return c, nil
+}
+
+func (b *builder) parsePrefixFilter(telemetry *Telemetry) ([]string, []string) {
+	var telemetryAllowedPrefixes, telemetryBlockedPrefixes []string
+
+	// TODO(FFMMM): Once one twelve style RPC metrics get out of Beta, don't remove them by default.
+	operatorPassedOneTwelveRPCMetric := false
+	oneTwelveRPCMetric := *telemetry.MetricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
+
+	for _, rule := range telemetry.PrefixFilter {
+		if rule == "" {
+			b.warn("Cannot have empty filter rule in prefix_filter")
+			continue
+		}
+		switch rule[0] {
+		case '+':
+			if rule[1:] == oneTwelveRPCMetric {
+				operatorPassedOneTwelveRPCMetric = true
+			}
+			telemetryAllowedPrefixes = append(telemetryAllowedPrefixes, rule[1:])
+		case '-':
+			if rule[1:] == oneTwelveRPCMetric {
+				operatorPassedOneTwelveRPCMetric = true
+			}
+			telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, rule[1:])
+		default:
+			b.warn("Filter rule must begin with either '+' or '-': %q", rule)
+		}
+	}
+
+	if !operatorPassedOneTwelveRPCMetric {
+		telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, oneTwelveRPCMetric)
+	}
+
+	return telemetryAllowedPrefixes, telemetryBlockedPrefixes
 }

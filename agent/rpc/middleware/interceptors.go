@@ -3,6 +3,7 @@ package middleware
 import (
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -19,28 +20,29 @@ import (
 // Really what we are measuring here is a "cluster operation". The term we have
 // used for this historically is "RPC", so we continue to use that here.
 const RPCTypeInternal = "internal"
+const RPCTypeNetRPC = "net/rpc"
 
 var metricRPCRequest = []string{"rpc", "server", "call"}
-var requestLogName = "rpc.server.request"
+var requestLogName = strings.Join(metricRPCRequest, "_")
 
-var NewRPCCounters = []prometheus.CounterDefinition{
+var OneTwelveRPCSummary = []prometheus.SummaryDefinition{
 	{
 		Name: metricRPCRequest,
-		Help: "Increments when a server makes an RPC service call. The labels on the metric have more information",
+		Help: "Measures the time an RPC service call takes to make in milliseconds. Labels mark which RPC method was called and metadata about the call.",
 	},
 }
 
 type RequestRecorder struct {
-	Logger hclog.Logger
+	Logger       hclog.Logger
+	recorderFunc func(key []string, val float32, labels []metrics.Label)
 }
 
 func NewRequestRecorder(logger hclog.Logger) *RequestRecorder {
-	return &RequestRecorder{Logger: logger}
+	return &RequestRecorder{Logger: logger, recorderFunc: metrics.AddSampleWithLabels}
 }
 
 func (r *RequestRecorder) Record(requestName string, rpcType string, start time.Time, request interface{}, respErrored bool) {
-	elapsed := time.Since(start)
-
+	elapsed := time.Since(start).Milliseconds()
 	reqType := requestType(request)
 
 	labels := []metrics.Label{
@@ -50,10 +52,8 @@ func (r *RequestRecorder) Record(requestName string, rpcType string, start time.
 		{Name: "rpc_type", Value: rpcType},
 	}
 
-	// TODO(rpc-metrics-improv): consider using Telemetry API call here
-	// It'd be neat if we could actually pass the elapsed observed above
-	metrics.MeasureSinceWithLabels(metricRPCRequest, start, labels)
-
+	// math.MaxInt64 < math.MaxFloat32 is true so we should be good!
+	r.recorderFunc(metricRPCRequest, float32(elapsed), labels)
 	r.Logger.Debug(requestLogName,
 		"method", requestName,
 		"errored", respErrored,
@@ -63,10 +63,18 @@ func (r *RequestRecorder) Record(requestName string, rpcType string, start time.
 }
 
 func requestType(req interface{}) string {
-	if r, ok := req.(interface{ IsRead() bool }); ok && r.IsRead() {
-		return "read"
+	if r, ok := req.(interface{ IsRead() bool }); ok {
+		if r.IsRead() {
+			return "read"
+		} else {
+			return "write"
+		}
 	}
-	return "write"
+
+	// This logical branch should not happen. If it happens
+	// it means an underlying request is not implementing the interface.
+	// Rather than swallowing it up in a "read" or "write", let's be aware of it.
+	return "unreported"
 }
 
 func GetNetRPCInterceptor(recorder *RequestRecorder) rpc.ServerServiceCallInterceptor {
@@ -75,11 +83,6 @@ func GetNetRPCInterceptor(recorder *RequestRecorder) rpc.ServerServiceCallInterc
 
 		err := handler()
 
-		responseErr := false
-		if err != nil {
-			responseErr = true
-		}
-
-		recorder.Record(reqServiceMethod, "net/rpc", reqStart, argv.Interface(), responseErr)
+		recorder.Record(reqServiceMethod, RPCTypeNetRPC, reqStart, argv.Interface(), err != nil)
 	}
 }

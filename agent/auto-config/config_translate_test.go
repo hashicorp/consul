@@ -38,7 +38,7 @@ func mustTranslateCARootsToProtobuf(t *testing.T, in *structs.IndexedCARoots) *p
 }
 
 func mustTranslateIssuedCertToProtobuf(t *testing.T, in *structs.IssuedCert) *pbconnect.IssuedCert {
-	out, err := pbconnect.NewIssuedCertFromStructs(in)
+	var out, err = pbconnect.NewIssuedCertFromStructs(in)
 	require.NoError(t, err)
 	return out
 }
@@ -108,7 +108,7 @@ func TestTranslateConfig(t *testing.T) {
 			Defaults: config.TLSProtocolConfig{
 				VerifyOutgoing:  boolPointer(true),
 				TLSCipherSuites: stringPointer("stuff"),
-				TLSMinVersion:   stringPointer("tls13"),
+				TLSMinVersion:   stringPointer("TLSv1_3"),
 			},
 			InternalRPC: config.TLSProtocolConfig{
 				VerifyServerHostname: boolPointer(true),

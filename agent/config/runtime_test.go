@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -19,7 +18,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
@@ -31,6 +29,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -2339,7 +2338,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.Telemetry.AllowedPrefixes = []string{"foo"}
-			rt.Telemetry.BlockedPrefixes = []string{"bar"}
+			rt.Telemetry.BlockedPrefixes = []string{"bar", "consul.rpc.server.call"}
 		},
 		expectedWarnings: []string{`Filter rule must begin with either '+' or '-': "nix"`},
 	})
@@ -5407,8 +5406,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					ca_file = "default_ca_file"
 					ca_path = "default_ca_path"
 					cert_file = "default_cert_file"
-					tls_min_version = "tls12"
-					tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+					tls_min_version = "TLSv1_2"
+					tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"
 					verify_incoming = true
 				}
 
@@ -5418,7 +5417,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 				https {
 					cert_file = "https_cert_file"
-					tls_min_version = "tls13"
+					tls_min_version = "TLSv1_3"
 				}
 
 				grpc {
@@ -5437,8 +5436,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						"ca_file": "default_ca_file",
 						"ca_path": "default_ca_path",
 						"cert_file": "default_cert_file",
-						"tls_min_version": "tls12",
-						"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+						"tls_min_version": "TLSv1_2",
+						"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
 						"verify_incoming": true
 					},
 					"internal_rpc": {
@@ -5446,7 +5445,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					},
 					"https": {
 						"cert_file": "https_cert_file",
-						"tls_min_version": "tls13"
+						"tls_min_version": "TLSv1_3"
 					},
 					"grpc": {
 						"verify_incoming": false,
@@ -5467,22 +5466,21 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.InternalRPC.CAFile = "internal_rpc_ca_file"
 			rt.TLS.InternalRPC.CAPath = "default_ca_path"
 			rt.TLS.InternalRPC.CertFile = "default_cert_file"
-			rt.TLS.InternalRPC.TLSMinVersion = "tls12"
-			rt.TLS.InternalRPC.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256}
+			rt.TLS.InternalRPC.TLSMinVersion = "TLSv1_2"
+			rt.TLS.InternalRPC.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256}
 			rt.TLS.InternalRPC.VerifyIncoming = true
 
 			rt.TLS.HTTPS.CAFile = "default_ca_file"
 			rt.TLS.HTTPS.CAPath = "default_ca_path"
 			rt.TLS.HTTPS.CertFile = "https_cert_file"
-			rt.TLS.HTTPS.TLSMinVersion = "tls13"
-			rt.TLS.HTTPS.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256}
+			rt.TLS.HTTPS.TLSMinVersion = "TLSv1_3"
 			rt.TLS.HTTPS.VerifyIncoming = true
 
 			rt.TLS.GRPC.CAFile = "default_ca_file"
 			rt.TLS.GRPC.CAPath = "default_ca_path"
 			rt.TLS.GRPC.CertFile = "default_cert_file"
-			rt.TLS.GRPC.TLSMinVersion = "tls12"
-			rt.TLS.GRPC.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA}
+			rt.TLS.GRPC.TLSMinVersion = "TLSv1_2"
+			rt.TLS.GRPC.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA}
 			rt.TLS.GRPC.VerifyIncoming = false
 		},
 	})
@@ -5618,7 +5616,7 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.NodeName = expected.NodeName
 		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
-		assertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
+		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 	}
 }
 
@@ -5629,13 +5627,6 @@ func runCase(t *testing.T, name string, fn func(t *testing.T)) {
 		t.Log("case:", name)
 		fn(t)
 	})
-}
-
-func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
-	t.Helper()
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
-		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
-	}
 }
 
 func TestLoad_InvalidConfigFormat(t *testing.T) {
@@ -6309,7 +6300,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			DogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
 			FilterDefault:                      true,
 			AllowedPrefixes:                    []string{"oJotS8XJ"},
-			BlockedPrefixes:                    []string{"cazlEhGn"},
+			BlockedPrefixes:                    []string{"cazlEhGn", "ftO6DySn.rpc.server.call"},
 			MetricsPrefix:                      "ftO6DySn",
 			StatsdAddr:                         "drce87cy",
 			StatsiteAddr:                       "HpFwKB8R",
@@ -6325,8 +6316,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				CAPath:               "lOp1nhPa",
 				CertFile:             "dfJ4oPln",
 				KeyFile:              "aL1Knkpo",
-				TLSMinVersion:        "lPo1MklP",
-				CipherSuites:         []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				TLSMinVersion:        types.TLSv1_1,
+				CipherSuites:         []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing:       true,
 				VerifyServerHostname: true,
 			},
@@ -6336,8 +6327,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				CAPath:         "fLponKpl",
 				CertFile:       "a674klPn",
 				KeyFile:        "1y4prKjl",
-				TLSMinVersion:  "lPo4fNkl",
-				CipherSuites:   []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				TLSMinVersion:  types.TLSv1_0,
+				CipherSuites:   []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing: false,
 			},
 			HTTPS: tlsutil.ProtocolConfig{
@@ -6346,8 +6337,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				CAPath:         "nu4PlHzn",
 				CertFile:       "1yrhPlMk",
 				KeyFile:        "1bHapOkL",
-				TLSMinVersion:  "mK14iOpz",
-				CipherSuites:   []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				TLSMinVersion:  types.TLSv1_3,
 				VerifyOutgoing: true,
 			},
 			NodeName:                "otlLxGaI",
@@ -6450,7 +6440,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			opts.Overrides = append(opts.Overrides, versionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn"))
 			r, err := Load(opts)
 			require.NoError(t, err)
-			assertDeepEqual(t, expected, r.RuntimeConfig)
+			prototest.AssertDeepEqual(t, expected, r.RuntimeConfig)
 			require.ElementsMatch(t, expectedWarns, r.Warnings, "Warnings: %#v", r.Warnings)
 		})
 	}

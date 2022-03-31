@@ -308,6 +308,10 @@ type Server struct {
 	// Consul router.
 	statsFetcher *StatsFetcher
 
+	// overviewManager is used to periodically update the cluster overview
+	// and emit node/service/check health metrics.
+	overviewManager *OverviewManager
+
 	// reassertLeaderCh is used to signal the leader loop should re-run
 	// leadership actions after a snapshot restore.
 	reassertLeaderCh chan chan error
@@ -612,6 +616,9 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		return nil, fmt.Errorf("Failed to start usage metrics reporter: %v", err)
 	}
 	go reporter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
+
+	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
+	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder

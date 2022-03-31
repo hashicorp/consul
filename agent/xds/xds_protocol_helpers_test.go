@@ -18,6 +18,7 @@ import (
 	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -421,7 +423,7 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, dbSNI, dbURI),
 		}
 	case "http2:db":
-		return &envoy_cluster_v3.Cluster{
+		c := &envoy_cluster_v3.Cluster{
 			Name: dbSNI,
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
 				Type: envoy_cluster_v3.Cluster_EDS,
@@ -435,10 +437,24 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{Value: 0},
 			},
-			ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
-			TransportSocket:      xdsNewUpstreamTransportSocket(t, snap, dbSNI, dbURI),
-			Http2ProtocolOptions: &envoy_core_v3.Http2ProtocolOptions{},
+			ConnectTimeout:  ptypes.DurationProto(5 * time.Second),
+			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, dbSNI, dbURI),
 		}
+		typedExtensionProtocolOptions := &envoy_upstreams_v3.HttpProtocolOptions{
+			UpstreamProtocolOptions: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig_{
+				ExplicitHttpConfig: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig{
+					ProtocolConfig: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{
+						Http2ProtocolOptions: &envoy_core_v3.Http2ProtocolOptions{},
+					},
+				},
+			},
+		}
+		typedExtensionProtocolOptionsEncoded, err := ptypes.MarshalAny(typedExtensionProtocolOptions)
+		require.NoError(t, err)
+		c.TypedExtensionProtocolOptions = map[string]*anypb.Any{
+			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": typedExtensionProtocolOptionsEncoded,
+		}
+		return c
 	case "http:db":
 		return &envoy_cluster_v3.Cluster{
 			Name: dbSNI,

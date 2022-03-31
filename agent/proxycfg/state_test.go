@@ -504,6 +504,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				rootsWatchID:                 genVerifyRootsWatch("dc1"),
 				leafWatchID:                  genVerifyLeafWatch("web", "dc1"),
 				intentionsWatchID:            genVerifyIntentionWatch("web", "dc1"),
+				meshConfigEntryID:            genVerifyMeshConfigWatch("dc1"),
 				"upstream:" + pqUID.String(): genVerifyPreparedQueryWatch("query", "dc1"),
 				fmt.Sprintf("discovery-chain:%s", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api",
@@ -569,6 +570,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Err:           nil,
 				},
 				{
+					CorrelationID: meshConfigEntryID,
+					Result:        &structs.ConfigEntryResponse{},
+				},
+				{
 					CorrelationID: fmt.Sprintf("discovery-chain:%s", apiUID.String()),
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul",
@@ -628,7 +633,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			},
 			verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 				require.True(t, snap.Valid())
-				require.True(t, snap.MeshGateway.IsEmpty())
+				require.True(t, snap.MeshGateway.isEmpty())
 				require.Equal(t, indexedRoots, snap.Roots)
 
 				require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
@@ -643,6 +648,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch.Matches[0], snap.ConnectProxy.Intentions)
+				require.True(t, snap.ConnectProxy.MeshConfigSet)
 			},
 		}
 
@@ -657,7 +663,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			},
 			verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 				require.True(t, snap.Valid())
-				require.True(t, snap.MeshGateway.IsEmpty())
+				require.True(t, snap.MeshGateway.isEmpty())
 				require.Equal(t, indexedRoots, snap.Roots)
 
 				require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
@@ -740,7 +746,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without root is not valid")
-						require.True(t, snap.ConnectProxy.IsEmpty())
+						require.True(t, snap.ConnectProxy.isEmpty())
 					},
 				},
 				{
@@ -749,7 +755,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without services is valid")
-						require.True(t, snap.ConnectProxy.IsEmpty())
+						require.True(t, snap.ConnectProxy.isEmpty())
 						require.Equal(t, indexedRoots, snap.Roots)
 						require.Empty(t, snap.MeshGateway.WatchedServices)
 						require.False(t, snap.MeshGateway.WatchedServicesSet)
@@ -771,7 +777,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with empty service list is valid")
-						require.True(t, snap.ConnectProxy.IsEmpty())
+						require.True(t, snap.ConnectProxy.isEmpty())
 						require.Equal(t, indexedRoots, snap.Roots)
 						require.Empty(t, snap.MeshGateway.WatchedServices)
 						require.True(t, snap.MeshGateway.WatchedServicesSet)
@@ -940,17 +946,22 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					requiredWatches: map[string]verifyWatchRequest{
 						rootsWatchID:           genVerifyRootsWatch("dc1"),
+						meshConfigEntryID:      genVerifyMeshConfigWatch("dc1"),
 						gatewayConfigWatchID:   genVerifyConfigEntryWatch(structs.IngressGateway, "ingress-gateway", "dc1"),
 						gatewayServicesWatchID: genVerifyGatewayServiceWatch("ingress-gateway", "dc1"),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without root is not valid")
-						require.True(t, snap.IngressGateway.IsEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
 					},
 				},
 				{
 					events: []cache.UpdateEvent{
 						rootWatchEvent(),
+						{
+							CorrelationID: meshConfigEntryID,
+							Result:        &structs.ConfigEntryResponse{},
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without config entry is not valid")
@@ -1104,11 +1115,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					requiredWatches: map[string]verifyWatchRequest{
 						rootsWatchID:           genVerifyRootsWatch("dc1"),
+						meshConfigEntryID:      genVerifyMeshConfigWatch("dc1"),
 						gatewayConfigWatchID:   genVerifyConfigEntryWatch(structs.IngressGateway, "ingress-gateway", "dc1"),
 						gatewayServicesWatchID: genVerifyGatewayServiceWatch("ingress-gateway", "dc1"),
 					},
 					events: []cache.UpdateEvent{
 						rootWatchEvent(),
+						{
+							CorrelationID: meshConfigEntryID,
+							Result:        &structs.ConfigEntryResponse{},
+						},
 						ingressConfigWatchEvent(true, false),
 						{
 							CorrelationID: gatewayServicesWatchID,
@@ -1179,11 +1195,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					requiredWatches: map[string]verifyWatchRequest{
 						rootsWatchID:           genVerifyRootsWatch("dc1"),
+						meshConfigEntryID:      genVerifyMeshConfigWatch("dc1"),
 						gatewayConfigWatchID:   genVerifyConfigEntryWatch(structs.IngressGateway, "ingress-gateway", "dc1"),
 						gatewayServicesWatchID: genVerifyGatewayServiceWatch("ingress-gateway", "dc1"),
 					},
 					events: []cache.UpdateEvent{
 						rootWatchEvent(),
+						{
+							CorrelationID: meshConfigEntryID,
+							Result:        &structs.ConfigEntryResponse{},
+						},
 						ingressConfigWatchEvent(false, true),
 						{
 							CorrelationID: gatewayServicesWatchID,
@@ -1266,27 +1287,33 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			stages: []verificationStage{
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						rootsWatchID: genVerifyRootsWatch("dc1"),
+						rootsWatchID:      genVerifyRootsWatch("dc1"),
+						meshConfigEntryID: genVerifyMeshConfigWatch("dc1"),
 						gatewayServicesWatchID: genVerifyServiceSpecificRequest(gatewayServicesWatchID,
 							"terminating-gateway", "", "dc1", false),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without root is not valid")
-						require.True(t, snap.ConnectProxy.IsEmpty())
-						require.True(t, snap.MeshGateway.IsEmpty())
-						require.True(t, snap.IngressGateway.IsEmpty())
+						require.True(t, snap.ConnectProxy.isEmpty())
+						require.True(t, snap.MeshGateway.isEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
 					},
 				},
 				{
 					events: []cache.UpdateEvent{
 						rootWatchEvent(),
+						{
+							CorrelationID: meshConfigEntryID,
+							Result:        &structs.ConfigEntryResponse{},
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway without services is valid")
-						require.True(t, snap.ConnectProxy.IsEmpty())
-						require.True(t, snap.MeshGateway.IsEmpty())
-						require.True(t, snap.IngressGateway.IsEmpty())
-						require.True(t, snap.TerminatingGateway.IsEmpty())
+						require.True(t, snap.ConnectProxy.isEmpty())
+						require.True(t, snap.MeshGateway.isEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
+						require.False(t, snap.TerminatingGateway.isEmpty())
+						require.Nil(t, snap.TerminatingGateway.MeshConfig)
 						require.Equal(t, indexedRoots, snap.Roots)
 					},
 				},
@@ -1303,12 +1330,17 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			stages: []verificationStage{
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						rootsWatchID: genVerifyRootsWatch("dc1"),
+						rootsWatchID:      genVerifyRootsWatch("dc1"),
+						meshConfigEntryID: genVerifyMeshConfigWatch("dc1"),
 						gatewayServicesWatchID: genVerifyServiceSpecificRequest(gatewayServicesWatchID,
 							"terminating-gateway", "", "dc1", false),
 					},
 					events: []cache.UpdateEvent{
 						rootWatchEvent(),
+						{
+							CorrelationID: meshConfigEntryID,
+							Result:        &structs.ConfigEntryResponse{},
+						},
 						{
 							CorrelationID: gatewayServicesWatchID,
 							Result: &structs.IndexedGatewayServices{
@@ -1680,11 +1712,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "proxy without roots/leaf/intentions is not valid")
-						require.True(t, snap.MeshGateway.IsEmpty())
-						require.True(t, snap.IngressGateway.IsEmpty())
-						require.True(t, snap.TerminatingGateway.IsEmpty())
+						require.True(t, snap.MeshGateway.isEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
+						require.True(t, snap.TerminatingGateway.isEmpty())
 
-						require.False(t, snap.ConnectProxy.IsEmpty())
+						require.False(t, snap.ConnectProxy.isEmpty())
 						expectUpstreams := map[UpstreamID]*structs.Upstream{
 							dbUID: {
 								DestinationName:      "db",
@@ -1721,9 +1753,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, indexedRoots, snap.Roots)
 						require.Equal(t, issuedCert, snap.Leaf())
 						require.Equal(t, TestIntentions().Matches[0], snap.ConnectProxy.Intentions)
-						require.True(t, snap.MeshGateway.IsEmpty())
-						require.True(t, snap.IngressGateway.IsEmpty())
-						require.True(t, snap.TerminatingGateway.IsEmpty())
+						require.True(t, snap.MeshGateway.isEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
+						require.True(t, snap.TerminatingGateway.isEmpty())
 						require.True(t, snap.ConnectProxy.MeshConfigSet)
 						require.Nil(t, snap.ConnectProxy.MeshConfig)
 					},
@@ -1766,9 +1798,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "proxy without roots/leaf/intentions is not valid")
-						require.True(t, snap.MeshGateway.IsEmpty())
-						require.True(t, snap.IngressGateway.IsEmpty())
-						require.True(t, snap.TerminatingGateway.IsEmpty())
+						require.True(t, snap.MeshGateway.isEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
+						require.True(t, snap.TerminatingGateway.isEmpty())
 
 						// Centrally configured upstream defaults should be stored so that upstreams from intentions can inherit them
 						require.Len(t, snap.ConnectProxy.UpstreamConfig, 1)
@@ -1807,9 +1839,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, indexedRoots, snap.Roots)
 						require.Equal(t, issuedCert, snap.Leaf())
 						require.Equal(t, TestIntentions().Matches[0], snap.ConnectProxy.Intentions)
-						require.True(t, snap.MeshGateway.IsEmpty())
-						require.True(t, snap.IngressGateway.IsEmpty())
-						require.True(t, snap.TerminatingGateway.IsEmpty())
+						require.True(t, snap.MeshGateway.isEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
+						require.True(t, snap.TerminatingGateway.isEmpty())
 						require.True(t, snap.ConnectProxy.MeshConfigSet)
 						require.NotNil(t, snap.ConnectProxy.MeshConfig)
 					},
@@ -2333,9 +2365,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "proxy without roots/leaf/intentions is not valid")
-						require.True(t, snap.MeshGateway.IsEmpty())
-						require.True(t, snap.IngressGateway.IsEmpty())
-						require.True(t, snap.TerminatingGateway.IsEmpty())
+						require.True(t, snap.MeshGateway.isEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
+						require.True(t, snap.TerminatingGateway.isEmpty())
 
 						// Centrally configured upstream defaults should be stored so that upstreams from intentions can inherit them
 						require.Len(t, snap.ConnectProxy.UpstreamConfig, 2)
@@ -2375,9 +2407,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, indexedRoots, snap.Roots)
 						require.Equal(t, issuedCert, snap.Leaf())
 						require.Equal(t, TestIntentions().Matches[0], snap.ConnectProxy.Intentions)
-						require.True(t, snap.MeshGateway.IsEmpty())
-						require.True(t, snap.IngressGateway.IsEmpty())
-						require.True(t, snap.TerminatingGateway.IsEmpty())
+						require.True(t, snap.MeshGateway.isEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
+						require.True(t, snap.TerminatingGateway.isEmpty())
 						require.True(t, snap.ConnectProxy.MeshConfigSet)
 						require.NotNil(t, snap.ConnectProxy.MeshConfig)
 					},

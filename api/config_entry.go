@@ -244,9 +244,10 @@ type ProxyConfigEntry struct {
 	Config           map[string]interface{}  `json:",omitempty"`
 	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig            `json:",omitempty"`
-	Meta             map[string]string       `json:",omitempty"`
-	CreateIndex      uint64
-	ModifyIndex      uint64
+
+	Meta        map[string]string `json:",omitempty"`
+	CreateIndex uint64
+	ModifyIndex uint64
 }
 
 func (p *ProxyConfigEntry) GetKind() string            { return p.Kind }

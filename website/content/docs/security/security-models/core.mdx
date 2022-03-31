@@ -407,7 +407,9 @@ The following are not part of the threat model for client agents:
   configured identity, and extract information from Consul when ACLs are disabled.
 
 - **DNS** - Malicious actors with access to a Consul agent DNS endpoint may be able to extract service catalog
-  information. Gossip - Malicious actors with access to a Consul agent Serf gossip endpoint may be able to impersonate
+  information.
+
+- **Gossip** - Malicious actors with access to a Consul agent Serf gossip endpoint may be able to impersonate
   agents within a datacenter. Gossip encryption should be enabled, with a regularly rotated gossip key.
 
 - **Proxy (xDS)** - Malicious actors with access to a Consul agent xDS endpoint may be able to extract Envoy service

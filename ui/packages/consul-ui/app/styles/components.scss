@@ -36,6 +36,7 @@
 @import 'consul-ui/components/secret-button';
 @import 'consul-ui/components/sliding-toggle';
 @import 'consul-ui/components/table';
+@import 'consul-ui/components/tile';
 @import 'consul-ui/components/toggle-button';
 @import 'consul-ui/components/tabular-collection';
 @import 'consul-ui/components/tabular-details';
@@ -91,6 +92,8 @@
 @import 'consul-ui/components/consul/intention';
 @import 'consul-ui/components/consul/lock-session/list';
 @import 'consul-ui/components/consul/lock-session/form';
+@import 'consul-ui/components/consul/server/list';
+@import 'consul-ui/components/consul/server/card';
 @import 'consul-ui/components/consul/auth-method';
 
 @import 'consul-ui/components/role-selector';

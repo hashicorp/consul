@@ -172,6 +172,24 @@ RPC:
 	return nil, nil
 }
 
+// UICatalogOverview is used to get a high-level overview of the health of nodes, services,
+// and checks in the datacenter.
+func (s *HTTPHandlers) UICatalogOverview(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Parse arguments
+	args := structs.DCSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	// Make the RPC request
+	var out structs.CatalogSummary
+	if err := s.agent.RPC("Internal.CatalogOverview", &args, &out); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
 // UIServices is used to list the services in a given datacenter. We return a
 // ServiceSummary which provides overview information for the service
 func (s *HTTPHandlers) UIServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

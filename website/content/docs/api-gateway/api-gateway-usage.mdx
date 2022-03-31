@@ -7,7 +7,7 @@ description:  >-
 
 # Consul API Gateway Usage
 
-This topic describes how to use the Consul API Gateway add-on module. It includes instructions for installation and configuration. 
+This topic describes how to use the Consul API Gateway add-on module. It includes instructions for installation and configuration.
 
 ## Requirements
 
@@ -25,7 +25,7 @@ Refer to [Technical Specifications](/docs/api-gateway/tech-specs) for minimum so
 
    </CodeBlockConfig>
 
-1. Create a `values.yaml` file for your Consul API Gateway deployment. Copy the content below into the `values.yaml` file. The `values.yaml` will be used by the Consul Helm chart. See [Helm Chart Configuration - apiGateway](https://www.consul.io/docs/k8s/helm#apigateway) for more available options on how to configure your Consul API Gateway deployment via the Helm chart.
+1. Create a `values.yaml` file for your Consul API Gateway deployment. Copy the content below into the `values.yaml` file. The `values.yaml` will be used by the Consul Helm chart. Available versions of the [Consul](https://hub.docker.com/r/hashicorp/consul/tags) and [Consul API Gateway](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags) Docker images can be found on DockerHub, with additional context on version compatibility published in [GitHub releases](https://github.com/hashicorp/consul-api-gateway/releases). See [Helm Chart Configuration - apiGateway](https://www.consul.io/docs/k8s/helm#apigateway) for more available options on how to configure your Consul API Gateway deployment via the Helm chart.
 
    <CodeBlockConfig hideClipboard filename="values.yaml">
 
@@ -44,12 +44,12 @@ Refer to [Technical Specifications](/docs/api-gateway/tech-specs) for minimum so
 
    </CodeBlockConfig>
 
-1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file.
+1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file. Available versions of the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) can be found in GitHub releases.
 
    <CodeBlockConfig>
 
    ```shell-session
-   $ helm install consul hashicorp/consul --version 0.41.1 --values values.yaml
+   $ helm install consul hashicorp/consul --version 0.41.1 --values values.yaml --create-namespace --namespace consul
    ```
 
    </CodeBlockConfig>
@@ -58,7 +58,7 @@ Refer to [Technical Specifications](/docs/api-gateway/tech-specs) for minimum so
 
 1. Verify that the [requirements](#requirements) have been met.
 1. Verify that the Consul API Gateway CRDs and controller have been installed and applied (see [Installation](#installation)).
-1. Configure the artifacts described below in [Configuration](#configuration). 
+1. Configure the artifacts described below in [Configuration](#configuration).
 
    <CodeBlockConfig hideClipboard filename="values.yaml">
 

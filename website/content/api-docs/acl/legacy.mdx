@@ -10,7 +10,7 @@ description: >-
 
 -> **The legacy ACL system was deprecated in Consul 1.4.0 and removed in Consul 1.11.0.** It's _strongly_
 recommended you do not build anything using the legacy system and use
-the new ACL [Token](/api/acl/tokens) and [Policy](/api/acl/policies) APIs instead.
+the new ACL [Token](/api-docs/acl/tokens) and [Policy](/api-docs/acl/policies) APIs instead.
 
 The legacy `/acl` endpoints to create, update, destroy, and query legacy ACL tokens in Consul.
 
@@ -25,9 +25,9 @@ This endpoint makes a new ACL token.
 | `PUT`  | `/acl/create` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -84,9 +84,9 @@ generating a new token ID, the `ID` field must be provided.
 | `PUT`  | `/acl/update` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -138,9 +138,9 @@ Even though the return type is application/json, the value is either true or
 false, indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -175,9 +175,9 @@ This endpoint reads an ACL token with the given ID.
 | `GET`  | `/acl/info/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -224,9 +224,9 @@ complex rule management.
 | `PUT`  | `/acl/clone/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -263,9 +263,9 @@ This endpoint lists all the active ACL tokens.
 | `GET`  | `/acl/list` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |

@@ -49,7 +49,7 @@ using the API or command line before they can be used by applications.
   details about how to authenticate application credentials. Successful
   validation of application credentials will return a set of trusted identity
   attributes (such as a username). These can be managed with the `consul acl auth-method` subcommands or the corresponding [API
-  endpoints](/api/acl/auth-methods). The specific details of
+  endpoints](/api-docs/acl/auth-methods). The specific details of
   configuration are type dependent and described in their own documentation
   pages.
 
@@ -57,7 +57,7 @@ using the API or command line before they can be used by applications.
   how to translate trusted identity attributes from each auth method into
   privileges assigned to the ACL token that is created. These can be managed
   with the `consul acl binding-rule` subcommands or the corresponding [API
-  endpoints](/api/acl/binding-rules).
+  endpoints](/api-docs/acl/binding-rules).
 
 -> **Note** - To configure auth methods in any connected secondary datacenter,
 [ACL token replication](/docs/agent/options#acl_enable_token_replication)
@@ -83,7 +83,7 @@ Each binding rule is composed of two portions:
 - **Selector** - A logical query that must match the trusted identity
   attributes for the binding rule to be applicable to a given login attempt.
   The syntax uses github.com/hashicorp/go-bexpr which is shared with the [API
-  filtering feature](/api/features/filtering). For example:
+  filtering feature](/api-docs/features/filtering). For example:
   `"serviceaccount.namespace==default and serviceaccount.name!=vault"`
 
 - **Bind Type and Name** - A binding rule can bind a token to a

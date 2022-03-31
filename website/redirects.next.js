@@ -357,10 +357,10 @@ module.exports = [
   },
   {
     source: '/docs/agent/http/:path*',
-    destination: '/api/:path*',
+    destination: '/api-docs/:path*',
     permanent: true,
   },
-  { source: '/docs/agent/http', destination: '/api', permanent: true },
+  { source: '/docs/agent/http', destination: '/api-docs', permanent: true },
   // CLI Redirects
   { source: '/docs/commands', destination: '/commands', permanent: true },
   {
@@ -1237,6 +1237,26 @@ module.exports = [
   {
     source: '/docs/k8s/tls-on-existing-cluster',
     destination: '/docs/k8s/operations/tls-on-existing-cluster',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-11-0',
+    destination: '/docs/releases/release-notes/v1_11_0',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-10-0',
+    destination: '/docs/releases/release-notes/v1_10_0',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-9-0',
+    destination: '/docs/releases/release-notes/v1_9_0',
+    permanent: true,
+  },
+  {
+    source: '/api/:path*',
+    destination: '/api-docs/:path*',
     permanent: true,
   },
 ]

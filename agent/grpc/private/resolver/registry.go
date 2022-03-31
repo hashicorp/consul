@@ -16,7 +16,7 @@ type registry struct {
 	byAuthority map[string]*ServerResolverBuilder
 }
 
-func (r *registry) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOption) (resolver.Resolver, error) {
+func (r *registry) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 	res, ok := r.byAuthority[target.Authority]

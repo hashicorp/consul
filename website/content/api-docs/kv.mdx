@@ -19,7 +19,7 @@ replication between datacenters, please view the
 ~> Values in the KV store cannot be larger than 512kb.
 
 In order to perform atomic operations on multiple KV pairs (up to a limit of 64)
-please consider using [transactions](/api/txn) instead.
+please consider using [transactions](/api-docs/txn) instead.
 
 ## Read Key
 
@@ -27,7 +27,7 @@ This endpoint returns the specified key. If no key exists at the given path, a
 404 is returned instead of a 200 response.
 
 For multi-key reads (up to a limit of 64 KV operations) please consider using
-[transactions](/api/txn) instead.
+[transactions](/api-docs/txn) instead.
 
 If the [`recurse`](#recurse) or [`keys`](#keys) query parameters are `true`,
 this endpoint will return an array of keys. In this case,
@@ -40,9 +40,9 @@ Refer to the [HTTP API documentation](/api-docs#results-filtered-by-acls) for mo
 | `GET`  | `/kv/:key` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -172,9 +172,9 @@ Even though the return type is `application/json`, the value is either `true` or
 `false`, indicating whether the create/update succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -260,9 +260,9 @@ This endpoint deletes a single key or all keys sharing a prefix.
 | `DELETE` | `/kv/:key` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |

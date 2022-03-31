@@ -28,6 +28,18 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 		return snap, err
 	}
 
+	// Get information about the entire service mesh.
+	err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+		Kind:           structs.MeshConfig,
+		Name:           structs.MeshConfigMesh,
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
+	}, meshConfigEntryID, s.ch)
+	if err != nil {
+		return snap, err
+	}
+
 	// Watch for the terminating-gateway's linked services
 	err = s.cache.Notify(ctx, cachetype.GatewayServicesName, &structs.ServiceSpecificRequest{
 		Datacenter:     s.source.Datacenter,
@@ -69,6 +81,23 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		snap.Roots = roots
+
+	case u.CorrelationID == meshConfigEntryID:
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		if resp.Entry != nil {
+			meshConf, ok := resp.Entry.(*structs.MeshConfigEntry)
+			if !ok {
+				return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
+			}
+			snap.TerminatingGateway.MeshConfig = meshConf
+		} else {
+			snap.TerminatingGateway.MeshConfig = nil
+		}
+		snap.TerminatingGateway.MeshConfigSet = true
 
 	// Update watches based on the current list of services associated with the terminating-gateway
 	case u.CorrelationID == gatewayServicesWatchID:
