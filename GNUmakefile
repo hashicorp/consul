@@ -22,7 +22,7 @@ GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
 MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 
-export PATH := $(PWD)/bin:$(PATH)
+export PATH := $(PWD)/bin:$(GOPATH)/bin:$(PATH)
 
 ASSETFS_PATH?=agent/uiserver/bindata_assetfs.go
 # Get the git commit
