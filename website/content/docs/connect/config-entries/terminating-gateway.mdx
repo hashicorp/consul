@@ -30,6 +30,9 @@ from the terminating gateway will be encrypted using one-way TLS authentication.
 and [private key](/docs/connect/config-entries/terminating-gateway#keyfile) are also specified connections
 from the terminating gateway will be encrypted using mutual TLS authentication.
 
+~> Setting the `SNI` field is strongly recommended when enabling TLS to a service. If this field is not set,
+Consul will not attempt to verify the Subject Alternative Name fields in the service's certificate.
+
 If none of these are provided, Consul will **only** encrypt connections to the gateway and not
 from the gateway to the destination service.
 
