@@ -724,6 +724,17 @@ func TestACL_HTTP(t *testing.T) {
 			require.True(t, ok)
 			require.Equal(t, expected, token)
 		})
+		t.Run("Read-expanded", func(t *testing.T) {
+			expected := tokenMap[idMap["token-test"]]
+			req, _ := http.NewRequest("GET", "/v1/acl/token/"+expected.AccessorID+"?token=root&expanded=true", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCRUD(resp, req)
+			require.NoError(t, err)
+			tokenResp, ok := obj.(*structs.ACLTokenExpanded)
+			require.True(t, ok)
+			require.Equal(t, expected, tokenResp.ACLToken)
+			require.Len(t, tokenResp.ExpandedPolicies, 3)
+		})
 		t.Run("Self", func(t *testing.T) {
 			expected := tokenMap[idMap["token-test"]]
 			req, _ := http.NewRequest("GET", "/v1/acl/token/self?token="+expected.SecretID, nil)

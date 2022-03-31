@@ -69,7 +69,6 @@ func TestStructs_ACLServiceIdentity_SyntheticPolicy(t *testing.T) {
 			expect := &ACLPolicy{
 				Syntax:      acl.SyntaxCurrent,
 				Datacenters: test.datacenters,
-				Description: "synthetic policy",
 				Rules:       test.expectRules,
 			}
 
@@ -79,6 +78,7 @@ func TestStructs_ACLServiceIdentity_SyntheticPolicy(t *testing.T) {
 			// strip irrelevant fields before equality
 			got.ID = ""
 			got.Name = ""
+			got.Description = ""
 			got.Hash = nil
 			require.Equal(t, expect, got)
 		})

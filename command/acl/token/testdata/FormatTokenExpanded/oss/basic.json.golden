@@ -1,0 +1,48 @@
+{
+    "ExpandedPolicies": [
+        {
+            "ID": "beb04680-815b-4d7c-9e33-3d707c24672c",
+            "Name": "foo",
+            "Description": "user policy on token",
+            "Rules": "service_prefix \"\" {\n  policy = \"read\"\n}",
+            "Datacenters": null,
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        },
+        {
+            "ID": "18788457-584c-4812-80d3-23d403148a90",
+            "Name": "bar",
+            "Description": "other user policy on token",
+            "Rules": "operator = \"read\"",
+            "Datacenters": null,
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        }
+    ],
+    "ExpandedRoles": null,
+    "NamespaceDefaultPolicies": null,
+    "NamespaceDefaultRoles": null,
+    "AgentACLDefaultPolicy": "allow",
+    "AgentACLDownPolicy": "deny",
+    "ResolvedByAgent": "leader",
+    "CreateIndex": 42,
+    "ModifyIndex": 100,
+    "AccessorID": "fbd2447f-7479-4329-ad13-b021d74f86ba",
+    "SecretID": "869c6e91-4de9-4dab-b56e-87548435f9c6",
+    "Description": "test token",
+    "Policies": [
+        {
+            "ID": "beb04680-815b-4d7c-9e33-3d707c24672c",
+            "Name": "foo"
+        },
+        {
+            "ID": "18788457-584c-4812-80d3-23d403148a90",
+            "Name": "bar"
+        }
+    ],
+    "Local": false,
+    "CreateTime": "2020-05-22T18:52:31Z",
+    "Hash": "YWJjZGVmZ2g="
+}

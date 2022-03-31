@@ -325,8 +325,97 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 			if token == nil {
 				return errNotFound
 			}
+
+			if args.Expanded {
+				info, err := a.lookupExpandedTokenInfo(ws, state, token)
+				if err != nil {
+					return err
+				}
+				reply.ExpandedTokenInfo = info
+			}
+
 			return nil
 		})
+}
+
+func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, token *structs.ACLToken) (structs.ExpandedTokenInfo, error) {
+	policyIDs := make(map[string]struct{})
+	roleIDs := make(map[string]struct{})
+	identityPolicies := make(map[string]*structs.ACLPolicy)
+	tokenInfo := structs.ExpandedTokenInfo{}
+
+	// Add the token's policies and node/service identity policies
+	for _, policy := range token.Policies {
+		policyIDs[policy.ID] = struct{}{}
+	}
+	for _, roleLink := range token.Roles {
+		roleIDs[roleLink.ID] = struct{}{}
+	}
+
+	for _, identity := range token.ServiceIdentities {
+		policy := identity.SyntheticPolicy(&token.EnterpriseMeta)
+		identityPolicies[policy.ID] = policy
+	}
+	for _, identity := range token.NodeIdentities {
+		policy := identity.SyntheticPolicy(&token.EnterpriseMeta)
+		identityPolicies[policy.ID] = policy
+	}
+
+	// Get any namespace default roles/policies to look up
+	nsPolicies, nsRoles, err := getTokenNamespaceDefaults(ws, state, &token.EnterpriseMeta)
+	if err != nil {
+		return tokenInfo, err
+	}
+	tokenInfo.NamespaceDefaultPolicyIDs = nsPolicies
+	tokenInfo.NamespaceDefaultRoleIDs = nsRoles
+	for _, id := range nsPolicies {
+		policyIDs[id] = struct{}{}
+	}
+	for _, id := range nsRoles {
+		roleIDs[id] = struct{}{}
+	}
+
+	// Add each role's policies and node/service identity policies
+	for roleID := range roleIDs {
+		_, role, err := state.ACLRoleGetByID(ws, roleID, &token.EnterpriseMeta)
+		if err != nil {
+			return tokenInfo, err
+		}
+
+		for _, policy := range role.Policies {
+			policyIDs[policy.ID] = struct{}{}
+		}
+
+		for _, identity := range role.ServiceIdentities {
+			policy := identity.SyntheticPolicy(&role.EnterpriseMeta)
+			identityPolicies[policy.ID] = policy
+		}
+		for _, identity := range role.NodeIdentities {
+			policy := identity.SyntheticPolicy(&role.EnterpriseMeta)
+			identityPolicies[policy.ID] = policy
+		}
+
+		tokenInfo.ExpandedRoles = append(tokenInfo.ExpandedRoles, role)
+	}
+
+	var policies []*structs.ACLPolicy
+	for id := range policyIDs {
+		_, policy, err := state.ACLPolicyGetByID(ws, id, &token.EnterpriseMeta)
+		if err != nil {
+			return tokenInfo, err
+		}
+		policies = append(policies, policy)
+	}
+	for _, policy := range identityPolicies {
+		policies = append(policies, policy)
+	}
+
+	tokenInfo.ExpandedPolicies = policies
+	tokenInfo.AgentACLDefaultPolicy = a.srv.config.ACLResolverSettings.ACLDefaultPolicy
+	tokenInfo.AgentACLDownPolicy = a.srv.config.ACLResolverSettings.ACLDownPolicy
+	tokenInfo.ResolvedByAgent = a.srv.config.NodeName
+
+	return tokenInfo, nil
 }
 
 func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLToken) error {
