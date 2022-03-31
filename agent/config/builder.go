@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/dns"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/ipaddr"
@@ -640,21 +641,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 
 	// Parse the metric filters
-	var telemetryAllowedPrefixes, telemetryBlockedPrefixes []string
-	for _, rule := range c.Telemetry.PrefixFilter {
-		if rule == "" {
-			b.warn("Cannot have empty filter rule in prefix_filter")
-			continue
-		}
-		switch rule[0] {
-		case '+':
-			telemetryAllowedPrefixes = append(telemetryAllowedPrefixes, rule[1:])
-		case '-':
-			telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, rule[1:])
-		default:
-			b.warn("Filter rule must begin with either '+' or '-': %q", rule)
-		}
-	}
+	telemetryAllowedPrefixes, telemetryBlockedPrefixes := b.parsePrefixFilter(&c.Telemetry)
 
 	// raft performance scaling
 	performanceRaftMultiplier := intVal(c.Performance.RaftMultiplier)
@@ -2587,4 +2574,39 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 	c.AutoTLS = rt.AutoEncryptTLS || rt.AutoConfig.Enabled
 
 	return c, nil
+}
+
+func (b *builder) parsePrefixFilter(telemetry *Telemetry) ([]string, []string) {
+	var telemetryAllowedPrefixes, telemetryBlockedPrefixes []string
+
+	// TODO(FFMMM): Once one twelve style RPC metrics get out of Beta, don't remove them by default.
+	operatorPassedOneTwelveRPCMetric := false
+	oneTwelveRPCMetric := *telemetry.MetricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
+
+	for _, rule := range telemetry.PrefixFilter {
+		if rule == "" {
+			b.warn("Cannot have empty filter rule in prefix_filter")
+			continue
+		}
+		switch rule[0] {
+		case '+':
+			if rule[1:] == oneTwelveRPCMetric {
+				operatorPassedOneTwelveRPCMetric = true
+			}
+			telemetryAllowedPrefixes = append(telemetryAllowedPrefixes, rule[1:])
+		case '-':
+			if rule[1:] == oneTwelveRPCMetric {
+				operatorPassedOneTwelveRPCMetric = true
+			}
+			telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, rule[1:])
+		default:
+			b.warn("Filter rule must begin with either '+' or '-': %q", rule)
+		}
+	}
+
+	if !operatorPassedOneTwelveRPCMetric {
+		telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, oneTwelveRPCMetric)
+	}
+
+	return telemetryAllowedPrefixes, telemetryBlockedPrefixes
 }
