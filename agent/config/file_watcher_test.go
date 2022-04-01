@@ -74,6 +74,7 @@ func TestWatcherReplace(t *testing.T) {
 	require.NoError(t, err)
 	file2 := createTempConfigFile(t, "temp_config2")
 	err = w.Replace(file1, file2)
+	require.NoError(t, err)
 	_, ok := w.configFiles[file1]
 	require.False(t, ok)
 	_, ok = w.configFiles[file2]
