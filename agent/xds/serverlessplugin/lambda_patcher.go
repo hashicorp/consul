@@ -8,6 +8,7 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_lambda_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/aws_lambda/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
@@ -76,6 +77,28 @@ func isStringTrue(v string) bool {
 
 func (p lambdaPatcher) CanPatch(kind api.ServiceKind) bool {
 	return kind == p.kind
+}
+
+func (p lambdaPatcher) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
+	if p.kind != api.ServiceKindTerminatingGateway {
+		return route, false, nil
+	}
+
+	for _, virtualHost := range route.VirtualHosts {
+		for _, route := range virtualHost.Routes {
+			action, ok := route.Action.(*envoy_route_v3.Route_Route)
+
+			if !ok {
+				continue
+			}
+
+			// When auto_host_rewrite is set it conflicts with strip_any_host_port
+			// on the http_connection_manager filter.
+			action.Route.HostRewriteSpecifier = nil
+		}
+	}
+
+	return route, true, nil
 }
 
 func (p lambdaPatcher) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
@@ -160,7 +183,9 @@ func (p lambdaPatcher) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_lis
 		httpFilter,
 		{Name: "envoy.filters.http.router"},
 	}
-	config.StripMatchingHostPort = true
+	config.StripPortMode = &envoy_http_v3.HttpConnectionManager_StripAnyHostPort{
+		StripAnyHostPort: true,
+	}
 	newFilter, err := makeFilter("envoy.filters.network.http_connection_manager", config)
 	if err != nil {
 		return filter, false, errors.New("error making new filter")
