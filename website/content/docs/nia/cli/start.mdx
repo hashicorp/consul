@@ -55,8 +55,8 @@ The `start` command supports the following options:
 
 | Name            | Required | Type    | Description                     |Default                  |
 | --------------- | -------- | ------- | ------------------------------- | ----------------------- |
-| `-config-dir` &nbsp;| Optional | string | A directory to load files for configuring CTS. Configuration files require an .hcl or .json file extension in order to specify their format. This option can be specified multiple times to load different directories. | none |
-| `-config-file` &nbsp;| Optional | string | A file to load for configuring CTS. Configuration file requires an .hcl or .json extension in order to specify their format. This option can be specified multiple times to load different configuration files. | none |
+| `-config-dir ` &nbsp; &nbsp; &nbsp;| Optional | string | A directory to load files for configuring CTS. Configuration files require an .hcl or .json file extension in order to specify their format. This option can be specified multiple times to load different directories. | none |
+| `-config-file` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Optional | string | A file to load for configuring CTS. Configuration file requires an .hcl or .json extension in order to specify their format. This option can be specified multiple times to load different configuration files. | none |
 | `-inspect` | Optional | boolean | Run CTS in Inspect mode to print the proposed state changes for all tasks, and then exit. No changes are applied in this mode. | false |
-| `-inspect-task` &nbsp;| Optional | string | Run CTS in Inspect mode to print the proposed state changes for the task, and then exit. The flag can be specified multiple times to inspect multiple tasks. No changes are applied in this mode. | none |
+| `-inspect-task` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string | Run CTS in Inspect mode to print the proposed state changes for the task, and then exit. The flag can be specified multiple times to inspect multiple tasks. No changes are applied in this mode. | none |
 | `-once` | Optional | boolean | Render templates and run tasks once. Does not start the process in long-running mode and disables buffer periods. | false |
