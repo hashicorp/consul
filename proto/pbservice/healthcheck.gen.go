@@ -16,6 +16,7 @@ func CheckTypeToStructs(s CheckType) structs.CheckType {
 	t.Header = MapHeadersToStructs(s.Header)
 	t.Method = s.Method
 	t.Body = s.Body
+	t.DisableRedirects = s.DisableRedirects
 	t.TCP = s.TCP
 	t.Interval = s.Interval
 	t.AliasNode = s.AliasNode
@@ -48,6 +49,7 @@ func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	s.Header = NewMapHeadersFromStructs(t.Header)
 	s.Method = t.Method
 	s.Body = t.Body
+	s.DisableRedirects = t.DisableRedirects
 	s.TCP = t.TCP
 	s.Interval = t.Interval
 	s.AliasNode = t.AliasNode
@@ -116,6 +118,7 @@ func HealthCheckDefinitionToStructs(s HealthCheckDefinition) structs.HealthCheck
 	t.Header = MapHeadersToStructs(s.Header)
 	t.Method = s.Method
 	t.Body = s.Body
+	t.DisableRedirects = s.DisableRedirects
 	t.TCP = s.TCP
 	t.H2PING = s.H2PING
 	t.Interval = s.Interval
@@ -140,6 +143,7 @@ func NewHealthCheckDefinitionFromStructs(t structs.HealthCheckDefinition) Health
 	s.Header = NewMapHeadersFromStructs(t.Header)
 	s.Method = t.Method
 	s.Body = t.Body
+	s.DisableRedirects = t.DisableRedirects
 	s.TCP = t.TCP
 	s.H2PING = t.H2PING
 	s.Interval = t.Interval

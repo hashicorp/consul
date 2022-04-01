@@ -14,16 +14,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-msgpack/codec"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/mitchellh/hashstructure"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/mitchellh/hashstructure"
 )
 
 type MessageType uint8
@@ -1483,6 +1482,7 @@ type HealthCheckDefinition struct {
 	Header                         map[string][]string `json:",omitempty"`
 	Method                         string              `json:",omitempty"`
 	Body                           string              `json:",omitempty"`
+	DisableRedirects               bool                `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
 	Interval                       time.Duration       `json:",omitempty"`
@@ -1630,6 +1630,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Header:                         c.Definition.Header,
 		Method:                         c.Definition.Method,
 		Body:                           c.Definition.Body,
+		DisableRedirects:               c.Definition.DisableRedirects,
 		TCP:                            c.Definition.TCP,
 		H2PING:                         c.Definition.H2PING,
 		Interval:                       c.Definition.Interval,
