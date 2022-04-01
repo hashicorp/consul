@@ -1,0 +1,81 @@
+package serverlessplugin
+
+import (
+	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/api"
+)
+
+// patcher is the interface that each serverless integration must implement. It
+// is responsible for modifying the xDS structures based on only the state of
+// the patcher.
+type patcher interface {
+	// CanPatch determines if the patcher can mutate resources for the given api.ServiceKind
+	CanPatch(api.ServiceKind) bool
+
+	// PatchCluster patches a cluster to include the custom Envoy configuration
+	// required to integrate with the serverless integration.
+	PatchCluster(*envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error)
+
+	// PatchFilter patches an Envoy filter to include the custom Envoy
+	// configuration required to integrate with the serverless integration.
+	PatchFilter(*envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error)
+}
+
+type patchers map[api.CompoundServiceName]patcher
+
+func getPatcher(patchers patchers, kind api.ServiceKind, name api.CompoundServiceName) patcher {
+	patcher, ok := patchers[name]
+
+	if !ok {
+		return nil
+	}
+
+	if !patcher.CanPatch(kind) {
+		return nil
+	}
+
+	return patcher
+}
+
+// getPatcherBySNI gets the patcher for the associated SNI.
+func getPatcherBySNI(config xdscommon.PluginConfiguration, kind api.ServiceKind, sni string) patcher {
+	serviceName, ok := config.SNIToServiceName[sni]
+
+	if !ok {
+		return nil
+	}
+
+	serviceConfig, ok := config.ServiceConfigs[serviceName]
+	if !ok {
+		return nil
+	}
+
+	p := makePatcher(serviceConfig)
+	if p == nil || !p.CanPatch(kind) {
+		return nil
+	}
+
+	return p
+}
+
+func makePatcher(serviceConfig xdscommon.ServiceConfig) patcher {
+	for _, constructor := range patchConstructors {
+		patcher, ok := constructor(serviceConfig)
+		if ok {
+			return patcher
+		}
+	}
+
+	return nil
+}
+
+// patchConstructor is used to construct patchers based on
+// xdscommon.ServiceConfig. This function contains all of the logic around
+// turning Meta data into the patcher.
+type patchConstructor func(xdscommon.ServiceConfig) (patcher, bool)
+
+// patchConstructors contains all patchers that getPatchers tries to create.
+var patchConstructors = []patchConstructor{makeLambdaPatcher}

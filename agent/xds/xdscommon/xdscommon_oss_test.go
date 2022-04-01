@@ -13,7 +13,7 @@ import (
 )
 
 func TestMakePluginConfiguration_TerminatingGateway(t *testing.T) {
-	snap := proxycfg.TestConfigSnapshotTerminatingGatewayWithServiceDefaultsMeta(t)
+	snap := proxycfg.TestConfigSnapshotTerminatingGatewayWithLambdaService(t)
 
 	webService := api.CompoundServiceName{
 		Name:      "web",
@@ -41,7 +41,12 @@ func TestMakePluginConfiguration_TerminatingGateway(t *testing.T) {
 		ServiceConfigs: map[api.CompoundServiceName]ServiceConfig{
 			webService: {
 				Kind: api.ServiceKindTerminatingGateway,
-				Meta: map[string]string{"a": "b"},
+				Meta: map[string]string{
+					"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
+					"serverless.consul.hashicorp.com/v1alpha1/lambda/arn":                 "lambda-arn",
+					"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "true",
+					"serverless.consul.hashicorp.com/v1alpha1/lambda/region":              "us-east-1",
+				},
 			},
 			apiService: {
 				Kind: api.ServiceKindTerminatingGateway,
