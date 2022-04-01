@@ -3,6 +3,7 @@ package serverlessplugin
 import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
@@ -14,6 +15,11 @@ import (
 type patcher interface {
 	// CanPatch determines if the patcher can mutate resources for the given api.ServiceKind
 	CanPatch(api.ServiceKind) bool
+
+	// patchRoute patches a route to include the custom Envoy configuration
+	// PatchCluster patches a cluster to include the custom Envoy configuration
+	// required to integrate with the serverless integration.
+	PatchRoute(*envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error)
 
 	// PatchCluster patches a cluster to include the custom Envoy configuration
 	// required to integrate with the serverless integration.

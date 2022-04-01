@@ -80,6 +80,15 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 								}
 							},
 						},
+						{
+							name: "routes",
+							key:  xdscommon.RouteType,
+							sorter: func(msgs []proto.Message) func(int, int) bool {
+								return func(i, j int) bool {
+									return msgs[i].(*envoy_listener_v3.Listener).Name < msgs[j].(*envoy_listener_v3.Listener).Name
+								}
+							},
+						},
 					}
 
 					for _, entity := range entities {

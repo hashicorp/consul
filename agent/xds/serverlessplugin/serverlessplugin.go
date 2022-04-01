@@ -5,6 +5,7 @@ import (
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-multierror"
 
@@ -30,6 +31,7 @@ func MutateIndexedResources(resources *xdscommon.IndexedResources, config xdscom
 	for _, indexType := range []string{
 		xdscommon.ClusterType,
 		xdscommon.ListenerType,
+		xdscommon.RouteType,
 	} {
 		for nameOrSNI, msg := range resources.Index[indexType] {
 			switch resource := msg.(type) {
@@ -56,6 +58,21 @@ func MutateIndexedResources(resources *xdscommon.IndexedResources, config xdscom
 				}
 				if patched {
 					resources.Index[xdscommon.ListenerType][nameOrSNI] = newListener
+				}
+
+			case *envoy_route_v3.RouteConfiguration:
+				patcher := getPatcherBySNI(config, config.Kind, nameOrSNI)
+				if patcher == nil {
+					continue
+				}
+
+				newRoute, patched, err := patcher.PatchRoute(resource)
+				if err != nil {
+					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching route: %w", err))
+					continue
+				}
+				if patched {
+					resources.Index[xdscommon.RouteType][nameOrSNI] = newRoute
 				}
 
 			default:
