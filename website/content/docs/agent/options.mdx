@@ -2175,7 +2175,7 @@ There are also a number of common configuration options supported by all provide
     geo location or datacenter, dc:sfo). By default, this is left blank and not used.
 
   - `disable_compat_1.9` ((#telemetry-disable_compat_1.9))
-    This allows users to disable metrics deprecated in 1.9 so they are no longer emitted, saving on performance and storage in large deployments. Defaults to false.
+    This allows users to disable metrics deprecated in 1.9 so they are no longer emitted, improving performance and reducing storage in large deployments. As of 1.12 this defaults to `true` and will be removed, along with 1.9 style http metrics in 1.13.
 
   - `disable_hostname` ((#telemetry-disable_hostname))
     This controls whether or not to prepend runtime telemetry with the machine's

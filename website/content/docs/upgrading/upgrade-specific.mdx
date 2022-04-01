@@ -14,12 +14,24 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
+## Consul 1.12.0
+
+### 1.9 Telemetry Compatibility
+
+#### Changing the default behavior for option
+
+The [`disable_compat_19`](/docs/agent/options#telemetry-disable_compat_1.9) telemetry configuration option now defaults
+to `true`. In prior Consul versions (1.10.x through 1.11.x), the config defaulted to `false`. If you require 1.9 style
+`consul.http...` metrics, you may enable them by setting the flag to `false`. However, be advised that these metrics, as
+well as the flag will be removed in upcoming Consul 1.13. We recommend changing your instrumentation to use 1.10 and later
+style `consul.api.http...` metrics and removing the configuration flag from your setup.
+
 ## Consul 1.11.0
 
 ### 1.10 Compatibility <EnterpriseAlert inline />
 Consul Enterprise versions 1.10.0 through 1.10.4 contain a latent bug that
 causes those client or server agents to deregister their own services or health
-checks when some of the servers have been upgraded to 1.11. Before upgrading Consul Enterprise servers to 1.11, all Consul agents should first 
+checks when some of the servers have been upgraded to 1.11. Before upgrading Consul Enterprise servers to 1.11, all Consul agents should first
 be upgraded to 1.10.7 or higher to ensure forward compatibility and prevent
 flapping of catalog registrations.
 
