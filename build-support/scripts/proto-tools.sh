@@ -9,8 +9,6 @@ readonly MOG_VERSION='v0.2.0'
 readonly PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 
 function main {
-    install_unversioned_tool goversion 'rsc.io/goversion@latest'
-
     install_versioned_tool \
         'protoc-gen-go' \
         'github.com/golang/protobuf' \
@@ -58,6 +56,7 @@ function install_versioned_tool {
     local got
 
     local expect="${module}@${version}"
+    local expect_dev="${module}@(devel)"
     local install="${installbase}@${version}"
 
     if [[ -z "$version" ]]; then
@@ -66,9 +65,11 @@ function install_versioned_tool {
     fi
 
     if command -v "${command}" &>/dev/null ; then
-        got="$(goversion -m $(which "${command}") | grep '\bmod\b' | grep "${module}" |
+        got="$(go version -m $(which "${command}") | grep '\bmod\b' | grep "${module}" |
             awk '{print $2 "@" $3}')"
-        if [[ "$expect" != "$got" ]]; then
+        if [[ "$expect_dev" = "$got" ]]; then
+            echo "=== TOOL: ${install} (skipped; using development version)"
+        elif [[ "$expect" != "$got" ]]; then
             should_install=1
         fi
     else
