@@ -158,10 +158,9 @@ Use these links to navigate to a particular top-level stanza.
         - CA certificate defined by the `global.tls.caCert.secretName` value
         - replication token defined by the `global.acls.replicationToken.secretName` value if `global.federation.enabled` is `true`
         To discover the service account name of the Consul server, run
-
-            ```shell-session
-            $ helm template --show-only templates/server-serviceaccount.yaml <release-name> hashicorp/consul
-            ```
+        ```shell-session
+        $ helm template --show-only templates/server-serviceaccount.yaml <release-name> hashicorp/consul
+        ```
         and check the name of `metadata.name`.
 
       - `consulClientRole` ((#v-global-secretsbackend-vault-consulclientrole)) (`string: ""`) - The Vault role for the Consul client.
@@ -169,10 +168,9 @@ Use these links to navigate to a particular top-level stanza.
         The role must also have a policy with read capabilities for the gossip encryption
         key defined by the `global.gossipEncryption.secretName` value.
         To discover the service account name of the Consul client, run
-
-            ```shell-session
-            $ helm template --show-only templates/client-serviceaccount.yaml <release-name> hashicorp/consul
-            ```
+        ```shell-session
+        $ helm template --show-only templates/client-serviceaccount.yaml <release-name> hashicorp/consul
+        ```
         and check the name of `metadata.name`.
 
       - `consulSnapshotAgentRole` ((#v-global-secretsbackend-vault-consulsnapshotagentrole)) (`string: ""`) - <EnterpriseAlert inline /> The Vault role for the Consul client snapshot agent.
@@ -180,21 +178,19 @@ Use these links to navigate to a particular top-level stanza.
         The role must also have a policy with read capabilities for the snapshot agent config
         defined by the `client.snapshotAgent.configSecret.secretName` value.
         To discover the service account name of the Consul client, run
-
-            ```shell-session
-            $ helm template --show-only templates/client-snapshot-agent-serviceaccount.yaml --set client.snapshotAgent.enabled=true <release-name> hashicorp/consul
-            ```
+        ```shell-session
+        $ helm template --show-only templates/client-snapshot-agent-serviceaccount.yaml --set client.snapshotAgent.enabled=true <release-name> hashicorp/consul
+        ```
         and check the name of `metadata.name`.
 
       - `manageSystemACLsRole` ((#v-global-secretsbackend-vault-managesystemaclsrole)) (`string: ""`) - A Vault role for the Consul `server-acl-init` job, which manages setting ACLs so that clients and components can obtain ACL tokens.
         The role must be connected to the `server-acl-init` job's service account.
         The role must also have a policy with read and write capabilities for the bootstrap, replication or partition tokens
         To discover the service account name of the `server-acl-init` job, run
-
-            ```shell-session
-            $ helm template --show-only templates/server-acl-init-serviceaccount.yaml \
-                  --set global.acls.manageSystemACLs=true <release-name> hashicorp/consul
-            ```
+        ```shell-session
+        $ helm template --show-only templates/server-acl-init-serviceaccount.yaml \
+          --set global.acls.manageSystemACLs=true <release-name> hashicorp/consul
+        ```
         and check the name of `metadata.name`.
 
       - `adminPartitionsRole` ((#v-global-secretsbackend-vault-adminpartitionsrole)) (`string: ""`) - <EnterpriseAlert inline /> A Vault role that allows the Consul `partition-init` job to read a Vault secret for the partition ACL token.
@@ -202,10 +198,9 @@ Use these links to navigate to a particular top-level stanza.
         .
         This role must be bound the `partition-init` job's service account.
         To discover the service account name of the `partition-init` job, run with Helm values for the client cluster:
-
-            ```shell-session
-            $ helm template --show-only templates/partition-init-serviceaccount.yaml -f client-cluster-values.yaml <release-name> hashicorp/consul
-            ```
+        ```shell-session
+        $ helm template --show-only templates/partition-init-serviceaccount.yaml -f client-cluster-values.yaml <release-name> hashicorp/consul
+        ```
         and check the name of `metadata.name`.
 
       - `agentAnnotations` ((#v-global-secretsbackend-vault-agentannotations)) (`string: null`) - This value defines additional annotations for
