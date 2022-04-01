@@ -153,10 +153,10 @@ Use these links to navigate to a particular top-level stanza.
       - `consulServerRole` ((#v-global-secretsbackend-vault-consulserverrole)) (`string: ""`) - The Vault role for the Consul server.
         The role must be connected to the Consul server's service account.
         The role must also have a policy with read capabilities for the following secrets:
-        - gossip encryption key defined by `global.gossipEncryption.secretName`
-        - certificate issue path defined by `server.serverCert.secretName`
-        - CA certificate defined by `global.tls.caCert.secretName`
-        - replication token defined by `global.acls.replicationToken.secretName` if `global.federation.enabled` is `true`
+        - gossip encryption key defined by the `global.gossipEncryption.secretName` value
+        - certificate issue path defined by the `server.serverCert.secretName` value
+        - CA certificate defined by the `global.tls.caCert.secretName` value
+        - replication token defined by the `global.acls.replicationToken.secretName` value if `global.federation.enabled` is `true`
         To discover the service account name of the Consul server, run
             ```shell-session
             $ helm template --show-only templates/server-serviceaccount.yaml <release-name> hashicorp/consul
@@ -166,7 +166,7 @@ Use these links to navigate to a particular top-level stanza.
       - `consulClientRole` ((#v-global-secretsbackend-vault-consulclientrole)) (`string: ""`) - The Vault role for the Consul client.
         The role must be connected to the Consul client's service account.
         The role must also have a policy with read capabilities for the gossip encryption
-        key defined by `global.gossipEncryption.secretName`.
+        key defined by the `global.gossipEncryption.secretName` value.
         To discover the service account name of the Consul client, run
             ```shell-session
             $ helm template --show-only templates/client-serviceaccount.yaml <release-name> hashicorp/consul
@@ -176,7 +176,7 @@ Use these links to navigate to a particular top-level stanza.
       - `consulSnapshotAgentRole` ((#v-global-secretsbackend-vault-consulsnapshotagentrole)) (`string: ""`) - <EnterpriseAlert inline /> The Vault role for the Consul client snapshot agent.
         The role must be connected to the Consul client snapshot agent's service account.
         The role must also have a policy with read capabilities for the snapshot agent config
-        defined by `client.snapshotAgent.configSecret.secretName`.
+        defined by the `client.snapshotAgent.configSecret.secretName` value.
         To discover the service account name of the Consul client, run
             ```shell-session
             $ helm template --show-only templates/client-snapshot-agent-serviceaccount.yaml --set client.snapshotAgent.enabled=true <release-name> hashicorp/consul
@@ -193,8 +193,9 @@ Use these links to navigate to a particular top-level stanza.
             ```
         and check the name of `metadata.name`.
 
-      - `adminPartitionsRole` ((#v-global-secretsbackend-vault-adminpartitionsrole)) (`string: ""`) - <EnterpriseAlert inline /> A Vault role to allow Kubernetes job that creates a Consul partition for this Helm chart (`partition-init`)
-        to read Vault secret for the partition ACL token.
+      - `adminPartitionsRole` ((#v-global-secretsbackend-vault-adminpartitionsrole)) (`string: ""`) - <EnterpriseAlert inline /> A Vault role that allows the Consul `partition-init` job to read a Vault secret for the partition ACL token.
+         The `partition-init` job bootstraps Admin Partitions on Consul servers.
+        .
         This role must be bound the `partition-init` job's service account.
         To discover the service account name of the `partition-init` job, run with Helm values for the client cluster:
             ```shell-session
@@ -400,7 +401,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `partitionToken` ((#v-global-acls-partitiontoken)) - partitionToken references a Vault secret containing the ACL token to be used in non-default partitions.
       This value should only be provided in the default partition and only when setting
-      `global.secretsBackend.vault.enabled` to true.
+      the `global.secretsBackend.vault.enabled` value to true.
       Consul will use the value of the secret stored in Vault to create an ACL token in Consul with the value of the
       secret as the secretID for the token.
       In non-default, partitions set this secret as the `bootstrapToken`.
