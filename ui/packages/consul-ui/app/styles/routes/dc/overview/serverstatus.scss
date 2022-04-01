@@ -110,6 +110,9 @@ section[data-route='dc.show.serverstatus'] {
   @extend %horizontal-kv-list;
   @extend %pill-500;
 }
+%redundancy-zone header dt {
+  @extend %visually-unhidden;
+}
 %redundancy-zone header dl:not(.warning) {
   background-color: rgb(var(--tone-gray-100));
 }
