@@ -180,7 +180,7 @@ func TestHTTPHandlers_AgentMetrics_Disable1Dot9MetricsChange(t *testing.T) {
 		assertMetricNotExists(t, respRec, "agent_http_http_GET_v1_agent_members")
 	})
 
-	t.Run("check that we cam still turn on consul.http metrics", func(t *testing.T) {
+	t.Run("check that we can still turn on consul.http metrics", func(t *testing.T) {
 		hcl := `
 		telemetry = {
 			prometheus_retention_time = "5s",
