@@ -334,18 +334,19 @@ func (c *CheckTTL) SetStatus(status, output string) string {
 // or if the request returns an error
 // Supports failures_before_critical and success_before_passing.
 type CheckHTTP struct {
-	CheckID         structs.CheckID
-	ServiceID       structs.ServiceID
-	HTTP            string
-	Header          map[string][]string
-	Method          string
-	Body            string
-	Interval        time.Duration
-	Timeout         time.Duration
-	Logger          hclog.Logger
-	TLSClientConfig *tls.Config
-	OutputMaxSize   int
-	StatusHandler   *StatusHandler
+	CheckID          structs.CheckID
+	ServiceID        structs.ServiceID
+	HTTP             string
+	Header           map[string][]string
+	Method           string
+	Body             string
+	Interval         time.Duration
+	Timeout          time.Duration
+	Logger           hclog.Logger
+	TLSClientConfig  *tls.Config
+	OutputMaxSize    int
+	StatusHandler    *StatusHandler
+	DisableRedirects bool
 
 	httpClient *http.Client
 	stop       bool
@@ -391,6 +392,11 @@ func (c *CheckHTTP) Start() {
 		c.httpClient = &http.Client{
 			Timeout:   10 * time.Second,
 			Transport: trans,
+		}
+		if c.DisableRedirects {
+			c.httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			}
 		}
 		if c.Timeout > 0 {
 			c.httpClient.Timeout = c.Timeout

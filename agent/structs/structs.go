@@ -6,8 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"math/rand"
 	"reflect"
 	"regexp"
@@ -15,6 +13,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/timestamp"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
@@ -1572,6 +1573,7 @@ type HealthCheckDefinition struct {
 	Header                         map[string][]string `json:",omitempty"`
 	Method                         string              `json:",omitempty"`
 	Body                           string              `json:",omitempty"`
+	DisableRedirects               bool                `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
 	H2PingUseTLS                   bool                `json:",omitempty"`
@@ -1720,6 +1722,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Header:                         c.Definition.Header,
 		Method:                         c.Definition.Method,
 		Body:                           c.Definition.Body,
+		DisableRedirects:               c.Definition.DisableRedirects,
 		TCP:                            c.Definition.TCP,
 		H2PING:                         c.Definition.H2PING,
 		H2PingUseTLS:                   c.Definition.H2PingUseTLS,
