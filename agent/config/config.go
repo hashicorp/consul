@@ -399,6 +399,7 @@ type CheckDefinition struct {
 	Header                         map[string][]string `mapstructure:"header"`
 	Method                         *string             `mapstructure:"method"`
 	Body                           *string             `mapstructure:"body"`
+	DisableRedirects               *bool               `mapstructure:"disable_redirects"`
 	OutputMaxSize                  *int                `mapstructure:"output_max_size"`
 	TCP                            *string             `mapstructure:"tcp"`
 	Interval                       *string             `mapstructure:"interval"`

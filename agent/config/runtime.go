@@ -469,6 +469,7 @@ type RuntimeConfig struct {
 	//     http = string
 	//     header = map[string][]string
 	//     method = string
+	//     disable_redirects = (true|false)
 	//     tcp = string
 	//     interval = string
 	//     docker_container_id = string

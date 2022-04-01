@@ -57,12 +57,16 @@ There are several different kinds of checks:
   fields can be set through the `header` field which is a map of lists of
   strings, e.g. `{"x-foo": ["bar", "baz"]}`. By default, HTTP checks will be
   configured with a request timeout equal to 10 seconds.
+
   It is possible to configure a custom HTTP check timeout value by
   specifying the `timeout` field in the check definition. The output of the
   check is limited to roughly 4KB. Responses larger than this will be truncated.
   HTTP checks also support TLS. By default, a valid TLS certificate is expected.
   Certificate verification can be turned off by setting the `tls_skip_verify`
   field to `true` in the check definition.
+
+  Consul follows HTTP redirects by default. Set the `disable_redirects` field to
+  `true` to disable redirects.
 
 - `TCP + Interval` - These checks make a TCP connection attempt to the specified
   IP/hostname and port, waiting `interval` amount of time between attempts
@@ -145,6 +149,24 @@ A script check:
 ```
 
 A HTTP check:
+
+```javascript
+check = {
+  id = "api"
+  name = "HTTP API on port 5000"
+  http = "https://localhost:5000/health"
+  tls_server_name =  ""
+  tls_skip_verify = false
+  method = "POST"
+  header = {
+     Content-Type =  ["application/json"]
+  }
+  body = "{\"method\":\"health\"}"
+  disable_redirects = true
+  interval =  "10s"
+  timeout =  "1s"
+}
+```
 
 ```javascript
 {

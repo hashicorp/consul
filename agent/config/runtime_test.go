@@ -5138,6 +5138,7 @@ func TestFullConfig(t *testing.T) {
 				},
 				"method": "Dou0nGT5",
 				"body": "5PBQd2OT",
+				"disable_redirects": true,
 				"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 				"tcp": "JY6fTTcw",
 				"interval": "18714s",
@@ -5164,6 +5165,7 @@ func TestFullConfig(t *testing.T) {
 					},
 					"method": "aldrIQ4l",
 					"body": "wSjTy7dg",
+					"disable_redirects": true,
 					"tcp": "RJQND605",
 					"interval": "22164s",
 					"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
@@ -5418,6 +5420,7 @@ func TestFullConfig(t *testing.T) {
 					},
 					"method": "9afLm3Mj",
 					"body": "wVVL2V6f",
+					"disable_redirects": true,
 					"tcp": "fjiLFqVd",
 					"interval": "23926s",
 					"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
@@ -5442,6 +5445,7 @@ func TestFullConfig(t *testing.T) {
 						},
 						"method": "T66MFBfR",
 						"body": "OwGjTFQi",
+						"disable_redirects": true,
 						"tcp": "bNnNfx2A",
 						"interval": "22224s",
 						"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
@@ -5502,7 +5506,9 @@ func TestFullConfig(t *testing.T) {
 						},
 						"method": "X5DrovFc",
 						"body": "WeikigLh",
+						"disable_redirects": true,
 						"tcp": "ICbxkpSF",
+						"disable_redirects": true,
 						"interval": "24392s",
 						"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 						"docker_container_id": "ZKXr68Yb",
@@ -5828,6 +5834,7 @@ func TestFullConfig(t *testing.T) {
 				}
 				method = "Dou0nGT5"
 				body = "5PBQd2OT"
+				disable_redirects = true
 				tcp = "JY6fTTcw"
 				interval = "18714s"
 				output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
@@ -5854,6 +5861,7 @@ func TestFullConfig(t *testing.T) {
 					}
 					method = "aldrIQ4l"
 					body = "wSjTy7dg"
+					disable_redirects = true
 					tcp = "RJQND605"
 					interval = "22164s"
 					output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
@@ -6113,6 +6121,7 @@ func TestFullConfig(t *testing.T) {
 					}
 					method = "9afLm3Mj"
 					body = "wVVL2V6f"
+					disable_redirects = true
 					tcp = "fjiLFqVd"
 					interval = "23926s"
 					docker_container_id = "dO5TtRHk"
@@ -6136,6 +6145,7 @@ func TestFullConfig(t *testing.T) {
 						}
 						method = "T66MFBfR"
 						body = "OwGjTFQi"
+						disable_redirects = true
 						tcp = "bNnNfx2A"
 						interval = "22224s"
 						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
@@ -6196,6 +6206,7 @@ func TestFullConfig(t *testing.T) {
 						}
 						method = "X5DrovFc"
 						body = "WeikigLh"
+						disable_redirects = true
 						tcp = "ICbxkpSF"
 						interval = "24392s"
 						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
@@ -6592,6 +6603,7 @@ func TestFullConfig(t *testing.T) {
 				},
 				Method:                         "aldrIQ4l",
 				Body:                           "wSjTy7dg",
+				DisableRedirects:               true,
 				TCP:                            "RJQND605",
 				Interval:                       22164 * time.Second,
 				OutputMaxSize:                  checks.DefaultBufSize,
@@ -6617,6 +6629,7 @@ func TestFullConfig(t *testing.T) {
 				},
 				Method:                         "gLrztrNw",
 				Body:                           "0jkKgGUC",
+				DisableRedirects:               false,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "4jG5casb",
 				Interval:                       28767 * time.Second,
@@ -6642,6 +6655,7 @@ func TestFullConfig(t *testing.T) {
 				},
 				Method:                         "Dou0nGT5",
 				Body:                           "5PBQd2OT",
+				DisableRedirects:               true,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "JY6fTTcw",
 				Interval:                       18714 * time.Second,
@@ -6863,6 +6877,7 @@ func TestFullConfig(t *testing.T) {
 						},
 						Method:                         "X5DrovFc",
 						Body:                           "WeikigLh",
+						DisableRedirects:               true,
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "ICbxkpSF",
 						Interval:                       24392 * time.Second,
@@ -7053,6 +7068,7 @@ func TestFullConfig(t *testing.T) {
 						},
 						Method:                         "T66MFBfR",
 						Body:                           "OwGjTFQi",
+						DisableRedirects:               true,
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "bNnNfx2A",
 						Interval:                       22224 * time.Second,
@@ -7076,6 +7092,7 @@ func TestFullConfig(t *testing.T) {
 						},
 						Method:                         "ciYHWors",
 						Body:                           "lUVLGYU7",
+						DisableRedirects:               false,
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "FfvCwlqH",
 						Interval:                       12356 * time.Second,
@@ -7099,6 +7116,7 @@ func TestFullConfig(t *testing.T) {
 						},
 						Method:                         "9afLm3Mj",
 						Body:                           "wVVL2V6f",
+						DisableRedirects:               true,
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "fjiLFqVd",
 						Interval:                       23926 * time.Second,
