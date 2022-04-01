@@ -356,22 +356,22 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 	if v.setupIntermediatePKIPathDone {
 		return nil
 	}
-	mounts, err := v.client.Sys().ListMounts()
+
+	_, err := v.getCA(v.config.IntermediatePKIPath)
 	if err != nil {
-		return err
-	}
+		if err == ErrBackendNotMounted {
+			err := v.client.Sys().Mount(v.config.IntermediatePKIPath, &vaultapi.MountInput{
+				Type:        "pki",
+				Description: "intermediate CA backend for Consul Connect",
+				Config: vaultapi.MountConfigInput{
+					MaxLeaseTTL: v.config.IntermediateCertTTL.String(),
+				},
+			})
 
-	// Mount the backend if it isn't mounted already.
-	if _, ok := mounts[v.config.IntermediatePKIPath]; !ok {
-		err := v.client.Sys().Mount(v.config.IntermediatePKIPath, &vaultapi.MountInput{
-			Type:        "pki",
-			Description: "intermediate CA backend for Consul Connect",
-			Config: vaultapi.MountConfigInput{
-				MaxLeaseTTL: v.config.IntermediateCertTTL.String(),
-			},
-		})
-
-		if err != nil {
+			if err != nil {
+				return err
+			}
+		} else {
 			return err
 		}
 	}
