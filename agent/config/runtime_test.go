@@ -6390,7 +6390,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
-		RaftBoltDBConfig: consul.RaftBoltDBConfig{NoFreelistSync: true},
+		RaftBoltDBConfig:                 consul.RaftBoltDBConfig{NoFreelistSync: true},
+		AutoReloadConfigCoalesceInterval: 1 * time.Second,
 	}
 	entFullRuntimeConfig(expected)
 
