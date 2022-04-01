@@ -496,20 +496,45 @@
                 "path": "k8s/installation/vault"
               },
               {
-                "title": "Gossip Encryption Key",
-                "path": "k8s/installation/vault/gossip"
+                "title": "Systems Integration",
+                "path": "k8s/installation/vault/systems-integration"
               },
               {
-                "title": "Enterprise License",
-                "path": "k8s/installation/vault/enterprise-license"
-              },
-              {
-                "title": "Server TLS",
-                "path": "k8s/installation/vault/server-tls"
-              },
-              {
-                "title": "Service Mesh Certificates",
-                "path": "k8s/installation/vault/connect-ca"
+                "title": "Data Integration",
+                "routes": [
+                  {
+                    "title": "Overview",
+                    "path": "k8s/installation/vault/data-integration"
+                  },
+                  {
+                    "title": "Bootstrap Token",
+                    "path": "k8s/installation/vault/bootstrap-token"
+                  },
+                  {
+                    "title": "Gossip Encryption Key",
+                    "path": "k8s/installation/vault/gossip"
+                  },
+                  {
+                    "title": "Enterprise License",
+                    "path": "k8s/installation/vault/enterprise-license"
+                  },
+                  {
+                    "title": "Replication Token",
+                    "path": "k8s/installation/vault/replication-token"
+                  },
+                  {
+                    "title": "Snapshot Agent Config",
+                    "path": "k8s/installation/vault/snapshot-agent-config"
+                  },
+                  {
+                    "title": "Server TLS",
+                    "path": "k8s/installation/vault/server-tls"
+                  },
+                  {
+                    "title": "Service Mesh Certificates",
+                    "path": "k8s/installation/vault/connect-ca"
+                  }
+                ]
               }
             ]
           },
@@ -787,7 +812,6 @@
             "title": "Overview",
             "path": "nia/enterprise"
           },
-
           {
             "title": "License",
             "path": "nia/enterprise/license"
