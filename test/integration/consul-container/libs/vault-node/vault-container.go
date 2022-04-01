@@ -1,4 +1,4 @@
-package consulcontainer
+package vaultcontainer
 
 import (
 	"context"
@@ -11,22 +11,26 @@ import (
 
 	"github.com/testcontainers/testcontainers-go"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/vault/api"
 
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-type consulNode struct {
+type vaultNode struct {
 	ctx    context.Context
 	Client *api.Client
 }
 
 const bootLogLine = "New leader elected"
 
-func NewNodeWitConfig(ctx context.Context, config string) (*consulNode, error) {
-	name := utils.RandName("consul-")
+func NewNodeWitConfig(ctx context.Context, config string) (*vaultNode, error) {
+	name := utils.RandName("vault-")
 	ctx = context.WithValue(ctx, "name", name)
 	tmpDir, err := ioutils.TempDir("/tmp", name)
+	if err != nil {
+		return nil, err
+	}
+	err = os.Mkdir(tmpDir+"/config", 0777)
 	if err != nil {
 		return nil, err
 	}
@@ -36,12 +40,12 @@ func NewNodeWitConfig(ctx context.Context, config string) (*consulNode, error) {
 		return nil, err
 	}
 	req := testcontainers.ContainerRequest{
-		Image:        "consul",
+		Image:        "vault",
 		ExposedPorts: []string{"8500/tcp"},
 		WaitingFor:   wait.ForLog(bootLogLine),
 		AutoRemove:   false,
 		Name:         name,
-		BindMounts:   map[string]string{"/consul/config/config.hcl": configFile},
+		BindMounts:   map[string]string{"/vault/config/config.hcl": configFile},
 	}
 
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -63,7 +67,7 @@ func NewNodeWitConfig(ctx context.Context, config string) (*consulNode, error) {
 	}
 
 	uri := fmt.Sprintf("http://%s:%s", ip, mappedPort.Port())
-	c := new(consulNode)
+	c := new(vaultNode)
 	apiConfig := api.DefaultConfig()
 	apiConfig.Address = uri
 	c.Client, err = api.NewClient(apiConfig)
@@ -73,6 +77,6 @@ func NewNodeWitConfig(ctx context.Context, config string) (*consulNode, error) {
 	return c, nil
 }
 
-func NewNode() (*consulNode, error) {
+func NewNode() (*vaultNode, error) {
 	return NewNodeWitConfig(context.Background(), "")
 }
