@@ -71,15 +71,6 @@ The Vault PKI Engine must be enabled in order to leverage Vault for issuing Cons
 ```shell-session
 $ vault secrets enable pki
 ```
-
-## Known Limitations
-
-- TLS
-  - Mesh gateway is not currently supported.
-- Multi-DC Federation is not currently supported.
-- Certificate rotation for Server TLS certs is not currently supported through the Helm chart. Ensure the TTL for your Server TLS certificates are sufficiently long. Should your certificates expire it will be necessary to issue a `consul reload` on each server after issuing new Server TLS certs from Vault. 
-- CA rotation is not currently supported through the Helm chart and must be manually rotated. 
-
 ## Next Steps
 
 To utilize Vault as a secrets backend with Consul it is necessary to add several configuration fields to the Vault installation
