@@ -5545,7 +5545,8 @@ func TestAgent_AutoReloadDoReload_WhenCertThenKeyUpdated(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
-	cert1 := srv.tlsConfigurator.Cert()
+	cert1Pub := srv.tlsConfigurator.Cert().Certificate
+	cert1Key := srv.tlsConfigurator.Cert().PrivateKey
 
 	certNew, privateKeyNew, err := tlsutil.GenerateCert(tlsutil.CertOpts{
 		Signer:      signer,
@@ -5575,8 +5576,10 @@ func TestAgent_AutoReloadDoReload_WhenCertThenKeyUpdated(t *testing.T) {
 	// cert should not change as we did not update the associated key
 	time.Sleep(1 * time.Second)
 	retry.Run(t, func(r *retry.R) {
-		require.Equal(r, cert1.Certificate, srv.tlsConfigurator.Cert().Certificate)
-		require.Equal(r, cert1.PrivateKey, srv.tlsConfigurator.Cert().PrivateKey)
+		cert := srv.tlsConfigurator.Cert()
+		require.NotNil(r, cert)
+		require.Equal(r, cert1Pub, cert.Certificate)
+		require.Equal(r, cert1Key, cert.PrivateKey)
 	})
 
 	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKeyNew), 0600))
@@ -5584,8 +5587,8 @@ func TestAgent_AutoReloadDoReload_WhenCertThenKeyUpdated(t *testing.T) {
 	// cert should change as we did not update the associated key
 	time.Sleep(1 * time.Second)
 	retry.Run(t, func(r *retry.R) {
-		require.NotEqual(r, cert1.Certificate, srv.tlsConfigurator.Cert().Certificate)
-		require.NotEqual(r, cert1.PrivateKey, srv.tlsConfigurator.Cert().PrivateKey)
+		require.NotEqual(r, cert1Pub, srv.tlsConfigurator.Cert().Certificate)
+		require.NotEqual(r, cert1Key, srv.tlsConfigurator.Cert().PrivateKey)
 	})
 }
 
@@ -5652,7 +5655,8 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
-	cert1 := srv.tlsConfigurator.Cert()
+	cert1Pub := srv.tlsConfigurator.Cert().Certificate
+	cert1Key := srv.tlsConfigurator.Cert().PrivateKey
 
 	certNew, privateKeyNew, err := tlsutil.GenerateCert(tlsutil.CertOpts{
 		Signer:      signer,
@@ -5668,8 +5672,10 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 	// cert should not change as we did not update the associated key
 	time.Sleep(1 * time.Second)
 	retry.Run(t, func(r *retry.R) {
-		require.Equal(r, cert1.Certificate, srv.tlsConfigurator.Cert().Certificate)
-		require.Equal(r, cert1.PrivateKey, srv.tlsConfigurator.Cert().PrivateKey)
+		cert := srv.tlsConfigurator.Cert()
+		require.NotNil(r, cert)
+		require.Equal(r, cert1Pub, cert.Certificate)
+		require.Equal(r, cert1Key, cert.PrivateKey)
 	})
 
 	require.NoError(t, ioutil.WriteFile(certFileNew, []byte(certNew), 0600))
@@ -5690,10 +5696,13 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 	// cert should change as we did not update the associated key
 	time.Sleep(1 * time.Second)
 	retry.Run(t, func(r *retry.R) {
-		require.NotEqual(r, cert1.Certificate, srv.tlsConfigurator.Cert().Certificate)
-		require.NotEqual(r, cert1.PrivateKey, srv.tlsConfigurator.Cert().PrivateKey)
+		cert := srv.tlsConfigurator.Cert()
+		require.NotNil(r, cert)
+		require.NotEqual(r, cert1Key, cert.Certificate)
+		require.NotEqual(r, cert1Key, cert.PrivateKey)
 	})
-	cert2 := srv.tlsConfigurator.Cert()
+	cert2Pub := srv.tlsConfigurator.Cert().Certificate
+	cert2Key := srv.tlsConfigurator.Cert().PrivateKey
 
 	certNew2, privateKeyNew2, err := tlsutil.GenerateCert(tlsutil.CertOpts{
 		Signer:      signer,
@@ -5708,8 +5717,10 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 	// cert should not change as we did not update the associated cert
 	time.Sleep(1 * time.Second)
 	retry.Run(t, func(r *retry.R) {
-		require.Equal(r, cert2.Certificate, srv.tlsConfigurator.Cert().Certificate)
-		require.Equal(r, cert2.PrivateKey, srv.tlsConfigurator.Cert().PrivateKey)
+		cert := srv.tlsConfigurator.Cert()
+		require.NotNil(r, cert)
+		require.Equal(r, cert2Pub, cert.Certificate)
+		require.Equal(r, cert2Key, cert.PrivateKey)
 	})
 
 	require.NoError(t, ioutil.WriteFile(certFileNew, []byte(certNew2), 0600))
@@ -5717,8 +5728,10 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 	// cert should change as we did  update the associated key
 	time.Sleep(1 * time.Second)
 	retry.Run(t, func(r *retry.R) {
-		require.NotEqual(r, cert2.Certificate, srv.tlsConfigurator.Cert().Certificate)
-		require.NotEqual(r, cert2.PrivateKey, srv.tlsConfigurator.Cert().PrivateKey)
+		cert := srv.tlsConfigurator.Cert()
+		require.NotNil(r, cert)
+		require.NotEqual(r, cert2Pub, cert.Certificate)
+		require.NotEqual(r, cert2Key, cert.PrivateKey)
 	})
 }
 
@@ -5785,7 +5798,8 @@ func Test_coalesceTimerTwoPeriods(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
-	cert1 := srv.tlsConfigurator.Cert()
+	cert1Pub := srv.tlsConfigurator.Cert().Certificate
+	cert1Key := srv.tlsConfigurator.Cert().PrivateKey
 
 	certNew, privateKeyNew, err := tlsutil.GenerateCert(tlsutil.CertOpts{
 		Signer:      signer,
@@ -5815,8 +5829,10 @@ func Test_coalesceTimerTwoPeriods(t *testing.T) {
 	// cert should not change as we did not update the associated key
 	time.Sleep(coalesceInterval * 2)
 	retry.Run(t, func(r *retry.R) {
-		require.Equal(r, cert1.Certificate, srv.tlsConfigurator.Cert().Certificate)
-		require.Equal(r, cert1.PrivateKey, srv.tlsConfigurator.Cert().PrivateKey)
+		cert := srv.tlsConfigurator.Cert()
+		require.NotNil(r, cert)
+		require.Equal(r, cert1Pub, cert.Certificate)
+		require.Equal(r, cert1Key, cert.PrivateKey)
 	})
 
 	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKeyNew), 0600))
