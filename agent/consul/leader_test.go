@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
@@ -1528,7 +1529,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 			deps := newDefaultDeps(t, config)
 			deps.Logger = logger
 
-			srv, err := NewServer(config, deps, nil)
+			srv, err := NewServer(config, deps, grpc.NewServer())
 			require.NoError(t, err)
 			defer srv.Shutdown()
 

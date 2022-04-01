@@ -4,10 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"sync/atomic"
-
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 const (
@@ -54,37 +51,32 @@ type Subscription struct {
 }
 
 // SubscribeRequest identifies the types of events the subscriber would like to
-// receiver. Topic and Token are required.
+// receive. Topic, Subject, and Token are required.
 type SubscribeRequest struct {
-	// Topic to subscribe to
+	// Topic to subscribe to (e.g. service health).
 	Topic Topic
-	// Key used to filter events in the topic. Only events matching the key will
-	// be returned by the subscription. A blank key will return all events. Key
-	// is generally the name of the resource.
-	Key string
-	// EnterpriseMeta is used to filter events in the topic. Only events matching
-	// the partition and namespace will be returned by the subscription.
-	EnterpriseMeta structs.EnterpriseMeta
+
+	// Subject identifies the subset of Topic events the subscriber wishes to
+	// receive (e.g. events for a specific service). SubjectNone may be provided
+	// if all events on the given topic are "global" and not further partitioned
+	// by subject.
+	Subject Subject
+
 	// Token that was used to authenticate the request. If any ACL policy
 	// changes impact the token the subscription will be forcefully closed.
 	Token string
+
 	// Index is the last index the client received. If non-zero the
 	// subscription will be resumed from this index. If the index is out-of-date
 	// a NewSnapshotToFollow event will be sent.
 	Index uint64
 }
 
-func (req SubscribeRequest) Subject() Subject {
-	var (
-		partition = req.EnterpriseMeta.PartitionOrDefault()
-		namespace = req.EnterpriseMeta.NamespaceOrDefault()
-		key       = strings.ToLower(req.Key)
-	)
-	return Subject(partition + "/" + namespace + "/" + key)
-}
-
 func (req SubscribeRequest) topicSubject() topicSubject {
-	return topicSubject{req.Topic, req.Subject()}
+	return topicSubject{
+		Topic:   req.Topic.String(),
+		Subject: req.Subject.String(),
+	}
 }
 
 // newSubscription return a new subscription. The caller is responsible for

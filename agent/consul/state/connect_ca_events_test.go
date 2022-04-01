@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
@@ -91,5 +92,27 @@ func TestCARootsSnapshot(t *testing.T) {
 				},
 			},
 		})
+	})
+}
+
+func TestEventPayloadCARoots_HasReadPermission(t *testing.T) {
+	t.Run("no service:write", func(t *testing.T) {
+		hasRead := EventPayloadCARoots{}.HasReadPermission(acl.DenyAll())
+		require.False(t, hasRead)
+	})
+
+	t.Run("has service:write", func(t *testing.T) {
+		policy, err := acl.NewPolicyFromSource(`
+			service "foo" {
+				policy = "write"
+			}
+		`, acl.SyntaxCurrent, nil, nil)
+		require.NoError(t, err)
+
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
+
+		hasRead := EventPayloadCARoots{}.HasReadPermission(authz)
+		require.True(t, hasRead)
 	})
 }

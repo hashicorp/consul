@@ -664,6 +664,26 @@ func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*stru
 	return syntheticPolicies
 }
 
+// plainACLResolver wraps ACLResolver so that it can be used in other packages
+// that cannot import agent/consul wholesale (e.g. because of import cycles).
+//
+// TODO(agentless): this pattern was copied from subscribeBackend for expediency
+// but we should really refactor ACLResolver so it can be passed as a dependency
+// to other packages.
+type plainACLResolver struct {
+	resolver *ACLResolver
+}
+
+func (r plainACLResolver) ResolveTokenAndDefaultMeta(
+	token string,
+	entMeta *structs.EnterpriseMeta,
+	authzContext *acl.AuthorizerContext,
+) (acl.Authorizer, error) {
+	// ACLResolver.ResolveTokenAndDefaultMeta returns a ACLResolveResult which
+	// can't be used in other packages, but it embeds acl.Authorizer which can.
+	return r.resolver.ResolveTokenAndDefaultMeta(token, entMeta, authzContext)
+}
+
 func dedupeServiceIdentities(in []*structs.ACLServiceIdentity) []*structs.ACLServiceIdentity {
 	// From: https://github.com/golang/go/wiki/SliceTricks#in-place-deduplicate-comparable
 

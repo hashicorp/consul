@@ -16,11 +16,10 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-func TestEventPayloadCheckServiceNode_SubjectMatchesRequests(t *testing.T) {
-	// Matches.
+func TestEventPayloadCheckServiceNode_Subject(t *testing.T) {
 	for desc, tc := range map[string]struct {
 		evt EventPayloadCheckServiceNode
-		req stream.SubscribeRequest
+		sub string
 	}{
 		"default partition and namespace": {
 			EventPayloadCheckServiceNode{
@@ -30,10 +29,7 @@ func TestEventPayloadCheckServiceNode_SubjectMatchesRequests(t *testing.T) {
 					},
 				},
 			},
-			stream.SubscribeRequest{
-				Key:            "foo",
-				EnterpriseMeta: structs.EnterpriseMeta{},
-			},
+			"default/default/foo",
 		},
 		"mixed casing": {
 			EventPayloadCheckServiceNode{
@@ -43,7 +39,7 @@ func TestEventPayloadCheckServiceNode_SubjectMatchesRequests(t *testing.T) {
 					},
 				},
 			},
-			stream.SubscribeRequest{Key: "foo"},
+			"default/default/foo",
 		},
 		"override key": {
 			EventPayloadCheckServiceNode{
@@ -54,60 +50,11 @@ func TestEventPayloadCheckServiceNode_SubjectMatchesRequests(t *testing.T) {
 				},
 				overrideKey: "bar",
 			},
-			stream.SubscribeRequest{Key: "bar"},
+			"default/default/bar",
 		},
 	} {
 		t.Run(desc, func(t *testing.T) {
-			require.Equal(t, tc.req.Subject(), tc.evt.Subject())
-		})
-	}
-
-	// Non-matches.
-	for desc, tc := range map[string]struct {
-		evt EventPayloadCheckServiceNode
-		req stream.SubscribeRequest
-	}{
-		"different key": {
-			EventPayloadCheckServiceNode{
-				Value: &structs.CheckServiceNode{
-					Service: &structs.NodeService{
-						Service: "foo",
-					},
-				},
-			},
-			stream.SubscribeRequest{
-				Key: "bar",
-			},
-		},
-		"different partition": {
-			EventPayloadCheckServiceNode{
-				Value: &structs.CheckServiceNode{
-					Service: &structs.NodeService{
-						Service: "foo",
-					},
-				},
-				overridePartition: "bar",
-			},
-			stream.SubscribeRequest{
-				Key: "foo",
-			},
-		},
-		"different namespace": {
-			EventPayloadCheckServiceNode{
-				Value: &structs.CheckServiceNode{
-					Service: &structs.NodeService{
-						Service: "foo",
-					},
-				},
-				overrideNamespace: "bar",
-			},
-			stream.SubscribeRequest{
-				Key: "foo",
-			},
-		},
-	} {
-		t.Run(desc, func(t *testing.T) {
-			require.NotEqual(t, tc.req.Subject(), tc.evt.Subject())
+			require.Equal(t, tc.sub, tc.evt.Subject().String())
 		})
 	}
 }
@@ -125,7 +72,7 @@ func TestServiceHealthSnapshot(t *testing.T) {
 
 	fn := serviceHealthSnapshot((*readDB)(store.db.db), topicServiceHealth)
 	buf := &snapshotAppender{}
-	req := stream.SubscribeRequest{Key: "web"}
+	req := stream.SubscribeRequest{Subject: EventSubjectService{Key: "web"}}
 
 	idx, err := fn(req, buf)
 	require.NoError(t, err)
@@ -202,7 +149,7 @@ func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 
 	fn := serviceHealthSnapshot((*readDB)(store.db.db), topicServiceHealthConnect)
 	buf := &snapshotAppender{}
-	req := stream.SubscribeRequest{Key: "web", Topic: topicServiceHealthConnect}
+	req := stream.SubscribeRequest{Subject: EventSubjectService{Key: "web"}, Topic: topicServiceHealthConnect}
 
 	idx, err := fn(req, buf)
 	require.NoError(t, err)

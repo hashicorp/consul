@@ -12,11 +12,13 @@ import (
 //
 // Note: topics are ordinarily defined in subscribe.proto, but this one isn't
 // currently available via the Subscribe endpoint.
-const EventTopicCARoots stringTopic = "CARoots"
+const EventTopicCARoots stringer = "CARoots"
 
-type stringTopic string
+// stringer is a convenience type to turn a regular string into a fmt.Stringer
+// so that it can be used as a stream.Topic or stream.Subject.
+type stringer string
 
-func (s stringTopic) String() string { return string(s) }
+func (s stringer) String() string { return string(s) }
 
 type EventPayloadCARoots struct {
 	CARoots structs.CARoots
@@ -25,9 +27,12 @@ type EventPayloadCARoots struct {
 func (e EventPayloadCARoots) Subject() stream.Subject { return stream.SubjectNone }
 
 func (e EventPayloadCARoots) HasReadPermission(authz acl.Authorizer) bool {
-	// TODO(agentless): implement this method once the Authorizer exposes a method
-	// to check for `service:write` on any service.
-	panic("EventPayloadCARoots does not implement HasReadPermission")
+	// Require `service:write` on any service in any partition and namespace.
+	var authzContext acl.AuthorizerContext
+	structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier).
+		FillAuthzContext(&authzContext)
+
+	return authz.ServiceWriteAny(&authzContext) == acl.Allow
 }
 
 // caRootsChangeEvents returns an event on EventTopicCARoots whenever the list

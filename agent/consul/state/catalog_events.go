@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
@@ -10,6 +11,38 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
+
+// EventSubjectService is a stream.Subject used to route and receive events for
+// a specific service.
+type EventSubjectService struct {
+	Key            string
+	EnterpriseMeta structs.EnterpriseMeta
+
+	overrideKey       string
+	overrideNamespace string
+	overridePartition string
+}
+
+// String satisfies the stream.Subject interface.
+func (s EventSubjectService) String() string {
+	partition := s.EnterpriseMeta.PartitionOrDefault()
+	if v := s.overridePartition; v != "" {
+		partition = strings.ToLower(v)
+	}
+
+	namespace := s.EnterpriseMeta.NamespaceOrDefault()
+	if v := s.overrideNamespace; v != "" {
+		namespace = strings.ToLower(v)
+	}
+
+	key := s.Key
+	if v := s.overrideKey; v != "" {
+		key = v
+	}
+	key = strings.ToLower(key)
+
+	return partition + "/" + namespace + "/" + key
+}
 
 // EventPayloadCheckServiceNode is used as the Payload for a stream.Event to
 // indicates changes to a CheckServiceNode for service health.
@@ -33,25 +66,14 @@ func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bo
 }
 
 func (e EventPayloadCheckServiceNode) Subject() stream.Subject {
-	partition := e.Value.Service.PartitionOrDefault()
-	if e.overridePartition != "" {
-		partition = e.overridePartition
-	}
-	partition = strings.ToLower(partition)
+	return EventSubjectService{
+		Key:            e.Value.Service.Service,
+		EnterpriseMeta: e.Value.Service.EnterpriseMeta,
 
-	namespace := e.Value.Service.NamespaceOrDefault()
-	if e.overrideNamespace != "" {
-		namespace = e.overrideNamespace
+		overrideKey:       e.overrideKey,
+		overrideNamespace: e.overrideNamespace,
+		overridePartition: e.overridePartition,
 	}
-	namespace = strings.ToLower(namespace)
-
-	key := e.Value.Service.Service
-	if e.overrideKey != "" {
-		key = e.overrideKey
-	}
-	key = strings.ToLower(key)
-
-	return stream.Subject(partition + "/" + namespace + "/" + key)
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
@@ -62,7 +84,13 @@ func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 		defer tx.Abort()
 
 		connect := topic == topicServiceHealthConnect
-		idx, nodes, err := checkServiceNodesTxn(tx, nil, req.Key, connect, &req.EnterpriseMeta)
+
+		subject, ok := req.Subject.(EventSubjectService)
+		if !ok {
+			return 0, fmt.Errorf("expected SubscribeRequest.Subject to be a: state.EventSubjectService, was a: %T", req.Subject)
+		}
+
+		idx, nodes, err := checkServiceNodesTxn(tx, nil, subject.Key, connect, &subject.EnterpriseMeta)
 		if err != nil {
 			return 0, err
 		}
