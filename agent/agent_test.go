@@ -5840,8 +5840,8 @@ func Test_coalesceTimerTwoPeriods(t *testing.T) {
 	// cert should change as we did not update the associated key
 	time.Sleep(coalesceInterval * 2)
 	retry.Run(t, func(r *retry.R) {
-		require.NotEqual(r, cert1.Certificate, srv.tlsConfigurator.Cert().Certificate)
-		require.NotEqual(r, cert1.PrivateKey, srv.tlsConfigurator.Cert().PrivateKey)
+		require.NotEqual(r, cert1Pub, srv.tlsConfigurator.Cert().Certificate)
+		require.NotEqual(r, cert1Key, srv.tlsConfigurator.Cert().PrivateKey)
 	})
 
 }
