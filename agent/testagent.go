@@ -221,6 +221,9 @@ func (a *TestAgent) Start(t *testing.T) error {
 		bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
 	}
 
+	if a.Config != nil && bd.RuntimeConfig.AutoReloadConfigCoalesceInterval == 0 {
+		bd.RuntimeConfig.AutoReloadConfigCoalesceInterval = a.Config.AutoReloadConfigCoalesceInterval
+	}
 	a.Config = bd.RuntimeConfig
 
 	agent, err := New(bd)

@@ -44,7 +44,7 @@ type watchedFile struct {
 }
 
 type FileWatcherEvent struct {
-	Filename string
+	Filenames []string
 }
 
 //NewFileWatcher create a file watcher that will watch all the files/folders from configFiles
@@ -213,7 +213,7 @@ func (w *fileWatcher) handleEvent(ctx context.Context, event fsnotify.Event) err
 	if isCreateEvent(event) || isWriteEvent(event) || isRenameEvent(event) {
 		w.logger.Trace("call the handler", "filename", event.Name, "OP", event.Op)
 		select {
-		case w.eventsCh <- &FileWatcherEvent{Filename: filename}:
+		case w.eventsCh <- &FileWatcherEvent{Filenames: []string{filename}}:
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -265,7 +265,7 @@ func (w *fileWatcher) reconcile(ctx context.Context) {
 			w.logger.Trace("call the handler", "filename", filename, "old modTime", configFile.modTime, "new modTime", newModTime)
 			configFile.modTime = newModTime
 			select {
-			case w.eventsCh <- &FileWatcherEvent{Filename: filename}:
+			case w.eventsCh <- &FileWatcherEvent{Filenames: []string{filename}}:
 			case <-ctx.Done():
 				return
 			}
