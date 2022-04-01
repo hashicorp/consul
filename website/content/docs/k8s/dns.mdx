@@ -30,7 +30,7 @@ The default name of the Consul DNS service will be `consul-consul-dns`. Use
 that name to get the `ClusterIP`:
 
 ```shell-session
-$ kubectl get svc consul-consul-dns --output jsonpath='{.spec.clusterIP}'
+$ kubectl get svc consul-consul-dns -n consul --output jsonpath='{.spec.clusterIP}'
 10.35.240.78%
 ```
 
@@ -136,6 +136,12 @@ in full cluster rebuilds.
 
 -> **Note:** If using a different zone than `.consul`, change the key accordingly.
 
+Restart CoreDNS pods to ensure they receive the `ConfigMap` changes.
+
+```shell-session
+$ kubectl delete pod --namespace kube-system -l k8s-app=kube-dns
+```
+
 ## Verifying DNS Works
 
 To verify DNS works, run a simple job to query DNS. Save the following
@@ -170,7 +176,7 @@ output similar to the following showing a successful DNS query. If you see
 any errors, then DNS is not configured properly.
 
 ```shell-session
-$ kubectl get pods --show-all | grep dns
+$ kubectl get pods --all-namespaces | grep dns
 dns-lkgzl         0/1       Completed   0          6m
 
 $ kubectl logs dns-lkgzl
