@@ -21,20 +21,6 @@ $ consul-terraform-sync -config-file=config.hcl
 
 To view a list of available flags, use the `-help` or `-h` flag.
 
-Flag: `-inspect-task [task-name]`
-
-Behavior: This has similar behavior as `-inspect` mode for the selected task. The flag can be specified multiple times to inspect multiple tasks. No changes are applied in this mode.
-
-Usage: Useful to debug one or more tasks to confirm configuration is accurate and the selected tasks would update network infrastructure as expected.
-
-#### Once Mode
-
-Flag: `-once`
-
-Behavior: CTS will run all tasks once with buffer periods disabled and exit. On encountering an error before completing, CTS will exit with a non-zero status.
-
-Usage: Intended to be run before long-running mode in order to confirm configuration is accurate and tasks update network infrastructure as expected.
-
 ## Commands
 
 In addition to running the daemon, CTS has a set of commands that act as a client to the daemon server. The commands provide a user-friendly experience interacting with the daemon. The commands use the CTS APIs but does not correspond one-to-one with it. Please see the individual commands in the left navigation for more details.
