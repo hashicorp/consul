@@ -370,8 +370,6 @@ type Agent struct {
 
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
-
-	coalesceTimerShim func(inputCh chan *config.FileWatcherEvent, coalesceDuration time.Duration) chan []config.FileWatcherEvent
 }
 
 // New process the desired options and creates a new Agent.
@@ -472,7 +470,6 @@ func New(bd BaseDeps) (*Agent, error) {
 		a.configFileWatcher = w
 	}
 
-	a.coalesceTimerShim = coalesceTimer
 	return &a, nil
 }
 
@@ -723,60 +720,21 @@ func (a *Agent) Start(ctx context.Context) error {
 	})
 
 	// start a go routine to reload config based on file watcher events
-	if a.baseDeps.RuntimeConfig.AutoReloadConfig {
-		if a.baseDeps.WatchedFiles != nil {
-			w, err := config.NewFileWatcher(a.baseDeps.WatchedFiles, a.baseDeps.Logger)
-			if err != nil {
-				a.baseDeps.Logger.Error("error loading config", "error", err)
-			}
-			a.FileWatcher = w
-			a.baseDeps.Logger.Debug("starting file watcher")
-			a.FileWatcher.Start(context.Background())
-			go func() {
-				for events := range a.coalesceTimerShim(a.FileWatcher.EventsCh, 1*time.Second) {
-					a.baseDeps.Logger.Debug("auto-reload config triggered", "num-events", len(events))
-					err := a.ReloadConfig(true)
-					if err != nil {
-						a.baseDeps.Logger.Error("error loading config", "error", err)
-					}
+	if a.configFileWatcher != nil {
+		a.baseDeps.Logger.Debug("starting file watcher")
+		a.configFileWatcher.Start(context.Background())
+		go func() {
+			for event := range a.configFileWatcher.EventsCh() {
+				a.baseDeps.Logger.Debug("auto-reload config triggered", "num-events", len(event.Filenames))
+				err := a.AutoReloadConfig()
+				if err != nil {
+					a.baseDeps.Logger.Error("error loading config", "error", err)
 				}
 			}
 		}()
 	}
 
 	return nil
-}
-
-func coalesceTimer(inputCh chan *config.FileWatcherEvent, coalesceDuration time.Duration) chan []config.FileWatcherEvent {
-	var coalesceTimer *time.Timer = nil
-	sendCh := make(chan struct{})
-	FileWatcherEvents := make([]config.FileWatcherEvent, 0)
-	FileWatcherEventsCh := make(chan []config.FileWatcherEvent)
-	go func() {
-		for {
-			select {
-			case event, ok := <-inputCh:
-				if !ok {
-					close(FileWatcherEventsCh)
-					return
-				}
-				FileWatcherEvents = append(FileWatcherEvents, *event)
-				if coalesceTimer == nil {
-					coalesceTimer = time.AfterFunc(coalesceDuration, func() {
-						// This runs in another goroutine so we can't just do the send
-						// directly here as access to snap is racy. Instead, signal the main
-						// loop above.
-						sendCh <- struct{}{}
-					})
-				}
-			case <-sendCh:
-				coalesceTimer = nil
-				FileWatcherEventsCh <- FileWatcherEvents
-				FileWatcherEvents = make([]config.FileWatcherEvent, 0)
-			}
-		}
-	}()
-	return FileWatcherEventsCh
 }
 
 var Gauges = []prometheus.GaugeDefinition{
