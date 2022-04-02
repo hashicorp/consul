@@ -13,7 +13,7 @@ type rateLimitedFileWatcher struct {
 	coalesceInterval time.Duration
 }
 
-func (r rateLimitedFileWatcher) Start(ctx context.Context) {
+func (r *rateLimitedFileWatcher) Start(ctx context.Context) {
 	r.watcher.Start(ctx)
 	r.coalesceTimer(r.watcher.EventsCh(), r.coalesceInterval)
 }
@@ -54,7 +54,7 @@ func NewRateLimitedFileWatcher(configFiles []string, logger hclog.Logger, coales
 func (r rateLimitedFileWatcher) coalesceTimer(inputCh chan *FileWatcherEvent, coalesceDuration time.Duration) {
 	var coalesceTimer *time.Timer = nil
 	sendCh := make(chan struct{})
-	FileWatcherEvents := make([]string, 0)
+	var fileWatcherEvents []string
 	go func() {
 		for {
 			select {
