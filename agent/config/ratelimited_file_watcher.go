@@ -44,7 +44,7 @@ func NewRateLimitedFileWatcher(configFiles []string, logger hclog.Logger, coales
 	if err != nil {
 		return nil, err
 	}
-	return rateLimitedFileWatcher{
+	return &rateLimitedFileWatcher{
 		watcher:          watcher,
 		coalesceInterval: coalesceInterval,
 		eventCh:          make(chan *FileWatcherEvent),
@@ -52,21 +52,24 @@ func NewRateLimitedFileWatcher(configFiles []string, logger hclog.Logger, coales
 }
 
 func (r rateLimitedFileWatcher) coalesceTimer(inputCh chan *FileWatcherEvent, coalesceDuration time.Duration) {
-	var coalesceTimer *time.Timer = nil
-	sendCh := make(chan struct{})
-	var fileWatcherEvents []string
+	var (
+		coalesceTimer     *time.Timer
+		sendCh            = make(chan struct{})
+		fileWatcherEvents []string
+	)
+
 	go func() {
 		for {
 			select {
 			case event, ok := <-inputCh:
 				if !ok {
-					if len(FileWatcherEvents) > 0 {
-						r.eventCh <- &FileWatcherEvent{Filenames: FileWatcherEvents}
+					if len(fileWatcherEvents) > 0 {
+						r.eventCh <- &FileWatcherEvent{Filenames: fileWatcherEvents}
 					}
 					close(r.eventCh)
 					return
 				}
-				FileWatcherEvents = append(FileWatcherEvents, event.Filenames...)
+				fileWatcherEvents = append(fileWatcherEvents, event.Filenames...)
 				if coalesceTimer == nil {
 					coalesceTimer = time.AfterFunc(coalesceDuration, func() {
 						// This runs in another goroutine so we can't just do the send
@@ -77,8 +80,8 @@ func (r rateLimitedFileWatcher) coalesceTimer(inputCh chan *FileWatcherEvent, co
 				}
 			case <-sendCh:
 				coalesceTimer = nil
-				r.eventCh <- &FileWatcherEvent{Filenames: FileWatcherEvents}
-				FileWatcherEvents = make([]string, 0)
+				r.eventCh <- &FileWatcherEvent{Filenames: fileWatcherEvents}
+				fileWatcherEvents = make([]string, 0)
 			}
 		}
 	}()

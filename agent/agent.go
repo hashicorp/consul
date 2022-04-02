@@ -465,7 +465,7 @@ func New(bd BaseDeps) (*Agent, error) {
 	if a.baseDeps.RuntimeConfig.AutoReloadConfig && len(a.baseDeps.WatchedFiles) > 0 {
 		w, err := config.NewRateLimitedFileWatcher(a.baseDeps.WatchedFiles, a.baseDeps.Logger, a.baseDeps.RuntimeConfig.AutoReloadConfigCoalesceInterval)
 		if err != nil {
-			a.baseDeps.Logger.Error("error loading config", "error", err)
+			return nil, err
 		}
 		a.configFileWatcher = w
 	}
