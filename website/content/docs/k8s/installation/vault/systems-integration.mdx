@@ -14,17 +14,17 @@ At a high level, configuring a systems integration of Vault with Consul on Kuber
   - Enabling Vault PKI Engine if you are choosing to store and manage either [Consul Server TLS credentials](/docs/k8s/installation/vault/data-integration/server-tls) or [Service Mesh and Consul client TLS credentials](/docs/k8s/installation/vault/data-integration/connect-ca)
 - Set up per Consul data center
   - Installing the Vault Injector within the Consul data center installation
-  - Configuring a Kubernetes Auth Method in Vault to authenticate and operations from the Consul data center
+  - Configuring a Kubernetes Auth Method in Vault to authenticate and authorize operations from the Consul data center
   - Enable Vault as the secrets backend in the Consul data center
 
 ## One time set up on Vault
 ### Vault KV Secrets Engine - Version 2
-The following secrets can be stored in Vault KV secrets engine, which is meant to handle arbitraty secrets:
-- Bootstrap token
-- Gossip encryption key
-- Enterprise license
-- Replication token
-- Snapshot Agent config
+The following secrets can be stored in Vault KV secrets engine, which is meant to handle arbitrary secrets:
+- Bootstrap token ([`global.acls.bootstrapToken`](/docs/k8s/helm#v-global-acls-bootstraptoken))
+- Gossip encryption key ([`global.gossipEncryption`]())
+- Enterprise license ([`global.enterpriseLicense]())
+- Replication token ([`global.acls.replicationToken`](docs/k8s/helm#v-global-acls-replicationtoken))
+- Snapshot Agent config ([`client.snapshotAgent.configSecret`](/docs/k8s/helm#v-client-snapshotagent-configsecret))
 
 In order to store any of these secrets, we must enable the [Vault KV secrets engine - Version 2](https://www.vaultproject.io/docs/secrets/kv/kv-v2).
 
@@ -84,7 +84,7 @@ server:
   enabled: false
 injector:
   enabled: true
-  externalVaultAddr: http://${VAULT_SERVER_HOST}:8200
+  externalVaultAddr: $VAULT_ADDR
   authPath: auth/${VAULT_AUTH_METHOD_NAME}
 EOF
 ``` 
@@ -96,7 +96,7 @@ $ helm install vault-${DATACENTER} -f vault-injector.yaml hashicorp/vault --wait
 ### Configure the Kubernetes Auth Method in Vault for the data center
 
 #### Enable the Auth Method
-Prior to creating Vault auth roles for the Consul servers and clients, ensure that the Vault Kubernetes auth method is enabled:
+Ensure that the Vault Kubernetes.
 ```shell
 $ vault auth enable -path=kubernetes-${DATACENTER} kubernetes
 ```
@@ -105,12 +105,16 @@ $ vault auth enable -path=kubernetes-${DATACENTER} kubernetes
 
 After enabling the Kubernetes auth method, in Vault, ensure that you have configured the Kubernetes Auth method properly as described in [Kubernetes Auth Method Configuration](https://www.vaultproject.io/docs/auth/kubernetes#configuration). 
 
-First, while targeting your Consul cluster, get the externally reachable address of the Consul Kubernetes cluster:
+First, while targeting your Consul cluster, get the externally reachable address of the Consul Kubernetes cluster.
 
 ```
 $ export KUBE_API_URL=$(kubectl config view -o jsonpath="{.clusters[?(@.name == \"$(kubectl config current-context)\")].cluster.server}")
 ```
-Next, set you Vault Kubernetes Auth Method, with the host, CA Cert, and token that has access to your Consul data center cluster:
+
+Next, you will configure the Vault Kubernetes Auth Method for the data center.  You will need to provide it with:
+- token_reviewer_jwt - this a JWT token from the Consul data center cluster that the Vault Kubernetes Auth Method will use to query the Consul data center Kubernetes API when services in the Consul data center request data from Vault.
+- kubernetes_host - this is the URL of the Consul data center's Kubernetes API that Vault will query to authenticate the service account of an incoming request from a Consul data ceneter kubernetes service.
+- kubernetes_ca_cert - this is the CA certifcation that is currently being used by the Consul data center Kubernetes cluster.
 
 ```shell-session
 $ vault write auth/kubernetes/config \
@@ -120,8 +124,14 @@ $ vault write auth/kubernetes/config \
 ```
 
 #### Enable Vault as the secrets backend in the Consul data center
-
-
+Finally, you will configure the Consul on Kubernetes helm chart for the data center to expect to receive the following values (if you have configured them) to be retreived from Vault:
+- Bootstrap token ([`global.acls.bootstrapToken`](/docs/k8s/helm#v-global-acls-bootstraptoken))
+- Gossip encryption key ([`global.gossipEncryption`]())
+- Enterprise license ([`global.enterpriseLicense]())
+- Replication token ([`global.acls.replicationToken`](docs/k8s/helm#v-global-acls-replicationtoken))
+- Snapshot Agent config ([`client.snapshotAgent.configSecret`](/docs/k8s/helm#v-client-snapshotagent-configsecret))
+- TLS CA certificates ([`global.tls.caCert`](/docs/k8s/helm#v-global-tls-cacert))
+- Server TLS certificates ([`server.serverCert`](docs/k8s/helm#v-server-servercert))
 
 <CodeBlockConfig filename="values.yaml">
 
@@ -136,7 +146,7 @@ global:
 
 ## Next Steps
 
-As a next step, please proceed to Vault integration with Consul on Kubernetes' [Data Integration](/docs/k8s/installation/vault/data-integration)
+As a next step, please proceed to Vault integration with Consul on Kubernetes' [Data Integration](/docs/k8s/installation/vault/data-integration).
 
 ## Troubleshooting
 
