@@ -1,8 +1,8 @@
 ---
 layout: docs
-page_title: Storing ACL Bootstrap Token in Vault
+page_title: Storing the ACL Bootstrap Token in Vault
 description: >-
-  Configuring the Consul Helm chart to use ACL bootstrap token stored in Vault.
+  Configuring the Consul Helm chart to use an ACL bootstrap token stored in Vault.
 ---
 
 # Storing the ACL Bootstrap Token in Vault
@@ -52,33 +52,28 @@ $ vault policy write boostrap-token-policy boostrap-token-policy.hcl
 ## Set up per Consul data center
 ### Create a Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access
 
-Next, you will create Kubernetes auth roles for the Consul ACL manger, which is technically the `server-acl-init` container that runs as part of the Consul server statefulset:
+Next, you will create Kubernetes auth roles for the Consul `server-acl-init` container that runs as part of the Consul server statefulset:
 
 ```shell-session
-$ vault write auth/kubernetes/role/consul-acl-manager \
+$ vault write auth/kubernetes/role/consul-server-acl-init \
     bound_service_account_names=<Consul server service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
     policies=boostrap-token-policy \
     ttl=1h
 ```
 
-To find out the service account names of the Consul server and client,
-you can run the following `helm template` commands with your Consul on Kubernetes values file:
+To find out the service account name of the Consul server-acl-init job,
+you can run the following `helm template` command with your Consul on Kubernetes values file:
 
 - Generate Consul server service account name
   ```shell-session
-  $ helm template --release-name ${RELEASE_NAME} -s templates/server-serviceaccount.yaml hashicorp/consul
-  ```
-
-- Generate Consul client service account name
-  ```shell-session
-  $ helm template --release-name ${RELEASE_NAME} -s templates/client-serviceaccount.yaml hashicorp/consul
+  $ helm template --release-name ${RELEASE_NAME} -s templates/server-acl-init-serviceaccount.yaml hashicorp/consul
   ```
 
 ## Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
 
 Now that you have configured Vault, you can configure the Consul Helm chart to
-use the enterprise license key in Vault:
+use the  ACL replication token key in Vault:
 
 <CodeBlockConfig filename="values.yaml">
 
@@ -87,7 +82,7 @@ global:
   secretsBackend:
     vault:
       enabled: true
-      manageSystemACLsRole: consul-acl-manager
+      manageSystemACLsRole: consul-server-acl-init
   acls:
     bootstrapToken:
       secretName: secret/data/consul/bootstrap-token
@@ -99,4 +94,4 @@ global:
 Note that `global.acls.bootstrapToken.secretName` is the path of the secret in Vault.
 This should be the same path as the one you included in your Vault policy.
 `global.acls.bootstrapToken.secretKey` is the key inside the secret data. This should be the same
-as the key you passed when creating the enterprise license secret in Vault.
+as the key you passed when creating the  ACL replication token secret in Vault.
