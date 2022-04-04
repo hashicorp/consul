@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/serf/serf"
 
@@ -75,10 +76,6 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 
 // ServerHealth is used to get the current health of the servers.
 func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs.AutopilotHealthReply) error {
-	// This must be sent to the leader, so we fix the args since we are
-	// re-using a structure where we don't support all the options.
-	args.RequireConsistent = true
-	args.AllowStale = false
 	if done, err := op.srv.ForwardRPC("Operator.ServerHealth", args, reply); done {
 		return err
 	}
@@ -143,10 +140,6 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 }
 
 func (op *Operator) AutopilotState(args *structs.DCSpecificRequest, reply *autopilot.State) error {
-	// This must be sent to the leader, so we fix the args since we are
-	// re-using a structure where we don't support all the options.
-	args.RequireConsistent = true
-	args.AllowStale = false
 	if done, err := op.srv.ForwardRPC("Operator.AutopilotState", args, reply); done {
 		return err
 	}

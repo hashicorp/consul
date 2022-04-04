@@ -297,7 +297,7 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 	}
 
 	s.getOrCreateAutopilotConfig()
-	s.autopilot.Start(ctx)
+	s.autopilot.EnableReconciliation()
 
 	s.startConfigReplication(ctx)
 
@@ -350,9 +350,7 @@ func (s *Server) revokeLeadership() {
 
 	s.resetConsistentReadReady()
 
-	// Stop returns a chan and we want to block until it is closed
-	// which indicates that autopilot is actually stopped.
-	<-s.autopilot.Stop()
+	s.autopilot.DisableReconciliation()
 }
 
 // initializeACLs is used to setup the ACLs if we are the leader
