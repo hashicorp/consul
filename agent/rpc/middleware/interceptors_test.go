@@ -18,7 +18,7 @@ type obs struct {
 	labels  []metrics.Label
 }
 
-// recorderStore acts as an in-mem mock storage for all the RequestRecorder.Record() recorderFunc calls.
+// recorderStore acts as an in-mem mock storage for all the RequestRecorder.Record() RecorderFunc calls.
 type recorderStore struct {
 	lock  sync.Mutex
 	store map[string]obs
@@ -61,7 +61,7 @@ func (wr writeRequest) IsRead() bool {
 func TestRequestRecorder_SimpleOK(t *testing.T) {
 	r := RequestRecorder{
 		Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
-		recorderFunc: simpleRecorderFunc,
+		RecorderFunc: simpleRecorderFunc,
 	}
 
 	start := time.Now()
@@ -84,7 +84,7 @@ func TestRequestRecorder_SimpleOK(t *testing.T) {
 func TestRequestRecorder_ReadRequest(t *testing.T) {
 	r := RequestRecorder{
 		Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
-		recorderFunc: simpleRecorderFunc,
+		RecorderFunc: simpleRecorderFunc,
 	}
 
 	start := time.Now()
@@ -106,7 +106,7 @@ func TestRequestRecorder_ReadRequest(t *testing.T) {
 func TestRequestRecorder_WriteRequest(t *testing.T) {
 	r := RequestRecorder{
 		Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
-		recorderFunc: simpleRecorderFunc,
+		RecorderFunc: simpleRecorderFunc,
 	}
 
 	start := time.Now()
