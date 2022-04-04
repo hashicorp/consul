@@ -33,8 +33,6 @@ GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)
 
 PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/' | grep -v '.protobuf' )
-PROTOGOFILES=$(PROTOFILES:.proto=.pb.go)
-PROTOGOBINFILES=$(PROTOFILES:.proto=.pb.binary.go)
 PROTO_MOG_ORDER=$(shell go list -tags '$(GOTAGS)' -deps ./proto/pb... | grep "consul/proto")
 
 ifeq ($(FORCE_REBUILD),1)
@@ -364,7 +362,11 @@ protoc-install:
 	fi
 
 .PHONY: proto
-proto: -protoc-files -mog-files
+proto: -proto-files -mog-files
+
+.PHONY: -proto-files
+-proto-files: protoc-install proto-tools
+	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen-all.sh --protoc-bin "$(PROTOC_BIN)"
 
 .PHONY: -mog-files
 -mog-files:
@@ -375,13 +377,6 @@ proto: -protoc-files -mog-files
 		mog -tags '$(GOTAGS)' -source "$${PKG}/*.pb.go" ; \
 	done
 	@echo "Generated all mog Go files"
-
-.PHONY: -protoc-files
--protoc-files: protoc-install proto-tools $(PROTOGOFILES) $(PROTOGOBINFILES)
-	@echo "Generated all protobuf Go files"
-
-%.pb.go %.pb.binary.go: %.proto
-	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --protoc-bin "$(PROTOC_BIN)" "$<"
 
 # utility to echo a makefile variable (i.e. 'make print-PROTOC_VERSION')
 print-%  : ; @echo $($*)
