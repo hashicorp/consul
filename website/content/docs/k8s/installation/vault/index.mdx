@@ -12,10 +12,10 @@ As of Consul 1.11 and Consul Helm chart v0.38.0, we integrate more natively with
 to use Consul Helm chart with Vault as the secrets storage backend.
 
 The following secrets can be stored in Vault KV secrets engine, which is meant to handle arbitraty secrets:
-- Bootstrap token
+- ACL Bootstrap token
 - Gossip encryption key
 - Enterprise license
-- Replication token
+- ACL Replication token
 - Snapshot Agent config
 
 The following TLS certificates and keys can generated and managed by Vault the Vault PKI Engine, which is meant to handle things like certificate expiration and rotation:

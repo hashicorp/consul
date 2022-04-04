@@ -20,10 +20,10 @@ At a high level, configuring a systems integration of Vault with Consul on Kuber
 ## One time set up on Vault
 ### Vault KV Secrets Engine - Version 2
 The following secrets can be stored in Vault KV secrets engine, which is meant to handle arbitrary secrets:
-- Bootstrap token ([`global.acls.bootstrapToken`](/docs/k8s/helm#v-global-acls-bootstraptoken))
+- ACL Bootstrap token ([`global.acls.bootstrapToken`](/docs/k8s/helm#v-global-acls-bootstraptoken))
 - Gossip encryption key ([`global.gossipEncryption`]())
 - Enterprise license ([`global.enterpriseLicense]())
-- Replication token ([`global.acls.replicationToken`](docs/k8s/helm#v-global-acls-replicationtoken))
+- ACL Replication token ([`global.acls.replicationToken`](/docs/k8s/helm#v-global-acls-replicationtoken))
 - Snapshot Agent config ([`client.snapshotAgent.configSecret`](/docs/k8s/helm#v-client-snapshotagent-configsecret))
 
 In order to store any of these secrets, we must enable the [Vault KV secrets engine - Version 2](https://www.vaultproject.io/docs/secrets/kv/kv-v2).
@@ -125,13 +125,13 @@ $ vault write auth/kubernetes/config \
 
 #### Enable Vault as the secrets backend in the Consul data center
 Finally, you will configure the Consul on Kubernetes helm chart for the data center to expect to receive the following values (if you have configured them) to be retreived from Vault:
-- Bootstrap token ([`global.acls.bootstrapToken`](/docs/k8s/helm#v-global-acls-bootstraptoken))
+- ACL Bootstrap token ([`global.acls.bootstrapToken`](/docs/k8s/helm#v-global-acls-bootstraptoken))
 - Gossip encryption key ([`global.gossipEncryption`]())
 - Enterprise license ([`global.enterpriseLicense]())
-- Replication token ([`global.acls.replicationToken`](docs/k8s/helm#v-global-acls-replicationtoken))
+- ACL Replication token ([`global.acls.replicationToken`](/docs/k8s/helm#v-global-acls-replicationtoken))
 - Snapshot Agent config ([`client.snapshotAgent.configSecret`](/docs/k8s/helm#v-client-snapshotagent-configsecret))
 - TLS CA certificates ([`global.tls.caCert`](/docs/k8s/helm#v-global-tls-cacert))
-- Server TLS certificates ([`server.serverCert`](docs/k8s/helm#v-server-servercert))
+- Server TLS certificates ([`server.serverCert`](/docs/k8s/helm#v-server-servercert))
 
 <CodeBlockConfig filename="values.yaml">
 
