@@ -361,9 +361,9 @@ type Agent struct {
 	// run by the Agent
 	routineManager *routine.Manager
 
-	// FileWatcher is the watcher responsible to report events when a config file
+	// configFileWatcher is the watcher responsible to report events when a config file
 	// changed
-	FileWatcher config.Watcher
+	configFileWatcher config.Watcher
 
 	// xdsServer serves the XDS protocol for configuring Envoy proxies.
 	xdsServer *xds.Server
@@ -461,6 +461,13 @@ func New(bd BaseDeps) (*Agent, error) {
 		if f.Cfg.CertFile != "" {
 			a.baseDeps.WatchedFiles = append(a.baseDeps.WatchedFiles, f.Cfg.CertFile)
 		}
+	}
+	if a.baseDeps.RuntimeConfig.AutoReloadConfig && len(a.baseDeps.WatchedFiles) > 0 {
+		w, err := config.NewRateLimitedFileWatcher(a.baseDeps.WatchedFiles, a.baseDeps.Logger, a.baseDeps.RuntimeConfig.AutoReloadConfigCoalesceInterval)
+		if err != nil {
+			return nil, err
+		}
+		a.configFileWatcher = w
 	}
 
 	return &a, nil
@@ -713,25 +720,20 @@ func (a *Agent) Start(ctx context.Context) error {
 	})
 
 	// start a go routine to reload config based on file watcher events
-	if a.baseDeps.RuntimeConfig.AutoReloadConfig && len(a.baseDeps.WatchedFiles) > 0 {
-		w, err := config.NewFileWatcher(a.baseDeps.WatchedFiles, a.baseDeps.Logger)
-		if err != nil {
-			a.baseDeps.Logger.Error("error loading config", "error", err)
-		} else {
-			a.FileWatcher = w
-			a.baseDeps.Logger.Debug("starting file watcher")
-			a.FileWatcher.Start(context.Background())
-			go func() {
-				for event := range a.FileWatcher.EventsCh() {
-					a.baseDeps.Logger.Debug("auto-reload config triggered", "event-file", event.Filename)
-					err := a.AutoReloadConfig()
-					if err != nil {
-						a.baseDeps.Logger.Error("error loading config", "error", err)
-					}
+	if a.configFileWatcher != nil {
+		a.baseDeps.Logger.Debug("starting file watcher")
+		a.configFileWatcher.Start(context.Background())
+		go func() {
+			for event := range a.configFileWatcher.EventsCh() {
+				a.baseDeps.Logger.Debug("auto-reload config triggered", "num-events", len(event.Filenames))
+				err := a.AutoReloadConfig()
+				if err != nil {
+					a.baseDeps.Logger.Error("error loading config", "error", err)
 				}
-			}()
-		}
+			}
+		}()
 	}
+
 	return nil
 }
 
@@ -1413,8 +1415,8 @@ func (a *Agent) ShutdownAgent() error {
 	a.stopAllWatches()
 
 	// Stop config file watcher
-	if a.FileWatcher != nil {
-		a.FileWatcher.Stop()
+	if a.configFileWatcher != nil {
+		a.configFileWatcher.Stop()
 	}
 
 	a.stopLicenseManager()
@@ -3772,13 +3774,13 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 			{a.config.TLS.HTTPS, newCfg.TLS.HTTPS},
 		} {
 			if f.oldCfg.KeyFile != f.newCfg.KeyFile {
-				a.FileWatcher.Replace(f.oldCfg.KeyFile, f.newCfg.KeyFile)
+				a.configFileWatcher.Replace(f.oldCfg.KeyFile, f.newCfg.KeyFile)
 				if err != nil {
 					return err
 				}
 			}
 			if f.oldCfg.CertFile != f.newCfg.CertFile {
-				a.FileWatcher.Replace(f.oldCfg.CertFile, f.newCfg.CertFile)
+				a.configFileWatcher.Replace(f.oldCfg.CertFile, f.newCfg.CertFile)
 				if err != nil {
 					return err
 				}

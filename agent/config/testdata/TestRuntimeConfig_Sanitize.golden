@@ -64,6 +64,7 @@
     "AutoEncryptIPSAN": [],
     "AutoEncryptTLS": false,
     "AutoReloadConfig": false,
+    "AutoReloadConfigCoalesceInterval": "0s",
     "AutopilotCleanupDeadServers": false,
     "AutopilotDisableUpgradeMigration": false,
     "AutopilotLastContactThreshold": "0s",

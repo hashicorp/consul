@@ -64,6 +64,23 @@ func TestWatcherAddRemove(t *testing.T) {
 
 }
 
+func TestWatcherReplace(t *testing.T) {
+	var filepaths []string
+	wi, err := NewFileWatcher(filepaths, hclog.New(&hclog.LoggerOptions{}))
+	w := wi.(*fileWatcher)
+	require.NoError(t, err)
+	file1 := createTempConfigFile(t, "temp_config1")
+	err = w.Add(file1)
+	require.NoError(t, err)
+	file2 := createTempConfigFile(t, "temp_config2")
+	err = w.Replace(file1, file2)
+	require.NoError(t, err)
+	_, ok := w.configFiles[file1]
+	require.False(t, ok)
+	_, ok = w.configFiles[file2]
+	require.True(t, ok)
+}
+
 func TestWatcherAddWhileRunning(t *testing.T) {
 	var filepaths []string
 	wi, err := NewFileWatcher(filepaths, hclog.New(&hclog.LoggerOptions{}))
@@ -364,8 +381,8 @@ func TestEventWatcherMoveSoftLink(t *testing.T) {
 func assertEvent(name string, watcherCh chan *FileWatcherEvent, timeout time.Duration) error {
 	select {
 	case ev := <-watcherCh:
-		if ev.Filename != name && !strings.Contains(ev.Filename, name) {
-			return fmt.Errorf("filename do not match %s %s", ev.Filename, name)
+		if ev.Filenames[0] != name && !strings.Contains(ev.Filenames[0], name) {
+			return fmt.Errorf("filename do not match %s %s", ev.Filenames[0], name)
 		}
 		return nil
 	case <-time.After(timeout):

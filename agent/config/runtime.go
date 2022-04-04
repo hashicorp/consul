@@ -1399,6 +1399,9 @@ type RuntimeConfig struct {
 	//
 	Watches []map[string]interface{}
 
+	// AutoReloadConfigCoalesceInterval Coalesce Interval for auto reload config
+	AutoReloadConfigCoalesceInterval time.Duration
+
 	EnterpriseRuntimeConfig
 }
 
