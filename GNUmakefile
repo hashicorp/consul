@@ -12,11 +12,6 @@ GOTOOLS = \
 	github.com/hashicorp/lint-consul-retry@master
 
 PROTOC_VERSION=3.15.8
-PROTOC_OS := $(shell if test "$$(uname)" == "Darwin"; then echo osx; else echo linux; fi)
-PROTOC_ZIP := protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-x86_64.zip
-PROTOC_URL := https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/$(PROTOC_ZIP)
-PROTOC_ROOT := .protobuf/protoc-$(PROTOC_OS)-$(PROTOC_VERSION)
-PROTOC_BIN := $(PROTOC_ROOT)/bin/protoc
 
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
@@ -347,26 +342,13 @@ else
 	@go test -v ./agent -run Vault
 endif
 
-.PHONY: protoc-install
-protoc-install:
-	$(info locally installing protocol buffer compiler version if needed (expect: $(PROTOC_VERSION)))
-	@if [[ ! -x $(PROTOC_ROOT)/bin/protoc ]]; then \
-		mkdir -p .protobuf/tmp ; \
-		if [[ ! -f .protobuf/tmp/$(PROTOC_ZIP) ]]; then \
-			( cd .protobuf/tmp && curl -sSL "$(PROTOC_URL)" -o "$(PROTOC_ZIP)" ) ; \
-		fi ; \
-		mkdir -p $(PROTOC_ROOT) ; \
-		unzip -d $(PROTOC_ROOT) .protobuf/tmp/$(PROTOC_ZIP) ; \
-		chmod -R a+Xr $(PROTOC_ROOT) ; \
-		chmod +x $(PROTOC_ROOT)/bin/protoc ; \
-	fi
-
 .PHONY: proto
 proto: -proto-files -mog-files
 
 .PHONY: -proto-files
--proto-files: protoc-install
-	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen-all.sh --protoc-bin "$(PROTOC_BIN)"
+-proto-files:
+	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen-all.sh \
+		--protoc-version "$(PROTOC_VERSION)"
 
 .PHONY: -mog-files
 -mog-files:

@@ -17,11 +17,6 @@ unset CDPATH
 
 set -euo pipefail
 
-die() {
-    echo "$1" >&2
-    exit 1
-}
-
 usage() {
 cat <<-EOF
 Usage: ${SCRIPT_NAME} [<options ...>] <proto filepath>
@@ -44,7 +39,7 @@ err_usage() {
 }
 
 main() {
-    local protoc_bin=
+    local protoc_version=
 
     while test $# -gt 0
     do
@@ -53,22 +48,32 @@ main() {
                 usage
                 return 0
                 ;;
-            --protoc-bin )
-                protoc_bin="$2"
+            --protoc-version )
+                protoc_version="$2"
                 shift 2
                 ;;
         esac
     done
 
-    if test -z "${protoc_bin}"
+    if test -z "${protoc_version}"
     then
-        protoc_bin="$(command -v protoc)"
+        protoc_version="$(make print-PROTOC_VERSION)"
+        if test -z "${protoc_version}"
+        then
+            err_usage "ERROR: no proto-version specified and version could not be discovered"
+            return 1
+        fi
+    fi
+
+    # ensure the correct protoc compiler is installed
+    protoc_install "${protoc_version}"
+    echo "===="
+
         if test -z "${protoc_bin}"
         then
             err_usage "ERROR: no proto-bin specified and protoc could not be discovered"
             return 1
         fi
-    fi
 
     # ensure these tools are installed
     ${SCRIPT_DIR}/proto-tools.sh
