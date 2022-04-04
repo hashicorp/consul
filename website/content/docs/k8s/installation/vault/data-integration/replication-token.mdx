@@ -1,8 +1,8 @@
 ---
 layout: docs
-page_title: Storing ACL Replication Token in Vault
+page_title: Storing theACL Replication Token in Vault
 description: >-
-  Configuring the Consul Helm chart to use ACL replication token stored in Vault.
+  Configuring the Consul Helm chart to use an ACL replication token stored in Vault.
 ---
 
 # Storing the ACL Replication Token in Vault
@@ -63,8 +63,8 @@ $ vault write auth/kubernetes/role/consul-acl-manager \
     ttl=1h
 ```
 
-To find out the service account names of the Consul server and client,
-you can run the following `helm template` commands with your Consul on Kubernetes values file:
+To find out the service account name of the Consul server,
+you can run the following `helm template` command with your Consul on Kubernetes values file:
 
 - Generate Consul server service account name
   ```shell-session
@@ -74,7 +74,7 @@ you can run the following `helm template` commands with your Consul on Kubernete
 ## Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
 
 Now that you have configured Vault, you can configure the Consul Helm chart to
-use the enterprise license key in Vault:
+use the  ACL replication token key in Vault:
 
 <CodeBlockConfig filename="values.yaml">
 
@@ -95,4 +95,4 @@ global:
 Note that `global.acls.replicationToken.secretName` is the path of the secret in Vault.
 This should be the same path as the one you included in your Vault policy.
 `global.acls.replicationToken.secretKey` is the key inside the secret data. This should be the same
-as the key you passed when creating the enterprise license secret in Vault.
+as the key you passed when creating the  ACL replication token secret in Vault.
