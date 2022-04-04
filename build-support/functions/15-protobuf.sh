@@ -9,7 +9,7 @@ function protoc_install {
 
     if test -z "${protoc_version}"
     then
-        protoc_version="$(make print-PROTOC_VERSION)"
+        protoc_version="$(make --no-print-directory print-PROTOC_VERSION)"
         if test -z "${protoc_version}"
         then
             err "ERROR: no protoc-version specified and version could not be discovered"
@@ -61,8 +61,8 @@ function proto_tools_install {
     local protoc_go_inject_tag_version
 
     protoc_gen_go_version="$(grep github.com/golang/protobuf go.mod | awk '{print $2}')"
-    mog_version="$(make print-MOG_VERSION)"
-    protoc_go_inject_tag_version="$(make print-PROTOC_GO_INJECT_TAG_VERSION)"
+    mog_version="$(make --no-print-directory print-MOG_VERSION)"
+    protoc_go_inject_tag_version="$(make --no-print-directory print-PROTOC_GO_INJECT_TAG_VERSION)"
 
     echo "go: ${protoc_gen_go_version}"
     echo "mog: ${mog_version}"

@@ -51,7 +51,7 @@ main() {
 
     if test -z "${protoc_version}"
     then
-        protoc_version="$(make print-PROTOC_VERSION)"
+        protoc_version="$(make --no-print-directory print-PROTOC_VERSION)"
         if test -z "${protoc_version}"
         then
             err_usage "ERROR: no proto-version specified and version could not be discovered"
