@@ -365,7 +365,7 @@ protoc-install:
 proto: -proto-files -mog-files
 
 .PHONY: -proto-files
--proto-files: protoc-install proto-tools
+-proto-files: protoc-install
 	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen-all.sh --protoc-bin "$(PROTOC_BIN)"
 
 .PHONY: -mog-files

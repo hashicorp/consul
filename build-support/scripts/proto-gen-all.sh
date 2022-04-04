@@ -70,6 +70,9 @@ main() {
         fi
     fi
 
+    # ensure these tools are installed
+    ${SCRIPT_DIR}/proto-tools.sh
+
     declare -a proto_files
     while IFS= read -r pkg; do
         pkg="${pkg#"./"}"
