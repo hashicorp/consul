@@ -31,6 +31,8 @@ First, store the ACL replication token in Vault:
 $ vault kv put secret/consul/replication-token token="<ACL replication Token>"
 ```
 
+### Create a Vault policy that authorizes the desired level of access to the secret
+
 Next, you will need to create a policy that allows read access to this secret:
 
 
@@ -48,7 +50,8 @@ path "secret/data/consul/replication-token" {
 $ vault policy write replication-token-policy replication-token-policy.hcl
 ```
 
-Prior to creating Vault auth roles for the Consul servers and clients, ensure that the Vault Kubernetes auth method is enabled as described in [Vault Kubernetes Auth Method](/docs/k8s/installation/vault#vault-kubernetes-auth-method).
+## Set up per Consul data center
+### Create a Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access
 
 Next, you will create Kubernetes auth roles for the Consul ACL manger, which is technically the `server-acl-init` container that runs as part of the Consul server statefulset:
 
@@ -68,7 +71,7 @@ you can run the following `helm template` commands with your Consul on Kubernete
   $ helm template --release-name ${RELEASE_NAME} -s templates/server-serviceaccount.yaml hashicorp/consul
   ```
 
-## Deploying the Consul Helm chart
+## Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
 
 Now that you have configured Vault, you can configure the Consul Helm chart to
 use the enterprise license key in Vault:
