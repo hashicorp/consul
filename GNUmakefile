@@ -12,6 +12,8 @@ GOTOOLS = \
 	github.com/hashicorp/lint-consul-retry@master
 
 PROTOC_VERSION=3.15.8
+MOG_VERSION='v0.2.0'
+PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
@@ -27,7 +29,6 @@ GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)
 
-PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/' | grep -v '.protobuf' )
 PROTO_MOG_ORDER=$(shell go list -tags '$(GOTAGS)' -deps ./proto/pb... | grep "consul/proto")
 
 ifeq ($(FORCE_REBUILD),1)

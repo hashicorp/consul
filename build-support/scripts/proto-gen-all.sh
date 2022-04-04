@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
 
-SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
-pushd $(dirname ${BASH_SOURCE[0]}) > /dev/null
-SCRIPT_DIR=$(pwd)
-pushd ../.. > /dev/null
-SOURCE_DIR=$(pwd)
-popd > /dev/null
-pushd ../functions > /dev/null
-FN_DIR=$(pwd)
-popd > /dev/null
-popd > /dev/null
+readonly SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
+readonly SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+readonly SOURCE_DIR="$(dirname "$(dirname "${SCRIPT_DIR}")")"
+readonly FN_DIR="$(dirname "${SCRIPT_DIR}")/functions"
 
 source "${SCRIPT_DIR}/functions.sh"
 
@@ -67,16 +61,13 @@ main() {
 
     # ensure the correct protoc compiler is installed
     protoc_install "${protoc_version}"
-    echo "===="
-
-        if test -z "${protoc_bin}"
-        then
-            err_usage "ERROR: no proto-bin specified and protoc could not be discovered"
-            return 1
-        fi
+    if test -z "${protoc_bin}" ; then
+        exit 1
+    fi
 
     # ensure these tools are installed
-    ${SCRIPT_DIR}/proto-tools.sh
+    proto_tools_install
+    # ${SCRIPT_DIR}/proto-tools.sh
 
     declare -a proto_files
     while IFS= read -r pkg; do
