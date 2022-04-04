@@ -5,22 +5,30 @@ description: >-
   Configuring the Consul Helm chart to use gossip encryption key stored in Vault.
 ---
 
+
+## Pre-requisites
+Prior to setting up data integration between Vault and Consul on Kubernetes, you will need to have:  
+1. Read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
+2. Read the [Data Integration Overview](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 # Storing Gossip Encryption Key in Vault
 
-To use a gossip encryption key stored in Vault we need the following:
+To use a gossip encryption key stored in Vault, we will follow the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration):
 
-1. Generate and store an encryption key in Vault.
-1. Create policies that will allow Consul client and server to access that key.
-1. Create a Kubernetes auth roles that link policies from step 2 to Kubernetes service accounts of the Consul servers and clients.
+- One time set up in Vault
+  1. Store the secret in Vault.
+  1. Create a Vault policy that authorizes the desired level of access to the secret.
+- Set up per Consul data center
+  1. Create a Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
+  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart..
 
-## Configuring Vault
-
+## One time set up in Vault
+### Store the Secret in Vault
 First, generate and store the gossip key in Vault:
 
 ```shell-session
 $ vault kv put secret/consul/gossip key="$(consul keygen)"
 ```
-
+### Create a Vault policy that authorizes the desired level of access to the secret
 Next, we will need to create a policy that allows read access to this secret:
 
 
@@ -38,8 +46,8 @@ path "secret/data/consul/gossip" {
 $ vault policy write gossip-policy gossip-policy.hcl
 ```
 
-Prior to creating Vault auth roles for the Consul servers and clients, ensure that the Vault Kubernetes auth method is enabled as described in [Vault Kubernetes Auth Method](/docs/k8s/installation/vault#vault-kubernetes-auth-method).
-
+## Set up per Consul data center
+### Create a Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access
 Next, we will create Kubernetes auth roles for the Consul server and client:
 
 ```shell-session
@@ -71,7 +79,7 @@ you can run the following `helm template` commands with your Consul on Kubernete
   $ helm template --release-name ${RELEASE_NAME} -s templates/client-serviceaccount.yaml hashicorp/consul
   ```
 
-## Deploying the Consul Helm chart
+## Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
 
 Now that we've configured Vault, you can configure the Consul Helm chart to
 use the gossip key in Vault:

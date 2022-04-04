@@ -5,19 +5,22 @@ description: >-
   Overview of the data integration aspects to using Vault as secrets backend for Consul on Kubernetes.
 ---
 
-# Vault as the secrets backend - Systems Integration
+# Vault as the secrets backend - Data Integration
+
+## Pre-requisites
+Prior to setting up data integration between Vault and Consul on Kubernetes, you will need to have read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 
 ## Overview
 Generally, for each secret you wish to store in Vault, the process to integrate the date between Vault and Consul on Kubernetes is: 
-- One time set up on Vault
+- One time set up in Vault
   1. Store the secret in Vault.
   1. Create a Vault policy that authorizes the desired level of access to the secret.
 - Set up per Consul data center
   1. Create a Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
-  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
+  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
 
 For example, at a high level, the steps for [Gossip encryption key](/docs/k8s/installation/vault/data-integration/gossip) would be:
-- One time set up on Vault
+- One time set up in Vault
   1. Store the secret in Vault.
       - You save the gossip encryption key in Vault at the path `secret/consul/gossip`.
   1. Create a Vault policy that authorizes the desired level of access to the secret.
@@ -27,13 +30,16 @@ For example, at a high level, the steps for [Gossip encryption key](/docs/k8s/in
       - Both Consul servers and Consul clients need access to the gossip encryption key, so you create two Vault Kubernetes:
         - A role called `consul-server` that maps the Kubernetes namespace and service account name for your consul servers to the `gossip-policy` created in step 2.
         - A role called `consul-client` that maps the Kubernetes namespace and service account name for your consul clients to the `gossip-policy` created in step 2.
-  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
+  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
       - You configure the Vault Kubernetes auth roles created for the gossip encryption key:
         - [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole) is set to the `consul-server` Vault Kubernetesauth role created previously.
         - [`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole) is set to the `consul-client` Vault Kubernetesauth role created previously.
 
 ## Secrets to Service Account Mapping 
-At the most basic level, the goal of this configuration is to authorize a Consul on Kubernetes service account to access a secret in Vault. Below is a mapping of Vault secrets and the Consul on Kubernetes service accounts that need to access them. (NOTE: `Consul components` refers to all other services and jobs that are not Consul servers or clients. It includes things like terminating gateways, ingress gateways, etc.)
+At the most basic level, the goal of this configuration is to authorize a Consul on Kubernetes service account to access a secret in Vault. 
+Below is a mapping of Vault secrets and the Consul on Kubernetes service accounts that need to access them. 
+(NOTE: `Consul components` refers to all other services and jobs that are not Consul servers or clients. 
+It includes things like terminating gateways, ingress gateways, etc.)
 
 | Secret | Service Account For | Configurable Role in Consul k8s Helm |
 | ------ | ------------------- | ------------------------------------ |
@@ -48,7 +54,7 @@ At the most basic level, the goal of this configuration is to authorize a Consul
 ### Combining policies within roles
 As you can see in the table above, depending upon your needs, a Consul on Kubernetes service account could have the need to request more than one secret.  In these cases, you will want to create one role for the Consul on Kubernetes service account that is mapped to multiple policies, each of which allows it access to a given secret.  For example, if your Consul on Kubernetes servers need access to [Gossip encryption key](/docs/k8s/installation/vault/data-integration/gossip), [Consul Server TLS credentials](/docs/k8s/installation/vault/data-integration/server-tls), and [Enterprise license](/docs/k8s/installation/vault/data-integration/enterprise-license), assuming you have already saved the secrets in vault, you would:
 1. Create a policy for each secret.
-    - Gossip encryption key
+    * Gossip encryption key
 
     <CodeBlockConfig filename="gossip-policy.hcl">
 
@@ -64,7 +70,7 @@ As you can see in the table above, depending upon your needs, a Consul on Kubern
     $ vault policy write gossip-policy gossip-policy.hcl
     ```
 
-    - Consul Server TLS credentials
+    * Consul Server TLS credentials
 
     <CodeBlockConfig filename="ca-policy.hcl">
 
@@ -80,7 +86,7 @@ As you can see in the table above, depending upon your needs, a Consul on Kubern
     $ vault policy write ca-policy ca-policy.hcl
     ```
 
-    - Enterprise License
+    * Enterprise License
 
     <CodeBlockConfig filename="license-policy.hcl">
 
