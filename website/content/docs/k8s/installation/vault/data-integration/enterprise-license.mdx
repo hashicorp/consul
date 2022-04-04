@@ -7,27 +7,38 @@ description: >-
 
 # Storing the Enterprise License in Vault
 
-To use an enterprise license stored in Vault, the steps will be similar to [Storing Gossip Encryption Key in Vault](/docs/k8s/installation/vault/gossip). You need to do the following:
+## Pre-requisites
+Prior to setting up data integration between Vault and Consul on Kubernetes, you will need to have:  
+1. Read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
+2. Read the [Data Integration Overview](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 
-1. Store an enterprise license key in Vault's KV2 secrets engine.
-1. Create Vault Policies that allow read access to the key.
-1. Create a Vault Kubernetes Auth Role that links policies from step 2 to the Kubernetes service accounts of the Consul servers and clients.
+## Overview
+To use an enterprise license stored in Vault, we will follow the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration):
 
-## Configuring Vault
+- One time set up in Vault
+  1. Store the secret in Vault.
+  1. Create a Vault policy that authorizes the desired level of access to the secret.
+- Set up per Consul data center
+  1. Create a Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
+  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart..
+
+## One time set up in Vault
+### Store the Secret in Vault
 
 First, store the license key in Vault:
 
 ```shell-session
-$ vault kv put secret/consul/enterpriselicense key="<enterprise license>"
+$ vault kv put secret/consul/license key="<enterprise license>"
 ```
 
+### Create a Vault policy that authorizes the desired level of access to the secret
 Next, you will need to create a policy that allows read access to this secret:
 
 
-<CodeBlockConfig filename="enterpriselicense-policy.hcl">
+<CodeBlockConfig filename="license-policy.hcl">
 
 ```HCL
-path "secret/data/consul/enterpriselicense" {
+path "secret/data/consul/license" {
   capabilities = ["read"]
 }
 ```
@@ -35,10 +46,11 @@ path "secret/data/consul/enterpriselicense" {
 </CodeBlockConfig>
 
 ```shell-session
-$ vault policy write enterpriselicense-policy enterpriselicense-policy.hcl
+$ vault policy write license-policy license-policy.hcl
 ```
 
-Prior to creating Vault auth roles for the Consul servers and clients, ensure that the Vault Kubernetes auth method is enabled as described in [Vault Kubernetes Auth Method](/docs/k8s/installation/vault#vault-kubernetes-auth-method).
+## Set up per Consul data center
+### Create a Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access
 
 Next, you will create Kubernetes auth roles for the Consul server and client:
 
@@ -46,7 +58,7 @@ Next, you will create Kubernetes auth roles for the Consul server and client:
 $ vault write auth/kubernetes/role/consul-server \
     bound_service_account_names=<Consul server service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
-    policies=enterpriselicense-policy \
+    policies=license-policy \
     ttl=1h
 ```
 
@@ -54,7 +66,7 @@ $ vault write auth/kubernetes/role/consul-server \
 $ vault write auth/kubernetes/role/consul-client \
     bound_service_account_names=<Consul client service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
-    policies=enterpriselicense-policy \
+    policies=license-policy \
     ttl=1h
 ```
 
