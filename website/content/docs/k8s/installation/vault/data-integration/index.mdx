@@ -8,7 +8,7 @@ description: >-
 # Vault as the secrets backend - Data Integration
 
 ## Pre-requisites
-Prior to setting up data integration between Vault and Consul on Kubernetes, you will need to have read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
+Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 
 ## Overview
 Generally, for each secret you wish to store in Vault, the process to integrate the date between Vault and Consul on Kubernetes is: 
@@ -16,7 +16,7 @@ Generally, for each secret you wish to store in Vault, the process to integrate 
   1. Store the secret in Vault.
   1. Create a Vault policy that authorizes the desired level of access to the secret.
 - Set up per Consul data center
-  1. Create a Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
+  1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
   1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
 
 For example, at a high level, the steps for [Gossip encryption key](/docs/k8s/installation/vault/data-integration/gossip) would be:
@@ -26,7 +26,7 @@ For example, at a high level, the steps for [Gossip encryption key](/docs/k8s/in
   1. Create a Vault policy that authorizes the desired level of access to the secret.
       - You create a Vault policy that you name `gossip-policy` which allows `read` access to the path `secret/consul/gossip`.
 - Set up per Consul data center
-  1. Create a Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
+  1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
       - Both Consul servers and Consul clients need access to the gossip encryption key, so you create two Vault Kubernetes:
         - A role called `consul-server` that maps the Kubernetes namespace and service account name for your consul servers to the `gossip-policy` created in step 2.
         - A role called `consul-client` that maps the Kubernetes namespace and service account name for your consul clients to the `gossip-policy` created in step 2.

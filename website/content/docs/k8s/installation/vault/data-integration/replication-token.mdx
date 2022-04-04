@@ -8,19 +8,19 @@ description: >-
 # Storing the ACL Replication Token in Vault
 
 ## Pre-requisites
-Prior to setting up data integration between Vault and Consul on Kubernetes, you will need to have:  
+Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have:  
 1. Read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 2. Read the [Data Integration Overview](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 
 ## Overview
-To use an ACL replication token stored in Vault, we will follow the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration):
+To use an ACL replication token stored in Vault, we will follow the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
 
 - One time set up in Vault
   1. Store the secret in Vault.
   1. Create a Vault policy that authorizes the desired level of access to the secret.
 - Set up per Consul data center
-  1. Create a Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
-  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart..
+  1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
+  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
 
 ## One time set up in Vault
 ### Store the Secret in Vault
@@ -50,10 +50,12 @@ path "secret/data/consul/replication-token" {
 $ vault policy write replication-token-policy replication-token-policy.hcl
 ```
 
-## Set up per Consul data center
-### Create a Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access
+-> **Note:** The secret path referenced by the above Policy will be your `global.acls.replicationToken.secretName` Helm value.
 
-Next, you will create Kubernetes auth roles for the Consul ACL manger, which is technically the `server-acl-init` container that runs as part of the Consul server statefulset:
+## Set up per Consul data center
+### Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access
+
+Next, you will create Kubernetes auth roles for the Consul`server-acl-init` job:
 
 ```shell-session
 $ vault write auth/kubernetes/role/consul-acl-manager \
@@ -68,7 +70,7 @@ you can run the following `helm template` command with your Consul on Kubernetes
 
 - Generate Consul server service account name
   ```shell-session
-  $ helm template --release-name ${RELEASE_NAME} -s templates/server-serviceaccount.yaml hashicorp/consul
+  $ helm template --release-name ${RELEASE_NAME} -s templates/server-acl-init-serviceaccount.yaml hashicorp/consul
   ```
 
 ## Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
@@ -83,7 +85,7 @@ global:
   secretsBackend:
     vault:
       enabled: true
-      manageSystemACLsRole: consul-acl-manager
+      manageSystemACLsRole: consul-server-acl-init
   acls:
     replicationToken:
       secretName: secret/data/consul/replication-token
