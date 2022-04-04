@@ -285,7 +285,8 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 	rootPEM, err := v.getCA(v.config.RootPKIPath)
 	switch err {
 	case ErrBackendNotMounted:
-		err := v.client.Sys().Mount(v.config.RootPKIPath, &vaultapi.MountInput{
+
+		err := v.mountNamespaced(v.config.RootPKINamespace, v.config.RootPKIPath, &vaultapi.MountInput{
 			Type:        "pki",
 			Description: "root CA backend for Consul Connect",
 			Config: vaultapi.MountConfigInput{
@@ -361,14 +362,13 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 	_, err := v.getCA(v.config.IntermediatePKIPath)
 	if err != nil {
 		if err == ErrBackendNotMounted {
-			err := v.client.Sys().Mount(v.config.IntermediatePKIPath, &vaultapi.MountInput{
+			err := v.mountNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath, &vaultapi.MountInput{
 				Type:        "pki",
 				Description: "intermediate CA backend for Consul Connect",
 				Config: vaultapi.MountConfigInput{
 					MaxLeaseTTL: v.config.IntermediateCertTTL.String(),
 				},
 			})
-
 			if err != nil {
 				return err
 			}
@@ -380,6 +380,7 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 	// Create the role for issuing leaf certs if it doesn't exist yet
 	rolePath := v.config.IntermediatePKIPath + "roles/" + VaultCALeafCertRole
 	role, err := v.client.Logical().Read(rolePath)
+
 	if err != nil {
 		return err
 	}
@@ -392,6 +393,7 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 			"no_store":         true,
 			"require_cn":       false,
 		})
+
 		if err != nil {
 			return err
 		}
@@ -691,7 +693,7 @@ func (v *VaultProvider) Cleanup(providerTypeChange bool, otherConfig map[string]
 		}
 	}
 
-	err := v.client.Sys().Unmount(v.config.IntermediatePKIPath)
+	err := v.unmountNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath)
 
 	switch err {
 	case ErrBackendNotMounted, ErrBackendNotInitialized:
@@ -708,6 +710,42 @@ func (v *VaultProvider) Stop() {
 }
 
 func (v *VaultProvider) PrimaryUsesIntermediate() {}
+
+// We use raw path here
+func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
+	fullPath := makePathHelper(namespace, path)
+
+	r := v.client.NewRequest("POST", fullPath)
+	if err := r.SetJSONBody(mountInfo); err != nil {
+		return err
+	}
+	resp, err := v.client.RawRequest(r)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	return err
+}
+
+func (v *VaultProvider) unmountNamespaced(namespace, path string) error {
+	fullPath := makePathHelper(namespace, path)
+
+	r := v.client.NewRequest("DELETE", fullPath)
+	resp, err := v.client.RawRequest(r)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	return err
+}
+
+func makePathHelper(namespace, path string) string {
+	var fullPath string
+	if namespace != "" {
+		fullPath = fmt.Sprintf("/v1/%s/sys/mounts/%s", namespace, path)
+	} else {
+		fullPath = fmt.Sprintf("/v1/sys/mounts/%s", path)
+	}
+	return fullPath
+}
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
 	config := structs.VaultCAProviderConfig{

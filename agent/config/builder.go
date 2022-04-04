@@ -697,16 +697,18 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			"intermediate_cert_ttl": "IntermediateCertTTL",
 
 			// Vault CA config
-			"address":               "Address",
-			"token":                 "Token",
-			"root_pki_path":         "RootPKIPath",
-			"intermediate_pki_path": "IntermediatePKIPath",
-			"ca_file":               "CAFile",
-			"ca_path":               "CAPath",
-			"cert_file":             "CertFile",
-			"key_file":              "KeyFile",
-			"tls_server_name":       "TLSServerName",
-			"tls_skip_verify":       "TLSSkipVerify",
+			"address":                    "Address",
+			"token":                      "Token",
+			"root_pki_path":              "RootPKIPath",
+			"root_pki_namespace":         "RootPKINamespace",
+			"intermediate_pki_path":      "IntermediatePKIPath",
+			"intermediate_pki_namespace": "IntermediatePKINamespace",
+			"ca_file":                    "CAFile",
+			"ca_path":                    "CAPath",
+			"cert_file":                  "CertFile",
+			"key_file":                   "KeyFile",
+			"tls_server_name":            "TLSServerName",
+			"tls_skip_verify":            "TLSSkipVerify",
 
 			// AWS CA config
 			"existing_arn":   "ExistingARN",
