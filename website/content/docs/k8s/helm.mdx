@@ -448,11 +448,12 @@ Use these links to navigate to a particular top-level stanza.
     - `k8sAuthMethodHost` ((#v-global-federation-k8sauthmethodhost)) (`string: null`) - If you are setting `global.federation.enabled` to true and are in a secondary datacenter,
       set `k8sAuthMethodHost` to the address of the Kubernetes API server of the secondary datacenter.
       This address must be reachable from the Consul servers in the primary datacenter.
-      This authmethod will be used to provision ACL tokens for Consul components and is different
-      from the one used by the Consul Service Mesh.
-      Please see the Kubernetes Auth Method documentation (https://consul.io/docs/acl/auth-methods/kubernetes).
 
-      You could retrieve this value from your `kubeconfig` by running:
+      This auth method will be used to provision ACL tokens for Consul components and is different
+      from the one used by the Consul Service Mesh.
+      Please see the [Kubernetes Auth Method documentation](https://consul.io/docs/acl/auth-methods/kubernetes) for additional information.
+
+      You can retrieve this value from your `kubeconfig` by running:
 
       ```shell-session
       $ kubectl config view \
