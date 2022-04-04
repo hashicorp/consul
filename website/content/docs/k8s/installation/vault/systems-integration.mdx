@@ -9,7 +9,7 @@ description: >-
 
 ## Overview
 At a high level, configuring a systems integration of Vault with Consul on Kubernetes consists of the following steps:
-- One time set up in Vault
+- One time set up on Vault
   - Enabling Vault KV Secrets Engine - Version 2 to store arbitrary secrets
   - Enabling Vault PKI Engine if you are choosing to store and manage either [Consul Server TLS credentials](/docs/k8s/installation/vault/data-integration/server-tls) or [Service Mesh and Consul client TLS credentials](/docs/k8s/installation/vault/data-integration/connect-ca)
 - Set up per Consul data center
@@ -17,7 +17,7 @@ At a high level, configuring a systems integration of Vault with Consul on Kuber
   - Configuring a Kubernetes Auth Method in Vault to authenticate and authorize operations from the Consul data center
   - Enable Vault as the secrets backend in the Consul data center
 
-## One time set up in Vault
+## One time set up on Vault
 ### Vault KV Secrets Engine - Version 2
 The following secrets can be stored in Vault KV secrets engine, which is meant to handle arbitrary secrets:
 - ACL Bootstrap token ([`global.acls.bootstrapToken`](/docs/k8s/helm#v-global-acls-bootstraptoken))
