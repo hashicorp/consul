@@ -215,9 +215,8 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			if s.serverlessPluginEnabled {
 				newResourceMap, err = serverlessplugin.MutateIndexedResources(newResourceMap, xdscommon.MakePluginConfiguration(cfgSnap))
-
 				if err != nil {
-					generator.Logger.Warn("failed to patch xDS resources in the serverless plugin", "err", err)
+					return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the serverless plugin: %v", err)
 				}
 			}
 

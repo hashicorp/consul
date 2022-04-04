@@ -78,7 +78,8 @@ type PluginConfiguration struct {
 	// associated service's CompoundServiceName
 	EnvoyIDToServiceName map[string]api.CompoundServiceName
 
-	// Kind is mode the local Envoy proxy is running in
+	// Kind is mode the local Envoy proxy is running in. For now, only
+	// terminating gateways are supported.
 	Kind api.ServiceKind
 }
 

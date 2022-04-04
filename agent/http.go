@@ -228,8 +228,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			labels := []metrics.Label{{Name: "method", Value: req.Method}, {Name: "path", Value: path_label}}
 			metrics.MeasureSinceWithLabels([]string{"api", "http"}, start, labels)
 
-			// DEPRECATED Emit pre-1.9 metric as `consul.http...` to maintain backwards compatibility. Enabled by
-			// default. Users may set `telemetry { disable_compat_1.9 = true }`
+			// DEPRECATED Emit pre-1.9 metric as `consul.http...`. This will be removed in 1.13.
 			if !s.agent.config.Telemetry.DisableCompatOneNine {
 				key := append([]string{"http", req.Method}, parts...)
 				metrics.MeasureSince(key, start)

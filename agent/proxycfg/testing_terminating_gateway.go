@@ -642,13 +642,19 @@ func TestConfigSnapshotTerminatingGatewayIgnoreExtraResolvers(t testing.T) *Conf
 	})
 }
 
-func TestConfigSnapshotTerminatingGatewayWithServiceDefaultsMeta(t testing.T) *ConfigSnapshot {
+func TestConfigSnapshotTerminatingGatewayWithLambdaService(t testing.T) *ConfigSnapshot {
 	web := structs.NewServiceName("web", nil)
 	return TestConfigSnapshotTerminatingGateway(t, true, nil, []agentcache.UpdateEvent{
 		{
 			CorrelationID: serviceConfigIDPrefix + web.String(),
 			Result: &structs.ServiceConfigResponse{
-				Meta: map[string]string{"a": "b"},
+				ProxyConfig: map[string]interface{}{"protocol": "http"},
+				Meta: map[string]string{
+					"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
+					"serverless.consul.hashicorp.com/v1alpha1/lambda/arn":                 "lambda-arn",
+					"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "true",
+					"serverless.consul.hashicorp.com/v1alpha1/lambda/region":              "us-east-1",
+				},
 			},
 		},
 	})

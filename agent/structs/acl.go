@@ -160,7 +160,8 @@ func (s *ACLServiceIdentity) SyntheticPolicy(entMeta *EnterpriseMeta) *ACLPolicy
 	policy := &ACLPolicy{}
 	policy.ID = hashID
 	policy.Name = fmt.Sprintf("synthetic-policy-%s", hashID)
-	policy.Description = "synthetic policy"
+	sn := NewServiceName(s.ServiceName, entMeta)
+	policy.Description = fmt.Sprintf("synthetic policy for service identity %q", sn.String())
 	policy.Rules = rules
 	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = s.Datacenters
@@ -204,7 +205,7 @@ func (s *ACLNodeIdentity) SyntheticPolicy(entMeta *EnterpriseMeta) *ACLPolicy {
 	policy := &ACLPolicy{}
 	policy.ID = hashID
 	policy.Name = fmt.Sprintf("synthetic-policy-%s", hashID)
-	policy.Description = "synthetic policy"
+	policy.Description = fmt.Sprintf("synthetic policy for node identity %q", s.NodeName)
 	policy.Rules = rules
 	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = []string{s.Datacenter}
@@ -1219,7 +1220,8 @@ func (r *ACLTokenSetRequest) RequestDatacenter() string {
 type ACLTokenGetRequest struct {
 	TokenID     string         // id used for the token lookup
 	TokenIDType ACLTokenIDType // The Type of ID used to lookup the token
-	Datacenter  string         // The datacenter to perform the request within
+	Expanded    bool
+	Datacenter  string // The datacenter to perform the request within
 	EnterpriseMeta
 	QueryOptions
 }
@@ -1315,7 +1317,26 @@ type ACLTokenResponse struct {
 	Token            *ACLToken
 	Redacted         bool // whether the token's secret was redacted
 	SourceDatacenter string
+
+	ExpandedTokenInfo
 	QueryMeta
+}
+
+type ExpandedTokenInfo struct {
+	ExpandedPolicies []*ACLPolicy
+	ExpandedRoles    []*ACLRole
+
+	NamespaceDefaultPolicyIDs []string
+	NamespaceDefaultRoleIDs   []string
+
+	AgentACLDefaultPolicy string
+	AgentACLDownPolicy    string
+	ResolvedByAgent       string
+}
+
+type ACLTokenExpanded struct {
+	*ACLToken
+	ExpandedTokenInfo
 }
 
 // ACLTokenBatchResponse returns multiple Tokens associated with the same metadata

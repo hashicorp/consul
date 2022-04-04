@@ -1,0 +1,135 @@
+section[data-route='dc.show.serverstatus'] {
+  @extend %serverstatus-route;
+}
+%serverstatus-route .server-failure-tolerance {
+  @extend %server-failure-tolerance;
+}
+%serverstatus-route .redundancy-zones {
+  @extend %redundancy-zones;
+}
+%redundancy-zones section {
+  @extend %redundancy-zone;
+}
+
+/**/
+
+%serverstatus-route h2,
+%serverstatus-route h3 {
+  @extend %h200;
+}
+
+%server-failure-tolerance {
+  @extend %panel;
+  box-shadow: var(--decor-elevation-000);
+  padding: var(--padding-y) var(--padding-x);
+  width: 770px;
+  display: flex;
+  flex-wrap: wrap;
+}
+%server-failure-tolerance > header {
+  width: 100%;
+  padding-bottom: 0.500rem; /* 8px */
+  margin-bottom: 1rem; /* 16px */
+  border-bottom: var(--decor-border-100);
+  border-color: rgb(var(--tone-border));
+}
+%server-failure-tolerance header em {
+  @extend %pill-200;
+  font-size: 0.812rem; /* 13px */
+  background-color: rgb(var(--tone-gray-200));
+
+  text-transform: uppercase;
+  font-style: normal;
+
+}
+%server-failure-tolerance > section {
+  width: 50%;
+}
+%server-failure-tolerance > section,
+%server-failure-tolerance dl {
+  display: flex;
+  flex-direction: column;
+}
+%server-failure-tolerance dl {
+  flex-grow: 1;
+  justify-content: space-between;
+}
+%server-failure-tolerance dd {
+  display: flex;
+  align-items: center;
+}
+%server-failure-tolerance dl.warning dd::before {
+  --icon-name: icon-alert-circle;
+  --icon-resolution: .5;
+  --icon-size: icon-800;
+  --icon-color: rgb(var(--tone-orange-400));
+  content: '';
+  margin-right: 0.500rem; /* 8px */
+}
+%server-failure-tolerance section:first-of-type dl {
+  padding-right: 1.500rem; /* 24px */
+}
+%server-failure-tolerance dt {
+  @extend %p2;
+  color: rgb(var(--tone-gray-700));
+}
+%server-failure-tolerance dd {
+  font-size: var(--typo-size-250);
+  color: rgb(var(--tone-gray-999));
+}
+%server-failure-tolerance header span::before {
+  --icon-name: icon-info;
+  --icon-size: icon-300;
+  --icon-color: rgb(var(--tone-gray-500));
+  vertical-align: unset;
+  content: '';
+}
+
+%serverstatus-route section:not([class*='-tolerance']) h2 {
+  margin-top: 1.5rem; /* 24px */
+  margin-bottom: 1.5rem; /* 24px */
+}
+%serverstatus-route section:not([class*='-tolerance']) header {
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
+
+
+%redundancy-zones h3 {
+  @extend %h300;
+}
+%redundancy-zone header {
+  display: flow-root;
+}
+%redundancy-zone header h3 {
+  float: left;
+  margin-right: 0.5rem; /* 8px */
+}
+
+%redundancy-zone header dl {
+  @extend %horizontal-kv-list;
+  @extend %pill-500;
+}
+%redundancy-zone header dt {
+  @extend %visually-unhidden;
+}
+%redundancy-zone header dl:not(.warning) {
+  background-color: rgb(var(--tone-gray-100));
+}
+%redundancy-zone header dl.warning {
+  background-color: rgb(var(--tone-orange-100));
+  color: rgb(var(--tone-orange-800));
+}
+%redundancy-zone header dl.warning::before {
+  --icon-name: icon-alert-circle;
+  --icon-size: icon-000;
+  margin-right: 0.312rem; /* 5px */
+  content: '';
+}
+%redundancy-zone header dt::after {
+  content: ':';
+  display: inline-block;
+  vertical-align: revert;
+  background-color: var(--transparent);
+}
+

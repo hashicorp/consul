@@ -28,6 +28,7 @@ type cmd struct {
 	self     bool
 	showMeta bool
 	format   string
+	expanded bool
 }
 
 func (c *cmd) init() {
@@ -36,6 +37,8 @@ func (c *cmd) init() {
 		"as the content hash and Raft indices should be shown for each entry")
 	c.flags.BoolVar(&c.self, "self", false, "Indicates that the current HTTP token "+
 		"should be read by secret ID instead of expecting a -id option")
+	c.flags.BoolVar(&c.expanded, "expanded", false, "Indicates that the contents of the "+
+		" policies and roles affecting the token should also be shown.")
 	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to read. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs")
@@ -69,6 +72,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	var t *api.ACLToken
+	var expanded *api.ACLTokenExpanded
 	if !c.self {
 		tokenID, err := acl.GetTokenIDFromPartial(client, c.tokenID)
 		if err != nil {
@@ -76,7 +80,12 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
-		t, _, err = client.ACL().TokenRead(tokenID, nil)
+		if !c.expanded {
+			t, _, err = client.ACL().TokenRead(tokenID, nil)
+		} else {
+			expanded, _, err = client.ACL().TokenReadExpanded(tokenID, nil)
+		}
+
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error reading token %q: %v", tokenID, err))
 			return 1
@@ -94,7 +103,12 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(err.Error())
 		return 1
 	}
-	out, err := formatter.FormatToken(t)
+	var out string
+	if !c.expanded {
+		out, err = formatter.FormatToken(t)
+	} else {
+		out, err = formatter.FormatTokenExpanded(expanded)
+	}
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1

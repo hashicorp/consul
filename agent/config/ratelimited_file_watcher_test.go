@@ -87,5 +87,5 @@ func TestEventRateLimitedWatcherMove(t *testing.T) {
 		require.NoError(t, err)
 	}
 	require.NoError(t, assertEvent(filepath, w.EventsCh(), defaultTimeout))
-	require.Error(t, assertEvent(filepath, w.EventsCh(), defaultTimeout), "timedout waiting for event")
+	require.Error(t, assertEvent(filepath, w.EventsCh(), defaultTimeout), "expected timeout error")
 }

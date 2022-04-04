@@ -108,21 +108,56 @@ export default class DcService extends RepositoryService {
       GET /v1/operator/autopilot/state?${{ dc }}
       X-Request-ID: ${uri}
     `)(
-      (headers, body, cache) => ({
-        meta: {
-          version: 2,
-          uri: uri,
-          interval: 30 * SECONDS
-        },
-        body: cache(
-          {
-            ...body,
-            // turn servers into an array instead of a map/object
-            Servers: Object.values(body.Servers)
+      (headers, body, cache) => {
+        // turn servers into an array instead of a map/object
+        const servers = Object.values(body.Servers);
+        const grouped = [];
+        return {
+          meta: {
+            version: 2,
+            uri: uri,
           },
-          uri => uri`${MODEL_NAME}:///${''}/${''}/${dc}/datacenter`
-        )
-      })
+          body: cache(
+            {
+              ...body,
+              // all servers
+              Servers: servers,
+              RedundancyZones: Object.entries(body.RedundancyZones || {}).map(([key, value]) => {
+                const zone = {
+                  ...value,
+                  Name: key,
+                  Healthy: true,
+                  // convert the string[] to Server[]
+                  Servers: value.Servers.reduce((prev, item) => {
+                    const server = body.Servers[item];
+                    // TODO: It is not currently clear whether we should be
+                    // taking ReadReplicas out of the RedundancyZones when we
+                    // encounter one in a Zone once this is cleared up either
+                    // way we can either remove this comment or make any
+                    // necessary amends here
+                    if(!server.ReadReplica) {
+                      // keep a record of things
+                      grouped.push(server.ID);
+                      prev.push(server);
+                    }
+                    return prev;
+                  }, []),
+                }
+                return zone;
+              }),
+              ReadReplicas: (body.ReadReplicas || []).map(item => {
+                // keep a record of things
+                grouped.push(item);
+                return body.Servers[item];
+              }),
+              Default: {
+                Servers: servers.filter(item => !grouped.includes(item.ID))
+              }
+            },
+            uri => uri`${MODEL_NAME}:///${''}/${''}/${dc}/datacenter`
+          )
+        }
+      }
     );
   }
 

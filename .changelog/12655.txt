@@ -1,0 +1,4 @@
+```release-note:improvement
+Removed impediments to using a namespace prefixed IntermediatePKIPath
+in a CA definition. 
+```
