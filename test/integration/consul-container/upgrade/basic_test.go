@@ -15,9 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const currentImage = "consul:local"
-
-var loc = flag.String("cur-image", "consul:local", "docker image to be used as current")
+var curImage = flag.String("cur-image", "consul:local", "docker image to be used as current")
 
 func TestBasic(t *testing.T) {
 	consulNode, err := consulcontainer.NewNode()
@@ -44,7 +42,7 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 				ConsulConfig: `node_name="` + utils.RandName("consul-client") + `"
 					log_level="TRACE"`,
 				Cmd:   []string{"agent", "-client=0.0.0.0"},
-				Image: currentImage,
+				Image: *curImage,
 			})
 
 		require.NoError(t, err)
@@ -63,7 +61,7 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 
 func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	numServers := 3
-	Servers, err := serversCluster(t, numServers, currentImage)
+	Servers, err := serversCluster(t, numServers, *curImage)
 	require.NoError(t, err)
 	defer Terminate(t, Servers)
 	numClients := 2
@@ -74,7 +72,7 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 				ConsulConfig: `node_name="` + utils.RandName("consul-client") + `"
 					log_level="TRACE"`,
 				Cmd:   []string{"agent", "-client=0.0.0.0"},
-				Image: currentImage,
+				Image: *curImage,
 			})
 
 		require.NoError(t, err)
@@ -101,7 +99,7 @@ func TestMixedServersMajorityLatest(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 			Cmd:   []string{"agent", "-client=0.0.0.0"},
-			Image: currentImage,
+			Image: *curImage,
 		})
 
 	require.NoError(t, err)
@@ -154,7 +152,7 @@ func TestMixedServersMajorityCurrent(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 				Cmd:   []string{"agent", "-client=0.0.0.0"},
-				Image: currentImage,
+				Image: *curImage,
 			})
 
 		require.NoError(t, err)
